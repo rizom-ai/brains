@@ -20,7 +20,7 @@ export function workspaceBadge(
 }
 
 export function navigationTypeLabel(info: EntityTypeInfo): string {
-  if (info.entityType === "grouping-vocabulary") return "Groupings";
+  if (info.entityType === "grouping-definitions") return "Groupings";
   return info.isSingleton && info.entityType !== "settings"
     ? singularLabel(info.label)
     : info.label;

@@ -9,7 +9,7 @@ import {
 
 const policy = defineEntity({
   type: "fixture-policy",
-  purpose: "Repairable vocabulary",
+  purpose: "Repairable document-owned policy",
   metadata: z.object({}),
   singleton: true,
   hasBody: false,
@@ -34,15 +34,7 @@ export const groupingTypeCanary = defineServicePlugin(
   },
   {
     groupings: () => ({
-      definitions: [
-        {
-          key: "labels",
-          label: "Labels",
-          field: "labels",
-          types: ["fixture-record"],
-        },
-      ],
-      vocabulary: { entity: policy, read: (): Record<string, never> => ({}) },
+      source: { entity: policy, read: (): Record<string, never> => ({}) },
     }),
   },
 );
@@ -80,8 +72,7 @@ export async function groupingReads(
 
 export function forbiddenValidator(): ServiceGroupingDeclaration {
   return {
-    definitions: [],
-    vocabulary: {
+    source: {
       entity: policy,
       read: () => ({}),
       // @ts-expect-error no arbitrary foreign entity validation callback

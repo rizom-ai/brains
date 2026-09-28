@@ -189,7 +189,7 @@ const channelPermissions: ResolvedBundlePermissionContribution[] = [
     member: "studio",
     config: {
       entityActions: {
-        "grouping-vocabulary": {
+        "grouping-definitions": {
           create: "admin",
           update: "admin",
           delete: "admin",
@@ -400,7 +400,7 @@ describe("canonical bundle taxonomy", () => {
     );
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
     expect(
-      personal.permissions?.entityActions?.["grouping-vocabulary"],
+      personal.permissions?.entityActions?.["grouping-definitions"],
     ).toEqual({
       create: "admin",
       update: "admin",

@@ -1,10 +1,12 @@
 # Plan: Studio Virtual Collections
 
-Last updated: 2026-09-20
+Last updated: 2026-09-25
 
 ## Status
 
-**Foundation implementation and local acceptance complete. PR #302 now continues into [grouping vocabularies](./studio-grouping-vocabularies.md) in the same branch/worktree; this foundation no longer lands separately. Not released or deployed.**
+**Historical rollout:** PR #302 merged and the original collections/vocabulary implementation shipped in Brain/Ops `0.2.0-alpha.404`, deployed smoke-only. The implementation details and acceptance below describe that original model, not the later definitions redesign.
+
+The feature branch now replaces configuration/vocabulary ownership with one Groupings document; see the [current Studio contract](../../plugins/studio/README.md#virtual-collections). That redesign is not released or deployed. Its isolated authenticated running-app acceptance has passed; release and smoke-only test deployment remain pending. Smoke is the only site using the old feature, so no legacy converter or conversion rehearsal is required. Original fixtures describe the earlier implementation, not acceptance of the replacement.
 
 Implementation worktree: `studio-virtual-collections-implementation`, branch `feat/studio-virtual-collections`. The original planning worktree is unchanged.
 

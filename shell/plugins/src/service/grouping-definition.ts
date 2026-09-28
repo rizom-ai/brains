@@ -1,158 +1,148 @@
 import { z } from "@brains/utils/zod";
-import {
-  entityGroupingSchema,
-  groupingKeySchema,
-  type EntityGrouping,
-} from "@brains/entity-service";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import { internalFullScope, type BaseEntity } from "@brains/entity-service";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { ServicePluginContext } from "./context";
+import { GroupingDefinitionSource } from "../internal/document-grouping-source";
+import type { GroupingDefinitionsSnapshot } from "../internal/grouping-source-contract";
 
-export interface GroupingVocabularyValue {
-  readonly multiple: boolean;
-  readonly values: readonly string[];
-}
+export type {
+  GroupingDefinition,
+  GroupingDefinitionsSnapshot,
+} from "../internal/grouping-source-contract";
 
-/** Named consumer: Studio. No arbitrary validators or foreign write authority. */
+/** One owned control document, not registry access or arbitrary persist validators. */
 export interface ServiceGroupingDeclaration {
-  readonly definitions: readonly EntityGrouping[];
-  readonly vocabulary?: {
+  readonly source: {
     readonly entity: AnyEntityDefinition;
-    /** Strict source decoding; malformed stored policy reopens its groups for repair. */
-    readonly read: (
-      content: string,
-    ) => Readonly<Record<string, GroupingVocabularyValue>>;
+    /** Decode the document's grouping map. The runtime independently validates it. */
+    readonly read: (content: string) => unknown;
+    /** Detached policy/repair metadata for the owning service's presentation. */
+    readonly publish?:
+      ((snapshot: GroupingDefinitionsSnapshot) => void) | undefined;
   };
 }
 
-const vocabularySchema = z.record(
-  groupingKeySchema,
-  z.object({
-    multiple: z.boolean(),
-    values: z.array(z.string().min(1)).min(1),
-  }),
-);
-
-/** Runtime-owned enforcement participates in the same persistence boundary as every writer. */
 export function registerDeclaredGroupings(
   declaration: ServiceGroupingDeclaration,
   context: ServicePluginContext,
   ownedTypes: ReadonlySet<string>,
+  signal: AbortSignal,
 ): void {
-  const definitions = z
-    .array(entityGroupingSchema)
-    .max(20)
-    .parse(declaration.definitions);
-  const vocabulary = declaration.vocabulary;
-  const source = vocabulary
-    ? {
-        entityType: vocabulary.entity.type,
-        read: vocabulary.read,
-      }
-    : undefined;
-  if (source) {
-    if (
-      !ownedTypes.has(source.entityType) ||
-      context.entities.getAdapter(source.entityType)?.isSingleton !== true
-    ) {
-      throw new Error("Grouping vocabulary must be an owned singleton entity");
-    }
-    const floor = context.entityService.getEntityTypeConfig(
-      source.entityType,
-    ).actionPolicy;
-    for (const action of ["create", "update", "delete"] as const) {
-      if (floor?.[action] !== "admin" && floor?.[action] !== "never") {
-        throw new Error(
-          "Grouping vocabulary requires an admin action policy floor",
-        );
-      }
-    }
+  const { entity, read, publish } = declaration.source;
+  const entityType = entity.type;
+  if (
+    !ownedTypes.has(entityType) ||
+    context.entities.getAdapter(entityType)?.isSingleton !== true
+  )
+    throw new Error("Grouping source must be an owned singleton entity");
+  const floor =
+    context.entityService.getEntityTypeConfig(entityType).actionPolicy;
+  for (const action of ["create", "update", "delete"] as const) {
+    if (floor?.[action] !== "admin" && floor?.[action] !== "never")
+      throw new Error("Grouping source requires an admin action policy floor");
   }
-  context.entities.validateGroupings(definitions);
-  for (const grouping of definitions)
-    context.entities.registerGrouping(grouping);
-  if (!source) return;
-  const decode = (content: string): z.output<typeof vocabularySchema> =>
-    vocabularySchema.parse(source.read(content));
-  context.entities.registerPersistValidator(
-    source.entityType,
-    async (entity) => {
-      const vocabulary = decode(entity.content);
-      const declared = new Set(
-        context.entities.getGroupings().map((grouping) => grouping.key),
-      );
-      const issues: z.core.$ZodIssue[] = [];
-      if (entity.id !== source.entityType)
-        issues.push({
-          code: "custom",
-          path: ["id"],
-          message:
-            "Grouping vocabulary uses its entity type as the singleton ID.",
-        });
-      for (const key of Object.keys(vocabulary)) {
-        if (!declared.has(key))
-          issues.push({
-            code: "custom",
-            path: ["groupings", key],
-            message: `Unknown grouping: ${key}`,
-          });
-      }
-      if (entity.visibility !== "shared")
-        issues.push({
-          code: "custom",
-          path: ["visibility"],
-          message:
-            "Grouping vocabularies are always shared, so the editors they constrain can read them.",
-        });
-      if (issues.length) throw new z.ZodError(issues);
-    },
-  );
-  // Entity registration precedes finalization; grouping declarations may finalize
-  // in either order. Resolve only the fixed runtime membership rule at write time.
-  for (const type of context.entityService.getEntityTypes()) {
-    context.entities.registerPersistValidator(type, async (entity) => {
-      if (!context.entities.isGroupingContributor(type)) return;
-      const applicable = context.entities
-        .getGroupings()
-        .filter((grouping) => grouping.types.includes(type));
-      if (applicable.length === 0) return;
-      // Internal read is used ONLY for enforcement; policy content is never returned
-      // through this capability. Do not cache across writes, imports or workers.
-      const stored = await context.entityService.getEntity({
-        entityType: source.entityType,
-        id: source.entityType,
-        visibilityScope: "restricted",
+  if (context.entities.getGroupings().length > 0)
+    throw new Error(
+      "Document-owned groupings cannot replace another owner's declarations",
+    );
+  const source = new GroupingDefinitionSource({
+    entityType,
+    signal,
+    decode: read,
+    read: async (): Promise<BaseEntity | null> => {
+      const row = await context.entityService.getEntityRaw({
+        entityType,
+        id: entityType,
+        visibilityScope: internalFullScope(
+          "refresh owned grouping source before use",
+        ),
       });
-      let vocabulary: z.output<typeof vocabularySchema> = {};
-      if (stored) {
-        try {
-          vocabulary = decode(stored.content);
-        } catch {
-          // Malformed stored policy must remain repairable, not deny every write.
-          vocabulary = {};
-        }
-      }
+      if (row && row.visibility !== "shared")
+        throw new Error("Grouping source must be shared");
+      return row;
+    },
+    validate: (groupings): void =>
+      context.entities.validateGroupings(groupings),
+    replace: (groupings, options): void =>
+      context.entities.replaceGroupings(groupings, options),
+  });
+  context.entities.registerGroupingSource({
+    entityType,
+    ensureCurrent: async (options) => {
+      await source.ensureCurrent(options);
+      signal.throwIfAborted();
+      publish?.(source.getSnapshot());
+    },
+  });
+  context.entities.registerPersistValidator(entityType, async (record) => {
+    signal.throwIfAborted();
+    const snapshot = source.validateContent(record.content);
+    const issues: z.core.$ZodIssue[] = snapshot.issues.map((issue) => ({
+      code: "custom",
+      ...issue,
+    }));
+    if (record.id !== entityType)
+      issues.push({
+        code: "custom",
+        path: ["id"],
+        message: "Grouping source uses its entity type as the singleton ID.",
+      });
+    if (record.visibility !== "shared")
+      issues.push({
+        code: "custom",
+        path: ["visibility"],
+        message:
+          "Grouping definitions must be shared so their editors can read them.",
+      });
+    if (issues.length) throw new z.ZodError(issues);
+  });
+  for (const type of context.entityService.getEntityTypes()) {
+    if (
+      type === entityType ||
+      !context.entities.getAdapter(type)?.frontmatterSchema ||
+      context.entityService.getEntityTypeConfig(type).binaryStorage === "asset"
+    )
+      continue;
+    context.entities.registerPersistValidator(type, async (record) => {
+      signal.throwIfAborted();
+      const definitions = Object.entries(source.getSnapshot().groupings).filter(
+        ([, value]) => value.types.includes(type),
+      );
+      if (!definitions.length) return;
+      const frontmatter = parseMarkdown(record.content, {
+        cache: false,
+      }).frontmatter;
       const issues: z.core.$ZodIssue[] = [];
-      for (const grouping of applicable) {
-        const allowed = Object.hasOwn(vocabulary, grouping.key)
-          ? vocabulary[grouping.key]
-          : undefined;
-        if (!allowed) continue;
-        const values =
-          z
-            .array(z.string())
-            .optional()
-            .parse(entity.metadata[grouping.field]) ?? [];
-        if (values.some((value) => !allowed.values.includes(value)))
+      for (const [key, definition] of definitions) {
+        const parsed = z
+          .array(z.string())
+          .optional()
+          .safeParse(frontmatter[key]);
+        if (!parsed.success) {
+          issues.push(
+            ...parsed.error.issues.map((issue) => ({
+              ...issue,
+              path: [key, ...issue.path],
+            })),
+          );
+          continue;
+        }
+        const values = parsed.data ?? [];
+        if (!definition.multiple && values.length > 1)
           issues.push({
             code: "custom",
-            path: [grouping.field],
-            message: `${grouping.label}: choose values from the configured list.`,
+            path: [key],
+            message: `${definition.label}: choose at most one value.`,
           });
-        if (!allowed.multiple && values.length > 1)
+        if (
+          definition.values &&
+          values.some((value) => !definition.values?.includes(value))
+        )
           issues.push({
             code: "custom",
-            path: [grouping.field],
-            message: `${grouping.label}: choose at most one value.`,
+            path: [key],
+            message: `${definition.label}: choose values from the configured list.`,
           });
       }
       if (issues.length) throw new z.ZodError(issues);

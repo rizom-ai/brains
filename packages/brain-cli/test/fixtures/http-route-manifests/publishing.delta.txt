@@ -34,7 +34,9 @@
 + @brains/studio:studio|handler|GET|/studio/api/entities|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/groups/catalog|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/groups/members|exact|true
++ @brains/studio:studio|handler|GET|/studio/api/groups/usage|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/hierarchy|exact|true
++ @brains/studio:studio|handler|GET|/studio/api/images|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/schema|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/sync-status|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/types|exact|true

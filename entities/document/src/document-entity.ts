@@ -429,6 +429,7 @@ export const document: EntityDefinition<
     projectionSourceRole: "excluded",
   },
   markdown: {
+    frontmatter: false,
     decode: ({ content }) => {
       // Throws on anything that is not a PDF data URL, which is the whole of
       // what the file can say about itself.

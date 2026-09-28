@@ -179,6 +179,10 @@ export function createMockEntityService(
       // the caller passed a complete entity.
       request.options?.signal?.throwIfAborted();
       const input = request.entity;
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        input.entityType,
+      );
       const now = new Date().toISOString();
       const id = input.id ?? `entity-${Date.now()}`;
       const entity: BaseEntity = {
@@ -208,6 +212,8 @@ export function createMockEntityService(
           store.adapters.get(entity.entityType)?.toMarkdown(entity) ??
           entity.content,
       });
+      request.options?.signal?.throwIfAborted();
+      await assertGroupingsCurrent();
       request.options?.signal?.throwIfAborted();
       // Check after asynchronous guards, with no yield before the write.
       const condition = request.options?.conditionalWrite;
@@ -264,6 +270,10 @@ export function createMockEntityService(
       request.options?.signal?.throwIfAborted();
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        entity.entityType,
+      );
       const { source, content, metadata, contentHash } =
         store.materialize(entity);
       await store.persistValidators.get(entity.entityType)?.(
@@ -281,6 +291,8 @@ export function createMockEntityService(
           store.adapters.get(entity.entityType)?.toMarkdown(entity) ??
           entity.content,
       });
+      request.options?.signal?.throwIfAborted();
+      await assertGroupingsCurrent();
       request.options?.signal?.throwIfAborted();
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
@@ -371,6 +383,10 @@ export function createMockEntityService(
       request: UpsertEntityRequest<T>,
     ): Promise<EntityMutationResult & { created: boolean }> => {
       const entity = request.entity;
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        entity.entityType,
+      );
       store.types.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const exists = store.entities.has(id);
@@ -379,6 +395,7 @@ export function createMockEntityService(
         { ...entity, id, metadata: materialized.metadata },
         { operation: exists ? "update" : "create" },
       );
+      await assertGroupingsCurrent();
       store.sources.set(id, source);
       store.entities.set(id, { ...entity, id, ...materialized });
       store.markExportIntent(
@@ -489,7 +506,16 @@ export function createMockEntityService(
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
-    areGroupingsReady: () => true,
+    areGroupingsReady: () =>
+      store.registry.getPendingGroupingProjections().length === 0,
+    ensureGroupingsReady: async (): Promise<boolean> => {
+      await store.registry.ensureGroupingsCurrent();
+      await service.reprojectRegisteredGroupings();
+      store.registry.completeGroupingProjections(
+        store.registry.getPendingGroupingProjections(),
+      );
+      return true;
+    },
     ...createFixtureGroupingQueries(store),
     // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
     queryEntityHierarchy: async (): Promise<never> => {

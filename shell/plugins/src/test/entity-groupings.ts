@@ -2,6 +2,7 @@ import {
   getVisibleContentVisibilities,
   queryGroupingCatalogSchema,
   queryGroupingMembersSchema,
+  queryGroupingUsageSchema,
   type BaseEntity,
   type IEntityService,
 } from "@brains/entity-service";
@@ -19,6 +20,7 @@ export function createFixtureGroupingQueries(
   IEntityService,
   | "queryGroupingCatalog"
   | "queryGroupingMembers"
+  | "queryGroupingUsage"
   | "reprojectRegisteredGroupings"
 > {
   const records = (
@@ -46,6 +48,33 @@ export function createFixtureGroupingQueries(
       : [];
   };
   return {
+    queryGroupingUsage: async (
+      request,
+    ): ReturnType<IEntityService["queryGroupingUsage"]> => {
+      const input = queryGroupingUsageSchema.parse(request);
+      input.signal?.throwIfAborted();
+      const selected = records(
+        input.grouping,
+        input.entityTypes,
+        input.visibilityScope ?? "public",
+      );
+      let entries = 0;
+      const counts = new Map<string, number>();
+      for (const entity of selected.entities) {
+        input.signal?.throwIfAborted();
+        const memberships = new Set(values(entity, selected.field));
+        if (memberships.size > 0) entries++;
+        for (const value of memberships)
+          counts.set(value, (counts.get(value) ?? 0) + 1);
+      }
+      return {
+        entries,
+        values: input.values.map((value) => ({
+          value,
+          count: counts.get(value) ?? 0,
+        })),
+      };
+    },
     queryGroupingCatalog: async (
       request,
     ): ReturnType<IEntityService["queryGroupingCatalog"]> => {

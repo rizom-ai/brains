@@ -119,6 +119,18 @@ export function createMockEntityRegistry(
     getFrontmatterExtensions: (type) =>
       store.registry.getFrontmatterExtensions(type),
     getGroupings: () => store.registry.getGroupings(),
+    registerGroupingSource: (source) =>
+      store.registry.registerGroupingSource(source),
+    ensureGroupingsCurrent: () => store.registry.ensureGroupingsCurrent(),
+    captureGroupingWriteGuard: (entityType) =>
+      store.registry.captureGroupingWriteGuard(entityType),
+    getGroupingSourceType: () => store.registry.getGroupingSourceType(),
+    getPendingGroupingProjections: () =>
+      store.registry.getPendingGroupingProjections(),
+    completeGroupingProjections: (targets) =>
+      store.registry.completeGroupingProjections(targets),
+    replaceGroupings: (groupings, options) =>
+      store.registry.replaceGroupings(groupings, options),
     validateGroupings: (groupings) =>
       store.registry.validateGroupings(groupings),
     getGrouping: (key) => store.registry.getGrouping(key),

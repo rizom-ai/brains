@@ -1,5 +1,5 @@
 import { createRequester } from "../internal/requester";
-import { toSdkError } from "@brains/contracts";
+import { SdkError, toSdkError } from "@brains/contracts";
 import {
   ProjectionJsonObjectSchema,
   copyEntityTypeConfig,
@@ -231,12 +231,22 @@ function encodeParts(
     readonly metadata: Record<string, unknown>;
   },
 ): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
-  return definition.markdown
+  const encoded = definition.markdown
     ? definition.markdown.encode({
         content: input.content,
         metadata: definition.metadata.parse(input.metadata),
       })
     : { content: input.content, frontmatter: input.metadata };
+  if (
+    definition.markdown?.frontmatter === false &&
+    Object.keys(encoded.frontmatter).length > 0
+  ) {
+    throw new SdkError("invalid_input", {
+      publicMessage:
+        "A frontmatter-disabled codec cannot emit domain frontmatter.",
+    });
+  }
+  return encoded;
 }
 
 function encodeEntityMarkdown(
@@ -247,7 +257,9 @@ function encodeEntityMarkdown(
   },
 ): string {
   const encoded = encodeParts(definition, input);
-  return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
+  return definition.markdown?.frontmatter === false
+    ? encoded.content
+    : generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
 /**
@@ -302,7 +314,12 @@ function entityAdapter(
     entityType: definition.type,
     purpose: definition.purpose,
     schema,
-    frontmatterSchema: definition.markdown?.frontmatter ?? definition.metadata,
+    ...(definition.markdown?.frontmatter === false
+      ? {}
+      : {
+          frontmatterSchema:
+            definition.markdown?.frontmatter ?? definition.metadata,
+        }),
     ...(definition.singleton === true ? { isSingleton: true } : {}),
     ...(definition.hasBody !== undefined
       ? { hasBody: definition.hasBody }
@@ -332,6 +349,14 @@ function entityAdapter(
           throw toSdkError(cause, "invalid_input");
         }
       }
+      if (codec?.frontmatter === false) {
+        try {
+          const decoded = codec.decode({ content: markdown, frontmatter: {} });
+          return { content: decoded.content, metadata: decoded.metadata };
+        } catch (cause) {
+          throw toSdkError(cause, "invalid_input");
+        }
+      }
       return readEntityMarkdown(markdown, (parsed) => {
         const decoded = codec
           ? codec.decode(parsed)
@@ -350,9 +375,11 @@ function entityAdapter(
         ),
       }),
     parseFrontMatter: (markdown, schemaToParse) =>
-      readEntityMarkdown(markdown, ({ frontmatter }) =>
-        schemaToParse.parse(frontmatter),
-      ),
+      definition.markdown?.frontmatter === false
+        ? schemaToParse.parse({})
+        : readEntityMarkdown(markdown, ({ frontmatter }) =>
+            schemaToParse.parse(frontmatter),
+          ),
     generateFrontMatter(entity): string {
       return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },

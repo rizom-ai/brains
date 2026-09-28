@@ -12,10 +12,13 @@ import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import {
   queryGroupingCatalogSchema,
   queryGroupingMembersSchema,
+  queryGroupingUsageSchema,
 } from "./entity-grouping";
 import {
   decodeEntityIdPath,
@@ -427,8 +430,47 @@ export class EntityQueries {
     return { entities: page, total: Number(counts[0]?.total ?? 0) };
   }
 
+  public async queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    const input = queryGroupingUsageSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    // Count entity rows, never joined memberships or concatenated identities.
+    // All aggregates share one statement/snapshot. EXISTS also ignores duplicate
+    // historical values and non-text elements without normalizing stored content.
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text')`,
+    );
+    const columns: Record<string, SQL<number>> = {
+      entries: sql<number>`COUNT(*)`,
+    };
+    for (const [index, value] of input.values.entries()) {
+      columns[`value_${index}`] = sql<number>`COALESCE(SUM(CASE WHEN EXISTS (
+        SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text' AND j.value = ${value}
+      ) THEN 1 ELSE 0 END), 0)`;
+    }
+    const [row] = await this.db
+      .select(columns)
+      .from(entities)
+      .where(and(...conditions));
+    input.signal?.throwIfAborted();
+    return {
+      entries: Number(row?.["entries"] ?? 0),
+      values: input.values.map(
+        (value, index): { value: string; count: number } => ({
+          value,
+          count: Number(row?.[`value_${index}`] ?? 0),
+        }),
+      ),
+    };
+  }
+
   private groupingConditions(
-    input: z.output<typeof queryGroupingCatalogSchema>,
+    input: Pick<
+      z.output<typeof queryGroupingCatalogSchema>,
+      "grouping" | "entityTypes" | "visibilityScope"
+    >,
   ): { conditions: SQL[]; array: SQL } {
     const grouping = this.entityRegistry.getGrouping(input.grouping);
     const admitted = new Set(input.entityTypes);

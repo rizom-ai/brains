@@ -1,30 +1,8 @@
 import * as stylex from "@stylexjs/stylex";
-export const vocabularyStyles: Record<
-  | "choices"
-  | "choice"
-  | "checkbox"
-  | "marker"
-  | "section"
-  | "head"
-  | "title"
-  | "values",
+export const groupingSharedStyles: Record<
+  "checkbox" | "marker" | "section" | "head" | "title",
   stylex.StyleXStyles
 > = stylex.create({
-  choices: {
-    display: "grid",
-    gap: 6,
-    padding: 0,
-    margin: 0,
-    borderWidth: 0,
-    minWidth: 0,
-  },
-  choice: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    minHeight: 36,
-    overflowWrap: "anywhere",
-  },
   checkbox: {
     width: 18,
     height: 18,
@@ -58,13 +36,5 @@ export const vocabularyStyles: Record<
     fontSize: 22,
     margin: 0,
     fontWeight: 500,
-  },
-  values: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    margin: "12px 0",
-    padding: 0,
-    listStyle: "none",
   },
 });

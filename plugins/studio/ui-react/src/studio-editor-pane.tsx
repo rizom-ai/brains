@@ -1,8 +1,9 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { hasInvalidEditorFields } from "./editor-workflow";
 import { StudioSystemFields } from "./studio-system-fields";
-import { StudioVocabularyEditor } from "./studio-vocabulary-editor";
-import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
+import { StudioGroupingDefinitionsField } from "./studio-grouping-definitions-field";
+import { GROUPING_DEFINITIONS_TYPE } from "../../src/grouping-definitions-contract";
 import { systemFieldStyles } from "./studio-system-fields.styles";
 import {
   Button,
@@ -100,6 +101,16 @@ export function StudioEditorPane(
     publicationState,
     editorHead,
   } = props.model;
+  const saveBlocked =
+    !canEdit ||
+    hasInvalidEditorFields(editor) ||
+    (selectedEntityType === GROUPING_DEFINITIONS_TYPE &&
+      !entitySchema.groupingDefinitions) ||
+    destinationBlocked ||
+    saveState.kind === "saving" ||
+    (((mode.kind === "create" && entitySchema.isSingleton) ||
+      selectedEntityType === GROUPING_DEFINITIONS_TYPE) &&
+      !hasUnsavedChanges);
   return (
     <form
       role="main"
@@ -130,8 +141,7 @@ export function StudioEditorPane(
       }}
       onSubmit={(event) => {
         event.preventDefault();
-        if (canEdit && !destinationBlocked && saveState.kind !== "saving")
-          save();
+        if (!saveBlocked) save();
       }}
       onKeyDown={(event) => {
         if (
@@ -146,8 +156,7 @@ export function StudioEditorPane(
           )
             return;
           event.preventDefault();
-          if (canEdit && saveState.kind !== "saving")
-            event.currentTarget.requestSubmit();
+          if (!saveBlocked) event.currentTarget.requestSubmit();
         }
       }}
     >
@@ -175,9 +184,7 @@ export function StudioEditorPane(
               variant={hasUnsavedChanges ? "default" : "outline"}
               title="Save changes (Ctrl+S or ⌘S)"
               aria-keyshortcuts="Control+s Meta+s"
-              disabled={
-                !canEdit || destinationBlocked || saveState.kind === "saving"
-              }
+              disabled={saveBlocked}
             >
               {saveState.kind === "saving" ? "Saving…" : "Save changes"}
             </Button>
@@ -323,31 +330,26 @@ export function StudioEditorPane(
             >
               {systemDesign ? (
                 <>
-                  {selectedEntityType === GROUPING_VOCABULARY_TYPE && (
-                    <StudioVocabularyEditor
-                      groupings={props.groupings?.items ?? []}
-                      value={draft["groupings"]}
-                      readOnly={!canEdit}
-                      issues={fieldIssues}
-                      onChange={(raw) =>
-                        dispatchEditor({
-                          type: "fieldChanged",
-                          descriptor: {
-                            name: "groupings",
-                            label: "Groupings",
-                            widget: "object",
-                          },
-                          raw,
-                        })
-                      }
-                    />
-                  )}
+                  {selectedEntityType === GROUPING_DEFINITIONS_TYPE &&
+                    (entitySchema.groupingDefinitions ? (
+                      <StudioGroupingDefinitionsField
+                        editor={editor}
+                        schema={entitySchema.groupingDefinitions}
+                        readOnly={!canEdit}
+                        dispatch={dispatchEditor}
+                      />
+                    ) : (
+                      <StudioStatus tone="error">
+                        Grouping definitions are unavailable. Reload before
+                        editing.
+                      </StudioStatus>
+                    ))}
                   <StudioSystemFields
                     vocabularies={groupingVocabularies}
                     literalFields={groupingFields}
                     suggestions={props.groupingSuggestions}
                     fields={
-                      selectedEntityType === GROUPING_VOCABULARY_TYPE
+                      selectedEntityType === GROUPING_DEFINITIONS_TYPE
                         ? entitySchema.fields.filter(
                             (field) => field.name !== "groupings",
                           )
@@ -396,6 +398,7 @@ export function StudioEditorPane(
                       data-studio-field-assist=""
                     >
                       <Field
+                        readOnly={!canEdit}
                         vocabulary={groupingVocabularies[descriptor.name]}
                         literalList={groupingFields.includes(descriptor.name)}
                         suggestions={
@@ -412,7 +415,10 @@ export function StudioEditorPane(
                           })
                         }
                       />
+                      {/* A model never sees a closed list, so it could only
+                          propose values the save would refuse. */}
                       {canAssist &&
+                        !groupingVocabularies[descriptor.name]?.values &&
                         entitySchema.hasBody &&
                         body.trim().length > 0 && (
                           <FieldAssistControls

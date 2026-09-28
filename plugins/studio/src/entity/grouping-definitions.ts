@@ -6,38 +6,34 @@ import {
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
-  GROUPING_VOCABULARY_TYPE,
-  groupingVocabularyFrontmatterSchema,
-  type GroupingVocabularyFrontmatter,
-} from "../grouping-vocabulary-contract";
+  GROUPING_DEFINITIONS_TYPE,
+  groupingDefinitionsFrontmatterSchema,
+  type GroupingDefinitionsFrontmatter,
+} from "../grouping-definitions-contract";
 
-/** Strict writes; malformed stored source remains available for administrator repair. */
-export function readGroupingVocabulary(
+export function readGroupingDefinitions(
   content: string,
-): GroupingVocabularyFrontmatter {
+): GroupingDefinitionsFrontmatter {
   return parseMarkdownWithFrontmatter(
     content,
-    groupingVocabularyFrontmatterSchema,
+    groupingDefinitionsFrontmatterSchema,
   ).metadata;
 }
-
-export function readStoredGroupingVocabulary(
-  content: string,
-): GroupingVocabularyFrontmatter {
-  const parsed = groupingVocabularyFrontmatterSchema.safeParse(
-    parseMarkdown(content).frontmatter,
-  );
-  return parsed.success ? parsed.data : { groupings: {} };
+/** The runtime validates each candidate independently, keeping malformed source repairable. */
+export function decodeGroupingDefinitions(content: string): unknown {
+  const value = parseMarkdown(content, { cache: false }).frontmatter[
+    "groupings"
+  ];
+  return value === undefined ? {} : value;
 }
-
 const metadataSchema: z.ZodObject<Record<string, never>> = z.object({});
-export const groupingVocabulary: EntityDefinition<
-  "grouping-vocabulary",
+export const groupingDefinitions: EntityDefinition<
+  "grouping-definitions",
   typeof metadataSchema
 > = defineEntity({
-  type: GROUPING_VOCABULARY_TYPE,
+  type: GROUPING_DEFINITIONS_TYPE,
   purpose:
-    "Admin-authored allowed values and cardinality for Studio groupings.",
+    "Admin-authored grouping names, participating types, cardinality and optional allowed values.",
   metadata: metadataSchema,
   singleton: true,
   hasBody: false,
@@ -52,25 +48,25 @@ export const groupingVocabulary: EntityDefinition<
     },
   },
   markdown: {
-    frontmatter: groupingVocabularyFrontmatterSchema,
+    frontmatter: groupingDefinitionsFrontmatterSchema,
     reconstruct: (content) => ({ content, metadata: {} }),
     encode: ({ content }) => {
       const parsed = parseMarkdownWithFrontmatter(
         content,
-        groupingVocabularyFrontmatterSchema,
+        groupingDefinitionsFrontmatterSchema,
       );
       return { content: parsed.content, frontmatter: parsed.metadata };
     },
   },
   validatePersist: ({ content, visibility }) => {
-    readGroupingVocabulary(content);
+    readGroupingDefinitions(content);
     if (visibility !== "shared")
       throw new z.ZodError([
         {
           code: "custom",
           path: ["visibility"],
           message:
-            "Grouping vocabularies are always shared, so the editors they constrain can read them.",
+            "Grouping definitions must be shared so their editors can read them.",
         },
       ]);
   },

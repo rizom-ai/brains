@@ -7,6 +7,7 @@ import type {
   EntityHierarchyPage,
   QueryEntityHierarchyRequest,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
   EntityGroupingMembers,
   SearchResult,
   ListOptions,
@@ -32,6 +33,7 @@ export interface MockEntityServiceReturns {
   queryEntityHierarchy?: EntityHierarchyPage;
   queryGroupingCatalog?: EntityGroupingCatalog;
   queryGroupingMembers?: EntityGroupingMembers;
+  queryGroupingUsage?: EntityGroupingUsage;
   search?: SearchResult[];
   countEntities?: number;
 }
@@ -183,11 +185,12 @@ export function createMockEntityService(
     Promise.resolve(returns.search ?? []),
   );
 
-  return {
+  const service: IEntityService = {
     getEntityWriteSnapshot: mock(
       async () => returns.getEntityWriteSnapshot ?? null,
     ),
     areGroupingsReady: mock(() => true),
+    ensureGroupingsReady: mock(async () => service.areGroupingsReady()),
     reprojectRegisteredGroupings: mock(async () => {}),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntities: getEntitiesMock,
@@ -210,6 +213,9 @@ export function createMockEntityService(
     ),
     queryGroupingMembers: mock(
       async () => returns.queryGroupingMembers ?? { entities: [], total: 0 },
+    ),
+    queryGroupingUsage: mock(
+      async () => returns.queryGroupingUsage ?? { entries: 0, values: [] },
     ),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
@@ -316,4 +322,5 @@ export function createMockEntityService(
     },
     initialize: mock(() => Promise.resolve()),
   } satisfies IEntityService;
+  return service;
 }

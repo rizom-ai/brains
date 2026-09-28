@@ -38,7 +38,7 @@ import type {
 import { jsonResponse } from "./editor-response";
 import { editorValidationResponse } from "./editor-validation";
 import type { StudioRuntime } from "./runtime";
-import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
@@ -119,6 +119,28 @@ async function resolvePlacement(
   return response.data;
 }
 
+const imagePreviewQuerySchema = z.object({ id: z.string().min(1).max(2048) });
+
+/** Preview reads do not expand references or make binary records editable. */
+export async function handleGetImagePreview(
+  runtime: StudioRuntime,
+  request: Request,
+  access: StudioRequestAccess,
+): Promise<Response> {
+  const query = imagePreviewQuerySchema.safeParse({
+    id: new URL(request.url).searchParams.get("id"),
+  });
+  if (!query.success)
+    return jsonResponse({ error: "Image id is required" }, 400);
+  const image = await runtime.operator.readSource(
+    { entityType: "image", id: query.data.id, signal: request.signal },
+    access.caller,
+  );
+  if (!image?.content.startsWith("data:image/"))
+    return jsonResponse({ error: "Image unavailable" }, 404);
+  return jsonResponse({ source: image.content });
+}
+
 export async function handlePreviewDestination(
   runtime: StudioRuntime,
   request: Request,
@@ -141,6 +163,7 @@ export async function handlePreviewDestination(
     access,
   );
   if (denied) return denied;
+  await runtime.groupings.ensureReady(access.caller);
   const assembled = assembleEntity(
     runtime,
     payload.entityType,
@@ -257,11 +280,14 @@ export async function handleGetEntities(
 
   const id = params.get("id");
   if (id) {
-    const entity = await runtime.entities.getEntity({
-      entityType,
-      id,
-      visibilityScope: access.visibilityScope,
-    });
+    const entity = await runtime.operator.readSource(
+      {
+        entityType,
+        id,
+        signal: request.signal,
+      },
+      access.caller,
+    );
     if (!entity) {
       return jsonResponse({ error: `Entity not found: ${id}` }, 404);
     }
@@ -376,7 +402,7 @@ function assembleEntity(
   const visibility = resolveStudioVisibility(
     payload.frontmatter,
     existing?.visibility ??
-      (entityType === GROUPING_VOCABULARY_TYPE ? "shared" : "public"),
+      (entityType === GROUPING_DEFINITIONS_TYPE ? "shared" : "public"),
   );
   if (!visibility.success) return visibility.response;
 
@@ -394,27 +420,31 @@ function assembleEntity(
     );
   }
 
-  const body =
-    payload.body ??
-    (existing
-      ? splitEntityContent(entityType, existing.content, runtime).body
-      : "");
+  const source = existing
+    ? splitEntityContent(entityType, existing.content, runtime)
+    : undefined;
+  const body = payload.body ?? source?.body ?? "";
   const claimedFields = Object.fromEntries(
     Object.entries(frontmatter.data).filter(([key]) =>
       Object.hasOwn(schema.shape, key),
     ),
   );
-  const content = raw
+  const serialized = raw
     ? body
-    : preserveSourceFrontmatter(
-        existing?.content ?? "",
-        generateMarkdownWithFrontmatter(
-          body,
-          withStudioVisibility(claimedFields, visibility.visibility),
-        ),
-        schema,
-        [],
+    : generateMarkdownWithFrontmatter(
+        body,
+        withStudioVisibility(claimedFields, visibility.visibility),
       );
+  // Malformed control documents have no safe unclaimed fields to retain.
+  const content =
+    raw || source?.malformed
+      ? serialized
+      : preserveSourceFrontmatter(
+          existing?.content ?? "",
+          serialized,
+          schema,
+          [],
+        );
 
   const parsed = runtime.shapes.parse(entityType, content);
   return {
@@ -429,8 +459,8 @@ function assembleEntity(
       visibility: visibility.visibility,
       ...(existing
         ? { id: existing.id }
-        : entityType === GROUPING_VOCABULARY_TYPE
-          ? { id: GROUPING_VOCABULARY_TYPE }
+        : entityType === GROUPING_DEFINITIONS_TYPE
+          ? { id: GROUPING_DEFINITIONS_TYPE }
           : {}),
     },
   };
@@ -475,11 +505,15 @@ export async function handleUpdateEntity(
     return actionDenied;
   }
 
-  const existing = await runtime.entities.getEntity({
-    entityType,
-    id,
-    visibilityScope: access.visibilityScope,
-  });
+  await runtime.groupings.ensureReady(access.caller);
+  const existing = await runtime.operator.readSource(
+    {
+      entityType,
+      id,
+      signal: request.signal,
+    },
+    access.caller,
+  );
   if (!existing) {
     return jsonResponse({ error: `Entity not found: ${id}` }, 404);
   }
@@ -590,6 +624,7 @@ export async function handleCreateEntity(
     return actionDenied;
   }
 
+  await runtime.groupings.ensureReady(access.caller);
   const assembled = assembleEntity(runtime, entityType, payload, undefined);
   if (assembled instanceof Response) return assembled;
 

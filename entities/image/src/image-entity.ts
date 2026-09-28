@@ -636,6 +636,7 @@ export const image: EntityDefinition<"image", typeof imageMetadataSchema> =
       projectionSourceRole: "excluded",
     },
     markdown: {
+      frontmatter: false,
       decode: ({ content }) => ({
         content,
         metadata: imageMetadataFor(content),

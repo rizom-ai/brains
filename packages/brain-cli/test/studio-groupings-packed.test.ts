@@ -11,7 +11,7 @@ import {
 } from "./helpers/packed-consumer";
 
 const test = bunTest.skipIf(!packedCompatibilityEvidenceEnabled());
-test("packed Studio config and field tools preserve multiple runtime grouping extensions", async () => {
+test("packed Studio definitions and field tools preserve multiple runtime grouping extensions", async () => {
   const directory = await mkdtemp(
     join(tmpdir(), "public-authoring-studio-groupings-"),
   );
@@ -33,7 +33,7 @@ test("packed Studio config and field tools preserve multiple runtime grouping ex
     );
     await writeFile(
       join(consumer, "brain.yaml"),
-      `brain: brain\nbundleContract: capability-bundles-v1\nanchor: person\nkind: professional\nbundles: [core, media, web, chat]\nplugins:\n  directory-sync:\n    seedContentPath: ./seed-content\n  studio:\n    groupings:\n      - {key: clients, label: Clients, field: clients, types: [note]}\n      - {key: projects, label: Projects, field: projects, types: [note]}\n`,
+      `brain: brain\nbundleContract: capability-bundles-v1\nanchor: person\nkind: professional\nbundles: [core, media, web, chat]\nplugins:\n  directory-sync:\n    seedContentPath: ./seed-content\n`,
     );
     const env = {
       ...process.env,
@@ -67,6 +67,20 @@ test("packed Studio config and field tools preserve multiple runtime grouping ex
           { env, timeoutMs: 90_000 },
         )
       ).stdout;
+    await tool(
+      "system_create",
+      {
+        entityType: "grouping-definitions",
+        // The create tool derives an ID from title; this singleton fixes it.
+        title: "Grouping definitions",
+        source: {
+          kind: "text",
+          content:
+            "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    types: [note]\n    multiple: true\n  projects:\n    label: Projects\n    types: [note]\n    multiple: true\n---\n",
+        },
+      },
+      true,
+    );
     const created = await tool(
       "system_create",
       {
@@ -131,19 +145,50 @@ test("packed Studio config and field tools preserve multiple runtime grouping ex
     });
     expect(removed).not.toContain("clients:");
     expect(removed).toContain("Launch");
+    const fieldsOnly = await startCommand(
+      [
+        "bun",
+        "run",
+        "brain",
+        "tool",
+        "system_update",
+        JSON.stringify({
+          entityType: "grouping-definitions",
+          id: "grouping-definitions",
+          fields: { groupings: {} },
+        }),
+        "--yes",
+      ],
+      consumer,
+      { env },
+    ).completed;
+    expect(fieldsOnly.exitCode).toBe(1);
+    expect(fieldsOnly.stdout + fieldsOnly.stderr).toContain(
+      "does not persist groupings through 'fields'",
+    );
+    const unchangedDefinitions = await tool("system_get", {
+      entityType: "grouping-definitions",
+      id: "grouping-definitions",
+    });
+    expect(unchangedDefinitions).toContain("clients:");
+    expect(unchangedDefinitions).toContain("projects:");
+
     await tool(
-      "system_create",
+      "system_update",
       {
-        entityType: "grouping-vocabulary",
-        title: "Grouping vocabulary",
-        source: {
-          kind: "text",
-          content:
-            "---\nvisibility: shared\ngroupings:\n  clients:\n    multiple: false\n    values: [Acme, Beta]\n---\n",
-        },
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
+        content:
+          "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    types: [note]\n    multiple: false\n    values: [Acme, Beta]\n  projects:\n    label: Projects\n    types: [note]\n    multiple: true\n---\n",
       },
       true,
     );
+    const closedDefinitions = await tool("system_get", {
+      entityType: "grouping-definitions",
+      id: "grouping-definitions",
+    });
+    expect(closedDefinitions).toContain("multiple: false");
+    expect(closedDefinitions).toContain("values:");
     const refused = startCommand(
       [
         "bun",

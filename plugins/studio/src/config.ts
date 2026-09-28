@@ -1,8 +1,4 @@
-import {
-  z,
-  entityGroupingSchema,
-  type OperatorEntityGroupings,
-} from "@brains/sdk/services";
+import { z, type OperatorEntityGroupings } from "@brains/sdk/services";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
 import { normalizeStudioBasePath } from "./studio-paths";
 import {
@@ -88,7 +84,7 @@ export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
-  if (entityType === "grouping-vocabulary")
+  if (entityType === "grouping-definitions")
     return {
       label: display?.label ?? "Groupings",
       pluralLabel: display?.pluralName ?? "Groupings",
@@ -204,13 +200,14 @@ const entityDisplaySchema: z.ZodRecord<
   typeof entityDisplayEntrySchema
 > = z.record(z.string(), entityDisplayEntrySchema);
 
-export const studioConfigSchema: z.ZodObject<{
-  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
-  groupings: z.ZodDefault<z.ZodArray<typeof entityGroupingSchema>>;
-  routePath: z.ZodDefault<z.ZodString>;
-}> = z.object({
+export const studioConfigSchema: z.ZodObject<
+  {
+    entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+    routePath: z.ZodDefault<z.ZodString>;
+  },
+  z.core.$strict
+> = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
-  groupings: z.array(entityGroupingSchema).max(20).default([]),
   routePath: z
     .string()
     .default("/studio")

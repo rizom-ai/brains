@@ -3,6 +3,8 @@ import type { ContentVisibility } from "@brains/sdk/entities";
 import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import type { ServiceEntityShapes } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import { isRawEntityType } from "./config";
 import type { StudioRuntime } from "./runtime";
 import { jsonResponse } from "./editor-response";
@@ -71,7 +73,18 @@ export function splitEntityContent(
 ): {
   frontmatter: Record<string, unknown>;
   body: string;
+  malformed?: true;
 } {
+  if (entityType === GROUPING_DEFINITIONS_TYPE) {
+    try {
+      const parsed = parseMarkdown(content, { cache: false });
+      return { frontmatter: parsed.frontmatter, body: parsed.content };
+    } catch {
+      // Keep the entire unparseable source visible in the compound field.
+      // It cannot pass strict writes until the administrator explicitly resets it.
+      return { frontmatter: { groupings: content }, body: "", malformed: true };
+    }
+  }
   // Without grouping participation, retain whole-document note editing,
   // including any authored frontmatter or leading Markdown horizontal rule.
   if (isRawEntityType(entityType, context.groupings)) {

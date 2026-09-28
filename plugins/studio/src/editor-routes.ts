@@ -29,13 +29,13 @@ import {
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
-import { readGroupingVocabularies } from "./grouping-vocabulary";
-import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   handleCreateEntity,
   handleDeleteEntity,
   handleGetEntities,
   handleGetEntityHierarchy,
+  handleGetImagePreview,
   handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
@@ -386,7 +386,14 @@ export function createEditorRoutes(
     api(
       "GET",
       "schema",
-      (request, access, s) => handleGetSchema(s.runtime, request, access),
+      (request, access, s) =>
+        handleGetSchema(s.runtime, request, access, s.entityDisplay),
+      { trusted: true },
+    ),
+    api(
+      "GET",
+      "images",
+      (request, access, s) => handleGetImagePreview(s.runtime, request, access),
       { trusted: true },
     ),
     api(
@@ -396,7 +403,7 @@ export function createEditorRoutes(
         handlePreviewDestination(s.runtime, request, access),
       { trusted: true, sameOrigin: "json" },
     ),
-    ...(["catalog", "members"] as const).map((mode) =>
+    ...(["catalog", "members", "usage"] as const).map((mode) =>
       api(
         "GET",
         `groups/${mode}`,
@@ -509,6 +516,7 @@ async function handleListTypes(
 ): Promise<Response> {
   const types = [];
   if (access.permissionLevel !== "public") {
+    await runtime.groupings.ensureReady(access.caller);
     const counts = new Map(
       (await runtime.entities.getEntityCounts(access.visibilityScope)).map(
         (entry) => [entry.entityType, entry.count],
@@ -551,9 +559,8 @@ async function handleListTypes(
   );
 
   const groupings = studioGroupDescriptors(
-    await runtime.groupings.definitions(access.caller),
+    runtime.groupingDefinitions().groupings,
     new Set(types.map((type) => type.entityType)),
-    await readGroupingVocabularies(runtime, access.visibilityScope),
   );
   return jsonResponse({ types, workspaces, groupings });
 }
@@ -663,12 +670,14 @@ async function handleGetSchema(
   runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
+  entityDisplay: StudioEntityDisplayMap | undefined,
 ): Promise<Response> {
   const entityType = new URL(request.url).searchParams.get("type");
   if (!entityType) {
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
 
+  await runtime.groupings.ensureReady(access.caller);
   const capabilities = await getTypeCapabilities(runtime, entityType, access);
   const schema = capabilities
     ? runtime.shapes.frontmatterSchema(entityType)
@@ -681,11 +690,19 @@ async function handleGetSchema(
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.
+  const definitions = runtime.groupingDefinitions();
+  const labels = new Map(
+    Object.entries(definitions.groupings)
+      .filter(([, definition]) => definition.types.includes(entityType))
+      .map(([key, definition]) => [key, definition.label]),
+  );
   const domainFields = raw
     ? []
-    : Object.keys(schema.shape).map((name) =>
-        zodFieldToStudioWidget(name, schema.shape[name]),
-      );
+    : Object.keys(schema.shape).map((name) => {
+        const field = zodFieldToStudioWidget(name, schema.shape[name]);
+        const label = labels.get(name);
+        return label === undefined ? field : { ...field, label };
+      });
   const visibilityField = {
     name: "visibility",
     label: "Visibility",
@@ -696,15 +713,31 @@ async function handleGetSchema(
       canWriteVisibility(access.permissionLevel, visibility),
     ),
   };
-  // The vocabulary has exactly one workable visibility: the editors it
-  // constrains must be able to read it. Offering a choice invites a list
+  // Definitions have exactly one workable visibility: the editors they
+  // constrain must be able to read them. Offering a choice invites a list
   // that silently refuses saves nobody can explain.
   const fields =
-    entityType === GROUPING_VOCABULARY_TYPE
+    entityType === GROUPING_DEFINITIONS_TYPE
       ? domainFields
       : [...domainFields, visibilityField];
 
+  const contributorTypes: Array<{ entityType: string; label: string }> = [];
+  if (entityType === GROUPING_DEFINITIONS_TYPE) {
+    for (const type of runtime.entities.getEntityTypes()) {
+      if (
+        runtime.groupings.canContribute(type) &&
+        (await getTypeCapabilities(runtime, type, access))
+      )
+        contributorTypes.push({
+          entityType: type,
+          label: entityTypeLabels(type, entityDisplay?.[type]).pluralLabel,
+        });
+    }
+  }
   return jsonResponse({
+    ...(entityType === GROUPING_DEFINITIONS_TYPE && {
+      groupingDefinitions: { contributorTypes, issues: definitions.issues },
+    }),
     entityType,
     format: raw ? "raw" : "frontmatter",
     isSingleton: runtime.shapes.isSingleton(entityType),

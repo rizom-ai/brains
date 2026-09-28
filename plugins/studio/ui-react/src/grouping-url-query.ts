@@ -1,6 +1,6 @@
 import { groupingValueLabel } from "./grouping-value";
 import { isPlainRecord } from "@brains/utils/predicates";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type { StudioGrouping } from "../../src/grouping-definitions-contract";
 
 export interface GroupingNavigation {
   items: readonly StudioGrouping[];

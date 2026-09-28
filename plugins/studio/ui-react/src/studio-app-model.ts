@@ -43,7 +43,7 @@ export function workspaceRailBadges(
 }
 
 /** Everything StudioAppView derives from its props before rendering. */
-import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 
 export interface StudioAppModel {
   activeType: EntityTypeInfo | undefined;
@@ -52,7 +52,7 @@ export interface StudioAppModel {
   presentation: StudioEditorPresentation;
   selectedEntityType: string;
   groupingFields: string[];
-  groupingVocabularies: Record<string, GroupingVocabulary>;
+  groupingVocabularies: Record<string, GroupingValueRules>;
   systemDesign: SystemEditorCopy | undefined;
   editing: boolean;
   canCreate: boolean;
@@ -116,9 +116,10 @@ export function deriveStudioAppModel(
   );
   const groupingFields = editorGroupings.map((grouping) => grouping.field);
   const groupingVocabularies = Object.fromEntries(
-    editorGroupings.flatMap((grouping) =>
-      grouping.vocabulary ? [[grouping.field, grouping.vocabulary]] : [],
-    ),
+    editorGroupings.map((grouping) => [
+      grouping.field,
+      grouping.rules ?? { multiple: true },
+    ]),
   );
   const systemDesign = systemEditorCopy(selectedEntityType);
   const editing =

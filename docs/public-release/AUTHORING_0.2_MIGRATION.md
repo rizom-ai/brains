@@ -32,6 +32,25 @@ Unexpected upload exceptions now produce safe refusal messages, and deletion
 failures use sanitized SDK errors. Do not depend on raw exception text or causes;
 explicitly authored upload refusal messages retain their existing behavior.
 
+## Document-owned groupings and literal editing
+
+Replace static `groupings.definitions` and optional `vocabulary` declarations with
+`groupings: ({ state }) => ({ source: { entity, read, publish? } })`. The source
+must be an owned shared singleton with registered admin/never mutation floors.
+`read(content)` decodes its grouping map; runtime validation, refresh, write guards
+and reprojection remain private. Optional `publish(snapshot)` receives detached
+policy and repair issues. No static/vocabulary compatibility path remains.
+
+Studio-like editors should use `operatorEntities.readSource(request, caller)` for
+unexpanded source records. Pass the live runtime-issued caller, not a reconstructed
+role object. Visibility is runtime-derived; existing general reader semantics are
+unchanged. Grouping usage queries likewise require a caller and bounded inputs.
+
+For opaque image/PDF codecs, declare `markdown.frontmatter: false`. This disables
+metadata-to-frontmatter inference, not metadata or storage. Decode receives unparsed
+content and empty frontmatter; encode must emit no domain frontmatter. Ordinary
+entities can retain inference or supply an explicit authored-field schema.
+
 ## Canonical entity metadata
 
 Metadata now rejects explicit value-rewriting schemas recursively, rather than

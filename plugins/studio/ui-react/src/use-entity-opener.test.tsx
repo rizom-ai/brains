@@ -15,7 +15,12 @@ import {
   type StudioTypeCapabilities,
 } from "./api";
 import { studioCollectionQuerySchema } from "../../src/collection-query";
-import type { EditorWorkflowAction } from "./editor-workflow";
+import {
+  editorWorkflowReducer,
+  hasUnsavedEditorChanges,
+  initialEditorWorkflowState,
+  type EditorWorkflowAction,
+} from "./editor-workflow";
 import { createStudioQueryClient } from "./query-client";
 import type { MobileEditorPane } from "./app-view";
 import {
@@ -65,6 +70,47 @@ interface Transport {
   /** Hold an entity response until released. */
   hold: (id: string) => Deferred;
 }
+
+it("opens a missing singleton as a clean creation draft through the route lifecycle", async () => {
+  const transport = createTransport();
+  const harness = createHarness(transport, "/studio/grouping-definitions");
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: async (input): Promise<Response> => {
+      const url = new URL(String(input), "http://brain.test");
+      if (url.pathname.endsWith("/schema"))
+        return Response.json({
+          entityType: "grouping-definitions",
+          format: "frontmatter",
+          isSingleton: true,
+          hasBody: false,
+          fields: [
+            {
+              name: "groupings",
+              label: "Groupings",
+              widget: "object",
+              default: {},
+            },
+          ],
+        });
+      if (url.pathname.endsWith("/hierarchy"))
+        return Response.json({ entities: [], folders: [], total: 0 });
+      return Response.json({}, { status: 404 });
+    },
+  });
+  await harness.render({
+    api,
+    entityType: "grouping-definitions",
+    routeTarget: { kind: "collection", entityType: "grouping-definitions" },
+  });
+  const state = harness.dispatches.reduce(
+    editorWorkflowReducer,
+    initialEditorWorkflowState,
+  );
+  expect(state.mode.kind).toBe("create");
+  expect(state.draft).toEqual({ groupings: {} });
+  expect(hasUnsavedEditorChanges(state)).toBe(false);
+});
 
 function createTransport(): Transport {
   const entityFetches: string[] = [];

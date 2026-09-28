@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type { StudioGrouping } from "../../src/grouping-definitions-contract";
 import { studioGroupingQuerySchema } from "../../src/grouping-query";
 import { useStudioApi } from "./studio-api-context";
 import { groupingQueryOptions } from "./grouping-queries";
@@ -21,7 +21,7 @@ export function useGroupingSuggestions(
 ): Record<string, readonly string[]> {
   const api = useStudioApi();
   const openGroupings = useMemo(
-    () => groupings.filter((grouping) => !grouping.vocabulary),
+    () => groupings.filter((grouping) => !grouping.rules?.values),
     [groupings],
   );
   // One options instance per API and declaration set, as grouping-queries

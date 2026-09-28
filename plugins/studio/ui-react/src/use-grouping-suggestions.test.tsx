@@ -10,7 +10,7 @@ import { StudioApiProvider } from "./studio-api-context";
 import { createStudioQueryClient } from "./query-client";
 import { useGroupingSuggestions } from "./use-grouping-suggestions";
 
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type { StudioGrouping } from "../../src/grouping-definitions-contract";
 
 const groupings = [
   { key: "clients", label: "Clients", field: "clients", types: ["note"] },
@@ -123,7 +123,7 @@ test("closed groupings neither fetch nor retain open catalog suggestions", async
     api,
     groupings.map((grouping) => ({
       ...grouping,
-      vocabulary: { multiple: true, values: ["Acme"] },
+      rules: { multiple: true, values: ["Acme"] },
     })),
   );
   await settle();

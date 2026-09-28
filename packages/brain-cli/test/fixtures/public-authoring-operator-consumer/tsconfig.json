@@ -8,5 +8,9 @@
     "skipLibCheck": false,
     "noEmit": true
   },
-  "include": ["import-smoke.ts", "grouping-type-canary.ts"]
+  "include": [
+    "import-smoke.ts",
+    "grouping-type-canary.ts",
+    "source-type-canary.ts"
+  ]
 }

@@ -2,6 +2,12 @@
 
 `@brains/studio` provides an active-session operator shell, a Trusted-floor Overview workspace, the self-service Account workspace, and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Trusted and Admin sessions land in Overview; Public-rank active sessions can enter the shell and use Account. Dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics and administration workspaces remain Admin-only.
 
+## Integration test support
+
+Cross-plugin tests using real Note/Post adapters live in `packages/brain-cli/test/studio-groupings`, the application composition layer. They import backend support through `@brains/studio/test` and mounted UI support through `@brains/studio/test/ui`, not cross-package relative paths. `@brains/studio/test/preload` supplies the DOM setup alongside the existing StyleX test preload.
+
+The CLI's `studio-groupings-integration.test.ts` runs these suites in an isolated child so DOM globals and the documented test-only JIT workaround do not affect other CLI tests or production. The CLI test command delegates their execution to that wrapper rather than discovering them twice. The suites remain included in typechecking and architectural/static test checks. These entry points are test support, not production SDK exports.
+
 ## State ownership
 
 - The package-local TanStack `QueryClient` owns entity types, schemas, lists, entity snapshots, sync status, and optional agent targets.
@@ -65,39 +71,53 @@ entity** target, so the Inbox renderer never constructs entity URLs itself.
 
 Workspace definitions may opt into host-owned stable URL filters with a typed query schema. Query-backed tabs use their declared tab-block query key, so selection, refresh, and Back/Forward agree while providers load only the active tab; switching tabs resets the prior tab's filters and detail state instead of leaking them into the next concern. The Studio hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Serializable workspace aliases preserve retired deep links by replacing the workspace id and merging bounded canonical query state. Workspaces without a query declaration ignore URL search entirely.
 
+Editor detail reads and mutation preparation use raw source. Image-looking membership values, unclaimed frontmatter and authored body references must never become rendered data URLs in a save draft. Markdown previews resolve image nodes separately through the authenticated, visibility-scoped `GET /api/images?id=…` read and the injected Studio client. Missing and forbidden images share an unavailable response; image data is not cached across client/session changes. Code examples remain literal, and normal Markdown sanitization is unchanged.
+
 ## Virtual collections
 
-Studio configuration can declare multiple cross-type groupings:
+**System → Structure → Groupings** edits one bodyless, always-shared `grouping-definitions` singleton. `StudioPlugin` registers its source after contributors finish registration. Labels, contributing types, cardinality and optional exact allowed values all live in that document, not in `brain.yaml`:
 
 ```yaml
+---
+visibility: shared
 groupings:
-  - key: clients
+  clients:
     label: Clients
-    field: clients
     types: [note, post]
-  - key: projects
+    multiple: false
+    values: [Acme, Beta]
+  projects:
     label: Projects
-    field: projects
     types: [note, post]
+    multiple: true
+---
 ```
 
-Each declaration extends participating types' effective frontmatter schema with an optional string list (or reuses a compatible owner field without weakening its constraints). Check-free list contracts may be declared independently; runtime checks and unsupported wrappers require shared schema/check identity, since JSON Schema cannot establish their equivalence. One entity may have multiple values in each field. Membership is authored in Markdown, not inferred from IDs; no collection entity, file copy, rename, or move is created. Invalid declarations and incompatible/reserved field collisions fail registration.
+The key is the frontmatter field. `multiple` applies independently to open and closed groups; absent `values` means open. A present list must be nonempty and contain unique, nonempty exact strings. There are at most 20 definitions. Separate field names, self-contribution, unavailable contributors and incompatible/reserved fields are rejected. Invalid stored sections remain visible for explicit repair and are omitted from the active grouping set. Unparseable source is shown for explicit reset, never silently replaced by an empty document.
 
-Each grouping has one Library navigation entry under Groupings. `{routePath}/groups/clients` lists readable values and counts; `?value=Acme` lists mixed-type members, with `type`, `q`, `sort`, `offset`, and `limit` filters. Matching uses exact stored values, while the catalog orders them case-insensitively so related spellings read together. Studio calls these groups and entries; "collection" stays with entity types. Each group row is a link, so it opens in a new tab like any other destination, and a correction Studio makes itself — clamping an out-of-range page, or a debounced search — replaces the URL instead of adding a Back step. The ordinary editor retains its permissions and returns to the selected grouping. Group views have no creation, rename, or deletion action.
+Each definition extends participating types' effective frontmatter schema with an optional string list, or reuses a compatible owner field without weakening its constraints. Runtime checks and unsupported wrappers require shared schema/check identity; JSON Schema alone cannot establish equivalence. Membership is authored in Markdown, not inferred from IDs. No per-value entities, file copies, moves or renames are created.
 
-Open grouping Properties use literal value inputs: Enter or the Add (+) button adds one value; commas and surrounding spaces are preserved. A whitespace warning explains that those spaces create a distinct group. Because matching is exact, the input also offers the values that already exist, so one group does not fragment into several spellings; typing a new value stays possible. Labels stay readable: only what a reader could not otherwise see is marked — spaces at either end or repeated, shown as a middle dot, and control, format or exotic whitespace characters, shown as escapes. The empty value is labelled `(empty)`; that literal authored name is escaped so the two remain distinguishable. Suggestions disappear after a failed refetch, including access denial, rather than retaining previously readable catalog values. Stored values and URLs remain exact. An untouched blank input adds nothing. A composing IME never submits on Enter. Ordinary tag fields retain comma submission and trimming.
+The old Studio `groupings` configuration is rejected. The `grouping-vocabulary` type and runtime reader are removed; there is no alias, dual write or automatic conversion. Only the smoke test site uses the old feature. Its test setup will use the new document directly; no legacy converter or conversion rehearsal is required.
+
+Each grouping has one Library navigation entry under **Groups**. `{routePath}/groups/clients` lists readable values and counts; `?value=Acme` lists mixed-type members, with `type`, `q`, `sort`, `offset`, and `limit` filters. Matching uses exact stored values, while the catalog orders them case-insensitively so related spellings read together. Studio calls these groups and entries; "collection" stays with entity types. Each group row is a link, so it opens in a new tab like any other destination, and a correction Studio makes itself — clamping an out-of-range page, or a debounced search — replaces the URL instead of adding a Back step. The ordinary editor retains its permissions and returns to the selected grouping. Group views have no creation, rename, or deletion action.
+
+All grouping Properties use one membership frame with a **one** or **several** marker. Open fields accept literal input; closed fields offer unchosen allowed values. Adding to a single-valued field replaces its value, while multiple-valued fields append. Removal is always explicit. Enter or Add commits one exact value; commas and surrounding spaces are preserved. A whitespace warning explains that those spaces create a distinct group. Because matching is exact, the input also offers the values that already exist, so one group does not fragment into several spellings; typing a new value stays possible. Labels stay readable: only what a reader could not otherwise see is marked — spaces at either end or repeated, shown as a middle dot, and control, format or exotic whitespace characters, shown as escapes. The empty value is labelled `(empty)`; that literal authored name is escaped so the two remain distinguishable. Suggestions disappear after a failed refetch, including access denial, rather than retaining previously readable catalog values. Stored values and URLs remain exact. An untouched blank input adds nothing. A composing IME never submits on Enter. Ordinary tag fields retain comma submission and trimming.
 
 Every Note uses the normal frontmatter/Properties editor while `note` participates in any grouping, including Notes with no membership. Without participation, Notes retain whole-document Markdown editing. Removing a declaration removes the view, not its saved fields. Ordinary Properties saves and exports preserve existing unclaimed, non-policy frontmatter without accepting arbitrary new form keys; explicit full-source omission remains a deletion.
 
-### Admin-managed vocabularies
+### Definition editing and enforcement
 
-**System → Structure → Groupings** edits the `grouping-vocabulary` singleton as Markdown. Each entry under `groupings` declares `multiple` and a nonempty, exact-value `values` list. Presence closes that grouping; removing the entry reopens it. Unknown grouping keys, duplicate values, empty values, and empty lists are rejected. The type carries its own admin floor for create, update and delete and never permits publication, so a brain assembled without the canonical bundle's matching rule is still admin-only. Stricter wildcard restrictions, including `never`, are preserved; an explicit instance policy for the type still overrides it. The document is always shared: public would expose it, and restricted would let an administrator enforce a list the trusted editors it constrains cannot read, so its schema offers no visibility control and any other visibility is refused.
+The type defaults to an admin floor for create, update and delete, with publication set to `never`. Stricter wildcard policies remain stricter; an explicit per-type instance rule deliberately overrides defaults, as with other entity types. Trusted editors can read the shared document but cannot edit it. There is no visibility selector; any visibility other than shared is refused.
 
-Trusted editors read the document but cannot change it under that policy. Closed single-valued fields use a dropdown (blank clears to `[]`); closed multi-valued fields use checkboxes. Open fields retain literal inputs and catalog suggestions. All shapes still persist lists in frontmatter. Values outside a vocabulary remain visible with a **not in list** marker; neither closing a list nor changing cardinality rewrites old memberships. Such entries must be corrected before their next save.
+Opening a missing singleton is clean. Adding, editing and removing sections uses normal saves and stale-write protection; saved keys are immutable. Invalid local drafts, including duplicate keys that cannot serialize losslessly, block saving and participate in navigation guards. Removing a grouping asks for confirmation. Neither removing a grouping nor removing an allowed value rewrites memberships. Removing only `values` reopens a group; removing its definition removes the view. Existing strays and duplicates remain visible until explicitly changed. Malformed membership containers are read-only until their source is repaired. AI suggestions appear only for open groups.
 
-Persist validators read the current singleton at internal full scope on each create/update, without a cache. Studio, field-update tools, MCP writes, directory-sync imports and derived projection upserts therefore share the constraint. Projection refusals roll back the entire rule result; the metadata supplied by a rule cannot override source membership. A Studio refusal returns field issues and keeps the draft. Policy-refused imports fail without moving valid Markdown into quarantine and can be retried after reopening. Scoped descriptors omit vocabularies a caller cannot read; that never weakens write enforcement. Saving or deleting the vocabulary refreshes navigation descriptors and grouping pages in the current editor session; this is not cross-session push synchronization.
+The page reads visibility-scoped usage in batches of at most 100 exact values. Entry totals count distinct identities, not summed memberships or repeated batch totals. Loading, initialization, unavailable usage and retry remain explicit; partial failures never become zero counts. Descriptors supply the document's label and independent cardinality/list rules, with contributor types narrowed to caller admission.
 
-Entity-service silently reprojects existing membership during every normal serving startup. Unchanged declarations alone cannot justify skipping source validation: register-only writers may have run with grouping disabled, or field constraints may have changed. Authorized group reads return `503 groupings_initializing` until the complete pass succeeds. Only this response retries automatically, with capped delays and a 90-second wait budget; other failures and timeouts offer explicit Retry. No partial catalog is treated as an empty success.
+Tool writers update this source-owned document through full Markdown `content` replacement; unsupported `fields` updates are refused rather than reported as successful no-ops. The create tool derives its ID from the title, so use `Grouping definitions` for the singleton's fixed `grouping-definitions` identity.
+
+Preparation and persistence refresh the definition source before using it. Raw, uncached Markdown parsing preserves literal definition values; each process keeps its publication snapshot and readiness only in memory. Studio, field-update tools, MCP writes, directory-sync imports and projection upserts share validation. Writes prepared against superseded definitions are refused at commit. Projection refusals roll back the entire rule result, and policy-refused imports remain repairable rather than quarantined. Refused Studio saves retain drafts and refresh current rules without reopening the entity. Definition saves invalidate schemas, navigation and grouping reads; this is not cross-session push synchronization.
+
+Serving startup and observed definition changes run bounded source-authoritative reprojection. Saved definitions survive a failed scan. Authorized group reads return `503 groupings_initializing` until readiness succeeds, with capped retries and a finite 90-second client wait budget; the separate startup performance gate remains 30 seconds. Other failures offer explicit Retry. No partial catalog is an empty success. There are no durable readiness records or checkpoints. Exact database restores require a fenced restart/rescan; unchanged snapshots cannot reveal intervening history.
 
 ## Account and split assets
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
@@ -96,6 +96,42 @@ describe("the records as a mirror keeps them", () => {
       await mirror.deleteEntity({ entityType: "note", id: "note-1" }),
     ).toBe(true);
     expect(await mirror.listEntities({ entityType: "note" })).toEqual([]);
+  });
+
+  it("reads unexpanded source for exports, including the schema overload", async () => {
+    const mirror = await install();
+    const content = "![Literal](entity://image/private)";
+    await mirror.createEntity({
+      entity: {
+        id: "literal",
+        entityType: "note",
+        content,
+        metadata: {},
+        visibility: "shared",
+      },
+    });
+    const service = harness.getEntityService();
+    const rendered = spyOn(service, "getEntity").mockRejectedValue(
+      new Error("Must not render mirror reads"),
+    );
+    const raw = spyOn(service, "getEntityRaw");
+    try {
+      const request = {
+        entityType: "note",
+        id: "literal",
+        visibilityScope: "shared" as const,
+      };
+      expect((await mirror.getEntity(request))?.content).toBe(content);
+      expect((await mirror.getEntity(request, baseEntitySchema))?.content).toBe(
+        content,
+      );
+      expect(raw).toHaveBeenCalledWith(request);
+      expect(raw).toHaveBeenCalledWith(request, baseEntitySchema);
+      expect(rendered).not.toHaveBeenCalled();
+    } finally {
+      rendered.mockRestore();
+      raw.mockRestore();
+    }
   });
 
   it("serialises through the type's own adapter, both ways", async () => {

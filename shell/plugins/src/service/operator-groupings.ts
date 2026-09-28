@@ -2,6 +2,9 @@ import {
   permissionToVisibilityScope,
   queryGroupingCatalogSchema,
   queryGroupingMembersSchema,
+  queryGroupingUsageSchema,
+  type EntityGroupingUsage,
+  type QueryGroupingUsageRequest,
   type EntityGrouping,
   type EntityGroupingCatalog,
   type EntityGroupingMembers,
@@ -17,8 +20,15 @@ import type { InterfaceCaller } from "../interface/route-contract";
 /** Named consumer: Studio. Every data read is bound to the resolved caller. */
 export interface OperatorEntityGroupings {
   ready(): boolean;
+  ensureReady(caller: InterfaceCaller): Promise<boolean>;
+  usage(
+    request: Omit<QueryGroupingUsageRequest, "visibilityScope">,
+    caller: InterfaceCaller,
+  ): Promise<EntityGroupingUsage>;
   /** Static authoring shape trait; does not read records or memberships. */
   contributes(entityType: string): boolean;
+  /** Static eligibility only; does not disclose records or grant grouping writes. */
+  canContribute(entityType: string): boolean;
   definitions(caller: InterfaceCaller): Promise<EntityGrouping[]>;
   catalog(
     request: Omit<QueryGroupingCatalogRequest, "visibilityScope">,
@@ -80,12 +90,47 @@ export function createOperatorGroupings(
     if (!types.length) throw new SdkError("not_found");
     return types.filter((type) => requested.includes(type));
   };
+  const refresh = async (): Promise<void> => {
+    if (!(await entities.ensureGroupingsReady()))
+      throw new SdkError("conflict");
+  };
   const capability: OperatorEntityGroupings = {
     ready: (): boolean => entities.areGroupingsReady(),
+    ensureReady: (caller) =>
+      operatorRead(async () => {
+        assertRouteCaller(caller, shell.getAuthRegistry());
+        return entities.ensureGroupingsReady();
+      }),
+    usage: (request, caller) =>
+      operatorRead(async () => {
+        assertRouteCaller(caller, shell.getAuthRegistry());
+        const input = queryGroupingUsageSchema.parse({
+          ...request,
+          visibilityScope: permissionToVisibilityScope(caller.permission),
+        });
+        await refresh();
+        return entities.queryGroupingUsage({
+          ...input,
+          entityTypes: await queryTypes(
+            input.grouping,
+            input.entityTypes,
+            caller,
+            input.signal,
+          ),
+        });
+      }, request.signal),
     contributes: (type): boolean => registry.isGroupingContributor(type),
+    canContribute: (type): boolean =>
+      type.length > 0 &&
+      type.length <= 100 &&
+      type !== registry.getGroupingSourceType() &&
+      registry.hasEntityType(type) &&
+      !!registry.getAdapter(type).frontmatterSchema &&
+      entities.getEntityTypeConfig(type).binaryStorage !== "asset",
     definitions: (caller: InterfaceCaller): Promise<EntityGrouping[]> =>
       operatorRead(async () => {
         assertRouteCaller(caller, shell.getAuthRegistry());
+        await refresh();
         const result: EntityGrouping[] = [];
         for (const definition of registry.getGroupings()) {
           const types = await admitted(definition.types, caller);
@@ -101,6 +146,7 @@ export function createOperatorGroupings(
           ...request,
           visibilityScope: permissionToVisibilityScope(caller.permission),
         });
+        await refresh();
         return entities.queryGroupingCatalog({
           ...input,
           entityTypes: await queryTypes(
@@ -118,6 +164,7 @@ export function createOperatorGroupings(
           ...request,
           visibilityScope: permissionToVisibilityScope(caller.permission),
         });
+        await refresh();
         return entities.queryGroupingMembers({
           ...input,
           entityTypes: await queryTypes(

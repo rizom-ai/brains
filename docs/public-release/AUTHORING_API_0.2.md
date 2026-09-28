@@ -396,33 +396,50 @@ Workspace action inputs are JSON-native wire values (`z.input`), not pre-transfo
 ### Source-backed collections
 
 Advanced named consumer: Studio uses `ServiceGroupingDeclaration`,
-`GroupingVocabularyValue`, `EntityGrouping`, `OperatorEntityGroupings`,
+`GroupingDefinition`, `GroupingDefinitionsSnapshot`, `EntityGrouping`, `OperatorEntityGroupings`,
 `entityGroupingSchema`, `groupingKeySchema`, `groupingValueSchema`,
 `groupingSearchSchema`, `groupingSortSchema`, `GROUPING_PAGE_LIMIT`, and
 `GROUPING_MAX_PAGE_LIMIT`.
 
-Services may declare `groupings({ config, state })` with up to 20 validated
-`definitions` (`key`, `label`, source `field`, contributing `types`). An optional
-`vocabulary: { entity, read }` names an owned, registered singleton and a strict
-reader of **that singleton's content**, not a callback over foreign entities.
-The runtime enforces allowed values and cardinality against source-projected
-membership on every write, using the current registered groupings and uncached
-policy. Missing or malformed stored policy leaves groups open for repair.
+Services declare `groupings({ config, state })` as
+`{ source: { entity, read, publish? } }`. The source is an owned, registered
+singleton. Its pure `read(content)` decoder returns a map of up to 20 grouping
+keys to `{ label, types, multiple, values? }`; each key is also its source field.
+Allowed-value lists contain 1–100 exact-unique strings, each at most 10,000
+characters. The runtime independently validates the decoder output, rejects
+competing declaration owners, serializes refreshes, atomically replaces valid
+policy and coordinates reprojection. `publish(snapshot)` receives detached
+`{ groupings, issues }` presentation data, never a registry or foreign-write
+capability. Shutdown fences pending refreshes.
 
-Vocabulary persistence requires shared visibility, the entity type as its
-singleton ID, known grouping keys, and registered admin/never floors for create,
-update and delete. Entity declarations expose `config.actionPolicy` and
+Malformed stored entries produce repair issues and are excluded from active
+policy; valid entries remain active. Missing documents remove their definitions.
+Storage failures are not treated as empty policy. Writes enforce current
+membership/cardinality and reject policy changes during a save.
+
+Source persistence requires shared visibility, the entity type as its singleton
+ID, and registered admin/never floors for create, update and delete. Entity declarations expose `config.actionPolicy` and
 `hasBody`. An explicit type-owned deletion policy lets the operator obey caller
 policy for that singleton; other singletons retain unconditional protection.
 
 The setup capability `entityGroupings` provides `definitions(caller)`,
-`catalog(request, caller)` and `members(request, caller)`. These intersect
+`catalog(request, caller)`, `members(request, caller)` and `usage(request, caller)`. These intersect
 registered, admitted and requested types; visibility comes from the caller, not
 request data. Pagination is bounded and reads honor cancellation. `ready()`
-reports projection readiness; `contributes(type)` is a static shape trait, not
-a membership read.
+reports projection readiness; `ensureReady(caller)` refreshes runtime-owned policy
+and projection readiness. Usage accepts at most 100 literal values, retains their
+order and duplicates, and counts each visible entity once per value.
+`contributes(type)` and `canContribute(type)` are static shape/eligibility traits,
+not membership reads or grants to register definitions.
 
-Operator mutations/uploads and grouping reads require the exact caller object
+`operatorEntities.readSource({ entityType, id, signal? }, caller)` reads one
+literal source record without image-reference expansion. Type names are bounded
+to 100 characters and IDs to 2,048. The runtime forces caller visibility, returns
+a detached record or null, sanitizes failures, and rechecks live authority and
+cancellation after the read. It exposes neither raw services nor an unrestricted
+visibility option; existing entity-reader semantics are unchanged.
+
+Operator source reads, mutations/uploads and grouping reads require the exact caller object
 issued by the runtime for an active authenticated route in the same brain.
 Pass `context.caller` directly: constructing, spreading, proxying or deserializing
 its fields does not grant authority. Authority expires when the handler returns
@@ -431,6 +448,14 @@ background jobs; use declared job-owned entity access instead. Test these flows
 through the HTTP harness with authenticated fixture requests, not fabricated
 caller literals. `allows`/`refusal` are advisory policy presentation only (also
 used by Inbox affordances); they never authorize a subsequent mutation.
+
+Indexed metadata does not imply authored frontmatter. Omit `markdown.frontmatter`
+to retain metadata-schema inference, supply a schema for different authored fields,
+or set it to `false` for opaque representations such as image/PDF assets. Opted-out
+codecs receive the unparsed source and an empty frontmatter object; encoding must
+return empty frontmatter and preserves content bytes. Metadata validation, visibility
+and storage behavior are unchanged. Such types have no frontmatter schema, so they
+are neither text-editor documents nor grouping contributors.
 
 An explicit `markdown.reconstruct(source)` codec can keep malformed stored
 configuration readable. It replaces parsed `decode` and requires

@@ -181,7 +181,8 @@ export type { AnchorProfile, BrainCharacter } from "@brains/plugins";
 export type {
   ServiceEntityExtension,
   ServiceGroupingDeclaration,
-  GroupingVocabularyValue,
+  GroupingDefinition,
+  GroupingDefinitionsSnapshot,
   EntityGrouping,
 } from "@brains/plugins";
 export {

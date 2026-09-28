@@ -1022,7 +1022,13 @@ class DeclarativeServicePlugin<
       config: this.config,
       state: this.requireState(),
     });
-    if (groupings) registerDeclaredGroupings(groupings, context, ownedTypes);
+    if (groupings)
+      registerDeclaredGroupings(
+        groupings,
+        context,
+        ownedTypes,
+        this.operatorAbortController.signal,
+      );
     for (const extension of this.definition.entityExtensions?.({
       config: this.config,
       state: this.requireState(),

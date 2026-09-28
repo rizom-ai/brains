@@ -21,7 +21,7 @@ export interface DurableEntityExportEntityService {
   acknowledgeEntityExports(request: {
     intents: readonly DurableEntityExportIntent[];
   }): Promise<number>;
-  getEntity(request: {
+  getEntityRaw(request: {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
@@ -147,7 +147,8 @@ export class DurableEntityExportDispatcher {
       listPendingEntityExports: (): ReturnType<
         DurableEntityExportDispatcherOptions["entityService"]["listPendingEntityExports"]
       > => this.entityService.listPendingEntityExports(),
-      getEntity: this.entityService.getEntity.bind(this.entityService),
+      // Exports materialize authored source, never preview-expanded content.
+      getEntity: this.entityService.getEntityRaw.bind(this.entityService),
       writeEntity: async (entity: BaseEntity): Promise<void> => {
         this.directorySync.suppressWatchPaths(
           this.directorySync.fileOps.getEntityConvergencePaths(entity),

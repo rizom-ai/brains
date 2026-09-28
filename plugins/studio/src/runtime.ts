@@ -19,7 +19,10 @@ import type {
   ListOptions,
   JobEntityAccess,
 } from "@brains/sdk/entities";
-import type { AnchorProfile } from "@brains/sdk/services";
+import type {
+  AnchorProfile,
+  GroupingDefinitionsSnapshot,
+} from "@brains/sdk/services";
 
 /**
  * The reads a console makes of the brain's records.
@@ -59,6 +62,7 @@ export interface StudioEntityReads extends Pick<
  * caller.
  */
 export interface StudioRuntime {
+  readonly groupingDefinitions: () => GroupingDefinitionsSnapshot;
   readonly entities: StudioEntityReads;
   readonly shapes: ServiceEntityShapes;
   readonly operator: OperatorEntityWrites;

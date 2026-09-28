@@ -208,10 +208,17 @@ export class DirectorySyncState {
     directorySync: DirectorySync,
     gitSync: IGitSync | undefined,
   ): DurableEntityExportDispatcher {
+    const mirror = this.host.mirror;
     return new DurableEntityExportDispatcher({
       runtime,
       directorySync,
-      entityService: this.host.mirror,
+      entityService: {
+        listPendingEntityExports: () => mirror.listPendingEntityExports(),
+        hasPendingEntityExports: () => mirror.hasPendingEntityExports(),
+        acknowledgeEntityExports: (request) =>
+          mirror.acknowledgeEntityExports(request),
+        getEntityRaw: (request) => mirror.getEntity(request),
+      },
       gitSync,
       ...(gitSync
         ? {

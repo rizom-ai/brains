@@ -51,3 +51,12 @@ export const studioGroupingQuerySchema: z.ZodType<
   unknown
 > = schema;
 export { GROUPING_PAGE_LIMIT };
+
+/** HTTP callers never supply their own visibility scope or admitted type set. */
+export const studioGroupingUsageQuerySchema: z.ZodObject<{
+  grouping: z.ZodString;
+  values: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}> = z.object({
+  grouping: z.string().min(1).max(80),
+  values: z.array(groupingValueSchema).max(GROUPING_MAX_PAGE_LIMIT).default([]),
+});

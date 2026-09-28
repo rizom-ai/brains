@@ -15,7 +15,8 @@ export type {
 
 export type {
   ServiceGroupingDeclaration,
-  GroupingVocabularyValue,
+  GroupingDefinition,
+  GroupingDefinitionsSnapshot,
 } from "./service/grouping-definition";
 
 export type { OperatorEntityGroupings } from "./service/operator-groupings";
@@ -620,6 +621,8 @@ export type {
   DurableBulkMutationChildRef,
   EntityGrouping,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
   EntityGroupingMembers,
   GroupingSort,
   QueryGroupingCatalogRequest,
@@ -647,6 +650,7 @@ export {
   entityGroupingSchema,
   groupingSortSchema,
   groupingKeySchema,
+  queryGroupingUsageSchema,
   groupingValueSchema,
   groupingSearchSchema,
   GROUPING_PAGE_LIMIT,

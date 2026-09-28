@@ -28,6 +28,7 @@ import type { IShell } from "../interfaces";
  * each signature below.
  */
 export interface EntityMirrorClient {
+  /** Unexpanded source record for filesystem fidelity, never rendered content. */
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
   getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
@@ -104,8 +105,8 @@ export function createEntityMirror(
     schema?: EntitySchema<T>,
   ): Promise<BaseEntity | T | null> {
     return schema
-      ? entities().getEntity(request, schema)
-      : entities().getEntity(request);
+      ? entities().getEntityRaw(request, schema)
+      : entities().getEntityRaw(request);
   }
 
   function listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;

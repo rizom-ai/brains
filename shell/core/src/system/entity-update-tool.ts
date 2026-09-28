@@ -268,6 +268,9 @@ function validateFieldUpdatePersistence(
   const adapter = entityRegistry.getAdapter(entity.entityType);
   let persistedMetadata: Record<string, unknown>;
   try {
+    // Persistence validates before serialization. A root property the schema
+    // strips must not make this best-effort probe promise a successful write.
+    updated = entityRegistry.validateEntity(entity.entityType, updated);
     persistedMetadata = adapter.extractMetadata(updated);
   } catch {
     return undefined;

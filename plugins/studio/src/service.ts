@@ -40,12 +40,14 @@ import {
 } from "./overview-workspace";
 import type { StudioRuntime } from "./runtime";
 import {
-  groupingVocabulary,
-  readGroupingVocabulary,
-} from "./entity/grouping-vocabulary";
+  groupingDefinitions,
+  decodeGroupingDefinitions,
+} from "./entity/grouping-definitions";
+import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 
 /** What Studio holds while it runs. */
 export interface StudioState {
+  readonly groupingSource: { snapshot: GroupingDefinitionsSnapshot };
   readonly runtime: StudioRuntime;
   /** The brain's own labels for its types, when it configured any. */
   readonly entityDisplay: StudioEntityDisplayMap | undefined;
@@ -152,7 +154,7 @@ function entityBacklink(entityType: string, entityId: string): string {
  * First-party Studio: a React app served at `routePath`, gated on the
  * signed-in session, whose reads and writes go through the runtime as the
  * person using it. It hosts the workspaces other packages declare and edits
- * every entity type, owning only its grouping-vocabulary configuration.
+ * every entity type, owning only its grouping-definitions document.
  */
 export function studioService(
   deps: StudioDeps = {},
@@ -161,7 +163,7 @@ export function studioService(
     {
       id: "studio",
       config: studioConfigSchema,
-      entities: [groupingVocabulary],
+      entities: [groupingDefinitions],
 
       setup: ({
         config,
@@ -183,7 +185,11 @@ export function studioService(
         entityDisplay,
         logger,
       }): StudioState => {
+        const groupingSource: { snapshot: GroupingDefinitionsSnapshot } = {
+          snapshot: { groupings: {}, issues: [] },
+        };
         const runtime: StudioRuntime = {
+          groupingDefinitions: () => structuredClone(groupingSource.snapshot),
           entities,
           shapes: entityShapes,
           operator: operatorEntities,
@@ -265,6 +271,7 @@ export function studioService(
 
         return {
           runtime,
+          groupingSource,
           workspaces,
           overview,
           entityDisplay:
@@ -288,11 +295,13 @@ export function studioService(
 
       // Workspaces and overview contributions arrive from the packages that
       // declared them; entity and job activity arrives from the runtime.
-      groupings: ({ config }) => ({
-        definitions: config.groupings,
-        vocabulary: {
-          entity: groupingVocabulary,
-          read: (content) => readGroupingVocabulary(content).groupings,
+      groupings: ({ state }) => ({
+        source: {
+          entity: groupingDefinitions,
+          read: decodeGroupingDefinitions,
+          publish: (snapshot): void => {
+            state.groupingSource.snapshot = snapshot;
+          },
         },
       }),
 

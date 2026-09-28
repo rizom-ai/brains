@@ -3,11 +3,17 @@ import matter from "gray-matter";
 /** Frontmatter-only operations must not initialize the Markdown AST pipeline.
  * This module is also used by headless contracts and browser clients.
  */
-export function parseMarkdown(markdown: string): {
+export function parseMarkdown(
+  markdown: string,
+  options?: { cache?: boolean },
+): {
   frontmatter: Record<string, unknown>;
   content: string;
 } {
-  const { data, content } = matter(markdown);
+  const { data, content } = matter(
+    markdown,
+    options?.cache === false ? {} : undefined,
+  );
   // gray-matter caches its parsed object; never expose that mutable cache.
   return { frontmatter: { ...data }, content: content.trim() };
 }

@@ -49,7 +49,7 @@ async function fixture(): Promise<{
         DurableEntityExportIntent[]
       > => [...pending],
       hasPendingEntityExports: async (): Promise<boolean> => pending.length > 0,
-      getEntity: async ({ id }): Promise<BaseEntity> =>
+      getEntityRaw: async ({ id }): Promise<BaseEntity> =>
         createTestEntity("note", { id }),
       acknowledgeEntityExports: async ({ intents }): Promise<number> => {
         const revisions = new Set(intents.map((i) => i.revision));

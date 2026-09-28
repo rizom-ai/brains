@@ -66,7 +66,7 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
       member: "studio",
       config: {
         entityActions: {
-          "grouping-vocabulary": {
+          "grouping-definitions": {
             create: "admin",
             update: "admin",
             delete: "admin",

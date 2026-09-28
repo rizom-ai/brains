@@ -8,6 +8,8 @@ import { assertRouteCaller } from "../internal/route-caller-authority";
 import { toSdkError } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import {
+  permissionToVisibilityScope,
+  type BaseEntity,
   applyEntityCreate,
   applyEntityDelete,
   applyEntityEdit,
@@ -20,6 +22,13 @@ import {
   type EntityEditRequest,
 } from "@brains/entity-service";
 import type { EntityAction } from "@brains/templates";
+import { z } from "@brains/utils/zod";
+
+const sourceRequestSchema = z.object({
+  entityType: z.string().min(1).max(100),
+  id: z.string().min(1).max(2048),
+  signal: z.instanceof(AbortSignal).optional(),
+});
 import type { IShell } from "../interfaces";
 import type { InterfaceCaller } from "../interface/route-contract";
 
@@ -77,6 +86,15 @@ export type OperatorUploadOutcome =
  * Named consumer: @brains/studio.
  */
 export interface OperatorEntityWrites {
+  /** One literal source record, without image expansion; visibility is derived from the live caller. */
+  readSource(
+    request: {
+      readonly entityType: string;
+      readonly id: string;
+      readonly signal?: AbortSignal;
+    },
+    caller: InterfaceCaller,
+  ): Promise<BaseEntity | null>;
   /**
    * Advisory policy presentation for the supplied role, not an authorization
    * grant. Inbox follow-ups can render affordances without a live route caller.
@@ -180,6 +198,22 @@ export function createOperatorEntities(
   };
 
   const capability: OperatorEntityWrites = {
+    readSource: (request, caller) =>
+      operatorRead(async () => {
+        authorized(caller);
+        const input = sourceRequestSchema.parse(request);
+        input.signal?.throwIfAborted();
+        if (!registry.hasEntityType(input.entityType)) return null;
+        const record = await entityService.getEntityRaw({
+          entityType: input.entityType,
+          id: input.id,
+          visibilityScope: permissionToVisibilityScope(caller.permission),
+          ...(input.signal ? { signal: input.signal } : {}),
+        });
+        authorized(caller);
+        input.signal?.throwIfAborted();
+        return record === null ? null : structuredClone(record);
+      }, request.signal),
     refusal,
     allows: (entityType, action, caller): boolean =>
       refusal(entityType, action, caller) === undefined,
@@ -201,7 +235,10 @@ export function createOperatorEntities(
       operatorMutation(() =>
         applyEntityEdit(
           {
-            entities: entityService,
+            entities: {
+              getEntity: entityService.getEntityRaw.bind(entityService),
+              updateEntity: entityService.updateEntity.bind(entityService),
+            },
             registry: {
               getEntityTypeConfig: (entityType) =>
                 registry.getEntityTypeConfig(entityType),
@@ -286,7 +323,10 @@ export function createOperatorEntities(
       operatorRead(() =>
         applyEntityDelete(
           {
-            entities: entityService,
+            entities: {
+              getEntity: entityService.getEntityRaw.bind(entityService),
+              deleteEntity: entityService.deleteEntity.bind(entityService),
+            },
             registry: {
               isRegistered: (entityType) => registry.hasEntityType(entityType),
               // A registered type always has an adapter, so this answers

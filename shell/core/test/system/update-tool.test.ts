@@ -65,6 +65,37 @@ class UnprobeableMetadataBackedTestAdapter extends MetadataBackedTestAdapter {
   }
 }
 
+const sourceOwnedEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("source-owned-test"),
+  metadata: z.object({}),
+});
+type SourceOwnedTestEntity = z.infer<typeof sourceOwnedEntitySchema>;
+
+/** Domain fields live only in Markdown, not schema-admitted root properties. */
+class SourceOwnedTestAdapter extends BaseEntityAdapter<
+  SourceOwnedTestEntity,
+  Record<string, never>,
+  { title: string }
+> {
+  constructor() {
+    super({
+      entityType: "source-owned-test",
+      purpose: "Test source-owned field persistence.",
+      schema: sourceOwnedEntitySchema,
+      frontmatterSchema: z.object({ title: z.string() }),
+      hasBody: false,
+    });
+  }
+
+  public fromMarkdown(content: string): Partial<SourceOwnedTestEntity> {
+    return { entityType: "source-owned-test", content, metadata: {} };
+  }
+
+  public override extractMetadata(): Record<string, never> {
+    return {};
+  }
+}
+
 const updateEntityRequestSchema = z.looseObject({
   options: z
     .object({
@@ -1485,6 +1516,41 @@ describe("system_update tool", () => {
       success: false,
       error:
         "brain-character does not persist role, purpose through 'fields'. " +
+        "The update would report success without changing anything. " +
+        "Provide full markdown with frontmatter via 'content' instead.",
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("rejects a field that only survives until entity-schema validation", async () => {
+    const adapter = new SourceOwnedTestAdapter();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(adapter.entityType, adapter.schema, adapter);
+    services.entityRegistry = registry;
+    services.addEntities([
+      {
+        id: "source-owned",
+        entityType: adapter.entityType,
+        content: "---\ntitle: Original\n---\n",
+        contentHash: "hash-source-owned",
+        visibility: "shared",
+        metadata: {},
+        created: "2026-09-25T10:00:00.000Z",
+        updated: "2026-09-25T10:00:00.000Z",
+      },
+    ]);
+    tools = createSystemTools(services);
+
+    const result = await exec({
+      entityType: adapter.entityType,
+      id: "source-owned",
+      fields: { title: "Changed" },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "source-owned-test does not persist title through 'fields'. " +
         "The update would report success without changing anything. " +
         "Provide full markdown with frontmatter via 'content' instead.",
     });

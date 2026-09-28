@@ -8,6 +8,21 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Document-grouping integration evidence scope
+
+The `01f08fcada` integration replaces static/vocabulary authoring with an owned
+singleton source and runtime refresh/reprojection, adds caller-bound usage and
+literal-source reads, and gives opaque codecs an explicit frontmatter opt-out.
+Native tests cover shutdown fencing, source revision checks, same-brain caller
+identity, visibility, unexpanded edit reads and asset exclusion. Application
+fixtures use real declarative packages, authenticated routes and independent
+processes rather than retired plugin classes or raw source registration helpers.
+
+These are source/runtime guarantees, not a new nomination or hosted acceptance.
+Packed consumers, full repository checks and the exact resulting commit/tree must
+still be recorded for the completed integration; earlier hosted evidence cannot
+attest to its uncommitted worktree.
+
 ## Published state recorded on 2026-09-13
 
 This historical registry record was not refreshed during the local integration below.

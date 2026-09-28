@@ -100,11 +100,12 @@ interface EntityMarkdownEncoding<TMetadataSchema extends EntityMetadataSchema> {
 /** Parsing is strict by default; repairable configuration explicitly reconstructs source. */
 export type EntityMarkdownCodec<TMetadataSchema extends EntityMetadataSchema> =
   EntityMarkdownEncoding<TMetadataSchema> & {
-    readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
+    /** Omitted: infer from metadata. A schema declares file fields; false declares opaque content without domain frontmatter. */
+    readonly frontmatter?: z.ZodObject<z.ZodRawShape> | false | undefined;
   } & (
       | ParsedEntityMarkdown<TMetadataSchema>
       | {
-          /** Named consumer: Studio vocabulary. Writes still require persist validation. */
+          /** Named consumer: Studio definitions. Writes still require persist validation. */
           reconstruct(
             source: string,
           ): EntityMarkdownDocument<Partial<z.input<TMetadataSchema>>>;
@@ -113,8 +114,6 @@ export type EntityMarkdownCodec<TMetadataSchema extends EntityMetadataSchema> =
     );
 
 interface ParsedEntityMarkdown<TMetadataSchema extends EntityMetadataSchema> {
-  /** Authored file fields when they differ from indexed metadata. Named consumer: Ask content. */
-  readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
   /**
    * Partial metadata, because not every type keeps all of its in the file.
    * A document is a data URL whose filename and media type arrive in a

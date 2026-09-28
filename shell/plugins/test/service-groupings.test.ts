@@ -15,7 +15,12 @@ import { operatorValidationCause } from "../src/service/operator-validation";
 
 const policy = z.record(
   z.string(),
-  z.object({ multiple: z.boolean(), values: z.array(z.string()).min(1) }),
+  z.object({
+    label: z.string(),
+    types: z.array(z.string()),
+    multiple: z.boolean(),
+    values: z.array(z.string()).min(1).optional(),
+  }),
 );
 const readPolicy = (content: string): z.output<typeof policy> =>
   policy.parse(JSON.parse(content));
@@ -52,10 +57,7 @@ const definition = defineServicePlugin(
   { id: "collections", config: z.object({}), entities: [vocabulary] },
   {
     groupings: () => ({
-      definitions: [
-        { key: "labels", label: "Labels", field: "labels", types: [note.type] },
-      ],
-      vocabulary: { entity: vocabulary, read: readPolicy },
+      source: { entity: vocabulary, read: readPolicy },
     }),
   },
 );
@@ -93,17 +95,24 @@ let admin: InterfaceCaller = {
 };
 
 describe("bounded declarative groupings", () => {
-  it("enforces groupings registered after vocabulary finalization and returns safe operator issues", async () => {
+  it("rejects competing static declarations and returns safe document-backed operator issues", async () => {
     const h = await fixture();
     try {
-      h.getEntityRegistry().registerGrouping({
-        key: "later",
-        label: "Later",
-        field: "later",
-        types: [note.type],
-      });
+      expect(() =>
+        h.getEntityRegistry().registerGrouping({
+          key: "later",
+          label: "Later",
+          field: "later",
+          types: [note.type],
+        }),
+      ).toThrow("static declarations are not allowed");
       const content = JSON.stringify({
-        later: { multiple: false, values: ["Allowed"] },
+        later: {
+          label: "Later",
+          types: [note.type],
+          multiple: false,
+          values: ["Allowed"],
+        },
       });
       const service = h.getEntityService();
       const refused = await service
@@ -202,8 +211,7 @@ describe("bounded declarative groupings", () => {
       { id: "weak-consumer", config: z.object({}), entities: [weak] },
       {
         groupings: () => ({
-          definitions: [],
-          vocabulary: { entity: alias, read: readPolicy },
+          source: { entity: alias, read: readPolicy },
         }),
       },
     );
@@ -234,7 +242,12 @@ describe("bounded declarative groupings", () => {
           id: vocabulary.type,
           entityType: vocabulary.type,
           content: JSON.stringify({
-            labels: { multiple: false, values: ["Allowed"] },
+            labels: {
+              label: "Labels",
+              types: [note.type],
+              multiple: false,
+              values: ["Allowed"],
+            },
           }),
           metadata: {},
           visibility: "shared",
@@ -290,7 +303,12 @@ describe("bounded declarative groupings", () => {
         entity: {
           ...source,
           content: JSON.stringify({
-            labels: { multiple: false, values: ["Denied"] },
+            labels: {
+              label: "Labels",
+              types: [note.type],
+              multiple: false,
+              values: ["Denied"],
+            },
           }),
         },
       });
@@ -352,6 +370,17 @@ describe("bounded declarative groupings", () => {
     const h = await fixture();
     try {
       const service = h.getEntityService();
+      await service.createEntity({
+        entity: {
+          id: vocabulary.type,
+          entityType: vocabulary.type,
+          visibility: "shared",
+          metadata: {},
+          content: JSON.stringify({
+            labels: { label: "Labels", types: [note.type], multiple: true },
+          }),
+        },
+      });
       for (const visibility of ["public", "restricted"] as const)
         await service.createEntity({
           entity: {
