@@ -1,5 +1,15 @@
 # @brains/messaging-service
 
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.436
+  - @brains/operation-context@0.2.0-alpha.436
+  - @brains/utils@0.2.0-alpha.436
+  - @brains/templates@0.2.0-alpha.436
+
 ## 0.2.0-alpha.435
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- [#414](https://github.com/rizom-ai/brains/pull/414) [`e6c1f40`](https://github.com/rizom-ai/brains/commit/e6c1f4080e3c87f06dd53e566ef5cbc73c66b151) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer's sources are now found on deployments whose site address is configured as a bare domain, such as `yeehaa.io`; before, building their links failed and the answer fell back to its lookups' sources.
+
 ## 0.2.0-alpha.435
 
 ### Patch Changes
