@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -90,6 +90,66 @@ afterEach(async () => {
 });
 
 describe("a git-configured brain outside the supervisor", () => {
+  it("releases the shutdown deadline after the broker has retired", async () => {
+    scratch = await mkdtemp(join(tmpdir(), "broker-sidecar-deadline-"));
+    const fixture = join(scratch, "probe.ts");
+    const moduleUrl = new URL(
+      "../src/lib/git-broker-sidecar.ts",
+      import.meta.url,
+    );
+    await writeFile(
+      fixture,
+      `import { EventEmitter } from "node:events";
+       import { withGitBrokerSidecar } from ${JSON.stringify(moduleUrl.href)};
+       const child = Object.assign(new EventEmitter(), {
+         pid: 4201,
+         kill: () => {
+           queueMicrotask(() => child.emit("close", 0, null));
+           return true;
+         },
+       });
+       const processImpl = Object.assign(new EventEmitter(), {
+         env: {},
+         kill: () => { throw Object.assign(new Error("gone"), { code: "ESRCH" }); },
+       });
+       const pending = withGitBrokerSidecar(
+         ${JSON.stringify(scratch)},
+         ${JSON.stringify(GIT_CONFIGURED)},
+         async () => "booted",
+         {
+           spawnImpl: () => child,
+           processImpl,
+           entrypointPath: "/dist/brain.js",
+           shutdownGraceMs: 2000,
+         },
+       );
+       child.emit("message", { type: "broker-ready" });
+       await pending;
+       console.log("broker-retired");`,
+    );
+    const child = Bun.spawn([process.execPath, fixture], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const diagnostics = new Response(child.stderr).text();
+    try {
+      const reader = child.stdout.getReader();
+      const first = await reader.read();
+      reader.releaseLock();
+      expect(new TextDecoder().decode(first.value).trim()).toBe(
+        "broker-retired",
+      );
+      const retiredAt = performance.now();
+      expect(await child.exited).toBe(0);
+      expect(await diagnostics).toBe("");
+      expect(performance.now() - retiredAt).toBeLessThan(1000);
+    } finally {
+      if (child.exitCode === null) child.kill("SIGKILL");
+      await child.exited;
+      await diagnostics;
+    }
+  });
+
   it("hands the owner and its absolute checkout to the app role", async () => {
     scratch = await mkdtemp(join(tmpdir(), "broker-sidecar-"));
     const harness = sidecarHarness();

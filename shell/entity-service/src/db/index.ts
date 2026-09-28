@@ -67,21 +67,22 @@ function keywordTerms(query: string): string[] {
 export function buildKeywordMatch(query: string): SQL {
   const terms = keywordTerms(query);
   if (terms.length === 0) return sql`0 = 1`;
-  return sql.join(
-    terms.map((term) => sql`instr(${entities.searchText}, ${term}) > 0`),
-    sql` AND `,
-  );
+  // A bound term table keeps both expression depth and argument count fixed.
+  return sql`NOT EXISTS (
+    SELECT 1 FROM json_each(${JSON.stringify(terms)}) AS keyword_terms
+    WHERE coalesce(instr(${entities.searchText}, keyword_terms.value), 0) = 0
+  )`;
 }
 
 /** Fraction of normalized query terms present in an entity's search text. */
 export function buildKeywordScore(query: string): SQL<number> {
   const terms = keywordTerms(query);
   if (terms.length === 0) return sql<number>`0.0`;
-  const matches = terms.map(
-    (term) =>
-      sql`CASE WHEN instr(${entities.searchText}, ${term}) > 0 THEN 1.0 ELSE 0.0 END`,
-  );
-  return sql<number>`(${sql.join(matches, sql` + `)}) / ${terms.length}`;
+  return sql<number>`(
+    SELECT avg(CASE WHEN instr(${entities.searchText}, keyword_terms.value) > 0
+      THEN 1.0 ELSE 0.0 END)
+    FROM json_each(${JSON.stringify(terms)}) AS keyword_terms
+  )`;
 }
 
 /**

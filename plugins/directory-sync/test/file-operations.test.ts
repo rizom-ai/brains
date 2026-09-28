@@ -382,6 +382,38 @@ describe("FileOperations", () => {
       });
     });
 
+    it("preserves published image bytes while generation is pending or failed", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const path = join(testDir, "image", "retained.png");
+      writeFileSync(path, TINY_PNG_BYTES);
+      for (const status of ["pending", "failed"]) {
+        for (const id of ["retained", "unpublished"]) {
+          await fileOps.writeEntity(
+            createTestEntity("image", {
+              id,
+              content: "",
+              metadata: { title: id, status },
+            }),
+          );
+        }
+        expect(readFileSync(path).equals(TINY_PNG_BYTES)).toBe(true);
+        expect(existsSync(join(testDir, "image", "unpublished.png"))).toBe(
+          false,
+        );
+      }
+      await assert.rejects(
+        fileOps.writeEntity(
+          createTestEntity("image", {
+            id: "retained",
+            content: "",
+            metadata: { title: "retained", status: "draft" },
+          }),
+        ),
+        /Invalid SHA-256 asset reference/,
+      );
+      expect(readFileSync(path).equals(TINY_PNG_BYTES)).toBe(true);
+    });
+
     it("should write image entities as binary files in image/ directory", async () => {
       const entity = createTestEntity("image", {
         id: "my-image",

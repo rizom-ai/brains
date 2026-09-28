@@ -6,6 +6,7 @@ import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "../../src/schema/entities";
 import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
+import { closeSqliteClient } from "@brains/db";
 
 export interface TestEntityDatabase extends TestDatabase {
   config: EntityDbConfig;
@@ -46,24 +47,26 @@ export async function insertTestEntity(
   const { db, client } = createEntityDatabase(config);
   const contentHash = computeContentHash(data.content);
 
-  await db.transaction(async (transaction) => {
-    await transaction.insert(entities).values({
-      id: data.id,
-      entityType: data.entityType,
-      content: data.content,
-      contentHash,
-      metadata: data.metadata,
-      visibility: data.visibility,
-      created: data.created,
-      updated: data.updated,
+  try {
+    await db.transaction(async (transaction) => {
+      await transaction.insert(entities).values({
+        id: data.id,
+        entityType: data.entityType,
+        content: data.content,
+        contentHash,
+        metadata: data.metadata,
+        visibility: data.visibility,
+        created: data.created,
+        updated: data.updated,
+      });
+      await transaction.insert(embeddings).values({
+        entityId: data.id,
+        entityType: data.entityType,
+        embedding: data.embedding,
+        contentHash,
+      });
     });
-    await transaction.insert(embeddings).values({
-      entityId: data.id,
-      entityType: data.entityType,
-      embedding: data.embedding,
-      contentHash,
-    });
-  });
-
-  client.close();
+  } finally {
+    await closeSqliteClient(client);
+  }
 }

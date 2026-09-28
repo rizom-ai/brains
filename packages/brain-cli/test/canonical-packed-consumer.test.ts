@@ -71,6 +71,15 @@ describe("canonical packed consumer", () => {
         "brain",
         "dist",
       );
+      const entryHashes: string[] = [];
+      for (const directory of [join(packageDirectory, "dist"), installedDist]) {
+        entryHashes.push(
+          new Bun.CryptoHasher("sha256")
+            .update(await Bun.file(join(directory, "brain.js")).bytes())
+            .digest("hex"),
+        );
+      }
+      expect(entryHashes[1]).toBe(entryHashes[0]);
       for (const owner of [installedDist, join(installedDist, "chunks")]) {
         for (const worker of [
           "worker",

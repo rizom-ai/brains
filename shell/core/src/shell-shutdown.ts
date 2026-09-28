@@ -44,13 +44,15 @@ export function registerShellRuntimeFinalizers(
   registerDurableClose(lifecycle, services.conversationService);
   registerDurableClose(lifecycle, services.entityService);
 
-  // Scope finalizers run in reverse registration order. A worker must drain
-  // its runtime before closing the shared endpoint client because worker-session
-  // cleanup uses that client.
+  // Scope finalizers run in reverse registration order. Both endpoint roles
+  // must outlive runtime work and file retirement: plugins can perform final
+  // native exports, and those handoffs still need live RPC replies.
   const endpoint = services.localDatabaseEndpoint;
-  if (endpoint?.role === "client") {
+  if (endpoint) {
     lifecycle.addFinalizer(() => endpoint.close());
   }
+  const files = services.entityService.fileAssets;
+  if (files) lifecycle.addFinalizer(() => files.close());
 
   // Boot-time subscriptions can own in-flight projection queries. Stop and
   // join them while both the endpoint and durable stores are still available.
@@ -109,15 +111,4 @@ export function registerShellRuntimeFinalizers(
   lifecycle.addFinalizer(() =>
     services.daemonRegistry.unregister("shell:recurring-checks"),
   );
-
-  // The web owner rejects remote persistence traffic before runtime drains and
-  // database cleanup. Unlike the worker client, the server is not needed to
-  // stop local runtime services.
-  if (endpoint?.role === "owner") {
-    lifecycle.addFinalizer(() => endpoint.close());
-  }
-  // File handoffs need live RPC replies to retire native authority. Drain them
-  // before closing either the owner endpoint or its databases.
-  const files = services.entityService.fileAssets;
-  if (files) lifecycle.addFinalizer(() => files.close());
 }

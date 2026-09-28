@@ -200,6 +200,16 @@ export class FileOperations {
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
+    // Placeholders have no binary bytes and must never replace a published
+    // file with invented or empty content. Publication creates a new export.
+    if (
+      (isImage || isDocument) &&
+      entity.content === "" &&
+      (entity.metadata["status"] === "pending" ||
+        entity.metadata["status"] === "failed")
+    )
+      return;
+
     if (isImage) {
       const files = this.entityService.fileAssets;
       if (!files) throw new Error("Image file export is not provisioned");
@@ -214,14 +224,6 @@ export class FileOperations {
       return;
     }
     if (isDocument) {
-      // Placeholders have no PDF bytes to export and must never replace a
-      // previously published file with invented or empty content.
-      if (
-        entity.content === "" &&
-        (entity.metadata["status"] === "pending" ||
-          entity.metadata["status"] === "failed")
-      )
-        return;
       const files = this.entityService.fileAssets;
       if (!files) throw new Error("Document file export is not provisioned");
       await this.ensureEntityDirectory(entity, filePath);

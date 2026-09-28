@@ -2,6 +2,7 @@ import { createTestEntity } from "../src/test/index";
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { computeContentHash } from "@brains/utils/hash";
 import { createEntityDatabase } from "../src/db";
+import { closeSqliteClient } from "@brains/db";
 import { embeddings } from "../src/schema/embeddings";
 import { and, eq } from "drizzle-orm";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
@@ -41,7 +42,7 @@ describe("storeEmbedding", () => {
         );
       return rows[0];
     } finally {
-      client.close();
+      await closeSqliteClient(client);
     }
   }
 

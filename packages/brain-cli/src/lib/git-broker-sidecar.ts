@@ -181,15 +181,24 @@ async function stopSidecar(
   const pid = sidecar.child.pid;
 
   if (!sidecar.isClosed()) sidecar.child.kill("SIGTERM");
-  const closedGracefully = await Promise.race([
-    sidecar.closed.then(
-      () => true,
-      () => true,
-    ),
-    delay(dependencies.shutdownGraceMs ?? DEFAULT_SHUTDOWN_GRACE_MS).then(
-      () => false,
-    ),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let closedGracefully: boolean;
+  try {
+    closedGracefully = await Promise.race([
+      sidecar.closed.then(
+        () => true,
+        () => true,
+      ),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(
+          () => resolve(false),
+          dependencies.shutdownGraceMs ?? DEFAULT_SHUTDOWN_GRACE_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 
   if (pid === undefined) {
     if (!closedGracefully) {

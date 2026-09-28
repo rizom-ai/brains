@@ -13,6 +13,7 @@ import {
   normalizeSearchText,
 } from "../src/db";
 import { sql } from "drizzle-orm";
+import { closeSqliteClient } from "@brains/db";
 
 describe("portable keyword search", () => {
   let ctx: EntityServiceTestContext;
@@ -73,6 +74,45 @@ describe("portable keyword search", () => {
     expect(
       ctx.entityService.searchWithDistances({ query: "quokka" }),
     ).rejects.toThrow("Semantic indexing is disabled");
+  });
+
+  test("long lexical queries retain every term within fixed SQL limits", async () => {
+    await ctx.cleanup();
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    const queries = [
+      "Write a concise 120-word technical blog post titled Turso Provider Acceptance explaining why acknowledged edits should survive a restart. This is synthetic test content. Avoid external claims, links, or calls to publish elsewhere.",
+      Array.from({ length: 110 }, (_, index) => `depth${index}`).join(" "),
+      Array.from({ length: 300 }, (_, index) => `term${index}`).join(" "),
+    ];
+    for (const query of queries) {
+      const entity = createTestEntity("test", { content: query });
+      await ctx.entityService.createEntity({ entity });
+      const results = await ctx.entityService.search({
+        query,
+        options: { types: ["test"] },
+      });
+      expect(results.map((result) => result.entity.id)).toEqual([entity.id]);
+      expect(results[0]?.score).toBe(1);
+      const filtered = await ctx.entityService.search({
+        query,
+        options: { types: ["test"], minScore: 0.9 },
+      });
+      expect(filtered.map((result) => result.entity.id)).toEqual([entity.id]);
+      const missing = await ctx.entityService.search({
+        query: `${query} absentmarker`,
+        options: { types: ["test"] },
+      });
+      expect(missing).toEqual([]);
+    }
   });
 
   test("lexical fallback applies minScore on a portable score", async () => {
@@ -446,7 +486,7 @@ describe("portable keyword engine parity", () => {
           ORDER BY id
         `);
       } finally {
-        connection.client.close();
+        await closeSqliteClient(connection.client);
       }
     }
 
@@ -457,7 +497,7 @@ describe("portable keyword engine parity", () => {
     expect(decisions["turso"]).toEqual(decisions["libsql"]);
   });
 
-  test("an empty query boosts nothing", async () => {
+  test("empty queries and missing search text never boost a row", async () => {
     const connection = createEntityDatabase({ url: "file::memory:" });
     try {
       await connection.client.execute(`
@@ -470,10 +510,10 @@ describe("portable keyword engine parity", () => {
         )
       `);
       await connection.client.execute(
-        "INSERT INTO entities VALUES ('a', 'test', 'TypeScript generics', 'typescript generics'), ('b', 'test', 'unrelated prose', 'unrelated prose')",
+        "INSERT INTO entities VALUES ('a', 'test', 'TypeScript generics', 'typescript generics'), ('b', 'test', 'unrelated prose', 'unrelated prose'), ('c', 'test', 'Unindexed content', NULL)",
       );
 
-      for (const emptyQuery of ["", "   "]) {
+      for (const emptyQuery of ["", "   ", "absentmarker"]) {
         const boosted = await connection.db.all<{ boosted: number }>(sql`
           SELECT CASE WHEN ${buildKeywordMatch(emptyQuery)} THEN 1 ELSE 0 END
             AS boosted
@@ -482,10 +522,14 @@ describe("portable keyword engine parity", () => {
         `);
         // instr(content, '') matches every row; an empty phrase must not
         // uniformly inflate scores past a caller's minScore threshold.
-        expect(boosted).toEqual([{ boosted: 0 }, { boosted: 0 }]);
+        expect(boosted).toEqual([
+          { boosted: 0 },
+          { boosted: 0 },
+          { boosted: 0 },
+        ]);
       }
     } finally {
-      connection.client.close();
+      await closeSqliteClient(connection.client);
     }
   });
 });

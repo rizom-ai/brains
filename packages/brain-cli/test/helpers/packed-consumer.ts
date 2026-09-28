@@ -542,8 +542,18 @@ export async function installPackedConsumer(
     `${JSON.stringify({ ...manifest, dependencies, overrides }, null, 2)}\n`,
   );
 
+  // Different local builds can carry the same alpha version. A shared Bun
+  // cache can otherwise substitute an older tarball, including worker files.
+  const cacheDirectory = join(consumerDirectory, ".bun-install-cache");
   await runCommand(
-    ["bun", "install", "--ignore-scripts", "--save-text-lockfile"],
+    [
+      "bun",
+      "install",
+      "--ignore-scripts",
+      "--save-text-lockfile",
+      "--cache-dir",
+      cacheDirectory,
+    ],
     consumerDirectory,
     { timeoutMs: 120_000 },
   );
@@ -552,7 +562,14 @@ export async function installPackedConsumer(
     force: true,
   });
   await runCommand(
-    ["bun", "install", "--ignore-scripts", "--frozen-lockfile"],
+    [
+      "bun",
+      "install",
+      "--ignore-scripts",
+      "--frozen-lockfile",
+      "--cache-dir",
+      cacheDirectory,
+    ],
     consumerDirectory,
     { timeoutMs: 120_000 },
   );
