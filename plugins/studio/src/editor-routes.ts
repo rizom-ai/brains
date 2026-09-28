@@ -15,6 +15,7 @@ import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
   isRawEntityType,
+  studioTypeHierarchy,
   zodFieldToStudioWidget,
   type StudioEntityDisplayMap,
 } from "./config";
@@ -54,6 +55,7 @@ import {
   toStudioWorkspaceActor,
 } from "./editor-access";
 import type {
+  StudioEntityTypeInfo,
   StudioRequestAccess,
   StudioRequestAccessResolution,
   EditorRouteOptions,
@@ -614,7 +616,7 @@ async function handleListTypes(
   access: StudioRequestAccess,
   getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
-  const types = [];
+  const types: StudioEntityTypeInfo[] = [];
   if (access.permissionLevel !== "public") {
     await context.entities.ensureGroupingsCurrent();
     const counts = new Map(
@@ -642,6 +644,7 @@ async function handleListTypes(
         hasBody: adapter?.hasBody !== false,
         count,
         capabilities,
+        hierarchy: studioTypeHierarchy(entityType),
       });
     }
   }

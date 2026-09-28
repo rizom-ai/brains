@@ -11,6 +11,7 @@ import {
   unwrapField,
 } from "@brains/utils/zod-introspect";
 import { isRecord } from "@brains/utils/is-record";
+import type { StudioTypeHierarchy } from "./editor-contracts";
 // Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
 // which plugins may not import directly and @brains/plugins does not re-export).
 const NOTE_ENTITY_TYPE = "note";
@@ -76,6 +77,18 @@ export function isRawEntityType(
     entityType === NOTE_ENTITY_TYPE &&
     !entities.isGroupingContributor(entityType)
   );
+}
+
+/**
+ * How Studio nests a type's entries. Site content is organised in pages.
+ * Directory-sync exports notes as one segment at its root, so new notes are
+ * created there rather than inside a folder.
+ */
+export function studioTypeHierarchy(entityType: string): StudioTypeHierarchy {
+  return {
+    kind: entityType === "site-content" ? "page" : "folder",
+    nested: entityType !== NOTE_ENTITY_TYPE,
+  };
 }
 
 /**

@@ -12,6 +12,7 @@ import { createRoot, type Root } from "react-dom/client";
 import {
   StudioApi,
   type EntityDetail,
+  type EntityTypeInfo,
   type StudioTypeCapabilities,
 } from "./api";
 import { studioCollectionQuerySchema } from "../../src/collection-query";
@@ -37,6 +38,16 @@ const capabilities: StudioTypeCapabilities = {
   canExtract: false,
   canPublish: false,
   canAssist: false,
+};
+
+const noteType: EntityTypeInfo = {
+  entityType: "note",
+  label: "Notes",
+  isSingleton: false,
+  hasBody: true,
+  count: 1,
+  capabilities,
+  hierarchy: { kind: "folder", nested: true },
 };
 
 function entity(id: string): EntityDetail {
@@ -110,6 +121,32 @@ it("opens a missing singleton as a clean creation draft through the route lifecy
   expect(state.mode.kind).toBe("create");
   expect(state.draft).toEqual({ groupings: {} });
   expect(hasUnsavedEditorChanges(state)).toBe(false);
+});
+
+it("starts a new entry in the open folder only when its type nests", async () => {
+  const inFolder = `?prefix=${encodeURIComponent(JSON.stringify(["a"]))}`;
+  const created = async (nested: boolean): Promise<unknown> => {
+    const harness = createHarness(createTransport(), "/studio/entities/memo");
+    await harness.render({
+      createMode: true,
+      entityType: "memo",
+      routeTarget: { kind: "collection", entityType: "memo" },
+      routeSearch: inFolder,
+      activeType: {
+        ...noteType,
+        entityType: "memo",
+        hierarchy: { kind: "folder", nested },
+      },
+    });
+    const state = harness.dispatches.reduce(
+      editorWorkflowReducer,
+      initialEditorWorkflowState,
+    );
+    return state.mode.kind === "create" ? state.mode.prefix : undefined;
+  };
+
+  expect(await created(false)).toBeNull();
+  expect(await created(true)).toEqual(["a"]);
 });
 
 function createTransport(): Transport {
@@ -192,7 +229,7 @@ function createHarness(transport: Transport, initialPath: string): Harness {
     currentStudioPathname: history.location.pathname,
     createMode: false,
     entityType: "note",
-    activeCapabilities: capabilities,
+    activeType: noteType,
     entityCollectionQuery: studioCollectionQuerySchema.parse({}),
     preferredMobilePane,
     dispatchEditor: (action): void => {
