@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- [#413](https://github.com/rizom-ai/brains/pull/413) [`c3c8caf`](https://github.com/rizom-ai/brains/commit/c3c8caf1d6ed3ba835814002273c50e7461a4672) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer now cites the public pages closest to it in meaning: with embeddings enabled, the brain searches with the finished answer and keeps up to five pages the site shows, near the closest match, each with its address on the site. The homepage map lights those pages, so an answer about three essays lights the three essays even when the model read about them in a note or a social post. When the closed Ask box on a phone leaves the page, its "Latest" button no longer lingers there.
+
 ## 0.2.0-alpha.434
 
 ### Patch Changes

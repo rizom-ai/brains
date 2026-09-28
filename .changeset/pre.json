@@ -373,6 +373,7 @@
     "core--grouping-definition-source",
     "core--grouping-usage-counts",
     "core--guest-admission-uncertain-signal",
+    "core--guest-answer-sources",
     "core--guest-ask-follow-tail",
     "core--guest-chat-monitor",
     "core--guest-chat-normal-agent",
