@@ -439,6 +439,7 @@
     "core--no-retention-notices",
     "core--note-fallback-title-length",
     "core--oauth-client-metadata-claude-clients",
+    "core--open-lit-card",
     "core--operational-health-semantics",
     "core--operator-ask-redirect",
     "core--operator-contract-secret-boundary",

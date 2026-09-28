@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.444
+
+### Patch Changes
+
+- [#427](https://github.com/rizom-ai/brains/pull/427) [`ad725df`](https://github.com/rizom-ai/brains/commit/ad725dfb44ae84502a91dec1991d792b66d9f74e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On the atlas map, an open title card on a lit piece now sits above the other lit pieces instead of under them.
+
 ## 0.2.0-alpha.443
 
 ### Patch Changes
