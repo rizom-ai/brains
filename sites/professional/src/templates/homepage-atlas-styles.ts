@@ -65,6 +65,8 @@ export const homepageAtlasStyles: string = String.raw`
 }
 .atlas__mark--west .atlas__tip { left: auto; right: 50%; transform: none; }
 .atlas__mark--east .atlas__tip { left: 50%; transform: none; }
+/* Near the map's top a card opens below its mark. */
+.atlas__mark--south .atlas__tip { top: calc(100% + .3rem); bottom: auto; }
 /* A transformed mark is its own stacking context: lift the active one over its neighbours. */
 .atlas__mark:focus-within { z-index: 3; }
 /* An open card sits above every other mark, lit ones (z-index 3) included. */
@@ -186,8 +188,13 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__send:disabled, .atlas__ask .send:disabled { opacity: .5; cursor: default; }
 .atlas__send:focus-visible, .atlas__ask .send:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 
-/* A phone's open conversation can open its map strip whole (see below). */
-.atlas__expand, .atlas__mapbar { display: none; }
+/* A phone's open conversation links a lit piece to where it is cited (see below). */
+.atlas__cited { display: none; }
+/* A tapped source pulses its piece; a piece's source flashes in the answer. */
+.atlas__mark[data-atlas-pulse] .atlas__glyph { animation: atlas-pulse 1.1s ease-out 2; }
+.atlas__ask [data-ask-source][data-atlas-flash] { animation: atlas-flash 1.5s ease-out; }
+@keyframes atlas-pulse { 35% { scale: 1.9; } }
+@keyframes atlas-flash { 0%, 40% { border-color: var(--color-accent); background: var(--color-bg-subtle); } }
 /* An answer turns the map towards the sources it drew on. */
 .atlas__field { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
 .atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
@@ -198,7 +205,7 @@ export const homepageAtlasStyles: string = String.raw`
 /* The map zooms; its marks and their cards keep their own size, so a lit
    piece is always half again a plain mark. */
 .atlas__mark > :first-child { transition: scale .9s cubic-bezier(.3, .7, .2, 1); }
-.atlas__field[data-focused] .atlas__mark > :first-child { scale: calc(1 / var(--atlas-focus-scale, 1)); }
+.atlas__field[data-focused] :is(.atlas__mark > :first-child, .atlas__cited) { scale: calc(1 / var(--atlas-focus-scale, 1)); }
 /* Leads from the answer’s listed sources to their marks; the script draws them on desktop only. */
 .atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
 .atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
@@ -227,58 +234,52 @@ export const homepageAtlasStyles: string = String.raw`
 @media (min-width: 48rem) and (max-width: 60rem) { .atlas { --atlas-edge: 3rem; } }
 @media ${ASK_SHEET_MEDIA} {
   /* An engaged box opens full screen (Web Chat's sheet). It rises above the
-     sticky site header, and the map docks under its header as a strip where
-     the answer's sources light up; the strip folds away while typing. */
+     sticky site header, and the map docks under its header, as tall as the
+     page's at the top of the conversation: the conversation scrolls beneath
+     it, and it shrinks with that scroll to a strip (--atlas-sheet-scroll,
+     set by the script) where the answer's pieces stay in view. It folds away
+     while typing. */
   .atlas:has(.atlas__ask[data-ask-sheet]) { z-index: 1000; }
   .atlas__ask[data-ask-sheet] { margin: 0; max-width: none; }
-  .atlas__ask[data-ask-sheet]:not([data-ask-keyboard]) { --ask-sheet-inset: 7.5rem; }
+  .atlas__ask[data-ask-sheet]:not([data-ask-keyboard]) { --ask-sheet-inset: calc(var(--atlas-band) - 2rem); }
   .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__map {
-    position: fixed; z-index: 1001; top: ${ASK_SHEET_HEADER_HEIGHT}; right: 0; left: 0; height: 7.5rem; overflow: hidden;
+    position: fixed; z-index: 1001; top: ${ASK_SHEET_HEADER_HEIGHT}; right: 0; left: 0; overflow: hidden;
+    height: max(7.5rem, calc(var(--atlas-band) - 2rem - var(--atlas-sheet-scroll, 0px)));
     background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
     /* It rises and falls with the sheet (Web Chat's brain-ask-rise and -fall). */
     animation: atlas-sheet-rise .32s cubic-bezier(.2, .8, .2, 1);
   }
-  /* Its height moves only while it folds or opens (the script marks it). */
+  /* Its height moves on its own only while the keyboard folds or unfolds it
+     (the script marks it); otherwise it follows the conversation's scroll. */
   .atlas[data-atlas-moving]:has(.atlas__ask[data-ask-sheet]) .atlas__map { transition: height .32s cubic-bezier(.2, .8, .2, 1); }
   /* Marks cut by the strip's edges fade out with it, as the terrain does. */
-  .atlas:has(.atlas__ask[data-ask-sheet]):not([data-atlas-expanded]) .atlas__map::after {
+  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__map::after {
     content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
     background: linear-gradient(180deg, var(--color-bg), transparent 1.1rem, transparent calc(100% - 1.1rem), var(--color-bg));
   }
   .atlas:has(.atlas__ask[data-ask-closing]) .atlas__map { animation: atlas-sheet-fall .26s cubic-bezier(.4, 0, 1, 1) forwards; }
-  /* The strip is a window onto the same map as the page, at the same size
-     (the band less the legend's 2rem) and the same zoom. It centres where an
-     answer's sources sit (--atlas-strip-y, set by the script) or else the
-     middle of the map's content. */
+  /* It is a window onto the same map as the page, at the same size (the
+     band less the legend's 2rem) and the same zoom. As the window shrinks it
+     keeps where an answer's sources sit (--atlas-strip-y, set by the script),
+     or else the middle of the map's content, in its middle. */
   .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__field {
     --atlas-field-height: calc(var(--atlas-band) - 2rem);
+    --atlas-window: max(7.5rem, calc(var(--atlas-field-height) - var(--atlas-sheet-scroll, 0px)));
     inset: auto 0; height: calc(var(--atlas-band) - 2rem);
-    top: clamp(calc(7.5rem - var(--atlas-field-height)), calc(3.75rem - var(--atlas-field-height) * var(--atlas-strip-y, calc(var(--atlas-fill, 1) * 50)) / 100), 0rem);
+    top: clamp(calc(var(--atlas-window) - var(--atlas-field-height)), calc(var(--atlas-window) / 2 - var(--atlas-field-height) * var(--atlas-strip-y, calc(var(--atlas-fill, 1) * 50)) / 100), 0rem);
     transition: transform .9s cubic-bezier(.3, .7, .2, 1);
   }
   /* Only an answer pans the strip (the script marks it); opening never slides it. */
   .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__field[data-atlas-panning] { transition: transform .9s cubic-bezier(.3, .7, .2, 1), top .9s cubic-bezier(.3, .7, .2, 1); }
   .atlas:has(.atlas__ask[data-ask-sheet]) :is(.atlas__legend, .atlas__zone) { display: none; }
-  /* The strip is one control: it opens the whole map, at the page's size,
-     with a bar below it that folds it back. Its marks answer only there. */
-  .atlas:has(.atlas__ask[data-ask-sheet]):not([data-atlas-expanded]) .atlas__expand {
-    display: block; position: absolute; inset: 0; z-index: 5; padding: 0; border: 0; background: none; cursor: pointer;
+  /* A lit piece's open card leads to where the answer cites it: a small
+     button on the far side of the mark from its card. */
+  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__mark[data-open][data-cited] .atlas__cited {
+    display: block; position: absolute; z-index: 2; top: calc(100% + .35rem); left: 50%; translate: -50% 0;
+    padding: .25rem .6rem; border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg-subtle); color: var(--color-accent); font: inherit; font-size: .78rem; white-space: nowrap; cursor: pointer;
   }
-  .atlas__expand span {
-    position: absolute; right: .6rem; bottom: .45rem; padding: .1rem .5rem; border-radius: .6rem;
-    background: rgb(from var(--color-bg) r g b / .88); color: var(--color-text-muted); font-size: .72rem;
-    opacity: 0; transition: opacity .4s;
-  }
-  .atlas:has(.atlas__field[data-focused]) .atlas__expand span { opacity: 1; }
-  .atlas[data-atlas-expanded]:has(.atlas__ask[data-ask-sheet]) .atlas__map { height: calc(var(--atlas-band) + .5rem); }
-  .atlas[data-atlas-expanded]:has(.atlas__ask[data-ask-sheet]) .atlas__field { top: 0; }
-  .atlas[data-atlas-expanded] .atlas__ask[data-ask-sheet]:not([data-ask-keyboard]) { --ask-sheet-inset: calc(var(--atlas-band) + .5rem); }
-  .atlas[data-atlas-expanded] .atlas__mapbar {
-    display: flex; position: absolute; z-index: 4; right: 0; bottom: 0; left: 0; height: 2.5rem;
-    align-items: center; justify-content: space-between; gap: 1rem; padding: 0 var(--atlas-edge);
-    border-top: 1px solid var(--color-rule); background: var(--color-bg); color: var(--color-text-muted); font-size: .8rem;
-  }
-  .atlas__mapbar button { padding: 0; border: 0; background: none; color: var(--color-text); font: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__mark--south[data-open][data-cited] .atlas__cited { top: auto; bottom: calc(100% + .35rem); }
   /* Folded, not removed, so it never rises again when the keyboard closes. */
   .atlas:has(.atlas__ask[data-ask-keyboard]) .atlas__map { height: 0; border-bottom-width: 0; }
   /* The page presents the opening beside the box; full screen, the box does. */
@@ -293,6 +294,7 @@ export const homepageAtlasStyles: string = String.raw`
 @keyframes atlas-sheet-fall { to { transform: translateY(100dvh); } }
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }
+  .atlas__mark[data-atlas-pulse] .atlas__glyph, .atlas__ask [data-ask-source][data-atlas-flash] { animation: none; }
   .atlas__map { animation: none; }
   .atlas__map { transition: none; }
   .atlas__glyph, .atlas__tip, .atlas__field, .atlas__mark > :first-child { transition: none; }

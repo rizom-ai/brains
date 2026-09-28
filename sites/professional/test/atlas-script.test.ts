@@ -30,12 +30,10 @@ function setup(options: {
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
       <a id="topic" href="/contact?topic=What+is+Rizom%3F" data-atlas-door data-atlas-fill="What is Rizom?">What is Rizom?</a>
       <svg data-atlas-leads></svg>
-      <button data-atlas-expand aria-label="Show the whole map"></button>
-      <div data-atlas-mapbar><span data-atlas-count></span><button data-atlas-fold>Back to the answer</button></div>
       <div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
-          <li data-atlas-mark data-atlas-key="post:first" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:first" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-atlas-cited>Where it’s cited ↓</button></li>
           <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
           <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
@@ -343,69 +341,103 @@ describe("atlas and its chat", () => {
       window.document.querySelector("[data-atlas]");
     const host = (): ReturnType<typeof window.document.querySelector> =>
       window.document.querySelector("[data-ask-box]");
-    const press = (selector: string): void => {
-      window.document
-        .querySelector(selector)
-        ?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    const region = (): InstanceType<typeof window.HTMLElement> => {
+      const element = window.document.querySelector(".brain-box-scroll");
+      if (!(element instanceof window.HTMLElement))
+        throw new Error("Missing conversation region");
+      return element;
     };
-    const expanded = (): boolean =>
-      root()?.hasAttribute("data-atlas-expanded") ?? false;
-
-    it("opens the whole map from the strip, and folds it back to the answer", () => {
-      setup({ touch: true, chat: "live" });
+    const sheet = (): void => {
       host()?.setAttribute("data-ask-sheet", "");
-      press("[data-atlas-expand]");
-      expect(expanded()).toBe(true);
-      press("[data-atlas-fold]");
-      expect(expanded()).toBe(false);
-    });
-
-    it("leaves the page's own map alone", () => {
-      setup({ touch: true, chat: "live" });
-      press("[data-atlas-expand]");
-      expect(expanded()).toBe(false);
-    });
-
-    it("folds the map when the conversation closes or the keyboard opens", () => {
-      setup({ touch: true, chat: "live" });
-      host()?.setAttribute("data-ask-sheet", "");
-      press("[data-atlas-expand]");
-      host()?.setAttribute("data-ask-keyboard", "");
       mutate();
-      expect(expanded()).toBe(false);
-      host()?.removeAttribute("data-ask-keyboard");
-      press("[data-atlas-expand]");
-      host()?.removeAttribute("data-ask-sheet");
-      mutate();
-      expect(expanded()).toBe(false);
+    };
+    /** The open conversation's scroll region, listing the answer's source. */
+    const conversation = (): void => {
+      host()?.insertAdjacentHTML(
+        "afterbegin",
+        '<div class="brain-box-scroll"><ul class="brain-box-sources"><li data-ask-source="post:first"><a id="source-first" href="/essays/first">First</a></li></ul></div>',
+      );
+      // happy-dom scrolls smoothly later; where a scroll lands is what counts.
+      const scroller = region();
+      Object.assign(scroller, {
+        scrollTo: (to: { top: number }): void => {
+          scroller.scrollTop = to.top;
+        },
+      });
+    };
+
+    it("follows how far the answer has scrolled, so the map shrinks as it scrolls beneath it", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      region().scrollTop = 120;
+      region().dispatchEvent(new window.Event("scroll"));
+      const map = root();
+      if (!(map instanceof window.HTMLElement))
+        throw new Error("Missing atlas");
+      expect(map.style.getPropertyValue("--atlas-sheet-scroll")).toBe("120px");
     });
 
-    it("marks the map as moving only while the strip folds or opens, so opening the conversation never stretches it", async () => {
+    it("takes a tapped source to its piece: back to the full map, the piece pulsing with its card open", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      answer(["post:first"]);
+      region().scrollTop = 300;
+      expect(tap("#source-first")).toBe(false);
+      expect(region().scrollTop).toBe(0);
+      expect(openMarks()).toEqual(["first"]);
+      const piece = window.document.querySelector(
+        '[data-atlas-key="post:first"]',
+      );
+      expect(piece?.hasAttribute("data-atlas-pulse")).toBe(true);
+    });
+
+    it("leaves a source a plain link outside the phone's conversation", () => {
+      setup({ touch: false, chat: "live" });
+      conversation();
+      answer(["post:first"]);
+      expect(tap("#source-first")).toBe(true);
+    });
+
+    it("from a piece's card, shows where the answer cites it", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      answer(["post:first"]);
+      const source = window.document.querySelector(
+        '[data-ask-source="post:first"]',
+      );
+      if (!source) throw new Error("Missing source");
+      // The region shows 400px from its top at 100; the source sits 900px down.
+      Object.defineProperty(region(), "clientHeight", { value: 400 });
+      Object.assign(region(), {
+        getBoundingClientRect: () => new window.DOMRect(0, 100, 390, 400),
+      });
+      Object.assign(source, {
+        getBoundingClientRect: () => new window.DOMRect(0, 1000, 100, 30),
+      });
+      tap("#source-first");
+      tap("#first-cited");
+      expect(region().scrollTop).toBe(900 - 200 + 15);
+      expect(source.hasAttribute("data-atlas-flash")).toBe(true);
+      expect(openMarks()).toEqual([]);
+    });
+
+    it("marks the map as moving only while the keyboard folds or unfolds it, so opening the conversation never stretches it", async () => {
       setup({ touch: true, chat: "live" });
       const moving = (): boolean =>
         root()?.hasAttribute("data-atlas-moving") ?? false;
-      host()?.setAttribute("data-ask-sheet", "");
-      mutate();
-      expect(moving()).toBe(false);
-      press("[data-atlas-expand]");
-      expect(moving()).toBe(true);
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      sheet();
       expect(moving()).toBe(false);
       host()?.setAttribute("data-ask-keyboard", "");
       mutate();
       expect(moving()).toBe(true);
-    });
-
-    it("says how many pieces an answer draws on", () => {
-      setup({ touch: true, chat: "live" });
-      const count = (): string =>
-        window.document.querySelector("[data-atlas-count]")?.textContent ?? "";
-      answer(["post:first", "post:second"]);
-      expect(count()).toBe("2 pieces this answer draws on");
-      answer(["post:first"]);
-      expect(count()).toBe("1 piece this answer draws on");
-      answer([]);
-      expect(count()).toBe("");
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      expect(moving()).toBe(false);
+      host()?.removeAttribute("data-ask-keyboard");
+      mutate();
+      expect(moving()).toBe(true);
     });
   });
 

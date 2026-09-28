@@ -339,7 +339,8 @@
  * On a narrow screen the engaged box opens full screen (ASK_SHEET_MEDIA and
  * ASK_SHEET_ATTRIBUTE in the ask-box contract). It fits the visual viewport,
  * so the composer rides on the keyboard. Its header is ASK_SHEET_HEADER_HEIGHT
- * tall; a host reserves room below it with --ask-sheet-inset.
+ * tall; a host docks content below it and reserves its height with
+ * --ask-sheet-inset, which the conversation scrolls beneath.
  */
 @media (max-width: 47.99rem) {
   :where([data-ask-styled][data-ask-sheet]) {
@@ -400,10 +401,13 @@
     flex: 1;
     min-height: 0;
     max-height: none;
-    margin-top: var(--ask-sheet-inset, 0px);
+    /* A host's docked content covers the top; the conversation starts below
+       it and scrolls beneath it, and an answer opens below it too. */
+    padding-top: var(--ask-sheet-inset, 0px);
+    scroll-padding-top: var(--ask-sheet-inset, 0px);
     overflow-y: auto;
-    /* Follows a docked strip as it folds and unfolds with the keyboard. */
-    transition: margin-top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Follows docked content as it folds and unfolds with the keyboard. */
+    transition: padding-top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   /* An empty conversation opens with its welcome just above the composer. */
   :where([data-ask-styled] .is-sheet .brain-box-scroll.is-welcome) {
