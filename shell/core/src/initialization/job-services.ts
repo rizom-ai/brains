@@ -5,6 +5,7 @@ import type {
   JobHandlerRegistrationMode,
   JobProgressMonitorMode,
   JobQueueServiceConfig,
+  ResettableAmbientScope,
 } from "@brains/job-queue";
 import {
   BatchJobManagerTag,
@@ -49,6 +50,8 @@ export interface JobServiceOptions {
   jobQueueConfig: JobQueueServiceConfig;
   messageBus: MessageBus;
   operationContext?: OperationContext;
+  /** Ambient async context(s) to reset to empty before each job runs. */
+  projectionBatchScope?: ResettableAmbientScope;
   projectionAdmission?: ProjectionRuntimeSupervisor;
   handlerRegistrationMode?: JobHandlerRegistrationMode;
   workerConcurrency: number;
@@ -114,6 +117,9 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       messageBus: options.messageBus,
       logger: options.logger,
       operationContext,
+      ...(options.projectionBatchScope && {
+        projectionBatchScope: options.projectionBatchScope,
+      }),
       onWorkerUnhealthy: createFatalJobWorkerHandler(options.logger),
       workerConcurrency: options.workerConcurrency,
       ...(options.progressMonitorMode && {

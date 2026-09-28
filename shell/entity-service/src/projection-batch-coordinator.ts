@@ -83,13 +83,34 @@ export class ProjectionBatchCoordinator {
   private readonly transactions: ProjectionTransactionRunner;
   private readonly now: () => number;
   private readonly readRecoveryGeneration: ProjectionBatchCoordinatorOptions["getRecoveryGeneration"];
-  private readonly batchScope = new AsyncLocalStorage<ProjectionBatchScope>();
+  private readonly batchScope = new AsyncLocalStorage<
+    ProjectionBatchScope | undefined
+  >();
 
   public constructor(options: ProjectionBatchCoordinatorOptions) {
     this.db = options.db;
     this.transactions = options.transactions;
     this.now = options.now;
     this.readRecoveryGeneration = options.getRecoveryGeneration;
+  }
+
+  /**
+   * Force this coordinator's ambient batch scope to empty for the duration
+   * of `fn`, regardless of what the calling continuation inherited.
+   *
+   * `runBulkMutation`/`runDurableBulkMutationChild` trust
+   * `AsyncLocalStorage.getStore()` as a fast path to detect genuine nesting
+   * within one caller's own call stack. That trust breaks across a job
+   * scheduler that multiplexes independent units of work onto shared native
+   * continuations (this app's job queue dispatches jobs as Effect fibers,
+   * which have no relationship to Node's AsyncLocalStorage tracking): an
+   * unrelated job's leftover scope can appear ambient to a new one and trip
+   * the identity fence on jobs that were never actually nested. Callers that
+   * define a fresh unit of work (the job queue, once per job) must call this
+   * before running it, so a job never inherits another job's batch scope.
+   */
+  public runFreshBatchScope<T>(fn: () => T): T {
+    return this.batchScope.run(undefined, fn);
   }
 
   private assertBatchIdentity(
