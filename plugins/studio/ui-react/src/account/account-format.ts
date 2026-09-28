@@ -26,3 +26,8 @@ export function studioEntityHref(
   const base = studioPath === "/" ? "" : studioPath.replace(/\/+$/, "");
   return `${base}/entities/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
 }
+
+/** An account timestamp as ISO text; session times arrive in seconds. */
+export function accountTimestamp(value: number, milliseconds = false): string {
+  return new Date(milliseconds ? value : value * 1000).toISOString();
+}

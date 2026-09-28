@@ -277,13 +277,16 @@ describe("admin guest activation using deployment conventions", () => {
         "GET /ask",
         "GET /ask/assets/ask.css",
         "GET /ask/assets/ask.js",
-        // The shared box boot every consuming site loads.
+        // The shared box loader every consuming site loads, the boot it loads
+        // at the current version, and that version.
+        "GET /ask/assets/boot.js",
         "GET /ask/assets/box.js",
         "GET /ask/assets/dashboard.css",
         "GET /ask/assets/dashboard.js",
         "GET /ask/assets/guest.css",
         "GET /ask/assets/guest.js",
         "GET /ask/assets/page.css",
+        "GET /ask/assets/version",
         "POST /api/chat/guest",
         "POST /api/chat/guest/session",
       ].sort(),

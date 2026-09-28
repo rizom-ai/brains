@@ -7,7 +7,12 @@ import {
   type AskBoxAvailability,
 } from "@brains/contracts";
 import type { IRuntimeStateStore } from "@brains/plugins";
-import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
+import {
+  ASK_BOX_BOOT_PATH,
+  ASK_BOX_LOADER_SCRIPT,
+  ASK_BOX_VERSION_PATH,
+  askBoxBootScript,
+} from "./ask-box-boot";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   parseAgentResponse,
@@ -367,21 +372,53 @@ export class WebChatInterface extends MessageInterfacePlugin<
                 }),
         });
       }
-      routes.push({
-        path: ASK_BOX_SCRIPT_PATH,
-        method: "GET",
-        public: true,
-        preview: true,
-        handler: async (request): Promise<Response> =>
-          (await this.canServeGuestAssets(request))
-            ? new Response(ASK_BOX_BOOT_SCRIPT, {
-                headers: { "Content-Type": "text/javascript; charset=utf-8" },
-              })
-            : new Response("Not found", {
-                status: 404,
-                headers: { "Cache-Control": "no-store" },
-              }),
-      });
+      const notFound = (): Response =>
+        new Response("Not found", {
+          status: 404,
+          headers: { "Cache-Control": "no-store" },
+        });
+      routes.push(
+        {
+          path: ASK_BOX_SCRIPT_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(ASK_BOX_LOADER_SCRIPT, {
+                  headers: {
+                    "Content-Type": "text/javascript; charset=utf-8",
+                    "Cache-Control": "no-cache",
+                  },
+                })
+              : notFound(),
+        },
+        {
+          path: ASK_BOX_VERSION_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? Response.json(
+                  { version: await this.guestAssetVersion() },
+                  { headers: { "Cache-Control": "no-store" } },
+                )
+              : notFound(),
+        },
+        {
+          path: ASK_BOX_BOOT_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(askBoxBootScript(await this.guestAssetVersion()), {
+                  headers: { "Content-Type": "text/javascript; charset=utf-8" },
+                })
+              : notFound(),
+        },
+      );
       for (const extension of ["js", "css"] as const) {
         routes.push({
           path: `/ask/assets/ask.${extension}`,
@@ -668,6 +705,28 @@ export class WebChatInterface extends MessageInterfacePlugin<
     } catch {
       return new Response("Invalid runtime action response", { status: 502 });
     }
+  }
+
+  private guestAssetVersionPromise: Promise<string> | undefined;
+
+  /**
+   * Names this build of the Ask box: its boot and the guest bundle it loads.
+   * A release changes it, so their versioned addresses are never served from
+   * an older cache.
+   */
+  private guestAssetVersion(): Promise<string> {
+    this.guestAssetVersionPromise ??= Promise.all(
+      [
+        join(uiAssetDirectory, "guest.js"),
+        join(uiAssetDirectory, "guest.css"),
+      ].map(async (path) => {
+        const file = Bun.file(path);
+        return (await file.exists()) ? file.text() : "";
+      }),
+    ).then((files) =>
+      Bun.hash([askBoxBootScript(""), ...files].join("\0")).toString(36),
+    );
+    return this.guestAssetVersionPromise;
   }
 
   private async handleBuiltUiFile(
