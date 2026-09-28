@@ -292,7 +292,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           </section>
         )}
         <p
-          className={`brain-box-activity${waiting ? " brain-box-sr-only" : ""}${state === "complete" && !busy ? " is-complete" : ""}`}
+          className={`brain-box-activity${waiting || (busy && state === "connecting") ? " brain-box-sr-only" : ""}${state === "complete" && !busy ? " is-complete" : ""}`}
           role="status"
           aria-live="polite"
         >

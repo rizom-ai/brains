@@ -435,6 +435,17 @@ describe("living atlas", () => {
       /\.atlas:has\(\.atlas__ask\[data-ask-closing\]\) \.atlas__map \{[^}]*animation: atlas-sheet-fall /,
     );
     expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-rise");
+    // Its height moves only while it folds or opens (the script says when).
+    expect(phone).not.toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*transition: height/,
+    );
+    expect(phone).toMatch(
+      /\.atlas\[data-atlas-moving\]:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{ transition: height /,
+    );
+    // Marks cut by the strip's edges fade out with it, as the terrain does.
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\):not\(\[data-atlas-expanded\]\) \.atlas__map::after \{[^}]*linear-gradient\(180deg, var\(--color-bg\), transparent/,
+    );
     expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-fall");
     expect(phone).toMatch(
       /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: 7\.5rem; \}/,
@@ -455,6 +466,12 @@ describe("living atlas", () => {
     // The open conversation rises above the sticky site header.
     expect(phone).toMatch(
       /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \{ z-index: 1000; \}/,
+    );
+  });
+
+  it("lifts an open card above every other mark, lit ones included", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark\[data-open\] \{ z-index: 4; \}/,
     );
   });
 

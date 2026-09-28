@@ -317,8 +317,17 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
     // whole map; "Back to the answer", closing or typing folds it again.
     var askHost = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
     var count = root.querySelector("[data-atlas-count]");
+    // The strip's height moves only while it folds or opens, never as the
+    // conversation opens (the phone sheet transitions it under this mark).
+    var moving = 0;
+    function move() {
+      root.setAttribute("data-atlas-moving", "");
+      window.clearTimeout(moving);
+      moving = window.setTimeout(function () { root.removeAttribute("data-atlas-moving"); }, 400);
+    }
     function fold() {
       if (!root.hasAttribute("data-atlas-expanded")) return;
+      move();
       root.removeAttribute("data-atlas-expanded");
       if (field) pan();
     }
@@ -328,13 +337,21 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (target.closest("[data-atlas-fold]")) return fold();
       if (!target.closest("[data-atlas-expand]")) return;
       if (!askHost || !askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}")) return;
+      move();
       root.setAttribute("data-atlas-expanded", "");
       if (field) pan();
     });
-    if (askHost && typeof MutationObserver === "function")
-      new MutationObserver(function () {
-        if (!askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}") || askHost.hasAttribute("${ASK_KEYBOARD_ATTRIBUTE}")) fold();
-      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}", "${ASK_KEYBOARD_ATTRIBUTE}"] });
+    var typing = false;
+    if (askHost && typeof MutationObserver === "function") {
+      var watch = new MutationObserver(function () {
+        var keyboard = askHost.hasAttribute("${ASK_KEYBOARD_ATTRIBUTE}");
+        // The strip folds and unfolds with the keyboard.
+        if (keyboard !== typing) move();
+        typing = keyboard;
+        if (!askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}") || keyboard) fold();
+      });
+      watch.observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}", "${ASK_KEYBOARD_ATTRIBUTE}"] });
+    }
 
     root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
       var sources = (event.detail && event.detail.sources) || [];

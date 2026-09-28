@@ -7,6 +7,13 @@ import { HOMEPAGE_ATLAS_SCRIPT } from "../src/templates/homepage-atlas-script";
 let window: Window;
 let restoreGlobals: RestoreGlobals;
 let observed: Array<(entries: Array<{ isIntersecting: boolean }>) => void>;
+/**
+ * The page's mutation observers. happy-dom holds an observer's callback only
+ * weakly, so garbage collection can drop it mid-test; tests deliver the
+ * changes themselves, as a browser does once the current task ends.
+ */
+let watchers: Array<() => void>;
+const mutate = (): void => watchers.forEach((notify) => notify());
 
 const media: Record<string, boolean> = {};
 
@@ -83,6 +90,13 @@ function openMarks(): string[] {
 beforeEach(() => {
   window = new Window({ url: "https://yeehaa.test/" });
   observed = [];
+  watchers = [];
+  class Watcher {
+    constructor(callback: () => void) {
+      watchers.push(callback);
+    }
+    observe(): void {}
+  }
   Object.assign(window, {
     matchMedia: (query: string) => ({
       matches: media[query] ?? false,
@@ -103,7 +117,7 @@ beforeEach(() => {
     // The page's own Event, as a browser page has it.
     Event: window.Event,
     IntersectionObserver: Observer,
-    MutationObserver: window.MutationObserver,
+    MutationObserver: Watcher,
   });
 });
 
@@ -185,7 +199,7 @@ describe("atlas door", () => {
       "https://yeehaa.test/",
     ).searchParams;
 
-  it("carries the visitor's theme to the contact form, which cannot read it, and follows a change", async () => {
+  it("carries the visitor's theme to the contact form, which cannot read it, and follows a change", () => {
     window.document.documentElement.setAttribute("data-theme", "light");
     setup({ touch: true });
     window.document.querySelector(".contact")?.setAttribute("id", "contact");
@@ -194,7 +208,7 @@ describe("atlas door", () => {
     expect(door("contact").get("theme")).toBe("light");
 
     window.document.documentElement.setAttribute("data-theme", "dark");
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    mutate();
     expect(door("topic").get("theme")).toBe("dark");
     expect(door("contact").get("theme")).toBe("dark");
   });
@@ -336,8 +350,6 @@ describe("atlas and its chat", () => {
     };
     const expanded = (): boolean =>
       root()?.hasAttribute("data-atlas-expanded") ?? false;
-    const settle = (): Promise<void> =>
-      new Promise((resolve) => setTimeout(resolve, 10));
 
     it("opens the whole map from the strip, and folds it back to the answer", () => {
       setup({ touch: true, chat: "live" });
@@ -354,18 +366,34 @@ describe("atlas and its chat", () => {
       expect(expanded()).toBe(false);
     });
 
-    it("folds the map when the conversation closes or the keyboard opens", async () => {
+    it("folds the map when the conversation closes or the keyboard opens", () => {
       setup({ touch: true, chat: "live" });
       host()?.setAttribute("data-ask-sheet", "");
       press("[data-atlas-expand]");
       host()?.setAttribute("data-ask-keyboard", "");
-      await settle();
+      mutate();
       expect(expanded()).toBe(false);
       host()?.removeAttribute("data-ask-keyboard");
       press("[data-atlas-expand]");
       host()?.removeAttribute("data-ask-sheet");
-      await settle();
+      mutate();
       expect(expanded()).toBe(false);
+    });
+
+    it("marks the map as moving only while the strip folds or opens, so opening the conversation never stretches it", async () => {
+      setup({ touch: true, chat: "live" });
+      const moving = (): boolean =>
+        root()?.hasAttribute("data-atlas-moving") ?? false;
+      host()?.setAttribute("data-ask-sheet", "");
+      mutate();
+      expect(moving()).toBe(false);
+      press("[data-atlas-expand]");
+      expect(moving()).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      expect(moving()).toBe(false);
+      host()?.setAttribute("data-ask-keyboard", "");
+      mutate();
+      expect(moving()).toBe(true);
     });
 
     it("says how many pieces an answer draws on", () => {
