@@ -21,9 +21,11 @@ import {
   StudioBrowseDestinations,
   navigationTypeLabel,
   studioMobileSelection,
+  workspaceBadge,
   type MobileNavigationOption,
 } from "./studio-navigation-parts";
 import type { NavigationTree } from "./use-navigation-tree";
+import type { NavigationModel } from "./studio-navigation-model";
 
 export interface MobileNavigationProps {
   types: EntityTypeInfo[];
@@ -33,12 +35,8 @@ export interface MobileNavigationProps {
   activeWorkspace?: string | null | undefined;
   workspaceBadges?: Record<string, number> | undefined;
   onSelectWorkspace?: ((workspaceId: string) => void) | undefined;
-  overviewWorkspace: StudioWorkspaceInfo | undefined;
-  chatWorkspace: StudioWorkspaceInfo | undefined;
-  administrationWorkspace: StudioWorkspaceInfo | undefined;
-  operationWorkspaces: StudioWorkspaceInfo[];
-  primaryTypeGroups: { label: string; types: EntityTypeInfo[] }[];
-  secondaryTypeGroups: { label: string; types: EntityTypeInfo[] }[];
+  /** The same destinations the desktop rail shows. */
+  model: NavigationModel;
   /** Shared with the desktop rail: one browsing state, two views of it. */
   tree: NavigationTree;
 }
@@ -62,20 +60,17 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     operationWorkspaces,
     primaryTypeGroups,
     secondaryTypeGroups,
-  } = props;
+  } = props.model;
   const { leafId, openGroups, toggleGroup } = props.tree;
   const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
     value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
     label: navigationTypeLabel(info),
     ...(info.isSingleton ? {} : { tally: info.count }),
   });
-  const workspaceBadge = (
-    workspace: StudioWorkspaceInfo | undefined,
-  ): number => (workspace ? (props.workspaceBadges?.[workspace.id] ?? 0) : 0);
   const mobileWorkspaceOption = (
     workspace: StudioWorkspaceInfo,
   ): MobileNavigationOption => {
-    const attention = workspaceBadge(workspace);
+    const attention = workspaceBadge(workspace, props.workspaceBadges);
     return {
       value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
       label: workspace.label,
