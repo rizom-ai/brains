@@ -8,6 +8,21 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Entity flags and confirmation replay integration scope
+
+Approved main `a0bd71b605` adds entity behavior flags through the separately
+approved declarative config contract, not retired plugin classes. Runtime tests
+cover supported binary representation, detached bounded sorting, malformed
+flags and refusal of internal asset-storage configuration; packed type canaries
+cover positive/negative author declarations. Image/PDF, Blog and Note retain
+native registration assertions through declarative installation.
+
+Update-operation extraction and normalized confirmation replay retain the shared
+edit helper, storage CAS, publication policy and actor attribution. Collapsing
+Ask-map and follow-tail changes remain presentation-only. Exact completed
+commit/tree/check evidence is recorded on PR301; imported visual artifacts do
+not establish new canonical browser/provider acceptance.
+
 ## Grouping exclusions and conditional mirror integration scope
 
 The approved main `7a9a833f6c` integration uses separately approved SDK

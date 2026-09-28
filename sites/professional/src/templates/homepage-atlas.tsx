@@ -31,11 +31,15 @@ function topicUrl(contactUrl: string, topic: string): string {
   return `${contactUrl}${separator}${new URLSearchParams({ topic }).toString()}`;
 }
 
-/** Title cards open inward near either edge so they stay on screen. */
-function edgeClass(x: number): string {
-  if (x > 0.72) return " atlas__mark--west";
-  if (x < 0.28) return " atlas__mark--east";
-  return "";
+/**
+ * Title cards open inward near either edge, and below a mark near the top,
+ * so they stay on the map.
+ */
+function edgeClass(x: number, top: number): string {
+  const south = top < 28 ? " atlas__mark--south" : "";
+  if (x > 0.72) return ` atlas__mark--west${south}`;
+  if (x < 0.28) return ` atlas__mark--east${south}`;
+  return south;
 }
 
 /**
@@ -65,7 +69,7 @@ function AtlasMap({
   atlas: HomepageAtlasData;
   labels: Record<string, LabelPlacement>;
   caption: string | null;
-  /** Docked as a strip in a phone's open conversation, it can open whole. */
+  /** Beside a conversation, whose phone view links its sources and pieces. */
   chat: boolean;
 }): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
@@ -139,7 +143,7 @@ function AtlasMap({
                 key={`${item.entityType}:${item.id}`}
                 data-atlas-mark=""
                 data-atlas-key={`${item.entityType}:${item.id}`}
-                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x)}`}
+                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x, atlasPosition(item.y))}`}
                 style={{
                   left: `${atlasPosition(item.x)}%`,
                   top: `${atlasPosition(item.y)}%`,
@@ -159,29 +163,20 @@ function AtlasMap({
                     <i className="atlas__glyph" aria-hidden="true" />
                   </span>
                 )}
+                {item.url && chat && (
+                  <button
+                    type="button"
+                    className="atlas__cited"
+                    data-atlas-cited=""
+                  >
+                    Where it’s cited ↓
+                  </button>
+                )}
               </li>
             );
           })}
         </ul>
       </div>
-      {chat && (
-        <>
-          <button
-            type="button"
-            className="atlas__expand"
-            data-atlas-expand=""
-            aria-label="Show the whole map"
-          >
-            <span>Show on map</span>
-          </button>
-          <div className="atlas__mapbar" data-atlas-mapbar="">
-            <span data-atlas-count="" aria-live="polite" />
-            <button type="button" data-atlas-fold="">
-              Back to the answer
-            </button>
-          </div>
-        </>
-      )}
       <p className="atlas__legend">
         {caption && <span className="atlas__caption">{caption}</span>}
         {legend.map(({ kind, label }) => (

@@ -38,6 +38,13 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("entity policy registration", () => {
+    it("declares newest-published-first list ordering", async () => {
+      await harness.installPlugin(postEntityPlugin());
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("post").defaultSort,
+      ).toEqual([{ field: "publishedAt", direction: "desc" }]);
+    });
+
     it("declares post publish statuses", async () => {
       await harness.installPlugin(postEntityPlugin());
 

@@ -143,6 +143,16 @@ export interface EntityDefinitionConfig {
   readonly embeddable?: boolean;
   /** Private operational records must also opt out of lexical indexing. */
   readonly fullTextSearchable?: boolean;
+  /** Inline binary representation; this does not grant asset-store access. */
+  readonly binaryStorage?: "data-url";
+  /** Default system-list order; at most ten bounded field specifications. */
+  readonly defaultSort?: Array<{
+    field: string;
+    direction: "asc" | "desc";
+    nullsFirst?: boolean;
+  }>;
+  /** Opt into authorized upload-to-Markdown extraction; defaults off. */
+  readonly markdownImport?: boolean;
   /** Minimum policy owned by this type; never grants another type's write authority. */
   readonly actionPolicy?: Partial<
     Record<

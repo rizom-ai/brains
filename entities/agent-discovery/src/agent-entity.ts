@@ -102,5 +102,8 @@ export const agent: EntityDefinition<
       };
     },
   },
-  instructions: getAgentDiscoveryInstructions(),
+  instructions: [
+    getAgentDiscoveryInstructions(),
+    'Agent approval/archive is a status field update on `entityType: "agent"`.',
+  ].join("\n"),
 });

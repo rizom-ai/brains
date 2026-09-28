@@ -567,6 +567,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     // Undefined when undeclared, so the runtime keeps its own defaults
     // rather than this surface pinning them.
     const entityConfig = definition.config;
+    // Asset-backed persistence remains runtime-internal, not an author capability.
+    z.literal("data-url").optional().parse(entityConfig?.binaryStorage);
     this.entityTypeConfig =
       entityConfig === undefined
         ? undefined

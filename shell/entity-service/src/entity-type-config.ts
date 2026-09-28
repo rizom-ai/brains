@@ -6,7 +6,24 @@ const entityTypeConfigSchema = z.object({
   weight: z.number().optional(),
   embeddable: z.boolean().optional(),
   fullTextSearchable: z.boolean().optional(),
-  binaryStorage: z.literal("asset").optional(),
+  binaryStorage: z.enum(["data-url", "asset"]).optional(),
+  defaultSort: z
+    .array(
+      z
+        .strictObject({
+          field: z.string().min(1).max(100),
+          direction: z.enum(["asc", "desc"]),
+          nullsFirst: z.boolean().optional(),
+        })
+        .transform(({ field, direction, nullsFirst }) => ({
+          field,
+          direction,
+          ...(nullsFirst === undefined ? {} : { nullsFirst }),
+        })),
+    )
+    .max(10)
+    .optional(),
+  markdownImport: z.boolean().optional(),
   actionPolicy: z
     .partialRecord(
       z.enum(["create", "update", "delete", "extract", "publish"]),

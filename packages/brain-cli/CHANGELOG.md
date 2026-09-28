@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.441
+
+### Patch Changes
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare image and document binary storage through entity type configuration. Sanitize binary bodies and search excerpts, exclude binary entities from stale insights, and reject unsupported prompt generation without hardcoded type checks.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Recover mangled entity update confirmations from the exact stored proposal rather than implicitly approving agents. Preserve entity identity, optimistic concurrency, permissions, and single-use tokens. Keep agent approval instructions with agent-discovery.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity types declare their default system_list sort order. Apply blog post publishedAt ordering in the entity service before pagination rather than reordering an already limited page.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let entity types opt into extract-markdown uploads with markdownImport. Notes declare support; unsupported imports list the installed types that accept markdown extraction.
+
+- [#391](https://github.com/rizom-ai/brains/pull/391) [`f9b6e36`](https://github.com/rizom-ai/brains/commit/f9b6e3696b76b921e939c7140c5e41a67dfc00f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the anchor-profile fields-only update prohibition. Use the generic persistence probe to reject non-persisting declared field changes while allowing supported updates such as visibility under the existing authorization policy.
+
+## 0.2.0-alpha.440
+
+### Patch Changes
+
+- [#419](https://github.com/rizom-ai/brains/pull/419) [`f1548a5`](https://github.com/rizom-ai/brains/commit/f1548a56b26f962d3094ab4833dad81f9b5b380b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - In the phone conversation on the atlas homepage, the map under the header is as tall as the page's at the top of the conversation and shrinks to a strip as the answer scrolls beneath it, keeping the lit pieces in view. A listed source takes you to its piece: the map grows back, the piece pulses and its card opens; a lit piece's card offers "Where it's cited", which scrolls the answer to that source. Title cards near the map's top open below their mark. Web Chat's box opens an answer below whatever a host docks under its header.
+
 ## 0.2.0-alpha.439
 
 ### Patch Changes

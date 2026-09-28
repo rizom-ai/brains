@@ -83,6 +83,16 @@ function post(
 }
 
 describe("image package registration", () => {
+  it("declares its inline binary representation", async () => {
+    const { harness } = await install();
+    try {
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("image").binaryStorage,
+      ).toBe("data-url");
+    } finally {
+      await harness.reset();
+    }
+  });
   it("registers the image entity type, opted out of embeddings", async () => {
     const { harness } = await install();
 

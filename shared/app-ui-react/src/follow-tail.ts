@@ -101,8 +101,13 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
     if (!scroll) return;
     followingRef.current = false;
     setAwayFromLatest(true);
+    // Below whatever covers the region's top, as its scroll padding says.
+    const style = scroll.ownerDocument.defaultView?.getComputedStyle(scroll);
+    const covered = parseFloat(style?.scrollPaddingTop ?? "") || 0;
     scroll.scrollTop +=
-      element.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+      element.getBoundingClientRect().top -
+      scroll.getBoundingClientRect().top -
+      covered;
   }, []);
 
   return { ref, onScroll, awayFromLatest, follow, jumpToLatest, showFrom };

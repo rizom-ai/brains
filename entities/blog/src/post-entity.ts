@@ -42,6 +42,7 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
     metadata: blogPostMetadataSchema,
     config: {
       weight: 2.0,
+      defaultSort: [{ field: "publishedAt", direction: "desc" }],
       projectionSourceRole: "primary",
       publish: { publishStatuses: ["queued", "published"] },
     },

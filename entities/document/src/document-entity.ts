@@ -425,6 +425,7 @@ export const document: EntityDefinition<
   metadata: documentMetadataSchema,
   config: {
     embeddable: false,
+    binaryStorage: "data-url",
     projectionSource: false,
     projectionSourceRole: "excluded",
   },

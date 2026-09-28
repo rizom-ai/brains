@@ -194,7 +194,9 @@ export class Shell implements IShell {
         this.services.jobQueueService,
       );
 
-      this.insightsRegistry = createInsightsRegistry();
+      this.insightsRegistry = createInsightsRegistry(
+        this.services.entityRegistry,
+      );
       this.bootloader = new ShellBootloader(
         this.config,
         this.services,

@@ -200,6 +200,17 @@ Note preserves authored titles and limits first-body-line fallbacks to 80 Unicod
 
 `EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `fullTextSearchable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
 
+Three validated declarations also describe system-tool behavior:
+`binaryStorage: "data-url"` identifies inline binary representation without granting
+asset-store access or changing codecs; `defaultSort` supplies at most ten
+`{ field, direction: "asc" | "desc", nullsFirst? }` entries with nonempty field
+names of at most100 characters; `markdownImport: true` opts into authorized
+upload-to-Markdown extraction. Import eligibility defaults off and does not grant
+write permission. Nested sort metadata is detached. Named consumers: Image/PDF,
+Blog and Note respectively. Internal `binaryStorage: "asset"` is not an author
+capability. Binary types remain ineligible for groupings; this is separate from
+`markdown.frontmatter: false`, which controls representation parsing.
+
 An entity may declare `validatePersist({ content, visibility })` to enforce a persistence invariant even when installed without a service. The callback receives a frozen, detached view; throwing rejects the write. Contact uses this to require restricted visibility and validate private Markdown without exposing submitted details in errors. Registered Markdown parsers strip the system-owned visibility envelope before domain validation and return sanitized coded failures rather than raw YAML errors containing source buffers.
 
 Owned service setup/ready entity access accepts `create(entity, { conditionalWrite: { expectedRevision: null }, signal, beforeWrite })` for atomic create-if-absent and `update(entity, { expectedContentHash, signal })` for conditional updates. Ownership is checked first; these options grant no foreign writes, attribution overrides, or revision-based replacement. The before-write guard receives a detached, outer-frozen snapshot and cannot patch the canonical write. They are not additional options on definition-typed callback entity access.

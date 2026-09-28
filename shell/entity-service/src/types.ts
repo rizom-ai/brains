@@ -617,8 +617,12 @@ export interface EntityTypeConfig {
   /** Whether to index serialized content in full-text search (default: true).
    *  Set to false for binary entity types. Mutations remove stale FTS rows. */
   fullTextSearchable?: boolean;
-  /** Durable binary storage policy. Absence means inline/text storage. */
-  binaryStorage?: "asset";
+  /** Binary storage policy. Absence means text content. */
+  binaryStorage?: "data-url" | "asset";
+  /** Default system_list order, applied by the entity service before pagination. */
+  defaultSort?: SortField[];
+  /** Accepts upload text extraction through system_create extract-markdown. */
+  markdownImport?: boolean;
   /**
    * The type's own minimum action policy, from whoever registers it. It
    * tightens wildcard defaults without relaxing stricter rules, including

@@ -54,7 +54,7 @@ export const note: EntityDefinition<"note", typeof noteMetadataSchema> =
     purpose:
       "A short, free-form captured thought, reference, or snippet the user wants to keep.",
     metadata: noteMetadataSchema,
-    config: { projectionSourceRole: "primary" },
+    config: { projectionSourceRole: "primary", markdownImport: true },
     displayTitle: ({ content, metadata }) => {
       if (metadata.title.trim() && metadata.title !== "Untitled")
         return metadata.title;

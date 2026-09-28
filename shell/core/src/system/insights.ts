@@ -2,6 +2,7 @@ import type {
   BaseEntity,
   ContentVisibility,
   ReadOnlyEntityService,
+  EntityRegistry,
 } from "@brains/entity-service";
 import type { IInsightsRegistry, InsightHandler } from "@brains/plugins";
 
@@ -63,12 +64,16 @@ export class InsightsRegistry implements IInsightsRegistry {
 /**
  * Create an InsightsRegistry with the built-in generic insights.
  */
-export function createInsightsRegistry(): InsightsRegistry {
+export function createInsightsRegistry(
+  entityRegistry: Pick<EntityRegistry, "getEntityTypeConfig">,
+): InsightsRegistry {
   const registry = new InsightsRegistry();
 
   registry.register("overview", getOverview);
   registry.register("publishing-cadence", getPublishingCadence);
-  registry.register("content-health", getContentHealth);
+  registry.register("content-health", (entityService, visibilityScope) =>
+    getContentHealth(entityService, visibilityScope, entityRegistry),
+  );
 
   return registry;
 }
@@ -150,6 +155,7 @@ async function getPublishingCadence(
 async function getContentHealth(
   entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
+  entityRegistry: Pick<EntityRegistry, "getEntityTypeConfig">,
 ): Promise<Record<string, unknown>> {
   const allEntities = await getAllEntities(entityService, visibilityScope);
 
@@ -164,7 +170,8 @@ async function getContentHealth(
   const staleThreshold = now - 90 * 24 * 60 * 60 * 1000;
   const stale: StaleEntry[] = allEntities
     .filter((e) => {
-      if (e.entityType === "image") return false;
+      if (entityRegistry.getEntityTypeConfig(e.entityType).binaryStorage)
+        return false;
       const updated = new Date(e.updated).getTime();
       return !isNaN(updated) && updated < staleThreshold;
     })

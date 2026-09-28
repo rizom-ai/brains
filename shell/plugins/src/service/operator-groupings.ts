@@ -127,7 +127,7 @@ export function createOperatorGroupings(
       registry.hasEntityType(type) &&
       !!registry.getAdapter(type).frontmatterSchema &&
       !registry.getAdapter(type).isSingleton &&
-      entities.getEntityTypeConfig(type).binaryStorage !== "asset",
+      entities.getEntityTypeConfig(type).binaryStorage === undefined,
     definitions: (caller: InterfaceCaller): Promise<EntityGrouping[]> =>
       operatorRead(async () => {
         assertRouteCaller(caller, shell.getAuthRegistry());

@@ -80,6 +80,17 @@ function fromCarousel(overrides: Partial<CreateInput> = {}): CreateInput {
 }
 
 describe("document package registration", () => {
+  it("declares its inline binary representation", async () => {
+    const { harness } = await install();
+    try {
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("document")
+          .binaryStorage,
+      ).toBe("data-url");
+    } finally {
+      await harness.reset();
+    }
+  });
   it("registers the document entity type, opted out of embeddings", async () => {
     const { harness } = await install();
 

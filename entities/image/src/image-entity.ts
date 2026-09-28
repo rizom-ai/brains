@@ -632,6 +632,7 @@ export const image: EntityDefinition<"image", typeof imageMetadataSchema> =
     metadata: imageMetadataSchema,
     config: {
       embeddable: false,
+      binaryStorage: "data-url",
       projectionSource: false,
       projectionSourceRole: "excluded",
     },

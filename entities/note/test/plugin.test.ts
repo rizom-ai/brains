@@ -80,7 +80,10 @@ describe("note package", () => {
     it("registers public notes as primary topic sources", () => {
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("note"),
-      ).toMatchObject({ projectionSourceRole: "primary" });
+      ).toMatchObject({
+        projectionSourceRole: "primary",
+        markdownImport: true,
+      });
     });
   });
 

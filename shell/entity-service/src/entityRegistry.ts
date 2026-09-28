@@ -464,7 +464,7 @@ export class EntityRegistry implements IEntityRegistry {
       if (
         !this.hasEntityType(type) ||
         !schema ||
-        this.getEntityTypeConfig(type).binaryStorage === "asset"
+        this.getEntityTypeConfig(type).binaryStorage !== undefined
       ) {
         throw new Error(
           `Grouping requires a registered frontmatter entity type: ${type}`,

@@ -217,10 +217,20 @@ export function createMockSystemServices(
     },
     hasEntityType: (type: string) => registeredTypes.has(type),
     getAllEntityTypes: () => Array.from(registeredTypes),
-    getEntityTypeConfig: (type: string) =>
-      type === "social-post"
-        ? { publish: { publishStatuses: ["queued", "published", "failed"] } }
-        : {},
+    getEntityTypeConfig: (
+      type: string,
+    ): ReturnType<SystemServices["entityRegistry"]["getEntityTypeConfig"]> => {
+      if (type === "image" || type === "document")
+        return { binaryStorage: "data-url" };
+      if (type === "note") return { markdownImport: true };
+      if (type === "post")
+        return { defaultSort: [{ field: "publishedAt", direction: "desc" }] };
+      if (type === "social-post")
+        return {
+          publish: { publishStatuses: ["queued", "published", "failed"] },
+        };
+      return {};
+    },
     getEffectiveFrontmatterSchema: (type: string) =>
       entityTypes.has(type) ? defaultFrontmatterSchema : undefined,
     registerCreateInterceptor: (
@@ -562,7 +572,7 @@ export function createMockSystemServices(
       interactions: [],
     }),
     searchLimit: 10,
-    insights: createInsightsRegistry(),
+    insights: createInsightsRegistry(entityRegistry),
     permissionService: new PermissionService({}),
     ...overrides,
     conversationService: {

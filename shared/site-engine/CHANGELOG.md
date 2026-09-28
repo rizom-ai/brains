@@ -1,5 +1,29 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.441
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.441
+  - @brains/image@0.2.0-alpha.441
+  - @brains/site-composition@0.2.0-alpha.441
+  - @brains/ui-library@0.2.0-alpha.441
+  - @brains/utils@0.2.0-alpha.441
+  - @brains/entity-service@0.2.0-alpha.441
+
+## 0.2.0-alpha.440
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.440
+  - @brains/image@0.2.0-alpha.440
+  - @brains/site-composition@0.2.0-alpha.440
+  - @brains/ui-library@0.2.0-alpha.440
+  - @brains/utils@0.2.0-alpha.440
+  - @brains/entity-service@0.2.0-alpha.440
+
 ## 0.2.0-alpha.439
 
 ### Patch Changes

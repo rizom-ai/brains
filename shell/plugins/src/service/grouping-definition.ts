@@ -52,7 +52,8 @@ export function registerDeclaredGroupings(
       type !== entityType &&
       !!adapter?.frontmatterSchema &&
       !adapter.isSingleton &&
-      context.entityService.getEntityTypeConfig(type).binaryStorage !== "asset"
+      context.entityService.getEntityTypeConfig(type).binaryStorage ===
+        undefined
     );
   };
   const source = new GroupingDefinitionSource({

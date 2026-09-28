@@ -771,7 +771,7 @@
     },
     "packages/ui": {
       "name": "@rizom/brain-ui",
-      "version": "0.2.0-alpha.439",
+      "version": "0.2.0-alpha.441",
       "dependencies": {
         "@stylexjs/stylex": "^0.19.0",
         "class-variance-authority": "^0.7.0",
