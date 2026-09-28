@@ -1,3 +1,5 @@
+import { ASK_SHEET_HEADER_HEIGHT, ASK_SHEET_MEDIA } from "@brains/contracts";
+
 /** Scoped atlas styles: shared theme tokens only, no palette values. */
 export const homepageAtlasStyles: string = String.raw`
 .atlas {
@@ -158,7 +160,7 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__ask-status:empty { display: none; }
 .atlas__ask .brain-box-welcome { display: none; }
 /* The text column is the one scroller beside the map; the conversation grows inside it. */
-.atlas__ask .brain-box-scroll { max-height: none; overflow: visible; }
+.atlas__ask:not([data-ask-sheet]) .brain-box-scroll { max-height: none; overflow: visible; }
 .atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
 .atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
 .atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }
@@ -215,6 +217,27 @@ export const homepageAtlasStyles: string = String.raw`
   .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
 }
 @media (min-width: 48rem) and (max-width: 60rem) { .atlas { --atlas-edge: 3rem; } }
+@media ${ASK_SHEET_MEDIA} {
+  /* An engaged box opens full screen (Web Chat's sheet). It rises above the
+     sticky site header, and the map docks under its header as a strip where
+     the answer's sources light up; the strip folds away while typing. */
+  .atlas:has(.atlas__ask[data-ask-sheet]) { z-index: 1000; }
+  .atlas__ask[data-ask-sheet] { margin: 0; max-width: none; }
+  .atlas__ask[data-ask-sheet]:not([data-ask-keyboard]) { --ask-sheet-inset: 7.5rem; }
+  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__map {
+    position: fixed; z-index: 1001; top: ${ASK_SHEET_HEADER_HEIGHT}; right: 0; left: 0; height: 7.5rem;
+    background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
+  }
+  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__field { bottom: 0; }
+  .atlas:has(.atlas__ask[data-ask-sheet]) :is(.atlas__legend, .atlas__zone) { display: none; }
+  .atlas:has(.atlas__ask[data-ask-keyboard]) .atlas__map { display: none; }
+  /* The page presents the opening beside the box; full screen, the box does. */
+  .atlas__ask[data-ask-sheet] .brain-box-welcome { display: block; }
+  /* Before the box mounts, its composer waits at the foot of the sheet. */
+  .atlas__ask[data-ask-sheet] > .atlas__composer { margin: auto 0 .75rem; }
+  .atlas__ask[data-ask-sheet] > .atlas__ask-status { margin-top: 1rem; }
+  .atlas__ask[data-ask-sheet] .brain-box-bottom { border-top: 1px solid var(--color-rule); padding-top: .6rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }
   .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }

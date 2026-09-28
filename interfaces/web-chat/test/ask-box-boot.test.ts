@@ -5,6 +5,7 @@ import {
   ASK_BOX_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
 import { ASK_BOX_BOOT_SCRIPT } from "../src/ask-box-boot";
@@ -111,6 +112,26 @@ describe("shared Ask box boot", () => {
     expect(Reflect.get(input(), "value")).toBe("What do you work on?");
     expect(input().hasAttribute("readonly")).toBe(false);
     expect(guestStylesheet()).toBe(false);
+  });
+
+  it("opens the box full screen on a narrow screen as the visitor engages, and closes it again if chat cannot load", async () => {
+    window.happyDOM.setViewport({ width: 390, height: 844 });
+    boot();
+    const box = element(`[${ASK_BOX_ATTRIBUTE}]`);
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    expect(box.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+    await settled();
+    expect(status()).toContain("unavailable");
+    expect(box.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
+  });
+
+  it("keeps the box in the page on a wide screen", () => {
+    window.happyDOM.setViewport({ width: 1280, height: 900 });
+    boot();
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    expect(
+      element(`[${ASK_BOX_ATTRIBUTE}]`).hasAttribute(ASK_SHEET_ATTRIBUTE),
+    ).toBe(false);
   });
 
   it("leaves a host without its contract untouched", () => {

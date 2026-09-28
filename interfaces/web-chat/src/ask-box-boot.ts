@@ -2,6 +2,8 @@ import {
   ASK_BOX_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_MEDIA,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
 
@@ -11,7 +13,8 @@ import {
  * site's disabled host stays inert otherwise. Never sends on load, focus or a
  * filled draft: the guest bundle loads on engagement and sends only when the
  * visitor asked to. When the bundle cannot load, the draft stays and the
- * status line says so.
+ * status line says so. On a narrow screen engaging opens the box full screen
+ * at once, before the bundle arrives, so the keyboard never covers it.
  */
 export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
   document.querySelectorAll("[${ASK_BOX_ATTRIBUTE}]").forEach(function (host) {
@@ -26,6 +29,14 @@ export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
       if (loading || mounted) return;
       loading = true;
       status.textContent = "Connecting to chat…";
+      if (window.matchMedia(${JSON.stringify(ASK_SHEET_MEDIA)}).matches) {
+        var viewport = window.visualViewport;
+        host.style.setProperty(
+          "--ask-viewport-height",
+          (viewport ? viewport.height : window.innerHeight) + "px"
+        );
+        host.setAttribute("${ASK_SHEET_ATTRIBUTE}", "");
+      }
       var sheet = document.createElement("link");
       sheet.rel = "stylesheet";
       sheet.href = "/ask/assets/guest.css";
@@ -43,6 +54,7 @@ export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
       } catch {
         // The status line tells the visitor; the draft stays and nothing was sent.
         sheet.remove();
+        host.removeAttribute("${ASK_SHEET_ATTRIBUTE}");
         sendRequested = false;
         input.readOnly = false;
         status.textContent =
