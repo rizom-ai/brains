@@ -470,6 +470,15 @@ describe("living atlas", () => {
     expect(homepageAtlasStyles).toMatch(
       /\.atlas__mark\[data-open\] \{ z-index: 4; \}/,
     );
+    // A lit piece's own card too: its lit rule must not pull it back down.
+    const lit = homepageAtlasStyles.indexOf(
+      ".atlas__mark[data-cited] { z-index: 3; }",
+    );
+    const openLit = homepageAtlasStyles.indexOf(
+      ".atlas__mark[data-cited][data-open] { z-index: 4; }",
+    );
+    expect(lit).toBeGreaterThan(-1);
+    expect(openLit).toBeGreaterThan(lit);
   });
 
   it("keeps marks and their cards at their own size while the map zooms", () => {
