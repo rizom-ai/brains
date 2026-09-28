@@ -844,6 +844,51 @@ it("offers AI suggestions only for groups editors may type into", () => {
   expect(html).toContain("Suggest areas");
 });
 
+it("withholds assist from closed lists on system-designed documents too", () => {
+  const list = (name: string, label: string): FieldDescriptor => ({
+    name,
+    label,
+    widget: "list",
+    required: false,
+    field: { name: "value", label: "Value", widget: "string" },
+  });
+  const html = renderCapabilityView(
+    {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: false,
+      canPublish: false,
+      canAssist: true,
+    },
+    "edit",
+    {
+      entityType: "playbook",
+      fields: [list("clients", "Clients"), list("areas", "Areas")],
+      frontmatter: { clients: ["Acme"], areas: ["Field notes"] },
+      groupings: {
+        items: [
+          {
+            key: "clients",
+            label: "Clients",
+            field: "clients",
+            types: ["playbook"],
+            rules: { multiple: false, values: ["Acme", "Beta"] },
+          },
+          { key: "areas", label: "Areas", field: "areas", types: ["playbook"] },
+        ],
+        active: null,
+        onSelect: () => {},
+      },
+    },
+  );
+  // A model never sees the closed list, so it could only propose values
+  // the save would refuse.
+  expect(html).not.toContain("Suggest clients");
+  expect(html).toContain("Suggest areas");
+});
+
 it("uses page terminology throughout site-content collection navigation", () => {
   const window = new Window();
   try {
