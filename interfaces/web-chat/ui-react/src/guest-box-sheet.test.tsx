@@ -241,6 +241,13 @@ describe("the Ask box on a phone", () => {
           button.textContent.includes("Latest"),
         ),
       ).toBe(true);
+      // Closed, the conversation is out of sight, and so is its way to the end.
+      await click("Close conversation");
+      expect(
+        [...host.querySelectorAll("button")].some((button) =>
+          button.textContent.includes("Latest"),
+        ),
+      ).toBe(false);
     });
 
     it("offers the conversation back after closing it", async () => {

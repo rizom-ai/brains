@@ -361,6 +361,24 @@ function buildToolSourcesCard(
   };
 }
 
+/**
+ * Cards whose sources are the given ones in place of what the tools returned;
+ * without any, the tools' sources stay.
+ */
+export function withAnswerSources(
+  cards: StructuredChatCard[],
+  sources: SourceCitation[],
+): StructuredChatCard[] {
+  const card = buildToolSourcesCard(sources);
+  if (!card) return cards;
+  return [
+    ...cards.filter(
+      (existing) => existing.kind !== "sources" || existing.id !== card.id,
+    ),
+    card,
+  ];
+}
+
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmations: PendingConfirmation[];

@@ -70,6 +70,8 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const tail = useFollowTail({ resetKey: null, contentKey, paused: about });
   useGuestBoxViewport(root, input);
   const sheet = useAskSheet(root, input);
+  // Closed on a phone, the box is a composer and a way back to the conversation.
+  const compact = sheet.narrow && !sheet.open;
   // Whose brain this is, from the host (ASK_NAME_ATTRIBUTE), once mounted.
   const [owner, setOwner] = useState<string>();
   useEffect(() => {
@@ -190,7 +192,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
 
   return (
     <div
-      className={`brain-guest-box${sheet.open ? " is-sheet" : ""}${sheet.narrow && !sheet.open ? " is-compact" : ""}`}
+      className={`brain-guest-box${sheet.open ? " is-sheet" : ""}${compact ? " is-compact" : ""}`}
       ref={root}
     >
       {placeActions()}
@@ -308,7 +310,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         )}
       </div>
       <div className="brain-box-bottom">
-        {tail.awayFromLatest && !about && (
+        {tail.awayFromLatest && !about && !compact && (
           <button
             className="brain-box-latest"
             type="button"
@@ -317,7 +319,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
             Latest ↓
           </button>
         )}
-        {sheet.narrow && !sheet.open && messages.length > 0 && (
+        {compact && messages.length > 0 && (
           <button
             className="brain-box-resume"
             type="button"

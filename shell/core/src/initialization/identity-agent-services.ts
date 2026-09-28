@@ -36,6 +36,8 @@ import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
 import { getErrorMessage } from "@brains/utils/error";
+import { EntityUrlGenerator } from "@brains/site-composition";
+import { createGuestAnswerSources } from "./guest-answer-sources";
 
 export interface IdentityAndAgentServices {
   identityService: BrainCharacterService;
@@ -242,7 +244,20 @@ export function initializeIdentityAndAgentServices(
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
       // Lexical retrieval does not need a semantic index to be built.
-      ...(config.embedding.enabled ? { indexReadiness: entityService } : {}),
+      ...(config.embedding.enabled
+        ? {
+            indexReadiness: entityService,
+            // A visitor's sources are found by meaning, so only with embeddings.
+            guestAnswerSources: createGuestAnswerSources({
+              entityService,
+              hasRoute: (entityType) =>
+                EntityUrlGenerator.getInstance().hasRoute(entityType),
+              urlFor: (entityType, slug) =>
+                EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+              siteBaseUrl: config.siteBaseUrl,
+            }),
+          }
+        : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {
