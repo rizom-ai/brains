@@ -13,6 +13,9 @@ import { ASK_BOX_LOADER_SCRIPT, askBoxBootScript } from "../src/ask-box-boot";
 
 let window: Window;
 let restoreGlobals: RestoreGlobals;
+/** The boot's idle work, run when a test says the page is idle; no real timers. */
+let idle: Array<() => void>;
+const pageIdle = (): void => idle.splice(0).forEach((run) => run());
 
 /** The host contract every consuming site renders; the boot owns nothing else. */
 const host = `
@@ -53,10 +56,17 @@ async function settled(): Promise<void> {
 
 beforeEach(() => {
   window = new Window({ url: "https://brain.test/" });
+  idle = [];
+  Object.assign(window, {
+    requestIdleCallback: (run: () => void): void => {
+      idle.push(run);
+    },
+  });
   restoreGlobals = installGlobals({ window, document: window.document });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await window.happyDOM.abort();
   window.close();
   restoreGlobals();
 });
@@ -108,7 +118,7 @@ describe("shared Ask box boot", () => {
     ).toBe(true);
   });
 
-  it("fetches the chat's styles and code once the page is idle, so engaging opens it at once, but mounts nothing", async () => {
+  it("fetches the chat's styles and code once the page is idle, so engaging opens it at once, but mounts nothing", () => {
     // Tests cannot load it, so record the request rather than the result.
     const requested: string[] = [];
     const head = window.document.head;
@@ -122,7 +132,8 @@ describe("shared Ask box boot", () => {
       },
     });
     boot();
-    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect(requested).toEqual([]);
+    pageIdle();
     expect(requested).toContain("/ask/assets/guest.css?v=v1");
     expect(
       window.document.head.querySelector(
@@ -133,10 +144,10 @@ describe("shared Ask box boot", () => {
     expect(Reflect.get(input(), "readOnly")).toBe(false);
   });
 
-  it("fetches the styles once, however often the visitor engages", async () => {
+  it("fetches the styles once, however often the visitor engages", () => {
     boot();
     input().dispatchEvent(new window.FocusEvent("focus"));
-    await new Promise((resolve) => setTimeout(resolve, 1100));
+    pageIdle();
     expect(
       window.document.head.querySelectorAll(
         'link[href="/ask/assets/guest.css?v=v1"]',
