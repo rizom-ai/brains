@@ -30,6 +30,10 @@ import {
   type GuestVisitor,
 } from "./guest-access";
 import { GuestAdmission } from "./guest-admission";
+import type {
+  GuestAdmissionDenial,
+  GuestExecutionLease,
+} from "./guest-admission-state";
 import {
   GuestUsageRecord,
   type GuestUsageDenialReason,
@@ -107,6 +111,37 @@ function isLoopbackPeer(address: string | undefined): boolean {
 }
 
 /** A guest presentation of the existing Chat API/runtime, not a second engine. */
+
+/** The HTTP status each admission denial is answered with. */
+export const GUEST_DENIAL_STATUS: Record<GuestAdmissionDenial, number> = {
+  unavailable: 503,
+  "invalid-input": 400,
+  "conversation-unavailable": 404,
+  "submission-conflict": 409,
+  "visitor-busy": 429,
+  "deployment-busy": 429,
+  "visitor-rate-limit": 429,
+  "deployment-rate-limit": 429,
+  "conversation-limit": 429,
+  "budget-exhausted": 429,
+};
+
+/** A visitor's question, validated, with the conversation it belongs to. */
+interface GuestSendRequest {
+  id: string;
+  /** The visitor named the conversation, rather than starting one. */
+  explicitId: boolean;
+  messageId: string;
+  text: string;
+}
+
+/** Who owns a guest conversation, and how long it is kept. */
+function guestConversationMetadata(
+  visitor: GuestVisitor,
+  policy: EnabledGuestPolicy,
+): { visitorId: string; retention: EnabledGuestPolicy["retention"] } {
+  return { visitorId: visitor.id, retention: policy.retention };
+}
 export class GuestHttpHandlers {
   private readonly policy: GuestPolicy;
   private readonly visitors: GuestVisitorStore;
@@ -326,25 +361,13 @@ export class GuestHttpHandlers {
     if (!this.ready() || !this.admission || !this.usage)
       throw new GuestHttpError(503, "Guest access unavailable");
     const visitor = await this.owner(request);
-    const parsed = guestChatMessageRequestSchema.safeParse(
-      await this.body(request, policy),
+    const { id, explicitId, messageId, text } = await this.parseSend(
+      request,
+      policy,
+      visitor,
     );
-    if (!parsed.success) throw new GuestHttpError(400, "Invalid guest message");
-    const message = parsed.data.messages[0];
-    if (!message) throw new GuestHttpError(400, "Invalid guest message");
-    const text = message.parts.map((part) => part.text).join("\n");
-    if (!text.trim() || text.length > policy.limits.messageCharacters)
-      throw new GuestHttpError(400, "Invalid guest message");
-    // Stable across retries of a first send, but minted using server-owned identity.
-    const id =
-      parsed.data.id ??
-      `guest-${createHash("sha256")
-        .update(JSON.stringify([visitor.id, message.id]))
-        .digest("hex")}`;
-    if (/[\r\n]/u.test(id))
-      throw new GuestHttpError(400, "Invalid guest message");
     const existing = await this.services.conversations.get(id);
-    if (parsed.data.id || existing) await this.owned(request, id, policy);
+    if (explicitId || existing) await this.owned(request, id, policy);
     const timestamp = new Date(this.now()).toISOString();
     const candidate: WebChatConversation = existing ?? {
       id,
@@ -355,9 +378,7 @@ export class GuestHttpHandlers {
       lastActiveAt: timestamp,
       createdAt: timestamp,
       updatedAt: timestamp,
-      metadata: {
-        guest: { visitorId: visitor.id, retention: policy.retention },
-      },
+      metadata: { guest: guestConversationMetadata(visitor, policy) },
     };
     // The owner's record takes this request's place before admission is asked:
     // work nobody can see is refused, without spending allowance.
@@ -366,7 +387,7 @@ export class GuestHttpHandlers {
       policy.origin,
       visitor.id,
       candidate.id,
-      message.id,
+      messageId,
     );
     const opening = await usage.open(usageId);
     if (opening === "full" || opening === "unavailable") {
@@ -380,25 +401,17 @@ export class GuestHttpHandlers {
     const reservation = await this.admission.reserve(
       visitor,
       candidate,
-      message.id,
+      messageId,
       text,
     );
     if (reservation.kind !== "reserved" && opening === "opened")
       await usage.withdraw(usageId);
-    if (reservation.kind === "denied")
-      await usage.deny(reservation.reason, visitor.id);
     if (reservation.kind === "denied") {
-      const status =
-        reservation.reason === "unavailable"
-          ? 503
-          : reservation.reason === "conversation-unavailable"
-            ? 404
-            : reservation.reason === "invalid-input"
-              ? 400
-              : reservation.reason === "submission-conflict"
-                ? 409
-                : 429;
-      return Response.json({ error: reservation.reason }, { status });
+      await usage.deny(reservation.reason, visitor.id);
+      return Response.json(
+        { error: reservation.reason },
+        { status: GUEST_DENIAL_STATUS[reservation.reason] },
+      );
     }
     if (reservation.kind === "duplicate")
       return Response.json(
@@ -429,11 +442,69 @@ export class GuestHttpHandlers {
           channelName: "Public Ask",
           interfaceType: guestInterfaceType,
           channelId: id,
-          guest: { visitorId: visitor.id, retention: policy.retention },
+          guest: guestConversationMetadata(visitor, policy),
         },
       });
     await this.owned(request, id, policy);
-    const admission = this.admission;
+    return this.streamAnswer(request, policy, {
+      id,
+      text,
+      usage,
+      usageId,
+      admission: this.admission,
+      lease: reservation.lease,
+    });
+  }
+
+  /** The visitor's question and the conversation it belongs to, or a 400. */
+  private async parseSend(
+    request: Request,
+    policy: EnabledGuestPolicy,
+    visitor: GuestVisitor,
+  ): Promise<GuestSendRequest> {
+    const parsed = guestChatMessageRequestSchema.safeParse(
+      await this.body(request, policy),
+    );
+    if (!parsed.success) throw new GuestHttpError(400, "Invalid guest message");
+    const message = parsed.data.messages[0];
+    if (!message) throw new GuestHttpError(400, "Invalid guest message");
+    const text = message.parts.map((part) => part.text).join("\n");
+    if (!text.trim() || text.length > policy.limits.messageCharacters)
+      throw new GuestHttpError(400, "Invalid guest message");
+    // Stable across retries of a first send, but minted using server-owned identity.
+    const id =
+      parsed.data.id ??
+      `guest-${createHash("sha256")
+        .update(JSON.stringify([visitor.id, message.id]))
+        .digest("hex")}`;
+    if (/[\r\n]/u.test(id))
+      throw new GuestHttpError(400, "Invalid guest message");
+    return {
+      id,
+      explicitId: parsed.data.id !== undefined,
+      messageId: message.id,
+      text,
+    };
+  }
+
+  /**
+   * Runs an admitted question and streams its answer. Both ledgers are
+   * settled when the model call returns, answered or not; a visitor who stops
+   * waiting does not stop that settlement.
+   */
+  private streamAnswer(
+    request: Request,
+    policy: EnabledGuestPolicy,
+    turn: {
+      id: string;
+      text: string;
+      usage: GuestUsageRecord;
+      usageId: string;
+      admission: GuestAdmission;
+      lease: GuestExecutionLease;
+    },
+  ): Response {
+    const { id, text, usage, usageId, admission, lease } = turn;
     const stream = createUIMessageStream<UIMessage>({
       onError: (): string => "Guest response unavailable",
       execute: async ({ writer }): Promise<void> => {
@@ -463,7 +534,7 @@ export class GuestHttpHandlers {
                   interfaceType: guestInterfaceType,
                   userPermissionLevel: "public",
                   isAnchor: false,
-                  guestExecution: reservation.lease.execution,
+                  guestExecution: lease.execution,
                 },
                 signal,
               )
@@ -472,7 +543,7 @@ export class GuestHttpHandlers {
                 // answer cap, since a failed call reports no usage to measure.
                 const outcome = signal.aborted ? "interrupted" : "failed";
                 await usage.settle(usageId, "failed", undefined);
-                await admission.settle(reservation.lease, outcome);
+                await admission.settle(lease, outcome);
                 throw error;
               });
             const hasAnswer = response.text.trim().length > 0;
@@ -490,7 +561,7 @@ export class GuestHttpHandlers {
             const cost = response.guestSettlement?.cost;
             if (
               !(await admission.settle(
-                reservation.lease,
+                lease,
                 hasAnswer ? "completed" : "failed",
                 cost?.state === "known" ? cost.microUsd : undefined,
               ))
