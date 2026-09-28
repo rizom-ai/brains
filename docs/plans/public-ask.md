@@ -136,7 +136,7 @@ Live constraints of the deployed guest-authorization code, not a rollout log:
 
 ## Planned slices
 
-Four slices, plus explicit site integration in each rollout. None is authorized by this plan alone; each needs its own review. Slices A and B gate Slice C: production guest access is not opened until the usage record and its Studio view exist, because an endpoint nobody can observe cannot be sized or defended. The standalone Slice D form and authored homepage can ship without A through C, after their own review; attaching a guest conversation is a later integration. No slice adds a second chat engine.
+Five slices, plus explicit site integration in each rollout. None is authorized by this plan alone; each needs its own review. Slices A, B and E gate Slice C: production guest access is not opened until the usage record, its Studio view and question screening exist, because an endpoint nobody can observe or steer cannot be sized or defended. The standalone Slice D form and authored homepage can ship without A through C, after their own review; attaching a guest conversation is a later integration. No slice adds a second chat engine.
 
 ### Slice A: the usage record
 
@@ -216,6 +216,21 @@ Goal: a visitor can reach the owner without an account and without the chat runt
 - The owner replies outside the page, by ordinary email or a call. Contact delivery uses no model or embedding calls and consumes no guest allowance.
 - Tests first: no-JavaScript GET/POST/redirect works; streaming oversized bodies are rejected before parsing; forged headers and cookie resets do not evade limits; private records never enter search, projections or provider calls; concurrent duplicate POSTs and crash recovery create one request; notification failure/retry preserves it without duplicate delivery; invalid conversation attachment does not reject contact or leak history; retention removes the record and associated delivery state; contact details never reach routine logs.
 
+### Slice E: question screening
+
+Goal: an admitted guest question that is abusive, harmful, an injection attempt or outside the site's scope never reaches the agent.
+
+- **One judgment, on the brain's own provider (decided 2026-09-28).** Screening calls the plugin context's existing `judge()` with a Zod verdict schema. No second vendor, moderation endpoint or new provider client: guest questions already go to the brain's provider, so screening adds no party to the visitor disclosure.
+- **Material.** The question, the conversation's two previous visitor questions (to catch multi-turn attempts), and the public `ask-content` topics as the site's scope. Nothing private, no replies and no source content. Visitor text is fenced as material, never as instruction; a manipulated judgment can only let a question through to the agent, whose public-only boundaries still hold.
+- **Verdict.** One category: `in-scope`, `off-topic`, `abusive`, `injection` or `harmful`. Every category except `in-scope` refuses.
+- **Placement.** In `streamAnswer` (`interfaces/web-chat/src/guest-http.ts`), after admission and the usage record's admit, before `agent.chat`. Flood limits and the monthly budget therefore bound screening calls too, and a refused question is recorded like any admitted one.
+- **Refusal.** The agent is not called. The visitor receives refusal copy streamed as an ordinary answer, not an HTTP error, so every box keeps one presentation. The copy is an optional `refusal` field on `ask-content` in `@brains/contracts`, in the site's own words; without it, a fixed neutral line. The contact door stays as it is.
+- **Cost.** The judgment's reported usage is priced at the pinned Luna revision and added to the turn's `guestSettlement`; a refused turn costs the judgment only. Unpriced usage makes the turn's cost unknown and it is charged the answer cap, as in Slice A.
+- **Failure.** A judgment that throws or times out does not block the answer: the turn runs and is recorded as `unscreened`. Screening steers the endpoint; the budget, caps and flood limits remain its ceiling.
+- **Record and monitor.** The usage record gains a `refused` outcome carrying the category, and `unscreened` as a marker on answered turns. The Slice B workspace counts refusals by category and unscreened turns for today and the month; recent questions show a refused question's category.
+- **Verification.** On an isolated running app with the local-test preset and a real provider on preview, one question per category: refusals stream the authored copy, the agent is never called for them, their cost is the judgment's, and the monitor shows each.
+- Tests first: each blocking category skips the agent and streams the refusal copy; `in-scope` answers as before; a throwing judgment answers and records `unscreened`; the judgment's usage is added to the settlement; the material holds only the question, two previous visitor questions and public topics; missing `ask-content` falls back to the neutral line; the monitor groups refusals by category.
+
 ## Per-deployment rollout
 
 Every site verifies its authored-content/rendering integration, writes its `ask-content`, decides on the door, and separately decides on enablement. Authored content alone does not add a renderer to a site that lacks one. Enablement is always last.
@@ -261,4 +276,4 @@ Open items before this deployment's page is published:
 
 ## Completion
 
-Delete this plan after the bounded usage record and its Studio monitor are in place, each deployment's content, door and enablement decisions are made and verified through its running app, the production policy is explicitly approved wherever guests are admitted, and the shipped behavior is captured in Web Chat, Dashboard and site documentation and changelogs.
+Delete this plan after the bounded usage record, its Studio monitor and question screening are in place, each deployment's content, door and enablement decisions are made and verified through its running app, the production policy is explicitly approved wherever guests are admitted, and the shipped behavior is captured in Web Chat, Dashboard and site documentation and changelogs.
