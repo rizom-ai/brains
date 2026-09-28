@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.443
+
+### Patch Changes
+
+- [#424](https://github.com/rizom-ai/brains/pull/424) [`eaf4cc3`](https://github.com/rizom-ai/brains/commit/eaf4cc36792d9564715dd0c9d8900bba9d765f3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix a rare "Projection batch cannot join active batch" fencing failure that could hit unrelated jobs. The job queue dispatches jobs as Effect fibers, which have no relationship to Node's `AsyncLocalStorage` tracking, so an unrelated job's leftover projection-batch scope could appear ambient to a different job and trip the identity fence on jobs that were never actually nested inside it. The worker now resets the projection-batch coordinator's ambient scope to empty before running each job, so a job's batch identity can never leak from another job.
+
 ## 0.2.0-alpha.442
 
 ### Patch Changes
