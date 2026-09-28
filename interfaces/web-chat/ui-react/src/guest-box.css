@@ -279,3 +279,106 @@
     max-height: min(42svh, 280px);
   }
 }
+/*
+ * On a narrow screen the engaged box opens full screen (ASK_SHEET_MEDIA and
+ * ASK_SHEET_ATTRIBUTE in the ask-box contract). It fits the visual viewport,
+ * so the composer rides on the keyboard. Its header is ASK_SHEET_HEADER_HEIGHT
+ * tall; a host reserves room below it with --ask-sheet-inset.
+ */
+@media (max-width: 47.99rem) {
+  :where([data-ask-styled][data-ask-sheet]) {
+    position: fixed;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    top: var(--ask-viewport-top, 0px);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    height: var(--ask-viewport-height, 100dvh);
+    max-width: none;
+    margin: 0;
+    padding: 0 16px;
+    background: var(--ask-bg);
+  }
+  :where([data-ask-styled] .brain-guest-box.is-sheet) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+  :where([data-ask-styled] .brain-box-sheet-head) {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 14px;
+    height: 3.25rem;
+    margin: 0 -16px;
+    padding: 0 12px 0 16px;
+    border-bottom: 1px solid var(--ask-rule-soft);
+  }
+  :where([data-ask-styled] .brain-box-sheet-title) {
+    flex: 1;
+    font: 600 16px var(--ask-display);
+  }
+  :where([data-ask-styled] .brain-box-sheet-head .brain-box-header-actions) {
+    margin: 0;
+  }
+  :where([data-ask-styled] .brain-box-close) {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--ask-rule);
+    border-radius: 50%;
+    background: transparent;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  :where([data-ask-styled] .is-sheet .brain-box-scroll) {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    margin-top: var(--ask-sheet-inset, 0px);
+    overflow-y: auto;
+  }
+  /* An empty conversation opens with its welcome just above the composer. */
+  :where([data-ask-styled] .is-sheet .brain-box-scroll.is-welcome) {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  :where([data-ask-styled] .is-sheet .brain-box-bottom) {
+    flex: none;
+    margin-top: 0;
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  }
+  :where([data-ask-styled][data-ask-keyboard] .is-sheet .brain-box-bottom) {
+    padding-bottom: 8px;
+  }
+  /* Closed again, the box is a composer and a way back to the conversation. */
+  :where(
+    [data-ask-styled] .is-compact .brain-box-scroll,
+    [data-ask-styled] .is-compact .brain-box-header-actions
+  ) {
+    display: none;
+  }
+  :where([data-ask-styled] .brain-box-resume) {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 99px;
+    background: var(--ask-text);
+    color: var(--ask-bg);
+    font-size: 14px;
+    margin: 0 0 12px;
+    cursor: pointer;
+  }
+  :where([data-ask-styled] .brain-box-resume-dot) {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ask-accent);
+  }
+}

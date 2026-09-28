@@ -406,10 +406,29 @@ describe("living atlas", () => {
 
   it("scrolls a docked conversation only with the text column, never inside the box", () => {
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas__ask \.brain-box-scroll \{ max-height: none; overflow: visible; \}/,
+      /\.atlas__ask:not\(\[data-ask-sheet\]\) \.brain-box-scroll \{ max-height: none; overflow: visible; \}/,
     );
     expect(homepageAtlasStyles).toMatch(
       /\.atlas--chat \.atlas__talk \{[^}]*scrollbar-width: thin;[^}]*scrollbar-color: var\(--color-rule\) transparent;/,
+    );
+  });
+
+  it("on a phone, docks the map as a strip under the open conversation and folds it while typing", () => {
+    const phone = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
+    );
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*position: fixed;[^}]*top: 3\.25rem;/,
+    );
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-keyboard\]\) \.atlas__map \{ display: none; \}/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: 7\.5rem; \}/,
+    );
+    // The open conversation rises above the sticky site header.
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \{ z-index: 1000; \}/,
     );
   });
 
