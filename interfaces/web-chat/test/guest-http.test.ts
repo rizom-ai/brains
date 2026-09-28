@@ -472,7 +472,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(await browser.client.deleteSession(id)).toEqual({ deleted: true });
   });
   it.each([false, true])(
-    "preserves production Ask authentication while preview guest chat is managed: %j",
+    "returns 404 for operator Ask without Studio while preview guest chat is managed: %j",
     async (authenticated) => {
       const state = await setup({
         origin: "https://preview.brain.test",
@@ -484,7 +484,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       const response = await state
         .browser()
         .fetch("https://brain.test/ask", { method: "GET" });
-      expect(response.status).toBe(authenticated ? 200 : 401);
+      expect(response.status).toBe(404);
       expect(await response.text()).not.toContain("guest-root");
       expect(response.headers.has("Set-Cookie")).toBe(false);
       expect(state.calls).toHaveLength(0);
@@ -835,7 +835,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     },
   );
 
-  it("allows an anonymous Ask page but still requires authentication for the operator page", async () => {
+  it("allows an anonymous Ask page but has no operator page without Studio", async () => {
     const state = await setup({ authenticated: false });
     const browser = state.browser();
     expect((await browser.fetch("/ask", { method: "GET" })).status).toBe(200);
@@ -858,9 +858,9 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       method: "GET",
     });
     const privateHtml = await privatePage.text();
-    expect(privatePage.status).toBe(200);
+    expect(privatePage.status).toBe(404);
     expect(privateHtml).not.toContain("data-guest-chat");
-    expect(privateHtml).toContain('data-chat-api-path="/api/chat"');
+    expect(privateHtml).not.toContain('data-chat-api-path="/api/chat"');
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(browser.cookie()).toBe("");
     expect(state.calls).toHaveLength(0);

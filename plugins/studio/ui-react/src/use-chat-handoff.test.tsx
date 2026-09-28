@@ -4,7 +4,7 @@ import { Window } from "happy-dom";
 import { act, createElement, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
-import type { StudioChatHandoff } from "./operator-launch";
+import type { StudioChatHandoff } from "../../src/chat-handoff-contract";
 import { StudioChatDraftStore } from "./studio-chat-drafts";
 import { studioChatDraftKey } from "./studio-chat-draft-key";
 import { useChatHandoff } from "./use-chat-handoff";

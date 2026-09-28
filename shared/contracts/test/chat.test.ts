@@ -122,6 +122,20 @@ describe("public headless Chat contract", () => {
     ).toBe(false);
   });
 
+  it("rejects browser-supplied Inbox context on owner chat requests", () => {
+    expect(
+      chatMessageRequestSchema.safeParse({
+        id: "session-1",
+        messages: [{ role: "user", parts: [{ type: "text", text: "Hello" }] }],
+        inboxContext: {
+          sourceId: "mail-items",
+          itemId: "mail-1",
+          label: "Email",
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("models message, approval, progress, and handoff domain data without view state", () => {
     expect(
       chatMessageRequestSchema.parse({

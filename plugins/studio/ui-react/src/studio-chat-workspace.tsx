@@ -17,7 +17,7 @@ import {
 } from "react";
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import type { StudioChatHandoff } from "./operator-launch";
+import type { StudioChatHandoff } from "../../src/chat-handoff-contract";
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
@@ -35,6 +35,7 @@ import { useChatSessions } from "./use-chat-sessions";
 import { useChatStream } from "./use-chat-stream";
 import { useChatUploads } from "./use-chat-uploads";
 import { useChatArchive } from "./use-chat-archive";
+import { useChatDelete } from "./use-chat-delete";
 import { useChatHandoff } from "./use-chat-handoff";
 import { useChatThread } from "./use-chat-thread";
 import { useChatNavigationState } from "./use-chat-navigation-state";
@@ -160,6 +161,17 @@ export function StudioChatWorkspace(
     setError,
     navigateToSession,
   });
+  const deletion = useChatDelete({
+    chatClient,
+    queryClient,
+    sessionId: props.sessionId,
+    draftKey,
+    currentDraftKey,
+    mountedRef,
+    blocked: archiveBlocked,
+    setSending,
+    navigateToSession,
+  });
   useEffect(() => {
     mountedRef.current = true;
     return (): void => {
@@ -210,6 +222,7 @@ export function StudioChatWorkspace(
     resetStream();
     resetUploads();
     resetArchive();
+    deletion.reset();
   }, [props.sessionId]);
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
@@ -270,6 +283,7 @@ export function StudioChatWorkspace(
                 archiveBlocked={archiveBlocked}
                 draftPending={draftPending}
                 onArchive={() => void archiveCurrent()}
+                deletion={deletion}
                 contextCards={contextCards}
                 progress={stream?.progress ?? []}
               />
@@ -410,7 +424,7 @@ export function StudioChatWorkspace(
                 onRetryUpload={(attempt) => void runUploads([attempt])}
                 onDismissUpload={dismissAttempt}
                 onDraft={setDraft}
-                locked={archiving}
+                locked={archiving || deletion.deleting}
                 onRemoveUpload={(id) =>
                   setUploads((current) =>
                     current.filter((upload) => upload.id !== id),

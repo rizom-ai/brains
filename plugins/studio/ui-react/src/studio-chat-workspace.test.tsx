@@ -991,6 +991,11 @@ describe("native Studio Chat workspace", () => {
       document.querySelector<HTMLButtonElement>(".studio-chat-header-action")
         ?.disabled,
     ).toBe(true);
+    expect(
+      document.querySelector<HTMLButtonElement>(
+        '[aria-label="Delete conversation"]',
+      )?.disabled,
+    ).toBe(true);
     click(
       document.querySelector('[aria-label="Remove notes.txt from message"]'),
       "Remove attachment",
@@ -999,9 +1004,194 @@ describe("native Studio Chat workspace", () => {
     expect(store.read(key).uploads).toHaveLength(0);
     expect(store.hasDrafts()).toBe(false);
     expect(
+      document.querySelector<HTMLButtonElement>(
+        '[aria-label="Delete conversation"]',
+      )?.disabled,
+    ).toBe(false);
+    expect(
       document.querySelector<HTMLButtonElement>(".studio-chat-header-action")
         ?.disabled,
     ).toBe(false);
+  });
+
+  it("offers deletion for archived conversations but not an unsaved conversation", async () => {
+    const previous = chatFetch;
+    chatFetch = async (input, init): Promise<Response> => {
+      if (String(input) === "/api/chat/sessions")
+        return Response.json({
+          sessions: [
+            {
+              id: "conversation-1",
+              title: "Archived conversation",
+              archived: true,
+              lastActiveAt: "2026-09-27T09:00:00Z",
+            },
+          ],
+        });
+      return previous(input, init);
+    };
+    const store = new StudioChatDraftStore();
+    await mountChat(store);
+    await openDetails();
+    expect(
+      document.querySelector('[aria-label="Delete conversation"]'),
+    ).not.toBeNull();
+    expect(document.querySelector(".studio-chat-header-action")).toBeNull();
+    await mountChat(store, null);
+    await openDetails();
+    expect(
+      document.querySelector('[aria-label="Delete conversation"]'),
+    ).toBeNull();
+  });
+
+  it("requires explicit confirmation and supports cancelling conversation deletion", async () => {
+    const previous = chatFetch;
+    const deletions: string[] = [];
+    chatFetch = async (input, init): Promise<Response> => {
+      if (init?.method !== "DELETE") return previous(input, init);
+      deletions.push(String(input));
+      return Response.json({ deleted: true });
+    };
+    await mountChat(new StudioChatDraftStore());
+    await openDetails();
+    click(
+      document.querySelector('[aria-label="Delete conversation"]'),
+      "Delete",
+    );
+    await settle();
+    expect(deletions).toEqual([]);
+    expect(
+      document.querySelector(
+        '[role="group"][aria-label="Confirm conversation deletion"]',
+      )?.textContent,
+    ).toContain("cannot be undone");
+    click(
+      document.querySelector('[aria-label="Cancel conversation deletion"]'),
+      "Cancel",
+    );
+    await settle();
+    expect(
+      document.querySelector('[aria-label="Permanently delete conversation"]'),
+    ).toBeNull();
+    expect(deletions).toEqual([]);
+    click(
+      document.querySelector('[aria-label="Delete conversation"]'),
+      "Delete",
+    );
+    await settle();
+    click(
+      document.querySelector('[aria-label="Permanently delete conversation"]'),
+      "Confirm",
+    );
+    await settle();
+    expect(deletions).toEqual(["/api/chat/sessions?id=conversation-1"]);
+    expect(navigations).toEqual(["/chat"]);
+  });
+
+  for (const result of ["rejected", "unacknowledged"] as const) {
+    it(`keeps the conversation and offers no automatic retry when deletion is ${result}`, async () => {
+      const previous = chatFetch;
+      let deletions = 0;
+      chatFetch = async (input, init): Promise<Response> => {
+        if (init?.method !== "DELETE") return previous(input, init);
+        deletions++;
+        return result === "rejected"
+          ? new Response("Unavailable", { status: 503 })
+          : Response.json({ deleted: false });
+      };
+      await mountChat(new StudioChatDraftStore());
+      await openDetails();
+      click(
+        document.querySelector('[aria-label="Delete conversation"]'),
+        "Delete",
+      );
+      await settle();
+      click(
+        document.querySelector(
+          '[aria-label="Permanently delete conversation"]',
+        ),
+        "Confirm",
+      );
+      await settle();
+      expect(deletions).toBe(1);
+      expect(navigations).toEqual([]);
+      expect(
+        document.querySelector(
+          '[role="group"][aria-label="Confirm conversation deletion"] [role="alert"]',
+        )?.textContent,
+      ).toContain("Deletion could not be confirmed");
+      expect(
+        document.querySelector<HTMLTextAreaElement>("textarea")?.disabled,
+      ).toBe(false);
+    });
+  }
+
+  for (const switchSession of [false, true]) {
+    it(`locks composition during deletion and ignores stale completion=${switchSession}`, async () => {
+      const previous = chatFetch,
+        store = new StudioChatDraftStore();
+      const pending: { finish?: () => void } = {};
+      let deletions = 0;
+      chatFetch = async (input, init): Promise<Response> => {
+        if (init?.method !== "DELETE") return previous(input, init);
+        deletions++;
+        return new Promise<Response>((resolve) => {
+          pending.finish = (): void =>
+            resolve(Response.json({ deleted: true }));
+        });
+      };
+      await mountChat(store);
+      await openDetails();
+      click(
+        document.querySelector('[aria-label="Delete conversation"]'),
+        "Delete",
+      );
+      await settle();
+      const confirm = document.querySelector(
+        '[aria-label="Permanently delete conversation"]',
+      );
+      click(confirm, "Confirm");
+      click(confirm, "Duplicate confirm");
+      await settle();
+      expect(deletions).toBe(1);
+      expect(
+        document.querySelector<HTMLTextAreaElement>("textarea")?.disabled,
+      ).toBe(true);
+      if (switchSession) await mountChat(store, "conversation-2");
+      await act(async () => pending.finish?.());
+      await settle();
+      expect(navigations).toEqual(switchSession ? [] : ["/chat"]);
+      expect(
+        document.querySelector<HTMLTextAreaElement>("textarea")?.disabled,
+      ).toBe(false);
+    });
+  }
+
+  it("protects unsent work and never carries deletion confirmation into another session", async () => {
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Keep my draft" });
+    await mountChat(store);
+    await openDetails();
+    expect(
+      document.querySelector<HTMLButtonElement>(
+        '[aria-label="Delete conversation"]',
+      )?.disabled,
+    ).toBe(true);
+    await act(async () => store.update(key, { text: "" }));
+    click(
+      document.querySelector('[aria-label="Delete conversation"]'),
+      "Delete",
+    );
+    await settle();
+    expect(
+      document.querySelector('[aria-label="Permanently delete conversation"]'),
+    ).not.toBeNull();
+    await mountChat(store, "conversation-2");
+    await openDetails();
+    expect(
+      document.querySelector('[aria-label="Permanently delete conversation"]'),
+    ).toBeNull();
   });
 
   for (const switchSession of [false, true]) {
