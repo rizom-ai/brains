@@ -313,44 +313,94 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
     }
 
-    // In a phone's open conversation the map is a strip. The strip opens the
-    // whole map; "Back to the answer", closing or typing folds it again.
+    // In a phone's open conversation the map sits under its header, as tall
+    // as the page's at the top and shrinking to a strip as the answer scrolls
+    // beneath it. Sources and pieces point at each other there: a tapped
+    // source shows its piece, and a piece's card shows where it is cited.
     var askHost = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
-    var count = root.querySelector("[data-atlas-count]");
-    // The strip's height moves only while it folds or opens, never as the
-    // conversation opens (the phone sheet transitions it under this mark).
+    function conversation() {
+      return askHost ? askHost.querySelector(".brain-box-scroll") : null;
+    }
+    function sheetOpen() {
+      return !!askHost && askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}");
+    }
+    function follow(scroller) {
+      root.style.setProperty("--atlas-sheet-scroll", (scroller ? scroller.scrollTop : 0) + "px");
+    }
+    // Scroll events do not bubble; the conversation's reach the map on the way down.
+    root.addEventListener("scroll", function (event) {
+      var scroller = event.target;
+      if (scroller && scroller.classList && scroller.classList.contains("brain-box-scroll")) follow(scroller);
+    }, true);
+    function glide(scroller, top) {
+      if (scroller.scrollTo) scroller.scrollTo({ top: top, behavior: still.matches ? "auto" : "smooth" });
+      else scroller.scrollTop = top;
+    }
+    function mark(key) {
+      return Array.prototype.filter.call(root.querySelectorAll("[data-atlas-mark]"), function (candidate) {
+        return candidate.getAttribute("data-atlas-key") === key;
+      })[0] || null;
+    }
+    function flag(element, name, ms) {
+      element.removeAttribute(name);
+      // A fresh attribute restarts its animation.
+      void element.offsetWidth;
+      element.setAttribute(name, "");
+      window.setTimeout(function () { element.removeAttribute(name); }, ms);
+    }
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest || !sheetOpen()) return;
+      var scroller = conversation();
+      var source = target.closest("[${ASK_SOURCE_ATTRIBUTE}]");
+      var piece = source ? mark(source.getAttribute("${ASK_SOURCE_ATTRIBUTE}")) : null;
+      if (piece && piece.querySelector("a")) {
+        // Back to the full map, its piece pulsing with its card open.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (scroller) glide(scroller, 0);
+        close();
+        open = piece;
+        piece.setAttribute("data-open", "");
+        flag(piece, "data-atlas-pulse", 2400);
+        return;
+      }
+      var cited = target.closest("[data-atlas-cited]");
+      var from = cited ? cited.closest("[data-atlas-mark]") : null;
+      if (!from || !scroller) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var key = from.getAttribute("data-atlas-key");
+      var listed = Array.prototype.filter.call(
+        scroller.querySelectorAll("[${ASK_SOURCE_ATTRIBUTE}]"),
+        function (item) { return item.getAttribute("${ASK_SOURCE_ATTRIBUTE}") === key; }
+      ).pop();
+      close();
+      if (!listed) return;
+      var at = listed.getBoundingClientRect();
+      var area = scroller.getBoundingClientRect();
+      // Its source in the middle of the conversation, flashing.
+      glide(scroller, scroller.scrollTop + at.top - area.top - scroller.clientHeight / 2 + at.height / 2);
+      flag(listed, "data-atlas-flash", 1500);
+    }, true);
+    // The map's height moves on its own only while the keyboard folds or
+    // unfolds it, never as the conversation opens (the phone sheet
+    // transitions it under this mark); otherwise it follows the scroll.
     var moving = 0;
     function move() {
       root.setAttribute("data-atlas-moving", "");
       window.clearTimeout(moving);
       moving = window.setTimeout(function () { root.removeAttribute("data-atlas-moving"); }, 400);
     }
-    function fold() {
-      if (!root.hasAttribute("data-atlas-expanded")) return;
-      move();
-      root.removeAttribute("data-atlas-expanded");
-      if (field) pan();
-    }
-    root.addEventListener("click", function (event) {
-      var target = event.target;
-      if (!target || !target.closest) return;
-      if (target.closest("[data-atlas-fold]")) return fold();
-      if (!target.closest("[data-atlas-expand]")) return;
-      if (!askHost || !askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}")) return;
-      move();
-      root.setAttribute("data-atlas-expanded", "");
-      if (field) pan();
-    });
     var typing = false;
     if (askHost && typeof MutationObserver === "function") {
-      var watch = new MutationObserver(function () {
+      new MutationObserver(function () {
         var keyboard = askHost.hasAttribute("${ASK_KEYBOARD_ATTRIBUTE}");
-        // The strip folds and unfolds with the keyboard.
         if (keyboard !== typing) move();
         typing = keyboard;
-        if (!askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}") || keyboard) fold();
-      });
-      watch.observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}", "${ASK_KEYBOARD_ATTRIBUTE}"] });
+        // Opened again where it was left, the map is as tall as that scroll allows.
+        follow(sheetOpen() ? conversation() : null);
+      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}", "${ASK_KEYBOARD_ATTRIBUTE}"] });
     }
 
     root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
@@ -364,10 +414,6 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         } else mark.removeAttribute("data-cited");
       });
       turnTowards(cited);
-      if (count)
-        count.textContent = cited.length
-          ? cited.length + (cited.length === 1 ? " piece" : " pieces") + " this answer draws on"
-          : "";
       citedMarks = cited;
       followLeads(Date.now() + TURN);
     });

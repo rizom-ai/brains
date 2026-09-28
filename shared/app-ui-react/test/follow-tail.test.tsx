@@ -126,6 +126,25 @@ describe("useFollowTail", () => {
     expect(region.scrollTop).toBe(1250);
   });
 
+  it("shows the chosen element below a covered top (the region's scroll padding)", async () => {
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    const region = harness.element();
+    region.style.scrollPaddingTop = "300px";
+    region.scrollTop = 1000;
+    const target = document.createElement("div");
+    region.append(target);
+    region.getBoundingClientRect = (): DOMRect =>
+      new windowInstance.DOMRect(0, 100, 300, 200);
+    target.getBoundingClientRect = (): DOMRect =>
+      new windowInstance.DOMRect(0, 350, 300, 40);
+
+    await act(async () => harness.tail().showFrom(target));
+
+    // Something covers the region's top 300px, so the element sits below it.
+    expect(region.scrollTop).toBe(950);
+  });
+
   it("stops following once the reader scrolls away from the bottom", async () => {
     const harness = createHarness();
     await harness.render({ resetKey: "a", contentKey: 1 });

@@ -444,11 +444,20 @@ describe("living atlas", () => {
     );
     // Marks cut by the strip's edges fade out with it, as the terrain does.
     expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\):not\(\[data-atlas-expanded\]\) \.atlas__map::after \{[^}]*linear-gradient\(180deg, var\(--color-bg\), transparent/,
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map::after \{[^}]*linear-gradient\(180deg, var\(--color-bg\), transparent/,
     );
     expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-fall");
+    // The conversation starts below the map at the page's height and scrolls
+    // beneath it; the map shrinks with that scroll, down to the strip.
     expect(phone).toMatch(
-      /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: 7\.5rem; \}/,
+      /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: calc\(var\(--atlas-band\) - 2rem\); \}/,
+    );
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*height: max\(7\.5rem, calc\(var\(--atlas-band\) - 2rem - var\(--atlas-sheet-scroll, 0px\)\)\);/,
+    );
+    // The field inside keeps the answer's pieces in the middle of what shows.
+    expect(phone).toMatch(
+      /--atlas-window: max\(7\.5rem, calc\(var\(--atlas-field-height\) - var\(--atlas-sheet-scroll, 0px\)\)\);/,
     );
     // The strip is a window onto the same map as the page, at the same size:
     // the page's field is the band less the legend's 2rem.
@@ -477,7 +486,22 @@ describe("living atlas", () => {
 
   it("keeps marks and their cards at their own size while the map zooms", () => {
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas__field\[data-focused\] \.atlas__mark > :first-child \{[^}]*scale: calc\(1 \/ var\(--atlas-focus-scale, 1\)\);/,
+      /\.atlas__field\[data-focused\] :is\(\.atlas__mark > :first-child, \.atlas__cited\) \{[^}]*scale: calc\(1 \/ var\(--atlas-focus-scale, 1\)\);/,
+    );
+  });
+
+  it("opens the title cards of marks near the map's top below them, so they stay on the map", () => {
+    const marks = Array.from(
+      html().matchAll(
+        /<li[^>]*class="([^"]*)"[^>]*style="left:[^;]*;top:([\d.]+)%"/g,
+      ),
+      (match): [string, number] => [match[1] ?? "", Number(match[2])],
+    );
+    expect(marks.length).toBeGreaterThan(0);
+    for (const [className, top] of marks)
+      expect(className.includes("atlas__mark--south")).toBe(top < 28);
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark--south \.atlas__tip \{[^}]*top: calc\(100% \+ \.3rem\);/,
     );
   });
 
@@ -607,26 +631,24 @@ describe("atlas with guest chat", () => {
     expect(html()).toMatch(/<svg[^>]*data-atlas-leads[^>]*aria-hidden="true"/);
   });
 
-  it("lets a phone's conversation open the whole map from its strip, and fold it back", () => {
+  it("lets a lit piece show where a phone's answer cites it", () => {
     expect(html()).toMatch(
-      /<button type="button" class="atlas__expand" data-atlas-expand="" aria-label="Show the whole map"><span>Show on map<\/span><\/button>/,
-    );
-    expect(html()).toMatch(
-      /<div class="atlas__mapbar" data-atlas-mapbar=""><span data-atlas-count="" aria-live="polite"><\/span><button type="button" data-atlas-fold="">Back to the answer<\/button><\/div>/,
+      /<button type="button" class="atlas__cited" data-atlas-cited="">Where it’s cited ↓<\/button>/,
     );
     const phone = homepageAtlasStyles.slice(
       homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
     );
-    // On the page there is nothing to open.
+    // Only on the open card of a lit piece, in the open conversation.
+    expect(homepageAtlasStyles).toMatch(/\.atlas__cited \{ display: none; \}/);
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*display: block;/,
+    );
+    // A tapped source pulses its piece; a piece's source flashes in the answer.
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas__expand, \.atlas__mapbar \{ display: none; \}/,
+      /\.atlas__mark\[data-atlas-pulse\] \.atlas__glyph \{ animation: atlas-pulse /,
     );
-    // Open, it is the whole map at the page's size, with the bar below it.
-    expect(phone).toMatch(
-      /\.atlas\[data-atlas-expanded\]:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{ height: calc\(var\(--atlas-band\) \+ \.5rem\); \}/,
-    );
-    expect(phone).toMatch(
-      /\.atlas\[data-atlas-expanded\] \.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: calc\(var\(--atlas-band\) \+ \.5rem\); \}/,
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__ask \[data-ask-source\]\[data-atlas-flash\] \{ animation: atlas-flash /,
     );
   });
 
@@ -642,7 +664,7 @@ describe("atlas with guest chat", () => {
     expect(off).not.toContain("data-ask-box");
     expect(off).not.toContain("data-atlas-fill");
     expect(off).not.toContain("data-atlas-leads");
-    expect(off).not.toContain('data-atlas-expand=""');
+    expect(off).not.toContain('data-atlas-cited=""');
     expect(off).not.toContain("<script");
   });
 });
