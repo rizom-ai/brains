@@ -19,7 +19,7 @@ export interface GuestAnswerSourcesDeps {
   hasRoute: (entityType: string) => boolean;
   /** The site path of an entity of this type. */
   urlFor: (entityType: string, slug: string) => string;
-  /** Where the site is published; without it, sources carry no address. */
+  /** The domain the site is published at; without it, sources carry no address. */
   siteBaseUrl: string | undefined;
 }
 
@@ -41,8 +41,12 @@ function toCitation(
     metadataString(entity.metadata, "title") ??
     metadataString(entity.metadata, "name");
   const slug = metadataString(entity.metadata, "slug") ?? entity.id;
-  const url = deps.siteBaseUrl
-    ? new URL(deps.urlFor(entity.entityType, slug), deps.siteBaseUrl).href
+  // The deployment's domain, with or without a scheme; the site is served over https.
+  const domain = deps.siteBaseUrl
+    ?.replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+  const url = domain
+    ? new URL(deps.urlFor(entity.entityType, slug), `https://${domain}`).href
     : undefined;
   return {
     id: `${entity.entityType}:${entity.id}`,

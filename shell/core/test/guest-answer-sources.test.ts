@@ -42,7 +42,7 @@ const found = [
 
 function sources(
   results: SearchResult[] = found,
-  site: { baseUrl?: string } = { baseUrl: "https://yeehaa.io" },
+  site: { baseUrl?: string } = { baseUrl: "yeehaa.io" },
 ): {
   find: ReturnType<typeof createGuestAnswerSources>;
   search: ReturnType<
@@ -93,6 +93,18 @@ describe("a visitor's answer's sources", () => {
       entityId: "hiding",
       url: "https://yeehaa.io/posts/hiding-in-plain-sight",
     });
+  });
+
+  it("reach the site over https whether its domain is written with a scheme or not", async () => {
+    for (const baseUrl of [
+      "yeehaa.io",
+      "https://yeehaa.io/",
+      "http://yeehaa.io",
+    ]) {
+      const { find } = sources(found, { baseUrl });
+      const [first] = await find({ answer: "Storage is not memory." });
+      expect(first?.url).toBe("https://yeehaa.io/posts/hiding-in-plain-sight");
+    }
   });
 
   it("leave out an address when the site has none", async () => {
