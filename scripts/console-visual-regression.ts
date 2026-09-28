@@ -18,7 +18,7 @@ import {
 } from "./fixtures/studio-study-state";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
-import { renderEditorShellHtml } from "@brains/studio";
+import { renderEditorShellHtml, studioTypeHierarchy } from "@brains/studio";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -3501,7 +3501,8 @@ const server = Bun.serve({
     }
     if (url.pathname === "/studio/api/types")
       return json({
-        types: reviewingSystem
+        // Each type carries the hierarchy the real type list sends for it.
+        types: (reviewingSystem
           ? [
               ...types.filter(
                 (item) =>
@@ -3510,7 +3511,11 @@ const server = Bun.serve({
               ),
               ...systemTypes,
             ]
-          : types,
+          : types
+        ).map((item) => ({
+          ...item,
+          hierarchy: studioTypeHierarchy(item.entityType),
+        })),
         workspaces: [
           {
             id: "studio:overview",

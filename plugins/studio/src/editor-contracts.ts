@@ -4,7 +4,7 @@ import type {
 } from "@brains/auth-service";
 import type { ActorRef } from "@brains/contracts";
 import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
-import type { StudioEntityDisplayMap } from "./config";
+import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
 import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 
@@ -26,14 +26,6 @@ export interface StudioTypeCapabilities {
   canExtract: boolean;
   canPublish: boolean;
   canAssist: boolean;
-}
-
-/** How a type's entries nest, as Studio presents and creates them. */
-export interface StudioTypeHierarchy {
-  /** What a level of the hierarchy is called. */
-  kind: "page" | "folder";
-  /** Whether new entries may be created inside a folder. */
-  nested: boolean;
 }
 
 /** One entity type in Studio's type list. */
