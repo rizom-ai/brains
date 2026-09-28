@@ -423,7 +423,9 @@ describe("public Ask UI with mocked Chat transport", () => {
     );
     incompleteHistory = false;
     await click("Check answer");
-    expect(document.body.textContent).toContain("Answer received");
+    expect(document.body.textContent).not.toContain(
+      "No complete answer is confirmed yet",
+    );
     expect(
       calls.filter((call) => call.path === "/api/chat/guest"),
     ).toHaveLength(1);
@@ -510,7 +512,7 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(
       calls.filter((call) => call.path === "/api/chat/guest"),
     ).toHaveLength(1);
-    expect(document.body.textContent).toContain("Answer received");
+    expect(document.body.textContent).toContain("An actual transport reply");
   });
 
   it("ends the initial intent after unavailable access; checking availability does not send", async () => {
@@ -554,7 +556,7 @@ describe("public Ask UI with mocked Chat transport", () => {
     await mount({ box: boxCopy });
     await ask("Stay in this box");
     expect(document.querySelector('a[href="/ask"]')).toBeNull();
-    expect(document.body.textContent).toContain("Answer received");
+    expect(document.body.textContent).toContain("An actual transport reply");
   });
 
   it("keeps the box's unsent draft visible and cannot send when guest access is unavailable", async () => {

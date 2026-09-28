@@ -6,7 +6,9 @@ import { EventTarget as HappyEventTarget, Window } from "happy-dom";
 import {
   ASK_BOX_ATTRIBUTE,
   ASK_KEYBOARD_ATTRIBUTE,
+  ASK_NAME_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
+  ASK_SOURCE_ATTRIBUTE,
 } from "@brains/contracts";
 import type { ChatHistoryMessage } from "@brains/contracts/chat";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
@@ -25,7 +27,28 @@ let viewport: FakeViewport;
 
 const answer: ChatHistoryMessage[] = [
   { id: "q", role: "user", content: "What is public?" },
-  { id: "a", role: "assistant", content: "This is public." },
+  {
+    id: "a",
+    role: "assistant",
+    content: "This is public.",
+    cards: [
+      {
+        kind: "sources",
+        id: "sources:tool-results",
+        title: "Retrieved sources",
+        sources: [
+          {
+            id: "post:across-space-and-time",
+            source: "post",
+            entityType: "post",
+            entityId: "across-space-and-time",
+            title: "Across Space And Time",
+            url: "https://brain.test/essays/across-space-and-time",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 function setup(width: number, hostOpen = false): void {
@@ -231,6 +254,35 @@ describe("the Ask box on a phone", () => {
       ).toBe(true);
       await click("Continue conversation");
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+    });
+  });
+
+  describe("in the words of the site it sits on", () => {
+    beforeEach(() => {
+      setup(390);
+      host.setAttribute(ASK_NAME_ATTRIBUTE, "Yeehaa");
+    });
+
+    it("names the conversation and its answers after the owner, and lists sources as links", async () => {
+      await render({ messages: answer, state: "complete" });
+      expect(host.querySelector(".brain-box-sheet-title")?.textContent).toBe(
+        "Ask Yeehaa",
+      );
+      expect(host.querySelector(".guest-assistant h2")?.textContent).toBe(
+        "Yeehaa",
+      );
+      const source = host.querySelector<HTMLAnchorElement>(
+        `.brain-box-sources [${ASK_SOURCE_ATTRIBUTE}="post:across-space-and-time"] a`,
+      );
+      expect(source?.textContent).toBe("Across Space And Time");
+      expect(source?.getAttribute("href")).toBe(
+        "https://brain.test/essays/across-space-and-time",
+      );
+      expect(host.querySelector(".web-chat-sources-card")).toBe(null);
+      expect(host.textContent).not.toContain("Answer received");
+      expect(host.querySelector("#brain-chat-notice")?.textContent).toBe(
+        "Answers come from what Yeehaa has published.",
+      );
     });
   });
 

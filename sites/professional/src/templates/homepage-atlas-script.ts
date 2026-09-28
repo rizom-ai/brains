@@ -204,12 +204,18 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
     }
     function turnTowards(cited) {
       if (!field) return;
-      if (!cited.length) { field.removeAttribute("data-focused"); return; }
+      if (!cited.length) {
+        field.removeAttribute("data-focused");
+        field.style.removeProperty("--atlas-strip-y");
+        return;
+      }
       var at = function (mark, side) { return parseFloat(mark.style[side]) || 50; };
       var x = cited.reduce(function (sum, mark) { return sum + at(mark, "left"); }, 0) / cited.length;
       var y = cited.reduce(function (sum, mark) { return sum + at(mark, "top"); }, 0) / cited.length;
       field.style.setProperty("--atlas-focus-x", x + "%");
       field.style.setProperty("--atlas-focus-y", y + "%");
+      // A map shown as a strip slides to where its sources sit.
+      field.style.setProperty("--atlas-strip-y", String(y));
       var zoom = cited.reduce(function (limit, mark) {
         return Math.min(
           limit,

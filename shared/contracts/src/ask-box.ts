@@ -73,3 +73,10 @@ export const ASK_SHEET_MEDIA = "(max-width: 47.99rem)";
 export const ASK_SHEET_ATTRIBUTE = "data-ask-sheet";
 export const ASK_KEYBOARD_ATTRIBUTE = "data-ask-keyboard";
 export const ASK_SHEET_HEADER_HEIGHT = "3.25rem";
+
+/**
+ * Set by a host on its mount element: whose brain the box speaks for, such
+ * as "Yeehaa". The box titles its conversation, labels its answers and says
+ * where they come from with it; without it the box speaks as "the brain".
+ */
+export const ASK_NAME_ATTRIBUTE = "data-ask-name";

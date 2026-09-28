@@ -225,6 +225,26 @@
   padding: 12px;
   background: var(--ask-wash);
 }
+/* An answer's sources: links to what it drew on. */
+:where([data-ask-styled] .brain-box-sources) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+:where([data-ask-styled] .brain-box-sources li) {
+  padding: 4px 10px;
+  border: 1px solid var(--ask-rule);
+  border-radius: 99px;
+  background: var(--ask-wash);
+  font-size: 12px;
+}
+:where([data-ask-styled] .brain-box-sources a) {
+  color: var(--ask-accent);
+  text-decoration: none;
+}
 :where([data-ask-styled] .web-chat-sources-card) {
   margin-top: 14px;
   padding-top: 10px;
@@ -354,6 +374,27 @@
   }
   :where([data-ask-styled][data-ask-keyboard] .is-sheet .brain-box-bottom) {
     padding-bottom: 8px;
+  }
+  /* Full screen, the visitor's question reads as theirs: a bubble on the right. */
+  :where([data-ask-styled] .is-sheet .guest-user) {
+    align-self: flex-end;
+    max-width: 85%;
+    margin: 12px 0 4px auto;
+    padding: 9px 13px;
+    border: 0;
+    border-radius: 14px 14px 4px 14px;
+    background: var(--ask-wash);
+  }
+  :where([data-ask-styled] .is-sheet .guest-user > h2) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  :where([data-ask-styled] .is-sheet .guest-user p) {
+    margin: 0;
   }
   /* Closed again, the box is a composer and a way back to the conversation. */
   :where(
