@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.440
+
+### Patch Changes
+
+- [#419](https://github.com/rizom-ai/brains/pull/419) [`f1548a5`](https://github.com/rizom-ai/brains/commit/f1548a56b26f962d3094ab4833dad81f9b5b380b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - In the phone conversation on the atlas homepage, the map under the header is as tall as the page's at the top of the conversation and shrinks to a strip as the answer scrolls beneath it, keeping the lit pieces in view. A listed source takes you to its piece: the map grows back, the piece pulses and its card opens; a lit piece's card offers "Where it's cited", which scrolls the answer to that source. Title cards near the map's top open below their mark. Web Chat's box opens an answer below whatever a host docks under its header.
+
 ## 0.2.0-alpha.439
 
 ### Patch Changes

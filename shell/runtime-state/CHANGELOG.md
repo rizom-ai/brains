@@ -1,5 +1,13 @@
 # @brains/runtime-state
 
+## 0.2.0-alpha.440
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/db@0.2.0-alpha.440
+  - @brains/utils@0.2.0-alpha.440
+
 ## 0.2.0-alpha.439
 
 ### Patch Changes
