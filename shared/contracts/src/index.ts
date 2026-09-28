@@ -8,6 +8,7 @@ export { parseAskContent } from "./ask-content-markdown";
 export {
   ASK_BOX_ATTRIBUTE,
   ASK_CLOSING_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,

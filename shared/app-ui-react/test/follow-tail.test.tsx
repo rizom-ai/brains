@@ -145,6 +145,35 @@ describe("useFollowTail", () => {
     expect(region.scrollTop).toBe(950);
   });
 
+  it("follows content that grows in any of the region's items, not only the first", async () => {
+    const observed: Element[] = [];
+    const Observer = class {
+      private readonly callback: () => void;
+      constructor(callback: () => void) {
+        this.callback = callback;
+      }
+      observe(target: Element): void {
+        observed.push(target);
+        this.callback();
+      }
+      disconnect(): void {}
+    };
+    Object.assign(globalThis, { ResizeObserver: Observer });
+    function Probe(): ReactElement {
+      const tail = useFollowTail({ resetKey: "a", contentKey: 1 });
+      return createElement(
+        "div",
+        { ref: tail.ref },
+        createElement("div", { id: "dock" }),
+        createElement("div", { id: "thread" }, "thread"),
+      );
+    }
+    await act(async () => {
+      root.render(createElement(Probe));
+    });
+    expect(observed.map((element) => element.id)).toEqual(["dock", "thread"]);
+  });
+
   it("stops following once the reader scrolls away from the bottom", async () => {
     const harness = createHarness();
     await harness.render({ resetKey: "a", contentKey: 1 });

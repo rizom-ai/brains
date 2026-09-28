@@ -413,69 +413,57 @@ describe("living atlas", () => {
     );
   });
 
-  it("on a phone, docks the map as a strip under the open conversation and folds it while typing", () => {
+  it("on a phone, lends the map to the open conversation, where it scrolls up into a strip", () => {
     const phone = homepageAtlasStyles.slice(
       homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
-    );
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*position: fixed;[^}]*top: 3\.25rem;/,
-    );
-    // It folds away while typing, rather than vanishing, so it never re-rises.
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-keyboard\]\) \.atlas__map \{[^}]*height: 0;/,
-    );
-    expect(phone).not.toContain(
-      "[data-ask-keyboard]) .atlas__map { display: none; }",
-    );
-    // It rises and falls with the sheet it is docked under.
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*animation: atlas-sheet-rise /,
-    );
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-closing\]\) \.atlas__map \{[^}]*animation: atlas-sheet-fall /,
-    );
-    expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-rise");
-    // Its height moves only while it folds or opens (the script says when).
-    expect(phone).not.toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*transition: height/,
-    );
-    expect(phone).toMatch(
-      /\.atlas\[data-atlas-moving\]:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{ transition: height /,
-    );
-    // Marks cut by the strip's edges fade out with it, as the terrain does.
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map::after \{[^}]*linear-gradient\(180deg, var\(--color-bg\), transparent/,
-    );
-    expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-fall");
-    // The conversation starts below the map at the page's height and scrolls
-    // beneath it; the map shrinks with that scroll, down to the strip.
-    expect(phone).toMatch(
-      /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: calc\(var\(--atlas-band\) - 2rem\); \}/,
-    );
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*height: max\(7\.5rem, calc\(var\(--atlas-band\) - 2rem - var\(--atlas-sheet-scroll, 0px\)\)\);/,
-    );
-    // The field inside keeps the answer's pieces in the middle of what shows.
-    expect(phone).toMatch(
-      /--atlas-window: max\(7\.5rem, calc\(var\(--atlas-field-height\) - var\(--atlas-sheet-scroll, 0px\)\)\);/,
-    );
-    // The strip is a window onto the same map as the page, at the same size:
-    // the page's field is the band less the legend's 2rem.
-    expect(homepageAtlasStyles).toMatch(/\.atlas__field \{ bottom: 2rem; \}/);
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__field \{[^}]*height: calc\(var\(--atlas-band\) - 2rem\);[^}]*top: clamp\(/,
-    );
-    // Opening never slides it; only an answer pans it.
-    expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__field \{[^}]*transition: transform [^;]*;\s*\}/,
-    );
-    expect(phone).toMatch(
-      /\.atlas__field\[data-atlas-panning\] \{[^}]*top \.9s/,
     );
     // The open conversation rises above the sticky site header.
     expect(phone).toMatch(
       /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \{ z-index: 1000; \}/,
     );
+    // In the conversation's dock the map is the page's own, at its size, and
+    // pins once only a strip of it is left.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\]:has\(\.atlas__map\) \{[^}]*position: sticky;[^}]*top: calc\(7\.5rem - \(var\(--atlas-band\) - 2rem\)\);/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__map \{[^}]*height: calc\(var\(--atlas-band\) - 2rem\);/,
+    );
+    // A slot holds its place on the page meanwhile.
+    expect(phone).toMatch(
+      /\.atlas__map-slot \{[^}]*height: var\(--atlas-band\);/,
+    );
+    // An answer opens below the whole map.
+    expect(phone).toMatch(
+      /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: calc\(var\(--atlas-band\) - 2rem\); \}/,
+    );
+    // Out of the way while typing.
+    expect(phone).toMatch(
+      /\.atlas__ask\[data-ask-keyboard\] \[data-ask-dock\] \{ display: none; \}/,
+    );
+    // The field keeps the answer's pieces in the middle of the part that shows.
+    expect(homepageAtlasStyles).toMatch(/\.atlas__field \{ bottom: 2rem; \}/);
+    expect(phone).toMatch(
+      /--atlas-window: max\(7\.5rem, calc\(var\(--atlas-field-height\) - var\(--atlas-sheet-scroll, 0px\)\)\);/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__field \{[^}]*top: clamp\(0rem, calc\(var\(--atlas-field-height\) - var\(--atlas-window\) \/ 2 - /,
+    );
+    // Only an answer pans it.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__field \{[^}]*transition: transform [^;]*;\s*\}/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__field\[data-atlas-panning\] \{[^}]*top \.9s/,
+    );
+    // Marks cut by its edges fade out, as the terrain does.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__map::after \{[^}]*linear-gradient\(180deg, var\(--color-bg\), transparent/,
+    );
+    // Nothing of the old overlay: no fixed map, no separate rise and fall.
+    expect(phone).not.toContain("position: fixed");
+    expect(homepageAtlasStyles).not.toContain("atlas-sheet-rise");
+    expect(homepageAtlasStyles).not.toContain("data-atlas-moving");
   });
 
   it("lifts an open card above every other mark, lit ones included", () => {
@@ -641,7 +629,14 @@ describe("atlas with guest chat", () => {
     // Only on the open card of a lit piece, in the open conversation.
     expect(homepageAtlasStyles).toMatch(/\.atlas__cited \{ display: none; \}/);
     expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*display: block;/,
+      /\.atlas__ask \[data-ask-dock\] \.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*display: block;/,
+    );
+    // Beside its mark, towards the map's middle, so no edge of the map cuts it.
+    expect(phone).toMatch(
+      /\.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*top: 50%; left: calc\(100% \+ \.3rem\); translate: 0 -50%;/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__mark--west\[data-open\]\[data-cited\] \.atlas__cited \{ left: auto; right: calc\(100% \+ \.3rem\); \}/,
     );
     // A tapped source pulses its piece; a piece's source flashes in the answer.
     expect(homepageAtlasStyles).toMatch(
@@ -650,6 +645,10 @@ describe("atlas with guest chat", () => {
     expect(homepageAtlasStyles).toMatch(
       /\.atlas__ask \[data-ask-source\]\[data-atlas-flash\] \{ animation: atlas-flash /,
     );
+  });
+
+  it("gives the script a handle on the map it lends to a phone's conversation", () => {
+    expect(html()).toMatch(/<div class="atlas__map" data-atlas-map=""/);
   });
 
   it("keys every mark as the answer's sources are keyed", () => {

@@ -20,7 +20,11 @@ import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
 import { useGuestBoxViewport } from "./use-guest-box-viewport";
 import { useAskSheet } from "./use-ask-sheet";
-import { ASK_BOX_ATTRIBUTE, ASK_NAME_ATTRIBUTE } from "@brains/contracts";
+import {
+  ASK_BOX_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
+  ASK_NAME_ATTRIBUTE,
+} from "@brains/contracts";
 
 export interface GuestBoxProps {
   copy: GuestBoxCopy;
@@ -220,6 +224,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         tabIndex={0}
         onScroll={tail.onScroll}
       >
+        {/* A host may lend what it docks at the top of the conversation here;
+            it is theirs, and React never renders into it. */}
+        <div className="brain-box-dock" {...{ [ASK_DOCK_ATTRIBUTE]: "" }} />
         {about && (
           <GuestBoxAbout
             session={session}
