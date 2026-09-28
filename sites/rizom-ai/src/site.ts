@@ -3,7 +3,6 @@ import { AiLayout } from "./layout";
 import { homeSections } from "./home";
 import { livingMemorySections } from "./living-memory";
 import { brainSections } from "./brain";
-import { brainNetworkTemplate } from "./brain-network";
 import { openingTemplate } from "./opening";
 import { openingDataSource } from "./opening-datasource";
 import { workSections } from "./work";
@@ -13,13 +12,13 @@ import { publicAskSections } from "./public-ask";
 
 export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
-  // The rev-5 design draws its own motifs (mycelium rail, growth diagram).
-  // The theme's room accents key off data-room, set by the layout.
+  // The story pages draw their own organisms (see ./story). The theme's
+  // room accents key off data-room, set by the layout.
   layout: AiLayout,
   routes: aiRoutes,
   runtime: {
     contentNamespace: "rizom",
-    templates: { connect: brainNetworkTemplate, opening: openingTemplate },
+    templates: { opening: openingTemplate },
     dataSourceFactories: [openingDataSource],
   },
   // Every page is authored schema-first (see ./home, ./brain, ./work,

@@ -1,20 +1,20 @@
 /** @jsxImportSource react */
-import {
-  ASK_BOX_ATTRIBUTE,
-  ASK_BOX_SCRIPT_PATH,
-  ASK_SEND_ATTRIBUTE,
-  ASK_STATUS_ATTRIBUTE,
-} from "@brains/contracts";
-import type { JSX, ReactNode } from "react";
+import { Fragment, type JSX } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
 import type { SiteSectionGroup } from "@rizom/site";
-import { renderHighlightedText } from "./rizom";
 import { ctaSchema } from "./shared";
+import { emphasize } from "./story/emphasis";
 
-/** Authored copy lives in rizom-content/site-content/brain. */
-export function BrainStyles(): JSX.Element {
-  return <link rel="stylesheet" href="/styles/brain.css" precedence="page" />;
-}
+/**
+ * The /brain room, told as a story: the agent that represents you, the
+ * answers it gives, what it is equipped for, whose it is (yours, your team's,
+ * the network's), the collective, what stays yours and how to start, each a
+ * chapter beside the drawing the layout supplies (see ./story/brain-organism).
+ * Each section is authored from one zod schema; copy is content-driven,
+ * stored as markdown in site-content/brain/<section>.md, and the section ids
+ * stay stable. The DOM anchors are the ones the content links to.
+ */
+
 const lead = {
   cap: z.string(),
   headline: z.string(),
@@ -24,16 +24,22 @@ const asideSchema = z.object({
   text: z.string(),
   links: z.array(ctaSchema).max(1),
 });
-const captureSchema = z.object({
-  kind: z.enum(["chat"]),
-  alt: z.string(),
-  caption: z.string().default(""),
-  openLabel: z.string(),
-});
-const chapterSchema = z.object({
+const chapterSchema = z.object({ ...lead, aside: asideSchema });
+const heroSchema = z.object({
   ...lead,
-  aside: asideSchema,
-  capture: captureSchema,
+  provenance: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+});
+const layersSchema = z.object({
+  label: z.string(),
+  items: z
+    .array(z.object({ title: z.string(), tag: z.string(), text: z.string() }))
+    .length(3),
+});
+const ownershipSchema = z.object({
+  ...lead,
+  items: z.array(z.object({ title: z.string(), text: z.string() })).length(3),
 });
 const codeSchema = z.object({
   title: z.string(),
@@ -47,28 +53,6 @@ const codeSchema = z.object({
       }),
     )
     .min(1),
-});
-const capabilitiesSchema = z.object({
-  ...lead,
-  aside: asideSchema,
-  code: codeSchema,
-});
-const heroSchema = z.object({
-  ...lead,
-  provenance: z.string(),
-  primaryCta: ctaSchema,
-  secondaryCta: ctaSchema,
-  navigation: z.array(ctaSchema).length(4),
-});
-const layersSchema = z.object({
-  label: z.string(),
-  items: z
-    .array(z.object({ title: z.string(), tag: z.string(), text: z.string() }))
-    .length(3),
-});
-const ownershipSchema = z.object({
-  ...lead,
-  items: z.array(z.object({ title: z.string(), text: z.string() })).length(3),
 });
 const quickstartSchema = z.object({
   ...lead,
@@ -84,13 +68,12 @@ const quickstartSchema = z.object({
     )
     .length(2),
 });
+
 function Copy({ paragraphs }: { paragraphs: string[] }): JSX.Element {
   return (
     <>
       {paragraphs.map((text) => (
-        <p key={text} className="copy">
-          {renderHighlightedText(text, "heading-emphasis")}
-        </p>
+        <p key={text}>{emphasize(text)}</p>
       ))}
     </>
   );
@@ -100,317 +83,184 @@ function Aside({ text, links }: z.infer<typeof asideSchema>): JSX.Element {
     <p className="aside">
       {text}
       {links.map((link) => (
-        <a key={link.href} href={link.href}>
+        <Fragment key={link.href}>
           {" "}
-          {link.label}
-        </a>
+          <a href={link.href}>{link.label}</a>
+        </Fragment>
       ))}
     </p>
   );
 }
-function Code({ title, note, lines }: z.infer<typeof codeSchema>): JSX.Element {
+/** The terminal: comments and optional lines dimmed, the prompt lit. */
+function Code({ title, lines }: z.infer<typeof codeSchema>): JSX.Element {
   return (
-    <div className="term" role="figure" aria-label={title}>
-      <div className="term-bar">
-        <span>{title}</span>
-        <span>{note}</span>
-      </div>
-      <pre>
-        <code>
-          {lines.map((line, index) => (
-            <span key={index} className={`code-line code-${line.kind}`}>
-              {" ".repeat(line.indent)}
-              {line.text}
-              {"\n"}
-            </span>
-          ))}
-        </code>
-      </pre>
-    </div>
+    <pre className="code" aria-label={title}>
+      {lines.map((line, index) => {
+        const text = `${" ".repeat(line.indent)}${line.text}`;
+        return (
+          <span key={index} className={`code-${line.kind}`}>
+            {line.kind !== "code" ? (
+              <i>{text}</i>
+            ) : text.startsWith("$ ") ? (
+              <>
+                <b>$</b>
+                {text.slice(1)}
+              </>
+            ) : (
+              text
+            )}
+            {"\n"}
+          </span>
+        );
+      })}
+    </pre>
   );
 }
-function Capture({
-  alt,
-  caption,
-  openLabel,
-}: z.infer<typeof captureSchema>): JSX.Element {
+
+/* ============ the opening ============ */
+
+function Hero({
+  cap,
+  headline,
+  body,
+  primaryCta,
+  secondaryCta,
+}: z.infer<typeof heroSchema>): JSX.Element {
+  const [lede, ...rest] = body;
   return (
-    <figure>
-      <div className="interface">
-        {["dark", "light"].map((theme) =>
-          ["desktop", "mobile"].map((size) => {
-            const name = `chat-${size}-${theme}`;
-            const width = size === "mobile" ? 780 : 2244;
-            const height = size === "mobile" ? 1302 : 1058;
-            return (
-              <a
-                key={name}
-                className={`capture-link capture-${theme} capture-${size}`}
-                href={`/images/brain/${name}.svg`}
-                target="_blank"
-                rel="noopener"
-                aria-label={openLabel}
-              >
-                <img
-                  src={`/images/brain/${name}.svg`}
-                  width={width}
-                  height={height}
-                  loading="lazy"
-                  alt={alt}
-                />
-              </a>
-            );
-          }),
-        )}
-      </div>
-      {caption && <figcaption className="caption">{caption}</figcaption>}
-    </figure>
+    <section id="brain-hero" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h1>{emphasize(headline)}</h1>
+      <p className="lede">{lede}</p>
+      <Copy paragraphs={rest} />
+      <p className="doors-in">
+        <a href={primaryCta.href}>{primaryCta.label}</a>
+        <a href={secondaryCta.href}>{secondaryCta.label}</a>
+      </p>
+    </section>
   );
 }
-function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
-  return (
-    <>
-      <section
-        className="hero shell"
-        id="brain-hero"
-        aria-labelledby="brain-heading"
-      >
-        <div className="hero-grid">
-          <div>
-            <p className="eyebrow">
-              {data.cap}
-              <small>{data.provenance}</small>
-            </p>
-            <h1 id="brain-heading">
-              {renderHighlightedText(data.headline, "heading-emphasis")}
-            </h1>
-            <Copy paragraphs={data.body} />
-            <div className="actions">
-              <a className="button" href={data.primaryCta.href}>
-                {data.primaryCta.label}
-              </a>
-              <a className="text-link" href={data.secondaryCta.href}>
-                {data.secondaryCta.label}
-              </a>
-            </div>
-          </div>
-          <div className="hero-visual">
-            {/* Progressive enhancement keeps the existing box; no sending before guest readiness. */}
-            <div
-              className="interface talk"
-              id="brain-chat"
-              role="region"
-              aria-labelledby="brain-chat-heading"
-            >
-              <div className="ui-bar">
-                <span className="brand">rizom.ai</span>
-              </div>
-              <div className="talk-body" {...{ [ASK_BOX_ATTRIBUTE]: "" }}>
-                <div className="brain-box-static-scroll">
-                  <div className="brain-box-welcome">
-                    <h2 id="brain-chat-heading" className="display">
-                      Ask
-                    </h2>
-                  </div>
-                  <p
-                    id="ask-status"
-                    role="status"
-                    {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
-                  />
-                </div>
-                <p className="prompt-row brain-box-static-composer">
-                  <textarea
-                    rows={1}
-                    disabled
-                    placeholder="Start with a question…"
-                    aria-label="Your question"
-                  />
-                  <button
-                    className="send"
-                    type="button"
-                    aria-label="Send question"
-                    disabled
-                    {...{ [ASK_SEND_ATTRIBUTE]: "" }}
-                  >
-                    ↑
-                  </button>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      {/* Web Chat serves the shared box boot only while guest chat is enabled. */}
-      <script src={ASK_BOX_SCRIPT_PATH} defer />
-      <nav className="chapter-nav shell" aria-label="What a brain does">
-        {data.navigation.map((link, index) => (
-          <a key={link.href} href={link.href}>
-            <span className="number">{String(index + 1).padStart(2, "0")}</span>
-            {link.label}
-            <span className="arrow" aria-hidden="true">
-              ↓
-            </span>
-          </a>
-        ))}
-      </nav>
-    </>
-  );
-}
-export function BrainChapter({
+
+/* ============ answers, capabilities, the collective ============ */
+
+function Chapter({
   id,
   data,
-  visual,
 }: {
   id: string;
-  data: {
-    cap: string;
-    headline: string;
-    body: string[];
-    aside: { text: string; links: { label: string; href: string }[] };
-  };
-  visual: ReactNode;
+  data: z.infer<typeof chapterSchema>;
 }): JSX.Element {
   return (
-    <section
-      className="chapter shell"
-      id={id}
-      aria-labelledby={`${id}-heading`}
-    >
-      <div className="chapter-grid">
-        <div className="chapter-copy">
-          <p className="eyebrow">{data.cap}</p>
-          <h2 id={`${id}-heading`}>
-            {renderHighlightedText(data.headline, "heading-emphasis")}
-          </h2>
-          <Copy paragraphs={data.body} />
-          <Aside {...data.aside} />
-        </div>
-        {visual}
-      </div>
+    <section id={id} className="chapter">
+      <p className="eyebrow">{data.cap}</p>
+      <h2>{emphasize(data.headline)}</h2>
+      <Copy paragraphs={data.body} />
+      <Aside {...data.aside} />
     </section>
   );
 }
-function Answers(data: z.infer<typeof chapterSchema>): JSX.Element {
+const Answers = (data: z.infer<typeof chapterSchema>): JSX.Element => (
+  <Chapter id="answers" data={data} />
+);
+const Capabilities = (data: z.infer<typeof chapterSchema>): JSX.Element => (
+  <Chapter id="capabilities" data={data} />
+);
+const Collective = (data: z.infer<typeof chapterSchema>): JSX.Element => (
+  <Chapter id="collective" data={data} />
+);
+
+/* ============ you, team, network ============ */
+
+function Layers({ label, items }: z.infer<typeof layersSchema>): JSX.Element {
   return (
-    <BrainChapter
-      id="answers"
-      data={data}
-      visual={<Capture {...data.capture} />}
-    />
-  );
-}
-function Capabilities(data: z.infer<typeof capabilitiesSchema>): JSX.Element {
-  return (
-    <section
-      className="chapter shell"
-      id="capabilities"
-      aria-labelledby="capabilities-heading"
-    >
-      <div className="chapter-grid flip">
-        <div className="chapter-copy">
-          <p className="eyebrow">{data.cap}</p>
-          <h2 id="capabilities-heading">
-            {renderHighlightedText(data.headline, "heading-emphasis")}
-          </h2>
-          <Copy paragraphs={data.body} />
-          <Aside {...data.aside} />
-        </div>
-        <div className="configuration">
-          <Code {...data.code} />
-        </div>
-      </div>
-    </section>
-  );
-}
-function Layers(data: z.infer<typeof layersSchema>): JSX.Element {
-  return (
-    <section className="layers shell" aria-label={data.label}>
-      {data.items.map((item) => (
-        <div className="layer" key={item.title}>
-          <div className="layer-head">
-            <h3>{item.title}</h3>
-            <span className="layer-tag">{item.tag}</span>
-          </div>
-          <p>{item.text}</p>
-        </div>
-      ))}
-    </section>
-  );
-}
-function Ownership(data: z.infer<typeof ownershipSchema>): JSX.Element {
-  return (
-    <section
-      className="shell ownership"
-      id="yours"
-      aria-labelledby="yours-heading"
-    >
-      <div className="principles-head">
-        <p className="eyebrow">{data.cap}</p>
-        <h2 id="yours-heading">
-          {renderHighlightedText(data.headline, "heading-emphasis")}
-        </h2>
-        <Copy paragraphs={data.body} />
-      </div>
-      <div className="principles">
-        {data.items.map((item) => (
+    <section id="run" className="chapter" data-title={label}>
+      <p className="eyebrow">{label}</p>
+      <dl className="parts">
+        {items.map((item) => (
           <div key={item.title}>
-            <h3>{item.title}</h3>
-            <p>{item.text}</p>
+            <dt>
+              {item.title} <span className="status">{item.tag}</span>
+            </dt>
+            <dd>{item.text}</dd>
           </div>
         ))}
-      </div>
+      </dl>
     </section>
   );
 }
-function Quickstart(data: z.infer<typeof quickstartSchema>): JSX.Element {
+
+/* ============ stays yours ============ */
+
+function Ownership({
+  cap,
+  headline,
+  body,
+  items,
+}: z.infer<typeof ownershipSchema>): JSX.Element {
   return (
-    <section
-      className="start shell"
-      id="quickstart"
-      aria-labelledby="start-heading"
-    >
-      <div className="start-grid">
-        <div>
-          <p className="eyebrow">{data.cap}</p>
-          <h2 id="start-heading">
-            {renderHighlightedText(data.headline, "heading-emphasis")}
-          </h2>
-          <Copy paragraphs={data.body} />
-          <Code {...data.code} />
-        </div>
-        <div>
-          {data.options.map((option, index) => (
-            <div className="start-option" key={option.title}>
-              <p className="ui-label">{option.cap}</p>
-              <h3>{option.title}</h3>
-              <p>{option.text}</p>
-              <a
-                className={index === 0 ? "button" : "text-link"}
-                href={option.cta.href}
-              >
-                {option.cta.label}
-              </a>
-            </div>
-          ))}
-        </div>
+    <section id="yours" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(headline)}</h2>
+      <Copy paragraphs={body} />
+      <dl className="parts">
+        {items.map((item) => (
+          <div key={item.title}>
+            <dt>{item.title}</dt>
+            <dd>{item.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/* ============ quick start ============ */
+
+function Quickstart({
+  cap,
+  headline,
+  body,
+  code,
+  options,
+}: z.infer<typeof quickstartSchema>): JSX.Element {
+  return (
+    <section id="quickstart" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(headline)}</h2>
+      <Copy paragraphs={body} />
+      <Code {...code} />
+      <div className="doors">
+        {options.map((option) => (
+          <a
+            key={option.title}
+            className={
+              option.cta.href.startsWith("/work") ? "door door--work" : "door"
+            }
+            href={option.cta.href}
+          >
+            <span className="door__room">{option.cap}</span>
+            <span className="door__title">{option.title}</span>
+            <span className="door__text">{option.text}</span>
+            <span className="door__go">{option.cta.label}</span>
+          </a>
+        ))}
       </div>
     </section>
   );
 }
 
-// Preserve durable section IDs. Display titles and DOM anchors describe the new composition.
-// The former closing content remains in the content repository, unrouted; its CTA is now in Quickstart.
+// The section ids are content identity. The old closing content stays in
+// the content repository, unrouted; its doors are Quickstart's.
 export const brainSections: SiteSectionGroup = sectionGroup("brain", {
   hero: defineSection(heroSchema, Hero, {
     title: "Hero",
-    description:
-      "Owned-agent introduction and non-sending public chat placeholder",
+    description: "The opening: the agent that represents you, and two doors",
   }),
   capture: defineSection(chapterSchema, Answers, {
     title: "Answers",
     description: "Source-grounded answers through the brain and its clients",
   }),
-  ask: defineSection(capabilitiesSchema, Capabilities, {
+  ask: defineSection(chapterSchema, Capabilities, {
     title: "Capabilities",
     description: "Core abilities and configurable bundles",
   }),
@@ -418,12 +268,16 @@ export const brainSections: SiteSectionGroup = sectionGroup("brain", {
     title: "You, Team, Network",
     description: "Individual, team and network ownership",
   }),
+  connect: defineSection(chapterSchema, Collective, {
+    title: "Collective",
+    description: "Different knowledge, shared work, across owned brains",
+  }),
   "your-data": defineSection(ownershipSchema, Ownership, {
     title: "Stays Yours",
     description: "Portable content, provider choice and open software",
   }),
   quickstart: defineSection(quickstartSchema, Quickstart, {
     title: "Quick Start",
-    description: "Installation and knowledge-session entry points",
+    description: "The terminal and the two ways to start",
   }),
 });

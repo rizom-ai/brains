@@ -7,13 +7,11 @@ import type {
   RizomSiteShell,
 } from "../contracts";
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
-import brainStyles from "../../brain.css" with { type: "text" };
-import { brainCaptureAssets } from "../../brain-assets";
-import livingMemoryStyles from "../../living-memory.css" with { type: "text" };
-import livingMemoryMapStyles from "../../living-memory-maps.css" with { type: "text" };
 import storyStyles from "../../story.css" with { type: "text" };
+import { brainOrganism } from "../../story/brain-organism";
 import { foundationOrganism } from "../../story/foundation-organism";
 import { livingOrganism } from "../../story/living-organism";
+import { workOrganism } from "../../story/work-organism";
 import { storyRuntimeScript } from "../../story/runtime";
 
 export type { RizomRuntimeConfig } from "../contracts";
@@ -54,16 +52,15 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,
-  ...brainCaptureAssets,
   "/boot.js": bootScript,
   "/story.js": storyRuntimeScript,
   // The story pages: the page shape, the drawings and the reading thread.
   "/styles/story.css":
-    storyStyles + foundationOrganism.css() + livingOrganism.css(),
-  "/styles/brain.css": brainStyles,
-  // An emitted asset makes CSS edits part of the site build fingerprint.
-  // Only /living-memory links this route-scoped stylesheet.
-  "/styles/living-memory.css": livingMemoryStyles + livingMemoryMapStyles,
+    storyStyles +
+    livingOrganism.css() +
+    brainOrganism.css() +
+    workOrganism.css() +
+    foundationOrganism.css(),
 };
 
 export class RizomRuntimePlugin {

@@ -75,11 +75,15 @@
     "SOFT" 70,
     "opsz" 24;
 }
-.chapter > p:not(.eyebrow):not(.lede):not(.onward):not(.pull) {
+.chapter > p:not(.eyebrow):not(.lede):not(.onward):not(.pull):not(.aside) {
   margin: 1.4rem 0 0;
   font-size: 1.05rem;
   line-height: 1.7;
   color: var(--color-text-muted);
+}
+/* An anchored chapter lands below the bar, and below the strip on narrow screens. */
+.chapter {
+  scroll-margin-top: var(--bar-height, 4.6rem);
 }
 .chapter .doors-in {
   margin-top: 1.6rem;
@@ -204,6 +208,149 @@
 }
 .follow a:hover {
   color: var(--color-accent);
+}
+
+.aside {
+  margin: 1.4rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.aside a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.steps {
+  counter-reset: step;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.2rem;
+}
+.steps li {
+  position: relative;
+  padding-left: 2.6rem;
+}
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 500 0.85rem var(--font-body);
+  color: var(--color-accent);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+.steps b {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.steps span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.voices {
+  margin: 2rem 0 0;
+  display: grid;
+  gap: 1.4rem;
+}
+.voices blockquote {
+  margin: 0;
+  padding-left: 1.1rem;
+  border-left: 1px solid rgb(from var(--color-accent) r g b / 0.35);
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  line-height: 1.5;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.voices small,
+.voices cite {
+  display: block;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.8rem;
+  color: var(--color-accent);
+}
+.voices small {
+  margin-bottom: 0.3rem;
+}
+.voices cite {
+  margin-top: 0.5rem;
+}
+.voices blockquote p {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.people {
+  margin: 1.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+.people b {
+  font-weight: 500;
+  color: var(--color-heading);
+}
+.people span {
+  margin-left: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+.code {
+  margin: 1.8rem 0 0;
+  padding: 1.1rem 1.3rem;
+  border-radius: 6px;
+  background: rgb(from var(--color-bg-subtle) r g b / 0.8);
+  border: 1px solid rgb(from var(--color-accent) r g b / 0.22);
+  font: 0.92rem/1.9 var(--font-label);
+  color: var(--color-text);
+  overflow-x: auto;
+}
+.code b {
+  color: var(--color-accent);
+  font-weight: 400;
+}
+.code i {
+  color: var(--color-text-light);
+  font-style: normal;
+}
+.cta {
+  display: inline-block;
+  margin-top: 2rem;
+  padding: 0.8rem 1.3rem;
+  border-radius: 3px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #0e0d20);
+  font-weight: 500;
+  text-decoration: none;
 }
 
 /* ---- The drawing ------------------------------------------------------------ */
@@ -536,6 +683,7 @@
     background: none;
   }
   .figure {
+    --strip: 1;
     grid-area: auto;
     grid-row: 1;
     height: 42svh;
@@ -555,6 +703,7 @@
   .chapter {
     min-height: 64svh;
     padding: 2.5rem 0;
+    scroll-margin-top: calc(var(--bar-height, 4.6rem) + 42svh);
   }
 }
 @media (prefers-reduced-motion: reduce) {

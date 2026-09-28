@@ -20,8 +20,22 @@ export function currentChapter(
 
 const READING_LINE = 0.45;
 
+/**
+ * Where the reading line falls: 45% down the viewport beside the drawing, or
+ * just under the drawing's strip where the stylesheet stacks it above the
+ * chapters (`--strip` on the figure), so a chapter that lands at the strip's
+ * bottom is the one being read.
+ */
+export function readingLine(
+  viewportHeight: number,
+  stripBottom: number | null,
+): number {
+  return stripBottom === null ? viewportHeight * READING_LINE : stripBottom + 1;
+}
+
 export const storyRuntimeScript: string = `(function () {
   ${currentChapter.toString()}
+  ${readingLine.toString()}
   function init() {
     var story = document.querySelector(".story");
     if (!story) return;
@@ -64,8 +78,12 @@ export const storyRuntimeScript: string = `(function () {
         railNodes[i].style.top = (p.y / box.height) * rect.height + "px";
       });
     }
+    function stripBottom() {
+      if (!figure || !getComputedStyle(figure).getPropertyValue("--strip").trim()) return null;
+      return figure.getBoundingClientRect().bottom;
+    }
     function read() {
-      var line = innerHeight * ${READING_LINE};
+      var line = readingLine(innerHeight, stripBottom());
       var tops = chapters.map(function (chapter) { return chapter.getBoundingClientRect().top; });
       var current = currentChapter(tops, line);
       var stage = currentChapter(tops, line, stageCount);

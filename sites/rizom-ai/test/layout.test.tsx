@@ -85,11 +85,20 @@ describe("the story shell", () => {
     expect(html).not.toContain("/styles/living-memory.css");
   });
 
+  test("tells the Brain and Work rooms beside their drawings, without the old room stylesheet", () => {
+    const brain = renderChrome("/brain");
+    expect(brain).toContain('class="figure brain-org" data-stage="0"');
+    expect(brain).not.toContain("brain-page");
+    expect(brain).not.toContain("/styles/brain.css");
+    expect(renderChrome("/work")).toContain(
+      'class="figure work-org" data-stage="0"',
+    );
+  });
+
   test("leaves pages without a story on the plain shell", () => {
-    const html = renderChrome("/brain");
+    const html = renderChrome("/writing");
     expect(html).not.toContain('class="story"');
     expect(html).not.toContain('class="rail"');
-    expect(html).toContain('href="/styles/brain.css"');
   });
 
   test("the footer names the audit and drops the network", () => {

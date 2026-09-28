@@ -4,6 +4,7 @@ import { defineSection, sectionGroup, z } from "@rizom/site";
 import type { SiteSectionGroup } from "@rizom/site";
 import { renderHighlightedText } from "./rizom";
 import { ctaSchema } from "./shared";
+import { emphasize } from "./story/emphasis";
 
 /**
  * The homepage's story, chapter by chapter beside the living organism the
@@ -15,15 +16,6 @@ import { ctaSchema } from "./shared";
  * The problem and the system keep their templates for their content files,
  * though the homepage no longer routes them: /work and /brain tell them.
  */
-
-/** Authored *emphasis* in a heading is emphasis: the story styles `em`. */
-function emphasize(text: string): (string | JSX.Element)[] {
-  return text
-    .split(/\*([^*]+)\*/g)
-    .map((part, i) =>
-      i % 2 === 1 ? <em key={`${i}-${part}`}>{part}</em> : part,
-    );
-}
 
 const lead = {
   cap: z.string(),

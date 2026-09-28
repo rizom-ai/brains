@@ -1,17 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import site from "../src";
-import { brainCaptureAssets } from "../src/brain-assets";
 
 describe("@rizom/site-rizom-ai", () => {
-  test("registers Studio captures without retired network snapshots", () => {
-    expect(Object.keys(brainCaptureAssets).sort()).toEqual([
-      "/images/brain/chat-desktop-dark.svg",
-      "/images/brain/chat-desktop-light.svg",
-      "/images/brain/chat-mobile-dark.svg",
-      "/images/brain/chat-mobile-light.svg",
-    ]);
-  });
-
   test("exports a Rizom site definition for the AI site", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
@@ -42,14 +32,15 @@ describe("@rizom/site-rizom-ai", () => {
   test("exposes the Brain landing page with stable content IDs", () => {
     const brain = site.routes.find((route) => route.id === "brain");
     expect(brain?.path).toBe("/brain");
-    // Answers, capabilities, collective work, ownership and starting points.
-    // The closing CTA is folded into Quickstart; old closing content is retained unrouted.
+    // Told as a story beside its drawing: answers, capabilities, you, team
+    // and network, the collective, ownership and starting points. The old
+    // closing content is retained unrouted.
     expect(brain?.sections?.map((s) => s.id)).toEqual([
       "hero",
       "capture",
       "ask",
-      "connect",
       "run",
+      "connect",
       "your-data",
       "quickstart",
     ]);
@@ -57,8 +48,8 @@ describe("@rizom/site-rizom-ai", () => {
       "brain:hero",
       "brain:capture",
       "brain:ask",
-      "rizom:connect",
       "brain:run",
+      "brain:connect",
       "brain:your-data",
       "brain:quickstart",
     ]);

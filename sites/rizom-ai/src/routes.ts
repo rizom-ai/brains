@@ -29,8 +29,8 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
-    // Product landing page. Preserve durable section IDs while changing the
-    // composition; /ask integration is separate and the hero is a placeholder.
+    // The Brain room, told as a story beside its drawing. The section ids
+    // are content identity; the order follows the drawing's stages.
     id: "brain",
     path: "/brain",
     title: "Rizom Brain",
@@ -41,8 +41,8 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "hero", template: "brain:hero" },
       { id: "capture", template: "brain:capture" },
       { id: "ask", template: "brain:ask" },
-      { id: "connect", template: "rizom:connect", dataQuery: {} },
       { id: "run", template: "brain:run" },
+      { id: "connect", template: "brain:connect" },
       { id: "your-data", template: "brain:your-data" },
       { id: "quickstart", template: "brain:quickstart" },
     ],

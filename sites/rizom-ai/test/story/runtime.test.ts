@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { currentChapter, storyRuntimeScript } from "../../src/story/runtime";
+import {
+  currentChapter,
+  readingLine,
+  storyRuntimeScript,
+} from "../../src/story/runtime";
 
 describe("the reading line", () => {
   test("picks the last chapter whose top has passed the line", () => {
@@ -14,6 +18,16 @@ describe("the reading line", () => {
 
   test("clamps to the drawing's last stage when a page has more chapters", () => {
     expect(currentChapter([-900, -500, -100], 405, 2)).toBe(1);
+  });
+});
+
+describe("where the reading line falls", () => {
+  test("is 45% down the viewport beside the drawing", () => {
+    expect(readingLine(1000, null)).toBe(450);
+  });
+  test("is just under the strip when the drawing is stacked above the chapters", () => {
+    // A chapter that lands at the strip's bottom is the one being read.
+    expect(readingLine(844, 428)).toBe(429);
   });
 });
 
