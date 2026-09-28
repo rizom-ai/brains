@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redirect retired operator Ask pages to Studio Chat at `/chat`, leaving authentication to Studio. Return 404 when Studio Chat is not registered. Public guest Ask remains unchanged.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retire Web Chat's operator bundle, page renderer, asset routes and browser-only session UI. Package only the guest Ask, box and dashboard bundles alongside Studio Chat. Remove browser-supplied `inboxContext` and its one-shot prefill contracts; Studio's authorized stored Inbox handoff remains. The old detach button is intentionally retired: start a new conversation for a different topic.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add confirmed permanent conversation deletion to Studio Chat, including archived conversations. Protect drafts, uploads and active turns, lock the composer during deletion, and ignore late completion after navigation. Failed or unacknowledged deletion stays visible without automatic retries. This restores an operator-chat capability required before retiring the old Ask bundle.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let Studio own the Chat interaction, advertised endpoint, and source-backed Inbox “Discuss in chat” handoff. Link directly to `/chat`, and register these entry points only when web-chat is installed. Web-chat no longer advertises a second operator chat UI.
+
 ## 0.2.0-alpha.432
 
 ### Patch Changes
