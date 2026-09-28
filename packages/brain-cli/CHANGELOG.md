@@ -1,5 +1,22 @@
 # @rizom/brain
 
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- [#389](https://github.com/rizom-ai/brains/pull/389) [`7650439`](https://github.com/rizom-ai/brains/commit/7650439502c4bf91d9370b72d952aec25bdff8c2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Start modern Streamable HTTP responses in the SDK's SSE mode so its keepalive comments cover silent model/tool execution before the final result. This prevents that initial silence from exhausting a proxy's response-header timeout without increasing deployment timeouts. Authentication, confirmation handling, request cancellation, and stateless legacy compatibility remain unchanged.
+
+- [#409](https://github.com/rizom-ai/brains/pull/409) [`aeb4e6c`](https://github.com/rizom-ai/brains/commit/aeb4e6c2f28c2c213955514893306cd05f02fcee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a phone, the Ask box opens full screen once the visitor engages, instead of staying half-way down the page under the keyboard.
+
+  - **Keyboard:** the sheet fits the visual viewport, so the composer sits on the keyboard.
+  - **Page:** the page behind the sheet is locked.
+  - **Closing:** the close button, Back and Escape all close it, and sending closes the keyboard so the answer gets the screen.
+  - **Map:** the homepage atlas docks its map as a strip under the sheet header, where the answer's sources light up, and folds the strip away while typing.
+  - **After closing:** the box offers "Continue conversation" above its composer.
+  - **Contract:** `@brains/contracts` adds `ASK_SHEET_MEDIA`, `ASK_SHEET_ATTRIBUTE`, `ASK_KEYBOARD_ATTRIBUTE` and `ASK_SHEET_HEADER_HEIGHT` for hosts.
+
+- [#409](https://github.com/rizom-ai/brains/pull/409) [`48f328a`](https://github.com/rizom-ai/brains/commit/48f328aa66fce00557d54a9c128268514d8513ab) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box's code is now loaded at versioned addresses, so a release reaches visitors straight away instead of after their browser or edge cache expires (up to four hours on Cloudflare). The unversioned `/ask/assets/box.js` that sites reference is now a stub that never changes: it reads the current version from `/ask/assets/version`, which is never cached, and loads `/ask/assets/boot.js?v=…`, which loads `guest.js` and `guest.css` at the same version.
+
 ## 0.2.0-alpha.430
 
 ### Patch Changes
