@@ -60,6 +60,62 @@ describe("atomic conditional entity writes (real SQLite)", () => {
     expect((await snapshot()).revision).toBe(first.revision);
   });
 
+  test("conditional upsert never turns a raced create into an update", async () => {
+    await ctx.entityService.createEntity({ entity: input });
+    const observed = await snapshot();
+    expect(
+      ctx.entityService.upsertEntity({
+        entity: { ...observed.entity, content: "Must not overwrite" },
+        options: { conditionalWrite: createCondition },
+      }),
+    ).rejects.toBeInstanceOf(EntityWriteConflictError);
+    expect(await snapshot()).toEqual(observed);
+  });
+
+  test.each(["edit", "metadata", "delete"] as const)(
+    "conditional upsert preserves an intervening %s rather than refreshing its precondition",
+    async (change) => {
+      await ctx.entityService.createEntity({ entity: input });
+      const observed = await snapshot();
+      if (change === "delete") {
+        await ctx.entityService.deleteEntity({
+          entityType: "test",
+          id: "chapter",
+        });
+      } else {
+        await ctx.entityService.updateEntity({
+          entity: {
+            ...observed.entity,
+            ...(change === "edit"
+              ? { content: "Newer edit" }
+              : { metadata: { clientId: "newer" } }),
+          },
+        });
+      }
+      const latest = await ctx.entityService.getEntityWriteSnapshot({
+        entityType: "test",
+        id: "chapter",
+        visibilityScope: "restricted",
+      });
+      expect(
+        ctx.entityService.upsertEntity({
+          entity: { ...observed.entity, content: "Stale file" },
+          options: {
+            persistenceOrigin: "directory-sync",
+            conditionalWrite: { expectedRevision: observed.revision },
+          },
+        }),
+      ).rejects.toBeInstanceOf(EntityWriteConflictError);
+      expect(
+        await ctx.entityService.getEntityWriteSnapshot({
+          entityType: "test",
+          id: "chapter",
+          visibilityScope: "restricted",
+        }),
+      ).toEqual(latest);
+    },
+  );
+
   test.each(["create", "replace"] as const)(
     "cancellation during %s validation leaves the entity unchanged",
     async (mode) => {

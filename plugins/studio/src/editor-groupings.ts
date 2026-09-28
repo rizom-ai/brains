@@ -20,6 +20,7 @@ import type {
   GroupingDefinitionsFrontmatter,
   StudioGrouping,
 } from "./grouping-definitions-contract";
+import { isGroupingContributorType } from "./grouping-definitions";
 import { studioGroupingUsageQuerySchema } from "./grouping-query";
 
 const querySchema = studioGroupingUsageQuerySchema.extend({
@@ -51,7 +52,9 @@ export function studioGroupDescriptors(
       key,
       field: key,
       label: definition.label,
-      types: definition.types.filter((type) => admitted.has(type)),
+      types: [...admitted].filter(
+        (type) => !definition.excludeTypes?.includes(type),
+      ),
       rules: {
         multiple: definition.multiple,
         ...(definition.values && { values: definition.values }),
@@ -81,8 +84,13 @@ export async function handleGroupingRead(
     : undefined;
   if (!grouping) return jsonResponse({ error: "Unknown grouping" }, 404);
   const admitted = new Set<string>();
-  for (const type of grouping.types) {
-    if (await getTypeCapabilities(context, type, access)) admitted.add(type);
+  for (const type of context.entityService.getEntityTypes()) {
+    if (
+      isGroupingContributorType(context, type) &&
+      !grouping.excludeTypes?.includes(type) &&
+      (await getTypeCapabilities(context, type, access))
+    )
+      admitted.add(type);
   }
   const descriptor = studioGroupDescriptors(
     { [query.data.grouping]: grouping },

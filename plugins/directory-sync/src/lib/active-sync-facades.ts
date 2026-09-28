@@ -12,12 +12,19 @@ export function createDirectorySyncFacade(
     sync: () => getActive().sync(),
     processEntityExport: (entity) => getActive().processEntityExport(entity),
     exportEntities: (entityTypes) => getActive().exportEntities(entityTypes),
-    importEntitiesWithProgress: (paths, reporter, batchSize, projectionBatch) =>
+    importEntitiesWithProgress: (
+      paths,
+      reporter,
+      batchSize,
+      projectionBatch,
+      plan,
+    ) =>
       getActive().importEntitiesWithProgress(
         paths,
         reporter,
         batchSize,
         projectionBatch,
+        plan,
       ),
     exportEntitiesWithProgress: (entityTypes, reporter, batchSize) =>
       getActive().exportEntitiesWithProgress(entityTypes, reporter, batchSize),

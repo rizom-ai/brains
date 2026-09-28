@@ -191,7 +191,7 @@ export function GroupingMembershipField(props: {
           {!closed && !props.readOnly && (
             <>
               <div {...stylex.props(s.help)}>
-                <span id={helpId} {...stylex.props(f.listHelp)}>
+                <span id={helpId} {...stylex.props(f.listHelp, s.helpText)}>
                   {multiple
                     ? "Enter adds one exact value."
                     : "A new value replaces the current choice."}{" "}

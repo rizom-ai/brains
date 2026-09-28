@@ -6,7 +6,7 @@ import { groupingDefinitionsAdapter } from "../src/entity/grouping-definitions";
 import { groupingDefinitionsFrontmatterSchema } from "../src/grouping-definitions-contract";
 
 type DefinitionRow = Pick<BaseEntity, "content" | "contentHash">;
-const areas = { label: "Areas", types: ["note"], multiple: true };
+const areas = { label: "Areas", excludeTypes: ["post"], multiple: true };
 
 function document(groupings: unknown): string {
   return `---\nvisibility: shared\ngroupings: ${JSON.stringify(groupings)}\n---\n`;
@@ -19,7 +19,7 @@ describe("grouping definitions contract", () => {
     ).toEqual({ groupings: { areas } });
     expect(
       groupingDefinitionsFrontmatterSchema.safeParse({
-        groupings: { areas: { label: "Areas", types: ["note"] } },
+        groupings: { areas: { label: "Areas" } },
       }).success,
     ).toBe(false);
     expect(
@@ -78,6 +78,7 @@ describe("definition source snapshots", () => {
     let reads = 0;
     const replacements: unknown[] = [];
     const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
       read: async (): Promise<DefinitionRow | null> => {
         reads++;
         return content === undefined ? null : { content, contentHash: content };
@@ -94,8 +95,10 @@ describe("definition source snapshots", () => {
       [{ key: "areas", field: "areas", label: "Areas", types: ["note"] }],
     ]);
     const snapshot = source.getSnapshot();
-    snapshot.groupings["areas"]?.types.push("post");
-    expect(source.getSnapshot().groupings["areas"]?.types).toEqual(["note"]);
+    snapshot.groupings["areas"]?.excludeTypes?.push("note");
+    expect(source.getSnapshot().groupings["areas"]?.excludeTypes).toEqual([
+      "post",
+    ]);
     content = undefined;
     await source.ensureCurrent();
     expect(replacements).toHaveLength(2);
@@ -104,18 +107,19 @@ describe("definition source snapshots", () => {
   });
   test("drops only invalid entries and explains them without changing valid labels", async () => {
     const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
       read: async (): Promise<DefinitionRow> => ({
         content: document({
           areas,
-          broken: { ...areas, types: ["missing"] },
+          broken: { ...areas, label: "Conflicting field" },
           invalid: { ...areas, multiple: "yes" },
           control: { ...areas, types: ["note", "grouping-definitions"] },
         }),
         contentHash: "one",
       }),
       validate: (next): void => {
-        if (next.some((entry) => entry.types.includes("missing")))
-          throw new Error("Unknown type: missing");
+        if (next.some((entry) => entry.key === "broken"))
+          throw new Error("Schema conflict: broken");
       },
       replace: (): void => {},
     });
@@ -125,10 +129,10 @@ describe("definition source snapshots", () => {
       expect.arrayContaining([
         expect.objectContaining({
           path: ["groupings", "broken"],
-          message: "Unknown type: missing",
+          message: "Schema conflict: broken",
         }),
         expect.objectContaining({ path: ["groupings", "invalid", "multiple"] }),
-        expect.objectContaining({ path: ["groupings", "control", "types"] }),
+        expect.objectContaining({ path: ["groupings", "control"] }),
       ]),
     );
   });
@@ -136,6 +140,7 @@ describe("definition source snapshots", () => {
     let content = document({ areas });
     let unavailable = false;
     const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
       read: async (): Promise<DefinitionRow> => {
         if (unavailable) throw new Error("Database unavailable");
         return { content, contentHash: content };
@@ -161,6 +166,7 @@ describe("definition source snapshots", () => {
     let fail = true;
     let replacements = 0;
     const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
       read: async (): Promise<DefinitionRow> => row,
       validate: (): void => {},
       replace: (): void => {
@@ -184,6 +190,7 @@ describe("definition source snapshots", () => {
     "reports an invalid stored grouping mapping: %j",
     async (groupings) => {
       const source = new GroupingDefinitionSource({
+        getContributorTypes: (): string[] => ["note", "post"],
         read: async (): Promise<DefinitionRow> => ({
           content: document(groupings),
           contentHash: "one",
@@ -206,6 +213,7 @@ describe("definition source snapshots", () => {
     };
     const rescans: Array<boolean | undefined> = [];
     const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
       read: async (): Promise<typeof row> => row,
       validate: (): void => {},
       replace: (_groupings, options): void => {
@@ -231,6 +239,7 @@ describe("definition source snapshots", () => {
     });
     let reads = 0;
     const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
       read: async (): Promise<DefinitionRow> => {
         reads++;
         if (reads === 1) {

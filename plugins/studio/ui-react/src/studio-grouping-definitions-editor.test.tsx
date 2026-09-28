@@ -18,7 +18,6 @@ let status: GroupingDefinitionEditorState;
 const initial = {
   clients: {
     label: "Clients",
-    types: ["note"],
     multiple: false,
     values: ["Acme", " Beta, Inc. "],
   },
@@ -119,7 +118,7 @@ test("first visit does not publish an empty document or mark it pending", async 
   expect(document.activeElement?.getAttribute("aria-label")).toBe(
     "New grouping label",
   );
-  expect(value).toEqual({ "": { label: "", types: [], multiple: true } });
+  expect(value).toEqual({ "": { label: "", multiple: true } });
   expect(status.issues.length).toBeGreaterThan(0);
 });
 test("new section keys keep input focus while renaming and existing keys stay fixed", async () => {
@@ -133,14 +132,33 @@ test("new section keys keep input focus while renaming and existing keys stay fi
   await input("New grouping key", "topics");
   expect(document.activeElement).toBe(key);
   await input("New grouping label", "Topics");
-  const note = element<HTMLInputElement>(
-    'section[aria-label="Topics"] input[aria-label="Notes contributor"]',
-  );
-  await act(async () => note.click());
   expect(value).toMatchObject({
-    topics: { label: "Topics", types: ["note"], multiple: true },
+    topics: { label: "Topics", multiple: true },
+  });
+  expect(
+    element<HTMLDetailsElement>('section[aria-label="Topics"] details').open,
+  ).toBe(false);
+  expect(
+    [...document.querySelectorAll("legend")].map((node) => node.textContent),
+  ).not.toContain("Applies to");
+  expect(status.issues).toEqual([]);
+});
+test("exclusions are collapsed by default and only explicit choices narrow the grouping", async () => {
+  await act(async () => root.render(<Fixture />));
+  const details = element<HTMLDetailsElement>("details");
+  expect(details.open).toBe(false);
+  expect(changes).toBe(0);
+  await act(async () => details.querySelector("summary")?.click());
+  expect(details.open).toBe(true);
+  const post = element<HTMLInputElement>('input[aria-label="Exclude Posts"]');
+  expect(post.checked).toBe(false);
+  await act(async () => post.click());
+  expect(value).toEqual({
+    clients: { ...initial.clients, excludeTypes: ["post"] },
   });
   expect(status.issues).toEqual([]);
+  await act(async () => post.click());
+  expect(value).toEqual(initial);
 });
 test("duplicate key input cannot overwrite another definition or disappear", async () => {
   await act(async () => root.render(<Fixture />));
@@ -173,7 +191,7 @@ test("cardinality is independent of list policy, and reopening removes only valu
   );
   await act(async () => open.click());
   expect(value).toEqual({
-    clients: { label: "Clients", types: ["note"], multiple: true },
+    clients: { label: "Clients", multiple: true },
   });
   const closed = element<HTMLInputElement>(
     'input[aria-label="Clients: only these values"]',
@@ -203,17 +221,21 @@ test("removal is confirmed with entry count and never rewrites any membership", 
   await click("Remove grouping");
   expect(value).toEqual({});
 });
-test("unavailable types remain visible and removable rather than being silently filtered", async () => {
+test("unavailable exclusions remain visible and removable rather than being silently filtered", async () => {
   const source = {
-    clients: { ...initial.clients, types: ["missing", "note"] },
+    clients: { ...initial.clients, excludeTypes: ["missing"] },
   };
   await act(async () => root.render(<Fixture source={source} />));
   expect(value).toEqual(source);
-  expect(status.issues.some((issue) => issue.message.includes("missing"))).toBe(
-    true,
+  expect(status.issues).toEqual([]);
+  const details = element<HTMLDetailsElement>("details");
+  expect(details.open).toBe(false);
+  expect(details.querySelector("summary")?.textContent).toContain(
+    "Exclude types (1)",
   );
+  await act(async () => details.querySelector("summary")?.click());
   const missing = element<HTMLInputElement>(
-    'input[aria-label="missing contributor"]',
+    'input[aria-label="Exclude missing (unavailable)"]',
   );
   expect(missing.checked).toBe(true);
   await act(async () => missing.click());
@@ -231,7 +253,7 @@ test("trusted readers see definitions and usage but no editing controls", async 
 });
 test("prototype-shaped keys do not inherit usage from Object.prototype", async () => {
   const source = {
-    constructor: { label: "Constructors", types: ["note"], multiple: true },
+    constructor: { label: "Constructors", multiple: true },
   };
   await act(async () =>
     root.render(<Fixture source={source} savedKeys={["constructor"]} />),

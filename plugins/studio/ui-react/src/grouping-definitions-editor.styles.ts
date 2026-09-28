@@ -1,12 +1,15 @@
 import * as stylex from "@stylexjs/stylex";
 export const groupingDefinitionsEditorStyles: Record<
   | "intro"
+  | "help"
   | "grid"
   | "choices"
   | "choice"
   | "readOnly"
   | "first"
   | "actions"
+  | "exclusions"
+  | "exclusionsSummary"
   | "rule",
   stylex.StyleXStyles
 > = stylex.create({
@@ -17,6 +20,7 @@ export const groupingDefinitionsEditorStyles: Record<
     marginBottom: 24,
     maxWidth: "78ch",
   },
+  help: { color: "var(--console-text-dim)" },
   grid: {
     display: "grid",
     gridTemplateColumns: {
@@ -52,6 +56,14 @@ export const groupingDefinitionsEditorStyles: Record<
     justifyContent: "space-between",
     gap: 16,
     marginTop: 18,
+  },
+  exclusions: { marginBottom: 12 },
+  exclusionsSummary: {
+    display: "list-item",
+    listStylePosition: "inside",
+    cursor: "pointer",
+    minHeight: 44,
+    paddingBlock: 12,
   },
   rule: {
     display: "flex",
