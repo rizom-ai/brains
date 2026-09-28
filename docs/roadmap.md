@@ -143,6 +143,7 @@ Plans:
 - [cross-brain-entity-sharing.md](./plans/cross-brain-entity-sharing.md) — proposed one-directional entity sharing between brains: visibility picks the transport, A2A carries `shared`, ATProto signals `public`.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — in-flight opportunity capture, ranking, focus, and state suggestions.
 - [lead-management.md](./plans/lead-management.md) — inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.
+- [rizom-ai-story-site.md](./plans/rizom-ai-story-site.md) — rizom.ai as one story: the live network and Ask on the homepage, one drawing language across Brain, Work and Foundation, Writing as an archive, one bar and a reading thread; Network and About dropped.
 
 ### 7. Keep the framework sustainable
 
