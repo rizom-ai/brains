@@ -86,6 +86,7 @@ interface GuestRuntimeHarness {
 function harness(
   stored: Conversation | null = conversation,
   history: Message[] = [],
+  config: Partial<AgentConfig> = {},
 ): GuestRuntimeHarness {
   const generate = mock<BrainAgent["generate"]>(async () => ({
     text: "Public answer",
@@ -133,6 +134,7 @@ function harness(
       agentContextProvider,
       uploadAttachmentResolver,
       canonicalIdentityResolver,
+      ...config,
     },
   );
   services.push(service);
@@ -350,6 +352,119 @@ describe("guest runtime boundary", () => {
     expect(stored).not.toContain("provenance");
     expect(stored).not.toContain("system_get");
     expect(stored).not.toContain("PRIVATE");
+  });
+
+  describe("gives an answer the public pages closest to it as its sources", () => {
+    // The lookup found a social post about an essay; the answer is about the essay.
+    const lookupSteps = [
+      {
+        toolCalls: [
+          {
+            toolName: "system_search",
+            toolCallId: "search",
+            input: { query: "memory" },
+          },
+        ],
+        toolResults: [
+          {
+            toolName: "system_search",
+            toolCallId: "search",
+            output: {
+              success: true,
+              data: {
+                results: [
+                  {
+                    entity: {
+                      id: "announcement",
+                      entityType: "social-post",
+                      content: "I published an essay",
+                      metadata: { title: "Announcement" },
+                    },
+                    score: 0.9,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ];
+    const essay = {
+      id: "post:hiding-in-plain-sight",
+      title: "Hiding in Plain Sight",
+      source: "post",
+      entityType: "post",
+      entityId: "hiding-in-plain-sight",
+      url: "/essays/hiding-in-plain-sight",
+    };
+    function sourceIds(cards: unknown): string[] {
+      return (Array.isArray(cards) ? cards : []).flatMap((card: unknown) =>
+        typeof card === "object" &&
+        card !== null &&
+        "kind" in card &&
+        card.kind === "sources" &&
+        "sources" in card &&
+        Array.isArray(card.sources)
+          ? card.sources.map((source: { id: string }) => source.id)
+          : [],
+      );
+    }
+
+    it("instead of what the lookups happened to return", async () => {
+      const guestAnswerSources = mock(async () => [essay]);
+      const h = harness(conversation, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: "Storage is not memory.",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      const response = await h.service.chat(
+        "What is memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(guestAnswerSources).toHaveBeenCalledWith({
+        answer: "Storage is not memory.",
+      });
+      expect(sourceIds(response.cards)).toEqual(["post:hiding-in-plain-sight"]);
+      const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
+      expect(stored).toContain("post:hiding-in-plain-sight");
+      expect(stored).not.toContain("social-post:announcement");
+    });
+
+    it("keeps the lookups' sources when the closest pages cannot be found", async () => {
+      const guestAnswerSources = mock(async () => {
+        throw new Error("index unavailable");
+      });
+      const h = harness(conversation, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: "Storage is not memory.",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      const response = await h.service.chat(
+        "What is memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(sourceIds(response.cards)).toEqual(["social-post:announcement"]);
+    });
+
+    it("only for a visitor's answer", async () => {
+      const guestAnswerSources = mock(async () => [essay]);
+      const h = harness(null, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: "Storage is not memory.",
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      await h.service.chat("What is memory?", "operator-conversation", {
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+      });
+      expect(guestAnswerSources).not.toHaveBeenCalled();
+    });
   });
 
   it("carries a guest turn's settled usage to its transport", async () => {
