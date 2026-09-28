@@ -1,5 +1,5 @@
 import { existsSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, rm, writeFile } from "fs/promises";
 import { createRequire } from "module";
 import { createStylexBunTransform } from "@brains/build-tools";
 import { dirname, join } from "path";
@@ -19,9 +19,14 @@ const reactAliases: Record<string, string> = {
 };
 
 await mkdir(outdir, { recursive: true });
+// Remove retired outputs even when rebuilding an existing checkout.
+await Promise.all(
+  ["app.js", "app.css", "app.js.map"].map((asset) =>
+    rm(join(outdir, asset), { force: true }),
+  ),
+);
 
 for (const [entryName, assetName] of [
-  ["main", "app"],
   ["guest-box", "guest"],
   ["guest-page", "ask"],
   ["guest-dashboard", "dashboard"],

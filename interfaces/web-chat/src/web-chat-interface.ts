@@ -1,3 +1,4 @@
+import { join } from "path";
 import {
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
@@ -83,17 +84,14 @@ import {
 } from "./conversation-access";
 import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
 import {
-  renderChatPage,
   renderGuestChatPage,
   guestPageStyles,
-  uiAssetFile,
-  uiStylesheetFile,
+  uiAssetDirectory,
 } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
-import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
   handleDeleteSessionRequest as handleDeleteSessionRouteRequest,
@@ -257,46 +255,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
         },
       }),
     );
-
-    context.endpoints.register({
-      label: "Chat",
-      url: this.authenticatedRoutePath,
-      priority: 15,
-      visibility: "trusted",
-      requiresActiveSession: true,
-    });
-    context.interactions.register({
-      id: "web-chat",
-      label: "Chat",
-      description: "Chat with this brain in the browser.",
-      href: this.authenticatedRoutePath,
-      kind: "human",
-      priority: 15,
-      visibility: "trusted",
-      requiresActiveSession: true,
-    });
-    context.inboxFollowUps.registerKind({
-      kind: "discuss-in-chat",
-      label: "Discuss in chat",
-      priority: 10,
-      mode: "universal",
-      permissionLevel: "trusted",
-      applies: () => true,
-      resolve: ({ sourceId, item }) => {
-        if (!context.inbox.getSource(sourceId)?.resolveDetail) return undefined;
-        return {
-          href: this.authenticatedRoutePath,
-          state: createWebChatInboxPrefillState(
-            "Help me understand this Inbox item and decide what to do next.",
-            {
-              sourceId,
-              itemId: item.id,
-              label: safeInboxContextLabel(item.title),
-            },
-          ),
-        };
-      },
-    });
   }
 
   /**
@@ -380,10 +338,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleImageAttachmentRequest(request),
         handleJobStatusRequest: (request): Promise<Response> =>
           this.handleJobStatusRequest(request),
-        handleUiAssetRequest: (): Promise<Response> =>
-          this.handleUiAssetRequest(),
-        handleUiStylesheetRequest: (): Promise<Response> =>
-          this.handleUiStylesheetRequest(),
         handleUploadRequest: (request): Promise<Response> =>
           this.handleUploadRequest(request),
         handleUploadDownloadRequest: (request): Promise<Response> =>
@@ -395,8 +349,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         path: this.authenticatedRoutePath,
         method: "GET",
         public: true,
-        handler: (request): Promise<Response> =>
-          this.handleAuthenticatedChatPage(request),
+        handler: (): Promise<Response> => this.handleAuthenticatedChatPage(),
       });
     if (this.declaresGuestAssets()) {
       for (const extension of ["js", "css"] as const) {
@@ -408,7 +361,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           handler: async (request): Promise<Response> =>
             (await this.canServeGuestAssets(request))
               ? this.handleBuiltUiFile(
-                  uiAssetFile.replace(/app\.js$/, `dashboard.${extension}`),
+                  join(uiAssetDirectory, `dashboard.${extension}`),
                   extension === "js"
                     ? "text/javascript; charset=utf-8"
                     : "text/css; charset=utf-8",
@@ -475,7 +428,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           handler: async (request): Promise<Response> =>
             (await this.canServeGuestAssets(request))
               ? this.handleBuiltUiFile(
-                  uiAssetFile.replace(/app\.js$/, `ask.${extension}`),
+                  join(uiAssetDirectory, `ask.${extension}`),
                   extension === "js"
                     ? "text/javascript; charset=utf-8"
                     : "text/css; charset=utf-8",
@@ -494,7 +447,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         handler: async (request): Promise<Response> =>
           (await this.canServeGuestAssets(request))
             ? this.handleBuiltUiFile(
-                uiAssetFile.replace(/app\.js$/, "guest.js"),
+                join(uiAssetDirectory, "guest.js"),
                 "text/javascript; charset=utf-8",
               )
             : new Response("Not found", {
@@ -526,7 +479,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           handler: async (request): Promise<Response> =>
             (await this.canServeGuestAssets(request))
               ? this.handleBuiltUiFile(
-                  uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+                  join(uiAssetDirectory, "guest.css"),
                   "text/css; charset=utf-8",
                 )
               : new Response("Not found", {
@@ -666,7 +619,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         : this.guestPolicy;
     if (policy.enabled) {
       if (!matchesGuestOrigin(request, policy)) {
-        if (policy.budgeted) return this.handleAuthenticatedChatPage(request);
+        if (policy.budgeted) return this.handleAuthenticatedChatPage();
         return new Response("Guest access unavailable", {
           status: 503,
           headers: { "Cache-Control": "no-store" },
@@ -687,51 +640,25 @@ export class WebChatInterface extends MessageInterfacePlugin<
         },
       );
     }
-    return this.handleAuthenticatedChatPage(request);
+    return this.handleAuthenticatedChatPage();
   }
 
-  private async handleAuthenticatedChatPage(
-    request: Request,
-  ): Promise<Response> {
-    const { principal, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return this.createAuthLoginRequiredResponse(request);
-    }
-
-    const requestUrl = new URL(request.url);
-    const returnTo = encodeURIComponent(
-      `${requestUrl.pathname}${requestUrl.search}`,
-    );
-    const context = this.getContext();
-    const registeredRoutes = context.webRoutes.getRoutes();
-    const dashboardHref = registeredRoutes
-      .filter((route) => route.pluginId === "dashboard")
-      .map((route) => route.fullPath)
-      .sort((left, right) => left.length - right.length)[0];
-    const studioHref = registeredRoutes.find(
-      (route) => route.pluginId === "studio" && route.fullPath === "/chat",
-    )?.fullPath;
-    return new Response(
-      renderChatPage({
-        apiPath: this.config.apiPath,
-        dashboardHref: dashboardHref ?? "/dashboard",
-        ...(studioHref ? { studioHref } : {}),
-        sessionHref: `/logout?return_to=${returnTo}`,
-        themeCSS: context.themeCSS,
-        ...(principal
-          ? {
-              principal: {
-                displayName: principal.displayName,
-                role: principal.role,
-              },
-            }
-          : {}),
-      }),
-      {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      },
-    );
+  private async handleAuthenticatedChatPage(): Promise<Response> {
+    const studioHref = this.getContext()
+      .webRoutes.getRoutes()
+      .find(
+        (route) => route.pluginId === "studio" && route.fullPath === "/chat",
+      )?.fullPath;
+    // Studio owns authentication; this retired page never renders operator UI.
+    return studioHref
+      ? new Response(null, {
+          status: 303,
+          headers: { Location: studioHref, "Cache-Control": "no-store" },
+        })
+      : new Response("Not found", {
+          status: 404,
+          headers: { "Cache-Control": "no-store" },
+        });
   }
 
   private async handleActionRequest(request: Request): Promise<Response> {
@@ -780,17 +707,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
   }
 
-  private async handleUiAssetRequest(): Promise<Response> {
-    return this.handleBuiltUiFile(
-      uiAssetFile,
-      "text/javascript; charset=utf-8",
-    );
-  }
-
-  private async handleUiStylesheetRequest(): Promise<Response> {
-    return this.handleBuiltUiFile(uiStylesheetFile, "text/css; charset=utf-8");
-  }
-
   private guestAssetVersionPromise: Promise<string> | undefined;
 
   /**
@@ -801,8 +717,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private guestAssetVersion(): Promise<string> {
     this.guestAssetVersionPromise ??= Promise.all(
       [
-        uiAssetFile.replace(/app\.js$/, "guest.js"),
-        uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+        join(uiAssetDirectory, "guest.js"),
+        join(uiAssetDirectory, "guest.css"),
       ].map(async (path) => {
         const file = Bun.file(path);
         return (await file.exists()) ? file.text() : "";
@@ -930,9 +846,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       this.toConversationAccess(permissionLevel, principal),
     );
     if (accessError) return accessError;
-    const inboxContext =
-      parsed.data.inboxContext ??
-      (await this.resolveStoredContextHandoff(conversationId));
+    const inboxContext = await this.resolveStoredContextHandoff(conversationId);
     const inboxAttachment =
       approvalResponses.length === 0 && inboxContext
         ? await this.resolveInboxAttachment(
@@ -1375,9 +1289,4 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
 function inboxContextUnavailable(): Response {
   return new Response("Inbox context is unavailable", { status: 409 });
-}
-
-function safeInboxContextLabel(title: string): string {
-  const label = title.replace(/[\p{Cc}\p{Cf}]/gu, " ").trim();
-  return label || "Inbox item";
 }

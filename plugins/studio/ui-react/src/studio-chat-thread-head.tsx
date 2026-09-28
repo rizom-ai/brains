@@ -14,6 +14,7 @@ import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import { SessionRail } from "./studio-chat-rail";
 import { StudioChatSessionRename } from "./studio-chat-session-rename";
 import type { ChatSessions } from "./use-chat-sessions";
+import type { ChatDelete } from "./use-chat-delete";
 
 /**
  * The conversation's title and toolbar, with the two dialogs they open: the
@@ -28,6 +29,7 @@ export function StudioChatThreadHead(props: {
   /** The composer holds text or uploads the archive would strand. */
   draftPending: boolean;
   onArchive: () => void;
+  deletion: ChatDelete;
   contextCards: ChatCard[];
   progress: StudioChatStreamState["progress"];
 }): ReactElement {
@@ -121,7 +123,13 @@ export function StudioChatThreadHead(props: {
           />
         </DialogContent>
       </Dialog>
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+      <Dialog
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) props.deletion.cancelDelete();
+        }}
+      >
         <DialogContent
           aria-describedby={undefined}
           onCloseAutoFocus={(event) => {
@@ -166,6 +174,61 @@ export function StudioChatThreadHead(props: {
                   {props.archiving ? "Archiving…" : "Archive"}
                 </Button>
               ) : null}
+              {props.sessionId &&
+                (props.deletion.confirming ? (
+                  <section
+                    role="group"
+                    aria-label="Confirm conversation deletion"
+                  >
+                    <p>
+                      Delete this conversation permanently? This cannot be
+                      undone.
+                    </p>
+                    <p>
+                      Deleting history does not undo completed actions or
+                      guarantee that remote work has stopped.
+                    </p>
+                    {props.deletion.deleteError && (
+                      <p role="alert">{props.deletion.deleteError}</p>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      autoFocus
+                      aria-label="Cancel conversation deletion"
+                      disabled={props.deletion.deleting}
+                      onClick={props.deletion.cancelDelete}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      aria-label="Permanently delete conversation"
+                      disabled={props.archiveBlocked}
+                      onClick={() => void props.deletion.confirmDelete()}
+                    >
+                      {props.deletion.deleting
+                        ? "Deleting…"
+                        : "Delete permanently"}
+                    </Button>
+                  </section>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    aria-label="Delete conversation"
+                    disabled={props.archiveBlocked}
+                    title={
+                      props.draftPending
+                        ? "Send or clear the draft before deleting"
+                        : undefined
+                    }
+                    onClick={props.deletion.requestDelete}
+                  >
+                    Delete conversation
+                  </Button>
+                ))}
             </div>
             <details>
               <summary>Sources and attachments</summary>

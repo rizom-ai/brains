@@ -721,41 +721,15 @@ export const chatMessageSchema: z.ZodObject<{
 export type ChatMessage = z.output<typeof chatMessageSchema>;
 export type ChatMessageRole = ChatMessage["role"];
 
-const chatSafeText = (max: number): z.ZodString =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(max)
-    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
-
-export const chatSourceContextSchema: Strict<{
-  sourceId: z.ZodString;
-  itemId: z.ZodString;
-  label: z.ZodString;
-}> = z.strictObject({
-  sourceId: z
-    .string()
-    .trim()
-    .regex(/^[a-z][a-z0-9-]*$/)
-    .max(64),
-  itemId: z.string().trim().min(1).max(300),
-  label: chatSafeText(160),
-});
-
-export type ChatSourceContext = z.output<typeof chatSourceContextSchema>;
-
 export const chatMessageRequestSchema: Strict<{
   id: z.ZodOptional<z.ZodString>;
   messages: z.ZodArray<typeof chatMessageSchema>;
   trigger: z.ZodOptional<z.ZodString>;
-  inboxContext: z.ZodOptional<typeof chatSourceContextSchema>;
 }> = z
   .object({
     id: chatIdSchema.optional(),
     messages: z.array(chatMessageSchema).min(1).max(200),
     trigger: z.string().trim().min(1).max(64).optional(),
-    inboxContext: chatSourceContextSchema.optional(),
   })
   .strict();
 
