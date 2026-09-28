@@ -1598,6 +1598,7 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
 export {
   ASK_BOX_ATTRIBUTE,
   ASK_CLOSING_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,

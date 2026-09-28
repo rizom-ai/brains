@@ -15,6 +15,7 @@ beforeEach(() => {
   restoreGlobals = installDomGlobals(windowInstance, {
     Event: windowInstance.Event,
     ResizeObserver: windowInstance.ResizeObserver,
+    MutationObserver: windowInstance.MutationObserver,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -143,6 +144,76 @@ describe("useFollowTail", () => {
 
     // Something covers the region's top 300px, so the element sits below it.
     expect(region.scrollTop).toBe(950);
+  });
+
+  it("follows content that grows in any of the region's items, not only the first", async () => {
+    const observed: Element[] = [];
+    const Observer = class {
+      private readonly callback: () => void;
+      constructor(callback: () => void) {
+        this.callback = callback;
+      }
+      observe(target: Element): void {
+        observed.push(target);
+        this.callback();
+      }
+      disconnect(): void {}
+    };
+    Object.assign(globalThis, { ResizeObserver: Observer });
+    function Probe(): ReactElement {
+      const tail = useFollowTail({ resetKey: "a", contentKey: 1 });
+      return createElement(
+        "div",
+        { ref: tail.ref },
+        createElement("div", { id: "dock" }),
+        createElement("div", { id: "thread" }, "thread"),
+      );
+    }
+    await act(async () => {
+      root.render(createElement(Probe));
+    });
+    expect(observed.map((element) => element.id)).toEqual(["dock", "thread"]);
+  });
+
+  it("observes added items, releases removed items, and disconnects on unmount", async () => {
+    const observed = new Set<Element>();
+    Object.assign(globalThis, {
+      ResizeObserver: class {
+        observe(target: Element): void {
+          observed.add(target);
+        }
+        unobserve(target: Element): void {
+          observed.delete(target);
+        }
+        disconnect(): void {
+          observed.clear();
+        }
+      },
+    });
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    const region = harness.element();
+    const initial = region.firstElementChild;
+    if (!initial) throw new Error("initial scroll item was not rendered");
+    expect([...observed]).toEqual([initial]);
+    const added = document.createElement("div");
+    await act(async () => {
+      region.append(added, document.createTextNode("not an item"));
+      await windowInstance.happyDOM.waitUntilComplete();
+    });
+    expect([...observed]).toEqual([initial, added]);
+    await act(async () => {
+      added.remove();
+      await windowInstance.happyDOM.waitUntilComplete();
+    });
+    expect([...observed]).toEqual([initial]);
+    await act(async () => root.render(null));
+    expect(observed.size).toBe(0);
+    await act(async () => {
+      region.append(document.createElement("div"));
+      await windowInstance.happyDOM.waitUntilComplete();
+    });
+    expect(observed.size).toBe(0);
   });
 
   it("stops following once the reader scrolls away from the bottom", async () => {

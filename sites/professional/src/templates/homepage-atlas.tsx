@@ -91,6 +91,7 @@ function AtlasMap({
   return (
     <div
       className="atlas__map"
+      data-atlas-map=""
       role="group"
       aria-label={caption ?? "Map of published work"}
     >

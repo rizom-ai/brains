@@ -261,6 +261,13 @@
   padding: 12px;
   background: var(--ask-wash);
 }
+/* Empty until a host docks something at the top of the conversation. */
+:where([data-ask-styled] .brain-box-dock:empty) {
+  display: none;
+}
+:where([data-ask-styled] .brain-box-dock) {
+  margin: 0 -16px;
+}
 /* An answer's sources: links to what it drew on. */
 :where([data-ask-styled] .brain-box-sources) {
   display: flex;
@@ -401,13 +408,12 @@
     flex: 1;
     min-height: 0;
     max-height: none;
-    /* A host's docked content covers the top; the conversation starts below
-       it and scrolls beneath it, and an answer opens below it too. */
-    padding-top: var(--ask-sheet-inset, 0px);
+    /* Edge to edge, so what a host docks at its top can be; an answer opens
+       below that docked content (--ask-sheet-inset). */
+    margin: 0 -16px;
+    padding: 0 16px;
     scroll-padding-top: var(--ask-sheet-inset, 0px);
     overflow-y: auto;
-    /* Follows docked content as it folds and unfolds with the keyboard. */
-    transition: padding-top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   /* An empty conversation opens with its welcome just above the composer. */
   :where([data-ask-styled] .is-sheet .brain-box-scroll.is-welcome) {
@@ -502,7 +508,6 @@
 @media (prefers-reduced-motion: reduce) {
   :where(
     [data-ask-styled][data-ask-sheet],
-    [data-ask-styled] .is-sheet .brain-box-scroll,
     [data-ask-styled] .brain-box-dots i,
     [data-ask-styled] .guest-assistant
   ) {

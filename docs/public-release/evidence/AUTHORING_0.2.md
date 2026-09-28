@@ -8,6 +8,21 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Docked mobile atlas integration scope
+
+Approved main `c3ff151d9f` lends the host-owned map to an empty Ask scroll dock
+and restores its page slot on close. The internal DOM marker does not expand
+curated authoring exports or grant route/storage authority. All scroll items
+participate in follow-tail observation; removed items release their resize
+observations and both observers disconnect on unmount. Native tests cover late
+dock mounting, map restoration, React ownership isolation and observer cleanup.
+
+Public Brain UI identity and atomic bundle ownership remain intact (alpha.442).
+Core and Site release lanes and consumer graphs remain separate. Exact completed
+commit/tree/check evidence is recorded on PR301. Imported mockups and DOM tests
+are not canonical browser/provider, registry or deployment acceptance; docking
+does not change spending limits, source grounding or guest authorization.
+
 ## Entity flags and confirmation replay integration scope
 
 Approved main `a0bd71b605` adds entity behavior flags through the separately

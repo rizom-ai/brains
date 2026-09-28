@@ -30,14 +30,14 @@ function setup(options: {
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
       <a id="topic" href="/contact?topic=What+is+Rizom%3F" data-atlas-door data-atlas-fill="What is Rizom?">What is Rizom?</a>
       <svg data-atlas-leads></svg>
-      <div data-atlas-field>
+      <div class="atlas__map" data-atlas-map><div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
           <li data-atlas-mark data-atlas-key="post:first" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-atlas-cited>Where it’s cited ↓</button></li>
           <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
           <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
-      </div>
+      </div></div>
     </section>
     <p id="outside">Elsewhere</p>`;
   // Marks sit 40px apart on a phone-sized map; each is a 26px hit target.
@@ -355,7 +355,7 @@ describe("atlas and its chat", () => {
     const conversation = (): void => {
       host()?.insertAdjacentHTML(
         "afterbegin",
-        '<div class="brain-box-scroll"><ul class="brain-box-sources"><li data-ask-source="post:first"><a id="source-first" href="/essays/first">First</a></li></ul></div>',
+        '<div class="brain-box-scroll"><div data-ask-dock></div><ul class="brain-box-sources"><li data-ask-source="post:first"><a id="source-first" href="/essays/first">First</a></li></ul></div>',
       );
       // happy-dom scrolls smoothly later; where a scroll lands is what counts.
       const scroller = region();
@@ -424,20 +424,30 @@ describe("atlas and its chat", () => {
       expect(openMarks()).toEqual([]);
     });
 
-    it("marks the map as moving only while the keyboard folds or unfolds it, so opening the conversation never stretches it", async () => {
+    it("lends its map to the open conversation's dock, holding its place on the page, and takes it back on close", () => {
       setup({ touch: true, chat: "live" });
-      const moving = (): boolean =>
-        root()?.hasAttribute("data-atlas-moving") ?? false;
+      conversation();
+      const map = window.document.querySelector("[data-atlas-map]");
+      const home = map?.parentElement;
       sheet();
-      expect(moving()).toBe(false);
-      host()?.setAttribute("data-ask-keyboard", "");
+      expect(map?.parentElement?.hasAttribute("data-ask-dock")).toBe(true);
+      expect(home?.querySelector(".atlas__map-slot")).not.toBe(null);
+      host()?.removeAttribute("data-ask-sheet");
       mutate();
-      expect(moving()).toBe(true);
-      await new Promise((resolve) => setTimeout(resolve, 450));
-      expect(moving()).toBe(false);
-      host()?.removeAttribute("data-ask-keyboard");
+      expect(map?.parentElement).toBe(home);
+      expect(home?.querySelector(".atlas__map-slot")).toBe(null);
+    });
+
+    it("lends the map only once the conversation's dock is there", () => {
+      setup({ touch: true, chat: "live" });
+      const map = window.document.querySelector("[data-atlas-map]");
+      const home = map?.parentElement;
+      // The boot opens the sheet before the box has mounted.
+      sheet();
+      expect(map?.parentElement).toBe(home);
+      conversation();
       mutate();
-      expect(moving()).toBe(true);
+      expect(map?.parentElement?.hasAttribute("data-ask-dock")).toBe(true);
     });
   });
 

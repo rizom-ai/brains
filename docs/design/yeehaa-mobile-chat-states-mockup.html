@@ -91,13 +91,16 @@ ol b{color:var(--ink)}
 .head b{font:600 15px Fraunces,serif}
 .head .actions{display:flex;gap:12px;align-items:center;font-size:12px;color:var(--ink-muted)}
 .close{width:28px;height:28px;border-radius:50%;border:1px solid var(--rule-strong);display:grid;place-items:center;font-size:14px;cursor:pointer}
-/* The conversation's body: the map sits over the top of the thread, which
-   reserves the map's full height (the homepage's) and scrolls under it. As
-   the thread scrolls, the map shrinks to a strip; scrolled back, it grows. */
+/* The map is the conversation's first item, as tall as the homepage's map.
+   It scrolls up with the conversation until only a strip is left, which
+   stays pinned under the header; the map inside keeps the lit pieces in the
+   part that shows. A swipe anywhere, the map included, scrolls. */
 .body{position:relative;flex:1;min-height:0}
-.strip{position:absolute;z-index:2;top:0;left:0;right:0;height:var(--map-h,170px);border-bottom:1px solid var(--rule)}
+.strip{position:sticky;z-index:2;top:calc(72px - 170px);height:170px;margin:0 -16px 6px;border-bottom:1px solid var(--rule)}
+.strip svg{transform:translateY(calc(-50% + var(--shift,0px)))}
+.cited .strip svg{transform:translateY(calc(-50% + var(--shift,0px))) translateY(43px) scale(1.35)}
 .strip::after{content:"";position:absolute;z-index:2;inset:0;pointer-events:none;background:linear-gradient(180deg,var(--paper),transparent 14px,transparent calc(100% - 14px),var(--paper))}
-[data-keyboard] .strip{height:0;border-bottom:0;transition:height var(--rise)}
+[data-keyboard] .strip{display:none}
 .card{position:absolute;z-index:3;left:var(--card-x,30%);top:var(--card-y,22%);transform:translate(-50%,var(--card-shift,calc(-100% - 12px)));width:max-content;white-space:nowrap;background:var(--paper-soft);border:1px solid var(--rule-strong);border-radius:10px;padding:7px 10px;font-size:11.5px;box-shadow:0 6px 16px rgb(0 0 0 / .12);opacity:0;pointer-events:none;transition:opacity .25s}
 .card b{display:block;font:600 12.5px Fraunces,serif}
 .card .links{display:flex;gap:12px;margin-top:5px}
@@ -109,7 +112,7 @@ ol b{color:var(--ink)}
 .sources .chip{cursor:pointer}
 .chip.flash{animation:chipflash 1.4s ease-out}
 @keyframes chipflash{0%,40%{background:var(--paper-deep);border-color:var(--accent)}100%{background:var(--paper-soft)}}
-.thread{position:absolute;inset:0;overflow:auto;padding:180px 16px 14px;font-size:13px}
+.thread{position:absolute;inset:0;overflow:auto;padding:0 16px 14px;font-size:13px}
 [data-keyboard] .thread{padding-top:10px}
 .thread::-webkit-scrollbar{display:none}
 .welcome{display:flex;flex-direction:column;min-height:100%;justify-content:flex-end;color:var(--ink-muted);font:13px/1.5 Fraunces,serif}
@@ -168,10 +171,12 @@ ol b{color:var(--ink)}
       <div class="sheet" id="sheet">
         <div class="head"><b>Ask Yeehaa</b><span class="actions"><u>About</u><span class="close" data-act="close">✕</span></span></div>
         <div class="body">
-          <div class="map strip" id="strip">
-            <div class="card"><b id="cardTitle">Hiding in Plain Sight</b>Essay, 2026<span class="links"><u>Open essay</u><u data-act="cited">Where it's cited ↓</u></span></div>
+          <div class="thread" id="thread">
+            <div class="map strip" id="strip">
+              <div class="card"><b id="cardTitle">Hiding in Plain Sight</b>Essay, 2026<span class="links"><u>Open essay</u><u data-act="cited">Where it's cited ↓</u></span></div>
+            </div>
+            <div id="conv"></div>
           </div>
-          <div class="thread" id="thread"></div>
         </div>
         <span class="latest" id="latest" data-act="latest">↓</span>
         <div class="dock">
@@ -210,7 +215,7 @@ ol b{color:var(--ink)}
       <tr><td>Types</td><td>The keyboard pushes the composer up; the map folds away as the keyboard rises and comes back as it falls.</td><td>Works, kept.</td></tr>
       <tr><td>Sends</td><td>The question moves into the thread as a bubble, the keyboard closes, and a waiting line appears where the answer will be: three pulsing dots and "Looking through Yeehaa's work". "Stop waiting" appears only after 20 seconds.</td><td>A small grey "Sending your question…" with a "Stop waiting" link right away, and an empty screen for up to 20 seconds.</td></tr>
       <tr><td>Answer arrives</td><td>The answer fades in at its question, not its end. The map, at full height, zooms once to the pieces it draws on, and those light up at their usual lit size. A round ↓ button offers the rest of the answer; it sits clear of the text's right edge and hides once you reach the end.</td><td>The answer appears; a "Latest ↓" label covers the end of a line of text. The zoom also enlarges every mark, so lit pieces grow to about twice their size.</td></tr>
-      <tr><td>Scrolls the answer</td><td>The map shrinks as the answer scrolls under it, down to a thin strip that keeps the lit pieces in view; scrolling back to the top grows it to full height again. Nothing in the answer jumps: the map sits over it, and the answer only scrolls.</td><td>A 120px strip from the start, much smaller than the page's map, which looks like a different map.</td></tr>
+      <tr><td>Scrolls the answer</td><td>The map is the conversation's first item: it scrolls up with the answer until only a thin strip is left, which stays pinned under the header with the lit pieces in view. Scrolling back to the top brings the whole map down again. A swipe anywhere scrolls, the map included, with the phone's usual momentum.</td><td>The map sits over the conversation, so a swipe that starts on it does nothing, and on a small phone the answer gets about a third of the screen.</td></tr>
       <tr><td>Taps a source</td><td>A source under the answer takes you to its piece: the map grows back to full height, the piece pulses twice, and its card opens over it.</td><td>The chips and the lit marks share nothing a visitor can see, so which chip is which piece is a guess.</td></tr>
       <tr><td>Taps a lit piece</td><td>With the map large, its card opens: "Open essay", or "Where it's cited", which scrolls the answer to its source and flashes it. As a strip the map is too small to tap accurately; the sources, or scrolling up, get you there.</td><td>A tap hits whichever mark is under the finger and pops its card half under the header.</td></tr>
       <tr><td>Closes (✕, Back, Escape)</td><td>The sheet slides down, and the page comes back exactly where it was, with the pieces still lit on its map at the same zoom as the strip. "Continue conversation" sits above the composer.</td><td>The page map shows a different zoom from the strip. Closing while the chat is still loading reopens it a moment later, on its own.</td></tr>
@@ -232,6 +237,7 @@ ol b{color:var(--ink)}
 <script>
 const screen = document.getElementById('screen');
 const thread = document.getElementById('thread');
+const conv = document.getElementById('conv');
 const draft = document.getElementById('draft');
 const latest = document.getElementById('latest');
 const now = document.getElementById('now');
@@ -283,11 +289,11 @@ function set(next, text) {
   });
 }
 function renderThread() {
-  if (!state.asked) { thread.innerHTML = welcome(); return; }
+  if (!state.asked) { conv.innerHTML = welcome(); return; }
   let html = `<div class="you">${QUESTION}</div>`;
   if (state.waiting) html += `<div class="who">YEEHAA</div><div class="waiting"><span class="dots"><i></i><i></i><i></i></span>Looking through Yeehaa's work</div><div class="stop" id="stop"><u>Stop waiting</u></div>`;
   if (state.answered) html += answerHtml;
-  thread.innerHTML = html;
+  conv.innerHTML = html;
 }
 function tapAt(el) {
   const s = screen.getBoundingClientRect(); const r = el.getBoundingClientRect();
@@ -368,7 +374,9 @@ function showPiece(piece) {
 }
 const FULL = 170, STRIP = 72;
 function follow() {
-  document.getElementById('strip').style.setProperty('--map-h', Math.max(STRIP, FULL - thread.scrollTop) + 'px');
+  // What has scrolled up out of view; the map shifts by half of it to keep the lit pieces in the middle of what shows.
+  const hidden = Math.min(thread.scrollTop, FULL - STRIP);
+  document.getElementById('strip').style.setProperty('--shift', hidden / 2 + 'px');
   latest.classList.toggle('shown', state.answered && thread.scrollHeight - thread.clientHeight - thread.scrollTop > 40);
 }
 thread.addEventListener('scroll', follow);

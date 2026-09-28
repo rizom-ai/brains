@@ -64,10 +64,9 @@ export type AskSourcesDetail = z.output<typeof askSourcesDetailSchema>;
  * - ASK_KEYBOARD_ATTRIBUTE is set on the host while the on-screen keyboard
  *   takes part of the screen; the box then fits the space above it.
  * - The open box starts with a header ASK_SHEET_HEADER_HEIGHT tall. A host
- *   may dock something below it, such as a map of its own content, by
- *   setting `--ask-sheet-inset` on the host to that height: the
- *   conversation starts below it and scrolls beneath it, and an answer
- *   opens below it.
+ *   may dock something at the top of the conversation, such as a map of
+ *   its own content, in ASK_DOCK_ATTRIBUTE, and set `--ask-sheet-inset` on
+ *   the host to its height so an answer opens below it.
  */
 export const ASK_SHEET_MEDIA = "(max-width: 47.99rem)";
 export const ASK_SHEET_ATTRIBUTE = "data-ask-sheet";
@@ -95,3 +94,13 @@ export const ASK_SHEET_HISTORY_KEY = "askSheet";
  * its own animation ends, or at once when it has none.
  */
 export const ASK_CLOSING_ATTRIBUTE = "data-ask-closing";
+
+/**
+ * Rendered by the box, empty, as the first item of its conversation's
+ * scroll. A host may put its own element there while the box is open full
+ * screen (such as a map under the header) and take it back when it closes;
+ * the element then scrolls with the conversation, and the box never touches
+ * it. The host styles it, and sets `--ask-sheet-inset` to its height so an
+ * answer opens below it.
+ */
+export const ASK_DOCK_ATTRIBUTE = "data-ask-dock";

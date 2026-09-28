@@ -1,6 +1,6 @@
 import {
   ASK_BOX_ATTRIBUTE,
-  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
   ASK_SOURCE_ATTRIBUTE,
   ASK_SOURCES_EVENT,
@@ -383,25 +383,33 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       glide(scroller, scroller.scrollTop + at.top - area.top - scroller.clientHeight / 2 + at.height / 2);
       flag(listed, "data-atlas-flash", 1500);
     }, true);
-    // The map's height moves on its own only while the keyboard folds or
-    // unfolds it, never as the conversation opens (the phone sheet
-    // transitions it under this mark); otherwise it follows the scroll.
-    var moving = 0;
-    function move() {
-      root.setAttribute("data-atlas-moving", "");
-      window.clearTimeout(moving);
-      moving = window.setTimeout(function () { root.removeAttribute("data-atlas-moving"); }, 400);
+    // While it is open, the map is lent to the conversation's dock, the first
+    // item of its scroll: it scrolls up with the answer until only a strip is
+    // left, which the phone sheet's styles pin. A slot holds its place on the
+    // page meanwhile, and it goes back when the conversation closes.
+    var lent = root.querySelector("[data-atlas-map]");
+    var slot = null;
+    function lend() {
+      var dock = askHost.querySelector("[${ASK_DOCK_ATTRIBUTE}]");
+      if (!lent || !dock || lent.parentElement === dock) return;
+      slot = document.createElement("div");
+      slot.className = "atlas__map-slot";
+      slot.setAttribute("aria-hidden", "true");
+      lent.replaceWith(slot);
+      dock.append(lent);
+      follow(conversation());
     }
-    var typing = false;
-    if (askHost && typeof MutationObserver === "function") {
+    function giveBack() {
+      if (!slot) return;
+      slot.replaceWith(lent);
+      slot = null;
+    }
+    if (askHost && typeof MutationObserver === "function")
+      // The box mounts, and so its dock appears, after the sheet has opened.
       new MutationObserver(function () {
-        var keyboard = askHost.hasAttribute("${ASK_KEYBOARD_ATTRIBUTE}");
-        if (keyboard !== typing) move();
-        typing = keyboard;
-        // Opened again where it was left, the map is as tall as that scroll allows.
-        follow(sheetOpen() ? conversation() : null);
-      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}", "${ASK_KEYBOARD_ATTRIBUTE}"] });
-    }
+        if (sheetOpen()) lend();
+        else giveBack();
+      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}"], childList: true, subtree: true });
 
     root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
       var sources = (event.detail && event.detail.sources) || [];
