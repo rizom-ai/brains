@@ -6,6 +6,7 @@ import { EventTarget as HappyEventTarget, Window } from "happy-dom";
 import {
   ASK_BOX_ATTRIBUTE,
   ASK_CLOSING_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
@@ -155,6 +156,19 @@ describe("the Ask box on a phone", () => {
       expect(host.querySelector('[aria-label="Close conversation"]')).not.toBe(
         null,
       );
+    });
+
+    it("offers its host a dock at the top of the conversation, and keeps what the host puts there", async () => {
+      await render();
+      const region = host.querySelector(".brain-box-scroll");
+      const dock = region?.firstElementChild;
+      expect(dock?.hasAttribute(ASK_DOCK_ATTRIBUTE)).toBe(true);
+      const lent = document.createElement("div");
+      lent.id = "hosts-map";
+      dock?.append(lent);
+      await render({ messages: answer, state: "complete" });
+      expect(region?.firstElementChild).toBe(dock);
+      expect(dock?.querySelector("#hosts-map")).toBe(lent);
     });
 
     it("marks its history entry with where the page was, for a reload to return to", async () => {

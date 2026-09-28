@@ -32,6 +32,10 @@ export interface FollowTail {
   showFrom: (element: HTMLElement) => void;
 }
 
+function isElement(node: Node): node is Element {
+  return node.nodeType === 1;
+}
+
 /**
  * Keeps a scroll region pinned to its newest content while the reader is at
  * the end, and stops following the moment they scroll up to read back.
@@ -51,18 +55,32 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
     setAwayFromLatest(false);
   }, [resetKey]);
 
+  // Every item in the region can grow (an answer, or something a host docks
+  // at its top), and items come and go; each is watched while it is there.
   useEffect(() => {
     const scroll = ref.current;
-    const content = scroll?.firstElementChild;
-    if (!scroll || !content) return;
+    if (!scroll) return;
     const follow = (): void => {
       if (followingRef.current && !pausedRef.current)
         scroll.scrollTop = scroll.scrollHeight;
     };
     follow();
     const observer = new ResizeObserver(follow);
-    observer.observe(content);
-    return (): void => observer.disconnect();
+    Array.from(scroll.children).forEach((item) => observer.observe(item));
+    const added =
+      typeof MutationObserver === "function"
+        ? new MutationObserver((records) => {
+            for (const record of records)
+              record.addedNodes.forEach((node) => {
+                if (isElement(node)) observer.observe(node);
+              });
+          })
+        : undefined;
+    added?.observe(scroll, { childList: true });
+    return (): void => {
+      observer.disconnect();
+      added?.disconnect();
+    };
   }, []);
 
   useEffect(() => {
