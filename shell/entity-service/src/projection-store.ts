@@ -156,6 +156,16 @@ export class ProjectionStore {
     return this.batches.runBulkMutation(input, mutation);
   }
 
+  /**
+   * Force the batch coordinator's ambient scope to empty for the duration of
+   * `fn`. A caller that defines a fresh unit of work (the job queue, once per
+   * job) must wrap that unit in this so it never inherits another unit's
+   * batch identity — see ProjectionBatchCoordinator.runFreshBatchScope.
+   */
+  public runFreshBatchScope<T>(fn: () => T): T {
+    return this.batches.runFreshBatchScope(fn);
+  }
+
   public prepareDurableBulkMutation(
     input: DurableBulkMutationRootInput,
   ): Promise<void> {
