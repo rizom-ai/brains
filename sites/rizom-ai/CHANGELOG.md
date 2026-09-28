@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask section loads Web Chat's guest page bundle (`/ask/assets/ask.js` and `ask.css`) instead of the signed-in chat app. It needs a Brain release that serves the guest page bundle; on an older Brain the section stays on its "Connecting" line.
+
 ## 0.2.0-alpha.254
 
 ### Patch Changes
