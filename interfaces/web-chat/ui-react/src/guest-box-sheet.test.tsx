@@ -385,6 +385,13 @@ describe("the Ask box on a phone", () => {
       expect(stopButton()).toBeDefined();
     });
 
+    it("keeps its header to its title and a way out", async () => {
+      await render({ messages: answer, state: "complete" });
+      const head = host.querySelector(".brain-box-sheet-head");
+      expect(head?.textContent).toBe("Ask Yeehaa✕");
+      expect(host.querySelector("button[aria-expanded]")).toBe(null);
+    });
+
     it("leaves out the link to the full chat, since it already fills the screen", async () => {
       await render({ messages: answer, state: "complete", canContinue: true });
       expect(host.textContent).not.toContain("Full chat");
@@ -400,6 +407,15 @@ describe("the Ask box on a phone", () => {
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
       expect(document.documentElement.style.overflow).toBe("");
       expect(host.textContent).not.toContain("Continue conversation");
+    });
+
+    it("offers what the chat is about from the page", async () => {
+      await render({ messages: answer, state: "complete" });
+      expect(
+        [...host.querySelectorAll("button")].some((button) =>
+          button.textContent.includes("About"),
+        ),
+      ).toBe(true);
     });
 
     it("links to the full chat from the page", async () => {
