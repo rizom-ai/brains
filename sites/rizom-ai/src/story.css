@@ -580,3 +580,465 @@
     animation: none;
   }
 }
+
+/* ---- The homepage opening: the live network ---------------------------------- */
+.chapter--opening {
+  position: static;
+}
+.chapter em {
+  font-style: italic;
+  color: var(--color-accent);
+}
+.opening__door {
+  display: inline-block;
+  margin-top: 1.8rem;
+  padding: 0.8rem 1.3rem;
+  border-radius: 3px;
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #0e0d20);
+  font-weight: 500;
+  text-decoration: none;
+}
+/* Where the figure stands: right-aligned to the page, not the chapters column. */
+.net-layer {
+  position: absolute;
+  top: 0;
+  right: calc(clamp(1rem, 6vw, 7rem) - max(0px, (100vw - 80rem) / 2));
+  height: calc(100svh - var(--bar-height, 4.6rem));
+  width: min(calc(100svh - var(--bar-height, 4.6rem) - 2rem), 64vw);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.net-layer > * {
+  grid-area: 1 / 1;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.net-svg {
+  overflow: visible;
+}
+.net-ring {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-opacity: 0.12;
+  stroke-dasharray: 0.6 1.6;
+  vector-effect: non-scaling-stroke;
+}
+.net-thread {
+  stroke: var(--color-accent);
+  stroke-width: 1;
+  stroke-opacity: 0.4;
+  vector-effect: non-scaling-stroke;
+}
+.net-kin {
+  stroke: var(--color-accent);
+  stroke-width: 1;
+  stroke-opacity: 0.35;
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke;
+  animation: net-kin 9s linear infinite;
+}
+@keyframes net-kin {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+.net-corona {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+  stroke-dasharray: 0.6 2.2;
+  transform-origin: 50px 50px;
+  vector-effect: non-scaling-stroke;
+  animation: net-corona 40s linear infinite;
+}
+.net-corona--outer {
+  stroke-opacity: 0.18;
+  stroke-dasharray: 0.3 3.4;
+  animation-duration: 70s;
+  animation-direction: reverse;
+}
+@keyframes net-corona {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.net-lantern {
+  fill: #fff3cf;
+  stroke: var(--color-accent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 6px var(--color-accent));
+  animation: net-lantern 4.5s ease-in-out infinite;
+}
+@keyframes net-lantern {
+  50% {
+    stroke-width: 2.2;
+  }
+}
+/* One pulse from Rizom every seven seconds; each brain replies as it is reached: a flare, an echo ring, a spark back. */
+.net-pulse {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-origin: 50px 50px;
+  transform: scale(0);
+  vector-effect: non-scaling-stroke;
+  animation: net-pulse 7s linear infinite;
+}
+@keyframes net-pulse {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  65% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.net-echo {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.2;
+  opacity: 0;
+  transform: scale(0.25);
+  vector-effect: non-scaling-stroke;
+  animation: net-echo 7s linear infinite;
+}
+@keyframes net-echo {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.25);
+  }
+  16% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+.net-spark {
+  stroke: #fff3cf;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.05 0.95;
+  stroke-dashoffset: 0;
+  opacity: 0;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 5px var(--color-accent));
+  animation: net-spark 7s linear infinite;
+}
+@keyframes net-spark {
+  0% {
+    opacity: 1;
+    stroke-dashoffset: 0.05;
+  }
+  20% {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  21%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+}
+.net-marks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.net-mark {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+.net-mark a {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+}
+.net-mark i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text);
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 0 4px rgb(from var(--color-accent) r g b / 0.22);
+  animation: net-flare 7s linear infinite;
+}
+@keyframes net-flare {
+  0% {
+    background: #fff3cf;
+    transform: scale(1.5);
+    box-shadow:
+      0 0 0 3px var(--color-bg),
+      0 0 12px 4px var(--color-accent);
+  }
+  14%,
+  100% {
+    background: var(--color-text);
+    transform: none;
+    box-shadow:
+      0 0 0 3px var(--color-bg),
+      0 0 0 4px rgb(from var(--color-accent) r g b / 0.22);
+  }
+}
+.net-mark a:hover i,
+.net-mark a:focus-visible i {
+  background: #fff3cf;
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 10px 3px var(--color-accent);
+}
+.net-mark a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.net-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.net-name {
+  position: absolute;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 14;
+  text-shadow:
+    0 0 0.45rem var(--color-bg),
+    0 0 0.2rem var(--color-bg),
+    0 0 0.1rem var(--color-bg);
+}
+.net-name--right {
+  transform: translate(0.8rem, -50%);
+}
+.net-name--left {
+  transform: translate(calc(-100% - 0.8rem), -50%);
+}
+.net-name--above {
+  transform: translate(-50%, calc(-100% - 0.7rem));
+}
+
+/* The Ask box, docked under the opening. */
+.ask {
+  margin-top: 2.2rem;
+  max-width: 32rem;
+}
+.opening__ask:not([data-ask-ready]) {
+  display: none;
+}
+.opening__ask-status {
+  margin: 0 0 0.5rem;
+  font-size: 0.84rem;
+  color: var(--color-text-light);
+}
+.opening__ask-status:empty {
+  display: none;
+}
+.opening__composer,
+.opening__ask .prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem 0.35rem 1.1rem;
+  border: 1px solid rgb(from var(--color-accent) r g b / 0.3);
+  border-radius: 1.6rem;
+  background: rgb(from var(--color-bg-subtle) r g b / 0.7);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.2s;
+}
+.opening__composer:focus-within,
+.opening__ask .prompt-row:focus-within {
+  border-color: var(--color-accent);
+}
+.opening__composer textarea,
+.opening__ask .prompt-row textarea {
+  flex: 1;
+  resize: none;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: 1.05rem/1.4 var(--font-body);
+  padding: 0.55rem 0;
+}
+.opening__composer textarea:focus,
+.opening__ask .prompt-row textarea:focus {
+  outline: none;
+}
+.opening__composer textarea::placeholder,
+.opening__ask .prompt-row textarea::placeholder {
+  color: var(--color-text-light);
+  font-family: var(--font-display);
+  font-style: italic;
+}
+.opening__send,
+.opening__ask .send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-text-inverse, #0e0d20);
+  cursor: pointer;
+}
+.opening__send:disabled,
+.opening__ask .send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.opening__send svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.opening__send:focus-visible,
+.opening__ask .send:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.opening__ask {
+  --ask-wash: var(--color-bg-subtle);
+  --ask-display: var(--font-display);
+  --ask-muted: var(--color-text-light);
+}
+.ask__topics {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0 0 0 1.1rem;
+  display: grid;
+  gap: 0.15rem;
+}
+.ask__topics button {
+  border: 0;
+  background: none;
+  padding: 0.25rem 0;
+  color: var(--color-text-muted);
+  font: italic 1.02rem/1.35 var(--font-display);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.ask__topics button:hover,
+.ask__topics button:focus-visible {
+  color: var(--color-accent);
+}
+
+/* Two ways in: the doors. */
+.doors {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.door {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.3rem 1.4rem;
+  border: 1px solid rgb(from var(--color-accent) r g b / 0.25);
+  border-radius: 6px;
+  background: rgb(from var(--color-bg-subtle) r g b / 0.55);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+.door:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+}
+.door--work {
+  --door: var(--palette-ruby, #d0453a);
+  border-color: rgb(from var(--door) r g b / 0.35);
+}
+.door--work:hover {
+  border-color: var(--door);
+}
+.door__room {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--door, var(--color-accent));
+}
+.door__title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--color-heading);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 36;
+}
+.door__text {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+.door__go {
+  margin-top: 0.4rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--door, var(--color-accent));
+}
+
+@media (max-width: 60rem) {
+  /* The network stands in the figure's strip while the opening is read; the
+     strip is empty and clear at stage 0, and the drawing takes over after. */
+  .net-layer {
+    position: fixed;
+    top: var(--bar-height, 4.6rem);
+    left: 0;
+    right: 0;
+    height: 42svh;
+    width: auto;
+    z-index: 1;
+    background: linear-gradient(var(--color-bg) 82%, transparent);
+    transition: opacity 0.6s ease;
+  }
+  .net-layer > * {
+    width: min(100%, 42svh);
+  }
+  .living-org[data-stage="0"] {
+    background: none;
+  }
+  .story:has(.figure:not([data-stage="0"])) .net-layer {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .net-kin,
+  .net-corona,
+  .net-lantern,
+  .net-mark i {
+    animation: none !important;
+  }
+  .net-pulse,
+  .net-echo,
+  .net-spark {
+    display: none;
+  }
+}

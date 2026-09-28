@@ -19,7 +19,6 @@ describe("@rizom/site-rizom-ai", () => {
       "brain",
       "public-ask",
       "writing",
-      "network",
       "work",
       "foundation",
     ]);
@@ -58,7 +57,7 @@ describe("@rizom/site-rizom-ai", () => {
       "brain:hero",
       "brain:capture",
       "brain:ask",
-      "brain-network:connect",
+      "rizom:connect",
       "brain:run",
       "brain:your-data",
       "brain:quickstart",
@@ -88,7 +87,7 @@ describe("@rizom/site-rizom-ai", () => {
     ]);
   });
 
-  test("writing + network compose the plugins' own list templates", () => {
+  test("writing composes the plugins' own list templates; the network page is gone", () => {
     const byId = (id: string): (typeof site.routes)[number] | undefined =>
       site.routes.find((route) => route.id === id);
 
@@ -96,9 +95,7 @@ describe("@rizom/site-rizom-ai", () => {
       "blog:post-list",
       "decks:deck-list",
     ]);
-    expect(byId("network")?.sections?.[0]?.template).toBe(
-      "agent-discovery:agent-list",
-    );
+    expect(byId("network")).toBeUndefined();
   });
 
   test("labels entity-backed lists via entityDisplay", () => {
@@ -120,35 +117,22 @@ describe("@rizom/site-rizom-ai", () => {
     expect(head).not.toContain("canvas");
   });
 
-  test("opens the home page on the live agent proximity map", () => {
+  test("opens the home page on the story, its live network first", () => {
     const route = site.routes[0];
-    const sectionIds = route?.sections?.map((section) => section.id);
-
-    // Keep the approved composition and its existing content identities.
-    expect(sectionIds).toEqual([
+    // The opening keeps the hero's content identity; the rest of the story
+    // keeps its section ids. The problem, the system and the proof are told
+    // on /work, /brain and by the opening itself.
+    expect(route?.sections?.map((section) => section.id)).toEqual([
       "hero",
-      "problem",
       "science",
       "turn",
-      "system",
       "growth",
-      "proof",
       "arc",
       "doors",
     ]);
-
-    // The opener is the agent-discovery datasource section; a dataQuery routes
-    // it through the datasource (live map data) while its authored copy is
-    // merged over via the content overlay. The knowledge map works the same
-    // way through the topics plugin.
-    const network = route?.sections?.[0];
-    expect(network?.template).toBe("agent-discovery:proximity-map");
-    expect(network?.dataQuery).toBeDefined();
-    const knowledge = route?.sections?.find(
-      (section) => section.id === "proof",
-    );
-    expect(knowledge?.template).toBe("topics:knowledge-map");
-    expect(knowledge?.dataQuery).toBeDefined();
+    const opening = route?.sections?.[0];
+    expect(opening?.template).toBe("rizom:opening");
+    expect(opening?.dataQuery).toBeDefined();
   });
 
   test("home body sections reference their content namespaces by string", () => {
@@ -157,13 +141,10 @@ describe("@rizom/site-rizom-ai", () => {
     );
 
     expect(templates).toEqual([
-      "agent-discovery:proximity-map",
-      "living-memory:problem",
+      "rizom:opening",
       "living-memory:science",
       "living-memory:turn",
-      "living-memory:system",
       "living-memory:growth",
-      "topics:knowledge-map",
       "living-memory:arc",
       "living-memory:doors",
     ]);

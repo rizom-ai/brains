@@ -6,7 +6,9 @@ export {
 } from "./widgets/proximity-map";
 export { proximityMapSiteStyles } from "./templates/proximity-map-template";
 export {
+  proximityMapCopySchema,
   proximityMapDataSchema,
+  type ProximityMapCopy,
   type ProximityMapData,
   type ProximityMapNode,
 } from "./lib/proximity-map-schema";

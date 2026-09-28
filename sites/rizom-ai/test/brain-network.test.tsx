@@ -50,7 +50,7 @@ describe("Brain landing's own interactive network", () => {
       aiRoutes.find((route) => route.id === "brain")?.sections,
     ).toContainEqual({
       id: "connect",
-      template: "brain-network:connect",
+      template: "rizom:connect",
       dataQuery: {},
     });
     expect(brainNetworkTemplate.requiredPermission).toBe("public");

@@ -24,21 +24,37 @@ function renderSection(id: string, data: unknown): string {
   );
 }
 const lead = {
-  cap: "Caption",
-  claim: "A claim",
-  body: ["A paragraph with *emphasis*."],
+  cap: "The science",
+  claim: "A team's intelligence is *not the sum* of its members' talent.",
+  body: ["Organisational psychology has one finding it keeps replicating."],
 };
-const dimensions = ["First", "Second", "Third"].map((name) => ({
+const dimensions = [
+  "Who knows what",
+  "Whose judgment settles it",
+  "How knowledge moves",
+].map((name) => ({
   name,
   title: "A title",
   emphasis: "with emphasis",
   text: `Explanation for ${name}`,
 }));
-const stages = ["You", "Team", "Network"].map((key) => ({
-  key,
-  title: key,
-  text: `${key} description`,
-}));
+const stages = [
+  {
+    key: "You",
+    title: "The brain",
+    text: "One agent that ships what you know.",
+  },
+  {
+    key: "Team",
+    title: "The practice",
+    text: "Working sessions map what a team knows.",
+  },
+  {
+    key: "Network",
+    title: "The network",
+    text: "Brains find each other by substance.",
+  },
+];
 const rows = ["01", "02", "03"].map((no) => ({
   no,
   kicker: `Stage ${no}`,
@@ -47,8 +63,8 @@ const rows = ["01", "02", "03"].map((no) => ({
   meta: "In development",
 }));
 
-describe("approved living-memory composition", () => {
-  test("is the only homepage, preserves content identity, and keeps the maps live", () => {
+describe("the homepage story", () => {
+  test("keeps its section ids and drops what other pages already say", () => {
     expect(Object.keys(livingMemorySections.sections)).toEqual([
       "problem",
       "science",
@@ -60,178 +76,126 @@ describe("approved living-memory composition", () => {
     ]);
     const route = site.routes.find((route) => route.id === "living-memory");
     expect(route?.sections).toEqual([
-      { id: "hero", template: "agent-discovery:proximity-map", dataQuery: {} },
-      { id: "problem", template: "living-memory:problem" },
+      { id: "hero", template: "rizom:opening", dataQuery: {} },
       { id: "science", template: "living-memory:science" },
       { id: "turn", template: "living-memory:turn" },
-      { id: "system", template: "living-memory:system" },
       { id: "growth", template: "living-memory:growth" },
-      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ]);
     expect(route?.path).toBe("/");
-    expect(site.routes.filter((route) => route.path === "/")).toHaveLength(1);
-    expect(site.routes.some((route) => route.path === "/living-memory")).toBe(
-      false,
-    );
-    expect(site.routes.some((route) => route.id === "home")).toBe(false);
+    expect(site.routes.some((route) => route.path === "/network")).toBe(false);
+    expect(Object.keys(templates)).toContain("problem");
   });
-  test("lantern retains one illustration and three accessible states", () => {
+
+  test("the science is a chapter with its three dimensions", () => {
     const html = renderSection("science", { ...lead, dimensions });
-    expect(html.match(/<svg/g)).toHaveLength(1);
-    expect(html.match(/role="tab"/g)).toHaveLength(3);
-    expect(html.match(/role="tabpanel"/g)).toHaveLength(3);
-    expect(html).toContain('aria-controls="panel-2"');
-    expect(html).toContain('aria-labelledby="tab-2"');
-    expect(html).toContain('data-active="0"');
-    expect(html).toContain('class="title">A title <em>with emphasis</em>');
-    expect(html).toContain('class="light-state light-2"');
+    expect(html).toMatch(/^<section id="science" class="chapter">/);
+    expect(html).toContain('<p class="eyebrow">The science</p>');
+    expect(html).toContain(
+      "<h2>A team&#x27;s intelligence is <em>not the sum</em> of its members&#x27; talent.</h2>",
+    );
+    expect(html).toContain('<dl class="dims">');
+    expect(html).toContain(
+      "<dt>Who knows what</dt><dd>Explanation for Who knows what</dd>",
+    );
+    expect(html).not.toContain('role="tab"');
     expect(() =>
       renderSection("science", { ...lead, dimensions: dimensions.slice(1) }),
     ).toThrow();
   });
-  test("headings render content-authored italic phrases without changing the lantern", () => {
-    const html = renderSection("science", {
-      ...lead,
-      claim: "A *quiet emphasis* here",
-      dimensions,
-    });
-    expect(html).toContain(
-      '<span class="heading-emphasis">quiet emphasis</span>',
-    );
-    expect(html).toContain('class="title">A title <em>with emphasis</em>');
-    expect(html).not.toContain("*quiet emphasis*");
-  });
 
-  test("the page wrapper does not mask the shared theme background in wide layouts", () => {
-    const css = site.staticAssets?.["/styles/living-memory.css"];
-    const pageRule = css?.match(/:scope\s*\{([^}]+)\}/)?.[1];
-    expect(pageRule).toBeDefined();
-    expect(pageRule).not.toMatch(/background(?:-color|-image)?\s*:/);
-  });
-
-  test("sticky navigation uses the shared theme surface without washing out its texture", () => {
-    const css = site.staticAssets?.["/styles/living-memory.css"];
-    const headerRule = css?.match(/\.site-header\s*\{([^}]+)\}/)?.[1];
-    expect(headerRule).toContain("background-color: var(--color-bg)");
-    expect(headerRule).toContain("background-image: var(--bg-noise)");
-    expect(headerRule).toContain("backdrop-filter: none");
-    expect(headerRule).toContain("position: sticky");
-  });
-
-  test("heading emphasis follows the brand: italic, accent yellow, and inline", () => {
-    const css = site.staticAssets?.["/styles/living-memory.css"];
-    for (const pattern of [
-      /\.heading-emphasis\s*\{([^}]+)\}/,
-      /\.knowledge-map-site__heading em\s*\{([^}]+)\}/,
-      /\.agent-proximity-site__heading em\s*\{([^}]+)\}/,
-      /\.turn-emphasis\s*\{([^}]+)\}/,
-    ]) {
-      const rule = css?.match(pattern)?.[1];
-      expect(rule).toContain("font-style: italic");
-      expect(rule).toContain("color: var(--color-accent)");
-      expect(rule).toContain("display: inline");
-    }
-  });
-
-  test("the problem remains three unboxed pieces of authored copy", () => {
-    const html = renderSection("problem", {
-      cap: "A problem",
-      items: stages.map((stage) => ({ title: stage.title, text: stage.text })),
-    });
-    expect(html.match(/<article/g)).toHaveLength(3);
-    expect(html).not.toContain("problem-marker");
-  });
-  test("the shift separates the quotation from its supporting copy", () => {
+  test("the shift keeps the quotation as the chapter's heading", () => {
     const html = renderSection("turn", {
-      cap: "Shift",
-      quote: "Before.",
-      emphasis: "After.",
-      body: ["Why it matters."],
+      cap: "The shift",
+      quote: "Four decades of that research studied teams of humans.",
+      emphasis: "Those teams no longer exist.",
+      body: ["Every team is now a hybrid team."],
     });
+    expect(html).toMatch(/^<section id="turn" class="chapter">/);
     expect(html).toContain(
-      'Before.</span> <em class="turn-emphasis">After.</em>',
+      "<h2>Four decades of that research studied teams of humans. <em>Those teams no longer exist.</em></h2>",
     );
-    expect(html).toContain('class="turn-bottom"');
+    expect(html).toContain("<p>Every team is now a hybrid team.</p>");
   });
-  test("comparisons are paired rows, not independent lists", () => {
-    const html = renderSection("system", {
-      ...lead,
-      availability: "Available",
-      comparison: {
-        beforeLabel: "Before",
-        beforeTitle: "Old",
-        afterLabel: "After",
-        afterTitle: "New",
-        rows: [
-          { before: "Manual", after: "Automatic" },
-          { before: "Stale", after: "Current" },
-        ],
-      },
-    });
-    expect(html.match(/scope="col"/g)).toHaveLength(2);
-    expect(html).toContain("<tr><td>Manual</td><td>Automatic</td></tr>");
-    expect(html).toContain("<tr><td>Stale</td><td>Current</td></tr>");
-    expect(html).not.toContain("<ul");
-  });
-  test("the organism provides three vertical illustrations without a carousel", () => {
+
+  test("the organism's parts are the site's rooms", () => {
     const html = renderSection("growth", {
-      cap: "Organism",
-      claim: "Connected",
+      cap: "One organism",
+      claim: "How it *comes together.*",
       stages,
     });
-    expect(html.match(/class="organism-mini"/g)).toHaveLength(3);
-    expect(html).toContain('viewBox="0 0 320 96"');
-    expect(html).toContain('viewBox="0 0 320 132"');
-    expect(html).not.toContain("carousel");
-    expect(() =>
-      renderSection("growth", {
-        cap: "Organism",
-        claim: "Connected",
-        stages: [],
-      }),
-    ).toThrow();
+    expect(html).toMatch(/^<section id="growth" class="chapter">/);
+    expect(html).toContain('<dl class="parts">');
+    expect(html).toContain(
+      '<dt><a href="/brain">The brain</a></dt><dd>One agent that ships what you know.</dd>',
+    );
+    expect(html).toContain('<dt><a href="/work">The practice</a></dt>');
+    expect(html).toContain('<dt><a href="#hero">The network</a></dt>');
+    expect(html).not.toContain("<svg");
   });
-  test("roadmap details are accessible without JavaScript", () => {
+
+  test("where this goes lists its three moves with their honest status", () => {
     const html = renderSection("arc", {
-      cap: "Roadmap",
-      claim: "Next steps",
+      cap: "Where this goes",
+      claim: "Measure. Connect. *Coordinate.*",
       rows,
     });
-    expect(html.match(/<details class="roadmap-detail" open/g)).toHaveLength(3);
-    expect(html.match(/<summary>/g)).toHaveLength(3);
-    expect(html).toContain("Explanation 03");
-    expect(html).toContain("In development");
+    expect(html).toMatch(/^<section id="arc" class="chapter">/);
+    expect(html).toContain(
+      '<dt>Title 01 <span class="status">In development</span></dt><dd>Explanation 01</dd>',
+    );
+    expect(html).toContain(
+      '<p class="onward"><a href="/foundation">The research behind it, at the Foundation</a></p>',
+    );
+    expect(html).not.toContain("<details");
   });
-  test("doors preserve the practice's room accent", () => {
+
+  test("two ways in closes the story on its two doors, the practice's in its own room", () => {
     const html = renderSection("doors", {
       ...lead,
-      doors: ["work", "platform"].map((room) => ({
-        room,
-        key: room,
-        title: room,
-        text: "Description",
-        cta: { label: "Enter", href: "/work" },
-      })),
+      cap: "Two ways in",
+      claim: "Start with *an audit,* or start with the code.",
+      doors: [
+        {
+          room: "work",
+          key: "The practice",
+          title: "A Knowledge Audit",
+          text: "Half a day with your team.",
+          cta: { label: "Book an audit", href: "/work#audit" },
+        },
+        {
+          room: "platform",
+          key: "The platform",
+          title: "Run a brain yourself",
+          text: "Open source and self-hostable.",
+          cta: {
+            label: "See the repository",
+            href: "https://github.com/rizom-ai/brains",
+          },
+        },
+      ],
     });
-    expect(html).toContain('data-room="work"');
-    expect(html).toContain('class="button"');
-    expect(html).toContain('class="text-link"');
+    expect(html).toMatch(/^<section id="doors" class="chapter">/);
+    expect(html).toContain('<div class="doors">');
+    expect(html).toContain('<a class="door door--work" href="/work#audit">');
+    expect(html).toContain(
+      '<span class="door__room">The practice</span><span class="door__title">A Knowledge Audit</span>',
+    );
+    expect(html).toContain('<span class="door__go">Book an audit</span>');
+    expect(html).toContain(
+      '<a class="door" href="https://github.com/rizom-ai/brains">',
+    );
   });
-  test("the final science schema round-trips through canonical markdown", () => {
-    const formatter = templates["science"]?.formatter;
-    if (!formatter) throw new Error("Science formatter missing");
-    const data = { ...lead, claim: "A *quiet emphasis* here", dimensions };
-    expect(formatter.parse(formatter.format(data))).toEqual(data);
-  });
+
   test("authored text is escaped rather than treated as HTML", () => {
-    const html = renderSection("science", {
-      ...lead,
-      claim: '<img src=x onerror="alert(1)">',
-      dimensions,
+    const html = renderSection("turn", {
+      cap: "<b>cap</b>",
+      quote: "<script>alert(1)</script>",
+      emphasis: "x",
+      body: ["<img src=x>"],
     });
-    expect(html).not.toContain("<img");
-    expect(html).toContain("&lt;img");
+    expect(html).not.toContain("<script>alert");
+    expect(html).toContain("&lt;script&gt;");
   });
 });

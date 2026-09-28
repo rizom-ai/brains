@@ -2,7 +2,10 @@ import { describe, expect, it, mock } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { loadHomepageOpening } from "../src/datasources/homepage-opening";
+import {
+  loadAskContent,
+  loadHomepageOpening,
+} from "../src/datasources/homepage-opening";
 import { homepageOpeningSchema } from "../src/schemas/homepage-opening";
 import { HomepageAtlas } from "../src/templates/homepage-atlas";
 
@@ -102,6 +105,17 @@ describe("authored opening", () => {
         ),
       ).toBeNull();
     }
+  });
+  it("reads the authored copy alone, without a door, for a page that docks the box itself", async () => {
+    const runtime = context();
+    const copy = await loadAskContent({ entityService: runtime.entityService });
+    expect(copy?.title).toBe("A different opening");
+    expect(copy?.topics).toEqual(["Talk about research"]);
+    expect(copy).not.toHaveProperty("contactUrl");
+    const missing = context(entity("restricted"));
+    expect(
+      await loadAskContent({ entityService: missing.entityService }),
+    ).toBeNull();
   });
   it("uses the local site URL for a local preview, not the deployment's HTTPS domain", async () => {
     const runtime = context();

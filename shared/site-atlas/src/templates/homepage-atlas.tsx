@@ -4,13 +4,8 @@ import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { atlasPosition, buildAtlasTerrain } from "../lib/atlas-terrain";
 import { layoutZoneLabels, type LabelPlacement } from "../lib/atlas-labels";
-import {
-  ASK_BOX_ATTRIBUTE,
-  ASK_BOX_SCRIPT_PATH,
-  ASK_SEND_ATTRIBUTE,
-  ASK_STATUS_ATTRIBUTE,
-  ASK_STYLED_ATTRIBUTE,
-} from "@brains/contracts";
+import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
+import { AskBoxHost } from "./ask-box-host";
 import { homepageAtlasStyles } from "./homepage-atlas-styles";
 
 const KIND_ORDER = ["post", "deck", "project"] as const;
@@ -279,35 +274,7 @@ export function HomepageAtlas({
             className="atlas__prose"
           />
         )}
-        {askBox && (
-          // Disabled until Web Chat's box boot enables it; the boot mounts the
-          // conversation here and never sends on its own. Web Chat styles the
-          // mounted box; the atlas themes and frames it.
-          <div
-            className="atlas__ask"
-            {...{ [ASK_BOX_ATTRIBUTE]: "", [ASK_STYLED_ATTRIBUTE]: "" }}
-          >
-            <p
-              className="atlas__ask-status"
-              role="status"
-              {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
-            />
-            <div className="atlas__composer">
-              <textarea rows={1} disabled aria-label="Your question" />
-              <button
-                type="button"
-                className="atlas__send"
-                disabled
-                aria-label="Send question"
-                {...{ [ASK_SEND_ATTRIBUTE]: "" }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
+        {askBox && <AskBoxHost prefix="atlas" />}
         {opening.contactUrl && (
           <AtlasDoor
             opening={opening}

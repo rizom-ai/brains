@@ -44,14 +44,14 @@ function contactUrl(
     : null;
 }
 
-/** Build-time authored presentation only: no chat admission, tokens or generation.
- * The authored words stand on their own; the door is there only when a
- * contact form can receive it, so a page without one never shows a dead door.
+/**
+ * The authored opening's copy alone: the public ask-content note, when it says
+ * something. Build-time authored presentation only: no chat admission, tokens
+ * or generation. For a page that docks the box itself and needs no door.
  */
-export async function loadHomepageOpening(
-  context: BaseDataSourceContext,
-  runtime: OpeningRuntime,
-): Promise<HomepageOpeningData | null> {
+export async function loadAskContent(
+  context: Pick<BaseDataSourceContext, "entityService">,
+): Promise<AskContent | null> {
   try {
     const entity = await context.entityService.getEntity({
       entityType: "ask-content",
@@ -61,11 +61,24 @@ export async function loadHomepageOpening(
     if (entity?.visibility !== "public") return null;
     const content = parseAskContent(entity.content);
     return content.title || content.introduction || content.topics?.length
-      ? { ...content, contactUrl: contactUrl(context, runtime) }
+      ? content
       : null;
   } catch {
     // Missing/malformed optional authoring or unavailable dependencies omit the
     // placement; do not log copy, generate a replacement, or create a dead door.
     return null;
   }
+}
+
+/** The authored words stand on their own; the door is there only when a
+ * contact form can receive it, so a page without one never shows a dead door.
+ */
+export async function loadHomepageOpening(
+  context: BaseDataSourceContext,
+  runtime: OpeningRuntime,
+): Promise<HomepageOpeningData | null> {
+  const content = await loadAskContent(context);
+  return content
+    ? { ...content, contactUrl: contactUrl(context, runtime) }
+    : null;
 }

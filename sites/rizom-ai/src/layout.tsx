@@ -1,10 +1,10 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
 import { RizomFrame, type RizomLayoutProps } from "./rizom";
-import { LivingMemoryStyles } from "./living-memory";
 import { BrainStyles } from "./brain";
 import { StoryPage, type StoryFigure } from "./story/story-page";
 import { foundationOrganism } from "./story/foundation-organism";
+import { livingOrganism } from "./story/living-organism";
 
 /**
  * rizom.ai's chrome: one bar (the wordmark, the rooms and the archive, the
@@ -188,6 +188,7 @@ function SiteFooter({
 
 // The pages told as a story, and the drawing each one scrolls beside.
 const STORY_FIGURES: Record<string, StoryFigure> = {
+  "/": { className: "living-org", organism: livingOrganism },
   "/foundation": { className: "foundation-org", organism: foundationOrganism },
 };
 
@@ -201,21 +202,13 @@ function RizomAiChrome({
   children: ReactNode;
 }): JSX.Element {
   const room = activeRoom(path);
-  const livingMemory = path === "/";
   const figure = STORY_FIGURES[path];
   return (
     <RizomFrame>
       <div
         data-room={room}
-        className={
-          livingMemory
-            ? "living-memory-page relative"
-            : path === "/brain"
-              ? "brain-page relative"
-              : "relative"
-        }
+        className={path === "/brain" ? "brain-page relative" : "relative"}
       >
-        {livingMemory && <LivingMemoryStyles />}
         {path === "/brain" && <BrainStyles />}
         <Bar path={path} />
         <main>

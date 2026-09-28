@@ -50,6 +50,7 @@
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-atlas": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/typescript-config": "workspace:*",

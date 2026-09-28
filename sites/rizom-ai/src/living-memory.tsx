@@ -4,20 +4,25 @@ import { defineSection, sectionGroup, z } from "@rizom/site";
 import type { SiteSectionGroup } from "@rizom/site";
 import { renderHighlightedText } from "./rizom";
 import { ctaSchema } from "./shared";
-import {
-  LanternMark,
-  OrganismDefs,
-  OrganismMap,
-  BrainMark,
-  PracticeMark,
-  NetworkMark,
-} from "./living-memory-art";
 
-/** Rendering lives here; authored values live in rizom-content/site-content/living-memory. */
-export function LivingMemoryStyles(): JSX.Element {
-  return (
-    <link rel="stylesheet" href="/styles/living-memory.css" precedence="page" />
-  );
+/**
+ * The homepage's story, chapter by chapter beside the living organism the
+ * layout supplies (see ./story/living-organism): the science, the shift, the
+ * organism, where this goes and the two ways in. The opening is its own
+ * template (see ./opening). Each section is authored from one zod schema;
+ * copy is content-driven, stored as markdown in
+ * rizom-content/site-content/living-memory, and the section ids stay stable.
+ * The problem and the system keep their templates for their content files,
+ * though the homepage no longer routes them: /work and /brain tell them.
+ */
+
+/** Authored *emphasis* in a heading is emphasis: the story styles `em`. */
+function emphasize(text: string): (string | JSX.Element)[] {
+  return text
+    .split(/\*([^*]+)\*/g)
+    .map((part, i) =>
+      i % 2 === 1 ? <em key={`${i}-${part}`}>{part}</em> : part,
+    );
 }
 
 const lead = {
@@ -29,7 +34,7 @@ function Copy({ paragraphs }: { paragraphs: string[] }): JSX.Element {
   return (
     <>
       {paragraphs.map((paragraph) => (
-        <p className="copy" key={paragraph}>
+        <p key={paragraph}>
           {renderHighlightedText(
             paragraph,
             "font-medium not-italic text-theme",
@@ -39,6 +44,9 @@ function Copy({ paragraphs }: { paragraphs: string[] }): JSX.Element {
     </>
   );
 }
+
+/* ============ the problem (unrouted; /work tells it) ============ */
+
 const problemSchema = z.object({
   cap: z.string(),
   items: z.array(z.object({ title: z.string(), text: z.string() })).length(3),
@@ -48,25 +56,21 @@ function ProblemSection({
   items,
 }: z.infer<typeof problemSchema>): JSX.Element {
   return (
-    <section
-      className="problem-strip shell"
-      id="problem"
-      aria-labelledby="problem-heading"
-    >
-      <h2 className="eyebrow" id="problem-heading">
-        {cap}
-      </h2>
-      <div className="problem-grid">
+    <section id="problem" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <dl className="parts">
         {items.map((item) => (
-          <article key={item.title}>
-            <h3>{item.title}</h3>
-            <p>{item.text}</p>
-          </article>
+          <div key={item.title}>
+            <dt>{item.title}</dt>
+            <dd>{item.text}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
     </section>
   );
 }
+
+/* ============ the science ============ */
 
 const dimensionSchema = z.object({
   name: z.string(),
@@ -85,81 +89,23 @@ function ScienceSection({
   dimensions,
 }: z.infer<typeof scienceSchema>): JSX.Element {
   return (
-    <section
-      className="section shell"
-      id="science"
-      aria-labelledby="science-heading"
-    >
-      <div className="science-grid">
-        <div className="science-copy">
-          <p className="eyebrow">{cap}</p>
-          <h2 className="heading" id="science-heading">
-            {renderHighlightedText(claim, "heading-emphasis")}
-          </h2>
-          <Copy paragraphs={body} />
-        </div>
-        <div className="lantern">
-          <section
-            className="card"
-            data-active="0"
-            aria-label="Three dimensions of transactive memory"
-          >
-            <header className="meta">
-              <span className="meta-name">Transactive memory</span>
-              <span className="meta-index" aria-hidden="true">
-                <span className="meta-current">01</span> / 03
-              </span>
-            </header>
-            <div className="stage" aria-hidden="true">
-              <LanternMark />
-            </div>
-            <div className="panels">
-              {dimensions.map((dimension, index) => (
-                <section
-                  className="panel"
-                  id={`panel-${index}`}
-                  key={dimension.name}
-                  role="tabpanel"
-                  aria-labelledby={`tab-${index}`}
-                  aria-hidden={index !== 0}
-                  tabIndex={index === 0 ? 0 : -1}
-                >
-                  <h3 className="title">
-                    {dimension.title} <em>{dimension.emphasis}</em>
-                  </h3>
-                  <p className="body">{dimension.text}</p>
-                </section>
-              ))}
-            </div>
-            <div
-              className="tabs"
-              role="tablist"
-              aria-label="Dimensions of transactive memory"
-            >
-              {dimensions.map((dimension, index) => (
-                <button
-                  className="tab"
-                  id={`tab-${index}`}
-                  key={dimension.name}
-                  type="button"
-                  role="tab"
-                  aria-controls={`panel-${index}`}
-                  aria-selected={index === 0}
-                  tabIndex={index === 0 ? 0 : -1}
-                >
-                  <span className="tab-number" aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  {dimension.name}
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
+    <section id="science" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(claim)}</h2>
+      <Copy paragraphs={body} />
+      <dl className="dims">
+        {dimensions.map((dimension) => (
+          <div key={dimension.name}>
+            <dt>{dimension.name}</dt>
+            <dd>{dimension.text}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
+
+/* ============ the shift ============ */
 
 const turnSchema = z.object({
   cap: z.string(),
@@ -174,22 +120,17 @@ function TurnSection({
   body,
 }: z.infer<typeof turnSchema>): JSX.Element {
   return (
-    <section className="turn" aria-labelledby="turn-heading">
-      <div className="shell">
-        <p className="eyebrow" id="turn-heading">
-          {cap}
-        </p>
-        <blockquote>
-          <span className="turn-intro">{quote}</span>{" "}
-          <em className="turn-emphasis">{emphasis}</em>
-        </blockquote>
-        <div className="turn-bottom">
-          <Copy paragraphs={body} />
-        </div>
-      </div>
+    <section id="turn" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>
+        {quote} <em>{emphasis}</em>
+      </h2>
+      <Copy paragraphs={body} />
     </section>
   );
 }
+
+/* ============ the system (unrouted; /brain tells it) ============ */
 
 const systemSchema = z.object({
   ...lead,
@@ -210,53 +151,27 @@ function SystemSection({
   comparison,
 }: z.infer<typeof systemSchema>): JSX.Element {
   return (
-    <section
-      className="section shell"
-      id="system"
-      aria-labelledby="system-heading"
-    >
-      <div className="section-intro">
-        <div>
-          <p className="eyebrow">
-            {cap}
-            <span className="availability">{availability}</span>
-          </p>
-          <h2 className="heading" id="system-heading">
-            {renderHighlightedText(claim, "heading-emphasis")}
-          </h2>
-        </div>
-        <div>
-          <Copy paragraphs={body} />
-        </div>
-      </div>
-      <table
-        className="comparison"
-        aria-label="Documentation compared with living memory"
-      >
-        <thead>
-          <tr>
-            <th scope="col">
-              <span className="small-label">{comparison.beforeLabel}</span>
-              <span className="comparison-title">{comparison.beforeTitle}</span>
-            </th>
-            <th scope="col">
-              <span className="small-label">{comparison.afterLabel}</span>
-              <span className="comparison-title">{comparison.afterTitle}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {comparison.rows.map((row) => (
-            <tr key={row.before}>
-              <td>{row.before}</td>
-              <td>{row.after}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <section id="system" className="chapter">
+      <p className="eyebrow">
+        {cap} <span className="status">{availability}</span>
+      </p>
+      <h2>{emphasize(claim)}</h2>
+      <Copy paragraphs={body} />
+      <dl className="parts">
+        {comparison.rows.map((row) => (
+          <div key={row.before}>
+            <dt>{row.after}</dt>
+            <dd>
+              {comparison.beforeTitle}: {row.before}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
+
+/* ============ one organism: the site's rooms ============ */
 
 const growthSchema = z.object({
   cap: z.string(),
@@ -265,50 +180,37 @@ const growthSchema = z.object({
     .array(z.object({ key: z.string(), title: z.string(), text: z.string() }))
     .length(3),
 });
-const stageArt = [
-  { className: "organism-brain", Mark: BrainMark },
-  { className: "organism-team", Mark: PracticeMark },
-  { className: "organism-network", Mark: NetworkMark },
-];
+// The three parts are the site's rooms; the network is the opening above.
+const ROOMS: Record<string, string> = {
+  You: "/brain",
+  Team: "/work",
+  Network: "#hero",
+};
 function GrowthSection({
   cap,
   claim,
   stages,
 }: z.infer<typeof growthSchema>): JSX.Element {
   return (
-    <section
-      className="section organism shell"
-      id="growth"
-      aria-labelledby="organism-heading"
-    >
+    <section id="growth" className="chapter">
       <p className="eyebrow">{cap}</p>
-      <h2 className="heading" id="organism-heading">
-        {renderHighlightedText(claim, "heading-emphasis")}
-      </h2>
-      <OrganismDefs />
-      <OrganismMap />
-      <div className="organism-stages">
-        {stages.map((stage, index) => {
-          const art = stageArt[index];
-          if (!art) throw new Error("Missing organism illustration");
+      <h2>{emphasize(claim)}</h2>
+      <dl className="parts">
+        {stages.map((stage) => {
+          const href = ROOMS[stage.key];
           return (
-            <article
-              className={`organism-stage ${art.className}`}
-              key={stage.key}
-            >
-              <art.Mark />
-              <div>
-                <p className="small-label">{stage.key}</p>
-                <h3>{stage.title}</h3>
-                <p className="copy">{stage.text}</p>
-              </div>
-            </article>
+            <div key={stage.key}>
+              <dt>{href ? <a href={href}>{stage.title}</a> : stage.title}</dt>
+              <dd>{stage.text}</dd>
+            </div>
           );
         })}
-      </div>
+      </dl>
     </section>
   );
 }
+
+/* ============ where this goes ============ */
 
 const arcSchema = z.object({
   cap: z.string(),
@@ -331,40 +233,27 @@ function ArcSection({
   rows,
 }: z.infer<typeof arcSchema>): JSX.Element {
   return (
-    <section
-      className="section arc shell"
-      id="arc"
-      aria-labelledby="arc-heading"
-    >
-      <div className="arc-header">
-        <p className="eyebrow">{cap}</p>
-        <h2 className="heading" id="arc-heading">
-          {renderHighlightedText(claim, "heading-emphasis")}
-        </h2>
-      </div>
-      <div className="roadmap">
+    <section id="arc" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(claim)}</h2>
+      <dl className="parts">
         {rows.map((row) => (
-          <article key={row.no}>
-            <div className="step">
-              <span className="step-number" aria-hidden="true">
-                {row.no}
-              </span>
-              <p className="small-label">{row.kicker}</p>
-            </div>
-            <h3>{row.title}</h3>
-            <details className="roadmap-detail" open>
-              <summary>
-                Read more<span className="sr-only">: {row.title}</span>
-              </summary>
-              <p className="copy">{row.text}</p>
-            </details>
-            <p className="status">{row.meta}</p>
-          </article>
+          <div key={row.no}>
+            <dt>
+              {row.title} <span className="status">{row.meta}</span>
+            </dt>
+            <dd>{row.text}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
+      <p className="onward">
+        <a href="/foundation">The research behind it, at the Foundation</a>
+      </p>
     </section>
   );
 }
+
+/* ============ two ways in ============ */
 
 const doorsSchema = z.object({
   ...lead,
@@ -387,46 +276,37 @@ function DoorsSection({
   doors,
 }: z.infer<typeof doorsSchema>): JSX.Element {
   return (
-    <section
-      className="section doors shell"
-      id="doors"
-      aria-labelledby="doors-heading"
-    >
-      <div className="doors-header">
-        <p className="eyebrow">{cap}</p>
-        <h2 className="heading" id="doors-heading">
-          {renderHighlightedText(claim, "heading-emphasis")}
-        </h2>
-        <div>
-          <Copy paragraphs={body} />
-        </div>
-      </div>
-      <div className="entries">
+    <section id="doors" className="chapter">
+      <p className="eyebrow">{cap}</p>
+      <h2>{emphasize(claim)}</h2>
+      <Copy paragraphs={body} />
+      <div className="doors">
         {doors.map((door) => (
-          <article className="entry" data-room={door.room} key={door.key}>
-            <p className="small-label">{door.key}</p>
-            <h3>{door.title}</h3>
-            <p className="copy">{door.text}</p>
-            <a
-              className={door.room === "work" ? "button" : "text-link"}
-              href={door.cta.href}
-            >
-              {door.cta.label}
-              <span aria-hidden="true">↗</span>
-            </a>
-          </article>
+          <a
+            key={door.key}
+            className={door.room === "work" ? "door door--work" : "door"}
+            href={door.cta.href}
+          >
+            <span className="door__room">{door.key}</span>
+            <span className="door__title">{door.title}</span>
+            <span className="door__text">{door.text}</span>
+            <span className="door__go">{door.cta.label}</span>
+          </a>
         ))}
       </div>
     </section>
   );
 }
 
+/* ============ the living-memory section group ============ */
+
 export const livingMemorySections: SiteSectionGroup = sectionGroup(
   "living-memory",
   {
     problem: defineSection(problemSchema, ProblemSection, {
       title: "Problem",
-      description: "Three consequences of disconnected knowledge",
+      description:
+        "Three consequences of disconnected knowledge (told on /work)",
     }),
     science: defineSection(scienceSchema, ScienceSection, {
       title: "Science",
@@ -438,11 +318,11 @@ export const livingMemorySections: SiteSectionGroup = sectionGroup(
     }),
     system: defineSection(systemSchema, SystemSection, {
       title: "System",
-      description: "Paired comparison of documentation and living memory",
+      description: "Documentation compared with living memory (told on /brain)",
     }),
     growth: defineSection(growthSchema, GrowthSection, {
       title: "Growth",
-      description: "One connected brain, practice, and network",
+      description: "One organism: the brain, the practice and the network",
     }),
     arc: defineSection(arcSchema, ArcSection, {
       title: "Arc",
@@ -450,7 +330,7 @@ export const livingMemorySections: SiteSectionGroup = sectionGroup(
     }),
     doors: defineSection(doorsSchema, DoorsSection, {
       title: "Doors",
-      description: "A knowledge session or the open-source platform",
+      description: "A Knowledge Audit or the open-source platform",
     }),
   },
 );

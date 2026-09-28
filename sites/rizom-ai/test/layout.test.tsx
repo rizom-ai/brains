@@ -78,6 +78,13 @@ describe("the story shell", () => {
     expect(html).not.toContain("side-nav-dot");
   });
 
+  test("tells the homepage as a story beside the living organism", () => {
+    const html = renderChrome("/");
+    expect(html).toContain('class="figure living-org" data-stage="0"');
+    expect(html).toContain('class="rail"');
+    expect(html).not.toContain("/styles/living-memory.css");
+  });
+
   test("leaves pages without a story on the plain shell", () => {
     const html = renderChrome("/brain");
     expect(html).not.toContain('class="story"');

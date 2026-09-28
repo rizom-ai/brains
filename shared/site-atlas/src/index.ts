@@ -6,6 +6,7 @@
  * authored opening, the Ask box and the contact door over them.
  */
 export { HomepageAtlas, type SuppliedMap } from "./templates/homepage-atlas";
+export { AskBoxHost } from "./templates/ask-box-host";
 export { homepageAtlasStyles } from "./templates/homepage-atlas-styles";
 export { sampleGrid, traceContours, type ContourGrid } from "./lib/contours";
 export {
@@ -26,6 +27,7 @@ export {
   type HomepageOpeningContent,
 } from "./schemas/homepage-opening";
 export {
+  loadAskContent,
   loadHomepageOpening,
   type HomepageOpeningData,
 } from "./datasources/homepage-opening";
