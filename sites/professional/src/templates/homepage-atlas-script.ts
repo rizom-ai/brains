@@ -1,5 +1,7 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
   ASK_SOURCE_ATTRIBUTE,
   ASK_SOURCES_EVENT,
 } from "@brains/contracts";
@@ -202,8 +204,17 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (point < centre) return (centre - low) / (centre - point);
       return ZOOM;
     }
+    // A map shown as a strip slides only while an answer moves it (the phone
+    // sheet transitions its pan under this mark), so opening it never does.
+    var panning = 0;
+    function pan() {
+      field.setAttribute("data-atlas-panning", "");
+      window.clearTimeout(panning);
+      panning = window.setTimeout(function () { field.removeAttribute("data-atlas-panning"); }, TURN);
+    }
     function turnTowards(cited) {
       if (!field) return;
+      pan();
       if (!cited.length) {
         field.removeAttribute("data-focused");
         field.style.removeProperty("--atlas-strip-y");
@@ -302,6 +313,29 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
     }
 
+    // In a phone's open conversation the map is a strip. The strip opens the
+    // whole map; "Back to the answer", closing or typing folds it again.
+    var askHost = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
+    var count = root.querySelector("[data-atlas-count]");
+    function fold() {
+      if (!root.hasAttribute("data-atlas-expanded")) return;
+      root.removeAttribute("data-atlas-expanded");
+      if (field) pan();
+    }
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest) return;
+      if (target.closest("[data-atlas-fold]")) return fold();
+      if (!target.closest("[data-atlas-expand]")) return;
+      if (!askHost || !askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}")) return;
+      root.setAttribute("data-atlas-expanded", "");
+      if (field) pan();
+    });
+    if (askHost && typeof MutationObserver === "function")
+      new MutationObserver(function () {
+        if (!askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}") || askHost.hasAttribute("${ASK_KEYBOARD_ATTRIBUTE}")) fold();
+      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}", "${ASK_KEYBOARD_ATTRIBUTE}"] });
+
     root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
       var sources = (event.detail && event.detail.sources) || [];
       var ids = sources.map(function (source) { return source.id; });
@@ -313,6 +347,10 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         } else mark.removeAttribute("data-cited");
       });
       turnTowards(cited);
+      if (count)
+        count.textContent = cited.length
+          ? cited.length + (cited.length === 1 ? " piece" : " pieces") + " this answer draws on"
+          : "";
       citedMarks = cited;
       followLeads(Date.now() + TURN);
     });

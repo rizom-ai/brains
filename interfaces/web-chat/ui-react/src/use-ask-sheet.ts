@@ -8,8 +8,10 @@ import {
 } from "react";
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_CLOSING_ATTRIBUTE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
   ASK_SHEET_MEDIA,
 } from "@brains/contracts";
 
@@ -37,6 +39,8 @@ export function useAskSheet(
     () => window.matchMedia(ASK_SHEET_MEDIA).matches,
   );
   const [open, setOpen] = useState(false);
+  // A closing sheet stays open while it falls away (ASK_CLOSING_ATTRIBUTE).
+  const [closing, setClosing] = useState(false);
   // Back closes the conversation: opening adds the history entry it pops.
   const entered = useRef(false);
   const host = (): HTMLElement | null =>
@@ -58,16 +62,38 @@ export function useAskSheet(
   }, [narrow]);
 
   const show = useCallback((): void => {
-    if (window.matchMedia(ASK_SHEET_MEDIA).matches) setOpen(true);
+    if (!window.matchMedia(ASK_SHEET_MEDIA).matches) return;
+    setClosing(false);
+    setOpen(true);
   }, []);
 
   const close = useCallback((): void => {
-    setOpen(false);
+    setClosing(true);
     if (entered.current) {
       entered.current = false;
       window.history.back();
     }
   }, []);
+
+  // The sheet closes once its fall ends; without one (reduced motion, or a
+  // host without the box's stylesheet) at once.
+  useLayoutEffect(() => {
+    const element = host();
+    if (!closing) return;
+    const settle = (): void => {
+      setClosing(false);
+      setOpen(false);
+    };
+    if (!element) return settle();
+    element.setAttribute(ASK_CLOSING_ATTRIBUTE, "");
+    const animation = window.getComputedStyle(element).animationName;
+    if (!animation || animation === "none") return settle();
+    element.addEventListener("animationend", settle, { once: true });
+    return (): void => {
+      element.removeEventListener("animationend", settle);
+      element.removeAttribute(ASK_CLOSING_ATTRIBUTE);
+    };
+  }, [closing]);
 
   useLayoutEffect(() => {
     const element = host();
@@ -83,7 +109,11 @@ export function useAskSheet(
     page.style.overflow = "hidden";
     if (!entered.current) {
       entered.current = true;
-      window.history.pushState(window.history.state, "");
+      // Where the page was, so a reload with the sheet open returns there.
+      window.history.pushState(
+        { [ASK_SHEET_HISTORY_KEY]: { y: Math.round(window.scrollY) } },
+        "",
+      );
     }
     const viewport = window.visualViewport;
     const fit = (): void => {
@@ -101,7 +131,7 @@ export function useAskSheet(
     };
     const back = (): void => {
       entered.current = false;
-      setOpen(false);
+      setClosing(true);
     };
     const escape = (event: KeyboardEvent): void => {
       if (event.key === "Escape") close();
@@ -124,6 +154,7 @@ export function useAskSheet(
       document.removeEventListener("keydown", escape);
       page.style.overflow = scroll;
       element.removeAttribute(ASK_SHEET_ATTRIBUTE);
+      element.removeAttribute(ASK_CLOSING_ATTRIBUTE);
       element.style.removeProperty("--ask-viewport-height");
       element.style.removeProperty("--ask-viewport-top");
       element.removeAttribute(ASK_KEYBOARD_ATTRIBUTE);
