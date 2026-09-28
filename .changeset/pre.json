@@ -371,6 +371,7 @@
     "core--grouping-definition-contributors",
     "core--grouping-definition-editor",
     "core--grouping-definition-source",
+    "core--grouping-type-exclusions",
     "core--grouping-usage-counts",
     "core--guest-admission-uncertain-signal",
     "core--guest-answer-sources-domain",
