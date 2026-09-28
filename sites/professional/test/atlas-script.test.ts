@@ -23,6 +23,8 @@ function setup(options: {
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
       <a id="topic" href="/contact?topic=What+is+Rizom%3F" data-atlas-door data-atlas-fill="What is Rizom?">What is Rizom?</a>
       <svg data-atlas-leads></svg>
+      <button data-atlas-expand aria-label="Show the whole map"></button>
+      <div data-atlas-mapbar><span data-atlas-count></span><button data-atlas-fold>Back to the answer</button></div>
       <div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
@@ -320,6 +322,75 @@ describe("atlas and its chat", () => {
     expect(Number(field.style.getPropertyValue("--atlas-strip-y"))).toBe(
       parseFloat(mark.style.top),
     );
+  });
+
+  describe("in a phone's open conversation", () => {
+    const root = (): ReturnType<typeof window.document.querySelector> =>
+      window.document.querySelector("[data-atlas]");
+    const host = (): ReturnType<typeof window.document.querySelector> =>
+      window.document.querySelector("[data-ask-box]");
+    const press = (selector: string): void => {
+      window.document
+        .querySelector(selector)
+        ?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    };
+    const expanded = (): boolean =>
+      root()?.hasAttribute("data-atlas-expanded") ?? false;
+    const settle = (): Promise<void> =>
+      new Promise((resolve) => setTimeout(resolve, 10));
+
+    it("opens the whole map from the strip, and folds it back to the answer", () => {
+      setup({ touch: true, chat: "live" });
+      host()?.setAttribute("data-ask-sheet", "");
+      press("[data-atlas-expand]");
+      expect(expanded()).toBe(true);
+      press("[data-atlas-fold]");
+      expect(expanded()).toBe(false);
+    });
+
+    it("leaves the page's own map alone", () => {
+      setup({ touch: true, chat: "live" });
+      press("[data-atlas-expand]");
+      expect(expanded()).toBe(false);
+    });
+
+    it("folds the map when the conversation closes or the keyboard opens", async () => {
+      setup({ touch: true, chat: "live" });
+      host()?.setAttribute("data-ask-sheet", "");
+      press("[data-atlas-expand]");
+      host()?.setAttribute("data-ask-keyboard", "");
+      await settle();
+      expect(expanded()).toBe(false);
+      host()?.removeAttribute("data-ask-keyboard");
+      press("[data-atlas-expand]");
+      host()?.removeAttribute("data-ask-sheet");
+      await settle();
+      expect(expanded()).toBe(false);
+    });
+
+    it("says how many pieces an answer draws on", () => {
+      setup({ touch: true, chat: "live" });
+      const count = (): string =>
+        window.document.querySelector("[data-atlas-count]")?.textContent ?? "";
+      answer(["post:first", "post:second"]);
+      expect(count()).toBe("2 pieces this answer draws on");
+      answer(["post:first"]);
+      expect(count()).toBe("1 piece this answer draws on");
+      answer([]);
+      expect(count()).toBe("");
+    });
+  });
+
+  it("marks the map as panning only while an answer moves it, so opening a strip never slides it", async () => {
+    setup({ touch: false, chat: "live" });
+    const field = window.document.querySelector("[data-atlas-field]");
+    if (!(field instanceof window.HTMLElement))
+      throw new Error("Missing atlas fixture");
+    expect(field.hasAttribute("data-atlas-panning")).toBe(false);
+    answer(["post:first"]);
+    expect(field.hasAttribute("data-atlas-panning")).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect(field.hasAttribute("data-atlas-panning")).toBe(false);
   });
 
   it("zooms all the way towards sources that stay in view", () => {

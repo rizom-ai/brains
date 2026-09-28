@@ -232,8 +232,10 @@ async function mount(
   });
 }
 async function click(label: string): Promise<void> {
-  const button = [...document.querySelectorAll("button")].find((element) =>
-    element.textContent.includes(label),
+  const button = [...document.querySelectorAll("button")].find(
+    (element) =>
+      element.textContent.includes(label) ||
+      element.getAttribute("aria-label") === label,
   );
   if (!button) throw new Error(`Missing button: ${label}`);
   await act(async (): Promise<void> => button.click());

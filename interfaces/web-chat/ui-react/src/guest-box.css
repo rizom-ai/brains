@@ -145,18 +145,54 @@
 :where([data-ask-styled] .brain-box-bottom form) {
   margin: 0;
 }
+/* Away from the newest text: a round button above the composer's corner. */
 :where([data-ask-styled] .brain-box-latest) {
   position: absolute;
   z-index: 1;
-  top: -34px;
+  top: -48px;
   right: 0;
-  padding: 5px 12px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid var(--ask-rule);
-  border-radius: 99px;
+  border-radius: 50%;
   background: var(--ask-bg);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ask-text) 12%, transparent);
   color: var(--ask-accent);
-  font-size: 12px;
+  font-size: 15px;
   cursor: pointer;
+}
+/* Where an answer will appear while it is being written. */
+:where([data-ask-styled] .brain-box-waiting) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--ask-muted);
+  font: italic 14px var(--ask-display);
+}
+:where([data-ask-styled] .brain-box-dots) {
+  display: flex;
+  gap: 4px;
+}
+:where([data-ask-styled] .brain-box-dots i) {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ask-accent);
+  animation: brain-ask-pulse 1.2s ease-in-out infinite;
+}
+:where([data-ask-styled] .brain-box-dots i:nth-child(2)) {
+  animation-delay: 0.15s;
+}
+:where([data-ask-styled] .brain-box-dots i:nth-child(3)) {
+  animation-delay: 0.3s;
+}
+/* An arriving answer fades in where the waiting line was. */
+:where([data-ask-styled] .guest-assistant) {
+  animation: brain-ask-arrive 0.45s ease-out;
 }
 :where([data-ask-styled] .prompt-row) {
   display: flex;
@@ -320,6 +356,12 @@
     margin: 0;
     padding: 0 16px;
     background: var(--ask-bg);
+    /* It rises into view and falls away (ASK_CLOSING_ATTRIBUTE) the full
+       height of the screen; a host moves what it docks under it along. */
+    animation: brain-ask-rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  :where([data-ask-styled][data-ask-sheet][data-ask-closing]) {
+    animation: brain-ask-fall 0.26s cubic-bezier(0.4, 0, 1, 1) forwards;
   }
   :where([data-ask-styled] .brain-guest-box.is-sheet) {
     display: flex;
@@ -360,6 +402,8 @@
     max-height: none;
     margin-top: var(--ask-sheet-inset, 0px);
     overflow-y: auto;
+    /* Follows a docked strip as it folds and unfolds with the keyboard. */
+    transition: margin-top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   /* An empty conversation opens with its welcome just above the composer. */
   :where([data-ask-styled] .is-sheet .brain-box-scroll.is-welcome) {
@@ -421,5 +465,44 @@
     height: 8px;
     border-radius: 50%;
     background: var(--ask-accent);
+  }
+}
+@keyframes brain-ask-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes brain-ask-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes brain-ask-rise {
+  from {
+    transform: translateY(100dvh);
+  }
+}
+@keyframes brain-ask-fall {
+  to {
+    transform: translateY(100dvh);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    [data-ask-styled][data-ask-sheet],
+    [data-ask-styled] .is-sheet .brain-box-scroll,
+    [data-ask-styled] .brain-box-dots i,
+    [data-ask-styled] .guest-assistant
+  ) {
+    animation: none;
+    transition: none;
   }
 }

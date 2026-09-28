@@ -420,19 +420,47 @@ describe("living atlas", () => {
     expect(phone).toMatch(
       /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*position: fixed;[^}]*top: 3\.25rem;/,
     );
+    // It folds away while typing, rather than vanishing, so it never re-rises.
     expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-keyboard\]\) \.atlas__map \{ display: none; \}/,
+      /\.atlas:has\(\.atlas__ask\[data-ask-keyboard\]\) \.atlas__map \{[^}]*height: 0;/,
     );
+    expect(phone).not.toContain(
+      "[data-ask-keyboard]) .atlas__map { display: none; }",
+    );
+    // It rises and falls with the sheet it is docked under.
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{[^}]*animation: atlas-sheet-rise /,
+    );
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-closing\]\) \.atlas__map \{[^}]*animation: atlas-sheet-fall /,
+    );
+    expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-rise");
+    expect(homepageAtlasStyles).toContain("@keyframes atlas-sheet-fall");
     expect(phone).toMatch(
       /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: 7\.5rem; \}/,
     );
-    // The strip is a window onto the map at its own size, never a squeeze.
+    // The strip is a window onto the same map as the page, at the same size:
+    // the page's field is the band less the legend's 2rem.
+    expect(homepageAtlasStyles).toMatch(/\.atlas__field \{ bottom: 2rem; \}/);
     expect(phone).toMatch(
-      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__field \{[^}]*height: var\(--atlas-band\);[^}]*top: clamp\(/,
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__field \{[^}]*height: calc\(var\(--atlas-band\) - 2rem\);[^}]*top: clamp\(/,
+    );
+    // Opening never slides it; only an answer pans it.
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__field \{[^}]*transition: transform [^;]*;\s*\}/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__field\[data-atlas-panning\] \{[^}]*top \.9s/,
     );
     // The open conversation rises above the sticky site header.
     expect(phone).toMatch(
       /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \{ z-index: 1000; \}/,
+    );
+  });
+
+  it("keeps marks and their cards at their own size while the map zooms", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__field\[data-focused\] \.atlas__mark > :first-child \{[^}]*scale: calc\(1 \/ var\(--atlas-focus-scale, 1\)\);/,
     );
   });
 
@@ -562,6 +590,29 @@ describe("atlas with guest chat", () => {
     expect(html()).toMatch(/<svg[^>]*data-atlas-leads[^>]*aria-hidden="true"/);
   });
 
+  it("lets a phone's conversation open the whole map from its strip, and fold it back", () => {
+    expect(html()).toMatch(
+      /<button type="button" class="atlas__expand" data-atlas-expand="" aria-label="Show the whole map"><span>Show on map<\/span><\/button>/,
+    );
+    expect(html()).toMatch(
+      /<div class="atlas__mapbar" data-atlas-mapbar=""><span data-atlas-count="" aria-live="polite"><\/span><button type="button" data-atlas-fold="">Back to the answer<\/button><\/div>/,
+    );
+    const phone = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
+    );
+    // On the page there is nothing to open.
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__expand, \.atlas__mapbar \{ display: none; \}/,
+    );
+    // Open, it is the whole map at the page's size, with the bar below it.
+    expect(phone).toMatch(
+      /\.atlas\[data-atlas-expanded\]:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__map \{ height: calc\(var\(--atlas-band\) \+ \.5rem\); \}/,
+    );
+    expect(phone).toMatch(
+      /\.atlas\[data-atlas-expanded\] \.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: calc\(var\(--atlas-band\) \+ \.5rem\); \}/,
+    );
+  });
+
   it("keys every mark as the answer's sources are keyed", () => {
     expect(html()).toContain('data-atlas-key="post:hiding"');
     expect(html()).toContain('data-atlas-key="project:lefthoek"');
@@ -574,6 +625,7 @@ describe("atlas with guest chat", () => {
     expect(off).not.toContain("data-ask-box");
     expect(off).not.toContain("data-atlas-fill");
     expect(off).not.toContain("data-atlas-leads");
+    expect(off).not.toContain('data-atlas-expand=""');
     expect(off).not.toContain("<script");
   });
 });

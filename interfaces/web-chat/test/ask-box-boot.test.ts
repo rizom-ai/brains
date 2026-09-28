@@ -6,6 +6,7 @@ import {
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
 import { ASK_BOX_LOADER_SCRIPT, askBoxBootScript } from "../src/ask-box-boot";
@@ -107,6 +108,42 @@ describe("shared Ask box boot", () => {
     ).toBe(true);
   });
 
+  it("fetches the chat's styles and code once the page is idle, so engaging opens it at once, but mounts nothing", async () => {
+    // Tests cannot load it, so record the request rather than the result.
+    const requested: string[] = [];
+    const head = window.document.head;
+    const append = head.append.bind(head);
+    Object.assign(head, {
+      append: (...nodes: Parameters<typeof head.append>): void => {
+        for (const node of nodes)
+          if (node instanceof window.HTMLLinkElement)
+            requested.push(node.getAttribute("href") ?? "");
+        append(...nodes);
+      },
+    });
+    boot();
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect(requested).toContain("/ask/assets/guest.css?v=v1");
+    expect(
+      window.document.head.querySelector(
+        'link[rel="modulepreload"][href="/ask/assets/guest.js?v=v1"]',
+      ),
+    ).not.toBe(null);
+    expect(status()).toBe("");
+    expect(Reflect.get(input(), "readOnly")).toBe(false);
+  });
+
+  it("fetches the styles once, however often the visitor engages", async () => {
+    boot();
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect(
+      window.document.head.querySelectorAll(
+        'link[href="/ask/assets/guest.css?v=v1"]',
+      ).length,
+    ).toBeLessThanOrEqual(1);
+  });
+
   it("starts connecting on focus without sending", () => {
     boot();
     input().dispatchEvent(new window.FocusEvent("focus"));
@@ -144,7 +181,6 @@ describe("shared Ask box boot", () => {
     expect(status()).toContain("no question has been sent");
     expect(Reflect.get(input(), "value")).toBe("What do you work on?");
     expect(input().hasAttribute("readonly")).toBe(false);
-    expect(guestStylesheet()).toBe(false);
   });
 
   it("opens the box full screen on a narrow screen as the visitor engages, and closes it again if chat cannot load", async () => {
@@ -165,6 +201,23 @@ describe("shared Ask box boot", () => {
     expect(
       element(`[${ASK_BOX_ATTRIBUTE}]`).hasAttribute(ASK_SHEET_ATTRIBUTE),
     ).toBe(false);
+  });
+
+  it("returns a page reloaded with the sheet open to where it was, with no extra step back", async () => {
+    window.history.pushState({ [ASK_SHEET_HISTORY_KEY]: { y: 300 } }, "");
+    const entries = window.history.length;
+    boot();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(window.history.state).toBe(null);
+    expect(window.history.length).toBe(entries);
+    expect(window.scrollY).toBe(300);
+  });
+
+  it("leaves a page on its own history entry alone", async () => {
+    window.history.replaceState({ other: true }, "");
+    boot();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(window.history.state).toEqual({ other: true });
   });
 
   it("leaves a host without its contract untouched", () => {
