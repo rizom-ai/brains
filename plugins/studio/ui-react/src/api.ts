@@ -28,10 +28,8 @@ import {
 
 import type { StudioEntityTypeInfo } from "../../src/editor-contracts";
 
-export type {
-  StudioTypeCapabilities,
-  StudioTypeHierarchy,
-} from "../../src/editor-contracts";
+export type { StudioTypeCapabilities } from "../../src/editor-contracts";
+export type { StudioTypeHierarchy } from "../../src/config";
 /** One entity type in Studio's type list, as the server describes it. */
 export type EntityTypeInfo = StudioEntityTypeInfo;
 

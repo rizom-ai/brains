@@ -11,7 +11,6 @@ import {
   unwrapField,
 } from "@brains/utils/zod-introspect";
 import { isRecord } from "@brains/utils/is-record";
-import type { StudioTypeHierarchy } from "./editor-contracts";
 // Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
 // which plugins may not import directly and @brains/plugins does not re-export).
 const NOTE_ENTITY_TYPE = "note";
@@ -77,6 +76,14 @@ export function isRawEntityType(
     entityType === NOTE_ENTITY_TYPE &&
     !entities.isGroupingContributor(entityType)
   );
+}
+
+/** How a type's entries nest, as Studio presents and creates them. */
+export interface StudioTypeHierarchy {
+  /** What a level of the hierarchy is called. */
+  kind: "page" | "folder";
+  /** Whether new entries may be created inside a folder. */
+  nested: boolean;
 }
 
 /**
