@@ -486,12 +486,34 @@ describe("guest tool dispatch", () => {
       return execute({}, { toolCallId: "read", messages: [] });
     }
 
-    it("reports a lookup that finds nothing as no match, not an outage", async () => {
+    it("passes a lookup's own answer to the model, so it can correct its request", async () => {
+      const read = tool("system_list", {
+        handler: mock(async () => ({
+          success: false,
+          error: "Unknown entity type: projects. Available: post, project",
+        })),
+      });
+      expect(await lookup(read)).toEqual({
+        success: false,
+        error: "Unknown entity type: projects. Available: post, project",
+      });
+    });
+
+    it("bounds a lookup's own answer", async () => {
       const read = tool("system_get", {
         handler: mock(async () => ({
           success: false,
-          error: "PRIVATE entity not found",
+          error: "x".repeat(2000),
         })),
+      });
+      const result = await lookup(read);
+      expect(result).toMatchObject({ success: false });
+      expect(JSON.stringify(result).length).toBeLessThan(600);
+    });
+
+    it("reports a lookup that fails with an empty answer as no match", async () => {
+      const read = tool("system_get", {
+        handler: mock(async () => ({ success: false, error: " " })),
       });
       expect(await lookup(read)).toEqual({
         success: false,

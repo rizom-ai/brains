@@ -18,15 +18,24 @@ const GUEST_RETRIEVAL_UNAVAILABLE = {
   error: "Public retrieval unavailable",
 } as const;
 
+const GUEST_LOOKUP_ERROR_CHARACTERS = 500;
+
 /**
- * A guest lookup as the model sees it, since the model relays it to the
- * visitor: a result, or that nothing public matches. The handler's own error
- * words can name private entities, so they never pass.
+ * A guest lookup as the model sees it: a result, or the read tool's own answer
+ * (such as the entity types it knows), so the model can correct its request.
+ * Read tools only see public entities; thrown errors stay private.
  */
 function guestOutcome(result: unknown): unknown {
   if (!isPlainRecord(result)) return GUEST_RETRIEVAL_UNAVAILABLE;
   if (result["success"] === true) return result;
-  return { success: false, error: "Nothing public matches that request." };
+  const error = result["error"];
+  return {
+    success: false,
+    error:
+      typeof error === "string" && error.trim()
+        ? error.slice(0, GUEST_LOOKUP_ERROR_CHARACTERS)
+        : "Nothing public matches that request.",
+  };
 }
 
 export interface ToolContextInfo {
