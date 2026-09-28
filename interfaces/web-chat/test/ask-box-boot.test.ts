@@ -8,7 +8,7 @@ import {
   ASK_SHEET_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
-import { ASK_BOX_BOOT_SCRIPT } from "../src/ask-box-boot";
+import { ASK_BOX_LOADER_SCRIPT, askBoxBootScript } from "../src/ask-box-boot";
 
 let window: Window;
 let restoreGlobals: RestoreGlobals;
@@ -30,12 +30,13 @@ function element(selector: string): HappyDOMHTMLElement {
 const input = (): HappyDOMHTMLElement => element("textarea");
 const status = (): string => element(`[${ASK_STATUS_ATTRIBUTE}]`).textContent;
 const guestStylesheet = (): boolean =>
-  window.document.head.querySelector('link[href="/ask/assets/guest.css"]') !==
-  null;
+  window.document.head.querySelector(
+    'link[href="/ask/assets/guest.css?v=v1"]',
+  ) !== null;
 
 function boot(markup = host): void {
   window.document.body.innerHTML = markup;
-  eval(ASK_BOX_BOOT_SCRIPT);
+  eval(askBoxBootScript("v1"));
 }
 
 /** The guest bundle cannot load in tests, which is exactly the failure a visitor can hit. */
@@ -57,6 +58,38 @@ beforeEach(() => {
 afterEach(() => {
   window.close();
   restoreGlobals();
+});
+
+describe("shared Ask box loader", () => {
+  async function load(
+    fetch: () => Promise<Response>,
+  ): Promise<string | undefined> {
+    Object.assign(window, { fetch });
+    eval(ASK_BOX_LOADER_SCRIPT);
+    const deadline = Date.now() + 1000;
+    const wait = async (): Promise<string | undefined> => {
+      const script = window.document.head.querySelector(
+        'script[src^="/ask/assets/boot.js"]',
+      );
+      if (script || Date.now() > deadline)
+        return script?.getAttribute("src") ?? undefined;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return wait();
+    };
+    return wait();
+  }
+
+  it("loads the boot at the version the server says is current", async () => {
+    expect(await load(async () => Response.json({ version: "abc123" }))).toBe(
+      "/ask/assets/boot.js?v=abc123",
+    );
+  });
+
+  it("still loads the boot when the version cannot be read", async () => {
+    expect(
+      await load(async () => new Response("unavailable", { status: 503 })),
+    ).toBe("/ask/assets/boot.js");
+  });
 });
 
 describe("shared Ask box boot", () => {

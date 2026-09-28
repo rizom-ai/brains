@@ -16,7 +16,40 @@ import {
  * status line says so. On a narrow screen engaging opens the box full screen
  * at once, before the bundle arrives, so the keyboard never covers it.
  */
-export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
+/** Where the boot is served, at the current version. */
+export const ASK_BOX_BOOT_PATH = "/ask/assets/boot.js";
+/** Which build is current; never cached, so a release reaches every browser. */
+export const ASK_BOX_VERSION_PATH = "/ask/assets/version";
+
+/**
+ * Served at ASK_BOX_SCRIPT_PATH, which sites reference without a version and
+ * browsers and caches may keep for hours. It never changes: it asks which
+ * build is current and loads the boot, and through it the chat, at that
+ * version, so no cache serves stale code after a release.
+ */
+export const ASK_BOX_LOADER_SCRIPT: string = `(function () {
+  function boot(src) {
+    var script = document.createElement("script");
+    script.src = src;
+    document.head.append(script);
+  }
+  fetch("${ASK_BOX_VERSION_PATH}", { cache: "no-store" })
+    .then(function (response) {
+      if (!response.ok) throw new Error("Version unavailable");
+      return response.json();
+    })
+    .then(function (current) {
+      boot("${ASK_BOX_BOOT_PATH}?v=" + encodeURIComponent(current.version));
+    })
+    .catch(function () {
+      // Without a version the boot still loads; only its caching is weaker.
+      boot("${ASK_BOX_BOOT_PATH}");
+    });
+})();`;
+
+export function askBoxBootScript(version: string): string {
+  const suffix = `?v=${encodeURIComponent(version)}`;
+  return `(function () {
   document.querySelectorAll("[${ASK_BOX_ATTRIBUTE}]").forEach(function (host) {
     var input = host.querySelector("textarea");
     var send = host.querySelector("[${ASK_SEND_ATTRIBUTE}]");
@@ -39,7 +72,7 @@ export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
       }
       var sheet = document.createElement("link");
       sheet.rel = "stylesheet";
-      sheet.href = "/ask/assets/guest.css";
+      sheet.href = "/ask/assets/guest.css${suffix}";
       try {
         var styled = new Promise(function (resolve, reject) {
           sheet.onload = resolve;
@@ -47,7 +80,7 @@ export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
         });
         document.head.append(sheet);
         // Served by the Brain, not bundled inside the site package.
-        var moduleUrl = new URL("/ask/assets/guest.js", window.location.origin).href;
+        var moduleUrl = new URL("/ask/assets/guest.js${suffix}", window.location.origin).href;
         var loaded = await Promise.all([import(moduleUrl), styled]);
         loaded[0].mountGuestBox(host, sendRequested);
         mounted = true;
@@ -84,3 +117,4 @@ export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
     host.setAttribute("${ASK_READY_ATTRIBUTE}", "");
   });
 })();`;
+}
