@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.445
+
+### Patch Changes
+
+- [#428](https://github.com/rizom-ai/brains/pull/428) [`91d165d`](https://github.com/rizom-ai/brains/commit/91d165d4b1f10e3978561e0760a6fe6ad2216d8c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation's header is its title and a way out; it no longer links to "About", whose notice the line under the composer already gives.
+
 ## 0.2.0-alpha.444
 
 ### Patch Changes

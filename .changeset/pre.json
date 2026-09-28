@@ -515,6 +515,7 @@
     "core--serialized-status-store",
     "core--shared-fleet-image-contract",
     "core--shared-sqlite-column-annotations",
+    "core--sheet-no-about",
     "core--shell-wiring-dedup",
     "core--single-fleet-image-topology",
     "core--site-build-status-hardening",
