@@ -4,10 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act, createElement, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import {
-  useChatThreadScroll,
-  type ChatThreadScroll,
-} from "./use-chat-thread-scroll";
+import { useFollowTail, type FollowTail } from "../src";
 
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
@@ -32,47 +29,49 @@ afterEach(async () => {
 });
 
 interface Harness {
-  scroll: () => ChatThreadScroll;
+  tail: () => FollowTail;
   element: () => HTMLElement;
   render: (input: {
-    sessionId: string | null;
+    resetKey: unknown;
     contentKey: unknown;
+    paused?: boolean;
   }) => Promise<void>;
   scrollTo: (scrollTop: number) => Promise<void>;
 }
 
 function createHarness(): Harness {
-  let latest: ChatThreadScroll | undefined;
+  let latest: FollowTail | undefined;
   function Probe(props: {
-    sessionId: string | null;
+    resetKey: unknown;
     contentKey: unknown;
+    paused?: boolean;
   }): ReactElement {
-    latest = useChatThreadScroll(props);
+    latest = useFollowTail(props);
     return createElement(
       "div",
-      { ref: latest.threadScrollRef, onScroll: latest.onThreadScroll },
+      { ref: latest.ref, onScroll: latest.onScroll },
       createElement("div", null, "thread"),
     );
   }
-  const scroll = (): ChatThreadScroll => {
+  const tail = (): FollowTail => {
     if (!latest) throw new Error("hook did not render");
     return latest;
   };
   const element = (): HTMLElement => {
-    const node = scroll().threadScrollRef.current;
-    if (!node) throw new Error("thread element was never attached");
+    const node = tail().ref.current;
+    if (!node) throw new Error("scroll element was never attached");
     return node;
   };
   return {
-    scroll,
+    tail,
     element,
     render: async (input): Promise<void> => {
       await act(async () => {
         root.render(createElement(Probe, input));
       });
-      // happy-dom reports zero for every layout box, so the thread's geometry
+      // happy-dom reports zero for every layout box, so the region's geometry
       // is declared: 1000px of content inside a 200px viewport.
-      const node = scroll().threadScrollRef.current;
+      const node = tail().ref.current;
       if (node?.scrollHeight === 0) {
         Object.defineProperty(node, "scrollHeight", {
           value: 1000,
@@ -94,65 +93,93 @@ function createHarness(): Harness {
   };
 }
 
-describe("useChatThreadScroll", () => {
-  it("pins the thread to the bottom when new content arrives", async () => {
+describe("useFollowTail", () => {
+  it("pins the region to the bottom when new content arrives", async () => {
     const harness = createHarness();
-    await harness.render({ sessionId: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1 });
     harness.element().scrollTop = 0;
 
-    await harness.render({ sessionId: "a", contentKey: 2 });
+    await harness.render({ resetKey: "a", contentKey: 2 });
 
     expect(harness.element().scrollTop).toBe(1000);
-    expect(harness.scroll().showJumpToLatest).toBe(false);
+    expect(harness.tail().awayFromLatest).toBe(false);
   });
 
   it("stops following once the reader scrolls away from the bottom", async () => {
     const harness = createHarness();
-    await harness.render({ sessionId: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1 });
 
     await harness.scrollTo(100);
 
-    expect(harness.scroll().showJumpToLatest).toBe(true);
+    expect(harness.tail().awayFromLatest).toBe(true);
 
-    await harness.render({ sessionId: "a", contentKey: 2 });
+    await harness.render({ resetKey: "a", contentKey: 2 });
     expect(harness.element().scrollTop).toBe(100);
   });
 
   it("resumes following when the reader returns near the bottom", async () => {
     const harness = createHarness();
-    await harness.render({ sessionId: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1 });
     await harness.scrollTo(100);
-    expect(harness.scroll().showJumpToLatest).toBe(true);
+    expect(harness.tail().awayFromLatest).toBe(true);
 
     // Within 48px of the end counts as the bottom.
     await harness.scrollTo(770);
 
-    expect(harness.scroll().showJumpToLatest).toBe(false);
-    await harness.render({ sessionId: "a", contentKey: 2 });
+    expect(harness.tail().awayFromLatest).toBe(false);
+    await harness.render({ resetKey: "a", contentKey: 2 });
     expect(harness.element().scrollTop).toBe(1000);
   });
 
-  it("restores following when the conversation changes", async () => {
+  it("restores following when the reset key changes", async () => {
     const harness = createHarness();
-    await harness.render({ sessionId: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1 });
     await harness.scrollTo(100);
-    expect(harness.scroll().showJumpToLatest).toBe(true);
+    expect(harness.tail().awayFromLatest).toBe(true);
 
-    await harness.render({ sessionId: "b", contentKey: 1 });
+    await harness.render({ resetKey: "b", contentKey: 1 });
 
-    expect(harness.scroll().showJumpToLatest).toBe(false);
-    await harness.render({ sessionId: "b", contentKey: 2 });
+    expect(harness.tail().awayFromLatest).toBe(false);
+    await harness.render({ resetKey: "b", contentKey: 2 });
+    expect(harness.element().scrollTop).toBe(1000);
+  });
+
+  it("resumes following without moving until the next content arrives", async () => {
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    await harness.scrollTo(100);
+
+    await act(async () => harness.tail().follow());
+
+    expect(harness.tail().awayFromLatest).toBe(false);
+    expect(harness.element().scrollTop).toBe(100);
+    await harness.render({ resetKey: "a", contentKey: 2 });
+    expect(harness.element().scrollTop).toBe(1000);
+  });
+
+  it("holds still while paused and follows again once resumed", async () => {
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1, paused: true });
+    harness.element().scrollTop = 0;
+
+    await harness.scrollTo(0);
+    await harness.render({ resetKey: "a", contentKey: 2, paused: true });
+
+    expect(harness.element().scrollTop).toBe(0);
+    expect(harness.tail().awayFromLatest).toBe(false);
+    await harness.render({ resetKey: "a", contentKey: 3 });
     expect(harness.element().scrollTop).toBe(1000);
   });
 
   it("jumps to the latest on demand and resumes following", async () => {
     const harness = createHarness();
-    await harness.render({ sessionId: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1 });
     await harness.scrollTo(100);
 
-    await act(async () => harness.scroll().jumpToLatest());
+    await act(async () => harness.tail().jumpToLatest());
 
     expect(harness.element().scrollTop).toBe(1000);
-    expect(harness.scroll().showJumpToLatest).toBe(false);
+    expect(harness.tail().awayFromLatest).toBe(false);
   });
 });

@@ -68,9 +68,7 @@ export function GuestApp({
     setAside: setTurnsAside,
     clear: clearTranscript,
     restoredQuestion,
-    transcriptRef,
-    followTranscript,
-  } = useGuestTranscript({ box: !!box });
+  } = useGuestTranscript();
   const [draft, setDraft] = useState(initialDraft);
   const gate = useGuestGate();
   const {
@@ -333,10 +331,8 @@ export function GuestApp({
       pending={pending}
       deleting={deleting}
       expired={expired}
-      transcriptRef={transcriptRef}
       textareaRef={textarea}
       conversationMenuRef={conversationMenu}
-      followTranscript={followTranscript}
       onRestore={(locator): void => {
         closeConversationMenu();
         void restore(locator);
@@ -369,7 +365,6 @@ export function GuestApp({
         textarea.current?.focus();
       }}
       onSubmit={(): void => {
-        followTranscript.current = true;
         void send(pending);
       }}
       onStopWaiting={stopWaiting}
