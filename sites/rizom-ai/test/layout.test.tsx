@@ -24,97 +24,73 @@ function renderChrome(path: string): string {
   );
 }
 
-describe("AiLayout chrome", () => {
-  test("renders the boot-wired theme toggle so light mode is reachable", () => {
-    const html = renderChrome("/");
-    // boot.js binds by id and window.toggleTheme flips data-theme; without
-    // this button the theme's entire light palette is dead UI.
+function bar(html: string): string {
+  return html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+}
+
+describe("the one bar", () => {
+  test("carries the rooms and the archive, one call to action and the theme toggle", () => {
+    const html = bar(renderChrome("/"));
+    for (const href of ["/brain", "/work", "/foundation", "/writing"]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+    expect(html).toContain('href="/work#audit"');
+    expect(html).toContain("Book an audit");
     expect(html).toContain('id="themeToggle"');
     expect(html).toContain('aria-label="Toggle color theme"');
+    expect(html).toMatch(/<a href="\/"[^>]*aria-label="Rizom home"/);
   });
 
-  test("faces strip survives narrow viewports: it may wrap, never overflow", () => {
-    const html = renderChrome("/brain");
-    expect(html).toContain("flex-wrap items-baseline");
-  });
-
-  test("face nav links appear from sm up (footer covers them below)", () => {
-    const html = renderChrome("/brain");
-    // Was md:flex — on phones the per-face links had no home at all.
-    expect(html).toMatch(/hidden[^"]*sm:flex/);
-    expect(html).not.toMatch(/hidden[^"]*md:flex/);
-  });
-
-  test("every face keeps its chrome links and CTA", () => {
-    const html = renderChrome("/work");
-    expect(html).toContain("https://form.typeform.com/to/NGqo9Fnf");
-    expect(html).toContain("/work#workshop");
-    expect(html).toContain("/work#contact");
-  });
-
-  test("home nav carries the org indexes; the faces strip does not", () => {
-    const html = renderChrome("/");
-    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
-    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
-    // Writing/Network moved from the strip into the home page's own nav
-    // (the strip keeps only the three faces and the theme toggle).
-    expect(nav).toContain('href="/writing"');
-    expect(nav).toContain('href="/network"');
-    expect(nav).not.toContain("docs.rizom.ai");
-    expect(strip).not.toContain('href="/writing"');
-    expect(strip).not.toContain('href="/network"');
-  });
-
-  test("the homepage keeps both umbrella navigation levels and the approved styles", () => {
-    const html = renderChrome("/");
-    expect(html).toContain('href="/styles/living-memory.css"');
-    expect(renderChrome("/living-memory")).not.toContain(
-      'href="/styles/living-memory.css"',
+  test("marks the current room and no other", () => {
+    const work = bar(renderChrome("/work"));
+    expect(work).toMatch(/href="\/work"[^>]*aria-current="page"/);
+    expect(work.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(bar(renderChrome("/"))).not.toContain('aria-current="page"');
+    expect(bar(renderChrome("/writing"))).toMatch(
+      /href="\/writing"[^>]*aria-current="page"/,
     );
-    expect(renderChrome("/brain")).not.toContain(
-      'href="/styles/living-memory.css"',
-    );
-    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
-    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
-    for (const href of ["/brain", "/work", "/foundation"]) {
-      expect(strip).toContain(`href="${href}"`);
-    }
-    expect(strip).toContain('id="themeToggle"');
-    expect(strip).not.toContain('aria-current="page"');
-    expect(nav).toContain('href="/writing"');
-    expect(nav).toContain('href="/network"');
-    expect(nav).toContain("Get Started");
+  });
+
+  test("has no room strip, no room nameplate and no network page", () => {
+    const html = renderChrome("/brain");
+    expect(html).not.toContain("faces-strip");
     expect(html).not.toContain(">brain</span>");
+    expect(html).not.toContain('href="/network"');
+    expect(html.match(/<nav /g)?.length ?? 0).toBeLessThanOrEqual(2);
   });
 
-  test("the homepage shares the desktop-only rail and gutter with the other pages", () => {
-    for (const path of ["/", "/brain", "/work", "/foundation"]) {
-      const html = renderChrome(path);
-      expect(html.match(/class="myc-root"/g)).toHaveLength(1);
-      expect(html).toContain("mycelium-rail pointer-events-none");
-      expect(html).toContain("hidden h-full w-[210px] xl:block");
-      expect(html).toContain("xl:pl-[68px]");
-    }
+  test("keeps the room's light on the page", () => {
+    expect(renderChrome("/work")).toContain('data-room="work"');
+    expect(renderChrome("/foundation")).toContain('data-room="foundation"');
+    expect(renderChrome("/")).toContain('data-room="brain"');
+  });
+});
+
+describe("the story shell", () => {
+  test("wraps a story page's sections beside its drawing, with the reading thread", () => {
+    const html = renderChrome("/foundation");
+    expect(html).toContain('class="story"');
+    expect(html).toContain('class="chapters"');
+    expect(html).toContain('class="figure foundation-org" data-stage="0"');
+    expect(html).toContain('class="rail"');
+    expect(html).toContain('href="/styles/story.css"');
+    expect(html).not.toContain("mycelium-rail");
+    expect(html).not.toContain("side-nav-dot");
   });
 
-  test("org-index pages still claim no face in the strip", () => {
-    const html = renderChrome("/writing");
-    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
-    expect(strip).not.toContain('aria-current="page"');
-  });
-
-  test("the strip's rizom mark links back to the homepage", () => {
+  test("leaves pages without a story on the plain shell", () => {
     const html = renderChrome("/brain");
-    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
-    expect(strip).toMatch(/<a href="\/"[^>]*>rizom<\/a>/);
+    expect(html).not.toContain('class="story"');
+    expect(html).not.toContain('class="rail"');
+    expect(html).toContain('href="/styles/brain.css"');
   });
 
-  test("org-index pages wear the plain umbrella wordmark, not rizom.brain", () => {
-    for (const path of ["/writing", "/network"]) {
-      const html = renderChrome(path);
-      expect(html).not.toContain(">brain</span>");
-    }
-    // The face pages keep their nameplates.
-    expect(renderChrome("/brain")).toContain(">brain</span>");
+  test("the footer names the audit and drops the network", () => {
+    const html = renderChrome("/");
+    const footer = html.slice(html.indexOf("<footer"));
+    expect(footer).toContain("The Knowledge Audit");
+    expect(footer).toContain('href="/work#audit"');
+    expect(footer).not.toContain('href="/network"');
+    expect(footer).not.toContain("The workshop");
   });
 });

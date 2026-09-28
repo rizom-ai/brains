@@ -2,7 +2,7 @@
 
 ## Status
 
-Mockups approved on 2026-09-28; nothing built. The five mockups in [`docs/design/rizom-ai-story/`](../design/rizom-ai-story/) are the visual contract: [home](../design/rizom-ai-story/home.html), [Brain](../design/rizom-ai-story/brain.html), [Work](../design/rizom-ai-story/work.html), [Foundation](../design/rizom-ai-story/foundation.html) and [Writing](../design/rizom-ai-story/writing.html). They carry the live site's copy and shell, so what they add is the design.
+Slice 1 is built on `work/organization-atlas` and verified on the running rizom.ai test app: the one bar, the footer, the story page shape, the `organism` drawing engine, the reading thread and Foundation as the first story page. Slices 2 to 4 are not built. The five mockups in [`docs/design/rizom-ai-story/`](../design/rizom-ai-story/) are the visual contract: [home](../design/rizom-ai-story/home.html), [Brain](../design/rizom-ai-story/brain.html), [Work](../design/rizom-ai-story/work.html), [Foundation](../design/rizom-ai-story/foundation.html) and [Writing](../design/rizom-ai-story/writing.html). They carry the live site's copy and shell, so what they add is the design.
 
 ## Goal
 

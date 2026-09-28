@@ -27,7 +27,7 @@ test("public Ask uses the existing site layout and mounts the shared guest app",
       }}
     />,
   );
-  expect(html).toContain("faces-strip");
+  expect(html).toContain('class="bar sticky');
   expect(html).toContain('id="themeToggle"');
   expect(html).toContain("<footer");
   expect(html).toContain("data-guest-chat");

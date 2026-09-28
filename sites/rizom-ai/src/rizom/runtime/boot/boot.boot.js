@@ -3,8 +3,7 @@
  *
  * Runs once at page load and wires up:
  *   1. Scroll-reveal IntersectionObserver → toggles `.visible` on `.reveal`
- *   2. Side-nav active-dot tracker (home route only)
- *   3. #themeToggle label sync on click (delegates theme flip to
+ *   2. #themeToggle label sync on click (delegates theme flip to
  *      window.toggleTheme, which is defined by site-builder's inline
  *      FOUC-prevention script — see plugins/site-builder html-generator.ts)
  *
@@ -28,35 +27,6 @@
     document.querySelectorAll(".reveal").forEach(function (el) {
       io.observe(el);
     });
-
-    // Side nav active-dot tracker (skipped on routes without SideNav).
-    // The dot → section mapping is derived from the rendered dots'
-    // href attributes, so SideNav.tsx stays the single source of truth.
-    var dots = document.querySelectorAll(".side-nav-dot");
-    if (dots.length > 0) {
-      var ids = Array.prototype.map.call(dots, function (d) {
-        return (d.getAttribute("href") || "").replace(/^#/, "");
-      });
-      var so = new IntersectionObserver(
-        function (entries) {
-          entries.forEach(function (e) {
-            if (!e.isIntersecting) return;
-            var idx = ids.indexOf(e.target.id);
-            if (idx < 0 || dots[idx].classList.contains("active")) return;
-            dots.forEach(function (d) {
-              d.classList.remove("active");
-            });
-            dots[idx].classList.add("active");
-          });
-        },
-        { threshold: 0.4 },
-      );
-      ids.forEach(function (id) {
-        if (!id) return;
-        var el = document.getElementById(id);
-        if (el) so.observe(el);
-      });
-    }
 
     // Only this route owns the lantern and its responsive roadmap.
     var livingMemory = document.querySelector(".living-memory-page");
