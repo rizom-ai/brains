@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- [#396](https://github.com/rizom-ai/brains/pull/396) [`c26ff7a`](https://github.com/rizom-ai/brains/commit/c26ff7ab7ee8529a3b4776ae52b9d995c8340dd7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask page and Ask box follow the newest message the way Studio Chat does: one "close enough to the bottom" distance for all three, and "Latest ↓" moves focus to the conversation it scrolls.
+
+- [#397](https://github.com/rizom-ai/brains/pull/397) [`b2f9b74`](https://github.com/rizom-ai/brains/commit/b2f9b745a713014cf08077c025747c229c01cf49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest lookup that returns an answer instead of results, such as the entity types a list knows, now reaches the model in the tool's own words (bounded to 500 characters), so it can correct its request. Guest answers speak of the brain's anchor in the third person.
+
 ## 0.2.0-alpha.429
 
 ### Patch Changes
