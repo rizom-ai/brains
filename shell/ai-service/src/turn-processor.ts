@@ -394,7 +394,7 @@ export class TurnProcessor {
       turn.input;
     const { guest } = turn;
     const { toolResults, pendingConfirmations, cards, totalToolCalls } =
-      extractToolResults(result.steps);
+      extractToolResults(result.steps, result.text);
     if (guest && pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
     const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
@@ -688,6 +688,7 @@ export class TurnProcessor {
 
     const { toolResults, pendingConfirmations, cards } = extractToolResults(
       result.steps,
+      result.text,
     );
     return {
       text:

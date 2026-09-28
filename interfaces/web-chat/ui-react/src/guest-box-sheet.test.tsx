@@ -198,6 +198,28 @@ describe("the Ask box on a phone", () => {
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
     });
 
+    it("opens an arriving answer at its question, not at its end", async () => {
+      const question = answer.slice(0, 1);
+      await render({ messages: question, state: "working", busy: true });
+      const region = host.querySelector<HTMLElement>(".brain-box-scroll");
+      if (!region) throw new Error("Missing conversation region");
+      // happy-dom has no layout: a long answer below the region's top.
+      Object.defineProperty(region, "scrollHeight", { value: 1600 });
+      Object.defineProperty(region, "clientHeight", { value: 500 });
+      region.getBoundingClientRect = (): DOMRect =>
+        new dom.DOMRect(0, 172, 390, 500);
+      region.scrollTop = 1100;
+      await render({ messages: answer, state: "complete" });
+      const asked = host.querySelector<HTMLElement>(".guest-user");
+      expect(asked).not.toBe(null);
+      expect(region.scrollTop).not.toBe(1600);
+      expect(
+        [...host.querySelectorAll("button")].some((button) =>
+          button.textContent.includes("Latest"),
+        ),
+      ).toBe(true);
+    });
+
     it("offers the conversation back after closing it", async () => {
       await render({ messages: answer, state: "complete" });
       await click("Close conversation");

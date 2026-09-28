@@ -105,6 +105,27 @@ describe("useFollowTail", () => {
     expect(harness.tail().awayFromLatest).toBe(false);
   });
 
+  it("shows the region from a chosen element and stops following", async () => {
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    const region = harness.element();
+    region.scrollTop = 1000;
+    const target = document.createElement("div");
+    region.append(target);
+    region.getBoundingClientRect = (): DOMRect =>
+      new windowInstance.DOMRect(0, 100, 300, 200);
+    // 250px below the region's top while it is scrolled 1000px down.
+    target.getBoundingClientRect = (): DOMRect =>
+      new windowInstance.DOMRect(0, 350, 300, 40);
+
+    await act(async () => harness.tail().showFrom(target));
+
+    expect(region.scrollTop).toBe(1250);
+    expect(harness.tail().awayFromLatest).toBe(true);
+    await harness.render({ resetKey: "a", contentKey: 2 });
+    expect(region.scrollTop).toBe(1250);
+  });
+
   it("stops following once the reader scrolls away from the bottom", async () => {
     const harness = createHarness();
     await harness.render({ resetKey: "a", contentKey: 1 });

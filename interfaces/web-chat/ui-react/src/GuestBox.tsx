@@ -88,6 +88,22 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     setHeader(root.current?.closest(".talk")?.querySelector(".ui-bar") ?? null);
   }, []);
 
+  // An answer opens at its question, so it is read from the start; the reader
+  // follows the end again from "Latest". A box its page grows has no region
+  // to scroll and is left to the page.
+  const lastRole = useRef(messages.at(-1)?.role);
+  useLayoutEffect(() => {
+    const previous = lastRole.current;
+    lastRole.current = messages.at(-1)?.role;
+    if (previous !== "user" || messages.at(-1)?.role !== "assistant") return;
+    const region = tail.ref.current;
+    if (!region || region.scrollHeight <= region.clientHeight) return;
+    const asked = [...region.querySelectorAll<HTMLElement>(".guest-user")].at(
+      -1,
+    );
+    if (asked) tail.showFrom(asked);
+  }, [messages]);
+
   // The confirmation opens at the end of the region, where it was asked for.
   useLayoutEffect(() => {
     const region = tail.ref.current;
