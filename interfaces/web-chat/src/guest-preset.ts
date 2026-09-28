@@ -42,26 +42,18 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
     },
     limits: {
       messageCharacters: 4000,
-      outputTokens: 1200,
-      contextTokens: 1_050_000,
-      contextBytes: 32000,
-      toolCalls: 3,
       userTurns: 10,
-      toolSteps: 3,
-      toolResultCharacters: 12000,
-      retrieval: { rows: 5, rowBytes: 12000, queryCharacters: 4000 },
       requestsPerMinute: 6,
       requestsPerDay: 30,
       globalRequestsPerMinute: 30,
       globalRequestsPerDay: 300,
       globalConcurrency: 3,
-      requestTimeoutSeconds: 90,
-      streamIdleTimeoutSeconds: 30,
+      // One answer, with its lookups, well within three minutes.
+      requestTimeoutSeconds: 180,
     },
     retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
-    // maxTurnUsd is the most one answer can cost: the caps above hold one
-    // answer to about two cents, and an answer whose cost is unknown is charged
-    // this. The daily budget bounds a configured policy only.
+    // An answer whose cost cannot be measured is charged maxTurnUsd. The daily
+    // budget bounds a configured policy only.
     budget: { dailyUsd: 4, maxTurnUsd: 0.05 },
     usageRecord: {
       maxRecords: 1000,

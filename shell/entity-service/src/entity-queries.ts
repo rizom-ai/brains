@@ -1,6 +1,4 @@
 import type { EntityDB } from "./db";
-import { entityReadBudgetSchema } from "@brains/contracts";
-import { entityRowBudgetCondition } from "./bounded-reads";
 import type {
   EntityReadOptions,
   EntityHierarchyPage,
@@ -101,7 +99,6 @@ const listOptionsSchema: z.ZodObject<{
     }>
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
-  readBudget: z.ZodOptional<typeof entityReadBudgetSchema>;
   signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
@@ -120,7 +117,6 @@ const listOptionsSchema: z.ZodObject<{
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
-  readBudget: entityReadBudgetSchema.optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
 
@@ -187,18 +183,7 @@ export class EntityQueries {
     options: EntityReadOptions = {},
   ): Promise<EntityData | null> {
     options.signal?.throwIfAborted();
-    const readBudget =
-      options.readBudget === undefined
-        ? undefined
-        : entityReadBudgetSchema.parse(options.readBudget);
-    if (
-      readBudget &&
-      (id.length > readBudget.queryCharacters ||
-        entityType.length > readBudget.queryCharacters)
-    )
-      throw new Error("Entity lookup input limit exceeded");
-    if (!readBudget)
-      this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
+    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     const scope: ContentVisibility = visibilityScope ?? "public";
     const conditions: SQL[] = [
@@ -211,7 +196,6 @@ export class EntityQueries {
       );
     }
 
-    if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
       .select({
         ...getTableColumns(entities),
@@ -223,10 +207,7 @@ export class EntityQueries {
     options.signal?.throwIfAborted();
 
     if (result.length === 0) {
-      if (!readBudget)
-        this.logger.debug(
-          `Entity of type ${entityType} with ID ${id} not found`,
-        );
+      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
       return null;
     }
 
@@ -295,16 +276,12 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { offset, sortFields, filter, publishedOnly, readBudget, signal } =
+    const { limit, offset, sortFields, filter, publishedOnly, signal } =
       validatedOptions;
-    const limit = readBudget
-      ? Math.min(validatedOptions.limit ?? readBudget.rows, readBudget.rows)
-      : validatedOptions.limit;
     signal?.throwIfAborted();
-    if (!readBudget)
-      this.logger.debug(
-        `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
-      );
+    this.logger.debug(
+      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
+    );
 
     const whereConditions = this.buildWhereConditions(
       entityType,
@@ -316,7 +293,6 @@ export class EntityQueries {
       filter?.contentContains,
       filter?.visibility,
     );
-    if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
     const query = this.db
@@ -333,14 +309,12 @@ export class EntityQueries {
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
-      readBudget === undefined,
     );
 
     signal?.throwIfAborted();
-    if (!readBudget)
-      this.logger.debug(
-        `Listed ${entityList.length} entities of type ${entityType}`,
-      );
+    this.logger.debug(
+      `Listed ${entityList.length} entities of type ${entityType}`,
+    );
 
     return entityList;
   }
@@ -422,7 +396,6 @@ export class EntityQueries {
       input.signal?.throwIfAborted();
       const entity = await this.serializer.convertToEntity(
         normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
-        false,
       );
       if (entity) page.push(entity);
     }

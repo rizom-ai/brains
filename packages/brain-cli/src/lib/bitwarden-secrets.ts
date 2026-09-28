@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import { basename, resolve } from "path";
 import { z } from "@brains/utils/zod";
 import { isPlainRecord } from "@brains/utils/predicates";
-import type { SecretPair } from "./push-secrets";
+import type { SecretPair } from "@brains/deploy-support/push-secrets";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface BitwardenProject {

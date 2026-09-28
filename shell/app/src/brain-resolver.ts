@@ -1,4 +1,8 @@
-import { isPluginConfigValidationError, type Plugin } from "@brains/plugins";
+import {
+  isMissingPluginConfig,
+  isPluginConfigValidationError,
+  type Plugin,
+} from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
@@ -124,11 +128,14 @@ function instantiateCapabilities(
       const result = factory(merged);
       capabilities.push(...ensureArray(result));
     } catch (error) {
-      if (isPluginConfigValidationError(error)) {
-        logger?.warn(`Skipping capability "${id}": missing required config`);
-      } else {
+      // Unset required values mean the brain does not configure this plugin;
+      // an unknown or mistyped key is a broken brain.yaml and stops the start.
+      if (
+        !isPluginConfigValidationError(error) ||
+        !isMissingPluginConfig(error)
+      )
         throw error;
-      }
+      logger?.warn(`Skipping capability "${id}": missing required config`);
     }
   }
 
@@ -162,11 +169,14 @@ function instantiateInterfaces(
       const created = source(merged);
       interfaces.push(...(Array.isArray(created) ? created : [created]));
     } catch (error) {
-      if (isPluginConfigValidationError(error)) {
-        logger?.warn(`Skipping interface "${id}": missing required config`);
-      } else {
+      // Unset required values mean the brain does not configure this plugin;
+      // an unknown or mistyped key is a broken brain.yaml and stops the start.
+      if (
+        !isPluginConfigValidationError(error) ||
+        !isMissingPluginConfig(error)
+      )
         throw error;
-      }
+      logger?.warn(`Skipping interface "${id}": missing required config`);
     }
   }
 

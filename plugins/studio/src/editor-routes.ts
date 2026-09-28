@@ -16,6 +16,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import {
   entityTypeLabels,
   isRawEntityType,
+  studioTypeHierarchy,
   zodFieldToStudioWidget,
   type StudioEntityDisplayMap,
 } from "./config";
@@ -55,6 +56,7 @@ import {
 } from "./editor-access";
 import type {
   StudioAuditRecorder,
+  StudioEntityTypeInfo,
   StudioRequestAccess,
 } from "./editor-contracts";
 import type { StudioRuntime } from "./runtime";
@@ -514,7 +516,7 @@ async function handleListTypes(
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
 ): Promise<Response> {
-  const types = [];
+  const types: StudioEntityTypeInfo[] = [];
   if (access.permissionLevel !== "public") {
     await runtime.groupings.ensureReady(access.caller);
     const counts = new Map(
@@ -540,6 +542,7 @@ async function handleListTypes(
         hasBody: runtime.shapes.hasBody(entityType),
         count,
         capabilities,
+        hierarchy: studioTypeHierarchy(entityType),
       });
     }
   }

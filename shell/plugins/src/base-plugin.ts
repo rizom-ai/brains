@@ -100,13 +100,10 @@ export abstract class BasePlugin<
     // Let Zod schema handle defaults during parsing
     const parsedConfig = configSchema.safeParse(partialConfig);
     if (!parsedConfig.success) {
-      throw new PluginConfigValidationError(
+      throw PluginConfigValidationError.fromZod(
         id,
-        parsedConfig.error.issues.map((issue) => ({
-          path: issue.path.map(String).join("."),
-          code: issue.code,
-          message: issue.message,
-        })),
+        parsedConfig.error,
+        partialConfig,
       );
     }
     this.config = parsedConfig.data;

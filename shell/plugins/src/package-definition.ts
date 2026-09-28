@@ -223,13 +223,10 @@ export function instantiatePluginPackageDefinition(
 
   const parsed = definition.config.safeParse(rawConfig);
   if (!parsed.success) {
-    throw new PluginConfigValidationError(
+    throw PluginConfigValidationError.fromZod(
       `${metadata.name}:${definition.id}`,
-      parsed.error.issues.map((issue) => ({
-        path: issue.path.join("."),
-        code: issue.code,
-        message: issue.message,
-      })),
+      parsed.error,
+      rawConfig,
     );
   }
 

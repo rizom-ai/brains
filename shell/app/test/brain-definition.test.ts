@@ -443,13 +443,10 @@ describe("resolve", () => {
       constructor(config: PluginConfig) {
         const parsed = requiredTokenSchema.safeParse(config);
         if (!parsed.success) {
-          throw new PluginConfigValidationError(
+          throw PluginConfigValidationError.fromZod(
             "validating",
-            parsed.error.issues.map((issue) => ({
-              path: issue.path.map(String).join("."),
-              code: issue.code,
-              message: issue.message,
-            })),
+            parsed.error,
+            config,
           );
         }
         super(config);
@@ -479,7 +476,12 @@ describe("resolve", () => {
     class BundledPluginConfigValidationError extends Error {
       readonly pluginId = "bundled-validating";
       readonly issues = [
-        { path: "adapters", code: "custom", message: "Missing adapter" },
+        {
+          path: "adapters",
+          code: "custom",
+          message: "Missing adapter",
+          missing: true,
+        },
       ];
 
       constructor() {
@@ -549,13 +551,10 @@ describe("resolve", () => {
     const validatingFactory: PluginFactory = (config) => {
       const parsed = requiredKeySchema.safeParse(config);
       if (!parsed.success) {
-        throw new PluginConfigValidationError(
+        throw PluginConfigValidationError.fromZod(
           "needs-key",
-          parsed.error.issues.map((issue) => ({
-            path: issue.path.map(String).join("."),
-            code: issue.code,
-            message: issue.message,
-          })),
+          parsed.error,
+          config,
         );
       }
       return createMockPluginFactory("needs-key")(config);

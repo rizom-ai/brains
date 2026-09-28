@@ -1,5 +1,131 @@
 # @brains/studio
 
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.430
+  - @brains/console-theme@0.2.0-alpha.430
+  - @brains/contracts@0.2.0-alpha.430
+  - @brains/operator-view-react@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/auth-service@0.2.0-alpha.430
+  - @brains/entity-service@0.2.0-alpha.430
+  - @brains/plugins@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.429
+  - @brains/console-theme@0.2.0-alpha.429
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/operator-view-react@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/auth-service@0.2.0-alpha.429
+  - @brains/entity-service@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.428
+  - @brains/console-theme@0.2.0-alpha.428
+  - @brains/contracts@0.2.0-alpha.428
+  - @brains/operator-view-react@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/auth-service@0.2.0-alpha.428
+  - @brains/entity-service@0.2.0-alpha.428
+  - @brains/plugins@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.427
+  - @brains/console-theme@0.2.0-alpha.427
+  - @brains/contracts@0.2.0-alpha.427
+  - @brains/operator-view-react@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/auth-service@0.2.0-alpha.427
+  - @brains/entity-service@0.2.0-alpha.427
+  - @brains/plugins@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.426
+  - @brains/console-theme@0.2.0-alpha.426
+  - @brains/contracts@0.2.0-alpha.426
+  - @brains/operator-view-react@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/auth-service@0.2.0-alpha.426
+  - @brains/entity-service@0.2.0-alpha.426
+  - @brains/plugins@0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`a0d561f`](https://github.com/rizom-ai/brains/commit/a0d561fe3e73f08d4a21eb85b89103ae38bba39f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refuse the grouping definitions control document as a contributor, with a section-level validation issue and repairable handling of invalid stored definitions.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`0ce2ac5`](https://github.com/rizom-ai/brains/commit/0ce2ac5b2b8ab789ec21628db66c3c9f3fc0533f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep automatically opened singleton creation drafts clean until edited, and disable pristine singleton creation saves through the button, form and keyboard paths.
+
+  Implement the approved Groupings editor and unified membership control, with independent cardinality/list rules, exact literal values, explicit removals, immutable saved keys, lossless duplicate-key drafts and read-only views. Ordinary editor integration uses document-owned descriptors and visibility-scoped usage reads.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add grouping usage reads with distinct entry totals and bounded, exact-value counts, including zero counts for unused values. One SQL statement applies admitted contributor types and visibility to every aggregate; duplicate and overlapping memberships do not inflate entry totals.
+
+  Expose the read through Studio's trusted-session API and typed client, retaining cancellation, source refresh and initializing/retry behavior. No durable state or content changes are introduced. Mounting usage data in the reviewed Groupings page and activating the replacement document source remain pending.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reproject added grouping type/field pairs after definition writes, using the existing bounded metadata-only scan. Keep pending work and readiness entirely in memory: Studio returns initializing during scans, failed scans remain retryable without misreporting saved definitions, and startup reconstructs progress from source.
+
+  Guard ordinary entity commits against a definition change after preparation. Stale writes, including no-op updates, are refused for retry before committing source or exports, using an in-memory publication revision and the existing write transaction.
+
+  Independent processes conservatively verify their own projections on observed definition changes, including remove/re-add cycles detected through existing document timestamps. No database tables, migrations or persistent status records are added. The new definitions registration module remains an internal implementation checkpoint, not yet activated by StudioPlugin.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`cf1b1f5`](https://github.com/rizom-ai/brains/commit/cf1b1f515330ba07f179da997876fbb1ebe88d37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connect the reviewed grouping definition editor to ordinary draft, save, conflict, and navigation handling. Supply eligible contributor types and repair issues, batch visibility-scoped usage without adding repeated entry totals, and show initialization, unavailable counts, and retry states. Reuse the unified membership control in ordinary fields.
+
+  Preserve invalid local drafts and literal definition values. Expose unparseable source for explicit repair rather than silently replacing it. Production definition-source activation and removal of the legacy configuration/vocabulary ownership path remain separate work; no migration is performed.
+
+  Apply the documented Bun/StyleX DFG workaround to Studio UI builds as well as tests. Production runtime settings are unchanged; this is not an underlying Bun fix.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`d9925ab`](https://github.com/rizom-ai/brains/commit/d9925ab9386021c377b7ef8c5f138c75938ee549) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read raw source for Studio editing and mutation preparation so image-like grouping values, unclaimed frontmatter and body references cannot be rewritten by presentation-time image expansion.
+
+  Resolve Markdown preview images separately through an authenticated, visibility-scoped image read. Use the injected client, cancel superseded requests and discard previously authorized image data when the client/session changes. Preserve literal code examples and existing Markdown sanitization. Cover exact Note/Post source round trips, mounted preview-and-save behavior, opaque image IDs and restricted-image non-disclosure.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add atomic replacement of an entity registry's complete grouping set through `replaceGroupings`. Grouping-owned schema extensions are kept separate from permanent plugin extensions, so removing a grouping preserves owner/plugin fields and their refinements. Invalid replacements leave the active set unchanged; authored memberships and file identities are never rewritten.
+
+  `validateGroupings` now preflights a complete replacement set. Studio's existing registration path includes already-registered declarations in that preflight. These registry primitives do not load a definitions document, coordinate readiness or automatically reproject stored content; their caller still owns those steps.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`86e8937`](https://github.com/rizom-ai/brains/commit/86e89377bb1c1dfe98d752a791469597c737b8b6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore ordinary no-op saves for existing System documents without weakening Groupings draft guards. Pristine singleton creation and unchanged Groupings remain blocked, including direct save actions as well as form and button submission.
+
+- Updated dependencies [[`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937), [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c), [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2), [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f), [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f)]:
+  - @brains/entity-service@0.2.0-alpha.425
+  - @brains/plugins@0.2.0-alpha.425
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/operator-view-react@0.2.0-alpha.425
+  - @brains/auth-service@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+  - @brains/app-ui-react@0.2.0-alpha.425
+  - @brains/console-theme@0.2.0-alpha.425
+
 ## 0.2.0-alpha.424
 
 ### Patch Changes

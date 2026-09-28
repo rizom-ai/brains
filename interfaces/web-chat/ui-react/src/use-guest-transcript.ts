@@ -1,14 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { ChatHistoryMessage } from "@brains/contracts/chat";
-
-/** Within this many pixels of the bottom counts as reading the newest message. */
-const followThresholdPx = 64;
-
-export interface GuestTranscriptInput {
-  /** The boxed embed scrolls itself; the page does not. */
-  box: boolean;
-}
 
 export interface GuestTranscript {
   messages: ChatHistoryMessage[];
@@ -27,36 +19,13 @@ export interface GuestTranscript {
    * question is recognised later.
    */
   restoredQuestion: RefObject<string | undefined>;
-  transcriptRef: RefObject<HTMLDivElement | null>;
-  /** Whether the view should stay pinned to the newest message. */
-  followTranscript: RefObject<boolean>;
 }
 
-/**
- * What the visitor can see, and where the view is looking.
- *
- * Following the newest message is a ref rather than state on purpose: it is
- * written from a scroll handler on every frame of a drag, and re-rendering the
- * transcript for that would fight the scrolling it is trying to observe.
- */
-export function useGuestTranscript(
-  input: GuestTranscriptInput,
-): GuestTranscript {
-  const { box } = input;
+/** What the visitor can see. Where the view is looking belongs to the page. */
+export function useGuestTranscript(): GuestTranscript {
   const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
   const [earlier, setEarlier] = useState<ChatHistoryMessage[]>([]);
   const restoredQuestion = useRef<string | undefined>(undefined);
-  const transcriptRef = useRef<HTMLDivElement>(null);
-  const followTranscript = useRef(true);
-
-  useEffect(() => {
-    if (box || !transcriptRef.current) return;
-    // An emptied transcript starts following again; the reader has not chosen
-    // to look away from a conversation that no longer exists.
-    if (!messages.length) followTranscript.current = true;
-    if (followTranscript.current)
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
-  }, [box, messages]);
 
   const show = useCallback((history: ChatHistoryMessage[]): void => {
     setMessages(history);
@@ -80,9 +49,5 @@ export function useGuestTranscript(
     setAside,
     clear,
     restoredQuestion,
-    transcriptRef,
-    followTranscript,
   };
 }
-
-export { followThresholdPx };

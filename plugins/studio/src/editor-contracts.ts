@@ -4,6 +4,7 @@ import type {
   AppendAuthAuditEventInput,
   InterfaceCaller,
 } from "@brains/sdk/services";
+import type { StudioTypeHierarchy } from "./config";
 
 export const STUDIO_ENTITY_PAGE_LIMIT = 25;
 
@@ -35,3 +36,14 @@ export interface StudioTypeCapabilities {
 /** The audit trail a console keeps of what an operator asked for. */
 export type StudioAuditRecorder =
   ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
+
+/** One entity type in Studio's type list. */
+export interface StudioEntityTypeInfo {
+  entityType: string;
+  label: string;
+  isSingleton: boolean;
+  hasBody: boolean;
+  count: number;
+  capabilities: StudioTypeCapabilities;
+  hierarchy: StudioTypeHierarchy;
+}

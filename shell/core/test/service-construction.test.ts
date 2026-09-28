@@ -31,12 +31,12 @@ function createTestConfig(dir: string): ShellConfigInput {
 
 describe("Shell service construction", () => {
   it.each([
-    { model: "gpt-5.6-luna", embeddings: false, available: false },
-    { model: "gpt-5.6-luna", embeddings: true, available: true },
-    { model: "claude-haiku-4-5", embeddings: false, available: false },
+    { model: "gpt-5.6-luna", embeddings: false },
+    { model: "gpt-5.6-luna", embeddings: true },
+    { model: "claude-haiku-4-5", embeddings: false },
   ])(
-    "installs guest accounting for the reviewed semantic/model combination: %j",
-    async ({ model, embeddings, available }) => {
+    "makes guest chat ready once the search index is, for any model: %j",
+    async ({ model, embeddings }) => {
       const testDir = await createTestDirectory();
       const network = spyOn(globalThis, "fetch").mockImplementation(
         Object.assign(
@@ -58,9 +58,10 @@ describe("Shell service construction", () => {
         try {
           const readiness = spyOn(shell.getEntityService(), "isIndexReady");
           readiness.mockReturnValue(true);
-          expect(shell.getAgentService().guestProfileAvailable).toBe(available);
+          expect(shell.getAgentService().guestReady).toBe(true);
           readiness.mockReturnValue(false);
-          expect(shell.getAgentService().guestProfileAvailable).toBe(false);
+          // Only a semantic index has to be built before guests can search.
+          expect(shell.getAgentService().guestReady).toBe(!embeddings);
           readiness.mockRestore();
           const request = shell
             .getAgentService()

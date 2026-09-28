@@ -404,6 +404,15 @@ describe("living atlas", () => {
     );
   });
 
+  it("scrolls a docked conversation only with the text column, never inside the box", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__ask \.brain-box-scroll \{ max-height: none; overflow: visible; \}/,
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas--chat \.atlas__talk \{[^}]*scrollbar-width: thin;[^}]*scrollbar-color: var\(--color-rule\) transparent;/,
+    );
+  });
+
   it("anchors title cards inward at both edges so they stay on screen", () => {
     expect(html()).toContain("atlas__mark--west");
     expect(html()).toContain("atlas__mark--east");

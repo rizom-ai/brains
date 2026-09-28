@@ -188,7 +188,8 @@ export class GuestAdmission {
     );
     const id = randomUUID();
 
-    return this.transact<GuestAdmissionResult>((state, now) => {
+    return this.transact<GuestAdmissionResult>((stored, now) => {
+      const state = this.expireOverdue(stored, now);
       if (
         !this.isEnabled() ||
         !state.enabled ||
@@ -306,6 +307,45 @@ export class GuestAdmission {
         },
       };
     }, denied("unavailable"));
+  }
+
+  /**
+   * Budgeted work still active past its deadline has stopped holding its
+   * place: it settles as interrupted and is charged the answer cap, so a
+   * process that died mid-answer never blocks admission.
+   */
+  private expireOverdue(
+    state: GuestAdmissionState,
+    now: number,
+  ): GuestAdmissionState {
+    if (!this.policy.budgeted) return state;
+    const overdue = Object.entries(state.receipts).filter(
+      ([, receipt]) => receipt.state === "active" && now >= receipt.deadline,
+    );
+    if (overdue.length === 0) return state;
+    return {
+      ...state,
+      receipts: {
+        ...state.receipts,
+        ...Object.fromEntries(
+          overdue.map(([key, receipt]) => [
+            key,
+            {
+              ...receipt,
+              state: "interrupted" as const,
+              settledAt: now,
+              retainUntil: Math.max(receipt.retainUntil, now + dayMs),
+              reservedMicroUsd: this.turnCost,
+            },
+          ]),
+        ),
+      },
+      month: {
+        key: monthOf(now),
+        chargedMicroUsd:
+          chargedThisMonth(state, now) + overdue.length * this.turnCost,
+      },
+    };
   }
 
   /** Read-only control state of a budgeted ledger. Missing authorization is closed, never a grant. */

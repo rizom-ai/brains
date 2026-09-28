@@ -17,7 +17,7 @@ export interface ChatSessionControls {
 }
 
 export interface ChatSessionsInput {
-  chatClient: Pick<ChatClient, "listSessions">;
+  chatClient: Pick<ChatClient, "listSessions" | "renameSession">;
   queryClient: QueryClient;
   sessionId: string | null;
   studioBasePath: string;
@@ -37,6 +37,8 @@ export interface ChatSessions {
   setDetailsOpen: (open: boolean) => void;
   /** Collapse the picker and the details panel without navigating. */
   closeDisclosures: () => void;
+  /** Rename the open session; rejects when the server does not apply it. */
+  renameCurrent: (title: string) => Promise<void>;
 }
 
 /**
@@ -97,6 +99,23 @@ export function useChatSessions(input: ChatSessionsInput): ChatSessions {
     [navigate, studioBasePath, closeDisclosures],
   );
 
+  const renameCurrent = async (title: string): Promise<void> => {
+    if (!currentSession) return;
+    const result = await chatClient.renameSession(currentSession.id, title);
+    if (!result.renamed)
+      throw new Error("The conversation could not be renamed.");
+    queryClient.setQueriesData<ChatSession[]>(
+      { queryKey: studioChatKeys.sessions },
+      (items) =>
+        items?.map((session) =>
+          session.id === currentSession.id
+            ? { ...session, title: result.title }
+            : session,
+        ),
+    );
+    void queryClient.invalidateQueries({ queryKey: studioChatKeys.sessions });
+  };
+
   return {
     sessions,
     currentSession,
@@ -118,5 +137,6 @@ export function useChatSessions(input: ChatSessionsInput): ChatSessions {
     detailsOpen,
     setDetailsOpen,
     closeDisclosures,
+    renameCurrent,
   };
 }

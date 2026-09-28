@@ -10,7 +10,7 @@ import {
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
 import { GuestApp } from "./GuestApp";
-import type { GuestBoxCopy } from "./GuestBox";
+import type { GuestBoxCopy } from "./guest-box-types";
 const boxCopy: GuestBoxCopy = {
   title: "Ask this brain",
   notice: "Public chat",
@@ -32,6 +32,7 @@ let lostResponse: boolean;
 let incompleteHistory: boolean;
 let unavailableHistory: boolean;
 let receiptActive: boolean;
+let held: boolean;
 let deleted: boolean;
 let lockNames: string[];
 const session = {
@@ -39,11 +40,6 @@ const session = {
   provider: "Mock provider",
   notice: "Do not share sensitive text.",
   deletionLimitations: "Provider records are separate.",
-  recording: {
-    notice:
-      "Questions asked here are kept for the owner of this site for 30 days, separately from this conversation. Deleting the conversation does not delete them.",
-    revision: "a".repeat(64),
-  },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
   messageCharacters: 4000,
   canSend: true,
@@ -113,6 +109,7 @@ beforeEach(() => {
   incompleteHistory = false;
   unavailableHistory = false;
   receiptActive = false;
+  held = false;
   deleted = false;
 });
 afterEach(async (): Promise<void> => {
@@ -177,6 +174,30 @@ async function mount(
       }
       if (path === "/api/chat/guest" && lostResponse)
         throw new TypeError("PRIVATE transport diagnostic");
+      if (path === "/api/chat/guest" && held)
+        // The answer has started and stays open, so the box is still waiting.
+        return new Response(
+          new ReadableStream({
+            start(controller): void {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  [
+                    { type: "text-start", id: "answer" },
+                    { type: "text-delta", id: "answer", delta: "Partial" },
+                  ]
+                    .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+                    .join(""),
+                ),
+              );
+            },
+          }),
+          {
+            headers: {
+              [CHAT_CONVERSATION_ID_HEADER]: id,
+              "Content-Type": "text/event-stream",
+            },
+          },
+        );
       if (path === "/api/chat/guest")
         return new Response(
           [
@@ -216,6 +237,29 @@ async function click(label: string): Promise<void> {
   );
   if (!button) throw new Error(`Missing button: ${label}`);
   await act(async (): Promise<void> => button.click());
+}
+/**
+ * The box's scroll region with declared geometry: happy-dom reports zero for
+ * every layout box, so it gets 1000px of content inside a 200px viewport.
+ */
+function boxRegion(): HTMLElement {
+  const region = document.querySelector<HTMLElement>(".brain-box-scroll");
+  if (!region) throw new Error("Missing box scroll region");
+  Object.defineProperty(region, "scrollHeight", {
+    value: 1000,
+    configurable: true,
+  });
+  Object.defineProperty(region, "clientHeight", {
+    value: 200,
+    configurable: true,
+  });
+  return region;
+}
+async function scrollRegion(region: HTMLElement, top: number): Promise<void> {
+  region.scrollTop = top;
+  await act(async (): Promise<void> => {
+    region.dispatchEvent(new Event("scroll", { bubbles: false }));
+  });
 }
 async function ask(text: string): Promise<void> {
   const textarea = document.querySelector<
@@ -350,30 +394,20 @@ describe("public Ask UI with mocked Chat transport", () => {
     ).toHaveLength(0);
   });
 
-  it("does not strand the box on an expired locator or replay its old request", async () => {
+  it("opens the box empty on every load, even with a conversation saved in this tab", async () => {
     sessionStorage.setItem("brain-ask-conversation", id);
     sessionStorage.setItem("brain-ask-conversation-list", JSON.stringify([id]));
-    unavailableHistory = true;
     await mount({ box: boxCopy });
-    expect(document.body.textContent).toContain(
-      "This conversation is unavailable",
+    expect(
+      calls.filter((call) => call.path.includes("/messages?")),
+    ).toHaveLength(0);
+    expect(document.body.textContent).not.toContain(
+      "An actual transport reply",
     );
-    expect(sessionStorage.getItem("brain-ask-conversation")).toBe(id);
-    await click("New question");
-    expect(
-      calls.filter((call) => call.path === "/api/chat/guest"),
-    ).toHaveLength(0);
-    await click("Continue");
-    expect(sessionStorage.getItem("brain-ask-conversation")).toBeNull();
-    expect(sessionStorage.getItem("brain-ask-conversation-list")).toContain(id);
-    expect(
-      calls.filter((call) => call.path === "/api/chat/guest"),
-    ).toHaveLength(0);
-    await ask("A new deliberate question");
-    expect(
-      calls.find((call) => call.path === "/api/chat/guest")?.body,
-    ).not.toHaveProperty("id");
-    expect(deleted).toBe(false);
+    await ask("A fresh question");
+    const send = calls.find((call) => call.path === "/api/chat/guest");
+    if (!send) throw new Error("Question was not sent");
+    expect(send.body).toEqual({ messages: expect.any(Array) });
   });
 
   it("checks an interrupted box answer using history only and preserves partial text", async () => {
@@ -581,40 +615,72 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(disclosure?.textContent).toContain("Mock provider");
     expect(disclosure?.textContent).toContain("Visitor access expires");
     expect(disclosure?.textContent).toContain("maximum age 2 hours");
-    expect(
-      document.querySelector("textarea")?.getAttribute("aria-describedby"),
-    ).toBe("guest-recording-note");
     expect(calls.map((call) => call.path)).toEqual(["/api/chat/guest/session"]);
   });
 
-  it("shows with the composer that questions are kept for the owner, and sends which notice was shown", async () => {
+  it("shows no retention line with either composer and sends only the question", async () => {
     await mount();
-    const note = document.querySelector("#guest-recording-note");
-    expect(note?.textContent).toBe(session.recording.notice);
-    expect(note?.closest("details")).toBeNull();
+    expect(document.querySelector("#guest-recording-note")).toBeNull();
     await ask("Explore this thought");
     const [send] = calls.filter((call) => call.path === "/api/chat/guest");
-    expect(send?.body).toMatchObject({
-      disclosure: session.recording.revision,
-    });
+    if (!send) throw new Error("Question was not sent");
+    expect(send.body).toEqual({ messages: expect.any(Array) });
   });
 
-  it("shows the recording notice with the box's composer too, not behind About", async () => {
+  it("shows no retention line with the box's composer", async () => {
     await mount({ box: boxCopy });
-    const note = document.querySelector("#brain-chat-recording");
-    expect(note?.textContent).toBe(session.recording.notice);
-    expect(note?.closest(".brain-box-privacy")).toBeNull();
-    expect(
-      document
-        .querySelector(".prompt-row textarea")
-        ?.getAttribute("aria-describedby"),
-    ).toContain("brain-chat-recording");
-    await ask("Energy efficiency");
-    const [send] = calls.filter((call) => call.path === "/api/chat/guest");
-    expect(send?.body).toMatchObject({
-      disclosure: session.recording.revision,
-    });
+    expect(document.querySelector("#brain-chat-recording")).toBeNull();
+    expect(document.body.textContent).not.toContain("kept for");
   });
+  it("adds no hint under the box's composer while an answer streams", async () => {
+    held = true;
+    await mount({ box: boxCopy });
+    await ask("Energy efficiency");
+    expect(document.body.textContent).toContain("Partial");
+    expect(document.querySelector("#brain-chat-notice")?.textContent).toBe("");
+  });
+  it("follows the box to the newest answer when the visitor sends while scrolled back", async () => {
+    await mount({ box: boxCopy });
+    await ask("First question");
+    const region = boxRegion();
+    await scrollRegion(region, 100);
+
+    await ask("Second question");
+
+    expect(region.scrollTop).toBe(1000);
+  });
+
+  it("offers Latest once the visitor scrolls back, and it returns them to the newest", async () => {
+    await mount({ box: boxCopy });
+    await ask("First question");
+    const region = boxRegion();
+    expect(document.querySelector(".brain-box-latest")).toBeNull();
+
+    await scrollRegion(region, 100);
+    await click("Latest");
+
+    expect(region.scrollTop).toBe(1000);
+    expect(document.querySelector(".brain-box-latest")).toBeNull();
+  });
+
+  it("holds the box still behind About and restores the reading position after it", async () => {
+    await mount({ box: boxCopy });
+    await ask("First question");
+    const region = boxRegion();
+    await scrollRegion(region, 300);
+
+    await click("About");
+    expect(region.scrollTop).toBe(0);
+    expect(document.activeElement?.textContent).toBe("Close");
+    expect(document.querySelector(".brain-box-latest")).toBeNull();
+    await ask("Second question");
+    expect(region.scrollTop).toBe(0);
+
+    await click("Close");
+    expect(region.scrollTop).toBe(300);
+    expect(document.activeElement?.textContent).toBe("About");
+  });
+
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {
     session.expiresAt = Date.now() - 1000;
     await mount();
@@ -656,6 +722,33 @@ describe("public Ask UI with mocked Chat transport", () => {
       calls.filter((call) => call.path === "/api/chat/guest"),
     ).toHaveLength(0);
   });
+  it("follows the visitor back to the newest message when they send while scrolled back", async () => {
+    await mount({});
+    await ask("First question");
+    const transcript = document.querySelector<HTMLElement>(
+      ".guest-transcript-scroll",
+    );
+    if (!transcript) throw new Error("Missing transcript");
+    // happy-dom reports zero for every layout box, so the transcript's
+    // geometry is declared: 1000px of content inside a 200px viewport.
+    Object.defineProperty(transcript, "scrollHeight", {
+      value: 1000,
+      configurable: true,
+    });
+    Object.defineProperty(transcript, "clientHeight", {
+      value: 200,
+      configurable: true,
+    });
+    transcript.scrollTop = 100;
+    await act(async (): Promise<void> => {
+      transcript.dispatchEvent(new Event("scroll", { bubbles: false }));
+    });
+
+    await ask("Second question");
+
+    expect(transcript.scrollTop).toBe(1000);
+  });
+
   it("sends only the new user text, follows up using the server locator and stores no transcript", async () => {
     await mount();
     await ask("Explore this thought");

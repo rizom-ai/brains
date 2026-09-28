@@ -7,7 +7,6 @@ import type {
 } from "./types";
 import { type Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
-import { entityReadBudgetSchema } from "@brains/contracts";
 
 export type ResolvedEntity =
   { ok: true; entity: BaseEntity } | { ok: false; error: string };
@@ -42,19 +41,10 @@ export async function findEntityByIdentifier(
   options: EntityReadOptions = {},
 ): Promise<BaseEntity | null> {
   const readOptions: EntityReadOptions = {
-    ...(options.readBudget !== undefined && {
-      readBudget: entityReadBudgetSchema.parse(options.readBudget),
-    }),
     ...(options.signal && { signal: options.signal }),
   };
   try {
     readOptions.signal?.throwIfAborted();
-    if (
-      readOptions.readBudget &&
-      (identifier.length > readOptions.readBudget.queryCharacters ||
-        entityType.length > readOptions.readBudget.queryCharacters)
-    )
-      throw new Error("Entity lookup input limit exceeded");
     const byId = await entityService.getEntity({
       entityType,
       id: identifier,
@@ -97,8 +87,6 @@ export async function findEntityByIdentifier(
     readOptions.signal?.throwIfAborted();
     if (bySlugifiedTitle[0]) return bySlugifiedTitle[0];
 
-    // Bounded reads use exact identifiers only, not a 200-row fuzzy scan.
-    if (readOptions.readBudget) return null;
     const entities = await entityService.listEntities({
       entityType,
       options: { limit: 200, filter: { visibilityScope }, ...readOptions },
@@ -113,7 +101,7 @@ export async function findEntityByIdentifier(
       ) ?? null
     );
   } catch (error) {
-    if (logger && !readOptions.readBudget) {
+    if (logger) {
       logger.error(`Failed to find entity ${entityType}:${identifier}`, {
         error,
       });

@@ -27,6 +27,7 @@ import {
   syncStatusQueryOptions,
   workspaceQueryOptions,
 } from "./queries";
+import { studioTypeHierarchy } from "../../src/config";
 
 it("keys destination previews by all authoring inputs without reusing a previous destination", async () => {
   const input: DestinationInput = {
@@ -99,6 +100,7 @@ function entityType(entityType: string): EntityTypeInfo {
     isSingleton: false,
     hasBody: true,
     count: 1,
+    hierarchy: studioTypeHierarchy(entityType),
     capabilities: {
       canRead: true,
       canCreate: true,

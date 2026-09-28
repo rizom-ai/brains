@@ -8,6 +8,30 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Normal-agent/runtime-role integration evidence scope
+
+The approved `3a87eb534c` snapshot is integrated without restoring retired plugin
+classes, the webserver package, raw author contexts or the private UI package.
+Runtime role profiles retain web/worker separation and the SDK's register-only
+backfill behavior. Expired job leases become reclaimable without requiring the
+owner session heartbeat to expire; attempt/session write fences remain.
+Studio hierarchy/save/draft changes and Admin setup forms use the existing
+bounded SDK contracts. Opaque frontmatter opt-out, document-owned groupings,
+caller-bound literal reads, storage CAS and attribution remain intact.
+
+Guest execution now uses the ordinary configured agent and index readiness.
+The former guest-specific token/context/tool/retrieval bounds and dedicated
+model/accounting profile are removed. The configured answer cap is fallback
+accounting, not a maximum provider charge; previous bounded-overshoot evidence
+is superseded. Identity/profile/instructions enter the guest prompt (owner email
+is omitted), admitted question recording no longer requires a displayed notice,
+and retrieval uses ordinary query diagnostics. Local tests are not provider
+billing, production privacy/disclosure, browser or deployment acceptance.
+
+The completed commit/tree, local full/surface/packed checks and hosted status
+are recorded on PR #301. No newer main snapshot, publication, nomination or
+production activation is authorized by this integration.
+
 ## Document-grouping integration evidence scope
 
 The `01f08fcada` integration replaces static/vocabulary authoring with an owned
@@ -18,10 +42,13 @@ identity, visibility, unexpanded edit reads and asset exclusion. Application
 fixtures use real declarative packages, authenticated routes and independent
 processes rather than retired plugin classes or raw source registration helpers.
 
-These are source/runtime guarantees, not a new nomination or hosted acceptance.
-Packed consumers, full repository checks and the exact resulting commit/tree must
-still be recorded for the completed integration; earlier hosted evidence cannot
-attest to its uncommitted worktree.
+Completed as `a102edd08deb3a70b2bcd925b0dc5c33f68f2feb`, tree
+`9d71bff314e8f314766b59b22679b8a63dfc13d6`, with parents `654f212943` and
+`01f08fcada`. Forced checks passed: 107 type/build, 105 test and 98 lint tasks;
+seven surface tasks; eight isolated packed scenarios/101 assertions; the full
+static suite, 150 changesets and frozen install. Normal hooks and remote SHA
+were verified. These are local source/tarball guarantees, not nomination or
+current hosted acceptance, and cannot attest to subsequent integrations.
 
 ## Published state recorded on 2026-09-13
 

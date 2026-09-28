@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { GuestBoxState } from "./GuestBox";
+import type { GuestBoxState } from "./guest-box-types";
 
 export interface GuestGate {
   busy: boolean;

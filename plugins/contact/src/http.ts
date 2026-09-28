@@ -220,13 +220,7 @@ export class ContactHttpHandlers {
         const form = await this.admission.issue(transport?.remoteAddress);
         if (form.kind === "denied") throw denial(form.reason);
         return new Response(
-          contactForm(
-            form.token,
-            this.intake.retentionSeconds,
-            topicDraft(url),
-            undefined,
-            presentation,
-          ),
+          contactForm(form.token, topicDraft(url), undefined, presentation),
           { headers },
         );
       }
@@ -275,13 +269,7 @@ export class ContactHttpHandlers {
       const failure =
         error instanceof ContactHttpError ? error : denial("unavailable");
       const html = token
-        ? contactForm(
-            token,
-            this.intake.retentionSeconds,
-            draft,
-            failure.message,
-            presentation,
-          )
+        ? contactForm(token, draft, failure.message, presentation)
         : contactPage(
             `<h1>Contact unavailable</h1><p class="notice" role="alert">${escapeHtml(failure.message)}</p><p><a href="/contact${presentation.theme ? `?theme=${presentation.theme}` : ""}">Open a new form</a></p>`,
             presentation,

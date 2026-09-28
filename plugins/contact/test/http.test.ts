@@ -51,7 +51,6 @@ describe("contact HTTP boundary", () => {
     );
     const html = await page.text();
     expect(html).toContain('method="post"');
-    expect(html).toContain("kept for 1 day, then deleted.");
     expect(html).not.toContain("<script");
     const token = /name="token" value="([a-f0-9]{64})"/.exec(html)?.[1];
     if (!token) throw new Error("Missing form token");
@@ -351,11 +350,10 @@ describe("contact page for visitors", () => {
     );
   });
 
-  it("says on the form how long a note is kept and how deletion can lag", async () => {
+  it("adds no retention notice to the form", async () => {
     const html = await page("Yeehaa");
-    expect(html).toContain("kept for 1 day, then deleted.");
-    expect(html).toContain("Deletion can run late");
-    expect(html).toContain("backups may keep earlier copies");
+    expect(html).not.toContain("kept for");
+    expect(html).not.toContain("contact-privacy");
   });
 
   it("confirms a saved note without promising the alert arrived", async () => {

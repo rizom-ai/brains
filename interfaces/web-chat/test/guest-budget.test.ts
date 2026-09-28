@@ -170,6 +170,26 @@ describe("an owner-set monthly budget for guest chat", () => {
     });
   });
 
+  it("stops holding answers past their deadline, charging each the answer cap", async () => {
+    const { admission, policy, clock } = ledger();
+    await admission.authorize(dollars(10));
+    const stuck = await Promise.all(
+      Array.from({ length: policy.limits.globalConcurrency }, () =>
+        ask(admission, policy, clock.now),
+      ),
+    );
+    expect(stuck.every((result) => result.kind === "reserved")).toBe(true);
+    expect(await ask(admission, policy, clock.now)).toEqual({
+      kind: "denied",
+      reason: "deployment-busy",
+    });
+    clock.now += policy.limits.requestTimeoutSeconds * 1000;
+    expect((await ask(admission, policy, clock.now)).kind).toBe("reserved");
+    expect((await admission.accessStatus())?.chargedMicroUsd).toBe(
+      stuck.length * dollars(0.05),
+    );
+  });
+
   it("never limits by the number of questions or sessions, only by money", async () => {
     const { admission, policy, clock } = ledger();
     await admission.authorize(dollars(1));

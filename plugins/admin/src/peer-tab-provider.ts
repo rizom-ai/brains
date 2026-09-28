@@ -16,6 +16,15 @@ import { z } from "@brains/utils/zod";
 type ViewBlock = StudioWorkspaceViewBlock<AnyWorkspaceActionDefinition>;
 type RegionBlock = OperatorRegionBlock<AnyWorkspaceActionDefinition>;
 import {
+  invitationChannelSchema,
+  invitationDeliveryFields,
+  invitationDeliveryModes,
+  invitationRoleField,
+  setupResultPresentation as setupResultPresentationFor,
+  setupResultSchema,
+  statusResultSchema,
+} from "./setup-forms";
+import {
   adminUserOptions,
   formatWorkspaceDate,
   peerOriginLabel,
@@ -41,12 +50,6 @@ const linkInputSchema = z.strictObject({
   peerId: z.string().trim().min(1).max(2_000),
   userId: z.string().min(1),
 });
-const setupResultSchema = z.strictObject({
-  status: z.string(),
-  setupUrl: z.url(),
-  expiresAt: z.string(),
-});
-const statusResultSchema = z.strictObject({ status: z.string() });
 
 function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
@@ -86,14 +89,7 @@ const peersDataSchema = z.strictObject({
   people: z.array(
     z.strictObject({ userId: z.string(), displayName: z.string() }),
   ),
-  channels: z.array(
-    z.strictObject({
-      type: z.string(),
-      displayName: z.string(),
-      subjectLabel: z.string(),
-      deliveryModes: z.array(z.enum(["automatic", "manual"])),
-    }),
-  ),
+  channels: z.array(invitationChannelSchema),
 });
 
 type PeerAction = typeof invitePeer | typeof linkPeer;
@@ -138,18 +134,9 @@ export function selectPeerTabSections(blocks: readonly ViewBlock[]): {
   };
 }
 
-const setupResultPresentation = {
-  title: "Peer invitation setup",
-  fields: {
-    status: { label: "Status" },
-    setupUrl: {
-      label: "Single-use setup URL",
-      copyable: true,
-      sensitive: true,
-    },
-    expiresAt: { label: "Expires" },
-  },
-};
+const setupResultPresentation = setupResultPresentationFor(
+  "Peer invitation setup",
+);
 
 const peerTabProvider = defineStudioWorkspace({
   id: "peers",
@@ -160,9 +147,7 @@ const peerTabProvider = defineStudioWorkspace({
   data: peersDataSchema,
   actions: [invitePeer, linkPeer],
   view: ({ data }) => {
-    const deliveryModes = Array.from(
-      new Set(data.channels.flatMap((channel) => channel.deliveryModes)),
-    );
+    const deliveryModes = invitationDeliveryModes(data.channels);
     const blocks: PeerBlock[] = [
       {
         type: "stats",
@@ -204,45 +189,8 @@ const peerTabProvider = defineStudioWorkspace({
               fields: {
                 peerId: { label: "External peer ID", control: "text" },
                 displayName: { label: "Display name", control: "text" },
-                role: {
-                  label: "Local role",
-                  control: "select",
-                  options: [
-                    { value: "trusted", label: "Trusted" },
-                    { value: "admin", label: "Admin" },
-                  ],
-                },
-                deliveryType: {
-                  label: "Delivery channel",
-                  control: "select",
-                  options: data.channels.map((channel) => ({
-                    value: channel.type,
-                    label: channel.displayName,
-                  })),
-                },
-                deliverySubject: {
-                  label: "Delivery destination",
-                  labelBy: {
-                    field: "deliveryType",
-                    values: data.channels.map((channel) => ({
-                      value: channel.type,
-                      label: channel.subjectLabel,
-                    })),
-                  },
-                  control: "text",
-                },
-                deliveryLabel: {
-                  label: "Delivery label (optional)",
-                  control: "text",
-                },
-                deliveryMode: {
-                  label: "Delivery mode",
-                  control: "select",
-                  options: deliveryModes.map((mode) => ({
-                    value: mode,
-                    label: mode === "automatic" ? "Automatic" : "Manual",
-                  })),
-                },
+                role: invitationRoleField("Local role"),
+                ...invitationDeliveryFields(data.channels, deliveryModes),
               },
             },
             result: setupResultPresentation,

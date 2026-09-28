@@ -80,7 +80,7 @@ async function fixture(
     ]);
   let calls = 0;
   harness.getMockShell().setAgentService({
-    guestProfileAvailable: options.profileAvailable !== false,
+    guestReady: options.profileAvailable !== false,
     chat: async (): Promise<never> => {
       calls++;
       throw new Error("Activation must not call the model");

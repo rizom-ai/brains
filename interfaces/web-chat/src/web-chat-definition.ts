@@ -222,7 +222,7 @@ export function createWebChatDefinition(
             previewUrl: context.previewUrl,
           },
           (request) => access.resolve(request),
-          () => context.agent.guestProfileAvailable === true,
+          () => context.agent.guestReady === true,
           config.guest === undefined && deps.guestPolicy === undefined,
           deps.guestHttp?.now,
         );
@@ -262,7 +262,7 @@ export function createWebChatDefinition(
               deps.guestHttp?.ready ??
               ((): boolean =>
                 (managedPolicy !== undefined || boundedPolicy) &&
-                context.agent.guestProfileAvailable === true),
+                context.agent.guestReady === true),
           },
         );
 
@@ -401,8 +401,7 @@ export function createWebChatDefinition(
                   ? state.guestControl
                   : undefined,
                 configuredOpen: () =>
-                  state.guestPolicy.enabled &&
-                  state.agent.guestProfileAvailable === true,
+                  state.guestPolicy.enabled && state.agent.guestReady === true,
                 afterSwitch: state.refreshAvailability,
                 canSaveQuestions: () =>
                   state.entities.getEntityTypes().includes("note"),

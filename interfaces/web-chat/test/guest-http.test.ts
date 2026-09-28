@@ -95,7 +95,6 @@ async function setup(
     origin?: string;
     profileAvailable?: boolean;
     managed?: boolean;
-    idleSeconds?: number;
     peerAddress?: string | null;
     usageRecord?: GuestUsageBounds;
     /** Whether the brain has the note type a question can be saved as. */
@@ -196,7 +195,7 @@ async function setup(
     close: (): void => {},
   });
   harness.getMockShell().setAgentService({
-    guestProfileAvailable: options.profileAvailable === true,
+    guestReady: options.profileAvailable === true,
     chat: async (
       ...args
     ): Promise<Awaited<ReturnType<IAgentService["chat"]>>> => {
@@ -299,12 +298,6 @@ async function setup(
                     origin: deploymentOrigin,
                     usageRecord:
                       options.usageRecord ?? testGuestPolicy.usageRecord,
-                    limits: {
-                      ...testGuestPolicy.limits,
-                      streamIdleTimeoutSeconds:
-                        options.idleSeconds ??
-                        testGuestPolicy.limits.streamIdleTimeoutSeconds,
-                    },
                   },
           }),
       guestHttp: {
@@ -1234,7 +1227,9 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       (
         await post(
           browser,
-          message("x".repeat(testGuestPolicy.limits.contextBytes)),
+          message(
+            "x".repeat(testGuestPolicy.limits.messageCharacters * 4 + 4097),
+          ),
         )
       ).status,
     ).toBe(413);
@@ -1250,7 +1245,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(state.calls).toHaveLength(0);
   });
 
-  it("reports provider failures without private details and keeps uncertain work reserved", async () => {
+  it("reports provider failures without private details and settles them, so the visitor can ask again", async () => {
     const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
@@ -1265,10 +1260,14 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     });
     expect(JSON.stringify(result)).not.toContain("private-provider-detail");
     expect(result.some((event) => event.type === "finish")).toBe(false);
+    // The model call returned an error: the work has ended, and says so.
     const retry = await post(browser, request);
-    expect(await retry.json()).toMatchObject({ state: "active" });
-    expect((await post(browser, message("Another turn"))).status).toBe(429);
-    expect(state.calls).toHaveLength(1);
+    expect(await retry.json()).toMatchObject({ state: "failed" });
+    state.reply = async (): Promise<string> => "Answer";
+    const another = await post(browser, message("Another turn"));
+    expect(another.status).toBe(200);
+    await events(another);
+    expect(state.calls).toHaveLength(2);
   });
 
   it("rechecks expiry after history reads and before delivering an answer", async () => {
@@ -1353,8 +1352,8 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(state.calls).toHaveLength(1);
   });
 
-  it("closes an idle stream but holds ignored cancellation until genuine fulfillment", async () => {
-    const state = await setup({ idleSeconds: 1 });
+  it("waits for a slow answer instead of closing the stream", async () => {
+    const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
     const release = deferred<void>();
@@ -1362,29 +1361,12 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       await release.promise;
       return "Late answer";
     };
-    const request = message();
-    const first = await browser.client.streamMessages(request);
-    const result = await events(first);
-    expect(result).toContainEqual({
-      type: "error",
-      errorText: "Guest response unavailable",
-    });
-    expect(
-      result.some(
-        (event) => event.type === "finish" || event.type === "text-delta",
-      ),
-    ).toBe(false);
-    expect(state.calls[0]?.[3]?.aborted).toBe(true);
-    expect((await post(browser, message("Still busy"))).status).toBe(429);
-    expect(await (await post(browser, request)).json()).toMatchObject({
-      state: "active",
-    });
+    const pending = browser.client.streamMessages(message()).then(events);
+    await Bun.sleep(20);
     release.resolve();
-    await Bun.sleep(0);
-    expect(await (await post(browser, request)).json()).toMatchObject({
-      state: "completed",
-    });
-    expect(state.calls).toHaveLength(1);
+    const result = await pending;
+    expect(result.some((event) => event.type === "text-delta")).toBe(true);
+    expect(result.some((event) => event.type === "error")).toBe(false);
   });
 
   it("does not present empty completed generation as an answer", async () => {
@@ -1471,49 +1453,35 @@ describe("guest usage record over HTTP", () => {
     });
   });
 
-  it("tells the visitor before they ask that questions are kept for the owner, how long, and past deletion", async () => {
+  it("opens a session without a retention notice", async () => {
     const state = await setup();
     const session = await state.browser().client.openGuestSession();
-    expect(session.recording.notice).toContain("kept for the owner");
-    expect(session.recording.notice).toContain("7 days");
-    expect(session.recording.notice).toContain(
-      "Deleting the conversation does not delete them",
-    );
-    expect(session.recording.revision).toMatch(/^[a-f0-9]{64}$/);
+    expect(session).not.toHaveProperty("recording");
   });
 
-  it("records a question only when the visitor was shown the current recording notice", async () => {
+  it("records every question for the owner", async () => {
     const state = await setup();
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
-    await events(
-      await browser.client.streamMessages({
-        ...message("Shown the notice"),
-        disclosure: session.recording.revision,
-      }),
-    );
-    await events(await browser.client.streamMessages(message("Never shown")));
-    await events(
-      await browser.client.streamMessages({
-        ...message("Shown an old notice"),
-        disclosure: "0".repeat(64),
-      }),
-    );
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message("First")));
+    await events(await browser.client.streamMessages(message("Second")));
     const questions = (await state.records())
       .map((event) => event.question)
       .filter((question) => question !== undefined);
-    expect(questions).toEqual(["Shown the notice"]);
+    expect(questions.sort()).toEqual(["First", "Second"]);
   });
 
   it("records why the admission refused a question, with the visitor's digest", async () => {
     const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
-    state.reply = async (): Promise<never> => {
-      throw new Error("private-provider-detail");
-    };
-    await events(await browser.client.streamMessages(message()));
+    // An answer still running holds the visitor's place.
+    const running = deferred<string>();
+    state.reply = (): Promise<string> => running.promise;
+    const first = await post(browser, message());
     expect((await post(browser, message("Another turn"))).status).toBe(429);
+    running.resolve("Answer");
+    await events(first);
     const [denial] = await state.denials();
     expect(denial?.reason).toBe("visitor-busy");
     expect(denial?.visitor).toMatch(/^[a-f0-9]{64}$/);
@@ -1524,7 +1492,9 @@ describe("guest usage record over HTTP", () => {
     const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
-    const body = "x".repeat(testGuestPolicy.limits.contextBytes);
+    const body = "x".repeat(
+      testGuestPolicy.limits.messageCharacters * 4 + 4097,
+    );
     expect((await post(browser, message(body))).status).toBe(413);
     expect(
       (
@@ -1582,12 +1552,9 @@ describe("guest usage record over HTTP", () => {
       );
     expect(await usageHealth()).toMatchObject({ status: "healthy" });
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
+    await browser.client.openGuestSession();
     await events(
-      await browser.client.streamMessages({
-        ...message("A recorded question"),
-        disclosure: session.recording.revision,
-      }),
+      await browser.client.streamMessages(message("A recorded question")),
     );
     const full = await usageHealth();
     expect(full).toMatchObject({
@@ -1597,7 +1564,7 @@ describe("guest usage record over HTTP", () => {
     expect(JSON.stringify(full)).not.toContain("A recorded question");
   });
 
-  it("keeps a turn that fails or never returns unresolved", async () => {
+  it("records a failed turn as failed, without the provider's detail", async () => {
     const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
@@ -1606,7 +1573,7 @@ describe("guest usage record over HTTP", () => {
     };
     await events(await browser.client.streamMessages(message()));
     const records = await state.records();
-    expect(records.map((event) => event.state)).toEqual(["unresolved"]);
+    expect(records.map((event) => event.state)).toEqual(["failed"]);
     expect(JSON.stringify(records)).not.toContain("private-provider-detail");
   });
 
@@ -1728,7 +1695,7 @@ describe("guest chat monitor in Studio", () => {
     const state = await setup(managed);
     await openWithBudget(state, 0.05);
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
+    await browser.client.openGuestSession();
     state.settlement = {
       usage: {
         modelCalls: 1,
@@ -1745,10 +1712,7 @@ describe("guest chat monitor in Studio", () => {
       },
     };
     await events(
-      await browser.client.streamMessages({
-        ...message("What is public?"),
-        disclosure: session.recording.revision,
-      }),
+      await browser.client.streamMessages(message("What is public?")),
     );
     state.settlement = undefined;
     await events(await browser.client.streamMessages(message("And then?")));
@@ -1756,7 +1720,7 @@ describe("guest chat monitor in Studio", () => {
     const shown = await view(state);
     expect(shown).toContain("$0.0019");
     expect(shown).toContain("What is public?");
-    expect(shown).not.toContain("And then?");
+    expect(shown).toContain("And then?");
     expect(shown).toContain("Measured from provider usage");
     expect(shown).toContain("when that cannot be measured");
     expect(shown).toMatch(/"label":"Cost unknown","value":1/);
@@ -1769,12 +1733,11 @@ describe("guest chat monitor in Studio", () => {
     const state = await setup({ ...managed, notes: true });
     await openWithBudget(state);
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
+    await browser.client.openGuestSession();
     await events(
-      await browser.client.streamMessages({
-        ...message("How do institutions forget?"),
-        disclosure: session.recording.revision,
-      }),
+      await browser.client.streamMessages(
+        message("How do institutions forget?"),
+      ),
     );
     const [record] = await state.records();
     if (!record) throw new Error("Question was not recorded");

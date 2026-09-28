@@ -15,7 +15,12 @@ import {
   parseInstanceOverrides,
   InstanceOverridesParseError,
 } from "../src/instance-overrides";
-import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
+import {
+  PluginConfigValidationError,
+  type Plugin,
+  type IShell,
+  type PluginCapabilities,
+} from "@brains/plugins";
 import {
   EntityActionPermissionError,
   PermissionService,
@@ -2329,5 +2334,45 @@ bundles: [core]
 `;
     const overrides = parseInstanceOverrides(yaml);
     expect(overrides.mode).toBeUndefined();
+  });
+});
+
+describe("plugin config validation at resolve", () => {
+  const studioSchema = z.strictObject({ token: z.string() });
+  const strict = (config: PluginConfig): Plugin => {
+    const parsed = studioSchema.safeParse(config);
+    if (!parsed.success)
+      throw PluginConfigValidationError.fromZod("studio", parsed.error, config);
+    return createMockPlugin("studio", config);
+  };
+  const def = defineBrain({
+    name: "test",
+    version: "1.0.0",
+    capabilities: [["studio", strict, {}]],
+    interfaces: [],
+  });
+
+  test("refuses to start when brain.yaml gives a plugin an unknown key, naming it", () => {
+    const start = (): unknown =>
+      resolve(def, {}, { plugins: { studio: { token: "t", stale: true } } });
+    expect(start).toThrow("Invalid plugin config for studio");
+    expect(start).toThrow('Unrecognized key: "stale"');
+  });
+
+  test("skips a plugin whose required values are not provided", () => {
+    expect(resolve(def, {}).plugins ?? []).toEqual([]);
+    expect(
+      resolve(def, {}, { plugins: { studio: { token: undefined } } }).plugins ??
+        [],
+    ).toEqual([]);
+  });
+
+  test("starts a plugin whose config is complete", () => {
+    const plugins = resolve(
+      def,
+      {},
+      { plugins: { studio: { token: "t" } } },
+    ).plugins;
+    expect(plugins?.map((plugin) => plugin.id)).toEqual(["studio"]);
   });
 });

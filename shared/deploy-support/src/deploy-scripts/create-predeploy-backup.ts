@@ -575,6 +575,8 @@ function shellSafe(value: string, name: string): string {
  * (transactional copies, quick_check, checksums), so it needs a serving
  * runtime with no queued work, not a healthy one: a deploy is often the fix
  * for whatever a plugin reports as degraded. Degradation is named, not refused.
+ * A job whose lease expired is abandoned, not running: the next worker
+ * reclaims and reruns it, so it is named and backed up as it stands.
  */
 export function renderPredeployReadinessProgram(
   healthUrl: string = "http://127.0.0.1:8080/health/ready",
@@ -586,9 +588,13 @@ if (response.status !== 200 || health.status !== "ready") {
   console.error("pre-deploy snapshot: current runtime is not ready");
   process.exit(1);
 }
-if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== 0 || queue.staleLeaseCount !== 0)) {
+const abandoned = queue?.staleLeaseCount ?? 0;
+if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== abandoned)) {
   console.error("pre-deploy snapshot: job queue is not idle");
   process.exit(1);
+}
+if (abandoned > 0) {
+  console.error("pre-deploy snapshot: " + abandoned + " abandoned job(s) will rerun after the deploy");
 }
 if (health.operationalStatus !== "operational") {
   const degraded = (health.checks ?? []).filter((check) => check.status !== "healthy").map((check) => check.name);

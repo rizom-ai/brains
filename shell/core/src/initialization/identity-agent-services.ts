@@ -3,9 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
-  createOpenAiGuestProfile,
-  openAiGuestEmbeddingModel,
-  openAiGuestEmbeddingDimensions,
+  priceOpenAiGuestTurn,
   type ChatAttachment,
   type ChatAttachmentSource,
   type IAgentService,
@@ -217,23 +215,13 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
-  const aiConfig = aiService.getConfig();
-  // Query embeddings are prepaid by guest search tools; indexing remains separate.
-  // Only the reviewed model/dimension pair can query this index safely.
-  const guestProfile =
-    config.embedding.enabled &&
-    "model" in options.embeddingService &&
-    options.embeddingService.model === openAiGuestEmbeddingModel &&
-    options.embeddingService.dimensions === openAiGuestEmbeddingDimensions &&
-    aiConfig.model === "gpt-5.6-luna" &&
-    aiConfig.apiKey?.trim()
-      ? createOpenAiGuestProfile({
-          apiKey: aiConfig.apiKey,
-          embeddingsEnabled: true,
-        })
-      : undefined;
   const agentFactory = createBrainAgentFactory({
-    ...(guestProfile ? { guestProfile } : {}),
+    // Guest turns are priced where the model's published rates are known;
+    // otherwise their cost is unknown and charged the answer cap.
+    guestPricing:
+      aiService.getConfig().model === "gpt-5.6-luna"
+        ? priceOpenAiGuestTurn
+        : undefined,
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
