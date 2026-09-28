@@ -2,7 +2,11 @@
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import type { ChatSession, ChatSessionListQuery } from "@brains/contracts/chat";
+import type {
+  ChatSession,
+  ChatSessionListQuery,
+  RenameChatSessionResponse,
+} from "@brains/contracts/chat";
 import { Window } from "happy-dom";
 import { act, createElement, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -27,11 +31,13 @@ function session(
   };
 }
 
+let renameResult: RenameChatSessionResponse;
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
+  renameResult = { renamed: true, title: "Renamed" };
   windowInstance = new Window({ url: "http://brain.test/studio/chat" });
   restoreGlobals = installDomGlobals(windowInstance);
   const container = document.createElement("div");
@@ -73,6 +79,14 @@ async function renderSessions(
         listSessions: async (query): Promise<ChatSession[]> => {
           harness.queries.push(query ?? {});
           return listed;
+        },
+        // Like the server: an applied rename is what the next listing shows.
+        renameSession: async (id): Promise<RenameChatSessionResponse> => {
+          if (renameResult.renamed)
+            listed = listed.map((item) =>
+              item.id === id ? { ...item, title: renameResult.title } : item,
+            );
+          return renameResult;
         },
       },
       queryClient: client,
@@ -169,6 +183,34 @@ describe("useChatSessions", () => {
     expect(harness.sessions().archivedSession).toBe(true);
   });
 
+  it("renames the current session wherever it is cached", async () => {
+    const harness = await renderSessions({ sessionId: "a" });
+    renameResult = { renamed: true, title: "Field notes" };
+
+    await act(async () => {
+      await harness.sessions().renameCurrent("Field notes");
+      // React Query hands the cache change to React on its next tick.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    expect(harness.sessions().currentSession?.title).toBe("Field notes");
+  });
+
+  it("refuses a rename the server did not apply", async () => {
+    const harness = await renderSessions({ sessionId: "a" });
+    renameResult = { renamed: false, title: "Session a" };
+
+    const failure = await harness
+      .sessions()
+      .renameCurrent("Field notes")
+      .catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      message: "The conversation could not be renamed.",
+    });
+    expect(harness.sessions().currentSession?.title).toBe("Session a");
+  });
+
   it("navigates to a session and closes the disclosures", async () => {
     const harness = await renderSessions();
     await act(async () => {
@@ -212,6 +254,8 @@ describe("useChatSessions", () => {
           if (attempts === 1) throw new Error("offline");
           return [session("a")];
         },
+        renameSession: async (): Promise<RenameChatSessionResponse> =>
+          renameResult,
       },
     });
 
