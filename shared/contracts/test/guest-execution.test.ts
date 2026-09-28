@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { entityReadBudgetSchema } from "../src/entity-read";
 import {
   guestExecutionPolicySchema,
   guestConversationOwnershipSchema,
@@ -16,31 +15,6 @@ const policy: GuestExecutionPolicy = {
 };
 
 describe("server-owned guest execution policy", () => {
-  it("requires finite retrieval bounds and rejects extra scope authority", () => {
-    const budget = { rows: 1, rowBytes: 100, queryCharacters: 100 };
-    for (const key of Object.keys(budget)) {
-      for (const invalid of [
-        undefined,
-        0,
-        -1,
-        0.5,
-        Infinity,
-        Number.MAX_SAFE_INTEGER + 1,
-      ]) {
-        expect(
-          entityReadBudgetSchema.safeParse({ ...budget, [key]: invalid })
-            .success,
-        ).toBe(false);
-      }
-    }
-    expect(
-      entityReadBudgetSchema.safeParse({
-        ...budget,
-        visibilityScope: "restricted",
-      }).success,
-    ).toBe(false);
-  });
-
   it("requires immutable, bounded retention alongside guest ownership", () => {
     const owner = { visitorId: "10c15c16-919e-4481-8fd4-07f11555a994" };
     expect(guestConversationOwnershipSchema.safeParse(owner).success).toBe(

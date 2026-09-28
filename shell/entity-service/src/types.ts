@@ -9,11 +9,7 @@ import type {
   QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
-import type {
-  ActorRef,
-  EntityReadBudget,
-  QueryEmbedding,
-} from "@brains/contracts";
+import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -556,12 +552,6 @@ export interface SortField {
  * Generic over metadata type for type-safe filtering
  */
 export interface EntityReadOptions {
-  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
-   * image references unexpanded. Not a bound on database or adapter execution.
-   */
-  readBudget?: EntityReadBudget;
-  /** Request-owned embedding capability, e.g. a prepaid guest search. */
-  queryEmbedding?: QueryEmbedding;
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
 }
