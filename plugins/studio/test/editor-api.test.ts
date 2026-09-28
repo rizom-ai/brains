@@ -404,7 +404,7 @@ describe("studio editor shell", () => {
     shell.getPluginWebRoutes = (): RegisteredWebRoute[] => [
       ...getPluginWebRoutes(),
       {
-        pluginId: "web-chat",
+        pluginId: "@brains/web-chat:web-chat",
         fullPath: "/api/chat",
         definition: {
           path: "/api/chat",
@@ -414,7 +414,7 @@ describe("studio editor shell", () => {
         },
       },
       {
-        pluginId: "web-chat",
+        pluginId: "@brains/web-chat:web-chat",
         fullPath: "/api/chat/actions",
         definition: {
           path: "/api/chat/actions",
@@ -425,7 +425,7 @@ describe("studio editor shell", () => {
       },
     ];
     shell.addPlugin({
-      id: "web-chat",
+      id: "@brains/web-chat:web-chat",
       version: "0.0.0-test",
       type: "interface",
       packageName: "@brains/web-chat",

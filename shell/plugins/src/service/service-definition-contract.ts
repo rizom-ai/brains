@@ -62,6 +62,8 @@ export interface ServiceEntityExtension {
 
 /** A way in this service offers; see `interactions`. */
 export interface ServiceInteractionDeclaration {
+  /** Also publish matching endpoint discovery metadata. Does not grant route access. */
+  readonly publishEndpoint?: boolean | undefined;
   readonly id: string;
   readonly label: string;
   readonly description?: string | undefined;

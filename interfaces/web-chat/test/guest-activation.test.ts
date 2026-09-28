@@ -60,6 +60,8 @@ async function fixture(
     disabled?: boolean;
     copy?: { content: string; visibility: "public" | "restricted" };
     guest?: "local-test";
+    studio?: boolean;
+    /** The deployment's state from an earlier run, as after a restart. */
     state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
@@ -119,6 +121,35 @@ async function fixture(
       },
     );
   await harness.installPlugin(plugin);
+  if (options.studio) {
+    harness.getMockShell().registerPlugin({
+      id: "@brains/studio:studio",
+      version: "0.0.0",
+      type: "service",
+      packageName: "@brains/studio",
+      register: async () => ({ tools: [], resources: [] }),
+    });
+    spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
+      {
+        pluginId: "@brains/studio:studio",
+        fullPath: "/chat",
+        definition: {
+          path: "/chat",
+          method: "GET",
+          handler: async (): Promise<Response> => new Response("Studio"),
+        },
+      },
+      {
+        pluginId: "@brains/web-chat:web-chat",
+        fullPath: "/ask",
+        definition: {
+          path: "/ask",
+          method: "GET",
+          handler: async (): Promise<Response> => new Response("Ask"),
+        },
+      },
+    ]);
+  }
   await harness.finalizeRegistration();
   const ledger = harness
     .getMockShell()
@@ -243,6 +274,40 @@ describe("Ask box availability for site builds in any process", () => {
 });
 
 describe("admin guest activation using deployment conventions", () => {
+  for (const studio of [false, true]) {
+    it(`keeps managed guest Ask separate from the operator redirect (studio=${studio})`, async () => {
+      const f = await fixture("admin", "rizom.ai", { studio });
+      await f.budget(10);
+      for (const path of ["/ask", "/ask/authenticated"]) {
+        const response = await f.send(path);
+        expect(response.status).toBe(studio ? 303 : 404);
+        expect(response.headers.get("Location")).toBe(studio ? "/chat" : null);
+        expect(response.headers.get("Cache-Control")).toBe("no-store");
+      }
+      const guest = await f.send(
+        "/ask",
+        undefined,
+        {},
+        "https://preview.rizom.ai",
+      );
+      expect(guest).toBeInstanceOf(SitePageResponse);
+      expect(guest.status).toBe(200);
+      expect(await guest.text()).toContain("/ask/assets/ask.js");
+      expect(f.calls()).toBe(0);
+    });
+
+    it(`redirects the explicit operator path with configured guest access (studio=${studio})`, async () => {
+      const f = await fixture("public", "rizom.ai", {
+        guest: "local-test",
+        studio,
+      });
+      const response = await f.send("/ask/authenticated");
+      expect(response.status).toBe(studio ? 303 : 404);
+      expect(response.headers.get("Location")).toBe(studio ? "/chat" : null);
+      expect(f.calls()).toBe(0);
+    });
+  }
+
   it("declares only the guest presentation and API routes for preview", async () => {
     const f = await fixture();
     expect(f.previewPaths).toEqual(
@@ -250,9 +315,6 @@ describe("admin guest activation using deployment conventions", () => {
         "DELETE /api/chat/guest/sessions",
         "GET /api/chat/guest/messages",
         "GET /ask",
-        // Standalone GuestApp has its own bundle; the app bundle stays for sites still loading it.
-        "GET /ask/assets/app.css",
-        "GET /ask/assets/app.js",
         "GET /ask/assets/ask.css",
         "GET /ask/assets/ask.js",
         // The shared box loader every consuming site loads, the boot it loads

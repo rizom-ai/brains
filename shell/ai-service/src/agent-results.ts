@@ -255,10 +255,16 @@ function buildSourceCitationFromEntity(params: {
   };
 }
 
+/** A source the turn saw; a search result keeps its rank within its search. */
+interface SourceCandidate {
+  citation: SourceCitation;
+  rank?: number;
+}
+
 function buildToolSourceCitations(params: {
   toolName: string;
   data: unknown;
-}): SourceCitation[] {
+}): SourceCandidate[] {
   if (params.toolName === "system_search") {
     const parsed = searchToolDataSchema.safeParse(params.data);
     if (!parsed.success) return [];
@@ -268,29 +274,70 @@ function buildToolSourceCitations(params: {
           (b.score ?? Number.NEGATIVE_INFINITY) -
           (a.score ?? Number.NEGATIVE_INFINITY),
       )
-      .slice(0, MAX_SEARCH_SOURCES)
-      .map((result) =>
-        buildSourceCitationFromEntity({
+      .map((result, rank) => ({
+        rank,
+        citation: buildSourceCitationFromEntity({
           toolName: params.toolName,
           entity: result.entity,
           excerpt: result.excerpt,
           score: result.score,
         }),
-      );
+      }));
   }
 
   if (params.toolName === "system_get") {
     const parsed = getToolDataSchema.safeParse(params.data);
     if (!parsed.success) return [];
     return [
-      buildSourceCitationFromEntity({
-        toolName: params.toolName,
-        entity: parsed.data.entity,
-      }),
+      {
+        citation: buildSourceCitationFromEntity({
+          toolName: params.toolName,
+          entity: parsed.data.entity,
+        }),
+      },
     ];
   }
 
   return [];
+}
+
+function comparable(text: string): string {
+  return ` ${text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()} `;
+}
+
+/**
+ * What an answer drew on: the search results it names, however they scored,
+ * and what it read directly. An answer that names none keeps each search's
+ * best results.
+ */
+function selectAnswerSources(
+  candidates: SourceCandidate[],
+  answer: string | undefined,
+): SourceCitation[] {
+  const text = answer === undefined ? "" : comparable(answer);
+  const searched = candidates.filter(
+    (candidate) => candidate.rank !== undefined,
+  );
+  const named = searched.filter((candidate) => {
+    // Optional where the citation type is read through its public contract.
+    const cited: string | undefined = candidate.citation.title;
+    if (cited === undefined) return false;
+    const title = comparable(cited);
+    return title.trim().length >= 4 && text.includes(title);
+  });
+  const chosen =
+    named.length > 0
+      ? named
+      : searched.filter(
+          (candidate) => (candidate.rank ?? 0) < MAX_SEARCH_SOURCES,
+        );
+  return [
+    ...chosen,
+    ...candidates.filter((candidate) => candidate.rank === undefined),
+  ].map((candidate) => candidate.citation);
 }
 
 function buildToolSourcesCard(
@@ -323,10 +370,12 @@ export interface ExtractedResults {
 
 export function extractToolResults(
   steps: BrainAgentResult["steps"],
+  /** The answer, when known: its sources are the results it names. */
+  answer?: string,
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
   const cards: StructuredChatCard[] = [];
-  const sourceCitations: SourceCitation[] = [];
+  const sourceCandidates: SourceCandidate[] = [];
   const pendingConfirmations: PendingConfirmation[] = [];
   let totalToolCalls = 0;
 
@@ -430,7 +479,7 @@ export function extractToolResults(
           successParsed.data.data,
         );
         if (attachmentCard) cards.push(attachmentCard);
-        sourceCitations.push(
+        sourceCandidates.push(
           ...buildToolSourceCitations({
             toolName: tr.toolName,
             data: successParsed.data.data,
@@ -444,7 +493,9 @@ export function extractToolResults(
     if (stepRequestedConfirmation) break;
   }
 
-  const sourcesCard = buildToolSourcesCard(sourceCitations);
+  const sourcesCard = buildToolSourcesCard(
+    selectAnswerSources(sourceCandidates, answer),
+  );
   if (sourcesCard) cards.push(sourcesCard);
 
   return {

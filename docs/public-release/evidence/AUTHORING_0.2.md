@@ -8,6 +8,23 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Studio-owned operator Chat integration evidence scope
+
+The approved `629933996c` snapshot retires the operator Web Chat bundle in favor
+of Studio while retaining authenticated headless and guest APIs. The separately
+approved `ServiceInteractionDeclaration.publishEndpoint` opt-in projects one
+validated declaration into interaction/endpoint discovery, with installed
+ownership and manager rollback/shutdown, not raw author registries or route
+permissions. Tests cover omitted/false flags, invalid/forged fields, detached
+metadata, partial-registration/ready failure, shutdown and other-owner isolation.
+
+Studio owns Chat discovery and source-backed Inbox handoff. Sends reject browser
+source context and resolve stored handoff metadata under current access checks.
+Builds retain atomic writes and caller-owned staging while removing obsolete
+operator assets. Runtime and packed type canaries remain separate evidence;
+component/SSR checks do not establish canonical browser or provider acceptance.
+The exact completed commit/tree and check status are recorded on PR #301.
+
 ## Ask assets/mobile sheet integration evidence scope
 
 The approved `a16b8887f1` snapshot adds versioned Ask loader/boot routes through

@@ -16,6 +16,8 @@ export function GuestBoxComposer(props: {
   hasMessages: boolean;
   onSubmit: () => void;
   onFocus?: () => void;
+  /** Said under the composer once there is an answer. */
+  answeredNote?: string;
 }): ReactElement {
   const { draft, over, welcome, busy, copy } = props;
 
@@ -73,7 +75,7 @@ export function GuestBoxComposer(props: {
         {over > 0
           ? `${over} characters over the limit.`
           : props.hasMessages
-            ? null
+            ? (props.answeredNote ?? null)
             : "Public knowledge. Please avoid private details."}
       </p>
     </form>

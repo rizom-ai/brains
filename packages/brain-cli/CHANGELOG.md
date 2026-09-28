@@ -1,5 +1,29 @@
 # @rizom/brain
 
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- [#412](https://github.com/rizom-ai/brains/pull/412) [`4b385c3`](https://github.com/rizom-ai/brains/commit/4b385c3781e96c2099abf18a196bb110b8556697) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the open Ask sheet speaks in the site's words: it is titled "Ask <owner>", labels answers with the owner's name, shows the visitor's question as a bubble, lists an answer's sources as links and notes that answers come from what the owner has published; the "Answer received" status is gone. The atlas map strip under the sheet is now a window onto the map at its normal proportions instead of a squashed copy, and it slides to where an answer's sources sit.
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redirect retired operator Ask pages to Studio Chat at `/chat`, leaving authentication to Studio. Return 404 when Studio Chat is not registered. Public guest Ask remains unchanged.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retire Web Chat's operator bundle, page renderer, asset routes and browser-only session UI. Package only the guest Ask, box and dashboard bundles alongside Studio Chat. Remove browser-supplied `inboxContext` and its one-shot prefill contracts; Studio's authorized stored Inbox handoff remains. The old detach button is intentionally retired: start a new conversation for a different topic.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add confirmed permanent conversation deletion to Studio Chat, including archived conversations. Protect drafts, uploads and active turns, lock the composer during deletion, and ignore late completion after navigation. Failed or unacknowledged deletion stays visible without automatic retries. This restores an operator-chat capability required before retiring the old Ask bundle.
+
+- [#410](https://github.com/rizom-ai/brains/pull/410) [`8dfc94d`](https://github.com/rizom-ai/brains/commit/8dfc94d9cab307024909e81c86817cba619915db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Let Studio own the Chat interaction, advertised endpoint, and source-backed Inbox “Discuss in chat” handoff. Link directly to `/chat`, and register these entry points only when web-chat is installed. Web-chat no longer advertises a second operator chat UI.
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- [#411](https://github.com/rizom-ai/brains/pull/411) [`2a3f74f`](https://github.com/rizom-ai/brains/commit/2a3f74fc4b328336b36f75bfd96b8c8c18f36865) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest answer now opens at its question, so it reads from the start; "Latest" follows the end again. An answer's sources are now the search results it names, however they scored, plus what it read directly. An answer that names none keeps each search's best results, as before. So the essays an answer discusses light up on the homepage map, rather than the higher-scored notes and topics it passed over.
+
 ## 0.2.0-alpha.431
 
 ### Patch Changes

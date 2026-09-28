@@ -13,6 +13,19 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 | `PLUGIN_API_VERSION`                       | Use an explicit compatible peer dependency range                     |
 | `brain.yaml` `plugins.<id>.package`        | Import the definition in a brain package and compose it with `use()` |
 
+## Operator Chat and discovery
+
+Studio now owns the operator Chat UI, navigation and Inbox discussion handoff.
+Web Chat remains the authenticated headless transport and guest presentation;
+its former operator page redirects to Studio when installed, otherwise returns 404. The operator `app.js`/`app.css` bundles are removed. Create source-backed
+conversations through the context-session API; do not post `inboxContext` with
+messages. `ChatSourceContext` and `chatSourceContextSchema` are retired.
+
+To publish endpoint discovery for a service interaction, set
+`publishEndpoint: true` on that interaction. Do not duplicate the metadata or
+reach into registries. The runtime derives the matching endpoint and owns its
+lifecycle; the flag is off by default and grants no route access.
+
 ## Public interface availability
 
 For worker site builds, publish bounded presentation flags through interface setup's `availability.set({ public, preview })`; read them through service setup's `interfaceAvailability.get({ packageName, declarationId })`. Do not use globally writable runtime-state namespaces, private namespace encodings or interface HTTP handlers in workers. Only the installed interface can write its flags; readers receive frozen data or `null`. There is no legacy global-state fallback. Stale hints never grant access: keep all actual authorization, guest allowance and runtime readiness checks on serving paths.

@@ -20,6 +20,7 @@ import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
 import { useGuestBoxViewport } from "./use-guest-box-viewport";
 import { useAskSheet } from "./use-ask-sheet";
+import { ASK_BOX_ATTRIBUTE, ASK_NAME_ATTRIBUTE } from "@brains/contracts";
 
 export interface GuestBoxProps {
   copy: GuestBoxCopy;
@@ -44,7 +45,7 @@ export interface GuestBoxProps {
 }
 
 function activityText(busy: boolean, state: GuestBoxState): string {
-  if (!busy) return state === "complete" ? "Answer received." : "";
+  if (!busy) return "";
   if (state === "sending") return "Sending your question…";
   if (state === "working") return "Working on your question…";
   return "Connecting to chat…";
@@ -69,6 +70,16 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const tail = useFollowTail({ resetKey: null, contentKey, paused: about });
   useGuestBoxViewport(root, input);
   const sheet = useAskSheet(root, input);
+  // Whose brain this is, from the host (ASK_NAME_ATTRIBUTE), once mounted.
+  const [owner, setOwner] = useState<string>();
+  useEffect(() => {
+    setOwner(
+      root.current
+        ?.closest(`[${ASK_BOX_ATTRIBUTE}]`)
+        ?.getAttribute(ASK_NAME_ATTRIBUTE)
+        ?.trim() ?? undefined,
+    );
+  }, []);
 
   const initialIntent = useRef(props.submitOnReady === true);
   const initialFocus = useRef(true);
@@ -87,6 +98,22 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   useEffect(() => {
     setHeader(root.current?.closest(".talk")?.querySelector(".ui-bar") ?? null);
   }, []);
+
+  // An answer opens at its question, so it is read from the start; the reader
+  // follows the end again from "Latest". A box its page grows has no region
+  // to scroll and is left to the page.
+  const lastRole = useRef(messages.at(-1)?.role);
+  useLayoutEffect(() => {
+    const previous = lastRole.current;
+    lastRole.current = messages.at(-1)?.role;
+    if (previous !== "user" || messages.at(-1)?.role !== "assistant") return;
+    const region = tail.ref.current;
+    if (!region || region.scrollHeight <= region.clientHeight) return;
+    const asked = [...region.querySelectorAll<HTMLElement>(".guest-user")].at(
+      -1,
+    );
+    if (asked) tail.showFrom(asked);
+  }, [messages]);
 
   // The confirmation opens at the end of the region, where it was asked for.
   useLayoutEffect(() => {
@@ -144,7 +171,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     if (sheet.open)
       return (
         <div className="brain-box-sheet-head">
-          <span className="brain-box-sheet-title">Conversation</span>
+          <span className="brain-box-sheet-title">
+            {owner ? `Ask ${owner}` : "Conversation"}
+          </span>
           {actions}
           <button
             className="brain-box-close"
@@ -221,7 +250,11 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
             <GuestTranscript messages={earlier} />
           </details>
         )}
-        <GuestTranscript messages={messages} />
+        <GuestTranscript
+          messages={messages}
+          sourceLinks
+          {...(owner ? { assistantLabel: owner } : {})}
+        />
         <p
           className={`brain-box-activity${state === "complete" && !busy ? " is-complete" : ""}`}
           role="status"
@@ -298,6 +331,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           copy={copy}
           inputRef={input}
           onFocus={sheet.show}
+          {...(owner
+            ? { answeredNote: `Answers come from what ${owner} has published.` }
+            : {})}
           draft={draft}
           setDraft={props.setDraft}
           over={over}

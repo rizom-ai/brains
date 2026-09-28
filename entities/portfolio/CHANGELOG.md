@@ -1,5 +1,47 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.434
+  - @brains/content-formatters@0.2.0-alpha.434
+  - @brains/contracts@0.2.0-alpha.434
+  - @brains/media-page-composer@0.2.0-alpha.434
+  - @brains/ui-library@0.2.0-alpha.434
+  - @brains/utils@0.2.0-alpha.434
+  - @brains/plugins@0.2.0-alpha.434
+  - @brains/templates@0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.433
+  - @brains/content-formatters@0.2.0-alpha.433
+  - @brains/contracts@0.2.0-alpha.433
+  - @brains/media-page-composer@0.2.0-alpha.433
+  - @brains/ui-library@0.2.0-alpha.433
+  - @brains/utils@0.2.0-alpha.433
+  - @brains/plugins@0.2.0-alpha.433
+  - @brains/templates@0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.432
+  - @brains/content-formatters@0.2.0-alpha.432
+  - @brains/contracts@0.2.0-alpha.432
+  - @brains/media-page-composer@0.2.0-alpha.432
+  - @brains/ui-library@0.2.0-alpha.432
+  - @brains/utils@0.2.0-alpha.432
+  - @brains/plugins@0.2.0-alpha.432
+  - @brains/templates@0.2.0-alpha.432
+
 ## 0.2.0-alpha.431
 
 ### Patch Changes

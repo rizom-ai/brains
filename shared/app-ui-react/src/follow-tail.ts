@@ -25,6 +25,11 @@ export interface FollowTail {
   /** Resume following; the next content change scrolls to the newest. */
   follow: () => void;
   jumpToLatest: () => void;
+  /**
+   * Show the region from this element, e.g. a question whose answer just
+   * arrived, and stop following until the reader returns to the end.
+   */
+  showFrom: (element: HTMLElement) => void;
 }
 
 /**
@@ -91,5 +96,14 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
     }
   }, [follow]);
 
-  return { ref, onScroll, awayFromLatest, follow, jumpToLatest };
+  const showFrom = useCallback((element: HTMLElement): void => {
+    const scroll = ref.current;
+    if (!scroll) return;
+    followingRef.current = false;
+    setAwayFromLatest(true);
+    scroll.scrollTop +=
+      element.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
+  }, []);
+
+  return { ref, onScroll, awayFromLatest, follow, jumpToLatest, showFrom };
 }

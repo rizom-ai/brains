@@ -34,6 +34,7 @@ import type { EntityReactionContext } from "../entity/entity-definition-contract
 import type { InboxItemDetail } from "../inbox-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
+import { interactionInfoSchema } from "../contracts/runtime-app-info";
 import { toSdkError } from "@brains/contracts";
 import { runCleanups } from "../internal/cleanup";
 import { emptyPluginState } from "../base/empty-state";
@@ -356,6 +357,12 @@ function runtimeJobHandler(
 
 /** What the queue files for one operation in a batch. */
 const batchOperationData = z.record(z.string(), z.unknown());
+const serviceInteractionsSchema = z.array(
+  interactionInfoSchema
+    .omit({ pluginId: true, status: true })
+    .extend({ publishEndpoint: z.boolean().optional() })
+    .strict(),
+);
 
 class DeclarativeServicePlugin<
   TConfigSchema extends z.ZodType<object, object>,
@@ -530,11 +537,17 @@ class DeclarativeServicePlugin<
       });
     }
 
-    for (const interaction of this.definition.interactions?.({
-      config: this.config,
-      state: this.requireState(),
-      workspaceUrl: (workspaceId) => this.studioWorkspaceUrls.get(workspaceId),
-    }) ?? []) {
+    // Validate the complete detached batch before publishing either projection.
+    // Native registration supplies ownership and shares the plugin's resource lifecycle.
+    const interactions = serviceInteractionsSchema.parse(
+      this.definition.interactions?.({
+        config: this.config,
+        state: this.requireState(),
+        workspaceUrl: (workspaceId) =>
+          this.studioWorkspaceUrls.get(workspaceId),
+      }) ?? [],
+    );
+    for (const interaction of interactions) {
       context.interactions.register({
         id: interaction.id,
         label: interaction.label,
@@ -543,16 +556,23 @@ class DeclarativeServicePlugin<
         ...(interaction.description !== undefined
           ? { description: interaction.description }
           : {}),
-        ...(interaction.priority !== undefined
-          ? { priority: interaction.priority }
-          : {}),
-        ...(interaction.visibility !== undefined
-          ? { visibility: interaction.visibility }
-          : {}),
+        priority: interaction.priority,
+        visibility: interaction.visibility,
         ...(interaction.requiresActiveSession !== undefined
           ? { requiresActiveSession: interaction.requiresActiveSession }
           : {}),
       });
+      if (interaction.publishEndpoint) {
+        context.endpoints.register({
+          label: interaction.label,
+          url: interaction.href,
+          priority: interaction.priority,
+          visibility: interaction.visibility,
+          ...(interaction.requiresActiveSession !== undefined
+            ? { requiresActiveSession: interaction.requiresActiveSession }
+            : {}),
+        });
+      }
     }
 
     if (this.definition.ready) {

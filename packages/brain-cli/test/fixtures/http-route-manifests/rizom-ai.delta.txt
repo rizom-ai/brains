@@ -63,8 +63,6 @@
 + @brains/web-chat:web-chat|handler|GET|/api/chat/messages|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/sessions|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/uploads|exact|true
-+ @brains/web-chat:web-chat|handler|GET|/ask/assets/app.css|exact|true
-+ @brains/web-chat:web-chat|handler|GET|/ask/assets/app.js|exact|true
 + @brains/web-chat:web-chat|handler|GET|/ask|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/agent/chat/confirm|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/agent/chat|exact|true

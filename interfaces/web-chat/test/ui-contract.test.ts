@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { readdirSync, readFileSync, statSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { z } from "@brains/utils/zod";
 import { ASK_STYLED_ATTRIBUTE } from "@brains/contracts";
@@ -7,33 +7,12 @@ import { ASK_STYLED_ATTRIBUTE } from "@brains/contracts";
 const packageRoot = join(import.meta.dir, "..");
 const packageJsonPath = join(packageRoot, "package.json");
 const buildScriptPath = join(packageRoot, "scripts", "build-ui.ts");
-const sourceExtensions = [".ts", ".tsx", ".js", ".jsx"];
 
 const webChatPackageJsonSchema = z.looseObject({
   files: z.array(z.string()),
   scripts: z.record(z.string(), z.string()),
   dependencies: z.record(z.string(), z.string()),
 });
-
-function listSourceFiles(dir: string): string[] {
-  const entries = readdirSync(dir);
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    if (entry === "node_modules" || entry === "dist") continue;
-    const path = join(dir, entry);
-    const stat = statSync(path);
-    if (stat.isDirectory()) {
-      files.push(...listSourceFiles(path));
-      continue;
-    }
-    if (sourceExtensions.some((extension) => path.endsWith(extension))) {
-      files.push(path);
-    }
-  }
-
-  return files;
-}
 
 /** Splits a selector list on its top-level commas, leaving :is(a, b) whole. */
 function splitSelectorList(list: string): string[] {
@@ -103,89 +82,33 @@ describe("Web chat UI contract", () => {
     expect(reactVersion).toBe(reactDomVersion);
   });
 
-  it("persists a browser conversation id for AI SDK chat requests", () => {
-    // App.tsx wires these behaviors together but does not own all of them —
-    // assert against every ui-react source so splitting a module out of the
-    // app shell stays a refactor rather than a failure.
-    const uiSource = listSourceFiles(join(packageRoot, "ui-react", "src"))
-      .map((file) => readFileSync(file, "utf-8"))
-      .join("\n");
-    const apiSource = readFileSync(
-      join(packageRoot, "ui-react", "src", "api.ts"),
-      "utf-8",
-    );
-    const mutationSource = readFileSync(
-      join(packageRoot, "ui-react", "src", "mutations.ts"),
-      "utf-8",
-    );
-
-    expect(uiSource).toContain("brain:web-chat:conversation-id");
-    expect(uiSource).toContain("localStorage");
-    expect(uiSource).toContain("id: conversationId");
-    expect(uiSource).toContain("New conversation");
-    expect(uiSource).toContain("new Chat<UIMessage>");
-    expect(uiSource).toContain("setInitialMessages([])");
-    const promptInputSource = readFileSync(
-      join(packageRoot, "ui-react", "src", "ai-elements", "prompt-input.tsx"),
-      "utf-8",
-    );
-    expect(promptInputSource).toContain("requestSubmit");
-    expect(promptInputSource).toContain("PromptInputMessage");
-    expect(uiSource).toContain("isBusyStatus");
-    expect(uiSource).toContain("onStop={stop}");
-    expect(uiSource).toContain("clearError");
-    expect(uiSource).toContain("Dismiss");
-    expect(uiSource).toContain("resizePromptTextarea");
-    expect(uiSource).toContain("promptInputRef");
-    expect(uiSource).toContain("focusPromptTextarea");
-    expect(uiSource).toContain("loadSessions");
-    expect(uiSource).toContain("switchConversation");
-    expect(uiSource).toContain("deriveSessionTitle");
-    expect(uiSource).toContain("upsertPendingSession");
-    expect(uiSource).toContain("web-chat-sessions-state");
-    expect(uiSource).toContain("renameConversation");
-    expect(uiSource).toContain("archiveConversation");
-    expect(uiSource).toContain("deleteConversation");
-    expect(uiSource).toContain("web-chat-session-dialog");
-    expect(uiSource).toContain("web-chat-message-header");
-    expect(uiSource).toContain("Conversations");
-    expect(uiSource).not.toContain("window.prompt");
-    expect(uiSource).not.toContain("window.confirm");
-    expect(mutationSource).toContain("client: ChatClient");
-    expect(uiSource).toContain("useWebChatClient");
-    expect(mutationSource).toContain(".renameSession(");
-    expect(mutationSource).toContain(".archiveSession(");
-    expect(mutationSource).toContain(".deleteSession(");
-    expect(apiSource).toContain(".getMessages(");
-    expect(apiSource).toContain(".listSessions(");
-    expect(uiSource).toContain("getWebChatApiPaths");
-    expect(uiSource).toContain(".runAction(");
-    expect(uiSource).toContain("queryClient.fetchQuery");
-    expect(uiSource).toContain("createActiveMessageSeed");
-
-    const messageSource = readFileSync(
-      join(packageRoot, "ui-react", "src", "ai-elements", "message.tsx"),
-      "utf-8",
-    );
-    expect(messageSource).toContain('from "streamdown"');
-    expect(messageSource).toContain("MessageResponse");
-  });
-
-  it("emits the shared app controls as static StyleX CSS", () => {
+  it("builds only the three guest bundles, with no retired operator assets", () => {
     const buildScript = readFileSync(buildScriptPath, "utf-8");
-    const css = readFileSync(
-      join(packageRoot, "dist", "ui", "app.css"),
-      "utf-8",
+    expect(buildScript).not.toContain('["main", "app"]');
+    for (const [entry, asset] of [
+      ["guest-box", "guest"],
+      ["guest-page", "ask"],
+      ["guest-dashboard", "dashboard"],
+    ]) {
+      expect(buildScript).toContain(
+        JSON.stringify([entry, asset]).replace(",", ", "),
+      );
+    }
+    expect(readdirSync(join(packageRoot, "dist", "ui")).sort()).toEqual(
+      ["guest", "ask", "dashboard"]
+        .flatMap((asset) => [asset + ".js", asset + ".css", asset + ".js.map"])
+        .sort(),
     );
-
     expect(buildScript).toContain("createStylexBunTransform");
     expect(buildScript).toMatch(
       /writeBuildFileAtomically\s*\(\s*join\(outdir,\s*`\$\{assetName\}\.css`\)/,
     );
-    expect(buildScript).toContain('["main", "app"]');
     expect(buildScript).toContain('["guest-box", "guest"]');
     expect(buildScript).toContain("outdir: staging");
-    expect(css).toContain("var(--console-accent)");
+    const css = readFileSync(
+      join(packageRoot, "dist", "ui", "guest.css"),
+      "utf-8",
+    );
     expect(css).not.toContain("insertRule");
   });
 

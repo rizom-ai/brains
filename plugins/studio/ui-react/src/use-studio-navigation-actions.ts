@@ -19,7 +19,7 @@ import {
 } from "../../src/chat-workspace";
 import { type FieldAssistState } from "./entity-fields";
 import { type SaveState } from "./editor-workflow";
-import { createStudioChatHandoffState } from "./operator-launch";
+import { createStudioChatHandoffState } from "../../src/chat-handoff-contract";
 import { type StudioWorkspaceQuery } from "./queries";
 import {
   replaceWorkspaceUrlQuery,

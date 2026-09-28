@@ -1,3 +1,4 @@
+import { join } from "path";
 import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
 import {
   ASK_BOX_BOOT_PATH,
@@ -35,19 +36,14 @@ import {
 import type { WebChatConversationAccess } from "./conversation-access";
 import { handleChatRequest } from "./chat-route";
 import {
-  renderChatPage,
   renderGuestChatPage,
   guestPageStyles,
-  uiAssetFile,
-  uiAssetPath,
-  uiStylesheetFile,
-  uiStylesheetPath,
+  uiAssetDirectory,
 } from "./chat-page";
 import { writeAnswer, writeText, type ActiveStream } from "./chat-stream";
 import { webChatConfigSchema, type WebChatConfig } from "./config";
 import { handleContextSessionRequest } from "./context-session-handler";
 import { toProgressData, toToolStatusData } from "./event-data";
-import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import { handleJobStatusRequest } from "./job-handlers";
 import { handleMessagesRequest } from "./message-handlers";
 import { handleActionRequest, type AgentRouteDeps } from "./agent-routes";
@@ -106,6 +102,7 @@ interface WebChatState {
   profileName(): string;
   guestMaintenance: InterfaceDaemonDefinition;
   authenticatedRoutePath: string;
+  hasStudio(): boolean;
   access: BrowserAccessReader;
   /** One per turn in flight, keyed by the conversation the browser named. */
   activeStreams: Map<string, ActiveStream>;
@@ -158,11 +155,6 @@ async function builtUiFile(
   return new Response(file, {
     headers: { "Content-Type": contentType, "Cache-Control": "no-cache" },
   });
-}
-
-function safeInboxContextLabel(title: string): string {
-  const label = title.replace(/[\p{Cc}\p{Cf}]/gu, " ").trim();
-  return label || "Inbox item";
 }
 
 /**
@@ -271,48 +263,6 @@ export function createWebChatDefinition(
           },
         );
 
-        context.endpoints.register({
-          label: "Chat",
-          url: authenticatedRoutePath,
-          priority: 15,
-          visibility: "trusted",
-          requiresActiveSession: true,
-        });
-        context.interactions.register({
-          id: webChatInterfaceType,
-          label: "Chat",
-          description: "Chat with this brain in the browser.",
-          href: authenticatedRoutePath,
-          kind: "human",
-          priority: 15,
-          visibility: "trusted",
-          requiresActiveSession: true,
-        });
-        context.inboxFollowUps.registerKind({
-          kind: "discuss-in-chat",
-          label: "Discuss in chat",
-          priority: 10,
-          mode: "universal",
-          permissionLevel: "trusted",
-          applies: () => true,
-          resolve: ({ sourceId, item }) => {
-            if (!context.inbox.getSource(sourceId)?.resolveDetail) {
-              return undefined;
-            }
-            return {
-              href: authenticatedRoutePath,
-              state: createWebChatInboxPrefillState(
-                "Help me understand this Inbox item and decide what to do next.",
-                {
-                  sourceId,
-                  itemId: item.id,
-                  label: safeInboxContextLabel(item.title),
-                },
-              ),
-            };
-          },
-        });
-
         return {
           guestPolicy,
           guestHttp,
@@ -348,6 +298,7 @@ export function createWebChatDefinition(
             () => guestHttp.maintainUsage(),
           ),
           authenticatedRoutePath,
+          hasStudio: () => context.plugins.has("@brains/studio:studio"),
           access,
           activeStreams: new Map<string, ActiveStream>(),
           agent: context.agent,
@@ -490,8 +441,8 @@ function webChatRoutes(
   const guestAssetVersion = (): Promise<string> => {
     guestAssetVersionPromise ??= Promise.all(
       [
-        uiAssetFile.replace(/app\.js$/, "guest.js"),
-        uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+        join(uiAssetDirectory, "guest.js"),
+        join(uiAssetDirectory, "guest.css"),
       ].map(async (path) => {
         const file = Bun.file(path);
         return (await file.exists()) ? file.text() : "";
@@ -631,18 +582,6 @@ function webChatRoutes(
         jobs,
       }),
     ),
-    rawRoute(
-      "GET",
-      uiAssetPath,
-      async () => builtUiFile(uiAssetFile, "text/javascript; charset=utf-8"),
-      true,
-    ),
-    rawRoute(
-      "GET",
-      uiStylesheetPath,
-      async () => builtUiFile(uiStylesheetFile, "text/css; charset=utf-8"),
-      true,
-    ),
     rawRoute("POST", paths.uploads, async (request) =>
       handleUploadRequest(request, uploadDeps),
     ),
@@ -664,7 +603,7 @@ function webChatRoutes(
               async (request) =>
                 canServeGuestAsset(state, request, () =>
                   builtUiFile(
-                    uiAssetFile.replace(/app\.js$/, `dashboard.${extension}`),
+                    join(uiAssetDirectory, `dashboard.${extension}`),
                     extension === "js"
                       ? "text/javascript; charset=utf-8"
                       : "text/css; charset=utf-8",
@@ -680,7 +619,7 @@ function webChatRoutes(
               async (request) =>
                 canServeGuestAsset(state, request, () =>
                   builtUiFile(
-                    uiAssetFile.replace(/app\.js$/, `ask.${extension}`),
+                    join(uiAssetDirectory, `ask.${extension}`),
                     extension === "js"
                       ? "text/javascript; charset=utf-8"
                       : "text/css; charset=utf-8",
@@ -743,7 +682,7 @@ function webChatRoutes(
             async (request) =>
               canServeGuestAsset(state, request, () =>
                 builtUiFile(
-                  uiAssetFile.replace(/app\.js$/, "guest.js"),
+                  join(uiAssetDirectory, "guest.js"),
                   "text/javascript; charset=utf-8",
                 ),
               ),
@@ -755,7 +694,7 @@ function webChatRoutes(
             async (request) =>
               canServeGuestAsset(state, request, () =>
                 builtUiFile(
-                  uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+                  join(uiAssetDirectory, "guest.css"),
                   "text/css; charset=utf-8",
                 ),
               ),
@@ -800,68 +739,28 @@ async function canServeGuestAsset(
       });
 }
 
-/**
- * The other doors the page's header links to.
- *
- * Asked of the runtime rather than read off the mounted route table: which
- * surfaces exist and what each one requires is the runtime's to know, and a
- * console matching plugin ids against paths is the coupling this package is
- * getting out of.
- *
- * `selfHref` is deliberately not passed. A surface given its own href always
- * resolves to it, which would hide the one thing worth asking — whether
- * another console owns the chat door. When Studio is mounted it does, and its
- * door is what the header offers.
- */
-function headerDoors(
-  state: WebChatState,
-  permissionLevel: UserPermissionLevel,
-): { dashboardHref: string; studioHref?: string } {
-  const surfaces = state.surfaces({
-    permissionLevel,
-    hasActiveSession: true,
-  });
-  const chatDoor = surfaces.find(
-    (surface) => surface.id === webChatInterfaceType,
-  )?.href;
-  return {
-    dashboardHref:
-      surfaces.find((surface) => surface.id === "dashboard")?.href ??
-      "/dashboard",
-    ...(chatDoor && chatDoor !== state.authenticatedRoutePath
-      ? { studioHref: chatDoor }
-      : {}),
-  };
-}
-
+/** Discovery chooses a destination; Studio itself authenticates the request. */
 async function chatPage(
   config: WebChatConfig,
   state: WebChatState,
-  request: Request,
+  _request: Request,
 ): Promise<Response> {
-  const { principal, permissionLevel, hasChatAccess } =
-    await state.access.resolve(request);
-  if (!hasChatAccess || !principal) {
-    return state.access.loginRequired(request);
-  }
-
-  const requestUrl = new URL(request.url);
-  const returnTo = encodeURIComponent(
-    `${requestUrl.pathname}${requestUrl.search}`,
-  );
-  return new Response(
-    renderChatPage({
-      apiPath: config.apiPath,
-      ...headerDoors(state, permissionLevel),
-      sessionHref: `/logout?return_to=${returnTo}`,
-      themeCSS: state.themeCSS,
-      principal: {
-        displayName: principal.displayName,
-        role: principal.role,
-      },
-    }),
-    { headers: { "Content-Type": "text/html; charset=utf-8" } },
-  );
+  const destination = state.hasStudio()
+    ? state
+        .surfaces({ permissionLevel: "trusted", hasActiveSession: true })
+        .find((surface) => surface.id === webChatInterfaceType)?.href
+    : undefined;
+  return destination === "/chat" &&
+    destination !== config.routePath &&
+    destination !== state.authenticatedRoutePath
+    ? new Response(null, {
+        status: 303,
+        headers: { Location: destination, "Cache-Control": "no-store" },
+      })
+    : new Response("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
 }
 
 const webChatInterface: ReturnType<typeof defineMessageInterface> =

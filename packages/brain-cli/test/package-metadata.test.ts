@@ -142,16 +142,22 @@ describe("@rizom/brain package metadata", () => {
       '["bun", "run", "build", "--outdir", studioUiDirectory]',
     );
     expect(buildScript).toContain('join(outdir, "ui")');
-    expect(buildScript).toContain(
-      'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',
-    );
-    expect(buildScript).toContain(
-      'cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"))',
-    );
+
     expect(buildScript).toContain("join(webChatUiDirectory, asset)");
     expect(buildScript).not.toContain(
       'join(webChatPackageDir, "dist", "ui", asset)',
     );
+    expect(buildScript).not.toContain("webChatUiAssetPath");
+    expect(buildScript).not.toContain("webChatUiStylesheetPath");
+    for (const asset of [
+      "guest.js",
+      "guest.css",
+      "ask.js",
+      "ask.css",
+      "dashboard.js",
+      "dashboard.css",
+    ])
+      expect(buildScript).toContain(`"${asset}"`);
     expect(buildScript).toContain(
       "cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true })",
     );
@@ -159,6 +165,24 @@ describe("@rizom/brain package metadata", () => {
     expect(buildScript).not.toContain("Building bundled Admin console UI");
     expect(buildScript).not.toContain("adminUiAssetPath");
     expect(buildScript).not.toContain("accountUiAssetPath");
+  });
+
+  it("packages guest chat bundles without retired operator assets", () => {
+    for (const asset of [
+      "guest.js",
+      "guest.css",
+      "ask.js",
+      "ask.css",
+      "dashboard.js",
+      "dashboard.css",
+    ])
+      expect(existsSync(join(packageDir, "dist", "ui", asset)), asset).toBe(
+        true,
+      );
+    for (const asset of ["app.js", "app.css", "app.js.map"])
+      expect(existsSync(join(packageDir, "dist", "ui", asset)), asset).toBe(
+        false,
+      );
   });
 
   it("copies every generated Studio entry and lazy chunk into packaged dist", () => {

@@ -40,7 +40,7 @@ describe("private bundled UI builds", () => {
   for (const fixture of [
     {
       workspace: "interfaces/web-chat",
-      assets: ["app", "guest", "dashboard"].flatMap((entry) => [
+      assets: ["ask", "guest", "dashboard"].flatMap((entry) => [
         `${entry}.js`,
         `${entry}.css`,
         `${entry}.js.map`,
@@ -89,6 +89,14 @@ describe("private bundled UI builds", () => {
         const destination = join(directory, "output");
         await mkdir(destination);
         await writeFile(join(destination, "keep.txt"), "caller-owned");
+        if (fixture.workspace === "interfaces/web-chat") {
+          for (const asset of ["app.js", "app.css", "app.js.map"]) {
+            await writeFile(
+              join(destination, asset),
+              "retired operator output",
+            );
+          }
+        }
         const process = Bun.spawn(
           ["bun", "run", "build", "--outdir", destination],
           {
@@ -120,6 +128,13 @@ describe("private bundled UI builds", () => {
         expect(await readFile(join(destination, "keep.txt"), "utf8")).toBe(
           "caller-owned",
         );
+        if (fixture.workspace === "interfaces/web-chat") {
+          for (const asset of ["app.js", "app.css", "app.js.map"]) {
+            expect(await Bun.file(join(destination, asset)).exists()).toBe(
+              false,
+            );
+          }
+        }
         expect(await snapshot()).toEqual(before);
       } finally {
         await rm(directory, { recursive: true, force: true });

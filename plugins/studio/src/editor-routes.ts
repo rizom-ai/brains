@@ -74,7 +74,9 @@ const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
  * what a brain composes it at unless it says otherwise.
  */
 function resolveStudioChatApiPath(runtime: StudioRuntime): string | undefined {
-  return runtime.plugins.has("web-chat") ? DEFAULT_CHAT_API_PATH : undefined;
+  return runtime.plugins.has("@brains/web-chat:web-chat")
+    ? DEFAULT_CHAT_API_PATH
+    : undefined;
 }
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's

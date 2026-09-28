@@ -82,7 +82,7 @@ function inboxContextUnavailable(): Response {
 /**
  * The handoff a session was opened with, when the request does not carry one.
  *
- * A page reloaded mid-conversation posts no `inboxContext`, and the source it
+ * A page reloaded mid-conversation posts no source context, and the source it
  * was opened against is what makes the next answer about the right thing.
  */
 async function storedContextHandoff(
@@ -279,9 +279,7 @@ export async function handleChatRequest(
   );
   if (accessError) return accessError;
 
-  const handoff =
-    parsed.data.inboxContext ??
-    (await storedContextHandoff(deps, conversationId));
+  const handoff = await storedContextHandoff(deps, conversationId);
   const attached =
     approvalResponses.length === 0 && handoff
       ? await inboxAttachment(

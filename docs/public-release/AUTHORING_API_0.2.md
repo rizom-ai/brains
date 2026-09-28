@@ -79,7 +79,6 @@ Domain types:
 - `ChatProtocolEvent`
 - `ChatSession`
 - `ChatSessionsResponse`
-- `ChatSourceContext`
 - `ChatTextPart`
 - `ChatToolStatusEvent`
 - `ChatToolStatusValue`
@@ -118,7 +117,6 @@ Schemas:
 - `chatProtocolEventSchema`
 - `chatSessionSchema`
 - `chatSessionsResponseSchema`
-- `chatSourceContextSchema`
 - `chatTextPartSchema`
 - `chatToolStatusEventSchema`
 - `chatUploadPartSchema`
@@ -394,6 +392,16 @@ These operator schemas and executor bindings are the accepted public contract. T
 Workspace action inputs are JSON-native wire values (`z.input`), not pre-transformed values. Views validate them but retain the original input for browser submission; admission parses each request once, and bound execute/prepare callbacks receive `z.output`. Defaults and input transforms are supported. A prepared action's revision recheck and execution share that request's parsed input; they do not apply its transforms again.
 
 ### Source-backed collections
+
+Service interactions may opt into endpoint discovery with `publishEndpoint: true`.
+Declare the interaction once; its label, href, priority, visibility and session
+requirement also describe the derived endpoint. The flag defaults off. The runtime
+validates the whole batch before publication, supplies installed ownership and
+uses the existing manager rollback/shutdown lifecycle for both registrations.
+There is no endpoint registry in the author context. Discovery does not register
+a route or grant access: the destination must enforce its own authentication and
+authorization. Named consumer: Studio's Chat interaction, declared only when
+Web Chat is installed. Advanced type: `ServiceInteractionDeclaration`.
 
 Advanced named consumer: Studio uses `ServiceGroupingDeclaration`,
 `GroupingDefinition`, `GroupingDefinitionsSnapshot`, `EntityGrouping`, `OperatorEntityGroupings`,

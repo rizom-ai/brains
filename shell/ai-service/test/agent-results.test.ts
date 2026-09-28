@@ -154,6 +154,89 @@ describe("extractToolResults", () => {
   });
 });
 
+describe("an answer's sources", () => {
+  const hit = (id: string, title: string, score: number): unknown => ({
+    entity: {
+      id,
+      entityType: id.startsWith("note") ? "note" : "post",
+      metadata: { title },
+    },
+    score,
+  });
+  const steps = [
+    {
+      toolCalls: [{ toolCallId: "s", toolName: "system_search", input: {} }],
+      toolResults: [
+        {
+          toolCallId: "s",
+          toolName: "system_search",
+          output: {
+            success: true,
+            data: {
+              results: [
+                hit("note-a", "Institutional memory", 0.9),
+                hit("note-b", "Writing sample", 0.85),
+                hit("note-c", "Analysis notes", 0.8),
+                hit(
+                  "a-colleague-without-context",
+                  "A Colleague Without Context",
+                  0.7,
+                ),
+                hit("heroics", "Heroics Are Not Infrastructure", 0.6),
+              ],
+            },
+          },
+        },
+      ],
+    },
+    {
+      toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+      toolResults: [
+        {
+          toolCallId: "g",
+          toolName: "system_get",
+          output: {
+            success: true,
+            data: {
+              entity: {
+                id: "read-directly",
+                entityType: "post",
+                metadata: { title: "Read Directly" },
+              },
+            },
+          },
+        },
+      ],
+    },
+  ];
+  const sourceIds = (text?: string): string[] =>
+    extractToolResults(steps, text).cards.flatMap((card) =>
+      card.kind === "sources" ? card.sources.map((source) => source.id) : [],
+    );
+
+  it("are the results the answer names, however they scored, and what it read directly", () => {
+    expect(
+      sourceIds(
+        "Start with **A Colleague without context**, then heroics are not infrastructure.",
+      ),
+    ).toEqual([
+      "post:a-colleague-without-context",
+      "post:heroics",
+      "post:read-directly",
+    ]);
+  });
+
+  it("fall back to the best-scored results when the answer names none", () => {
+    expect(sourceIds("A general answer.")).toEqual([
+      "note:note-a",
+      "note:note-b",
+      "note:note-c",
+      "post:read-directly",
+    ]);
+    expect(sourceIds()).toEqual(sourceIds("A general answer."));
+  });
+});
+
 describe("buildAgentContactCandidates", () => {
   it("builds typed agents_connect candidates from agent not-saved rejections", () => {
     const candidates = buildAgentContactCandidates([

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
-  createInboxChatPrefillState,
   createStudioChatHandoffState,
   readStudioChatHandoffState,
-} from "./operator-launch";
+} from "../../src/chat-handoff-contract";
 
 describe("semantic operator launches", () => {
   it("creates and bounds native Studio Chat handoff state", () => {
@@ -27,25 +26,5 @@ describe("semantic operator launches", () => {
         },
       }),
     ).toBeNull();
-  });
-
-  it("creates only the destination-owned web-chat prefill state", () => {
-    expect(
-      createInboxChatPrefillState(
-        "mail-items",
-        "mail-1",
-        "Time-sensitive request",
-      ),
-    ).toEqual({
-      webChatPrefill: {
-        version: 2,
-        text: "Help me understand this Inbox item and decide what to do next.",
-        context: {
-          sourceId: "mail-items",
-          itemId: "mail-1",
-          label: "Time-sensitive request",
-        },
-      },
-    });
   });
 });

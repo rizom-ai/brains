@@ -63,7 +63,7 @@ function findRoute(
 function enableChatCapability(shell: MockShell): void {
   const getPluginPackageName = shell.getPluginPackageName.bind(shell);
   shell.getPluginPackageName = (pluginId): string | undefined =>
-    pluginId === "web-chat"
+    pluginId === "@brains/web-chat:web-chat"
       ? "@brains/web-chat"
       : getPluginPackageName(pluginId);
 }

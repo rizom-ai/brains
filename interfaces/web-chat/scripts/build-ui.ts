@@ -27,8 +27,12 @@ await mkdir(dirname(outdir), { recursive: true });
 // A sibling staging directory keeps source-map relative paths unchanged.
 const staging = await mkdtemp(join(dirname(outdir), ".web-chat-ui-"));
 try {
+  await Promise.all(
+    ["app.js", "app.css", "app.js.map"].map((asset) =>
+      rm(join(outdir, asset), { force: true }),
+    ),
+  );
   for (const [entryName, assetName] of [
-    ["main", "app"],
     ["guest-box", "guest"],
     ["guest-page", "ask"],
     ["guest-dashboard", "dashboard"],

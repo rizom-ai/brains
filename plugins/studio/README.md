@@ -139,6 +139,22 @@ Studio provides a keyboard-visible **Skip to content** control, named main landm
 
 From the repository root, run `bun run visual:console --surface-prefix=studio- --a11y` (set `CONSOLE_CHROMIUM_PATH` when needed). The fixture matrix covers desktop, tablet, and phone in both climates. Native keyboard checks exercise navigation skipping, visible content focus, dialog focus wrapping, and conversation scrolling. Axe checks WCAG 2/2.1/2.2 A/AA tags and writes violations, incomplete findings, and passed-rule IDs beside visual artifacts. Zero automated violations does not replace manual screen-reader, contrast, or running-app verification. Review changed captures before using `--update`.
 
+## Operator Chat
+
+Studio is the only operator browser chat. When web-chat is installed, Studio
+registers the Chat interaction, advertised endpoint and Inbox **Discuss in chat**
+follow-up at `/chat`. Registration uses the preloaded plugin catalog; request
+handling resolves the Chat API only after HTTP routes are finalized.
+
+Conversation details offer rename, archive and confirmed permanent deletion,
+including deletion of archived conversations. Deletion is blocked by drafts,
+uploads or active turns, locks composition while pending, and never retries
+automatically. Late completion cannot navigate a different open conversation.
+Deleting history does not undo completed actions or guarantee remote work stops.
+
+Inbox-linked conversations use the authorized stored handoff. The old Ask
+prefill and detach button are retired; use a new conversation for another topic.
+
 ## UX follow-through
 
 Collapsed desktop navigation uses distinct decorative area marks while retaining accessible names, attention descriptions, tooltips, and guarded routing. Expanded navigation keeps its labels and ordinals.

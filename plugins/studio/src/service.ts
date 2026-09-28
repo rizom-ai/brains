@@ -32,7 +32,11 @@ import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes, type EditorRouteState } from "./editor-routes";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
-import { STUDIO_CHAT_WORKSPACE_ID } from "./chat-workspace";
+import {
+  STUDIO_CHAT_ROUTE_PATH,
+  STUDIO_CHAT_WORKSPACE_ID,
+} from "./chat-workspace";
+import { createStudioChatHandoffState } from "./chat-handoff-contract";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -212,6 +216,32 @@ export function studioService(
           createStudioOverviewWorkspace({ runtime, registry: overview }),
         );
 
+        if (plugins.has("@brains/web-chat:web-chat")) {
+          inboxFollowUps.registerKind({
+            kind: "discuss-in-chat",
+            label: "Discuss in chat",
+            priority: 10,
+            mode: "universal",
+            permissionLevel: "trusted",
+            applies: () => true,
+            resolve: ({ sourceId, item }) => {
+              if (!inbox.getSource(sourceId)?.resolveDetail) return undefined;
+              const label = item.title
+                .replace(/[\p{Cc}\p{Cf}]/gu, " ")
+                .trim()
+                .slice(0, 160);
+              return {
+                href: STUDIO_CHAT_ROUTE_PATH,
+                state: createStudioChatHandoffState(
+                  sourceId,
+                  item.id,
+                  label || "Inbox item",
+                ),
+              };
+            },
+          });
+        }
+
         // An inbox item can become a note, or open the entity it came from.
         // Whether a person may create a note depends on the person, never on
         // the item, so it is answered once per level.
@@ -280,7 +310,22 @@ export function studioService(
       },
     },
     {
-      interactions: ({ config }) => [
+      interactions: ({ config, state }) => [
+        ...(state.runtime.plugins.has("@brains/web-chat:web-chat")
+          ? [
+              {
+                id: "chat",
+                label: "Chat",
+                description: "Chat with this brain in the browser.",
+                href: STUDIO_CHAT_ROUTE_PATH,
+                kind: "human" as const,
+                priority: 15,
+                visibility: "trusted" as const,
+                requiresActiveSession: true,
+                publishEndpoint: true,
+              },
+            ]
+          : []),
         {
           id: "studio",
           label: "Studio",
