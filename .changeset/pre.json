@@ -424,6 +424,7 @@
     "core--mcp-stream-silent-http-requests",
     "core--mcp-v2-stateless",
     "core--media-provider-factories",
+    "core--mobile-ask-pass",
     "core--mobile-ask-sheet",
     "core--mount-grouping-editors",
     "core--newsletter-resend-provider",
