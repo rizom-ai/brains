@@ -1,5 +1,18 @@
 # @brains/mcp
 
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- [#389](https://github.com/rizom-ai/brains/pull/389) [`7650439`](https://github.com/rizom-ai/brains/commit/7650439502c4bf91d9370b72d952aec25bdff8c2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Start modern Streamable HTTP responses in the SDK's SSE mode so its keepalive comments cover silent model/tool execution before the final result. This prevents that initial silence from exhausting a proxy's response-header timeout without increasing deployment timeouts. Authentication, confirmation handling, request cancellation, and stateless legacy compatibility remain unchanged.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.431
+  - @brains/utils@0.2.0-alpha.431
+  - @brains/auth-service@0.2.0-alpha.431
+  - @brains/mcp-service@0.2.0-alpha.431
+  - @brains/plugins@0.2.0-alpha.431
+
 ## 0.2.0-alpha.430
 
 ### Patch Changes

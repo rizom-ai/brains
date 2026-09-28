@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.254",
+  "version": "0.2.0-alpha.255",
   "description": "Consolidated Rizom brand site, runtime, layouts, and chrome",
   "type": "module",
   "exports": {
@@ -54,6 +54,7 @@
     "@brains/templates": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",

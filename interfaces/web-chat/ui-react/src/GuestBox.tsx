@@ -19,6 +19,7 @@ import { GuestBoxComposer } from "./GuestBoxComposer";
 import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
 import { useGuestBoxViewport } from "./use-guest-box-viewport";
+import { useAskSheet } from "./use-ask-sheet";
 
 export interface GuestBoxProps {
   copy: GuestBoxCopy;
@@ -67,6 +68,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   );
   const tail = useFollowTail({ resetKey: null, contentKey, paused: about });
   useGuestBoxViewport(root, input);
+  const sheet = useAskSheet(root, input);
 
   const initialIntent = useRef(props.submitOnReady === true);
   const initialFocus = useRef(true);
@@ -115,7 +117,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     if (!props.canSend || busy || over > 0 || !draft.trim()) return;
     tail.follow();
     props.onSend();
-    input.current?.focus({ preventScroll: true });
+    // Full screen, the keyboard closes so the answer gets the screen back.
+    if (sheet.open) input.current?.blur();
+    else input.current?.focus({ preventScroll: true });
   }
 
   const actions = (
@@ -136,9 +140,31 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     </div>
   );
 
+  const placeActions = (): ReactElement | null => {
+    if (sheet.open)
+      return (
+        <div className="brain-box-sheet-head">
+          <span className="brain-box-sheet-title">Conversation</span>
+          {actions}
+          <button
+            className="brain-box-close"
+            type="button"
+            aria-label="Close conversation"
+            onClick={sheet.close}
+          >
+            ✕
+          </button>
+        </div>
+      );
+    return header ? createPortal(actions, header) : actions;
+  };
+
   return (
-    <div className="brain-guest-box" ref={root}>
-      {header ? createPortal(actions, header) : actions}
+    <div
+      className={`brain-guest-box${sheet.open ? " is-sheet" : ""}${sheet.narrow && !sheet.open ? " is-compact" : ""}`}
+      ref={root}
+    >
+      {placeActions()}
       <div
         ref={tail.ref}
         className={`brain-box-scroll${welcome && !about ? " is-welcome" : ""}`}
@@ -258,9 +284,20 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
             Latest ↓
           </button>
         )}
+        {sheet.narrow && !sheet.open && messages.length > 0 && (
+          <button
+            className="brain-box-resume"
+            type="button"
+            onClick={sheet.show}
+          >
+            <span className="brain-box-resume-dot" aria-hidden="true" />
+            Continue conversation
+          </button>
+        )}
         <GuestBoxComposer
           copy={copy}
           inputRef={input}
+          onFocus={sheet.show}
           draft={draft}
           setDraft={props.setDraft}
           over={over}

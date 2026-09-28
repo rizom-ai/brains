@@ -1,5 +1,10 @@
 import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
-import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
+import {
+  ASK_BOX_BOOT_PATH,
+  ASK_BOX_LOADER_SCRIPT,
+  ASK_BOX_VERSION_PATH,
+  askBoxBootScript,
+} from "./ask-box-boot";
 import { requireSameOriginJson } from "@brains/auth-service";
 import { SitePageResponse } from "@brains/sdk/interfaces";
 import {
@@ -479,6 +484,23 @@ function webChatRoutes(
   messages: MessageReceiver,
 ): AnyInterfaceRouteDefinition[] {
   const paths = createChatApiPaths(config.apiPath);
+  // Per installed interface: the authorized routes name this build, not an
+  // unrelated instance's cached assets. The build files remain private.
+  let guestAssetVersionPromise: Promise<string> | undefined;
+  const guestAssetVersion = (): Promise<string> => {
+    guestAssetVersionPromise ??= Promise.all(
+      [
+        uiAssetFile.replace(/app\.js$/, "guest.js"),
+        uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+      ].map(async (path) => {
+        const file = Bun.file(path);
+        return (await file.exists()) ? file.text() : "";
+      }),
+    ).then((files) =>
+      Bun.hash([askBoxBootScript(""), ...files].join("\0")).toString(36),
+    );
+    return guestAssetVersionPromise;
+  };
   const agentDeps: AgentRouteDeps = {
     access: state.access,
     agent: state.agent,
@@ -678,7 +700,36 @@ function webChatRoutes(
                 state,
                 request,
                 () =>
-                  new Response(ASK_BOX_BOOT_SCRIPT, {
+                  new Response(ASK_BOX_LOADER_SCRIPT, {
+                    headers: {
+                      "Content-Type": "text/javascript; charset=utf-8",
+                      "Cache-Control": "no-cache",
+                    },
+                  }),
+              ),
+            true,
+          ),
+          rawRoute(
+            "GET",
+            ASK_BOX_VERSION_PATH,
+            async (request) =>
+              canServeGuestAsset(state, request, async () =>
+                Response.json(
+                  { version: await guestAssetVersion() },
+                  { headers: { "Cache-Control": "no-store" } },
+                ),
+              ),
+            true,
+          ),
+          rawRoute(
+            "GET",
+            ASK_BOX_BOOT_PATH,
+            async (request) =>
+              canServeGuestAsset(
+                state,
+                request,
+                async () =>
+                  new Response(askBoxBootScript(await guestAssetVersion()), {
                     headers: {
                       "Content-Type": "text/javascript; charset=utf-8",
                     },

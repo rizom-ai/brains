@@ -8,6 +8,22 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Ask assets/mobile sheet integration evidence scope
+
+The approved `a16b8887f1` snapshot adds versioned Ask loader/boot routes through
+existing declarative route bindings, with live authorization before serving
+assets or calculating their per-instance build version. Mobile sheet host
+attributes remain presentation contracts, not availability-storage keys or
+caller authority. MCP HTTP starts SSE for silent requests; Studio account and
+navigation refactoring retains existing authenticated APIs.
+
+Rizom uses the public Brain UI renderer instead of the retired private UI
+package. Its shared implementation is bundled and the exported helper keeps a
+React-only declaration, so Site consumers do not acquire a Core package type
+dependency. No declaration scanner exception or new SDK capability is needed.
+Exact source/packed evidence is recorded on PR #301 after validation; mobile
+component tests are not canonical browser, live-provider or deployment evidence.
+
 ## Normal-agent/runtime-role integration evidence scope
 
 The approved `3a87eb534c` snapshot is integrated without restoring retired plugin
@@ -28,9 +44,12 @@ is omitted), admitted question recording no longer requires a displayed notice,
 and retrieval uses ordinary query diagnostics. Local tests are not provider
 billing, production privacy/disclosure, browser or deployment acceptance.
 
-The completed commit/tree, local full/surface/packed checks and hosted status
-are recorded on PR #301. No newer main snapshot, publication, nomination or
-production activation is authorized by this integration.
+Completed as `fd2e1dbdcad48c023360121b472559b3c0f755f2`, tree
+`3624f9eed10d8fc934701e7f45f4d4668996915c`, with parents `a102edd08d` and
+`3a87eb534c`. Forced 107 type/build, 105 test and 98 lint tasks, seven surface
+tasks, eight packed scenarios/101 assertions, full static checks and frozen
+install passed. No current-head hosted acceptance was observed. No publication,
+nomination or production activation was authorized.
 
 ## Document-grouping integration evidence scope
 

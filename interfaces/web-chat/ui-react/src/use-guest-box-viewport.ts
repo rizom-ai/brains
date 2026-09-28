@@ -1,4 +1,5 @@
 import { useEffect, type RefObject } from "react";
+import { ASK_SHEET_ATTRIBUTE } from "@brains/contracts";
 
 /**
  * Keeps the host `.talk` panel sized to the visual viewport, so a phone's
@@ -18,7 +19,12 @@ export function useGuestBoxViewport(
           "--chat-viewport-height",
           `${viewport?.height ?? window.innerHeight}px`,
         );
-      if (document.activeElement === input.current && window.innerWidth <= 650)
+      if (
+        document.activeElement === input.current &&
+        window.innerWidth <= 650 &&
+        // A full-screen box already fits the viewport; the page is locked.
+        !root.current?.closest(`[${ASK_SHEET_ATTRIBUTE}]`)
+      )
         root.current?.scrollIntoView({ block: "end" });
     };
     resize();

@@ -15,6 +15,7 @@ export function GuestBoxComposer(props: {
   canSend: boolean;
   hasMessages: boolean;
   onSubmit: () => void;
+  onFocus?: () => void;
 }): ReactElement {
   const { draft, over, welcome, busy, copy } = props;
 
@@ -44,6 +45,7 @@ export function GuestBoxComposer(props: {
           aria-invalid={over > 0}
           placeholder={welcome ? copy.inputHint : "Ask a follow-up…"}
           onInput={(event): void => props.setDraft(event.currentTarget.value)}
+          onFocus={props.onFocus}
           onKeyDown={(event): void => {
             if (
               event.key === "Enter" &&

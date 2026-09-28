@@ -139,6 +139,19 @@ server from the live registry. There are no MCP session IDs, in-memory session
 maps, or idle-session settings. The SDK's default stateless legacy path keeps
 pre-2026 clients working without retaining server-side session state.
 
+### Silent requests and keepalives
+
+Modern HTTP exchanges use the SDK's `responseMode: "sse"`, so its default
+15-second keepalive comments cover silent work such as model generation. In
+`auto` mode, streaming would not start until a result or progress notification;
+that initial silence can exceed a reverse proxy's response-header deadline.
+
+This is an SSE response within **Streamable HTTP**, not the older HTTP+SSE
+transport or a new session protocol. The SDK owns framing, keepalives, and
+cleanup. Request authentication still precedes streaming, cancellation and
+shutdown abort active modern handlers, and stateless legacy serving is unchanged.
+Keepalives do not shorten model execution or remove client/hard request deadlines.
+
 ## Permissions
 
 MCP uses transport-based permissions rather than user-based authentication:

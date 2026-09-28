@@ -385,6 +385,10 @@ export class StreamableHTTPServer {
           : mcpServer;
       },
       {
+        // Modern auto mode waits for a result or notification before starting
+        // SSE. Silent model calls can outlast a proxy's response deadline;
+        // start streaming so the SDK's keepalives also cover that initial wait.
+        responseMode: "sse",
         onerror: (error): void => {
           this.logger.error("MCP handler error:", error);
         },

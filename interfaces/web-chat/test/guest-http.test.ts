@@ -452,11 +452,27 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     ).toBe(200);
     for (const asset of ["/ask/assets/ask.js", "/ask/assets/ask.css"])
       expect((await browser.fetch(asset, { method: "GET" })).status).toBe(200);
-    // The shared box boot every consuming site loads.
-    const boot = await browser.fetch("/ask/assets/box.js", { method: "GET" });
-    expect(boot.status).toBe(200);
+    // The shared box loader every consuming site loads: it never changes,
+    // and asks which build is current before loading the boot at that version.
+    const loader = await browser.fetch("/ask/assets/box.js", { method: "GET" });
+    expect(loader.status).toBe(200);
+    expect(loader.headers.get("content-type")).toContain("text/javascript");
+    expect(await loader.text()).toContain("/ask/assets/version");
+    const current = await browser.fetch("/ask/assets/version", {
+      method: "GET",
+    });
+    expect(current.headers.get("cache-control")).toBe("no-store");
+    const { version } = z
+      .object({ version: z.string().regex(/^[a-z0-9]+$/) })
+      .parse(await current.json());
+    const boot = await browser.fetch(`/ask/assets/boot.js?v=${version}`, {
+      method: "GET",
+    });
     expect(boot.headers.get("content-type")).toContain("text/javascript");
-    expect(await boot.text()).toContain("data-ask-box");
+    const bootScript = await boot.text();
+    expect(bootScript).toContain("data-ask-box");
+    expect(bootScript).toContain(`/ask/assets/guest.js?v=${version}`);
+    expect(bootScript).toContain(`/ask/assets/guest.css?v=${version}`);
     const submission = randomUUID();
     const first = await post(
       browser,
@@ -796,6 +812,8 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     const browser = state.browser();
     for (const path of [
       "/ask/assets/box.js",
+      "/ask/assets/boot.js",
+      "/ask/assets/version",
       "/ask/assets/guest.js",
       "/ask/assets/guest.css",
       "/ask/assets/ask.js",
