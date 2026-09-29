@@ -90,9 +90,12 @@ describe("the homepage opening", () => {
       ...map,
       topics: ["What changes when a brain is yours?"],
       askBox: true,
+      prompt: "What’s on your mind?",
     });
     expect(html).toContain('data-ask-box=""');
-    expect(html).toContain('<textarea rows="1" disabled=""');
+    expect(html).toContain(
+      '<textarea rows="1" disabled="" aria-label="Your question" placeholder="What’s on your mind?">',
+    );
     expect(html).toContain('data-ask-send=""');
     expect(html).toContain(
       '<button type="button" data-atlas-fill="What changes when a brain is yours?">What changes when a brain is yours?</button>',

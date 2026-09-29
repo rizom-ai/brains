@@ -23,12 +23,15 @@ export const openingSchema: z.ZodObject<
   (typeof proximityMapDataSchema)["shape"] & {
     topics: z.ZodDefault<z.ZodArray<z.ZodString>>;
     askBox: z.ZodDefault<z.ZodBoolean>;
+    prompt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   }
 > = proximityMapDataSchema.extend({
   /** The drafted questions, which fill the box's field. */
   topics: z.array(z.string()).default([]),
   /** Web Chat serves the guest box here: dock it. */
   askBox: z.boolean().default(false),
+  /** The shared Ask note's title, prompting in the box's field. */
+  prompt: z.string().nullable().default(null),
 });
 export type OpeningData = z.output<typeof openingSchema>;
 
@@ -157,7 +160,7 @@ export function Opening(data: OpeningData): JSX.Element {
       <p className="lede">{lede}</p>
       {data.askBox ? (
         <div className="ask">
-          <AskBoxHost prefix="opening" />
+          <AskBoxHost prefix="opening" placeholder={data.prompt ?? undefined} />
           {data.topics.length > 0 && (
             <ul className="ask__topics" aria-label="Suggested questions">
               {data.topics.map((topic) => (

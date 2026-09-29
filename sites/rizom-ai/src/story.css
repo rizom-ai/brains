@@ -342,8 +342,11 @@
   color: var(--color-text-light);
   font-style: normal;
 }
-.cta {
+/* A chapter is a flex column: a button keeps its own width, not the column's. */
+.cta,
+.opening__door {
   display: inline-block;
+  align-self: flex-start;
   margin-top: 2rem;
   padding: 0.8rem 1.3rem;
   border-radius: 3px;
@@ -741,17 +744,6 @@
   font-style: italic;
   color: var(--color-accent);
 }
-.opening__door {
-  display: inline-block;
-  margin-top: 1.8rem;
-  padding: 0.8rem 1.3rem;
-  border-radius: 3px;
-  background: var(--color-accent);
-  color: var(--color-text-inverse, #0e0d20);
-  font-weight: 500;
-  text-decoration: none;
-}
-/* Where the figure stands: right-aligned to the page, not the chapters column. */
 /* The network fills the room right of the opening's words, centred in it. */
 .net-layer {
   position: absolute;

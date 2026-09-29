@@ -13,9 +13,10 @@ const MAP_SOURCE_ID = "agent-discovery:proximity-map";
 export interface OpeningLoaders {
   /** The live map's datasource, registered by agent-discovery; absent when the plugin is not loaded. */
   mapSource: () => DataSource | undefined;
-  loadOpening: (
-    context: BaseDataSourceContext,
-  ) => Promise<{ topics?: string[] | undefined } | null>;
+  loadOpening: (context: BaseDataSourceContext) => Promise<{
+    title?: string | undefined;
+    topics?: string[] | undefined;
+  } | null>;
   chatAvailable: (context: BaseDataSourceContext) => Promise<boolean>;
 }
 
@@ -63,6 +64,7 @@ export class RizomOpeningDataSource implements DataSource {
     return outputSchema.parse({
       ...map,
       topics: opening?.topics ?? [],
+      prompt: opening?.title ?? null,
       askBox,
     });
   }

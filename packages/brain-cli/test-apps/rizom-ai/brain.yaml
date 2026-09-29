@@ -34,6 +34,11 @@ site:
 plugins:
   mcp:
     mode: debug
+  # The homepage's guest Ask box, on the local-test preset only.
+  web-chat:
+    guest:
+      preset: local-test
+      origin: http://localhost:8080
   # Local acceptance of the contact form behind rizom.ai's "Book an audit":
   # loopback origin and test-only limits and retention, not a production policy.
   contact:

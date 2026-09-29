@@ -47,13 +47,17 @@ describe("the opening's data", () => {
   test("is the live map with the Ask topics and the box's availability", async () => {
     const loaders: OpeningLoaders = {
       mapSource: () => mapSource,
-      loadOpening: async () => ({ topics: ["Where would I start?"] }),
+      loadOpening: async () => ({
+        title: "What’s on your mind?",
+        topics: ["Where would I start?"],
+      }),
       chatAvailable: async () => true,
     };
     const source = new RizomOpeningDataSource(loaders);
     const data = await source.fetch({}, openingSchema, context);
     expect(data.nodes.map((node) => node.id)).toEqual(["jo"]);
     expect(data.topics).toEqual(["Where would I start?"]);
+    expect(data.prompt).toBe("What’s on your mind?");
     expect(data.askBox).toBe(true);
   });
 
@@ -67,6 +71,7 @@ describe("the opening's data", () => {
     const data = await source.fetch({}, openingSchema, context);
     expect(data.nodes).toEqual([]);
     expect(data.topics).toEqual([]);
+    expect(data.prompt).toBeNull();
     expect(data.askBox).toBe(false);
   });
 });

@@ -11,9 +11,16 @@ import {
  * The guest chat box's host on a page that presents it (see @brains/contracts
  * ask-box): disabled until Web Chat's box boot enables it; the boot mounts the
  * conversation here and never sends on its own. Web Chat styles the mounted
- * box; the page themes and frames it through the class prefix.
+ * box; the page themes and frames it through the class prefix. A page with
+ * its own words for the field (the shared Ask note's title) prompts with them.
  */
-export function AskBoxHost({ prefix }: { prefix: string }): JSX.Element {
+export function AskBoxHost({
+  prefix,
+  placeholder,
+}: {
+  prefix: string;
+  placeholder?: string | undefined;
+}): JSX.Element {
   return (
     <div
       className={`${prefix}__ask`}
@@ -25,7 +32,12 @@ export function AskBoxHost({ prefix }: { prefix: string }): JSX.Element {
         {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
       />
       <div className={`${prefix}__composer`}>
-        <textarea rows={1} disabled aria-label="Your question" />
+        <textarea
+          rows={1}
+          disabled
+          aria-label="Your question"
+          placeholder={placeholder}
+        />
         <button
           type="button"
           className={`${prefix}__send`}
