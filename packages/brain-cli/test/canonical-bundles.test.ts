@@ -331,6 +331,7 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
+      "faq",
     ]);
   });
 
@@ -366,6 +367,7 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
+      "faq",
       "analytics",
       "atproto",
     ]);
@@ -388,6 +390,7 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
+      "faq",
       "analytics",
     ]);
   });
