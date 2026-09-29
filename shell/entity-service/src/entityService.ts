@@ -37,6 +37,7 @@ import type {
   EntityService as IEntityService,
   EntityEventBus,
   GetEntityRequest,
+  GetEntitiesRequest,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   ListEntitiesRequest,
@@ -66,6 +67,7 @@ import type {
   EntityRegistry as IEntityRegistry,
   EntitySchema,
 } from "./types";
+import { getEntitiesRequestSchema } from "./types";
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
@@ -718,7 +720,7 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, visibilityScope } = request;
-    const entity = await this.getEntityRaw(request);
+    const entity = await this.readStoredEntity(request, false);
     if (!entity) {
       return null;
     }
@@ -750,6 +752,35 @@ export class EntityService implements IEntityService {
     return entity;
   }
 
+  public async getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]> {
+    await this.initialize();
+    const parsed = getEntitiesRequestSchema.parse(request);
+    const data = await this.entityQueries.getEntityDataMany(
+      parsed.entityType,
+      parsed.ids,
+      parsed.visibilityScope,
+    );
+    const found = await this.entitySerializer.convertToEntities(
+      data,
+      parsed.entityType,
+    );
+    if (!shouldResolveContent(parsed.entityType)) return found;
+
+    return Promise.all(
+      found.map(async (entity) => {
+        if (!entity.content) return entity;
+        const result = await this.contentResolver.resolve(
+          entity.content,
+          this,
+          parsed.visibilityScope,
+        );
+        return result.resolvedCount > 0
+          ? { ...entity, content: result.content }
+          : entity;
+      }),
+    );
+  }
+
   public async getEntityRaw(
     request: GetEntityRawRequest,
   ): Promise<BaseEntity | null>;
@@ -760,6 +791,14 @@ export class EntityService implements IEntityService {
   public async getEntityRaw(
     request: GetEntityRawRequest,
     schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
+    const entity = await this.readStoredEntity(request, true);
+    return entity && schema ? schema.parse(entity) : entity;
+  }
+
+  private async readStoredEntity(
+    request: GetEntityRawRequest,
+    preserveSource: boolean,
   ): Promise<BaseEntity | null> {
     request.signal?.throwIfAborted();
     await this.initialize();
@@ -775,9 +814,14 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const decoded = await this.entitySerializer.convertToEntity(entityData);
+    // Source reads retain the stored representation, not the codec's body view.
+    const entity =
+      decoded && preserveSource
+        ? { ...decoded, content: entityData.content }
+        : decoded;
     request.signal?.throwIfAborted();
-    return entity && schema ? schema.parse(entity) : entity;
+    return entity;
   }
 
   public async listEntities(

@@ -1,18 +1,18 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/sdk/entities";
 import type {
   AtprotoBrainSeriesRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto-contracts";
-import { seriesAdapter } from "./adapters/series-adapter";
-import { seriesSchema } from "./schemas/series";
+} from "@brains/sdk/entities";
+
+import { parseSeriesBody, seriesSchema } from "./schemas/series";
 
 export async function buildSeriesAtprotoRecord({
   entity,
   config,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainSeriesRecord> {
   const series = seriesSchema.parse(entity);
-  const body = seriesAdapter.parseBody(series.content);
+  const body = parseSeriesBody(series.content);
 
   return {
     $type: "ai.rizom.brain.series",

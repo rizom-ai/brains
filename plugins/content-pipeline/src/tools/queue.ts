@@ -1,7 +1,7 @@
-import type { Tool, ToolContext, ServicePluginContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/sdk/services";
+import type { PipelineRuntime } from "../runtime";
 import { z } from "@brains/utils/zod";
 import type { QueueManager, QueueEntry } from "../queue-manager";
-import type { PublicationQueueService } from "../publication-queue-service";
 
 export type QueueMutationService = Pick<
   QueueManager,
@@ -116,47 +116,8 @@ export type QueueOutput = z.output<typeof queueOutputSchema>;
  *
  * This is a unified queue tool that manages publish queues for all entity types.
  */
-export function createQueueTool(
-  context: ServicePluginContext,
-  pluginId: string,
-  queueManager: QueueManager,
-  publicationQueueService?: PublicationQueueService,
-): Tool<QueueOutput> {
-  const queueMutations: QueueMutationService =
-    publicationQueueService ?? queueManager;
-
-  return {
-    name: `${pluginId}_queue`,
-    description:
-      "Manage the publish queue for all entity types (list, add, remove, reorder)",
-    inputSchema: queueInputSchema.shape,
-    outputSchema: queueOutputSchema,
-    visibility: "admin",
-    sideEffects: "writes",
-    handler: async (rawInput, toolContext): Promise<QueueOutput> => {
-      const parsed = queueInputSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.issues
-            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-            .join(", ")}`,
-        };
-      }
-
-      return handleQueueAction(
-        context,
-        queueManager,
-        queueMutations,
-        parsed.data,
-        toolContext,
-      );
-    },
-  };
-}
-
 export async function handleQueueAction(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   queueManager: QueueManager,
   queueMutations: QueueMutationService,
   input: QueueInput,
@@ -250,7 +211,7 @@ function emptyQueue(): QueueItem[] {
  * Add an entity to the queue
  */
 async function handleAdd(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
@@ -285,7 +246,7 @@ async function handleAdd(
  * Remove an entity from the queue
  */
 async function handleRemove(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,
@@ -313,7 +274,7 @@ async function handleRemove(
  * Reorder an entity in the queue
  */
 async function handleReorder(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   queueMutations: QueueMutationService,
   entityType?: string,
   entityId?: string,

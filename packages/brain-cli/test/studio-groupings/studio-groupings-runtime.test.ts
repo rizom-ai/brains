@@ -12,14 +12,15 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
+import { installContributors } from "./contributors";
+import promptPackage from "@brains/prompt";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
+import { createMockShell, createStubAuth } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
-import { linkAdapter, linkSchema } from "@brains/link";
-import { PromptPlugin } from "@brains/prompt";
-import { createServicePluginContext } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createEntityMirror, type EntityMirrorClient } from "@brains/plugins";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
   generateMarkdown,
@@ -29,19 +30,27 @@ import {
   PermissionService,
   type EntityActionPolicyRule,
 } from "@brains/templates";
-import {
-  registerGroupingDefinitions,
-  type GroupingDefinitionSource,
-  createEditorRoutes,
-  StudioWorkspaceRegistry,
-} from "@brains/studio/test";
+import { installStudio } from "@brains/studio/test";
 
 const type = "grouping-definitions";
 const areas = { label: "Areas", multiple: true };
 interface Fixture {
   service: EntityService;
   registry: EntityRegistry;
-  source: GroupingDefinitionSource;
+  mirror: EntityMirrorClient;
+  /** Observed operational descriptors, not private source policy snapshots. */
+  snapshot(): Promise<{
+    groupings: Record<
+      string,
+      {
+        label: string;
+        types: string[];
+        multiple: boolean;
+        values?: string[] | undefined;
+      }
+    >;
+    issues: Array<{ path: Array<string | number>; message: string }>;
+  }>;
   request(
     method: string,
     path: string,
@@ -63,14 +72,15 @@ async function directory(): Promise<string> {
 async function open(
   dir: string,
   configure?: (registry: EntityRegistry) => void,
+  contributorTypes: Parameters<typeof installContributors>[1] = [
+    "note",
+    "post",
+  ],
 ): Promise<Fixture> {
   const logger = createSilentLogger();
   const dbConfig = { url: `file:${dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const registry = EntityRegistry.createFresh(logger);
-  registry.registerEntityType("note", noteSchema, noteAdapter);
-  registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
-  configure?.(registry);
   const service = EntityService.createFresh({
     dbConfig,
     embeddingDbConfig: { url: `file:${dir}/embeddings.db` },
@@ -92,6 +102,8 @@ async function open(
   await service.initialize();
   const shell = createMockShell({ entityService: service });
   spyOn(shell, "getEntityRegistry").mockReturnValue(registry);
+  cleanups.push(await installContributors(shell, contributorTypes));
+  configure?.(registry);
   spyOn(shell, "getPermissionService").mockReturnValue(
     new PermissionService(
       {
@@ -105,15 +117,9 @@ async function open(
       },
     ),
   );
-  const context = createServicePluginContext(shell, "studio");
-  const source = registerGroupingDefinitions(context);
-  const routes = createEditorRoutes({
-    routePath: "/studio",
-    getContext: () => context,
-    getEntityDisplay: () => undefined,
-    getGroupingDefinitions: () => source.getSnapshot(),
-    workspaceRegistry: new StudioWorkspaceRegistry(),
-    resolveAuthPrincipal: async (request) => {
+  shell.getAuthRegistry().register({
+    ...createStubAuth(),
+    resolveSession: async (request) => {
       const role =
         request.headers.get("X-Fixture-Role") === "trusted"
           ? "trusted"
@@ -129,11 +135,59 @@ async function open(
       };
     },
   });
+  const { plugin, routes } = await installStudio(shell);
+  await plugin.finalizeRegistration?.();
+  cleanups.push(async () => {
+    await plugin.shutdown?.();
+  });
   await service.reprojectRegisteredGroupings();
-  return {
+  const fixture: Fixture = {
     service,
     registry,
-    source,
+    mirror: createEntityMirror(shell, {
+      pluginId: "@brains/directory-sync:directory-sync",
+    }),
+    // Observe policy through authenticated routes, not a private runtime source object.
+    snapshot: async () => {
+      const descriptors = z
+        .object({
+          groupings: z.array(
+            z.object({
+              key: z.string(),
+              label: z.string(),
+              types: z.array(z.string()),
+              rules: z.object({
+                multiple: z.boolean(),
+                values: z.array(z.string()).optional(),
+              }),
+            }),
+          ),
+        })
+        .parse(await (await fixture.request("GET", "types")).json());
+      const schema = z
+        .object({
+          groupingDefinitions: z.object({
+            issues: z.array(
+              z.object({
+                path: z.array(z.union([z.string(), z.number()])),
+                message: z.string(),
+              }),
+            ),
+          }),
+        })
+        .parse(
+          await (await fixture.request("GET", `schema?type=${type}`)).json(),
+        );
+      return {
+        groupings: Object.fromEntries(
+          descriptors.groupings.map(({ key, label, types, rules }) => [
+            key,
+            { label, types, ...rules },
+          ]),
+        ),
+        issues: schema.groupingDefinitions.issues,
+      };
+    },
     request: async (method, path, body, role = "admin"): Promise<Response> => {
       const route = routes.find(
         (entry) =>
@@ -154,6 +208,7 @@ async function open(
       );
     },
   };
+  return fixture;
 }
 async function save(
   fixture: Fixture,
@@ -173,7 +228,23 @@ function content(values: string[], entityType = "note"): string {
 describe("document-backed runtime definitions with real adapters", () => {
   test("system classification removes real prompts from groupings without rewriting authored source", async () => {
     const dir = await directory();
-    const plugin = new PromptPlugin();
+    const harness = createPluginHarness();
+    cleanups.push(() => harness.reset());
+    for (const plugin of instantiatePluginPackageDefinition(
+      promptPackage,
+      {},
+      { name: "@brains/prompt", version: "0.0.0-test" },
+    ))
+      await harness.installPlugin(plugin);
+    const promptRegistry = harness.getEntityRegistry();
+    const plugin = {
+      entityType: "prompt",
+      schema: promptRegistry.getSchema("prompt"),
+      adapter: promptRegistry.getAdapter("prompt"),
+      getEntityTypeConfig: (): ReturnType<
+        EntityRegistry["getEntityTypeConfig"]
+      > => promptRegistry.getEntityTypeConfig("prompt"),
+    };
     const legacy = await open(dir, (registry) =>
       registry.registerEntityType(
         plugin.entityType,
@@ -297,9 +368,14 @@ describe("document-backed runtime definitions with real adapters", () => {
         (info: { entityType: string }) => info.entityType,
       ),
     ).toEqual(["note", "post"]);
+    const authored = await current.service.getEntityRaw({
+      entityType: type,
+      id: type,
+      visibilityScope: "restricted",
+    });
     expect(
-      current.source.getSnapshot().groupings["areas"]?.excludeTypes,
-    ).toEqual(["prompt", "missing"]);
+      parseMarkdown(authored?.content ?? "").frontmatter["groupings"],
+    ).toMatchObject({ areas: { excludeTypes: ["prompt", "missing"] } });
   });
   test("the mounted editor creates shared definitions, retains duplicate-key drafts and refuses stale saves", async () => {
     const fixture = await open(await directory());
@@ -369,8 +445,8 @@ describe("document-backed runtime definitions with real adapters", () => {
         visibilityScope: "shared",
       });
       expect(saved?.visibility).toBe("shared");
-      expect(fixture.source.getSnapshot().groupings).toEqual({
-        clients: { label: "Clients", multiple: false },
+      expect((await fixture.snapshot()).groupings).toEqual({
+        clients: { label: "Clients", types: ["note", "post"], multiple: false },
       });
       expect(
         (
@@ -433,7 +509,7 @@ describe("document-backed runtime definitions with real adapters", () => {
           '[aria-label="My clients label"]',
         )?.value,
       ).toBe("My clients");
-      expect(fixture.source.getSnapshot().groupings["clients"]?.label).toBe(
+      expect((await fixture.snapshot()).groupings["clients"]?.label).toBe(
         "Elsewhere",
       );
     } finally {
@@ -497,7 +573,7 @@ describe("document-backed runtime definitions with real adapters", () => {
           document.body.textContent.includes("Your first grouping") &&
           document.body.textContent.includes("Saved"),
       );
-      expect(fixture.source.getSnapshot().groupings).toEqual({});
+      expect((await fixture.snapshot()).groupings).toEqual({});
       expect(
         (
           await fixture.service.getEntityRaw({
@@ -632,10 +708,9 @@ describe("document-backed runtime definitions with real adapters", () => {
       );
       await ui.click("Save changes");
       await waitForStudio(() => document.body.textContent.includes("Saved"));
-      expect(
-        fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
-      ).toBeUndefined();
-      expect(fixture.source.getSnapshot().issues).toEqual([]);
+      const snapshot = await fixture.snapshot();
+      expect(snapshot.groupings["areas"]?.types).toEqual(["note", "post"]);
+      expect(snapshot.issues).toEqual([]);
     } finally {
       await ui.close();
     }
@@ -708,7 +783,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         frontmatter: { groupings: {} },
         content: "",
       });
-      expect(fixture.source.getSnapshot().issues).toEqual([]);
+      expect((await fixture.snapshot()).issues).toEqual([]);
     } finally {
       await ui.close();
     }
@@ -816,9 +891,9 @@ describe("document-backed runtime definitions with real adapters", () => {
     ).toBe(201);
     expect(projected.mock.calls.map((call) => call[0])).toEqual(["note"]);
     expect(fixture.service.areGroupingsReady()).toBe(true);
-    expect(
-      fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
-    ).toEqual(["post"]);
+    expect((await fixture.snapshot()).groupings["areas"]?.types).toEqual([
+      "note",
+    ]);
     projected.mockClear();
     expect((await save(fixture, { areas }, "PUT")).status).toBe(200);
     expect(projected.mock.calls.map((call) => call[0])).toEqual(["post"]);
@@ -872,15 +947,17 @@ describe("document-backed runtime definitions with real adapters", () => {
       entered = resolve;
     });
     let waiting = false;
-    const refresh = fixture.source.ensureCurrent.bind(fixture.source);
-    spyOn(fixture.source, "ensureCurrent").mockImplementation(
-      async (options) => {
+    const refresh = fixture.registry.ensureGroupingsCurrent.bind(
+      fixture.registry,
+    );
+    spyOn(fixture.registry, "ensureGroupingsCurrent").mockImplementation(
+      async (...args) => {
         if (projected && !waiting) {
           waiting = true;
           entered?.();
           await gate;
         }
-        await refresh(options);
+        await refresh(...args);
       },
     );
     const saving = save(fixture, { areas });
@@ -1303,7 +1380,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       const syncPath = join(dir, "content");
       const sync = new DirectorySync({
         syncPath,
-        entityService: fixture.service,
+        entityService: fixture.mirror,
         logger: createSilentLogger(),
         autoSync: false,
         deleteOnFileRemoval: false,
@@ -1380,9 +1457,10 @@ describe("document-backed runtime definitions with real adapters", () => {
           visibilityScope: "shared",
         }),
       ).toEqual(saved);
-      expect(
-        fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
-      ).toBeUndefined();
+      expect((await fixture.snapshot()).groupings["areas"]?.types).toEqual([
+        "note",
+        "post",
+      ]);
       expect(await readFile(sourcePath, "utf8")).toBe(oldSource);
       expect(await fixture.service.listPendingEntityExports()).toEqual(
         expect.arrayContaining([
@@ -1407,9 +1485,11 @@ describe("document-backed runtime definitions with real adapters", () => {
   );
 
   test("real Links gain grouping fields by default and retain unclaimed source across exclusions", async () => {
-    const fixture = await open(await directory(), (registry) => {
-      registry.registerEntityType("link", linkSchema, linkAdapter);
-    });
+    const fixture = await open(await directory(), undefined, [
+      "note",
+      "post",
+      "link",
+    ]);
     const closed = { ...areas, multiple: false, values: ["Allowed"] };
     const exact = " Ka21, exact ";
     const frontmatter = {
@@ -1667,9 +1747,9 @@ describe("document-backed runtime definitions with real adapters", () => {
     const resolvedRead = spyOn(reader.service, "getEntity").mockRejectedValue(
       new Error("Definitions must not resolve content"),
     );
-    await reader.source.ensureCurrent();
+    await reader.registry.ensureGroupingsCurrent();
     expect(resolvedRead).not.toHaveBeenCalled();
-    expect(reader.source.getSnapshot().groupings["areas"]?.values).toEqual(
+    expect((await reader.snapshot()).groupings["areas"]?.values).toEqual(
       values,
     );
     const detail = await reader.request(
@@ -1689,7 +1769,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         )
       ).status,
     ).toBe(200);
-    expect(reader.source.getSnapshot().groupings["areas"]?.values).toEqual(
+    expect((await reader.snapshot()).groupings["areas"]?.values).toEqual(
       values,
     );
     expect(resolvedRead).not.toHaveBeenCalled();
@@ -1888,7 +1968,9 @@ describe("document-backed runtime definitions with real adapters", () => {
         expect.objectContaining({ path: ["groupings", "broken"] }),
       ]),
     });
-    expect(fixture.source.getSnapshot().groupings).toEqual({ areas });
+    expect((await fixture.snapshot()).groupings).toEqual({
+      areas: { ...areas, types: ["note", "post"] },
+    });
     const denied = await fixture.request(
       "PUT",
       "entities",

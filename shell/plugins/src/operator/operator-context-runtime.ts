@@ -1,13 +1,19 @@
 import { permissionToVisibilityScope } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
 import type { JobInfo } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
-import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
+import { parseDefinitionEntity } from "../entity/entity-schema";
+import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type { BasePluginContext } from "../base/context";
-import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import {
+  createServiceJobRequest,
+  getServiceJobRuntimeType,
+  readServiceJobOutput,
+  readServiceJobFailure,
+} from "../service/job-definition-runtime";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
@@ -43,7 +49,7 @@ function parseOperatorJobOutput<TSchema extends z.ZodType<unknown, unknown>>(
   schema: TSchema,
   input: unknown,
 ): z.output<TSchema> {
-  return schema.parse(input);
+  return readServiceJobOutput(schema, input);
 }
 
 function operatorJobStatus<TDefinition extends OperatorJobDefinition>(
@@ -61,7 +67,7 @@ function operatorJobStatus<TDefinition extends OperatorJobDefinition>(
     id: job.id,
     status: job.status,
     ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? { error: job.lastError } : {}),
+    ...readServiceJobFailure(job),
   });
 }
 
@@ -72,17 +78,9 @@ function createOperatorJobs(context: BasePluginContext): OperatorJobs {
       input: z.input<TDefinition["input"]>,
     ): Promise<OperatorJobReference<TDefinition>> {
       const runtimeType = getServiceJobRuntimeType(definition);
-      const id = await context.jobs.enqueue({
-        type: runtimeType,
-        data: definition.input.parse(input),
-        options: {
-          source: context.pluginId,
-          metadata: {
-            operationType: "data_processing",
-            pluginId: context.pluginId,
-          },
-        },
-      });
+      const id = await context.jobs.enqueue(
+        createServiceJobRequest(definition, input, context.pluginId),
+      );
       return Object.freeze({
         id,
         status: async (): Promise<OperatorJobStatus<
@@ -146,7 +144,7 @@ export async function createOperatorContext<
     caller,
     settings,
     entities: {
-      async get<TDefinition extends AnyEntityDefinition>(
+      async get<TDefinition extends EntityDefinitionShape>(
         definition: TDefinition,
         id: string,
       ): Promise<EntityOf<TDefinition> | null> {
@@ -159,7 +157,7 @@ export async function createOperatorContext<
         signal.throwIfAborted();
         return entity ? parseDefinitionEntity(definition, entity) : null;
       },
-      async list<TDefinition extends AnyEntityDefinition>(
+      async list<TDefinition extends EntityDefinitionShape>(
         definition: TDefinition,
       ): Promise<readonly EntityOf<TDefinition>[]> {
         signal.throwIfAborted();
@@ -172,7 +170,7 @@ export async function createOperatorContext<
           parseDefinitionEntity(definition, entity),
         );
       },
-      async search<TDefinition extends AnyEntityDefinition>(
+      async search<TDefinition extends EntityDefinitionShape>(
         definition: TDefinition,
         query: string,
       ): Promise<readonly EntityOf<TDefinition>[]> {
@@ -185,6 +183,24 @@ export async function createOperatorContext<
         return results.map(({ entity }) =>
           parseDefinitionEntity(definition, entity),
         );
+      },
+    },
+    corpus: {
+      async project(request): Promise<SemanticSpaceProjection> {
+        signal.throwIfAborted();
+        const projection =
+          await input.context.entityService.projectSemanticSpace(request);
+        signal.throwIfAborted();
+        return projection;
+      },
+      async listEntities({ entityType }): Promise<BaseEntity[]> {
+        signal.throwIfAborted();
+        const entities = await input.context.entityService.listEntities({
+          entityType,
+          options: { filter: { visibilityScope } },
+        });
+        signal.throwIfAborted();
+        return entities;
       },
     },
     jobs: createOperatorJobs(input.context),

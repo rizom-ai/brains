@@ -1,10 +1,10 @@
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
-import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import type { ContentVisibility, JobEntityAccess } from "@brains/sdk/entities";
+import type { AgentEntity } from "../schemas/agent";
+import { agentEntitySchema } from "../schemas/agent";
+import type { SkillEntity } from "../schemas/skill";
+import { skillEntitySchema } from "../schemas/skill";
+import { parseAgentContent } from "./agent-content";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
-
-const agentAdapter = new AgentAdapter();
 
 export interface TagVocabularyEntry {
   tag: string;
@@ -54,7 +54,7 @@ export function buildTagVocabulary(
 
   for (const skill of skills) bump(skill.metadata.tags);
   for (const agent of agents) {
-    const body = agentAdapter.parseAgentContent(agent.content);
+    const body = parseAgentContent(agent.content);
     bump(body.skills.flatMap((skill) => skill.tags));
   }
 
@@ -65,12 +65,8 @@ export function buildTagVocabulary(
     .slice(0, topN);
 }
 
-/**
- * Takes only the entity service it reads from, not the whole plugin context:
- * a caller that has one — and a test that stubs one — needs nothing else.
- */
 export async function collectTagVocabulary(
-  context: Pick<EntityPluginContext, "entityService">,
+  entities: JobEntityAccess,
   opts: {
     minCount?: number;
     topN?: number;
@@ -82,14 +78,14 @@ export async function collectTagVocabulary(
   const [skills, agents] = await Promise.all([
     opts.includeSkills === false
       ? Promise.resolve([])
-      : context.entityService.listEntities(
+      : entities.listEntities(
           {
             entityType: SKILL_ENTITY_TYPE,
             options: { filter: { visibilityScope } },
           },
           skillEntitySchema,
         ),
-    context.entityService.listEntities(
+    entities.listEntities(
       {
         entityType: AGENT_ENTITY_TYPE,
         options: { filter: { visibilityScope } },

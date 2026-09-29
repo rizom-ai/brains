@@ -1,3 +1,5 @@
+export { writeBuildFileAtomically } from "./atomic-build-file";
+export { parseUiBuildArgs } from "./ui-build-args";
 export {
   findInternalDeclarationImports,
   formatDeclarationLeakError,

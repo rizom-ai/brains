@@ -35,6 +35,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "a2a",
     "agents",
   ],
+  config: [{ member: "mcp", value: { transport: "stdio" } }],
   evalDisable: ["mcp"],
 });
 
@@ -45,13 +46,17 @@ export const mediaBundle: CapabilityBundleDefinition = defineBundle({
 
 export const automationBundle: CapabilityBundleDefinition = defineBundle({
   id: AUTOMATION_BUNDLE_ID,
-  members: ["playbook", "playbooks", "onboarding"],
+  members: ["playbooks", "onboarding"],
 });
 
 export const webBundle: CapabilityBundleDefinition = defineBundle({
   id: WEB_BUNDLE_ID,
-  members: ["webserver", "auth-service", "admin", "dashboard", "studio"],
-  config: [{ member: "dashboard", value: { routePath: "/" } }],
+  members: ["auth-service", "admin", "dashboard", "studio"],
+  config: [
+    { member: "dashboard", value: { routePath: "/" } },
+    { member: "mcp", value: { transport: "http" }, overrides: CORE_BUNDLE_ID },
+    { member: "a2a", value: { inbound: true } },
+  ],
   permissions: [
     {
       member: "mcp",
@@ -71,7 +76,7 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
       },
     },
   ],
-  evalDisable: ["webserver", "dashboard"],
+  evalDisable: ["dashboard"],
 });
 
 export const chatBundle: CapabilityBundleDefinition = defineBundle({

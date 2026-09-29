@@ -5,26 +5,46 @@ import {
   type EntityCount,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import type {
-  BaseEntity,
-  EntitySchema,
-  EntitySearchRequest,
-  SearchResult,
-} from "@brains/plugins";
-import { createTempDir } from "@brains/test-utils";
+import { createTempDir, genericSpy } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
-import { DashboardPlugin } from "../src/plugin";
-import { consoleJumpResponseSchema } from "../src/console-jump";
+import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import {
+  DASHBOARD_PLUGIN_ID,
+  installDashboard,
+  type InstalledDashboard,
+} from "./helpers/install";
+import { z } from "@brains/utils/zod";
 
-describe("DashboardPlugin", () => {
+/**
+ * The dashboard body, parsed rather than declared: the route hands back JSON,
+ * so its shape is checked here instead of asserted at each read.
+ */
+const dashboardBodySchema = z.object({
+  groups: z.array(
+    z.object({
+      id: z.string(),
+      items: z.array(z.record(z.string(), z.string())).default([]),
+    }),
+  ),
+});
+
+async function dashboardBody(
+  response: Response | undefined,
+): Promise<z.output<typeof dashboardBodySchema>> {
+  if (!response) throw new Error("The dashboard route returned no response");
+  return dashboardBodySchema.parse(await response.json());
+}
+
+describe("dashboard service", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: DashboardPlugin;
+  let dashboard: InstalledDashboard;
+  let plugin: Plugin;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-    plugin = new DashboardPlugin();
-    await harness.installPlugin(plugin);
+    dashboard = await installDashboard(harness);
+    plugin = dashboard.plugin;
   });
 
   afterEach(async () => {
@@ -33,41 +53,33 @@ describe("DashboardPlugin", () => {
 
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("dashboard");
+      expect(plugin.id).toBe(DASHBOARD_PLUGIN_ID);
       expect(plugin.type).toBe("service");
       expect(plugin.version).toBeDefined();
     });
 
     it("should not require site-builder as a plugin dependency", () => {
-      expect(Object.hasOwn(plugin, "dependencies")).toBe(false);
+      expect(plugin.dependencies ?? []).toEqual([]);
     });
 
-    it("should expose no tools", async () => {
-      const capabilities = await harness.installPlugin(new DashboardPlugin());
-      expect(capabilities.tools).toHaveLength(0);
+    it("should expose no tools", () => {
+      expect(dashboard.capabilities.tools).toHaveLength(0);
     });
 
-    it("should advertise the dashboard endpoint and interaction", () => {
-      const shell = harness.getMockShell();
-      const dashboardEndpoint = shell
-        .listEndpoints()
-        .find((endpoint) => endpoint.pluginId === "dashboard");
-      const dashboardInteraction = shell
+    it("should advertise the dashboard as a way in", async () => {
+      // Ways in are declared, and the runtime registers them once the brain
+      // is ready rather than as the plugin installs.
+      await plugin.ready?.();
+      const dashboardInteraction = harness
+        .getMockShell()
         .listInteractions()
         .find((interaction) => interaction.id === "dashboard");
 
-      expect(dashboardEndpoint).toMatchObject({
-        label: "Dashboard",
-        url: "/dashboard",
-        pluginId: "dashboard",
-        visibility: "public",
-      });
       expect(dashboardInteraction).toMatchObject({
         id: "dashboard",
         label: "Dashboard",
         href: "/dashboard",
         kind: "human",
-        pluginId: "dashboard",
         visibility: "public",
       });
     });
@@ -75,7 +87,7 @@ describe("DashboardPlugin", () => {
 
   describe("Web routes", () => {
     it("should expose the dashboard page and console jump routes", async () => {
-      const routes = plugin.getWebRoutes();
+      const routes = dashboard.routes();
       expect(routes).toHaveLength(5);
       const pageRoute = routes.find((route) => route.path === "/dashboard");
       expect(pageRoute).toMatchObject({
@@ -111,19 +123,48 @@ describe("DashboardPlugin", () => {
       const scriptPath = html?.match(
         /data-dashboard-script[^>]*src="([^"]+)"/,
       )?.[1];
-      const scriptResponse = await plugin
-        .getWebRoutes()
+      const scriptResponse = await dashboard
+        .routes()
         .find((route) => route.path === scriptPath)
         ?.handler(new Request(`http://brain${scriptPath}`));
       expect(await scriptResponse?.text()).toContain("/api/console/jump");
     });
 
+    it.each([
+      { ask: true, url: "/ask", visible: true },
+      { ask: true, url: "/ask/authenticated", visible: true },
+      { ask: false, url: "/ask", visible: false },
+      { ask: true, url: undefined, visible: false },
+    ])(
+      "shows the opt-in Ask panel only with a mounted Ask endpoint ($ask, $url)",
+      async ({ ask, url, visible }) => {
+        await harness.reset();
+        const configured = await installDashboard(harness, { ask });
+        if (url)
+          harness.getMockShell().registerEndpoint({
+            pluginId: "@brains/web-chat:web-chat",
+            label: "Chat",
+            url,
+            visibility: "trusted",
+            requiresActiveSession: true,
+          });
+        const response = await configured
+          .routes()
+          .find((route) => route.path === "/dashboard")
+          ?.handler(new Request("http://brain/dashboard"));
+        expect(response?.status).toBe(200);
+        const html = await response?.text();
+        expect(html?.includes("data-guest-dashboard")).toBe(visible);
+        expect(html?.includes("/ask/assets/dashboard.js")).toBe(visible);
+      },
+    );
+
     it("should declare configured theme assets before the route snapshot", async () => {
       const themeCSS = ":root { --dashboard-accent: lime; }";
-      const themedPlugin = new DashboardPlugin({ themeCSS });
-      await harness.installPlugin(themedPlugin);
+      await harness.reset();
+      const themed = await installDashboard(harness, { themeCSS });
 
-      const routes = themedPlugin.getWebRoutes();
+      const routes = themed.routes();
       const pageRoute = routes.find((route) => route.path === "/dashboard");
       const pageResponse = await pageRoute?.handler(
         new Request("http://brain/dashboard"),
@@ -158,8 +199,8 @@ describe("DashboardPlugin", () => {
         return [{ entityType: "public-note", count: 2 }];
       };
 
-      const response = await plugin
-        .getWebRoutes()[0]
+      const response = await dashboard
+        .routes()[0]
         ?.handler(new Request("http://brain/dashboard"));
       const html = await response?.text();
 
@@ -170,8 +211,8 @@ describe("DashboardPlugin", () => {
     });
 
     it("should require an authenticated session for the console jump", async () => {
-      const route = plugin
-        .getWebRoutes()
+      const route = dashboard
+        .routes()
         .find((r) => r.path === "/api/console/jump");
 
       const response = await route?.handler(
@@ -194,8 +235,8 @@ describe("DashboardPlugin", () => {
         .getService()
         .createAuthSession(trusted.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
-      const route = plugin
-        .getWebRoutes()
+      const route = dashboard
+        .routes()
         .find((r) => r.path === "/api/console/jump");
 
       const response = await route?.handler(
@@ -238,8 +279,8 @@ describe("DashboardPlugin", () => {
         ],
       });
 
-      const route = plugin
-        .getWebRoutes()
+      const route = dashboard
+        .routes()
         .find((r) => r.path === "/api/console/jump");
       const response = await route?.handler(
         new Request("http://brain/api/console/jump?q=", {
@@ -248,9 +289,9 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = consoleJumpResponseSchema.parse(await response?.json());
+      const data = await dashboardBody(response);
       const tabs = data.groups.find((group) => group.id === "tabs");
-      expect(tabs?.items.map((item) => item.href)).toEqual([
+      expect(tabs?.items.map((item) => item["href"])).toEqual([
         "/dashboard#overview",
         "/dashboard#knowledge",
         "/dashboard#network",
@@ -300,53 +341,38 @@ describe("DashboardPlugin", () => {
       });
 
       const entityService = shell.getEntityService();
-      const titledNote = {
-        id: "verdigris-pigments",
-        entityType: "note",
-        title: "Verdigris pigments",
-        content: "",
-        created: "",
-        updated: "",
-        visibility: "public" as const,
-        metadata: {},
-        contentHash: "",
-      };
-      const untitledNote = {
-        id: "untitled-note",
-        entityType: "note",
-        content: "",
-        created: "",
-        updated: "",
-        visibility: "public" as const,
-        metadata: {},
-        contentHash: "",
-      };
-      function searchStub(
-        request: EntitySearchRequest,
-      ): Promise<SearchResult<BaseEntity>[]>;
-      function searchStub<T extends BaseEntity>(
-        request: EntitySearchRequest,
-        schema: EntitySchema<T>,
-      ): Promise<SearchResult<T>[]>;
-      async function searchStub(
-        _request: EntitySearchRequest,
-        schema?: EntitySchema<BaseEntity>,
-      ): Promise<SearchResult<BaseEntity>[]> {
-        const results = [
-          { entity: titledNote, score: 1, excerpt: "" },
-          { entity: untitledNote, score: 0.5, excerpt: "" },
-        ];
-        return schema
-          ? results.map((result) => ({
-              ...result,
-              entity: schema.parse(result.entity),
-            }))
-          : results;
-      }
-      entityService.search = searchStub;
+      entityService.search = genericSpy<typeof entityService.search>(
+        async () => [
+          {
+            entity: {
+              id: "verdigris-pigments",
+              entityType: "note",
+              title: "Verdigris pigments",
+              content: "",
+              created: "",
+              updated: "",
+              contentHash: "",
+            },
+            score: 1,
+            excerpt: "",
+          },
+          {
+            entity: {
+              id: "untitled-note",
+              entityType: "note",
+              content: "",
+              created: "",
+              updated: "",
+              contentHash: "",
+            },
+            score: 0.5,
+            excerpt: "",
+          },
+        ],
+      );
 
-      const route = plugin
-        .getWebRoutes()
+      const route = dashboard
+        .routes()
         .find((r) => r.path === "/api/console/jump");
       const response = await route?.handler(
         new Request("http://brain/api/console/jump?q=verd", {
@@ -355,7 +381,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = consoleJumpResponseSchema.parse(await response?.json());
+      const data = await dashboardBody(response);
       const entities = data.groups.find((group) => group.id === "entities");
       expect(entities?.items).toEqual([
         {
@@ -385,12 +411,14 @@ describe("DashboardPlugin", () => {
 
       const shell = harness.getMockShell();
       const entityService = shell.getEntityService();
-      entityService.search = async (): Promise<never> => {
-        throw new Error("index warming");
-      };
+      entityService.search = genericSpy<typeof entityService.search>(
+        async () => {
+          throw new Error("index warming");
+        },
+      );
 
-      const route = plugin
-        .getWebRoutes()
+      const route = dashboard
+        .routes()
         .find((r) => r.path === "/api/console/jump");
       // "net" matches the Network tab and is long enough to trigger the
       // (failing) entity search — the response degrades, never errors.
@@ -401,7 +429,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = consoleJumpResponseSchema.parse(await response?.json());
+      const data = await dashboardBody(response);
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );
@@ -450,7 +478,7 @@ describe("DashboardPlugin", () => {
         requiresActiveSession: true,
       });
 
-      const routes = plugin.getWebRoutes();
+      const routes = dashboard.routes();
       const response = await routes[0]?.handler(
         new Request("http://brain/dashboard"),
       );
@@ -518,7 +546,7 @@ describe("DashboardPlugin", () => {
         ],
       });
 
-      const pageRoute = plugin.getWebRoutes()[0];
+      const pageRoute = dashboard.routes()[0];
       const anonymousResponse = await pageRoute?.handler(
         new Request("http://brain/dashboard"),
       );
@@ -560,7 +588,7 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({ summary: {}, items: [] }),
       });
 
-      const routes = plugin.getWebRoutes();
+      const routes = dashboard.routes();
       const response = await routes[0]?.handler(
         new Request("http://brain/dashboard"),
       );
@@ -593,7 +621,7 @@ describe("DashboardPlugin", () => {
         },
       });
 
-      const response = await plugin.getWebRoutes()[0]?.handler(
+      const response = await dashboard.routes()[0]?.handler(
         new Request("http://brain/dashboard", {
           headers: { Cookie: session.cookie },
         }),
@@ -619,8 +647,8 @@ describe("DashboardPlugin", () => {
         };
       });
 
-      const response = await plugin
-        .getWebRoutes()[0]
+      const response = await dashboard
+        .routes()[0]
         ?.handler(new Request("http://brain/dashboard"));
       const html = await response?.text();
 
@@ -662,7 +690,7 @@ describe("DashboardPlugin", () => {
         visibility: "admin",
       });
 
-      const routes = plugin.getWebRoutes();
+      const routes = dashboard.routes();
       const response = await routes[0]?.handler(
         new Request("http://brain/dashboard", {
           headers: { Cookie: cookie },
@@ -735,8 +763,8 @@ describe("DashboardPlugin", () => {
         },
       });
 
-      const route = plugin
-        .getWebRoutes()
+      const route = dashboard
+        .routes()
         .find((candidate) => candidate.path === "/dashboard");
       const abortController = new AbortController();
       const response = await route?.handler(
@@ -798,7 +826,7 @@ describe("DashboardPlugin", () => {
         visibility: "admin",
       });
 
-      const routes = plugin.getWebRoutes();
+      const routes = dashboard.routes();
       const response = await routes[0]?.handler(
         new Request("http://brain/dashboard", {
           headers: { Cookie: cookie },
@@ -829,10 +857,9 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({ count: 42 }),
       });
 
-      const registry = plugin.getWidgetRegistry();
-      expect(registry).toBeDefined();
-      const testPluginWidgets =
-        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      const testPluginWidgets = dashboard.widgets
+        .list()
+        .filter((widget) => widget.pluginId === "test-plugin");
       expect(testPluginWidgets).toHaveLength(1);
       expect(testPluginWidgets[0]).toMatchObject({
         id: "test-widget",
@@ -857,9 +884,9 @@ describe("DashboardPlugin", () => {
         widgetId: "test-widget",
       });
 
-      const registry = plugin.getWidgetRegistry();
-      const testPluginWidgets =
-        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      const testPluginWidgets = dashboard.widgets
+        .list()
+        .filter((widget) => widget.pluginId === "test-plugin");
       expect(testPluginWidgets).toHaveLength(0);
     });
 
@@ -886,10 +913,10 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({}),
       });
 
-      const registry = plugin.getWidgetRegistry();
       const testPluginCount = (): number =>
-        registry?.list().filter((w) => w.pluginId === "test-plugin").length ??
-        0;
+        dashboard.widgets
+          .list()
+          .filter((widget) => widget.pluginId === "test-plugin").length;
 
       expect(testPluginCount()).toBe(2);
 
@@ -912,7 +939,8 @@ describe("DashboardPlugin", () => {
 
       expect(response).toEqual({
         success: false,
-        error: "Widget unregistration failed",
+        code: "invalid_input",
+        error: "Invalid input",
       });
     });
 
@@ -927,9 +955,9 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({ ok: true }),
       });
 
-      const registry = plugin.getWidgetRegistry();
-      const testPluginWidgets =
-        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      const testPluginWidgets = dashboard.widgets
+        .list()
+        .filter((widget) => widget.pluginId === "test-plugin");
       expect(testPluginWidgets).toHaveLength(0);
     });
 
@@ -945,9 +973,9 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({ ok: true }),
       });
 
-      const registry = plugin.getWidgetRegistry();
-      const testPluginWidgets =
-        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      const testPluginWidgets = dashboard.widgets
+        .list()
+        .filter((widget) => widget.pluginId === "test-plugin");
       expect(testPluginWidgets).toHaveLength(0);
     });
 
@@ -965,9 +993,7 @@ describe("DashboardPlugin", () => {
       });
 
       expect(
-        plugin
-          .getWidgetRegistry()
-          ?.get("test-plugin", "private-browser-widget"),
+        dashboard.widgets.get("test-plugin", "private-browser-widget"),
       ).toBeUndefined();
     });
   });

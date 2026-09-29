@@ -3,7 +3,7 @@ import {
   ButtondownApiError,
   ButtondownClient,
   type ButtondownFetch,
-} from "../src/provider/lib/buttondown-client";
+} from "../src/lib/buttondown-client";
 import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 

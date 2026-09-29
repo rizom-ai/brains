@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createProjectAtprotoProjection } from "../src/atproto-projection";
-import { PortfolioPlugin } from "../src/plugin";
+import { projectEntityPlugin } from "./helpers/install";
 import type { Project } from "../src/schemas/project";
 
 const project: Project = {
@@ -61,7 +61,7 @@ describe("project ATProto projection", () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-project-atproto",
     });
-    await harness.installPlugin(new PortfolioPlugin({}));
+    await harness.installPlugin(projectEntityPlugin());
 
     const projection = AtprotoProjectionRegistry.getInstance().get("project");
 

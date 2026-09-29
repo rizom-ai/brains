@@ -5,7 +5,7 @@ type: plugin
 tags:
   - summary
   - decisions
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:

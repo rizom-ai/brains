@@ -1,5 +1,4 @@
-import type { InterfacePluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z, type InterfaceEntityReader } from "@brains/sdk/interfaces";
 
 const directoryAgentMetadataSchema = z.object({
   name: z.string(),
@@ -32,13 +31,13 @@ export type AgentDirectory = z.infer<typeof agentDirectorySchema>;
  * pointee's own Agent Card stays the source of truth for everything else.
  */
 export async function buildAgentDirectory(
-  entityService: InterfacePluginContext["entityService"],
+  reader: InterfaceEntityReader,
 ): Promise<AgentDirectory> {
-  if (!entityService.hasEntityType("agent")) {
+  if (!reader.getEntityTypes().includes("agent")) {
     return { agents: [] };
   }
 
-  const entities = await entityService.listEntities({
+  const entities = await reader.listEntities({
     entityType: "agent",
     options: { filter: { visibilityScope: "public" } },
   });

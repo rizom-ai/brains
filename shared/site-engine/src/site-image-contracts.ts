@@ -1,4 +1,4 @@
-import type { ImageRenderer } from "@brains/contracts";
+import type { ImageRenderer } from "@rizom/brain-ui";
 import { z } from "@brains/utils/zod";
 
 /** Pre-resolved image ready for rendering in static site output. */

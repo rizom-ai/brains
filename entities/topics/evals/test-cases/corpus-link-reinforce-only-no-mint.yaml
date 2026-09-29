@@ -9,7 +9,7 @@ tags:
   - corpus
   - mint-economics
   - link
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: batchExtract
 
 input:

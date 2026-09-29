@@ -13,12 +13,12 @@ Coverage checks compare eval assertions against Admin-visible agent tools. Direc
 
 Canonical replacements for removed legacy registered tool names:
 
-| Prior namespace                       | Canonical tool           |
-| ------------------------------------- | ------------------------ |
-| Playbook lifecycle/status/event tools | `playbook_manage`        |
-| Directory sync/status/history tools   | `directory_sync`         |
-| Publishing queue/publish tools        | `publishing_manage`      |
-| Newsletter provider subscriber tools  | `newsletter_subscribers` |
+| Prior namespace                       | Canonical tool         |
+| ------------------------------------- | ---------------------- |
+| Playbook lifecycle/status/event tools | `playbooks_manage`     |
+| Directory sync/status/history tools   | `directory_sync`       |
+| Publishing queue/publish tools        | `publishing_manage`    |
+| Newsletter provider subscriber tools  | `delivery_subscribers` |
 
 Maintenance operations `content-pipeline_ensure-assets` and `obsidian-vault_sync-templates` now run through lifecycle/direct service paths instead of the agent or direct-MCP tool registry.
 
@@ -30,13 +30,13 @@ Maintenance operations `content-pipeline_ensure-assets` and `obsidian-vault_sync
 - Stale assertions: 0
 
 ```text
-agent_call
-agent_connect
-agent_scan_directories
-agent_set_trust_level
+a2a_call
+agents_connect
+agents_scan-directories
+agents_set-trust-level
 auth-service_get_passkey_setup_url
 directory_sync
-playbook_manage
+playbooks_manage
 system_create
 system_delete
 system_generate
@@ -57,13 +57,13 @@ system_update
 - Stale assertions: 0
 
 ```text
-agent_call
-agent_connect
-agent_scan_directories
-agent_set_trust_level
+a2a_call
+agents_connect
+agents_scan-directories
+agents_set-trust-level
 auth-service_get_passkey_setup_url
 directory_sync
-playbook_manage
+playbooks_manage
 site-builder_build-site
 system_create
 system_delete
@@ -85,13 +85,13 @@ system_update
 - Stale assertions: 0
 
 ```text
-agent_call
-agent_connect
-agent_scan_directories
-agent_set_trust_level
+a2a_call
+agents_connect
+agents_scan-directories
+agents_set-trust-level
 auth-service_get_passkey_setup_url
 directory_sync
-playbook_manage
+playbooks_manage
 publishing_manage
 site-builder_build-site
 system_create

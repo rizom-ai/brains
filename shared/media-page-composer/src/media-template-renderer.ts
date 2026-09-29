@@ -1,6 +1,6 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HeadProvider, ImageRendererProvider } from "@brains/ui-library";
+import { HeadProvider, ImageRendererProvider } from "@rizom/brain-ui";
 import {
   createHTMLShell,
   HeadCollector,

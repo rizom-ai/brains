@@ -6,9 +6,25 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  type Plugin,
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
-import { adminPlugin } from "../src";
+import adminPackage from "../src";
+import packageJson from "../package.json";
+
+function adminPlugin(config: Record<string, unknown> = {}): Plugin {
+  const metadata = { name: packageJson.name, version: packageJson.version };
+  bindPluginPackageMetadata(adminPackage, metadata);
+  const plugin = instantiatePluginPackageDefinition(
+    adminPackage,
+    config,
+    metadata,
+  )[0];
+  if (!plugin) throw new Error("Admin plugin was not created");
+  return plugin;
+}
 
 describe("administration workspace provider", () => {
   it("rejects retired browser-route configuration", () => {
@@ -23,7 +39,7 @@ describe("administration workspace provider", () => {
 
     await plugin.register(shell);
 
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(plugin.getWebRoutes?.() ?? []).toEqual([]);
     expect(
       shell.listEndpoints().filter((endpoint) => endpoint.pluginId === "admin"),
     ).toEqual([]);
@@ -68,25 +84,28 @@ describe("administration workspace provider", () => {
     const plugin = adminPlugin();
 
     await plugin.register(shell);
-    await plugin.finalizeRegistration();
+    await plugin.finalizeRegistration?.();
 
     expect(registrations).toHaveLength(1);
     expect(registrations[0]).toMatchObject({
-      id: "admin:administration",
+      id: "@brains/admin:admin:administration",
       label: "Administration",
       permission: "admin",
       urlQuery: true,
       aliases: [
-        { id: "admin:people", query: { tab: "people" } },
-        { id: "admin:invitations", query: { tab: "invitations" } },
-        { id: "admin:peers", query: { tab: "people" } },
-        { id: "admin:audit", query: { tab: "audit" } },
+        { id: "@brains/admin:admin:people", query: { tab: "people" } },
+        {
+          id: "@brains/admin:admin:invitations",
+          query: { tab: "invitations" },
+        },
+        { id: "@brains/admin:admin:peers", query: { tab: "people" } },
+        { id: "@brains/admin:admin:audit", query: { tab: "audit" } },
       ],
     });
     expect(overviewContributions).toEqual([
       expect.objectContaining({
         id: "expiring-invitations",
-        pluginId: "admin",
+        pluginId: "@brains/admin:admin",
         visibility: "admin",
       }),
     ]);

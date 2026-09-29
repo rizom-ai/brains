@@ -1,23 +1,26 @@
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   createPluginHarness,
+  createStubAuth,
+  createTestPrincipal,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { SitePageResponse } from "@brains/plugins/contracts/web-routes";
+import { createServicePluginContext } from "@brains/plugins";
+import type {
+  IRuntimeStateStore,
+  IRuntimeStateNamespace,
+} from "@brains/runtime-state";
+import { createWebChatPlugin } from "./helpers/definition";
 import {
-  SitePageResponse,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  type IRuntimeStateNamespace,
-  type IRuntimeStateStore,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
-  askBoxAvailabilitySchema,
+  ASK_BOX_AVAILABILITY_OWNER,
   type AskBoxAvailability,
 } from "@brains/contracts";
-import { WebChatInterface } from "../src/web-chat-interface";
 import {
   guestIssuanceNamespace,
   guestIssuanceStateSchema,
@@ -28,7 +31,7 @@ import {
   type GuestAdmissionState,
 } from "../src/guest-admission-state";
 
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness[] = [];
 afterEach(async () => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -44,7 +47,6 @@ interface Fixture {
   calls(): number;
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
-  /** Runtime state shared by every process of one deployment, across restarts. */
   state: IRuntimeStateNamespace;
   /** The owner opens guest chat in Studio with this monthly budget. */
   budget(monthlyUsd: number): Promise<void>;
@@ -56,20 +58,28 @@ async function fixture(
   options: {
     profileAvailable?: boolean;
     disabled?: boolean;
+    copy?: { content: string; visibility: "public" | "restricted" };
     guest?: "local-test";
     studio?: boolean;
     /** The deployment's state from an earlier run, as after a restart. */
     state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
-  const harness = createPluginHarness<WebChatInterface>(
-    domain ? { domain } : {},
-  );
+  const harness = createPluginHarness(domain ? { domain } : {});
   harnesses.push(harness);
   if (options.state)
     spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
       options.state,
     );
+  if (options.copy)
+    harness.addEntities([
+      {
+        id: "ask-content",
+        entityType: "ask-content",
+        metadata: {},
+        ...options.copy,
+      },
+    ]);
   let calls = 0;
   harness.getMockShell().setAgentService({
     guestReady: options.profileAvailable !== false,
@@ -82,16 +92,22 @@ async function fixture(
     },
     invalidateAgent: (): void => {},
   });
-  const plugin = new WebChatInterface(
+  harness
+    .getMockShell()
+    .getAuthRegistry()
+    .register(
+      createStubAuth({
+        ...(role === "public"
+          ? {}
+          : { principal: createTestPrincipal({ permissionLevel: role }) }),
+      }),
+    );
+  const plugin = createWebChatPlugin(
     options.disabled
       ? { guest: false }
       : options.guest
         ? { guest: options.guest }
         : {},
-    {
-      resolveAuthSession: async (): Promise<boolean> => role !== "public",
-      resolvePermissionLevel: async (): Promise<typeof role> => role,
-    },
   );
   const workspaces: StudioWorkspaceRegistration[] = [];
   harness
@@ -106,9 +122,16 @@ async function fixture(
     );
   await harness.installPlugin(plugin);
   if (options.studio) {
+    harness.getMockShell().registerPlugin({
+      id: "@brains/studio:studio",
+      version: "0.0.0",
+      type: "service",
+      packageName: "@brains/studio",
+      register: async () => ({ tools: [], resources: [] }),
+    });
     spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
       {
-        pluginId: "studio",
+        pluginId: "@brains/studio:studio",
         fullPath: "/chat",
         definition: {
           path: "/chat",
@@ -116,9 +139,25 @@ async function fixture(
           handler: async (): Promise<Response> => new Response("Studio"),
         },
       },
+      {
+        pluginId: "@brains/web-chat:web-chat",
+        fullPath: "/ask",
+        definition: {
+          path: "/ask",
+          method: "GET",
+          handler: async (): Promise<Response> => new Response("Ask"),
+        },
+      },
     ]);
   }
-  await plugin.ready();
+  await harness.finalizeRegistration();
+  const ledger = harness
+    .getMockShell()
+    .getRuntimeState()
+    .scoped({
+      namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestAdmissionNamespace}`,
+      schema: guestAdmissionStateSchema,
+    });
   const studio = async (request: Record<string, unknown>): Promise<unknown> => {
     const monitor = workspaces.find((w) => w.id.endsWith(":guest-chat"));
     if (!monitor?.actionHandler)
@@ -136,10 +175,6 @@ async function fixture(
       new AbortController().signal,
     );
   };
-  const ledger = harness.getMockShell().getRuntimeState().scoped({
-    namespace: guestAdmissionNamespace,
-    schema: guestAdmissionStateSchema,
-  });
   const send = async (
     path: string,
     body?: unknown,
@@ -158,9 +193,9 @@ async function fixture(
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    const route = plugin
-      .getWebRoutes()
-      .find((r) => r.path === path && r.method === method);
+    const route = (plugin.getWebRoutes?.() ?? []).find(
+      (r) => r.path === path && r.method === method,
+    );
     return route
       ? route.handler(request, { remoteAddress: "172.18.0.2" })
       : new Response("Not found", { status: 404 });
@@ -178,16 +213,10 @@ async function fixture(
       await studio({ actionId: "switch-on", input, confirmationToken: token });
     },
     askBox: (): Promise<AskBoxAvailability | null> =>
-      harness
-        .getMockShell()
-        .getRuntimeState()
-        .scoped({
-          namespace: ASK_BOX_STATE_NAMESPACE,
-          schema: askBoxAvailabilitySchema,
-        })
-        .get(ASK_BOX_STATE_KEY),
-    previewPaths: plugin
-      .getWebRoutes()
+      createServicePluginContext(harness.getMockShell(), "site-worker", {
+        executionOnly: true,
+      }).interfaceAvailability.get(ASK_BOX_AVAILABILITY_OWNER),
+    previewPaths: (plugin.getWebRoutes?.() ?? [])
       .filter((r) => r.preview === true)
       .map((r) => `${r.method} ${r.path}`)
       .sort(),
@@ -210,15 +239,26 @@ describe("Ask box availability for site builds in any process", () => {
     expect(await f.askBox()).toEqual({ public: false, preview: false });
   });
 
-  it("keeps the box on preview across a restart that begins before the guest profile is ready", async () => {
+  it("keeps preview availability after restart before profile readiness without admitting a turn", async () => {
     const running = await fixture();
     await running.budget(10);
-    // A deploy restarts the app; the search index is not ready at registration yet.
+    // A deploy restarts the app before the guest profile is ready.
     const restarted = await fixture("admin", "rizom.ai", {
       profileAvailable: false,
       state: running.state,
     });
     expect(await restarted.askBox()).toEqual({ public: false, preview: true });
+    expect(
+      (
+        await restarted.send(
+          "/api/chat/guest/session",
+          {},
+          { Origin: "https://preview.rizom.ai" },
+          "https://preview.rizom.ai",
+        )
+      ).status,
+    ).toBe(503);
+    expect(restarted.calls()).toBe(0);
   });
 
   it("records a configured guest policy as served everywhere", async () => {
@@ -292,6 +332,40 @@ describe("admin guest activation using deployment conventions", () => {
       ].sort(),
     );
   });
+  it.each(["public", "restricted", "invalid"] as const)(
+    "loads only valid public authored copy into the guest session (%s)",
+    async (kind) => {
+      const f = await fixture("admin", "rizom.ai", {
+        copy: {
+          visibility: kind === "restricted" ? "restricted" : "public",
+          content:
+            kind === "invalid"
+              ? "x".repeat(4001)
+              : "---\ntitle: Ask us\ntopics: [Welcome]\n---\nAuthored welcome.",
+        },
+      });
+      await f.budget(10);
+      const response = await f.send(
+        "/api/chat/guest/session",
+        {},
+        { Origin: "https://preview.rizom.ai" },
+        "https://preview.rizom.ai",
+      );
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.presentation).toEqual(
+        kind === "public"
+          ? {
+              title: "Ask us",
+              topics: ["Welcome"],
+              introduction: "Authored welcome.",
+            }
+          : undefined,
+      );
+      expect(f.calls()).toBe(0);
+    },
+  );
+
   it("serves scoped Ask styles without replacing the site chrome", async () => {
     const f = await fixture();
     await f.budget(10);
@@ -392,7 +466,7 @@ describe("admin guest activation using deployment conventions", () => {
     // A deployment whose session ledger was written under earlier limits.
     await f.state
       .scoped({
-        namespace: guestIssuanceNamespace,
+        namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestIssuanceNamespace}`,
         schema: guestIssuanceStateSchema,
       })
       .set("deployment", {
@@ -423,7 +497,7 @@ describe("admin guest activation using deployment conventions", () => {
     const running = await fixture();
     await running.budget(10);
     const sessions = running.state.scoped({
-      namespace: guestIssuanceNamespace,
+      namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestIssuanceNamespace}`,
       schema: guestIssuanceStateSchema,
     });
     const ledger = await sessions.get("deployment");

@@ -1,13 +1,19 @@
-import { actorRefKey, type ActorRef } from "@brains/contracts";
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import {
-  actionItemSchema,
-  decisionSchema,
-  type DecisionEntity,
+  actorRefKey,
+  type ActorRef,
+  type ContentVisibility,
+  type EntityConversationReader,
+  type JobEntityAccess,
+  z,
+} from "@brains/sdk/entities";
+import type {
+  ActionItemEntity,
+  DecisionEntity,
 } from "../schemas/conversation-memory";
-import { summarySchema, type SummaryEntity } from "../schemas/summary";
-import { z } from "@brains/utils/zod";
-import { SummaryAdapter } from "../adapters/summary-adapter";
+import { actionItemSchema } from "../schemas/conversation-memory";
+import { decisionSchema } from "../schemas/conversation-memory";
+import type { SummaryEntity } from "../schemas/summary";
+import { summarySchema } from "../schemas/summary";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
@@ -15,6 +21,7 @@ import {
 } from "./constants";
 import { getConversationSpaceId } from "./summary-space-eligibility";
 import { buildFallbackExcerpt } from "./excerpt";
+import { parseSummaryBody } from "./summary-body";
 
 const DEFAULT_MEMORY_LIMIT = 5;
 const CANDIDATE_MULTIPLIER = 4;
@@ -26,16 +33,19 @@ const MEMORY_ENTITY_TYPES = [
 const MAX_AGENT_CONTEXT_CONTENT_LENGTH = 1600;
 const MAX_SUMMARY_CONTEXT_ENTRIES = 3;
 const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
-const summaryAdapter = new SummaryAdapter();
 
-export const conversationMemorySearchEntitySchema: ReturnType<
-  typeof z.union<
-    [typeof summarySchema, typeof decisionSchema, typeof actionItemSchema]
-  >
+type ConversationMemorySearchEntity =
+  SummaryEntity | DecisionEntity | ActionItemEntity;
+
+/**
+ * What proves a memory read. The three types share these reads, so the schema
+ * that checks them is the union of their own — each entity parses under
+ * exactly one branch.
+ */
+const conversationMemorySearchSchema: z.ZodType<
+  ConversationMemorySearchEntity,
+  unknown
 > = z.union([summarySchema, decisionSchema, actionItemSchema]);
-type ConversationMemorySearchEntity = z.output<
-  typeof conversationMemorySearchEntitySchema
->;
 
 export interface RetrieveConversationMemoryInput {
   query?: string | undefined;
@@ -46,8 +56,6 @@ export interface RetrieveConversationMemoryInput {
   includeOtherSpaces?: boolean | undefined;
   /** Explicit identity filter; does not cross spaces unless includeOtherSpaces is true. */
   identity?: ActorRef | undefined;
-  /** Caller visibility scope; undefined fails closed in the entity service to public-only. */
-  visibilityScope?: ContentVisibility | undefined;
 }
 
 export interface RetrievedConversationMemory {
@@ -81,9 +89,14 @@ interface MemoryCandidate {
 }
 
 export class ConversationMemoryRetriever {
-  private readonly context: EntityPluginContext;
-  constructor(context: EntityPluginContext) {
-    this.context = context;
+  private readonly entities: JobEntityAccess;
+  private readonly conversations: EntityConversationReader;
+  constructor(context: {
+    entities: JobEntityAccess;
+    conversations: EntityConversationReader;
+  }) {
+    this.entities = context.entities;
+    this.conversations = context.conversations;
   }
 
   public async retrieve(
@@ -92,11 +105,7 @@ export class ConversationMemoryRetriever {
     const query = input.query?.trim() ?? "";
     const limit = Math.max(1, input.limit ?? DEFAULT_MEMORY_LIMIT);
     const spaceId = await this.resolveSpaceId(input);
-    const candidates = await this.loadCandidates(
-      query,
-      limit,
-      input.visibilityScope,
-    );
+    const candidates = await this.loadCandidates(query, limit);
 
     const scopedCandidates = candidates
       .filter((candidate) => {
@@ -147,30 +156,26 @@ export class ConversationMemoryRetriever {
 
     if (!input.conversationId) return undefined;
 
-    const conversation = await this.context.conversations.get(
-      input.conversationId,
-    );
+    const conversation = await this.conversations.get(input.conversationId);
     return conversation ? getConversationSpaceId(conversation) : undefined;
   }
 
   private async loadCandidates(
     query: string,
     limit: number,
-    visibilityScope: ContentVisibility | undefined,
   ): Promise<MemoryCandidate[]> {
     const candidateLimit = limit * CANDIDATE_MULTIPLIER;
 
     if (query.length > 0) {
-      const results = await this.context.entityService.search(
+      // Already scoped to what the asker may see: the runtime narrows the
+      // reads before a provider gets them, so there is no scope to pass and
+      // none to forget.
+      const results = await this.entities.search(
         {
           query,
-          options: {
-            types: MEMORY_ENTITY_TYPES,
-            limit: candidateLimit,
-            ...(visibilityScope ? { visibilityScope } : {}),
-          },
+          options: { types: MEMORY_ENTITY_TYPES, limit: candidateLimit },
         },
-        conversationMemorySearchEntitySchema,
+        conversationMemorySearchSchema,
       );
       return results.map((result) => ({
         entity: result.entity,
@@ -181,16 +186,15 @@ export class ConversationMemoryRetriever {
 
     const entityGroups = await Promise.all(
       MEMORY_ENTITY_TYPES.map((entityType) =>
-        this.context.entityService.listEntities(
+        this.entities.listEntities(
           {
             entityType,
             options: {
               limit: candidateLimit,
               sortFields: [{ field: "updated", direction: "desc" }],
-              ...(visibilityScope ? { filter: { visibilityScope } } : {}),
             },
           },
-          conversationMemorySearchEntitySchema,
+          conversationMemorySearchSchema,
         ),
       ),
     );
@@ -267,7 +271,7 @@ export class ConversationMemoryRetriever {
   ): string {
     if (!this.isSummaryEntity(entity)) return excerpt;
 
-    const entries = summaryAdapter.parseBody(entity.content).entries;
+    const entries = parseSummaryBody(entity.content).entries;
     const content = entries
       .slice(0, MAX_SUMMARY_CONTEXT_ENTRIES)
       .map((entry) => {

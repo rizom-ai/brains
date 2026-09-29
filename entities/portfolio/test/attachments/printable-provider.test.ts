@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { PortfolioPlugin } from "../../src/plugin";
+import { projectEntityPlugin } from "../helpers/install";
 import { createProjectPrintableProvider } from "../../src/attachments/printable-provider";
 import type { Project } from "../../src/schemas/project";
 
@@ -49,8 +49,8 @@ describe("Project printable attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a project printable attachment provider", async () => {
-    const harness = createPluginHarness<PortfolioPlugin>();
-    await harness.installPlugin(new PortfolioPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(projectEntityPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("project", "printable")).toBe(true);
@@ -65,8 +65,8 @@ describe("Project printable attachment provider", () => {
       expect(html).toContain("https://example.com/projects/civic-signals");
       return Buffer.from("%PDF-project-printable");
     });
-    const harness = createPluginHarness<PortfolioPlugin>();
-    await harness.installPlugin(new PortfolioPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(projectEntityPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
     const provider = createProjectPrintableProvider(

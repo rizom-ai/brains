@@ -3,6 +3,7 @@ import type {
   ServiceEntityService,
   IRuntimeStateNamespace,
 } from "@brains/plugins";
+import { contactEntities } from "./helpers";
 import { ContactDelivery, type ContactAlertOutcome } from "../src/delivery";
 import {
   contactRequestAdapter,
@@ -47,7 +48,14 @@ async function fixture(): Promise<
     sent: true,
   }));
   const makeDelivery = (): ContactDelivery =>
-    new ContactDelivery({ entities, state, storage, policy, send, now: f.now });
+    new ContactDelivery({
+      entities: contactEntities(entities),
+      state,
+      storage,
+      policy,
+      send,
+      now: f.now,
+    });
   const read = async (): Promise<ContactRequest | null> =>
     entities.getEntity(
       {

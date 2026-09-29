@@ -1,16 +1,21 @@
 import { describe, expect, it } from "bun:test";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
+import { MCPService } from "@brains/mcp-service";
 import {
   InboxFollowUpRegistry,
-  InboxRegistry,
   type InboxItem,
+  type InboxRegistry,
+  type Tool,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 
 import {
   InboxDataSource,
   InboxOperatorService,
-  createInboxListTool,
   inboxListToolOutputSchema,
 } from "../src";
+import { createUnifiedInboxPlugin } from "./install";
+import { createPluginHarness } from "@brains/plugins/test";
 
 function item(
   id: string,
@@ -31,38 +36,79 @@ function item(
   };
 }
 
-function createToolFixture(items?: InboxItem[]): {
-  service: InboxOperatorService;
-  tool: ReturnType<typeof createInboxListTool>;
-} {
-  const registry = new InboxRegistry();
-  if (items) {
-    registry.registerSource("mail-plugin", {
-      sourceId: "mail-items",
-      displayName: "Email Triage",
-      facets: [
-        {
-          key: "category",
-          label: "Category",
-          values: [
-            { value: "work", label: "Work" },
-            { value: "opportunity", label: "Opportunity" },
-          ],
-        },
+const mailSource = (
+  items: InboxItem[],
+): Parameters<InboxRegistry["registerSource"]>[1] => ({
+  sourceId: "mail-items",
+  displayName: "Email Triage",
+  facets: [
+    {
+      key: "category",
+      label: "Category",
+      values: [
+        { value: "work", label: "Work" },
+        { value: "opportunity", label: "Opportunity" },
       ],
-      list: async () => items,
-      act: async () => undefined,
-    });
-  }
-  registry.finalize();
+    },
+  ],
+  list: async () => items,
+  act: async () => undefined,
+});
+
+/**
+ * The tool as the runtime serves it.
+ *
+ * The permission check and the success/failure envelope moved to the
+ * runtime with the conversion, so asserting on either means going through
+ * the installed package rather than calling a handler directly.
+ */
+async function createToolFixture(items?: InboxItem[]): Promise<{
+  service: InboxOperatorService;
+  tool: Tool;
+}> {
+  const harness = createPluginHarness();
+  const shell = harness.getMockShell();
+  if (items)
+    shell.getInboxRegistry().registerSource("mail-plugin", mailSource(items));
+  const plugin = createUnifiedInboxPlugin();
+  const capabilities = await harness.installPlugin(plugin);
+  await harness.finalizeRegistration();
+
+  const tool = capabilities.tools.find(
+    (candidate) => candidate.name === "unified-inbox_list",
+  );
+  if (!tool) throw new Error("Inbox list tool was not registered");
+
+  const registry = shell.getInboxRegistry();
   const followUps = new InboxFollowUpRegistry();
   followUps.finalize();
-  const service = new InboxOperatorService(
-    registry,
-    new InboxDataSource(registry),
-    followUps,
-  );
-  return { service, tool: createInboxListTool(service) };
+  return {
+    service: new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+      followUps,
+    ),
+    tool,
+  };
+}
+
+async function listToolNames(
+  mcpService: MCPService,
+  permission: UserPermissionLevel,
+): Promise<string[]> {
+  const client = new Client({ name: "inbox-tool-test", version: "1.0.0" });
+  const mcpServer = mcpService.createMcpServer(permission);
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  await mcpServer.connect(serverTransport);
+  await client.connect(clientTransport);
+  try {
+    const tools = await client.listTools();
+    return tools.tools.map((entry) => entry.name);
+  } finally {
+    await client.close();
+    await mcpServer.close();
+  }
 }
 
 const adminContext = {
@@ -78,7 +124,7 @@ const attentionItems = [
 
 describe("inbox_list tool", () => {
   it("returns a bounded content-safe field allowlist for Admin callers", async () => {
-    const { tool } = createToolFixture(attentionItems);
+    const { tool } = await createToolFixture(attentionItems);
     const result = inboxListToolOutputSchema.parse(
       await tool.handler(
         {
@@ -113,13 +159,13 @@ describe("inbox_list tool", () => {
         total: 1,
       },
     });
-    expect(tool.name).toBe("inbox_list");
+    expect(tool.name).toBe("unified-inbox_list");
     expect(tool.visibility).toBe("admin");
     expect(tool.sideEffects).toBe("none");
   });
 
   it("uses the same source and urgency filters as the workspace", async () => {
-    const { service, tool } = createToolFixture(attentionItems);
+    const { service, tool } = await createToolFixture(attentionItems);
     const workspace = await service.workspace(
       {
         sourceId: "mail-items",
@@ -158,18 +204,19 @@ describe("inbox_list tool", () => {
   });
 
   it("rejects source-scoped facets without a selected source", async () => {
-    const { tool } = createToolFixture(attentionItems);
+    const { tool } = await createToolFixture(attentionItems);
 
     expect(
       await tool.handler({ facets: { category: "work" } }, adminContext),
     ).toEqual({
       success: false,
       error: "Invalid unified inbox filters",
+      code: "invalid_input",
     });
   });
 
   it("returns an empty result when no source is registered", async () => {
-    const { tool } = createToolFixture();
+    const { tool } = await createToolFixture();
 
     expect(await tool.handler({}, adminContext)).toEqual({
       success: true,
@@ -178,7 +225,7 @@ describe("inbox_list tool", () => {
   });
 
   it("omits source locators, actions, bodies, addresses, and hashes", async () => {
-    const { tool } = createToolFixture([
+    const { tool } = await createToolFixture([
       {
         id: "sender-hash-8ab1",
         title: "Safe routing title",
@@ -216,10 +263,15 @@ describe("inbox_list tool", () => {
     expect(serialized).not.toContain("threadOrdinal");
   });
 
-  it("rejects non-Admin callers before reading any source", async () => {
+  // The hand-written tool answered a non-Admin caller with a refusal. The
+  // declaration states the permission instead, and the host never offers the
+  // tool to that caller — so the refusal it used to return is a message
+  // nobody is in a position to receive.
+  it("is not offered to non-Admin callers, and reads no source", async () => {
     let reads = 0;
-    const registry = new InboxRegistry();
-    registry.registerSource("mail-plugin", {
+    const harness = createPluginHarness();
+    const shell = harness.getMockShell();
+    shell.getInboxRegistry().registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
       list: async () => {
@@ -228,30 +280,33 @@ describe("inbox_list tool", () => {
       },
       act: async () => undefined,
     });
-    registry.finalize();
-    const followUps = new InboxFollowUpRegistry();
-    followUps.finalize();
-    const tool = createInboxListTool(
-      new InboxOperatorService(
-        registry,
-        new InboxDataSource(registry),
-        followUps,
-      ),
-    );
+    const plugin = createUnifiedInboxPlugin();
+    const capabilities = await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
 
-    const result = await tool.handler(
-      {},
-      {
-        userPermissionLevel: "trusted",
-        interfaceType: "test",
-        actor: { kind: "user", userId: "trusted-user" },
-      },
+    const mcpService = MCPService.createFresh(
+      shell.getMessageBus(),
+      shell.getLogger(),
     );
+    mcpService.setProtocolMode("basic");
+    for (const registered of capabilities.tools) {
+      mcpService.registerTool(plugin.id, registered);
+    }
 
-    expect(result).toEqual({
-      success: false,
-      error: "Unified inbox requires admin permission",
-    });
+    // Basic clients use chat; raw Inbox access is debug-only and still
+    // requires the tool's Admin permission.
+    for (const mode of ["basic", "debug"] as const) {
+      mcpService.setProtocolMode(mode);
+      const adminTools = await listToolNames(mcpService, "admin");
+      if (mode === "debug") expect(adminTools).toContain("unified-inbox_list");
+      else expect(adminTools).not.toContain("unified-inbox_list");
+      expect(await listToolNames(mcpService, "trusted")).not.toContain(
+        "unified-inbox_list",
+      );
+      expect(await listToolNames(mcpService, "public")).not.toContain(
+        "unified-inbox_list",
+      );
+    }
     expect(reads).toBe(0);
   });
 });

@@ -1,15 +1,27 @@
 import {
   ProjectionJsonObjectSchema,
   ProjectionWriteIntentSchema,
-  type IEntityService,
+  type BaseEntity,
+  type EntityTypeConfig,
+  type GetEntityRequest,
+  type GetEntitiesRequest,
+  type ContentVisibility,
+  type ListEntitiesRequest,
+  type ProjectionOwnedEntityRequest,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
+  type EntitySchema,
 } from "@brains/entity-service";
-import type { Logger } from "@brains/utils/logger";
+import type { LoggerContract } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
 import type { IEntityAINamespace } from "./ai-types";
 import { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
+import type { EntityConversationReader } from "../job/job-context-contract";
+import {
+  createConversationReader,
+  createPluginLogger,
+} from "../internal/callback-readers";
 
 export {
   ProjectionJsonObjectSchema,
@@ -21,11 +33,48 @@ export {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 
+/**
+ * The source type a conversation change is marked dirty under.
+ *
+ * Conversations are not entities and live in their own database, so nothing
+ * marks them dirty inside the write that changed them the way an entity
+ * does. The runtime polls them and records changes under this name, which
+ * puts them in the same vocabulary every source matcher already speaks.
+ */
+export const CONVERSATION_SOURCE_TYPE = "conversation";
+
+/**
+ * What a derivation returns when it did not derive.
+ *
+ * An empty array is a complete answer: nothing should exist. Abstaining is a
+ * different claim — there was nothing to derive *from*, so the rule has no
+ * opinion about what should exist and the runtime must leave its targets
+ * alone. An exclusive rule cannot tell those apart from `[]`, and reading
+ * one as the other deletes a corpus: skill derives nothing when no topics
+ * exist, which is normal during initial sync.
+ */
+export const PROJECTION_ABSTAINED: { readonly kind: "projection-abstained" } =
+  Object.freeze({ kind: "projection-abstained" as const });
+
+export type ProjectionAbstention = typeof PROJECTION_ABSTAINED;
+
 export interface ProjectionRuleEntitySource {
-  readonly kind: "entity";
+  readonly kind: "entity" | "conversation";
   readonly types: readonly string[];
   readonly excludeTypes?: readonly string[] | undefined;
 }
+
+/**
+ * What an author declares. A conversation source names no types — there is
+ * only one thing it can mean, and spelling it out invites getting it wrong.
+ */
+export type ProjectionRuleSourceInput =
+  | {
+      readonly kind: "entity";
+      readonly types: readonly string[];
+      readonly excludeTypes?: readonly string[] | undefined;
+    }
+  | { readonly kind: "conversation" };
 
 export interface ProjectionWaveInput {
   readonly sourceType: string;
@@ -40,18 +89,49 @@ export interface ProjectionWaveTrigger {
   readonly inputs: readonly ProjectionWaveInput[];
 }
 
-export type ProjectionEntityReader = Pick<
-  IEntityService,
-  | "getEntity"
-  | "listEntities"
-  | "getEntityTypes"
-  | "hasEntityType"
-  | "getEntityTypeConfig"
-  | "isProjectionOwnedEntity"
->;
+/**
+ * Entity reads available to a projection rule, spelled out structurally.
+ *
+ * This was a `Pick` of the entity service interface, which cannot cross
+ * the published declaration boundary — the generated declarations inline
+ * every referenced type, and an inlined runtime service is nominally
+ * distinct from the original. The runtime service satisfies this
+ * structurally, so it passes itself unchanged.
+ */
+export interface ProjectionEntityReader {
+  // Schema-less and schema-bearing, as everywhere else: a rule that names the
+  // shape it expects passes the schema that proves it.
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]>;
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  getEntityTypes(): string[];
+  hasEntityType(type: string): boolean;
+  getEntityTypeConfig(type: string): EntityTypeConfig;
+  isProjectionOwnedEntity(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<boolean>;
+}
 
 export interface ProjectionInputContext {
   readonly entities: ProjectionEntityReader;
+  /** The brain's configured conversation spaces. */
+  readonly spaces: readonly string[];
+  /**
+   * What was said, for a rule that derives from it.
+   *
+   * A conversation source tells a rule *that* a conversation changed; this
+   * is how it reads one. Narrow on purpose: a derivation needs the
+   * conversation and its messages, not the ability to write either.
+   */
+  readonly conversations: EntityConversationReader;
   readonly resolvePrompt: (
     reference: string,
     fallback: string,
@@ -60,12 +140,36 @@ export interface ProjectionInputContext {
   readonly identityInput: () => ProjectionJsonObject;
 }
 
+/**
+ * Whether a rule owns the entities it derives, or only adds to them.
+ *
+ * `exclusive` means the latest derivation is the whole truth: anything of
+ * this target type within the declared visibility that the derivation no
+ * longer mentions is removed by the runtime. `additive` means the rule
+ * writes and never removes. `managed` means the domain explicitly reconciles
+ * a partition narrower than the runtime's visibility-wide scope.
+ *
+ * Declared rather than implemented, because both mistakes are silent. A rule
+ * that should reconcile and does not accumulates orphans that look real; one
+ * that reconciles against the wrong scope deletes entities it never owned,
+ * which is precisely what `series-projection` did to `shared` series until
+ * it was caught. Visibility is required on `exclusive` so the scope is a
+ * decision the author makes rather than one they inherit by omission.
+ */
+export type ProjectionTargetAuthority =
+  | { readonly authority: "additive" }
+  | { readonly authority: "managed" }
+  | {
+      readonly authority: "exclusive";
+      readonly visibility: ContentVisibility;
+    };
+
 export interface ProjectionExecutionContext {
   readonly ai: Pick<
     IEntityAINamespace,
     "query" | "generate" | "generateObject" | "generateImage"
   >;
-  readonly logger: Logger;
+  readonly logger: LoggerContract;
 }
 
 export interface ProjectionRule {
@@ -73,6 +177,7 @@ export interface ProjectionRule {
   readonly version: string;
   readonly sources: readonly ProjectionRuleEntitySource[];
   readonly targetType: string;
+  readonly targets: ProjectionTargetAuthority;
   readonly sourceChangeBatchDelayMs: number;
   readonly inputSchema: z.ZodType<ProjectionJsonObject>;
   readonly selectInput: (
@@ -85,7 +190,7 @@ export interface ProjectionRule {
     input: ProjectionJsonObject,
     context: ProjectionExecutionContext,
     signal: AbortSignal,
-  ) => Promise<readonly ProjectionWriteIntent[]>;
+  ) => Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention>;
 }
 
 function deepFreeze<T>(value: T): T {
@@ -101,8 +206,9 @@ export interface ProjectionRuleDefinition<
 > {
   readonly id: string;
   readonly version: string;
-  readonly sources: readonly ProjectionRuleEntitySource[];
+  readonly sources: readonly ProjectionRuleSourceInput[];
   readonly targetType: string;
+  readonly targets: ProjectionTargetAuthority;
   readonly sourceChangeBatchDelayMs?: number | undefined;
   readonly inputSchema: z.ZodType<TInput>;
   readonly selectInput: (
@@ -114,22 +220,80 @@ export interface ProjectionRuleDefinition<
     input: TInput,
     context: ProjectionExecutionContext,
     signal: AbortSignal,
-  ) => Promise<readonly ProjectionWriteIntent[]>;
+  ) => Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention>;
 }
 
 const ProjectionRuleMetadataSchema = z.strictObject({
   id: z.string().trim().min(1),
   version: z.string().trim().min(1),
   sources: z.array(
-    z.strictObject({
-      kind: z.literal("entity"),
-      types: z.array(z.string().trim().min(1)).min(1),
-      excludeTypes: z.array(z.string().trim().min(1)).optional(),
-    }),
+    z.union([
+      z.strictObject({
+        kind: z.literal("entity"),
+        types: z.array(z.string().trim().min(1)).min(1),
+        excludeTypes: z.array(z.string().trim().min(1)).optional(),
+      }),
+      // Normalized to the shape every downstream matcher reads, so a
+      // conversation source needs no special case anywhere but validation.
+      z.strictObject({ kind: z.literal("conversation") }).transform(() => ({
+        kind: "conversation" as const,
+        types: [CONVERSATION_SOURCE_TYPE],
+      })),
+    ]),
   ),
   targetType: z.string().trim().min(1),
+  targets: z.discriminatedUnion("authority", [
+    z.strictObject({ authority: z.literal("additive") }),
+    z.strictObject({ authority: z.literal("managed") }),
+    z.strictObject({
+      authority: z.literal("exclusive"),
+      visibility: z.enum(["public", "shared", "restricted"]),
+    }),
+  ]),
   sourceChangeBatchDelayMs: z.number().int().nonnegative().default(0),
 });
+
+export function createProjectionInputReader(
+  source: ProjectionInputContext,
+): ProjectionInputContext {
+  const entities = source.entities;
+  return Object.freeze({
+    entities: Object.freeze({
+      getEntity: entities.getEntity.bind(entities),
+      getEntities: entities.getEntities.bind(entities),
+      listEntities: entities.listEntities.bind(entities),
+      getEntityTypes: entities.getEntityTypes.bind(entities),
+      hasEntityType: entities.hasEntityType.bind(entities),
+      getEntityTypeConfig: entities.getEntityTypeConfig.bind(entities),
+      isProjectionOwnedEntity: entities.isProjectionOwnedEntity.bind(entities),
+    }),
+    spaces: Object.freeze([...source.spaces]),
+    conversations: createConversationReader(source.conversations),
+    resolvePrompt: source.resolvePrompt.bind(source),
+    appInfo: source.appInfo.bind(source),
+    identityInput: source.identityInput.bind(source),
+  });
+}
+
+export function createProjectionExecutionReader(
+  source: ProjectionExecutionContext,
+): ProjectionExecutionContext {
+  // Pure derivations need not acquire lazy AI or logging dependencies.
+  return Object.freeze({
+    get ai(): ProjectionExecutionContext["ai"] {
+      const ai = source.ai;
+      return Object.freeze({
+        query: ai.query.bind(ai),
+        generate: ai.generate.bind(ai),
+        generateObject: ai.generateObject.bind(ai),
+        generateImage: ai.generateImage.bind(ai),
+      });
+    },
+    get logger(): LoggerContract {
+      return createPluginLogger(source.logger);
+    },
+  });
+}
 
 export function defineProjectionRule<TInput extends ProjectionJsonObject>(
   input: ProjectionRuleDefinition<TInput>,
@@ -139,6 +303,7 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
     version: input.version,
     sources: input.sources,
     targetType: input.targetType,
+    targets: input.targets,
     sourceChangeBatchDelayMs: input.sourceChangeBatchDelayMs,
   });
   if (typeof input.selectInput !== "function") {
@@ -150,11 +315,12 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
 
   const sources = metadata.sources.map((source) => {
     const types = Object.freeze([...source.types]);
-    const excludeTypes = source.excludeTypes
-      ? Object.freeze([...source.excludeTypes])
-      : undefined;
+    const excludeTypes =
+      "excludeTypes" in source && source.excludeTypes
+        ? Object.freeze([...source.excludeTypes])
+        : undefined;
     const frozenSource: ProjectionRuleEntitySource = {
-      kind: "entity",
+      kind: source.kind,
       types,
       ...(excludeTypes ? { excludeTypes } : {}),
     };
@@ -166,6 +332,7 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
     version: metadata.version,
     sources: Object.freeze(sources),
     targetType: metadata.targetType,
+    targets: Object.freeze(metadata.targets),
     sourceChangeBatchDelayMs: metadata.sourceChangeBatchDelayMs,
     inputSchema: input.inputSchema,
     selectInput: async (
@@ -173,7 +340,11 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
       context: ProjectionInputContext,
       signal: AbortSignal,
     ): Promise<ProjectionJsonObject> => {
-      const selected = await input.selectInput(trigger, context, signal);
+      const selected = await input.selectInput(
+        trigger,
+        createProjectionInputReader(context),
+        signal,
+      );
       const jsonInput = ProjectionJsonObjectSchema.parse(selected);
       return deepFreeze(input.inputSchema.parse(jsonInput));
     },
@@ -182,11 +353,15 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
       selected: ProjectionJsonObject,
       context: ProjectionExecutionContext,
       signal: AbortSignal,
-    ): Promise<readonly ProjectionWriteIntent[]> => {
+    ): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> => {
       const parsedInput = input.inputSchema.parse(selected);
-      const intents = z
-        .array(ProjectionWriteIntentSchema)
-        .parse(await input.derive(parsedInput, context, signal));
+      const derived = await input.derive(
+        parsedInput,
+        createProjectionExecutionReader(context),
+        signal,
+      );
+      if (derived === PROJECTION_ABSTAINED) return PROJECTION_ABSTAINED;
+      const intents = z.array(ProjectionWriteIntentSchema).parse(derived);
       for (const intent of intents) {
         const entityType =
           intent.operation === "upsert"
@@ -195,6 +370,14 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
         if (entityType !== metadata.targetType) {
           throw new Error(
             `Projection rule "${metadata.id}" cannot write entity type "${entityType}"`,
+          );
+        }
+        if (
+          metadata.targets.authority === "additive" &&
+          intent.operation === "delete"
+        ) {
+          throw new Error(
+            `Additive projection rule "${metadata.id}" cannot delete targets`,
           );
         }
       }

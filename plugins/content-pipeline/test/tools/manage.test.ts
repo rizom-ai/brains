@@ -1,15 +1,28 @@
+import type { PipelineRuntime } from "../../src/runtime";
+import { runtimeFor } from "../helpers/install";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import type { PublishProvider, PublishResult } from "@brains/contracts";
 import type { ToolContext } from "@brains/plugins";
+import { createMockShell } from "@brains/plugins/test";
 import {
-  createMockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
-} from "@brains/plugins/test";
-import {
-  createPublishingManageTool,
+  handlePublishingManage,
   publishingManageInputSchema,
+  type PublishingManageServices,
 } from "../../src/tools";
+import type { ToolResponse } from "@brains/plugins";
+
+/** The manage action as a tool, the shape these tests drive it through. */
+function createPublishingManageTool(
+  runtime: PipelineRuntime,
+  services: PublishingManageServices,
+): {
+  handler(input: unknown, caller: ToolContext): Promise<ToolResponse>;
+} {
+  return {
+    handler: (input, caller) =>
+      handlePublishingManage({ runtime, services, input, caller }),
+  };
+}
 import { ProviderRegistry } from "../../src/provider-registry";
 import { QueueManager } from "../../src/queue-manager";
 
@@ -31,14 +44,14 @@ function createMockProvider(name: string): PublishProvider {
 }
 
 describe("publishing_manage tool", () => {
-  let context: ServicePluginContext;
+  let context: PipelineRuntime;
   let providerRegistry: ProviderRegistry;
   let queueManager: QueueManager;
   let tool: ReturnType<typeof createPublishingManageTool>;
 
   beforeEach(async () => {
     const shell = createMockShell();
-    context = createServicePluginContext(shell, "content-pipeline");
+    context = runtimeFor(shell);
     providerRegistry = ProviderRegistry.createFresh();
     queueManager = QueueManager.createFresh();
     tool = createPublishingManageTool(context, {
@@ -46,7 +59,7 @@ describe("publishing_manage tool", () => {
       providerRegistry,
     });
 
-    await context.entityService.createEntity({
+    await shell.getEntityService().createEntity({
       entity: {
         id: "draft-post",
         entityType: "social-post",
@@ -59,12 +72,6 @@ describe("publishing_manage tool", () => {
         },
       },
     });
-  });
-
-  it("registers one canonical publishing tool", () => {
-    expect(tool.name).toBe("publishing_manage");
-    expect(tool.visibility).toBe("admin");
-    expect(tool.sideEffects).toBe("external");
   });
 
   it("accepts strict publishing lifecycle actions", () => {

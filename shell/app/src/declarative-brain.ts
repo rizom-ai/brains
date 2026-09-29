@@ -7,7 +7,7 @@ import {
 import type {
   BrainDefinition as DeclarativeBrainDefinition,
   CapabilityBundleDefinition as DeclarativeBundleDefinition,
-} from "./contracts/brain-definition";
+} from "@brains/sdk";
 import type {
   BrainDefinition,
   CapabilityEntry,

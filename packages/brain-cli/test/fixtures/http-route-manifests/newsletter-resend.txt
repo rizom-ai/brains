@@ -1,1 +1,1 @@
-resend|tool|POST|/api/resend/subscribe|exact|true
+@brains/newsletter:delivery|handler|POST|/api/newsletter/subscribe|exact|true

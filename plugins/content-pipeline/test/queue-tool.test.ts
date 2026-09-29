@@ -1,11 +1,48 @@
+import type { PipelineRuntime } from "../src/runtime";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createQueueTool, queueInputSchema } from "../src/tools/queue";
+import {
+  handleQueueAction,
+  queueInputSchema,
+  type QueueMutationService,
+  type QueueOutput,
+} from "../src/tools/queue";
+import { runtimeFor } from "./helpers/install";
+
+/** The queue actions as a tool, the shape these tests drive them through. */
+function createQueueTool(
+  runtime: PipelineRuntime,
+  pluginId: string,
+  queueManager: QueueManager,
+  mutations?: QueueMutationService,
+): {
+  name: string;
+  handler(input: unknown, caller: ToolContext): Promise<QueueOutput>;
+} {
+  return {
+    name: `${pluginId}_queue`,
+    handler: async (rawInput, caller): Promise<QueueOutput> => {
+      const parsed = queueInputSchema.safeParse(rawInput);
+      if (!parsed.success) {
+        return {
+          success: false,
+          error: `Invalid input: ${parsed.error.issues
+            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+            .join(", ")}`,
+        };
+      }
+      return handleQueueAction(
+        runtime,
+        queueManager,
+        mutations ?? queueManager,
+        parsed.data,
+        caller,
+      );
+    },
+  };
+}
 import { QueueManager } from "../src/queue-manager";
 import type { ToolContext } from "@brains/plugins";
-import {
-  createMockShell,
-  createServicePluginContext,
-} from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
 import { PermissionService } from "@brains/templates";
 
 /**
@@ -46,8 +83,7 @@ describe("publish_queue tool", () => {
       permissionChecks.push({ entityType, action, userPermissionLevel });
     };
     shell.getPermissionService = (): PermissionService => permissionService;
-    const context = createServicePluginContext(shell, "publish-pipeline");
-    tool = createQueueTool(context, "publish-pipeline", queueManager);
+    tool = createQueueTool(runtimeFor(shell), "publish-pipeline", queueManager);
   });
 
   describe("input schema", () => {
@@ -411,39 +447,6 @@ describe("publish_queue tool", () => {
       expect(queue[0]?.entityId).toBe("post-3");
       expect(queue[1]?.entityId).toBe("post-1");
       expect(queue[2]?.entityId).toBe("post-2");
-    });
-  });
-
-  describe("tool metadata", () => {
-    it("should have correct tool name", () => {
-      expect(tool.name).toBe("publish-pipeline_queue");
-    });
-
-    it("should have appropriate description", () => {
-      expect(tool.description).toContain("queue");
-      expect(tool.description).toContain("all entity types");
-    });
-
-    it("should have admin visibility", () => {
-      expect(tool.visibility).toBe("admin");
-    });
-
-    it("should declare write side effects", () => {
-      expect(tool.sideEffects).toBe("writes");
-    });
-
-    it("declares an output schema covering both result branches", () => {
-      // Asserting the schema merely exists would hold for one that accepts
-      // nothing, and the tool answers in two shapes.
-      expect(tool.outputSchema?.safeParse({ success: true }).success).toBe(
-        true,
-      );
-      expect(
-        tool.outputSchema?.safeParse({ success: false, error: "nope" }).success,
-      ).toBe(true);
-      expect(tool.outputSchema?.safeParse({ success: false }).success).toBe(
-        false,
-      );
     });
   });
 });

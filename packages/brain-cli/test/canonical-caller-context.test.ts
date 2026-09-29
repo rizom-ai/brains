@@ -7,11 +7,17 @@ import {
   type BrainAgentResult,
   type BrainCallOptions,
 } from "@brains/ai-service";
-import { AuthService, type AuthPrincipal } from "@brains/auth-service";
-import type { IConversationService } from "@brains/plugins";
+import { AuthService } from "@brains/auth-service";
+import {
+  type IConversationService,
+  type Plugin,
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import packageJson from "../package.json";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { WebChatInterface } from "@brains/web-chat";
+import webChatPackage from "@brains/web-chat";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -73,12 +79,17 @@ function createMemoryConversationService(): IConversationService {
     },
     getMessages: async (conversationId): Promise<StoredMessages> =>
       messages.get(conversationId) ?? [],
+    getManyWithMessages: async () => [],
     countMessages: async (conversationId): Promise<number> =>
       messages.get(conversationId)?.length ?? 0,
     getConversation: async (
       conversationId,
     ): Promise<StoredConversation | null> =>
       conversations.get(conversationId) ?? null,
+    listConversationsUpdatedSince: async (): Promise<
+      StoredConversation[]
+    > => [],
+    getConversationChangeHead: async () => null,
     listConversations: async (): Promise<StoredConversation[]> =>
       Array.from(conversations.values()),
     searchConversations: async (): Promise<StoredConversation[]> => [],
@@ -90,17 +101,38 @@ function createMemoryConversationService(): IConversationService {
   };
 }
 
+/**
+ * The interface as the composer builds it: a declaration, not a class.
+ *
+ * The metadata is the one the composer binds — the same name and the release
+ * version it ships at. A test that invented its own would be a second claim
+ * about one installed package, and would fail or pass depending on whether the
+ * canonical catalog happened to load first.
+ */
+function webChatPlugin(): Plugin {
+  const metadata = {
+    name: "@brains/web-chat",
+    version: packageJson.version,
+  };
+  bindPluginPackageMetadata(webChatPackage, metadata);
+  const plugin = instantiatePluginPackageDefinition(
+    webChatPackage,
+    {},
+    metadata,
+  )[0];
+  if (!plugin) throw new Error("Web chat interface plugin was not created");
+  return plugin;
+}
+
 async function sendChat(
-  plugin: WebChatInterface,
+  plugin: Plugin,
   sessionCookie: string,
   conversationId: string,
 ): Promise<void> {
-  const route = plugin
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === "/api/chat" && candidate.method === "POST",
-    );
+  const route = (plugin.getWebRoutes?.() ?? []).find(
+    (candidate) =>
+      candidate.path === "/api/chat" && candidate.method === "POST",
+  );
   if (!route) throw new Error("Missing POST /api/chat route");
 
   const response = await route.handler(
@@ -161,7 +193,7 @@ describe("canonical authenticated caller context", () => {
       },
     });
     const logger = createSilentLogger("canonical-caller-context");
-    const harness = createPluginHarness<WebChatInterface>({ logger });
+    const harness = createPluginHarness<Plugin>({ logger });
     const shell = harness.getMockShell();
     shell.setConversationService(createMemoryConversationService());
     const agent = AgentService.createFresh(
@@ -175,13 +207,10 @@ describe("canonical authenticated caller context", () => {
     services.push({ close: (): Promise<void> => agent.shutdown() });
     harness.setAgentService(agent);
 
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: (request): Promise<AuthPrincipal | undefined> =>
-          auth.resolveSession(request),
-      },
-    );
+    // The real auth service, registered the way a brain registers it, so the
+    // interface reaches it through the runtime rather than an injected seam.
+    shell.getAuthRegistry().register(auth);
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
 
     await sendChat(plugin, anchorSession.cookie, "anchor-conversation");

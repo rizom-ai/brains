@@ -1,216 +1,170 @@
-import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
-import type { GeneratedContent } from "@brains/plugins";
-import {
-  type GenerationResult,
-  generationResultSchema,
-} from "@brains/contracts";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import { ensureUniqueTitle } from "@brains/sdk/entities";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
-import type { EntityPluginContext } from "@brains/plugins";
-import { blogPostSchema, type BlogPostFrontmatter } from "../schemas/blog-post";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import type { BlogPostFrontmatter } from "../schemas/blog-post";
+import { blogPostSchema } from "../schemas/blog-post";
 
 /**
  * Input schema for blog generation job
  */
-export const blogGenerationJobSchema: z.ZodObject<{
-  prompt: z.ZodOptional<z.ZodString>;
-  title: z.ZodOptional<z.ZodString>;
-  content: z.ZodOptional<z.ZodString>;
-  excerpt: z.ZodOptional<z.ZodString>;
-  coverImageId: z.ZodOptional<z.ZodString>;
-  seriesName: z.ZodOptional<z.ZodString>;
-  seriesIndex: z.ZodOptional<z.ZodNumber>;
-  skipAi: z.ZodOptional<z.ZodBoolean>;
-}> = z.object({
-  prompt: z.string().optional(),
-  title: z.string().optional(),
-  content: z.string().optional(),
-  excerpt: z.string().optional(),
-  coverImageId: z.string().optional(),
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
-  skipAi: z.boolean().optional(),
-});
-
-/** Shape the blog generation template returns. */
-export const generatedBlogPostSchema: z.ZodObject<{
-  title: z.ZodString;
-  content: z.ZodString;
-  excerpt: z.ZodString;
-}> = z.object({
-  title: z.string(),
-  content: z.string(),
-  excerpt: z.string(),
-});
-
-/** Shape the blog excerpt template returns. */
-export const generatedExcerptSchema: z.ZodObject<{
-  excerpt: z.ZodString;
-}> = z.object({ excerpt: z.string() });
-
-export type BlogGenerationJobData = z.output<typeof blogGenerationJobSchema>;
-
-export interface BlogGenerationResult extends GenerationResult {
+export interface BlogGenerationJobData {
+  prompt?: string | undefined;
   title?: string | undefined;
-  slug?: string | undefined;
+  content?: string | undefined;
+  excerpt?: string | undefined;
+  coverImageId?: string | undefined;
+  seriesName?: string | undefined;
+  seriesIndex?: number | undefined;
+  skipAi?: boolean | undefined;
 }
 
-export const blogGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    title: z.ZodOptional<z.ZodString>;
-    slug: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
-  title: z.string().optional(),
-  slug: z.string().optional(),
-});
+export const blogGenerationJobSchema: z.ZodType<BlogGenerationJobData> =
+  z.object({
+    prompt: z.string().optional(),
+    title: z.string().optional(),
+    content: z.string().optional(),
+    excerpt: z.string().optional(),
+    coverImageId: z.string().optional(),
+    seriesName: z.string().optional(),
+    seriesIndex: z.number().optional(),
+    skipAi: z.boolean().optional(),
+  });
+
+const SKELETON_BODY = (title: string): string =>
+  [
+    `# ${title}`,
+    "",
+    "## Introduction",
+    "",
+    "Add your introduction here.",
+    "",
+    "## Main Content",
+    "",
+    "Add your main content here.",
+    "",
+    "## Conclusion",
+    "",
+    "Add your conclusion here.",
+  ].join("\n");
+
+const DEFAULT_POST_PROMPT =
+  "Write an insightful blog post about a topic from my knowledge base that would be valuable to share";
 
 /**
- * Job handler for blog post generation
- * Handles AI-powered content generation and entity creation
+ * Blog post generation, declared.
+ *
+ * `skipAi` produces a skeleton so an author can start from a structure; the
+ * other branches fill in whatever the caller did not supply.
  */
-export class BlogGenerationJobHandler extends BaseGenerationJobHandler<
-  BlogGenerationJobData,
-  BlogGenerationResult
-> {
-  constructor(logger: Logger, context: EntityPluginContext) {
-    super(logger, context, {
-      schema: blogGenerationJobSchema,
-      jobTypeName: "blog-generation",
-      entityType: "post",
-    });
-  }
+export const postGeneration: EntityGenerationDeclaration<
+  typeof blogGenerationJobSchema
+> = {
+  input: blogGenerationJobSchema,
+  generate: async ({
+    input,
+    ai,
+    logger,
+    entities,
+    identity,
+    progress,
+    template,
+  }) => {
+    const { prompt, coverImageId, seriesName, seriesIndex, skipAi } = input;
+    let { title, content, excerpt } = input;
 
-  protected async generate(
-    data: BlogGenerationJobData,
-    progressReporter: ProgressReporter,
-  ): Promise<GeneratedContent> {
-    const { prompt, coverImageId, seriesName, seriesIndex, skipAi } = data;
-    let { title, content, excerpt } = data;
-
-    // skipAi mode: create skeleton blog post with placeholders
     if (skipAi) {
       if (!title) {
-        this.failEarly("Title is required when skipAi is true");
+        return {
+          success: false,
+          error: "Title is required when skipAi is true",
+        };
       }
-
-      content =
-        content ??
-        `## Introduction
-
-Add your introduction here.
-
-## Main Content
-
-Add your main content here.
-
-## Conclusion
-
-Add your conclusion here.`;
-
+      content = content ?? SKELETON_BODY(title);
       excerpt = excerpt ?? `Blog post about ${title}`;
-
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
+        total: 100,
         message: "Creating skeleton blog post",
       });
-    }
-    // Case 1: AI generates everything
-    else if (!title || !content) {
-      await this.reportProgress(progressReporter, {
+    } else if (!title || !content) {
+      await progress.report({
         progress: 10,
+        total: 100,
         message: "Generating blog post content with AI",
       });
-
-      const defaultPrompt =
-        "Write an insightful blog post about a topic from my knowledge base that would be valuable to share";
-      const finalPrompt = prompt ?? defaultPrompt;
-      const generationPrompt = `${finalPrompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`;
-
       const voiceGuidance = formatVoiceGuidance(
-        await fetchStyleGuide(this.context.entityService),
+        await fetchStyleGuide(entities),
       );
-      const generated = await this.context.ai.generate(
+      const generated = await ai.generate(
         {
-          prompt: generationPrompt,
-          templateName: "blog:generation",
+          prompt: `${prompt ?? DEFAULT_POST_PROMPT}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`,
+          templateName: template("generation"),
           representedIdentity: "anchor",
           ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
         },
-        generatedBlogPostSchema,
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          excerpt: z.string(),
+        }),
       );
-
       title = title ?? generated.title;
       content = content ?? generated.content;
       excerpt = excerpt ?? generated.excerpt;
-
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
+        total: 100,
         message: `Generated blog post: "${title}"`,
       });
-    }
-    // Case 2: User provided title+content, but no excerpt
-    else if (!excerpt) {
-      await this.reportProgress(progressReporter, {
+    } else if (!excerpt) {
+      await progress.report({
         progress: 30,
+        total: 100,
         message: "Generating excerpt with AI",
       });
-
-      const excerptGenerated = await this.context.ai.generate(
+      const generated = await ai.generate(
         {
           prompt: `Title: ${title}\n\nContent:\n${content}`,
-          templateName: "blog:excerpt",
+          templateName: template("excerpt"),
           representedIdentity: "none",
         },
-        generatedExcerptSchema,
+        z.object({ excerpt: z.string() }),
       );
-
-      excerpt = excerptGenerated.excerpt;
-
-      await this.reportProgress(progressReporter, {
-        progress: 50,
-        message: "Excerpt generated",
-      });
-    } else {
-      await this.reportProgress(progressReporter, {
-        progress: 50,
-        message: "Using provided content",
-      });
-    }
-
-    const author = this.context.identity.getProfile().name;
-
-    // Handle series indexing
-    let finalSeriesIndex = seriesIndex;
-    if (seriesName && !seriesIndex) {
-      const seriesPosts = await this.context.entityService.listEntities(
-        { entityType: "post" },
-        blogPostSchema,
-      );
-      const postsInSeries = seriesPosts.filter(
-        (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
-      );
-      finalSeriesIndex = postsInSeries.length + 1;
+      excerpt = generated.excerpt;
     }
 
     if (!title || !content) {
-      this.failEarly("Title and content are required");
+      return { success: false, error: "Title and content are required" };
     }
 
-    // Ensure title doesn't collide with an existing entity
+    // A post joins a series at the end unless the caller placed it.
+    let finalSeriesIndex = seriesIndex;
+    if (seriesName && !seriesIndex) {
+      const posts = await entities.listEntities(
+        {
+          entityType: "post",
+        },
+        blogPostSchema,
+      );
+      finalSeriesIndex =
+        posts.filter(
+          (candidate) =>
+            candidate.metadata.seriesName === seriesName &&
+            candidate.metadata.publishedAt,
+        ).length + 1;
+    }
+
     const finalTitle = await ensureUniqueTitle({
       entityType: "post",
       title,
-      deriveId: (t) => t,
+      deriveId: (candidate) => candidate,
       regeneratePrompt:
         "Generate a different blog post title on the same topic.",
-      context: this.context,
+      context: { entityService: entities, ai, logger },
     });
     const slug = slugify(finalTitle);
-
     const { blogPostAdapter } = await import("../adapters/blog-post-adapter");
 
     const frontmatter: BlogPostFrontmatter = {
@@ -218,35 +172,36 @@ Add your conclusion here.`;
       slug,
       status: "draft" as const,
       excerpt,
-      author,
+      author: identity.getProfile().name,
       ...(coverImageId && { coverImageId }),
       ...(seriesName && { seriesName }),
       ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
     };
 
+    await progress.report({
+      progress: 100,
+      total: 100,
+      message: `Wrote post: "${finalTitle}"`,
+    });
+    // Content, not an entity: the runtime decides whether this fills in a
+    // pre-allocated post or creates a new one.
     return {
+      success: true,
+      // The title, not its slug: post files are named after the id.
       id: finalTitle,
       content: blogPostAdapter.createPostContent(frontmatter, content),
       metadata: {
         title: finalTitle,
         slug,
         status: frontmatter.status,
-        publishedAt: frontmatter.publishedAt,
-        seriesName: frontmatter.seriesName,
-        seriesIndex: frontmatter.seriesIndex,
+        ...(frontmatter.seriesName === undefined
+          ? {}
+          : { seriesName: frontmatter.seriesName }),
+        ...(frontmatter.seriesIndex === undefined
+          ? {}
+          : { seriesIndex: frontmatter.seriesIndex }),
       },
-      title: finalTitle,
       resultExtras: { title: finalTitle, slug },
-      createOptions: { deduplicateId: true },
     };
-  }
-
-  protected override summarizeDataForLog(
-    data: BlogGenerationJobData,
-  ): Record<string, unknown> {
-    return {
-      prompt: data.prompt,
-      title: data.title,
-    };
-  }
-}
+  },
+};

@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import { operatorViewStylexCSS } from "@brains/ui-library";
+import { operatorViewStylexCSS } from "@rizom/brain-ui";
 import type { ProximityMapData } from "../lib/proximity-map-schema";
 import { ProximityMap } from "../widgets/proximity-map";
 

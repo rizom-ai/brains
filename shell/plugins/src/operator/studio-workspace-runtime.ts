@@ -169,13 +169,6 @@ function parseWorkspaceData<TSchema extends z.ZodType<unknown, unknown>>(
   return parsed.data;
 }
 
-function parseActionInput<TSchema extends z.ZodType<unknown, unknown>>(
-  schema: TSchema,
-  input: unknown,
-): z.output<TSchema> {
-  return schema.parse(input);
-}
-
 async function prepareActionBinding<
   TDefinition extends AnyWorkspaceActionDefinition,
   TConfig,
@@ -184,19 +177,14 @@ async function prepareActionBinding<
 >(
   binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  input: unknown,
+  input: z.output<TDefinition["input"]>,
 ): Promise<z.output<typeof preparedConfirmationSchema>> {
-  const parsedInput = parseActionInput<TDefinition["input"]>(
-    binding.definition.input,
-    input,
-  );
+  // Admission already validated this value; callbacks consume parsed output.
   const prepare = getWorkspaceActionExecutor(binding).prepare;
   if (!prepare) {
     throw new Error("Prepared confirmation callback is unavailable");
   }
-  return preparedConfirmationSchema.parse(
-    await prepare({ ...context, input: parsedInput }),
-  );
+  return preparedConfirmationSchema.parse(await prepare({ ...context, input }));
 }
 
 async function executeActionBinding<
@@ -207,16 +195,9 @@ async function executeActionBinding<
 >(
   binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  input: unknown,
+  input: z.output<TDefinition["input"]>,
 ): Promise<unknown> {
-  const parsedInput = parseActionInput<TDefinition["input"]>(
-    binding.definition.input,
-    input,
-  );
-  return getWorkspaceActionExecutor(binding).execute({
-    ...context,
-    input: parsedInput,
-  });
+  return getWorkspaceActionExecutor(binding).execute({ ...context, input });
 }
 
 export function createDeclarativeStudioWorkspaceRegistration<
@@ -424,7 +405,10 @@ export function createDeclarativeStudioWorkspaceRegistration<
           `action "${action.name}" was requested below its minimum permission`,
         );
       }
-      const parsedInput = action.input.safeParse(request.data.input);
+      const parsedInput = z.safeParse<TDefinition["actions"][number]["input"]>(
+        action.input,
+        request.data.input,
+      );
       if (!parsedInput.success) {
         throw runtimeError(
           identity,

@@ -7,6 +7,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createMockShell } from "@brains/plugins/test";
 import {
   EntityWriteConflictError,
+  createEntityMirror,
   type BaseEntity,
   type EntityServiceClient,
 } from "@brains/plugins";
@@ -37,13 +38,21 @@ function setup(existing: BaseEntity | null = null): {
     content?: string,
   ): Promise<void>;
 } {
-  const entityService = createMockShell().getEntityService();
-  const upsert = spyOn(entityService, "upsertEntity");
+  const shell = createMockShell();
+  const entityService = shell.getEntityService();
+  const upsert = spyOn(entityService, "upsertEntity").mockResolvedValue({
+    entityId: "note-1",
+    jobId: "import-note-1",
+    created: existing === null,
+    skipped: false,
+  });
   spyOn(entityService, "serializeEntity").mockImplementation(
     (entity) => `canonical:${entity.visibility}:${entity.content}`,
   );
   const deps = {
-    entityService,
+    entityService: createEntityMirror(shell, {
+      pluginId: "@brains/directory-sync:directory-sync",
+    }),
     logger: createSilentLogger(),
     quarantine: {
       isValidationError: (): boolean => false,

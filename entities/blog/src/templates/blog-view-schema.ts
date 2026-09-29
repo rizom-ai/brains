@@ -1,5 +1,4 @@
-import { contentVisibilitySchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { contentVisibilitySchema, z } from "@brains/sdk/entities";
 import { blogPostStatusSchema } from "../schemas/blog-post";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z

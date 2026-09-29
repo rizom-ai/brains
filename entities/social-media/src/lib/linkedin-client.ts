@@ -1,12 +1,11 @@
-import type { FetchLike } from "@brains/utils/fetch-like";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
+import type { FetchLike, LoggerContract } from "@brains/sdk/services";
+import { z } from "@brains/sdk/entities";
 import type {
   PublishProvider,
   PublishResult,
   PublishImageData,
   PublishMediaData,
-} from "@brains/contracts";
+} from "@brains/sdk/services";
 import type { LinkedinConfig } from "../config";
 
 /**
@@ -120,7 +119,7 @@ const DEFAULT_LINKEDIN_REST_API_VERSION = "202604";
 
 export class LinkedInClient implements PublishProvider {
   private config: LinkedinConfig;
-  private logger: Logger;
+  private logger: LoggerContract;
   public readonly name = "linkedin";
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
   private readonly restApiBaseUrl = "https://api.linkedin.com/rest";
@@ -129,7 +128,7 @@ export class LinkedInClient implements PublishProvider {
 
   constructor(
     config: LinkedinConfig,
-    logger: Logger,
+    logger: LoggerContract,
     deps: LinkedInClientDeps = {},
   ) {
     this.config = config;
@@ -544,7 +543,7 @@ export class LinkedInClient implements PublishProvider {
  */
 export function createLinkedInProvider(
   config: LinkedinConfig,
-  logger: Logger,
+  logger: LoggerContract,
   deps: LinkedInClientDeps = {},
 ): PublishProvider {
   return new LinkedInClient(config, logger, deps);

@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { ICoreEntityService } from "@brains/plugins";
+import type { PipelineEntityReads } from "../runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { GenerationCondition } from "../types/config";
 import type { GenerationConditionResult } from "../types/scheduler";
@@ -9,7 +9,7 @@ import type { GenerationConditionResult } from "../types/scheduler";
  * Evaluates skipIfDraftExists, maxUnpublishedDrafts, and minSourceEntities.
  */
 export async function checkGenerationConditions(
-  entityService: ICoreEntityService,
+  entityService: PipelineEntityReads,
   logger: Logger,
   entityType: string,
   conditions: GenerationCondition,

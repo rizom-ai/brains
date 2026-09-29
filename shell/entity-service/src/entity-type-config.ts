@@ -1,0 +1,53 @@
+import { z } from "@brains/utils/zod";
+import { definedFields } from "@brains/utils/strip-undefined";
+import type { EntityTypeConfig } from "./types";
+
+const entityTypeConfigSchema = z.object({
+  classification: z.enum(["content", "system"]).optional(),
+  weight: z.number().optional(),
+  embeddable: z.boolean().optional(),
+  fullTextSearchable: z.boolean().optional(),
+  binaryStorage: z.enum(["data-url", "asset"]).optional(),
+  defaultSort: z
+    .array(
+      z
+        .strictObject({
+          field: z.string().min(1).max(100),
+          direction: z.enum(["asc", "desc"]),
+          nullsFirst: z.boolean().optional(),
+        })
+        .transform(({ field, direction, nullsFirst }) => ({
+          field,
+          direction,
+          ...(nullsFirst === undefined ? {} : { nullsFirst }),
+        })),
+    )
+    .max(10)
+    .optional(),
+  markdownImport: z.boolean().optional(),
+  actionPolicy: z
+    .partialRecord(
+      z.enum(["create", "update", "delete", "extract", "publish"]),
+      z.enum(["never", "admin", "trusted", "public"]),
+    )
+    .optional(),
+  projectionSource: z.boolean().optional(),
+  projectionSourceRole: z
+    .enum([
+      "canonical",
+      "primary",
+      "secondary",
+      "supporting",
+      "ambient",
+      "excluded",
+    ])
+    .optional(),
+  publish: z.object({ publishStatuses: z.array(z.string()) }).optional(),
+} satisfies Record<keyof EntityTypeConfig, z.ZodType>);
+
+/** Validate declared metadata and detach nested policy data from its owner. */
+export function copyEntityTypeConfig(
+  config: EntityTypeConfig,
+): EntityTypeConfig {
+  return definedFields(entityTypeConfigSchema.parse(config));
+}

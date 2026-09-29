@@ -1,7 +1,7 @@
 import type { ProjectionRule } from "./projection-rule";
 
 export interface ProjectionEntitySource {
-  kind: "entity";
+  kind: "entity" | "conversation";
   types: string[];
   excludeTypes?: string[] | undefined;
 }
@@ -160,6 +160,10 @@ function findUnknownSourceTypes(
     const types = [
       ...new Set(
         projection.sources
+          // A conversation source names the thing the runtime polls, not an
+          // entity type anyone registered. Checking it against the entity
+          // registry would report it missing forever.
+          .filter((source) => source.kind === "entity")
           .flatMap((source) => [
             ...source.types,
             ...(source.excludeTypes ?? []),

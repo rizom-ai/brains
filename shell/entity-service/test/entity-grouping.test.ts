@@ -33,6 +33,23 @@ describe("grouping registration", () => {
     value.registerEntityType("post", postSchema, postAdapter);
     return value;
   }
+  test("does not parse raw source without registered projection fields", () => {
+    const value = registry();
+    const metadata = { title: "Raw document" };
+    for (const source of [
+      "---\ntitle: [broken\n---\nBody",
+      "---\nA horizontal rule and prose",
+    ]) {
+      expect(value.projectMetadata("test", source, metadata)).toEqual(metadata);
+      expect(value.projectStoredMetadata("test", source, metadata)).toEqual(
+        metadata,
+      );
+    }
+    value.registerGrouping(clients);
+    expect(() =>
+      value.projectMetadata("test", "---\nclients: [broken\n---", metadata),
+    ).toThrow();
+  });
   test("declares one grouping across two types and admits its list field", () => {
     const value = registry();
     value.registerGrouping(clients);

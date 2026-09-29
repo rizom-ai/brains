@@ -8,28 +8,36 @@ import {
   lifecycleStarterRegistrationSchema,
   type AgentActionRequest,
   type AgentContextItem,
-  type AgentContextResponse,
   type AgentResponse,
   type ActionsCard,
-  type LifecycleStarterRegistration,
 } from "@brains/contracts";
 import {
   assertValidPlaybookBody,
-  playbookAdapter,
+  parsePlaybookBody,
+  playbookEntity,
   type PlaybookBody,
   type PlaybookState,
   type PlaybookTransition,
 } from "./entity";
-import type {
-  ServicePluginContext,
-  Tool,
-  ToolContext,
-  ToolResponse,
-} from "@brains/plugins";
-import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  defineServicePlugin,
+  defineSubscription,
+  defineTool,
+  SdkError,
+  type SdkErrorCode,
+  z,
+  type AnyServiceToolDefinition,
+  type ServiceCorpusHit,
+  type ServiceCorpusSearch,
+  type ServiceJudge,
+  type ServicePackageDefinition,
+  type ToolContext,
+} from "@brains/sdk/services";
+import type { LoggerContract } from "@brains/utils/logger";
+
+import type { EntityReads } from "@brains/sdk/entities";
+
 import { computeContentHash } from "@brains/utils/hash";
-import packageJson from "../package.json";
 import {
   getBlockedTransitions,
   getState,
@@ -44,8 +52,6 @@ import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
   type LifecyclePlaybookConfig,
-  type LifecycleStarterRegistrationResponse,
-  type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
 
 import {
@@ -59,7 +65,6 @@ import {
 
 export type {
   LifecyclePlaybookConfig,
-  LifecyclePlaybookConfigInput,
   LifecycleStarterRegistrationResponse,
   LifecycleStartersResponse,
   PlaybookStarter,
@@ -79,35 +84,62 @@ import {
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
 
-const playbooksConfigSchema: z.ZodObject<
-  {
-    lifecycle: z.ZodDefault<
-      z.ZodRecord<z.ZodString, typeof lifecycleConfigSchema>
-    >;
-    triggers: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodBoolean>>;
-  },
-  z.core.$strict
-> = z
-  .object({
-    lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
-    triggers: z.record(z.string(), z.boolean()).default({}),
-  })
-  .strict();
+export interface LifecyclePlaybookConfigInput {
+  trigger: string;
+  playbookId: string;
+  once?: boolean | undefined;
+  starterText: string;
+  description?: string | undefined;
+  starterPrompt: string;
+}
 
-export type PlaybooksConfig = z.output<typeof playbooksConfigSchema>;
-export type PlaybooksConfigInput = z.input<typeof playbooksConfigSchema>;
+export interface PlaybooksConfig {
+  lifecycle: Record<string, LifecyclePlaybookConfig>;
+  triggers: Record<string, boolean>;
+}
 
-const lifecycleStartersRequestSchema: z.ZodObject<
-  {
-    lifecycle: z.ZodOptional<z.ZodString>;
-    interfaceType: z.ZodString;
-    userPermissionLevel: z.ZodEnum<{
-      admin: "admin";
-      trusted: "trusted";
-      public: "public";
-    }>;
-  },
-  z.core.$strict
+export interface PlaybooksConfigInput {
+  lifecycle?: Record<string, LifecyclePlaybookConfigInput> | undefined;
+  triggers?: Record<string, boolean> | undefined;
+}
+
+interface LifecycleStartersRequest {
+  lifecycle?: string | undefined;
+  interfaceType: string;
+  userPermissionLevel: "admin" | "trusted" | "public";
+}
+
+export interface PlaybookEntityMetadata extends Record<string, unknown> {
+  title: string;
+  status: "draft" | "active" | "archived";
+  audience: "admin" | "trusted" | "public";
+  trigger?: string | undefined;
+  lifecycle?: string | undefined;
+  once?: boolean | undefined;
+  starterText?: string | undefined;
+  description?: string | undefined;
+  starterPrompt?: string | undefined;
+  completionMode: "agent-confirmed" | "manual";
+}
+
+export interface PlaybookEntity extends Record<string, unknown> {
+  id: string;
+  entityType: "playbook";
+  content: string;
+  metadata: PlaybookEntityMetadata;
+}
+
+const playbooksConfigSchema: z.ZodType<PlaybooksConfig, PlaybooksConfigInput> =
+  z
+    .object({
+      lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
+      triggers: z.record(z.string(), z.boolean()).default({}),
+    })
+    .strict();
+
+const lifecycleStartersRequestSchema: z.ZodType<
+  LifecycleStartersRequest,
+  LifecycleStartersRequest
 > = z
   .object({
     lifecycle: z.string().min(1).optional(),
@@ -116,42 +148,7 @@ const lifecycleStartersRequestSchema: z.ZodObject<
   })
   .strict();
 
-type LifecycleStartersRequest = z.output<typeof lifecycleStartersRequestSchema>;
-
-const playbookEntitySchema: z.ZodObject<
-  {
-    id: z.ZodString;
-    entityType: z.ZodLiteral<"playbook">;
-    content: z.ZodString;
-    metadata: z.ZodObject<
-      {
-        title: z.ZodString;
-        status: z.ZodEnum<{
-          draft: "draft";
-          active: "active";
-          archived: "archived";
-        }>;
-        audience: z.ZodEnum<{
-          admin: "admin";
-          trusted: "trusted";
-          public: "public";
-        }>;
-        trigger: z.ZodOptional<z.ZodString>;
-        lifecycle: z.ZodOptional<z.ZodString>;
-        once: z.ZodOptional<z.ZodBoolean>;
-        starterText: z.ZodOptional<z.ZodString>;
-        description: z.ZodOptional<z.ZodString>;
-        starterPrompt: z.ZodOptional<z.ZodString>;
-        completionMode: z.ZodEnum<{
-          "agent-confirmed": "agent-confirmed";
-          manual: "manual";
-        }>;
-      },
-      z.core.$loose
-    >;
-  },
-  z.core.$loose
-> = z
+const playbookEntitySchema: z.ZodType<PlaybookEntity, unknown> = z
   .object({
     id: z.string().min(1),
     entityType: z.literal("playbook"),
@@ -172,9 +169,6 @@ const playbookEntitySchema: z.ZodObject<
       .passthrough(),
   })
   .passthrough();
-
-export type PlaybookEntity = z.output<typeof playbookEntitySchema>;
-export type PlaybookEntityMetadata = PlaybookEntity["metadata"];
 
 const manageInputSchema = {
   action: z.enum(["status", "start", "send-event"]),
@@ -271,73 +265,56 @@ const goalCheckInputSchema = z
   })
   .strict();
 
-export interface PlaybooksPluginDeps {
-  goalCheck?: GoalCheck | undefined;
+/**
+ * What one management call answers with.
+ *
+ * Its own type rather than the runtime's `ToolResponse`: these handlers ran
+ * inside the tool when the tool was hand-registered, and the runtime's
+ * response shape also carries confirmations, which none of them produce.
+ */
+export type ManageResult =
+  | { success: true; data: PlaybookStatusResponse }
+  | { success: false; error: string; code?: SdkErrorCode };
+
+/** The two reads the package makes of its own type. */
+export type PlaybookEntityReader = EntityReads;
+
+export interface PlaybookOperationsDeps {
+  readonly config: PlaybooksConfig;
+  readonly logger: LoggerContract;
+  readonly entities: PlaybookEntityReader;
+  readonly runs: PlaybookRunStore;
+  /** Replaced in tests, where a real model call would be the thing measured. */
+  readonly goalCheck: GoalCheck;
 }
 
-/** The services the plugin builds during registration, as one unit. */
-interface PlaybooksRuntime {
-  readonly store: PlaybookRunStore;
-  readonly runs: RunEngine;
-  readonly lifecycleStarters: LifecycleStarterRegistry;
-}
-
-export class PlaybooksPlugin extends ServicePlugin<
-  PlaybooksConfig,
-  PlaybooksConfigInput
-> {
-  private ctx: ServicePluginContext | undefined;
-  private goalCheck: GoalCheck;
-  private readonly injectedGoalCheck: GoalCheck | undefined;
-  private readonly startLocks = new Map<string, Promise<ToolResponse>>();
+/**
+ * Everything the playbooks package does, minus how it is registered.
+ *
+ * This was the plugin class. What it holds — a run store, a run engine, the
+ * per-run locks — is state that outlives any one call, and separating it
+ * from the declaration is what lets the declaration stay a description of
+ * surfaces rather than a place work happens.
+ */
+export class PlaybookOperations {
+  private readonly config: PlaybooksConfig;
+  private readonly logger: LoggerContract;
+  private readonly entities: PlaybookEntityReader;
+  private readonly store: PlaybookRunStore;
+  private readonly goalCheck: GoalCheck;
+  private readonly startLocks = new Map<string, Promise<ManageResult>>();
   private readonly runLocks = new Map<string, Promise<void>>();
+  public readonly lifecycleStarters: LifecycleStarterRegistry;
+  public readonly runs: RunEngine;
 
-  /**
-   * Built together in onRegister. Held as one nullable object so the compiler
-   * proves availability at every read, rather than three `!:` declarations
-   * each switching that check off. The getters below keep read sites unchanged.
-   */
-  private runtime: PlaybooksRuntime | null = null;
-
-  private requireRuntime(): PlaybooksRuntime {
-    if (!this.runtime) {
-      throw new Error(
-        "Playbooks runtime is unavailable before plugin registration",
-      );
-    }
-    return this.runtime;
-  }
-
-  private get store(): PlaybookRunStore {
-    return this.requireRuntime().store;
-  }
-
-  private get runs(): RunEngine {
-    return this.requireRuntime().runs;
-  }
-
-  private get lifecycleStarters(): LifecycleStarterRegistry {
-    return this.requireRuntime().lifecycleStarters;
-  }
-
-  constructor(
-    config: PlaybooksConfigInput = {},
-    deps: PlaybooksPluginDeps = {},
-  ) {
-    super("playbooks", packageJson, config, playbooksConfigSchema);
-    this.injectedGoalCheck = deps.goalCheck;
-    this.goalCheck = deps.goalCheck ?? defaultGoalCheck;
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    this.ctx = context;
-    const store = new PlaybookRunStore(context.runtimeState);
-    this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
-    const runs = new RunEngine({
-      store,
+  constructor(deps: PlaybookOperationsDeps) {
+    this.config = deps.config;
+    this.logger = deps.logger;
+    this.entities = deps.entities;
+    this.goalCheck = deps.goalCheck;
+    this.store = deps.runs;
+    this.runs = new RunEngine({
+      store: this.store,
       goalCheck: this.goalCheck,
       getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
         this.getPlaybook(playbookId),
@@ -346,113 +323,34 @@ export class PlaybooksPlugin extends ServicePlugin<
         operation: () => Promise<T>,
       ): Promise<T> => this.withRunLock(runId, operation),
     });
-    const lifecycleStarters = new LifecycleStarterRegistry({
+    this.lifecycleStarters = new LifecycleStarterRegistry({
       logger: this.logger,
       configuredLifecycle: this.config.lifecycle,
       triggers: this.config.triggers,
       findRunByLifecycle: (lifecycle): Promise<PlaybookRun | undefined> =>
-        store.findByLifecycle(lifecycle),
+        this.store.findByLifecycle(lifecycle),
       getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
         this.getPlaybook(playbookId),
       listPlaybooks: (): Promise<ParsedPlaybook[]> => this.listPlaybooks(),
     });
-
-    this.runtime = { store, runs, lifecycleStarters };
-
-    context.registerInstructions(buildInstructions(this.config.lifecycle));
-    context.eval.registerHandler("goalCheck", async (input: unknown) =>
-      this.goalCheck.evaluate(goalCheckInputSchema.parse(input)),
-    );
-
-    context.messaging.subscribe<
-      LifecycleStartersRequest,
-      LifecycleStartersResponse
-    >(PLAYBOOKS_LIFECYCLE_STARTERS, async (message) => {
-      const input = lifecycleStartersRequestSchema.parse(message.payload);
-      const starters = await this.lifecycleStarters.resolveStarters(input);
-      return { success: true, data: { starters } };
-    });
-
-    context.messaging.subscribe<
-      LifecycleStarterRegistration,
-      LifecycleStarterRegistrationResponse
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, async (message) => {
-      const registration = lifecycleStarterRegistrationSchema.parse(
-        message.payload,
-      );
-      const result = this.lifecycleStarters.register(
-        registration,
-        message.source,
-      );
-      return { success: true, data: result };
-    });
-
-    context.messaging.subscribe<unknown, AgentContextResponse>(
-      AGENT_CONTEXT_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentContextRequestSchema.parse(message.payload);
-        const item = await this.buildAgentContextItem(request.conversationId);
-        return { success: true, data: { items: item ? [item] : [] } };
-      },
-    );
-
-    context.messaging.subscribe<unknown, AgentResponse>(
-      AGENT_ACTION_REQUEST_CHANNEL,
-      async (message) => {
-        const request = agentActionRequestSchema.parse(message.payload);
-        const response = await this.handleAgentAction(request);
-        return response
-          ? { success: true, data: response }
-          : { success: false };
-      },
-    );
-
-    context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
-      ENTITY_CHANNELS.created,
-      async (message) => ({
-        success: true,
-        data: await this.runs.recordEntityEventEvidence(
-          "created",
-          message.payload,
-        ),
-      }),
-    );
-    context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
-      ENTITY_CHANNELS.updated,
-      async (message) => ({
-        success: true,
-        data: await this.runs.recordEntityEventEvidence(
-          "updated",
-          message.payload,
-        ),
-      }),
-    );
   }
 
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      {
-        name: "playbook_manage",
-        description:
-          "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
-        inputSchema: manageInputSchema,
-        visibility: "admin",
-        sideEffects: "writes",
-        handler: async (
-          input: unknown,
-          toolContext: ToolContext,
-        ): Promise<ToolResponse> => {
-          const parsed = playbookManageInputSchema.parse(input);
-          if (parsed.action === "status") {
-            return this.handleStatus(parsed, toolContext);
-          }
-          if (parsed.action === "start") {
-            return this.handleStart(parsed, toolContext);
-          }
-          return this.handleSendEvent(parsed, toolContext);
-        },
-      },
-    ];
+  public async evaluateGoal(input: unknown): Promise<GoalCheckResult> {
+    return this.goalCheck.evaluate(goalCheckInputSchema.parse(input));
+  }
+
+  public async manage(
+    input: unknown,
+    toolContext: ToolContext,
+  ): Promise<ManageResult> {
+    const parsed = playbookManageInputSchema.parse(input);
+    if (parsed.action === "status") {
+      return this.handleStatus(parsed, toolContext);
+    }
+    if (parsed.action === "start") {
+      return this.handleStart(parsed, toolContext);
+    }
+    return this.handleSendEvent(parsed, toolContext);
   }
 
   private async handleStatus(
@@ -462,7 +360,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       lifecycle?: string | undefined;
     },
     toolContext: ToolContext,
-  ): Promise<ToolResponse> {
+  ): Promise<ManageResult> {
     try {
       const data = await this.getStatus({
         ...input,
@@ -477,7 +375,7 @@ export class PlaybooksPlugin extends ServicePlugin<
   private async handleStart(
     input: { playbookId: string; lifecycle?: string | undefined },
     toolContext: ToolContext,
-  ): Promise<ToolResponse> {
+  ): Promise<ManageResult> {
     const conversationId = toolContext.conversationId;
     const lockKey = conversationId
       ? `${conversationId}:${input.playbookId}`
@@ -524,7 +422,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       context?: Record<string, unknown> | undefined;
     },
     toolContext: ToolContext,
-  ): Promise<ToolResponse> {
+  ): Promise<ManageResult> {
     const run = await this.resolveScopedRunResponse({
       runId: input.runId,
       conversationId: toolContext.conversationId,
@@ -534,15 +432,13 @@ export class PlaybooksPlugin extends ServicePlugin<
       context: input.context,
       fromState: input.fromState,
     });
-    return result.success
-      ? { success: true, data: result.data }
-      : { success: false, error: result.error };
+    return result;
   }
 
   private async withStartLock(
     key: string,
-    task: () => Promise<ToolResponse>,
-  ): Promise<ToolResponse> {
+    task: () => Promise<ManageResult>,
+  ): Promise<ManageResult> {
     const existing = this.startLocks.get(key);
     if (existing) return existing;
 
@@ -578,7 +474,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     return current;
   }
 
-  private async handleAgentAction(
+  public async handleAgentAction(
     request: AgentActionRequest,
   ): Promise<AgentResponse | undefined> {
     if (request.userPermissionLevel !== "admin") return undefined;
@@ -604,7 +500,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (!result.success) {
       return {
         text: `I couldn't continue the playbook: ${result.error}`,
-        toolResults: [{ toolName: "playbook_manage", args }],
+        toolResults: [{ toolName: "playbooks_manage", args }],
         usage: zeroUsage(),
       };
     }
@@ -613,7 +509,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     return {
       text: formatActionResponseText(state),
       ...(result.data.cards ? { cards: result.data.cards } : {}),
-      toolResults: [{ toolName: "playbook_manage", args, data: result.data }],
+      toolResults: [{ toolName: "playbooks_manage", args, data: result.data }],
       usage: zeroUsage(),
     };
   }
@@ -631,10 +527,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       context?: Record<string, unknown> | undefined;
       fromState?: string | undefined;
     } = {},
-  ): Promise<
-    | { success: true; data: PlaybookStatusResponse }
-    | { success: false; error: string }
-  > {
+  ): Promise<ManageResult> {
     return this.withRunLock(runId, () =>
       this.sendEventForRunLocked(runId, event, options),
     );
@@ -647,10 +540,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       context?: Record<string, unknown> | undefined;
       fromState?: string | undefined;
     },
-  ): Promise<
-    | { success: true; data: PlaybookStatusResponse }
-    | { success: false; error: string }
-  > {
+  ): Promise<ManageResult> {
     const run = await this.store.findById(runId);
     if (!run) {
       return { success: false, error: `Playbook run not found: ${runId}` };
@@ -658,13 +548,15 @@ export class PlaybooksPlugin extends ServicePlugin<
     if (options.fromState && options.fromState !== run.currentState) {
       return {
         success: false,
-        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbook_manage with action=status and act on the current state.`,
+        code: "conflict",
+        error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbooks_manage with action=status and act on the current state.`,
       };
     }
     const playbook = await this.requirePlaybook(run.playbookId);
     if (run.playbookVersion !== playbook.version) {
       return {
         success: false,
+        code: "conflict",
         error: `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
       };
     }
@@ -710,17 +602,17 @@ export class PlaybooksPlugin extends ServicePlugin<
   }
 
   private async listPlaybooks(): Promise<ParsedPlaybook[]> {
-    if (!this.ctx) return [];
-    const entities = await this.ctx.entityService.listEntities({
+    // Read wide and parse below: `playbookEntitySchema` describes the subset
+    // this plugin cares about, not a whole entity, so it cannot stand as the
+    // read's proof — the `safeParse` that follows is where it belongs.
+    const entities = await this.entities.listEntities({
       entityType: "playbook",
     });
 
     return entities.flatMap((entity): ParsedPlaybook[] => {
       const parsed = playbookEntitySchema.safeParse(entity);
       if (!parsed.success) return [];
-      const { body } = playbookAdapter.parsePlaybookContent(
-        parsed.data.content,
-      );
+      const body = parsePlaybookBody(parsed.data.content);
       return [
         {
           entity: parsed.data,
@@ -884,15 +776,13 @@ export class PlaybooksPlugin extends ServicePlugin<
   private async getPlaybook(
     playbookId: string,
   ): Promise<ParsedPlaybook | undefined> {
-    if (!this.ctx) return undefined;
-    const entity = await this.ctx.entityService.getEntity({
+    const entity = await this.entities.getEntity({
       entityType: "playbook",
       id: playbookId,
-      visibilityScope: permissionToVisibilityScope("admin"),
     });
     const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
-    const { body } = playbookAdapter.parsePlaybookContent(parsed.data.content);
+    const body = parsePlaybookBody(parsed.data.content);
     return {
       entity: parsed.data,
       body,
@@ -954,7 +844,7 @@ export class PlaybooksPlugin extends ServicePlugin<
     return run;
   }
 
-  private async buildAgentContextItem(
+  public async buildAgentContextItem(
     conversationId: string,
   ): Promise<AgentContextItem | undefined> {
     const run = await this.store.findActiveByConversation(conversationId);
@@ -1072,17 +962,24 @@ function latestRun(runs: PlaybookRun[]): PlaybookRun | undefined {
   )[0];
 }
 
-function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
+/**
+ * Whether a run's stated outcome actually holds.
+ *
+ * The evidence is what the brain recorded, not what the agent said it did —
+ * which is why this searches the corpus rather than reading the run. A
+ * playbook is excluded from its own evidence: finding the document that
+ * states the goal is not finding the goal met.
+ */
+function createJudgeGoalCheck(context: {
+  corpus: ServiceCorpusSearch;
+  judge: ServiceJudge;
+}): GoalCheck {
   return {
     async evaluate(input): Promise<GoalCheckResult> {
-      const query = input.goal.join("\n");
-      const searchResults = await context.entityService.search({
-        query,
-        options: {
-          limit: 8,
-          excludeTypes: ["playbook"],
-          visibilityScope: permissionToVisibilityScope("admin"),
-        },
+      const searchResults = await context.corpus.search({
+        query: input.goal.join("\n"),
+        limit: 8,
+        excludeTypes: ["playbook"],
       });
       const material = buildGoalCheckMaterial(input, searchResults);
       const { verdict } = await context.judge({
@@ -1098,16 +995,7 @@ function createJudgeGoalCheck(context: ServicePluginContext): GoalCheck {
 
 function buildGoalCheckMaterial(
   input: GoalCheckInput,
-  searchResults: Array<{
-    entity: {
-      id: string;
-      entityType: string;
-      content: string;
-      metadata: unknown;
-    };
-    excerpt: string;
-    score: number;
-  }>,
+  searchResults: readonly ServiceCorpusHit[],
 ): string {
   return [
     "## Playbook run",
@@ -1141,24 +1029,12 @@ function formatEvidence(index: number, evidence: PlaybookRunEvidence): string {
   return `${index}. ${evidence.kind} at ${evidence.observedAt}: ${safeJson(evidence.data)}`;
 }
 
-function formatSearchResult(
-  index: number,
-  result: {
-    entity: {
-      id: string;
-      entityType: string;
-      content: string;
-      metadata: unknown;
-    };
-    excerpt: string;
-    score: number;
-  },
-): string {
+function formatSearchResult(index: number, result: ServiceCorpusHit): string {
   return [
-    `${index}. ${result.entity.entityType}/${result.entity.id} (score ${result.score})`,
+    `${index}. ${result.entityType}/${result.id} (score ${result.score})`,
     `Excerpt: ${result.excerpt}`,
-    `Content: ${truncate(result.entity.content, 1200)}`,
-    `Metadata: ${safeJson(result.entity.metadata)}`,
+    `Content: ${truncate(result.content, 1200)}`,
+    `Metadata: ${safeJson(result.metadata)}`,
   ].join("\n");
 }
 
@@ -1174,18 +1050,112 @@ function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 }
 
-const defaultGoalCheck: GoalCheck = {
-  async evaluate() {
-    return {
-      met: false,
-      reason: "No playbook goal check is configured.",
-    };
-  },
-};
+export const playbookManageTool = (
+  operations: PlaybookOperations,
+): AnyServiceToolDefinition =>
+  defineTool({
+    name: "manage",
+    description:
+      "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+    input: z.object(manageInputSchema),
+    output: z.unknown(),
+    permission: "admin",
+    sideEffects: "writes",
+    execute: async ({ input, caller }) => {
+      // A run belongs to a conversation, and which conversation is a fact
+      // about the caller — so an unattributed call has nothing to manage.
+      if (!caller) throw new Error("Playbook management requires a caller");
+      const answer = await operations.manage(input, caller);
+      if (!answer.success) {
+        if (answer.code)
+          throw new SdkError(answer.code, { publicMessage: answer.error });
+        throw new Error(answer.error);
+      }
+      return answer.data;
+    },
+  });
 
-export function playbooksPlugin(
-  config: PlaybooksConfigInput = {},
-  deps: PlaybooksPluginDeps = {},
-): PlaybooksPlugin {
-  return new PlaybooksPlugin(config, deps);
-}
+/**
+ * Playbooks, as one declaration.
+ *
+ * The class this replaces did its own registration in `onRegister`: six bus
+ * subscriptions, an eval handler, agent instructions, and a tool, all
+ * threaded through a context it held. Declared, the registration is the
+ * runtime's and what stays here is the engine those surfaces call.
+ */
+const playbooksPackage: ServicePackageDefinition<typeof playbooksConfigSchema> =
+  defineServicePlugin(
+    {
+      id: "playbooks",
+      config: playbooksConfigSchema,
+      entities: [playbookEntity],
+
+      // The goal check is the reason this package needs the corpus and the
+      // model: deciding whether a run's stated outcome holds means looking for
+      // evidence of it and putting that evidence to a judge.
+      setup: ({ config, logger, entities, runtimeState, corpus, judge }) =>
+        new PlaybookOperations({
+          config,
+          logger,
+          entities,
+          runs: new PlaybookRunStore(runtimeState),
+          goalCheck: createJudgeGoalCheck({ corpus, judge }),
+        }),
+    },
+    {
+      instructions: ({ config }) => buildInstructions(config.lifecycle),
+
+      evals: ({ state }) => ({
+        goalCheck: async (payload: unknown) => state.evaluateGoal(payload),
+      }),
+
+      tools: ({ state }) => [playbookManageTool(state)],
+
+      subscriptions: ({ state }) => [
+        defineSubscription({
+          topic: PLAYBOOKS_LIFECYCLE_STARTERS,
+          payload: lifecycleStartersRequestSchema,
+          handle: async ({ payload }) => ({
+            starters: await state.lifecycleStarters.resolveStarters(payload),
+          }),
+        }),
+        defineSubscription({
+          topic: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+          payload: lifecycleStarterRegistrationSchema,
+          handle: async ({ payload, source }) =>
+            state.lifecycleStarters.register(payload, source),
+        }),
+        defineSubscription({
+          topic: AGENT_CONTEXT_REQUEST_CHANNEL,
+          payload: agentContextRequestSchema,
+          handle: async ({ payload }) => {
+            const item = await state.buildAgentContextItem(
+              payload.conversationId,
+            );
+            return { items: item ? [item] : [] };
+          },
+        }),
+        defineSubscription({
+          topic: AGENT_ACTION_REQUEST_CHANNEL,
+          payload: agentActionRequestSchema,
+          handle: async ({ payload }) => state.handleAgentAction(payload),
+        }),
+        // A playbook advances on what actually happened, not on the agent
+        // saying it happened, so entity writes are evidence.
+        defineSubscription({
+          topic: ENTITY_CHANNELS.created,
+          payload: z.record(z.string(), z.unknown()),
+          handle: async ({ payload }) =>
+            state.runs.recordEntityEventEvidence("created", payload),
+        }),
+        defineSubscription({
+          topic: ENTITY_CHANNELS.updated,
+          payload: z.record(z.string(), z.unknown()),
+          handle: async ({ payload }) =>
+            state.runs.recordEntityEventEvidence("updated", payload),
+        }),
+      ],
+    },
+  );
+
+export default playbooksPackage;

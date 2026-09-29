@@ -4,7 +4,8 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import type { ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { AnalyticsPlugin } from "../src/index";
+import { analyticsPlugin } from "./helpers/install";
+import type { Plugin } from "@brains/plugins";
 import type { CloudflareFetch } from "../src/lib/cloudflare-client";
 import packageJson from "../package.json";
 
@@ -71,7 +72,7 @@ async function executeTool(
 
 describe("AnalyticsPlugin Integration", () => {
   let harness: ReturnType<typeof createPluginHarness> | undefined;
-  let plugin: AnalyticsPlugin;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(() => {
@@ -86,7 +87,7 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin(
+      plugin = analyticsPlugin(
         {
           cloudflare: {
             accountId: "test_account",
@@ -101,7 +102,7 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("analytics");
+      expect(plugin.id).toBe("@brains/analytics:analytics");
       expect(plugin.type).toBe("service");
       expect(plugin.version).toBe(packageJson.version);
     });
@@ -128,7 +129,7 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
+      plugin = analyticsPlugin({
         // No providers configured
       });
 
@@ -144,7 +145,7 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin(
+      plugin = analyticsPlugin(
         {
           cloudflare: {
             accountId: "test_account",
@@ -280,7 +281,8 @@ describe("AnalyticsPlugin Integration", () => {
       });
 
       expectError(result);
-      expect(result.error).toContain("401");
+      expect(result.code).toBe("handler_failed");
+      expect(result.error).not.toContain("401");
     });
 
     it("should query website metrics for a date range using days parameter", async () => {
@@ -450,6 +452,7 @@ describe("AnalyticsPlugin Integration", () => {
 
       expectError(result);
       expect(result.error).toContain("Cannot combine");
+      expect(result.code).toBe("invalid_input");
     });
 
     it("should reject incomplete custom range", async () => {
@@ -460,6 +463,7 @@ describe("AnalyticsPlugin Integration", () => {
 
       expectError(result);
       expect(result.error).toContain("startDate");
+      expect(result.code).toBe("invalid_input");
     });
   });
 
@@ -467,7 +471,7 @@ describe("AnalyticsPlugin Integration", () => {
     it("should handle plugin registration and reset", async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin(
+      plugin = analyticsPlugin(
         {
           cloudflare: {
             accountId: "test_account",
@@ -485,7 +489,7 @@ describe("AnalyticsPlugin Integration", () => {
       await harness.reset();
 
       // After reset, can install a new plugin
-      const newPlugin = new AnalyticsPlugin({});
+      const newPlugin = analyticsPlugin({});
       const newCaps = await harness.installPlugin(newPlugin);
       expect(newCaps.tools.length).toBe(0);
     });

@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Head, LinkButton } from "@brains/ui-library";
+import { Head, LinkButton } from "@rizom/brain-ui";
 
 /**
  * Subscribe thank-you page

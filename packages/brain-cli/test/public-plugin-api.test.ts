@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { writeAuthoringTestConsumer } from "./helpers/authoring-test-consumer";
 import { runProcess } from "@brains/utils/run-process";
 import {
   existsSync,
@@ -163,6 +164,40 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(servicesTypes).not.toContain("getDashboardWidgetLoader");
     expect(servicesTypes).not.toContain("getStudioWorkspaceExecutor");
     expect(servicesTypes).not.toContain("getWorkspaceActionExecutor");
+    const testingTypes = readFileSync(
+      join(pkgDir, "dist", "testing.d.ts"),
+      "utf-8",
+    );
+    // Entities were the one authoring entry this never read, which is how
+    // the entity service reached its declarations unnoticed.
+    const entitiesTypes = readFileSync(
+      join(pkgDir, "dist", "entities.d.ts"),
+      "utf-8",
+    );
+    /**
+     * What an author can actually import from a declaration file.
+     *
+     * The bundler carries whole modules rather than only what is reachable,
+     * so a private interface can sit in the file while being unreachable —
+     * the entity service is in the entity declarations for that reason and
+     * cannot be named. This checks directly exported names only; the authoring
+     * test consumer below also checks capabilities reachable through callbacks.
+     */
+    const exportedNamesOf = (source: string): Set<string> => {
+      const names = new Set<string>();
+      for (const block of source.matchAll(/export \{([\s\S]*?)\};/gu)) {
+        for (const part of (block[1] ?? "").split(",")) {
+          const name = part
+            .trim()
+            .replace(/^type\s+/u, "")
+            .split(/\s+as\s+/u)
+            .pop();
+          if (name) names.add(name.trim());
+        }
+      }
+      return names;
+    };
+
     for (const privateType of [
       "IShell",
       "PluginManager",
@@ -171,9 +206,20 @@ describe("@rizom/brain public plugin API surface", () => {
       "DashboardWidgetRegistration",
       "StudioWorkspaceRegistration",
     ]) {
-      expect(servicesTypes).not.toContain(privateType);
-      expect(interfacesTypes).not.toContain(privateType);
+      for (const declarations of [
+        servicesTypes,
+        interfacesTypes,
+        entitiesTypes,
+      ]) {
+        expect([...exportedNamesOf(declarations)]).not.toContain(privateType);
+      }
+      // The testing entry wraps the runtime’s own harness, which hands out
+      // the mock shell and the plugin contexts. Narrowing it is the whole
+      // point, so the same rule applies here.
+      expect(testingTypes).not.toContain(privateType);
     }
+    expect(testingTypes).not.toContain("MockShell");
+    expect(testingTypes).toContain("createBrainTestHarness");
   });
 
   it("compiles the Phase 1 fixtures against generated declarations", async () => {
@@ -221,6 +267,182 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  /**
+   * Every name the ledger promises, imported the way an author would.
+   *
+   * The ledger's own check reads the entry *sources*, which catches a promise
+   * nobody can import but not a name the build fails to emit. This compiles a
+   * consumer against the generated declarations and then runs it, so a value
+   * that types but does not exist at runtime fails here rather than in
+   * somebody's install.
+   */
+  it("imports every promised name from the generated declarations", async () => {
+    const ledger = JSON.parse(
+      readFileSync(
+        join(
+          pkgDir,
+          "test",
+          "fixtures",
+          "public-authoring",
+          "export-ledger.json",
+        ),
+        "utf-8",
+      ),
+    );
+
+    // The entries this package publishes as declarations; @rizom/site and
+    // @rizom/brain-ui are separate packages with their own surfaces.
+    const specifiers = Object.keys(ledger.entries).filter(
+      (specifier) =>
+        specifier === "@rizom/brain" || specifier.startsWith("@rizom/brain/"),
+    );
+
+    const typeImports: string[] = [];
+    const valueImports: string[] = [];
+    const runtimeChecks: string[] = [];
+    const runtimeConsumer: string[] = ["const missing = [];"];
+    let index = 0;
+
+    for (const specifier of specifiers) {
+      const entry = ledger.entries[specifier];
+      const promised = [...entry.stable, ...entry["advanced-with-consumer"]];
+      if (promised.length === 0) continue;
+      const subpath = specifier.replace("@rizom/brain", "") || "/index";
+      const source = readFileSync(
+        join(pkgDir, "dist", `${subpath.slice(1)}.d.ts`),
+        "utf-8",
+      );
+      // A name is a value when the declaration declares it as one; the rest
+      // are types, and importing a type as a value does not compile.
+      const values = promised.filter((name: string) =>
+        new RegExp(
+          `declare (?:const|function|class|enum) \\b${name}\\b`,
+          "u",
+        ).test(source),
+      );
+      const types = promised.filter((name: string) => !values.includes(name));
+      const alias = `entry${index}`;
+      index += 1;
+      if (types.length > 0) {
+        // Aliased per entry: a name may be promised on more than one, which
+        // is legitimate — `AnchorProfile` is authoring vocabulary for both
+        // services and plugins — and one file cannot bind it twice.
+        typeImports.push(
+          `import type { ${types
+            .map((name: string) => `${name} as ${alias}_${name}`)
+            .join(", ")} } from "${specifier}";`,
+        );
+      }
+      if (values.length > 0) {
+        valueImports.push(`import * as ${alias} from "${specifier}";`);
+        runtimeConsumer.push(
+          `import * as ${alias} from "../dist/${subpath.slice(1)}.js";`,
+          ...values.map(
+            (name: string) =>
+              `if (${alias}["${name}"] === undefined) missing.push("${specifier}: ${name}");`,
+          ),
+        );
+        runtimeChecks.push(
+          ...values.map(
+            (name: string) =>
+              `if (${alias}["${name}"] === undefined) missing.push("${specifier}: ${name}");`,
+          ),
+        );
+      }
+      // The import statement is the assertion: a name the declarations do
+      // not export fails to resolve. Referencing each one as well would mean
+      // supplying type arguments for every generic, which tests the test.
+    }
+
+    runtimeConsumer.push(
+      "if (missing.length > 0) {",
+      "  throw new Error(`Promised but absent at runtime: ${missing.join(', ')}`);",
+      "}",
+    );
+
+    const tempDir = mkdtempSync(join(pkgDir, ".tmp-packed-consumer-"));
+    try {
+      writeFileSync(
+        join(tempDir, "consumer.ts"),
+        [
+          "const missing: string[] = [];",
+          ...typeImports,
+          ...valueImports,
+          ...runtimeChecks,
+          "if (missing.length > 0) {",
+          "  throw new Error(`Promised but absent at runtime: ${missing.join(', ')}`);",
+          "}",
+          "console.log('ok');",
+        ].join("\n"),
+      );
+      writeFileSync(
+        join(tempDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: {
+            strict: true,
+            skipLibCheck: true,
+            module: "esnext",
+            moduleResolution: "bundler",
+            target: "es2022",
+            lib: ["es2022", "dom"],
+            jsx: "react-jsx",
+            jsxImportSource: "react",
+            types: [],
+            noEmit: true,
+            paths: Object.fromEntries(
+              specifiers.map((specifier) => [
+                specifier,
+                [
+                  `../dist${specifier.replace("@rizom/brain", "") || "/index"}.d.ts`,
+                ],
+              ]),
+            ),
+          },
+          include: ["consumer.ts"],
+        }),
+      );
+
+      const compiled = await runProcess(
+        ["bun", "x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+        { cwd: tempDir },
+      );
+      expect(compiled.exitCode, `${compiled.stdout}\n${compiled.stderr}`).toBe(
+        0,
+      );
+
+      // Compiling proves the declarations promise these names. Running proves
+      // the build emitted them: a value that types but is absent at runtime
+      // fails on somebody's install rather than here.
+      writeFileSync(join(tempDir, "runtime.ts"), runtimeConsumer.join("\n"));
+      const ran = await runProcess(["bun", "run", "runtime.ts"], {
+        cwd: tempDir,
+      });
+      expect(ran.exitCode, `${ran.stdout}\n${ran.stderr}`).toBe(0);
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  it("compiles and runs the SDK author tests through the built public entries", async () => {
+    const tempDir = mkdtempSync(join(pkgDir, ".tmp-authoring-tests-"));
+    try {
+      await writeAuthoringTestConsumer(tempDir);
+      const compiled = await runProcess(
+        ["bun", "x", "tsc", "-p", "tsconfig.authoring.json"],
+        { cwd: tempDir },
+      );
+      expect(compiled.exitCode, `${compiled.stdout}\n${compiled.stderr}`).toBe(
+        0,
+      );
+      const ran = await runProcess(["bun", "test", "authoring.test.ts"], {
+        cwd: tempDir,
+      });
+      expect(ran.exitCode, `${ran.stdout}\n${ran.stderr}`).toBe(0);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("keeps published declarations free of internal @brains/* imports", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
@@ -232,6 +454,19 @@ describe("@rizom/brain public plugin API surface", () => {
           internalPrefixes: ["@brains/"],
         }),
       ).toEqual([]);
+    }
+  });
+
+  it("keeps storage dependencies out of ordinary authoring declarations", () => {
+    for (const entry of ["entities", "services", "interfaces", "testing"]) {
+      const source = stripDeclarationComments(
+        readFileSync(join(pkgDir, "dist", `${entry}.d.ts`), "utf8"),
+      );
+      expect(source).not.toContain("drizzle-orm");
+      expect(source).not.toContain("@libsql/");
+      expect(source).not.toMatch(
+        /\b(?:class|interface) (?:EntityService|EntityPluginContext|ProjectionStore)\b/u,
+      );
     }
   });
 

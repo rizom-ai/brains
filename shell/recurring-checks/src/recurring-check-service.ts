@@ -677,8 +677,22 @@ export function getPreviousOccurrence(
   return new Date(occurrence);
 }
 
+/**
+ * A plugin id, which is package-scoped: `@scope/package:local`.
+ *
+ * Wider than a check id on purpose. A declaratively-authored package names
+ * its plugins after the package so independently published ones cannot
+ * collide, and the original rule rejected every such plugin the moment it
+ * declared a check — failing its whole registration, not just the check.
+ */
+const PLUGIN_ID_PATTERN = /^[@a-zA-Z0-9][a-zA-Z0-9_\-/:.]{0,127}$/;
+
+/** A check id, which the plugin already scopes. Kept plain. */
+const CHECK_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
+
 function assertValidIdentifier(value: string, label: string): void {
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(value)) {
+  const pattern = label === "plugin ID" ? PLUGIN_ID_PATTERN : CHECK_ID_PATTERN;
+  if (!pattern.test(value)) {
     throw new Error(
       `Invalid recurring-check ${label}: ${value}. Use 1-64 alphanumeric, _, or - characters.`,
     );

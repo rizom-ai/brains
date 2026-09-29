@@ -4,10 +4,11 @@ import {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   type LifecycleStarterRegistration,
 } from "@brains/contracts";
-import type { Plugin, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 
 const onboardingConfigSchema: z.ZodObject<
   { enabled: z.ZodDefault<z.ZodBoolean> },
@@ -48,56 +49,6 @@ const bundledPlaybooks: BundledPlaybook[] = [
   },
 ];
 
-export class OnboardingPlugin extends ServicePlugin<
-  OnboardingConfig,
-  OnboardingConfigInput
-> {
-  readonly dependencies: string[] = ["playbook", "playbooks"];
-
-  constructor(config: OnboardingConfigInput = {}) {
-    super("onboarding", packageJson, config, onboardingConfigSchema);
-  }
-
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (!this.config.enabled) return;
-
-    for (const playbook of bundledPlaybooks) {
-      await this.seedPlaybookIfMissing(context, playbook);
-    }
-
-    for (const playbook of bundledPlaybooks) {
-      if (!playbook.starter) continue;
-      await context.messaging.send({
-        type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-        payload: playbook.starter,
-      });
-    }
-  }
-
-  private async seedPlaybookIfMissing(
-    context: ServicePluginContext,
-    playbook: BundledPlaybook,
-  ): Promise<void> {
-    const existing = await context.entityService.getEntity({
-      entityType: "playbook",
-      id: playbook.id,
-      visibilityScope: "restricted",
-    });
-    if (existing) return;
-
-    const markdown = await readBundledPlaybook(playbook.fileName);
-    await context.entityService.createEntityFromMarkdown({
-      input: {
-        entityType: "playbook",
-        id: playbook.id,
-        markdown,
-      },
-    });
-  }
-}
-
 async function readBundledPlaybook(fileName: string): Promise<string> {
   try {
     return await readFile(
@@ -117,6 +68,43 @@ async function readBundledPlaybook(fileName: string): Promise<string> {
   return readFile(join(import.meta.dir, "onboarding", fileName), "utf8");
 }
 
-export function onboardingPlugin(config: OnboardingConfigInput = {}): Plugin {
-  return new OnboardingPlugin(config);
-}
+const onboardingPackage: ServicePackageDefinition<
+  typeof onboardingConfigSchema
+> = defineServicePlugin(
+  {
+    id: "onboarding",
+    config: onboardingConfigSchema,
+
+    // Seeding waits for the packages whose types it writes.
+    // One package now, so both plugin ids carry its scope: the playbook type
+    // and the runs that walk it register together.
+    dependsOn: ["@brains/playbooks:playbook", "@brains/playbooks:playbooks"],
+  },
+  {
+    // The playbooks themselves: written by the runtime, only where nothing with
+    // that id exists at any visibility, so a seed never overwrites authored
+    // content — and never at all when onboarding is disabled.
+    seeds: ({ config }) =>
+      config.enabled
+        ? bundledPlaybooks.map((playbook) => ({
+            entityType: "playbook",
+            id: playbook.id,
+            markdown: () => readBundledPlaybook(playbook.fileName),
+          }))
+        : [],
+
+    // The lifecycle starters, announced once every plugin is registered.
+    ready: async ({ config, messaging }) => {
+      if (!config.enabled) return;
+      for (const playbook of bundledPlaybooks) {
+        if (!playbook.starter) continue;
+        await messaging.request({
+          type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+          payload: playbook.starter,
+        });
+      }
+    },
+  },
+);
+
+export default onboardingPackage;

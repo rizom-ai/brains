@@ -1,20 +1,18 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/sdk/entities";
 import type {
   AtprotoBrainTopicRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto-contracts";
-import { TopicAdapter } from "./lib/topic-adapter";
+} from "@brains/sdk/entities";
+import { parseTopicBody } from "./lib/topic-body";
 import { topicEntitySchema } from "./schemas/topic";
-
-const topicAdapter = new TopicAdapter();
 
 export async function buildTopicAtprotoRecord({
   entity,
   config,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainTopicRecord> {
   const topic = topicEntitySchema.parse(entity);
-  const parsed = topicAdapter.parseTopicBody(topic.content);
+  const parsed = parseTopicBody(topic.content);
 
   return {
     $type: "ai.rizom.brain.topic",

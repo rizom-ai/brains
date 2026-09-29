@@ -12,7 +12,9 @@ function stableForConfirmation(value: unknown): unknown {
 }
 
 export type ConfirmationArgsValidationResult =
-  { status: "ok" } | { status: "missing" } | { status: "mismatch" };
+  | { status: "ok"; prepared?: unknown }
+  | { status: "missing" }
+  | { status: "mismatch" };
 
 const DEFAULT_CONFIRMATION_TTL_MS = 10 * 60 * 1000;
 const DEFAULT_MAX_PENDING = 1000;
@@ -26,7 +28,7 @@ export interface ConfirmationArgsStoreOptions {
 export class ConfirmationArgsStore {
   private readonly pendingArgs = new Map<
     string,
-    { serialized: string; createdAt: number }
+    { serialized: string; createdAt: number; prepared?: unknown }
   >();
   private readonly ttlMs: number;
   private readonly maxPending: number;
@@ -38,7 +40,10 @@ export class ConfirmationArgsStore {
     this.getNow = options.now ?? Date.now;
   }
 
-  create<TArgs>(buildArgs: (confirmationToken: string) => TArgs): TArgs {
+  create<TArgs>(
+    buildArgs: (confirmationToken: string) => TArgs,
+    prepared?: unknown,
+  ): TArgs {
     this.prune();
     // Map preserves insertion order, so the first keys are the oldest.
     // `>=` leaves room for the entry added below.
@@ -52,6 +57,7 @@ export class ConfirmationArgsStore {
     this.pendingArgs.set(confirmationToken, {
       serialized: this.serialize(args),
       createdAt: this.getNow(),
+      prepared,
     });
     return args;
   }
@@ -71,7 +77,10 @@ export class ConfirmationArgsStore {
     if (this.serialize(args) !== entry.serialized) {
       return { status: "mismatch" };
     }
-    return { status: "ok" };
+    return {
+      status: "ok",
+      ...(entry.prepared === undefined ? {} : { prepared: entry.prepared }),
+    };
   }
 
   /**

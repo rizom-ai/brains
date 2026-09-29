@@ -8,6 +8,12 @@ discriminated configuration replaces the flat Buttondown configuration, and
 Buttondown-only subscriber tags are rejected explicitly by Resend rather than
 silently ignored.
 
+## Declarative SDK integration in PR #301
+
+The SDK branch integrates this feature as one default-exported service package with a `delivery` service and a `newsletter` entity. The parsed `provider` configuration selects Buttondown or Resend; no provider means no publisher, subscriber tool, route, or signup slot. The current management tool is `delivery_subscribers`, and both providers use the subscribe-only `/api/newsletter/subscribe` handler. Email rendering uses public `@rizom/brain-ui`.
+
+The class/factory topology and provider-specific HTTP paths below describe the earlier design, not the current authoring API. No retired plugin classes or compatibility aliases are restored. Configure the provider payload through `plugins.newsletter` in `brain.yaml`. Local synthetic checks are separate from credentialed provider acceptance; no live send, release, or deployment is authorized here.
+
 ## Goal
 
 Support Resend alongside Buttondown in `@brains/newsletter` while keeping the

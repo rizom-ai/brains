@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/runtime-state";
 import { z } from "@brains/utils/zod";
 import {
   guestTurnCostSchema,

@@ -1,0 +1,207 @@
+import type { JSX } from "react";
+import { z } from "@brains/utils/zod";
+import { createTemplate, type Template } from "@brains/sdk/entities";
+import {
+  Head,
+  Breadcrumb,
+  MarkdownContent,
+  formatDate,
+  StatusBadge,
+  Card,
+  type BreadcrumbItem,
+} from "@rizom/brain-ui";
+import { newsletterStatusSchema } from "../schemas/newsletter";
+
+/**
+ * Source entity reference schema
+ */
+const sourceEntitySchema: z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  url: z.ZodString;
+}> = z.object({
+  id: z.string(),
+  title: z.string(),
+  url: z.string(),
+});
+
+/**
+ * Navigation link schema
+ */
+const navLinkSchema: z.ZodObject<{
+  id: z.ZodString;
+  subject: z.ZodString;
+  url: z.ZodString;
+}> = z.object({
+  id: z.string(),
+  subject: z.string(),
+  url: z.string(),
+});
+
+/**
+ * Newsletter detail schema
+ */
+export const newsletterDetailSchema: z.ZodObject<{
+  id: z.ZodString;
+  subject: z.ZodString;
+  status: typeof newsletterStatusSchema;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  sentAt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  scheduledFor: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  sourceEntities: z.ZodDefault<
+    z.ZodNullable<z.ZodArray<typeof sourceEntitySchema>>
+  >;
+  prevNewsletter: z.ZodDefault<z.ZodNullable<typeof navLinkSchema>>;
+  nextNewsletter: z.ZodDefault<z.ZodNullable<typeof navLinkSchema>>;
+}> = z.object({
+  id: z.string(),
+  subject: z.string(),
+  status: newsletterStatusSchema,
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  sentAt: z.string().nullable().default(null),
+  scheduledFor: z.string().nullable().default(null),
+  sourceEntities: z.array(sourceEntitySchema).nullable().default(null),
+  prevNewsletter: navLinkSchema.nullable().default(null),
+  nextNewsletter: navLinkSchema.nullable().default(null),
+});
+
+export type NewsletterDetailData = z.output<typeof newsletterDetailSchema>;
+
+export type NewsletterDetailProps = NewsletterDetailData;
+
+/**
+ * Newsletter detail template - displays individual newsletter with navigation
+ */
+export const NewsletterDetailTemplate = ({
+  subject,
+  status,
+  content,
+  created,
+  sentAt,
+  scheduledFor,
+  sourceEntities,
+  prevNewsletter,
+  nextNewsletter,
+}: NewsletterDetailProps): JSX.Element => {
+  // Build breadcrumb items
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { label: "Home", href: "/" },
+    { label: "Newsletters", href: "/newsletters" },
+    { label: subject },
+  ];
+
+  // Determine display date
+  const displayDate = sentAt ?? created;
+  const dateLabel = sentAt ? "Sent" : "Created";
+
+  return (
+    <>
+      <Head title={subject} description={`Newsletter: ${subject}`} />
+      <section className="newsletter-detail-section">
+        <div className="container mx-auto px-6 md:px-8 py-12 md:py-20">
+          <div className="max-w-3xl mx-auto">
+            {/* Breadcrumb navigation */}
+            <Breadcrumb items={breadcrumbItems} />
+
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl font-bold text-heading leading-tight tracking-tight mb-4">
+              {subject}
+            </h1>
+
+            {/* Metadata */}
+            <div className="flex flex-wrap items-center gap-3 mb-8 text-sm text-theme-muted">
+              <StatusBadge status={status} />
+              <span>
+                {dateLabel}: {formatDate(displayDate, { style: "long" })}
+              </span>
+              {scheduledFor && status === "queued" && (
+                <span>
+                  Scheduled for: {formatDate(scheduledFor, { style: "long" })}
+                </span>
+              )}
+            </div>
+
+            {/* Source entities */}
+            {sourceEntities && sourceEntities.length > 0 && (
+              <Card variant="compact" className="mb-8">
+                <h3 className="text-sm font-medium text-heading mb-2">
+                  Related Content
+                </h3>
+                <ul className="space-y-1">
+                  {sourceEntities.map((entity) => (
+                    <li key={entity.id}>
+                      <a
+                        href={entity.url}
+                        className="text-sm text-brand hover:text-brand-dark transition-colors"
+                      >
+                        {entity.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
+            {/* Newsletter Content */}
+            <MarkdownContent markdown={content} />
+
+            {/* Prev/Next Navigation */}
+            {(prevNewsletter ?? nextNewsletter) && (
+              <nav className="mt-12 pt-8 border-t border-theme">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {prevNewsletter ? (
+                    <Card href={prevNewsletter.url} variant="compact">
+                      <span className="text-xs text-theme-muted uppercase tracking-wide">
+                        Newer
+                      </span>
+                      <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+                        {prevNewsletter.subject}
+                      </span>
+                    </Card>
+                  ) : (
+                    <div />
+                  )}
+                  {nextNewsletter && (
+                    <Card
+                      href={nextNewsletter.url}
+                      variant="compact"
+                      className="md:text-right"
+                    >
+                      <span className="text-xs text-theme-muted uppercase tracking-wide">
+                        Older
+                      </span>
+                      <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+                        {nextNewsletter.subject}
+                      </span>
+                    </Card>
+                  )}
+                </div>
+              </nav>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+};
+
+/**
+ * Newsletter detail template definition
+ */
+export const newsletterDetailTemplate: Template = createTemplate<
+  NewsletterDetailData,
+  NewsletterDetailProps
+>({
+  name: "newsletter-detail",
+  description: "Individual newsletter detail template",
+  schema: newsletterDetailSchema,
+  dataSourceId: "entities",
+  requiredPermission: "public",
+  layout: {
+    component: NewsletterDetailTemplate,
+  },
+});

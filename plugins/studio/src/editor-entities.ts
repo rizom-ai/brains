@@ -1,27 +1,28 @@
-import type {
-  BaseEntity,
-  GetEntityRequest,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { encodeEntityIdPath } from "@brains/entity-service";
 import {
-  DIRECTORY_SYNC_CHANNELS,
-  directorySyncPathResponseSchema,
-} from "@brains/contracts";
-import {
-  canWriteVisibility,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
-  getPublishBoundaryState,
+  encodeEntityIdPath,
   entityIdPathSchema,
-} from "@brains/plugins";
+  canWriteVisibility,
+} from "@brains/sdk/entities";
+import { SdkError } from "@brains/sdk/services";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  directorySyncPathRequestSchema,
+  directorySyncPathResponseSchema,
+} from "@brains/contracts";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityInput,
+} from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
 import {
-  studioMutationOptions,
   getTypeCapabilities,
   recordStudioMutationAudit,
   requireEntityAction,
+  studioEventContext,
 } from "./editor-access";
 import {
   rejectBodyForBodylessType,
@@ -30,62 +31,18 @@ import {
   stripStudioPolicyMetadata,
   withStudioVisibility,
 } from "./editor-content";
-import {
-  type StudioRequestAccess,
-  type EditorRouteOptions,
+import type {
+  StudioAuditRecorder,
+  StudioRequestAccess,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
 import { editorValidationResponse } from "./editor-validation";
+import type { StudioRuntime } from "./runtime";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
 } from "./collection-query";
-
-/** Entity adapters own title derivation; Studio must not reinterpret source. */
-export function entityDisplayTitle(
-  context: ServicePluginContext,
-  entity: BaseEntity,
-): string | undefined {
-  const title =
-    context.entities.getAdapter(entity.entityType)?.extractMetadata(entity)[
-      "title"
-    ] ?? entity.metadata["title"];
-  return typeof title === "string" && title.trim() ? title.trim() : undefined;
-}
-
-/** Authoring reads preserve source; rendering must never change a save draft. */
-function readEditorEntity(
-  context: ServicePluginContext,
-  request: GetEntityRequest,
-): Promise<BaseEntity | null> {
-  return context.entityService.getEntityRaw(request);
-}
-
-const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
-
-/** Binary images are readable for previews, not editable frontmatter types. */
-export async function handleGetImagePreview(
-  context: ServicePluginContext,
-  request: Request,
-  access: StudioRequestAccess,
-): Promise<Response> {
-  const query = imagePreviewQuerySchema.safeParse({
-    id: new URL(request.url).searchParams.get("id"),
-  });
-  if (!query.success)
-    return jsonResponse({ error: "Image id is required" }, 400);
-  const image = context.entityService.getEntityTypes().includes("image")
-    ? await context.entityService.getEntityRaw({
-        entityType: "image",
-        id: query.data.id,
-        visibilityScope: access.visibilityScope,
-      })
-    : null;
-  if (!image?.content.startsWith("data:image/"))
-    return jsonResponse({ error: "Image unavailable" }, 404);
-  return jsonResponse({ source: image.content });
-}
 
 const updateEntityPayloadSchema = z.object({
   entityType: z.string(),
@@ -134,31 +91,58 @@ function invalidCreatePayload(error: unknown, input: unknown): Response {
   );
 }
 
-/** Directory-sync is optional; only an explicit placement denial blocks creation. */
+/** Placement is optional, but malformed responses must not become permission to write. */
 async function resolvePlacement(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   entityType: string,
   entityId: string,
   entity: Pick<BaseEntity, "metadata" | "content">,
 ): Promise<z.output<typeof directorySyncPathResponseSchema> | null> {
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
-    payload: {
+  const response = await runtime.messaging.request(
+    {
+      topic: DIRECTORY_SYNC_CHANNELS.pathRequest,
+      payload: directorySyncPathRequestSchema,
+      response: directorySyncPathResponseSchema,
+    },
+    {
       entityType,
       entityId,
       metadata: entity.metadata,
       content: entity.content,
     },
+  );
+  if (!response.ok) {
+    if (response.code === "invalid_response")
+      throw new SdkError("invalid_response");
+    return null;
+  }
+  return response.data;
+}
+
+const imagePreviewQuerySchema = z.object({ id: z.string().min(1).max(2048) });
+
+/** Preview reads do not expand references or make binary records editable. */
+export async function handleGetImagePreview(
+  runtime: StudioRuntime,
+  request: Request,
+  access: StudioRequestAccess,
+): Promise<Response> {
+  const query = imagePreviewQuerySchema.safeParse({
+    id: new URL(request.url).searchParams.get("id"),
   });
-  return "success" in response &&
-    response.success &&
-    response.data !== undefined
-    ? directorySyncPathResponseSchema.parse(response.data)
-    : null;
+  if (!query.success)
+    return jsonResponse({ error: "Image id is required" }, 400);
+  const image = await runtime.operator.readSource(
+    { entityType: "image", id: query.data.id, signal: request.signal },
+    access.caller,
+  );
+  if (!image?.content.startsWith("data:image/"))
+    return jsonResponse({ error: "Image unavailable" }, 404);
+  return jsonResponse({ source: image.content });
 }
 
 export async function handlePreviewDestination(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -170,26 +154,31 @@ export async function handlePreviewDestination(
   } catch (error) {
     return invalidCreatePayload(error, input);
   }
-  if (!context.entities.getEffectiveFrontmatterSchema(payload.entityType))
+  if (!runtime.shapes.frontmatterSchema(payload.entityType))
     return jsonResponse({ error: "Unknown entity type" }, 404);
   const denied = requireEntityAction(
-    context,
+    runtime.operator,
     payload.entityType,
     "create",
     access,
   );
   if (denied) return denied;
-  await context.entities.ensureGroupingsCurrent();
-  const entity = prepareStudioCreation(context, payload);
-  if (entity instanceof Response) return entity;
-  if (!canWriteVisibility(access.permissionLevel, entity.visibility))
+  await runtime.groupings.ensureReady(access.caller);
+  const assembled = assembleEntity(
+    runtime,
+    payload.entityType,
+    payload,
+    undefined,
+  );
+  if (assembled instanceof Response) return assembled;
+  if (!canWriteVisibility(access.permissionLevel, assembled.entity.visibility))
     return jsonResponse({ error: "Cannot create at this visibility" }, 403);
   const entityId = encodeEntityIdPath(payload.idPath);
   const placement = await resolvePlacement(
-    context,
+    runtime,
     payload.entityType,
     entityId,
-    entity,
+    assembled.entity,
   );
   const [first, ...rest] = payload.idPath;
   const encodedLeaf = encodeEntityIdPath([rest.at(-1) ?? first]);
@@ -207,111 +196,8 @@ export async function handlePreviewDestination(
   });
 }
 
-const deleteEntityPayloadSchema = z.object({
-  confirmed: z.literal(true),
-});
-
-export async function handleGetEntities(
-  context: ServicePluginContext,
-  request: Request,
-  access: StudioRequestAccess,
-): Promise<Response> {
-  const params = new URL(request.url).searchParams;
-  const entityType = params.get("type");
-  if (!entityType) {
-    return jsonResponse({ error: "type query parameter is required" }, 400);
-  }
-  if (!(await getTypeCapabilities(context, entityType, access))) {
-    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
-  }
-
-  const id = params.get("id");
-  if (id) {
-    const entity = await readEditorEntity(context, {
-      entityType,
-      id,
-      visibilityScope: access.visibilityScope,
-    });
-    if (!entity) {
-      return jsonResponse({ error: `Entity not found: ${id}` }, 404);
-    }
-    const { frontmatter, body } = splitEntityContent(
-      entityType,
-      entity.content,
-      context,
-    );
-    return jsonResponse({
-      entity: {
-        id: entity.id,
-        entityType: entity.entityType,
-        // The editor contract always carries the authoritative system field,
-        // even though public and raw entities omit it from stored markdown.
-        frontmatter: { ...frontmatter, visibility: entity.visibility },
-        displayTitle: entityDisplayTitle(context, entity),
-        body,
-        contentHash: entity.contentHash,
-        created: entity.created,
-        updated: entity.updated,
-      },
-    });
-  }
-
-  const query = studioCollectionQuerySchema.safeParse(
-    studioCollectionQueryFromParams(params),
-  );
-  if (!query.success) {
-    return jsonResponse({ error: "Invalid entity page" }, 400);
-  }
-
-  const filter = {
-    visibilityScope: access.visibilityScope,
-    ...(query.data.visibility !== "all"
-      ? { visibility: query.data.visibility }
-      : {}),
-    ...(query.data.q ? { contentContains: query.data.q } : {}),
-    ...(query.data.status ? { metadata: { status: query.data.status } } : {}),
-  };
-  const [entities, total] = await Promise.all([
-    context.entityService.listEntities({
-      entityType,
-      options: {
-        offset: query.data.offset,
-        limit: query.data.limit,
-        sortFields: [
-          {
-            field: query.data.sort.startsWith("created")
-              ? "created"
-              : "updated",
-            direction: query.data.sort.endsWith("asc") ? "asc" : "desc",
-          },
-          { field: "id", direction: "asc" },
-        ],
-        filter,
-      },
-    }),
-    context.entityService.countEntities({ entityType, options: { filter } }),
-  ]);
-  return jsonResponse({
-    total,
-    entities: entities.map((entity) => {
-      const { frontmatter } = splitEntityContent(
-        entityType,
-        entity.content,
-        context,
-      );
-      return {
-        id: entity.id,
-        entityType: entity.entityType,
-        frontmatter: { ...frontmatter, visibility: entity.visibility },
-        displayTitle: entityDisplayTitle(context, entity),
-        updated: entity.updated,
-      };
-    }),
-  });
-}
-
 export async function handleGetEntityHierarchy(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -319,7 +205,7 @@ export async function handleGetEntityHierarchy(
   const entityType = params.get("type");
   if (!entityType)
     return jsonResponse({ error: "type query parameter is required" }, 400);
-  if (!(await getTypeCapabilities(context, entityType, access)))
+  if (!(await getTypeCapabilities(runtime, entityType, access)))
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   const query = studioCollectionQuerySchema.safeParse(
     studioCollectionQueryFromParams(params),
@@ -329,7 +215,7 @@ export async function handleGetEntityHierarchy(
   const { prefix, scope, q, visibility, status, sort, limit, offset } =
     query.data;
   try {
-    const page = await context.entityService.queryEntityHierarchy({
+    const page = await runtime.entities.queryEntityHierarchy({
       entityType,
       prefix: scope === "collection" ? null : prefix,
       limit,
@@ -359,11 +245,11 @@ export async function handleGetEntityHierarchy(
         entityType: entity.entityType,
         path,
         frontmatter: {
-          ...splitEntityContent(entityType, entity.content, context)
+          ...splitEntityContent(entityType, entity.content, runtime)
             .frontmatter,
           visibility: entity.visibility,
         },
-        displayTitle: entityDisplayTitle(context, entity),
+        displayTitle: runtime.shapes.displayTitle(entity),
         updated: entity.updated,
       })),
     });
@@ -374,42 +260,135 @@ export async function handleGetEntityHierarchy(
   }
 }
 
-export async function handleUpdateEntity(
-  context: ServicePluginContext,
+const deleteEntityPayloadSchema = z.object({
+  confirmed: z.literal(true),
+});
+
+export async function handleGetEntities(
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
-  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
-  let payload: z.infer<typeof updateEntityPayloadSchema>;
-  try {
-    payload = updateEntityPayloadSchema.parse(await request.json());
-  } catch {
-    return jsonResponse({ error: "Invalid update payload" }, 400);
+  const params = new URL(request.url).searchParams;
+  const entityType = params.get("type");
+  if (!entityType) {
+    return jsonResponse({ error: "type query parameter is required" }, 400);
   }
-
-  const { entityType, id } = payload;
-  const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
-  if (!schema) {
+  if (!(await getTypeCapabilities(runtime, entityType, access))) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const existing = await readEditorEntity(context, {
-    entityType,
-    id,
-    visibilityScope: access.visibilityScope,
-  });
-  if (!existing) {
-    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+  const id = params.get("id");
+  if (id) {
+    const entity = await runtime.operator.readSource(
+      {
+        entityType,
+        id,
+        signal: request.signal,
+      },
+      access.caller,
+    );
+    if (!entity) {
+      return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+    }
+    const { frontmatter, body } = splitEntityContent(
+      entityType,
+      entity.content,
+      runtime,
+    );
+    return jsonResponse({
+      entity: {
+        id: entity.id,
+        entityType: entity.entityType,
+        // The editor contract always carries the authoritative system field,
+        // even though public and raw entities omit it from stored markdown.
+        frontmatter: { ...frontmatter, visibility: entity.visibility },
+        displayTitle: runtime.shapes.displayTitle(entity),
+        body,
+        contentHash: entity.contentHash,
+        created: entity.created,
+        updated: entity.updated,
+      },
+    });
   }
 
+  const query = studioCollectionQuerySchema.safeParse(
+    studioCollectionQueryFromParams(params),
+  );
+  if (!query.success)
+    return jsonResponse({ error: "Invalid entity page" }, 400);
+  const filter = {
+    visibilityScope: access.visibilityScope,
+    ...(query.data.visibility !== "all"
+      ? { visibility: query.data.visibility }
+      : {}),
+    ...(query.data.q ? { contentContains: query.data.q } : {}),
+    ...(query.data.status ? { metadata: { status: query.data.status } } : {}),
+  };
+  const [entities, total] = await Promise.all([
+    runtime.entities.listEntities({
+      entityType,
+      options: {
+        offset: query.data.offset,
+        limit: query.data.limit,
+        sortFields: [
+          {
+            field: query.data.sort.startsWith("created")
+              ? "created"
+              : "updated",
+            direction: query.data.sort.endsWith("asc") ? "asc" : "desc",
+          },
+          { field: "id", direction: "asc" },
+        ],
+        filter,
+      },
+    }),
+    runtime.entities.count({ entityType, options: { filter } }),
+  ]);
+  return jsonResponse({
+    total,
+    entities: entities.map((entity) => ({
+      displayTitle: runtime.shapes.displayTitle(entity),
+      id: entity.id,
+      entityType: entity.entityType,
+      frontmatter: {
+        ...splitEntityContent(entityType, entity.content, runtime).frontmatter,
+        visibility: entity.visibility,
+      },
+      updated: entity.updated,
+    })),
+  });
+}
+
+/**
+ * The entity a form describes, assembled the way the type's own adapter
+ * reads it back. Incoming form data is never the authority: the markdown is
+ * written and re-parsed, so what is stored is what the type says it means.
+ */
+function assembleEntity(
+  runtime: StudioRuntime,
+  entityType: string,
+  payload: {
+    frontmatter: Record<string, unknown>;
+    body?: string | undefined;
+  },
+  existing: BaseEntity | undefined,
+):
+  | { entity: EntityInput<BaseEntity> & { visibility: ContentVisibility } }
+  | Response {
   const bodyError = rejectBodyForBodylessType(
-    context,
+    runtime.shapes,
     entityType,
     payload.body,
   );
   if (bodyError) return bodyError;
 
-  const raw = isRawEntityType(entityType, context.entities);
+  const schema = runtime.shapes.frontmatterSchema(entityType);
+  if (!schema) {
+    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
+  }
+
+  const raw = isRawEntityType(entityType, runtime.groupings);
   const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
   if (raw && Object.keys(domainFrontmatter).length > 0) {
     return jsonResponse(
@@ -422,12 +401,13 @@ export async function handleUpdateEntity(
 
   const visibility = resolveStudioVisibility(
     payload.frontmatter,
-    existing.visibility,
+    existing?.visibility ??
+      (entityType === GROUPING_DEFINITIONS_TYPE ? "shared" : "public"),
   );
   if (!visibility.success) return visibility.response;
 
-  // Validate before anything is written — field-level errors go back to
-  // the form, the entity service is never called with invalid frontmatter.
+  // Validate before anything is written — field-level errors go back to the
+  // form, and the runtime is never asked to store invalid frontmatter.
   const frontmatter = raw
     ? z.object({}).safeParse({})
     : // `visibility` is a system field in the editor projection. It is
@@ -440,8 +420,10 @@ export async function handleUpdateEntity(
     );
   }
 
-  const source = splitEntityContent(entityType, existing.content, context);
-  const body = payload.body ?? source.body;
+  const source = existing
+    ? splitEntityContent(entityType, existing.content, runtime)
+    : undefined;
+  const body = payload.body ?? source?.body ?? "";
   const claimedFields = Object.fromEntries(
     Object.entries(frontmatter.data).filter(([key]) =>
       Object.hasOwn(schema.shape, key),
@@ -453,40 +435,61 @@ export async function handleUpdateEntity(
         body,
         withStudioVisibility(claimedFields, visibility.visibility),
       );
-  // An unparseable definition document cannot supply unclaimed fields. Its
-  // full source was shown for explicit repair; the replacement passed strict
-  // validation above and still goes through permissions and stale-write checks.
+  // Malformed control documents have no safe unclaimed fields to retain.
   const content =
-    raw || source.malformed
+    raw || source?.malformed
       ? serialized
-      : preserveSourceFrontmatter(existing.content, serialized, schema, []);
+      : preserveSourceFrontmatter(
+          existing?.content ?? "",
+          serialized,
+          schema,
+          [],
+        );
 
-  // Re-derive adapter fields (metadata, visibility, etc.) from the finalized
-  // content before applying policy. Incoming form data is never the authority.
-  const parsed = deserializeStudioEntity(context, entityType, content);
-  if (parsed instanceof Response) return parsed;
-  const entity: BaseEntity = {
-    ...existing,
-    ...parsed,
-    id: existing.id,
-    entityType: existing.entityType,
-    content,
-    metadata: stripStudioPolicyMetadata(parsed.metadata ?? existing.metadata),
-    visibility: visibility.visibility,
+  const parsed = runtime.shapes.parse(entityType, content);
+  return {
+    entity: {
+      ...existing,
+      ...parsed,
+      entityType,
+      content,
+      metadata: stripStudioPolicyMetadata(
+        parsed?.metadata ?? existing?.metadata ?? {},
+      ),
+      visibility: visibility.visibility,
+      ...(existing
+        ? { id: existing.id }
+        : entityType === GROUPING_DEFINITIONS_TYPE
+          ? { id: GROUPING_DEFINITIONS_TYPE }
+          : {}),
+    },
   };
+}
 
-  const publishBoundary = getPublishBoundaryState(
-    entityType,
-    existing.metadata["status"],
-    entity.metadata["status"],
-    context.entityService,
-  );
-  const requiredAction =
-    publishBoundary === "non-publish" ? "update" : "publish";
+export async function handleUpdateEntity(
+  runtime: StudioRuntime,
+  request: Request,
+  access: StudioRequestAccess,
+  recordAuditEvent: StudioAuditRecorder,
+): Promise<Response> {
+  let payload: z.infer<typeof updateEntityPayloadSchema>;
+  try {
+    payload = updateEntityPayloadSchema.parse(await request.json());
+  } catch {
+    return jsonResponse({ error: "Invalid update payload" }, 400);
+  }
+
+  const { entityType, id } = payload;
+  if (!runtime.shapes.frontmatterSchema(entityType)) {
+    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
+  }
+
+  // Asked before the entity is even read, so a refused caller is told at
+  // once; the write asks again at the moment it happens.
   const actionDenied = requireEntityAction(
-    context,
+    runtime.operator,
     entityType,
-    requiredAction,
+    "update",
     access,
   );
   if (actionDenied) {
@@ -502,173 +505,89 @@ export async function handleUpdateEntity(
     return actionDenied;
   }
 
-  if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
-    await recordStudioMutationAudit(
-      recordAuditEvent,
-      access,
-      "update",
-      "denied",
+  await runtime.groupings.ensureReady(access.caller);
+  const existing = await runtime.operator.readSource(
+    {
       entityType,
       id,
-      "visibility-policy",
-    );
-    return jsonResponse(
-      {
-        error: `Cannot set entity visibility to "${entity.visibility}" at ${access.permissionLevel} permission.`,
-      },
-      403,
-    );
-  }
-
-  // Stale-write guard: another writer (an agent, or a git import through
-  // directory-sync) may have touched this entity since it was opened.
-  if (
-    payload.baseContentHash !== undefined &&
-    payload.baseContentHash !== existing.contentHash
-  ) {
-    return jsonResponse(
-      {
-        error:
-          "This entry changed since it was opened — likely updated by " +
-          "another writer (an agent, or a git import via directory-sync). " +
-          "Reload to review before saving again.",
-        currentContentHash: existing.contentHash,
-      },
-      409,
-    );
-  }
-
-  const persistenceDenied = requireEntityAction(
-    context,
-    entityType,
-    requiredAction,
-    access,
+      signal: request.signal,
+    },
+    access.caller,
   );
-  if (persistenceDenied) {
-    await recordStudioMutationAudit(
-      recordAuditEvent,
-      access,
-      "update",
-      "denied",
+  if (!existing) {
+    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+  }
+
+  const assembled = assembleEntity(runtime, entityType, payload, existing);
+  if (assembled instanceof Response) return assembled;
+
+  const outcome = await runtime.operator.update(
+    {
       entityType,
-      id,
-      "entity-action-policy",
-    );
-    return persistenceDenied;
-  }
-
-  let result;
-  try {
-    result = await context.entityService.updateEntity({
-      entity,
-      options: studioMutationOptions(access),
-    });
-  } catch (error) {
-    const invalid = editorValidationResponse(error);
-    if (invalid) return invalid;
-    throw error;
-  }
-  await recordStudioMutationAudit(
-    recordAuditEvent,
-    access,
-    "update",
-    "allowed",
-    entityType,
-    id,
+      id: existing.id,
+      next: { ...existing, ...assembled.entity, id: existing.id },
+      ...(payload.baseContentHash !== undefined
+        ? { baseContentHash: payload.baseContentHash }
+        : {}),
+      eventContext: studioEventContext(access),
+    },
+    access.caller,
   );
-  // skipped: the content was already stored byte-identically — no event is
-  // emitted, so nothing flows down the export/commit pipeline.
-  return jsonResponse({
-    entityId: result.entityId,
-    jobId: result.jobId,
-    skipped: result.skipped,
-  });
-}
 
-function deserializeStudioEntity(
-  context: ServicePluginContext,
-  entityType: string,
-  content: string,
-): Partial<BaseEntity> | Response {
-  try {
-    return context.entityService.deserializeEntity(content, entityType);
-  } catch (error) {
-    const invalid = editorValidationResponse(error);
-    if (invalid) return invalid;
-    throw error;
-  }
-}
-
-function prepareStudioCreation(
-  context: ServicePluginContext,
-  payload: z.infer<typeof createEntityPayloadSchema>,
-):
-  | (Partial<BaseEntity> &
-      Pick<BaseEntity, "entityType" | "content" | "metadata" | "visibility">)
-  | Response {
-  const { entityType } = payload;
-  const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
-  if (!schema)
-    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
-  const bodyError = rejectBodyForBodylessType(
-    context,
-    entityType,
-    payload.body,
-  );
-  if (bodyError) return bodyError;
-  const raw = isRawEntityType(entityType, context.entities);
-  const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
-  if (raw && Object.keys(domainFrontmatter).length > 0)
-    return jsonResponse(
-      {
-        error: `Entity type ${entityType} is raw markdown without frontmatter`,
-      },
-      400,
-    );
-  const visibility = resolveStudioVisibility(
-    payload.frontmatter,
-    entityType === GROUPING_DEFINITIONS_TYPE ? "shared" : "public",
-  );
-  if (!visibility.success) return visibility.response;
-  // System visibility is validated separately, never by a strict domain schema.
-  const frontmatter = raw
-    ? z.object({}).safeParse({})
-    : schema.safeParse(domainFrontmatter);
-  if (!frontmatter.success)
-    return jsonResponse(
-      { error: "Invalid frontmatter", issues: frontmatter.error.issues },
-      400,
-    );
-  const content = raw
-    ? (payload.body ?? "")
-    : generateMarkdownWithFrontmatter(
-        payload.body ?? "",
-        withStudioVisibility(
-          Object.fromEntries(
-            Object.entries(frontmatter.data).filter(([key]) =>
-              Object.hasOwn(schema.shape, key),
-            ),
-          ),
-          visibility.visibility,
-        ),
+  switch (outcome.kind) {
+    case "not-found":
+      return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+    case "invalid":
+      return (
+        editorValidationResponse(outcome) ??
+        jsonResponse({ error: "Invalid validation result" }, 500)
       );
-  const parsed = deserializeStudioEntity(context, entityType, content);
-  if (parsed instanceof Response) return parsed;
-  return {
-    ...parsed,
-    ...(payload.idPath && { id: encodeEntityIdPath(payload.idPath) }),
-    entityType,
-    content,
-    metadata: stripStudioPolicyMetadata(parsed.metadata ?? {}),
-    visibility: visibility.visibility,
-  };
+    case "conflict":
+      return jsonResponse(
+        {
+          error:
+            "This entry changed since it was opened — likely updated by " +
+            "another writer (an agent, or a git import via directory-sync). " +
+            "Reload to review before saving again.",
+          currentContentHash: outcome.currentContentHash,
+        },
+        409,
+      );
+    case "denied":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "update",
+        "denied",
+        entityType,
+        id,
+        outcome.reason,
+      );
+      return jsonResponse({ error: outcome.message }, 403);
+    case "updated":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "update",
+        "allowed",
+        entityType,
+        id,
+      );
+      // skipped: the content was already stored byte-identically — no event
+      // is emitted, so nothing flows down the export/commit pipeline.
+      return jsonResponse({
+        entityId: outcome.result.entityId,
+        jobId: outcome.result.jobId,
+        skipped: outcome.result.skipped,
+      });
+  }
 }
 
 export async function handleCreateEntity(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
-  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
+  recordAuditEvent: StudioAuditRecorder,
 ): Promise<Response> {
   let payload: z.infer<typeof createEntityPayloadSchema>;
   let input: unknown;
@@ -680,13 +599,14 @@ export async function handleCreateEntity(
   }
 
   const { entityType } = payload;
-  const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
-  if (!schema) {
+  if (!runtime.shapes.frontmatterSchema(entityType)) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
+  // Asked before the form is even read, so a refused caller is told at once
+  // rather than after assembling something they may not store.
   const actionDenied = requireEntityAction(
-    context,
+    runtime.operator,
     entityType,
     "create",
     access,
@@ -704,10 +624,13 @@ export async function handleCreateEntity(
     return actionDenied;
   }
 
-  await context.entities.ensureGroupingsCurrent();
-  const entity = prepareStudioCreation(context, payload);
-  if (entity instanceof Response) return entity;
-  if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
+  await runtime.groupings.ensureReady(access.caller);
+  const assembled = assembleEntity(runtime, entityType, payload, undefined);
+  if (assembled instanceof Response) return assembled;
+
+  if (
+    !canWriteVisibility(access.permissionLevel, assembled.entity.visibility)
+  ) {
     await recordStudioMutationAudit(
       recordAuditEvent,
       access,
@@ -717,40 +640,14 @@ export async function handleCreateEntity(
       undefined,
       "visibility-policy",
     );
-    return jsonResponse(
-      {
-        error: `Cannot set entity visibility to "${entity.visibility}" at ${access.permissionLevel} permission.`,
-      },
-      403,
-    );
+    return jsonResponse({ error: "Cannot create at this visibility" }, 403);
   }
-
-  // Recheck at the persistence boundary after adapter-derived policy fields.
-  const persistenceDenied = requireEntityAction(
-    context,
-    entityType,
-    "create",
-    access,
-  );
-  if (persistenceDenied) {
-    await recordStudioMutationAudit(
-      recordAuditEvent,
-      access,
-      "create",
-      "denied",
-      entityType,
-      undefined,
-      "entity-action-policy",
-    );
-    return persistenceDenied;
-  }
-
   if (payload.idPath) {
     const placement = await resolvePlacement(
-      context,
+      runtime,
       entityType,
       encodeEntityIdPath(payload.idPath),
-      entity,
+      assembled.entity,
     );
     if (placement?.writable === false) {
       await recordStudioMutationAudit(
@@ -782,23 +679,20 @@ export async function handleCreateEntity(
       );
     }
   }
-
-  // Explicit paths are create-if-absent; other creation flows retain server-derived IDs.
-  let result;
+  let outcome;
   try {
-    result = await context.entityService.createEntity({
-      entity,
-      options: {
-        ...studioMutationOptions(access),
-        ...(payload.idPath && { conditionalWrite: { expectedRevision: null } }),
+    outcome = await runtime.operator.create(
+      {
+        entityType,
+        entity: assembled.entity,
+        ...(payload.idPath ? { idPath: payload.idPath } : {}),
+        eventContext: studioEventContext(access),
       },
-    });
+      access.caller,
+    );
   } catch (error) {
-    const invalid = editorValidationResponse(error);
-    if (invalid) return invalid;
-    // The packed plugin and source runtime can carry separate class copies.
-    // Match the entity-service error's stable name, not constructor identity.
-    if (error instanceof Error && error.name === "EntityWriteConflictError")
+    // Runtime and packed package can have different constructor identities.
+    if (error instanceof SdkError && error.code === "conflict") {
       return jsonResponse(
         {
           error: "An entry already exists at this destination.",
@@ -808,25 +702,51 @@ export async function handleCreateEntity(
         },
         409,
       );
+    }
     throw error;
   }
-  await recordStudioMutationAudit(
-    recordAuditEvent,
-    access,
-    "create",
-    "allowed",
-    entityType,
-    result.entityId,
-  );
 
-  return jsonResponse({ entityId: result.entityId, jobId: result.jobId }, 201);
+  switch (outcome.kind) {
+    case "invalid":
+      return (
+        editorValidationResponse(outcome) ??
+        jsonResponse({ error: "Invalid validation result" }, 500)
+      );
+    case "denied":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "create",
+        "denied",
+        entityType,
+        undefined,
+        outcome.reason,
+      );
+      return jsonResponse(
+        { error: outcome.message },
+        outcome.reason === "unknown-type" ? 404 : 403,
+      );
+    case "created":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "create",
+        "allowed",
+        entityType,
+        outcome.entityId,
+      );
+      return jsonResponse(
+        { entityId: outcome.entityId, jobId: outcome.jobId },
+        201,
+      );
+  }
 }
 
 export async function handleDeleteEntity(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
-  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
+  recordAuditEvent: StudioAuditRecorder,
 ): Promise<Response> {
   try {
     deleteEntityPayloadSchema.parse(await request.json());
@@ -847,48 +767,37 @@ export async function handleDeleteEntity(
     );
   }
 
-  const existing = await readEditorEntity(context, {
-    entityType,
-    id,
-    visibilityScope: access.visibilityScope,
-  });
-  if (!existing) {
-    return jsonResponse({ error: `Entity not found: ${id}` }, 404);
-  }
-
-  const actionDenied = requireEntityAction(
-    context,
-    entityType,
-    "delete",
-    access,
+  const outcome = await runtime.operator.delete(
+    { entityType, id, eventContext: studioEventContext(access) },
+    access.caller,
   );
-  if (actionDenied) {
-    await recordStudioMutationAudit(
-      recordAuditEvent,
-      access,
-      "delete",
-      "denied",
-      entityType,
-      id,
-      "entity-action-policy",
-    );
-    return actionDenied;
-  }
 
-  const deleted = await context.entityService.deleteEntity({
-    entityType,
-    id,
-    options: studioMutationOptions(access),
-  });
-  if (deleted) {
-    await recordStudioMutationAudit(
-      recordAuditEvent,
-      access,
-      "delete",
-      "allowed",
-      entityType,
-      id,
-    );
+  switch (outcome.kind) {
+    case "not-found":
+      return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+    case "denied":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "delete",
+        "denied",
+        entityType,
+        id,
+        outcome.reason,
+      );
+      return jsonResponse(
+        { error: outcome.message },
+        outcome.reason === "unknown-type" ? 404 : 403,
+      );
+    case "deleted":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "delete",
+        "allowed",
+        entityType,
+        id,
+      );
+      return jsonResponse({ deleted: true });
   }
-  return jsonResponse({ deleted });
 }

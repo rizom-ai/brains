@@ -1,12 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
-import {
-  ContactInboxSource,
-  ContactPlugin,
-  ContactRequestPlugin,
-  contactRequestAdapter,
-} from "../src";
+import { instantiate, contactEntities } from "./helpers";
+import { ContactInboxSource, contactRequestAdapter } from "../src";
 
 const receivedAt = "2026-09-21T10:00:00.000Z";
 const expiresAt = "2026-10-21T10:00:00.000Z";
@@ -14,10 +10,10 @@ const admin = { permissionLevel: "admin" as const };
 
 async function fixture(): Promise<{
   harness: ReturnType<typeof createPluginHarness>;
-  context: ReturnType<typeof createServicePluginContext>;
+  context: ConstructorParameters<typeof ContactInboxSource>[0];
 }> {
   const harness = createPluginHarness();
-  await harness.installPlugin(new ContactRequestPlugin());
+  await harness.installPlugin(instantiate().entity);
   const entityService = harness.getEntityService();
   const content = contactRequestAdapter.createContent(
     {
@@ -43,14 +39,20 @@ async function fixture(): Promise<{
   });
   return {
     harness,
-    context: createServicePluginContext(harness.getMockShell(), "contact"),
+    context: {
+      ...createServicePluginContext(
+        harness.getMockShell(),
+        "@brains/contact:contact",
+      ),
+      entityService: contactEntities(entityService),
+    },
   };
 }
 
 describe("contact inbox", () => {
   it("registers a pull-based inbox source without exposing routes or tools", async () => {
     const { harness } = await fixture();
-    const plugin = new ContactPlugin();
+    const plugin = instantiate().service;
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     expect(
@@ -122,11 +124,10 @@ describe("contact inbox", () => {
     const source = new ContactInboxSource(context, () =>
       Date.parse(receivedAt),
     );
-    const update = context.entityService.updateEntity.bind(
-      context.entityService,
-    );
-    context.entityService.updateEntity = async (
-      request,
+    const update = context.entityService.update.bind(context.entityService);
+    context.entityService.update = async (
+      entity,
+      options,
     ): ReturnType<typeof update> => {
       const current = await context.entityService.getEntity({
         entityType: "contact-request",
@@ -136,16 +137,14 @@ describe("contact inbox", () => {
       if (!current) throw new Error("Missing contact request");
       const parsed = contactRequestAdapter.parseContent(current.content);
       await update({
-        entity: {
-          ...current,
-          content: contactRequestAdapter.createContent(
-            { ...parsed.frontmatter, notification: "sent" },
-            parsed.message,
-          ),
-          metadata: { ...current.metadata, notification: "sent" },
-        },
+        ...current,
+        content: contactRequestAdapter.createContent(
+          { ...parsed.frontmatter, notification: "sent" },
+          parsed.message,
+        ),
+        metadata: { ...current.metadata, notification: "sent" },
       });
-      return update(request);
+      return update(entity, options);
     };
     const outcome = await source
       .act("contact-test", "mark-handled", admin)

@@ -58,15 +58,15 @@ const expectedMembers: Record<SuiteName, string> = {
   headless:
     "a2a agents ask-content directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat",
   professional:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat",
+  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
   personal: 26,
-  professional: 85,
+  professional: 83,
   team: 38,
 };
 const tempDirectories: string[] = [];
@@ -146,7 +146,9 @@ function createSuiteApp(
   if (includeMcp) {
     expect(resolved.plugins?.some(({ id }) => id === "webserver")).toBe(false);
     expect(
-      resolved.plugins?.find(({ id }) => id === "mcp")?.getWebRoutes?.(),
+      resolved.plugins
+        ?.find(({ id }) => id === "@brains/mcp:mcp")
+        ?.getWebRoutes?.(),
     ).toEqual([]);
   }
 
@@ -250,7 +252,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(202);
+    expect(testCases.length).toBe(200);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -513,10 +515,15 @@ describe("canonical eval recipe ladder", () => {
       expect(await tool.handler(approval.args, context)).toMatchObject({
         success: true,
       });
-      const saved = await shell.getEntityService().getEntity(entityRef);
-      expect(saved?.content).toBe(
-        `---\nvisibility: restricted\n---\n${content}`,
-      );
+      // The SDK codec's typed view can decode the body. Source reads and
+      // conditional mirror snapshots must retain every persisted byte instead.
+      const saved = await shell.getEntityService().getEntityRaw(entityRef);
+      const persisted = `---\nvisibility: restricted\n---\n${content}`;
+      expect(saved?.content).toBe(persisted);
+      const snapshot = await shell
+        .getEntityService()
+        .getEntityWriteSnapshot(entityRef);
+      expect(snapshot?.entity.content).toBe(persisted);
       expect(saved?.metadata["title"]).toBe("MCP verbatim create");
       expect(saved?.visibility).toBe("restricted");
     } finally {
@@ -545,15 +552,15 @@ describe("canonical eval recipe ladder", () => {
               .listProtocolToolsForPermissionLevel(level, "basic")
               .map(({ tool }) => tool.name)
               .sort(),
-          ).toEqual(["chat", "confirm"]);
+          ).toEqual(["mcp_chat", "mcp_confirm"]);
         }
 
         const adminDebugTools = mcpService
           .listProtocolToolsForPermissionLevel("admin", "debug")
           .map(({ tool }) => tool.name);
         for (const toolName of [
-          "chat",
-          "confirm",
+          "mcp_chat",
+          "mcp_confirm",
           "system_search",
           "system_get",
           "system_list",

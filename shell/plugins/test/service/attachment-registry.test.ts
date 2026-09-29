@@ -16,6 +16,110 @@ function createPdfAttachment(filename: string): PublishMediaData {
 }
 
 describe("AttachmentRegistry", () => {
+  it("returns detached metadata without publishing undeclared provider fields", async () => {
+    const registry = AttachmentRegistry.createFresh();
+    const metadata = {
+      outputEntityType: "image" as const,
+      targetField: "coverImageId" as const,
+      privateRuntime: { remove: (): void => {} },
+    };
+    const provider = {
+      metadata,
+      filename: "bound.pdf",
+      resolve(): PublishMediaData {
+        return createPdfAttachment(this.filename);
+      },
+    };
+    registry.register("deck", "cover", provider);
+    const result = registry.getMetadata("deck", "cover");
+    expect(result).toEqual({
+      outputEntityType: "image",
+      targetField: "coverImageId",
+    });
+    expect(result).not.toBe(metadata);
+    if (!result) throw new Error("Attachment metadata missing");
+    result.outputEntityType = "document";
+    result.targetField = "ogImageId";
+    Reflect.set(metadata, "outputEntityType", "document");
+    expect(registry.getMetadata("deck", "cover")).toEqual({
+      outputEntityType: "image",
+      targetField: "coverImageId",
+    });
+    const resolve = registry.get("deck", "cover")?.resolve;
+    if (!resolve) throw new Error("Attachment provider missing");
+    expect(
+      await resolve({
+        sourceEntityType: "deck",
+        sourceEntityId: "one",
+        attachmentType: "cover",
+      }),
+    ).toMatchObject({ filename: "bound.pdf" });
+  });
+
+  it("validates metadata atomically and reads it once without evaluating undeclared getters", () => {
+    const registry = AttachmentRegistry.createFresh();
+    const original = registry.register("deck", "cover", {
+      metadata: { outputEntityType: "document" },
+      resolve: () => undefined,
+    });
+    const invalid = { outputEntityType: "image" as const };
+    Reflect.set(invalid, "outputEntityType", "video");
+    expect(() =>
+      registry.register("deck", "cover", {
+        metadata: invalid,
+        resolve: () => undefined,
+      }),
+    ).toThrow();
+    expect(registry.getMetadata("deck", "cover")).toEqual({
+      outputEntityType: "document",
+    });
+    original();
+    expect(registry.has("deck", "cover")).toBe(false);
+    let reads = 0;
+    const metadata = {
+      outputEntityType: "image" as const,
+      get privateRuntime(): never {
+        throw new Error("Undeclared getter was read");
+      },
+    };
+    registry.register("deck", "cover", {
+      get metadata() {
+        reads++;
+        return metadata;
+      },
+      resolve: () => undefined,
+    });
+    expect(registry.getMetadata("deck", "cover")).toEqual({
+      outputEntityType: "image",
+    });
+    expect(registry.getMetadata("deck", "cover")).toEqual({
+      outputEntityType: "image",
+    });
+    expect(reads).toBe(1);
+  });
+
+  it("does not let stale cleanup remove a replacement provider", async () => {
+    const registry = AttachmentRegistry.createFresh();
+    const old = registry.register("deck", "carousel", {
+      resolve: () => createPdfAttachment("old.pdf"),
+    });
+    const replacement = registry.register("deck", "carousel", {
+      resolve: () => createPdfAttachment("new.pdf"),
+    });
+    old();
+    old();
+    expect(registry.has("deck", "carousel")).toBe(true);
+    expect(
+      await registry.resolve({
+        sourceEntityType: "deck",
+        sourceEntityId: "one",
+        attachmentType: "carousel",
+      }),
+    ).toMatchObject({ filename: "new.pdf" });
+    replacement();
+    expect(registry.has("deck", "carousel")).toBe(false);
+  });
+
   it("resolves a registered source attachment provider", async () => {
     const registry = AttachmentRegistry.createFresh();
     const attachment = createPdfAttachment("deck-carousel.pdf");

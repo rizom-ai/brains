@@ -9,7 +9,6 @@ describe("guest policy", () => {
     expect(webChatConfigSchema.parse({})).toEqual({
       routePath: "/ask",
       apiPath: "/api/chat",
-      guest: false,
     });
   });
 

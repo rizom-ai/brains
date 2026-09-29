@@ -1,12 +1,14 @@
-import { createMockShell, type MockShell } from "@brains/plugins/test";
-import { describe, it, expect, beforeEach } from "bun:test";
-import { AgentDataSource } from "../src/datasources/agent-datasource";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
+import { fetchable, type FetchableDataSource } from "@brains/plugins/test";
+import { agentDataSource } from "../src/datasources/agent-datasource";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
-import type { BaseDataSourceContext } from "@brains/plugins";
+import { agentEntitySchema } from "../src/schemas/agent";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { createMockLogger } from "@brains/test-utils";
-
+import { createMockEntityService } from "@brains/entity-service/test";
 import { createTestAgent } from "./fixtures/agent";
 import { getTemplates } from "../src/lib/register-templates";
 
@@ -14,14 +16,13 @@ function createMockAgent(
   id: string,
   name: string,
   status: AgentStatus,
-  discoveredAt?: string,
+  url = `https://${name.toLowerCase()}.io`,
 ): AgentEntity {
   return createTestAgent({
     id,
     name,
-    url: `https://${name.toLowerCase()}.io`,
+    url,
     status,
-    ...(discoveredAt ? { discoveredAt } : {}),
     organization: "Rizom",
     brainName: `${name}'s Brain`,
     did: `did:web:${name.toLowerCase()}.io`,
@@ -30,26 +31,30 @@ function createMockAgent(
   });
 }
 
-function slugOf(agent: AgentEntity): string {
-  return agent.metadata.slug;
-}
-
-describe("AgentDataSource", () => {
-  let datasource: AgentDataSource;
-  let shell: MockShell;
+describe("agent data source", () => {
+  let datasource: FetchableDataSource;
+  let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
-    shell = createMockShell();
-    mockContext = { entityService: shell.getEntityService() };
-    datasource = new AgentDataSource(mockLogger);
+    mockEntityService = createMockEntityService();
+    mockContext = { entityService: mockEntityService };
+    // Built the way the runtime builds it, so the test covers the
+    // assembly and not just the three functions the declaration supplies.
+    datasource = fetchable(
+      createDeclarativeEntityDataSource(
+        agentDataSource,
+        "agents:entities",
+        mockLogger,
+      ),
+    );
   });
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("agent-discovery:entities");
+      expect(datasource.id).toBe("agents:entities");
     });
 
     it("should have descriptive name and description", () => {
@@ -62,10 +67,15 @@ describe("AgentDataSource", () => {
     const listSchema = z.object({
       agents: z.array(z.any()),
       pagination: z.any().nullable(),
+      // Read by the pre-enrichment assertion below, so it belongs in the
+      // schema that checks the datasource output rather than in a cast.
+      baseUrl: z.string().nullable(),
     });
 
     it("accepts datasource output before site URL enrichment", async () => {
-      shell.addEntities([createMockAgent("agent-1", "Yeehaa", "approved")]);
+      const agent = createMockAgent("agent-1", "Yeehaa", "approved");
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([agent]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(1);
 
       const templateSchema = getTemplates()["agent-list"]?.schema;
       if (!templateSchema) throw new Error("agent-list template not found");
@@ -80,17 +90,17 @@ describe("AgentDataSource", () => {
       expect(parsed.agents).toHaveLength(1);
       expect(parsed.agents[0]?.url).toBeNull();
       expect(parsed.agents[0]?.typeLabel).toBeNull();
-      expect(
-        z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
-      ).toBeNull();
+      expect(parsed.baseUrl).toBeNull();
       expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
     it("should return transformed agents with parsed body sections", async () => {
-      shell.addEntities([
+      const agents = [
         createMockAgent("agent-1", "Yeehaa", "approved"),
         createMockAgent("agent-2", "Phoney", "approved"),
-      ]);
+      ];
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(agents);
 
       const result = await datasource.fetch(
         { entityType: "agent" },
@@ -99,72 +109,47 @@ describe("AgentDataSource", () => {
       );
 
       expect(result.agents).toHaveLength(2);
-      const names = result.agents.map(
-        (agent: { frontmatter: { name: string } }) => agent.frontmatter.name,
-      );
-      expect(names).toContain("Yeehaa");
-      expect(names).toContain("Phoney");
-      const yeehaa = result.agents.find(
-        (agent: { frontmatter: { name: string } }) =>
-          agent.frontmatter.name === "Yeehaa",
-      );
-      expect(yeehaa.about).toBe("Yeehaa is a brain agent.");
-      expect(yeehaa.skills).toHaveLength(1);
-      expect(yeehaa.skills[0].name).toBe("Content Creation");
+      expect(result.agents[0].frontmatter.name).toBe("Yeehaa");
+      expect(result.agents[0].about).toBe("Yeehaa is a brain agent.");
+      expect(result.agents[0].skills).toHaveLength(1);
+      expect(result.agents[0].skills[0].name).toBe("Content Creation");
     });
 
     it("should sort by discoveredAt descending", async () => {
-      shell.addEntities([
-        createMockAgent(
-          "agent-old",
-          "Oldest",
-          "approved",
-          "2026-01-01T10:00:00.000Z",
-        ),
-        createMockAgent(
-          "agent-new",
-          "Newest",
-          "approved",
-          "2026-01-03T10:00:00.000Z",
-        ),
-        createMockAgent(
-          "agent-mid",
-          "Middle",
-          "approved",
-          "2026-01-02T10:00:00.000Z",
-        ),
-      ]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
-      const result = await datasource.fetch(
-        { entityType: "agent" },
-        listSchema,
-        mockContext,
+      await datasource.fetch({ entityType: "agent" }, listSchema, mockContext);
+
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "agent",
+          options: expect.objectContaining({
+            sortFields: [{ field: "discoveredAt", direction: "desc" }],
+          }),
+        },
+        agentEntitySchema,
       );
-
-      expect(
-        result.agents.map(
-          (agent: { frontmatter: { name: string } }) => agent.frontmatter.name,
-        ),
-      ).toEqual(["Newest", "Middle", "Oldest"]);
     });
 
     it("should filter by status at the entity-service level", async () => {
-      shell.addEntities([
-        createMockAgent("agent-1", "Approved", "approved"),
-        createMockAgent("agent-2", "Sighted", "discovered"),
-      ]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(0);
 
-      const result = await datasource.fetch(
+      await datasource.fetch(
         { entityType: "agent", query: { status: "approved", page: 1 } },
         listSchema,
         mockContext,
       );
 
-      expect(
-        result.agents.map(
-          (agent: { frontmatter: { name: string } }) => agent.frontmatter.name,
-        ),
-      ).toEqual(["Approved"]);
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "agent",
+          options: expect.objectContaining({
+            filter: { metadata: { status: "approved" } },
+          }),
+        },
+        agentEntitySchema,
+      );
     });
   });
 
@@ -177,10 +162,11 @@ describe("AgentDataSource", () => {
 
     it("should return single agent with parsed sections", async () => {
       const agent = createMockAgent("agent-1", "Yeehaa", "approved");
-      shell.addEntities([agent]);
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([agent]);
 
       const result = await datasource.fetch(
-        { query: { id: slugOf(agent) } },
+        { query: { id: "yeehaa" } },
         detailSchema,
         mockContext,
       );
@@ -191,28 +177,19 @@ describe("AgentDataSource", () => {
     });
 
     it("should include prev/next navigation", async () => {
-      const alpha = createMockAgent(
-        "agent-1",
-        "Alpha",
-        "approved",
-        "2026-01-03T10:00:00.000Z",
-      );
-      const beta = createMockAgent(
-        "agent-2",
-        "Beta",
-        "approved",
-        "2026-01-02T10:00:00.000Z",
-      );
-      const gamma = createMockAgent(
-        "agent-3",
-        "Gamma",
-        "approved",
-        "2026-01-01T10:00:00.000Z",
-      );
-      shell.addEntities([alpha, beta, gamma]);
+      const alpha = createMockAgent("agent-1", "Alpha", "approved");
+      const beta = createMockAgent("agent-2", "Beta", "approved");
+      const gamma = createMockAgent("agent-3", "Gamma", "approved");
+      const agents = [alpha, beta, gamma];
+
+      // The lookup runs alongside the sibling fetch, so which later call is
+      // navigation and which is siblings is not fixed. Both want the set.
+      spyOn(mockEntityService, "listEntities")
+        .mockResolvedValueOnce([beta])
+        .mockResolvedValue(agents);
 
       const result = await datasource.fetch(
-        { query: { id: slugOf(beta) } },
+        { query: { id: "beta" } },
         detailSchema,
         mockContext,
       );

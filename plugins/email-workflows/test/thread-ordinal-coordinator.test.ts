@@ -9,7 +9,6 @@ import type {
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
   MailThreadOrdinalCoordinator,
   createMailItemProjection,
   mailItemAdapter,
@@ -17,8 +16,10 @@ import {
   threadOrdinalStateSchema,
   type MailItemEntity,
   type MailItemProjection,
+  type MailThreadEntityAccess,
   type ThreadOrdinalState,
 } from "../src";
+import { installMailItem, mailEntities } from "./helpers/install";
 
 class MemoryStateStore<T> implements IRuntimeStateStore<T> {
   readonly values = new Map<string, T>();
@@ -148,9 +149,10 @@ async function setup(): Promise<{
   harness: ReturnType<typeof createPluginHarness>;
   state: MemoryStateStore<ThreadOrdinalState>;
   coordinator: MailThreadOrdinalCoordinator;
+  entities: MailThreadEntityAccess;
 }> {
   const harness = createPluginHarness();
-  await harness.installPlugin(new MailItemPlugin());
+  await installMailItem(harness);
   const entityService = harness.getEntityService();
   const listEntities = entityService.listEntities.bind(entityService);
   // The in-memory fake cannot sort by metadata fields, so emulate the
@@ -191,25 +193,17 @@ async function setup(): Promise<{
     return schema ? sorted.map((entity) => schema.parse(entity)) : sorted;
   }
   entityService.listEntities = sortedListEntities;
-  entityService.countEntities = async (request): Promise<number> =>
-    (
-      await entityService.listEntities({
-        entityType: request.entityType,
-        ...(request.options ? { options: request.options } : {}),
-      })
-    ).length;
   const state = new MemoryStateStore<ThreadOrdinalState>();
   const coordinator = new MailThreadOrdinalCoordinator({
-    entityService,
     state,
     pageSize: 1,
   });
-  return { harness, state, coordinator };
+  return { harness, state, coordinator, entities: mailEntities(harness) };
 }
 
 describe("MailThreadOrdinalCoordinator", () => {
   it("restarts an interrupted paged migration without exposing partial ordinals", async () => {
-    const { harness, state, coordinator } = await setup();
+    const { harness, state, coordinator, entities } = await setup();
     await persist(harness, projection("first", "2026-08-11T08:00:00.000Z"), {
       legacy: true,
     });
@@ -231,7 +225,7 @@ describe("MailThreadOrdinalCoordinator", () => {
     };
 
     const migrationError = await coordinator
-      .initialize()
+      .initialize(entities)
       .catch((error: unknown) => error);
     expect(migrationError).toEqual(new Error("migration interrupted"));
     expect(threadOrdinalStateSchema.parse(await state.get("state"))).toEqual({
@@ -241,11 +235,10 @@ describe("MailThreadOrdinalCoordinator", () => {
 
     entityService.updateEntity = updateEntity;
     const restarted = new MailThreadOrdinalCoordinator({
-      entityService,
       state,
       pageSize: 1,
     });
-    await restarted.initialize();
+    await restarted.initialize(entities);
 
     expect(await restarted.isReady()).toBe(true);
     const migrated = await threadedItems(harness);
@@ -264,16 +257,15 @@ describe("MailThreadOrdinalCoordinator", () => {
       return updateEntity(request);
     };
     const alreadyReady = new MailThreadOrdinalCoordinator({
-      entityService,
       state,
       pageSize: 1,
     });
-    await alreadyReady.initialize();
+    await alreadyReady.initialize(entities);
     expect(readyUpdates).toBe(0);
   });
 
   it("catches up arrivals under an exclusive readiness transition", async () => {
-    const { harness, coordinator } = await setup();
+    const { harness, coordinator, entities } = await setup();
     await persist(harness, projection("first", "2026-08-11T08:00:00.000Z"), {
       legacy: true,
     });
@@ -319,13 +311,17 @@ describe("MailThreadOrdinalCoordinator", () => {
       return updateEntity(request);
     };
 
-    const migration = coordinator.initialize();
+    const migration = coordinator.initialize(entities);
     await initialStarted;
     let middleAtIngress: MailItemProjection | undefined;
-    await coordinator.persist(middle, async (item) => {
-      middleAtIngress = item;
-      await persist(harness, item);
-    });
+    await coordinator.persist(
+      middle,
+      async (item) => {
+        middleAtIngress = item;
+        await persist(harness, item);
+      },
+      entities,
+    );
     expect(
       middleAtIngress &&
         mailItemAdapter.parseMailItemContent(middleAtIngress.content)
@@ -336,10 +332,14 @@ describe("MailThreadOrdinalCoordinator", () => {
 
     let readyIngressPersisted = false;
     const fourth = projection("fourth", "2026-08-11T12:00:00.000Z");
-    const readyIngress = coordinator.persist(fourth, async (item) => {
-      readyIngressPersisted = true;
-      await persist(harness, item);
-    });
+    const readyIngress = coordinator.persist(
+      fourth,
+      async (item) => {
+        readyIngressPersisted = true;
+        await persist(harness, item);
+      },
+      entities,
+    );
     await Promise.resolve();
     expect(readyIngressPersisted).toBe(false);
 
@@ -351,19 +351,23 @@ describe("MailThreadOrdinalCoordinator", () => {
   });
 
   it("serializes concurrent arrivals and makes a replay ordinal-neutral", async () => {
-    const { harness, coordinator } = await setup();
-    await coordinator.initialize();
+    const { harness, coordinator, entities } = await setup();
+    await coordinator.initialize(entities);
     const first = projection("first", "2026-08-11T08:00:00.000Z");
     const second = projection("second", "2026-08-11T08:00:00.000Z");
 
     await Promise.all([
-      coordinator.persist(first, (item) => persist(harness, item)),
-      coordinator.persist(second, (item) => persist(harness, item)),
+      coordinator.persist(first, (item) => persist(harness, item), entities),
+      coordinator.persist(second, (item) => persist(harness, item), entities),
     ]);
     let replayWrites = 0;
-    await coordinator.persist(first, async () => {
-      replayWrites += 1;
-    });
+    await coordinator.persist(
+      first,
+      async () => {
+        replayWrites += 1;
+      },
+      entities,
+    );
 
     const items = await threadedItems(harness);
     expect(items).toHaveLength(2);

@@ -110,6 +110,7 @@ class WaveRuleEntityPlugin extends EntityPlugin<
         version: "1",
         sources: [{ kind: "entity", types: ["document"] }],
         targetType: "wave-item",
+        targets: { authority: "additive" },
         inputSchema: z.object({}),
         selectInput: async () => ({}),
         derive: async () => [],
@@ -223,7 +224,10 @@ describe("EntityPlugin", () => {
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
-      ).toEqual({ projectionSourceRole: "supporting" });
+      ).toEqual({
+        classification: "content",
+        projectionSourceRole: "supporting",
+      });
     });
 
     it("normalizes an excluded role to the fail-closed source policy", async () => {
@@ -233,6 +237,7 @@ describe("EntityPlugin", () => {
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
       ).toEqual({
+        classification: "content",
         projectionSource: false,
         projectionSourceRole: "excluded",
       });

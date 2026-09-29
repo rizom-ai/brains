@@ -230,7 +230,16 @@ export function createInterfacePluginContext(
   );
 
   // Get interface-specific components
-  const mcpTransport = shell.getMCPService();
+  const mcpService = shell.getMCPService();
+  const setAnchorStatus = mcpService.setAnchorStatus?.bind(mcpService);
+  // Interfaces host the protocol; registration and backing services stay private.
+  const mcpTransport: IMCPTransport = Object.freeze({
+    getMcpServer: mcpService.getMcpServer.bind(mcpService),
+    createMcpServer: mcpService.createMcpServer.bind(mcpService),
+    setPermissionLevel: mcpService.setPermissionLevel.bind(mcpService),
+    setProtocolMode: mcpService.setProtocolMode.bind(mcpService),
+    ...(setAnchorStatus ? { setAnchorStatus } : {}),
+  });
   const permissionService = shell.getPermissionService();
   const agent = createPublicAgentNamespace(shell.getAgentService());
 

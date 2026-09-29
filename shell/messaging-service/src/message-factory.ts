@@ -1,3 +1,4 @@
+import { sdkErrorCodeSchema, type SdkErrorCode } from "./base-types";
 import { parseHandlerResponse } from "./handler-response";
 import type {
   InternalMessageResponse,
@@ -32,18 +33,17 @@ export function createMessage<T>(
 export function toInternalResponse(
   requestId: string,
   result: unknown,
-): InternalMessageResponse {
+): InternalMessageResponse | null {
   const response = parseHandlerResponse(result);
-  // Handle noop responses for broadcast events
-  if ("noop" in response) {
-    return createInternalResponse(requestId, true);
-  }
+  // A no-op is not an answer. Requests may try the next subscriber.
+  if ("noop" in response) return null;
 
   return createInternalResponse(
     requestId,
     response.success,
     response.data,
     response.error,
+    response.code,
   );
 }
 
@@ -64,8 +64,18 @@ export function toMessageResponse<R>(
 
   return {
     success: false,
+    // Nothing answering is a different fact from something answering badly:
+    // the first says the capability is absent from this brain, the second
+    // that it broke. A caller that has to tell them apart reads the code.
+    code: response
+      ? (sdkErrorCodeSchema.safeParse(response.error?.code).data ??
+        "handler_failed")
+      : "no_handler",
     error:
-      response?.error?.message ?? `No handler found for message type: ${type}`,
+      response?.error?.message ??
+      (response
+        ? `Handler failed for message type: ${type}`
+        : `No handler found for message type: ${type}`),
   };
 }
 
@@ -74,6 +84,7 @@ function createInternalResponse(
   success: boolean,
   data?: unknown,
   error?: string,
+  code?: SdkErrorCode,
 ): InternalMessageResponse {
   return {
     id: createId("resp"),
@@ -81,7 +92,13 @@ function createInternalResponse(
     timestamp: createTimestamp(),
     success,
     data,
-    error: error ? { message: error } : undefined,
+    error:
+      error || code
+        ? {
+            message: error ?? code ?? "Handler failed",
+            ...(code ? { code } : {}),
+          }
+        : undefined,
   };
 }
 

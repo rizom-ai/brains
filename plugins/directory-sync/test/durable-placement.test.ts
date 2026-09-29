@@ -1,10 +1,8 @@
 import { describe, expect, test, spyOn } from "bun:test";
 import { createTestEntity } from "@brains/entity-service/test";
 import type { BaseEntity } from "@brains/plugins";
-import {
-  createMockServicePluginContext,
-  createMockShell,
-} from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "./helpers/install";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,9 +21,9 @@ async function fixture(): Promise<{
   close: () => Promise<void>;
 }> {
   const dir = await mkdtemp(join(tmpdir(), "durable-placement-"));
-  const context = createMockServicePluginContext();
+  const context = await hostFor(createMockShell());
   const status = new DirectorySyncOperationStatusService(
-    createMockShell().getRuntimeState(),
+    { scoped: context.state },
     context.jobs,
     context.logger,
     dir,

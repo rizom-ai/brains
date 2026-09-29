@@ -3,7 +3,7 @@ import {
   newsletterSchema,
   newsletterMetadataSchema,
   createNewsletter,
-} from "../src/entity/schemas/newsletter";
+} from "../src/schemas/newsletter";
 
 describe("Newsletter Schema", () => {
   describe("newsletterMetadataSchema", () => {

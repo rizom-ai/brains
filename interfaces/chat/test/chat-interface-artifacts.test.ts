@@ -1,21 +1,17 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService, createPluginHarness } from "@brains/plugins/test";
 import {
-  ChatInterface,
+  createSlackPlugin,
   MockChatSdk,
-  baseSlackConfig,
   createMessage,
   createPlugin,
   createSentMessage,
   createThread,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
-import type {
-  ChatInterfaceInstance,
-  MockPostMessage,
-} from "./harness/chat-interface-harness";
+import type { MockPostMessage } from "./harness/chat-interface-harness";
 
-describe("ChatInterface artifacts", () => {
+describe("chat artifacts", () => {
   const suite = setupChatInterfaceTest();
 
   it("sends an error message when agent chat fails", async () => {
@@ -157,7 +153,7 @@ describe("ChatInterface artifacts", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -494,7 +490,7 @@ describe("ChatInterface artifacts", () => {
 
   it("formats relative structured artifact links as absolute Discord-readable URLs", async () => {
     await suite.harness.reset();
-    suite.harness = createPluginHarness<ChatInterfaceInstance>({
+    suite.harness = createPluginHarness({
       domain: "brain.test",
     });
     suite.harness.setAgentService(suite.agentService);
@@ -560,7 +556,7 @@ describe("ChatInterface artifacts", () => {
 
   it("does not expose localhost artifact links in Discord summaries", async () => {
     await suite.harness.reset();
-    suite.harness = createPluginHarness<ChatInterfaceInstance>({
+    suite.harness = createPluginHarness({
       domain: "brain.test",
       localSiteUrl: "http://localhost:4321",
       preferLocalUrls: true,

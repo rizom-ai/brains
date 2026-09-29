@@ -14,7 +14,7 @@ import {
   type InboxItem,
   type InboxSource,
   type ListToolOutputSchema,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 

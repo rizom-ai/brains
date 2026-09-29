@@ -1,6 +1,8 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import type { DirectorySyncState } from "../src";
+import { instantiate } from "./helpers/install";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -40,15 +42,16 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
  * - Orphan cleanup would delete it on next sync
  */
 describe("auto-export without autoSync", () => {
-  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
-  let plugin: DirectorySyncPlugin;
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
+  let plugin: Plugin;
+  let state: () => DirectorySyncState;
   let syncPath: string;
   let replacementPath: string | undefined;
 
   beforeEach(async () => {
     replacementPath = undefined;
     syncPath = mkdtempSync(join(tmpdir(), "test-auto-export-"));
-    harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
+    harness = createPluginHarness({ dataDir: syncPath });
 
     const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
@@ -57,12 +60,12 @@ describe("auto-export without autoSync", () => {
       new TestAdapter(),
     );
 
-    plugin = new DirectorySyncPlugin({
+    ({ plugin, state } = instantiate({
       syncPath,
       autoSync: false,
       initialSync: false,
       commitDebounce: 100,
-    });
+    }));
 
     await harness.installPlugin(plugin);
   });
@@ -115,7 +118,7 @@ describe("auto-export without autoSync", () => {
     replacementPath = mkdtempSync(
       join(tmpdir(), "test-auto-export-replacement-"),
     );
-    await plugin.configure({ syncPath: replacementPath });
+    await state().configure({ syncPath: replacementPath });
     const entity = createTestEntity("note", {
       id: "replacement-note",
       content: "---\n---\nReplacement content",

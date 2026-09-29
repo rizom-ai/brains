@@ -1,10 +1,21 @@
 export { InboxDataSource } from "./inbox-datasource";
 export { InboxOperatorService } from "./operator-service";
-export { createInboxListTool } from "./inbox-tool";
-export { createUnifiedInboxDigest, registerUnifiedInboxDigest } from "./digest";
-export { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
-export { registerUnifiedInboxStudioWorkspace } from "./operator-studio";
-export { UnifiedInboxPlugin, unifiedInboxPlugin } from "./plugin";
+export { inboxListTool } from "./inbox-tool";
+export {
+  createUnifiedInboxDigest,
+  runUnifiedInboxDigest,
+  unifiedInboxDigestCheck,
+  type InboxDigestCheckContext,
+} from "./digest";
+export { inboxWidget, loadInboxWidget } from "./dashboard-widget";
+export {
+  inboxWorkspace,
+  inboxWorkspaceHandlers,
+  type InboxActionInput,
+  type InboxWorkspaceData,
+  type InboxWorkspaceHandlers,
+} from "./operator-studio";
+export { default } from "./plugin";
 export {
   inboxProjectionSchema,
   inboxListFilterShape,

@@ -16,14 +16,14 @@ turns:
   - userMessage: "sync with git"
     successCriteria:
       expectedTools:
-        - toolName: directory_sync
+        - toolName: directory-sync_sync
           shouldBeCalled: true
           argsContain:
             action: sync
   - userMessage: "what is the status"
     successCriteria:
       expectedTools:
-        - toolName: directory_sync
+        - toolName: directory-sync_sync
           shouldBeCalled: true
           argsContain:
             action: status
@@ -37,11 +37,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory_sync
+    - toolName: directory-sync_sync
       shouldBeCalled: true
       argsContain:
         action: sync
-    - toolName: directory_sync
+    - toolName: directory-sync_sync
       shouldBeCalled: true
       argsContain:
         action: status

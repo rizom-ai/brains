@@ -4,8 +4,9 @@ import type {
   InboxItem,
   InboxItemDetail,
   InboxSource,
-  ServicePluginContext,
-} from "@brains/plugins";
+  JobEntityAccess,
+} from "@brains/sdk/entities";
+import type { IPermissionsNamespace } from "@brains/sdk/services";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
   contactRequestSchema,
@@ -13,12 +14,10 @@ import {
   type ContactRequest,
 } from "./entity/schema";
 
-type ContactInboxContext = Pick<ServicePluginContext, "entityService"> & {
-  permissions: Pick<
-    ServicePluginContext["permissions"],
-    "assertEntityActionAllowed"
-  >;
-};
+interface ContactInboxContext {
+  entityService: Pick<JobEntityAccess, "getEntity" | "listEntities" | "update">;
+  permissions: Pick<IPermissionsNamespace, "assertEntityActionAllowed">;
+}
 interface ParsedRequest {
   entity: ContactRequest;
   frontmatter: ContactFrontmatter;
@@ -156,14 +155,14 @@ export class ContactInboxSource implements InboxSource {
         { ...frontmatter, status: "handled" },
         message,
       );
-      const result = await this.context.entityService.updateEntity({
-        entity: {
+      const result = await this.context.entityService.update(
+        {
           ...entity,
           content,
           metadata: { ...entity.metadata, status: "handled" },
         },
-        options: { expectedContentHash: entity.contentHash },
-      });
+        { expectedContentHash: entity.contentHash },
+      );
       if (result.skipped) throw new Error("Contact request unavailable");
     } catch {
       throw new Error("Contact request unavailable");

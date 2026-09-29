@@ -917,7 +917,8 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     const completedImports = parsed.data.resources.queue.byType
       .filter(
         (entry) =>
-          entry.type === "directory-sync:directory-import" &&
+          entry.type ===
+            "@brains/directory-sync:directory-sync:directory-import" &&
           entry.status === "completed",
       )
       .reduce((total, entry) => total + entry.count, 0);

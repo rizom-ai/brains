@@ -1,7 +1,6 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import type { IDirectorySync } from "../types";
 import {
   directoryDeleteJobSchema,
@@ -15,23 +14,17 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-export class DirectoryDeleteJobHandler extends BaseJobHandler<
-  "directory-delete",
-  DirectoryDeleteJobData,
-  DirectoryDeleteJobResult
-> {
-  private context: ServicePluginContext;
+export class DirectoryDeleteJobHandler {
+  protected readonly logger: Logger;
+  private context: DirectorySyncHost;
   private readonly directorySync: IDirectorySync;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncHost,
     directorySync: IDirectorySync,
   ) {
-    super(logger, {
-      schema: directoryDeleteJobSchema,
-      jobTypeName: "directory-delete",
-    });
+    this.logger = logger;
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -39,7 +32,7 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
   public async process(
     data: DirectoryDeleteJobData,
     _jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<DirectoryDeleteJobResult> {
     return runDirectoryProjectionBatchChild(
       this.context,
@@ -104,27 +97,16 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     );
   }
 
-  protected override summarizeDataForLog(
-    data: DirectoryDeleteJobData,
-  ): Record<string, unknown> {
-    if ("deletions" in data) return { deletionCount: data.deletions.length };
-    return {
-      entityId: data.entityId,
-      entityType: data.entityType,
-      filePath: data.filePath,
-    };
-  }
-
   private async deleteEntity(
     deletion: DirectoryDeleteTarget,
     progress: number,
     total: number,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<DeleteResult> {
     this.logger.info("Processing entity deletion for removed file", deletion);
 
     try {
-      const deleted = await this.context.entityService.deleteEntity({
+      const deleted = await this.context.mirror.deleteEntity({
         entityType: deletion.entityType,
         id: deletion.entityId,
         options: { persistenceOrigin: "directory-sync" },

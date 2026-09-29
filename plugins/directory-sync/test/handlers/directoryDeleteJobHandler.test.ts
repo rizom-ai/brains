@@ -1,8 +1,8 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
 import { describe, it, expect, mock, spyOn } from "bun:test";
 import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
 import {
-  createMockLogger,
   createSilentLogger,
   createMockProgressReporter,
 } from "@brains/test-utils";
@@ -21,9 +21,11 @@ describe("DirectoryDeleteJobHandler", () => {
 
   describe("process", () => {
     it("should successfully delete an existing entity", async () => {
-      const mockContext = createMockServicePluginContext({
-        returns: { entityService: { deleteEntity: true } },
-      });
+      const mockContext = await hostFor(createMockShell());
+      const deleteEntity = spyOn(
+        mockContext.mirror,
+        "deleteEntity",
+      ).mockResolvedValue(true);
       const mockProgressReporter = createMockProgressReporter();
       const completePendingDelete = mock(() => {});
       const directorySync = createMockDirectorySync({
@@ -41,7 +43,7 @@ describe("DirectoryDeleteJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
+      expect(deleteEntity).toHaveBeenCalledWith({
         entityType: "topic",
         id: "technology:ai",
         options: { persistenceOrigin: "directory-sync" },
@@ -61,9 +63,11 @@ describe("DirectoryDeleteJobHandler", () => {
     });
 
     it("deletes a targeted batch in one job", async () => {
-      const mockContext = createMockServicePluginContext({
-        returns: { entityService: { deleteEntity: true } },
-      });
+      const mockContext = await hostFor(createMockShell());
+      const deleteEntity = spyOn(
+        mockContext.mirror,
+        "deleteEntity",
+      ).mockResolvedValue(true);
       const mockProgressReporter = createMockProgressReporter();
       const completePendingDelete = mock(() => {});
       const handler = new DirectoryDeleteJobHandler(
@@ -100,7 +104,7 @@ describe("DirectoryDeleteJobHandler", () => {
           filePath: "/path/to/second.md",
         },
       ]);
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledTimes(2);
+      expect(deleteEntity).toHaveBeenCalledTimes(2);
       expect(completePendingDelete).toHaveBeenCalledTimes(2);
       expect(mockProgressReporter.report).toHaveBeenLastCalledWith({
         progress: 2,
@@ -110,9 +114,11 @@ describe("DirectoryDeleteJobHandler", () => {
     });
 
     it("should handle case when entity doesn't exist", async () => {
-      const mockContext = createMockServicePluginContext({
-        returns: { entityService: { deleteEntity: false } },
-      });
+      const mockContext = await hostFor(createMockShell());
+      const deleteEntity = spyOn(
+        mockContext.mirror,
+        "deleteEntity",
+      ).mockResolvedValue(false);
       const mockProgressReporter = createMockProgressReporter();
       const handler = new DirectoryDeleteJobHandler(
         logger,
@@ -126,7 +132,7 @@ describe("DirectoryDeleteJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
+      expect(deleteEntity).toHaveBeenCalledWith({
         entityType: "topic",
         id: "technology:ai",
         options: { persistenceOrigin: "directory-sync" },
@@ -140,7 +146,7 @@ describe("DirectoryDeleteJobHandler", () => {
     });
 
     it("should handle deletion errors gracefully", async () => {
-      const mockContext = createMockServicePluginContext();
+      const mockContext = await hostFor(createMockShell());
       const mockProgressReporter = createMockProgressReporter();
       const completePendingDelete = mock(() => {});
       const handler = new DirectoryDeleteJobHandler(
@@ -148,7 +154,7 @@ describe("DirectoryDeleteJobHandler", () => {
         mockContext,
         createMockDirectorySync({ completePendingDelete }),
       );
-      spyOn(mockContext.entityService, "deleteEntity").mockRejectedValue(
+      spyOn(mockContext.mirror, "deleteEntity").mockRejectedValue(
         new Error("Database connection failed"),
       );
 
@@ -160,31 +166,8 @@ describe("DirectoryDeleteJobHandler", () => {
       expect(completePendingDelete).not.toHaveBeenCalled();
     });
 
-    it("should reject invalid data", async () => {
-      const mockContext = createMockServicePluginContext();
-      const handler = new DirectoryDeleteJobHandler(
-        logger,
-        mockContext,
-        mockDirectorySync,
-      );
-
-      const invalidData = {
-        entityType: "topic",
-        filePath: "/path/to/file.md",
-        // missing entityId
-      };
-
-      // validateAndParse is the member built to take untrusted payloads —
-      // BaseJobHandler runs it before a job is durably enqueued, so this is the
-      // guard that actually keeps malformed data out of the queue. It accepts
-      // unknown, so the invalid object goes in as it is, with no cast.
-      expect(handler.validateAndParse(invalidData)).toBeNull();
-    });
-
     it("should report progress correctly", async () => {
-      const mockContext = createMockServicePluginContext({
-        returns: { entityService: { deleteEntity: true } },
-      });
+      const mockContext = await hostFor(createMockShell());
       const mockProgressReporter = createMockProgressReporter();
       const handler = new DirectoryDeleteJobHandler(
         logger,
@@ -204,47 +187,6 @@ describe("DirectoryDeleteJobHandler", () => {
         total: 1,
         message: "Deleted topic:technology:ai",
       });
-    });
-  });
-
-  describe("onError", () => {
-    it("should log error details", async () => {
-      // A silent logger cannot show that anything was logged; the whole claim
-      // needs a spyable one.
-      const spyLogger = createMockLogger();
-      const mockContext = createMockServicePluginContext();
-      const mockProgressReporter = createMockProgressReporter();
-      const handler = new DirectoryDeleteJobHandler(
-        spyLogger,
-        mockContext,
-        mockDirectorySync,
-      );
-
-      const error = new Error("Test error");
-      const data = {
-        entityId: "test-id",
-        entityType: "test-type",
-        filePath: "/test/path.md",
-      };
-      const jobId = "job-456";
-
-      await handler.onError(
-        error,
-        data,
-        jobId,
-        mockProgressReporter,
-        new AbortController().signal,
-      );
-
-      expect(spyLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("error handler triggered"),
-        expect.objectContaining({
-          jobId: "job-456",
-          errorMessage: "Test error",
-        }),
-      );
-
-      // Logger is silent, no need to test its calls
     });
   });
 });

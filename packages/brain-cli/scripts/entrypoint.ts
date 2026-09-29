@@ -13,6 +13,13 @@
  * src/index.ts directly (no models registered, subprocess runner path).
  */
 
+// The certificate stack auth-service uses (`@peculiar/x509`) pulls tsyringe,
+// which reads decorator metadata at module scope and throws without this.
+// It has to be the first import in the bundle: anything above it that
+// reaches auth-service — an interface importing `@brains/sdk/interfaces`
+// does — evaluates tsyringe before the polyfill and the binary will not boot.
+import "reflect-metadata";
+
 // ─── Register the canonical definition and built-in package refs ─────────
 
 import { setCanonicalDefinition } from "../src/lib/definition-registry";

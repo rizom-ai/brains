@@ -8,7 +8,7 @@ import {
   Card,
   CardMetadata,
   CardTitle,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 const ListSection = ({
   title,

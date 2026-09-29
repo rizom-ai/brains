@@ -143,7 +143,7 @@ export class TurnProcessor {
       ...(signal ? { abortSignal: signal } : {}),
     });
     signal?.throwIfAborted();
-    return this.recordResponse(turn, prepared, result);
+    return this.recordResponse(turn, prepared, result, signal);
   }
 
   /**
@@ -409,6 +409,7 @@ export class TurnProcessor {
     turn: AdmittedTurn,
     prepared: PreparedTurn,
     result: Awaited<ReturnType<BrainAgent["generate"]>>,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
     const { conversationId, channelId, channelName, userPermissionLevel } =
       turn.input;
@@ -420,6 +421,7 @@ export class TurnProcessor {
     const cards = guest
       ? await this.withGuestAnswerSources(extracted.cards, result.text)
       : extracted.cards;
+    signal?.throwIfAborted();
     const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 

@@ -3,7 +3,8 @@ import { createClient } from "@libsql/client";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { computeContentHash } from "@brains/utils/hash";
 import { PermissionService } from "@brains/templates";
-import { studioPlugin } from "@brains/studio";
+import { studioService } from "@brains/studio";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { DirectorySync, type ImportResult } from "@brains/directory-sync";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { z } from "@brains/utils/zod";
@@ -23,8 +24,8 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import notes, { noteSchema } from "@brains/note";
+import blog, { blogPostSchema } from "@brains/blog";
 import { createMockShell } from "@brains/plugins/test";
 import {
   createSilentLogger,
@@ -56,9 +57,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     const dbConfig = { url: `file:${directory}/entities.db` };
     await migrateEntities(dbConfig, createSilentLogger());
     const registry = EntityRegistry.createFresh(createSilentLogger());
-    registry.registerEntityType("note", noteSchema, noteAdapter);
-    registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
-    if (enabled) registry.registerGrouping(clients);
     const service = EntityService.createFresh({
       dbConfig,
       embeddingDbConfig: { url: `file:${directory}/embeddings.db` },
@@ -76,6 +74,24 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         },
       },
     });
+    const shell = createMockShell({ entityService: service });
+    shell.getEntityRegistry = (): EntityRegistry => registry;
+    for (const [definition, name] of [
+      [notes, "@brains/note"],
+      [blog, "@brains/blog"],
+    ] as const) {
+      for (const plugin of instantiatePluginPackageDefinition(
+        definition,
+        {},
+        { name, version: "0.0.0-test" },
+      )) {
+        await plugin.register(shell);
+        cleanups.push(async () => {
+          await plugin.shutdown?.();
+        });
+      }
+    }
+    if (enabled) registry.registerGrouping(clients);
     registries.set(service, registry);
     services.push(service);
     await service.initialize();
@@ -136,13 +152,21 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       sessions.set(role, session.cookie);
       onSession?.(auth, role, user.userId);
     }
-    // Core-only cases use static declarations. UI cases instead author a
-    // definitions document as fixture setup, before making any Studio requests.
+    // Core-only fixtures use static declarations; Studio owns a document instead.
     const declarations = registry.getGroupings();
     registry.replaceGroupings([]);
-    const plugin = studioPlugin();
-    await plugin.register(shell);
-    await plugin.finalizeRegistration();
+    const plugins = instantiatePluginPackageDefinition(
+      studioService(),
+      {},
+      { name: "@brains/studio", version: "0.0.0-test" },
+    );
+    for (const plugin of plugins) {
+      await plugin.register(shell);
+      cleanups.push(async () => {
+        await plugin.shutdown?.();
+      });
+    }
+    for (const plugin of plugins) await plugin.finalizeRegistration?.();
     if (
       declarations.length &&
       !(await service.getEntityRaw({
@@ -171,7 +195,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       });
     }
     await service.reprojectRegisteredGroupings();
-    const routes = plugin.getWebRoutes();
+    const routes = plugins.flatMap((plugin) => plugin.getWebRoutes?.() ?? []);
     return async (method, path, body, role = "trusted"): Promise<Response> => {
       const route = routes.find(
         (entry) =>

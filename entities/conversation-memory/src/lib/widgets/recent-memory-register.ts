@@ -1,9 +1,8 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
+  defineEntityDashboardWidget,
+  type EntityDashboardWidgetDeclaration,
+} from "@brains/sdk/entities";
 import {
   buildRecentConversationMemoryData,
   recentConversationMemoryDataSchema,
@@ -80,22 +79,8 @@ const recentMemoryWidget = defineDashboardWidget({
   }),
 });
 
-export function registerRecentConversationMemoryWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: recentMemoryWidget,
-        load: ({ signal }) => {
-          signal.throwIfAborted();
-          return buildRecentConversationMemoryData(context);
-        },
-      });
-      return { success: true };
-    },
-  );
-}
+export const recentMemoryWidgetDeclaration: EntityDashboardWidgetDeclaration =
+  defineEntityDashboardWidget(recentMemoryWidget, ({ entities, signal }) => {
+    signal.throwIfAborted();
+    return buildRecentConversationMemoryData(entities);
+  });

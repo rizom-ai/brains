@@ -60,13 +60,17 @@ describe("approved living-memory composition", () => {
     ]);
     const route = site.routes.find((route) => route.id === "living-memory");
     expect(route?.sections).toEqual([
-      { id: "hero", template: "agent-discovery:proximity-map", dataQuery: {} },
+      {
+        id: "hero",
+        template: "@brains/agent-discovery:agent:proximity-map",
+        dataQuery: {},
+      },
       { id: "problem", template: "living-memory:problem" },
       { id: "science", template: "living-memory:science" },
       { id: "turn", template: "living-memory:turn" },
       { id: "system", template: "living-memory:system" },
       { id: "growth", template: "living-memory:growth" },
-      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
+      { id: "proof", template: "@brains/knowledge-map:map", dataQuery: {} },
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ]);

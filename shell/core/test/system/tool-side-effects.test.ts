@@ -235,7 +235,7 @@ describe("system_create conversation-message sources", () => {
     );
 
     expect(response).toMatchObject({ success: false });
-    expect(expectToolError(response).error).toContain("Unrecognized key");
+    expect(expectToolError(response).code).toBe("invalid_input");
   });
 
   it("resolves canonical prior-response source refs", async () => {
@@ -281,7 +281,7 @@ describe("system_create conversation-message sources", () => {
     );
 
     expect(response).toMatchObject({ success: false });
-    expect(expectToolError(response).error).toContain("Unrecognized key");
+    expect(expectToolError(response).code).toBe("invalid_input");
   });
 
   it("does not inspect conversation messages for direct content creates", async () => {

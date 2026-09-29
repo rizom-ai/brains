@@ -113,15 +113,15 @@ plugins:
       connected = true;
       const tools = await client.listTools();
       expect(tools.tools.map(({ name }) => name).sort()).toEqual([
-        "chat",
-        "confirm",
+        "mcp_chat",
+        "mcp_confirm",
       ]);
 
       let responseData: Record<string, unknown> = {};
       await waitUntil(
         async () => {
           const response = await client.callTool({
-            name: "chat",
+            name: "mcp_chat",
             arguments: {
               message:
                 "Retrieve the seeded note with id headless-proof and return its body verbatim.",
@@ -199,14 +199,14 @@ plugins:
       connected = true;
       expect(
         (await client.listTools()).tools.map(({ name }) => name).sort(),
-      ).toEqual(["chat", "confirm"]);
+      ).toEqual(["mcp_chat", "mcp_confirm"]);
 
       let pending: Record<string, unknown> = {};
       await waitUntil(
         async () => {
           pending = objectContent(
             await client.callTool({
-              name: "chat",
+              name: "mcp_chat",
               arguments: {
                 message:
                   "Save this exact Markdown as a note:\n\n# MCP Basic Evidence Note\n\nProtocol write confirmation survived.",
@@ -238,7 +238,7 @@ plugins:
 
       const confirmed = successData(
         await client.callTool({
-          name: "confirm",
+          name: "mcp_confirm",
           arguments: {
             approvalId,
             confirmed: true,
@@ -253,7 +253,7 @@ plugins:
 
       const retrieved = successData(
         await client.callTool({
-          name: "chat",
+          name: "mcp_chat",
           arguments: {
             message:
               "Retrieve the note with exact id mcp-basic-evidence-note and quote its body.",
@@ -353,7 +353,7 @@ plugins:
       await waitUntil(
         async () => {
           const inbox = await client.callTool({
-            name: "inbox_list",
+            name: "unified-inbox_list",
             arguments: {},
           });
           expect(inbox.isError).not.toBe(true);

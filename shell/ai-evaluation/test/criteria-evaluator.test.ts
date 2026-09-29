@@ -258,7 +258,7 @@ describe("evaluateCriteria", () => {
         ],
       },
       { text: "found it" },
-      [{ toolName: "playbook_manage", args: {}, result: {} }],
+      [{ toolName: "playbooks_manage", args: {}, result: {} }],
     );
 
     expect(results).toEqual([

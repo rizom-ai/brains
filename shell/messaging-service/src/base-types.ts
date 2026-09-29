@@ -1,16 +1,17 @@
 import { z } from "@brains/utils/zod";
+import { sdkErrorCodeSchema } from "@brains/contracts";
+export { sdkErrorCodeSchema, type SdkErrorCode } from "@brains/contracts";
 
-/**
- * Simple response schema for message handlers
- */
 export const messageResponseSchema: z.ZodObject<{
   success: z.ZodBoolean;
   data: z.ZodOptional<z.ZodUnknown>;
   error: z.ZodOptional<z.ZodString>;
+  code: z.ZodOptional<typeof sdkErrorCodeSchema>;
 }> = z.object({
   success: z.boolean(),
   data: z.unknown().optional(),
   error: z.string().optional(),
+  code: sdkErrorCodeSchema.optional(),
 });
 
 /** A handler's reply: the parsed response with its data narrowed to T, or a no-op. */

@@ -1,4 +1,5 @@
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
+import type { PipelineRuntime } from "./runtime";
+import type { ContentVisibility } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";
@@ -129,7 +130,7 @@ interface PublicationPipelineSnapshotOptions {
 
 /** Build the content-pipeline-owned read model for operator surfaces. */
 export async function getPublicationPipelineSnapshot(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   providerRegistry: ProviderRegistry,
   queueManager: QueueManager,
   retryTracker: RetryTracker,
@@ -149,7 +150,7 @@ export async function getPublicationPipelineSnapshot(
   };
 
   for (const entityType of publishableEntityTypes) {
-    const entities = await context.entityService.listEntities({
+    const entities = await context.entities.listEntities({
       entityType,
       ...(options.visibilityScope
         ? { options: { filter: { visibilityScope: options.visibilityScope } } }
@@ -236,22 +237,13 @@ export async function getPublicationPipelineSnapshot(
 }
 
 async function getGeneratingItems(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   visibleEntities: ReadonlyMap<string, PublicationEntityItem> | undefined,
 ): Promise<PublicationJobItem[]> {
   const generating: PublicationJobItem[] = [];
 
-  for (const job of await context.jobs.getActiveJobs()) {
-    if (job.source !== "content-pipeline") continue;
-    if (job.status !== "pending" && job.status !== "processing") continue;
-
-    let payload: unknown;
-    try {
-      payload = JSON.parse(job.data);
-    } catch {
-      continue;
-    }
-    const parsed = generatingJobDataSchema.safeParse(payload);
+  for (const job of await context.jobs.active()) {
+    const parsed = generatingJobDataSchema.safeParse(job.data);
     if (!parsed.success) continue;
     if (
       visibleEntities &&

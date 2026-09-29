@@ -1,4 +1,5 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "./helpers/install";
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
@@ -39,9 +40,7 @@ describe("queueSyncBatch should include images (regression)", () => {
     writeFileSync(join(testDir, "post", "my-post.md"), "# Post");
     writeFileSync(join(testDir, "image", "cover.png"), TINY_PNG_BYTES);
 
-    const context = createMockServicePluginContext({
-      entityTypes: ["post", "image"],
-    });
+    const context = await hostFor(createMockShell());
 
     const result = await dirSync.queueSyncBatch(context, "test");
 
@@ -55,9 +54,7 @@ describe("queueSyncBatch should include images (regression)", () => {
     writeFileSync(join(testDir, "image", "photo.webp"), TINY_PNG_BYTES);
     writeFileSync(join(testDir, "image", "banner.png"), TINY_PNG_BYTES);
 
-    const context = createMockServicePluginContext({
-      entityTypes: ["image"],
-    });
+    const context = await hostFor(createMockShell());
 
     const result = await dirSync.queueSyncBatch(context, "test");
 
@@ -70,7 +67,7 @@ describe("queueSyncBatch should include images (regression)", () => {
     writeFileSync(join(testDir, "post", "changed.md"), "# Changed");
     writeFileSync(join(testDir, "post", "unchanged.md"), "# Unchanged");
 
-    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const context = await hostFor(createMockShell());
     const result = await dirSync.queueSyncBatch(
       context,
       "periodic-sync",
@@ -93,9 +90,8 @@ describe("queueSyncBatch should include images (regression)", () => {
       entityService: createMockEntityService({ entityTypes: ["document"] }),
       logger: createSilentLogger("sidecar-delete"),
     });
-    const context = createMockServicePluginContext({
-      entityTypes: ["document"],
-    });
+    const context = await hostFor(createMockShell());
+    const enqueueBatch = spyOn(context.jobs, "enqueueBatch");
 
     const result = await documentSync.queueSyncBatch(
       context,
@@ -110,11 +106,11 @@ describe("queueSyncBatch should include images (regression)", () => {
       importOperationsCount: 1,
       totalFiles: 1,
     });
-    expect(context.jobs.enqueueBatch).toHaveBeenCalledWith(
+    expect(enqueueBatch).toHaveBeenCalledWith(
       [
         {
-          type: "directory-import",
-          data: expect.objectContaining({
+          definition: expect.objectContaining({ name: "directory-import" }),
+          input: expect.objectContaining({
             batchIndex: 0,
             paths: ["document/kept.pdf"],
             batchSize: 1,
@@ -132,7 +128,8 @@ describe("queueSyncBatch should include images (regression)", () => {
   it("keeps an explicitly remote-deleted path out of imports if it was recreated", async () => {
     mkdirSync(join(testDir, "post"), { recursive: true });
     writeFileSync(join(testDir, "post", "resurrected.md"), "# Late export");
-    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const context = await hostFor(createMockShell());
+    const enqueueBatch = spyOn(context.jobs, "enqueueBatch");
 
     const result = await dirSync.queueSyncBatch(
       context,
@@ -147,11 +144,11 @@ describe("queueSyncBatch should include images (regression)", () => {
       importOperationsCount: 0,
       totalFiles: 0,
     });
-    expect(context.jobs.enqueueBatch).toHaveBeenCalledWith(
+    expect(enqueueBatch).toHaveBeenCalledWith(
       [
         {
-          type: "directory-delete",
-          data: expect.objectContaining({
+          definition: expect.objectContaining({ name: "directory-delete" }),
+          input: expect.objectContaining({
             entityType: "post",
             entityId: "resurrected",
             filePath: join(testDir, "post", "resurrected.md"),
@@ -167,7 +164,7 @@ describe("queueSyncBatch should include images (regression)", () => {
   });
 
   it("chunks large targeted deletion sets before enqueueing", async () => {
-    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const context = await hostFor(createMockShell());
     // Spied before the call, so the recorded arguments are typed by the member
     // rather than reached for through an assertion afterwards.
     const enqueueBatch = spyOn(context.jobs, "enqueueBatch");
@@ -196,7 +193,7 @@ describe("queueSyncBatch should include images (regression)", () => {
         (operation) =>
           z
             .looseObject({ deletions: z.array(z.unknown()) })
-            .parse(operation.data).deletions.length,
+            .parse(operation.input).deletions.length,
       ),
     ).toEqual([50, 50, 20]);
   });
@@ -209,7 +206,8 @@ describe("queueSyncBatch should include images (regression)", () => {
       entityService,
       logger: createSilentLogger("no-pull-deletes"),
     });
-    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const context = await hostFor(createMockShell());
+    const enqueueBatch = spyOn(context.jobs, "enqueueBatch");
 
     const result = await noDeleteSync.queueSyncBatch(
       context,
@@ -219,14 +217,15 @@ describe("queueSyncBatch should include images (regression)", () => {
     );
 
     expect(result).toBeNull();
-    expect(context.jobs.enqueueBatch).not.toHaveBeenCalled();
+    expect(enqueueBatch).not.toHaveBeenCalled();
   });
 
   it("queues targeted deletes for files deleted by a periodic git pull", async () => {
     mkdirSync(join(testDir, "post"), { recursive: true });
     writeFileSync(join(testDir, "post", "untouched.md"), "# Untouched");
 
-    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const context = await hostFor(createMockShell());
+    const enqueueBatch = spyOn(context.jobs, "enqueueBatch");
     const result = await dirSync.queueSyncBatch(
       context,
       "periodic-sync",
@@ -239,11 +238,11 @@ describe("queueSyncBatch should include images (regression)", () => {
       importOperationsCount: 0,
       totalFiles: 0,
     });
-    expect(context.jobs.enqueueBatch).toHaveBeenCalledWith(
+    expect(enqueueBatch).toHaveBeenCalledWith(
       [
         {
-          type: "directory-delete",
-          data: expect.objectContaining({
+          definition: expect.objectContaining({ name: "directory-delete" }),
+          input: expect.objectContaining({
             entityType: "post",
             entityId: "deleted",
             filePath: join(testDir, "post", "deleted.md"),

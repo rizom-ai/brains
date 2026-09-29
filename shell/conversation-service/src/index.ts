@@ -7,6 +7,8 @@ export type {
   ConversationServiceConfig,
   ConversationMetadata,
   GetMessagesOptions,
+  GetManyConversationsWithMessagesRequest,
+  ConversationWithMessages,
   StartConversationRequest,
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
@@ -15,6 +17,7 @@ export type {
   ConversationMessageActor,
   ConversationMessageSource,
   ConversationMessageMetadata,
+  ConversationChangeCursor,
   ConversationDbConfig,
 } from "./types";
 export {
@@ -25,6 +28,8 @@ export {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,
+  conversationChangeCursorSchema,
+  getManyConversationsWithMessagesSchema,
   isSavableAssistantMessage,
   parseConversationMessageMetadata,
 } from "./types";

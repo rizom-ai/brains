@@ -96,7 +96,11 @@ export class MessageBus implements IMessageBus {
       message.id,
       () => this.publisher.publish(message, broadcast),
     );
-    return toMessageResponse<R>(type, response);
+    // Broadcasts deliberately have no reply, even when nobody is listening.
+    // Do not turn the absence of a reply into a failed request.
+    return broadcast === true
+      ? { noop: true }
+      : toMessageResponse<R>(type, response);
   }
 
   /** Collect one response from every matching handler in registration order. */

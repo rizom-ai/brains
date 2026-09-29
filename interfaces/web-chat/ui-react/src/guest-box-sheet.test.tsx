@@ -288,6 +288,41 @@ describe("the Ask box on a phone", () => {
       expect(pageHidden()).toBe(true);
     });
 
+    it("does not cover the page again when a late rise finishes during close", async () => {
+      const rise = Promise.withResolvers<void>();
+      Object.assign(host, {
+        getAnimations: (): Array<{ finished: Promise<void> }> => [
+          { finished: rise.promise },
+        ],
+      });
+      await render();
+      const computed = window.getComputedStyle;
+      Object.assign(window, {
+        getComputedStyle: (
+          element: Element,
+        ): Pick<CSSStyleDeclaration, "animationName"> =>
+          element === host
+            ? { animationName: "brain-ask-fall" }
+            : computed(element),
+      });
+      try {
+        await click("Close conversation");
+        expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(true);
+        await act(async (): Promise<void> => {
+          rise.resolve();
+          await rise.promise;
+        });
+        expect(pageHidden()).toBe(false);
+        expect(document.body.style.visibility).toBe("");
+        await act(async (): Promise<void> => {
+          host.dispatchEvent(new Event("animationend"));
+        });
+        expect(pageLocked()).toBe(false);
+      } finally {
+        Object.assign(window, { getComputedStyle: computed });
+      }
+    });
+
     it("falls away before it closes when its stylesheet animates it", async () => {
       await render();
       const computed = window.getComputedStyle;

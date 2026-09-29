@@ -1,13 +1,7 @@
-import { createLocalJWKSet, jwtVerify, type JWTPayload } from "jose";
+export type { VerifiedAccessToken } from "@brains/plugins";
+import type { VerifiedAccessToken } from "@brains/plugins";
+import { createLocalJWKSet, jwtVerify } from "jose";
 import type { JwksResponse } from "./types";
-
-export interface VerifiedAccessToken {
-  subject: string;
-  issuer: string;
-  audience: string | string[] | undefined;
-  scope: string[];
-  claims: JWTPayload;
-}
 
 export interface VerifyAccessTokenOptions {
   issuer: string;

@@ -8,15 +8,15 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/decks": "workspace:*",
+    "@brains/knowledge-map": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-engine": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/topics": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

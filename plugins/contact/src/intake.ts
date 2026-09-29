@@ -1,7 +1,5 @@
-import type {
-  IRuntimeStateNamespace,
-  ServiceEntityService,
-} from "@brains/plugins";
+import type { IRuntimeStateNamespace } from "@brains/sdk/services";
+import type { JobEntityAccess } from "@brains/sdk/entities";
 import type { ContactAdmission, ContactDenialReason } from "./admission";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
@@ -19,7 +17,7 @@ import {
 
 export interface ContactIntakeDependencies {
   admission: ContactAdmission;
-  entities: ServiceEntityService;
+  entities: Pick<JobEntityAccess, "getEntity" | "create" | "delete">;
   state: IRuntimeStateNamespace;
   policy: ContactStoragePolicy;
   /** Durable enqueue only, with a request-derived deduplication key. Never send email inline. */
@@ -143,11 +141,7 @@ export class ContactIntake {
         if (slot.phase === "writing" && !(await this.slots.stored(id)))
           continue;
         if (this.now() >= slot.expiresAt) {
-          if (entity)
-            await this.deps.entities.deleteEntity({
-              entityType: "contact-request",
-              id,
-            });
+          if (entity) await this.deps.entities.delete("contact-request", id);
           signal.throwIfAborted();
           if (await this.read(id))
             throw new Error("Contact deletion not confirmed");
@@ -200,15 +194,15 @@ export class ContactIntake {
       contactRequestAdapter.fromMarkdown(content).metadata,
     );
     try {
-      await this.deps.entities.createEntity({
-        entity: {
+      await this.deps.entities.create(
+        {
           id,
           entityType: "contact-request",
           visibility: "restricted",
           content,
           metadata,
         },
-        options: {
+        {
           signal,
           conditionalWrite: { expectedRevision: null },
           beforeWrite: async (): Promise<void> => {
@@ -216,7 +210,7 @@ export class ContactIntake {
             await this.slots.assertWritable(id);
           },
         },
-      });
+      );
     } catch {
       // Conditional conflicts and lost acknowledgements are reconciled by the
       // caller's read. Never issue a second create for an existing write slot.

@@ -430,7 +430,7 @@ For LinkedIn, social posts support text-only posts, image posts via `coverImageI
 
 ### `newsletter`
 
-Newsletter entities store email drafts and delivery metadata. The entity type is defined by the compound `@brains/newsletter` package (`plugins/newsletter`) alongside generation and selectable Buttondown or Resend delivery workflows. Resend delivery uses Contacts assigned to a configured Segment and sends through Broadcasts.
+Newsletter entities store email drafts and delivery metadata. The entity type is declared by the `@brains/newsletter` service package (`plugins/newsletter`) alongside generation and selectable Buttondown or Resend delivery workflows. Resend delivery uses Contacts assigned to a configured Segment and sends through Broadcasts.
 
 Key frontmatter:
 
@@ -445,18 +445,17 @@ Key frontmatter:
 
 A brain selects at most one delivery provider. Resend configuration requires an API key, a Segment ID, and a verified sender; Buttondown configuration may enable its native double opt-in behavior. With no provider configured, newsletter drafts and generation remain available while subscriber tools, signup UI, and external publishing stay disabled.
 
-```ts
-newsletter({
-  provider: {
-    type: "resend",
-    apiKey: "${RESEND_API_KEY}",
-    segmentId: "${RESEND_NEWSLETTER_SEGMENT_ID}",
-    from: "Newsletter <newsletter@example.com>",
-    replyTo: "hello@example.com", // optional
-    topicId: "${RESEND_NEWSLETTER_TOPIC_ID}", // optional
-  },
-});
+```yaml
+plugins:
+  newsletter:
+    provider:
+      type: resend
+      apiKey: "${RESEND_API_KEY}"
+      segmentId: "${RESEND_NEWSLETTER_SEGMENT_ID}"
+      from: "Newsletter <newsletter@example.com>"
 ```
+
+Optional `replyTo` and `topicId` fields belong inside `provider`. Both providers use the declarative `/api/newsletter/subscribe` form route and the `delivery_subscribers` management tool.
 
 Use `type: "buttondown"` with `apiKey` and optional `doubleOptIn` for Buttondown. The previous flat `{ apiKey, doubleOptIn }` newsletter configuration is not accepted.
 

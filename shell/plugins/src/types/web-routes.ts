@@ -34,13 +34,28 @@ export interface WebRouteDefinition {
   handler: WebRouteHandler;
 }
 
+const sitePageResponseBrand = Symbol.for("@rizom/brain/site-page-response/v1");
+
 /**
  * An admitted public page whose presentation belongs to the installed site.
  * The host may use its generated page at the same path; this response is the
  * fallback for apps without that site page. Denials and redirects never delegate.
  * APIs and authenticated pages use ordinary Responses, not this opt-in.
  */
-export class SitePageResponse extends Response {}
+export class SitePageResponse extends Response {
+  constructor(...args: ConstructorParameters<typeof Response>) {
+    super(...args);
+    Object.defineProperty(this, sitePageResponseBrand, { value: true });
+  }
+
+  /** Constructor identity is not shared by independently bundled SDK consumers. */
+  static is(value: unknown): value is SitePageResponse {
+    return (
+      value instanceof Response &&
+      Reflect.get(value, sitePageResponseBrand) === true
+    );
+  }
+}
 
 export interface JsonResponseInit {
   status?: number;

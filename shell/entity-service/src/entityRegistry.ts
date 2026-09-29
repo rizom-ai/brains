@@ -7,6 +7,7 @@ import { EntityValidationError } from "./errors";
 import { entityTypeClassificationSchema } from "./entity-type-classification";
 import { isGroupingContributor } from "./grouping-eligibility";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
+import { copyEntityTypeConfig } from "./entity-type-config";
 import {
   projectFrontmatterExtensions,
   type InvalidFieldPolicy,
@@ -48,6 +49,7 @@ export class EntityRegistry implements IEntityRegistry {
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
+  private stewardshipClaims = new Map<string, string>();
   /** Replaced with the grouping set; never owned by extendFrontmatterSchema. */
   private groupingExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
@@ -90,15 +92,20 @@ export class EntityRegistry implements IEntityRegistry {
       config?.classification,
     );
 
-    // Register schema, adapter, and config
+    // Validate before publishing any part of the registration.
+    const registeredConfig = {
+      ...copyEntityTypeConfig(config ?? {}),
+      classification,
+    };
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
-    this.entityConfigs.set(type, { ...config, classification });
+    this.entityConfigs.set(type, registeredConfig);
 
     this.logger.debug(`Registered entity type: ${type}`);
   }
 
   unregisterEntityType(type: string): void {
+    this.stewardshipClaims.delete(type);
     if (this.groupingSource?.entityType === type) {
       this.groupingSource = undefined;
       this.replaceGroupings([]);
@@ -163,6 +170,27 @@ export class EntityRegistry implements IEntityRegistry {
    */
   hasEntityType(type: string): boolean {
     return this.entitySchemas.has(type) && this.entityAdapters.has(type);
+  }
+
+  claimEntityStewardship(entityType: string, ownerLabel: string): void {
+    if (!this.hasEntityType(entityType)) {
+      throw new Error(
+        `"${ownerLabel}" cannot steward "${entityType}": the type is not registered`,
+      );
+    }
+    const existing = this.stewardshipClaims.get(entityType);
+    if (existing !== undefined && existing !== ownerLabel) {
+      throw new Error(
+        `"${ownerLabel}" cannot steward "${entityType}": "${existing}" already stewards it`,
+      );
+    }
+    this.stewardshipClaims.set(entityType, ownerLabel);
+  }
+
+  releaseEntityStewardship(entityType: string, ownerLabel: string): void {
+    if (this.stewardshipClaims.get(entityType) === ownerLabel) {
+      this.stewardshipClaims.delete(entityType);
+    }
   }
 
   /**
@@ -234,7 +262,7 @@ export class EntityRegistry implements IEntityRegistry {
    * Get configuration for a specific entity type
    */
   getEntityTypeConfig(type: string): EntityTypeConfig {
-    return { ...this.entityConfigs.get(type) };
+    return copyEntityTypeConfig(this.entityConfigs.get(type) ?? {});
   }
 
   /**
@@ -559,6 +587,10 @@ export class EntityRegistry implements IEntityRegistry {
     metadata: Record<string, unknown>,
     invalid: InvalidFieldPolicy,
   ): Record<string, unknown> {
+    const extensions = this.getFrontmatterExtensions(type);
+    const fields = this.groupingFields(type);
+    // A raw/body-only type has no registered source fields to project.
+    if (extensions.length === 0 && fields.length === 0) return metadata;
     // One parse feeds both projections; a bulk pass sees each row once, so it
     // must not leave the document in gray-matter's process-lifetime cache.
     const source = parseMarkdownWithFrontmatter(
@@ -569,10 +601,9 @@ export class EntityRegistry implements IEntityRegistry {
     const projected = projectFrontmatterExtensions(
       source,
       metadata,
-      this.getFrontmatterExtensions(type),
+      extensions,
       invalid,
     );
-    const fields = this.groupingFields(type);
     if (fields.length === 0) return projected;
     const schema = this.getEffectiveFrontmatterSchema(type);
     if (!schema)

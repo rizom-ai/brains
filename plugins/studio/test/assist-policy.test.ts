@@ -3,16 +3,11 @@ import { describe, expect, it, spyOn } from "bun:test";
 import type { AuthPrincipal } from "@brains/auth-service";
 import type { ZodType } from "@brains/utils/zod";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
-import { createEditorRoutes } from "../src/editor-routes";
-import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { installStudio, signIn } from "./helpers/install";
 
 const frontmatterSchema = z.object({
   title: z.string(),
@@ -82,17 +77,9 @@ async function setup(updatePermission: "trusted" | "admin"): Promise<{
       visibility: "restricted",
     },
   });
-  const context = createServicePluginContext(shell, "studio");
-  return {
-    shell,
-    routes: createEditorRoutes({
-      routePath: "/studio",
-      getContext: () => context,
-      resolveAuthPrincipal: async () => trustedPrincipal,
-      getEntityDisplay: () => undefined,
-      workspaceRegistry: new StudioWorkspaceRegistry(),
-    }),
-  };
+  signIn(shell, () => trustedPrincipal);
+  const { routes } = await installStudio(shell);
+  return { shell, routes };
 }
 
 function route(

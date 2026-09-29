@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
 import {
   createChatClient,
@@ -33,8 +34,9 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { deferred } from "@brains/utils/deferred";
-import { WebChatInterface } from "../src/web-chat-interface";
 import { resolveGuestPreset } from "../src/guest-preset";
+import { createWebChatPlugin } from "./helpers/definition";
+import { createStubAuth, createTestPrincipal } from "@brains/plugins/test";
 import { testGuestPolicy } from "./fixtures/guest-policy";
 import {
   GuestUsageRecord,
@@ -49,7 +51,7 @@ type Conversation = NonNullable<
 type Message = Awaited<ReturnType<IConversationService["getMessages"]>>[number];
 const origin = testGuestPolicy.origin;
 const base = "/api/chat/guest";
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness[] = [];
 afterEach(async (): Promise<void> => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -80,7 +82,7 @@ interface Fixture {
   health: () => ReturnType<
     ReturnType<
       ReturnType<
-        PluginTestHarness<WebChatInterface>["getMockShell"]
+        PluginTestHarness["getMockShell"]
       >["getOperationalHealthRegistry"]
     >["getChecks"]
   >;
@@ -100,10 +102,21 @@ async function setup(
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
-  const harness = createPluginHarness<WebChatInterface>(
+  const harness = createPluginHarness(
     options.managed ? { domain: "brain.test" } : {},
   );
   harnesses.push(harness);
+  // Fault-inspection adapter for this installed interface's owned state only.
+  const usageState: IRuntimeStateNamespace = {
+    scoped: (options) =>
+      harness
+        .getMockShell()
+        .getRuntimeState()
+        .scoped({
+          ...options,
+          namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${options.namespace}`,
+        }),
+  };
   const state: Fixture = {
     now: Date.parse("2026-09-01T12:00:00Z"),
     ready: true,
@@ -119,7 +132,7 @@ async function setup(
     },
     records: async (): Promise<GuestUsageEvent[]> =>
       new GuestUsageRecord(
-        harness.getMockShell().getRuntimeState(),
+        usageState,
         testGuestPolicy.usageRecord,
         () => state.now,
       ).list(1000),
@@ -134,7 +147,7 @@ async function setup(
       })),
     denials: async (): Promise<GuestUsageDenial[]> =>
       new GuestUsageRecord(
-        harness.getMockShell().getRuntimeState(),
+        usageState,
         testGuestPolicy.usageRecord,
         () => state.now,
       ).denials(1000),
@@ -167,6 +180,9 @@ async function setup(
       ...state.conversations.values(),
     ],
     searchConversations: async (): Promise<Conversation[]> => [],
+    getManyWithMessages: async () => [],
+    listConversationsUpdatedSince: async () => [],
+    getConversationChangeHead: async () => null,
     countMessages: async (id): Promise<number> =>
       state.messages.get(id)?.length ?? 0,
     addMessage: async (): Promise<void> => {},
@@ -255,7 +271,20 @@ async function setup(
   }
   const defaults = resolveGuestPreset("local-test");
   if (!defaults.enabled) throw new Error("Expected shared guest defaults");
-  const plugin = new WebChatInterface(
+  // Exercise real principal resolution rather than bypassing browser access.
+  harness
+    .getMockShell()
+    .getAuthRegistry()
+    .register(
+      createStubAuth({
+        loginResponse: () =>
+          new Response("Authentication required", { status: 401 }),
+        ...(options.authenticated === false
+          ? {}
+          : { principal: createTestPrincipal({ permissionLevel: "admin" }) }),
+      }),
+    );
+  const plugin = createWebChatPlugin(
     {},
     {
       ...(options.managed
@@ -271,11 +300,6 @@ async function setup(
                       options.usageRecord ?? testGuestPolicy.usageRecord,
                   },
           }),
-      // An operator's ambient browser authority must not reach guest execution.
-      resolvePermissionLevel: async (): Promise<"admin" | "public"> =>
-        options.authenticated === false ? "public" : "admin",
-      resolveAuthSession: async (): Promise<boolean> =>
-        options.authenticated !== false,
       guestHttp: {
         now: (): number => state.now,
         ...(options.readiness === false
@@ -285,10 +309,11 @@ async function setup(
     },
   );
   await harness.installPlugin(plugin);
-  // The shell readies plugins after registration; Studio workspaces register then.
-  await plugin.ready();
+  await plugin.finalizeRegistration?.();
+  // Declarative workspaces bind at registration completion; ready follows it.
+  await plugin.ready?.();
   // The real HTTP host snapshots routes before activation, not per request.
-  const routes = plugin.getWebRoutes();
+  const routes = plugin.getWebRoutes?.() ?? [];
   state.browser = (): Browser => {
     let cookie = "";
     const fetch = async (

@@ -20,6 +20,10 @@
     "./chat": {
       "types": "./src/chat.ts",
       "default": "./src/chat.ts"
+    },
+    "./upload-policy": {
+      "types": "./src/upload-policy.ts",
+      "default": "./src/upload-policy.ts"
     }
   },
   "main": "./src/index.ts",

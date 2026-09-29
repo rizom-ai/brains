@@ -63,4 +63,4 @@ export type MessageSender<T = unknown, R = unknown> = (
  * through `@rizom/brain/plugins`. `contract-fidelity.ts` now holds the
  * restatements in this file to what the services produce.
  */
-export type { MessageContext } from "@brains/messaging-service";
+export type { MessageContext, MessageHandler } from "@brains/messaging-service";

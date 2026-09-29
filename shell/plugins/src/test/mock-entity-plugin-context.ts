@@ -35,6 +35,7 @@ import { createMockShell } from "./mock-shell";
  * captured argument back off them needs another route.
  */
 type SpiedNamespace =
+  | "logger"
   | "entities"
   | "prompts"
   | "conversations"
@@ -122,6 +123,7 @@ export function createMockEntityPluginContext(
     ...context,
     // Namespaces tests assert against are wrapped so the factory's real
     // behaviour still runs while calls are recorded.
+    logger: spyOnMembers(context.logger),
     entities: spyOnMembers(context.entities),
     prompts: spyOnMembers(context.prompts),
     conversations: spyOnMembers(context.conversations),

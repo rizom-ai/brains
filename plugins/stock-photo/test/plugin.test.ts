@@ -1,39 +1,50 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { StockPhotoPlugin } from "../src/plugin";
+import { createSilentLogger } from "@brains/test-utils";
+import type { PluginCapabilities } from "@brains/plugins";
+import stockPhotoPackage from "../src";
 
-describe("StockPhotoPlugin", () => {
-  it("should register with correct metadata", async () => {
-    const harness = createPluginHarness();
-    const plugin = new StockPhotoPlugin();
-    await harness.installPlugin(plugin);
+const METADATA = { name: "@brains/stock-photo", version: "0.1.0" };
 
-    expect(plugin.id).toBe("stock-photo");
+async function installed(
+  config: Record<string, unknown>,
+): Promise<{ id: string; capabilities: PluginCapabilities }> {
+  const harness = createPluginHarness({
+    logger: createSilentLogger("stock-photo"),
+  });
+  const [plugin] = instantiatePluginPackageDefinition(
+    stockPhotoPackage,
+    config,
+    METADATA,
+  );
+  if (!plugin) throw new Error("Stock photo plugin was not created");
+  const capabilities = await harness.installPlugin(plugin);
+  return { id: plugin.id, capabilities };
+}
+
+const stockPhotoTools = (capabilities: PluginCapabilities): string[] =>
+  capabilities.tools
+    .map((tool) => tool.name)
+    .filter((name) => name.startsWith("stock-photo"))
+    .sort();
+
+describe("stock-photo package", () => {
+  it("registers under its package-scoped id", async () => {
+    const { id } = await installed({});
+    expect(id).toBe("@brains/stock-photo:stock-photo");
   });
 
-  it("should return no tools when API key is absent", async () => {
-    const harness = createPluginHarness();
-    const plugin = new StockPhotoPlugin();
-    await harness.installPlugin(plugin);
-
-    const { tools } = harness.getCapabilities();
-    const stockPhotoTools = tools.filter((t) =>
-      t.name.startsWith("stock-photo"),
-    );
-    expect(stockPhotoTools).toHaveLength(0);
+  it("offers nothing without a provider key", async () => {
+    // No key means no provider; a tool that could only answer "not
+    // configured" is noise in the agent's tool list.
+    const { capabilities } = await installed({});
+    expect(stockPhotoTools(capabilities)).toEqual([]);
   });
 
-  it("should return tools when API key is provided", async () => {
-    const harness = createPluginHarness();
-    const plugin = new StockPhotoPlugin({ apiKey: "test-key" });
-    await harness.installPlugin(plugin);
-
-    const { tools } = harness.getCapabilities();
-    const stockPhotoTools = tools.filter((t) =>
-      t.name.startsWith("stock-photo"),
-    );
-    expect(stockPhotoTools).toHaveLength(2);
-    expect(stockPhotoTools.map((t) => t.name).sort()).toEqual([
+  it("offers search and select once a key is configured", async () => {
+    const { capabilities } = await installed({ apiKey: "test-key" });
+    expect(stockPhotoTools(capabilities)).toEqual([
       "stock-photo_search",
       "stock-photo_select",
     ]);

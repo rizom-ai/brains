@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { computeContentHash } from "@brains/utils/hash";
 import {
   createMockEntityStore,
   type MockEntityStore,
@@ -51,27 +52,34 @@ function noteInput(content: string): EntityInput<BaseEntity> {
 }
 
 describe("createMockEntityStore", () => {
-  it("serializes verbatim when no adapter is registered", () => {
+  it("materializes verbatim when no adapter is registered", () => {
     const store = createMockEntityStore();
-    expect(store.serialize(noteEntity())).toEqual({
+    expect(store.materialize(noteEntity())).toEqual({
+      source: "# Note",
       content: "# Note",
       metadata: {},
+      contentHash: computeContentHash("# Note"),
     });
   });
 
-  it("serializes through the adapter when one is registered", () => {
+  it("decodes authored content but hashes stored markdown through the adapter", () => {
     const store = createMockEntityStore();
     store.adapters.set(
       "note",
       noteAdapter({
         toMarkdown: (): string => "from adapter",
+        fromMarkdown: (markdown): Partial<BaseEntity> => ({
+          content: `${markdown} decoded`,
+        }),
         extractMetadata: (): Record<string, unknown> => ({ via: "adapter" }),
       }),
     );
 
-    expect(store.serialize(noteEntity())).toEqual({
-      content: "from adapter",
+    expect(store.materialize(noteEntity())).toEqual({
+      source: "from adapter",
+      content: "from adapter decoded",
       metadata: { via: "adapter" },
+      contentHash: computeContentHash("from adapter"),
     });
   });
 
@@ -83,7 +91,7 @@ describe("createMockEntityStore", () => {
     Reflect.deleteProperty(stub, "toMarkdown");
     store.adapters.set("note", stub);
 
-    expect(store.serialize(noteEntity()).content).toBe("# Note");
+    expect(store.materialize(noteEntity()).content).toBe("# Note");
   });
 
   it("records an export intent with a rising revision", () => {

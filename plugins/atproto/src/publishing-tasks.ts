@@ -1,8 +1,8 @@
-import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { LoggerContract } from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
 import type { AtprotoPublishFailedPayload } from "./publish-contracts";
 import { ATPROTO_PUBLISH_FAILED } from "./publish-contracts";
+import type { AtprotoAnnouncer } from "./publisher";
 
 /**
  * Serializes ambient publishing work per entity and drains it on shutdown.
@@ -14,10 +14,10 @@ import { ATPROTO_PUBLISH_FAILED } from "./publish-contracts";
 export class PublishingTaskQueue {
   private readonly active = new Set<Promise<void>>();
   private readonly chains = new Map<string, Promise<void>>();
-  private readonly logger: Logger;
+  private readonly logger: LoggerContract;
   private readonly canPublish: () => boolean;
 
-  constructor(logger: Logger, canPublish: () => boolean) {
+  constructor(logger: LoggerContract, canPublish: () => boolean) {
     this.logger = logger;
     this.canPublish = canPublish;
   }
@@ -42,9 +42,9 @@ export class PublishingTaskQueue {
 
   /** Wait for every in-flight task, including ones queued while draining. */
   async settle(): Promise<void> {
-    while (this.active.size > 0) {
-      await Promise.all(this.active);
-    }
+    if (this.active.size === 0) return;
+    await Promise.all(this.active);
+    await this.settle();
   }
 
   /**
@@ -53,7 +53,7 @@ export class PublishingTaskQueue {
    * A brain without publishing credentials silently does nothing.
    */
   async runTrigger(
-    context: ServicePluginContext,
+    announce: AtprotoAnnouncer,
     details: Omit<AtprotoPublishFailedPayload, "error">,
     operation: () => Promise<unknown>,
   ): Promise<void> {
@@ -62,12 +62,12 @@ export class PublishingTaskQueue {
     try {
       await operation();
     } catch (error) {
-      await this.reportFailure(context, details, error);
+      await this.reportFailure(announce, details, error);
     }
   }
 
   async reportFailure(
-    context: ServicePluginContext,
+    announce: AtprotoAnnouncer,
     details: Omit<AtprotoPublishFailedPayload, "error">,
     error: unknown,
   ): Promise<void> {
@@ -78,10 +78,9 @@ export class PublishingTaskQueue {
     });
 
     try {
-      await context.messaging.send({
-        type: ATPROTO_PUBLISH_FAILED,
-        payload: { ...details, error: errorMessage },
-        broadcast: true,
+      await announce.publish({
+        topic: ATPROTO_PUBLISH_FAILED,
+        data: { ...details, error: errorMessage },
       });
     } catch (reportError) {
       this.logger.error("Failed to report AT Protocol publishing failure", {

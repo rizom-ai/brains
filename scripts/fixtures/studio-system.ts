@@ -7,7 +7,7 @@ import {
 } from "@brains/plugins";
 import { agentFrontmatterSchema } from "../../entities/agent-discovery/src/schemas/agent";
 import { skillFrontmatterSchema } from "../../entities/agent-discovery/src/schemas/skill";
-import { promptFrontmatterSchema } from "../../entities/prompt/src/schemas/prompt";
+import { prompt } from "../../entities/prompt/src";
 import { swotFrontmatterSchema } from "../../entities/assessment/src/schemas/swot";
 import { playbookFrontmatterSchema } from "../../plugins/playbooks/src/entity/schemas/playbook";
 import { zodFieldToStudioWidget } from "../../plugins/studio/src/config";
@@ -126,7 +126,7 @@ export const systemFixtures: Map<string, SystemFixture> = new Map(
     fixture(
       "prompt",
       "Prompts",
-      promptFrontmatterSchema,
+      prompt.metadata,
       { title: "Research synthesis", target: "research" },
       "# Research synthesis\n\nTurn the supplied material into a concise, evidence-led brief.\n\n## Approach\n\n1. Identify the central question.\n2. Separate evidence from interpretation.\n3. Name uncertainties and useful next steps.",
     ),

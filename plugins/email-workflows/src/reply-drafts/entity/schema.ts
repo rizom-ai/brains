@@ -1,4 +1,7 @@
-import { baseEntityParserSchema, inboxItemIdSchema } from "@brains/plugins";
+import {
+  baseEntityParserSchema,
+  inboxItemIdSchema,
+} from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 export const emailReplyDraftStatusSchema: z.ZodEnum<{
@@ -37,15 +40,32 @@ type EmailReplyDraftMetadataSchema = z.ZodObject<
   >
 >;
 
-const emailReplyDraftMetadataSchema: EmailReplyDraftMetadataSchema =
-  emailReplyDraftFrontmatterSchema.pick({
-    mailItemId: true,
-    revision: true,
-    status: true,
-    updatedAt: true,
-    sentAt: true,
-    providerDeliveryId: true,
-  });
+export const emailReplyDraftMetadataSchema: EmailReplyDraftMetadataSchema =
+  emailReplyDraftFrontmatterSchema
+    .pick({
+      mailItemId: true,
+      revision: true,
+      status: true,
+      updatedAt: true,
+      sentAt: true,
+      providerDeliveryId: true,
+    })
+    .extend({
+      // Reuse the inbox ID contract as validation without rewriting stored IDs.
+      mailItemId: z.string().refine((value) => {
+        const parsed = inboxItemIdSchema.safeParse(value);
+        return parsed.success && parsed.data === value;
+      }, "Expected a canonical inbox item ID"),
+      providerDeliveryId: z
+        .string()
+        .min(1)
+        .max(1_000)
+        .refine(
+          (value) => value === value.trim(),
+          "Delivery IDs must already be trimmed",
+        )
+        .optional(),
+    });
 
 export const emailReplyDraftSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{

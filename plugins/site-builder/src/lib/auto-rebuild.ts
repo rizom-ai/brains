@@ -1,50 +1,30 @@
-import {
-  PROJECTION_CHANNELS,
-  ProjectionWaveReadySchema,
-  type ProjectionWaveReady,
-} from "@brains/contracts";
-import type { Logger } from "@brains/utils/logger";
+import type { ProjectionWaveReady } from "@brains/contracts";
+import type { LoggerContract } from "@brains/sdk/services";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import type { SiteBuilderConfig } from "../config";
+import { siteBuildJob } from "./site-build-job";
 import type { SiteBuildStatusService } from "./site-build-status";
 
-interface ProjectionWaveReadyMessage {
-  payload: ProjectionWaveReady;
+/** Queueing this package's own builds, which is all a rebuild needs. */
+export interface RebuildJobs {
+  enqueue(
+    definition: typeof siteBuildJob,
+    input: {
+      environment: "preview" | "production";
+      outputDir: string;
+      workingDir?: string | undefined;
+      enableContentGeneration: boolean;
+      metadata: { trigger: string; timestamp: string };
+      inputGeneration: number;
+    },
+  ): Promise<{ id: string }>;
 }
 
-interface AutoRebuildContext {
-  messaging: {
-    subscribeExecution(
-      type: string,
-      handler: (
-        message: ProjectionWaveReadyMessage,
-      ) => Promise<{ success: boolean }> | { success: boolean },
-    ): () => void;
-  };
-  jobs: {
-    enqueue(request: {
-      type: "site-build";
-      data: {
-        environment: "preview" | "production";
-        outputDir: string;
-        workingDir?: string | undefined;
-        enableContentGeneration: boolean;
-        metadata: {
-          trigger: string;
-          timestamp: string;
-        };
-        inputGeneration: number;
-      };
-      options: {
-        priority: number;
-        source: string;
-        metadata: { operationType: "content_operations" };
-        deduplication: "skip";
-        deduplicationKey: string;
-      };
-    }): Promise<string>;
-  };
-}
+/**
+ * Types whose changes alone do not justify a render: notes are working
+ * material and never appear on the site.
+ */
+const EXCLUDED_REBUILD_TYPES = new Set(["note"]);
 
 /**
  * Manages debounced site rebuilds triggered by entity changes or explicit
@@ -53,9 +33,8 @@ interface AutoRebuildContext {
  */
 export class RebuildManager {
   private readonly config: SiteBuilderConfig;
-  private readonly context: AutoRebuildContext;
-  private readonly pluginId: string;
-  private readonly logger: Logger;
+  private readonly jobs: RebuildJobs;
+  private readonly logger: LoggerContract;
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
   private readonly dirtyGenerations = new Map<string, number>();
@@ -67,21 +46,18 @@ export class RebuildManager {
     string,
     { jobId: string; generation: number }
   >();
-  private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
   private disposed = false;
 
   constructor(
     config: SiteBuilderConfig,
-    context: AutoRebuildContext,
-    pluginId: string,
-    logger: Logger,
+    jobs: RebuildJobs,
+    logger: LoggerContract,
     statusService?: SiteBuildStatusService,
   ) {
     this.config = config;
-    this.context = context;
-    this.pluginId = pluginId;
+    this.jobs = jobs;
     this.logger = logger;
     this.statusService = statusService;
   }
@@ -160,38 +136,20 @@ export class RebuildManager {
     }
   }
 
-  /** Subscribe to successful scheduler waves instead of intermediate CRUD. */
-  setupAutoRebuild(): void {
-    if (this.disposed) return;
-    const excludedTypes = new Set(["note"]);
-
-    const waveReadyHandler = async (
-      message: ProjectionWaveReadyMessage,
-    ): Promise<{ success: boolean }> => {
-      const summary = ProjectionWaveReadySchema.parse(message.payload);
-      const changedTypes = new Set([
-        ...summary.sourceTypes,
-        ...summary.changedTargetTypes,
-      ]);
-      if ([...changedTypes].some((type) => !excludedTypes.has(type))) {
-        this.logger.debug(
-          `Projection wave ${summary.waveId} will trigger rebuild`,
-        );
-        await this.requestAutomaticBuild();
-      }
-      return { success: true };
-    };
-
-    this.unsubscribeFunctions.push(
-      this.context.messaging.subscribeExecution(
-        PROJECTION_CHANNELS.waveReady,
-        waveReadyHandler,
-      ),
-    );
-
-    this.logger.debug(
-      `Wave-end auto-rebuild enabled, excluding types: ${[...excludedTypes].join(", ")}`,
-    );
+  /**
+   * A finished projection wave, which is when the brain's records have
+   * settled enough to be worth rendering. Intermediate writes are not: a
+   * rebuild per edit renders the same site over and over.
+   */
+  async onProjectionWave(summary: ProjectionWaveReady): Promise<void> {
+    if (this.disposed || !this.config.autoRebuild) return;
+    const changedTypes = [
+      ...summary.sourceTypes,
+      ...summary.changedTargetTypes,
+    ];
+    if (changedTypes.every((type) => EXCLUDED_REBUILD_TYPES.has(type))) return;
+    this.logger.debug(`Projection wave ${summary.waveId} will trigger rebuild`);
+    await this.requestAutomaticBuild();
   }
 
   /**
@@ -216,15 +174,6 @@ export class RebuildManager {
     this.debounces.clear();
     this.queuedGenerations.clear();
     this.activeBuilds.clear();
-
-    for (const unsubscribe of this.unsubscribeFunctions) {
-      try {
-        unsubscribe();
-      } catch (error) {
-        cleanupErrors.push(error);
-      }
-    }
-    this.unsubscribeFunctions = [];
 
     await Promise.all([...this.activeTasks]);
     if (cleanupErrors.length > 0) throw cleanupErrors[0];
@@ -261,36 +210,24 @@ export class RebuildManager {
     this.logger.debug(`Triggering ${environment} site rebuild`);
 
     try {
-      const jobId = await this.context.jobs.enqueue({
-        type: "site-build",
-        data: {
-          environment,
-          outputDir,
-          workingDir: this.config.workingDir,
-          enableContentGeneration: true,
-          metadata: {
-            trigger: "debounced-rebuild",
-            timestamp: new Date().toISOString(),
-          },
-          inputGeneration,
+      const job = await this.jobs.enqueue(siteBuildJob, {
+        environment,
+        outputDir,
+        workingDir: this.config.workingDir,
+        enableContentGeneration: true,
+        metadata: {
+          trigger: "debounced-rebuild",
+          timestamp: new Date().toISOString(),
         },
-        options: {
-          priority: 0,
-          source: this.pluginId,
-          metadata: {
-            operationType: "content_operations",
-          },
-          deduplication: "skip",
-          deduplicationKey: `site-build:${environment}`,
-        },
+        inputGeneration,
       });
       if (automatic) {
         this.queuedGenerations.set(environment, {
-          jobId,
+          jobId: job.id,
           generation: inputGeneration,
         });
       }
-      await this.statusService?.markQueued(environment, jobId);
+      await this.statusService?.markQueued(environment, job.id);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {
       await this.statusService?.clearActive(environment);

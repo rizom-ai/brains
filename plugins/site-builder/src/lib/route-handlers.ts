@@ -4,103 +4,66 @@ import {
   RegisterRoutesPayloadSchema,
   UnregisterRoutesPayloadSchema,
 } from "@brains/site-composition";
-import type {
-  GetRouteResponse,
-  ListRoutesResponse,
-  RouteDefinition,
-} from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import { defineSubscription, z } from "@brains/sdk/services";
+import type { AnySubscriptionDefinition } from "@brains/sdk/services";
 import { registerConfigRoutes } from "./route-helpers";
 
 /**
- * Subscribe to all route-related messages on the message bus.
- * This wires up register, unregister, list, and get handlers for routes.
+ * The route bus, as declarations.
+ *
+ * Every package that owns pages registers them here rather than writing to a
+ * registry it does not hold, so these four requests are the whole boundary:
+ * add, remove, list, and read one. The payload schemas are what the site
+ * builder will accept; anything else is refused before a handler runs.
  */
-export function setupRouteHandlers(
-  context: Pick<ServicePluginContext, "messaging">,
-  routeRegistry: RouteRegistry,
-  logger: Logger,
-): void {
-  // Register handler for route registration
-  context.messaging.subscribe(
-    SITE_BUILDER_CHANNELS.routeRegister,
-    async (message) => {
-      try {
-        const payload = RegisterRoutesPayloadSchema.parse(message.payload);
-        const { routes, pluginId } = payload;
-        registerConfigRoutes(routes, pluginId, routeRegistry);
+export function routeSubscriptions(
+  routes: RouteRegistry,
+): AnySubscriptionDefinition[] {
+  return [
+    defineSubscription({
+      topic: SITE_BUILDER_CHANNELS.routeRegister,
+      payload: RegisterRoutesPayloadSchema,
+      handle: ({ payload }) => {
+        registerConfigRoutes(payload.routes, payload.pluginId, routes);
         return { success: true };
-      } catch (error) {
-        logger.error("Failed to register routes", { error });
-        return { success: false, error: "Failed to register routes" };
-      }
-    },
-  );
-
-  // Handler for unregistering routes
-  context.messaging.subscribe(
-    SITE_BUILDER_CHANNELS.routeUnregister,
-    async (message) => {
-      try {
-        const payload = UnregisterRoutesPayloadSchema.parse(message.payload);
-        const { paths, pluginId } = payload;
-
-        if (paths) {
-          for (const path of paths) {
-            routeRegistry.unregister(path);
-          }
-        } else if (pluginId) {
-          routeRegistry.unregisterByPlugin(pluginId);
+      },
+    }),
+    defineSubscription({
+      topic: SITE_BUILDER_CHANNELS.routeUnregister,
+      payload: UnregisterRoutesPayloadSchema,
+      handle: ({ payload }) => {
+        if (payload.paths) {
+          for (const path of payload.paths) routes.unregister(path);
+        } else if (payload.pluginId) {
+          routes.unregisterByPlugin(payload.pluginId);
         }
-
         return { success: true };
-      } catch (error) {
-        logger.error("Failed to unregister routes", { error });
-        return { success: false, error: "Failed to unregister routes" };
-      }
-    },
-  );
-
-  // Handler for listing routes
-  context.messaging.subscribe<unknown, ListRoutesResponse>(
-    SITE_BUILDER_CHANNELS.routeList,
-    async (message) => {
-      try {
-        const payload = ListRoutesPayloadSchema.parse(message.payload);
-        const routes = routeRegistry.list(
-          payload.pluginId ? payload : undefined,
-        );
-        return { success: true, data: { routes } };
-      } catch (error) {
-        logger.error("Failed to list routes", { error });
-        return { success: false, error: "Failed to list routes" };
-      }
-    },
-  );
-
-  // Handler for getting specific route
-  context.messaging.subscribe<unknown, GetRouteResponse>(
-    SITE_BUILDER_CHANNELS.routeGet,
-    async (message) => {
-      try {
-        const payload = GetRoutePayloadSchema.parse(message.payload);
-        const route = routeRegistry.get(payload.path);
-        return { success: true, data: { route } };
-      } catch (error) {
-        logger.error("Failed to get route", { error });
-        return { success: false, error: "Failed to get route" };
-      }
-    },
-  );
-
-  // Handler for site-content plugin to discover all routes
-  context.messaging.subscribe<unknown, RouteDefinition[]>(
-    SITE_BUILDER_CHANNELS.routesList,
-    async () => {
-      return { success: true, data: routeRegistry.list() };
-    },
-  );
+      },
+    }),
+    defineSubscription({
+      topic: SITE_BUILDER_CHANNELS.routeList,
+      payload: ListRoutesPayloadSchema,
+      handle: ({ payload }) => ({
+        success: true,
+        data: { routes: routes.list(payload.pluginId ? payload : undefined) },
+      }),
+    }),
+    defineSubscription({
+      topic: SITE_BUILDER_CHANNELS.routeGet,
+      payload: GetRoutePayloadSchema,
+      handle: ({ payload }) => ({
+        success: true,
+        data: { route: routes.get(payload.path) },
+      }),
+    }),
+    // What the whole site looks like, for a package that generates content
+    // per route rather than asking about one.
+    defineSubscription({
+      topic: SITE_BUILDER_CHANNELS.routesList,
+      payload: z.unknown(),
+      handle: () => ({ success: true, data: routes.list() }),
+    }),
+  ];
 }

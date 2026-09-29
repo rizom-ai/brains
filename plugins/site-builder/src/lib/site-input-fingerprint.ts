@@ -10,7 +10,7 @@ export interface SiteInputFingerprintOptions {
   layouts: Record<string, LayoutComponent>;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
-  sendMessage: SiteBuilderServices["sendMessage"];
+  publishMessage: SiteBuilderServices["publishMessage"];
 }
 
 /** Hash all serializable renderer inputs plus the selected renderer functions.
@@ -45,7 +45,7 @@ export function computeSiteInputFingerprint(
       ),
       rendererRuntime: {
         staticSiteBuilderFactory: String(options.staticSiteBuilderFactory),
-        stagingMessageSender: String(options.sendMessage),
+        stagingMessagePublisher: String(options.publishMessage),
       },
       templates: Object.fromEntries(
         templateNames.map((name) => {

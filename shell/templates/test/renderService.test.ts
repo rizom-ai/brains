@@ -65,6 +65,52 @@ describe("RenderService", () => {
     });
   });
 
+  test("view reads detach script and asset metadata without replacing schemas or renderers", () => {
+    const script = {
+      src: "/scripts/map.js",
+      defer: true,
+      module: false,
+      get implementationState(): never {
+        throw new Error("Not view metadata");
+      },
+    };
+    const template: Template = {
+      ...testTemplate,
+      runtimeScripts: [script],
+      staticAssets: { "/scripts/map.js": "original" },
+    };
+    templateRegistry.register(template.name, template);
+    for (const view of [
+      renderService.get(template.name),
+      ...renderService.list(),
+    ]) {
+      if (!view?.runtimeScripts?.[0] || !view.staticAssets)
+        throw new Error("Expected view metadata");
+      expect(view.schema).toBe(template.schema);
+      expect(view.renderers.web).toBe(template.layout.component);
+      expect(Object.keys(view.runtimeScripts[0]).sort()).toEqual([
+        "defer",
+        "module",
+        "src",
+      ]);
+      view.runtimeScripts[0].src = "/changed.js";
+      view.runtimeScripts.push({ src: "/added.js" });
+      view.staticAssets["/scripts/map.js"] = "changed";
+    }
+    expect(template.runtimeScripts).toHaveLength(1);
+    expect(script.src).toBe("/scripts/map.js");
+    expect(template.staticAssets).toEqual({ "/scripts/map.js": "original" });
+    expect(renderService.get(template.name)?.runtimeScripts).toEqual([
+      { src: "/scripts/map.js", defer: true, module: false },
+    ]);
+    expect(renderService.list()[0]?.staticAssets).toEqual({
+      "/scripts/map.js": "original",
+    });
+    expect(renderService.getRenderer(template.name, "web")).toBe(
+      template.layout.component,
+    );
+  });
+
   test("should not return templates without layout components", () => {
     const templateWithoutLayout: Template = {
       name: "no-layout:template",

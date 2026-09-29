@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { createClient, type Client } from "@libsql/client";
 import { createSilentLogger } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { EntityService } from "../src/entityService";
 import { EntityWriteConflictError } from "../src/entity-write-contracts";
 import type { EntityWriteSnapshot } from "../src/types";
@@ -44,6 +45,51 @@ describe("atomic conditional entity writes (real SQLite)", () => {
     if (!result) throw new Error("Missing test entity");
     return result;
   }
+
+  test("source reads and snapshots retain stored bytes rather than the codec body", async () => {
+    const source =
+      "---\nvisibility: restricted\n---\n\n  Literal ![image](entity://image/private)\r\n\r\n";
+    await ctx.entityService.createEntity({
+      entity: { ...input, content: source, visibility: "restricted" },
+    });
+    // Seed the exact stored representation independently of write-time
+    // frontmatter formatting: this regression exercises read fidelity.
+    await client.execute({
+      sql: "UPDATE entities SET content = ?, contentHash = ? WHERE id = 'chapter'",
+      args: [source, computeContentHash(source)],
+    });
+    const decode = spyOn(minimalTestAdapter, "fromMarkdown").mockReturnValue({
+      content: "Decoded body",
+    });
+    const request = {
+      entityType: "test",
+      id: "chapter",
+      visibilityScope: "restricted" as const,
+    };
+    try {
+      expect((await ctx.entityService.getEntity(request))?.content).toBe(
+        "Decoded body",
+      );
+      expect((await ctx.entityService.getEntityRaw(request))?.content).toBe(
+        source,
+      );
+      expect((await snapshot()).entity.content).toBe(source);
+      expect(
+        await ctx.entityService.getEntityRaw({
+          ...request,
+          visibilityScope: "shared",
+        }),
+      ).toBeNull();
+      expect(
+        await ctx.entityService.getEntityWriteSnapshot({
+          ...request,
+          visibilityScope: "shared",
+        }),
+      ).toBeNull();
+    } finally {
+      decode.mockRestore();
+    }
+  });
 
   test("creates once and rejects any later create-if-absent", async () => {
     await ctx.entityService.createEntity({

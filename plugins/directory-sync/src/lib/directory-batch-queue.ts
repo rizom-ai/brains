@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
 import type {
   BatchMetadata,
@@ -39,7 +39,7 @@ export class DirectoryBatchQueue {
   }
 
   async queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: Pick<DirectorySyncHost, "jobs" | "mirror">,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],

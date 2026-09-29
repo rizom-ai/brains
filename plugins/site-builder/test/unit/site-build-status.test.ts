@@ -1,59 +1,44 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { JobInfo } from "@brains/plugins";
+import type { ServiceRecentJob } from "@brains/plugins";
 import {
   createMockShell,
   createServicePluginContext,
 } from "@brains/plugins/test";
 
-import { SiteBuildStatusService } from "../../src/lib/site-build-status";
+import {
+  SiteBuildStatusService,
+  type SiteBuildJobReads,
+} from "../../src/lib/site-build-status";
 
-type StatusServiceJobs = ConstructorParameters<
-  typeof SiteBuildStatusService
->[1];
+/** A queue that knows nothing, unless a test says what it knows. */
+const NO_JOBS: SiteBuildJobReads = {
+  find: async (): Promise<null> => null,
+  recent: async (): Promise<[]> => [],
+};
 
 function createStatusService(
-  jobs?: Partial<StatusServiceJobs>,
+  jobs: Partial<SiteBuildJobReads> = {},
 ): SiteBuildStatusService {
   const context = createServicePluginContext(createMockShell(), "site-builder");
-  return new SiteBuildStatusService(
-    context.runtimeState,
-    jobs
-      ? {
-          getStatus: jobs.getStatus ?? (async (): Promise<null> => null),
-          getRecentJobs: jobs.getRecentJobs ?? (async (): Promise<[]> => []),
-        }
-      : context.jobs,
-  );
+  return new SiteBuildStatusService(context.runtimeState, {
+    find: jobs.find ?? NO_JOBS.find,
+    recent: jobs.recent ?? NO_JOBS.recent,
+  });
 }
 
 const TERMINAL_AT = Date.parse("2026-07-16T09:00:04.000Z");
 
-function siteBuildJob(overrides: Partial<JobInfo> = {}): JobInfo {
+function siteBuildJob(
+  overrides: Partial<ServiceRecentJob> = {},
+): ServiceRecentJob {
   return {
     id: "job-preview",
-    type: "site-builder:site-build",
-    data: JSON.stringify({ environment: "preview" }),
+    type: "site-build",
+    data: { environment: "preview" },
     status: "completed",
-    source: "site-builder",
-    priority: 0,
-    retryCount: 0,
-    maxRetries: 3,
-    lastError: null,
     createdAt: TERMINAL_AT - 4_000,
-    scheduledFor: TERMINAL_AT - 4_000,
     startedAt: TERMINAL_AT - 3_000,
     completedAt: TERMINAL_AT,
-    attemptId: null,
-    workerSlotId: null,
-    workerSessionId: null,
-    leaseExpiresAt: null,
-    attemptHeartbeatAt: null,
-    runtimeUpdatedAt: TERMINAL_AT,
-    metadata: {
-      rootJobId: "job-preview",
-      operationType: "content_operations",
-    },
-    progress: null,
     result: {
       success: true,
       routesBuilt: 18,
@@ -64,22 +49,19 @@ function siteBuildJob(overrides: Partial<JobInfo> = {}): JobInfo {
   };
 }
 
-function processingJob(id: string): JobInfo {
-  const startedAt = Date.parse("2026-07-16T09:00:01.000Z");
+function processingJob(id: string): ServiceRecentJob {
   return siteBuildJob({
     id,
     status: "processing",
-    startedAt,
-    completedAt: null,
+    startedAt: Date.parse("2026-07-16T09:00:01.000Z"),
     result: null,
-    metadata: { rootJobId: id, operationType: "content_operations" },
   });
 }
 
 describe("SiteBuildStatusService", () => {
   it("tracks one build through request, queue, execution, and success", async () => {
     const service = createStatusService({
-      getStatus: async (jobId) => processingJob(jobId),
+      find: async (jobId) => processingJob(jobId),
     });
     await service.initialize();
 
@@ -197,16 +179,16 @@ describe("SiteBuildStatusService", () => {
       "site-builder",
     );
     const terminalJob = siteBuildJob();
-    const getStatus = mock(async () => terminalJob);
+    const find = mock(async () => terminalJob);
     const service = new SiteBuildStatusService(context.runtimeState, {
-      getStatus,
-      getRecentJobs: mock(async () => []),
+      find,
+      recent: mock(async () => []),
     });
     await service.markQueued("preview", terminalJob.id);
 
     const snapshot = await service.getSnapshot();
 
-    expect(getStatus).toHaveBeenCalledWith(terminalJob.id);
+    expect(find).toHaveBeenCalledWith(terminalJob.id);
     expect(snapshot.environments[0]?.active).toBeUndefined();
     expect(snapshot.environments[0]).toMatchObject({
       environment: "preview",
@@ -220,7 +202,7 @@ describe("SiteBuildStatusService", () => {
 
   it("records cancellation without clearing a newer active build", async () => {
     const service = createStatusService({
-      getStatus: async (jobId) => processingJob(jobId),
+      find: async (jobId) => processingJob(jobId),
     });
     await service.markBuilding(
       "preview",
@@ -258,16 +240,10 @@ describe("SiteBuildStatusService", () => {
       createMockShell(),
       "site-builder",
     );
-    const first = new SiteBuildStatusService(
-      context.runtimeState,
-      context.jobs,
-    );
+    const first = new SiteBuildStatusService(context.runtimeState, NO_JOBS);
     await first.markRequested("preview", "2026-07-16T09:00:00.000Z");
 
-    const restarted = new SiteBuildStatusService(
-      context.runtimeState,
-      context.jobs,
-    );
+    const restarted = new SiteBuildStatusService(context.runtimeState, NO_JOBS);
     await restarted.initialize();
 
     expect(
@@ -277,7 +253,7 @@ describe("SiteBuildStatusService", () => {
 
   it("heals a lost lifecycle write from the queue's recent jobs", async () => {
     const job = siteBuildJob({ id: "job-lost" });
-    const service = createStatusService({ getRecentJobs: async () => [job] });
+    const service = createStatusService({ recent: async () => [job] });
 
     const snapshot = await service.getSnapshot();
 
@@ -292,8 +268,8 @@ describe("SiteBuildStatusService", () => {
   it("restores a running build lost from the projection", async () => {
     const job = processingJob("job-running");
     const service = createStatusService({
-      getStatus: async () => job,
-      getRecentJobs: async () => [job],
+      find: async () => job,
+      recent: async () => [job],
     });
 
     const snapshot = await service.getSnapshot();
@@ -318,7 +294,7 @@ describe("SiteBuildStatusService", () => {
       id: "job-old",
       completedAt: Date.parse("2026-07-16T08:00:00.000Z"),
     });
-    const service = createStatusService({ getRecentJobs: async () => [older] });
+    const service = createStatusService({ recent: async () => [older] });
     await service.markSuccess(
       "preview",
       "job-new",

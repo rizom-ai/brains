@@ -13,13 +13,14 @@ import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 import { MessageBus } from "@brains/messaging-service";
 import { coerceConversationMetadata } from "../src/metadata";
+import { drizzle } from "drizzle-orm/libsql";
 import { sql, eq } from "drizzle-orm";
-import { conversations } from "../src/schema";
 import {
   liveGuestConversation,
   expiredGuestConversation,
   conversationSqlNow,
 } from "../src/guest-retention";
+import { conversations, messages, summaryTracking } from "../src/schema";
 
 describe("ConversationService", () => {
   let service: ConversationService;
@@ -137,6 +138,56 @@ describe("ConversationService", () => {
         ),
       ).toEqual([]);
       expect(await service.getMessages(guestRequest.sessionId)).toHaveLength(1);
+    });
+
+    it("excludes guest transcripts from SDK bulk reads and change cursors", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "private guest transcript",
+      });
+      expect(await service.getConversationChangeHead()).toBeNull();
+      expect(
+        await service.listConversationsUpdatedSince({
+          after: null,
+          limit: 100,
+        }),
+      ).toEqual([]);
+      expect(
+        await service.listConversationsUpdatedSince({
+          after: { updated: "1970-01-01T00:00:00.000Z", id: "start" },
+          limit: 100,
+        }),
+      ).toEqual([]);
+      expect(
+        await service.getManyWithMessages({
+          ids: [guestRequest.sessionId],
+          messageLimit: 10,
+        }),
+      ).toEqual([]);
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      expect((await service.getConversationChangeHead())?.id).toBe("operator");
+      expect(
+        (
+          await service.listConversationsUpdatedSince({
+            after: null,
+            limit: 100,
+          })
+        ).map((entry) => entry.id),
+      ).toEqual(["operator"]);
+      expect(
+        (
+          await service.getManyWithMessages({
+            ids: [guestRequest.sessionId, "operator"],
+            messageLimit: 10,
+          })
+        ).map((entry) => entry.conversation.id),
+      ).toEqual(["operator"]);
     });
 
     it("rejects scope changes and authenticated ownership on guest creation", async () => {
@@ -841,6 +892,62 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("getManyWithMessages", () => {
+    it("loads a bounded message window for many conversations at once", async () => {
+      for (const conversationId of ["batch-1", "batch-2"]) {
+        await service.startConversation({
+          sessionId: conversationId,
+          interfaceType: "cli",
+          channelId: "test-channel",
+          metadata: testMetadata,
+        });
+        for (const content of ["First", "Second", "Third"]) {
+          await service.addMessage({
+            conversationId,
+            role: "user",
+            content: `${conversationId}: ${content}`,
+          });
+        }
+      }
+
+      const queries: string[] = [];
+      const loggedDb = drizzle(client, {
+        schema: { conversations, messages, summaryTracking },
+        logger: {
+          logQuery(query): void {
+            queries.push(query);
+          },
+        },
+      });
+      const loggedService = ConversationService.createFresh(
+        loggedDb,
+        logger,
+        messageBus,
+        config,
+      );
+      const result = await loggedService.getManyWithMessages({
+        ids: ["batch-2", "missing", "batch-1", "batch-2"],
+        messageLimit: 2,
+      });
+
+      expect(result.map(({ conversation }) => conversation.id)).toEqual([
+        "batch-2",
+        "batch-1",
+      ]);
+      expect(
+        result.map(({ messages }) =>
+          messages.map(({ content }) => content.split(": ")[1]),
+        ),
+      ).toEqual([
+        ["Second", "Third"],
+        ["Second", "Third"],
+      ]);
+      expect(
+        queries.filter((query) => /^select\b/i.test(query.trim())),
+      ).toHaveLength(2);
+    });
+  });
+
   describe("getConversation", () => {
     it("should retrieve conversation details", async () => {
       const conversationId = "conv-123";
@@ -1036,6 +1143,107 @@ describe("ConversationService", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]?.id).toBe("web-session");
+    });
+  });
+
+  describe("conversation change cursor", () => {
+    it("drains a timestamp tie across bounded pages", async () => {
+      for (const id of ["cursor-c", "cursor-a", "cursor-b"]) {
+        await service.startConversation({
+          sessionId: id,
+          interfaceType: "cli",
+          channelId: id,
+          metadata: testMetadata,
+        });
+      }
+      const tied = "2026-01-01T00:00:00.000Z";
+      await client.execute({
+        sql: "UPDATE conversations SET updated = ?",
+        args: [tied],
+      });
+
+      const first = await service.listConversationsUpdatedSince({
+        after: null,
+        limit: 2,
+      });
+      const last = first.at(-1);
+      expect(first.map(({ id }) => id)).toEqual(["cursor-a", "cursor-b"]);
+      expect(last).toBeDefined();
+
+      const second = await service.listConversationsUpdatedSince({
+        after: last ? { updated: last.updated, id: last.id } : null,
+        limit: 2,
+      });
+      expect(second.map(({ id }) => id)).toEqual(["cursor-c"]);
+      expect(await service.getConversationChangeHead()).toEqual({
+        updated: tied,
+        id: "cursor-c",
+      });
+    });
+
+    it("rolls back the message when conversation advancement fails", async () => {
+      await service.startConversation({
+        sessionId: "transactional-message",
+        interfaceType: "test",
+        channelId: "transactional-message",
+        metadata: testMetadata,
+      });
+      const before = await service.getConversation("transactional-message");
+      await client.execute(`
+        CREATE TRIGGER reject_transactional_revision
+        BEFORE UPDATE OF updated ON conversations
+        WHEN NEW.id = 'transactional-message'
+        BEGIN
+          SELECT RAISE(ABORT, 'revision rejected');
+        END
+      `);
+
+      let failed = false;
+      try {
+        await service.addMessage({
+          conversationId: "transactional-message",
+          role: "user",
+          content: "This message must roll back.",
+        });
+      } catch (error) {
+        failed = true;
+        expect(String(error)).toContain("Failed query: update");
+      }
+      expect(failed).toBe(true);
+
+      expect(await service.getMessages("transactional-message")).toEqual([]);
+      expect(await service.getConversation("transactional-message")).toEqual(
+        before,
+      );
+    });
+
+    it("advances the revision for repeated same-millisecond writes", async () => {
+      await service.startConversation({
+        sessionId: "monotonic-revision",
+        interfaceType: "cli",
+        channelId: "monotonic-revision",
+        metadata: testMetadata,
+      });
+      const started = await service.getConversation("monotonic-revision");
+
+      await service.addMessage({
+        conversationId: "monotonic-revision",
+        role: "user",
+        content: "first",
+      });
+      const first = await service.getConversation("monotonic-revision");
+      await service.addMessage({
+        conversationId: "monotonic-revision",
+        role: "assistant",
+        content: "second",
+      });
+      const second = await service.getConversation("monotonic-revision");
+      if (!started || !first || !second) {
+        throw new Error("Expected the conversation at every revision");
+      }
+
+      expect(first.updated > started.updated).toBe(true);
+      expect(second.updated > first.updated).toBe(true);
     });
   });
 

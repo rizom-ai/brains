@@ -1,12 +1,18 @@
 import { z } from "@brains/utils/zod";
-import {
-  GROUPING_PAGE_LIMIT,
-  GROUPING_MAX_PAGE_LIMIT,
-  queryGroupingUsageSchema,
-  groupingSearchSchema,
-  groupingSortSchema,
-  groupingValueSchema,
-} from "@brains/plugins";
+import type { StudioCollectionQuery } from "./collection-query";
+
+// Browser URL state, not query authority: the caller-bound runtime validates
+// these bounds independently. Do not import a server SDK entry into the UI.
+const GROUPING_PAGE_LIMIT = 50;
+const GROUPING_MAX_PAGE_LIMIT = 100;
+const groupingSearchSchema: z.ZodString = z.string().max(200);
+const groupingValueSchema: z.ZodString = z.string().max(10000);
+const groupingSortSchema: z.ZodType<StudioCollectionQuery["sort"]> = z.enum([
+  "updated-desc",
+  "updated-asc",
+  "created-desc",
+  "created-asc",
+]);
 
 /**
  * The URL-facing grouping query. Entity-service owns the vocabulary; this adds
@@ -50,4 +56,7 @@ export { GROUPING_PAGE_LIMIT };
 export const studioGroupingUsageQuerySchema: z.ZodObject<{
   grouping: z.ZodString;
   values: z.ZodDefault<z.ZodArray<z.ZodString>>;
-}> = queryGroupingUsageSchema.pick({ grouping: true, values: true });
+}> = z.object({
+  grouping: z.string().min(1).max(80),
+  values: z.array(groupingValueSchema).max(GROUPING_MAX_PAGE_LIMIT).default([]),
+});

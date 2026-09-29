@@ -11,13 +11,13 @@ The capability is explicit opt-in. Its active runtime composition contains the t
 - subscribes to the at-least-once `EMAIL_INBOUND` contract published by `interfaces/email`
 - discards obvious bulk mail deterministically, before any model call
 - classifies each remaining message with one structured model call into a `mail-item`
-- owns acknowledgement of raw inbound mail, so a failure holds the mailbox cursor rather than losing a message
+- acknowledges raw inbound mail once it is durably queued for triage, so the mailbox cursor advances only for messages the queue now holds
 - registers a `mail-items` inbox source for `@brains/unified-inbox`, with source-scoped
   category, mail-priority, and needs-reply facets for workspace and headless filtering
 - offers two decisive Inbox exits: **Done** records completed work as handled, while
   **Dismiss** archives an item that needs no work; review is implicit when opening an item
 - retains reviewed, handled, and archived records in the standard **Mail Items** Studio
-  collection and through the status-aware `email_triage_list` tool
+  collection and through the status-aware `email-workflows_triage-list` tool
 - reads the original through the email interface's private locator-backed IMAP operation,
   renders bounded plain text with `no-store`, and releases source bytes after each request
 - exposes no active reply-draft entity, Inbox follow-up, Studio workspace, or sending control
@@ -87,25 +87,25 @@ Classification delimits the email as untrusted source material and does not crea
 
 ## Acknowledgement and poison handling
 
-Triage is the sole acknowledgement owner for raw inbound mail:
+The `EMAIL_INBOUND` subscription validates the message and enqueues the `triage` job; the acknowledgement the email interface waits for means "durably queued", and a message it cannot read is refused so the cursor holds. From there the job queue carries the message:
 
-- a deterministic discard acknowledges immediately
-- meaningful mail acknowledges only after its derived record is durable
-- classification or database failure returns an unacknowledged result, so the mailbox cursor retries
+- a deterministic discard completes the job without a model call
+- meaningful mail completes the job only after its derived record is written
+- classification or database failure fails the job, and the queue retries it (three attempts)
 
-Classification attempts are counted by hashed message identifier in scoped runtime state — the same mechanism the mailbox cursor uses. The first two failures stay unacknowledged. After the third, triage persists a safe high-priority `category=null` fallback titled "Unclassified email", containing no source content and directing the operator to the mailbox. Database failure still holds the cursor. Attempt counters are deleted as soon as a message resolves, so the state holds counters only for messages currently wedged.
+Classification attempts are counted by hashed message identifier in scoped runtime state. The first two failures fail the job; on the third, triage persists a safe high-priority `category=null` fallback titled "Unclassified email", containing no source content and directing the operator to the mailbox. Attempt counters are deleted as soon as a message resolves, so the state holds counters only for messages currently wedged. The classification rubric is read inside the job from the editable `email-workflows:classification` prompt.
 
 ## Dormant reply backend
 
-The package retains the source-backed reply operator, revisioned entity schema, threading rules, explicit confirmation boundary, and revision-scoped delivery idempotency as tested source code. They are not part of `emailWorkflows()` runtime composition: the factory does not install the reply entity, and the service does not resolve its prompt or register its operator, follow-up, or workspace. Existing draft files remain untouched but are not exposed through Studio.
+The package retains the source-backed reply operator, revisioned entity schema, threading rules, explicit confirmation boundary, and revision-scoped delivery idempotency as tested source code. They are not part of the package's runtime composition: the service declares only the `mail-item` entity, and it does not resolve the drafting prompt or register the operator, follow-up, or workspace. The `email-reply-draft` entity is defined (`reply-drafts/entity/definition.ts`) for whichever work lands the flow to declare. Existing draft files remain untouched but are not exposed through Studio.
 
 Re-enabling reply drafting requires a separate product decision covering its destination, UI, existing revisions, and runtime migration. There is deliberately no configuration flag that exposes the unfinished surface.
 
 ## Tools
 
-| Tool                | Purpose                                                                       |
-| ------------------- | ----------------------------------------------------------------------------- |
-| `email_triage_list` | list items with combined category, priority, status, and `needsReply` filters |
+| Tool                          | Purpose                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| `email-workflows_triage-list` | list items with combined category, priority, status, and `needsReply` filters |
 
 Ordinary entity operations use `system_get`, `system_update`, and `system_delete`.
 New mail is operated through the shared Inbox; the **Mail Items** collection remains the

@@ -18,7 +18,7 @@ turns:
   - userMessage: "Start playbook onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
           argsContain:
             action: start
@@ -67,7 +67,7 @@ turns:
   - userMessage: "Start playbook first-knowledge-loop."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
           argsContain:
             action: start
@@ -108,11 +108,11 @@ turns:
       responseNotContains:
         - "I cannot"
         - "I don't have access"
-        - "playbook_manage"
+        - "playbooks_manage"
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_manage
+    - toolName: playbooks_manage
       shouldBeCalled: true
     - toolName: system_create
       shouldBeCalled: true
@@ -126,7 +126,7 @@ successCriteria:
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-    - "playbook_manage"
+    - "playbooks_manage"
 
 efficiency:
   maxToolCalls: 16

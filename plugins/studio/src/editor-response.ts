@@ -1,4 +1,4 @@
-import { jsonResponse as jsonResponseBase } from "@brains/plugins";
+import { jsonResponse as jsonResponseBase } from "@brains/sdk/services";
 
 /**
  * Studio API responses are never cached: the editor reads its own writes, and a

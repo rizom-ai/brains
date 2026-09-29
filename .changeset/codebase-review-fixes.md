@@ -8,7 +8,6 @@
 "@brains/a2a": patch
 "@brains/mcp": patch
 "@brains/web-chat": patch
-"@brains/webserver": patch
 "@brains/chat": patch
 "@brains/chat-repl": patch
 "@brains/entity-service": patch

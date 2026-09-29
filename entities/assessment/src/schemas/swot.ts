@@ -1,6 +1,6 @@
-import type { BaseEntity } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 
 export interface SwotItem {
   title: string;
@@ -62,11 +62,11 @@ export interface SwotEntity extends BaseEntity {
 }
 
 export const swotEntitySchema: ReturnType<
-  typeof baseEntitySchema.extend<{
+  typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"swot">;
     metadata: SwotMetadataSchema;
   }>
-> = baseEntitySchema.extend({
+> = baseEntityParserSchema.extend({
   entityType: z.literal("swot"),
   metadata: swotMetadataSchema,
 });

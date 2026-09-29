@@ -15,7 +15,7 @@ import {
   BrainCharacterAdapter,
 } from "@brains/identity-service";
 import { PermissionService } from "@brains/templates";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, stubMethod } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 const confirmationArgsSchema = z.record(z.string(), z.unknown());
@@ -1338,6 +1338,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Updating `agent` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1364,6 +1365,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Updating `agent` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
 
     const unchanged = expectDefined(
@@ -1394,6 +1396,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1424,6 +1427,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1454,6 +1458,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1500,6 +1505,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1523,6 +1529,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Deleting `newsletter` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1544,7 +1551,8 @@ describe("system_update tool", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Deleting `newsletter` is not allowed through system tools.",
+      error: "Permission denied",
+      code: "permission_denied",
     });
     expect(services.getEntities().has("newsletter-1")).toBe(true);
   });
@@ -1803,23 +1811,24 @@ describe("system_update tool", () => {
       },
     ]);
 
-    const originalRegistry = services.entityRegistry;
-    services.entityRegistry = {
-      ...originalRegistry,
-      getEffectiveFrontmatterSchema: (
-        type: string,
-      ): ReturnType<typeof originalRegistry.getEffectiveFrontmatterSchema> =>
-        type === "anchor-profile"
-          ? z.object({
-              name: z.string(),
-              kind: z.enum(["person", "team", "organization"]),
-              role: z.string(),
-              audience: z.string(),
-              expertise: z.array(z.string()),
-              availability: z.string(),
-            })
-          : originalRegistry.getEffectiveFrontmatterSchema(type),
-    };
+    // Stubbed in place rather than spread into a new object: spreading a
+    // class instance drops its prototype methods, so the replacement is
+    // structurally incomplete and only compiles because a cast said so.
+    const registry = services.entityRegistry;
+    const originalSchemaFor =
+      registry.getEffectiveFrontmatterSchema.bind(registry);
+    stubMethod(registry, "getEffectiveFrontmatterSchema", (type) =>
+      type === "anchor-profile"
+        ? z.object({
+            name: z.string(),
+            kind: z.enum(["person", "team", "organization"]),
+            role: z.string(),
+            audience: z.string(),
+            expertise: z.array(z.string()),
+            availability: z.string(),
+          })
+        : originalSchemaFor(type),
+    );
     tools = createSystemTools(services);
 
     const result = await exec({

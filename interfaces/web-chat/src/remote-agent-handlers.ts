@@ -1,10 +1,10 @@
 import { createExternalActorId } from "@brains/contracts";
-import type { AuthPrincipal } from "@brains/auth-service";
 import type {
+  AuthPrincipal,
   ChatContext,
-  MessageInterfacePluginContext,
+  AgentNamespace,
   UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
 import type { WebChatConversationAccess } from "./conversation-access";
 
@@ -33,10 +33,7 @@ export interface RemoteAgentAccess {
 }
 
 export interface RemoteAgentHandlerDeps {
-  agent: Pick<
-    MessageInterfacePluginContext["agent"],
-    "chat" | "confirmPendingAction"
-  >;
+  agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
   resolveBrowserAccess: (request: Request) => Promise<RemoteAgentAccess>;
   toConversationAccess: (
     permissionLevel: UserPermissionLevel,

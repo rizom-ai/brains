@@ -7,6 +7,7 @@ import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -33,7 +34,9 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
     return [...this.values.values()];
   }
 
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput> {
     const prefix = `${options.namespace}:`;
     return {
       get: async (key): Promise<T | null> => {
@@ -42,12 +45,16 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
       },
       has: async (key): Promise<boolean> => this.values.has(`${prefix}${key}`),
       set: async (key, value): Promise<void> => {
-        this.values.set(`${prefix}${key}`, options.schema.parse(value));
+        this.values.set(
+          `${prefix}${key}`,
+          prepareRuntimeStateValue(options.schema, value),
+        );
       },
       setIfNotExists: async (key, value): Promise<boolean> => {
         const fullKey = `${prefix}${key}`;
+        const wireValue = prepareRuntimeStateValue(options.schema, value);
         if (this.values.has(fullKey)) return false;
-        this.values.set(fullKey, options.schema.parse(value));
+        this.values.set(fullKey, wireValue);
         return true;
       },
       compareAndSet: async (): Promise<boolean> => {
@@ -847,5 +854,52 @@ describe("RecurringCheckService", () => {
     expect(attempts).toBe(2);
     expect(delivered).toEqual(["one"]);
     expect(runs).toBe(2);
+  });
+});
+
+/**
+ * Plugin ids are package-scoped now.
+ *
+ * A declaratively-authored package names its plugins
+ * `@scope/package:local`, so independently published packages cannot
+ * collide. The identifier rule predates that and allowed only alphanumerics,
+ * `_` and `-` — which rejected every such plugin the moment it declared a
+ * check, and took the rest of its registration down with it.
+ */
+describe("who may register a recurring check", () => {
+  it("accepts a package-scoped plugin id", () => {
+    const { service } = createService({});
+
+    expect(() =>
+      service.namespace("@brains/agent-discovery:agent").register({
+        id: "agent-card-refresh",
+        cadence: "daily",
+        run: async () => ({}),
+      }),
+    ).not.toThrow();
+  });
+
+  it("still rejects an id that could not name a plugin", () => {
+    const { service } = createService({});
+
+    expect(() =>
+      service.namespace("has spaces and !").register({
+        id: "directory-scan",
+        cadence: "daily",
+        run: async () => ({}),
+      }),
+    ).toThrow("Invalid recurring-check plugin ID");
+  });
+
+  it("keeps check ids plain, since the plugin already carries the scope", () => {
+    const { service } = createService({});
+
+    expect(() =>
+      service.namespace("agent").register({
+        id: "@brains/other:scan",
+        cadence: "daily",
+        run: async () => ({}),
+      }),
+    ).toThrow("Invalid recurring-check check ID");
   });
 });

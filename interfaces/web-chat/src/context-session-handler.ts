@@ -8,13 +8,13 @@ import {
   canAccessBrowserConversation,
   type WebChatConversationAccess,
 } from "./conversation-access";
-import {
-  coerceConversationMetadata,
-  type InterfacePluginContext,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+import { coerceConversationMetadata } from "@brains/sdk/interfaces";
+import type {
+  IInterfaceConversationsNamespace,
+  UserPermissionLevel,
+} from "@brains/sdk/interfaces";
 
-type ConversationService = InterfacePluginContext["conversations"];
+type ConversationService = IInterfaceConversationsNamespace;
 
 interface ContextSessionHandlerDeps {
   conversations: ConversationService;

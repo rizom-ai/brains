@@ -1,4 +1,4 @@
-import { entityGroupingSchema, type EntityGrouping } from "@brains/plugins";
+import type { EntityGrouping } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 
 export const GROUPING_DEFINITIONS_TYPE = "grouping-definitions";
@@ -13,9 +13,9 @@ export const groupingDefinitionSchema: z.ZodObject<
   },
   z.core.$strict
 > = z.strictObject({
-  label: entityGroupingSchema.shape.label,
+  label: z.string().trim().min(1).max(100),
   excludeTypes: z
-    .array(entityGroupingSchema.shape.types.element)
+    .array(z.string().min(1).max(100))
     .max(100)
     .refine(
       (types) => new Set(types).size === types.length,
@@ -24,8 +24,9 @@ export const groupingDefinitionSchema: z.ZodObject<
     .optional(),
   multiple: z.boolean(),
   values: z
-    .array(z.string().min(1))
+    .array(z.string().min(1).max(10000))
     .min(1)
+    .max(100)
     .superRefine((values, context) => {
       const seen = new Set<string>();
       values.forEach((value, index) => {
@@ -47,7 +48,14 @@ export const groupingDefinitionsFrontmatterSchema: z.ZodObject<{
   >;
 }> = z.object({
   groupings: z
-    .record(entityGroupingSchema.shape.key, groupingDefinitionSchema)
+    .record(
+      z
+        .string()
+        .min(1)
+        .max(80)
+        .regex(/^[a-z][a-z0-9-]*$/),
+      groupingDefinitionSchema,
+    )
     .refine(
       (groupings) => Object.keys(groupings).length <= MAX_GROUPING_DEFINITIONS,
       `Define at most ${MAX_GROUPING_DEFINITIONS} groupings.`,

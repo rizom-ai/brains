@@ -1,23 +1,17 @@
+export type {
+  A2APeerTrustRecord,
+  GrantA2APeerTrustInput,
+  PeerTrustMutationContext,
+} from "@brains/plugins";
+import type {
+  A2APeerTrustRecord,
+  GrantA2APeerTrustInput,
+  PeerTrustMutationContext,
+} from "@brains/plugins";
 import { eq } from "drizzle-orm";
 import { AuthAuditStore } from "./audit-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { a2aPeerTrust } from "./runtime-schema";
-
-export interface A2APeerTrustRecord {
-  domain: string;
-  keyFingerprint: string;
-  grantedLevel: "public" | "trusted";
-}
-
-export interface GrantA2APeerTrustInput {
-  domain: string;
-  keyFingerprint: string;
-  grantedLevel: "public" | "trusted" | "admin";
-}
-
-export interface PeerTrustMutationContext {
-  actorUserId?: string;
-}
 
 export interface A2APeerTrustPersistence {
   get(domain: string): Promise<A2APeerTrustRecord | undefined>;

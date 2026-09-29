@@ -7,19 +7,19 @@ import type {
 } from "@brains/plugins";
 import { resolveEvalConfig } from "../src/eval-config-loader";
 
-function plugin(id: string): Plugin {
+const MCP_ID = "@brains/mcp:mcp";
+function plugin(id = MCP_ID): Plugin {
   return {
     id,
     version: "1.0.0",
     type: "interface",
-    packageName: "@test/mcp",
+    packageName: "@brains/mcp",
     register: async (): Promise<PluginCapabilities> => ({
       tools: [],
       resources: [],
     }),
   };
 }
-
 function definition(
   mcp: Plugin,
   disabled = true,
@@ -32,14 +32,13 @@ function definition(
     evalDisable: disabled ? ["mcp"] : [],
   });
 }
-
 describe("MCP protocol eval composition", () => {
   it.each([true, false])(
-    "uses the selected provider without retaining or duplicating its host (disabled=%s)",
+    "replaces the selected host without duplication (disabled=%s)",
     (disabled) => {
-      const protocol = plugin("mcp");
+      const protocol = plugin();
       const hosted: Plugin & ProtocolPluginProvider = {
-        ...plugin("mcp"),
+        ...plugin(),
         createProtocolPlugin: () => protocol,
       };
       const result = resolveEvalConfig(
@@ -52,9 +51,8 @@ describe("MCP protocol eval composition", () => {
       expect(result.plugins).not.toContain(hosted);
     },
   );
-
-  it("leaves ordinary eval composition unchanged", () => {
-    const hosted = plugin("mcp");
+  it("leaves ordinary evaluation unchanged", () => {
+    const hosted = plugin();
     expect(
       resolveEvalConfig(definition(hosted), {}, { mode: "eval" }, false)
         .plugins,
@@ -64,17 +62,19 @@ describe("MCP protocol eval composition", () => {
         .plugins,
     ).toEqual([hosted]);
   });
-
-  it("rejects an unsupported provider instead of substituting another implementation or host", () => {
+  it("rejects an unsupported provider rather than substituting a host", () => {
     expect(() =>
-      resolveEvalConfig(definition(plugin("mcp")), {}, { mode: "eval" }, true),
+      resolveEvalConfig(definition(plugin()), {}, { mode: "eval" }, true),
     ).toThrow("support protocol-only registration");
   });
-
-  it("rejects a provider that changes plugin identity", () => {
+  it.each([
+    { id: "different-id" },
+    { packageName: "@other/package" },
+    { version: "2.0.0" },
+  ])("rejects changed installed identity (%j)", (change) => {
     const hosted: Plugin & ProtocolPluginProvider = {
-      ...plugin("mcp"),
-      createProtocolPlugin: () => plugin("different-id"),
+      ...plugin(),
+      createProtocolPlugin: () => ({ ...plugin(), ...change }),
     };
     expect(() =>
       resolveEvalConfig(definition(hosted), {}, { mode: "eval" }, true),

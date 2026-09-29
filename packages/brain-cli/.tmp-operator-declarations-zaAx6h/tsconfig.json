@@ -1,0 +1,27 @@
+{
+  "extends": "../test/fixtures/public-authoring/operator-surface/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "declaration": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": ["bun"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@rizom/brain/entities": ["../dist/entities.d.ts"],
+      "@rizom/brain/interfaces": ["../dist/interfaces.d.ts"],
+      "@rizom/brain/services": ["../dist/services.d.ts"],
+      "@fixture/reading-entities": [
+        "../test/fixtures/public-authoring/entity/src/index.ts"
+      ],
+      "@fixture/reading-insights": [
+        "../test/fixtures/public-authoring/service/src/index.tsx"
+      ]
+    }
+  },
+  "include": [
+    "../test/fixtures/public-authoring/operator-surface/src/**/*.ts",
+    "../test/fixtures/public-authoring/account-settings-interface/src/**/*.ts"
+  ]
+}

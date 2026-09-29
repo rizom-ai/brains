@@ -1,11 +1,9 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import type { GitReconciliationService } from "../lib/git-reconciliation";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import {
-  directorySyncRequestJobSchema,
   type BatchResult,
   type DirectorySyncRequestJobData,
   type IDirectorySync,
@@ -20,12 +18,9 @@ export interface DirectorySyncRequestJobResult {
   totalFiles?: number;
 }
 
-export class DirectorySyncRequestJobHandler extends BaseJobHandler<
-  "sync-request",
-  DirectorySyncRequestJobData,
-  DirectorySyncRequestJobResult
-> {
-  private readonly context: ServicePluginContext;
+export class DirectorySyncRequestJobHandler {
+  protected readonly logger: Logger;
+  private readonly context: DirectorySyncHost;
   private readonly getDirectorySync: () => IDirectorySync;
   private readonly getGitSync: () => IGitSync;
   private readonly reconciliation: Pick<
@@ -38,7 +33,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     | undefined;
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncHost,
     getDirectorySync: () => IDirectorySync,
     getGitSync: () => IGitSync,
     reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
@@ -47,10 +42,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       "createProgressObserver"
     >,
   ) {
-    super(logger, {
-      schema: directorySyncRequestJobSchema,
-      jobTypeName: "sync-request",
-    });
+    this.logger = logger;
     this.context = context;
     this.getDirectorySync = getDirectorySync;
     this.getGitSync = getGitSync;
@@ -61,7 +53,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
   async process(
     data: DirectorySyncRequestJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<DirectorySyncRequestJobResult> {
     await progressReporter.report({
       progress: 5,
@@ -105,16 +97,6 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     });
 
     return toJobResult(result);
-  }
-
-  protected override summarizeDataForLog(
-    data: DirectorySyncRequestJobData,
-  ): Record<string, unknown> {
-    return {
-      source: data.source,
-      interfaceType: data.interfaceType,
-      channelId: data.channelId,
-    };
   }
 }
 

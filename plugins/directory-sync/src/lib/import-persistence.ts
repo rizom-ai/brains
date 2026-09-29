@@ -1,9 +1,9 @@
-import type {
-  BaseEntity,
-  ContentVisibility,
-  EntityServiceClient,
-} from "@brains/plugins";
-import { EntityWriteConflictError } from "@brains/plugins";
+import {
+  sdkErrorSchema,
+  type BaseEntity,
+  type ContentVisibility,
+} from "@brains/sdk/entities";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
@@ -13,7 +13,7 @@ import { resolveInSyncPath } from "./path-utils";
 import { recordImportIssue } from "./import-result";
 
 export interface ImportPersistenceDeps {
-  entityService: Pick<EntityServiceClient, "serializeEntity" | "upsertEntity">;
+  entityService: Pick<EntityMirrorClient, "serializeEntity" | "upsertEntity">;
   logger: Logger;
   quarantine: {
     isValidationError(error: unknown): boolean;
@@ -66,7 +66,7 @@ export async function persistImportEntity(
   parsedEntity: Partial<BaseEntity>,
   filePath: string,
   result: ImportResult,
-  snapshot: Awaited<ReturnType<EntityServiceClient["getEntityWriteSnapshot"]>>,
+  snapshot: Awaited<ReturnType<EntityMirrorClient["getEntityWriteSnapshot"]>>,
 ): Promise<void> {
   try {
     const existing = snapshot?.entity ?? null;
@@ -139,7 +139,8 @@ export async function persistImportEntity(
 
     await deps.quarantine.markAsRecoveredIfNeeded(filePath);
   } catch (error) {
-    if (error instanceof EntityWriteConflictError) {
+    const failure = sdkErrorSchema.safeParse(error);
+    if (failure.success && failure.data.code === "conflict") {
       result.skipped++;
       recordImportIssue(
         result,

@@ -11,7 +11,15 @@ export { Badge } from "./Badge";
 export type { BadgeProps } from "./Badge";
 export { Divider } from "./Divider";
 export type { DividerProps } from "./Divider";
-export { renderHighlightedText } from "@brains/ui-library";
+import { renderHighlightedText as renderSharedHighlightedText } from "@rizom/brain-ui";
+import type { JSX } from "react";
+
+// The implementation is bundled; the Site declaration stays React-only and
+// does not require a Core-lane package in its consumer's type graph.
+export const renderHighlightedText: (
+  text: string,
+  highlightClass: string,
+) => JSX.Element = renderSharedHighlightedText;
 export { socialLinksToRizomLinks } from "./site-info-links";
 export type {
   RizomBrandSuffix,

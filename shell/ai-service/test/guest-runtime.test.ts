@@ -432,6 +432,34 @@ describe("guest runtime boundary", () => {
       expect(stored).not.toContain("social-post:announcement");
     });
 
+    it("does not persist an answer cancelled during source discovery", async () => {
+      const started = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<Array<typeof essay>>();
+      const h = harness(conversation, [], {
+        guestAnswerSources: async () => {
+          started.resolve();
+          return release.promise;
+        },
+      });
+      const answer = "Cancelled answer should not persist.";
+      h.generate.mockResolvedValue({
+        text: answer,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      const controller = new AbortController();
+      const pending = h.service
+        .chat("Question", conversation.id, guestContext, controller.signal)
+        .catch((error: unknown) => error);
+      await started.promise;
+      controller.abort(new Error("Caller cancelled"));
+      release.resolve([essay]);
+      expect(await pending).toBeInstanceOf(Error);
+      expect(
+        JSON.stringify(h.conversations.addMessage.mock.calls),
+      ).not.toContain(answer);
+    });
+
     it("keeps the lookups' sources when the closest pages cannot be found", async () => {
       const guestAnswerSources = mock(async () => {
         throw new Error("index unavailable");

@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ServiceCheckDeclaration } from "@brains/sdk/services";
 import { pluralize, resolveUrl } from "@brains/utils/string-utils";
 import type { InboxDataSource } from "./inbox-datasource";
 import type {
@@ -15,15 +15,8 @@ interface CreateInboxDigestOptions {
   now?: (() => Date) | undefined;
 }
 
-interface RegisterInboxDigestOptions {
-  workspaceUrl?: string | (() => string | undefined) | undefined;
+interface InboxDigestOptions {
   now?: (() => Date) | undefined;
-}
-
-interface InboxDigestContext {
-  siteUrl: ServicePluginContext["siteUrl"];
-  recurringChecks: ServicePluginContext["recurringChecks"];
-  webRoutes: Pick<ServicePluginContext["webRoutes"], "getRoutes">;
 }
 
 interface DigestSourceGroup {
@@ -84,30 +77,47 @@ export function createUnifiedInboxDigest(
   };
 }
 
-export function registerUnifiedInboxDigest(
-  context: InboxDigestContext,
+/**
+ * All the digest reads of what a check is handed. Named so a test can drive
+ * the run without standing up entity access and a message bus it never
+ * touches — a check that composes one string should be testable as one.
+ */
+export interface InboxDigestCheckContext {
+  readonly signal: AbortSignal;
+  readonly siteUrl: string | undefined;
+  readonly workspaceUrl: (workspaceId: string) => string | undefined;
+}
+
+export function runUnifiedInboxDigest(
   dataSource: Pick<InboxDataSource, "getInboxData">,
-  options: RegisterInboxDigestOptions = {},
-): void {
-  context.recurringChecks.register({
+  options: InboxDigestOptions = {},
+): (
+  context: InboxDigestCheckContext,
+) => Promise<{ alerts: InboxDigestAlert[] }> {
+  return async ({ signal, siteUrl, workspaceUrl }) => {
+    signal.throwIfAborted();
+    const projection = await dataSource.getInboxData();
+    signal.throwIfAborted();
+    // Without Studio there is no Inbox page to open, so the link goes to the
+    // brain itself rather than at a route some other package happens to own.
+    const alert = createUnifiedInboxDigest(projection, {
+      destinationUrl: resolveUrl(workspaceUrl("inbox") ?? "/", siteUrl),
+      ...(options.now ? { now: options.now } : {}),
+    });
+    return { alerts: alert ? [alert] : [] };
+  };
+}
+
+export function unifiedInboxDigestCheck(
+  dataSource: Pick<InboxDataSource, "getInboxData">,
+  options: InboxDigestOptions = {},
+): ServiceCheckDeclaration {
+  return {
     id: "daily-digest",
     cadence: "daily",
     includeInInbox: false,
-    run: async ({ signal }) => {
-      signal.throwIfAborted();
-      const projection = await dataSource.getInboxData();
-      signal.throwIfAborted();
-      const workspaceUrl =
-        typeof options.workspaceUrl === "function"
-          ? options.workspaceUrl()
-          : options.workspaceUrl;
-      const alert = createUnifiedInboxDigest(projection, {
-        destinationUrl: resolveDestinationUrl(context, workspaceUrl),
-        ...(options.now ? { now: options.now } : {}),
-      });
-      return { alerts: alert ? [alert] : [] };
-    },
-  });
+    run: runUnifiedInboxDigest(dataSource, options),
+  };
 }
 
 function groupBySource(entries: InboxProjectionEntry[]): DigestSourceGroup[] {
@@ -126,27 +136,4 @@ function groupBySource(entries: InboxProjectionEntry[]): DigestSourceGroup[] {
 
 function nounFor(count: number, noun: string): string {
   return count === 1 ? noun : pluralize(noun);
-}
-
-/**
- * Prefer the registered Studio Inbox workspace; without a Studio, fall back to the
- * dashboard plugin's mounted GET route. There is no shared cross-plugin
- * deep-link contract yet, so the dashboard lookup stays a local heuristic
- * until a second consumer needs it.
- */
-function resolveDestinationUrl(
-  context: InboxDigestContext,
-  workspaceUrl?: string,
-): string {
-  const path =
-    workspaceUrl ??
-    context.webRoutes
-      .getRoutes()
-      .find(
-        (route) =>
-          route.pluginId === "dashboard" &&
-          (route.definition.method ?? "GET") === "GET",
-      )?.fullPath ??
-    "/dashboard";
-  return resolveUrl(path, context.siteUrl);
 }

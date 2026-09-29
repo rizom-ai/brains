@@ -1,59 +1,49 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import {
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+  z,
+} from "@brains/sdk/entities";
 import {
   contactFrontmatterSchema,
-  contactRequestSchema,
   contactSubmissionSchema,
   type ContactFrontmatter,
-  type ContactMetadata,
   type ContactRequest,
 } from "./schema";
 
-export class ContactRequestAdapter extends BaseEntityAdapter<
-  ContactRequest,
-  ContactMetadata,
-  ContactFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "contact-request",
-      purpose:
-        "A restricted contact request for the owner. Never public knowledge or model input.",
-      schema: contactRequestSchema,
-      frontmatterSchema: contactFrontmatterSchema,
-    });
-  }
-
+/** Pure private-content codec; errors must never echo submitted personal data. */
+export const contactRequestAdapter = {
   createContent(frontmatter: ContactFrontmatter, message: string): string {
     try {
-      return this.buildMarkdown(
+      return generateMarkdownWithFrontmatter(
         contactSubmissionSchema.shape.message.parse(message),
         contactFrontmatterSchema.parse(frontmatter),
       );
     } catch {
-      // Persistence errors may be logged by callers. Never include submitted content.
       throw new Error("Invalid contact request");
     }
-  }
-
+  },
   parseContent(content: string): {
     frontmatter: ContactFrontmatter;
     message: string;
   } {
     try {
+      const parsed = parseMarkdownWithFrontmatter(
+        content,
+        z.record(z.string(), z.unknown()),
+      );
+      const { visibility: _visibility, ...frontmatter } = parsed.metadata;
       return {
-        frontmatter: this.parseFrontMatter(content, contactFrontmatterSchema),
+        frontmatter: contactFrontmatterSchema.parse(frontmatter),
         message: contactSubmissionSchema.shape.message.parse(
-          this.extractBody(content).trim(),
+          parsed.content.trim(),
         ),
       };
     } catch {
-      // YAML errors can echo source lines containing personal information.
       throw new Error("Invalid contact request");
     }
-  }
-
+  },
   fromMarkdown(markdown: string): Partial<ContactRequest> {
-    const { frontmatter } = this.parseContent(markdown);
+    const { frontmatter } = contactRequestAdapter.parseContent(markdown);
     return {
       entityType: "contact-request",
       visibility: "restricted",
@@ -66,8 +56,5 @@ export class ContactRequestAdapter extends BaseEntityAdapter<
         notification: frontmatter.notification,
       },
     };
-  }
-}
-
-export const contactRequestAdapter: ContactRequestAdapter =
-  new ContactRequestAdapter();
+  },
+};

@@ -1,12 +1,17 @@
-import { createMockEntityPluginContext } from "@brains/plugins/test";
+import {
+  createMockEntityPluginContext,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
 import { describe, expect, it, mock, spyOn } from "bun:test";
 import type { EvalHandler, SearchResult } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
-import { registerSummaryEvalHandlers } from "../../src/lib/eval-handlers";
+import { summaryEvalHandlers } from "../../src/lib/eval-handlers";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
+const extractionTemplateName =
+  "@brains/conversation-memory:summary:ai-response";
 
 function registerHandlers(): {
   context: ReturnType<typeof createMockEntityPluginContext>;
@@ -20,16 +25,36 @@ function registerHandlers(): {
     },
   );
 
-  registerSummaryEvalHandlers({
-    context,
+  /** The narrow context the runtime hands an eval. */
+  const evalContext = (
+    ctx: ReturnType<typeof createMockEntityPluginContext>,
+  ): Parameters<(typeof declared)[string]>[1] => ({
+    ai: ctx.ai,
     logger: createSilentLogger(),
-    config: summaryConfigSchema.parse({ projectionVersion: 3 }),
+    entities: createTestEntityAccess({ entityService: ctx.entityService }),
+    conversations: ctx.conversations,
+    fixtures: {
+      seed: async (): Promise<void> => {},
+      reset: async (): Promise<void> => {},
+    },
+    template: (localName: string) => `conversation-memory:${localName}`,
+    runProjectionRule: async () => [],
   });
+
+  const declared = summaryEvalHandlers(
+    summaryConfigSchema.parse({ projectionVersion: 3 }),
+    extractionTemplateName,
+  );
+  for (const [handlerId, handler] of Object.entries(declared)) {
+    handlers.set(handlerId, (input: unknown) =>
+      handler(input, evalContext(context)),
+    );
+  }
 
   return { context, handlers };
 }
 
-describe("registerSummaryEvalHandlers", () => {
+describe("summaryEvalHandlers", () => {
   it("registers the projection decision eval handler", () => {
     const { handlers } = registerHandlers();
 
@@ -38,6 +63,49 @@ describe("registerSummaryEvalHandlers", () => {
     expect(handlers.has("retrieveMemory")).toBe(true);
     expect(handlers.has("buildAgentContext")).toBe(true);
     expect(handlers.has("projectConversation")).toBe(true);
+  });
+
+  it("summarizeMessages executes the production rule chain", async () => {
+    const { context, handlers } = registerHandlers();
+    const generateSpy = spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Projection restart",
+          summary: "The team restarted conversation projection.",
+          startMessageIndex: 1,
+          endMessageIndex: 1,
+          keyPoints: ["Projection uses the scheduler"],
+          decisions: ["Use the scheduler-owned projection graph"],
+          actionItems: ["Run the full eval suite"],
+        },
+      ],
+    });
+    const handler = handlers.get("summarizeMessages");
+    if (!handler) throw new Error("summarizeMessages handler missing");
+
+    const result = await handler({
+      messages: [
+        {
+          role: "user",
+          content:
+            "Decision: use scheduler projection. Action: run the full eval suite.",
+          timestamp: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        title: "Projection restart",
+        decisions: ["Use the scheduler-owned projection graph"],
+        actionItems: ["Run the full eval suite"],
+      }),
+    ]);
+    expect(generateSpy).toHaveBeenCalledTimes(1);
+    expect(generateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ templateName: extractionTemplateName }),
+      expect.anything(),
+    );
   });
 
   it("retrieveMemory returns same-space summary memory", async () => {
@@ -206,8 +274,8 @@ describe("registerSummaryEvalHandlers", () => {
           startMessageIndex: 1,
           endMessageIndex: 2,
           keyPoints: ["Summaries stay narrative-only"],
-          decisions: ["Use separate decision entities"],
-          actionItems: ["Add projection evals"],
+          decisions: ["Daniel decided to use separate decision entities"],
+          actionItems: ["Daniel will add projection evals"],
         },
       ],
     });
@@ -224,11 +292,27 @@ describe("registerSummaryEvalHandlers", () => {
           role: "user",
           content: "Decision: use separate decision entities.",
           timestamp: "2026-01-01T00:00:00.000Z",
+          actor: {
+            actorId: "mcp:daniel",
+            userId: "usr_daniel",
+            canonicalId: "person:daniel",
+            interfaceType: "mcp",
+            role: "user",
+            displayName: "Daniel",
+          },
         },
         {
           role: "user",
           content: "Action item: add projection evals.",
           timestamp: "2026-01-01T00:01:00.000Z",
+          actor: {
+            actorId: "mcp:daniel",
+            userId: "usr_daniel",
+            canonicalId: "person:daniel",
+            interfaceType: "mcp",
+            role: "user",
+            displayName: "Daniel",
+          },
         },
       ],
     });
@@ -240,18 +324,47 @@ describe("registerSummaryEvalHandlers", () => {
           expect.objectContaining({
             entityType: "summary",
             content: expect.not.stringContaining("### Decisions"),
+            metadata: expect.objectContaining({
+              participants: [
+                expect.objectContaining({
+                  identity: {
+                    kind: "user",
+                    userId: "usr_daniel",
+                    canonicalId: "person:daniel",
+                  },
+                }),
+              ],
+            }),
           }),
         ],
         decisions: [
           expect.objectContaining({
             entityType: "decision",
-            metadata: expect.objectContaining({ status: "active" }),
+            metadata: expect.objectContaining({
+              status: "active",
+              decidedBy: [
+                expect.objectContaining({
+                  identity: expect.objectContaining({
+                    canonicalId: "person:daniel",
+                  }),
+                }),
+              ],
+            }),
           }),
         ],
         actionItems: [
           expect.objectContaining({
             entityType: "action-item",
-            metadata: expect.objectContaining({ status: "open" }),
+            metadata: expect.objectContaining({
+              status: "open",
+              assignedTo: [
+                expect.objectContaining({
+                  identity: expect.objectContaining({
+                    canonicalId: "person:daniel",
+                  }),
+                }),
+              ],
+            }),
           }),
         ],
       }),

@@ -15,7 +15,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: inbox_list
+    - toolName: unified-inbox_list
       shouldBeCalled: true
   responseNotContains:
     - "web server required"

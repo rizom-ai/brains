@@ -1,83 +1,71 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import { parseMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";
 import { playbookBodyFormatter } from "../formatters/playbook-formatter";
 import {
   playbookFrontmatterSchema,
-  playbookSchema,
   type PlaybookBody,
-  type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
 } from "../schemas/playbook";
 import { assertValidPlaybookBody } from "../validation";
 
-export class PlaybookAdapter extends BaseEntityAdapter<
-  PlaybookEntity,
-  PlaybookMetadata
-> {
-  constructor() {
-    super({
-      entityType: "playbook",
-      purpose:
-        "A guided multi-step workflow the assistant runs together with the user.",
-      schema: playbookSchema,
-      frontmatterSchema: playbookFrontmatterSchema,
-    });
-  }
-
-  public createPlaybookContent(
-    frontmatter: PlaybookFrontmatter,
-    body: PlaybookBody,
-  ): string {
-    return this.buildMarkdown(playbookBodyFormatter.format(body), frontmatter);
-  }
-
-  public parsePlaybookContent(content: string): {
-    frontmatter: PlaybookFrontmatter;
-    body: PlaybookBody;
-    bodyMarkdown: string;
-  } {
-    const raw = this.parseFrontMatter(content, playbookFrontmatterSchema);
-    const bodyMarkdown = this.extractBody(content).trim();
-    const body = hasAuthoredSteps(bodyMarkdown)
-      ? parseAuthoredStepsBody(bodyMarkdown)
-      : playbookBodyFormatter.parse(bodyMarkdown);
-    assertValidPlaybookBody(body);
-    return {
-      frontmatter: playbookFrontmatterSchema.parse(raw),
-      body,
-      bodyMarkdown,
-    };
-  }
-
-  public fromMarkdown(markdown: string): Partial<PlaybookEntity> {
-    const { frontmatter } = this.parsePlaybookContent(markdown);
-    return {
-      content: markdown,
-      entityType: "playbook",
-      metadata: {
-        title: frontmatter.title,
-        status: frontmatter.status,
-        audience: frontmatter.audience,
-        ...(frontmatter.trigger ? { trigger: frontmatter.trigger } : {}),
-        ...(frontmatter.lifecycle ? { lifecycle: frontmatter.lifecycle } : {}),
-        ...(frontmatter.once !== undefined ? { once: frontmatter.once } : {}),
-        ...(frontmatter.starterText
-          ? { starterText: frontmatter.starterText }
-          : {}),
-        ...(frontmatter.description
-          ? { description: frontmatter.description }
-          : {}),
-        ...(frontmatter.starterPrompt
-          ? { starterPrompt: frontmatter.starterPrompt }
-          : {}),
-        completionMode: frontmatter.completionMode,
-      },
-    };
-  }
+/**
+ * A playbook is authored two ways and read one way.
+ *
+ * Someone writing one by hand writes `## Steps` with `###` per step; the
+ * formatter round-trips the state machine those steps compile to. Parsing
+ * accepts either and always answers with the machine.
+ */
+export function parsePlaybookBody(bodyMarkdown: string): PlaybookBody {
+  const trimmed = bodyMarkdown.trim();
+  const body = hasAuthoredSteps(trimmed)
+    ? parseAuthoredStepsBody(trimmed)
+    : playbookBodyFormatter.parse(trimmed);
+  assertValidPlaybookBody(body);
+  return body;
 }
 
-export const playbookAdapter: PlaybookAdapter = new PlaybookAdapter();
+/**
+ * The stored content keeps its frontmatter, because the file someone edits
+ * does — so reading the machine back means stepping past the header first.
+ */
+export function parsePlaybookContent(content: string): {
+  frontmatter: PlaybookFrontmatter;
+  body: PlaybookBody;
+  bodyMarkdown: string;
+} {
+  const parsed = parseMarkdown(content);
+  return {
+    frontmatter: playbookFrontmatterSchema.parse(parsed.frontmatter),
+    body: parsePlaybookBody(parsed.content),
+    bodyMarkdown: parsed.content,
+  };
+}
+
+/** The queryable half of what the file carries. */
+export function playbookMetadataOf(
+  raw: Readonly<Record<string, unknown>>,
+): PlaybookMetadata {
+  const frontmatter = playbookFrontmatterSchema.parse(raw);
+  return {
+    title: frontmatter.title,
+    status: frontmatter.status,
+    audience: frontmatter.audience,
+    ...(frontmatter.trigger ? { trigger: frontmatter.trigger } : {}),
+    ...(frontmatter.lifecycle ? { lifecycle: frontmatter.lifecycle } : {}),
+    ...(frontmatter.once !== undefined ? { once: frontmatter.once } : {}),
+    ...(frontmatter.starterText
+      ? { starterText: frontmatter.starterText }
+      : {}),
+    ...(frontmatter.description
+      ? { description: frontmatter.description }
+      : {}),
+    ...(frontmatter.starterPrompt
+      ? { starterPrompt: frontmatter.starterPrompt }
+      : {}),
+    completionMode: frontmatter.completionMode,
+  };
+}
 
 interface AuthoredStep {
   title: string;

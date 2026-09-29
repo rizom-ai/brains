@@ -1,10 +1,9 @@
-import {
-  assertStudioWorkspaceAdmin,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import type { EntityReactionContext, EntityAccess } from "@brains/sdk/entities";
+import { definedFields } from "@brains/utils/strip-undefined";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,
+  mailItemReference,
   type MailItemEntity,
   type MailStatus,
 } from "./entity/schemas/mail-item";
@@ -18,30 +17,33 @@ import {
   type MailTriageListResult,
   type MailTriageStatusActionResult,
 } from "./schemas/operator";
-import { definedFields } from "@brains/utils/strip-undefined";
 
 const INBOX_ITEM_LIMIT = 100;
 
-type OperatorContext = Pick<
-  ServicePluginContext,
-  "entityService" | "permissions"
->;
+/** What the operator reads and changes: mail items, as this package may. */
+export interface MailTriageOperatorContext {
+  readonly entities: Pick<
+    EntityAccess,
+    "listEntities" | "getEntity" | "update" | "count"
+  >;
+  readonly permissions: EntityReactionContext["permissions"];
+}
 
 interface OperatorActor {
   userPermissionLevel?: "admin" | "trusted" | "public" | undefined;
 }
 
 export class MailTriageOperatorService {
-  private readonly context: OperatorContext;
+  private readonly context: MailTriageOperatorContext;
 
-  constructor(context: OperatorContext) {
+  constructor(context: MailTriageOperatorContext) {
     this.context = context;
   }
 
   async list(filters: MailTriageFilter): Promise<MailTriageListResult> {
     const metadata = metadataFilter(filters);
     const [entities, total] = await Promise.all([
-      this.context.entityService.listEntities(
+      this.context.entities.listEntities(
         {
           entityType: "mail-item",
           options: {
@@ -55,7 +57,7 @@ export class MailTriageOperatorService {
         },
         mailItemSchema,
       ),
-      this.context.entityService.countEntities({
+      this.context.entities.count({
         entityType: "mail-item",
         options: {
           filter: {
@@ -81,7 +83,7 @@ export class MailTriageOperatorService {
 
   async getSourceRef(id: string, actor: OperatorActor): Promise<string> {
     assertMailTriageAdmin(actor);
-    const entity = await this.context.entityService.getEntity(
+    const entity = await this.context.entities.getEntity(
       {
         entityType: "mail-item",
         id,
@@ -90,9 +92,8 @@ export class MailTriageOperatorService {
       mailItemSchema,
     );
     if (!entity) throw new Error("Mail item not found");
-    const parsedEntity = mailItemSchema.parse(entity);
-    return mailItemAdapter.parseMailItemContent(parsedEntity.content)
-      .frontmatter.source.ref;
+    return mailItemAdapter.parseMailItemContent(entity.content).frontmatter
+      .source.ref;
   }
 
   async act(
@@ -106,7 +107,7 @@ export class MailTriageOperatorService {
       "update",
       actor,
     );
-    const entity = await this.context.entityService.getEntity(
+    const entity = await this.context.entities.getEntity(
       {
         entityType: "mail-item",
         id: action.id,
@@ -116,9 +117,8 @@ export class MailTriageOperatorService {
     );
     if (!entity) throw new Error("Mail item not found");
 
-    const parsedEntity = mailItemSchema.parse(entity);
     const { frontmatter, summary } = mailItemAdapter.parseMailItemContent(
-      parsedEntity.content,
+      entity.content,
     );
     const status = statusForAction(action.type);
     assertStatusTransition(frontmatter.status, status);
@@ -132,20 +132,24 @@ export class MailTriageOperatorService {
       { ...frontmatter, status },
       summary,
     );
-    await this.context.entityService.updateEntity({
-      entity: {
-        ...parsedEntity,
-        content,
-        metadata: { ...parsedEntity.metadata, status },
-      },
+    await this.context.entities.update(mailItemReference, {
+      ...entity,
+      content,
+      metadata: { ...entity.metadata, status },
     });
 
     return mailTriageStatusActionResultSchema.parse({ id: action.id, status });
   }
 }
 
+/**
+ * Source-owned authorization: triage enforces admin itself rather than
+ * trusting whichever surface hosts it.
+ */
 export function assertMailTriageAdmin(actor: OperatorActor): void {
-  assertStudioWorkspaceAdmin(actor, "Email triage");
+  if (actor.userPermissionLevel !== "admin") {
+    throw new Error("Email triage requires admin permission");
+  }
 }
 
 function metadataFilter(
@@ -163,8 +167,7 @@ function metadataFilter(
   };
 }
 
-function toListItem(rawEntity: MailItemEntity): MailTriageListItem {
-  const entity = mailItemSchema.parse(rawEntity);
+function toListItem(entity: MailItemEntity): MailTriageListItem {
   const { frontmatter, summary } = mailItemAdapter.parseMailItemContent(
     entity.content,
   );

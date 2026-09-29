@@ -49,6 +49,18 @@ export interface LoggerOptions {
   logFile?: string;
 }
 
+/**
+ * The logging capability as plugin authors receive it.
+ *
+ * This existed because `Logger` was a class carrying private fields, which
+ * cannot cross a public package boundary: the published declarations inline
+ * their types rather than importing `@brains/*`, so the inlined copy was
+ * nominally distinct and nothing was assignable between them. `Logger` is now
+ * an interface and inlines cleanly, so this is the same type under an older
+ * name and the two should be collapsed.
+ */
+export type LoggerContract = Logger;
+
 /** The logger the runtime constructs: console output, optionally mirrored to a file. */
 export class ConsoleLogger implements Logger {
   /** The singleton instance */

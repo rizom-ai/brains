@@ -1,5 +1,4 @@
-import { contentVisibilitySchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { contentVisibilitySchema, z } from "@brains/sdk/entities";
 import { deckStatusSchema } from "../schemas/deck";
 
 const frontmatterSchema: z.ZodObject<{

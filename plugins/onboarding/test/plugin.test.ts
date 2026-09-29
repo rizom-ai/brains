@@ -1,8 +1,12 @@
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
+import playbooksPackage from "@brains/playbooks";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { onboardingPlugin } from "../src";
+import { onboardingPlugin } from "./helpers/install";
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-onboarding-");
@@ -12,12 +16,19 @@ async function installHarness(): Promise<
   ReturnType<typeof createPluginHarness>
 > {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(playbookPlugin({}));
-  await harness.installPlugin(playbooksPlugin({}));
+  // One package now, entity and service both: onboarding needs the playbook
+  // type registered as much as the runs that walk it.
+  const metadata = { name: "@brains/playbooks", version: "0.0.0" };
+  bindPluginPackageMetadata(playbooksPackage, metadata);
+  await Promise.all(
+    instantiatePluginPackageDefinition(playbooksPackage, {}, metadata).map(
+      (plugin) => harness.installPlugin(plugin),
+    ),
+  );
   return harness;
 }
 
-describe("OnboardingPlugin", () => {
+describe("onboarding service", () => {
   it("does nothing when disabled", async () => {
     const harness = await installHarness();
     const plugin = onboardingPlugin({});

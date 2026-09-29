@@ -1,8 +1,8 @@
 import {
   anchorProfileKindSchema,
   contentVisibilitySchema,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+  z,
+} from "@brains/sdk/entities";
 import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z

@@ -1,4 +1,5 @@
-import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -38,7 +39,7 @@ export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
-  EntityServiceClient,
+  EntityMirrorClient,
   "serializeEntity" | "hasEntityType"
 >;
 

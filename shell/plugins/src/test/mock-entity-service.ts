@@ -1,30 +1,29 @@
+import { createFixtureGroupingQueries } from "./entity-groupings";
 import {
   getVisibleContentVisibilities,
+  EntityWriteConflictError,
   normalizeContentVisibility,
   type BaseEntity,
   type CreateEntityRequest,
   type EntityMutationResult,
   type EntitySchema,
+  type EntitySearchRequest,
   type GetEntityRequest,
   type IEntityService,
   type ListEntitiesRequest,
+  type SearchResult,
   type UpdateEntityRequest,
   type UpsertEntityRequest,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
+import { searchFixtureEntities } from "./entity-search";
 import type { MockEntityStore } from "./mock-entity-store";
 
-/**
- * A stateful EntityService double over a shared store.
- *
- * It fakes what a map can honestly fake — create, read, update, delete, list,
- * and the export-intent bookkeeping — and refuses the rest loudly. A fake that
- * quietly returned nothing for a database-backed query would make a test
- * asserting that query meaningless.
- */
+/** Stateful, materialized entity reads and writes over the registry's shared store. */
 export function createMockEntityService(
   store: MockEntityStore,
 ): IEntityService {
+  // --- Entity Service (stateful) ---
   // Overloaded like the real service: without a schema reads return the
   // stored BaseEntity view; with one they parse, so T is proven not asserted.
   async function getEntityFake(
@@ -148,6 +147,29 @@ export function createMockEntityService(
     return schema ? results.map((entity) => schema.parse(entity)) : results;
   }
 
+  async function searchFake(
+    request: EntitySearchRequest,
+  ): Promise<SearchResult[]>;
+  async function searchFake<T extends BaseEntity>(
+    request: EntitySearchRequest,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function searchFake(
+    request: EntitySearchRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<SearchResult[]> {
+    const results = searchFixtureEntities(
+      [...store.entities.values()],
+      request,
+    );
+    return schema
+      ? results.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : results;
+  }
+
   const service: IEntityService = {
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
@@ -155,7 +177,12 @@ export function createMockEntityService(
       // `EntityInput<T>` leaves id, timestamps and contentHash to the service,
       // so the fake fills them the way the real one does rather than assuming
       // the caller passed a complete entity.
+      request.options?.signal?.throwIfAborted();
       const input = request.entity;
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        input.entityType,
+      );
       const now = new Date().toISOString();
       const id = input.id ?? `entity-${Date.now()}`;
       const entity: BaseEntity = {
@@ -170,13 +197,34 @@ export function createMockEntityService(
         contentHash: "",
       };
       store.types.add(entity.entityType);
-      const { content, metadata } = store.serialize(entity);
-      store.entities.set(id, {
+      const { source, ...materialized } = store.materialize(entity);
+      await store.persistValidators.get(entity.entityType)?.(
+        { ...entity, metadata: materialized.metadata },
+        {
+          operation: "create",
+        },
+      );
+      request.options?.signal?.throwIfAborted();
+      await request.options?.beforeWrite?.({
         ...entity,
-        content,
-        metadata,
-        contentHash: computeContentHash(content),
+        ...materialized,
+        content:
+          store.adapters.get(entity.entityType)?.toMarkdown(entity) ??
+          entity.content,
       });
+      request.options?.signal?.throwIfAborted();
+      await assertGroupingsCurrent();
+      request.options?.signal?.throwIfAborted();
+      // Check after asynchronous guards, with no yield before the write.
+      const condition = request.options?.conditionalWrite;
+      if (
+        condition &&
+        (condition.expectedRevision !== null || store.entities.has(id))
+      ) {
+        throw new EntityWriteConflictError(entity.entityType, id);
+      }
+      store.sources.set(id, source);
+      store.entities.set(id, { ...entity, ...materialized });
       store.markExportIntent(
         entity.entityType,
         id,
@@ -219,10 +267,33 @@ export function createMockEntityService(
     updateEntity: async <T extends BaseEntity>(
       request: UpdateEntityRequest<T>,
     ): Promise<EntityMutationResult> => {
+      request.options?.signal?.throwIfAborted();
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
-      const { content, metadata } = store.serialize(entity);
-      const contentHash = computeContentHash(content);
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        entity.entityType,
+      );
+      const { source, content, metadata, contentHash } =
+        store.materialize(entity);
+      await store.persistValidators.get(entity.entityType)?.(
+        { ...entity, metadata },
+        {
+          operation: "update",
+        },
+      );
+      request.options?.signal?.throwIfAborted();
+      await request.options?.beforeWrite?.({
+        ...entity,
+        metadata,
+        contentHash,
+        content:
+          store.adapters.get(entity.entityType)?.toMarkdown(entity) ??
+          entity.content,
+      });
+      request.options?.signal?.throwIfAborted();
+      await assertGroupingsCurrent();
+      request.options?.signal?.throwIfAborted();
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = store.entities.get(entity.id);
@@ -250,6 +321,7 @@ export function createMockEntityService(
         );
         return { entityId: entity.id, jobId: "", skipped: true };
       }
+      store.sources.set(entity.id, source);
       store.entities.set(entity.id, {
         ...entity,
         content,
@@ -269,6 +341,7 @@ export function createMockEntityService(
       id: string;
       options?: { persistenceOrigin?: "ordinary" | "directory-sync" };
     }): Promise<boolean> => {
+      store.sources.delete(request.id);
       store.entities.delete(request.id);
       store.markExportIntent(
         request.entityType,
@@ -279,8 +352,24 @@ export function createMockEntityService(
       return true;
     },
     getEntity: getEntityFake,
+    getEntities: async (request: {
+      entityType: string;
+      ids: readonly string[];
+      visibilityScope?: BaseEntity["visibility"];
+    }): Promise<BaseEntity[]> => {
+      const visible = request.visibilityScope
+        ? new Set(getVisibleContentVisibilities(request.visibilityScope))
+        : null;
+      return [...new Set(request.ids)].flatMap((id): BaseEntity[] => {
+        const entity = store.entities.get(id);
+        return entity?.entityType === request.entityType &&
+          (visible === null || visible.has(entity.visibility))
+          ? [entity]
+          : [];
+      });
+    },
     listEntities: listEntitiesFake,
-    search: async () => [],
+    search: searchFake,
     searchWithDistances: async () => [],
     getEntityTypes: () => Array.from(store.types),
     hasEntityType: (type: string) => store.types.has(type),
@@ -294,18 +383,31 @@ export function createMockEntityService(
       request: UpsertEntityRequest<T>,
     ): Promise<EntityMutationResult & { created: boolean }> => {
       const entity = request.entity;
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        entity.entityType,
+      );
       store.types.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const exists = store.entities.has(id);
-      const { content, metadata } = store.serialize({ ...entity, id });
-      store.entities.set(id, {
-        ...entity,
-        id,
-        content,
-        metadata,
-        visibility: entity.visibility,
-        contentHash: computeContentHash(content),
-      });
+      const { source, ...materialized } = store.materialize({ ...entity, id });
+      await store.persistValidators.get(entity.entityType)?.(
+        { ...entity, id, metadata: materialized.metadata },
+        { operation: exists ? "update" : "create" },
+      );
+      await assertGroupingsCurrent();
+      const condition = request.options?.conditionalWrite;
+      const current = store.entities.get(id);
+      const revision =
+        current?.entityType === entity.entityType
+          ? computeContentHash(JSON.stringify(current))
+          : null;
+      // Fence after every asynchronous guard, without yielding before storage.
+      if (condition && condition.expectedRevision !== revision) {
+        throw new EntityWriteConflictError(entity.entityType, id);
+      }
+      store.sources.set(id, source);
+      store.entities.set(id, { ...entity, id, ...materialized });
       store.markExportIntent(
         entity.entityType,
         id,
@@ -356,14 +458,22 @@ export function createMockEntityService(
       }));
     },
 
-    // The fake stores serialized entities directly, so there is no separate
-    // unresolved form to return.
+    // The fake has no unresolved asset references; raw and resolved reads
+    // share the materialized entity view.
     getEntityRaw: getEntityFake,
     getEntityWriteSnapshot: async (
       request,
     ): ReturnType<IEntityService["getEntityWriteSnapshot"]> => {
-      const entity = await getEntityFake(request);
-      return entity ? { entity, revision: "mock-revision" } : null;
+      const entity = await getEntityFake({
+        ...request,
+        visibilityScope: request.visibilityScope ?? "public",
+      });
+      return entity
+        ? {
+            entity: structuredClone(entity),
+            revision: computeContentHash(JSON.stringify(entity)),
+          }
+        : null;
     },
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
@@ -414,30 +524,24 @@ export function createMockEntityService(
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
-    areGroupingsReady: () => true,
-    ensureGroupingsReady: async () => service.areGroupingsReady(),
-    reprojectRegisteredGroupings: async (): Promise<void> => {},
+    areGroupingsReady: () =>
+      store.registry.getPendingGroupingProjections().length === 0,
+    ensureGroupingsReady: async (): Promise<boolean> => {
+      await store.registry.ensureGroupingsCurrent();
+      await service.reprojectRegisteredGroupings();
+      store.registry.completeGroupingProjections(
+        store.registry.getPendingGroupingProjections(),
+      );
+      return true;
+    },
+    ...createFixtureGroupingQueries(store),
     // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
     queryEntityHierarchy: async (): Promise<never> => {
       throw new Error(
         "createMockShell: inject an entity service for hierarchy queries",
       );
     },
-    queryGroupingCatalog: async (): Promise<never> => {
-      throw new Error(
-        "createMockShell: inject an entity service for grouping queries",
-      );
-    },
-    queryGroupingMembers: async (): Promise<never> => {
-      throw new Error(
-        "createMockShell: inject an entity service for grouping queries",
-      );
-    },
-    queryGroupingUsage: async (): Promise<never> => {
-      throw new Error(
-        "createMockShell: inject an entity service for grouping queries",
-      );
-    },
+
     // Projection storage is database-backed and cannot be faked usefully. Fail
     // loudly rather than hand back an empty stand-in, which would make a test
     // asserting projection behaviour silently meaningless.

@@ -251,7 +251,26 @@ describe("MessageBus", () => {
 
       expect(errorHandler1).toHaveBeenCalled();
       expect(errorHandler2).toHaveBeenCalled();
-      expect("success" in result && result.success).toBe(false);
+      expect(result).toMatchObject({ success: false, code: "handler_failed" });
+    });
+
+    it("skips no-op replies rather than treating them as an empty success", async () => {
+      messageBus.subscribe("noop", () => ({ noop: true }));
+      expect(
+        await messageBus.send({ type: "noop", payload: {}, sender: "test" }),
+      ).toMatchObject({ success: false, code: "no_handler" });
+      messageBus.subscribe("noop", () => ({ success: true, data: 7 }));
+      expect(
+        await messageBus.send({ type: "noop", payload: {}, sender: "test" }),
+      ).toEqual({ success: true, data: 7 });
+    });
+
+    it("reports an invalid envelope instead of claiming nobody was listening", async () => {
+      // @ts-expect-error Exercise an invalid JavaScript provider at the runtime boundary.
+      messageBus.subscribe("invalid", () => ({ invalid: true }));
+      expect(
+        await messageBus.send({ type: "invalid", payload: {}, sender: "test" }),
+      ).toMatchObject({ success: false, code: "invalid_response" });
     });
 
     it("should continue to the next handler after an invalid response", async () => {
@@ -759,8 +778,8 @@ describe("MessageBus", () => {
       expect(handler2).toHaveBeenCalledTimes(1);
       expect(handler3).toHaveBeenCalledTimes(1);
 
-      // Broadcast messages don't return responses
-      expect("success" in result && result.success).toBe(false);
+      // Broadcast messages don't return responses, not even a missing-handler failure.
+      expect(result).toEqual({ noop: true });
     });
 
     it("should continue broadcast delivery after an invalid response", async () => {
@@ -784,7 +803,7 @@ describe("MessageBus", () => {
       expect(invalidHandler).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(1);
       expect(handler3).toHaveBeenCalledTimes(1);
-      expect("success" in result && result.success).toBe(false);
+      expect(result).toEqual({ noop: true });
     });
 
     it("should await all handlers for broadcast messages before returning", async () => {

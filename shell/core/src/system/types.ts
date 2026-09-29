@@ -11,6 +11,7 @@ import type {
 } from "@brains/plugins";
 import type { IInsightsRegistry } from "@brains/plugins";
 import type { PermissionService } from "@brains/templates";
+import type { ConversationProjectionBackfill } from "../conversation-projection-backfill";
 
 /**
  * Services required by system tools.
@@ -44,4 +45,7 @@ export interface SystemServices {
 
   /** Permission checks for entity mutations */
   permissionService: PermissionService;
+
+  /** Durable, explicitly confirmed historical conversation projection. */
+  conversationProjectionBackfill?: ConversationProjectionBackfill | undefined;
 }

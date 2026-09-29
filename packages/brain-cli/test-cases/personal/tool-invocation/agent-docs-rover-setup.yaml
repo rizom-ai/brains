@@ -18,11 +18,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_call
+    - toolName: a2a_call
       shouldBeCalled: true
       argsContain:
         agent: "docs.rizom.ai"
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
     - toolName: system_get
       shouldBeCalled: false

@@ -38,12 +38,6 @@
       "reason": "An empty commit must not throw. That is the claim, and the await enforces it."
     },
     {
-      "file": "interfaces/chat-repl/test/cli-interface.test.ts",
-      "test": "registers and unregisters callbacks without error",
-      "rule": "unasserted",
-      "reason": "Proving the callbacks fire needs sendMessageToChannel, which is protected; reaching it would require the cast this repo forbids in tests. The title was narrowed to what is actually verified."
-    },
-    {
       "file": "packages/build-tools/test/release-groups.test.ts",
       "test": "deployable site and theme inventory declares brain compatibility",
       "rule": "vacuous",

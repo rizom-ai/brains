@@ -1,4 +1,3 @@
-import type { Template } from "@brains/plugins";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
@@ -46,9 +45,6 @@ type SiteBuilderConfigSchema = z.ZodObject<{
   themeCSS: z.ZodOptional<z.ZodString>;
   analyticsScript: z.ZodOptional<z.ZodString>;
   headScripts: z.ZodDefault<z.ZodArray<z.ZodString>>;
-  templates: z.ZodOptional<
-    z.ZodCustom<Record<string, Template>, Record<string, Template>>
-  >;
   routes: z.ZodOptional<z.ZodArray<typeof RouteDefinitionSchema>>;
   layouts: z.ZodOptional<
     z.ZodRecord<z.ZodString, z.ZodCustom<LayoutComponent, LayoutComponent>>
@@ -100,13 +96,9 @@ export const siteBuilderConfigSchema: SiteBuilderConfigSchema = z.object({
     .array(z.string())
     .default([])
     .describe("Global scripts to inject into every rendered page head"),
-  // Templates and layouts carry runtime objects (components, render
-  // functions) that cannot be validated; z.custom keeps their type in the
-  // parsed config without pretending to check them.
-  templates: z
-    .custom<Record<string, Template>>()
-    .optional()
-    .describe("Template definitions to register"),
+  // Layouts carry runtime objects (components) that cannot be validated;
+  // z.custom keeps their type in the parsed config without pretending to
+  // check them.
   routes: z
     .array(RouteDefinitionSchema)
     .optional()

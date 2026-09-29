@@ -1,15 +1,12 @@
 import { z } from "@brains/utils/zod";
 
-export interface TopicSummary {
-  id: string;
-  title: string;
-  summary: string;
-  created: string;
-  updated: string;
-}
-
-// Schema for individual topic summary in list
-const topicSummarySchema: z.ZodType<TopicSummary, TopicSummary> = z.object({
+const topicSummarySchema: z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  summary: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+}> = z.object({
   id: z.string(),
   title: z.string(),
   summary: z.string(),
@@ -17,14 +14,16 @@ const topicSummarySchema: z.ZodType<TopicSummary, TopicSummary> = z.object({
   updated: z.string(),
 });
 
-export interface TopicListData {
-  topics: TopicSummary[];
-  totalCount: number;
-}
+// Derived, not hand-written beside the schema: a data source result has to
+// satisfy the runtime's JsonObject constraint, and an interface never does.
+export type TopicSummary = z.output<typeof topicSummarySchema>;
 
-// Schema for topic list page data
-export const topicListSchema: z.ZodType<TopicListData, TopicListData> =
-  z.object({
-    topics: z.array(topicSummarySchema),
-    totalCount: z.number(),
-  });
+export const topicListSchema: z.ZodObject<{
+  topics: z.ZodArray<typeof topicSummarySchema>;
+  totalCount: z.ZodNumber;
+}> = z.object({
+  topics: z.array(topicSummarySchema),
+  totalCount: z.number(),
+});
+
+export type TopicListData = z.output<typeof topicListSchema>;

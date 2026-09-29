@@ -1,0 +1,1034 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
+import { describe, it, expect, spyOn } from "bun:test";
+import { narrowContext } from "../fixtures/narrow-context";
+import { createExternalActorId } from "@brains/contracts";
+import type {
+  Conversation,
+  ConversationMessageActor,
+  Message,
+} from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
+import {
+  deriveConversationMemory,
+  getActorsMentionedInText,
+} from "../../src/lib/summary-derivation";
+import { computeSummarySourceHash } from "../../src/lib/summary-source-reader";
+import { composeSummaryBody } from "../../src/lib/summary-body";
+import { composeMemoryMarkdown } from "../../src/lib/memory-markdown";
+import { summaryConfigSchema } from "../../src/schemas/summary-config";
+import type { SummaryEntry } from "../../src/schemas/summary";
+import { createMockSummaryEntity } from "../fixtures/summary-entities";
+import {
+  createMockActionItemEntity,
+  createMockDecisionEntity,
+} from "../fixtures/conversation-memory-entities";
+import type { EntitySchema } from "@brains/sdk/entities";
+
+function createDerivationHarness(
+  context: Parameters<typeof deriveConversationMemory>[0],
+  logger: Parameters<typeof deriveConversationMemory>[1],
+  config: Parameters<typeof deriveConversationMemory>[2],
+): {
+  projectConversation: (
+    conversationId: string,
+  ) => ReturnType<typeof deriveConversationMemory>;
+} {
+  return {
+    projectConversation: (conversationId) =>
+      deriveConversationMemory(context, logger, config, conversationId),
+  };
+}
+
+const conversation: Conversation = {
+  id: "conv-1",
+  sessionId: "conv-1",
+  interfaceType: "cli",
+  channelId: "cli-terminal",
+  channelName: "CLI Terminal",
+  startedAt: "2026-01-01T00:00:00.000Z",
+  lastActiveAt: "2026-01-01T00:01:00.000Z",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:01:00.000Z",
+  metadata: {},
+};
+
+const messages: Message[] = [
+  {
+    id: "m1",
+    conversationId: "conv-1",
+    role: "user",
+    content: "Use stored messages as source of truth.",
+    timestamp: "2026-01-01T00:00:00.000Z",
+    metadata: {},
+  },
+  {
+    id: "m2",
+    conversationId: "conv-1",
+    role: "assistant",
+    content: "I will project summaries from conversations.",
+    timestamp: "2026-01-01T00:01:00.000Z",
+    metadata: {},
+  },
+];
+
+const discordConversation: Conversation = {
+  ...conversation,
+  id: "discord-conv-1",
+  sessionId: "discord-conv-1",
+  interfaceType: "discord",
+  channelId: "relay-pilot",
+  channelName: "Relay Pilot",
+};
+
+const externalIdentity = (
+  subject: string,
+): {
+  kind: "external";
+  externalActorId: string;
+} => ({
+  kind: "external",
+  externalActorId: createExternalActorId("discord", subject),
+});
+
+const canonicalLinkedMessages: Message[] = [
+  {
+    id: "cm1",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "Decision: Daniel prefers the compact checklist.",
+    timestamp: "2026-01-01T00:00:00.000Z",
+    metadata: {
+      actor: {
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Daniel D.",
+        username: "daniel",
+      },
+    },
+  },
+  {
+    id: "cm2",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "I'll update the compact checklist from MCP too.",
+    timestamp: "2026-01-01T00:01:00.000Z",
+    metadata: {
+      actor: {
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
+        interfaceType: "mcp",
+        role: "user",
+        displayName: "Daniel",
+      },
+    },
+  },
+];
+
+const attributedMessages: Message[] = [
+  {
+    id: "dm1",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "Decision: keep the onboarding guide to one page.",
+    timestamp: "2026-01-01T00:00:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "discord:user-mira",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Mira Ops",
+        username: "mira",
+      },
+    },
+  },
+  {
+    id: "dm2",
+    conversationId: "discord-conv-1",
+    role: "assistant",
+    content: "Suggestion: add a certification checklist later.",
+    timestamp: "2026-01-01T00:01:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "brain:relay",
+        interfaceType: "agent",
+        role: "assistant",
+        displayName: "Relay",
+        isBot: true,
+      },
+    },
+  },
+  {
+    id: "dm3",
+    conversationId: "discord-conv-1",
+    role: "user",
+    content: "I'll update the checklist by Friday.",
+    timestamp: "2026-01-01T00:02:00.000Z",
+    metadata: {
+      actor: {
+        actorId: "discord:user-daniel",
+        interfaceType: "discord",
+        role: "user",
+        displayName: "Daniel",
+        username: "daniel",
+      },
+    },
+  },
+];
+
+function mockDecisionAndExtraction(
+  context: ReturnType<typeof createMockEntityPluginContext>,
+  decision: "skip" | "update" | "append" = "update",
+): void {
+  spyOn(context.ai, "generateObject").mockResolvedValue({
+    object: { decision, rationale: "test" },
+  });
+  spyOn(context.ai, "generate").mockResolvedValue({
+    entries: [
+      {
+        title: "Projection source",
+        summary: "Summaries derive from stored conversation messages.",
+        startMessageIndex: 1,
+        endMessageIndex: 2,
+        keyPoints: ["Stored messages are source of truth"],
+        decisions: [],
+        actionItems: [],
+      },
+    ],
+  });
+}
+
+function makeMessages(count: number): Message[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `chunk-m${index + 1}`,
+    conversationId: "conv-1",
+    role: index % 2 === 0 ? "user" : "assistant",
+    content: `Message ${index + 1}`,
+    timestamp: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+    metadata: {},
+  }));
+}
+
+describe("conversation memory derivation", () => {
+  it("defaults projected memory visibility to restricted", () => {
+    expect(summaryConfigSchema.parse({}).memoryVisibility).toBe("restricted");
+    expect(
+      summaryConfigSchema.parse({ memoryVisibility: "private" })
+        .memoryVisibility,
+    ).toBe("restricted");
+  });
+
+  it("attributes label-less actors by their stable actor key", () => {
+    // No derivation needed: attribution is a pure function now, so this tests
+    // it directly instead of building a derivation to reach a private method.
+    const actor: ConversationMessageActor = {
+      identity: { kind: "external", externalActorId: "ext_label_less" },
+      interfaceType: "mcp",
+      role: "user",
+    };
+    expect(
+      getActorsMentionedInText(
+        "external:ext_label_less will update the checklist",
+        [actor],
+      ),
+    ).toEqual([{ identity: actor.identity }]);
+  });
+
+  it("projects a conversation summary from stored messages", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    mockDecisionAndExtraction(context);
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(result.entryCount).toBe(1);
+    expect(result.messageCount).toBe(2);
+    expect(upsertSpy).toHaveBeenCalledTimes(1);
+
+    const entity = upsertSpy.mock.calls[0]?.[0]?.entity;
+    expect(entity?.id).toBe("conv-1");
+    expect(entity?.metadata["conversationId"]).toBe("conv-1");
+    expect(entity?.metadata["messageCount"]).toBe(2);
+    expect(entity?.visibility).toBe(
+      summaryConfigSchema.parse({}).memoryVisibility,
+    );
+    expect(entity?.content).toContain("# Conversation Summary");
+    expect(entity?.content).toContain("Projection source");
+  });
+
+  it("uses configured visibility for projected memory entities", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      attributedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Onboarding pilot",
+          summary: "Mira chose the onboarding format.",
+          startMessageIndex: 1,
+          endMessageIndex: 3,
+          keyPoints: [],
+          decisions: ["Mira Ops decided to keep the guide short."],
+          actionItems: ["Daniel will update the checklist."],
+        },
+      ],
+    });
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+
+    const result = await derivation.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(upsertSpy.mock.calls).toHaveLength(3);
+    expect(
+      upsertSpy.mock.calls.map((call) => call[0].entity.visibility),
+    ).toEqual(["shared", "shared", "shared"]);
+  });
+
+  it("stores participants and attributed decision/action metadata", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      attributedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Onboarding pilot",
+          summary:
+            "Mira chose the onboarding format and Daniel took the checklist follow-up.",
+          startMessageIndex: 1,
+          endMessageIndex: 3,
+          keyPoints: [],
+          decisions: [
+            "Mira Ops decided to keep the onboarding guide to one page.",
+          ],
+          actionItems: ["Daniel will update the checklist by Friday."],
+        },
+      ],
+    });
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(upsertSpy).toHaveBeenCalledTimes(3);
+
+    const summaryEntity = upsertSpy.mock.calls[0]?.[0]?.entity;
+    expect(summaryEntity?.metadata["participants"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+        roles: ["user"],
+      },
+      {
+        identity: { kind: "agent", agentId: "brain:relay" },
+        displayName: "Relay",
+        roles: ["assistant"],
+      },
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+        roles: ["user"],
+      },
+    ]);
+
+    const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(decisionEntity?.entityType).toBe("decision");
+    expect(decisionEntity?.metadata["decidedBy"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+      },
+    ]);
+    expect(decisionEntity?.metadata["mentionedBy"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+      },
+    ]);
+
+    const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
+    expect(actionItemEntity?.entityType).toBe("action-item");
+    expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+      },
+    ]);
+    expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+      },
+    ]);
+  });
+
+  it("separates delegated action assignee from requester", async () => {
+    const delegatedMessages: Message[] = [
+      {
+        id: "delegate-1",
+        conversationId: "discord-conv-1",
+        role: "user",
+        content: "Daniel, please update the onboarding checklist by Friday.",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        metadata: {
+          actor: {
+            actorId: "discord:user-mira",
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Mira Ops",
+            username: "mira",
+          },
+        },
+      },
+      {
+        id: "delegate-2",
+        conversationId: "discord-conv-1",
+        role: "user",
+        content: "Got it, I'll take it.",
+        timestamp: "2026-01-01T00:01:00.000Z",
+        metadata: {
+          actor: {
+            actorId: "discord:user-daniel",
+            interfaceType: "discord",
+            role: "user",
+            displayName: "Daniel",
+            username: "daniel",
+          },
+        },
+      },
+    ];
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      delegatedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Delegated checklist work",
+          summary:
+            "Mira asked Daniel to update the checklist and Daniel accepted.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: [],
+          actionItems: [
+            "Daniel will update the onboarding checklist by Friday.",
+          ],
+        },
+      ],
+    });
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    const actionItemEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-daniel"),
+        displayName: "Daniel",
+      },
+    ]);
+    expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
+      {
+        identity: externalIdentity("discord:user-mira"),
+        displayName: "Mira Ops",
+      },
+    ]);
+  });
+
+  it("carries resolved user identities into projected memory metadata", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["discord:relay-pilot"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(discordConversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      canonicalLinkedMessages,
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Linked identity",
+          summary: "Daniel used Discord and MCP in the same thread.",
+          startMessageIndex: 1,
+          endMessageIndex: 2,
+          keyPoints: [],
+          decisions: ["Daniel D. decided to use the compact checklist."],
+          actionItems: ["Daniel will update the compact checklist."],
+        },
+      ],
+    });
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("discord-conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(upsertSpy).toHaveBeenCalledTimes(3);
+
+    const summaryEntity = upsertSpy.mock.calls[0]?.[0]?.entity;
+    expect(summaryEntity?.metadata["participants"]).toEqual([
+      {
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
+        displayName: "Daniel D.",
+        roles: ["user"],
+      },
+    ]);
+
+    const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(decisionEntity?.metadata["decidedBy"]).toEqual([
+      {
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
+        displayName: "Daniel D.",
+      },
+    ]);
+
+    const actionItemEntity = upsertSpy.mock.calls[2]?.[0]?.entity;
+    expect(actionItemEntity?.metadata["assignedTo"]).toEqual([
+      {
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
+        displayName: "Daniel D.",
+      },
+    ]);
+    expect(actionItemEntity?.metadata["requestedBy"]).toEqual([
+      {
+        identity: {
+          kind: "user",
+          userId: "usr_daniel",
+          canonicalId: "person:daniel",
+        },
+        displayName: "Daniel D.",
+      },
+    ]);
+  });
+
+  it("chunks long conversations before extraction", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    const longMessages = makeMessages(5);
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(longMessages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    const generateSpy = spyOn(context.ai, "generate").mockImplementation(
+      <T>({ prompt }: { prompt: string }, schema: EntitySchema<T>) => {
+        return Promise.resolve(
+          schema.parse({
+            entries: [
+              {
+                title: "Chunk",
+                summary: String(prompt).includes("Message 5")
+                  ? "Final chunk"
+                  : "Earlier chunk",
+                startMessageIndex: 1,
+                endMessageIndex: String(prompt).includes("Message 5") ? 1 : 2,
+                keyPoints: [],
+                decisions: [],
+                actionItems: [],
+              },
+            ],
+          }),
+        );
+      },
+    );
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({ maxMessagesPerChunk: 2 }),
+    );
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.entryCount).toBe(3);
+    expect(generateSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("compacts entries when chunk output exceeds maxEntries", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    const longMessages = makeMessages(5);
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(longMessages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockImplementation(
+      <T>(_config: unknown, schema: EntitySchema<T>) => {
+        return Promise.resolve(
+          schema.parse({
+            entries: [
+              {
+                title: "Chunk",
+                summary: "Chunk summary",
+                startMessageIndex: 1,
+                endMessageIndex: 1,
+                keyPoints: [],
+                decisions: [],
+                actionItems: [],
+              },
+            ],
+          }),
+        );
+      },
+    );
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({ maxMessagesPerChunk: 1, maxEntries: 2 }),
+    );
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.entryCount).toBe(2);
+    expect(upsertSpy.mock.calls[0]?.[0]?.entity.content).toContain(
+      "Chunk summary",
+    );
+  });
+
+  it("skips projection outside configured spaces", async () => {
+    const context = createMockEntityPluginContext({ spaces: ["discord:ops"] });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    const generateSpy = spyOn(context.ai, "generate");
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(true);
+    expect(result.skipReason).toBe("space-not-configured");
+    expect(upsertSpy).not.toHaveBeenCalled();
+    expect(generateSpy).not.toHaveBeenCalled();
+  });
+
+  it("skips projection when AI decides there is no durable memory", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    mockDecisionAndExtraction(context, "skip");
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(true);
+    expect(result.skipReason).toBe("ai-skip");
+    expect(upsertSpy).not.toHaveBeenCalled();
+    expect(context.ai.generateObject).toHaveBeenCalledTimes(1);
+    expect(context.ai.generate).not.toHaveBeenCalled();
+  });
+
+  it("appends new entries when AI decides the summary can be extended", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    const allMessages = [
+      ...messages,
+      {
+        id: "m3",
+        conversationId: "conv-1",
+        role: "user" as const,
+        content: "Decision: use a 90 second delayed projection window.",
+        timestamp: "2026-01-01T00:02:00.000Z",
+        metadata: {},
+      },
+    ];
+    const existingEntry: SummaryEntry = {
+      title: "Projection source",
+      summary: "Summaries derive from stored conversation messages.",
+      timeRange: {
+        start: "2026-01-01T00:00:00.000Z",
+        end: "2026-01-01T00:01:00.000Z",
+      },
+      sourceMessageCount: 2,
+      keyPoints: ["Stored messages are source of truth"],
+    };
+    const existing = createMockSummaryEntity({
+      content: composeMemoryMarkdown(composeSummaryBody([existingEntry]), {
+        conversationId: "conv-1",
+        channelId: "cli-terminal",
+        channelName: "CLI Terminal",
+        interfaceType: "cli",
+        messageCount: 2,
+        entryCount: 1,
+        sourceHash: "old-hash",
+        projectionVersion: 1,
+        timeRange: existingEntry.timeRange,
+      }),
+      metadata: {
+        conversationId: "conv-1",
+        channelId: "cli-terminal",
+        channelName: "CLI Terminal",
+        interfaceType: "cli",
+        messageCount: 2,
+        entryCount: 1,
+        sourceHash: "old-hash",
+        projectionVersion: 1,
+        timeRange: existingEntry.timeRange,
+      },
+    });
+
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(allMessages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(existing);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockImplementation(
+      <T>(prompt: string, schema: EntitySchema<T>) => {
+        expect(prompt).toContain("90 second delayed projection");
+        expect(prompt).not.toContain("Use stored messages");
+        return Promise.resolve({
+          object: schema.parse({
+            decision: "append",
+            rationale: "new decision",
+          }),
+        });
+      },
+    );
+    spyOn(context.ai, "generate").mockImplementation(
+      <T>({ prompt }: { prompt: string }, schema: EntitySchema<T>) => {
+        expect(String(prompt)).toContain("90 second delayed projection");
+        expect(String(prompt)).not.toContain("Use stored messages");
+        return Promise.resolve(
+          schema.parse({
+            entries: [
+              {
+                title: "Projection delay",
+                summary:
+                  "The team chose a 90 second delayed projection window.",
+                startMessageIndex: 1,
+                endMessageIndex: 1,
+                keyPoints: [],
+                decisions: ["Use a 90 second delayed projection window"],
+                actionItems: [],
+              },
+            ],
+          }),
+        );
+      },
+    );
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(result.entryCount).toBe(2);
+    expect(upsertSpy).toHaveBeenCalledTimes(2);
+    const entity = upsertSpy.mock.calls[0]?.[0]?.entity;
+    expect(entity?.content).toContain("Projection source");
+    expect(entity?.content).toContain("Projection delay");
+    expect(entity?.content).not.toContain("### Decisions");
+    expect(entity?.metadata["messageCount"]).toBe(3);
+    const decisionEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
+    expect(decisionEntity?.entityType).toBe("decision");
+    expect(decisionEntity?.content).toContain(
+      "Use a 90 second delayed projection window",
+    );
+  });
+
+  it("looks up existing summaries using the configured memory visibility", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    const getEntitySpy = spyOn(
+      context.entityService,
+      "getEntity",
+    ).mockResolvedValue(null);
+    spyOn(context.entityService, "upsertEntity");
+    mockDecisionAndExtraction(context);
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+
+    await derivation.projectConversation("conv-1");
+
+    // A summary stored as "shared" is invisible to a read that fails closed
+    // to public — and a derivation that cannot see one derives a second
+    // summary beside it.
+    expect(getEntitySpy).toHaveBeenCalledWith(
+      {
+        entityType: "summary",
+        id: "conv-1",
+        visibilityScope: "shared",
+      },
+      expect.anything(),
+    );
+  });
+
+  it("ignores lower-visibility summaries returned within the configured read scope", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+    const sourceHash = computeSummarySourceHash(conversation, messages, 1);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(
+      createMockSummaryEntity({
+        content: "# Conversation Summary\n",
+        visibility: "public",
+        metadata: {
+          conversationId: "conv-1",
+          channelId: "cli-terminal",
+          channelName: "CLI Terminal",
+          interfaceType: "cli",
+          messageCount: 2,
+          entryCount: 1,
+          sourceHash,
+          projectionVersion: 1,
+        },
+      }),
+    );
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    mockDecisionAndExtraction(context, "update");
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(false);
+    expect(result.created).toBe(true);
+    expect(upsertSpy).toHaveBeenCalled();
+  });
+
+  it("cleans up shared decisions and action items when replacing memory", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    spyOn(context.entityService, "getEntity").mockResolvedValue(
+      createMockSummaryEntity({
+        content: "# Conversation Summary\n",
+        visibility: "shared",
+        metadata: {
+          conversationId: "conv-1",
+          channelId: "cli-terminal",
+          channelName: "CLI Terminal",
+          interfaceType: "cli",
+          messageCount: 2,
+          entryCount: 1,
+          sourceHash: "stale-hash",
+          projectionVersion: 1,
+        },
+      }),
+    );
+    spyOn(context.entityService, "upsertEntity");
+    const publicDecision = createMockDecisionEntity(
+      "public-decision",
+      "public",
+    );
+    const sharedDecision = createMockDecisionEntity(
+      "shared-decision",
+      "shared",
+    );
+    const publicActionItem = createMockActionItemEntity(
+      "public-action",
+      "public",
+    );
+    const sharedActionItem = createMockActionItemEntity(
+      "shared-action",
+      "shared",
+    );
+    const listEntitiesSpy = spyOn(context.entityService, "listEntities")
+      .mockResolvedValueOnce([publicDecision, sharedDecision])
+      .mockResolvedValueOnce([publicActionItem, sharedActionItem]);
+    const deleteEntitySpy = spyOn(context.entityService, "deleteEntity");
+    mockDecisionAndExtraction(context, "update");
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({ memoryVisibility: "shared" }),
+    );
+
+    await derivation.projectConversation("conv-1");
+
+    const listedTypes = listEntitiesSpy.mock.calls.map(
+      (call) => call[0].entityType,
+    );
+    expect(listedTypes).toContain("decision");
+    expect(listedTypes).toContain("action-item");
+    for (const call of listEntitiesSpy.mock.calls) {
+      if (
+        call[0].entityType === "decision" ||
+        call[0].entityType === "action-item"
+      ) {
+        expect(call[0].options?.filter?.visibilityScope).toBe("shared");
+      }
+    }
+    expect(deleteEntitySpy).toHaveBeenCalledTimes(2);
+    expect(deleteEntitySpy).toHaveBeenCalledWith({
+      entityType: "decision",
+      id: "shared-decision",
+    });
+    expect(deleteEntitySpy).toHaveBeenCalledWith({
+      entityType: "action-item",
+      id: "shared-action",
+    });
+    expect(deleteEntitySpy).not.toHaveBeenCalledWith({
+      entityType: "decision",
+      id: "public-decision",
+    });
+    expect(deleteEntitySpy).not.toHaveBeenCalledWith({
+      entityType: "action-item",
+      id: "public-action",
+    });
+  });
+
+  it("skips projection when source hash is unchanged", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+
+    const derivation = createDerivationHarness(
+      narrowContext(context),
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+    const sourceHash = computeSummarySourceHash(conversation, messages, 1);
+
+    spyOn(context.entityService, "getEntity").mockResolvedValue(
+      createMockSummaryEntity({
+        content: "# Conversation Summary\n",
+        metadata: {
+          conversationId: "conv-1",
+          channelId: "cli-terminal",
+          channelName: "CLI Terminal",
+          interfaceType: "cli",
+          messageCount: 2,
+          entryCount: 1,
+          sourceHash,
+          projectionVersion: 1,
+          timeRange: {
+            start: "2026-01-01T00:00:00.000Z",
+            end: "2026-01-01T00:01:00.000Z",
+          },
+        },
+      }),
+    );
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    const generateSpy = spyOn(context.ai, "generate");
+
+    const result = await derivation.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(true);
+    expect(upsertSpy).not.toHaveBeenCalled();
+    expect(generateSpy).not.toHaveBeenCalled();
+  });
+});

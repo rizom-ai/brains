@@ -39,7 +39,7 @@ const renderer = (): never => {
 const staticSiteBuilderFactory = (): never => {
   throw new Error("builder is not executed while fingerprinting");
 };
-const sendMessage = async (): Promise<{ noop: true }> => ({ noop: true });
+const publishMessage = async (): Promise<void> => {};
 
 function fingerprint(renderVersion?: string): string {
   const template: SiteViewTemplate = {
@@ -55,7 +55,7 @@ function fingerprint(renderVersion?: string): string {
     layouts: {},
     getViewTemplate: () => template,
     staticSiteBuilderFactory,
-    sendMessage,
+    publishMessage,
   });
 }
 

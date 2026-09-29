@@ -1,21 +1,15 @@
+import { atprotoService } from "./service";
+
+export { atprotoService } from "./service";
 export {
-  AtprotoPlugin,
-  atprotoPlugin,
-  atprotoPlugin as plugin,
-  type AtprotoPluginDeps,
-  type PublishBrainCardOptions,
-  type PublishBrainCardResult,
-  type PublishEntityOptions,
-  type PublishEntityResult,
-  type PublishPostOptions,
-  type PublishPostResult,
-  ATPROTO_PUBLISH_FAILED,
-  type AtprotoPublishOperation,
-  type AtprotoPublishFailedPayload,
-  type DiscoverBrainCardsOptions,
-  type DiscoverBrainCardResult,
-  type DiscoverBrainCardsResult,
-} from "./plugin";
+  createAtprotoPublisher,
+  type AtprotoAnnouncer,
+  type AtprotoEntityReads,
+  type AtprotoPublisher,
+  type AtprotoPublisherInput,
+  type AtprotoServiceDeps,
+} from "./publisher";
+export * from "./publish-contracts";
 export {
   atprotoConfigSchema,
   atprotoJetstreamConfigSchema,
@@ -42,7 +36,11 @@ export {
   type AtprotoBlobRef,
   type CanonicalAtprotoLexiconId,
 } from "@brains/atproto-contracts";
-export { buildBrainCardRecord, type BrainCardRecord } from "./records";
+export {
+  buildBrainCardRecord,
+  type AtprotoBrainSource,
+  type BrainCardRecord,
+} from "./records";
 export {
   anchorDidWebFromHostname,
   buildConfiguredDidWebDocuments,
@@ -71,3 +69,7 @@ export {
   type UploadBlobInput,
   type UploadBlobResult,
 } from "./pds-client";
+
+/** The service with its production collaborators, for a brain's composition. */
+const atprotoPackage: ReturnType<typeof atprotoService> = atprotoService();
+export default atprotoPackage;

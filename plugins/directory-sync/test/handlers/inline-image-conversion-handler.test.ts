@@ -1,4 +1,5 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
 import { z } from "@brains/utils/zod";
 import {
   describe,
@@ -12,7 +13,7 @@ import {
 import * as fsp from "fs/promises";
 import { InlineImageConversionJobHandler } from "../../src/handlers/inline-image-conversion-handler";
 import { createSilentLogger } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../../src/host";
 import type { Logger } from "@brains/utils/logger";
 import {
   CallbackProgressReporter,
@@ -23,7 +24,8 @@ import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("InlineImageConversionJobHandler", () => {
   let handler: InlineImageConversionJobHandler;
-  let context: ServicePluginContext;
+  let context: DirectorySyncHost;
+  let createEntity: ReturnType<typeof mock>;
   let logger: Logger;
   let progressReporter: ProgressReporter;
   let progressCalls: ProgressNotification[];
@@ -44,20 +46,24 @@ describe("InlineImageConversionJobHandler", () => {
     return reporter;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     logger = createSilentLogger();
-    context = createMockServicePluginContext({
-      returns: {
-        entityService: {
-          listEntities: [],
-          createEntity: {
-            entityId: "test-image-id",
-            jobId: "job-1",
-            skipped: false,
-          },
-        },
+    const host = await hostFor(createMockShell());
+    // The real host, with the two records reads this handler makes stubbed:
+    // no image exists yet, and creating one answers with a known id.
+    createEntity = mock(async () => ({
+      entityId: "test-image-id",
+      jobId: "mock-job-id",
+      skipped: false,
+    }));
+    context = {
+      ...host,
+      mirror: {
+        ...host.mirror,
+        listEntities: mock(async () => []),
+        createEntity,
       },
-    });
+    };
 
     mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
     handler = new InlineImageConversionJobHandler(context, logger, mockFetcher);

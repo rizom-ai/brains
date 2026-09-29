@@ -5,7 +5,11 @@ import {
   submitContentGeneration,
 } from "@brains/content-service";
 import type { ContentTemplate, IContentService } from "@brains/content-service";
-import type { PermissionService, Template } from "@brains/templates";
+import type {
+  InMemoryTemplateRegistry,
+  PermissionService,
+  Template,
+} from "@brains/templates";
 import type {
   DataSource,
   DataSourceCapabilities,
@@ -21,7 +25,7 @@ import type {
  * a test may reassign the shell's — late binding is the point.
  */
 export interface MockContentDeps {
-  readonly templates: Map<string, Template>;
+  readonly templates: Pick<InMemoryTemplateRegistry, "get" | "list">;
   readonly entityService: IEntityService;
   getPermissionService(): PermissionService;
 }
@@ -110,7 +114,7 @@ export function createMockContentServices(
       return template ? toContentTemplate(template) : null;
     },
     listTemplates: (): ContentTemplate<unknown>[] =>
-      Array.from(deps.templates.values()).map(toContentTemplate),
+      deps.templates.list().map(toContentTemplate),
     // No data sources are wired into the fake, so nothing resolves.
     resolveContent: async <T = unknown>(): Promise<T | null> => null,
   } satisfies IContentService;

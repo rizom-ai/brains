@@ -1,21 +1,45 @@
 import type {
+  AppendAuthAuditEventInput,
+  InterfaceCaller,
+  OperatorEntityWrites,
+  ServiceEntityShapes,
   StudioWorkspaceActor,
-  ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { permissionToVisibilityScope } from "@brains/sdk/entities";
 import { jsonResponse } from "./editor-response";
-import { getErrorMessage } from "@brains/utils/error";
 import type {
   StudioRequestAccess,
   StudioTypeCapabilities,
-  EditorRouteOptions,
 } from "./editor-contracts";
+import type { StudioEntityReads } from "./runtime";
+
+/**
+ * What a request is allowed to see and do, read off the caller the runtime
+ * resolved. The visibility scope is a function of the permission level, as
+ * it is everywhere else.
+ */
+export function accessFor(caller: InterfaceCaller): StudioRequestAccess {
+  return {
+    caller,
+    actor: {
+      kind: "user",
+      userId: caller.actor.id,
+      ...(caller.actor.canonicalId !== undefined
+        ? { canonicalId: caller.actor.canonicalId }
+        : {}),
+    },
+    permissionLevel: caller.permission,
+    visibilityScope: permissionToVisibilityScope(caller.permission),
+    isAnchor: caller.isAnchor,
+  };
+}
 
 export function toStudioWorkspaceActor(
   access: StudioRequestAccess,
 ): StudioWorkspaceActor {
   return {
     interfaceType: "studio",
-    userId: access.principal.userId,
+    userId: access.caller.actor.id,
     actor: access.actor,
     userPermissionLevel: access.permissionLevel,
     visibilityScope: access.visibilityScope,
@@ -27,7 +51,8 @@ export type StudioMutationOperation = "create" | "update" | "delete" | "upload";
 export type StudioMutationOutcome = "allowed" | "denied";
 
 export async function recordStudioMutationAudit(
-  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
+  recordAuditEvent:
+    ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined,
   access: StudioRequestAccess,
   operation: StudioMutationOperation,
   outcome: StudioMutationOutcome,
@@ -37,7 +62,7 @@ export async function recordStudioMutationAudit(
 ): Promise<void> {
   if (!recordAuditEvent) return;
   await recordAuditEvent({
-    actorUserId: access.principal.userId,
+    actorUserId: access.caller.actor.id,
     action: `studio.entity.${operation}.${outcome}`,
     targetType: "entity",
     ...(targetId ? { targetId } : {}),
@@ -50,18 +75,12 @@ export async function recordStudioMutationAudit(
   });
 }
 
-export function studioMutationOptions(access: StudioRequestAccess): {
-  eventContext: {
-    actor: StudioRequestAccess["actor"];
-    interfaceType: "studio";
-  };
+/** Who a console write is attributed to, on the mutation event. */
+export function studioEventContext(access: StudioRequestAccess): {
+  actor: StudioRequestAccess["actor"];
+  interfaceType: "studio";
 } {
-  return {
-    eventContext: {
-      actor: access.actor,
-      interfaceType: "studio",
-    },
-  };
+  return { actor: access.actor, interfaceType: "studio" };
 }
 
 export function requireTrustedCapability(
@@ -80,79 +99,33 @@ export function requireAdminCapability(
     : jsonResponse({ error: "Admin Studio capability required" }, 403);
 }
 
+type StudioEntityAction =
+  "create" | "update" | "delete" | "extract" | "publish";
+
+/** The refusal a route answers when the brain's policy says no. */
 export function requireEntityAction(
-  context: ServicePluginContext,
+  operator: OperatorEntityWrites,
   entityType: string,
-  action: "create" | "update" | "delete" | "extract" | "publish",
+  action: StudioEntityAction,
   access: StudioRequestAccess,
 ): Response | null {
-  try {
-    context.permissions.assertEntityActionAllowed(entityType, action, {
-      userPermissionLevel: access.permissionLevel,
-    });
-    return null;
-  } catch (error) {
-    return jsonResponse(
-      {
-        error: getErrorMessage(error, `Studio ${action} permission denied`),
-      },
-      403,
-    );
-  }
-}
-
-export function canPerformEntityAction(
-  context: ServicePluginContext,
-  entityType: string,
-  action: "create" | "update" | "delete" | "extract" | "publish",
-  access: StudioRequestAccess,
-): boolean {
-  try {
-    context.permissions.assertEntityActionAllowed(entityType, action, {
-      userPermissionLevel: access.permissionLevel,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  const refusal = operator.refusal(entityType, action, access.caller);
+  return refusal === undefined ? null : jsonResponse({ error: refusal }, 403);
 }
 
 export function deriveTypeCapabilities(
-  context: ServicePluginContext,
+  operator: OperatorEntityWrites,
   entityType: string,
   visibleCount: number,
   access: StudioRequestAccess,
 ): StudioTypeCapabilities | undefined {
-  const canCreate = canPerformEntityAction(
-    context,
-    entityType,
-    "create",
-    access,
-  );
-  const canUpdate = canPerformEntityAction(
-    context,
-    entityType,
-    "update",
-    access,
-  );
-  const canDelete = canPerformEntityAction(
-    context,
-    entityType,
-    "delete",
-    access,
-  );
-  const canExtract = canPerformEntityAction(
-    context,
-    entityType,
-    "extract",
-    access,
-  );
-  const canPublish = canPerformEntityAction(
-    context,
-    entityType,
-    "publish",
-    access,
-  );
+  const can = (action: StudioEntityAction): boolean =>
+    operator.allows(entityType, action, access.caller);
+  const canCreate = can("create");
+  const canUpdate = can("update");
+  const canDelete = can("delete");
+  const canExtract = can("extract");
+  const canPublish = can("publish");
   const canRead =
     visibleCount > 0 ||
     canCreate ||
@@ -174,16 +147,25 @@ export function deriveTypeCapabilities(
 }
 
 export async function getTypeCapabilities(
-  context: ServicePluginContext,
+  runtime: {
+    readonly shapes: ServiceEntityShapes;
+    readonly operator: OperatorEntityWrites;
+    readonly entities: Pick<StudioEntityReads, "count">;
+  },
   entityType: string,
   access: StudioRequestAccess,
 ): Promise<StudioTypeCapabilities | undefined> {
-  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
+  if (!runtime.shapes.frontmatterSchema(entityType)) {
     return undefined;
   }
-  const visibleCount = await context.entityService.countEntities({
+  const visibleCount = await runtime.entities.count({
     entityType,
     options: { filter: { visibilityScope: access.visibilityScope } },
   });
-  return deriveTypeCapabilities(context, entityType, visibleCount, access);
+  return deriveTypeCapabilities(
+    runtime.operator,
+    entityType,
+    visibleCount,
+    access,
+  );
 }

@@ -1,15 +1,19 @@
 import {
-  NOTIFICATION_FAILURES,
   NOTIFICATIONS_SEND,
+  NOTIFICATION_FAILURES,
+  notificationFailureCode,
   notificationRecipientSchema,
   sendNotificationSchema,
-  type SendNotificationInput,
+  type NotificationRecipient,
   type SendNotificationResult,
 } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+import {
+  defineServicePlugin,
+  defineSubscription,
+  SdkError,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 
 export {
   NOTIFICATIONS_SEND,
@@ -21,101 +25,93 @@ export {
   type SendNotificationResult,
 } from "@brains/contracts";
 
+export interface NotificationsConfig {
+  defaultRecipient?: NotificationRecipient | undefined;
+}
+
+export type NotificationsConfigInput = NotificationsConfig;
+
 // Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; a
 // recipient without an address means "no default recipient", not an invalid
 // plugin config — alerts then stay pending on the standard retry path.
-const emptyRecipient: z.ZodPipe<
-  z.ZodObject<{ type: z.ZodLiteral<"email">; address: z.ZodString }>,
-  z.ZodTransform<undefined, { type: "email"; address: string }>
-> = z
+const emptyRecipient = z
   .object({ type: z.literal("email"), address: z.string().max(0) })
   .transform((): undefined => undefined);
 
-const notificationsConfigSchema: z.ZodObject<
-  {
-    defaultRecipient: z.ZodOptional<
-      z.ZodUnion<[typeof emptyRecipient, typeof notificationRecipientSchema]>
-    >;
-  },
-  z.core.$loose
+const notificationsConfigSchema: z.ZodType<
+  NotificationsConfig,
+  NotificationsConfigInput
 > = z.looseObject({
   defaultRecipient: emptyRecipient.or(notificationRecipientSchema).optional(),
 });
 
-export type NotificationsConfig = z.output<typeof notificationsConfigSchema>;
-export type NotificationsConfigInput = z.input<
+const notificationsPackage: ServicePackageDefinition<
   typeof notificationsConfigSchema
->;
+> = defineServicePlugin(
+  {
+    id: "notifications",
+    config: notificationsConfigSchema,
 
-export class NotificationsPlugin extends ServicePlugin<
-  NotificationsConfig,
-  NotificationsConfigInput
-> {
-  constructor(config: NotificationsConfigInput = {}) {
-    super("notifications", packageJson, config, notificationsConfigSchema);
-  }
+    // setup first, so `state` is inferred before any slot that destructures it.
+    setup: ({ channels, logger }) => ({ channels, logger }),
+  },
+  {
+    subscriptions: ({ config, state }) => [
+      defineSubscription({
+        execution: "all-roles",
+        topic: NOTIFICATIONS_SEND,
+        payload: sendNotificationSchema,
+        // Throwing is how a subscription reports a failed response; returning
+        // would hand the caller a successful message wrapping a refusal.
+        handle: async ({ payload }): Promise<SendNotificationResult> => {
+          const recipient = payload.recipient ?? config.defaultRecipient;
+          if (!recipient) {
+            state.logger.warn("Notification has no recipient");
+            throw new SdkError("handler_failed", {
+              publicMessage: NOTIFICATION_FAILURES.recipientMissing,
+            });
+          }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    // Durable jobs need the same internal transport resolution in worker roles.
-    context.messaging.subscribeExecution<
-      SendNotificationInput,
-      SendNotificationResult
-    >(NOTIFICATIONS_SEND, async (message) => {
-      const input = sendNotificationSchema.parse(message.payload);
-      const recipient = input.recipient ?? this.config.defaultRecipient;
-      if (!recipient) {
-        context.logger.warn("Notification has no recipient");
-        return {
-          success: false,
-          error: NOTIFICATION_FAILURES.recipientMissing,
-        };
-      }
+          // Resolve a transport by the recipient's channel type. This plugin
+          // never names a transport, so a new one becomes available by
+          // registering a delivery provider — no change here.
+          const provider = state.channels.getDeliveryProvider(recipient.type);
+          if (!provider || !(await provider.isAvailable())) {
+            state.logger.warn("Notification has no available transport", {
+              channelType: recipient.type,
+            });
+            throw new SdkError("handler_failed", {
+              publicMessage: NOTIFICATION_FAILURES.transportMissing,
+            });
+          }
 
-      // Resolve a transport by the recipient's channel type. This plugin
-      // never names a transport, so a new one becomes available by
-      // registering a delivery provider — no change here.
-      const provider = context.channels.getDeliveryProvider(recipient.type);
-      if (!provider || !(await provider.isAvailable())) {
-        context.logger.warn("Notification has no available transport", {
-          channelType: recipient.type,
-        });
-        return {
-          success: false,
-          error: NOTIFICATION_FAILURES.transportMissing,
-        };
-      }
+          const result = await provider.send({
+            recipient: recipient.address,
+            subject: payload.title,
+            text: payload.body,
+            ...(payload.html ? { html: payload.html } : {}),
+            sensitivity: payload.sensitivity,
+            // Providers dedupe on this, so mint one when the caller has no
+            // natural key rather than leaving retries to double-send.
+            idempotencyKey: payload.idempotencyKey ?? crypto.randomUUID(),
+          });
 
-      const result = await provider.send({
-        recipient: recipient.address,
-        subject: input.title,
-        text: input.body,
-        ...(input.html ? { html: input.html } : {}),
-        sensitivity: input.sensitivity,
-        // Providers dedupe on this, so mint one when the caller has no
-        // natural key rather than leaving retries to double-send.
-        idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
-      });
+          if (result.status !== "sent") {
+            const code = notificationFailureCode(
+              `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
+            );
+            throw new SdkError("handler_failed", {
+              publicMessage: `${NOTIFICATION_FAILURES.deliveryFailed}: ${code}`,
+            });
+          }
 
-      if (result.status !== "sent") {
-        // The transport's failure code names the cause; it carries no message content.
-        return {
-          success: false,
-          error: `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
-        };
-      }
+          return result.providerDeliveryId
+            ? { status: "sent", deliveryId: result.providerDeliveryId }
+            : { status: "sent" };
+        },
+      }),
+    ],
+  },
+);
 
-      const data: SendNotificationResult = result.providerDeliveryId
-        ? { status: "sent", deliveryId: result.providerDeliveryId }
-        : { status: "sent" };
-      return { success: true, data };
-    });
-  }
-}
-
-export function notificationsPlugin(
-  config: NotificationsConfigInput = {},
-): NotificationsPlugin {
-  return new NotificationsPlugin(config);
-}
+export default notificationsPackage;

@@ -59,10 +59,17 @@ function findMonorepoRoot(): string {
 }
 
 const monorepoRoot = findMonorepoRoot();
+// Never rebuild dependency-owned assets in place: their tests may be reading
+// them. Keep staging outside published dist, at the same depth for source maps.
+const uiBuildDirectory = mkdtempSync(join(packageDir, ".ui-build-"));
+process.once("exit", () =>
+  rmSync(uiBuildDirectory, { recursive: true, force: true }),
+);
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
+const webChatUiDirectory = join(uiBuildDirectory, "web-chat");
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
-const studioUiDirectory = join(studioPackageDir, "dist", "ui");
+const studioUiDirectory = join(uiBuildDirectory, "studio");
 const studioUiManifestPath = join(
   studioUiDirectory,
   "studio-asset-manifest.json",
@@ -85,22 +92,28 @@ const sharedInstanceTsConfigPath = join(
 cpSync(sharedInstanceTsConfigPath, packageInstanceTsConfigPath);
 
 console.log("Building bundled web chat UI...");
-const webChatBuildResult = await Bun.spawn(["bun", "run", "build"], {
-  cwd: webChatPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-}).exited;
+const webChatBuildResult = await Bun.spawn(
+  ["bun", "run", "build", "--outdir", webChatUiDirectory],
+  {
+    cwd: webChatPackageDir,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+).exited;
 if (webChatBuildResult !== 0) {
   console.error("Web chat UI build failed");
   process.exit(1);
 }
 
 console.log("Building bundled Studio editor UI...");
-const studioBuildResult = await Bun.spawn(["bun", "run", "build"], {
-  cwd: studioPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-}).exited;
+const studioBuildResult = await Bun.spawn(
+  ["bun", "run", "build", "--outdir", studioUiDirectory],
+  {
+    cwd: studioPackageDir,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+).exited;
 if (studioBuildResult !== 0) {
   console.error("Studio editor UI build failed");
   process.exit(1);
@@ -222,6 +235,10 @@ const libraryEntries = [
   {
     name: "templates",
     source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
+  },
+  {
+    name: "testing",
+    source: join(import.meta.dir, "..", "src", "entries", "testing.ts"),
   },
   {
     name: "deploy",
@@ -408,10 +425,7 @@ for (const asset of [
   "dashboard.js",
   "dashboard.css",
 ]) {
-  cpSync(
-    join(webChatPackageDir, "dist", "ui", asset),
-    join(bundledWebChatUiDir, asset),
-  );
+  cpSync(join(webChatUiDirectory, asset), join(bundledWebChatUiDir, asset));
 }
 for (const retiredUiAsset of [
   "app.js",

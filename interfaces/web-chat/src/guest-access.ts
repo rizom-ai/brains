@@ -1,9 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import {
-  coerceConversationMetadata,
-  type IRuntimeStateNamespace,
-  type IRuntimeStateStore,
-} from "@brains/plugins";
+import { coerceConversationMetadata } from "@brains/sdk/interfaces";
+import type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+} from "@brains/runtime-state";
 import { z } from "@brains/utils/zod";
 import type { WebChatConversation } from "./conversation-access";
 import {

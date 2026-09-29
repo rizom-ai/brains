@@ -1,0 +1,1244 @@
+# Plugin and Interface Boundaries
+
+## Status
+
+Phases 1 through 6 done; **27 of 27 packages converted**
+(`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
+`@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
+`@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
+`@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
+`@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
+`@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`,
+`@brains/atproto`,
+`@brains/content-pipeline`,
+`@brains/dashboard`,
+`@brains/site-builder`,
+`@brains/site-content`,
+`@brains/studio`, `@brains/directory-sync`).
+
+No package extends a base class any more, and none reaches `@brains/plugins`
+for a symbol: the eight that still did after their conversion — `admin`,
+`dashboard`, `email-workflows`, `site-builder`, `site-content`, `studio`,
+`unified-inbox`, `chat-repl` — had each symbol admitted on the SDK with the
+package as its named consumer, or replaced by what the declared surface
+already offered. A dependency-cruiser rule
+(`declared-packages-import-only-the-sdk`) now refuses any source under
+`plugins/` or `interfaces/` that imports from `shell/plugins`.
+
+The count has been wrong three times, each time because it was taken from
+directories on disk. It is now **27 tracked `package.json` files** under
+`plugins/` (21) and `interfaces/` (6); `webserver` moved to `shell/http-host` rather than converting. Inventory command — `git ls-files 'plugins/*/package.json'
+'interfaces/*/package.json'`. The earlier 29 and 30 counted `plugins/cms`,
+which holds nothing but a stale `dist/`, and `plugins/email-triage`, an empty
+directory; both are untracked leftovers of main's CMS-to-Studio rename, with
+no manifest and nothing referencing them. Count manifests, not folders.
+
+The entity tranche is finished: 18 of 18 entity packages import only
+`@brains/sdk` plus shared publishable libraries. That work scoped to
+`entities/` and said so. It left the other two families untouched, and they
+are the larger half.
+
+**27 packages under `plugins/` and `interfaces/`; all 27 are clean.** None
+imports `@brains/plugins` in `src`; the table below is the count the tranche
+started from.
+
+| reaches for                                                          | packages |
+| -------------------------------------------------------------------- | -------- |
+| `@brains/plugins`                                                    | 26       |
+| `@brains/auth-service`                                               | 7        |
+| `@brains/content-formatters`                                         | 4        |
+| `@brains/console-theme`, `@brains/site-composition`, `@brains/image` | 3 each   |
+| `@brains/atproto-contracts`                                          | 2        |
+| `webserver`, `topics`, `site-engine`, `scheduler`, `runtime-state`   | 1 each   |
+
+## What the numbers actually mean
+
+`@brains/plugins` in 26 of 28 is not a lazy import that a find-and-replace
+fixes. It is the base class: **20 packages extend `ServicePlugin`, 3 extend
+`InterfacePlugin`, and 4 extend `MessageInterfacePlugin`.** Where the entity
+tranche converted packages that were already half-declarative, this one
+started from classes — which is why each conversion so far has found gaps in
+the API it converts to rather than merely moving imports.
+
+The declarative surface they would convert _to_ already exists and is
+published — `defineServicePlugin` is used by every converted entity package,
+and `defineInterface` / `defineMessageInterface` are in the export ledger.
+But the interface pair has **no consumer in the repo**: only three
+compatibility fixtures under `packages/brain-cli/test/fixtures/public-authoring/`
+exercise them. They are proven to compile, not proven to carry a real
+interface. The first conversion is therefore also the first honest test of
+that API, and should be expected to find gaps the way each entity conversion
+did.
+
+## The sharper problem, now closed
+
+`plugins/directory-sync` held **five `as IEntityService` casts**. A cast is
+worse than an import: it is a boundary violation that typechecks, so no gate
+caught it and no audit of imports reported it — the package read as clean
+while the boundary was gone.
+
+`01daa20b7` from `work/turso-migration` is cherry-picked. Service plugins get
+`context.entityCoordination`, a handle-based durable bulk-mutation surface
+bound to the plugin id as mutation source; `source` and `operationId` leave
+plugin code and job payloads. Directory-sync compiles against
+`EntityServiceClient` alone and all five casts are gone.
+
+`bun run casts:check` now fails on any `as I*Service` outside `shell/`, in the
+pre-commit hook and CI, so the class cannot return silently. Three further
+casts lived in `plugins/` tests and were fixed at the source. Inside `shell/`
+those interfaces are the local vocabulary, which is why the ban stops there.
+
+This plan's remaining job is the 26 packages that are still classes.
+
+## Decisions
+
+- **Convert, do not re-export.** The temptation with 28 packages sharing one
+  import is to widen the SDK until `@brains/plugins` is reachable through it.
+  That would move the boundary rather than hold it. The import exists because
+  the package extends a class; the fix is the declaration.
+- **Auth-service is three capabilities, not one.** Seven packages import it,
+  which looked like one shared need until the calls were counted: resolving a
+  caller, asking what this deployment is, and recording an audit event are
+  three different questions. `plugins/admin` is a fourth case entirely — it
+  administers auth-service rather than consuming it. Phase 4 carries the
+  measurement.
+- **The shared-library tail is admitted, not routed around.** `console-theme`,
+  `site-composition`, `content-formatters` and `image` are shared
+  publishable libraries beside `@brains/sdk` — decided on measurement in
+  phase 5, nothing replaced, nothing moved.
+- **`plugins/knowledge-map` importing `@brains/topics` is a different smell.**
+  A plugin reaching into another plugin is a dependency between two things
+  that ship independently. It is called out separately because the fix may be
+  a contract in `shared/`, not a capability on the context.
+- **No count claims until measured.** The entity tranche's changeset said
+  "every official entity and plugin package", which was true of 18 entity
+  packages and false of everything here. It has been narrowed.
+
+## Phases
+
+Each phase is a shippable slice with its tests written first, and each
+conversion adds capability only with a named consumer — the discipline that
+made the entity tranche find real defects rather than move code.
+
+1. **Take directory-sync's casts from turso.** _Done._ `01daa20b7` is
+   cherry-picked, minus the RPC exports it carried that belong to the turso
+   branch — the coordination module imports only zod and the local
+   `EntityService` type, so it separates cleanly. Directory-sync compiles
+   against `EntityServiceClient` alone and its five casts are gone. Three
+   more lived in `plugins/` tests and are fixed at the source: the shared
+   mock already had the `createEntityImpl`/`updateEntityImpl` slots
+   stock-photo was casting around. `bun run casts:check` now fails on any
+   `as I*Service` outside `shell/`, in the pre-commit hook and CI.
+
+2. **Convert one interface.** _Target corrected, gaps measured._ The first
+   draft picked `chat-repl` by counting entries in its `package.json`, which
+   is a proxy for nothing — and `chat-repl` extends `MessageInterfacePlugin`,
+   so it would prove `defineMessageInterface`, not `defineInterface`.
+
+   Measured by symbols actually taken from `@brains/plugins`, and by how many
+   of those the SDK is missing:
+
+   | package     | base class | symbols | missing from SDK |
+   | ----------- | ---------- | ------- | ---------------- |
+   | `email`     | message    | 4       | 1                |
+   | `webserver` | interface  | 11      | —                |
+   | `mcp`       | interface  | 13      | 6                |
+   | `a2a`       | interface  | 18      | 7                |
+   | `chat-repl` | message    | 22      | —                |
+   | `web-chat`  | message    | 47      | —                |
+   | `chat`      | message    | 55      | —                |
+
+   **`webserver` is not convertible and should leave this list**; how it leaves is
+   [runtime-http-host](./runtime-http-host.md). It _is_ the
+   HTTP host: it reads `context.httpRoutes.getRoutes()` and runs
+   `Bun.serve()`, serving the routes other interfaces declare. The authoring
+   contract says the runtime owns HTTP hosting, so webserver cannot be
+   expressed as a consumer of the contract it implements. That is a question
+   about where it lives, not how it is authored.
+
+   `email` is the smallest by every honest measure and its one missing symbol,
+   `Daemon`, dissolves into `defineDaemon`. **It is converted.** Its `src`
+   imports only `@brains/sdk`, `@brains/contracts` and `@brains/utils`, and it
+   is the first production consumer either interface API has ever had.
+
+   The count moved twice while doing it, which is the answer the phase was
+   asked for. Six were guessed from reading `setup`, the channel and the
+   subscription surface. Two of those dissolved: `manualDelivery` is already
+   derived from `deliver`, and injected dependencies need no slot — the
+   package exports a factory that closes over them and default-exports
+   `emailInterface()`, which is what `@brains/link` already does. Then five
+   more appeared that only writing the conversion could find. Nine in total:
+
+   1. **Channel subject validation.** `subjectPattern` on the channel.
+      `recipient` types a payload, not the subject a person types.
+   2. **Delivery availability.** An `available` predicate. An interface that
+      answers "no" registers its channel and **no delivery provider** — two
+      callers read a provider's presence as "delivery is possible", so
+      registering an unavailable one would have quietly misled them.
+   3. **Durable state in `setup`.** A `runtimeState` scope factory.
+   4. **Request/response subscriptions**, with `defineSubscription` so the
+      handler sees its payload typed, as `defineRoute` types a body.
+   5. **The delivery envelope.** `MessageOutput` is chat-shaped — a body and
+      nothing else. `deliver` was silently dropping subject, html, threading,
+      idempotency key and sensitivity, and flattening every failure into one
+      code. It now receives the whole envelope and may return a reason.
+   6. **Reaching the bus from `setup`.** Not everything an interface receives
+      is a chat turn; an inbound email is an event other packages consume.
+   7. **A logger in `setup`**, for the same reason.
+   8. **Pulled daemon health.** `ready`/`warning` are pushed at moments the
+      daemon chooses, which cannot express a mailbox that is connected or
+      reconnecting _now_. `defineDaemon` takes a `check`, authoritative while
+      the daemon runs — once stopped the recorded outcome stands, so a daemon
+      that failed to shut down cannot report itself healthy.
+   9. **Declared interfaces in the brain model.** `InterfaceEntry` required a
+      constructor, so the composition layer could not name a declared
+      interface at all.
+
+   Two things the tests caught that would have shipped as defects. The class
+   replaced a failed IMAP disconnect with a fixed message because the
+   transport's own error carries host, user and password; the first draft of
+   the conversion let the raw error through to daemon health. And runtime
+   state is namespaced by the interface's **id**, not its package name as on
+   the entity side — a stored cursor lives under `email.inbound.uid-cursor`,
+   and an inbound mailbox with no cursor re-reads from UID 0, delivering every
+   message in it again as new.
+
+   One rough edge, found by building a repro rather than trusting the first
+   explanation. It is not the factory: a wrapped, annotated `defineMessageInterface`
+   infers `state` perfectly well. It is **property order**. A slot whose
+   context carries `state` — `available`, `daemons`, `deliver` — destructured
+   _above_ `setup` resolves that context before the state type exists, and the
+   generic's default silently wins, so every later slot reports its own fields
+   as missing. Moving `setup` first fixes it and `@brains/email` needs no
+   explicit type arguments. The contract now says so on `setup`, since the
+   failure names the wrong culprit: it points at the slots, not the ordering.
+
+   **`defineInterface` — the generic half — still had no consumer, and
+   `@brains/mcp` is the smallest one.** Five additions are done, with tests;
+   the conversion itself is not, and the reason is worth recording.
+
+   The five are one shape. A generic interface had `routes` and `daemons` and
+   nothing to hold: no way to build a transport once, no way to refuse to
+   start, no tools of its own. So it gains `setup` — with `plugins` to ask
+   whether the host it mounts on is present, `endpoints` and `interactions`
+   to advertise where it can be reached, `mcpTransport` for the protocol
+   server it wraps, `permissions` for what that transport confers, and
+   `agent` because an interface's own tools are conversational — and a
+   `tools` slot to declare them. `directMcpExposure` came with them: it
+   defaults from `sideEffects`, which is right for a tool that acts on the
+   brain and wrong for one that _is_ the conversation.
+
+   Two of those were extractions rather than additions. `runtimeTool` was
+   ~60 lines in the service plugin doing the parse, the confirmation gate and
+   the success envelope; both families need all three, so it moved to
+   `service/tool-runtime.ts` and each supplies only what differs — the
+   context the handler runs in. And `createReactionContext` stopped building
+   entity access from a service, because an interface has a read-only entity
+   service by design; it now takes the access, and an interface supplies one
+   that reads and refuses every write, since it declares no types for a write
+   to be checked against.
+
+   **What stopped the conversion is the confirmation pipeline.** mcp's `chat`
+   tool answers with the agent's own pending confirmation — not "this tool
+   wants approval", which `defineTool` already says, but "the brain asked you
+   something back". A declared tool returns data and the runtime wraps it;
+   there is no way to return that. That is exactly the slice already scoped
+   for `chat-repl`, `chat` and `web-chat`, and doing it here as a one-off for
+   mcp would pre-empt the design three other packages need. **mcp is its
+   fourth named consumer**, which is the strongest argument for taking that
+   slice next — and it has since been built, in phase 2 above. What mcp
+   still needed from it was the piece the message pipeline does not cover: a
+   declared _tool_ answering with a pending confirmation, rather than a
+   declared _interface_ presenting one.
+
+   **`mcp` is converted**, and that last piece is built. A declared tool's
+   `execute` now reaches the brain through `agent.chat` and `agent.resolve`,
+   and may return what came back in place of its declared output: an
+   `asked` answer is a `ToolAsk`, which the runtime renders as
+   `needsConfirmation` without putting it through the output schema. The
+   split is the same one the message pipeline uses — a tool says which
+   conversation it is in and what was said; the runtime supplies who is
+   asking, scopes the thread to them so two callers naming the same handle
+   are two conversations, and decides what an answer is made of.
+
+   **Only a tool the agent cannot call reaches the agent.** `agentTool:
+false` is checked, not documented: the agent calling a tool that calls
+   the agent is a loop with no base case, and it is better refused where it
+   is written than found as a request that never returns. Both of mcp's
+   tools already declared it, because a tool that _is_ the way in is not a
+   capability the agent should reach for.
+
+   Two further gaps surfaced, neither predicted by the measurement:
+
+   - **A route hosting somebody else's protocol answers for itself.** Every
+     declared route returned data and let the runtime encode it, which is
+     what stops a package inventing its own error shapes. MCP is the
+     exception: an event stream, the status codes the spec defines, the
+     session header its clients read back — none of it survives a JSON
+     envelope, and none of it is this interface's to reshape. `response:
+verbatim` hands the handler's own `Response` through untouched.
+
+   - **The setup's `permissions` was narrower than its own doc comment.**
+     It promised "what a caller arriving over this transport may do" and
+     typed only the entity assertion. The runtime was already passing the
+     whole namespace, so this was a type widened to what it hands over, not
+     a capability added.
+
+   Three things fell out that are worth stating plainly. The tools are
+   renamed: scoping makes them `mcp_chat` and `mcp_confirm`, so a client
+   with the bare names saved will not find them — the same cost
+   `unified-inbox_list` paid, and clients that list tools on connect pick
+   the new names up on their own. `readYourWrites` stays with mcp rather
+   than moving to the runtime: it is derived mechanically from tool results,
+   but it exists so an MCP client can read back what it just wrote, and it
+   has exactly one consumer. And the job-progress subscription is gone — it
+   only wrote `logger.debug` lines, and keeping it would have meant either a
+   subscription slot with a debug logger as its named consumer, or keeping
+   the class for it.
+
+   **Two things the conversion exposed outside the package**, both
+   consequences of the scoped plugin id (`@brains/mcp:mcp`) that every
+   declarative package gets:
+
+   - The canonical HTTP route manifest was measuring `getWebRoutes()` on
+     **unregistered** plugins. A declared interface builds its routes from
+     the state `setup` returned, so it reports none until it is registered —
+     mcp's five routes simply vanished from the manifest. Registering the
+     interfaces first restores them, and it turned out `a2a` had been
+     missing five routes from that manifest all along for the same reason.
+     The guard was already under-reporting; it would have rotted silently as
+     `web-chat`, `webserver` and `a2a` convert.
+
+     Registering costs something, so each composition is registered once and
+     its manifest cached — three tests want the same manifests, and the first
+     version stood up sixteen shells to produce six answers. Only interfaces
+     are registered: registering a service there would start real work this
+     manifest has no business starting, a directory-sync filesystem scan or a
+     site build.
+
+   - **Debug mode's auth check moved back to daemon start.** The first cut
+     put it in `setup`, which reads better — an interface that cannot serve
+     should not appear to. But it asks `auth.getCaller()`, and auth-service
+     publishes that while plugins are still registering, so the answer
+     depended on registration order. The class read it at daemon start for
+     that reason, and so does the declaration.
+
+   Its 629 lines of tests are replaced by 4. Everything they covered —
+   caller-scoped conversation ids, an isolated conversation when none is
+   named, the same handle partitioned by caller, a pending confirmation
+   becoming an answerable response — moved to the runtime and is tested
+   where it lives. What is left is the one thing genuinely about MCP
+   clients: the handles a turn produced.
+
+3. **Convert one service plugin.** _Done: `@brains/notifications`._ One file,
+   104 lines, whose entire job is answering one request on the bus — and it
+   took nothing from `@brains/plugins` but the base class.
+
+   It needed three things a service could not say:
+
+   - **`subscriptions`.** Reactions cover checks, inbox actions and tools;
+     none of them is a request arriving on a topic. This is the same slot
+     message interfaces needed, so the definition moved to
+     `contracts/subscription.ts` and `defineSubscription` now serves both —
+     abstracted at two consumers rather than three.
+   - **`channels` and `logger` in `setup`.** A service that routes an alert
+     resolves a transport by the recipient's channel type. It reads only: a
+     narrow `ServiceChannelReader`, not the registry, because registering a
+     descriptor belongs to the interface that owns the channel.
+   - **Failure semantics.** The first cut wrapped every handler return as a
+     success, so a refusal arrived as `{success: true, data: {success: false}}`.
+     A handler that cannot answer now throws, and the runtime reports a failed
+     response — in both families.
+
+   **Composition was collapsed to one adapter in the same change**, while only
+   two packages were converted and the blast radius was small. Phase 2 had
+   added `declaredInterface` beside `packageCapability` because `InterfaceEntry`
+   demanded a constructor, which a declaration cannot satisfy. That was two
+   adapters for two lists differing only historically. Both now take the same
+   `PluginFactory`: class-based interfaces are wrapped at their call site
+   (`(config) => new MCPInterface(config)`), `InterfaceConstructor` and
+   `DeclaredInterface` are deleted, and one `packageFactory` binds metadata and
+   instantiates for either list. The remaining split between `plugins:` and
+   `interfaces:` is only the third tuple slot — a capability config versus an
+   env mapper that may return null to skip.
+
+4. **Auth-service as capabilities.** _Measured; the premise was wrong._ The
+   phase assumed one slice would serve all seven. Every one of the seven does
+   import `getActiveAuthService` — an ambient accessor, which is why the count
+   looked uniform — but what they _call_ on it falls into four shapes:
+
+   | consumer                          | calls                                                    |
+   | --------------------------------- | -------------------------------------------------------- |
+   | `web-chat`, `dashboard`, `studio` | `resolveSession`                                         |
+   | `mcp`                             | `resolveBearerGrant`                                     |
+   | `web-chat`                        | `createAuthLoginResponse`                                |
+   | `a2a`                             | `getIssuer`, `isLoopbackIssuer`, `issuerFromRequest`     |
+   | `studio`, `admin`                 | `recordAuditEvent`, `queryAuditEvents`                   |
+   | `admin`                           | twenty methods: users, invitations, passkeys, identities |
+   | `chat`                            | nothing — it imports `AuthPrincipal` as a type           |
+
+   So: **a caller capability** (who is this request from — session, bearer
+   grant, login response), **an issuer capability** (what this deployment
+   is, for federation), and **an audit capability** (record and query). Those
+   three cover six of the seven, and `chat` needs only a type.
+
+   **The `admin` decision is made: expand the surface, deliberately.**
+   Options weighed and rejected: an SDK capability for the raw class (a hole
+   with a nicer name), a documented exception (waives the tranche's goal),
+   merging admin into `shell/auth-service` (no shell package declares a view
+   today — every workspace and widget declarer lives in `plugins/` or
+   `entities/`, and the merge would be the first to break that), and bus
+   contracts (twenty request/response topics for one in-process caller).
+
+   What shipped instead: `AuthAdministration` — the measured set of
+   twenty-two operations the workspaces perform, grouped people /
+   invitations / peers / identities / audit, in the class's own vocabulary
+   because inventing a second one for a single consumer is surface without
+   meaning. `AuthService implements` it nominally, so drift breaks the build
+   at the class; a conformance test breaks it from the consumer's side.
+   `@brains/admin` types against the contract and no longer names the class.
+   The type is published on `@rizom/brain/services` as
+   advanced-with-consumer — type-only, since holding the type cannot conjure
+   the service. The HTTP admin endpoints keep their separate transport-shaped
+   `AuthAdminOperations`; that adapter is not the capability.
+
+   Untangling this also surfaced a dead edge: `shell/auth-service` declared
+   `@brains/notifications` as a dependency and imported nothing from it (the
+   contract lives in `@brains/contracts`), which the SDK's new type-only
+   auth-service edge turned into a package cycle. Removed.
+
+   The other three shipped the same way. `AuthCaller` — who a request is
+   from: session, bearer grant, or the login response for a request carrying
+   neither. `AuthAudit` — record and query as one surface, and
+   `AuthAdministration extends AuthAudit` so what studio records and what
+   administration queries cannot drift apart. `AuthFederation` — the issuer
+   this brain speaks as, recorded peer trust, and the signing key; measuring
+   a2a also turned up `getA2ASigningKey`, which the original seven-consumer
+   audit missed. The pure issuer helpers stay free functions. All are
+   implemented nominally by `AuthService`, covered by conformance tests, and
+   published type-only as advanced-with-consumer — caller and audit on the
+   services entry for dashboard and studio, caller, federation and the
+   helpers on the interfaces entry for web-chat, mcp, chat and a2a.
+
+   **Phase 4 is done.** Consumers still reach the instance through
+   `getActiveAuthService`; retiring that ambient accessor for a granted
+   context capability belongs to each package's own conversion in phase 6,
+   where the contract each one compiles against is now already named.
+
+5. **Decide the shared libraries.** _Done: all four admitted as publishable
+   beside the SDK_, each on its own evidence rather than as a batch:
+
+   | library              | src      | deps                                 | users | evidence                                                                                                                                                                                               |
+   | -------------------- | -------- | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | `content-formatters` | 18 files | contracts, utils, js-yaml, remark    | 11    | already partially SDK-published (`StructuredContentFormatter`, consumer `@brains/series`); the entity tranche shipped with entities importing it directly                                              |
+   | `site-composition`   | 14       | content-formatters, templates, utils | 5     | already partially SDK-published (`fetchSiteInfo`, `FeedItem`); its closure is entirely inside the published one                                                                                        |
+   | `console-theme`      | 6        | contracts                            | 3     | a leaf: the palette, type ramp and console surface web-chat, dashboard and studio render with — presentation vocabulary, not runtime                                                                   |
+   | `image`              | 7        | entity-service, utils, remark        | 3     | its one runtime edge is nominal — a `BaseEntity` type and `baseEntityParserSchema`, the same base-entity vocabulary the SDK publishes, and `@brains/entity-service` is already a direct SDK dependency |
+
+   The suspicious one was `image`: a "shared library" depending on
+   `shell/entity-service` looks like runtime leaking into the shared layer.
+   Measured, it isn't — the edge is the shared entity vocabulary, not the
+   service. Nothing is replaced and nothing moves.
+
+   The per-package allowed set for this tranche is therefore: `@brains/sdk`,
+   `@brains/utils`, `@brains/contracts`, `@brains/templates`,
+   `@rizom/brain-ui`, `@brains/atproto-contracts`, and these four.
+
+6. **The remaining conversions**, in dependency order, each closing its
+   package's internal imports.
+
+   **`stock-photo` was gated on a measured API gap, now closed.** Its select
+   job created `image` entities — another package's type — and stamped cover
+   ids on arbitrary targets, and no package-facing path reached the owning
+   type's create route. The gap closed as one capability, `createRouted`:
+   tool and job handlers hand a create request to the route the owning type
+   declared, attributed to the caller or to the actor recorded on the job,
+   with no fallback write. Two smaller gaps surfaced measuring it and closed
+   with it — a create route may answer `existing` and may `linkInto` a
+   target, and the declarative adapter had lost `supportsCoverImage` on
+   conversion, so every converted type refused a cover through
+   `system_update`. Converted: the select job fetches the bytes and hands
+   them to the image route, which names, deduplicates by source URL and
+   links; a missing target fails the job rather than leaving an orphan.
+
+   **The chat interfaces are gated on confirmations.** `chat-repl`, `chat`
+   and `web-chat` each hand-roll the same three things: a
+   `PendingApprovalTracker` per conversation, `routeConfirmationResponse`
+   before the agent call, and `buildResponsePlan` to render the reply. The
+   declarative pipeline's `receiveAuthenticated` sends `response.text` and
+   nothing else, so converting any of them as-is would drop confirmation
+   handling — a user replying "yes" to a pending approval would be answered
+   as if it were a new question.
+
+   The shared halves already exist as functions in `@brains/plugins`; what
+   is missing is that the runtime pipeline never calls them, and that
+   rendering legitimately differs per interface (a terminal formats an
+   approval as text with `yes 1` sugar; web-chat renders a card). So the
+   slice is: the pipeline owns tracking and routing, and an interface
+   declares how an approval is presented. Three named consumers, measured —
+   its own slice, ahead of any of the three conversions.
+
+   **Built, with tests.** The pipeline now holds a `PendingApprovalTracker`
+   per conversation, routes an incoming message through
+   `routeConfirmationResponse` before putting it to the agent, resolves a
+   matched approval through `confirmPendingAction`, and syncs the tracker
+   from whatever comes back. An interface says the rest in two slots:
+
+   - **`present`** takes the whole list of `ResponseRenderDirective`s — the
+     runtime already decides what an answer is made of and in what order —
+     and returns one message, several in order, or none. Omitting it sends
+     the response text and drops the rest, which is exactly what every
+     declared interface did before.
+
+     The first cut passed one directive at a time and sent whatever came
+     back, which reading `chat-repl` disproved: the terminal joins text,
+     cards and approval prompts into a **single** block, and a
+     directive-at-a-time slot cannot express that. Grouping is a rendering
+     decision like any other, so it belongs with the interface too.
+
+   - **`interpret`** is its inbound half, and only exists because the two
+     are not symmetric. A terminal that numbered the approvals it printed
+     accepts "yes 2", and only that interface knows what 2 refers to; a
+     client with buttons has no ordinals at all. It rewrites the message
+     before routing, or returns it unchanged.
+
+   The split is the point: everything that must not drift between
+   interfaces — what is pending, what a reply resolves, what an answer
+   contains and in what order — is the runtime's, and everything that is a
+   rendering decision stays with the interface that renders it.
+
+   **`chat-repl` is converted**, and needed one more addition: `origin` on
+   `send`. A reply and a job-progress update already arrive through
+   different runtime paths, and the terminal routes them to different UI
+   callbacks — conversation is printed, progress is coalesced into a status
+   line. Nothing named the difference, so a declared interface could only
+   guess by inspecting rendered text.
+
+   Its 652-line test file is gone, replaced by 8 tests of what the package
+   still owns. That is the conversion's real shape: tracking, routing and
+   ordering moved to the runtime and are tested where they live, so what is
+   left to test here is how a terminal reads — one coalesced block,
+   approvals numbered, `yes 2` lowered back to an id.
+
+   **A latent boot failure surfaced, and it is worth knowing about.** The
+   SDK's `interfaces` subpath value-exports `isLoopbackIssuer` and
+   `issuerFromRequest` from auth-service, which pulls `@peculiar/x509`,
+   which pulls tsyringe — and tsyringe reads decorator metadata at module
+   scope. Nothing imported `reflect-metadata`, so the moment an interface
+   package on the binary's static path imported `@brains/sdk/interfaces`,
+   the built binary stopped booting. chat-repl was the first to do it. The
+   fix is one line at the bundle entry; the lesson is that **the boot smoke
+   is the only gate that catches this**, and it only catches it after a
+   forced rebuild — a stale `dist/` hides it completely.
+
+   **`chat` was measured at 55 and needed ten additions, not none.
+   Converted.** It is one plugin serving two interface types: every turn says
+   `discord` or `slack`, permission rules, channel descriptors and
+   conversation ids are keyed per platform, and the class re-routed progress
+   and tool events that came back under the platform's name. The declarative
+   model is one declaration, one channel, one interface type — so `chat` is
+   one package declaring two message interfaces from one config, which
+   deleted the re-routing. Six were measured up front; four more surfaced
+   rewriting the suites against the pipeline — `present` also needs the
+   caller's level and the approvals still pending after a confirmation, an
+   interface with buttons needs to ask what is pending before spending a turn
+   on a stale click (`messages.pendingApprovals`), and the runtime tracked a
+   tool's jobs but not an artifact card's. One rule changed for every
+   declared interface: a reply that is not a yes or a no while an approval is
+   pending goes through as a new question rather than being nagged about.
+   The additions, each with `@brains/chat` as the named consumer:
+
+   - a package may declare several message interfaces from one config,
+     emitting one interface plugin each, the way a service package emits an
+     entity plugin per declared type;
+   - `conversationKey` takes a function, because Discord threads already
+     hold conversations keyed `discord-<thread>` and a conversion must not
+     orphan them;
+   - `present` is told when the answer resolves an approval, and may post
+     the answer itself and hand back the message id the runtime tracks for
+     job completion — a channel that posts cards and files cannot return
+     them as text;
+   - `send` and `edit` receive the progress event behind a progress-origin
+     message, so a channel draws a card from it while the runtime keeps the
+     bookkeeping of which message to edit;
+   - `spaces` on the interface setup context, for passive capture into a
+     space conversation;
+   - `extractCaptureableUrls` on the SDK, a pure helper the class inherited.
+
+   Dropped rather than carried: `manualDelivery` on the channel descriptor,
+   which nothing reads, and the extra actor and source fields chat stored on
+   messages — `username`, `isBot`, `guildId`, `actionId` — which nothing
+   reads back; the pipeline's actor and source shapes are what every
+   declared interface stores.
+
+   **`newsletter` needed no additions to the contract and one to the SDK.
+   Converted.** It was two classes talking to each other over two private
+   bus channels: the entity plugin asked the service plugin whether it was
+   configured before offering the signup slot, and its publish provider sent
+   the issue to the service over the bus to be emailed. As one
+   `defineServicePlugin` declaring the `newsletter` entity, the service knows
+   its own config and builds the provider on its own client, so both
+   channels are gone. The entity's hand-written generate-execute subscriber
+   was the runtime's `scheduledGeneration` in `batch` mode, spelled out; the
+   markdown adapter was `frontmatterInContent`. The one SDK addition is
+   `verbatim` on the services entry: the subscribe route was the repo's only
+   tool-backed API route, which the stable contract deliberately excludes,
+   and as a handler route it has to redirect a plain form submission — a
+   redirect does not survive a JSON envelope. Two things changed for a
+   brain: the tool is `buttondown_subscribers`, since a tool is named after
+   the service that offers it and the service cannot share the entity's
+   name; and the signup form posts to `/api/newsletter/subscribe`, which is
+   where the UI component always posted while the tool route was mounted at
+   `/api/buttondown/subscribe`. Without an API key the package now declares
+   no publisher at all, where the entity used to announce an internal
+   provider that recorded `internal` as the send id.
+
+   **`email-workflows` needed three additions, each a read the runtime already
+   had and a declaration could not reach.** Converted. The package is one
+   service declaring the `mail-item` entity; the persist validator is an
+   entity extension, the inbox source is the `inbox` slot, the list tool is
+   `defineTool`, and the thread-position migration runs from `ready`, which
+   the runtime already keeps off worker processes. The additions, each with
+   `@brains/email-workflows` as the named consumer: `count` on entity access,
+   because a list that reports its total cannot list everything to find it;
+   `prompts.resolve` on the job context, because the classification rubric is
+   an operator-editable prompt the runtime keeps; and `messaging.request` on
+   the reaction context, because an inbox item's body lives in the mailbox and
+   only the email interface can fetch it back — a request, not an
+   announcement. The SDK's entities entry gained the inbox actor and item-id
+   schemas and the facet and action types a source declares with.
+
+   One rule changed. Subscriptions read; a handler that must write enqueues a
+   job. The inbound-mail handler used to classify and write the mail item
+   before answering, and the email interface advanced its cursor on that
+   answer. It now validates and enqueues the `triage` job, and the answer
+   means durably queued; the job classifies, writes, and retries three times
+   with the same attempt counter and fallback as before. The durable store the
+   cursor trusts moved from the entity table to the job queue. The tool is
+   `email-workflows_triage-list`, named after the service that offers it.
+   The dormant reply-draft entity is a `defineEntity` the service does not
+   declare, so it stays out of every brain until the drafting flow lands.
+
+   **`a2a` was measured at seven missing symbols and needed the interface
+   contract to grow in four places.** Converted. It is the first plain
+   interface with routes, a tool, subscriptions and instructions all at once,
+   and each of the last two was a slot only services or message interfaces
+   had: a plain interface can be the only thing that knows how to do
+   something (Studio asks it to call a peer), and it can need to tell the
+   agent how to use what it offers. The Agent Card exposed the other gap —
+   an interface that presents the brain to a peer describes the brain, not
+   itself, and the setup context had no way to say who the brain is, what
+   kind of profile it represents, or what it offers publicly. Those four
+   reads (`identity`, `profileKinds`, `tools`, `publicSkills`) joined the
+   setup context; the entity reader gained `listEntities` and
+   `getEntityTypes` for the public directory; the subscription reader gained
+   a filter and `getEntityTypes` for the approved-agents list. The card is
+   built on first request rather than at ready, since a declaration has no
+   ready and every request arrives after boot.
+
+   The tool is `a2a_call`, following the rule agent-discovery's conversion
+   already set (`agents_connect`); the agent-discovery instructions and the
+   shell's follow-up text still named the class-era tools and were fixed in
+   the same commit. Two things a class did are gone rather than carried: a
+   constructor check refusing `trustedTokens`/`outboundTokens`, which the
+   strict config schema refuses anyway, and the cached card's rebuild hook,
+   which nothing called.
+
+   **`atproto` owns no entity types, and that shaped the whole conversion.**
+   Converted. It is one service with four subscriptions, the `did:web` and
+   handle-verification routes, and ready-time work — the brain card, the
+   canonical lexicon schemas, the Jetstream consumer — that is scheduled, not
+   awaited, and drained by the lifecycle cleanup. Everything it does against
+   a PDS is one publisher object built at setup from the runtime's reads and
+   exported, so the compositions and the boot test drive publishing without
+   a class. Two runtime gaps: the brain card describes the brain, so the
+   service setup context gained the same presentation reads the interface
+   context got for a2a (`identity`, `profileKinds`, `publicSkills`,
+   `plugins`, `siteUrl`); and what discovery finds is news for every
+   package that keeps records, so `publish` joined the service publisher
+   and the subscription handler's messaging, and broadcasts everywhere it is
+   offered.
+
+   The sharper problem was the projection registry. An entity's AT Protocol
+   projection writes the record's address back onto its own entity, and it
+   did that through whatever context the caller passed — which was the
+   atproto plugin's full service context. A declaration cannot hand over a
+   write it does not have. The runtime now binds a declared projection's
+   callbacks to the declaring package's entity access when it registers the
+   projection and ignores the caller's context; the service passes reads and
+   a refusal. Blog still writes `atprotoUri` onto its own posts, through its
+   own access. The real-bootloader publishing test moved from shell/core to
+   brain-cli, since a core dev-dependency on a package that depends on the
+   SDK is a cycle; brain-cli already composes both.
+
+   **`content-pipeline` writes on other packages' entities, and that was
+   the whole question.** Converted. Fourteen bus handlers became declared
+   subscriptions with payload schemas, the widget and the Publishing desk
+   became declarations bound in their slots, and `publishing_manage` became
+   `defineTool`. The two per-tool factories it also exported were dead: only
+   the manage tool was ever registered.
+
+   The package owns no entity types, yet it sets `status`, the publish
+   timestamp and the provider's id on entities belonging to blog, newsletter,
+   social-media and the rest, and it queues an image job belonging to
+   `@brains/image`. A declaration cannot be handed either. The answer is the
+   one `createRouted` already established for cross-type creates: the runtime
+   mediates, and the target's own declaration decides. A package that declares
+   `publish` delegates the act, so the runtime records that delegation — bound
+   to the declaring package's entity access — and the pipeline's `publishing`
+   handle writes through it. `publishAssets` works the same way: the
+   declaration names the job, and the pipeline may queue that one and no
+   other. A type nobody declared publishable is now refused rather than
+   silently queued and never published.
+
+   Four more setup reads, each with content-pipeline as the named consumer:
+   `messaging`, because a scheduler firing on a timer has no caller to answer;
+   `permissions`, because it applies the check on a caller's behalf over types
+   it does not own; `attachments`, because what it sends includes media another
+   package resolves; and `jobs`, whose new `active()` is scoped to this
+   package's own queued work, which is what an operator page shows.
+
+   **`dashboard` hosts what other packages declare, and it converted like
+   any consumer.** Converted. The two widget-registration handlers are
+   declared subscriptions with payload schemas, the page, the console-jump
+   API and every asset file are `defineRoute`, the aggregate other surfaces
+   read is a declared data source, and the way in is a declared interaction.
+   It is the third host in this tranche after the publish pipeline, and the
+   same reading applies: the contract broadcasts a declaration, it does not
+   name a recipient, so a package that listens is a consumer.
+
+   The one capability it needed was already written for the interfaces. A
+   console renders a strip of links to the brain's other consoles, and the
+   class built that by scanning every mounted route and matching plugin ids
+   — one package knowing another's routes, which is the thing this plan
+   removes. `surfaces` joins the service setup context, so the runtime
+   answers which consoles are mounted and what each requires and the console
+   says only who is asking. Session resolution moved from a module-level
+   global to `auth` on the setup context.
+
+   One duplication fell out. The class registered an endpoint _and_ an
+   interaction for the same URL, and the page's own panel injects its door
+   first and dedupes by path — so the endpoint never rendered. Only the
+   interaction is declared, and nothing the page shows changed.
+
+   **`site-content` is parked behind `site-builder`.** Its generate tool
+   decides which sections can generate by asking
+   `templates.getCapabilities(name)` about templates other packages
+   registered, reads the site's routes from site-builder over the bus, then
+   enqueues a batch of the shell's own `SHELL_CHANNELS.contentGeneration`
+   job type. Measured against the declarative surface that is four missing
+   things: a capability read on templates it did not declare, generation by
+   template name with the registry supplying the schema, a request/response
+   read of site-builder's routes from a tool (tools only publish), and a
+   batch enqueue with grouped progress. Two of the four are reads of
+   `site-builder`, itself unconverted and the largest package left, so the
+   slice is designed together with site-builder's conversion rather than as
+   four runtime additions for one tool.
+
+   **`unified-inbox` was measured at three additions and needed four.**
+   Converted. The `inbox`/`inboxFollowUps` readers in `setup` and the
+   `interactions` slot were the first three. The fourth was its digest — a
+   recurring check whose destination URL was built from `siteUrl` and
+   `webRoutes.getRoutes()`, neither of which reached the `checks` context.
+
+   The fourth is worth reading for how it was closed, because the obvious
+   shape was the wrong one. Handing checks the raw route table would have
+   preserved the behaviour exactly: the digest looked through every mounted
+   route for one the `dashboard` plugin owns, and linked there when Studio
+   was absent. But a package guessing at another package's routes is the
+   thing this plan exists to remove — a heuristic the code itself flagged as
+   provisional. What the digest actually needs is narrower and answerable:
+   where did _my own_ workspace end up. So `checks` and `interactions` both
+   gained `workspaceUrl(id)`, resolved by the runtime from what Studio
+   returned when it registered the workspace, and `siteUrl` joined the
+   reaction context to make the path absolute. Without Studio the answer is
+   `undefined`, and the digest links to the brain itself rather than
+   somewhere it hoped a console might be.
+
+   Two things fell out of the conversion that are worth stating plainly.
+   The runtime now refuses a workspace URL that is not same-origin, which
+   the package used to check for itself — a package should not have to
+   defend against its own host. And the list tool's name changed: it was
+   registered by hand as `inbox_list`, naming no plugin, and the
+   declarative surface scopes tool names, so it is `unified-inbox_list`. An
+   MCP client with the old name saved will not find it.
+
+   The lesson is worth keeping: three of these were visible from the plugin
+   file, and the fourth only from following the digest into the helper it
+   calls. Measuring a conversion means reading what the helpers reach for,
+   not only what the plugin class does.
+
+   **`playbooks` was the first conversion whose gaps were about state.**
+   Converted, and it took five additions. Four are `setup` slots, and they
+   share one shape: a package whose engine runs on the agent's schedule
+   rather than a caller's needs handles it can hold. `entities` reads its own
+   type; `state` opens the runtime-state scope its run store writes; `corpus`
+   searches for evidence; `judge` puts that evidence to the model. The fifth
+   is `source` on a subscription — a registry that refuses a second claim on
+   the same lifecycle starter has to name who holds it.
+
+   `corpus` and `judge` are worth separating. The goal check asks whether a
+   run's stated outcome actually holds, and it answers from what the brain
+   recorded rather than from what the agent said it did. That is a search
+   across every type except the package's own — a playbook must not find the
+   document that states its goal and call the goal met.
+
+   Two bugs fell out, both older than this conversion. The runtime-state
+   namespace validator rejects `@` and `/`, and three call sites built a
+   namespace as `${packageName}.${namespace}` — so a scoped package could
+   never have used runtime state at all. Playbooks was the first to try.
+   And the entity half's schemas carried a full duplicate set of "parser"
+   variants that existed only to feed the base entity schema; the codec
+   contract needs one schema, so they are gone.
+
+   Two renames, both from scoping the declaration: `playbook_manage` is now
+   `playbooks_manage`, and the `playbook` capability is folded into
+   `playbooks` — one package registers both the type and the runs that walk
+   it, so there is nothing left for a separate capability to name.
+
+### What the remaining tranche actually is
+
+Nine conversions in, the pattern is clear and worth stating: the rest is
+**not nineteen mechanical conversions**. It is roughly four capability
+slices — cross-type create (stock-photo), the confirmation pipeline (three
+chat interfaces **and now mcp**), the auth instance (admin, studio,
+dashboard, since done), and batch/foreign work (site-content) — each with
+named consumers, and the conversions sit behind them. The confirmation
+pipeline was the largest of them, and it is **now complete on both halves**:
+a declared interface presents an approval, and a declared tool answers with
+one. `chat` and `web-chat` are unblocked; `mcp` is converted.
+
+What remains is two slices and the conversions behind them — cross-type
+create (stock-photo) and batch/foreign work (site-content) — plus the two
+chat interfaces, which need no new capability. Every conversion so far has
+found gaps rather than moved imports, exactly as this plan predicted; what
+has changed is that the remaining gaps are now measured up front instead of
+one package at a time.
+
+"No new capability" was two-thirds true. Measuring `web-chat` against the
+pipeline before rewriting it — rather than after — found two gaps in what
+the pipeline hands an interface, and both were closed first:
+
+- **A tool result is part of the answer.** The render plan read tool results
+  for their job ids and dropped them, so an interface that draws results had
+  to take the whole `AgentResponse` and pick them out. web-chat did, and
+  redacted their upload references itself. The plan now carries a
+  `tool-result` directive, redacted once, where a second interface cannot
+  forget to.
+- **A denied artifact was only denied per interface.** The pipeline built
+  every plan with `deniedCardIds: undefined`, so a restricted artifact
+  reached a declared interface as a deliverable card — its title, filename
+  and existence, not merely its bytes. web-chat did that check by hand in the
+  class it is being converted away from; converting it as-was would have
+  dropped the protection silently. The pipeline now denies against the
+  caller's level, which it already resolves one frame above.
+
+The second is the more useful finding: it was not a conversion blocker but a
+live defect in every already-declared message interface, and only measuring
+the conversion surfaced it.
+
+With those closed, `web-chat`'s remaining conversion is structural rather than
+capability work: the streaming route awaits a whole agent turn and then writes
+frames, so it maps onto `routes.messages` for the turn, `present` for the
+answer, and `progress` for job events — the three slots whose contracts
+already name `@brains/web-chat` as their consumer.
+
+**`web-chat` was measured at 47 and is 70.** The table above counted its
+`@brains/plugins` imports and missed a second boundary: 24 more symbols
+arrive through `@brains/plugins/message-interface/upload-policy`, a deep
+subpath a package-level count never sees. The lesson is the same one
+`unified-inbox` taught — measure what the helpers reach for, and count
+subpaths, not packages.
+
+That one is now closed ahead of the conversion, because it was never a
+capability to begin with. `upload-policy.ts` has no imports at all: it is the
+accepted media types, the size ceilings, whether bytes are plausibly text,
+and how a filename is made safe. Both sides need the same answers — the
+runtime enforces them when a message arrives, an interface enforces them
+before sending so a person is told no by the page rather than by the server.
+It is now `@brains/contracts/upload-policy`, where shapes both sides agree on
+live, and neither side reaches through the other for a constant.
+
+The remaining 46 fall into six groups: the durable upload store (10), the
+base class and its contexts (6), the response pipeline (5), artifacts (6),
+progress and tool status (5), and message metadata (3). The upload store was
+the one that looked like a real capability rather than a move, and it is
+**now built**: `uploads` in `setup`, for both interface families, handing back
+a scoped store. It is `runtimeState`'s shape for content rather than
+bookkeeping — the declaration names a scope, the runtime owns the store and
+its retention.
+
+Writing the test for it found a defect in what was already there. The scope's
+namespace is a filesystem path segment, and a declaration naming its own has
+no way to know another did not choose the same word: two interfaces both
+saying `namespace: "upload"` shared a directory, and a ref issued by one
+resolved in the other. Isolation by convention, which is none. The runtime
+now files a scope under the declaration's own id, the way `stateNamespaceFor`
+already did for runtime state. Uploads are a cache with a retention window, so
+relocating them costs nothing a restart does not already cost.
+
+**The two interface families had drifted apart, and are now one context.**
+Measuring the rest of web-chat turned up something nobody designed: the
+generic family's `setup` had `plugins`, `endpoints`, `interactions`, `auth`,
+`permissions`, `agent` and `domain` but no `runtimeState`; the message family
+had `runtimeState` and `messaging` and none of the others. Each grew what its
+first consumer happened to need. web-chat needs both halves — it is a chat
+channel _and_ the console people reach it through, resolving a browser session
+per request and advertising where it lives.
+
+The runtime never made that distinction: `MessageInterfacePluginContext` has
+extended `InterfacePluginContext` all along. Only what a declaration was
+allowed to ask for was narrower. There is now one `InterfaceSetupContext` both
+families share, plus exactly one field each that is genuinely theirs —
+`mcpTransport` for the generic family, because hosting a protocol is what one
+is, and `messaging` for the message family, because carrying messages is.
+
+A message interface can declare `routes` now, too. The generic family always
+could; nothing made a channel that also answers HTTP impossible except that
+no consumer had needed it.
+
+**web-chat's helpers are off `@brains/plugins`: 70 symbols to 31, and ten of
+its fifteen files import none.** Reading what each helper actually wanted made
+the shape obvious. Six of them did not use the runtime context at all — they
+_indexed_ its type (`InterfacePluginContext["conversations"]`,
+`["jobs"]`, `["entityService"]`) to name one namespace, which is what having
+no name for something looks like. Three things came out of that, each sized
+to what is genuinely used: the conversation surface an interface hosts a
+conversation through; `getStatus` on the declared jobs handle, narrowed to
+what a page can honestly show about work it did not declare; and a reader with
+exactly one method, because rendering an attachment means fetching the entity
+the conversation named and nothing more.
+
+The rest were presentation: what a stored message carried, what an artifact is
+called and who may open it, how progress and tool activity read, what must not
+leak when a card is shown again. All derivation over shapes the runtime already
+defines — no service reaches through them — and published for the reason the
+approval helpers already were: two interfaces must not disagree about what a
+stored message contained, and deriving it twice is how they would.
+
+**The console strip no longer reads the route table.** web-chat rendered its
+links to the other consoles by passing `webRoutes.getRoutes()` — every mounted
+route in the brain — to `deriveConsoleSurfaces`, which matched plugin ids
+against a hardcoded list of the three console plugins. A console now asks
+`surfaces({ permissionLevel, hasActiveSession, selfHref })`: who is asking,
+and where its own door is. The runtime already knows which surfaces are
+mounted and what each requires.
+
+The table itself stays where it is. Its own comment names the end state —
+each plugin declaring its own surface descriptor at route registration — and
+says that is HTTP-route-registry work governed by another plan. Closing the
+boundary here does not require co-opting it.
+
+`inbox` and `inboxFollowUps` join the interface setup for the same reason
+services already have them: web-chat offers to carry an inbox item into a
+conversation, which means registering that it can and reading the source to
+check the item is still reachable.
+
+**One question is deliberately left open: the Studio redirect.** web-chat's
+`/chat` redirects into Studio's chat workspace when Studio is mounted, and it
+finds it by locating Studio's `/api/types` route, slicing that suffix off to
+recover a base path, and assembling a URL. That reads like unified-inbox's
+problem, and `workspaceUrl(id)` looks like the answer — but it is not.
+`web-chat:chat` reads like web-chat's workspace and is Studio's own, declared
+`pluginId: "studio"` and described in Studio as a closed host-owned workspace.
+So the question is not "where did my workspace go" but "which console owns the
+chat door when both are mounted", which is a composition decision rather than
+a lookup. It wants its own slice, and guessing an API for it at the end of
+another one would be the wrong way to answer it.
+
+**web-chat is converted.** The class and the route table it built are gone;
+nineteen routes are `defineRoute`, and the browser's turn goes to
+`messages.receiveAuthenticated` rather than calling the agent itself. What
+stays is how an answer reads on a connection that is still open — `present`
+writing the runtime's directives as frames, one per piece.
+
+Measuring it against the pipeline closed five more gaps, each with web-chat as
+its named consumer:
+
+- `caller` on `receiveAuthenticated`, for an interface holding a verified
+  session. Without it every browser turn would have run as **public** — no
+  deployment writes a `web-chat:*` rule, because there is one per person, not
+  per browser — and been attributed to an external stand-in.
+- An inbound attachment carrying its bytes and its store reference rather than
+  only a URL, so an interface already holding the file does not answer an HTTP
+  request from inside the turn that request started.
+- `conversationKey: "channel"`, for an interface that mints its own session
+  keys and hands them out. Prefixing one would key a second conversation
+  beside the one the caller was gated against — and would have orphaned every
+  existing web-chat transcript.
+- `resolveApproval`, for a client that knows which question it answered.
+  It reports the one case a client cannot infer — an approval the brain is no
+  longer holding — so the tool call it drew gets closed rather than
+  resubmitted forever.
+- A confirmation attributed like the turn that prompted it. Authorising an
+  action is as much the person's act as asking for one.
+
+And it surfaced two live defects, both older than the conversion. The progress
+coordinator matched events against the plugin's runtime id, which is scoped by
+package name for a declared package while every event carries the channel type
+— so **every declared message interface, `chat-repl` included, was silently
+dropping all job progress and tool activity**. `deriveConsoleSurfaces`
+matched route plugin ids the same way, which would have removed web-chat's
+door from every other console's strip the moment it converted.
+
+The pattern holds: each conversion has found gaps in the API it converts to,
+and the second finding each time is worth more than the conversion.
+
+### The studio slice: editing a type nobody declared
+
+Studio is the operator's editor for every entity type. A declared package's
+writes are scoped to the types it declares, and studio declares none, so on
+this surface it would be able to write nothing. That reads like a missing
+capability and is not one: the runtime already has a generic, policy-gated
+cross-type editor in `shell/core/src/system/entity-{create,update,delete}-tool.ts`,
+and studio's `editor-entities.ts` is a second implementation of the same
+thing written straight against `entityService`. Both resolve the entity at
+the caller's visibility scope, both compute the publish boundary from the old
+and new status to decide whether the action is `update` or `publish`, both
+assert the entity-action policy, both check `canWriteVisibility`, and both
+write with a mutation event context. The algorithm is the same twice.
+
+So the work is an extraction, not an invention. `applyEntityEdit` in
+`@brains/entity-service` takes the resolved entity as it should now be plus
+the caller's level, and owns the five steps both callers share. It takes the
+policy assertion as a callback, so it depends on no permission package. The
+system tool and the studio capability both sit on it.
+
+The capability is then thin, and it takes the caller:
+
+```ts
+interface OperatorEntityWrites {
+  create(request, caller: InterfaceCaller): Promise<EntityMutationResult>;
+  update(request, caller: InterfaceCaller): Promise<EntityMutationResult>;
+  delete(request, caller: InterfaceCaller): Promise<boolean>;
+  allows(entityType, action, caller: InterfaceCaller): boolean;
+}
+```
+
+The line this tranche draws is not "may a package touch types it does not
+own" but **on whose authority**. A job's entity access has no caller, so an
+unscoped write there is a package acting on its own behalf on somebody else's
+material. A console has a caller by construction, and the route contract
+already makes that a type fact: a route declared `security: { kind: "protocol" }`
+receives `caller: InterfaceCaller`, and a public one receives `null`. Typing
+the capability to require a caller means a public route cannot call it and a
+background job has nothing to pass, so the constraint is checked rather than
+remembered. Same shape as `createRouted` and `ServicePublishingAccess`.
+
+Three decisions the extraction depends on, settled here because guessing any
+of them wrong means redoing the signature:
+
+1. **The core takes a whole entity, not a patch.** Studio saves the whole
+   document; the agent patches one field mid-conversation. Field
+   normalisation, the cover/og image field mapping, and the four
+   fields-versus-content validators stay in the tool, where the agent's
+   affordance lives. Studio never meets them.
+2. **Confirmation stays above the core.** The gate, its token, and the
+   tolerance for models mangling the agent-approval replay are the tool's.
+   The core receives an intent already authorised and already confirmed, and
+   a console confirms in its own UI.
+3. **Concurrency belongs to the core.** A `baseContentHash` mismatch is a
+   conflict the core reports and each caller renders its own way — 409 with
+   the current hash for studio, an error string for the tool. Studio's guard
+   is the better behaviour and the agent should have it too, rather than
+   silently clobbering a concurrent git import.
+
+Decision 1 also settles a live contradiction in the tool. `normalizeUpdateInput`
+returns `{ fields }` and discards content whenever fields are present, which
+makes the `"Provide either 'content' or 'fields', not both"` guard below it
+unreachable in that direction: a caller sending both silently loses the body.
+The normalisation says fields win and the validation says never both. With
+the whole-entity core underneath, that stays a tool-local question about what
+the agent may send, and it is settled where it is asked rather than inherited
+by every caller.
+
+What studio deletes: `resolveStudioVisibility`, `withStudioVisibility`,
+`stripStudioPolicyMetadata`, and the direct `entityService` calls, because
+visibility against the publish boundary is what the shared core resolves.
+`requireEntityAction` and `canPerformEntityAction` become `allows`, which is
+what feeds the capability flags the editor renders. The audit stays: it is
+studio's own record of what an operator asked for and what came back.
+
+The capability is in. What the conversion itself still needs, measured
+against studio's shell rather than guessed:
+
+- **Four bus subscriptions** become declarations: registering and
+  unregistering an overview contribution, and registering and unregistering
+  a Studio workspace. All four already answer with a success/error envelope,
+  which is what a declared subscription returns.
+- **Two inbox follow-up kinds** — "capture as note" and "open source
+  entity" — need nothing new: `inboxFollowUps` is already on the setup
+  context, so they are registered from `setup` like any other holding.
+- **The endpoint registration goes.** Studio registers an endpoint and an
+  interaction for the same URL, and the console's own panel dedupes by path,
+  so only the interaction is declared. The same duplication `admin` had.
+- **Route security, settled — and not where it looked.** The visibility
+  scope turned out to be no gap at all: studio already computes it as
+  `permissionToVisibilityScope(principal.permissionLevel)`, so it is derived
+  at the boundary like everywhere else. Nor is `role`, which is the same
+  value as `permissionLevel` — `principal-service` sets one from the other.
+
+  The real gap was **where a declared route's permission comes from**. It
+  called `determineUserLevel(declarationId, actorId)`, which resolves a
+  per-interface grant and defaults to public. That is right for a channel
+  interface, which knows an id on its own transport and nothing about what
+  it is worth here. It is wrong for a console that has already verified a
+  first-party session and read the person's role out of the brain's own user
+  store: routing that through channel grants answers "public" about the
+  brain's own operator.
+
+  The first cut let an authenticator return a permission alongside the
+  actor, and the runtime deferred to it. That was the wrong direction: it
+  made any package's code an authority on what a caller is worth, which is
+  the hole this tranche exists to close, moved to the route boundary. The
+  fix is decided as low as it can be. A route declares
+  `security: { kind: "session" }` and nothing else; the runtime resolves
+  the session against the brain's own auth service and reads the person's
+  role, anchor flag and canonical identity from there. `protocol` keeps
+  doing what it does for channel identities, and `authenticate` returns an
+  actor and never a level. The actor gained `canonicalId`, so a write made
+  in a console attributes to the same person as one made in chat.
+
+With the caller settled, the rest of the conversion was measured the same
+way: every read studio makes of its plugin context, tallied, against what
+the declared setup context offers. Most is already there — entity reads,
+messaging, permissions, identity, `plugins.has`, channels, the inbox, the
+follow-up registry, `surfaces` for the two places it walked `webRoutes`
+looking for web-chat's and the dashboard's paths, and `judge` for the three
+places assist calls `ai.generateObject`, which is judge's shape exactly. What
+is not there is five things, each small and each with studio as the named
+consumer:
+
+1. **Entity shapes at setup, and two more reads on them.** `entityShapes`
+   is offered to `ready` only; the editor needs it in route handlers, so
+   it goes on setup. It also needs two reads `ServiceEntityShapes` does not
+   have: `parse(entityType, markdown)`, because a type's own adapter is what
+   says what its markdown means and the editor assembles an entity from a
+   form; and `hasBody(entityType)`, because a body sent for a bodyless type
+   is refused rather than stored.
+2. **An operator upload, through the owning type.** The editor accepts a
+   file, asks which type's save handler takes that media type, stages the
+   bytes, and hands the staged upload to that handler as the caller. That is
+   `createRouted`'s shape for uploads: a type declares how an upload becomes
+   one of it, and the console goes through the declaration. It belongs on
+   `operatorEntities` as `upload`, taking the caller like the rest.
+3. **`themeCSS`**, which the editor shell inlines. A string read.
+4. **`readiness`**, which the overview shows. A read the base context
+   already answers and the setup context does not.
+5. **Eight subscriptions become declarations**: the four registrations and
+   four entity-and-job activity listeners the overview keeps.
+
+Shipped. Converting the tests surfaced four more things, each closed on the
+runtime rather than in the package. A `session` route nobody is signed in
+to answers `Authentication required`, as the console always had. The
+policy's refusal reaches the person in the policy's own words:
+`operatorEntities.refusal` returns it, and `allows` is the boolean of it,
+so the console asks the same question the write asks and asserts nothing
+itself. An upload whose handler refused or crashed has its staged bytes
+removed and is reported as a refusal that names the type. And the overview
+counts channels through `channels.listDescriptors()`, a read the setup
+context did not have. Routes gained `match: "prefix"` for the shell and
+the legacy redirects. The endpoint registration went as decided; the tests
+now read the interaction. A declared subscription answers through the
+runtime's envelope, so the handlers return what they have to say and throw
+a refusal rather than wrapping either.
+The route manifest caught one more: the editor routes were declared only
+once setup had run, so a composed brain listed three redirects and no
+editor. Routes are declared from configuration alone, and a handler reaches
+what setup built through a getter at the moment a request arrives.
+
+### The directory-sync slice: the filesystem is the other write path
+
+Directory-sync keeps the brain's records on disk and, when configured, in a
+git checkout the broker owns. It declares no entity type and writes every
+one: an import parses a file through the type's own adapter and stores the
+result; an export serialises whatever changed. It also holds the durable
+export ledger, runs bulk mutations under coordination, reports two health
+checks, and does different work in the scheduling role than in a worker.
+
+Measured against the declared setup context, half of what it reads is there
+already — config, runtime state, messaging, the status template, job
+handlers as `defineJob`, the logger, `dataDir`, the studio workspace. Six
+things are not, each with directory-sync as the named consumer:
+
+1. **A mirror's entity access — `entityMirror`.** Cross-type list, get,
+   types and has; create, upsert and delete attributed to the mirror;
+   serialise and deserialise through the type's adapter; `runBulkMutation`;
+   the export ledger (pending, list, acknowledge, async job status); and
+   durable bulk coordination (begin, run child, settle child). One
+   capability, one consumer. It is the third admitted cross-type write path
+   after `createRouted` (a type's own route) and `operatorEntities` (a
+   person, policy-checked): here the file is the record and the check is the
+   content hash, not a permission.
+2. **Role — `role: "scheduler" | "worker"`.** Ten branches in the class are
+   on `executionOnly`, and they are real: only a scheduling role reconciles
+   inherited git work and opens admission, watches files, dispatches
+   exports, or reports health; a worker connects to the broker to run jobs
+   and must never open admission. The runtime already skips operator
+   bindings for workers; a package whose duties differ by role reads which
+   one it is.
+3. **The broker's whereabouts — `gitBroker: { socket, checkout }`**, both
+   undefined when the brain has no owner. Facts about the process the
+   runtime already holds.
+4. **Health as a declaration — `health`**, a function of config and state
+   answering named providers, registered by the runtime in the scheduling
+   role and released on shutdown. Directory-sync declares `git-progress`
+   always and `git-broker` when git is configured and a socket is present.
+5. **Batches on the jobs handle — `enqueueBatch` and `batchStatus`.**
+   Exports are enqueued as one batch per sweep so progress reports as one
+   thing; the declared handle enqueues one job at a time.
+6. **Cleanup.** `lifecycle.onCleanup` exists; shutdown and generation
+   replacement (`configure`) hang off it.
+7. **A job that hears it was settled.** Import, export, delete and cleanup
+   settle the durable bulk-mutation child they ran as from the queue's
+   terminal hooks — after retries, exactly once. A declared job had a run
+   and nothing else; `handle(run, { settled })` gives it the second half.
+
+Job types scope to the runtime id, so `directory-sync:directory-import`
+becomes `@brains/directory-sync:directory-sync:directory-import`; the ops
+stress reader is the one place outside the package that names it. Message
+handlers become subscriptions, the studio workspace a `studioWorkspaces`
+declaration, tools a `tools` slot, the status template a `templates` entry.
+The broker host entry points — `startGitBrokerHost`, `GitBrokerServer`,
+`resolveCheckoutPath` — stay exported: the supervisor uses them without
+booting a brain.
+
+Order: the four reads first (role, broker, health, batches), each with its
+test; then `entityMirror` and the settle hook, each with its test; then the
+conversion, with the package's tests moved onto an install helper last. The
+reads, the mirror and the hook are done.
+
+Shipped. The conversion found three more things on the way, each closed on
+the runtime. Setup runs before the runtime has read the `jobs` slot, so
+reconciling inherited git work — which queues a batch — found its own job
+unregistered; `lifecycle.onRegistered` runs once the declarations are
+bound and before the brain announces registration, which is still ahead of
+the startup signal that runs the initial sync. `dataDir` was on the ready
+context and not on setup. And a status answered over the bus says where to
+manage what it reports, so the subscriptions context reads `workspaceUrl`
+like the interactions context does. The mirror reaches the shell's entity
+service at the moment each call is made, as the class context did, which is
+what the tests that install a failure on it after setup rely on.
+
+Three names moved with the runtime's scoping: the tool is
+`directory-sync_sync`, job types are
+`@brains/directory-sync:directory-sync:<job>`, and the package's runtime
+state is filed under its package name, so a brain's stored operation status
+and git checkpoint are not found after the upgrade — the first sync runs a
+full reconciliation, and the operation history starts empty.
+
+## Validation
+
+- A check that fails on `as I*Service` casts anywhere outside `shell/`, so
+  the class of defect directory-sync had cannot return silently.
+- Per-package: `src` imports only `@brains/sdk`, `@brains/utils`,
+  `@brains/contracts` and whatever the phase-5 decision admits.
+  Enforced: the `declared-packages-import-only-the-sdk` dependency-cruiser
+  rule refuses a `shell/plugins` import from any `plugins/` or `interfaces/`
+  source.
+- The export ledger and authoring doc stay consistent with every capability
+  added, enforced by `public-authoring-golden.test.ts` — which runs under
+  `surface:check` with the other published-surface checks, against a fresh
+  build, rather than inside the unit suite.
+- A count in this plan's status, updated as packages land, so the tranche's
+  progress is a measured number rather than an impression.

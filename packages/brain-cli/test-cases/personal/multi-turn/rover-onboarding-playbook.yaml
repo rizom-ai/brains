@@ -17,7 +17,7 @@ turns:
   - userMessage: "Start playbook onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
           argsContain:
             action: start
@@ -79,7 +79,7 @@ turns:
   - userMessage: "Start playbook first-knowledge-loop."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
           argsContain:
             action: start
@@ -120,7 +120,7 @@ turns:
         - "another note"
         - "I cannot"
         - "I don't have access"
-        - "playbook_manage"
+        - "playbooks_manage"
 
   - userMessage: "Find that saved note now."
     successCriteria:
@@ -185,7 +185,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_manage
+    - toolName: playbooks_manage
       shouldBeCalled: true
     - toolName: system_update
       shouldBeCalled: true
@@ -199,7 +199,7 @@ successCriteria:
     - "see-it-come-back"
     - "make-something"
     - "wrap-up"
-    - "playbook_manage"
+    - "playbooks_manage"
     - "I cannot"
     - "I don't have access"
 

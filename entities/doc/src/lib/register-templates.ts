@@ -1,7 +1,10 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
+import {
+  contentVisibilitySchema,
+  createTemplate,
+  paginationInfoSchema,
+} from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { DocListTemplate, type DocListProps } from "../templates/doc-list";
 import {
   DocDetailTemplate,
@@ -58,7 +61,7 @@ export function getTemplates(): Record<string, Template> {
       description: "Documentation index template",
       renderVersion: "latest-update-v1",
       schema: docListSchema,
-      dataSourceId: "docs:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: { component: DocListTemplate },
     }),
@@ -69,7 +72,7 @@ export function getTemplates(): Record<string, Template> {
       name: "doc-detail",
       description: "Documentation page template",
       schema: docDetailSchema,
-      dataSourceId: "docs:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: { component: DocDetailTemplate },
     }),

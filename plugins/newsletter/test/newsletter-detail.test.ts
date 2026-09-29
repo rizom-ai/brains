@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   newsletterDetailSchema,
   newsletterDetailTemplate,
-} from "../src/entity/templates/newsletter-detail";
+} from "../src/templates/newsletter-detail";
 
 describe("Newsletter Detail Template", () => {
   describe("schema validation", () => {
@@ -174,7 +174,7 @@ describe("Newsletter Detail Template", () => {
     });
 
     it("should use newsletter entities datasource", () => {
-      expect(newsletterDetailTemplate.dataSourceId).toBe("newsletter:entities");
+      expect(newsletterDetailTemplate.dataSourceId).toBe("entities");
     });
 
     it("should have public permission", () => {
