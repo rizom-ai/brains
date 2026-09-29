@@ -18,19 +18,19 @@ export function currentChapter(
   return Math.min(passed, Math.max(0, stageCount - 1));
 }
 
-const READING_LINE = 0.45;
-
 /**
  * Where the reading line falls: 45% down the viewport beside the drawing, or
  * just under the drawing's strip where the stylesheet stacks it above the
  * chapters (`--strip` on the figure), so a chapter that lands at the strip's
- * bottom is the one being read.
+ * bottom is the one being read. Inlined into the shipped script, so it names
+ * nothing from this module.
  */
 export function readingLine(
   viewportHeight: number,
   stripBottom: number | null,
 ): number {
-  return stripBottom === null ? viewportHeight * READING_LINE : stripBottom + 1;
+  const beside = 0.45;
+  return stripBottom === null ? viewportHeight * beside : stripBottom + 1;
 }
 
 export const storyRuntimeScript: string = `(function () {
@@ -72,7 +72,7 @@ export const storyRuntimeScript: string = `(function () {
       var box = railSvg.viewBox.baseVal, rect = railSvg.getBoundingClientRect();
       var max = document.documentElement.scrollHeight - innerHeight;
       chapters.forEach(function (chapter, i) {
-        var t = max > 0 ? (chapter.getBoundingClientRect().top + scrollY - innerHeight * ${READING_LINE}) / max : 0;
+        var t = max > 0 ? (chapter.getBoundingClientRect().top + scrollY - readingLine(innerHeight, null)) / max : 0;
         var p = railPoint(t);
         railNodes[i].style.left = (p.x / box.width) * rect.width + "px";
         railNodes[i].style.top = (p.y / box.height) * rect.height + "px";
