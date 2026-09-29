@@ -99,4 +99,24 @@ describe("findNearestEntity", () => {
 
     expect(match?.id).toBe("shared");
   });
+
+  it("skips excluded entities, such as the one being compared", async () => {
+    const service = deps(
+      [
+        { entityId: "self", entityType: "faq", distance: 0 },
+        { entityId: "other", entityType: "faq", distance: 0.1 },
+      ],
+      [entity("self", "public"), entity("other", "public")],
+    );
+
+    const match = await findNearestEntity(service, {
+      query: "markdown",
+      entityType: "faq",
+      maxDistance: 0.2,
+      visibility: "public",
+      excludeIds: ["self"],
+    });
+
+    expect(match?.id).toBe("other");
+  });
 });

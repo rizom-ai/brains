@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.447",
   "description": "Plugin that captures reusable chat questions and answers as FAQ entities",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

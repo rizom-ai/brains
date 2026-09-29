@@ -8,8 +8,9 @@
 2. For an assistant reply whose metadata records `userPermissionLevel`, the plugin enqueues one `faq-capture` job. Replies without a recorded level are skipped.
 3. If a FAQ already lists the reply as its source or a merge, the job stops. Otherwise it loads the reply and the nearest preceding user message, and stops if the reply is gone or there is no question.
 4. One structured AI call decides whether the exchange is reusable and rewrites the question and answer to stand alone. A rejected exchange creates nothing.
-5. The job measures the new FAQ's markdown against stored FAQ embeddings. A FAQ of exactly the turn's visibility within cosine distance 0.2 asks the same question: the reply is recorded in its `mergedMessageIds` and its answer is kept.
+5. The job measures the new FAQ's markdown against stored FAQ embeddings. A FAQ of exactly the turn's visibility within cosine distance 0.2 asks the same question: the reply is recorded in its `mergedMessageIds` and its answer is kept. The write only lands over the version that was read; a concurrent merge makes it re-read and retry.
 6. Otherwise the exchange becomes `faq-<messageId>` with status `draft`.
+7. Once a FAQ's embedding is stored (`entity:embedding:ready`), a `faq-reconcile` job looks for another FAQ of the same visibility asking the same question. Two captures moments apart both create a FAQ, since neither can find the other yet; reconciliation moves the duplicate's reply ids onto the FAQ that stays and deletes the duplicate. A draft folds into a published FAQ; of two drafts the newer folds. A published FAQ never folds.
 
 ## Visibility
 

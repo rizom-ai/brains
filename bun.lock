@@ -218,6 +218,7 @@
       "name": "@brains/faq",
       "version": "0.2.0-alpha.447",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",

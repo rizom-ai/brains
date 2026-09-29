@@ -33,3 +33,18 @@ export {
 } from "./datasources/faq-datasource";
 export type { FaqItem, FaqSectionData } from "./datasources/faq-datasource";
 export { FaqSection } from "./templates/faq-section";
+export {
+  FaqReconcileHandler,
+  faqReconcileJobSchema,
+} from "./handlers/faq-reconcile-handler";
+export type {
+  FaqReconcileDeps,
+  FaqReconcileJobData,
+  FaqReconcileResult,
+} from "./handlers/faq-reconcile-handler";
+export {
+  SAME_QUESTION_DISTANCE,
+  findSameFaq,
+  mergeIntoFaq,
+} from "./lib/faq-store";
+export type { FaqStoreDeps } from "./lib/faq-store";

@@ -21,6 +21,8 @@ export interface NearestEntityQuery {
   maxDistance: number;
   /** Only an entity of exactly this visibility can match. */
   visibility: ContentVisibility;
+  /** Entities never to return, such as the one being compared. */
+  excludeIds?: string[];
 }
 
 /**
@@ -38,7 +40,8 @@ export async function findNearestEntity<T extends BaseEntity>(
       .filter(
         (result) =>
           result.entityType === request.entityType &&
-          result.distance <= request.maxDistance,
+          result.distance <= request.maxDistance &&
+          !request.excludeIds?.includes(result.entityId),
       )
       .map((result) =>
         deps.getEntity({

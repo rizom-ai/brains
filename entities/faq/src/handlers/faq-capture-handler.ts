@@ -1,12 +1,10 @@
 import type {
-  ContentVisibility,
   EntityPluginContext,
   IConversationsNamespace,
   Message,
 } from "@brains/plugins";
 import {
   BaseJobHandler,
-  findNearestEntity,
   UserPermissionLevelSchema,
   internalFullScope,
   permissionToVisibilityScope,
@@ -15,21 +13,11 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
-import { faqSchema, type FaqEntity, type FaqFrontmatter } from "../schemas/faq";
+import type { FaqFrontmatter } from "../schemas/faq";
+import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
 
 /** How far back from the newest message a reply is looked up. */
 const RECENT_MESSAGE_LIMIT = 50;
-
-/**
- * Cosine distance between FAQ markdowns within which they ask the same
- * question. Stored FAQs are embedded as markdown, so the new FAQ is measured
- * in that form too. Measured paraphrases sit at 0.03–0.14, a different
- * question on the same subject at 0.43 and beyond.
- */
-const SAME_QUESTION_DISTANCE = 0.2;
-
-/** Writes a merge tries before failing the job so the queue retries it. */
-const MERGE_ATTEMPTS = 3;
 
 export const faqCaptureJobSchema: z.ZodObject<{
   conversationId: z.ZodString;
@@ -78,12 +66,11 @@ export type FaqCaptureResult =
         | "not-reusable";
     };
 
-export interface FaqCaptureDeps {
+export interface FaqCaptureDeps extends FaqStoreDeps {
   entityService: Pick<
     EntityPluginContext["entityService"],
     "listEntities" | "getEntity" | "createEntity" | "updateEntity"
   >;
-  searchWithDistances: EntityPluginContext["entityService"]["searchWithDistances"];
   conversations: Pick<IConversationsNamespace, "getMessages">;
   ai: Pick<EntityPluginContext["ai"], "generateObject">;
 }
@@ -180,8 +167,8 @@ export class FaqCaptureHandler extends BaseJobHandler<
       classification.answer,
     );
 
-    const match = await this.findSameQuestion(content, visibility);
-    if (match && (await this.merge(match, data.messageId))) {
+    const match = await findSameFaq(this.deps, { content, visibility });
+    if (match && (await mergeIntoFaq(this.deps, match, [data.messageId]))) {
       return { captured: true, entityId: match.id, merged: true };
     }
 
@@ -211,67 +198,5 @@ export class FaqCaptureHandler extends BaseJobHandler<
       },
     });
     return existing.length > 0;
-  }
-
-  /** A stored FAQ of exactly `visibility` that asks the question `content` asks. */
-  private findSameQuestion(
-    content: string,
-    visibility: ContentVisibility,
-  ): Promise<FaqEntity | undefined> {
-    return findNearestEntity(
-      {
-        searchWithDistances: this.deps.searchWithDistances,
-        getEntity: (request) =>
-          this.deps.entityService.getEntity(request, faqSchema),
-      },
-      {
-        query: content,
-        entityType: "faq",
-        maxDistance: SAME_QUESTION_DISTANCE,
-        visibility,
-      },
-    );
-  }
-
-  /**
-   * Records `messageId` on `faq`, writing only over the version that was read.
-   * A concurrent merge makes the write stale; the FAQ is re-read and the merge
-   * reapplied. False when the FAQ disappeared, so the caller creates one.
-   */
-  private async merge(
-    faq: FaqEntity,
-    messageId: string,
-    attemptsLeft: number = MERGE_ATTEMPTS,
-  ): Promise<boolean> {
-    const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
-    if (frontmatter.mergedMessageIds.includes(messageId)) return true;
-
-    const merged: FaqFrontmatter = {
-      ...frontmatter,
-      mergedMessageIds: [...frontmatter.mergedMessageIds, messageId],
-    };
-    const result = await this.deps.entityService.updateEntity({
-      entity: {
-        ...faq,
-        content: faqAdapter.createFaqContent(merged, answer),
-        metadata: faqMetadata(merged),
-      },
-      options: { expectedContentHash: faq.contentHash },
-    });
-    if (result.skipReason !== "content-conflict") return true;
-    if (attemptsLeft <= 1) {
-      throw new Error(`FAQ ${faq.id} kept changing during merge`);
-    }
-
-    const current = await this.deps.entityService.getEntity(
-      {
-        entityType: "faq",
-        id: faq.id,
-        visibilityScope: internalFullScope("faq merge retry"),
-      },
-      faqSchema,
-    );
-    if (!current) return false;
-    return this.merge(current, messageId, attemptsLeft - 1);
   }
 }

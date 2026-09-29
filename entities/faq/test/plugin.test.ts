@@ -116,3 +116,31 @@ describe("FaqPlugin disabled", () => {
     expect(jobs.filter((job) => job.type.endsWith("faq-capture"))).toEqual([]);
   });
 });
+
+describe("FaqPlugin reconciliation", () => {
+  it("queues a reconcile when a FAQ's embedding is ready, and only then", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin());
+
+    await harness.sendMessage("entity:embedding:ready", {
+      entityType: "note",
+      entityId: "note-1",
+    });
+    await harness.sendMessage("entity:embedding:ready", {
+      entityType: "faq",
+      entityId: "faq-1",
+    });
+
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getActiveJobs();
+    expect(
+      jobs
+        .filter((job) => job.type.endsWith("faq-reconcile"))
+        .map((job) => JSON.parse(job.data)),
+    ).toEqual([{ entityId: "faq-1" }]);
+  });
+});
