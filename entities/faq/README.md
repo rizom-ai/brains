@@ -33,6 +33,14 @@ Frontmatter holds `question`, `status` (`draft` | `published`), `sourceConversat
 
 The plugin registers the `faq:entities` datasource and the `faq-section` template. The template is deliberately not named `faq-list`, so the site builder derives no `/faqs` route or navigation entry from it; a site shows FAQs only by placing `faq-section` in one of its route sections. The datasource returns FAQs with visibility exactly `public`, most asked first, and forwards the build's `publishedOnly`, so production builds show only published FAQs and a shared or restricted FAQ never reaches a site.
 
+## Configuration
+
+```yaml
+plugins:
+  faq:
+    enabled: false # default true; off means no subscription, no capture jobs, no AI calls
+```
+
 ## Validation
 
 ```bash

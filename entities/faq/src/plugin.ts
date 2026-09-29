@@ -21,13 +21,15 @@ import { faqSchema, type FaqEntity } from "./schemas/faq";
 import { getTemplates } from "./templates/faq-section";
 import packageJson from "../package.json";
 
-export type FaqConfig = Record<string, never>;
-export type FaqConfigInput = Record<string, unknown>;
+const faqConfigSchema: z.ZodObject<{
+  enabled: z.ZodDefault<z.ZodBoolean>;
+}> = z.object({
+  /** Capture Q&A from chats. Off: no subscription, no jobs, no AI calls. */
+  enabled: z.boolean().default(true),
+});
 
-const faqConfigSchema: z.ZodType<FaqConfig, FaqConfigInput> = z
-  .object({})
-  .catchall(z.unknown())
-  .transform((): FaqConfig => ({}));
+export type FaqConfig = z.output<typeof faqConfigSchema>;
+export type FaqConfigInput = z.input<typeof faqConfigSchema>;
 
 /** The part of a message-added event a capture needs. */
 const assistantReplySchema = z.object({
@@ -82,6 +84,8 @@ export class FaqPlugin extends EntityPlugin<
         ai: context.ai,
       }),
     );
+
+    if (!this.config.enabled) return;
 
     // Replies without a recorded permission level have no known visibility
     // and are never captured.

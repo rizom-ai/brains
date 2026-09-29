@@ -92,3 +92,27 @@ describe("FaqPlugin site surface", () => {
     expect([...harness.getDataSources().keys()]).toContain("faq:entities");
   });
 });
+
+describe("FaqPlugin disabled", () => {
+  it("queues nothing when capture is disabled", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin({ enabled: false }));
+
+    await harness.sendMessage(CONVERSATION_MESSAGE_ADDED_CHANNEL, {
+      conversationId: "conv-1",
+      messageId: "m2",
+      role: "assistant",
+      content: "text",
+      metadata: { userPermissionLevel: "admin" },
+      timestamp: new Date().toISOString(),
+    });
+
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getActiveJobs();
+    expect(jobs.filter((job) => job.type.endsWith("faq-capture"))).toEqual([]);
+  });
+});
