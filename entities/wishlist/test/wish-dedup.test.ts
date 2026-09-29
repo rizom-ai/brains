@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { beforeEach, describe, it, expect } from "bun:test";
 import { findExistingWish, type WishSearchDeps } from "../src/lib/wish-dedup";
 import type { WishEntity } from "../src/schemas/wish";
 
@@ -37,10 +37,22 @@ function createDeps(
     searchWithDistances: async () => [],
     getEntity: async (request) =>
       wishes.find((wish) => wish.id === request.id) ?? null,
-    maxDistance: 0.28,
+    maxDistance: 0.3,
+    ai: {
+      generateObject: async <T>(
+        prompt: string,
+        schema: { parse(value: unknown): T },
+      ): Promise<{ object: T }> => {
+        checks.push(prompt);
+        return { object: schema.parse({ same: sameVerdict }) };
+      },
+    },
     ...overrides,
   };
 }
+
+let checks: string[] = [];
+let sameVerdict = true;
 
 const incoming = {
   title: "Google Calendar sync",
@@ -49,6 +61,11 @@ const incoming = {
 };
 
 describe("findExistingWish", () => {
+  beforeEach(() => {
+    checks = [];
+    sameVerdict = true;
+  });
+
   it("should return null when no similar wishes exist", async () => {
     const result = await findExistingWish(createDeps([]), incoming);
 
@@ -126,5 +143,24 @@ describe("findExistingWish", () => {
     await findExistingWish(deps, incoming);
 
     expect(queries).toEqual([incoming.content]);
+  });
+
+  it("skips a close wish the check says asks for something else", async () => {
+    const existing = createMockWish({ id: "send-emails" });
+    const deps = createDeps([existing], {
+      searchWithDistances: async () => near(existing, 0.2),
+    });
+    sameVerdict = false;
+
+    const result = await findExistingWish(deps, {
+      title: "Stop sending emails",
+      content:
+        "---\ntitle: Stop sending emails\n---\nUser wants email sending off",
+    });
+
+    expect(result).toBeNull();
+    expect(checks).toHaveLength(1);
+    expect(checks[0]).toContain("Stop sending emails");
+    expect(checks[0]).toContain("Calendar integration");
   });
 });

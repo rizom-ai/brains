@@ -3,6 +3,8 @@ import { waitForEmbeddingsToDrain } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { WishAdapter } from "../adapters/wish-adapter";
+import { wishSchema } from "../schemas/wish";
+import { findExistingWish } from "./wish-dedup";
 
 const wishInputSchema = z.object({
   title: z.string(),
@@ -63,8 +65,9 @@ export function registerWishlistEvalHandlers(params: {
     });
     await waitForEmbeddingsToDrain(context.jobs);
 
+    const query = wishMarkdown(incoming);
     const distances = await context.entityService.searchWithDistances({
-      query: wishMarkdown(incoming),
+      query,
     });
     const distance = distances.find(
       (result) => result.entityId === EVAL_STORED_ID,
@@ -72,10 +75,21 @@ export function registerWishlistEvalHandlers(params: {
     if (distance === undefined) {
       throw new Error("The stored wish was not embedded");
     }
+    // The full production decision: distance shortlist, then the check.
+    const match = await findExistingWish(
+      {
+        searchWithDistances: async (): Promise<typeof distances> => distances,
+        getEntity: (request) =>
+          context.entityService.getEntity(request, wishSchema),
+        maxDistance: sameWishDistance,
+        ai: context.ai,
+      },
+      { title: incoming.title, content: query },
+    );
     return {
       distance,
-      threshold: sameWishDistance,
-      sameWish: distance <= sameWishDistance,
+      shortlisted: distance <= sameWishDistance,
+      sameWish: match?.id === EVAL_STORED_ID,
     };
   });
 }

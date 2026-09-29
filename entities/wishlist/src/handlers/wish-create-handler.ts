@@ -71,6 +71,7 @@ export class WishCreateHandler {
         getEntity: (request) =>
           this.context.entityService.getEntity(request, wishSchema),
         maxDistance: this.maxDistance,
+        ai: this.context.ai,
       },
       { title, content },
     );

@@ -136,6 +136,10 @@ describe("WishCreateHandler", () => {
       "job-a",
       noopProgress,
     );
+    context.ai.generateObject = async <T>(
+      _prompt: string,
+      schema: { parse(value: unknown): T },
+    ): Promise<{ object: T }> => ({ object: schema.parse({ same: true }) });
     context.entityService.searchWithDistances = async (): Promise<
       Array<{ entityId: string; entityType: string; distance: number }>
     > => [{ entityId: "water-my-plants", entityType: "wish", distance: 0.35 }];
