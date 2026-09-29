@@ -365,15 +365,15 @@ describe("the Ask box on a phone", () => {
       expect(asked).not.toBe(null);
       expect(region.scrollTop).not.toBe(1600);
       expect(
-        [...host.querySelectorAll("button")].some(
-          (button) => button.getAttribute("aria-label") === "Latest",
+        [...host.querySelectorAll("button")].some((button) =>
+          button.textContent.includes("Rest of the answer"),
         ),
       ).toBe(true);
       // Closed, the conversation is out of sight, and so is its way to the end.
       await click("Close conversation");
       expect(
-        [...host.querySelectorAll("button")].some(
-          (button) => button.getAttribute("aria-label") === "Latest",
+        [...host.querySelectorAll("button")].some((button) =>
+          button.textContent.includes("Rest of the answer"),
         ),
       ).toBe(false);
     });
@@ -398,11 +398,11 @@ describe("the Ask box on a phone", () => {
       host.setAttribute(ASK_NAME_ATTRIBUTE, "Yeehaa");
     });
 
-    it("names the conversation and its answers after the owner, and lists sources as links", async () => {
+    it("names the conversation and its answers after the owner for screen readers, and lists sources as links", async () => {
       await render({ messages: answer, state: "complete" });
-      expect(host.querySelector(".brain-box-sheet-title")?.textContent).toBe(
-        "Ask Yeehaa",
-      );
+      const title = host.querySelector(".brain-box-sheet-title");
+      expect(title?.textContent).toBe("Ask Yeehaa");
+      expect(title?.classList.contains("brain-box-sr-only")).toBe(true);
       expect(host.querySelector(".guest-assistant h2")?.textContent).toBe(
         "Yeehaa",
       );
@@ -416,7 +416,7 @@ describe("the Ask box on a phone", () => {
       expect(host.querySelector(".web-chat-sources-card")).toBe(null);
       expect(host.textContent).not.toContain("Answer received");
       expect(host.querySelector("#brain-chat-notice")?.textContent).toBe(
-        "Answers come from what Yeehaa has published.",
+        "Answers use published work only. Leave private details out.",
       );
     });
 
@@ -428,7 +428,10 @@ describe("the Ask box on a phone", () => {
       });
       const pending = host.querySelector(".brain-box-pending");
       expect(pending?.querySelector("h2")?.textContent).toBe("Yeehaa");
-      expect(pending?.textContent).toContain("Looking through Yeehaa's work");
+      // The line names the work, not the person: the name is said once.
+      expect(pending?.textContent).toContain(
+        "Looking through the published work",
+      );
       await render({ messages: answer, state: "complete" });
       expect(host.querySelector(".brain-box-pending")).toBe(null);
     });
@@ -458,11 +461,32 @@ describe("the Ask box on a phone", () => {
       expect(stopButton()).toBeDefined();
     });
 
-    it("keeps its header to its title and a way out", async () => {
+    it("has no title row: only a way out, over the top of the conversation", async () => {
       await render({ messages: answer, state: "complete" });
       const head = host.querySelector(".brain-box-sheet-head");
-      expect(head?.textContent).toBe("Ask Yeehaa✕");
-      expect(host.querySelector("button[aria-expanded]")).toBe(null);
+      expect(
+        [...(head?.querySelectorAll("button") ?? [])].map((button) =>
+          button.getAttribute("aria-label"),
+        ),
+      ).toEqual(["Close conversation"]);
+      expect(head?.querySelector("button[aria-expanded]")).toBe(null);
+    });
+
+    it("says the same note under the composer before and after an answer, with what the chat is about beside it", async () => {
+      await render();
+      const note = (): string | undefined =>
+        host.querySelector("#brain-chat-notice")?.textContent;
+      expect(note()).toBe(
+        "Answers use published work only. Leave private details out.",
+      );
+      await render({ messages: answer, state: "complete" });
+      expect(note()).toBe(
+        "Answers use published work only. Leave private details out.",
+      );
+      const about = host.querySelector(
+        ".brain-box-bottom button[aria-expanded]",
+      );
+      expect(about?.textContent).toBe("About this chat");
     });
 
     it("leaves out the link to the full chat, since it already fills the screen", async () => {
@@ -482,13 +506,15 @@ describe("the Ask box on a phone", () => {
       expect(host.textContent).not.toContain("Continue conversation");
     });
 
-    it("offers what the chat is about from the page", async () => {
+    it("offers what the chat is about beside the note, not above the conversation", async () => {
       await render({ messages: answer, state: "complete" });
       expect(
-        [...host.querySelectorAll("button")].some((button) =>
-          button.textContent.includes("About"),
-        ),
-      ).toBe(true);
+        host.querySelector(".brain-box-bottom button[aria-expanded]")
+          ?.textContent,
+      ).toBe("About this chat");
+      expect(
+        host.querySelector(".brain-box-header-actions button[aria-expanded]"),
+      ).toBe(null);
     });
 
     it("links to the full chat from the page", async () => {

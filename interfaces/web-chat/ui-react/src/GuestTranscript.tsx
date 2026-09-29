@@ -69,6 +69,7 @@ function SourceLinks({
     <ul className="brain-box-sources" aria-label="Sources">
       {card.sources.map((source) => (
         <li key={source.id} {...{ [ASK_SOURCE_ATTRIBUTE]: source.id }}>
+          <span className="brain-box-source-mark" aria-hidden="true" />
           {source.url ? (
             <a href={source.url} target="_blank" rel="noopener noreferrer">
               {source.title}
