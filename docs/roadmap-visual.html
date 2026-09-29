@@ -172,6 +172,14 @@
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">Bootstrap secrets go where <code>--push-to</code> says</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">make <code>--push-to bitwarden</code> on the bootstrap commands store the secret in Bitwarden and map it in <code>.env.schema</code>, instead of pushing to GitHub.</div>
+          <div class="card-file">bootstrap-secrets-bitwarden.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Discord opt-in plan for rover-pilot ops</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -220,7 +228,7 @@
             <span class="card-name">Studio Virtual Collections</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">implemented foundation for source-backed collections across entity types; PR #302 now continues into grouping vocabularies rather than landing separately.</div>
+          <div class="card-desc">source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.</div>
           <div class="card-file">studio-virtual-collections.md</div>
         </div>
         <div class="card status-partial">
@@ -228,8 +236,16 @@
             <span class="card-name">Studio Grouping Vocabularies</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">implemented and locally validated in PR #302: admin-defined value lists/cardinality, system editing without a restart, shared enforcement including projection writes, select/checkbox controls, visible strays, and canonical import refusal/retry; awaiting merge and release.</div>
+          <div class="card-desc">configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with smoke-only test deployment still pending.</div>
           <div class="card-file">studio-grouping-vocabularies.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Studio Grouping Definitions</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">implemented and locally validated: one administrator-owned document, runtime replacement/reprojection, independent cardinality and lists, unified controls, and exact source round trips. Authenticated app and unchanged visual gates pass; replacement release and smoke-only test deployment remain pending; no legacy conversion or rehearsal is required.</div>
+          <div class="card-file">studio-grouping-definitions.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

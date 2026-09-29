@@ -84,25 +84,6 @@ function createEntitySearch(options?: {
 }
 
 describe("EntitySearch query preparation", () => {
-  const readBudget = { rows: 1, rowBytes: 1000, queryCharacters: 40 };
-
-  test("rejects oversized bounded input before embedding and suppresses query previews", async () => {
-    const logger = createMockLogger();
-    const { entitySearch, embeddingService } = createEntitySearch({ logger });
-    expect(
-      await entitySearch
-        .search("x".repeat(41), { readBudget })
-        .catch(() => null),
-    ).toBeNull();
-    expect(embeddingService.generateEmbedding).not.toHaveBeenCalled();
-    const query = "private visitor wording";
-    await entitySearch.search(query, { readBudget });
-    expect(logger.debug).not.toHaveBeenCalledWith(
-      expect.stringContaining(query),
-    );
-    expect(logger.error).not.toHaveBeenCalled();
-  });
-
   test("propagates cancellation and starts no SQL after a late embedding completes", async () => {
     let queries = 0;
     const { entitySearch, embeddingService } = createEntitySearch({
@@ -128,7 +109,7 @@ describe("EntitySearch query preparation", () => {
     };
     let settled = false;
     const pending = entitySearch
-      .search("question", { readBudget, signal: controller.signal })
+      .search("question", { signal: controller.signal })
       .catch(() => null)
       .finally(() => {
         settled = true;

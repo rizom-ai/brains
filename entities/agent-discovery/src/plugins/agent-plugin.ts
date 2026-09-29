@@ -49,7 +49,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    return { classification: "system", projectionSourceRole: "supporting" };
   }
 
   protected override createGenerationHandler(
@@ -95,7 +95,10 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return getAgentDiscoveryInstructions();
+    return [
+      getAgentDiscoveryInstructions(),
+      'Agent approval/archive is a status field update on `entityType: "agent"`.',
+    ].join("\n");
   }
 }
 

@@ -10,14 +10,8 @@ import { homepageAtlasStyles } from "./homepage-atlas-styles";
 
 const KIND_ORDER = ["post", "deck", "project"] as const;
 
-function initials(owner: string): string {
-  return owner
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
-}
+/** What the empty box asks for, in the opening's own first person. */
+const ASK_PLACEHOLDER = "Ask about my work…";
 
 /** The contact form starts the visitor's message with the topic they chose. */
 function topicUrl(contactUrl: string, topic: string): string {
@@ -25,11 +19,15 @@ function topicUrl(contactUrl: string, topic: string): string {
   return `${contactUrl}${separator}${new URLSearchParams({ topic }).toString()}`;
 }
 
-/** Title cards open inward near either edge so they stay on screen. */
-function edgeClass(x: number): string {
-  if (x > 0.72) return " atlas__mark--west";
-  if (x < 0.28) return " atlas__mark--east";
-  return "";
+/**
+ * Title cards open inward near either edge, and below a mark near the top,
+ * so they stay on the map.
+ */
+function edgeClass(x: number, top: number): string {
+  const south = top < 28 ? " atlas__mark--south" : "";
+  if (x > 0.72) return ` atlas__mark--west${south}`;
+  if (x < 0.28) return ` atlas__mark--east${south}`;
+  return south;
 }
 
 /**
@@ -54,10 +52,13 @@ function AtlasMap({
   atlas,
   labels,
   caption,
+  chat,
 }: {
   atlas: HomepageAtlasData;
   labels: Record<string, LabelPlacement>;
   caption: string | null;
+  /** Beside a conversation, whose phone view links its sources and pieces. */
+  chat: boolean;
 }): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
   // Larger territories name themselves first; the label script keeps that order.
@@ -78,6 +79,7 @@ function AtlasMap({
   return (
     <div
       className="atlas__map"
+      data-atlas-map=""
       role="group"
       aria-label={caption ?? "Map of published work"}
     >
@@ -130,7 +132,10 @@ function AtlasMap({
                 key={`${item.entityType}:${item.id}`}
                 data-atlas-mark=""
                 data-atlas-key={`${item.entityType}:${item.id}`}
-                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x)}`}
+                {...(item.typeLabel
+                  ? { "data-atlas-type": item.typeLabel }
+                  : {})}
+                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x, atlasPosition(item.y))}`}
                 style={{
                   left: `${atlasPosition(item.x)}%`,
                   top: `${atlasPosition(item.y)}%`,
@@ -149,6 +154,15 @@ function AtlasMap({
                   <span title={item.title}>
                     <i className="atlas__glyph" aria-hidden="true" />
                   </span>
+                )}
+                {item.url && chat && (
+                  <button
+                    type="button"
+                    className="atlas__cited"
+                    data-atlas-cited=""
+                  >
+                    Where it’s cited ↓
+                  </button>
                 )}
               </li>
             );
@@ -254,17 +268,6 @@ export function HomepageAtlas({
     >
       <style>{homepageAtlasStyles}</style>
       <div className="atlas__talk">
-        {owner && (
-          <p className="atlas__byline">
-            <span className="atlas__initials" aria-hidden="true">
-              {initials(owner)}
-            </span>
-            <span>
-              <b>{owner}</b>
-              {opening.attribution && <small>{opening.attribution}</small>}
-            </span>
-          </p>
-        )}
         {opening.title && (
           <h1>{renderHighlightedText(opening.title, "atlas__emphasis")}</h1>
         )}
@@ -274,7 +277,13 @@ export function HomepageAtlas({
             className="atlas__prose"
           />
         )}
-        {askBox && <AskBoxHost prefix="atlas" />}
+        {askBox && (
+          <AskBoxHost
+            prefix="atlas"
+            name={owner}
+            placeholder={ASK_PLACEHOLDER}
+          />
+        )}
         {opening.contactUrl && (
           <AtlasDoor
             opening={opening}
@@ -284,7 +293,12 @@ export function HomepageAtlas({
         )}
       </div>
       {atlas ? (
-        <AtlasMap atlas={atlas} labels={labels} caption={opening.mapCaption} />
+        <AtlasMap
+          atlas={atlas}
+          labels={labels}
+          caption={opening.mapCaption}
+          chat={askBox}
+        />
       ) : map ? (
         <div
           className="atlas__map atlas__map--supplied"

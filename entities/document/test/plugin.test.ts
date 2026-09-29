@@ -19,6 +19,9 @@ describe("DocumentPlugin", () => {
     const harness = createPluginHarness<DocumentPlugin>();
     const capabilities = await harness.installPlugin(new DocumentPlugin());
 
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("document").binaryStorage,
+    ).toBe("data-url");
     expect(capabilities.tools.map((tool) => tool.name)).not.toContain(
       "document_generate",
     );

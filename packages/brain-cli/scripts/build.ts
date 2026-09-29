@@ -60,13 +60,6 @@ function findMonorepoRoot(): string {
 
 const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
-const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
-const webChatUiStylesheetPath = join(
-  webChatPackageDir,
-  "dist",
-  "ui",
-  "app.css",
-);
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
 const studioUiDirectory = join(studioPackageDir, "dist", "ui");
@@ -99,16 +92,6 @@ const webChatBuildResult = await Bun.spawn(["bun", "run", "build"], {
 }).exited;
 if (webChatBuildResult !== 0) {
   console.error("Web chat UI build failed");
-  process.exit(1);
-}
-if (!existsSync(webChatUiAssetPath)) {
-  console.error(`Web chat UI asset not found at ${webChatUiAssetPath}`);
-  process.exit(1);
-}
-if (!existsSync(webChatUiStylesheetPath)) {
-  console.error(
-    `Web chat UI stylesheet not found at ${webChatUiStylesheetPath}`,
-  );
   process.exit(1);
 }
 
@@ -417,11 +400,11 @@ cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
 // ─── Copy bundled web chat UI asset ───────────────────────────────────────
 
 mkdirSync(bundledWebChatUiDir, { recursive: true });
-cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
-cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
 for (const asset of [
   "guest.js",
   "guest.css",
+  "ask.js",
+  "ask.css",
   "dashboard.js",
   "dashboard.css",
 ]) {
@@ -430,11 +413,12 @@ for (const asset of [
     join(bundledWebChatUiDir, asset),
   );
 }
-const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
-if (existsSync(webChatSourceMapPath)) {
-  cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
-}
-for (const retiredUiAsset of ["admin-app.js", "account-app.js"]) {
+for (const retiredUiAsset of [
+  "app.js",
+  "app.css",
+  "admin-app.js",
+  "account-app.js",
+]) {
   rmSync(join(bundledWebChatUiDir, retiredUiAsset), { force: true });
   rmSync(join(bundledWebChatUiDir, `${retiredUiAsset}.map`), { force: true });
 }

@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { App, resolve, resolveBundleSelection } from "@brains/app";
+import { App, resolveBundleSelection } from "@brains/app";
 import { caughtError } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
   resolveEvalSelection,
+  resolveEvalConfig,
   YAMLLoader,
   type EvalSelection,
   type SuccessCriteria,
@@ -11,6 +12,7 @@ import {
 } from "@brains/ai-evaluation";
 import { internalFullScope } from "@brains/plugins";
 import { parseYamlDocument } from "@brains/utils/yaml";
+import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import {
   mkdtempSync,
@@ -63,7 +65,7 @@ const expectedMembers: Record<SuiteName, string> = {
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
-  personal: 20,
+  personal: 26,
   professional: 85,
   team: 38,
 };
@@ -135,21 +137,18 @@ function createSuiteApp(
     ...(selection.remove ? { remove: selection.remove } : {}),
     plugins,
   };
-  const resolvedEval = resolve(canonicalBrain, environment, {
-    ...overrides,
-    mode: "eval",
-  });
-  const regularMcp = includeMcp
-    ? resolve(canonicalBrain, environment, overrides).plugins?.find(
-        ({ id }) => id === "mcp",
-      )
-    : undefined;
-  const resolved = regularMcp
-    ? {
-        ...resolvedEval,
-        plugins: [...(resolvedEval.plugins ?? []), regularMcp],
-      }
-    : resolvedEval;
+  const resolved = resolveEvalConfig(
+    canonicalBrain,
+    environment,
+    { ...overrides, mode: "eval" },
+    includeMcp,
+  );
+  if (includeMcp) {
+    expect(resolved.plugins?.some(({ id }) => id === "webserver")).toBe(false);
+    expect(
+      resolved.plugins?.find(({ id }) => id === "mcp")?.getWebRoutes?.(),
+    ).toEqual([]);
+  }
 
   return {
     app: App.create({
@@ -251,7 +250,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(196);
+    expect(testCases.length).toBe(202);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -313,6 +312,19 @@ describe("canonical eval recipe ladder", () => {
             continue;
           }
 
+          if (
+            testCase.tags?.includes("long-note-update") ||
+            testCase.id === "mcp-long-note-update"
+          ) {
+            const entity = await entityService.getEntity({
+              entityType: "note",
+              id: testCase.id,
+            });
+            expect(entity?.content).toBe(
+              readFileSync(join(seedDirectory, `${testCase.id}.md`), "utf8"),
+            );
+          }
+
           for (const criteria of allCriteria(testCase)) {
             for (const expectedTool of criteria.expectedTools ?? []) {
               if (!expectedTool.shouldBeCalled) continue;
@@ -338,45 +350,223 @@ describe("canonical eval recipe ladder", () => {
     }
   }, 120_000);
 
-  test("exposes chat-only basic MCP at every canonical permission level", async () => {
-    const selection = suiteSelection("headless");
+  test.each(["content", "edits"])(
+    "persists a note title/body %s update exactly after approval",
+    async (mode) => {
+      const selection = suiteSelection("personal");
+      const { app } = createSuiteApp(
+        "personal",
+        selection,
+        seedContentPath(selection),
+      );
+      try {
+        await app.initialize();
+        const shell = app.getShell();
+        const service = shell.getEntityService();
+        const id = "long-note-update-title-and-body";
+        const original = await service.getEntity({ entityType: "note", id });
+        if (!original) throw new Error("Missing seeded note");
+        const expected = original.content
+          .replace("# Working Plan", "# Approved Plan")
+          .replace("monthly.", "weekly.");
+        const tool = shell
+          .getMCPService()
+          .listAgentToolsForPermissionLevel("admin")
+          .find((entry) => entry.tool.name === "system_update")?.tool;
+        if (!tool) throw new Error("Missing update tool");
+        const context = {
+          interfaceType: "mcp",
+          userPermissionLevel: "admin",
+          actor: { kind: "user", userId: "patch-regression" },
+        } as const;
+        const proposal = await tool.handler(
+          {
+            entityType: "note",
+            id,
+            ...(mode === "content"
+              ? { content: expected }
+              : {
+                  edits: [
+                    { oldText: "# Working Plan", newText: "# Approved Plan" },
+                    {
+                      oldText: "Review cadence: monthly.",
+                      newText: "Review cadence: weekly.",
+                    },
+                  ],
+                }),
+          },
+          context,
+        );
+        const approval = z
+          .object({
+            needsConfirmation: z.literal(true),
+            args: z.record(z.string(), z.unknown()),
+          })
+          .parse(proposal);
+        expect(
+          (await service.getEntity({ entityType: "note", id }))?.content,
+        ).toBe(original.content);
+        expect(await tool.handler(approval.args, context)).toMatchObject({
+          success: true,
+        });
+        const saved = await service.getEntity({ entityType: "note", id });
+        expect(saved?.content).toBe(expected);
+        expect(saved?.metadata["title"]).toBe("Approved Plan");
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
+
+  test("persists a 17 KB user-message source through the real note and conversation services", async () => {
+    const selection = suiteSelection("personal");
     const { app } = createSuiteApp(
-      "headless",
+      "personal",
       selection,
       seedContentPath(selection),
-      true,
     );
-
+    const testCase = await YAMLLoader.createFresh({
+      directory: testCasesDirectory,
+    }).loadTestCase(
+      join(testCasesDirectory, "personal/multi-turn/mcp-verbatim-create.yaml"),
+    );
+    if (testCase.type !== "multi_turn")
+      throw new Error("Expected multi-turn eval");
+    const request = testCase.turns[0]?.userMessage;
+    if (!request) throw new Error("Missing source request");
+    const startAfter = "BEGIN EXACT CONTENT";
+    const endBefore = "END EXACT CONTENT";
+    const content = request.slice(
+      request.indexOf(`${startAfter}\n`) + startAfter.length + 1,
+      request.lastIndexOf(endBefore),
+    );
+    expect(Buffer.byteLength(content)).toBe(17_000);
     try {
       await app.initialize();
-      const mcpService = app.getShell().getMCPService();
-
-      for (const level of ["public", "trusted", "admin"] as const) {
-        expect(
-          mcpService
-            .listProtocolToolsForPermissionLevel(level, "basic")
-            .map(({ tool }) => tool.name)
-            .sort(),
-        ).toEqual(["chat", "confirm"]);
-      }
-
-      const adminDebugTools = mcpService
-        .listProtocolToolsForPermissionLevel("admin", "debug")
-        .map(({ tool }) => tool.name);
-      for (const toolName of [
-        "chat",
-        "confirm",
-        "system_search",
-        "system_get",
-        "system_list",
-        "system_create",
-      ]) {
-        expect(adminDebugTools).toContain(toolName);
-      }
+      const shell = app.getShell();
+      const conversations = shell.getConversationService();
+      const conversationId = await conversations.startConversation({
+        sessionId: "verbatim-create-regression",
+        channelId: "verbatim-create-regression",
+        interfaceType: "mcp",
+        metadata: {
+          channelName: "Verbatim create regression",
+          interfaceType: "mcp",
+          channelId: "verbatim-create-regression",
+        },
+      });
+      await conversations.addMessage({
+        conversationId,
+        role: "user",
+        content: request,
+        metadata: { userPermissionLevel: "admin" },
+      });
+      const tool = shell
+        .getMCPService()
+        .listAgentToolsForPermissionLevel("admin")
+        .find((entry) => entry.tool.name === "system_create")?.tool;
+      if (!tool) throw new Error("Missing create tool");
+      const context = {
+        interfaceType: "mcp",
+        userPermissionLevel: "admin",
+        actor: { kind: "user", userId: "verbatim-create-regression" },
+        conversationId,
+      } as const;
+      const proposal = await tool.handler(
+        {
+          entityType: "note",
+          title: "MCP verbatim create",
+          visibility: "restricted",
+          source: {
+            kind: "user-message",
+            boundaryMode: "lines",
+            startAfter,
+            endBefore,
+          },
+        },
+        context,
+      );
+      const approval = z
+        .object({
+          needsConfirmation: z.literal(true),
+          args: z.record(z.string(), z.unknown()),
+        })
+        .parse(proposal);
+      expect(approval.args).toMatchObject({
+        source: { contentHash: computeContentHash(content) },
+      });
+      const entityRef = {
+        entityType: "note",
+        id: "mcp-verbatim-create",
+        visibilityScope: internalFullScope(
+          "verbatim creation persistence verification",
+        ),
+      };
+      expect(await shell.getEntityService().getEntity(entityRef)).toBeNull();
+      await conversations.addMessage({
+        conversationId,
+        role: "user",
+        content: "Yes, save it.",
+        metadata: { userPermissionLevel: "admin" },
+      });
+      expect(await tool.handler(approval.args, context)).toMatchObject({
+        success: true,
+      });
+      const saved = await shell.getEntityService().getEntity(entityRef);
+      expect(saved?.content).toBe(
+        `---\nvisibility: restricted\n---\n${content}`,
+      );
+      expect(saved?.metadata["title"]).toBe("MCP verbatim create");
+      expect(saved?.visibility).toBe("restricted");
     } finally {
       await app.stop();
     }
   }, 120_000);
+
+  test.each(["headless", "personal"] as const)(
+    "exposes chat-only basic MCP at every canonical permission level in %s",
+    async (name) => {
+      const selection = suiteSelection(name);
+      const { app } = createSuiteApp(
+        name,
+        selection,
+        seedContentPath(selection),
+        true,
+      );
+
+      try {
+        await app.initialize();
+        const mcpService = app.getShell().getMCPService();
+
+        for (const level of ["public", "trusted", "admin"] as const) {
+          expect(
+            mcpService
+              .listProtocolToolsForPermissionLevel(level, "basic")
+              .map(({ tool }) => tool.name)
+              .sort(),
+          ).toEqual(["chat", "confirm"]);
+        }
+
+        const adminDebugTools = mcpService
+          .listProtocolToolsForPermissionLevel("admin", "debug")
+          .map(({ tool }) => tool.name);
+        for (const toolName of [
+          "chat",
+          "confirm",
+          "system_search",
+          "system_get",
+          "system_list",
+          "system_create",
+        ]) {
+          expect(adminDebugTools).toContain(toolName);
+        }
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
 
   test("fails startup when a suite seeds an unregistered entity type", async () => {
     const seedDirectory = createTempDirectory("invalid-seed");

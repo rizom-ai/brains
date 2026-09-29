@@ -1,10 +1,12 @@
 # Plan: Studio Grouping Vocabularies
 
-Last updated: 2026-09-21
+Last updated: 2026-09-25
 
 ## Status
 
-**Implementation and local acceptance complete; not merged, released or deployed.** Supersedes the scope of PR #302 on `feat/studio-virtual-collections`, in the existing implementation worktree, as explicitly requested. Builds on [studio-virtual-collections.md](./studio-virtual-collections.md); that foundation no longer needs to land separately. The vocabulary singleton, bundle policy, ordinary and projection-write enforcement, cardinality, scoped descriptors, editor controls and stray markers are implemented locally. Regression coverage includes real Note/Post adapters, directory-sync refusal/retry, field-update refusal, mounted controls, and read-only administration. Automated validation, live UI acceptance and canonical queued-import refusal/retry pass. This is not production migration acceptance.
+**Historical rollout:** PR #302 merged; the original implementation shipped in Brain/Ops `0.2.0-alpha.404` and was deployed smoke-only. The feature branch now replaces this vocabulary/configuration model with one Groupings document; see the [current Studio contract](../../plugins/studio/README.md#virtual-collections). The redesign is not released or deployed. Its isolated authenticated running-app acceptance has passed; release and smoke-only test deployment remain pending. Smoke is the only site using the old feature, so no legacy converter or conversion rehearsal is required.
+
+The implementation and acceptance below record the original vocabulary rollout, not acceptance of the replacement. That work superseded the scope of PR #302 on `feat/studio-virtual-collections`, in the existing implementation worktree, as explicitly requested. Builds on [studio-virtual-collections.md](./studio-virtual-collections.md); that foundation no longer needs to land separately. The vocabulary singleton, bundle policy, ordinary and projection-write enforcement, cardinality, scoped descriptors, editor controls and stray markers are implemented locally. Regression coverage includes real Note/Post adapters, directory-sync refusal/retry, field-update refusal, mounted controls, and read-only administration. Automated validation, live UI acceptance and canonical queued-import refusal/retry pass. This is not production migration acceptance.
 
 Implementation details found during the walking skeleton: persist validators previously replaced one another, so registrations now compose to retain owner constraints. Persist-policy errors carry a distinct validation phase so directory-sync reports a failed import without quarantining otherwise valid Markdown. The singleton has a fixed identity and defaults to shared visibility. Public vocabulary writes are refused; descriptors still respect narrower visibility.
 

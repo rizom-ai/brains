@@ -1,9 +1,16 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { SitePageResponse, type IRuntimeStateStore } from "@brains/plugins";
+import {
+  SitePageResponse,
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  type IRuntimeStateNamespace,
+  type IRuntimeStateStore,
+  type StudioWorkspaceRegistration,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
@@ -11,6 +18,10 @@ import {
   type AskBoxAvailability,
 } from "@brains/contracts";
 import { WebChatInterface } from "../src/web-chat-interface";
+import {
+  guestIssuanceNamespace,
+  guestIssuanceStateSchema,
+} from "../src/guest-issuance";
 import {
   guestAdmissionNamespace,
   guestAdmissionStateSchema,
@@ -33,6 +44,10 @@ interface Fixture {
   calls(): number;
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
+  /** Runtime state shared by every process of one deployment, across restarts. */
+  state: IRuntimeStateNamespace;
+  /** The owner opens guest chat in Studio with this monthly budget. */
+  budget(monthlyUsd: number): Promise<void>;
 }
 
 async function fixture(
@@ -42,15 +57,22 @@ async function fixture(
     profileAvailable?: boolean;
     disabled?: boolean;
     guest?: "local-test";
+    studio?: boolean;
+    /** The deployment's state from an earlier run, as after a restart. */
+    state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness<WebChatInterface>(
     domain ? { domain } : {},
   );
   harnesses.push(harness);
+  if (options.state)
+    spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
+      options.state,
+    );
   let calls = 0;
   harness.getMockShell().setAgentService({
-    guestProfileAvailable: options.profileAvailable !== false,
+    guestReady: options.profileAvailable !== false,
     chat: async (): Promise<never> => {
       calls++;
       throw new Error("Activation must not call the model");
@@ -71,7 +93,49 @@ async function fixture(
       resolvePermissionLevel: async (): Promise<typeof role> => role,
     },
   );
+  const workspaces: StudioWorkspaceRegistration[] = [];
+  harness
+    .getMockShell()
+    .getMessageBus()
+    .subscribe<StudioWorkspaceRegistration>(
+      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      (registration) => {
+        workspaces.push(registration.payload);
+        return { success: true, data: { workspaceUrl: "/studio" } };
+      },
+    );
   await harness.installPlugin(plugin);
+  if (options.studio) {
+    spyOn(harness.getMockShell(), "getPluginWebRoutes").mockReturnValue([
+      {
+        pluginId: "studio",
+        fullPath: "/chat",
+        definition: {
+          path: "/chat",
+          method: "GET",
+          handler: async (): Promise<Response> => new Response("Studio"),
+        },
+      },
+    ]);
+  }
+  await plugin.ready();
+  const studio = async (request: Record<string, unknown>): Promise<unknown> => {
+    const monitor = workspaces.find((w) => w.id.endsWith(":guest-chat"));
+    if (!monitor?.actionHandler)
+      throw new Error("Guest chat monitor was not registered");
+    return monitor.actionHandler(
+      request,
+      {
+        interfaceType: "studio",
+        userId: "owner",
+        actor: { kind: "user", userId: "owner" },
+        userPermissionLevel: "admin",
+        visibilityScope: "restricted",
+        isAnchor: true,
+      },
+      new AbortController().signal,
+    );
+  };
   const ledger = harness.getMockShell().getRuntimeState().scoped({
     namespace: guestAdmissionNamespace,
     schema: guestAdmissionStateSchema,
@@ -105,6 +169,14 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
+    state: harness.getMockShell().getRuntimeState(),
+    budget: async (monthlyUsd): Promise<void> => {
+      const input = { monthlyUsd };
+      const { token } = z
+        .object({ token: z.string() })
+        .parse(await studio({ actionId: "switch-on", input, mode: "prepare" }));
+      await studio({ actionId: "switch-on", input, confirmationToken: token });
+    },
     askBox: (): Promise<AskBoxAvailability | null> =>
       harness
         .getMockShell()
@@ -132,10 +204,21 @@ describe("Ask box availability for site builds in any process", () => {
 
   it("records the box served on preview once activated, and not after deactivation", async () => {
     const f = await fixture();
-    expect((await f.send(access, { enabled: true })).status).toBe(200);
+    await f.budget(10);
     expect(await f.askBox()).toEqual({ public: false, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("keeps the box on preview across a restart that begins before the guest profile is ready", async () => {
+    const running = await fixture();
+    await running.budget(10);
+    // A deploy restarts the app; the search index is not ready at registration yet.
+    const restarted = await fixture("admin", "rizom.ai", {
+      profileAvailable: false,
+      state: running.state,
+    });
+    expect(await restarted.askBox()).toEqual({ public: false, preview: true });
   });
 
   it("records a configured guest policy as served everywhere", async () => {
@@ -151,6 +234,40 @@ describe("Ask box availability for site builds in any process", () => {
 });
 
 describe("admin guest activation using deployment conventions", () => {
+  for (const studio of [false, true]) {
+    it(`keeps managed guest Ask separate from the operator redirect (studio=${studio})`, async () => {
+      const f = await fixture("admin", "rizom.ai", { studio });
+      await f.budget(10);
+      for (const path of ["/ask", "/ask/authenticated"]) {
+        const response = await f.send(path);
+        expect(response.status).toBe(studio ? 303 : 404);
+        expect(response.headers.get("Location")).toBe(studio ? "/chat" : null);
+        expect(response.headers.get("Cache-Control")).toBe("no-store");
+      }
+      const guest = await f.send(
+        "/ask",
+        undefined,
+        {},
+        "https://preview.rizom.ai",
+      );
+      expect(guest).toBeInstanceOf(SitePageResponse);
+      expect(guest.status).toBe(200);
+      expect(await guest.text()).toContain("/ask/assets/ask.js");
+      expect(f.calls()).toBe(0);
+    });
+
+    it(`redirects the explicit operator path with configured guest access (studio=${studio})`, async () => {
+      const f = await fixture("public", "rizom.ai", {
+        guest: "local-test",
+        studio,
+      });
+      const response = await f.send("/ask/authenticated");
+      expect(response.status).toBe(studio ? 303 : 404);
+      expect(response.headers.get("Location")).toBe(studio ? "/chat" : null);
+      expect(f.calls()).toBe(0);
+    });
+  }
+
   it("declares only the guest presentation and API routes for preview", async () => {
     const f = await fixture();
     expect(f.previewPaths).toEqual(
@@ -158,16 +275,18 @@ describe("admin guest activation using deployment conventions", () => {
         "DELETE /api/chat/guest/sessions",
         "GET /api/chat/guest/messages",
         "GET /ask",
-        // Standalone GuestApp uses the shared Chat presentation bundle.
-        "GET /ask/assets/app.css",
-        "GET /ask/assets/app.js",
-        // The shared box boot every consuming site loads.
+        "GET /ask/assets/ask.css",
+        "GET /ask/assets/ask.js",
+        // The shared box loader every consuming site loads, the boot it loads
+        // at the current version, and that version.
+        "GET /ask/assets/boot.js",
         "GET /ask/assets/box.js",
         "GET /ask/assets/dashboard.css",
         "GET /ask/assets/dashboard.js",
         "GET /ask/assets/guest.css",
         "GET /ask/assets/guest.js",
         "GET /ask/assets/page.css",
+        "GET /ask/assets/version",
         "POST /api/chat/guest",
         "POST /api/chat/guest/session",
       ].sort(),
@@ -175,7 +294,7 @@ describe("admin guest activation using deployment conventions", () => {
   });
   it("serves scoped Ask styles without replacing the site chrome", async () => {
     const f = await fixture();
-    await f.send(access, { enabled: true });
+    await f.budget(10);
     const response = await f.send(
       "/ask/assets/page.css",
       undefined,
@@ -201,9 +320,12 @@ describe("admin guest activation using deployment conventions", () => {
     const response = await f.send(access);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
+      authorized: false,
       enabled: false,
       origin: "https://preview.rizom.ai",
-      allowance: { requests: 2, usd: 4 },
+      budgetMicroUsd: 0,
+      chargedMicroUsd: 0,
+      answerCapMicroUsd: 50_000,
     });
     expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
     expect(f.calls()).toBe(0);
@@ -234,8 +356,12 @@ describe("admin guest activation using deployment conventions", () => {
     expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
   });
 
-  it("records the one-off authorization and ignores forwarding claims when deriving its target", async () => {
+  it("reopens only with the owner's budget, ignoring forwarding claims when deriving its target", async () => {
     const f = await fixture();
+    expect((await f.send(access, { enabled: true })).status).toBe(409);
+    expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
+    await f.budget(10);
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
     const response = await f.send(
       access,
       { enabled: true },
@@ -253,38 +379,107 @@ describe("admin guest activation using deployment conventions", () => {
     expect(records).toHaveLength(1);
     expect(records[0]?.value).toMatchObject({
       enabled: true,
-      authorization: {
+      budget: {
         origin: "https://preview.rizom.ai",
-        requests: 2,
-        maxCostMicroUsd: 4_000_000,
+        monthlyMicroUsd: 10_000_000,
       },
-      lifetime: { requests: 0, reservedMicroUsd: 0 },
     });
     expect(f.calls()).toBe(0);
   });
 
-  it("does not renew consumed authorization when toggled or retried", async () => {
+  it("adopts changed session limits when the owner switches guest chat on", async () => {
     const f = await fixture();
+    // A deployment whose session ledger was written under earlier limits.
+    await f.state
+      .scoped({
+        namespace: guestIssuanceNamespace,
+        schema: guestIssuanceStateSchema,
+      })
+      .set("deployment", {
+        version: 1,
+        revision: 4,
+        policy: "a".repeat(64),
+        enabled: true,
+        lastSeenAt: Date.now() - 60_000,
+        attempts: [],
+        slots: {},
+      });
+    const session = (): Promise<Response> =>
+      f.send(
+        "/api/chat/guest/session",
+        {},
+        { Origin: "https://preview.rizom.ai" },
+        "https://preview.rizom.ai",
+      );
+    await f.budget(10);
+    expect((await session()).status).toBe(200);
+    // Reopening through the endpoint adopts them too.
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect((await f.send(access, { enabled: true })).status).toBe(200);
+    expect((await session()).status).toBe(200);
+  });
+
+  it("brings the session ledger to the limits the owner approved when it restarts", async () => {
+    const running = await fixture();
+    await running.budget(10);
+    const sessions = running.state.scoped({
+      namespace: guestIssuanceNamespace,
+      schema: guestIssuanceStateSchema,
+    });
+    const ledger = await sessions.get("deployment");
+    // As a deployment finds it after a release changed its session limits.
+    await sessions.set("deployment", {
+      ...(ledger ?? {
+        version: 1,
+        revision: 0,
+        enabled: true,
+        lastSeenAt: Date.now() - 60_000,
+        attempts: [],
+        slots: {},
+      }),
+      policy: "a".repeat(64),
+    });
+    const restarted = await fixture("admin", "rizom.ai", {
+      state: running.state,
+    });
+    expect(
+      (
+        await restarted.send(
+          "/api/chat/guest/session",
+          {},
+          { Origin: "https://preview.rizom.ai" },
+          "https://preview.rizom.ai",
+        )
+      ).status,
+    ).toBe(200);
+  });
+
+  it("never returns the month's charge when toggled or retried", async () => {
+    const f = await fixture();
+    await f.budget(1);
     const record = (await f.ledger.list({ limit: 10 }))[0];
     if (!record) throw new Error("Expected authorized ledger");
+    const month = {
+      key: new Date().toISOString().slice(0, 7),
+      chargedMicroUsd: 1_000_000,
+    };
     expect(
       await f.ledger.compareAndSet(record.key, record.value, {
         ...record.value,
-        lifetime: { requests: 2, reservedMicroUsd: 4_000_000 },
+        month,
       }),
     ).toBe(true);
     for (const enabled of [false, true, true]) {
       expect((await f.send(access, { enabled })).status).toBe(200);
       expect(await f.ledger.get(record.key)).toMatchObject({
-        lifetime: { requests: 2, reservedMicroUsd: 4_000_000 },
-        authorization: {
+        month,
+        budget: {
           origin: "https://preview.rizom.ai",
-          requests: 2,
-          maxCostMicroUsd: 4_000_000,
+          monthlyMicroUsd: 1_000_000,
         },
       });
     }
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
     expect(f.calls()).toBe(0);
   });
 
@@ -293,6 +488,7 @@ describe("admin guest activation using deployment conventions", () => {
     for (const extra of [
       { origin: "https://rizom.ai" },
       { allowance: { requests: 99, usd: 100 } },
+      { monthlyUsd: 100 },
       { reset: true },
     ]) {
       expect((await f.send(access, { enabled: true, ...extra })).status).toBe(

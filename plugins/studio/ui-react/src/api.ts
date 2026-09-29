@@ -3,12 +3,17 @@ import type {
   UserPermissionLevel,
   EntityIdPath,
   EntityIdPathInput,
+  EntityGroupingUsage,
 } from "@brains/plugins";
 import {
   studioGroupingQuerySchema,
+  studioGroupingUsageQuerySchema,
   type StudioGroupingQuery,
 } from "../../src/grouping-query";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type {
+  StudioGrouping,
+  GroupingDefinitionIssue,
+} from "../../src/grouping-definitions-contract";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   studioCollectionQuerySchema,
@@ -21,24 +26,12 @@ import {
  * an authenticated browser session.
  */
 
-export interface StudioTypeCapabilities {
-  canRead: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canExtract: boolean;
-  canPublish: boolean;
-  canAssist: boolean;
-}
+import type { StudioEntityTypeInfo } from "../../src/editor-contracts";
 
-export interface EntityTypeInfo {
-  entityType: string;
-  label: string;
-  isSingleton: boolean;
-  hasBody: boolean;
-  count: number;
-  capabilities: StudioTypeCapabilities;
-}
+export type { StudioTypeCapabilities } from "../../src/editor-contracts";
+export type { StudioTypeHierarchy } from "../../src/config";
+/** One entity type in Studio's type list, as the server describes it. */
+export type EntityTypeInfo = StudioEntityTypeInfo;
 
 export interface StudioWorkspaceInfo {
   id: string;
@@ -116,6 +109,12 @@ export interface FieldDescriptor {
 }
 
 export interface TypeSchema {
+  groupingDefinitions?: {
+    contributorTypes: Array<{ entityType: string; label: string }>;
+    /** Authored exclusions whose registered types are system-owned; not options. */
+    systemTypes: string[];
+    issues: GroupingDefinitionIssue[];
+  };
   entityType: string;
   format: "raw" | "frontmatter";
   isSingleton: boolean;
@@ -385,6 +384,22 @@ export class StudioApi {
     };
   }
 
+  /** One bounded value-count batch; entries is already distinct, never sum it. */
+  async fetchGroupingUsage(
+    grouping: string,
+    values: readonly string[],
+    signal: AbortSignal,
+  ): Promise<EntityGroupingUsage> {
+    signal.throwIfAborted();
+    const input = studioGroupingUsageQuerySchema.parse({ grouping, values });
+    const params = new URLSearchParams({ grouping: input.grouping });
+    for (const value of input.values) params.append("value", value);
+    return this.requestJson<EntityGroupingUsage>(
+      this.path(`groups/usage?${params}`),
+      { signal },
+    );
+  }
+
   async fetchTypes(): Promise<EntityTypeInfo[]> {
     return (await this.fetchNavigation()).types;
   }
@@ -443,6 +458,14 @@ export class StudioApi {
     return this.requestJson<EntityPage>(
       this.path(`hierarchy?${params.toString()}`),
     );
+  }
+
+  async fetchImagePreview(id: string, signal: AbortSignal): Promise<string> {
+    const { source } = await this.requestJson<{ source: string }>(
+      this.path(`images?id=${encodeURIComponent(id)}`),
+      { signal },
+    );
+    return source;
   }
 
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {

@@ -7,9 +7,15 @@ import {
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
-import { guestReadOptions } from "./guest-read-context";
+import { assertGuestReader } from "./guest-read-context";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
+
+/** A public reader is a site's visitor, and a draft is not theirs to read. */
+const publishedOnlyFor = (
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): { publishedOnly?: true } =>
+  visibilityScope === "public" ? { publishedOnly: true } : {};
 
 export function createEntityReadTools(services: SystemServices): Tool[] {
   const { entityService, logger } = services;
@@ -21,7 +27,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. Search results include each matched entity's content. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
       async (input, context) => {
-        const readOptions = guestReadOptions(context);
+        assertGuestReader(context);
         const visibilityScope = permissionToVisibilityScope(
           context.userPermissionLevel,
         );
@@ -41,10 +47,17 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                     includeUngenerated: input.includeUngenerated,
                   }),
                   visibilityScope,
-                  ...readOptions,
+                  ...publishedOnlyFor(visibilityScope),
                 },
               })
-            ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
+            ).map((r) => {
+              const entity = sanitizeEntity(r.entity, services.entityRegistry);
+              return {
+                ...r,
+                entity,
+                ...(entity !== r.entity ? { excerpt: entity.content } : {}),
+              };
+            }),
           },
         };
       },
@@ -63,11 +76,8 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "Retrieve a specific entity by type and identifier (ID, slug, or title). If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
       getInputSchema,
       async (input, context) => {
-        const readOptions = guestReadOptions(context);
-        if (
-          !readOptions.readBudget &&
-          !entityService.getEntityTypes().includes(input.entityType)
-        ) {
+        assertGuestReader(context);
+        if (!entityService.getEntityTypes().includes(input.entityType)) {
           return {
             success: false,
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
@@ -83,14 +93,16 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           logger,
           undefined,
           visibilityScope,
-          readOptions,
+          publishedOnlyFor(visibilityScope),
         );
         if (!result.ok) {
           return { success: false, error: result.error };
         }
         return {
           success: true,
-          data: { entity: sanitizeEntity(result.entity) },
+          data: {
+            entity: sanitizeEntity(result.entity, services.entityRegistry),
+          },
         };
       },
       {
@@ -108,11 +120,8 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
       listInputSchema,
       async (input, context) => {
-        const readOptions = guestReadOptions(context);
-        if (
-          !readOptions.readBudget &&
-          !entityService.getEntityTypes().includes(input.entityType)
-        ) {
+        assertGuestReader(context);
+        if (!entityService.getEntityTypes().includes(input.entityType)) {
           return {
             success: false,
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
@@ -130,24 +139,21 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         if (input.status && input.status !== "any") {
           filter.metadata = { status: input.status };
         }
+        const { defaultSort } = services.entityRegistry.getEntityTypeConfig(
+          input.entityType,
+        );
         const entities = await entityService.listEntities({
           entityType: input.entityType,
-          options: { limit: input.limit ?? 20, filter, ...readOptions },
+          options: {
+            limit: input.limit ?? 20,
+            filter,
+            ...publishedOnlyFor(visibilityScope),
+            ...(defaultSort ? { sortFields: defaultSort } : {}),
+          },
         });
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );
-        if (input.entityType === "post") {
-          items.sort((left, right) => {
-            const leftDate = left.metadata["publishedAt"];
-            const rightDate = right.metadata["publishedAt"];
-            const leftTime =
-              typeof leftDate === "string" ? Date.parse(leftDate) : 0;
-            const rightTime =
-              typeof rightDate === "string" ? Date.parse(rightDate) : 0;
-            return rightTime - leftTime;
-          });
-        }
         return {
           success: true,
           data: { entities: items, count: items.length },

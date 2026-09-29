@@ -122,16 +122,64 @@ stored IDs nor metadata are modified. Filesystem placement remains directory-syn
 
 A registered type may also carry its own `actionPolicy` in `EntityTypeConfig`. That is the type's floor: each action uses the stricter of the wildcard default and the type's minimum, with `never` forbidding every caller. This keeps an admin-only type protected without its bundle's rule while preserving stricter instance restrictions. An explicit entry for the type still overrides the result, action by action.
 
-A stored document whose content no longer satisfies its own schema cannot be reconstructed, so every read treats it as absent. Policies built on such a document fail open rather than refusing writes behind something only an administrator could repair.
+Most schema-invalid stored entities cannot be reconstructed. A control-document adapter can deliberately provide repairable reads instead: Studio retains malformed `grouping-definitions` source for explicit repair, omits invalid sections from the active set and reports their issues. Lookup or publication failures propagate rather than silently admitting stale policy.
 
-Studio uses this boundary for its admin-authored grouping-vocabulary singleton. Vocabulary and cardinality changes affect the next write, including tool and import writes, without changing fixed type schemas or rewriting previously stored content. Reads and startup reprojection remain unconstrained so stray memberships stay visible.
+Studio uses this boundary for its admin-authored `grouping-definitions` singleton. Labels, contributing types, independent cardinality and optional exact lists share one source. Changes affect the next write, including tool and import writes, without weakening owner schemas or rewriting previously stored content. Reads and startup reprojection retain stray memberships.
+
+## Entity-type classification
+
+Registration accepts plugin-owned `classification: "content" | "system"`, validated before registration and defaulting to `content`. This describes semantic ownership, independently of permissions, embedding/search settings and projection-source policy; it is not per-entity frontmatter or instance configuration. Registration snapshots this value. Public entity packages declare it through `defineEntity`.
+
+`isGroupingContributor(adapter, config)` is the shared eligibility rule: only content types with frontmatter adapters, excluding singletons and binary assets, may participate. Registry validation rejects ineligible contributors atomically; Studio uses the same rule for fields, descriptors and exclusion choices. A changed classification does not rewrite authored source or timestamps; normal grouping reprojection updates only derived membership state.
 
 ## Grouping queries (internal client)
 
 A grouping is a declared dimension — Clients, Projects — resolved from one
 frontmatter field across a listed set of entity types. Callers never supply a
-field name or selector: `registerGrouping({ key, label, field, types })` records
-the declaration, and the two reads resolve it by key.
+field name or selector. Without a document source, `registerGrouping({ key,
+label, field, types })` records a static declaration; grouping reads resolve it
+by key. Once a source is installed, further static registrations are rejected.
+Studio rejects competing static declarations before installing its document owner.
+
+`validateGroupings(next)` preflights a complete replacement set without changing
+active schemas. `replaceGroupings(next)` publishes that set and its schema
+extensions atomically after validation; failure leaves the old set intact.
+Grouping-owned extensions are separate from permanent plugin extensions, so
+removing a grouping removes only fields it introduced. Owner and plugin fields,
+including their refinements, remain. Both methods are available through the
+plugin context's `entities` namespace. Replacement is registry-only: it does not
+rewrite content or start database work. It records added type/field pairs in
+process-local memory; `{ reprojectExisting: true }` also invalidates retained
+pairs when an observer may have missed intermediate changes.
+
+A document owner can install one `registerGroupingSource({ entityType,
+ensureCurrent })` callback through the same namespace. Ordinary create/update
+validation, projection upsert preparation, entity detail reads, grouping queries
+and startup reprojection await it before consulting grouping contracts. The
+source's own entity reads skip refresh to avoid recursion. Studio's
+type/schema and grouping-route entry points also request refresh. Lookup failures
+propagate rather than admit writes under stale policy. Ordinary writes also
+capture an in-memory publication revision before preparation and refresh/check
+it inside their existing write transaction. A changed definition rejects stale
+preparation with an actionable persist-validation issue, including no-op updates;
+the caller can retry with current rules. This prevents a delayed old-schema write
+from committing unindexed membership after the new definition's scan finishes.
+
+The callback may replace in-memory declarations, but must not mutate persistence
+or start reprojection: projection upserts invoke it inside a transaction.
+After an ordinary source-document mutation commits, the service refreshes again
+and awaits the pending bounded scan. Projection reconciliation does this outside
+the projection transaction. A failed scan does not undo or misreport a successful
+save: it leaves reads unready and logs the failure for retry.
+
+Readiness and pending work are **ephemeral, per-process state**: no new tables,
+durable jobs, checkpoints or completion records. `ensureGroupingsReady()` starts
+or joins a local scan and lets Studio return `503 groupings_initializing` while
+it runs. Direct service grouping queries await the pass. Concurrent requests
+share a pass; additions observed during it are drained before readiness, with a
+four-pass budget under repeated definition changes. Restart always rescans source.
+Only a source-enabled service schedules these runtime scans; static declarations
+retain the explicit startup lifecycle.
 
 `queryGroupingCatalog` returns each distinct value with the number of entities
 the caller may read. `queryGroupingMembers` returns one mixed-type page for a

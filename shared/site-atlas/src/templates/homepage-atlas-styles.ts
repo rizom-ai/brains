@@ -1,8 +1,12 @@
+import { ASK_SHEET_MEDIA } from "@brains/contracts";
+
 /** Scoped atlas styles: shared theme tokens only, no palette values. */
 export const homepageAtlasStyles: string = String.raw`
 .atlas {
   --atlas-contour: var(--color-text);
-  --atlas-talk: min(40rem, 46%);
+  /* The copy starts on the header's content edge: the layout column, centred, or its 3rem gutter. */
+  --atlas-edge: max(3rem, (100% - var(--layout-max-width, 72rem)) / 2);
+  --atlas-talk: calc(min(40rem, 46%) + var(--atlas-edge) - 3rem);
   position: relative; isolation: isolate; overflow: hidden;
   display: flex; align-items: stretch;
   min-height: calc(100svh - 4.5rem);
@@ -33,7 +37,8 @@ export const homepageAtlasStyles: string = String.raw`
   position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
   font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
   font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
-  text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* A solid halo in the page colour parts the rings under the name; the wide layer softens its edge. */
+  text-shadow: 0 0 1px var(--color-bg), 0 0 2px var(--color-bg), 0 0 2px var(--color-bg), 0 0 3px var(--color-bg), 0 0 4px var(--color-bg), 0 0 6px var(--color-bg), 0 0 10px var(--color-bg);
   /* Set by the script from the name's measured box. */
   translate: var(--atlas-name-shift, 0 0);
 }
@@ -60,8 +65,12 @@ export const homepageAtlasStyles: string = String.raw`
 }
 .atlas__mark--west .atlas__tip { left: auto; right: 50%; transform: none; }
 .atlas__mark--east .atlas__tip { left: 50%; transform: none; }
+/* Near the map's top a card opens below its mark. */
+.atlas__mark--south .atlas__tip { top: calc(100% + .3rem); bottom: auto; }
 /* A transformed mark is its own stacking context: lift the active one over its neighbours. */
-.atlas__mark:focus-within, .atlas__mark[data-open] { z-index: 3; }
+.atlas__mark:focus-within { z-index: 3; }
+/* An open card sits above every other mark, lit ones (z-index 3) included. */
+.atlas__mark[data-open] { z-index: 4; }
 .atlas__mark[data-open] .atlas__tip { opacity: 1; }
 .atlas__mark[data-open] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
 .atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
@@ -93,18 +102,10 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__talk {
   position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
   display: flex; flex-direction: column; justify-content: center;
-  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) clamp(1.25rem, 4vw, 3rem);
+  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) var(--atlas-edge);
   background: linear-gradient(90deg, var(--color-bg) 0% 88%, rgb(from var(--color-bg) r g b / 0) 100%);
 }
-.atlas--bare .atlas__talk { width: min(48rem, 100%); background: none; }
-.atlas__byline { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.5rem; }
-.atlas__initials {
-  flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
-  background: var(--color-text); color: var(--color-bg);
-  font-family: var(--font-heading); font-size: .85rem; letter-spacing: .03em;
-}
-.atlas__byline b { display: block; font-weight: 600; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
-.atlas__byline small { font-size: .85rem; color: var(--color-text-light); }
+.atlas--bare .atlas__talk { width: min(calc(48rem + var(--atlas-edge) - 3rem), 100%); background: none; }
 .atlas h1 {
   margin: 0 0 1.4rem; font-family: var(--font-heading); font-weight: 400;
   font-size: clamp(2.8rem, 5.2vw, 4.9rem); line-height: 1; letter-spacing: -.018em; text-wrap: balance;
@@ -134,14 +135,19 @@ export const homepageAtlasStyles: string = String.raw`
    and the topics rest in the state a pointer would give them, as choices to tap. */
 @media (hover: none) {
   .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
-  .atlas__topics { gap: .45rem; }
-  .atlas__topics a { background: var(--color-bg-subtle); padding: .65rem .8rem; }
+  .atlas__topics { gap: 0; }
+  .atlas__topics a { margin: 0; padding: .7rem 0; border-radius: 0; border-bottom: 1px solid var(--color-border); }
+  .atlas__topics li:first-child a { border-top: 1px solid var(--color-border); }
+  .atlas__topics a:hover, .atlas__topics a:focus-visible { background: none; }
 }
 
 /* The docked chat box: Web Chat mounts the conversation into this host and
    styles it; the atlas themes it and keeps its composer the same before and
    after the mount. The page already presents the opening and its topics. */
-.atlas--chat .atlas__talk { max-height: calc(100svh - 4.5rem); overflow-y: auto; }
+.atlas--chat .atlas__talk {
+  max-height: calc(100svh - 4.5rem); overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--color-rule) transparent;
+}
 .atlas__ask {
   margin-top: 1.6rem; max-width: 34rem;
   --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
@@ -151,10 +157,12 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
 .atlas__ask-status:empty { display: none; }
 .atlas__ask .brain-box-welcome { display: none; }
+/* The text column is the one scroller beside the map; the conversation grows inside it. */
+.atlas__ask:not([data-ask-sheet]) .brain-box-scroll { max-height: none; overflow: visible; }
 .atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
 .atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
-.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }
-.atlas__ask .brain-box-hint:empty { display: none; }
+.atlas__ask .brain-box-note { justify-content: flex-start; margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-latest { align-self: flex-start; margin: .55rem 0 0 1.1rem; }
 .atlas__composer, .atlas__ask .prompt-row {
   display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
   border-radius: 1.4rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
@@ -171,16 +179,37 @@ export const homepageAtlasStyles: string = String.raw`
   background: var(--color-accent); color: var(--color-text-inverse); cursor: pointer; font-size: 1.2rem; font-weight: 600;
 }
 .atlas__send svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.atlas__send:disabled, .atlas__ask .send:disabled { opacity: .5; cursor: default; }
+/* Nothing to send yet: the same button, quiet, on the page and in the sheet. */
+.atlas__send:disabled, .atlas__ask .send:disabled { opacity: 1; background: color-mix(in srgb, var(--color-text) 8%, var(--color-bg)); color: var(--color-text-light); cursor: default; }
 .atlas__send:focus-visible, .atlas__ask .send:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 
+/* An answer's sources in the map's own shapes, each named as the legend
+   names its kind (the script copies the name from its mark). */
+.atlas__ask .brain-box-sources [data-ask-source^="deck:"] .brain-box-source-mark { border-radius: 1px; rotate: 45deg; scale: .85; }
+.atlas__ask .brain-box-sources [data-ask-source^="project:"] .brain-box-source-mark { border-radius: 1.5px; }
+.atlas__ask .brain-box-sources [data-atlas-type]::after { content: attr(data-atlas-type); margin-left: auto; padding-left: .75rem; font-size: .8rem; color: var(--color-text-light); white-space: nowrap; }
+
+/* A phone's open conversation links a lit piece to where it is cited (see below). */
+.atlas__cited { display: none; }
+/* A tapped source pulses its piece; a piece's source flashes in the answer. */
+.atlas__mark[data-atlas-pulse] .atlas__glyph { animation: atlas-pulse 1.1s ease-out 2; }
+.atlas__ask [data-ask-source][data-atlas-flash] { animation: atlas-flash 1.5s ease-out; }
+@keyframes atlas-pulse { 35% { scale: 1.9; } }
+@keyframes atlas-flash { 0%, 40% { border-color: var(--color-accent); background: var(--color-bg-subtle); } }
 /* An answer turns the map towards the sources it drew on. */
 .atlas__field { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
 .atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
 .atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
 .atlas__mark[data-cited] { z-index: 3; }
-.atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
+/* An open lit piece keeps its card above the other lit ones. */
+.atlas__mark[data-cited][data-open] { z-index: 4; }
+/* A lit piece: its shape in the accent with one thin ring, so close pieces stay apart. */
+.atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 3px var(--color-accent); }
 .atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+/* The map zooms; its marks and their cards keep their own size, so a lit
+   piece is always half again a plain mark. */
+.atlas__mark > :first-child { transition: scale .9s cubic-bezier(.3, .7, .2, 1); }
+.atlas__field[data-focused] :is(.atlas__mark > :first-child, .atlas__cited) { scale: calc(1 / var(--atlas-focus-scale, 1)); }
 /* Leads from the answer’s listed sources to their marks; the script draws them on desktop only. */
 .atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
 .atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
@@ -188,25 +217,92 @@ export const homepageAtlasStyles: string = String.raw`
 @media (max-width: 60rem) {
   /* The map leads visually on phones; the conversation stays first in the document.
      The first screen holds the map and the headline together. */
-  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); }
+  /* The copy and legend take the header's gutter. */
+  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); --atlas-edge: 1.5rem; }
   .atlas__map { order: -1; position: relative; inset: auto; height: var(--atlas-band); }
   /* Marks stay above the fade strip, where the legend rests. */
   .atlas__field { bottom: 2rem; }
   /* Long names take two short lines, so more of them fit a narrow map. */
   .atlas__zone { font-size: .8rem; white-space: normal; width: max-content; max-width: 9em; text-align: center; line-height: 1.15; }
   /* The build records where the map's content ends (--atlas-fill of the field); the legend and the text start there, over the fading outer rings. */
-  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
+  .atlas__legend { left: calc(var(--atlas-edge) - .7rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
   .atlas__legend .atlas__caption { display: none; }
-  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
-  .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
-  .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
+  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem var(--atlas-edge) 2.5rem; background: none; }
   .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
   .atlas__leads { display: none; }
   /* The text flows with the page on phones; only desktop scrolls it beside the map. */
   .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
 }
+@media (min-width: 48rem) and (max-width: 60rem) { .atlas { --atlas-edge: 3rem; } }
+@media ${ASK_SHEET_MEDIA} {
+  /* Phone type sizes: smaller than the desktop's, so the ask box shows on the first screen. */
+  .atlas h1 { font-size: clamp(2.1rem, 9.5vw, 2.6rem); }
+  .atlas__prose { font-size: 1rem; }
+  .atlas__door h2 { font-size: 1.2rem; }
+  .atlas__topics a { font-size: 1rem; }
+  .atlas__composer textarea, .atlas__ask .prompt-row textarea { font-size: 1rem; }
+  .atlas__ask[data-ask-sheet] .brain-box-welcome .chat-notice { font-size: 15px; }
+  .atlas__ask[data-ask-sheet] .brain-box-note, .atlas__ask[data-ask-sheet] .brain-box-latest { justify-content: center; align-self: center; margin: .5rem 0 0; }
+  /* Text passes under a short fade below the strip, not a cut edge. */
+  .atlas__ask [data-ask-dock]:has(.atlas__map)::after {
+    content: ""; position: relative; z-index: 5; display: block; height: 18px; margin-bottom: -18px;
+    background: linear-gradient(var(--color-bg), transparent); pointer-events: none;
+  }
+  /* An engaged box opens full screen (Web Chat's sheet), above the sticky
+     site header. The script lends it the map for its dock, the first item of
+     the conversation's scroll: as tall as the page's at the top, it scrolls
+     up with the answer until only a strip is left, pinned under the header
+     with the answer's pieces in view. A slot holds its place on the page.
+     It is out of the way while typing. */
+  .atlas:has(.atlas__ask[data-ask-sheet]) { z-index: 1000; }
+  .atlas__ask[data-ask-sheet] { margin: 0; max-width: none; }
+  .atlas__ask[data-ask-sheet]:not([data-ask-keyboard]) { --ask-sheet-inset: calc(var(--atlas-band) - 2rem); }
+  .atlas__map-slot { order: -1; height: var(--atlas-band); }
+  .atlas__ask [data-ask-dock]:has(.atlas__map) { position: sticky; z-index: 2; top: calc(7.5rem - (var(--atlas-band) - 2rem)); }
+  .atlas__ask[data-ask-keyboard] [data-ask-dock] { display: none; }
+  .atlas__ask [data-ask-dock] .atlas__map {
+    position: relative; inset: auto; height: calc(var(--atlas-band) - 2rem); overflow: hidden;
+    background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
+  }
+  /* Marks cut by its edges fade out, as the terrain does. */
+  .atlas__ask [data-ask-dock] .atlas__map::after {
+    content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background: linear-gradient(180deg, var(--color-bg), transparent 1.1rem, transparent calc(100% - 1.1rem), var(--color-bg));
+  }
+  /* The page's own map, at its size (the band less the legend's 2rem) and
+     zoom. As it scrolls up, the part that shows keeps where an answer's
+     sources sit (--atlas-strip-y, set by the script), or else the middle of
+     the map's content, in its middle. */
+  .atlas__ask [data-ask-dock] .atlas__field {
+    --atlas-field-height: calc(var(--atlas-band) - 2rem);
+    --atlas-window: max(7.5rem, calc(var(--atlas-field-height) - var(--atlas-sheet-scroll, 0px)));
+    inset: auto 0; height: var(--atlas-field-height);
+    top: clamp(calc(var(--atlas-window) - var(--atlas-field-height)), calc(var(--atlas-field-height) - var(--atlas-window) / 2 - var(--atlas-field-height) * var(--atlas-strip-y, calc(var(--atlas-fill, 1) * 50)) / 100), calc(var(--atlas-field-height) - var(--atlas-window)));
+    transition: transform .9s cubic-bezier(.3, .7, .2, 1);
+  }
+  /* Only an answer pans it (the script marks it); opening never slides it. */
+  .atlas__ask [data-ask-dock] .atlas__field[data-atlas-panning] { transition: transform .9s cubic-bezier(.3, .7, .2, 1), top .9s cubic-bezier(.3, .7, .2, 1); }
+  .atlas__ask [data-ask-dock] :is(.atlas__legend, .atlas__zone) { display: none; }
+  /* A lit piece's open card leads to where the answer cites it: a small
+     button beside the mark, towards the map's middle, where no edge of the
+     map cuts it. */
+  .atlas__ask [data-ask-dock] .atlas__mark[data-open][data-cited] .atlas__cited {
+    display: block; position: absolute; z-index: 2; top: 50%; left: calc(100% + .3rem); translate: 0 -50%;
+    padding: .25rem .6rem; border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg-subtle); color: var(--color-accent); font: inherit; font-size: .78rem; white-space: nowrap; cursor: pointer;
+  }
+  .atlas__ask [data-ask-dock] .atlas__mark--west[data-open][data-cited] .atlas__cited { left: auto; right: calc(100% + .3rem); }
+  /* The page presents the opening beside the box; full screen, the box does. */
+  .atlas__ask[data-ask-sheet] .brain-box-welcome { display: block; }
+  .atlas__ask[data-ask-sheet] .brain-box-welcome h2 { display: none; }
+  /* Before the box mounts, its composer waits at the foot of the sheet. */
+  .atlas__ask[data-ask-sheet] > .atlas__composer { margin: auto 0 .75rem; }
+  .atlas__ask[data-ask-sheet] > .atlas__ask-status { margin-top: 1rem; }
+  .atlas__ask[data-ask-sheet] .brain-box-bottom { border-top: 1px solid var(--color-rule); padding-top: .6rem; }
+}
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }
-  .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }
+  .atlas__mark[data-atlas-pulse] .atlas__glyph, .atlas__ask [data-ask-source][data-atlas-flash] { animation: none; }
+  .atlas__glyph, .atlas__tip, .atlas__field, .atlas__mark > :first-child { transition: none; }
 }
 `;

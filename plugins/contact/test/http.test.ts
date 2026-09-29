@@ -53,7 +53,6 @@ describe("contact HTTP boundary", () => {
     );
     const html = await page.text();
     expect(html).toContain('method="post"');
-    expect(html).toContain("kept for 1 day, then deleted.");
     expect(html).not.toContain("<script");
     const token = /name="token" value="([a-f0-9]{64})"/.exec(html)?.[1];
     if (!token) throw new Error("Missing form token");
@@ -330,13 +329,33 @@ describe("contact page for visitors", () => {
     expect(unnamed).toContain("goes privately to the owner of this site");
   });
 
-  it("states only the retention the owner configured, and no other policy", async () => {
-    const html = await page("Yeehaa");
-    expect(html).toContain(
-      '<p class="privacy" id="contact-privacy">Your note is kept for 1 day, then deleted.</p>',
+  it("opens in the site's own theme unless the link chose one", async () => {
+    const f = await intakeFixture();
+    const handlers = new ContactHttpHandlers(
+      f.admission,
+      f.intake,
+      { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
+      { defaultTheme: (): "light" => "light" },
     );
-    for (const unconfigured of ["run late", "backups", "has expired"])
-      expect(html).not.toContain(unconfigured);
+    const html = async (path: string): Promise<string> =>
+      (
+        await handlers.handle(new Request(`${origin}${path}`), {
+          remoteAddress: peer,
+        })
+      ).text();
+
+    expect(await html("/contact")).toContain(
+      '<html lang="en" data-theme="light">',
+    );
+    expect(await html("/contact?theme=dark")).toContain(
+      '<html lang="en" data-theme="dark">',
+    );
+  });
+
+  it("adds no retention notice to the form", async () => {
+    const html = await page("Yeehaa");
+    expect(html).not.toContain("kept for");
+    expect(html).not.toContain("contact-privacy");
   });
 
   it("confirms a saved note without promising the alert arrived", async () => {

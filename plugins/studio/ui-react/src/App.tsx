@@ -58,7 +58,7 @@ import {
   initialEditorWorkflowState,
 } from "./editor-workflow";
 import { useStudioApi } from "./studio-api-context";
-import { readStudioChatHandoffState } from "./operator-launch";
+import { readStudioChatHandoffState } from "../../src/chat-handoff-contract";
 import { readErrorMessage } from "./read-error";
 import { useGroupingSuggestions } from "./use-grouping-suggestions";
 
@@ -278,7 +278,7 @@ export function App(): ReactElement {
     currentStudioPathname,
     createMode,
     entityType,
-    activeCapabilities,
+    activeType,
     entityCollectionQuery,
     preferredMobilePane,
     dispatchEditor,

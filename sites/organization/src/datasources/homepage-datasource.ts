@@ -32,7 +32,6 @@ export function openingFromProfile(
     topicsHeading: null,
     contactLabel: null,
     contactNote: null,
-    attribution: null,
     mapCaption: null,
     contactUrl: null,
   };

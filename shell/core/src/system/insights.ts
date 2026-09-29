@@ -1,7 +1,9 @@
+import { scopeEntityReads } from "@brains/entity-service";
 import type {
   BaseEntity,
   ContentVisibility,
   ReadOnlyEntityService,
+  EntityRegistry,
 } from "@brains/entity-service";
 import type { IInsightsRegistry, InsightHandler } from "@brains/plugins";
 
@@ -56,19 +58,32 @@ export class InsightsRegistry implements IInsightsRegistry {
         `Unknown insight type: ${type}. Available: ${this.getTypes().join(", ")}`,
       );
     }
-    return handler(entityService, visibilityScope);
+    // A public caller is a site's visitor: every insight, a plugin's too,
+    // reads their view, where drafts are not there to count or list.
+    const reads =
+      visibilityScope === "public"
+        ? scopeEntityReads(entityService, {
+            publishedOnly: true,
+            visibilityScope,
+          })
+        : entityService;
+    return handler(reads, visibilityScope);
   }
 }
 
 /**
  * Create an InsightsRegistry with the built-in generic insights.
  */
-export function createInsightsRegistry(): InsightsRegistry {
+export function createInsightsRegistry(
+  entityRegistry: Pick<EntityRegistry, "getEntityTypeConfig">,
+): InsightsRegistry {
   const registry = new InsightsRegistry();
 
   registry.register("overview", getOverview);
   registry.register("publishing-cadence", getPublishingCadence);
-  registry.register("content-health", getContentHealth);
+  registry.register("content-health", (entityService, visibilityScope) =>
+    getContentHealth(entityService, visibilityScope, entityRegistry),
+  );
 
   return registry;
 }
@@ -150,6 +165,7 @@ async function getPublishingCadence(
 async function getContentHealth(
   entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
+  entityRegistry: Pick<EntityRegistry, "getEntityTypeConfig">,
 ): Promise<Record<string, unknown>> {
   const allEntities = await getAllEntities(entityService, visibilityScope);
 
@@ -164,7 +180,8 @@ async function getContentHealth(
   const staleThreshold = now - 90 * 24 * 60 * 60 * 1000;
   const stale: StaleEntry[] = allEntities
     .filter((e) => {
-      if (e.entityType === "image") return false;
+      if (entityRegistry.getEntityTypeConfig(e.entityType).binaryStorage)
+        return false;
       const updated = new Date(e.updated).getTime();
       return !isNaN(updated) && updated < staleThreshold;
     })

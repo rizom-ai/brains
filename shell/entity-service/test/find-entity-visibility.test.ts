@@ -52,6 +52,7 @@ function createCapturedService(): CapturedService {
     queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
     queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
     queryGroupingMembers: createMockEntityService().queryGroupingMembers,
+    queryGroupingUsage: createMockEntityService().queryGroupingUsage,
     searchWithDistances: async () => [],
     projectSemanticSpace: async () => ({
       origin: { kind: "centroid" },
@@ -71,9 +72,8 @@ function createCapturedService(): CapturedService {
 }
 
 describe("findEntityByIdentifier scope propagation", () => {
-  it("propagates bounded reads to exact fallbacks without a broad scan or extra authority", async () => {
+  it("propagates the caller's scope and cancellation to every lookup without extra authority", async () => {
     const captured = createCapturedService();
-    const readBudget = { rows: 1, rowBytes: 1000, queryCharacters: 40 };
     const signal = new AbortController().signal;
     // A structurally compatible object may contain extra runtime properties.
     await findEntityByIdentifier(
@@ -82,25 +82,41 @@ describe("findEntityByIdentifier scope propagation", () => {
       "missing",
       undefined,
       "public",
-      { readBudget, signal, ...{ visibilityScope: "restricted" } },
+      { signal, ...{ visibilityScope: "restricted" } },
+    );
+    expect(captured.getEntityCalls).toEqual([
+      { entityType: "doc", id: "missing", visibilityScope: "public", signal },
+    ]);
+    expect(captured.listEntitiesCalls).toHaveLength(4);
+    for (const request of captured.listEntitiesCalls) {
+      expect(request.options).toMatchObject({
+        signal,
+        filter: { visibilityScope: "public" },
+      });
+    }
+  });
+
+  it("carries publishedOnly to the direct lookup and every fallback", async () => {
+    const captured = createCapturedService();
+    await findEntityByIdentifier(
+      captured.service,
+      "doc",
+      "missing",
+      undefined,
+      "public",
+      { publishedOnly: true },
     );
     expect(captured.getEntityCalls).toEqual([
       {
         entityType: "doc",
         id: "missing",
         visibilityScope: "public",
-        readBudget,
-        signal,
+        publishedOnly: true,
       },
     ]);
-    expect(captured.listEntitiesCalls).toHaveLength(3);
+    expect(captured.listEntitiesCalls).toHaveLength(4);
     for (const request of captured.listEntitiesCalls) {
-      expect(request.options).toMatchObject({
-        readBudget,
-        signal,
-        limit: 1,
-        filter: { visibilityScope: "public" },
-      });
+      expect(request.options).toMatchObject({ publishedOnly: true });
     }
   });
 
@@ -121,10 +137,7 @@ describe("findEntityByIdentifier scope propagation", () => {
         "missing",
         undefined,
         "public",
-        {
-          readBudget: { rows: 1, rowBytes: 1000, queryCharacters: 40 },
-          signal: controller.signal,
-        },
+        { signal: controller.signal },
       ).catch(() => null),
     ).toBeNull();
     expect(captured.listEntitiesCalls).toHaveLength(0);

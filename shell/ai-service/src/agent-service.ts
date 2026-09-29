@@ -3,14 +3,14 @@ import { isRecord } from "@brains/utils/is-record";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import {
   assertGuestPermission,
-  guestBrainIdentity,
   isGuestToolAllowed,
   requireGuestExecutionPolicy,
 } from "./guest-execution";
 import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
-import type { IMCPService } from "@brains/mcp-service";
+import type { IMCPService, Tool } from "@brains/mcp-service";
 import type {
+  AnchorProfile,
   IBrainCharacterService,
   IAnchorProfileService,
 } from "@brains/identity-service";
@@ -59,12 +59,16 @@ function combineAbortSignals(
  */
 type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
 
+/** The owner's email stays out of what a visitor's agent can repeat. */
+function publicProfile(profile: AnchorProfile): AnchorProfile {
+  const { email: _email, ...rest } = profile;
+  return rest;
+}
+
 export class AgentService implements IAgentService {
-  get guestProfileAvailable(): boolean {
-    return (
-      this.agentFactory.guestProfileAvailable === true &&
-      (!this.indexReadiness || this.indexReadiness.isIndexReady())
-    );
+  /** Guest turns search the index, so they wait until it is ready. */
+  get guestReady(): boolean {
+    return !this.indexReadiness || this.indexReadiness.isIndexReady();
   }
 
   private mcpService: IMCPService;
@@ -160,6 +164,7 @@ export class AgentService implements IAgentService {
       canonicalIdentityResolver: config.canonicalIdentityResolver,
       agentContextProvider: config.agentContextProvider,
       uploadAttachmentResolver: config.uploadAttachmentResolver,
+      guestAnswerSources: config.guestAnswerSources,
     });
     this.conversationActors = new ConversationActorRegistry({
       createActor: (): ConversationActor => {
@@ -196,39 +201,41 @@ export class AgentService implements IAgentService {
    * Lazy initialization allows tools to be registered after service creation
    */
   private getAgent(interfaceType: string): BrainAgent {
-    if (interfaceType === guestInterfaceType) {
-      this.guestAgent ??= this.agentFactory({
-        identity: guestBrainIdentity,
-        tools: this.mcpService
-          .listAgentToolsForPermissionLevel("public")
-          .map(({ tool }) => tool)
-          .filter(isGuestToolAllowed),
+    // A visitor talks to the same agent as a public user, limited to the
+    // reviewed public read tools.
+    const guestTools = (): Tool[] =>
+      this.mcpService
+        .listAgentToolsForPermissionLevel("public")
+        .map(({ tool }) => tool)
+        .filter(isGuestToolAllowed);
+    const guest = interfaceType === guestInterfaceType;
+    const agent =
+      (guest ? this.guestAgent : this.agent) ??
+      this.agentFactory({
+        identity: this.identityService.getCharacter(),
+        profile: guest
+          ? publicProfile(this.profileService.getProfile())
+          : this.profileService.getProfile(),
+        tools: guest
+          ? guestTools()
+          : this.mcpService
+              .listAgentToolsForPermissionLevel("admin")
+              .map((t) => t.tool),
+        pluginInstructions: this.mcpService.getInstructions(),
+        ...(this.agentInstructions && {
+          agentInstructions: this.agentInstructions,
+        }),
         stepLimit: this.stepLimit,
-        getToolsForPermission: () =>
-          this.mcpService
-            .listAgentToolsForPermissionLevel("public")
-            .map(({ tool }) => tool)
-            .filter(isGuestToolAllowed),
+        getToolsForPermission: guest
+          ? guestTools
+          : (level): Tool[] =>
+              this.mcpService
+                .listAgentToolsForPermissionLevel(level)
+                .map((t) => t.tool),
       });
-      return this.guestAgent;
-    }
-    this.agent ??= this.agentFactory({
-      identity: this.identityService.getCharacter(),
-      profile: this.profileService.getProfile(),
-      tools: this.mcpService
-        .listAgentToolsForPermissionLevel("admin")
-        .map((t) => t.tool),
-      pluginInstructions: this.mcpService.getInstructions(),
-      ...(this.agentInstructions && {
-        agentInstructions: this.agentInstructions,
-      }),
-      stepLimit: this.stepLimit,
-      getToolsForPermission: (level) =>
-        this.mcpService
-          .listAgentToolsForPermissionLevel(level)
-          .map((t) => t.tool),
-    });
-    return this.agent;
+    if (guest) this.guestAgent = agent;
+    else this.agent = agent;
+    return agent;
   }
 
   /**
@@ -401,8 +408,17 @@ export class AgentService implements IAgentService {
           (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
         );
         operationSignal.throwIfAborted();
-        if (guestExecution && snapshot.context.error)
+        if (guestExecution && snapshot.context.error) {
+          // The visitor is told only that the answer failed; the owner's log
+          // keeps the reason.
+          this.logger.error("Guest turn failed", {
+            conversationId,
+            error: snapshot.context.error,
+          });
           throw new Error("Guest execution unavailable");
+        }
+        if (guestExecution && !snapshot.context.response?.text.trim())
+          this.logger.warn("Guest turn produced no answer", { conversationId });
 
         return (
           snapshot.context.response ?? {

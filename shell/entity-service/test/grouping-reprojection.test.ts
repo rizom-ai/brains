@@ -342,6 +342,111 @@ describe("grouping startup reprojection", () => {
     ]);
   });
 
+  test("a targeted pass touches only requested declared type/field pairs", async () => {
+    await ctx.entityService.createEntity({
+      entity: {
+        id: "entry",
+        entityType: "test",
+        content: "---\nclients: [Acme]\nareas: [Research]\n---\nBody",
+        metadata: { unrelated: "keep" },
+      },
+    });
+    await ctx.entityService.createEntity({
+      entity: {
+        id: "other",
+        entityType: "strict",
+        content: "---\nstatus: draft\nclients: [Beta]\n---\nBody",
+        metadata: {},
+      },
+    });
+    ctx.entityRegistry.replaceGroupings([
+      { ...grouping, types: ["test", "strict"] },
+      { key: "areas", field: "areas", label: "Areas", types: ["test"] },
+    ]);
+    const original = db
+      .query("SELECT id, metadata FROM entities ORDER BY id")
+      .all();
+    const client = createClient({ url: ctx.dbConfig.url });
+    try {
+      const connection = drizzle(client);
+      const projected = spyOn(ctx.entityRegistry, "projectStoredMetadata");
+      await reprojectGroupings(connection, ctx.entityRegistry, [
+        { entityType: "test", field: "areas" },
+      ]);
+      expect(projected.mock.calls.map((call) => call[0])).toEqual(["test"]);
+      expect(
+        db.query("SELECT metadata FROM entities WHERE id = 'entry'").get(),
+      ).toEqual({
+        metadata: JSON.stringify({ unrelated: "keep", areas: ["Research"] }),
+      });
+      expect(
+        db.query("SELECT id, metadata FROM entities WHERE id = 'other'").get(),
+      ).toEqual(original[1]);
+      projected.mockClear();
+      await reprojectGroupings(connection, ctx.entityRegistry, [
+        { entityType: "test", field: "undeclared" },
+      ]);
+      expect(projected).not.toHaveBeenCalled();
+    } finally {
+      client.close();
+    }
+  });
+
+  test("a field removed while a page is prepared is not erased from stored metadata", async () => {
+    await seed("entry");
+    db.run("UPDATE entities SET metadata = ? WHERE id = 'entry'", [
+      JSON.stringify({ clients: ["Old"], unrelated: "keep" }),
+    ]);
+    const before = db.query("SELECT content, metadata FROM entities").all();
+    ctx.entityRegistry.registerGrouping(grouping);
+    const original = ctx.entityRegistry.projectStoredMetadata.bind(
+      ctx.entityRegistry,
+    );
+    spyOn(ctx.entityRegistry, "projectStoredMetadata").mockImplementation(
+      (...args) => {
+        ctx.entityRegistry.replaceGroupings([]);
+        return original(...args);
+      },
+    );
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(db.query("SELECT content, metadata FROM entities").all()).toEqual(
+      before,
+    );
+  });
+
+  test("cancellation before a prepared page commits leaves all rows unchanged", async () => {
+    await seed("a");
+    await seed("b");
+    const before = db.query("SELECT metadata FROM entities ORDER BY id").all();
+    ctx.entityRegistry.registerGrouping(grouping);
+    const controller = new AbortController();
+    const original = ctx.entityRegistry.projectStoredMetadata.bind(
+      ctx.entityRegistry,
+    );
+    spyOn(ctx.entityRegistry, "projectStoredMetadata").mockImplementation(
+      (...args) => {
+        controller.abort(new Error("Stopped"));
+        return original(...args);
+      },
+    );
+    const client = createClient({ url: ctx.dbConfig.url });
+    try {
+      expect(
+        await reprojectGroupings(
+          drizzle(client),
+          ctx.entityRegistry,
+          undefined,
+          controller.signal,
+        ).catch((error: unknown) => error),
+      ).toMatchObject({ message: "Stopped" });
+      expect(
+        db.query("SELECT metadata FROM entities ORDER BY id").all(),
+      ).toEqual(before);
+    } finally {
+      client.close();
+    }
+  });
+
   test("commits bounded pages rather than one transaction per entity", async () => {
     const source = content("[Acme]");
     const insert = db.prepare(

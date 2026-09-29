@@ -31,6 +31,7 @@ export class PromptPlugin extends EntityPlugin<
 
   public override getEntityTypeConfig(): EntityTypeConfig {
     return {
+      classification: "system",
       embeddable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",

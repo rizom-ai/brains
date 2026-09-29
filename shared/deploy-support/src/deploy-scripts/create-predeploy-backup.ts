@@ -570,6 +570,52 @@ function shellSafe(value: string, name: string): string {
   return value;
 }
 
+/**
+ * Run inside the current runtime before capture. The snapshot proves itself
+ * (transactional copies, quick_check, checksums), so it needs a serving
+ * runtime with no queued work, not a healthy one: a deploy is often the fix
+ * for whatever a plugin reports as degraded. Degradation is named, not refused.
+ * A job whose lease expired is abandoned, not running: the next worker
+ * reclaims and reruns it, so it is named and backed up as it stands.
+ */
+export function renderPredeployReadinessProgram(
+  healthUrl: string = "http://127.0.0.1:8080/health/ready",
+): string {
+  return `const response = await fetch(${JSON.stringify(healthUrl)});
+const health = await response.json();
+const queue = health.resources?.queue;
+if (response.status !== 200 || health.status !== "ready") {
+  console.error("pre-deploy snapshot: current runtime is not ready");
+  process.exit(1);
+}
+const abandoned = queue?.staleLeaseCount ?? 0;
+if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== abandoned)) {
+  console.error("pre-deploy snapshot: job queue is not idle");
+  process.exit(1);
+}
+if (abandoned > 0) {
+  console.error("pre-deploy snapshot: " + abandoned + " abandoned job(s) will rerun after the deploy");
+}
+if (health.operationalStatus !== "operational") {
+  const degraded = (health.checks ?? []).filter((check) => check.status !== "healthy").map((check) => check.name);
+  console.error("pre-deploy snapshot: runtime is degraded (" + degraded.join(", ") + "); backing it up anyway");
+}
+`;
+}
+
+/** The runtime's own notices from a successful capture, as workflow warnings;
+ * other remote output (ssh host notes) stays out of the log. */
+export function predeployBackupNotices(stderr: string): string[] {
+  const prefix = "pre-deploy snapshot: ";
+  return stderr
+    .split("\n")
+    .filter((line) => line.startsWith(prefix))
+    .map(
+      (line) =>
+        `::warning title=Pre-deploy backup::${line.slice(prefix.length).trim()}`,
+    );
+}
+
 export function renderPredeployBackupRemoteScript(options?: {
   captureProgramBase64?: string;
 }): string {
@@ -620,12 +666,7 @@ if [ "$status" != running ] || [ "$health" != healthy ]; then
 fi
 
 docker exec "$container" bun -e '
-const response = await fetch("http://127.0.0.1:8080/health/ready");
-const health = await response.json();
-const queue = health.resources?.queue;
-if (response.status !== 200 || health.status !== "ready" || health.operationalStatus !== "operational") process.exit(1);
-if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== 0 || queue.staleLeaseCount !== 0)) process.exit(1);
-'
+${renderPredeployReadinessProgram()}'
 
 required_databases=(
   "$state_root/brain.db"
@@ -875,6 +916,7 @@ export async function runPredeployBackup(): Promise<PredeployBackupResult> {
       `Predeploy backup failed${diagnostic ? `: ${diagnostic}` : ""}`,
     );
   }
+  for (const notice of predeployBackupNotices(stderr)) console.log(notice);
   const result = parsePredeployBackupOutput(stdout);
   appendWorkflowResult(result);
   console.log(

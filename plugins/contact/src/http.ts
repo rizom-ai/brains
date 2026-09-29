@@ -76,6 +76,8 @@ export interface ContactHttpOptions {
   previewOrigin?: string | undefined;
   /** Who notes go to, as the site names its owner; read per request. */
   owner?: (() => string | undefined) | undefined;
+  /** The site's own theme, used when the visitor's link names none; read per request. */
+  defaultTheme?: (() => "light" | "dark" | undefined) | undefined;
 }
 const formSchema = z.strictObject({
   token: z.string().regex(/^[a-f0-9]{64}$/),
@@ -163,6 +165,7 @@ export class ContactHttpHandlers {
   private readonly intake: ContactIntake;
   private readonly themeCSS: string;
   private readonly owner: () => string | undefined;
+  private readonly defaultTheme: () => "light" | "dark" | undefined;
   private readonly origins: readonly string[];
   constructor(
     admission: ContactAdmission,
@@ -172,6 +175,7 @@ export class ContactHttpHandlers {
   ) {
     this.themeCSS = options.themeCSS ?? "";
     this.owner = options.owner ?? ((): undefined => undefined);
+    this.defaultTheme = options.defaultTheme ?? ((): undefined => undefined);
     this.admission = admission;
     this.intake = intake;
     this.policy = contactHttpPolicySchema.parse(policy);
@@ -214,11 +218,13 @@ export class ContactHttpHandlers {
   }
 
   private presentation(request: Request): ContactPresentation {
-    const theme = new URL(request.url).searchParams.get("theme");
+    const chosen = new URL(request.url).searchParams.get("theme");
+    const theme =
+      chosen === "light" || chosen === "dark" ? chosen : this.defaultTheme();
     const owner = this.owner()?.trim();
     return {
       themeCSS: this.themeCSS,
-      ...(theme === "light" || theme === "dark" ? { theme } : {}),
+      ...(theme ? { theme } : {}),
       ...(owner ? { owner } : {}),
     };
   }
@@ -267,13 +273,7 @@ export class ContactHttpHandlers {
         const form = await this.admission.issue(transport?.remoteAddress);
         if (form.kind === "denied") throw denial(form.reason);
         return page(
-          contactForm(
-            form.token,
-            this.intake.retentionSeconds,
-            topicDraft(url),
-            undefined,
-            presentation,
-          ),
+          contactForm(form.token, topicDraft(url), undefined, presentation),
           presentation,
         );
       }
@@ -322,13 +322,7 @@ export class ContactHttpHandlers {
       const failure =
         error instanceof ContactHttpError ? error : denial("unavailable");
       const section = token
-        ? contactForm(
-            token,
-            this.intake.retentionSeconds,
-            draft,
-            failure.message,
-            presentation,
-          )
+        ? contactForm(token, draft, failure.message, presentation)
         : contactRefused(failure.message, presentation);
       return page(section, presentation, failure.status);
     }

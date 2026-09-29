@@ -22,7 +22,6 @@ export const homepageOpeningSchema: z.ZodDefault<
       topicsHeading: AuthoredCopy;
       contactLabel: AuthoredCopy;
       contactNote: AuthoredCopy;
-      attribution: AuthoredCopy;
       mapCaption: AuthoredCopy;
       contactUrl: z.ZodDefault<z.ZodNullable<z.ZodURL>>;
     }>
@@ -35,7 +34,6 @@ export const homepageOpeningSchema: z.ZodDefault<
     topicsHeading: authoredCopy(copy.topicsHeading),
     contactLabel: authoredCopy(copy.contactLabel),
     contactNote: authoredCopy(copy.contactNote),
-    attribution: authoredCopy(copy.attribution),
     mapCaption: authoredCopy(copy.mapCaption),
     /** The contact form the door leads to; without one, the page has no door. */
     contactUrl: z

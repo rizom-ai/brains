@@ -14,6 +14,7 @@ import { createStudioQueryClient } from "./query-client";
 import { groupingQueryOptions } from "./grouping-queries";
 import { groupingQuery } from "./grouping-url-query";
 import { StudioGroupingView } from "./studio-groupings";
+import { studioTypeHierarchy } from "../../src/config";
 
 let windowInstance: Window;
 let restoreGlobals: RestoreGlobals;
@@ -287,6 +288,7 @@ test.each([
                 label: "Posts",
                 isSingleton: false,
                 count: 1,
+                hierarchy: studioTypeHierarchy("post"),
                 hasBody: false,
                 capabilities: {
                   canRead: true,
@@ -307,7 +309,7 @@ test.each([
                 field: "clients",
                 types: ["post"],
                 ...(multiple !== null && {
-                  vocabulary: { multiple, values: ["Acme", "Beta"] },
+                  rules: { multiple, values: ["Acme", "Beta"] },
                 }),
               },
             ],
@@ -457,48 +459,29 @@ test.each([
       await act(async () => confirm?.click());
       await waitFor(() => !member && history.location.href === path);
     } else if (action === "save") {
+      const frame = document.querySelector(
+        '[data-studio-field="grouping-membership"]',
+      );
+      expect(frame).not.toBeNull();
       if (multiple === null)
         expect(
-          document.querySelector('[aria-label="Add clients value"]'),
+          frame?.querySelector('[aria-label="Add Clients value"]'),
         ).not.toBeNull();
-      else if (multiple)
+      else {
+        const select = frame?.querySelector("select");
+        if (!select) throw new Error("Missing membership choice");
         expect(
-          document.querySelectorAll(
-            '[data-studio-field="grouping-choice"] input[type="checkbox"]',
-          ),
-        ).toHaveLength(2);
-      else
-        expect(
-          document.querySelector(
-            '[data-studio-field="grouping-choice"] select',
-          ),
-        ).not.toBeNull();
-      // Each shape removes a listed value through its own control: a closed
-      // list shows no separate chip for a value its control already carries.
-      if (multiple === null) {
-        const remove = document.querySelector<HTMLButtonElement>(
-          '[aria-label="Remove Acme"]',
-        );
-        expect(remove).not.toBeNull();
-        await act(async () => remove?.click());
-      } else if (multiple) {
-        const checked = document.querySelector<HTMLInputElement>(
-          '[data-studio-field="grouping-choice"] input[type="checkbox"]:checked',
-        );
-        expect(checked).not.toBeNull();
-        await act(async () => checked?.click());
-      } else {
-        const select = document.querySelector<HTMLSelectElement>(
-          '[data-studio-field="grouping-choice"] select',
-        );
-        expect(select).not.toBeNull();
-        await act(async () => {
-          if (select) {
-            select.value = "";
-            select.dispatchEvent(new Event("change", { bubbles: true }));
-          }
-        });
+          [...select.options]
+            .filter((option) => !option.disabled)
+            .map((option) => option.textContent),
+        ).toEqual(["Beta"]);
       }
+      // Every rule variant uses the same explicit membership-removal action.
+      const remove = document.querySelector<HTMLButtonElement>(
+        '[aria-label="Remove Acme"]',
+      );
+      expect(remove).not.toBeNull();
+      await act(async () => remove?.click());
       const save = [...document.querySelectorAll("button")].find((button) =>
         button.textContent.includes("Save changes"),
       );

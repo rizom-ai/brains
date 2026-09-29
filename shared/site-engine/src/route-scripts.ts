@@ -1,4 +1,5 @@
 import type { RouteDefinition } from "@brains/site-composition";
+import { sha256Hex } from "@brains/utils/hash";
 
 export interface SiteRuntimeScript {
   src: string;
@@ -19,22 +20,31 @@ export interface RouteScriptContext {
 /**
  * Walk a route's sections, look up each template, accumulate its
  * `runtimeScripts` declarations, dedupe by `src`, and render them as
- * ready-to-inject <script> tag strings.
+ * ready-to-inject <script> tag strings. A src the build serves from
+ * `assets` carries a fingerprint of that content, so a changed script is
+ * never answered from a browser or CDN cache.
  */
 export function collectRouteScripts(
   route: RouteDefinition,
   context: RouteScriptContext,
+  assets: Record<string, string>,
 ): string[] {
-  const seen = new Map<string, SiteRuntimeScript>();
+  const seen = new Map<string, { script: SiteRuntimeScript; src: string }>();
   for (const section of route.sections) {
     const template = context.getViewTemplate(section.template);
     if (!template?.runtimeScripts) continue;
     for (const script of template.runtimeScripts) {
-      if (!seen.has(script.src)) seen.set(script.src, script);
+      if (seen.has(script.src)) continue;
+      const content = assets[script.src];
+      const src =
+        content === undefined
+          ? script.src
+          : `${script.src}?v=${sha256Hex(content).slice(0, 12)}`;
+      seen.set(script.src, { script, src });
     }
   }
-  return [...seen.values()].map((script) => {
-    const attrs: string[] = [`src="${script.src}"`];
+  return [...seen.values()].map(({ script, src }) => {
+    const attrs: string[] = [`src="${src}"`];
     if (script.defer) attrs.push("defer");
     if (script.module) attrs.push('type="module"');
     return `<script ${attrs.join(" ")}></script>`;

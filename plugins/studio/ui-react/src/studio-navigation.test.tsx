@@ -11,6 +11,7 @@ import {
   TypeSwitcher,
 } from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
+import { studioTypeHierarchy } from "../../src/config";
 
 let restoreGlobals: RestoreGlobals;
 let browser: Window;
@@ -28,34 +29,42 @@ const capabilities: EntityTypeInfo["capabilities"] = {
 const types: EntityTypeInfo[] = [
   {
     entityType: "note",
+    classification: "content",
     label: "Notes",
     isSingleton: false,
     hasBody: true,
     count: 12,
+    hierarchy: studioTypeHierarchy("note"),
     capabilities,
   },
   {
     entityType: "style-guide",
+    classification: "system",
     label: "Style Guides",
     isSingleton: true,
     hasBody: true,
     count: 1,
+    hierarchy: studioTypeHierarchy("style-guide"),
     capabilities,
   },
   {
     entityType: "prompt",
+    classification: "system",
     label: "Prompts",
     isSingleton: false,
     hasBody: true,
     count: 18,
+    hierarchy: studioTypeHierarchy("prompt"),
     capabilities,
   },
   {
     entityType: "agent",
+    classification: "system",
     label: "Agents",
     isSingleton: false,
     hasBody: true,
     count: 15,
+    hierarchy: studioTypeHierarchy("agent"),
     capabilities,
   },
 ];

@@ -1,3 +1,4 @@
+import type { EntityTypeInfo } from "./api";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 
@@ -16,8 +17,13 @@ export const SITE_ENTITY_TYPES: Set<string> = new Set([
   "siteInfo",
 ]);
 
+/** Presentation refinements only; registration metadata owns classification. */
 export const SYSTEM_TYPE_GROUPS = [
-  { label: "Structure", presentation: "form", types: ["grouping-vocabulary"] },
+  {
+    label: "Structure",
+    presentation: "form",
+    types: ["grouping-definitions"],
+  },
   {
     label: "Identity",
     presentation: "form",
@@ -40,10 +46,6 @@ export const SYSTEM_TYPE_GROUPS = [
   { label: "Network", presentation: "form", types: ["agent", "agents"] },
 ] as const;
 
-const SYSTEM_ENTITY_TYPES = new Set<string>(
-  SYSTEM_TYPE_GROUPS.flatMap((group) => [...group.types]),
-);
-
 /**
  * Which part of the Studio a destination belongs to.
  *
@@ -54,16 +56,16 @@ export type StudioArea =
   "overview" | "chat" | "library" | "work" | "administration" | "system";
 
 export function studioTypeGroup(
-  entityType: string,
+  type: Pick<EntityTypeInfo, "entityType" | "classification">,
 ): "Content" | "Collections" | "Site" | "System" {
-  if (SITE_ENTITY_TYPES.has(entityType)) return "Site";
-  if (SYSTEM_ENTITY_TYPES.has(entityType)) return "System";
-  if (COLLECTION_ENTITY_TYPES.has(entityType)) return "Collections";
+  if (type.classification === "system")
+    return SITE_ENTITY_TYPES.has(type.entityType) ? "Site" : "System";
+  if (COLLECTION_ENTITY_TYPES.has(type.entityType)) return "Collections";
   return "Content";
 }
 
 export function studioArea(
-  entityType: string | null,
+  entityType: Pick<EntityTypeInfo, "entityType" | "classification"> | null,
   workspaceId: string | null,
 ): StudioArea | null {
   // Navigation ownership, not renderer selection. Account has no owning rail area.

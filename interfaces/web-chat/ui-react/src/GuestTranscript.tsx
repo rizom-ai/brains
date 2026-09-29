@@ -1,8 +1,10 @@
 /** @jsxImportSource react */
 import type { ReactElement } from "react";
 import { Streamdown } from "streamdown";
+import { ASK_SOURCE_ATTRIBUTE } from "@brains/contracts";
 import {
   getGuestSourceCards,
+  type ChatCard,
   type ChatHistoryMessage,
 } from "@brains/contracts/chat";
 import { SourcesPart } from "./ai-elements/data-parts";
@@ -57,10 +59,40 @@ export function GuestMarkdown({
   );
 }
 
+/** An answer's sources as links to what it drew on, each marked for its host. */
+function SourceLinks({
+  card,
+}: {
+  card: Extract<ChatCard, { kind: "sources" }>;
+}): ReactElement {
+  return (
+    <ul className="brain-box-sources" aria-label="Sources">
+      {card.sources.map((source) => (
+        <li key={source.id} {...{ [ASK_SOURCE_ATTRIBUTE]: source.id }}>
+          <span className="brain-box-source-mark" aria-hidden="true" />
+          {source.url ? (
+            <a href={source.url} target="_blank" rel="noopener noreferrer">
+              {source.title}
+            </a>
+          ) : (
+            <span>{source.title}</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function GuestTranscript({
   messages,
+  assistantLabel = "Brain",
+  sourceLinks = false,
 }: {
   messages: ChatHistoryMessage[];
+  /** Who answers, e.g. the site owner's name. */
+  assistantLabel?: string;
+  /** List sources as links rather than a collapsed card. */
+  sourceLinks?: boolean;
 }): ReactElement {
   return (
     <section className="guest-messages" aria-label="Conversation">
@@ -69,16 +101,20 @@ export function GuestTranscript({
           key={message.id}
           className={`guest-message guest-${message.role}`}
         >
-          <h2>{message.role === "user" ? "You" : "Brain"}</h2>
+          <h2>{message.role === "user" ? "You" : assistantLabel}</h2>
           {message.role === "user" ? (
             <p>{message.content}</p>
           ) : (
             <GuestMarkdown>{message.content}</GuestMarkdown>
           )}
           {message.role === "assistant" &&
-            getGuestSourceCards(message.cards).map((card) => (
-              <SourcesPart key={card.id} data={card} openInNewTab />
-            ))}
+            getGuestSourceCards(message.cards).map((card) =>
+              sourceLinks ? (
+                <SourceLinks key={card.id} card={card} />
+              ) : (
+                <SourcesPart key={card.id} data={card} openInNewTab />
+              ),
+            )}
         </article>
       ))}
     </section>

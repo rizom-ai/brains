@@ -23,6 +23,7 @@ import {
 import { folderLabel } from "./studio-hierarchy";
 import { entityPublicationState, entityTitle, singularLabel } from "./ui-utils";
 import type { StudioAppViewProps } from "./app-view-props";
+import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 
 const EMPTY_TYPE_SCHEMA: TypeSchema = {
   entityType: "",
@@ -42,9 +43,19 @@ export function workspaceRailBadges(
   );
 }
 
-/** Everything StudioAppView derives from its props before rendering. */
-import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+/** The workspace that publishes a type, when the content pipeline offers one. */
+export function publicationWorkspaceFor(
+  workspaces: StudioWorkspaceInfo[],
+  entityType: string,
+): StudioWorkspaceInfo | undefined {
+  return workspaces.find(
+    (workspace) =>
+      workspace.pluginId === "content-pipeline" &&
+      workspace.entityTypes.includes(entityType),
+  );
+}
 
+/** Everything StudioAppView derives from its props before rendering. */
 export interface StudioAppModel {
   activeType: EntityTypeInfo | undefined;
   activeWorkspace: StudioWorkspaceInfo | undefined;
@@ -52,7 +63,7 @@ export interface StudioAppModel {
   presentation: StudioEditorPresentation;
   selectedEntityType: string;
   groupingFields: string[];
-  groupingVocabularies: Record<string, GroupingVocabulary>;
+  groupingVocabularies: Record<string, GroupingValueRules>;
   systemDesign: SystemEditorCopy | undefined;
   editing: boolean;
   canCreate: boolean;
@@ -70,7 +81,6 @@ export interface StudioAppModel {
   entryLabel: string;
   syncPending: boolean;
   publicationWorkspace: StudioWorkspaceInfo | undefined;
-  entityCount: number;
   pageEnd: number;
   workspaceBadges: Record<string, number>;
   collectionFiltered: boolean;
@@ -116,16 +126,17 @@ export function deriveStudioAppModel(
   );
   const groupingFields = editorGroupings.map((grouping) => grouping.field);
   const groupingVocabularies = Object.fromEntries(
-    editorGroupings.flatMap((grouping) =>
-      grouping.vocabulary ? [[grouping.field, grouping.vocabulary]] : [],
-    ),
+    editorGroupings.map((grouping) => [
+      grouping.field,
+      grouping.rules ?? { multiple: true },
+    ]),
   );
   const systemDesign = systemEditorCopy(selectedEntityType);
   const editing =
     !props.groupingView && !activeWorkspaceId && mode.kind !== "browse";
   const canCreate =
     activeType?.capabilities.canCreate === true &&
-    (entityType !== "note" ||
+    (activeType.hierarchy.nested ||
       (mode.kind === "create"
         ? !mode.prefix
         : props.collectionQuery.prefix === null));
@@ -145,7 +156,7 @@ export function deriveStudioAppModel(
     (!props.creationDestination.data ||
       props.creationDestination.pending ||
       Boolean(props.creationDestination.error));
-  const hierarchyKind = entityType === "site-content" ? "page" : "folder";
+  const hierarchyKind = activeType?.hierarchy.kind ?? "folder";
   const folderContext =
     props.collectionQuery.prefix?.map(folderLabel).join(" / ") ??
     activeType?.label ??
@@ -172,12 +183,10 @@ export function deriveStudioAppModel(
     "Studio";
   const entryLabel = singularLabel(collectionLabel);
   const syncPending = syncStatus?.git?.hasChanges === true;
-  const publicationWorkspace = workspaces.find(
-    (workspace) =>
-      workspace.pluginId === "content-pipeline" &&
-      workspace.entityTypes.includes(selectedEntityType),
+  const publicationWorkspace = publicationWorkspaceFor(
+    workspaces,
+    selectedEntityType,
   );
-  const entityCount = entityTotal;
   const pageEnd = Math.min(
     entityOffset + (entities?.length ?? entityLimit),
     entityTotal,
@@ -199,13 +208,13 @@ export function deriveStudioAppModel(
     title: activeType?.label ?? entityType ?? "Library",
     metadata: [
       directFolderCount
-        ? `${entityCount} ${collectionFiltered ? "matching " : ""}${entityCount === 1 ? "entry" : "entries"} here`
+        ? `${entityTotal} ${collectionFiltered ? "matching " : ""}${entityTotal === 1 ? "entry" : "entries"} here`
         : collectionFiltered
-          ? `${entityCount} matching ${entityCount === 1 ? "entity" : "entities"}`
-          : `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
+          ? `${entityTotal} matching ${entityTotal === 1 ? "entity" : "entities"}`
+          : `${entityTotal} ${entityTotal === 1 ? "entity" : "entities"}`,
       ...(props.folders.length > 0
         ? [
-            `${props.folders.length} ${hierarchyKind}${props.folders.length === 1 ? "" : "s"} · ${entityCount + props.folders.reduce((sum, folder) => sum + folder.descendantCount, 0)} in total`,
+            `${props.folders.length} ${hierarchyKind}${props.folders.length === 1 ? "" : "s"} · ${entityTotal + props.folders.reduce((sum, folder) => sum + folder.descendantCount, 0)} in total`,
           ]
         : []),
       ...(props.collectionQuery.prefix && !directFolderCount
@@ -225,7 +234,7 @@ export function deriveStudioAppModel(
       : null;
   const editorHead: StudioPageHeadModel = {
     kicker: entitySchema.isSingleton
-      ? `${studioArea(entityType, null)} / singleton`
+      ? `${studioArea(activeType ?? null, null)} / singleton`
       : collectionLabel,
     access: studioAccessRequirement("trusted"),
     title: systemDesign?.title ?? heading ?? "Editor",
@@ -269,7 +278,6 @@ export function deriveStudioAppModel(
     entryLabel,
     syncPending,
     publicationWorkspace,
-    entityCount,
     pageEnd,
     workspaceBadges,
     collectionFiltered,

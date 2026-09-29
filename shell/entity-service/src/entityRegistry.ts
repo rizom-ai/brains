@@ -1,4 +1,11 @@
+import {
+  GroupingProjectionState,
+  type GroupingProjectionTarget,
+} from "./grouping-projection-state";
 import type { Logger } from "@brains/utils/logger";
+import { EntityValidationError } from "./errors";
+import { entityTypeClassificationSchema } from "./entity-type-classification";
+import { isGroupingContributor } from "./grouping-eligibility";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
@@ -24,6 +31,7 @@ import type {
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
+  EntityGroupingSource,
   EntityRegistry as IEntityRegistry,
   EntityTypeConfig,
   PersistValidator,
@@ -40,8 +48,13 @@ export class EntityRegistry implements IEntityRegistry {
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
+  /** Replaced with the grouping set; never owned by extendFrontmatterSchema. */
+  private groupingExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
   private groupings = new Map<string, EntityGrouping>();
+  private groupingSource: EntityGroupingSource | undefined;
+  private readonly groupingProjections = new GroupingProjectionState();
+  private groupingRevision = 0;
 
   public static createFresh(logger: Logger): EntityRegistry {
     return new EntityRegistry(logger);
@@ -72,25 +85,31 @@ export class EntityRegistry implements IEntityRegistry {
       );
     }
 
-    // Schema validation handled by Zod - works correctly with extended schemas
+    // Validate before mutating registration state; callers cannot alter the role later.
+    const classification = entityTypeClassificationSchema.parse(
+      config?.classification,
+    );
 
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
-    if (config) {
-      this.entityConfigs.set(type, config);
-    }
+    this.entityConfigs.set(type, { ...config, classification });
 
     this.logger.debug(`Registered entity type: ${type}`);
   }
 
   unregisterEntityType(type: string): void {
+    if (this.groupingSource?.entityType === type) {
+      this.groupingSource = undefined;
+      this.replaceGroupings([]);
+    }
     this.entitySchemas.delete(type);
     this.entityAdapters.delete(type);
     this.entityConfigs.delete(type);
     this.createInterceptors.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
+    this.groupingExtensions.delete(type);
     this.uploadSaveHandlers = this.uploadSaveHandlers.filter(
       (registration) => registration.entityType !== type,
     );
@@ -215,7 +234,7 @@ export class EntityRegistry implements IEntityRegistry {
    * Get configuration for a specific entity type
    */
   getEntityTypeConfig(type: string): EntityTypeConfig {
-    return this.entityConfigs.get(type) ?? {};
+    return { ...this.entityConfigs.get(type) };
   }
 
   /**
@@ -316,8 +335,79 @@ export class EntityRegistry implements IEntityRegistry {
     this.logger.debug(`Extended frontmatter schema for entity type: ${type}`);
   }
 
-  /** Validate a whole configuration without publishing partial extensions. */
+  registerGroupingSource(source: EntityGroupingSource): void {
+    if (this.groupingSource)
+      throw new Error("A grouping source is already registered");
+    if (!this.hasEntityType(source.entityType))
+      throw new Error("Grouping source entity type is not registered");
+    this.groupingSource = source;
+  }
+
+  /** Invoke the returned guard inside the existing write transaction. */
+  captureGroupingWriteGuard(entityType: string): () => Promise<void> {
+    const revision = this.groupingRevision;
+    return async (): Promise<void> => {
+      await this.ensureGroupingsCurrent();
+      if (revision !== this.groupingRevision)
+        throw new EntityValidationError(
+          entityType,
+          new z.ZodError([
+            {
+              code: "custom",
+              path: [],
+              message:
+                "Grouping definitions changed while saving. Review the current rules and try again.",
+            },
+          ]),
+          "persist",
+        );
+    };
+  }
+
+  getGroupingSourceType(): string | undefined {
+    return this.groupingSource?.entityType;
+  }
+
+  getPendingGroupingProjections(): GroupingProjectionTarget[] {
+    return this.groupingProjections.pending();
+  }
+
+  completeGroupingProjections(
+    targets: readonly GroupingProjectionTarget[],
+  ): void {
+    this.groupingProjections.complete(targets);
+  }
+
+  async ensureGroupingsCurrent(
+    entityType?: string,
+    options?: { afterWrite?: boolean },
+  ): Promise<void> {
+    const source = this.groupingSource;
+    if (source && source.entityType !== entityType)
+      await source.ensureCurrent(options);
+  }
+
+  /** Validate a complete replacement set without changing the active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void {
+    this.stageGroupings(groupings);
+  }
+
+  /** Swap declarations and their fields only after the entire set validates. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void {
+    const staged = this.stageGroupings(groupings);
+    this.groupings = staged.groupings;
+    this.groupingExtensions = staged.groupingExtensions;
+    this.groupingRevision++;
+    this.groupingProjections.replace(
+      this.groupings.values(),
+      options?.reprojectExisting,
+    );
+  }
+
+  private stageGroupings(groupings: readonly EntityGrouping[]): EntityRegistry {
     const staged = new EntityRegistry(this.logger.child("GroupingValidation"));
     staged.entitySchemas = this.entitySchemas;
     staged.entityAdapters = this.entityAdapters;
@@ -328,11 +418,17 @@ export class EntityRegistry implements IEntityRegistry {
         [...schemas],
       ]),
     );
-    staged.groupings = new Map(this.groupings);
+    // Only permanent plugin extensions participate in the next set's base.
+    // Reusing old grouping extensions would keep removed fields alive.
     for (const grouping of groupings) staged.registerGrouping(grouping);
+    return staged;
   }
 
   registerGrouping(input: EntityGrouping): void {
+    if (this.groupingSource)
+      throw new Error(
+        "Groupings are owned by a registered source; static declarations are not allowed",
+      );
     const grouping = entityGroupingSchema.parse(input);
     if (this.groupings.has(grouping.key))
       throw new Error(`Duplicate entity grouping: ${grouping.key}`);
@@ -345,10 +441,13 @@ export class EntityRegistry implements IEntityRegistry {
       if (
         !this.hasEntityType(type) ||
         !schema ||
-        this.getEntityTypeConfig(type).binaryStorage === "asset"
+        !isGroupingContributor(
+          this.entityAdapters.get(type),
+          this.getEntityTypeConfig(type),
+        )
       ) {
         throw new Error(
-          `Grouping requires a registered frontmatter entity type: ${type}`,
+          `Grouping requires an eligible content entity type: ${type}`,
         );
       }
       const field = schema.shape[grouping.field];
@@ -391,12 +490,15 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
     for (const type of additions) {
-      this.extendFrontmatterSchema(
-        type,
+      const extensions = this.groupingExtensions.get(type) ?? [];
+      extensions.push(
         z.object({ [grouping.field]: z.array(z.string()).optional() }),
       );
+      this.groupingExtensions.set(type, extensions);
     }
     this.groupings.set(grouping.key, grouping);
+    this.groupingRevision++;
+    this.groupingProjections.replace(this.groupings.values());
   }
 
   getGrouping(key: string): EntityGrouping {
@@ -491,7 +593,10 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   getFrontmatterExtensions(type: string): readonly FrontmatterSchema[] {
-    return [...(this.frontmatterExtensions.get(type) ?? [])];
+    return [
+      ...(this.frontmatterExtensions.get(type) ?? []),
+      ...(this.groupingExtensions.get(type) ?? []),
+    ];
   }
 
   /**
@@ -517,8 +622,8 @@ export class EntityRegistry implements IEntityRegistry {
       return undefined;
     }
 
-    const extensions = this.frontmatterExtensions.get(type);
-    if (!extensions?.length) {
+    const extensions = this.getFrontmatterExtensions(type);
+    if (!extensions.length) {
       return baseSchema;
     }
 

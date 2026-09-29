@@ -47,6 +47,9 @@ describe("ImagePlugin", () => {
 
   it("should register image entity type", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("image");
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("image").binaryStorage,
+    ).toBe("data-url");
   });
 
   it("should return zero tools", async () => {

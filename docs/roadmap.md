@@ -10,7 +10,7 @@ This is the public-facing view of where `brains` is headed. It records product d
 
 The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
 
-Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, allowance or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
+Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, budget or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
 
 What exists today:
 
@@ -109,6 +109,7 @@ Brains should be installable, maintainable, observable, and recoverable by an op
 
 Plans:
 
+- [bootstrap-secrets-bitwarden.md](./plans/bootstrap-secrets-bitwarden.md) — make `--push-to bitwarden` on the bootstrap commands store the secret in Bitwarden and map it in `.env.schema`, instead of pushing to GitHub.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit, recoverable hosted-user offboarding.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
@@ -121,8 +122,9 @@ Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
-- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — implemented foundation for source-backed collections across entity types; PR #302 now continues into grouping vocabularies rather than landing separately.
-- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — implemented and locally validated in PR #302: admin-defined value lists/cardinality, system editing without a restart, shared enforcement including projection writes, select/checkbox controls, visible strays, and canonical import refusal/retry; awaiting merge and release.
+- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.
+- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with smoke-only test deployment still pending.
+- [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — implemented and locally validated: one administrator-owned document, runtime replacement/reprojection, independent cardinality and lists, unified controls, and exact source round trips. Authenticated app and unchanged visual gates pass; replacement release and smoke-only test deployment remain pending; no legacy conversion or rehearsal is required.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.

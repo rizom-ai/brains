@@ -32,7 +32,9 @@ test("public Ask uses the existing site layout and mounts the shared guest app",
   expect(html).toContain("<footer");
   expect(html).toContain("data-guest-chat");
   expect(html).toContain('data-chat-api-path="/api/chat/guest"');
-  expect(html).toContain('src="/ask/assets/app.js"');
+  expect(html).toContain('src="/ask/assets/ask.js"');
+  expect(html).toContain('href="/ask/assets/ask.css"');
+  expect(html).not.toContain("/ask/assets/app.");
   expect(html).toContain('href="/ask/assets/page.css"');
   expect(html).not.toContain("guest-masthead");
   expect(html).not.toContain("climateToggle");

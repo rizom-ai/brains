@@ -74,7 +74,6 @@ Domain types:
 - `ChatProtocolEvent`
 - `ChatSession`
 - `ChatSessionsResponse`
-- `ChatSourceContext`
 - `ChatTextPart`
 - `ChatToolStatusEvent`
 - `ChatToolStatusValue`
@@ -113,7 +112,6 @@ Schemas:
 - `chatProtocolEventSchema`
 - `chatSessionSchema`
 - `chatSessionsResponseSchema`
-- `chatSourceContextSchema`
 - `chatTextPartSchema`
 - `chatToolStatusEventSchema`
 - `chatUploadPartSchema`
@@ -153,7 +151,10 @@ Types:
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntityTypeClassification`
 - `ProjectionDefinition`
+
+`defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 

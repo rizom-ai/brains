@@ -12,10 +12,16 @@ import { createRoot, type Root } from "react-dom/client";
 import {
   StudioApi,
   type EntityDetail,
+  type EntityTypeInfo,
   type StudioTypeCapabilities,
 } from "./api";
 import { studioCollectionQuerySchema } from "../../src/collection-query";
-import type { EditorWorkflowAction } from "./editor-workflow";
+import {
+  editorWorkflowReducer,
+  hasUnsavedEditorChanges,
+  initialEditorWorkflowState,
+  type EditorWorkflowAction,
+} from "./editor-workflow";
 import { createStudioQueryClient } from "./query-client";
 import type { MobileEditorPane } from "./app-view";
 import {
@@ -32,6 +38,17 @@ const capabilities: StudioTypeCapabilities = {
   canExtract: false,
   canPublish: false,
   canAssist: false,
+};
+
+const noteType: EntityTypeInfo = {
+  entityType: "note",
+  classification: "content",
+  label: "Notes",
+  isSingleton: false,
+  hasBody: true,
+  count: 1,
+  capabilities,
+  hierarchy: { kind: "folder", nested: true },
 };
 
 function entity(id: string): EntityDetail {
@@ -65,6 +82,73 @@ interface Transport {
   /** Hold an entity response until released. */
   hold: (id: string) => Deferred;
 }
+
+it("opens a missing singleton as a clean creation draft through the route lifecycle", async () => {
+  const transport = createTransport();
+  const harness = createHarness(transport, "/studio/grouping-definitions");
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: async (input): Promise<Response> => {
+      const url = new URL(String(input), "http://brain.test");
+      if (url.pathname.endsWith("/schema"))
+        return Response.json({
+          entityType: "grouping-definitions",
+          format: "frontmatter",
+          isSingleton: true,
+          hasBody: false,
+          fields: [
+            {
+              name: "groupings",
+              label: "Groupings",
+              widget: "object",
+              default: {},
+            },
+          ],
+        });
+      if (url.pathname.endsWith("/hierarchy"))
+        return Response.json({ entities: [], folders: [], total: 0 });
+      return Response.json({}, { status: 404 });
+    },
+  });
+  await harness.render({
+    api,
+    entityType: "grouping-definitions",
+    routeTarget: { kind: "collection", entityType: "grouping-definitions" },
+  });
+  const state = harness.dispatches.reduce(
+    editorWorkflowReducer,
+    initialEditorWorkflowState,
+  );
+  expect(state.mode.kind).toBe("create");
+  expect(state.draft).toEqual({ groupings: {} });
+  expect(hasUnsavedEditorChanges(state)).toBe(false);
+});
+
+it("starts a new entry in the open folder only when its type nests", async () => {
+  const inFolder = `?prefix=${encodeURIComponent(JSON.stringify(["a"]))}`;
+  const created = async (nested: boolean): Promise<unknown> => {
+    const harness = createHarness(createTransport(), "/studio/entities/memo");
+    await harness.render({
+      createMode: true,
+      entityType: "memo",
+      routeTarget: { kind: "collection", entityType: "memo" },
+      routeSearch: inFolder,
+      activeType: {
+        ...noteType,
+        entityType: "memo",
+        hierarchy: { kind: "folder", nested },
+      },
+    });
+    const state = harness.dispatches.reduce(
+      editorWorkflowReducer,
+      initialEditorWorkflowState,
+    );
+    return state.mode.kind === "create" ? state.mode.prefix : undefined;
+  };
+
+  expect(await created(false)).toBeNull();
+  expect(await created(true)).toEqual(["a"]);
+});
 
 function createTransport(): Transport {
   const entityFetches: string[] = [];
@@ -146,7 +230,7 @@ function createHarness(transport: Transport, initialPath: string): Harness {
     currentStudioPathname: history.location.pathname,
     createMode: false,
     entityType: "note",
-    activeCapabilities: capabilities,
+    activeType: noteType,
     entityCollectionQuery: studioCollectionQuerySchema.parse({}),
     preferredMobilePane,
     dispatchEditor: (action): void => {

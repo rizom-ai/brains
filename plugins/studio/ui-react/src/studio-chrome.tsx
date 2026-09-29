@@ -80,7 +80,9 @@ export function StudioChrome(props: {
 
   const area = props.navigation
     ? studioArea(
-        props.navigation.activeEntityType,
+        props.navigation.types.find(
+          (type) => type.entityType === props.navigation?.activeEntityType,
+        ) ?? null,
         props.navigation.activeWorkspaceId,
       )
     : null;

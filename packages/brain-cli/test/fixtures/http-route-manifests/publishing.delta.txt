@@ -62,7 +62,9 @@
 + studio|handler|GET|/studio/api/entities|exact|true
 + studio|handler|GET|/studio/api/groups/catalog|exact|true
 + studio|handler|GET|/studio/api/groups/members|exact|true
++ studio|handler|GET|/studio/api/groups/usage|exact|true
 + studio|handler|GET|/studio/api/hierarchy|exact|true
++ studio|handler|GET|/studio/api/images|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
 + studio|handler|GET|/studio/api/sync-status|exact|true
 + studio|handler|GET|/studio/api/types|exact|true
@@ -86,8 +88,6 @@
 + web-chat|handler|GET|/api/chat/messages|exact|true
 + web-chat|handler|GET|/api/chat/sessions|exact|true
 + web-chat|handler|GET|/api/chat/uploads|exact|true
-+ web-chat|handler|GET|/ask/assets/app.css|exact|true
-+ web-chat|handler|GET|/ask/assets/app.js|exact|true
 + web-chat|handler|GET|/ask|exact|true
 + web-chat|handler|POST|/api/agent/chat/confirm|exact|true
 + web-chat|handler|POST|/api/agent/chat|exact|true

@@ -18,6 +18,8 @@ import {
   capturePredeployBackup,
   parsePredeployBackupOutput,
   renderPredeployBackupRemoteScript,
+  predeployBackupNotices,
+  renderPredeployReadinessProgram,
   type PredeployCaptureConfig,
 } from "../src/deploy-scripts/create-predeploy-backup";
 
@@ -91,6 +93,135 @@ VERIFICATION=passed
     expect(script).not.toMatch(/cp\s+[^\n]*\.db/);
     const syntax = await runProcess(["bash", "-n"], { stdin: script });
     expect(syntax.exitCode).toBe(0);
+  });
+
+  it("runs the readiness gate inside the current runtime", () => {
+    expect(renderPredeployBackupRemoteScript()).toContain(
+      `docker exec "$container" bun -e '\n${renderPredeployReadinessProgram()}'`,
+    );
+    expect(renderPredeployReadinessProgram()).not.toContain("'");
+  });
+});
+
+describe("predeploy backup notices", () => {
+  it("surfaces the runtime's own notices as workflow warnings, and nothing else", () => {
+    expect(
+      predeployBackupNotices(
+        "pre-deploy snapshot: runtime is degraded (contact:intake); backing it up anyway\nWarning: Permanently added host\n",
+      ),
+    ).toEqual([
+      "::warning title=Pre-deploy backup::runtime is degraded (contact:intake); backing it up anyway",
+    ]);
+    expect(predeployBackupNotices("")).toEqual([]);
+  });
+});
+
+describe("predeploy readiness gate", () => {
+  const idleQueue = {
+    totals: { pending: 0, processing: 0 },
+    staleLeaseCount: 0,
+  };
+
+  async function gate(
+    status: number,
+    health: unknown,
+  ): Promise<{ exitCode: number; stderr: string }> {
+    const server = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: () => Response.json(health, { status }),
+    });
+    try {
+      const result = await runProcess([
+        process.execPath,
+        "-e",
+        renderPredeployReadinessProgram(
+          `http://127.0.0.1:${server.port}/health/ready`,
+        ),
+      ]);
+      return { exitCode: result.exitCode, stderr: result.stderr };
+    } finally {
+      await server.stop(true);
+    }
+  }
+
+  it("backs up a ready runtime whose plugins report degradation", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "degraded",
+      checks: [
+        { name: "routing", status: "healthy" },
+        { name: "contact:intake", status: "degraded" },
+      ],
+      resources: { queue: idleQueue },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: runtime is degraded (contact:intake)",
+    );
+  });
+
+  it("refuses while the job queue has work", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "operational",
+      checks: [],
+      resources: {
+        queue: { ...idleQueue, totals: { pending: 1, processing: 0 } },
+      },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: job queue is not idle",
+    );
+  });
+
+  it("refuses while a job holds a current lease", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "operational",
+      checks: [],
+      resources: {
+        queue: { totals: { pending: 0, processing: 2 }, staleLeaseCount: 1 },
+      },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: job queue is not idle",
+    );
+  });
+
+  it("backs up past an abandoned job, which the next worker reruns", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "degraded",
+      checks: [{ name: "attempt-leases", status: "degraded" }],
+      resources: {
+        queue: { totals: { pending: 0, processing: 1 }, staleLeaseCount: 1 },
+      },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: 1 abandoned job(s) will rerun after the deploy",
+    );
+  });
+
+  it("refuses a runtime that is not ready", async () => {
+    const result = await gate(503, {
+      status: "not_ready",
+      operationalStatus: "degraded",
+      checks: [{ name: "routing", status: "unhealthy" }],
+      resources: { queue: idleQueue },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: current runtime is not ready",
+    );
   });
 });
 

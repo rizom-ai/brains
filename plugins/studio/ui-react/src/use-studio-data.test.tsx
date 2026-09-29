@@ -13,13 +13,16 @@ import {
   type StudioData,
   type StudioDataInput,
 } from "./use-studio-data";
+import { studioTypeHierarchy } from "../../src/config";
 
 const noteType: EntityTypeInfo = {
   entityType: "note",
+  classification: "content",
   label: "Notes",
   isSingleton: false,
   hasBody: true,
   count: 1,
+  hierarchy: studioTypeHierarchy("note"),
   capabilities: {
     canRead: true,
     canCreate: true,

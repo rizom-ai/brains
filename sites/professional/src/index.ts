@@ -39,9 +39,9 @@ const site: SitePackage<ProfessionalSiteConfigInput, Plugin> = {
   routes,
   plugin: professionalSitePlugin,
   entityDisplay: {
-    post: { label: "Post" },
-    deck: { label: "Deck" },
-    project: { label: "Project" },
+    post: { label: "Post", citable: true },
+    deck: { label: "Deck", citable: true },
+    project: { label: "Project", citable: true },
     series: {
       label: "Series",
       navigation: { slot: "secondary" },

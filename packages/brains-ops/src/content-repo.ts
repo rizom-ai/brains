@@ -9,7 +9,10 @@ import {
 
 import { resolveContentRepoRef, type ContentRepoRef } from "./content-repo-ref";
 import type { ResolvedUser } from "./load-registry";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 import type { ContentRepoFile } from "./user-runner";
 
 type FetchImpl = (

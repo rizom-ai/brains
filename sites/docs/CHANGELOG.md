@@ -1,5 +1,12 @@
 # @rizom/site-docs
 
+## 0.2.0-alpha.240
+
+### Patch Changes
+
+- Updated dependencies [[`8df97bf`](https://github.com/rizom-ai/brains/commit/8df97bf413df6bc4d5d0d20e06366b2720a591c6)]:
+  - @rizom/site@0.2.0-alpha.236
+
 ## 0.2.0-alpha.239
 
 ### Patch Changes

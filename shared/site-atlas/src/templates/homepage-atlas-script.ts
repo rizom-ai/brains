@@ -1,5 +1,7 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_DOCK_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
   ASK_SOURCE_ATTRIBUTE,
   ASK_SOURCES_EVENT,
 } from "@brains/contracts";
@@ -202,14 +204,29 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (point < centre) return (centre - low) / (centre - point);
       return ZOOM;
     }
+    // A map shown as a strip slides only while an answer moves it (the phone
+    // sheet transitions its pan under this mark), so opening it never does.
+    var panning = 0;
+    function pan() {
+      field.setAttribute("data-atlas-panning", "");
+      window.clearTimeout(panning);
+      panning = window.setTimeout(function () { field.removeAttribute("data-atlas-panning"); }, TURN);
+    }
     function turnTowards(cited) {
       if (!field) return;
-      if (!cited.length) { field.removeAttribute("data-focused"); return; }
+      pan();
+      if (!cited.length) {
+        field.removeAttribute("data-focused");
+        field.style.removeProperty("--atlas-strip-y");
+        return;
+      }
       var at = function (mark, side) { return parseFloat(mark.style[side]) || 50; };
       var x = cited.reduce(function (sum, mark) { return sum + at(mark, "left"); }, 0) / cited.length;
       var y = cited.reduce(function (sum, mark) { return sum + at(mark, "top"); }, 0) / cited.length;
       field.style.setProperty("--atlas-focus-x", x + "%");
       field.style.setProperty("--atlas-focus-y", y + "%");
+      // A map shown as a strip slides to where its sources sit.
+      field.style.setProperty("--atlas-strip-y", String(y));
       var zoom = cited.reduce(function (limit, mark) {
         return Math.min(
           limit,
@@ -296,6 +313,124 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
     }
 
+    // In a phone's open conversation the map sits under its header, as tall
+    // as the page's at the top and shrinking to a strip as the answer scrolls
+    // beneath it. Sources and pieces point at each other there: a tapped
+    // source shows its piece, and a piece's card shows where it is cited.
+    var askHost = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
+    function conversation() {
+      return askHost ? askHost.querySelector(".brain-box-scroll") : null;
+    }
+    function sheetOpen() {
+      return !!askHost && askHost.hasAttribute("${ASK_SHEET_ATTRIBUTE}");
+    }
+    function follow(scroller) {
+      root.style.setProperty("--atlas-sheet-scroll", (scroller ? scroller.scrollTop : 0) + "px");
+    }
+    // Scroll events do not bubble; the conversation's reach the map on the way down.
+    root.addEventListener("scroll", function (event) {
+      var scroller = event.target;
+      if (scroller && scroller.classList && scroller.classList.contains("brain-box-scroll")) follow(scroller);
+    }, true);
+    function glide(scroller, top) {
+      if (scroller.scrollTo) scroller.scrollTo({ top: top, behavior: still.matches ? "auto" : "smooth" });
+      else scroller.scrollTop = top;
+    }
+    function mark(key) {
+      return Array.prototype.filter.call(root.querySelectorAll("[data-atlas-mark]"), function (candidate) {
+        return candidate.getAttribute("data-atlas-key") === key;
+      })[0] || null;
+    }
+    function flag(element, name, ms) {
+      element.removeAttribute(name);
+      // A fresh attribute restarts its animation.
+      void element.offsetWidth;
+      element.setAttribute(name, "");
+      window.setTimeout(function () { element.removeAttribute(name); }, ms);
+    }
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.closest || !sheetOpen()) return;
+      var scroller = conversation();
+      // Scrolled up into a strip, the map is too small to aim at: a tap on it
+      // brings the whole map back, as a tap on an app's top bar does.
+      if (scroller && scroller.scrollTop > 4 && lent && lent.contains(target)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        close();
+        glide(scroller, 0);
+        return;
+      }
+      var source = target.closest("[${ASK_SOURCE_ATTRIBUTE}]");
+      var piece = source ? mark(source.getAttribute("${ASK_SOURCE_ATTRIBUTE}")) : null;
+      if (piece && piece.querySelector("a")) {
+        // Back to the full map, its piece pulsing with its card open.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (scroller) glide(scroller, 0);
+        close();
+        open = piece;
+        piece.setAttribute("data-open", "");
+        flag(piece, "data-atlas-pulse", 2400);
+        return;
+      }
+      var cited = target.closest("[data-atlas-cited]");
+      var from = cited ? cited.closest("[data-atlas-mark]") : null;
+      if (!from || !scroller) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var key = from.getAttribute("data-atlas-key");
+      var listed = Array.prototype.filter.call(
+        scroller.querySelectorAll("[${ASK_SOURCE_ATTRIBUTE}]"),
+        function (item) { return item.getAttribute("${ASK_SOURCE_ATTRIBUTE}") === key; }
+      ).pop();
+      close();
+      if (!listed) return;
+      var at = listed.getBoundingClientRect();
+      var area = scroller.getBoundingClientRect();
+      // Its source in the middle of the conversation, flashing.
+      glide(scroller, scroller.scrollTop + at.top - area.top - scroller.clientHeight / 2 + at.height / 2);
+      flag(listed, "data-atlas-flash", 1500);
+    }, true);
+    // While it is open, the map is lent to the conversation's dock, the first
+    // item of its scroll: it scrolls up with the answer until only a strip is
+    // left, which the phone sheet's styles pin. A slot holds its place on the
+    // page meanwhile, and it goes back when the conversation closes.
+    var lent = root.querySelector("[data-atlas-map]");
+    var slot = null;
+    function lend() {
+      var dock = askHost.querySelector("[${ASK_DOCK_ATTRIBUTE}]");
+      if (!lent || !dock || lent.parentElement === dock) return;
+      slot = document.createElement("div");
+      slot.className = "atlas__map-slot";
+      slot.setAttribute("aria-hidden", "true");
+      lent.replaceWith(slot);
+      dock.append(lent);
+      follow(conversation());
+    }
+    function giveBack() {
+      if (!slot) return;
+      slot.replaceWith(lent);
+      slot = null;
+    }
+    // Each source the box lists is named as the legend names its kind, from
+    // its mark, and whenever the box renders the list.
+    function nameSources() {
+      if (!askHost) return;
+      askHost.querySelectorAll("[${ASK_SOURCE_ATTRIBUTE}]").forEach(function (item) {
+        var source = mark(item.getAttribute("${ASK_SOURCE_ATTRIBUTE}"));
+        var type = source && source.getAttribute("data-atlas-type");
+        if (type && item.getAttribute("data-atlas-type") !== type) item.setAttribute("data-atlas-type", type);
+      });
+    }
+    if (askHost && typeof MutationObserver === "function")
+      // The box mounts, and so its dock appears, after the sheet has opened.
+      new MutationObserver(function () {
+        if (sheetOpen()) lend();
+        else giveBack();
+        nameSources();
+      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}"], childList: true, subtree: true });
+
     root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
       var sources = (event.detail && event.detail.sources) || [];
       var ids = sources.map(function (source) { return source.id; });
@@ -308,6 +443,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       });
       turnTowards(cited);
       citedMarks = cited;
+      nameSources();
       followLeads(Date.now() + TURN);
     });
 

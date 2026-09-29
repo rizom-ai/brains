@@ -26,7 +26,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import type { RouterHistory } from "@tanstack/react-router";
 import type { StudioPathTarget } from "../../src/studio-paths";
-import type { StudioApi, StudioTypeCapabilities } from "./api";
+import type { EntityTypeInfo, StudioApi } from "./api";
 import type { PendingOpenState } from "./use-studio-navigation-actions";
 
 export interface EntityOpenerInput {
@@ -40,7 +40,7 @@ export interface EntityOpenerInput {
   currentStudioPathname: string;
   createMode: boolean;
   entityType: string | null;
-  activeCapabilities: StudioTypeCapabilities | undefined;
+  activeType: EntityTypeInfo | undefined;
   entityCollectionQuery: StudioCollectionQuery;
   preferredMobilePane: RefObject<MobileEditorPane | null>;
   dispatchEditor: Dispatch<EditorWorkflowAction>;
@@ -89,7 +89,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
     currentStudioPathname,
     createMode,
     entityType,
-    activeCapabilities,
+    activeType,
     entityCollectionQuery,
     preferredMobilePane,
     dispatchEditor,
@@ -97,6 +97,10 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
     setBodyMode,
     setFieldAssistState,
   } = input;
+  // Primitives, so a refetched type list that changed nothing else does not
+  // restart an open that is already under way.
+  const canCreateType = activeType?.capabilities.canCreate === true;
+  const nestsType = activeType?.hierarchy.nested !== false;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const pendingOpenState = useRef<PendingOpenState | null>(null);
@@ -146,8 +150,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
           setBodyMode(nextPane === "write" ? "source" : "preview");
         }
         if (createMode && routeEntityId === null) {
-          const canCreateRequestedType = activeCapabilities?.canCreate === true;
-          if (!canCreateRequestedType) {
+          if (!canCreateType) {
             setLoadError(`Creating ${entityType} is not allowed.`);
             return undefined;
           }
@@ -166,12 +169,11 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
             type: "creationStarted",
             draft: next.draft,
             body: next.body,
-            ...(!prefill && {
-              prefix:
-                entityType === "note"
-                  ? null
-                  : collectionQuery(routeSearch).prefix,
-            }),
+            ...(loadedSchema.isSingleton && { singleton: true }),
+            ...(!prefill &&
+              !loadedSchema.isSingleton && {
+                prefix: nestsType ? collectionQuery(routeSearch).prefix : null,
+              }),
           });
           return undefined;
         }
@@ -229,6 +231,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
           }
           dispatchEditor({
             type: "creationStarted",
+            singleton: true,
             draft: emptyDraft(loadedSchema.fields),
           });
         }
@@ -251,7 +254,8 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
     routePathname,
     routeSearch,
     routeTarget,
-    activeCapabilities?.canCreate,
+    canCreateType,
+    nestsType,
   ]);
 
   const openEntity = useCallback(

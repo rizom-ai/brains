@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import { Database } from "bun:sqlite";
+import { createClient } from "@libsql/client";
+import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { computeContentHash } from "@brains/utils/hash";
 import { PermissionService } from "@brains/templates";
 import { studioPlugin } from "@brains/studio";
@@ -103,7 +104,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     spyOn(shell, "getPermissionService").mockReturnValue(
       new PermissionService({
         entityActions: {
-          "grouping-vocabulary": {
+          "grouping-definitions": {
             create: "admin",
             update: "admin",
             delete: "admin",
@@ -135,9 +136,41 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       sessions.set(role, session.cookie);
       onSession?.(auth, role, user.userId);
     }
+    // Core-only cases use static declarations. UI cases instead author a
+    // definitions document as fixture setup, before making any Studio requests.
+    const declarations = registry.getGroupings();
+    registry.replaceGroupings([]);
     const plugin = studioPlugin();
     await plugin.register(shell);
     await plugin.finalizeRegistration();
+    if (
+      declarations.length &&
+      !(await service.getEntityRaw({
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
+        visibilityScope: "shared",
+      }))
+    ) {
+      await service.createEntityFromMarkdown({
+        input: {
+          entityType: "grouping-definitions",
+          id: "grouping-definitions",
+          markdown: generateMarkdown(
+            {
+              visibility: "shared",
+              groupings: Object.fromEntries(
+                declarations.map(({ key, label }) => [
+                  key,
+                  { label, multiple: true },
+                ]),
+              ),
+            },
+            "",
+          ),
+        },
+      });
+    }
+    await service.reprojectRegisteredGroupings();
     const routes = plugin.getWebRoutes();
     return async (method, path, body, role = "trusted"): Promise<Response> => {
       const route = routes.find(
@@ -159,6 +192,149 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       );
     };
   }
+  test("runtime replacement updates Studio schemas and preserves real Note/Post memberships without restarting", async () => {
+    const directory = await createTestDirectory();
+    cleanups.push(directory.cleanup);
+    const service = await open(directory.dir, false);
+    const registry = registries.get(service);
+    if (!registry) throw new Error("Missing registry");
+    const request = await editor(service);
+    const declaration = {
+      key: "areas",
+      label: "Areas",
+      field: "areas",
+      types: ["note", "post"],
+    };
+    const catalog = { grouping: "areas", entityTypes: ["note", "post"] };
+    const originals = new Map<string, string>();
+    for (const entityType of ["note", "post"]) {
+      const content = `---\ntitle: Existing ${entityType}\n${entityType === "post" ? "status: draft\nslug: runtime-entry\nexcerpt: Example\nauthor: Tester\n" : ""}areas: [Field notes]\nunclaimed: keep\n---\n\nBody`;
+      const parsed = service.deserializeEntity(content, entityType);
+      await service.createEntity({
+        entity: {
+          ...parsed,
+          metadata: parsed.metadata ?? {},
+          content,
+          entityType,
+          id: "runtime-entry",
+        },
+      });
+      const stored = await service.getEntity({
+        entityType,
+        id: "runtime-entry",
+      });
+      if (!stored) throw new Error("Missing entity");
+      originals.set(entityType, stored.content);
+    }
+    expect(
+      await (await request("GET", "schema?type=note")).json(),
+    ).toMatchObject({ format: "raw" });
+
+    const definitions = {
+      areas: {
+        label: declaration.label,
+        multiple: true,
+      },
+    };
+    expect(
+      (
+        await request(
+          "POST",
+          "entities",
+          {
+            entityType: "grouping-definitions",
+            frontmatter: { groupings: definitions },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(201);
+    expect(
+      await (await request("GET", "schema?type=note")).json(),
+    ).toMatchObject({
+      format: "frontmatter",
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "areas", widget: "list" }),
+      ]),
+    });
+    expect(await (await request("GET", "types")).json()).toMatchObject({
+      groupings: [declaration],
+    });
+    expect((await service.queryGroupingCatalog(catalog)).values).toEqual([
+      { value: "Field notes", count: 2 },
+    ]);
+    for (const entityType of ["note", "post"]) {
+      expect(
+        (await service.getEntity({ entityType, id: "runtime-entry" }))?.content,
+      ).toBe(originals.get(entityType));
+    }
+
+    expect(
+      (
+        await request(
+          "PUT",
+          "entities",
+          {
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
+            frontmatter: { groupings: {} },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(200);
+    expect(await (await request("GET", "types")).json()).toMatchObject({
+      groupings: [],
+    });
+    expect(
+      await (await request("GET", "schema?type=note")).json(),
+    ).toMatchObject({ format: "raw" });
+    expect((await request("GET", "groups/catalog?grouping=areas")).status).toBe(
+      404,
+    );
+    for (const entityType of ["note", "post"]) {
+      const stored = await service.getEntity({
+        entityType,
+        id: "runtime-entry",
+      });
+      if (!stored) throw new Error("Missing entity after removal");
+      const original = originals.get(entityType);
+      if (original === undefined) throw new Error("Missing original source");
+      expect(stored.content).toBe(original);
+      await service.updateEntity({
+        entity: {
+          ...stored,
+          content: `${stored.content}\nEdited while unclaimed`,
+        },
+      });
+      const updated = await service.getEntity({
+        entityType,
+        id: "runtime-entry",
+      });
+      if (!updated) throw new Error("Missing updated entity");
+      const exported = service.serializeEntity(updated);
+      expect(exported).toContain("Field notes");
+      expect(exported).toContain("unclaimed: keep");
+    }
+
+    expect(
+      (
+        await request(
+          "PUT",
+          "entities",
+          {
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
+            frontmatter: { groupings: definitions },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(200);
+    expect((await service.queryGroupingCatalog(catalog)).values).toEqual([
+      { value: "Field notes", count: 2 },
+    ]);
+  });
   test.each(["role", "suspension", "revocation"] as const)(
     "an existing session loses grouping access after %s without changing its cookie",
     async (change) => {
@@ -258,7 +434,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(
       await (await request("GET", catalog, undefined, "trusted")).json(),
     ).toEqual({
-      grouping: { ...clients, types: ["note"] },
+      grouping: { ...clients, types: ["note"], rules: { multiple: true } },
       values: [{ value: "Visible client", count: 1 }],
       total: 1,
     });
@@ -276,7 +452,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           )
         ).json(),
       ).toEqual({
-        grouping: { ...clients, types: ["note"] },
+        grouping: { ...clients, types: ["note"], rules: { multiple: true } },
         entities: [],
         total: 0,
       });
@@ -308,7 +484,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(
       await (await request("GET", catalog, undefined, "admin")).json(),
     ).toEqual({
-      grouping: clients,
+      grouping: { ...clients, rules: { multiple: true } },
       values: [{ value: "Visible client", count: 1 }],
       total: 1,
     });
@@ -346,31 +522,53 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       const original = await service.getEntity({ entityType, id: "old" });
       if (!original) throw new Error("Missing original");
       const vocabulary = {
-        groupings: { clients: { multiple: true, values: ["Acme", "Beta"] } },
+        groupings: {
+          clients: {
+            label: "Clients",
+            multiple: true,
+            values: ["Acme", "Beta"],
+          },
+        },
         visibility: "shared",
       };
       expect(
         (
           await request(
-            "POST",
+            "PUT",
             "entities",
-            { entityType: "grouping-vocabulary", frontmatter: vocabulary },
+            {
+              entityType: "grouping-definitions",
+              id: "grouping-definitions",
+              frontmatter: vocabulary,
+            },
             "trusted",
           )
         ).status,
       ).toBe(403);
       const created = await request(
-        "POST",
+        "PUT",
         "entities",
-        { entityType: "grouping-vocabulary", frontmatter: vocabulary },
+        {
+          entityType: "grouping-definitions",
+          id: "grouping-definitions",
+          frontmatter: vocabulary,
+        },
         "admin",
       );
-      expect(created.status).toBe(201);
+      expect(created.status).toBe(200);
       expect(await created.json()).toMatchObject({
-        entityId: "grouping-vocabulary",
+        entityId: "grouping-definitions",
       });
       expect(await (await request("GET", "types")).json()).toMatchObject({
-        groupings: [{ ...clients, vocabulary: vocabulary.groupings.clients }],
+        groupings: [
+          {
+            ...clients,
+            rules: {
+              multiple: vocabulary.groupings.clients.multiple,
+              values: vocabulary.groupings.clients.values,
+            },
+          },
+        ],
       });
       expect(await service.getEntity({ entityType, id: "old" })).toEqual(
         original,
@@ -383,7 +581,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         (
           await request(
             "GET",
-            "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+            "entities?type=grouping-definitions&id=grouping-definitions",
             undefined,
             "public",
           )
@@ -392,7 +590,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       expect(await (await request("GET", "types")).json()).toMatchObject({
         types: expect.arrayContaining([
           expect.objectContaining({
-            entityType: "grouping-vocabulary",
+            entityType: "grouping-definitions",
             isSingleton: true,
             capabilities: expect.objectContaining({
               canRead: true,
@@ -455,8 +653,8 @@ describe("Clients through the real Note and BlogPost adapters", () => {
             "PUT",
             "entities",
             {
-              entityType: "grouping-vocabulary",
-              id: "grouping-vocabulary",
+              entityType: "grouping-definitions",
+              id: "grouping-definitions",
               frontmatter: vocabulary,
             },
             "trusted",
@@ -468,7 +666,13 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         id: "old",
       });
       const single = {
-        groupings: { clients: { multiple: false, values: ["Acme", "Beta"] } },
+        groupings: {
+          clients: {
+            label: "Clients",
+            multiple: false,
+            values: ["Acme", "Beta"],
+          },
+        },
       };
       // A list the constrained editors cannot read would refuse their saves
       // while showing them nothing to choose from, so it is refused outright.
@@ -476,8 +680,8 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         "PUT",
         "entities",
         {
-          entityType: "grouping-vocabulary",
-          id: "grouping-vocabulary",
+          entityType: "grouping-definitions",
+          id: "grouping-definitions",
           frontmatter: { ...single, visibility: "restricted" },
         },
         "admin",
@@ -494,8 +698,8 @@ describe("Clients through the real Note and BlogPost adapters", () => {
             "PUT",
             "entities",
             {
-              entityType: "grouping-vocabulary",
-              id: "grouping-vocabulary",
+              entityType: "grouping-definitions",
+              id: "grouping-definitions",
               frontmatter: { ...single, visibility: "shared" },
             },
             "admin",
@@ -507,7 +711,15 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       );
       // The editors a vocabulary constrains can always read it.
       expect(await (await request("GET", "types")).json()).toMatchObject({
-        groupings: [{ ...clients, vocabulary: single.groupings.clients }],
+        groupings: [
+          {
+            ...clients,
+            rules: {
+              multiple: single.groupings.clients.multiple,
+              values: single.groupings.clients.values,
+            },
+          },
+        ],
       });
       const cardinality = await request("PUT", "entities", {
         entityType,
@@ -547,9 +759,17 @@ describe("Clients through the real Note and BlogPost adapters", () => {
             "PUT",
             "entities",
             {
-              entityType: "grouping-vocabulary",
-              id: "grouping-vocabulary",
-              frontmatter: { groupings: {}, visibility: "shared" },
+              entityType: "grouping-definitions",
+              id: "grouping-definitions",
+              frontmatter: {
+                groupings: {
+                  clients: {
+                    label: "Clients",
+                    multiple: true,
+                  },
+                },
+                visibility: "shared",
+              },
             },
             "admin",
           )
@@ -569,63 +789,81 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         (
           await request(
             "DELETE",
-            "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+            "entities?type=grouping-definitions&id=grouping-definitions",
             { confirmed: true },
             "admin",
           )
         ).status,
       ).toBe(200);
+      const reopened = editorEntitySchema.parse(
+        await (
+          await request("GET", `entities?type=${entityType}&id=old`)
+        ).json(),
+      ).entity;
       expect(
         (
           await request("PUT", "entities", {
             entityType,
             id: "old",
-            frontmatter,
-            body: "Reopened",
+            frontmatter: reopened.frontmatter,
+            body: `${reopened.body}\nReopened`,
           })
         ).status,
       ).toBe(200);
     },
   );
 
-  test("prototype-named grouping keys remain open until their own vocabulary exists", async () => {
+  test("prototype-named definitions cannot shadow fields or alter existing rules", async () => {
     const directory = await createTestDirectory();
     cleanups.push(directory.cleanup);
     const service = await open(directory.dir, true);
-    registries.get(service)?.registerGrouping({
-      key: "constructor",
-      field: "projects",
-      label: "Projects",
-      types: ["note"],
-    });
     const request = await editor(service);
-    const input = {
-      entityType: "note",
-      frontmatter: { title: "Project", projects: ["Other"] },
-      body: "Body",
-    };
-    expect((await request("POST", "entities", input)).status).toBe(201);
-    expect(
-      JSON.stringify(await (await request("GET", "types")).json()),
-    ).not.toContain('"vocabulary"');
-    expect(
-      (
-        await request(
-          "POST",
-          "entities",
-          {
-            entityType: "grouping-vocabulary",
-            frontmatter: {
-              groupings: {
-                constructor: { multiple: true, values: ["Launch"] },
-              },
+    const before = await service.getEntityRaw({
+      entityType: "grouping-definitions",
+      id: "grouping-definitions",
+      visibilityScope: "shared",
+    });
+    const refused = await request(
+      "PUT",
+      "entities",
+      {
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
+        frontmatter: {
+          groupings: {
+            constructor: {
+              label: "Projects",
+              excludeTypes: ["post"],
+              multiple: true,
+              values: ["Launch"],
             },
           },
-          "admin",
-        )
+        },
+      },
+      "admin",
+    );
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({
+      issues: expect.arrayContaining([
+        expect.objectContaining({ path: ["groupings", "constructor"] }),
+      ]),
+    });
+    expect(
+      await service.getEntityRaw({
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
+        visibilityScope: "shared",
+      }),
+    ).toEqual(before);
+    expect(
+      (
+        await request("POST", "entities", {
+          entityType: "note",
+          frontmatter: { title: "Open", clients: ["Other"] },
+          body: "Body",
+        })
       ).status,
     ).toBe(201);
-    expect((await request("POST", "entities", input)).status).toBe(400);
   });
 
   test("a vocabulary hidden from editors cannot constrain them", async () => {
@@ -635,12 +873,19 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     const request = await editor(service);
     // Restricted would let an admin enforce a list trusted editors cannot read.
     const response = await request(
-      "POST",
+      "PUT",
       "entities",
       {
-        entityType: "grouping-vocabulary",
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
         frontmatter: {
-          groupings: { clients: { multiple: true, values: ["Acme"] } },
+          groupings: {
+            clients: {
+              label: "Clients",
+              multiple: true,
+              values: ["Acme"],
+            },
+          },
           visibility: "restricted",
         },
       },
@@ -649,14 +894,14 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(response.status).toBe(400);
     expect(
       await service.getEntity({
-        entityType: "grouping-vocabulary",
-        id: "grouping-vocabulary",
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
         visibilityScope: "restricted",
       }),
-    ).toBeNull();
+    ).toMatchObject({ visibility: "shared" });
   });
 
-  test("an unreadable vocabulary reopens its grouping instead of wedging saves", async () => {
+  test("malformed stored definitions stay repairable without erasing unclaimed membership", async () => {
     const directory = await createTestDirectory();
     cleanups.push(directory.cleanup);
     const service = await open(directory.dir, true);
@@ -664,29 +909,39 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(
       (
         await request(
-          "POST",
+          "PUT",
           "entities",
           {
-            entityType: "grouping-vocabulary",
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
             frontmatter: {
-              groupings: { clients: { multiple: true, values: ["Acme"] } },
+              groupings: {
+                clients: {
+                  label: "Clients",
+                  multiple: true,
+                  values: ["Acme"],
+                },
+              },
             },
           },
           "admin",
         )
       ).status,
-    ).toBe(201);
+    ).toBe(200);
     // Corrupt the stored row directly: every write path validates, so this
     // stands in for a hand-edited file or a schema change under stored data.
     // Content and hash always move together, so corrupt both: a stale hash
     // would make the repair look like a no-op for reasons unrelated to this.
     const corrupt = "---\ngroupings: 42\n---\n";
-    const db = new Database(`${directory.dir}/entities.db`);
-    db.run(
-      "UPDATE entities SET content = ?, contentHash = ? WHERE id = 'grouping-vocabulary'",
-      [corrupt, computeContentHash(corrupt)],
-    );
-    db.close();
+    const db = createClient({ url: `file:${directory.dir}/entities.db` });
+    try {
+      await db.execute({
+        sql: "UPDATE entities SET content = ?, contentHash = ? WHERE entityType = 'grouping-definitions' AND id = 'grouping-definitions'",
+        args: [corrupt, computeContentHash(corrupt)],
+      });
+    } finally {
+      db.close();
+    }
     // Malformed content reopens the grouping rather than refusing every
     // membership write behind a document nobody could reach.
     expect(
@@ -694,19 +949,35 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         await request("POST", "entities", {
           entityType: "note",
           idPath: ["unlisted"],
-          frontmatter: { title: "Brief", clients: ["Gamma"] },
-          body: "Body",
+          frontmatter: {},
+          body: "---\ntitle: Brief\nclients: [Gamma]\n---\n\nBody",
         })
       ).status,
     ).toBe(201);
+    expect(await (await request("GET", "types")).json()).toMatchObject({
+      groupings: [],
+    });
     expect(
-      JSON.stringify(await (await request("GET", "types")).json()),
-    ).not.toContain('"vocabulary"');
+      await (
+        await request(
+          "GET",
+          "schema?type=grouping-definitions",
+          undefined,
+          "admin",
+        )
+      ).json(),
+    ).toMatchObject({
+      groupingDefinitions: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({ path: ["groupings"] }),
+        ]),
+      },
+    });
     // A document whose whole purpose is to be edited must stay openable, or
     // the only way to repair it is outside the application.
     const opened = await request(
       "GET",
-      "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+      "entities?type=grouping-definitions&id=grouping-definitions",
       undefined,
       "admin",
     );
@@ -718,10 +989,16 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           "PUT",
           "entities",
           {
-            entityType: "grouping-vocabulary",
-            id: "grouping-vocabulary",
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
             frontmatter: {
-              groupings: { clients: { multiple: true, values: ["Acme"] } },
+              groupings: {
+                clients: {
+                  label: "Clients",
+                  multiple: true,
+                  values: ["Acme"],
+                },
+              },
             },
           },
           "admin",
@@ -751,22 +1028,60 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     ).toBe(201);
   });
 
-  test("vocabulary saves reject undeclared keys, duplicate or empty values, and empty lists", async () => {
+  test("definition saves reject mismatched fields, duplicate exclusions, duplicate or empty values and empty lists", async () => {
     const directory = await createTestDirectory();
     cleanups.push(directory.cleanup);
     const service = await open(directory.dir, true);
     const request = await editor(service);
+    const before = await service.getEntityRaw({
+      entityType: "grouping-definitions",
+      id: "grouping-definitions",
+      visibilityScope: "shared",
+    });
     for (const groupings of [
-      { typo: { multiple: true, values: ["Acme"] } },
-      { clients: { multiple: true, values: ["Acme", "Acme"] } },
-      { clients: { multiple: true, values: [""] } },
-      { clients: { multiple: true, values: [] } },
+      {
+        clients: {
+          label: "Clients",
+          excludeTypes: ["post"],
+          multiple: true,
+          field: "other",
+        },
+      },
+      {
+        clients: {
+          label: "Clients",
+          excludeTypes: ["post", "post"],
+          multiple: true,
+        },
+      },
+      {
+        clients: {
+          label: "Clients",
+          multiple: true,
+          values: ["Acme", "Acme"],
+        },
+      },
+      {
+        clients: {
+          label: "Clients",
+          multiple: true,
+          values: [""],
+        },
+      },
+      {
+        clients: {
+          label: "Clients",
+          multiple: true,
+          values: [],
+        },
+      },
     ]) {
       const response = await request(
-        "POST",
+        "PUT",
         "entities",
         {
-          entityType: "grouping-vocabulary",
+          entityType: "grouping-definitions",
+          id: "grouping-definitions",
           frontmatter: { groupings, visibility: "shared" },
         },
         "admin",
@@ -778,11 +1093,11 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     }
     expect(
       await service.getEntity({
-        entityType: "grouping-vocabulary",
-        id: "grouping-vocabulary",
+        entityType: "grouping-definitions",
+        id: "grouping-definitions",
         visibilityScope: "restricted",
       }),
-    ).toBeNull();
+    ).toEqual(before);
   });
 
   test("Studio enables multiple Properties on every participating Note and preserves fields across disable/re-enable", async () => {
@@ -868,6 +1183,20 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       { value: "Launch", count: 2 },
       { value: "Website", count: 2 },
     ]);
+    expect(
+      (
+        await request(
+          "PUT",
+          "entities",
+          {
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
+            frontmatter: { groupings: {} },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(200);
     service.close();
     services.splice(services.indexOf(service), 1);
     service = await open(directory.dir, false);
@@ -914,13 +1243,33 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     }
     service.close();
     services.splice(services.indexOf(service), 1);
-    service = await open(directory.dir, true);
-    await service.reprojectRegisteredGroupings();
+    service = await open(directory.dir, false);
+    request = await editor(service);
+    expect(
+      (
+        await request(
+          "PUT",
+          "entities",
+          {
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
+            frontmatter: {
+              groupings: {
+                clients: {
+                  label: "Clients",
+                  multiple: true,
+                },
+              },
+            },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(200);
     expect((await service.queryGroupingCatalog(query)).values).toEqual([
       { value: " Acme ", count: 2 },
       { value: "Beta", count: 2 },
     ]);
-    request = await editor(service);
     const { entity } = editorEntitySchema.parse(
       await (await request("GET", "entities?type=note&id=entry")).json(),
     );
@@ -970,18 +1319,24 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           method,
           "entities",
           {
-            entityType: "grouping-vocabulary",
-            id: "grouping-vocabulary",
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
             frontmatter: {
               visibility: "shared",
-              groupings: { clients: { multiple: false, values } },
+              groupings: {
+                clients: {
+                  label: "Clients",
+                  multiple: false,
+                  values,
+                },
+              },
             },
           },
           "admin",
         );
         expect(response.status).toBe(method === "POST" ? 201 : 200);
       }
-      await vocabulary(["Acme"], "POST");
+      await vocabulary(["Acme"], "PUT");
       const store = service.getProjectionStore();
       async function wave(waveId: string): Promise<void> {
         await store.markDirty({
@@ -1179,19 +1534,26 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(
       (
         await request(
-          "POST",
+          "PUT",
           "entities",
           {
-            entityType: "grouping-vocabulary",
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
             frontmatter: {
-              groupings: { clients: { multiple: true, values: ["Acme"] } },
+              groupings: {
+                clients: {
+                  label: "Clients",
+                  multiple: true,
+                  values: ["Acme"],
+                },
+              },
               visibility: "shared",
             },
           },
           "admin",
         )
       ).status,
-    ).toBe(201);
+    ).toBe(200);
     const importer = new DirectorySync({
       syncPath,
       entityService: service,
@@ -1260,9 +1622,20 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(
       (
         await request(
-          "DELETE",
-          "entities?type=grouping-vocabulary&id=grouping-vocabulary",
-          { confirmed: true },
+          "PUT",
+          "entities",
+          {
+            entityType: "grouping-definitions",
+            id: "grouping-definitions",
+            frontmatter: {
+              groupings: {
+                clients: {
+                  label: "Clients",
+                  multiple: true,
+                },
+              },
+            },
+          },
           "admin",
         )
       ).status,

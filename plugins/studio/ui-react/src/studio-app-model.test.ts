@@ -7,6 +7,7 @@ import { deriveStudioAppModel } from "./studio-app-model";
 function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
   return {
     entityType: "note",
+    classification: "content",
     label: "Notes",
     isSingleton: false,
     hasBody: true,
@@ -20,6 +21,7 @@ function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
       canPublish: false,
       canAssist: false,
     },
+    hierarchy: { kind: "folder", nested: true },
     ...overrides,
   };
 }
@@ -181,10 +183,38 @@ describe("deriveStudioAppModel", () => {
     expect(model.listingHead.metadata).toContain("1 folder · 3 in total");
   });
 
-  it("only allows creating notes at the collection root", () => {
-    const atRoot = deriveStudioAppModel(viewProps());
+  it("names hierarchy levels the way the type does", () => {
+    const model = deriveStudioAppModel(
+      viewProps({
+        entityType: "chapters",
+        types: [
+          typeInfo({
+            entityType: "chapters",
+            label: "Chapters",
+            hierarchy: { kind: "page", nested: true },
+          }),
+        ],
+        folders: [{ path: ["a"], name: "a", descendantCount: 2 }],
+      }),
+    );
+
+    expect(model.hierarchyKind).toBe("page");
+    expect(model.listingHead.metadata).toContain("1 page · 2 in total");
+  });
+
+  it("only allows creating a flat type at the collection root", () => {
+    const flat = typeInfo({
+      entityType: "memo",
+      label: "Memos",
+      hierarchy: { kind: "folder", nested: false },
+    });
+    const atRoot = deriveStudioAppModel(
+      viewProps({ entityType: "memo", types: [flat] }),
+    );
     const inFolder = deriveStudioAppModel(
       viewProps({
+        entityType: "memo",
+        types: [flat],
         collectionQuery: { ...viewProps().collectionQuery, prefix: ["a"] },
       }),
     );

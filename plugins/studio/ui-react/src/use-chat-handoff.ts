@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import type { ChatClient } from "@brains/contracts/chat";
-import type { StudioChatHandoff } from "./operator-launch";
+import type { StudioChatHandoff } from "../../src/chat-handoff-contract";
 import { studioChatDraftKey } from "./studio-chat-draft-key";
 import type { StudioChatDraftStore } from "./studio-chat-drafts";
 import { errorMessage } from "./studio-chat-errors";

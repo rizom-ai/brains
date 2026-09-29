@@ -1,6 +1,5 @@
 import type { EntityDB } from "./db";
-import { entityReadBudgetSchema } from "@brains/contracts";
-import { entityRowBudgetCondition } from "./bounded-reads";
+import { publishedStatusCondition } from "./published-condition";
 import type {
   EntityReadOptions,
   EntityHierarchyPage,
@@ -12,10 +11,13 @@ import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import {
   queryGroupingCatalogSchema,
   queryGroupingMembersSchema,
+  queryGroupingUsageSchema,
 } from "./entity-grouping";
 import {
   decodeEntityIdPath,
@@ -91,7 +93,6 @@ const listOptionsSchema: z.ZodObject<{
     }>
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
-  readBudget: z.ZodOptional<typeof entityReadBudgetSchema>;
   signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
@@ -107,7 +108,6 @@ const listOptionsSchema: z.ZodObject<{
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
-  readBudget: entityReadBudgetSchema.optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
 
@@ -172,20 +172,10 @@ export class EntityQueries {
     id: string,
     visibilityScope?: ContentVisibility,
     options: EntityReadOptions = {},
+    publishGate?: { publishedStatuses: string[] | undefined },
   ): Promise<EntityData | null> {
     options.signal?.throwIfAborted();
-    const readBudget =
-      options.readBudget === undefined
-        ? undefined
-        : entityReadBudgetSchema.parse(options.readBudget);
-    if (
-      readBudget &&
-      (id.length > readBudget.queryCharacters ||
-        entityType.length > readBudget.queryCharacters)
-    )
-      throw new Error("Entity lookup input limit exceeded");
-    if (!readBudget)
-      this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
+    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     const scope: ContentVisibility = visibilityScope ?? "public";
     const conditions: SQL[] = [
@@ -197,8 +187,10 @@ export class EntityQueries {
         inArray(entities.visibility, getVisibleContentVisibilities(scope)),
       );
     }
+    if (publishGate) {
+      conditions.push(publishedStatusCondition(publishGate.publishedStatuses));
+    }
 
-    if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
       .select({
         ...getTableColumns(entities),
@@ -210,10 +202,7 @@ export class EntityQueries {
     options.signal?.throwIfAborted();
 
     if (result.length === 0) {
-      if (!readBudget)
-        this.logger.debug(
-          `Entity of type ${entityType} with ID ${id} not found`,
-        );
+      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
       return null;
     }
 
@@ -253,16 +242,12 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { offset, sortFields, filter, publishedOnly, readBudget, signal } =
+    const { limit, offset, sortFields, filter, publishedOnly, signal } =
       validatedOptions;
-    const limit = readBudget
-      ? Math.min(validatedOptions.limit ?? readBudget.rows, readBudget.rows)
-      : validatedOptions.limit;
     signal?.throwIfAborted();
-    if (!readBudget)
-      this.logger.debug(
-        `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
-      );
+    this.logger.debug(
+      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
+    );
 
     const whereConditions = this.buildWhereConditions(
       entityType,
@@ -273,7 +258,6 @@ export class EntityQueries {
       filter?.contentContains,
       filter?.visibility,
     );
-    if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
     const query = this.db
@@ -290,14 +274,12 @@ export class EntityQueries {
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
-      readBudget === undefined,
     );
 
     signal?.throwIfAborted();
-    if (!readBudget)
-      this.logger.debug(
-        `Listed ${entityList.length} entities of type ${entityType}`,
-      );
+    this.logger.debug(
+      `Listed ${entityList.length} entities of type ${entityType}`,
+    );
 
     return entityList;
   }
@@ -379,7 +361,6 @@ export class EntityQueries {
       input.signal?.throwIfAborted();
       const entity = await this.serializer.convertToEntity(
         normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
-        false,
       );
       if (entity) page.push(entity);
     }
@@ -387,8 +368,47 @@ export class EntityQueries {
     return { entities: page, total: Number(counts[0]?.total ?? 0) };
   }
 
+  public async queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    const input = queryGroupingUsageSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    // Count entity rows, never joined memberships or concatenated identities.
+    // All aggregates share one statement/snapshot. EXISTS also ignores duplicate
+    // historical values and non-text elements without normalizing stored content.
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text')`,
+    );
+    const columns: Record<string, SQL<number>> = {
+      entries: sql<number>`COUNT(*)`,
+    };
+    for (const [index, value] of input.values.entries()) {
+      columns[`value_${index}`] = sql<number>`COALESCE(SUM(CASE WHEN EXISTS (
+        SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text' AND j.value = ${value}
+      ) THEN 1 ELSE 0 END), 0)`;
+    }
+    const [row] = await this.db
+      .select(columns)
+      .from(entities)
+      .where(and(...conditions));
+    input.signal?.throwIfAborted();
+    return {
+      entries: Number(row?.["entries"] ?? 0),
+      values: input.values.map(
+        (value, index): { value: string; count: number } => ({
+          value,
+          count: Number(row?.[`value_${index}`] ?? 0),
+        }),
+      ),
+    };
+  }
+
   private groupingConditions(
-    input: z.output<typeof queryGroupingCatalogSchema>,
+    input: Pick<
+      z.output<typeof queryGroupingCatalogSchema>,
+      "grouping" | "entityTypes" | "visibilityScope"
+    >,
   ): { conditions: SQL[]; array: SQL } {
     const grouping = this.entityRegistry.getGrouping(input.grouping);
     const admitted = new Set(input.entityTypes);
@@ -515,22 +535,7 @@ export class EntityQueries {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
     if (publishedOnly) {
-      const statusExpr = sql`json_extract(${entities.metadata}, '$.status')`;
-      if (publishedStatuses && publishedStatuses.length > 0) {
-        // The adapter declared its own publish gate; the list is exact —
-        // entities without a status are not published.
-        conditions.push(
-          sql`${statusExpr} IN (${sql.join(
-            publishedStatuses.map((status) => sql`${status}`),
-            sql`, `,
-          )})`,
-        );
-      } else {
-        // Default lifecycle semantics for types with no declaration.
-        conditions.push(
-          sql`(${statusExpr} = 'published' OR ${statusExpr} = 'active' OR ${statusExpr} IS NULL)`,
-        );
-      }
+      conditions.push(publishedStatusCondition(publishedStatuses));
     }
 
     // Fail closed: undefined scope filters to public-only.

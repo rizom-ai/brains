@@ -94,12 +94,66 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
+const createUserMessageSourceInputSchema: StrictObjectSchema<{
+  kind: z.ZodLiteral<"user-message">;
+  messageId: z.ZodOptional<z.ZodString>;
+  boundaryMode: z.ZodOptional<
+    z.ZodEnum<{ literal: "literal"; lines: "lines" }>
+  >;
+  startAfter: z.ZodOptional<z.ZodString>;
+  endBefore: z.ZodOptional<z.ZodString>;
+  contentHash: z.ZodOptional<z.ZodString>;
+}> = z
+  .object({
+    kind: z
+      .literal("user-message")
+      .describe(
+        "Save verbatim text already supplied by the user. The server reads the stored message; do not copy its body into tool arguments.",
+      ),
+    messageId: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Stored user message ID in this conversation; omit for the latest user message.",
+      ),
+    boundaryMode: z
+      .enum(["literal", "lines"])
+      .optional()
+      .describe(
+        "Use lines for standalone delimiter lines: supply marker text without newline characters. The server excludes the opening line and its line ending, and stops at the start of the closing line, preserving every byte between them, including final newlines. Omit or use literal for inline text boundaries.",
+      ),
+    startAfter: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Exact unique opening boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters. In literal mode, supply the exact prefix to exclude. Omit to start at the beginning of the message.",
+      ),
+    endBefore: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Exact unique closing boundary, excluded from saved text. In lines mode, supply the whole marker line WITHOUT newline characters; preceding content newlines are preserved. In literal mode, supply the exact suffix to exclude. Omit to end at the end of the message.",
+      ),
+    contentHash: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        "Internal source hash returned with the confirmation; omit on the initial request.",
+      ),
+  })
+  .strict();
+
 export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
   [
     StrictObjectSchema<{
       kind: z.ZodLiteral<"text">;
       content: z.ZodString;
     }>,
+    typeof createUserMessageSourceInputSchema,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"url">;
       url: z.ZodString;
@@ -130,10 +184,11 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         .string()
         .min(1)
         .describe(
-          "Exact markdown/text/content to persist as provided. For direct save requests where the user includes the content in the same message, use that provided content directly.",
+          "Literal content for a direct save request without a stored user-message source. For pasted text already in this conversation, prefer source.kind user-message with exact boundaries instead of reproducing the body here.",
         ),
     })
     .strict(),
+  createUserMessageSourceInputSchema,
   z
     .object({
       kind: z
@@ -431,11 +486,31 @@ export const generateInputSchema: StrictObjectSchema<{
   })
   .strict();
 
+export const contentEditSchema: z.ZodObject<{
+  oldText: z.ZodString;
+  newText: z.ZodString;
+}> = z
+  .object({
+    oldText: z
+      .string()
+      .min(1)
+      .describe(
+        "Exact text occurring once in the original stored Markdown. Include enough context to be unique.",
+      ),
+    newText: z
+      .string()
+      .describe("Literal replacement text; empty string deletes oldText."),
+  })
+  .strict();
+
+export type ContentEdit = z.output<typeof contentEditSchema>;
+
 export const updateInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
   fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   content: z.ZodOptional<z.ZodString>;
+  edits: z.ZodOptional<z.ZodArray<typeof contentEditSchema>>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
@@ -452,7 +527,15 @@ export const updateInputSchema: z.ZodObject<{
     .string()
     .optional()
     .describe(
-      "Full markdown content replacement only. Do not use this for status/title/frontmatter updates; use fields instead.",
+      "Full markdown content replacement only. For small changes, use edits instead of regenerating the whole document. Do not combine content with edits or fields.",
+    ),
+  edits: z
+    .array(contentEditSchema)
+    .min(1)
+    .max(50)
+    .optional()
+    .describe(
+      "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Omit content and fields when using edits. Unchanged text is preserved without regeneration.",
     ),
   confirmed: z.literal(true).optional().describe("Confirm the update"),
   confirmationToken: z

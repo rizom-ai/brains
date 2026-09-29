@@ -1,4 +1,9 @@
 export {
+  entityTypeClassificationSchema,
+  type EntityTypeClassification,
+} from "./entity-type-classification";
+export { isGroupingContributor } from "./grouping-eligibility";
+export {
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
   MAX_ASSET_BYTES,
@@ -38,6 +43,9 @@ export {
   GROUPING_MAX_PAGE_LIMIT,
   type EntityGrouping,
   type GroupingSort,
+  queryGroupingUsageSchema,
+  type QueryGroupingUsageRequest,
+  type EntityGroupingUsage,
   type QueryGroupingCatalogRequest,
   type QueryGroupingMembersRequest,
   type EntityGroupingCatalog,
@@ -217,6 +225,8 @@ export {
 
 export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
+export { scopeEntityReads } from "./scoped-entity-reads";
+export type { EntityReadScope } from "./scoped-entity-reads";
 export { scopedDerivedId } from "./scoped-derived-id";
 export {
   getPublishBoundaryState,
@@ -256,4 +266,4 @@ export type {
   PaginateResult,
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
-export type { ResolvedEntity } from "./find-entity";
+export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";

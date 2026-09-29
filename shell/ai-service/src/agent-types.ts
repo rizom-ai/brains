@@ -3,6 +3,7 @@ import {
   type AgentContextItem,
   type AgentContextRequest,
   type AgentResponse,
+  type SourceCitation,
 } from "@brains/contracts";
 export type {
   ActionsCard,
@@ -32,7 +33,7 @@ import type {
   AnchorProfile,
 } from "@brains/identity-service";
 import type { Tool } from "@brains/mcp-service";
-import type { ModelMessage } from "ai";
+import type { LanguageModelUsage, ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
 import {
   guestExecutionPolicySchema,
@@ -113,6 +114,8 @@ export interface BrainAgentResult {
       toolName: string;
       output: unknown;
     }>;
+    /** What the provider reported for this step's model call. */
+    usage?: LanguageModelUsage;
   }>;
   usage: {
     inputTokens: number | undefined;
@@ -138,10 +141,7 @@ export interface BrainAgent {
 /**
  * Factory function type for creating brain agents
  */
-export type BrainAgentFactory = ((config: BrainAgentConfig) => BrainAgent) & {
-  /** A paired guest model/accounting profile is installed; not transport admission. */
-  readonly guestProfileAvailable?: boolean;
-};
+export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
 
 /**
  * The part of the canonical identity service that fills in an actor.
@@ -180,6 +180,14 @@ export interface AgentConfig {
   ) => Promise<AgentContextItem[]>;
   /** Optional resolver for prior uploads stored in conversation metadata. */
   uploadAttachmentResolver?: UploadAttachmentResolver;
+  /**
+   * Optional finder of the public pages closest to a visitor's answer, which
+   * become its sources. Guest turns only; without it, or when it fails, an
+   * answer's sources are what its lookups returned.
+   */
+  guestAnswerSources?: (request: {
+    answer: string;
+  }) => Promise<SourceCitation[]>;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
 }
@@ -231,7 +239,8 @@ export interface ChatContext {
  * Agent service interface
  */
 export interface IAgentService {
-  readonly guestProfileAvailable?: boolean;
+  /** Guest turns can run: the search index they read is ready. */
+  readonly guestReady?: boolean;
   /**
    * Send a message to the agent and get a response
    * @param message - The user's message

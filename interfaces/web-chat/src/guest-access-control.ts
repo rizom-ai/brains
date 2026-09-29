@@ -5,7 +5,7 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { createDefaultGuestPolicy } from "./guest-preset";
-import { GuestAdmission } from "./guest-admission";
+import { GuestAdmission, type GuestBudgetStatus } from "./guest-admission";
 import type { EnabledGuestPolicy } from "./guest-policy";
 
 function privateJsonResponse(body: unknown, status = 200): Response {
@@ -17,16 +17,11 @@ function privateJsonResponse(body: unknown, status = 200): Response {
 
 const activationSchema = z.strictObject({ enabled: z.boolean() });
 
-export interface GuestDoorStatus {
-  authorized: boolean;
-  /** Switched on and able to answer. */
+export interface GuestDoorStatus extends GuestBudgetStatus {
+  /** Switched on, with budget left, and able to answer. */
   enabled: boolean;
   ready: boolean;
-  usedRequests: number;
-  /** Charged against the ceiling as reserved quotes; measured cost never returns it. */
-  reservedMicroUsd: number;
   origin: string;
-  allowance: { requests: number; maxCostMicroUsd: number };
 }
 interface BrowserAccess {
   hasChatAccess: boolean;
@@ -65,13 +60,7 @@ export class GuestAccessControl {
       return;
     const defaults = createDefaultGuestPolicy(origin);
     if (!defaults.enabled) return;
-    this.policy = {
-      ...defaults,
-      allowance: {
-        requests: defaults.limits.globalRequestsPerDay,
-        maxCostMicroUsd: Math.floor(defaults.budget.dailyUsd * 1_000_000),
-      },
-    };
+    this.policy = { ...defaults, budgeted: true };
     this.admission = new GuestAdmission(context.runtimeState, this.policy, {
       requireAuthorization: true,
       ...(now ? { now } : {}),
@@ -82,7 +71,7 @@ export class GuestAccessControl {
     return (await this.admission?.accessStatus())?.authorized === true;
   }
 
-  /** The owner's view of the door: switched on, answering, and what the allowance has spent. */
+  /** The owner's view of the door: switched on, answering, and this month's budget. */
   async status(): Promise<GuestDoorStatus | undefined> {
     if (!this.policy || !this.admission) return undefined;
     const state = await this.admission.accessStatus();
@@ -92,18 +81,22 @@ export class GuestAccessControl {
       enabled: state.enabled && this.ready(),
       ready: this.ready(),
       origin: this.policy.origin,
-      allowance: {
-        requests: this.policy.allowance?.requests ?? 0,
-        maxCostMicroUsd: this.policy.allowance?.maxCostMicroUsd ?? 0,
-      },
     };
   }
 
-  /** Opens guest chat; never renews the allowance. */
-  async switchOn(): Promise<"on" | "not-ready" | "unavailable"> {
+  /**
+   * Opens guest chat with this monthly budget, or with the budget last set
+   * when none is given. Never returns what the month has charged.
+   */
+  async switchOn(
+    monthlyMicroUsd?: number,
+  ): Promise<"on" | "not-ready" | "no-budget" | "unavailable"> {
     if (!this.admission) return "unavailable";
     if (!this.ready()) return "not-ready";
-    return (await this.admission.authorize()) ? "on" : "unavailable";
+    const budget =
+      monthlyMicroUsd ?? (await this.admission.accessStatus())?.budgetMicroUsd;
+    if (!budget) return "no-budget";
+    return (await this.admission.authorize(budget)) ? "on" : "unavailable";
   }
 
   /** Closes guest chat; admissions stop at once. */
@@ -112,7 +105,16 @@ export class GuestAccessControl {
     return (await this.admission.applyPolicy(false)) ? "off" : "unavailable";
   }
 
-  /** Guest chat can answer: authorized, switched on, allowance left, guest profile ready. */
+  /**
+   * The owner has guest chat switched on with budget left. Unlike isOpen,
+   * this does not wait for the guest profile, which is not ready while the
+   * search index loads after a restart.
+   */
+  async isSwitchedOn(): Promise<boolean> {
+    return (await this.admission?.accessStatus())?.enabled === true;
+  }
+
+  /** Guest chat can answer: authorized, switched on, budget left, guest profile ready. */
   async isOpen(): Promise<boolean> {
     return (
       (await this.admission?.accessStatus())?.enabled === true && this.ready()
@@ -184,6 +186,11 @@ export class GuestAccessControl {
             const switched = parsed.data.enabled
               ? await this.switchOn()
               : await this.switchOff();
+            if (switched === "no-budget")
+              return privateJsonResponse(
+                { error: "Set a monthly budget in Studio first" },
+                409,
+              );
             if (switched === "not-ready")
               return privateJsonResponse(
                 { error: "Guest profile unavailable" },
@@ -205,10 +212,6 @@ export class GuestAccessControl {
             ...state,
             enabled: state.enabled && this.ready(),
             origin: this.policy.origin,
-            allowance: {
-              requests: this.policy.allowance?.requests,
-              usd: (this.policy.allowance?.maxCostMicroUsd ?? 0) / 1_000_000,
-            },
           });
         } catch {
           // Authentication, runtime-state and provider details must stay private.

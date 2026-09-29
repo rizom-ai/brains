@@ -165,6 +165,35 @@ describe("NotificationsPlugin", () => {
     expect(sent[0]?.idempotencyKey).not.toBe(sent[1]?.idempotencyKey);
   });
 
+  it("names the transport's failure code when delivery fails, never the message", async () => {
+    const harness = createPluginHarness<NotificationsPlugin>();
+    installEmailProvider(harness, async () => ({
+      status: "failed",
+      failureCode: "resend_validation_error",
+    }));
+    await harness.installPlugin(new NotificationsPlugin());
+    await harness.finalizeRegistration();
+
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: NOTIFICATIONS_SEND,
+        payload: {
+          recipient: { type: "email", address: "user@example.com" },
+          title: "New contact request",
+          body: "A contact request is saved.",
+          sensitivity: "secret",
+        },
+        sender: "contact",
+      });
+
+    expect(response).toEqual({
+      success: false,
+      error: "Notification delivery failed: resend_validation_error",
+    });
+  });
+
   it("reports failure when no transport is registered for the recipient", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     await harness.installPlugin(new NotificationsPlugin());

@@ -13,7 +13,11 @@ import type {
   PullResult,
   RawEntity,
 } from "./results";
-import type { DirectoryProjectionBatchRef, JobRequest } from "./jobs";
+import type {
+  DirectoryImportPlan,
+  DirectoryProjectionBatchRef,
+  JobRequest,
+} from "./jobs";
 
 /**
  * Interface for file operations used by handlers
@@ -49,6 +53,7 @@ export interface IDirectorySync {
     reporter: ProgressReporter,
     batchSize: number,
     projectionBatch?: DirectoryProjectionBatchRef,
+    plan?: DirectoryImportPlan,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,

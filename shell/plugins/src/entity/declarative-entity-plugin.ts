@@ -6,6 +6,8 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   type EntityAdapter,
+  type EntityTypeConfig,
+  type EntityTypeClassification,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
@@ -239,6 +241,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   Record<string, never>,
   Record<string, never>
 > {
+  private readonly classification: EntityTypeClassification;
   private readonly projections: readonly ProjectionDefinition[];
   private readonly scope: (localId: string) => string;
   public readonly entityType: string;
@@ -255,11 +258,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     scope: (localId: string) => string,
   ) {
     super(scope(definition.type), metadata, {}, emptyEntityPluginConfigSchema);
+    this.classification = definition.classification;
     this.projections = projections;
     this.scope = scope;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig {
+    return { classification: this.classification };
   }
 
   protected override getProjectionRules(): ProjectionRule[] {

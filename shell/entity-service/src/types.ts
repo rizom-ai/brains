@@ -1,16 +1,16 @@
+import type { EntityTypeClassification } from "./entity-type-classification";
+import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type { PreparedAsset } from "@brains/assets";
 import type {
   EntityGrouping,
   EntityGroupingCatalog,
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
-import type {
-  ActorRef,
-  EntityReadBudget,
-  QueryEmbedding,
-} from "@brains/contracts";
+import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -553,12 +553,6 @@ export interface SortField {
  * Generic over metadata type for type-safe filtering
  */
 export interface EntityReadOptions {
-  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
-   * image references unexpanded. Not a bound on database or adapter execution.
-   */
-  readBudget?: EntityReadBudget;
-  /** Request-owned embedding capability, e.g. a prepaid guest search. */
-  queryEmbedding?: QueryEmbedding;
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
 }
@@ -598,6 +592,8 @@ export interface SearchOptions extends EntityReadOptions {
   visibilityScope?: ContentVisibility | undefined;
   /** Include queued/failed generation stubs in search results (default: false) */
   includeUngenerated?: boolean;
+  /** Only entities their type counts as published, as for published-only listings (default: false) */
+  publishedOnly?: boolean;
   /** Minimum relevance score to return. Omit for no score cutoff. */
   minScore?: number;
 }
@@ -609,6 +605,8 @@ export type ProjectionSourceRole =
  * Configuration for entity type registration
  */
 export interface EntityTypeConfig {
+  /** Plugin-owned semantic role, defaulting to content. System types cannot contribute to groupings. */
+  classification?: EntityTypeClassification;
   /** Score multiplier for search results (default: 1.0) */
   weight?: number;
   /** Whether to generate embeddings for this entity type (default: true).
@@ -617,8 +615,12 @@ export interface EntityTypeConfig {
   /** Whether to index serialized content in full-text search (default: true).
    *  Set to false for binary entity types. Mutations remove stale FTS rows. */
   fullTextSearchable?: boolean;
-  /** Durable binary storage policy. Absence means inline/text storage. */
-  binaryStorage?: "asset";
+  /** Binary storage policy. Absence means text content. */
+  binaryStorage?: "data-url" | "asset";
+  /** Default system_list order, applied by the entity service before pagination. */
+  defaultSort?: SortField[];
+  /** Accepts upload text extraction through system_create extract-markdown. */
+  markdownImport?: boolean;
   /**
    * The type's own minimum action policy, from whoever registers it. It
    * tightens wildcard defaults without relaxing stricter rules, including
@@ -657,6 +659,8 @@ export interface GetEntityRequest extends EntityReadOptions {
    * with elevated access must opt up explicitly.
    */
   visibilityScope?: ContentVisibility | undefined;
+  /** Only an entity its type counts as published, as for published-only listings. */
+  publishedOnly?: boolean | undefined;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -740,7 +744,10 @@ export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
   /** Prepared bytes committed in the same transaction as their entity reference. */
   preparedAsset?: PreparedAsset | undefined;
-  options?: EntityJobOptions | undefined;
+  /** Conditional upserts never fall through from a raced create to update. */
+  options?:
+    | (EntityJobOptions & { conditionalWrite?: EntityWriteCondition })
+    | undefined;
 }
 
 export interface EntitySearchRequest {
@@ -943,6 +950,9 @@ export interface ICoreEntityService {
   queryGroupingMembers(
     request: QueryGroupingMembersRequest,
   ): Promise<EntityGroupingMembers>;
+  queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage>;
 
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(
@@ -988,11 +998,26 @@ export interface EntityGroupingMembers {
   total: number;
 }
 
+/** A single document owner refreshes in-memory grouping contracts before use. */
+export interface EntityGroupingSource {
+  readonly entityType: string;
+  /** Read-only with respect to persistence: never mutate entities or reproject. */
+  ensureCurrent(options?: { afterWrite?: boolean }): Promise<void>;
+}
+
 /**
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  registerGroupingSource(source: EntityGroupingSource): void;
+  ensureGroupingsCurrent(): Promise<void>;
+  /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace declarations; observers may recheck retained fields. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGroupings(): EntityGrouping[];
   /** Whether this type participates in any declared grouping. */
@@ -1096,8 +1121,14 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Visibility-scoped read and revision for atomic conditional writes. */
+  getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null>;
   /** Local admission state; grouping endpoints must not serve partial bootstrap results. */
   areGroupingsReady(): boolean;
+  /** Refresh definitions and start missing scans outside write transactions. */
+  ensureGroupingsReady(): Promise<boolean>;
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
@@ -1178,10 +1209,6 @@ export type DurableBulkMutationCoordinator = Pick<
 export interface EntityService extends EntityServiceClient {
   /** Normal web/combined boot only, after initial sync; not an ordinary mutation. */
   reprojectRegisteredGroupings(): Promise<void>;
-  /** Visibility-scoped entity and the revision derived from its stored row. */
-  getEntityWriteSnapshot(
-    request: GetEntityRequest,
-  ): Promise<EntityWriteSnapshot | null>;
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
@@ -1261,7 +1288,26 @@ export interface EntityRegistry {
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
 
+  registerGroupingSource(source: EntityGroupingSource): void;
+  /** Capture preparation state; invoke the guard inside the write transaction. */
+  captureGroupingWriteGuard(entityType: string): () => Promise<void>;
+  getGroupingSourceType(): string | undefined;
+  getPendingGroupingProjections(): GroupingProjectionTarget[];
+  completeGroupingProjections(
+    targets: readonly GroupingProjectionTarget[],
+  ): void;
+  /** The source's own entity reads skip refresh to avoid recursion. */
+  ensureGroupingsCurrent(
+    entityType?: string,
+    options?: { afterWrite?: boolean },
+  ): Promise<void>;
+  /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace declarations; observers may recheck retained fields. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGrouping(key: string): EntityGrouping;
   getGroupings(): EntityGrouping[];

@@ -19,6 +19,7 @@ import {
   type BaseEntity,
   type EntitySearchRequest,
   type ListEntitiesRequest,
+  type ListOptions,
 } from "@brains/entity-service";
 import type {
   AttachmentProvider,
@@ -214,10 +215,20 @@ export function createMockSystemServices(
     },
     hasEntityType: (type: string) => registeredTypes.has(type),
     getAllEntityTypes: () => Array.from(registeredTypes),
-    getEntityTypeConfig: (type: string) =>
-      type === "social-post"
-        ? { publish: { publishStatuses: ["queued", "published", "failed"] } }
-        : {},
+    getEntityTypeConfig: (
+      type: string,
+    ): ReturnType<SystemServices["entityRegistry"]["getEntityTypeConfig"]> => {
+      if (type === "image" || type === "document")
+        return { binaryStorage: "data-url" };
+      if (type === "note") return { markdownImport: true };
+      if (type === "post")
+        return { defaultSort: [{ field: "publishedAt", direction: "desc" }] };
+      if (type === "social-post")
+        return {
+          publish: { publishStatuses: ["queued", "published", "failed"] },
+        };
+      return {};
+    },
     getEffectiveFrontmatterSchema: (type: string) =>
       entityTypes.has(type) ? defaultFrontmatterSchema : undefined,
     registerCreateInterceptor: (
@@ -264,6 +275,15 @@ export function createMockSystemServices(
   // The in-memory behaviour these tests drive. Left unannotated: several of
   // these members stand in for generic ones, and a concrete return can never
   // satisfy a signature whose type parameter the caller chooses.
+  // The default lifecycle a published-only read keeps: published, active,
+  // or no status at all.
+  const isPublished = (entity: BaseEntity): boolean => {
+    const status = entity.metadata["status"];
+    return (
+      status === undefined || status === "published" || status === "active"
+    );
+  };
+
   const entityServiceBehaviour = {
     search: async (request: EntitySearchRequest) => {
       const scope = request.options?.visibilityScope;
@@ -308,9 +328,11 @@ export function createMockSystemServices(
         ? new Set(getVisibleContentVisibilities(scope))
         : null;
       const metadataFilter = request.options?.filter?.metadata;
+      const publishedOnly = request.options?.publishedOnly === true;
       return Array.from(entities.values()).filter((e) => {
         if (e.entityType !== request.entityType) return false;
         if (allowed && !allowed.has(e.visibility)) return false;
+        if (publishedOnly && !isPublished(e)) return false;
         if (!metadataFilter) return true;
         return Object.entries(metadataFilter).every(
           ([key, value]) => e.metadata[key] === value,
@@ -380,12 +402,21 @@ export function createMockSystemServices(
         count,
       }));
     },
-    countEntities: async (request: { entityType: string }) => {
-      let count = 0;
-      for (const e of entities.values()) {
-        if (e.entityType === request.entityType) count++;
-      }
-      return count;
+    countEntities: async (request: {
+      entityType: string;
+      options?: Pick<ListOptions, "publishedOnly" | "filter">;
+    }) => {
+      const scope = request.options?.filter?.visibilityScope;
+      const allowed = scope
+        ? new Set(getVisibleContentVisibilities(scope))
+        : null;
+      const publishedOnly = request.options?.publishedOnly === true;
+      return Array.from(entities.values()).filter(
+        (e) =>
+          e.entityType === request.entityType &&
+          (!allowed || allowed.has(e.visibility)) &&
+          (!publishedOnly || isPublished(e)),
+      ).length;
     },
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
     deserializeEntity: (md: string) => ({ content: md }),
@@ -556,7 +587,7 @@ export function createMockSystemServices(
       interactions: [],
     }),
     searchLimit: 10,
-    insights: createInsightsRegistry(),
+    insights: createInsightsRegistry(entityRegistry),
     permissionService: new PermissionService({}),
     ...overrides,
     conversationService: {

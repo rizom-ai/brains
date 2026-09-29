@@ -13,10 +13,24 @@ describe("the Ask box host", () => {
     );
   });
 
-  it("leaves the field unprompted otherwise", () => {
+  it("hands the owner's name and the prompt to the box it mounts", () => {
+    const html = renderToStaticMarkup(
+      <AskBoxHost
+        prefix="atlas"
+        name="Yeehaa"
+        placeholder="Ask about my work…"
+      />,
+    );
+    expect(html).toContain('data-ask-name="Yeehaa"');
+    expect(html).toContain('data-ask-placeholder="Ask about my work…"');
+  });
+
+  it("leaves the field unprompted and unnamed otherwise", () => {
     const html = renderToStaticMarkup(<AskBoxHost prefix="atlas" />);
     expect(html).toContain(
       '<textarea rows="1" disabled="" aria-label="Your question"></textarea>',
     );
+    expect(html).not.toContain("data-ask-name");
+    expect(html).not.toContain("data-ask-placeholder");
   });
 });

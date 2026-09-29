@@ -2,6 +2,8 @@
 import type { JSX } from "react";
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_NAME_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
@@ -12,19 +14,27 @@ import {
  * ask-box): disabled until Web Chat's box boot enables it; the boot mounts the
  * conversation here and never sends on its own. Web Chat styles the mounted
  * box; the page themes and frames it through the class prefix. A page with
- * its own words for the field (the shared Ask note's title) prompts with them.
+ * its own words for the field prompts with them, and hands them and the
+ * owner's name on to the mounted box.
  */
 export function AskBoxHost({
   prefix,
+  name,
   placeholder,
 }: {
   prefix: string;
+  name?: string | undefined;
   placeholder?: string | undefined;
 }): JSX.Element {
   return (
     <div
       className={`${prefix}__ask`}
-      {...{ [ASK_BOX_ATTRIBUTE]: "", [ASK_STYLED_ATTRIBUTE]: "" }}
+      {...{
+        [ASK_BOX_ATTRIBUTE]: "",
+        [ASK_STYLED_ATTRIBUTE]: "",
+        ...(name ? { [ASK_NAME_ATTRIBUTE]: name } : {}),
+        ...(placeholder ? { [ASK_PLACEHOLDER_ATTRIBUTE]: placeholder } : {}),
+      }}
     >
       <p
         className={`${prefix}__ask-status`}

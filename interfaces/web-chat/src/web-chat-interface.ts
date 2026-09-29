@@ -1,3 +1,4 @@
+import { join } from "path";
 import {
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
@@ -6,7 +7,12 @@ import {
   type AskBoxAvailability,
 } from "@brains/contracts";
 import type { IRuntimeStateStore } from "@brains/plugins";
-import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
+import {
+  ASK_BOX_BOOT_PATH,
+  ASK_BOX_LOADER_SCRIPT,
+  ASK_BOX_VERSION_PATH,
+  askBoxBootScript,
+} from "./ask-box-boot";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   parseAgentResponse,
@@ -78,17 +84,14 @@ import {
 } from "./conversation-access";
 import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
 import {
-  renderChatPage,
   renderGuestChatPage,
   guestPageStyles,
-  uiAssetFile,
-  uiStylesheetFile,
+  uiAssetDirectory,
 } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
-import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
   handleDeleteSessionRequest as handleDeleteSessionRouteRequest,
@@ -186,16 +189,16 @@ export class WebChatInterface extends MessageInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    // Hosted guest access requires an explicit, durable lifetime allowance.
+    // Hosted guest access requires an owner-set budget.
     // Other injected HTTPS policies remain closed without explicit readiness.
     const boundedPolicy =
       this.guestPolicy.enabled &&
       (this.guestPolicy.origin.startsWith("http://") ||
-        this.guestPolicy.allowance !== undefined);
+        this.guestPolicy.budgeted === true);
     this.guestControl = new GuestAccessControl(
       context,
       (request) => this.resolveBrowserAccess(request),
-      () => context.agent.guestProfileAvailable === true,
+      () => context.agent.guestReady === true,
       this.runtimeGuestActivationAllowed,
       this.guestHttpOptions.now,
     );
@@ -212,7 +215,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.guestHttpOptions.ready ??
           ((): boolean =>
             (managedPolicy !== undefined || boundedPolicy) &&
-            context.agent.guestProfileAvailable === true),
+            context.agent.guestReady === true),
       },
     );
     // The owner sees whether the guest usage record is recording, full or failing.
@@ -252,57 +255,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
         },
       }),
     );
-
-    context.endpoints.register({
-      label: "Chat",
-      url: this.authenticatedRoutePath,
-      priority: 15,
-      visibility: "trusted",
-      requiresActiveSession: true,
-    });
-    context.interactions.register({
-      id: "web-chat",
-      label: "Chat",
-      description: "Chat with this brain in the browser.",
-      href: this.authenticatedRoutePath,
-      kind: "human",
-      priority: 15,
-      visibility: "trusted",
-      requiresActiveSession: true,
-    });
-    context.inboxFollowUps.registerKind({
-      kind: "discuss-in-chat",
-      label: "Discuss in chat",
-      priority: 10,
-      mode: "universal",
-      permissionLevel: "trusted",
-      applies: () => true,
-      resolve: ({ sourceId, item }) => {
-        if (!context.inbox.getSource(sourceId)?.resolveDetail) return undefined;
-        return {
-          href: this.authenticatedRoutePath,
-          state: createWebChatInboxPrefillState(
-            "Help me understand this Inbox item and decide what to do next.",
-            {
-              sourceId,
-              itemId: item.id,
-              label: safeInboxContextLabel(item.title),
-            },
-          ),
-        };
-      },
-    });
   }
 
   /**
-   * Where the Ask box can answer: a configured guest policy everywhere;
+   * Where the Ask box is offered: a configured guest policy everywhere;
    * managed guest chat only on preview, while the owner has it switched on.
+   * Written at startup, before the guest profile is ready, so it follows the
+   * switch; the box itself says when chat cannot answer yet.
    */
   private async recordAskBoxAvailability(): Promise<void> {
     const configured = this.guestPolicy.enabled;
     const activated =
       this.guestControl?.policy !== undefined &&
-      (await this.guestControl.isOpen());
+      (await this.guestControl.isSwitchedOn());
     await this.askBoxAvailability?.set(ASK_BOX_STATE_KEY, {
       public: configured,
       preview: configured || activated,
@@ -320,8 +285,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       bounds: usage.bounds,
       control: this.guestControl?.policy ? this.guestControl : undefined,
       configuredOpen: (): boolean =>
-        this.guestPolicy.enabled &&
-        context.agent.guestProfileAvailable === true,
+        this.guestPolicy.enabled && context.agent.guestReady === true,
       afterSwitch: (): Promise<void> => this.recordAfterActivation(),
     });
   }
@@ -374,10 +338,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleImageAttachmentRequest(request),
         handleJobStatusRequest: (request): Promise<Response> =>
           this.handleJobStatusRequest(request),
-        handleUiAssetRequest: (): Promise<Response> =>
-          this.handleUiAssetRequest(),
-        handleUiStylesheetRequest: (): Promise<Response> =>
-          this.handleUiStylesheetRequest(),
         handleUploadRequest: (request): Promise<Response> =>
           this.handleUploadRequest(request),
         handleUploadDownloadRequest: (request): Promise<Response> =>
@@ -389,8 +349,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         path: this.authenticatedRoutePath,
         method: "GET",
         public: true,
-        handler: (request): Promise<Response> =>
-          this.handleAuthenticatedChatPage(request),
+        handler: (): Promise<Response> => this.handleAuthenticatedChatPage(),
       });
     if (this.declaresGuestAssets()) {
       for (const extension of ["js", "css"] as const) {
@@ -402,7 +361,74 @@ export class WebChatInterface extends MessageInterfacePlugin<
           handler: async (request): Promise<Response> =>
             (await this.canServeGuestAssets(request))
               ? this.handleBuiltUiFile(
-                  uiAssetFile.replace(/app\.js$/, `dashboard.${extension}`),
+                  join(uiAssetDirectory, `dashboard.${extension}`),
+                  extension === "js"
+                    ? "text/javascript; charset=utf-8"
+                    : "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        });
+      }
+      const notFound = (): Response =>
+        new Response("Not found", {
+          status: 404,
+          headers: { "Cache-Control": "no-store" },
+        });
+      routes.push(
+        {
+          path: ASK_BOX_SCRIPT_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(ASK_BOX_LOADER_SCRIPT, {
+                  headers: {
+                    "Content-Type": "text/javascript; charset=utf-8",
+                    "Cache-Control": "no-cache",
+                  },
+                })
+              : notFound(),
+        },
+        {
+          path: ASK_BOX_VERSION_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? Response.json(
+                  { version: await this.guestAssetVersion() },
+                  { headers: { "Cache-Control": "no-store" } },
+                )
+              : notFound(),
+        },
+        {
+          path: ASK_BOX_BOOT_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(askBoxBootScript(await this.guestAssetVersion()), {
+                  headers: { "Content-Type": "text/javascript; charset=utf-8" },
+                })
+              : notFound(),
+        },
+      );
+      for (const extension of ["js", "css"] as const) {
+        routes.push({
+          path: `/ask/assets/ask.${extension}`,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  join(uiAssetDirectory, `ask.${extension}`),
                   extension === "js"
                     ? "text/javascript; charset=utf-8"
                     : "text/css; charset=utf-8",
@@ -414,21 +440,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
         });
       }
       routes.push({
-        path: ASK_BOX_SCRIPT_PATH,
-        method: "GET",
-        public: true,
-        preview: true,
-        handler: async (request): Promise<Response> =>
-          (await this.canServeGuestAssets(request))
-            ? new Response(ASK_BOX_BOOT_SCRIPT, {
-                headers: { "Content-Type": "text/javascript; charset=utf-8" },
-              })
-            : new Response("Not found", {
-                status: 404,
-                headers: { "Cache-Control": "no-store" },
-              }),
-      });
-      routes.push({
         path: "/ask/assets/guest.js",
         method: "GET",
         public: true,
@@ -436,7 +447,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         handler: async (request): Promise<Response> =>
           (await this.canServeGuestAssets(request))
             ? this.handleBuiltUiFile(
-                uiAssetFile.replace(/app\.js$/, "guest.js"),
+                join(uiAssetDirectory, "guest.js"),
                 "text/javascript; charset=utf-8",
               )
             : new Response("Not found", {
@@ -468,7 +479,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           handler: async (request): Promise<Response> =>
             (await this.canServeGuestAssets(request))
               ? this.handleBuiltUiFile(
-                  uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+                  join(uiAssetDirectory, "guest.css"),
                   "text/css; charset=utf-8",
                 )
               : new Response("Not found", {
@@ -608,7 +619,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         : this.guestPolicy;
     if (policy.enabled) {
       if (!matchesGuestOrigin(request, policy)) {
-        if (policy.allowance) return this.handleAuthenticatedChatPage(request);
+        if (policy.budgeted) return this.handleAuthenticatedChatPage();
         return new Response("Guest access unavailable", {
           status: 503,
           headers: { "Cache-Control": "no-store" },
@@ -629,51 +640,25 @@ export class WebChatInterface extends MessageInterfacePlugin<
         },
       );
     }
-    return this.handleAuthenticatedChatPage(request);
+    return this.handleAuthenticatedChatPage();
   }
 
-  private async handleAuthenticatedChatPage(
-    request: Request,
-  ): Promise<Response> {
-    const { principal, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return this.createAuthLoginRequiredResponse(request);
-    }
-
-    const requestUrl = new URL(request.url);
-    const returnTo = encodeURIComponent(
-      `${requestUrl.pathname}${requestUrl.search}`,
-    );
-    const context = this.getContext();
-    const registeredRoutes = context.webRoutes.getRoutes();
-    const dashboardHref = registeredRoutes
-      .filter((route) => route.pluginId === "dashboard")
-      .map((route) => route.fullPath)
-      .sort((left, right) => left.length - right.length)[0];
-    const studioHref = registeredRoutes.find(
-      (route) => route.pluginId === "studio" && route.fullPath === "/chat",
-    )?.fullPath;
-    return new Response(
-      renderChatPage({
-        apiPath: this.config.apiPath,
-        dashboardHref: dashboardHref ?? "/dashboard",
-        ...(studioHref ? { studioHref } : {}),
-        sessionHref: `/logout?return_to=${returnTo}`,
-        themeCSS: context.themeCSS,
-        ...(principal
-          ? {
-              principal: {
-                displayName: principal.displayName,
-                role: principal.role,
-              },
-            }
-          : {}),
-      }),
-      {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      },
-    );
+  private async handleAuthenticatedChatPage(): Promise<Response> {
+    const studioHref = this.getContext()
+      .webRoutes.getRoutes()
+      .find(
+        (route) => route.pluginId === "studio" && route.fullPath === "/chat",
+      )?.fullPath;
+    // Studio owns authentication; this retired page never renders operator UI.
+    return studioHref
+      ? new Response(null, {
+          status: 303,
+          headers: { Location: studioHref, "Cache-Control": "no-store" },
+        })
+      : new Response("Not found", {
+          status: 404,
+          headers: { "Cache-Control": "no-store" },
+        });
   }
 
   private async handleActionRequest(request: Request): Promise<Response> {
@@ -722,15 +707,26 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
   }
 
-  private async handleUiAssetRequest(): Promise<Response> {
-    return this.handleBuiltUiFile(
-      uiAssetFile,
-      "text/javascript; charset=utf-8",
-    );
-  }
+  private guestAssetVersionPromise: Promise<string> | undefined;
 
-  private async handleUiStylesheetRequest(): Promise<Response> {
-    return this.handleBuiltUiFile(uiStylesheetFile, "text/css; charset=utf-8");
+  /**
+   * Names this build of the Ask box: its boot and the guest bundle it loads.
+   * A release changes it, so their versioned addresses are never served from
+   * an older cache.
+   */
+  private guestAssetVersion(): Promise<string> {
+    this.guestAssetVersionPromise ??= Promise.all(
+      [
+        join(uiAssetDirectory, "guest.js"),
+        join(uiAssetDirectory, "guest.css"),
+      ].map(async (path) => {
+        const file = Bun.file(path);
+        return (await file.exists()) ? file.text() : "";
+      }),
+    ).then((files) =>
+      Bun.hash([askBoxBootScript(""), ...files].join("\0")).toString(36),
+    );
+    return this.guestAssetVersionPromise;
   }
 
   private async handleBuiltUiFile(
@@ -850,9 +846,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       this.toConversationAccess(permissionLevel, principal),
     );
     if (accessError) return accessError;
-    const inboxContext =
-      parsed.data.inboxContext ??
-      (await this.resolveStoredContextHandoff(conversationId));
+    const inboxContext = await this.resolveStoredContextHandoff(conversationId);
     const inboxAttachment =
       approvalResponses.length === 0 && inboxContext
         ? await this.resolveInboxAttachment(
@@ -1295,9 +1289,4 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
 function inboxContextUnavailable(): Response {
   return new Response("Inbox context is unavailable", { status: 409 });
-}
-
-function safeInboxContextLabel(title: string): string {
-  const label = title.replace(/[\p{Cc}\p{Cf}]/gu, " ").trim();
-  return label || "Inbox item";
 }

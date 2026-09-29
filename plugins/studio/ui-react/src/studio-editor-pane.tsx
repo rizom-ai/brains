@@ -1,98 +1,65 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
-import { StudioSystemFields } from "./studio-system-fields";
-import { StudioVocabularyEditor } from "./studio-vocabulary-editor";
-import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
-import { systemFieldStyles } from "./studio-system-fields.styles";
-import {
-  Button,
-  buttonClassName,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@brains/app-ui-react";
-import type { ReactElement } from "react";
-import { headStyles } from "./studio-page-head.styles";
-import { typographyStyles } from "./studio-typography.styles";
-import { StudioStatus } from "./studio-status";
+import { Button } from "@brains/app-ui-react";
+import type { FormEvent, KeyboardEvent, ReactElement } from "react";
+import type { StudioAppViewProps } from "./app-view-props";
+import { BodyEditor } from "./body-editor";
+import { isEditorSaveBlocked } from "./editor-save-rule";
+import { editorDocumentKey } from "./editor-workflow";
+import { PublicationActions } from "./publication-actions";
+import type { StudioAppModel } from "./studio-app-model";
 import {
   StudioEditorContent,
   StudioEditorProperties,
   revealStudioProperties,
 } from "./studio-editor-content";
 import { editorContentStyles as contentLayout } from "./studio-editor-content.styles";
+import { StudioEditorFields } from "./studio-editor-fields";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
+import { StudioEditorPaneMenu } from "./studio-editor-pane-menu";
+import { StudioEditorSaveBar } from "./studio-editor-save-bar";
 import {
   editorClassName as editorClass,
   editorStyles,
 } from "./studio-editor.styles";
-import { BodyEditor } from "./body-editor";
-import { Field, FieldAssistControls, isFieldVisible } from "./entity-fields";
 import {
-  derivePipeline,
-  editorSaveLabel,
-  PipelineStations,
-  SaveStateNotice,
-} from "./editor-status";
-import { PublicationActions } from "./publication-actions";
-import { StudioConflictRecovery } from "./studio-conflict-recovery";
-import { createEditorDocument } from "./editor-document";
-import { StudioPageHead } from "./studio-page-head";
-import { entityTitle } from "./ui-utils";
-
-import {
-  StudioFolderTrail,
-  StudioDestination,
   StudioCreationLayout,
+  StudioDestination,
+  StudioFolderTrail,
 } from "./studio-hierarchy";
 import { hierarchyStyles as hierarchy } from "./studio-hierarchy.styles";
-
-import type { StudioAppViewProps } from "./app-view-props";
-import type { StudioAppModel } from "./studio-app-model";
-
-const MOBILE_EDITOR_PANES: readonly StudioAppViewProps["mobilePane"][] = [
-  "details",
-  "write",
-  "preview",
-];
+import { StudioPageHead } from "./studio-page-head";
+import { headStyles } from "./studio-page-head.styles";
+import { systemFieldStyles } from "./studio-system-fields.styles";
+import { typographyStyles } from "./studio-typography.styles";
+import { entityTitle } from "./ui-utils";
 
 export function StudioEditorPane(
   props: StudioAppViewProps & { model: StudioAppModel },
 ): ReactElement {
   const {
     editor,
-    fieldAssistState,
     bodyMode,
     mobilePane,
-    syncStatus,
-    baselineCommit,
     agentTargets,
     hasUnsavedChanges,
     dispatchEditor,
-    setFieldAssistState,
     setBodyMode,
     setMobilePane,
     backToList,
     performPublishingAction,
-    runFieldAssist,
-    applyFieldAssist,
     save,
   } = props;
-  const { mode, draft, body, save: saveState } = editor;
+  const { mode, body, save: saveState } = editor;
   const {
     entitySchema,
     presentation,
     selectedEntityType,
-    groupingFields,
-    groupingVocabularies,
     systemDesign,
     canEdit,
     namedCreate,
     fieldIssues,
-    destinationBlocked,
     hierarchyKind,
-    canDelete,
     canPublish,
     canAssist,
     collectionLabel,
@@ -100,6 +67,47 @@ export function StudioEditorPane(
     publicationState,
     editorHead,
   } = props.model;
+  const saveBlocked = isEditorSaveBlocked(
+    editor,
+    props.model,
+    hasUnsavedChanges,
+  );
+
+  // An invalid field on a hidden phone pane would fail silently, so the
+  // Properties pane opens and the first invalid field takes focus.
+  function revealFirstInvalid(event: FormEvent<HTMLFormElement>): void {
+    revealStudioProperties(event.currentTarget);
+    if (mobilePane === "details") return;
+    event.preventDefault();
+    const first = event.currentTarget.querySelector<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("input:invalid, select:invalid, textarea:invalid");
+    if (event.target !== first) return;
+    setMobilePane("details");
+    requestAnimationFrame(() => {
+      if (first.isConnected) {
+        first.focus();
+        first.reportValidity();
+      }
+    });
+  }
+
+  function saveOnShortcut(event: KeyboardEvent<HTMLFormElement>): void {
+    if (
+      !(event.ctrlKey || event.metaKey) ||
+      event.altKey ||
+      event.shiftKey ||
+      event.key.toLowerCase() !== "s"
+    )
+      return;
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.closest('[role="dialog"], [role="alertdialog"]')
+    )
+      return;
+    event.preventDefault();
+    if (!saveBlocked) event.currentTarget.requestSubmit();
+  }
   return (
     <form
       role="main"
@@ -112,44 +120,12 @@ export function StudioEditorPane(
       data-studio-editor=""
       data-editor-presentation={presentation}
       data-mobile-pane={presentation === "split" ? mobilePane : undefined}
-      onInvalidCapture={(event) => {
-        revealStudioProperties(event.currentTarget);
-        if (mobilePane === "details") return;
-        event.preventDefault();
-        const first = event.currentTarget.querySelector<
-          HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-        >("input:invalid, select:invalid, textarea:invalid");
-        if (event.target !== first) return;
-        setMobilePane("details");
-        requestAnimationFrame(() => {
-          if (first.isConnected) {
-            first.focus();
-            first.reportValidity();
-          }
-        });
-      }}
+      onInvalidCapture={revealFirstInvalid}
       onSubmit={(event) => {
         event.preventDefault();
-        if (canEdit && !destinationBlocked && saveState.kind !== "saving")
-          save();
+        if (!saveBlocked) save();
       }}
-      onKeyDown={(event) => {
-        if (
-          (event.ctrlKey || event.metaKey) &&
-          !event.altKey &&
-          !event.shiftKey &&
-          event.key.toLowerCase() === "s"
-        ) {
-          if (
-            event.target instanceof HTMLElement &&
-            event.target.closest('[role="dialog"], [role="alertdialog"]')
-          )
-            return;
-          event.preventDefault();
-          if (canEdit && saveState.kind !== "saving")
-            event.currentTarget.requestSubmit();
-        }
-      }}
+      onKeyDown={saveOnShortcut}
     >
       <StudioPageHead
         model={editorHead}
@@ -175,9 +151,7 @@ export function StudioEditorPane(
               variant={hasUnsavedChanges ? "default" : "outline"}
               title="Save changes (Ctrl+S or ⌘S)"
               aria-keyshortcuts="Control+s Meta+s"
-              disabled={
-                !canEdit || destinationBlocked || saveState.kind === "saving"
-              }
+              disabled={saveBlocked}
             >
               {saveState.kind === "saving" ? "Saving…" : "Save changes"}
             </Button>
@@ -221,52 +195,12 @@ export function StudioEditorPane(
           </div>
         )}
         {presentation === "split" && (
-          <div
-            className={editorClass(
-              "studio-mobile-tabs",
-              editorStyles.mobileModes,
-            )}
-          >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Editor view"
-                  className={editorClass(
-                    "",
-                    editorStyles.paneTrigger,
-                    typographyStyles.eyebrow,
-                  )}
-                >
-                  {mobilePane === "details"
-                    ? "Properties"
-                    : mobilePane === "write"
-                      ? "Source"
-                      : "Preview"}
-                  <span aria-hidden="true">⌄</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {MOBILE_EDITOR_PANES.map((pane) => (
-                  <DropdownMenuItem
-                    key={pane}
-                    disabled={pane !== "details" && !entitySchema.hasBody}
-                    onSelect={() => {
-                      setMobilePane(pane);
-                      if (pane === "write") setBodyMode("source");
-                      if (pane === "preview") setBodyMode("preview");
-                    }}
-                  >
-                    {pane === "details"
-                      ? "Properties"
-                      : pane === "write"
-                        ? "Source"
-                        : "Preview"}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <StudioEditorPaneMenu
+            pane={mobilePane}
+            hasBody={entitySchema.hasBody}
+            onPane={setMobilePane}
+            onBodyMode={setBodyMode}
+          />
         )}
         <StudioEditorContent presentation={presentation}>
           {systemDesign && (
@@ -278,7 +212,7 @@ export function StudioEditorPane(
             </p>
           )}
           <StudioEditorProperties
-            key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`}
+            key={editorDocumentKey(selectedEntityType, mode)}
             presentation={presentation}
             summaryDescription={
               systemDesign
@@ -317,123 +251,7 @@ export function StudioEditorPane(
                 ) : null}
               </div>
             )}
-            <fieldset
-              className={editorClass("", layout.fields)}
-              disabled={!canEdit}
-            >
-              {systemDesign ? (
-                <>
-                  {selectedEntityType === GROUPING_VOCABULARY_TYPE && (
-                    <StudioVocabularyEditor
-                      groupings={props.groupings?.items ?? []}
-                      value={draft["groupings"]}
-                      readOnly={!canEdit}
-                      issues={fieldIssues}
-                      onChange={(raw) =>
-                        dispatchEditor({
-                          type: "fieldChanged",
-                          descriptor: {
-                            name: "groupings",
-                            label: "Groupings",
-                            widget: "object",
-                          },
-                          raw,
-                        })
-                      }
-                    />
-                  )}
-                  <StudioSystemFields
-                    vocabularies={groupingVocabularies}
-                    literalFields={groupingFields}
-                    suggestions={props.groupingSuggestions}
-                    fields={
-                      selectedEntityType === GROUPING_VOCABULARY_TYPE
-                        ? entitySchema.fields.filter(
-                            (field) => field.name !== "groupings",
-                          )
-                        : entitySchema.fields
-                    }
-                    draft={draft}
-                    title={
-                      presentation === "document"
-                        ? ""
-                        : systemDesign.fieldsTitle
-                    }
-                    readOnly={!canEdit}
-                    issues={fieldIssues}
-                    onChange={(descriptor, raw) =>
-                      dispatchEditor({
-                        type: "fieldChanged",
-                        descriptor,
-                        raw,
-                      })
-                    }
-                    renderAssist={
-                      canAssist &&
-                      entitySchema.hasBody &&
-                      body.trim().length > 0
-                        ? (descriptor): ReactElement => (
-                            <FieldAssistControls
-                              descriptor={descriptor}
-                              state={fieldAssistState}
-                              onRun={runFieldAssist}
-                              onApply={applyFieldAssist}
-                              onDiscard={() =>
-                                setFieldAssistState({ kind: "idle" })
-                              }
-                            />
-                          )
-                        : undefined
-                    }
-                  />
-                </>
-              ) : (
-                entitySchema.fields
-                  .filter((descriptor) => isFieldVisible(descriptor, draft))
-                  .map((descriptor) => (
-                    <div
-                      key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
-                      data-studio-field-assist=""
-                    >
-                      <Field
-                        vocabulary={groupingVocabularies[descriptor.name]}
-                        literalList={groupingFields.includes(descriptor.name)}
-                        suggestions={
-                          props.groupingSuggestions?.[descriptor.name]
-                        }
-                        descriptor={descriptor}
-                        issues={fieldIssues}
-                        value={draft[descriptor.name]}
-                        onChange={(raw) =>
-                          dispatchEditor({
-                            type: "fieldChanged",
-                            descriptor,
-                            raw,
-                          })
-                        }
-                      />
-                      {canAssist &&
-                        entitySchema.hasBody &&
-                        body.trim().length > 0 && (
-                          <FieldAssistControls
-                            descriptor={descriptor}
-                            state={fieldAssistState}
-                            onRun={runFieldAssist}
-                            onApply={applyFieldAssist}
-                            onDiscard={() =>
-                              setFieldAssistState({ kind: "idle" })
-                            }
-                          />
-                        )}
-                    </div>
-                  ))
-              )}
-              {entitySchema.format === "raw" && (
-                <StudioStatus>
-                  This type is raw markdown — the whole document is the body.
-                </StudioStatus>
-              )}
-            </fieldset>
+            <StudioEditorFields {...props} />
             {publicationWorkspace && mode.kind === "edit" && canPublish && (
               <PublicationActions
                 entityType={selectedEntityType}
@@ -490,104 +308,7 @@ export function StudioEditorPane(
           )}
         </StudioEditorContent>
       </StudioCreationLayout>
-      <footer
-        className={editorClass("", editorStyles.pipeline, layout.pipeline)}
-        data-studio-save-bar=""
-      >
-        <div>
-          <span
-            role="status"
-            aria-live="polite"
-            title="Saved means stored in this Brain. File export and Git synchronization are separate."
-          >
-            {!canEdit && presentation !== "split"
-              ? "Read-only"
-              : editorSaveLabel(saveState, hasUnsavedChanges)}
-          </span>
-          {props.readError && (
-            <StudioStatus tone="error">
-              Your draft is unchanged. {props.readError}
-              <Button type="button" variant="ghost" onClick={props.onRetryRead}>
-                Retry
-              </Button>
-            </StudioStatus>
-          )}
-          {syncStatus?.directorySync && (
-            <details>
-              <summary>Sync details</summary>
-              <PipelineStations
-                view={derivePipeline({
-                  save: saveState,
-                  git: syncStatus.git,
-                  baselineCommit,
-                })}
-                gitConfigured={syncStatus.git !== null}
-              />
-            </details>
-          )}
-          <SaveStateNotice
-            // The strip already narrates a successful save; the text
-            // notice stays for conflicts, errors, and no-op saves
-            // (which the strip cannot distinguish from a real write).
-            state={
-              syncStatus?.directorySync &&
-              saveState.kind === "saved" &&
-              !saveState.noop
-                ? { kind: "idle" }
-                : saveState
-            }
-            conflictActions={
-              mode.kind === "edit" ? (
-                <StudioConflictRecovery
-                  key={`${mode.entity.entityType}:${mode.entity.id}`}
-                  entity={mode.entity}
-                  draft={draft}
-                  body={body}
-                  onUseLatest={(entity) =>
-                    dispatchEditor({
-                      type: "documentOpened",
-                      document: createEditorDocument(entity),
-                    })
-                  }
-                />
-              ) : undefined
-            }
-          />
-        </div>
-        <span className={editorClass("", layout.spacer)} />
-        {mode.kind === "edit" && !entitySchema.isSingleton && canDelete && (
-          <>
-            <span className={editorClass("", layout.desktop)}>
-              <Button
-                type="button"
-                variant="danger"
-                xstyle={layout.danger}
-                onClick={() => dispatchEditor({ type: "deleteRequested" })}
-              >
-                Delete
-              </Button>
-            </span>
-            <span className={editorClass("", layout.more)}>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className={buttonClassName("ghost", "icon")}
-                  aria-label="More document actions"
-                >
-                  •••
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => dispatchEditor({ type: "deleteRequested" })}
-                  >
-                    Delete entry
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </span>
-          </>
-        )}
-      </footer>
+      <StudioEditorSaveBar {...props} />
     </form>
   );
 }

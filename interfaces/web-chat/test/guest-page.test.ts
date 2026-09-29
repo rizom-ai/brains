@@ -13,7 +13,10 @@ describe("standalone guest page shell", () => {
     expect(html).not.toContain('class="guest-masthead"');
     expect(html).not.toContain("<header");
     expect(html).toContain("<main data-web-chat-root");
-    expect(html).toContain("/ask/assets/app.js");
+    // The guest page bundle, not the signed-in app visitors never use.
+    expect(html).toContain('src="/ask/assets/ask.js"');
+    expect(html).toContain('href="/ask/assets/ask.css"');
+    expect(html).not.toContain("/ask/assets/app.");
     expect(html).not.toContain("fonts.googleapis.com");
   });
 

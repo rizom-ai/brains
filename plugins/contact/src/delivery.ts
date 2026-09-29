@@ -25,12 +25,16 @@ export const contactDeliveryPolicySchema: z.ZodType<ContactDeliveryPolicy> =
     // Must fit inside the approved transport's idempotency retention (email: 24h).
     retryWindowSeconds: z.number().int().min(60).max(3600),
   });
+/** A sent alert, or why it was not sent as a short code without message content. */
+export type ContactAlertOutcome =
+  { sent: true } | { sent: false; failure: string };
+
 export interface ContactDeliveryDependencies {
   entities: ServiceEntityService;
   state: IRuntimeStateNamespace;
   storage: ContactStoragePolicy;
   policy: ContactDeliveryPolicy;
-  send: (idempotencyKey: string) => Promise<boolean>;
+  send: (idempotencyKey: string) => Promise<ContactAlertOutcome>;
   now?: () => number;
 }
 export class ContactDelivery {
@@ -73,9 +77,12 @@ export class ContactDelivery {
         if (!current || this.expired(current)) return "skipped";
         // A slow read must not turn a once-valid reservation into a late send.
         if (this.now() >= claim.sendBefore) throw new Error("Expired attempt");
-        let sent = false;
+        let outcome: ContactAlertOutcome = {
+          sent: false,
+          failure: "unconfirmed",
+        };
         try {
-          sent = await this.deps.send(`contact-notification:${id}`);
+          outcome = await this.deps.send(`contact-notification:${id}`);
         } catch {
           /* Ambiguous delivery: preserve key and charged attempt. */
         }
@@ -83,8 +90,9 @@ export class ContactDelivery {
         const settled = await this.slots.settleDelivery(
           id,
           claim.attempt,
-          sent,
+          outcome.sent,
           this.policy.maxAttempts,
+          outcome.sent ? undefined : outcome.failure,
         );
         if (!settled) return "skipped";
         if (settled === "pending") throw new Error("Pending");

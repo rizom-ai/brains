@@ -25,6 +25,8 @@ const minuteMs = 60_000;
 const dayMs = 86_400_000;
 const maxAttempts = 32;
 const microUsd = 1_000_000;
+/** The largest monthly budget an owner can set: $10,000. */
+const maxMonthlyMicroUsd = 10_000 * microUsd;
 
 function digest(...parts: string[]): string {
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
@@ -32,6 +34,31 @@ function digest(...parts: string[]): string {
 
 function denied(reason: GuestAdmissionDenial): GuestAdmissionResult {
   return { kind: "denied", reason };
+}
+
+/** The UTC calendar month a budget covers, as `YYYY-MM`. */
+function monthOf(now: number): string {
+  return new Date(now).toISOString().slice(0, 7);
+}
+
+/** This month's charge. A new month starts with the quotes of work still in flight. */
+function chargedThisMonth(state: GuestAdmissionState, now: number): number {
+  if (state.month?.key === monthOf(now)) return state.month.chargedMicroUsd;
+  return Object.values(state.receipts)
+    .filter((receipt) => receipt.state === "active")
+    .reduce((sum, receipt) => sum + receipt.reservedMicroUsd, 0);
+}
+
+/** The owner's view of a budgeted ledger. */
+export interface GuestBudgetStatus {
+  authorized: boolean;
+  /** Switched on, with this month's budget room for another question. */
+  enabled: boolean;
+  month: string;
+  budgetMicroUsd: number;
+  chargedMicroUsd: number;
+  /** The most one answer can cost: charged when its cost is unknown. */
+  answerCapMicroUsd: number;
 }
 
 interface Transition<T> {
@@ -45,8 +72,12 @@ interface Transition<T> {
  * databases do not provide deployment-wide quotas. No process-local fallback.
  *
  * A lease authorizes one execution only after ownership and runtime cost bounds
- * are checked by the caller. Budget is charged at the approved worst-case turn
- * cost, not refunded on failure. Never settle merely because an SSE client left.
+ * are checked by the caller. Each turn reserves its worst-case quote; settling
+ * with a measured cost returns the rest, and unknown cost keeps the whole
+ * quote. Never settle merely because an SSE client left.
+ *
+ * A budgeted policy is limited by the owner's monthly budget; a configured one
+ * by its daily budget.
  */
 export class GuestAdmission {
   private readonly store: IRuntimeStateStore<GuestAdmissionState>;
@@ -72,15 +103,14 @@ export class GuestAdmission {
     if (!parsed.enabled) throw new Error("Guest admission unavailable");
     this.policy = parsed;
     this.requireAuthorization = options.requireAuthorization === true;
-    if (this.requireAuthorization && !parsed.allowance)
-      throw new Error("Guest authorization requires a bounded allowance");
+    if (this.requireAuthorization && !parsed.budgeted)
+      throw new Error("Guest authorization requires an owner-set budget");
     this.store = runtimeState.scoped({
       namespace: guestAdmissionNamespace,
       schema: guestAdmissionStateSchema,
     });
-    // Lifetime usage belongs to the deployment, not a replaceable origin name.
-    // Existing maintenance prunes receipts but preserves anonymous usage totals.
-    this.key = digest(parsed.allowance ? "guest-allowance" : parsed.origin);
+    // A budgeted ledger belongs to the deployment, not a replaceable origin name.
+    this.key = digest(parsed.budgeted ? "guest-budget" : parsed.origin);
     this.policyFingerprint = digest(JSON.stringify(parsed));
     this.now = options.now ?? Date.now;
     this.isEnabled = options.isEnabled ?? ((): boolean => true);
@@ -158,11 +188,14 @@ export class GuestAdmission {
     );
     const id = randomUUID();
 
-    return this.transact<GuestAdmissionResult>((state, now) => {
+    return this.transact<GuestAdmissionResult>((stored, now) => {
+      const state = this.expireOverdue(stored, now);
       if (
         !this.isEnabled() ||
         !state.enabled ||
-        state.policy !== this.policyFingerprint ||
+        // A configured policy is adopted explicitly; a budgeted one follows the
+        // owner's budget, whatever its current limits.
+        (!this.policy.budgeted && state.policy !== this.policyFingerprint) ||
         (this.requireAuthorization && !this.authorizationMatches(state))
       )
         return { result: denied("unavailable") };
@@ -185,14 +218,12 @@ export class GuestAdmission {
           },
         };
       }
-      if (this.policy.allowance) {
-        const usage = state.lifetime;
-        if (!usage) return { result: denied("unavailable") };
-        if (
-          usage.requests >= this.policy.allowance.requests ||
-          usage.reservedMicroUsd >
-            this.policy.allowance.maxCostMicroUsd - this.turnCost
-        )
+      if (this.policy.budgeted) {
+        const budget = state.budget;
+        if (!budget) return { result: denied("unavailable") };
+        // Answers already running when the budget runs out may overshoot it,
+        // by at most the concurrency limit times one answer's cap.
+        if (chargedThisMonth(state, now) >= budget.monthlyMicroUsd)
           return { result: denied("budget-exhausted") };
       }
       const receipts = Object.values(state.receipts);
@@ -226,20 +257,19 @@ export class GuestAdmission {
       ) {
         return { result: denied("conversation-limit") };
       }
-      // Keep every active reservation funded, even after its admission day.
-      // Settled work remains charged for a full day after provider execution ends.
-      const funded = receipts.filter(
-        (receipt) =>
-          receipt.state === "active" ||
-          (receipt.settledAt !== undefined && now - receipt.settledAt < dayMs),
-      );
-      const spent = funded.reduce(
-        (sum, receipt) => sum + receipt.reservedMicroUsd,
-        0,
-      );
+      // A configured policy's daily budget: every active reservation stays
+      // funded, and settled work stays charged for a day after it ends.
+      const spent = receipts
+        .filter(
+          (receipt) =>
+            receipt.state === "active" ||
+            (receipt.settledAt !== undefined &&
+              now - receipt.settledAt < dayMs),
+        )
+        .reduce((sum, receipt) => sum + receipt.reservedMicroUsd, 0);
       if (!Number.isSafeInteger(spent))
         return { result: denied("unavailable") };
-      if (spent > this.dailyBudget - this.turnCost)
+      if (!this.policy.budgeted && spent > this.dailyBudget - this.turnCost)
         return { result: denied("budget-exhausted") };
       const receipt: GuestAdmissionReceipt = {
         id,
@@ -253,7 +283,8 @@ export class GuestAdmission {
             this.policy.retention.maxAgeSeconds * 1000,
         ),
         deadline: now + this.policy.limits.requestTimeoutSeconds * 1000,
-        reservedMicroUsd: this.turnCost,
+        // Budgeted work is charged when it settles; nothing is held up front.
+        reservedMicroUsd: this.policy.budgeted ? 0 : this.turnCost,
         state: "active",
       };
       return {
@@ -273,27 +304,53 @@ export class GuestAdmission {
         next: {
           ...state,
           receipts: { ...retainedGuestReceipts(state, now), [key]: receipt },
-          ...(state.lifetime && this.policy.allowance
-            ? {
-                lifetime: {
-                  requests: state.lifetime.requests + 1,
-                  reservedMicroUsd:
-                    state.lifetime.reservedMicroUsd + this.turnCost,
-                },
-              }
-            : {}),
         },
       };
     }, denied("unavailable"));
   }
 
-  /** Read-only control state. Missing authorization is closed, never a grant. */
-  async accessStatus(): Promise<{
-    authorized: boolean;
-    enabled: boolean;
-    usedRequests: number;
-    reservedMicroUsd: number;
-  } | null> {
+  /**
+   * Budgeted work still active past its deadline has stopped holding its
+   * place: it settles as interrupted and is charged the answer cap, so a
+   * process that died mid-answer never blocks admission.
+   */
+  private expireOverdue(
+    state: GuestAdmissionState,
+    now: number,
+  ): GuestAdmissionState {
+    if (!this.policy.budgeted) return state;
+    const overdue = Object.entries(state.receipts).filter(
+      ([, receipt]) => receipt.state === "active" && now >= receipt.deadline,
+    );
+    if (overdue.length === 0) return state;
+    return {
+      ...state,
+      receipts: {
+        ...state.receipts,
+        ...Object.fromEntries(
+          overdue.map(([key, receipt]) => [
+            key,
+            {
+              ...receipt,
+              state: "interrupted" as const,
+              settledAt: now,
+              retainUntil: Math.max(receipt.retainUntil, now + dayMs),
+              reservedMicroUsd: this.turnCost,
+            },
+          ]),
+        ),
+      },
+      month: {
+        key: monthOf(now),
+        chargedMicroUsd:
+          chargedThisMonth(state, now) + overdue.length * this.turnCost,
+      },
+    };
+  }
+
+  /** Read-only control state of a budgeted ledger. Missing authorization is closed, never a grant. */
+  async accessStatus(): Promise<GuestBudgetStatus | null> {
+    if (!this.policy.budgeted) return null;
     try {
       const state = await this.store.get(this.key);
       const now = this.now();
@@ -303,28 +360,31 @@ export class GuestAdmission {
         (state && now < state.lastSeenAt)
       )
         return null;
+      const month = monthOf(now);
       if (!state)
         return {
           authorized: false,
           enabled: false,
-          usedRequests: 0,
-          reservedMicroUsd: 0,
+          month,
+          budgetMicroUsd: 0,
+          chargedMicroUsd: 0,
+          answerCapMicroUsd: this.turnCost,
         };
-      const usage = state.lifetime;
-      const allowance = this.policy.allowance;
-      if (!usage || !allowance) return null;
-      const authorized =
-        this.authorizationMatches(state) &&
-        state.policy === this.policyFingerprint;
+      const budget = this.authorizationMatches(state)
+        ? state.budget
+        : undefined;
+      const authorized = budget !== undefined;
+      const chargedMicroUsd = chargedThisMonth(state, now);
       return {
         authorized,
         enabled:
           authorized &&
           state.enabled &&
-          usage.requests < allowance.requests &&
-          usage.reservedMicroUsd <= allowance.maxCostMicroUsd - this.turnCost,
-        usedRequests: usage.requests,
-        reservedMicroUsd: usage.reservedMicroUsd,
+          chargedMicroUsd < budget.monthlyMicroUsd,
+        month,
+        budgetMicroUsd: budget?.monthlyMicroUsd ?? 0,
+        chargedMicroUsd,
+        answerCapMicroUsd: this.turnCost,
       };
     } catch {
       // Control reads must not reveal storage/accounting details or imply credit.
@@ -332,41 +392,40 @@ export class GuestAdmission {
     }
   }
 
-  /** Authenticated operator action only. Repetition/re-enablement never adds credit. */
-  async authorize(): Promise<boolean> {
-    const allowance = this.policy.allowance;
-    if (!this.requireAuthorization || !allowance) return false;
-    return this.transact<boolean>((state) => {
-      if (
-        !state.lifetime ||
-        (state.authorization && !this.authorizationMatches(state))
-      )
-        return { result: false };
-      return {
+  /**
+   * Authenticated operator action: open guest chat with this monthly budget.
+   * Setting it again changes the budget; the month's charge is kept, so
+   * switching off and on or changing the amount never returns money.
+   */
+  async authorize(monthlyMicroUsd: number): Promise<boolean> {
+    if (
+      !this.requireAuthorization ||
+      !this.policy.budgeted ||
+      !Number.isSafeInteger(monthlyMicroUsd) ||
+      monthlyMicroUsd < this.turnCost ||
+      monthlyMicroUsd > maxMonthlyMicroUsd
+    )
+      return false;
+    return this.transact<boolean>(
+      (state, now) => ({
         result: true,
         next: {
           ...state,
           enabled: true,
           policy: this.policyFingerprint,
-          authorization: state.authorization ?? {
-            origin: this.policy.origin,
-            ...allowance,
+          budget: { origin: this.policy.origin, monthlyMicroUsd },
+          month: {
+            key: monthOf(now),
+            chargedMicroUsd: chargedThisMonth(state, now),
           },
         },
-      };
-    }, false);
+      }),
+      false,
+    );
   }
 
   private authorizationMatches(state: GuestAdmissionState): boolean {
-    const granted = state.authorization;
-    const proposed = this.policy.allowance;
-    return Boolean(
-      granted &&
-      proposed &&
-      granted.origin === this.policy.origin &&
-      granted.requests === proposed.requests &&
-      granted.maxCostMicroUsd === proposed.maxCostMicroUsd,
-    );
+    return state.budget?.origin === this.policy.origin;
   }
 
   /** Operator-only action: adopt this policy and shared switch without resetting usage.
@@ -382,16 +441,34 @@ export class GuestAdmission {
     );
   }
 
-  /** Call only after the runtime has genuinely finished or acknowledged cancellation. */
+  /**
+   * Call only after the runtime has genuinely finished or acknowledged
+   * cancellation. Budgeted work is charged its measured cost, from the usage
+   * the provider reported, or the answer cap when that is unknown. A
+   * configured policy's reservation settles to the measured cost.
+   */
   async settle(
     lease: GuestExecutionLease,
     outcome: GuestTurnOutcome,
+    measuredMicroUsd?: number,
   ): Promise<boolean> {
     return this.transact<boolean>((state, now) => {
       const receipt = state.receipts[lease.key];
       if (receipt?.id !== lease.id) return { result: false };
       if (receipt.state !== "active")
         return { result: receipt.state === outcome };
+      const measured =
+        measuredMicroUsd !== undefined &&
+        Number.isSafeInteger(measuredMicroUsd) &&
+        measuredMicroUsd >= 0
+          ? measuredMicroUsd
+          : undefined;
+      const charge = this.policy.budgeted
+        ? (measured ?? this.turnCost)
+        : Math.min(
+            measured ?? receipt.reservedMicroUsd,
+            receipt.reservedMicroUsd,
+          );
       return {
         result: true,
         next: {
@@ -403,8 +480,17 @@ export class GuestAdmission {
               state: outcome,
               settledAt: now,
               retainUntil: Math.max(receipt.retainUntil, now + dayMs),
+              reservedMicroUsd: charge,
             },
           },
+          ...(this.policy.budgeted
+            ? {
+                month: {
+                  key: monthOf(now),
+                  chargedMicroUsd: chargedThisMonth(state, now) + charge,
+                },
+              }
+            : {}),
         },
       };
     }, false);
@@ -455,9 +541,6 @@ export class GuestAdmission {
             enabled: !this.requireAuthorization,
             lastSeenAt: now,
             receipts: {},
-            ...(this.policy.allowance
-              ? { lifetime: { requests: 0, reservedMicroUsd: 0 } }
-              : {}),
           };
           const change = transition(state, now);
           if (!change.next) return change.result;

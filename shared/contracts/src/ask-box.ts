@@ -55,3 +55,69 @@ export const askSourcesDetailSchema: z.ZodObject<{
   sources: z.array(z.object({ id: z.string(), title: z.string() })),
 });
 export type AskSourcesDetail = z.output<typeof askSourcesDetailSchema>;
+
+/**
+ * On a narrow screen the box opens full screen once the visitor engages, so
+ * the keyboard never covers it and the answer never grows out of view.
+ *
+ * - ASK_SHEET_MEDIA is the media query below which the box does so.
+ * - ASK_SHEET_ATTRIBUTE is set on the host while the box is open full screen.
+ * - ASK_KEYBOARD_ATTRIBUTE is set on the host while the on-screen keyboard
+ *   takes part of the screen; the box then fits the space above it.
+ * - The open box has no title row: its conversation starts at the top of the
+ *   screen, with a close button over its corner. A host may dock something
+ *   at the top of the conversation, such as a map of its own content, in
+ *   ASK_DOCK_ATTRIBUTE, and set `--ask-sheet-inset` on the host to its
+ *   height so an answer opens below it.
+ */
+export const ASK_SHEET_MEDIA = "(max-width: 47.99rem)";
+export const ASK_SHEET_ATTRIBUTE = "data-ask-sheet";
+export const ASK_KEYBOARD_ATTRIBUTE = "data-ask-keyboard";
+
+/**
+ * Set by a host on its mount element: whose brain the box speaks for, such
+ * as "Yeehaa". The box titles its conversation, labels its answers and says
+ * where they come from with it; without it the box speaks as "the brain".
+ */
+export const ASK_NAME_ATTRIBUTE = "data-ask-name";
+
+/**
+ * Set by a host on its mount element: what the empty box asks for, in the
+ * site's own words, such as "Ask about my work…". After the first answer the
+ * box asks for a follow-up.
+ */
+export const ASK_PLACEHOLDER_ATTRIBUTE = "data-ask-placeholder";
+
+/**
+ * The key an open sheet marks its history entry with, holding the page's
+ * scroll position. A page loaded on such an entry (a reload with the sheet
+ * open) steps back off it and returns to that position.
+ */
+export const ASK_SHEET_HISTORY_KEY = "askSheet";
+
+/**
+ * Set by the box on its host, beside ASK_SHEET_ATTRIBUTE, while a closing
+ * sheet falls away. A host that moves its own parts with the sheet (such as a
+ * map docked under its header) moves them out with it; the sheet closes when
+ * its own animation ends, or at once when it has none.
+ */
+export const ASK_CLOSING_ATTRIBUTE = "data-ask-closing";
+
+/**
+ * Rendered by the box, empty, as the first item of its conversation's
+ * scroll. A host may put its own element there while the box is open full
+ * screen (such as a map under the header) and take it back when it closes;
+ * the element then scrolls with the conversation, and the box never touches
+ * it. The host styles it, and sets `--ask-sheet-inset` to its height so an
+ * answer opens below it.
+ */
+export const ASK_DOCK_ATTRIBUTE = "data-ask-dock";
+
+/**
+ * Set on the document's root element while an open sheet holds the page
+ * still, to the page's scroll position. The page is pinned in place there
+ * (Safari scrolls a page whose root only hides its overflow) and goes back
+ * to that position when the sheet closes. Whoever opens the sheet first,
+ * the boot or the box, sets it; the box clears it on close.
+ */
+export const ASK_PAGE_LOCK_ATTRIBUTE = "data-ask-locked";

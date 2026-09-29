@@ -62,6 +62,7 @@ import type {
   PublishingActionResult,
   TypeSchema,
 } from "./api";
+import { studioTypeHierarchy } from "../../src/config";
 
 async function successfulPublishingAction(): Promise<PublishingActionResult> {
   return { success: true };
@@ -411,18 +412,22 @@ describe("TypeSwitcher", () => {
   const types: EntityTypeInfo[] = [
     {
       entityType: "post",
+      classification: "content",
       label: "Posts",
       isSingleton: false,
       hasBody: true,
       count: 12,
+      hierarchy: studioTypeHierarchy("post"),
       capabilities: allCapabilities,
     },
     {
       entityType: "site-info",
+      classification: "system",
       label: "Site Info",
       isSingleton: true,
       hasBody: false,
       count: 1,
+      hierarchy: studioTypeHierarchy("site-info"),
       capabilities: allCapabilities,
     },
   ];
@@ -597,34 +602,42 @@ describe("TypeSwitcher", () => {
     const machinery: EntityTypeInfo[] = [
       {
         entityType: "prompt",
+        classification: "system",
         label: "Prompts",
         isSingleton: false,
         hasBody: true,
         count: 16,
+        hierarchy: studioTypeHierarchy("prompt"),
         capabilities: allCapabilities,
       },
       {
         entityType: "agent",
+        classification: "system",
         label: "Agents",
         isSingleton: false,
         hasBody: false,
         count: 2,
+        hierarchy: studioTypeHierarchy("agent"),
         capabilities: allCapabilities,
       },
       {
         entityType: "brain-character",
+        classification: "system",
         label: "Brain Characters",
         isSingleton: true,
         hasBody: true,
         count: 1,
+        hierarchy: studioTypeHierarchy("brain-character"),
         capabilities: allCapabilities,
       },
       {
         entityType: "style-guide",
+        classification: "system",
         label: "Style Guide",
         isSingleton: true,
         hasBody: true,
         count: 1,
+        hierarchy: studioTypeHierarchy("style-guide"),
         capabilities: allCapabilities,
       },
     ];
@@ -649,7 +662,7 @@ describe("TypeSwitcher", () => {
 
 function renderCapabilityView(
   capabilities: EntityTypeInfo["capabilities"],
-  mode: "browse" | "edit",
+  mode: "browse" | "edit" | "create",
   page: {
     offset?: number;
     limit?: number;
@@ -664,6 +677,7 @@ function renderCapabilityView(
     singleton?: boolean;
     fields?: FieldDescriptor[];
     frontmatter?: Record<string, unknown>;
+    groupings?: StudioAppViewProps["groupings"];
   } = {},
 ): string {
   const entityType = page.entityType ?? "post";
@@ -686,13 +700,16 @@ function renderCapabilityView(
   };
   const type: EntityTypeInfo = {
     entityType,
+    classification: "content",
     label: entityType === "site-content" ? "Site content" : "Posts",
     isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
     count: page.total ?? 1,
+    hierarchy: studioTypeHierarchy(entityType),
     capabilities,
   };
   const props: StudioAppViewProps = {
+    ...(page.groupings && { groupings: page.groupings }),
     activeWorkspaceId: null,
     readError: page.readError ?? null,
     onRetryRead: () => {},
@@ -729,7 +746,7 @@ function renderCapabilityView(
     entityListLoading: false,
     schema,
     editor: {
-      mode: mode === "edit" ? { kind: "edit", entity } : { kind: "browse" },
+      mode: mode === "edit" ? { kind: "edit", entity } : { kind: mode },
       draft: entity.frontmatter,
       body: entity.body,
       save: { kind: "idle" },
@@ -768,6 +785,124 @@ function renderCapabilityView(
   };
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
+
+it("blocks pristine singleton creation, not existing document no-op saves", () => {
+  for (const mode of ["create", "edit"] as const) {
+    for (const singleton of [true, false]) {
+      for (const dirty of [true, false]) {
+        const browser = new Window();
+        browser.document.body.innerHTML = renderCapabilityView(
+          {
+            canRead: true,
+            canCreate: true,
+            canUpdate: true,
+            canDelete: true,
+            canExtract: false,
+            canPublish: false,
+            canAssist: false,
+          },
+          mode,
+          { singleton, dirty, hasBody: false },
+        );
+        const save = browser.document.querySelector(".studio-editor-head-save");
+        expect(save).not.toBeNull();
+        expect(save?.hasAttribute("disabled")).toBe(
+          mode === "create" && singleton && !dirty,
+        );
+        browser.close();
+      }
+    }
+  }
+});
+
+it("offers AI suggestions only for groups editors may type into", () => {
+  const list = (name: string, label: string): FieldDescriptor => ({
+    name,
+    label,
+    widget: "list",
+    required: false,
+    field: { name: "value", label: "Value", widget: "string" },
+  });
+  const html = renderCapabilityView(
+    {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: false,
+      canPublish: false,
+      canAssist: true,
+    },
+    "edit",
+    {
+      fields: [list("clients", "Clients"), list("areas", "Areas")],
+      frontmatter: { clients: ["Acme"], areas: ["Field notes"] },
+      groupings: {
+        items: [
+          {
+            key: "clients",
+            label: "Clients",
+            field: "clients",
+            types: ["post"],
+            rules: { multiple: false, values: ["Acme", "Beta"] },
+          },
+          { key: "areas", label: "Areas", field: "areas", types: ["post"] },
+        ],
+        active: null,
+        onSelect: () => {},
+      },
+    },
+  );
+  // A model never sees the closed list, so it could only propose values
+  // the save would refuse.
+  expect(html).not.toContain("Suggest clients");
+  expect(html).toContain("Suggest areas");
+});
+
+it("withholds assist from closed lists on system-designed documents too", () => {
+  const list = (name: string, label: string): FieldDescriptor => ({
+    name,
+    label,
+    widget: "list",
+    required: false,
+    field: { name: "value", label: "Value", widget: "string" },
+  });
+  const html = renderCapabilityView(
+    {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: false,
+      canPublish: false,
+      canAssist: true,
+    },
+    "edit",
+    {
+      entityType: "playbook",
+      fields: [list("clients", "Clients"), list("areas", "Areas")],
+      frontmatter: { clients: ["Acme"], areas: ["Field notes"] },
+      groupings: {
+        items: [
+          {
+            key: "clients",
+            label: "Clients",
+            field: "clients",
+            types: ["playbook"],
+            rules: { multiple: false, values: ["Acme", "Beta"] },
+          },
+          { key: "areas", label: "Areas", field: "areas", types: ["playbook"] },
+        ],
+        active: null,
+        onSelect: () => {},
+      },
+    },
+  );
+  // A model never sees the closed list, so it could only propose values
+  // the save would refuse.
+  expect(html).not.toContain("Suggest clients");
+  expect(html).toContain("Suggest areas");
+});
 
 it("uses page terminology throughout site-content collection navigation", () => {
   const window = new Window();

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type { RefObject, ReactElement } from "react";
+import { useFollowTail } from "@brains/app-ui-react";
 import type {
   ChatHistoryMessage,
   ChatMessageRequest,
@@ -22,11 +23,8 @@ export interface GuestPageProps {
   pending: ChatMessageRequest | undefined;
   deleting: boolean;
   expired: boolean;
-  transcriptRef: RefObject<HTMLDivElement | null>;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   conversationMenuRef: RefObject<HTMLDetailsElement | null>;
-  /** Whether the transcript should stay pinned to the newest message. */
-  followTranscript: RefObject<boolean>;
   onRestore: (locator: string) => void;
   onNewConversation: () => void;
   onAskDelete: () => void;
@@ -46,16 +44,13 @@ export interface GuestPageProps {
  * `GuestApp`.
  */
 export function GuestPage(props: GuestPageProps): ReactElement {
-  const {
-    session,
-    messages,
-    draft,
-    busy,
-    pending,
-    expired,
-    id,
-    followTranscript,
-  } = props;
+  const { session, messages, draft, busy, pending, expired, id } = props;
+  // An emptied transcript starts following again; the reader has not chosen
+  // to look away from a conversation that no longer exists.
+  const tail = useFollowTail({
+    resetKey: messages.length === 0,
+    contentKey: messages,
+  });
 
   return (
     <div className="guest-ask">
@@ -113,15 +108,11 @@ export function GuestPage(props: GuestPageProps): ReactElement {
           </header>
           <div
             className="guest-transcript-scroll"
-            ref={props.transcriptRef}
+            ref={tail.ref}
             role="region"
             aria-label="Conversation transcript"
             tabIndex={0}
-            onScroll={(event): void => {
-              const view = event.currentTarget;
-              followTranscript.current =
-                view.scrollHeight - view.scrollTop - view.clientHeight < 64;
-            }}
+            onScroll={tail.onScroll}
           >
             {props.deleting && (
               <div className="guest-delete" role="alert">
@@ -190,6 +181,7 @@ export function GuestPage(props: GuestPageProps): ReactElement {
               className="guest-composer"
               onSubmit={(event): void => {
                 event.preventDefault();
+                tail.follow();
                 props.onSubmit();
               }}
             >
@@ -199,7 +191,6 @@ export function GuestPage(props: GuestPageProps): ReactElement {
               <textarea
                 ref={props.textareaRef}
                 id="guest-question"
-                aria-describedby="guest-recording-note"
                 value={draft}
                 onInput={(event): void =>
                   props.onDraftChange(event.currentTarget.value)
@@ -242,9 +233,6 @@ export function GuestPage(props: GuestPageProps): ReactElement {
                   </button>
                 )}
               </div>
-              <p id="guest-recording-note" className="guest-recording">
-                {session.recording.notice}
-              </p>
             </form>
           )}
         </section>

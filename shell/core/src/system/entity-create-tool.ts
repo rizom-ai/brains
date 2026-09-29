@@ -1,4 +1,7 @@
-import { isSavableAssistantMessage } from "@brains/conversation-service";
+import {
+  isSavableAssistantMessage,
+  parseConversationMessageMetadata,
+} from "@brains/conversation-service";
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
@@ -7,6 +10,7 @@ import {
 } from "@brains/entity-service";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
 import { assertEntityActionAllowed } from "./entity-action-policy";
@@ -25,7 +29,7 @@ import { getErrorMessage } from "@brains/utils/error";
 
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
-// `content` already holds the resolved prior-response/text content.
+// `content` already holds the resolved text or conversation-message content.
 const uploadScope = {
   namespace: "upload",
   refKind: "upload",
@@ -82,12 +86,13 @@ function buildCreateConfirmation(createInput: CreateInput): {
 
 async function resolveConversationMessageContent(
   services: SystemServices,
-  input: Extract<CreateInput["from"], { kind: "conversation-message" }>,
-  conversationId: string | undefined,
+  input: NonNullable<NormalizedCreateSource["conversationMessageRef"]>,
+  toolContext: CreateToolContext,
 ): Promise<
   | { success: true; messageId: string; content: string }
   | { success: false; error: string }
 > {
+  const conversationId = toolContext.conversationId ?? toolContext.channelId;
   if (!conversationId) {
     return {
       success: false,
@@ -100,14 +105,28 @@ async function resolveConversationMessageContent(
     conversationId,
     { limit: 100 },
   );
+  const userSource = input.kind === "user-message";
+  const candidates = userSource
+    ? messages.filter((candidate) => {
+        if (candidate.role !== "user") return false;
+        const level = toolContext.userPermissionLevel ?? "public";
+        if (level === "admin") return true;
+        const storedLevel = parseConversationMessageMetadata(
+          candidate.metadata,
+        )?.["userPermissionLevel"];
+        return (
+          (storedLevel === "public" ||
+            storedLevel === "trusted" ||
+            storedLevel === "admin") &&
+          services.permissionService.hasPermission(level, storedLevel)
+        );
+      })
+    : messages.filter(isSavableAssistantMessage);
   const message = input.messageId
-    ? messages.find(
-        (candidate) =>
-          candidate.id === input.messageId && candidate.role === "assistant",
-      )
-    : [...messages].reverse().find(isSavableAssistantMessage);
+    ? candidates.find((candidate) => candidate.id === input.messageId)
+    : candidates.at(-1);
 
-  if (!message || !isSavableAssistantMessage(message)) {
+  if (!message) {
     return {
       success: false,
       error:
@@ -115,7 +134,53 @@ async function resolveConversationMessageContent(
     };
   }
 
-  return { success: true, messageId: message.id, content: message.content };
+  if (!userSource) {
+    return { success: true, messageId: message.id, content: message.content };
+  }
+
+  const boundary = (
+    value: string | undefined,
+    fallback: number,
+    after: boolean,
+  ): number => {
+    if (value === undefined) return fallback;
+    if (input.boundaryMode === "lines") {
+      if (/[\r\n]/.test(value)) return -1;
+      let offset = 0;
+      let found = -1;
+      // Retain line endings in the slices, so offsets preserve LF and CRLF bytes.
+      for (const line of message.content.split(/(?<=\n)/)) {
+        if (line.replace(/\r?\n$/, "") === value) {
+          if (found >= 0) return -1;
+          found = offset + (after ? line.length : 0);
+        }
+        offset += line.length;
+      }
+      return found;
+    }
+    const index = message.content.indexOf(value);
+    return index >= 0 && index === message.content.lastIndexOf(value)
+      ? index + (after ? value.length : 0)
+      : -1;
+  };
+  const start = boundary(input.startAfter, 0, true);
+  const end = boundary(input.endBefore, message.content.length, false);
+  if (start < 0 || end < 0 || start >= end) {
+    return {
+      success: false,
+      error:
+        "User-message boundaries must each occur exactly once and select non-empty content in order. In lines mode, use complete marker lines without newline characters. Request clarification if the intended content cannot be selected uniquely.",
+    };
+  }
+  const content = message.content.slice(start, end);
+  if (input.contentHash && input.contentHash !== computeContentHash(content)) {
+    return {
+      success: false,
+      error:
+        "User-message source changed after the proposal. Request creation again and confirm the new approval.",
+    };
+  }
+  return { success: true, messageId: message.id, content };
 }
 
 type CreateToolInput = z.infer<typeof createInputSchema>;
@@ -128,8 +193,8 @@ interface NormalizedCreateSource {
   from?: Exclude<CreateInput["from"], { kind: "conversation-message" }>;
   uploadRef?: { kind: "upload"; id: string };
   conversationMessageRef?: Extract<
-    CreateInput["from"],
-    { kind: "conversation-message" }
+    PreferredCreateSource,
+    { kind: "prior-response" | "user-message" }
   >;
   transform?: CreateInput["transform"];
 }
@@ -149,19 +214,28 @@ function normalizeCreateSource(
         transform: source.transform,
       };
     case "prior-response":
-      return {
-        conversationMessageRef: {
-          kind: "conversation-message",
-          ...(source.messageId ? { messageId: source.messageId } : {}),
-        },
-      };
+    case "user-message":
+      return { conversationMessageRef: source };
   }
 }
 
 function freezeConfirmationSource(input: {
   source: PreferredCreateSource;
   resolvedMessageId?: string;
+  content?: string;
 }): PreferredCreateSource {
+  if (input.source.kind === "user-message") {
+    if (!input.resolvedMessageId || input.content === undefined) {
+      throw new Error(
+        "User-message source was not resolved before confirmation",
+      );
+    }
+    return {
+      ...input.source,
+      messageId: input.resolvedMessageId,
+      contentHash: computeContentHash(input.content),
+    };
+  }
   if (input.source.kind === "prior-response") {
     const messageId = input.source.messageId ?? input.resolvedMessageId;
     return {
@@ -310,7 +384,7 @@ async function resolveCreateSource(
     ? await resolveConversationMessageContent(
         services,
         conversationMessageRef,
-        toolContext.conversationId ?? toolContext.channelId,
+        toolContext,
       )
     : undefined;
   if (resolvedMessage && !resolvedMessage.success) {
@@ -321,15 +395,23 @@ async function resolveCreateSource(
 
   if (
     transform === "extract-markdown" &&
-    (!uploadRef || input.entityType !== "note")
+    (!uploadRef ||
+      !services.entityRegistry.getEntityTypeConfig(input.entityType)
+        .markdownImport)
   ) {
+    const available = services.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          services.entityRegistry.getEntityTypeConfig(type).markdownImport,
+      );
     return guardError(
-      'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
+      `Transform "extract-markdown" requires an upload ref and a type declaring markdownImport. Available: ${available.join(", ") || "none"}. Omit transform for raw file promotion.`,
     );
   }
   if (!resolvedContent && !url && !from) {
     return guardError(
-      'Provide `source` with kind "text", "url", "prior-response", or "upload". Use system_generate for generated content or artifacts.',
+      'Provide `source` with kind "user-message", "text", "url", "prior-response", or "upload". Use system_generate for generated content or artifacts.',
     );
   }
 
@@ -588,7 +670,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "create",
-    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: text for exact user-provided content, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind text with that content instead of asking them to paste it again; for example, 'Save this as a note: ...' or 'Save this memo about the launch timeline' already supplies the content, even when it is only a short sentence or fragment. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind text for that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
+    "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Use source to choose exactly one concrete source: user-message for verbatim content already pasted in this conversation (the server extracts the stored text without model copying), text for literal content without a stored message source, url for URL-first flows, prior-response for saving a previous assistant response, or upload with transform extract-markdown to import text into a note or transform preserve to save raw uploaded bytes as their durable file entity. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment; if the user message merely contains a pasted uploaded-file transcript with readable content, use source.kind user-message with boundaries selecting that visible content. On the initial create request, do not pass confirmed; the tool will return confirmation args after the user confirms.",
     createInputSchema,
     async (input, toolContext) => {
       const prep = await prepareCreate(services, input, toolContext);
@@ -616,6 +698,9 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         const confirmationSource = freezeConfirmationSource({
           source: input.source,
           ...(resolvedMessageId && { resolvedMessageId }),
+          ...(createInput.content !== undefined
+            ? { content: createInput.content }
+            : {}),
         });
         const confirmationArgs = confirmationGate.buildArgs(
           (confirmationToken) => ({

@@ -2,6 +2,12 @@
 // Plugin Framework Core
 // ============================================================================
 
+export {
+  entityTypeClassificationSchema,
+  isGroupingContributor,
+  type EntityTypeClassification,
+} from "@brains/entity-service";
+
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export {
@@ -336,6 +342,7 @@ export {
 
 export type {
   Plugin,
+  ProtocolPluginProvider,
   PluginRegistrationContext,
   PluginCapabilities,
   Tool,
@@ -420,6 +427,8 @@ export type {
   EntityServiceClient,
   EntityGrouping,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
   EntityGroupingMembers,
   GroupingSort,
   QueryGroupingCatalogRequest,
@@ -444,6 +453,7 @@ export {
   entityGroupingSchema,
   groupingSortSchema,
   groupingKeySchema,
+  queryGroupingUsageSchema,
   groupingValueSchema,
   groupingSearchSchema,
   GROUPING_PAGE_LIMIT,
@@ -891,6 +901,7 @@ export type {
 export {
   basePluginConfigSchema,
   isPluginConfigValidationError,
+  isMissingPluginConfig,
   PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,

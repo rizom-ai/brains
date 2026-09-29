@@ -16,14 +16,17 @@ import {
   useStudioRouteEffects,
   type StudioRouteEffectsInput,
 } from "./use-studio-route-effects";
+import { studioTypeHierarchy } from "../../src/config";
 
 function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
   return {
     entityType: "note",
+    classification: "content",
     label: "Notes",
     isSingleton: false,
     hasBody: true,
     count: 1,
+    hierarchy: studioTypeHierarchy("note"),
     capabilities: {
       canRead: true,
       canCreate: true,

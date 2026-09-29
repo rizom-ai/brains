@@ -68,7 +68,6 @@ const page: { opening: HomepageOpeningContent; owner: string } = {
     topicsHeading: "Pick a thread",
     contactLabel: "Write to me",
     contactNote: "I read these myself.",
-    attribution: "In my own words",
     mapCaption: "My published work, by topic",
   },
 };
@@ -80,7 +79,9 @@ describe("homepage atlas", () => {
     );
     expect(html).toContain("Building something inhabitable.");
     expect(html).toContain("I work on how institutions hold what they know.");
-    expect(html).toContain("Jan Hein Hoogstad");
+    // The name is said once, by the site's header, not again over the headline.
+    expect(html).not.toContain("Jan Hein Hoogstad");
+    expect(html).not.toContain("atlas__byline");
     expect(html).toContain('href="https://yeehaa.test/contact"');
     expect(html).toContain("Someone who carries a lot is about to leave");
   });
@@ -93,6 +94,10 @@ describe("homepage atlas", () => {
     expect(html).toContain("<path");
     expect(html).toContain("New institutions");
     expect(html).toContain('href="/essays/hiding-in-plain-sight"');
+    // Each mark carries its kind's name, for the answer's source list to use.
+    expect(html).toMatch(
+      /data-atlas-key="post:hiding" data-atlas-type="Essay"/,
+    );
     expect(html).toContain("Hiding in Plain Sight");
     expect(html).toContain('href="/projects/lefthoek"');
     expect(html).toContain("Essay");
@@ -164,6 +169,38 @@ describe("living atlas", () => {
     );
   });
 
+  it("parts the contour lines around a territory name so it reads over dense rings", () => {
+    const zone = /\.atlas__zone \{[^}]*text-shadow: ([^;]*);/.exec(
+      homepageAtlasStyles,
+    )?.[1];
+    // Stacked tight shadows in the page colour: a solid halo, not a soft glow.
+    expect(zone?.match(/0 0 [1-4]px var\(--color-bg\)/g)?.length).toBe(5);
+  });
+
+  it("starts the homepage copy on the header's content edge, however wide the screen", () => {
+    expect(homepageAtlasStyles).toContain(
+      "--atlas-edge: max(3rem, (100% - var(--layout-max-width, 72rem)) / 2);",
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__talk \{[^}]*padding: [^;]* var\(--atlas-edge\);/,
+    );
+    // Phones and tablets take the header's gutter: 1.5rem, and 3rem from 48rem.
+    const narrow = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 60rem)"),
+    );
+    expect(narrow).toMatch(/\.atlas \{[^}]*--atlas-edge: 1\.5rem;/);
+    expect(narrow).toContain(
+      "@media (min-width: 48rem) and (max-width: 60rem) { .atlas { --atlas-edge: 3rem; } }",
+    );
+    expect(narrow).toMatch(
+      /\.atlas__talk \{[^}]*padding: \.9rem var\(--atlas-edge\) 2\.5rem;/,
+    );
+    // Without a map the copy keeps its measure, moved by the same edge.
+    expect(homepageAtlasStyles).toContain(
+      ".atlas--bare .atlas__talk { width: min(calc(48rem + var(--atlas-edge) - 3rem), 100%);",
+    );
+  });
+
   it("marks the parts the touch script needs", () => {
     expect(html()).toContain("data-atlas=");
     expect(html()).toContain("data-atlas-terrain");
@@ -218,6 +255,106 @@ describe("living atlas", () => {
     );
   });
 
+  it("scrolls a docked conversation only with the text column, never inside the box", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__ask:not\(\[data-ask-sheet\]\) \.brain-box-scroll \{ max-height: none; overflow: visible; \}/,
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas--chat \.atlas__talk \{[^}]*scrollbar-width: thin;[^}]*scrollbar-color: var\(--color-rule\) transparent;/,
+    );
+  });
+
+  it("on a phone, lends the map to the open conversation, where it scrolls up into a strip", () => {
+    const phone = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
+    );
+    // The open conversation rises above the sticky site header.
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \{ z-index: 1000; \}/,
+    );
+    // In the conversation's dock the map is the page's own, at its size, and
+    // pins once only a strip of it is left.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\]:has\(\.atlas__map\) \{[^}]*position: sticky;[^}]*top: calc\(7\.5rem - \(var\(--atlas-band\) - 2rem\)\);/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__map \{[^}]*height: calc\(var\(--atlas-band\) - 2rem\);/,
+    );
+    // A slot holds its place on the page meanwhile.
+    expect(phone).toMatch(
+      /\.atlas__map-slot \{[^}]*height: var\(--atlas-band\);/,
+    );
+    // An answer opens below the whole map.
+    expect(phone).toMatch(
+      /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: calc\(var\(--atlas-band\) - 2rem\); \}/,
+    );
+    // Out of the way while typing.
+    expect(phone).toMatch(
+      /\.atlas__ask\[data-ask-keyboard\] \[data-ask-dock\] \{ display: none; \}/,
+    );
+    // The field keeps the answer's pieces in the middle of the part that shows.
+    expect(homepageAtlasStyles).toMatch(/\.atlas__field \{ bottom: 2rem; \}/);
+    expect(phone).toMatch(
+      /--atlas-window: max\(7\.5rem, calc\(var\(--atlas-field-height\) - var\(--atlas-sheet-scroll, 0px\)\)\);/,
+    );
+    // Pieces near the map's edge still reach the strip's middle: the field may
+    // move by as much as the strip hides, but never at full height.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__field \{[^}]*top: clamp\(calc\(var\(--atlas-window\) - var\(--atlas-field-height\)\), calc\(var\(--atlas-field-height\) - var\(--atlas-window\) \/ 2 - /,
+    );
+    // Only an answer pans it.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__field \{[^}]*transition: transform [^;]*;\s*\}/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__field\[data-atlas-panning\] \{[^}]*top \.9s/,
+    );
+    // Marks cut by its edges fade out, as the terrain does.
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__map::after \{[^}]*linear-gradient\(180deg, var\(--color-bg\), transparent/,
+    );
+    // Nothing of the old overlay: no fixed map, no separate rise and fall.
+    expect(phone).not.toContain("position: fixed");
+    expect(homepageAtlasStyles).not.toContain("atlas-sheet-rise");
+    expect(homepageAtlasStyles).not.toContain("data-atlas-moving");
+  });
+
+  it("lifts an open card above every other mark, lit ones included", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark\[data-open\] \{ z-index: 4; \}/,
+    );
+    // A lit piece's own card too: its lit rule must not pull it back down.
+    const lit = homepageAtlasStyles.indexOf(
+      ".atlas__mark[data-cited] { z-index: 3; }",
+    );
+    const openLit = homepageAtlasStyles.indexOf(
+      ".atlas__mark[data-cited][data-open] { z-index: 4; }",
+    );
+    expect(lit).toBeGreaterThan(-1);
+    expect(openLit).toBeGreaterThan(lit);
+  });
+
+  it("keeps marks and their cards at their own size while the map zooms", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__field\[data-focused\] :is\(\.atlas__mark > :first-child, \.atlas__cited\) \{[^}]*scale: calc\(1 \/ var\(--atlas-focus-scale, 1\)\);/,
+    );
+  });
+
+  it("opens the title cards of marks near the map's top below them, so they stay on the map", () => {
+    const marks = Array.from(
+      html().matchAll(
+        /<li[^>]*class="([^"]*)"[^>]*style="left:[^;]*;top:([\d.]+)%"/g,
+      ),
+      (match): [string, number] => [match[1] ?? "", Number(match[2])],
+    );
+    expect(marks.length).toBeGreaterThan(0);
+    for (const [className, top] of marks)
+      expect(className.includes("atlas__mark--south")).toBe(top < 28);
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark--south \.atlas__tip \{[^}]*top: calc\(100% \+ \.3rem\);/,
+    );
+  });
+
   it("anchors title cards inward at both edges so they stay on screen", () => {
     expect(html()).toContain("atlas__mark--west");
     expect(html()).toContain("atlas__mark--east");
@@ -246,12 +383,14 @@ describe("atlas hover on touch screens", () => {
     );
   });
 
-  it("shows topics as the choices they are on touch screens, with no hover to reveal them", () => {
+  it("shows topics as the choices they are on touch screens: a list between hairlines, with no hover to reveal them", () => {
     expect(touch()).toMatch(
-      /\.atlas__topics a \{[^}]*background: var\(--color-bg-subtle\)/,
+      /\.atlas__topics a \{[^}]*border-bottom: 1px solid var\(--color-border\)/,
     );
     expect(touch()).toMatch(/\.atlas__topics a \{[^}]*padding:/);
-    expect(touch()).toMatch(/\.atlas__topics \{[^}]*gap:/);
+    expect(touch()).toMatch(
+      /\.atlas__topics li:first-child a \{[^}]*border-top: 1px solid/,
+    );
   });
 
   it("overrides the resting styles it follows, so touch sizes win at equal specificity", () => {
@@ -274,7 +413,6 @@ describe("atlas copy", () => {
       "Pick a thread",
       "Write to me",
       "I read these myself.",
-      "In my own words",
       "My published work, by topic",
     ]) {
       expect(html).toContain(words);
@@ -291,7 +429,6 @@ describe("atlas copy", () => {
       topicsHeading: null,
       contactLabel: null,
       contactNote: null,
-      attribution: null,
       mapCaption: null,
     };
     const html = renderToStaticMarkup(
@@ -314,6 +451,37 @@ describe("atlas copy", () => {
   });
 });
 
+describe("atlas styles for the conversation", () => {
+  const phone = homepageAtlasStyles.slice(
+    homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
+  );
+
+  it("draws each source in its mark's shape, named as the legend names it", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\[data-ask-source\^="deck:"\] \.brain-box-source-mark \{[^}]*rotate: 45deg/,
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\[data-ask-source\^="project:"\] \.brain-box-source-mark \{[^}]*border-radius: 1\.5px/,
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\[data-atlas-type\]::after \{[^}]*content: attr\(data-atlas-type\)/,
+    );
+  });
+
+  it("lights a piece with one thin ring, not a blurred halo", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark\[data-cited\] \.atlas__glyph \{[^}]*box-shadow: 0 0 0 2px var\(--color-bg\), 0 0 0 3px var\(--color-accent\);/,
+    );
+  });
+
+  it("keeps a phone's type below the desktop sizes", () => {
+    expect(phone).toMatch(
+      /\.atlas h1 \{ font-size: clamp\(2\.1rem, 9\.5vw, 2\.6rem\)/,
+    );
+    expect(phone).toMatch(/\.atlas__prose \{ font-size: 1rem; \}/);
+  });
+});
+
 describe("atlas with guest chat", () => {
   const html = (): string =>
     renderToStaticMarkup(<HomepageAtlas {...page} atlas={atlas} askBox />);
@@ -325,6 +493,9 @@ describe("atlas with guest chat", () => {
     expect(html()).toContain('data-ask-send=""');
     expect(html()).toContain('data-ask-status=""');
     expect(html()).toMatch(/<textarea[^>]*disabled/);
+    // The box asks in the page's own voice, before and after it mounts.
+    expect(html()).toContain('data-ask-placeholder="Ask about my work…"');
+    expect(html()).toMatch(/<textarea[^>]*placeholder="Ask about my work…"/);
     expect(html()).toContain('src="/ask/assets/box.js"');
   });
 
@@ -344,6 +515,38 @@ describe("atlas with guest chat", () => {
     expect(html()).toMatch(/<svg[^>]*data-atlas-leads[^>]*aria-hidden="true"/);
   });
 
+  it("lets a lit piece show where a phone's answer cites it", () => {
+    expect(html()).toMatch(
+      /<button type="button" class="atlas__cited" data-atlas-cited="">Where it’s cited ↓<\/button>/,
+    );
+    const phone = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
+    );
+    // Only on the open card of a lit piece, in the open conversation.
+    expect(homepageAtlasStyles).toMatch(/\.atlas__cited \{ display: none; \}/);
+    expect(phone).toMatch(
+      /\.atlas__ask \[data-ask-dock\] \.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*display: block;/,
+    );
+    // Beside its mark, towards the map's middle, so no edge of the map cuts it.
+    expect(phone).toMatch(
+      /\.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*top: 50%; left: calc\(100% \+ \.3rem\); translate: 0 -50%;/,
+    );
+    expect(phone).toMatch(
+      /\.atlas__mark--west\[data-open\]\[data-cited\] \.atlas__cited \{ left: auto; right: calc\(100% \+ \.3rem\); \}/,
+    );
+    // A tapped source pulses its piece; a piece's source flashes in the answer.
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark\[data-atlas-pulse\] \.atlas__glyph \{ animation: atlas-pulse /,
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__ask \[data-ask-source\]\[data-atlas-flash\] \{ animation: atlas-flash /,
+    );
+  });
+
+  it("gives the script a handle on the map it lends to a phone's conversation", () => {
+    expect(html()).toMatch(/<div class="atlas__map" data-atlas-map=""/);
+  });
+
   it("keys every mark as the answer's sources are keyed", () => {
     expect(html()).toContain('data-atlas-key="post:hiding"');
     expect(html()).toContain('data-atlas-key="project:lefthoek"');
@@ -354,6 +557,7 @@ describe("atlas with guest chat", () => {
     expect(off).not.toContain("data-ask-box");
     expect(off).not.toContain("data-atlas-fill");
     expect(off).not.toContain("data-atlas-leads");
+    expect(off).not.toContain('data-atlas-cited=""');
     expect(off).not.toContain("<script");
   });
 });

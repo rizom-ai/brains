@@ -7,6 +7,13 @@ import { HOMEPAGE_ATLAS_SCRIPT } from "../src/templates/homepage-atlas-script";
 let window: Window;
 let restoreGlobals: RestoreGlobals;
 let observed: Array<(entries: Array<{ isIntersecting: boolean }>) => void>;
+/**
+ * The page's mutation observers. happy-dom holds an observer's callback only
+ * weakly, so garbage collection can drop it mid-test; tests deliver the
+ * changes themselves, as a browser does once the current task ends.
+ */
+let watchers: Array<() => void>;
+const mutate = (): void => watchers.forEach((notify) => notify());
 
 const media: Record<string, boolean> = {};
 
@@ -23,14 +30,14 @@ function setup(options: {
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
       <a id="topic" href="/contact?topic=What+is+Rizom%3F" data-atlas-door data-atlas-fill="What is Rizom?">What is Rizom?</a>
       <svg data-atlas-leads></svg>
-      <div data-atlas-field>
+      <div class="atlas__map" data-atlas-map><div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
-          <li data-atlas-mark data-atlas-key="post:first" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:first" data-atlas-type="Essay" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-atlas-cited>Where it’s cited ↓</button></li>
           <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
           <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
-      </div>
+      </div></div>
     </section>
     <p id="outside">Elsewhere</p>`;
   // Marks sit 40px apart on a phone-sized map; each is a 26px hit target.
@@ -81,6 +88,13 @@ function openMarks(): string[] {
 beforeEach(() => {
   window = new Window({ url: "https://yeehaa.test/" });
   observed = [];
+  watchers = [];
+  class Watcher {
+    constructor(callback: () => void) {
+      watchers.push(callback);
+    }
+    observe(): void {}
+  }
   Object.assign(window, {
     matchMedia: (query: string) => ({
       matches: media[query] ?? false,
@@ -101,7 +115,7 @@ beforeEach(() => {
     // The page's own Event, as a browser page has it.
     Event: window.Event,
     IntersectionObserver: Observer,
-    MutationObserver: window.MutationObserver,
+    MutationObserver: Watcher,
   });
 });
 
@@ -183,7 +197,7 @@ describe("atlas door", () => {
       "https://yeehaa.test/",
     ).searchParams;
 
-  it("carries the visitor's theme to the contact form, which cannot read it, and follows a change", async () => {
+  it("carries the visitor's theme to the contact form, which cannot read it, and follows a change", () => {
     window.document.documentElement.setAttribute("data-theme", "light");
     setup({ touch: true });
     window.document.querySelector(".contact")?.setAttribute("id", "contact");
@@ -192,7 +206,7 @@ describe("atlas door", () => {
     expect(door("contact").get("theme")).toBe("light");
 
     window.document.documentElement.setAttribute("data-theme", "dark");
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    mutate();
     expect(door("topic").get("theme")).toBe("dark");
     expect(door("contact").get("theme")).toBe("dark");
   });
@@ -305,6 +319,179 @@ describe("atlas and its chat", () => {
     ).map((mark) => mark.getAttribute("data-atlas-key"));
     expect(cited).toEqual(["post:first"]);
     expect(focused()).toBe(true);
+  });
+
+  it("names each listed source's kind as the map's legend does, whenever the list appears", () => {
+    setup({ touch: false, chat: "live" });
+    const type = (id: string): string | null | undefined =>
+      window.document
+        .querySelector(`[data-ask-source="${id}"]`)
+        ?.getAttribute("data-atlas-type");
+    listSources(["post:first", "post:elsewhere"], true);
+    answer(["post:first"]);
+    expect(type("post:first")).toBe("Essay");
+    // A source the map does not show gets no kind.
+    expect(type("post:elsewhere")).toBeNull();
+    // A list the box renders after the answer is named too.
+    window.document.querySelector("details")?.remove();
+    listSources(["post:first"], true);
+    mutate();
+    expect(type("post:first")).toBe("Essay");
+  });
+
+  it("says how far down the map the sources sit, for a strip that slides to them", () => {
+    setup({ touch: false, chat: "live" });
+    answer(["post:first"]);
+    const field = window.document.querySelector("[data-atlas-field]");
+    const mark = window.document.querySelector('[data-atlas-key="post:first"]');
+    if (
+      !(field instanceof window.HTMLElement) ||
+      !(mark instanceof window.HTMLElement)
+    )
+      throw new Error("Missing atlas fixture");
+    expect(Number(field.style.getPropertyValue("--atlas-strip-y"))).toBe(
+      parseFloat(mark.style.top),
+    );
+  });
+
+  describe("in a phone's open conversation", () => {
+    const root = (): ReturnType<typeof window.document.querySelector> =>
+      window.document.querySelector("[data-atlas]");
+    const host = (): ReturnType<typeof window.document.querySelector> =>
+      window.document.querySelector("[data-ask-box]");
+    const region = (): InstanceType<typeof window.HTMLElement> => {
+      const element = window.document.querySelector(".brain-box-scroll");
+      if (!(element instanceof window.HTMLElement))
+        throw new Error("Missing conversation region");
+      return element;
+    };
+    const sheet = (): void => {
+      host()?.setAttribute("data-ask-sheet", "");
+      mutate();
+    };
+    /** The open conversation's scroll region, listing the answer's source. */
+    const conversation = (): void => {
+      host()?.insertAdjacentHTML(
+        "afterbegin",
+        '<div class="brain-box-scroll"><div data-ask-dock></div><ul class="brain-box-sources"><li data-ask-source="post:first"><a id="source-first" href="/essays/first">First</a></li></ul></div>',
+      );
+      // happy-dom scrolls smoothly later; where a scroll lands is what counts.
+      const scroller = region();
+      Object.assign(scroller, {
+        scrollTo: (to: { top: number }): void => {
+          scroller.scrollTop = to.top;
+        },
+      });
+    };
+
+    it("follows how far the answer has scrolled, so the map shrinks as it scrolls beneath it", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      region().scrollTop = 120;
+      region().dispatchEvent(new window.Event("scroll"));
+      const map = root();
+      if (!(map instanceof window.HTMLElement))
+        throw new Error("Missing atlas");
+      expect(map.style.getPropertyValue("--atlas-sheet-scroll")).toBe("120px");
+    });
+
+    it("brings the whole map back when its strip is tapped, rather than opening a mark too small to aim at", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      region().scrollTop = 300;
+      expect(tap("#first")).toBe(false);
+      expect(region().scrollTop).toBe(0);
+      expect(openMarks()).toEqual([]);
+      // At full height, a tap is a tap on the mark.
+      expect(tap("#first")).toBe(false);
+      expect(openMarks()).toEqual(["first"]);
+    });
+
+    it("takes a tapped source to its piece: back to the full map, the piece pulsing with its card open", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      answer(["post:first"]);
+      region().scrollTop = 300;
+      expect(tap("#source-first")).toBe(false);
+      expect(region().scrollTop).toBe(0);
+      expect(openMarks()).toEqual(["first"]);
+      const piece = window.document.querySelector(
+        '[data-atlas-key="post:first"]',
+      );
+      expect(piece?.hasAttribute("data-atlas-pulse")).toBe(true);
+    });
+
+    it("leaves a source a plain link outside the phone's conversation", () => {
+      setup({ touch: false, chat: "live" });
+      conversation();
+      answer(["post:first"]);
+      expect(tap("#source-first")).toBe(true);
+    });
+
+    it("from a piece's card, shows where the answer cites it", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      answer(["post:first"]);
+      const source = window.document.querySelector(
+        '[data-ask-source="post:first"]',
+      );
+      if (!source) throw new Error("Missing source");
+      // The region shows 400px from its top at 100; the source sits 900px down.
+      Object.defineProperty(region(), "clientHeight", { value: 400 });
+      Object.assign(region(), {
+        getBoundingClientRect: () => new window.DOMRect(0, 100, 390, 400),
+      });
+      Object.assign(source, {
+        getBoundingClientRect: () => new window.DOMRect(0, 1000, 100, 30),
+      });
+      tap("#source-first");
+      tap("#first-cited");
+      expect(region().scrollTop).toBe(900 - 200 + 15);
+      expect(source.hasAttribute("data-atlas-flash")).toBe(true);
+      expect(openMarks()).toEqual([]);
+    });
+
+    it("lends its map to the open conversation's dock, holding its place on the page, and takes it back on close", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      const map = window.document.querySelector("[data-atlas-map]");
+      const home = map?.parentElement;
+      sheet();
+      expect(map?.parentElement?.hasAttribute("data-ask-dock")).toBe(true);
+      expect(home?.querySelector(".atlas__map-slot")).not.toBe(null);
+      host()?.removeAttribute("data-ask-sheet");
+      mutate();
+      expect(map?.parentElement).toBe(home);
+      expect(home?.querySelector(".atlas__map-slot")).toBe(null);
+    });
+
+    it("lends the map only once the conversation's dock is there", () => {
+      setup({ touch: true, chat: "live" });
+      const map = window.document.querySelector("[data-atlas-map]");
+      const home = map?.parentElement;
+      // The boot opens the sheet before the box has mounted.
+      sheet();
+      expect(map?.parentElement).toBe(home);
+      conversation();
+      mutate();
+      expect(map?.parentElement?.hasAttribute("data-ask-dock")).toBe(true);
+    });
+  });
+
+  it("marks the map as panning only while an answer moves it, so opening a strip never slides it", async () => {
+    setup({ touch: false, chat: "live" });
+    const field = window.document.querySelector("[data-atlas-field]");
+    if (!(field instanceof window.HTMLElement))
+      throw new Error("Missing atlas fixture");
+    expect(field.hasAttribute("data-atlas-panning")).toBe(false);
+    answer(["post:first"]);
+    expect(field.hasAttribute("data-atlas-panning")).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect(field.hasAttribute("data-atlas-panning")).toBe(false);
   });
 
   it("zooms all the way towards sources that stay in view", () => {

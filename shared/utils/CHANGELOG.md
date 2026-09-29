@@ -1,5 +1,79 @@
 # @brains/utils
 
+## 0.2.0-alpha.452
+
+## 0.2.0-alpha.451
+
+## 0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+## 0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+## 0.2.0-alpha.443
+
+## 0.2.0-alpha.442
+
+## 0.2.0-alpha.441
+
+## 0.2.0-alpha.440
+
+## 0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+## 0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
 ## 0.2.0-alpha.418
 
 ## 0.2.0-alpha.417

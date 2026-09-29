@@ -81,7 +81,6 @@ describe("opening from the anchor profile", () => {
       topicsHeading: null,
       contactLabel: null,
       contactNote: null,
-      attribution: null,
       mapCaption: null,
       contactUrl: null,
     });
@@ -200,7 +199,6 @@ describe("organization homepage conversation", () => {
     topicsHeading: "Where would you start?",
     contactLabel: "Talk to the team",
     contactNote: null,
-    attribution: "In our own words",
     mapCaption: null,
     contactUrl: "http://localhost:8080/contact",
   };

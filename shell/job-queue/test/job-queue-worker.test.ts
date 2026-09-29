@@ -33,6 +33,7 @@ import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 import { OperationContext } from "@brains/operation-context";
+import type { ResettableAmbientScope } from "../src/job-queue-worker";
 
 const mockProgressReporter = createMockProgressReporter();
 
@@ -309,6 +310,59 @@ describe("JobQueueWorker", () => {
         expect(handler.process).toHaveBeenCalledTimes(1);
         expect((await service.getStatus(id))?.retryCount).toBe(0);
         expect((await service.getDiagnostics()).totals.processing).toBe(0);
+      } finally {
+        await worker.stop();
+        service.close();
+        await database.cleanup();
+      }
+    });
+
+    it("resets the provided projection-batch scope around every job", async () => {
+      // Jobs are dispatched as Effect fibers, which AsyncLocalStorage has no
+      // notion of, so an unrelated job's leftover ambient scope (e.g.
+      // entity-service's projection-batch coordinator) can appear current to
+      // a later one. The worker must force any registered scope back to
+      // empty before running each job so that can't happen.
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      const handler = createMockHandler();
+      service.registerHandler("shell:embedding", handler);
+      const resetCalls: string[] = [];
+      const projectionBatchScope: ResettableAmbientScope = {
+        runFreshBatchScope: (fn) => {
+          resetCalls.push("start");
+          try {
+            return fn();
+          } finally {
+            resetCalls.push("end");
+          }
+        },
+      };
+      worker = JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { concurrency: 1, pollInterval: 10 },
+        { projectionBatchScope },
+      );
+      try {
+        const id = await service.enqueue({
+          type: "shell:embedding",
+          data: { id: "entity-reset", content: "test" },
+          options: {
+            source: "test",
+            metadata: { operationType: "data_processing" },
+          },
+        });
+        await worker.start();
+        await waitUntil(
+          async () => (await service.getStatus(id))?.status === "completed",
+          "the job to reach completion",
+        );
+        expect(resetCalls).toEqual(["start", "end"]);
       } finally {
         await worker.stop();
         service.close();

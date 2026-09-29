@@ -101,6 +101,10 @@ function apiRouteRequests(): RouteRequest[] {
       request: (cookie) => request("/studio/api/schema", { cookie }),
     },
     {
+      routePath: "/studio/api/images",
+      request: (cookie) => request("/studio/api/images?id=example", { cookie }),
+    },
+    {
       routePath: "/studio/api/destination",
       method: "POST",
       request: (cookie) =>
@@ -117,6 +121,10 @@ function apiRouteRequests(): RouteRequest[] {
     {
       routePath: "/studio/api/groups/members",
       request: (cookie) => request("/studio/api/groups/members", { cookie }),
+    },
+    {
+      routePath: "/studio/api/groups/usage",
+      request: (cookie) => request("/studio/api/groups/usage", { cookie }),
     },
     {
       routePath: "/studio/api/hierarchy",

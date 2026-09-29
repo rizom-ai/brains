@@ -277,9 +277,15 @@ async function registerSwotEvalPlugin(
 ): Promise<PluginCapabilities> {
   const context = createEntityPluginContext(shell, "assessment");
 
-  context.entities.register("agent", evalAgentEntitySchema, agentAdapter);
-  context.entities.register("skill", evalSkillEntitySchema, skillAdapter);
-  context.entities.register("swot", swotEntitySchema, swotAdapter);
+  context.entities.register("agent", evalAgentEntitySchema, agentAdapter, {
+    classification: "system",
+  });
+  context.entities.register("skill", evalSkillEntitySchema, skillAdapter, {
+    classification: "system",
+  });
+  context.entities.register("swot", swotEntitySchema, swotAdapter, {
+    classification: "system",
+  });
 
   context.eval.registerHandler("deriveSwot", async (input: unknown) => {
     return deriveSwot(context, input);

@@ -23,11 +23,27 @@ import {
 import type { Clock } from "@brains/utils/effect";
 import { OperationContext } from "@brains/operation-context";
 
+/**
+ * Anything that can force its own ambient async context to empty for the
+ * duration of a callback. Jobs are dispatched as Effect fibers, which have
+ * no relationship to Node's AsyncLocalStorage tracking, so a job handler's
+ * ambient context (e.g. entity-service's projection-batch scope) can appear
+ * to carry over from an unrelated, previously-processed job. The worker
+ * resets every registered scope before running each job so that can't
+ * happen; see ProjectionBatchCoordinator.runFreshBatchScope for the concrete
+ * case this exists for.
+ */
+export interface ResettableAmbientScope {
+  runFreshBatchScope<T>(fn: () => T): T;
+}
+
 export interface JobQueueWorkerRuntimeOptions {
   /** Internal clock boundary used for deterministic polling tests. */
   clock?: Clock.Clock;
   /** Shared app-scoped causal context. */
   operationContext?: OperationContext;
+  /** Ambient async context(s) to reset to empty before each job runs. */
+  projectionBatchScope?: ResettableAmbientScope;
 }
 
 class JobDeadlineExceededError extends Error {
@@ -72,6 +88,7 @@ export class JobQueueWorker {
   private readonly transitionQueue: WorkerTransition[] = [];
   private readonly clock: Clock.Clock | undefined;
   private readonly operationContext: OperationContext;
+  private readonly projectionBatchScope: ResettableAmbientScope | undefined;
   private workerSessionId: string | null = null;
   private workerHeartbeatStop: (() => Promise<void>) | null = null;
 
@@ -111,6 +128,7 @@ export class JobQueueWorker {
     this.clock = runtimeOptions?.clock;
     this.operationContext =
       runtimeOptions?.operationContext ?? OperationContext.createFresh();
+    this.projectionBatchScope = runtimeOptions?.projectionBatchScope;
     this.config = {
       concurrency: config?.concurrency ?? 1,
       pollInterval: config?.pollInterval ?? 1000,
@@ -685,9 +703,12 @@ export class JobQueueWorker {
       projectionLineage: [],
       derivationDepth: 0,
     };
-    return this.operationContext.run(provenance, job.id, () =>
-      this.processJobWithinContext(job),
-    );
+    return this.operationContext.run(provenance, job.id, () => {
+      const scope = this.projectionBatchScope;
+      return scope
+        ? scope.runFreshBatchScope(() => this.processJobWithinContext(job))
+        : this.processJobWithinContext(job);
+    });
   }
 
   private async processJobWithinContext(job: JobInfo): Promise<JobResult> {

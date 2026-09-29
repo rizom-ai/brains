@@ -67,7 +67,7 @@ function context(record: BaseEntity | null = entity()): ServicePluginContext {
 }
 
 describe("authored opening", () => {
-  it("server-renders public authored Markdown, attribution and functional topic links without chat", async () => {
+  it("server-renders public authored Markdown and functional topic links without chat", async () => {
     const runtime = context();
     const opening = homepageOpeningSchema.parse(
       await loadHomepageOpening(
@@ -81,7 +81,8 @@ describe("authored opening", () => {
     );
     expect(html).toContain("A different opening");
     expect(html).toContain("<em>authored</em>");
-    expect(html).toContain("Owner name");
+    // The site's header already says whose page this is.
+    expect(html).not.toContain("Owner name");
     expect(html).toContain(`href="${origin}/contact"`);
     expect(html).toContain("Talk about research");
     expect(html).not.toContain("<script");

@@ -1,0 +1,537 @@
+# Synthetic fixtures; never run this case against production content.
+# Per-turn durations and tokens are reported separately from correctness.
+id: long-note-update-7kb
+name: Exact small edit to a 7kb note
+description: Cancel an exact proposal and verify unchanged stored content, then propose again, approve, and verify exact stored Markdown. Backslashes must not be regenerated or doubled.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: mcp
+tags:
+  - recipe-personal
+  - regression
+  - long-note-update
+  - confirmation
+turns:
+  - userMessage: 'Read note ''long-note-update-7kb''. Replace only the exact sentence "Review cadence: monthly." with "Review cadence: weekly." Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
+    successCriteria: &proposal
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: long-note-update-7kb
+          resultContains:
+            entity.content: &original |-
+              # Working Plan
+
+              Review cadence: monthly.
+
+              ## Markdown preservation examples
+
+              Hard break\
+              This line follows a Markdown hard break.
+              Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              ```
+
+              ## Operations checkpoint 1
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-001
+              - Status: awaiting review
+
+              ## Research checkpoint 2
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-002
+              - Status: awaiting review
+
+              ## Funding checkpoint 3
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-003
+              - Status: awaiting review
+
+              ## Governance checkpoint 4
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-004
+              - Status: awaiting review
+
+              ## Delivery checkpoint 5
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-005
+              - Status: awaiting review
+
+              ## Documentation checkpoint 6
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-006
+              - Status: awaiting review
+
+              ## Operations checkpoint 7
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-007
+              - Status: awaiting review
+
+              ## Research checkpoint 8
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-008
+              - Status: awaiting review
+
+              ## Funding checkpoint 9
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-009
+              - Status: awaiting review
+
+              ## Governance checkpoint 10
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-010
+              - Status: awaiting review
+
+              ## Delivery checkpoint 11
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-011
+              - Status: awaiting review
+
+              ## Documentation checkpoint 12
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-012
+              - Status: awaiting review
+
+              ## Operations checkpoint 13
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-013
+              - Status: awaiting review
+
+              ## Research checkpoint 14
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-014
+              - Status: awaiting review
+
+              ## Funding checkpoint 15
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-015
+              - Status: awaiting review
+
+              ## Governance checkpoint 16
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-016
+              - Status: awaiting review
+
+              ## Delivery checkpoint 17
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-017
+              - Status: awaiting review
+
+              ## Documentation checkpoint 18
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-018
+              - Status: awaiting review
+
+              ## Operations checkpoint 19
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-019
+              - Status: awaiting review
+
+              ## Research checkpoint 20
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-020
+              - Status: awaiting review
+
+              ## Funding checkpoint 21
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-021
+              - Status: awaiting review
+
+              ## Governance checkpoint 22
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-022
+              - Status: awaiting review
+
+              ## Delivery checkpoint 23
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-023
+              - Status: awaiting review
+
+              ## Documentation checkpoint 24
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-024
+              - Status: awaiting review
+
+              ## Operations checkpoint 25
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-025
+              - Status: awaiting review
+
+              ## Research checkpoint 26
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-026
+              - Status: awaiting review
+
+              ## Funding checkpoint 27
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-027
+              - Status: awaiting review
+
+              ## Governance checkpoint 28
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-028
+              - Status: awaiting review
+
+              ## Delivery checkpoint 29
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-029
+              - Status: awaiting review
+
+              ## Documentation checkpoint 30
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-030
+              - Status: awaiting review
+
+              xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: long-note-update-7kb
+            edits:
+              &patch [
+                {
+                  "oldText": "Review cadence: monthly.",
+                  "newText": "Review cadence: weekly.",
+                },
+              ]
+          argsAbsent: [fields, content, confirmed]
+          resultContains:
+            needsConfirmation: true
+      responseContains: [Confirmation required]
+  - userMessage: Cancel that proposed update.
+    confirmPendingAction: false
+  - userMessage: "Read note 'long-note-update-7kb' from storage now. Do not change anything; briefly state its title and review cadence."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: long-note-update-7kb
+          resultContains:
+            entity.content: *original
+        - toolName: system_update
+          shouldBeCalled: false
+  - userMessage: 'Read note ''long-note-update-7kb''. Replace only the exact sentence "Review cadence: monthly." with "Review cadence: weekly." Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
+    successCriteria: *proposal
+  - userMessage: Approve this exact proposed update.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: long-note-update-7kb
+            edits: *patch
+          argsAbsent: [fields, content]
+          resultContains:
+            success: true
+            data.updated: long-note-update-7kb
+  - userMessage: "Read note 'long-note-update-7kb' from storage again to verify the saved edit. Do not change anything; briefly state its title and review cadence."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: long-note-update-7kb
+          resultContains:
+            entity.content: |-
+              # Working Plan
+
+              Review cadence: weekly.
+
+              ## Markdown preservation examples
+
+              Hard break\
+              This line follows a Markdown hard break.
+              Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              ```
+
+              ## Operations checkpoint 1
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-001
+              - Status: awaiting review
+
+              ## Research checkpoint 2
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-002
+              - Status: awaiting review
+
+              ## Funding checkpoint 3
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-003
+              - Status: awaiting review
+
+              ## Governance checkpoint 4
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-004
+              - Status: awaiting review
+
+              ## Delivery checkpoint 5
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-005
+              - Status: awaiting review
+
+              ## Documentation checkpoint 6
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-006
+              - Status: awaiting review
+
+              ## Operations checkpoint 7
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-007
+              - Status: awaiting review
+
+              ## Research checkpoint 8
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-008
+              - Status: awaiting review
+
+              ## Funding checkpoint 9
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-009
+              - Status: awaiting review
+
+              ## Governance checkpoint 10
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-010
+              - Status: awaiting review
+
+              ## Delivery checkpoint 11
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-011
+              - Status: awaiting review
+
+              ## Documentation checkpoint 12
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-012
+              - Status: awaiting review
+
+              ## Operations checkpoint 13
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-013
+              - Status: awaiting review
+
+              ## Research checkpoint 14
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-014
+              - Status: awaiting review
+
+              ## Funding checkpoint 15
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-015
+              - Status: awaiting review
+
+              ## Governance checkpoint 16
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-016
+              - Status: awaiting review
+
+              ## Delivery checkpoint 17
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-017
+              - Status: awaiting review
+
+              ## Documentation checkpoint 18
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-018
+              - Status: awaiting review
+
+              ## Operations checkpoint 19
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-019
+              - Status: awaiting review
+
+              ## Research checkpoint 20
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-020
+              - Status: awaiting review
+
+              ## Funding checkpoint 21
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-021
+              - Status: awaiting review
+
+              ## Governance checkpoint 22
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-022
+              - Status: awaiting review
+
+              ## Delivery checkpoint 23
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-023
+              - Status: awaiting review
+
+              ## Documentation checkpoint 24
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-024
+              - Status: awaiting review
+
+              ## Operations checkpoint 25
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-025
+              - Status: awaiting review
+
+              ## Research checkpoint 26
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-026
+              - Status: awaiting review
+
+              ## Funding checkpoint 27
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-027
+              - Status: awaiting review
+
+              ## Governance checkpoint 28
+
+              Decisions remain attributable to their participants. Record the alternatives considered and the conditions under which a decision should be revisited.
+
+              - Reference: record-028
+              - Status: awaiting review
+
+              ## Delivery checkpoint 29
+
+              Small milestones need explicit acceptance criteria. Dependencies should be named before work begins, and completion requires a recorded check.
+
+              - Reference: record-029
+              - Status: awaiting review
+
+              ## Documentation checkpoint 30
+
+              Source Markdown is the durable record. Preserve existing punctuation, line endings, code samples, and hard breaks when editing unrelated text.
+
+              - Reference: record-030
+              - Status: awaiting review
+
+              xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            entity.metadata.title: Working Plan
+        - toolName: system_update
+          shouldBeCalled: false
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false

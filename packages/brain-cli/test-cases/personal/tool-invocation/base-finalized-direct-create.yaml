@@ -28,7 +28,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: note
-        source.kind: text
+        source.kind: user-message
       argsAbsent:
         - prompt
         - upload

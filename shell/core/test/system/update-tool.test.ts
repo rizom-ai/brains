@@ -10,7 +10,10 @@ import {
   EntityRegistry,
   baseEntitySchema,
 } from "@brains/entity-service";
-import { BrainCharacterAdapter } from "@brains/identity-service";
+import {
+  AnchorProfileAdapter,
+  BrainCharacterAdapter,
+} from "@brains/identity-service";
 import { PermissionService } from "@brains/templates";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -62,6 +65,37 @@ class UnprobeableMetadataBackedTestAdapter extends MetadataBackedTestAdapter {
     _entity: MetadataBackedTestEntity,
   ): MetadataBackedTestMetadata {
     throw new Error("adapter cannot extract metadata");
+  }
+}
+
+const sourceOwnedEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("source-owned-test"),
+  metadata: z.object({}),
+});
+type SourceOwnedTestEntity = z.infer<typeof sourceOwnedEntitySchema>;
+
+/** Domain fields live only in Markdown, not schema-admitted root properties. */
+class SourceOwnedTestAdapter extends BaseEntityAdapter<
+  SourceOwnedTestEntity,
+  Record<string, never>,
+  { title: string }
+> {
+  constructor() {
+    super({
+      entityType: "source-owned-test",
+      purpose: "Test source-owned field persistence.",
+      schema: sourceOwnedEntitySchema,
+      frontmatterSchema: z.object({ title: z.string() }),
+      hasBody: false,
+    });
+  }
+
+  public fromMarkdown(content: string): Partial<SourceOwnedTestEntity> {
+    return { entityType: "source-owned-test", content, metadata: {} };
+  }
+
+  public override extractMetadata(): Record<string, never> {
+    return {};
   }
 }
 
@@ -413,6 +447,351 @@ describe("system_update tool", () => {
     expect(services.getEntities().get("site-info")).toBeDefined();
   });
 
+  describe("exact-match content edits", () => {
+    function seedContent(content: string): void {
+      const original = expectDefined(
+        services.getEntities().get("woodchuck-note"),
+        "original note",
+      );
+      services.addEntities([{ ...original, content }]);
+    }
+
+    it("proposes a small patch without writing or returning the full note in approval args", async () => {
+      const original =
+        "# Plan\nReview: monthly.\n" +
+        "Hard break\\\nLiteral pair\\\\\n".repeat(700);
+      seedContent(original);
+      const edits = [
+        { oldText: "Review: monthly.", newText: "Review: weekly." },
+      ];
+      const proposal = await exec({
+        entityType: "base",
+        id: "woodchuck-note",
+        edits,
+      });
+      expect(proposal).toMatchObject({
+        needsConfirmation: true,
+        preview: "- Review: monthly.\n+ Review: weekly.",
+      });
+      const args = expectConfirmationArgs(proposal);
+      expect(args["edits"]).toEqual(edits);
+      expect(args).not.toHaveProperty("content");
+      expect(services.getLastUpdateRequest()).toBeUndefined();
+      expect(services.getEntities().get("woodchuck-note")?.content).toBe(
+        original,
+      );
+      expect(await exec(args)).toMatchObject({ success: true });
+      expect(services.getLastUpdateRequest()?.entity.content).toBe(
+        original.replace("monthly", "weekly"),
+      );
+      expect(services.getLastUpdateRequest()).toMatchObject({
+        options: { expectedContentHash: "hash-base-note" },
+      });
+      expect(await exec(args)).toMatchObject({ success: false });
+    });
+
+    it("applies edits against the original text, not the output of previous edits", async () => {
+      seedContent("First: alpha\r\nSecond: beta\r\nUnchanged: \\ $& 🦊\r\n");
+      const result = await execConfirmed({
+        entityType: "base",
+        id: "woodchuck-note",
+        edits: [
+          { oldText: "alpha", newText: "beta" },
+          { oldText: "beta", newText: "$&\\gamma" },
+        ],
+      });
+      expect(result).toMatchObject({ success: true });
+      expect(services.getLastUpdateRequest()?.entity.content).toBe(
+        "First: beta\r\nSecond: $&\\gamma\r\nUnchanged: \\ $& 🦊\r\n",
+      );
+    });
+
+    it("supports exact deletion", async () => {
+      seedContent("First\nRemove me\nLast");
+      expect(
+        await execConfirmed({
+          entityType: "base",
+          id: "woodchuck-note",
+          edits: [{ oldText: "Remove me\n", newText: "" }],
+        }),
+      ).toMatchObject({ success: true });
+      expect(services.getLastUpdateRequest()?.entity.content).toBe(
+        "First\nLast",
+      );
+    });
+
+    it.each([
+      {
+        content: "alpha beta",
+        edits: [{ oldText: "missing", newText: "new" }],
+      },
+      { content: "alpha alpha", edits: [{ oldText: "alpha", newText: "new" }] },
+      { content: "aaa", edits: [{ oldText: "aa", newText: "new" }] },
+      {
+        content: "alpha beta",
+        edits: [
+          { oldText: "alpha", newText: "new" },
+          { oldText: "pha beta", newText: "other" },
+        ],
+      },
+      {
+        content: "alpha beta",
+        edits: [
+          { oldText: "alpha", newText: "new" },
+          { oldText: "missing", newText: "other" },
+        ],
+      },
+      { content: "alpha", edits: [{ oldText: "", newText: "new" }] },
+      { content: "alpha", edits: [] },
+    ])(
+      "rejects ambiguous, missing, overlapping, or empty edits atomically: %j",
+      async ({ content, edits }) => {
+        seedContent(content);
+        expect(
+          await exec({ entityType: "base", id: "woodchuck-note", edits }),
+        ).toMatchObject({ success: false });
+        expect(services.getLastUpdateRequest()).toBeUndefined();
+        expect(services.getEntities().get("woodchuck-note")?.content).toBe(
+          content,
+        );
+      },
+    );
+
+    it.each([
+      { content: "replacement" },
+      { content: "" },
+      { fields: { title: "new" } },
+      { fields: {} },
+    ])("rejects edits mixed with another update mode: %j", async (other) => {
+      seedContent("alpha");
+      expect(
+        await exec({
+          entityType: "base",
+          id: "woodchuck-note",
+          edits: [{ oldText: "alpha", newText: "beta" }],
+          ...other,
+        }),
+      ).toMatchObject({ success: false });
+      expect(services.getLastUpdateRequest()).toBeUndefined();
+    });
+
+    it("rejects changes to approved edits", async () => {
+      seedContent("alpha");
+      const args = expectConfirmationArgs(
+        await exec({
+          entityType: "base",
+          id: "woodchuck-note",
+          edits: [{ oldText: "alpha", newText: "beta" }],
+        }),
+      );
+      expect(
+        await exec({
+          ...args,
+          edits: [{ oldText: "alpha", newText: "tampered" }],
+        }),
+      ).toMatchObject({ success: false });
+      expect(services.getLastUpdateRequest()).toBeUndefined();
+    });
+
+    it("rejects a stale approval even when the exact target still exists", async () => {
+      seedContent("alpha");
+      const args = expectConfirmationArgs(
+        await exec({
+          entityType: "base",
+          id: "woodchuck-note",
+          edits: [{ oldText: "alpha", newText: "beta" }],
+        }),
+      );
+      const entity = expectDefined(
+        services.getEntities().get("woodchuck-note"),
+        "note",
+      );
+      services.addEntities([
+        {
+          ...entity,
+          content: "alpha\nConcurrent change",
+          contentHash: "new-hash",
+        },
+      ]);
+      expect(await exec(args)).toMatchObject({
+        success: false,
+        error: expect.stringContaining("modified since"),
+      });
+      expect(services.getLastUpdateRequest()).toBeUndefined();
+    });
+
+    it("reports a conflict rather than success if storage rejects a concurrent write", async () => {
+      seedContent("alpha");
+      const args = expectConfirmationArgs(
+        await exec({
+          entityType: "base",
+          id: "woodchuck-note",
+          edits: [{ oldText: "alpha", newText: "beta" }],
+        }),
+      );
+      services.entityService.updateEntity = async (): ReturnType<
+        typeof services.entityService.updateEntity
+      > => ({
+        entityId: "woodchuck-note",
+        jobId: "",
+        skipped: true,
+        skipReason: "content-conflict",
+      });
+      expect(await exec(args)).toMatchObject({
+        success: false,
+        error: expect.stringContaining("modified"),
+      });
+    });
+
+    it("does not allow patches to bypass publish permissions", async () => {
+      services.permissionService = new PermissionService({
+        entityActions: {
+          "social-post": { update: "trusted", publish: "admin" },
+        },
+      });
+      expect(
+        await exec(
+          {
+            entityType: "social-post",
+            id: "linkedin-update",
+            edits: [{ oldText: "status: draft", newText: "status: published" }],
+          },
+          "trusted",
+        ),
+      ).toMatchObject({ success: false });
+      expect(services.getLastUpdateRequest()).toBeUndefined();
+    });
+  });
+
+  describe("long-note update regressions", () => {
+    it.each([
+      { fields: { title: "New title" }, content: "Replacement body" },
+      { fields: { title: "New title" }, content: "" },
+      { fields: {}, content: "Replacement body" },
+      { fields: { title: "New title" }, content: '{"status":"draft"}' },
+    ])(
+      "rejects mixed fields/content instead of silently dropping content: %j",
+      async (input) => {
+        const original = expectDefined(
+          services.getEntities().get("woodchuck-note"),
+          "original note",
+        );
+        const result = await exec({
+          entityType: "base",
+          id: original.id,
+          ...input,
+        });
+
+        expect(result).toEqual({
+          success: false,
+          error: "Provide either 'content' or 'fields', not both",
+        });
+        expect(services.getLastUpdateRequest()).toBeUndefined();
+        expect(services.getEntities().get(original.id)).toEqual(original);
+      },
+    );
+
+    it.each([7_000, 14_000, 17_000])(
+      "preserves backslashes and untouched markdown through approval of a %i-byte note",
+      async (size) => {
+        // Include Markdown hard breaks, literal double backslashes, and code.
+        const sample =
+          "Hard break\\\nNext line\nLiteral pair\\\\\n```text\nC:\\notes\\file\n```\n";
+        const originalContent = sample
+          .repeat(Math.ceil(size / sample.length))
+          .slice(0, size);
+        const original = expectDefined(
+          services.getEntities().get("woodchuck-note"),
+          "original note",
+        );
+        services.addEntities([{ ...original, content: originalContent }]);
+        const replacement = originalContent.replace(
+          "Next line",
+          "Updated line",
+        );
+
+        const proposal = await exec({
+          entityType: "base",
+          id: original.id,
+          content: replacement,
+        });
+        const args = expectConfirmationArgs(proposal);
+        expect(args["content"]).toBe(replacement);
+        expect(services.getLastUpdateRequest()).toBeUndefined();
+        expect(services.getEntities().get(original.id)?.content).toBe(
+          originalContent,
+        );
+
+        // Exercise the JSON boundary used when transporting confirmation args.
+        const result = await exec(
+          confirmationArgsSchema.parse(JSON.parse(JSON.stringify(args))),
+        );
+        expect(result).toMatchObject({ success: true });
+        expect(services.getLastUpdateRequest()?.entity.content).toBe(
+          replacement,
+        );
+        expect(services.getEntities().get(original.id)?.content).toBe(
+          replacement,
+        );
+      },
+    );
+
+    it.each([
+      {
+        before: "First\nSecond\nThird",
+        after: "First\nInserted\nSecond\nThird",
+        preview: "+ Inserted",
+      },
+      {
+        before: "First\nRemoved\nSecond\nThird",
+        after: "First\nSecond\nThird",
+        preview: "- Removed",
+      },
+      { before: "First\nSecond", after: "First\n\nSecond", preview: "+ " },
+    ])(
+      "shows only changed lines, not a shifted suffix: %j",
+      async ({ before, after, preview }) => {
+        const original = expectDefined(
+          services.getEntities().get("woodchuck-note"),
+          "original note",
+        );
+        services.addEntities([{ ...original, content: before }]);
+        const result = await exec({
+          entityType: "base",
+          id: original.id,
+          content: after,
+        });
+
+        expect(result).toMatchObject({ needsConfirmation: true, preview });
+        expect(services.getLastUpdateRequest()).toBeUndefined();
+      },
+    );
+
+    it("does not render an unchanged 17 KB suffix as replacements after a one-line insertion", async () => {
+      const suffix = Array.from(
+        { length: 500 },
+        (_, index) => `Unchanged line ${index}: reference material.`,
+      ).join("\n");
+      expect(Buffer.byteLength(suffix)).toBeGreaterThan(17_000);
+      const original = expectDefined(
+        services.getEntities().get("woodchuck-note"),
+        "original note",
+      );
+      services.addEntities([{ ...original, content: `# Note\n${suffix}` }]);
+      const result = await exec({
+        entityType: "base",
+        id: original.id,
+        content: `# Note\nOne inserted line\n${suffix}`,
+      });
+
+      expect(result).toMatchObject({
+        needsConfirmation: true,
+        preview: "+ One inserted line",
+      });
+      expect(services.getLastUpdateRequest()).toBeUndefined();
+    });
+  });
+
   it("normalizes JSON-wrapped field updates passed via content", async () => {
     const result = await execConfirmed({
       entityType: "agent",
@@ -729,6 +1108,114 @@ describe("system_update tool", () => {
     return expectConfirmationArgs(confirmation)["confirmationToken"];
   }
 
+  it.each([undefined, " "])(
+    "replays the proposed archive, not approval (content=%p)",
+    async (content) => {
+      const args = expectConfirmationArgs(
+        await exec({
+          entityType: "agent",
+          id: "pending-agent.io",
+          fields: { status: "archived" },
+        }),
+      );
+      const result = await exec({
+        entityType: "agent",
+        id: "pending-agent.io",
+        confirmed: true,
+        confirmationToken: args["confirmationToken"],
+        ...(content !== undefined ? { content } : {}),
+      });
+      expect(result).toMatchObject({ success: true });
+      expect(
+        services.getEntities().get("pending-agent.io")?.metadata["status"],
+      ).toBe("archived");
+    },
+  );
+
+  it("replays a note field update", async () => {
+    const note = expectDefined(
+      services.getEntities().get("woodchuck-note"),
+      "note",
+    );
+    services.addEntities([{ ...note, entityType: "note" }]);
+    const args = expectConfirmationArgs(
+      await exec({
+        entityType: "note",
+        id: "woodchuck-note",
+        fields: { title: "New title" },
+      }),
+    );
+    const result = await exec({
+      entityType: "note",
+      id: "woodchuck-note",
+      confirmed: true,
+      confirmationToken: args["confirmationToken"],
+    });
+    expect(result).toMatchObject({ success: true });
+    expect(
+      services.getEntities().get("woodchuck-note")?.metadata["title"],
+    ).toBe("New title");
+  });
+
+  it.each([
+    { content: "A complete replacement." },
+    { edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }] },
+  ])(
+    "replays stored content operations exactly once (%p)",
+    async (operation) => {
+      const args = expectConfirmationArgs(
+        await exec({ entityType: "base", id: "woodchuck-note", ...operation }),
+      );
+      const replay = {
+        entityType: "base",
+        id: "woodchuck-note",
+        confirmed: true,
+        confirmationToken: args["confirmationToken"],
+      };
+      expect(await exec(replay)).toMatchObject({ success: true });
+      expect(services.getEntities().get("woodchuck-note")?.content).toBe(
+        operation.content ??
+          "Groundhogs and woodpeckers are different animals.",
+      );
+      expect(await exec(replay)).toMatchObject({ success: false });
+    },
+  );
+
+  it("rejects a mangled replay for another type with the same id", async () => {
+    const confirmationToken = await proposeAgentApproval("pending-agent.io");
+    const entity = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+      "entity",
+    );
+    services.addEntities([{ ...entity, entityType: "note" }]);
+    expect(
+      await exec({
+        entityType: "note",
+        id: entity.id,
+        confirmed: true,
+        confirmationToken,
+      }),
+    ).toMatchObject({ success: false });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("rejects a mangled replay when the stored content hash is stale", async () => {
+    const confirmationToken = await proposeAgentApproval("pending-agent.io");
+    const entity = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+      "entity",
+    );
+    services.addEntities([{ ...entity, contentHash: "changed" }]);
+    const result = await exec({
+      entityType: "agent",
+      id: entity.id,
+      confirmed: true,
+      confirmationToken,
+    });
+    expect(result).toMatchObject({ success: false });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
   it("auto-approves discovered agents when the model omits fields on a confirmed agent update", async () => {
     const confirmationToken = await proposeAgentApproval("pending-agent.io");
     const result = await exec({
@@ -805,7 +1292,7 @@ describe("system_update tool", () => {
 
     expect(result).toMatchObject({ success: false });
     expect("error" in result ? result.error : "").toContain(
-      "No pending update confirmation found for this agent",
+      "Provide 'content' (full replacement) or 'fields' (partial update)",
     );
     const unchanged = expectDefined(
       services.getEntities().get("pending-agent.io"),
@@ -1116,6 +1603,54 @@ describe("system_update tool", () => {
     tools = createSystemTools(services);
   }
 
+  function useAnchorProfileAdapter(): void {
+    const adapter = new AnchorProfileAdapter();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(adapter.entityType, adapter.schema, adapter);
+    services.entityRegistry = registry;
+    services.addEntities([
+      {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content: "---\nname: Alex Chen\nkind: person\nrole: architect\n---\n",
+        contentHash: "anchor-hash",
+        visibility: "public",
+        metadata: { name: "Alex Chen" },
+        created: "2026-03-16T10:00:00.000Z",
+        updated: "2026-03-16T10:00:00.000Z",
+      },
+    ]);
+    tools = createSystemTools(services);
+  }
+
+  it("rejects anchor profile name changes through the real persistence probe", async () => {
+    useAnchorProfileAdapter();
+    const result = await exec({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      fields: { name: "Research partner" },
+    });
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("does not persist name through 'fields'"),
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("allows persisted anchor profile visibility changes", async () => {
+    useAnchorProfileAdapter();
+    const proposal = await exec({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      fields: { visibility: "shared" },
+    });
+    const result = await exec(expectConfirmationArgs(proposal));
+    expect(result).toMatchObject({ success: true });
+    expect(services.getEntities().get("anchor-profile")?.visibility).toBe(
+      "shared",
+    );
+  });
+
   it("rejects values a real body-backed adapter would retain from content", async () => {
     useBrainCharacterAdapter();
 
@@ -1136,6 +1671,79 @@ describe("system_update tool", () => {
         "Provide full markdown with frontmatter via 'content' instead.",
     });
     expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("rejects a field that only survives until entity-schema validation", async () => {
+    const adapter = new SourceOwnedTestAdapter();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(adapter.entityType, adapter.schema, adapter);
+    services.entityRegistry = registry;
+    services.addEntities([
+      {
+        id: "source-owned",
+        entityType: adapter.entityType,
+        content: "---\ntitle: Original\n---\n",
+        contentHash: "hash-source-owned",
+        visibility: "shared",
+        metadata: {},
+        created: "2026-09-25T10:00:00.000Z",
+        updated: "2026-09-25T10:00:00.000Z",
+      },
+    ]);
+    tools = createSystemTools(services);
+
+    const result = await exec({
+      entityType: adapter.entityType,
+      id: "source-owned",
+      fields: { title: "Changed" },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "source-owned-test does not persist title through 'fields'. " +
+        "The update would report success without changing anything. " +
+        "Provide full markdown with frontmatter via 'content' instead.",
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("refreshes metadata derived from replacement content instead of persisting the previous title", async () => {
+    useMetadataBackedAdapter();
+    expect(
+      await execConfirmed({
+        entityType: "metadata-backed-test",
+        id: "metadata-backed-1",
+        content: "---\ntitle: New title\n---\n\nNew body.",
+      }),
+    ).toMatchObject({ success: true });
+    expect(services.getLastUpdateRequest()?.entity.metadata["title"]).toBe(
+      "New title",
+    );
+    expect(services.getLastUpdateRequest()?.entity.metadata).not.toHaveProperty(
+      "publishedAt",
+    );
+  });
+
+  it("preserves curated metadata when its source has not changed", async () => {
+    useMetadataBackedAdapter();
+    const entity = expectDefined(
+      services.getEntities().get("metadata-backed-1"),
+      "entity",
+    );
+    services.addEntities([
+      { ...entity, metadata: { ...entity.metadata, title: "Curated title" } },
+    ]);
+    expect(
+      await execConfirmed({
+        entityType: entity.entityType,
+        id: entity.id,
+        edits: [{ oldText: "Body.", newText: "Edited body." }],
+      }),
+    ).toMatchObject({ success: true });
+    expect(services.getLastUpdateRequest()?.entity.metadata["title"]).toBe(
+      "Curated title",
+    );
   });
 
   it("allows a value persisted by a real metadata-backed adapter", async () => {

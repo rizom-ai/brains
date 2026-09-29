@@ -214,7 +214,6 @@ const page: HomepageListData = {
     topicsHeading: "Pick a thread",
     contactLabel: "Write to me",
     contactNote: "I read these myself.",
-    attribution: "In my own words",
     mapCaption: "My published work, by topic",
   },
 };

@@ -84,18 +84,14 @@ export class EntitySerializer {
    */
   public async convertToEntity(
     entityData: EntityData,
-    reportErrors: boolean = true,
   ): Promise<BaseEntity | null> {
     try {
       return this.reconstructEntity(entityData);
     } catch (error) {
-      // Bounded reads omit diagnostics that can contain raw payloads/identifiers.
-      if (reportErrors) {
-        const errorMessage = getErrorMessage(error);
-        this.logger.error(
-          `Failed to parse entity of type ${entityData.entityType} with ID ${entityData.id}: ${errorMessage}`,
-        );
-      }
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(
+        `Failed to parse entity of type ${entityData.entityType} with ID ${entityData.id}: ${errorMessage}`,
+      );
       return null;
     }
   }
@@ -106,7 +102,6 @@ export class EntitySerializer {
   public async convertToEntities(
     rows: EntityData[],
     entityType: string,
-    reportErrors: boolean = true,
   ): Promise<BaseEntity[]> {
     const entityList: BaseEntity[] = [];
 
@@ -114,13 +109,10 @@ export class EntitySerializer {
       try {
         entityList.push(this.reconstructEntity(entityData));
       } catch (error) {
-        // Bounded reads omit diagnostics that can contain raw payloads/identifiers.
-        if (reportErrors) {
-          const errorMessage = getErrorMessage(error);
-          this.logger.error(
-            `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
-          );
-        }
+        const errorMessage = getErrorMessage(error);
+        this.logger.error(
+          `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
+        );
       }
     }
 

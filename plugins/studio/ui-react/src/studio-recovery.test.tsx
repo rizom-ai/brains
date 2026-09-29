@@ -83,6 +83,8 @@ it("keeps a lossless rescue copy of both properties and body", () => {
   });
 });
 
+// The parent waits on a fresh bun process with a DOM and StyleX preload, which
+// alone can outlast the default five seconds on a busy CI runner.
 it("preserves the draft after a failed comparison and replaces it only after explicit confirmation", async () => {
   // Radix captures DOM availability at import time. Other Studio tests import
   // it for SSR before creating a window, so run this portal interaction in a
@@ -181,4 +183,4 @@ it("preserves the draft after a failed comparison and replaces it only after exp
   await click("Replace with latest");
   expect(replacements).toEqual([latest]);
   expect(reads).toBe(2);
-});
+}, 30_000);
