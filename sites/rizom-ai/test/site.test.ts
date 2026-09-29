@@ -78,13 +78,12 @@ describe("@rizom/site-rizom-ai", () => {
     ]);
   });
 
-  test("writing composes the plugins' own list templates; the network page is gone", () => {
+  test("writing is one archive over the essays and presentations; the network page is gone", () => {
     const byId = (id: string): (typeof site.routes)[number] | undefined =>
       site.routes.find((route) => route.id === id);
 
-    expect(byId("writing")?.sections?.map((s) => s.template)).toEqual([
-      "blog:post-list",
-      "decks:deck-list",
+    expect(byId("writing")?.sections).toEqual([
+      { id: "archive", template: "rizom:writing", dataQuery: {} },
     ]);
     expect(byId("network")).toBeUndefined();
   });

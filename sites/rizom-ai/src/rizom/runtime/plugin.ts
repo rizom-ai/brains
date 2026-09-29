@@ -8,6 +8,7 @@ import type {
 } from "../contracts";
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import storyStyles from "../../story.css" with { type: "text" };
+import writingStyles from "../../writing.css" with { type: "text" };
 import { brainOrganism } from "../../story/brain-organism";
 import { foundationOrganism } from "../../story/foundation-organism";
 import { livingOrganism } from "../../story/living-organism";
@@ -61,6 +62,7 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
     brainOrganism.css() +
     workOrganism.css() +
     foundationOrganism.css(),
+  "/styles/writing.css": writingStyles,
 };
 
 export class RizomRuntimePlugin {

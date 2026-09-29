@@ -69,18 +69,8 @@ export const aiRoutes: RouteDefinitionInput[] = [
     description: "Everything published, in one index",
     layout: "default",
     navigation: { show: false },
-    sections: [
-      {
-        id: "essays",
-        template: "blog:post-list",
-        dataQuery: { entityType: "post", query: { limit: 100 } },
-      },
-      {
-        id: "talks",
-        template: "decks:deck-list",
-        dataQuery: { entityType: "deck", query: { limit: 100 } },
-      },
-    ],
+    // The archive: essays and presentations on one thread, newest first.
+    sections: [{ id: "archive", template: "rizom:writing", dataQuery: {} }],
   },
   {
     id: "work",
