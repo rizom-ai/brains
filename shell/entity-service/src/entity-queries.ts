@@ -1,4 +1,5 @@
 import type { EntityDB } from "./db";
+import { publishedStatusCondition } from "./published-condition";
 import type {
   EntityReadOptions,
   EntityHierarchyPage,
@@ -171,6 +172,7 @@ export class EntityQueries {
     id: string,
     visibilityScope?: ContentVisibility,
     options: EntityReadOptions = {},
+    publishGate?: { publishedStatuses: string[] | undefined },
   ): Promise<EntityData | null> {
     options.signal?.throwIfAborted();
     this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
@@ -184,6 +186,9 @@ export class EntityQueries {
       conditions.push(
         inArray(entities.visibility, getVisibleContentVisibilities(scope)),
       );
+    }
+    if (publishGate) {
+      conditions.push(publishedStatusCondition(publishGate.publishedStatuses));
     }
 
     const result = await this.db
@@ -530,22 +535,7 @@ export class EntityQueries {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
     if (publishedOnly) {
-      const statusExpr = sql`json_extract(${entities.metadata}, '$.status')`;
-      if (publishedStatuses && publishedStatuses.length > 0) {
-        // The adapter declared its own publish gate; the list is exact —
-        // entities without a status are not published.
-        conditions.push(
-          sql`${statusExpr} IN (${sql.join(
-            publishedStatuses.map((status) => sql`${status}`),
-            sql`, `,
-          )})`,
-        );
-      } else {
-        // Default lifecycle semantics for types with no declaration.
-        conditions.push(
-          sql`(${statusExpr} = 'published' OR ${statusExpr} = 'active' OR ${statusExpr} IS NULL)`,
-        );
-      }
+      conditions.push(publishedStatusCondition(publishedStatuses));
     }
 
     // Fail closed: undefined scope filters to public-only.

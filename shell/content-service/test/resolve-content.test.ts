@@ -15,11 +15,7 @@ import {
   type Template,
   type TemplateRegistry,
 } from "@brains/templates";
-import type {
-  BaseDataSourceContext,
-  BaseEntity,
-  DataSource,
-} from "@brains/entity-service";
+import type { BaseDataSourceContext, DataSource } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("ContentService.resolveContent", () => {
@@ -758,31 +754,23 @@ describe("ContentService.resolveContent", () => {
         publishedOnly: true, // Use scoped service
       });
 
-      // getEntity should be forwarded to base service
+      // getEntity is forwarded with the build's publish gate on it
       expect(getEntitySpy).toHaveBeenCalledWith({
         entityType: "post",
         id: "test-id",
+        publishedOnly: true,
       });
     });
 
-    it("should hide draft getEntity results when publishedOnly is set", async () => {
+    it("asks the store for a published entity when publishedOnly is set", async () => {
+      // The store applies each type's own publish gate (its declared
+      // statuses); the scoped view only has to ask for it.
       const mockTemplate: Template = {
         name: "get-entity-published-only-test",
         description: "Get entity publishedOnly test",
         dataSourceId: "shell:get-entity-published-only-source",
         schema: z.object({ found: z.boolean() }),
         requiredPermission: "public",
-      };
-
-      const draftEntity: BaseEntity = {
-        id: "draft-post",
-        entityType: "post",
-        content: "draft",
-        created: "2024-01-01T00:00:00.000Z",
-        updated: "2024-01-01T00:00:00.000Z",
-        visibility: "public",
-        metadata: { status: "draft" },
-        contentHash: "draft-hash",
       };
 
       const mockDataSource: Partial<DataSource> = {
@@ -800,7 +788,10 @@ describe("ContentService.resolveContent", () => {
 
       templateRegistry.register("get-entity-published-only-test", mockTemplate);
       dataSourceGetSpy.mockReturnValue(mockDataSource);
-      getEntitySpy.mockResolvedValue(draftEntity);
+      const getEntitySpy = spyOn(
+        mockDependencies.entityService,
+        "getEntity",
+      ).mockResolvedValue(null);
 
       const result = await contentService.resolveContent(
         "get-entity-published-only-test",
@@ -810,10 +801,15 @@ describe("ContentService.resolveContent", () => {
         },
       );
 
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType: "post",
+        id: "draft-post",
+        publishedOnly: true,
+      });
       expect(result).toEqual({ found: false });
     });
 
-    it("should forward search calls through scoped entityService", async () => {
+    it("applies publishedOnly to search calls in a published-only build", async () => {
       const mockTemplate: Template = {
         name: "search-test",
         description: "Search test template",
@@ -847,8 +843,11 @@ describe("ContentService.resolveContent", () => {
         publishedOnly: true, // Use scoped service
       });
 
-      // search should be forwarded to base service
-      expect(searchSpy).toHaveBeenCalledWith({ query: "test query" });
+      // A production build finds only published work, as its listings do.
+      expect(searchSpy).toHaveBeenCalledWith({
+        query: "test query",
+        options: { publishedOnly: true },
+      });
     });
 
     it("should properly proxy class-based entityService (regression for prototype methods)", async () => {

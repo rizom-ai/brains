@@ -8,6 +8,7 @@ import {
   ASK_BOX_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
   ASK_NAME_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
@@ -16,14 +17,8 @@ import { homepageAtlasStyles } from "./homepage-atlas-styles";
 
 const KIND_ORDER = ["post", "deck", "project"] as const;
 
-function initials(owner: string): string {
-  return owner
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join("");
-}
+/** What the empty box asks for, in the opening's own first person. */
+const ASK_PLACEHOLDER = "Ask about my work…";
 
 /** The contact form starts the visitor's message with the topic they chose. */
 function topicUrl(contactUrl: string, topic: string): string {
@@ -144,6 +139,12 @@ function AtlasMap({
                 key={`${item.entityType}:${item.id}`}
                 data-atlas-mark=""
                 data-atlas-key={`${item.entityType}:${item.id}`}
+                {...(item.typeLabel
+                  ? { "data-atlas-type": item.typeLabel }
+                  : {})}
+                {...(item.typeLabel
+                  ? { "data-atlas-type": item.typeLabel }
+                  : {})}
                 className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x, atlasPosition(item.y))}`}
                 style={{
                   left: `${atlasPosition(item.x)}%`,
@@ -228,17 +229,6 @@ export function HomepageAtlas({
     >
       <style>{homepageAtlasStyles}</style>
       <div className="atlas__talk">
-        {owner && (
-          <p className="atlas__byline">
-            <span className="atlas__initials" aria-hidden="true">
-              {initials(owner)}
-            </span>
-            <span>
-              <b>{owner}</b>
-              {opening.attribution && <small>{opening.attribution}</small>}
-            </span>
-          </p>
-        )}
         {opening.title && (
           <h1>{renderHighlightedText(opening.title, "atlas__emphasis")}</h1>
         )}
@@ -258,6 +248,7 @@ export function HomepageAtlas({
               [ASK_BOX_ATTRIBUTE]: "",
               [ASK_STYLED_ATTRIBUTE]: "",
               ...(owner ? { [ASK_NAME_ATTRIBUTE]: owner } : {}),
+              [ASK_PLACEHOLDER_ATTRIBUTE]: ASK_PLACEHOLDER,
             }}
           >
             <p
@@ -266,7 +257,12 @@ export function HomepageAtlas({
               {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
             />
             <div className="atlas__composer">
-              <textarea rows={1} disabled aria-label="Your question" />
+              <textarea
+                rows={1}
+                disabled
+                aria-label="Your question"
+                placeholder={ASK_PLACEHOLDER}
+              />
               <button
                 type="button"
                 className="atlas__send"

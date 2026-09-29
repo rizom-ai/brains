@@ -250,8 +250,8 @@ export function initializeIdentityAndAgentServices(
             // A visitor's sources are found by meaning, so only with embeddings.
             guestAnswerSources: createGuestAnswerSources({
               entityService,
-              hasRoute: (entityType) =>
-                EntityUrlGenerator.getInstance().hasRoute(entityType),
+              isCitable: (entityType) =>
+                EntityUrlGenerator.getInstance().isCitable(entityType),
               urlFor: (entityType, slug) =>
                 EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
               siteBaseUrl: config.siteBaseUrl,

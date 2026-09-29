@@ -1,5 +1,10 @@
 /** @jsxImportSource react */
-import { useLayoutEffect, type ReactElement, type RefObject } from "react";
+import {
+  useLayoutEffect,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import type { GuestBoxCopy } from "./guest-box-types";
 
 /** The box's question form: an autosizing field and its hint. */
@@ -13,13 +18,12 @@ export function GuestBoxComposer(props: {
   welcome: boolean;
   busy: boolean;
   canSend: boolean;
-  hasMessages: boolean;
   onSubmit: () => void;
   onFocus?: () => void;
   /** A finger or pointer landed on the field, before it takes focus. */
   onLand?: () => void;
-  /** Said under the composer once there is an answer. */
-  answeredNote?: string;
+  /** Beside the note under the composer, e.g. what the chat is about. */
+  noteAction?: ReactNode;
 }): ReactElement {
   const { draft, over, welcome, busy, copy } = props;
 
@@ -72,16 +76,17 @@ export function GuestBoxComposer(props: {
           ↑
         </button>
       </div>
-      <p
-        id="brain-chat-notice"
-        className={`brain-box-hint${over > 0 ? " invalid" : ""}`}
-      >
-        {over > 0
-          ? `${over} characters over the limit.`
-          : props.hasMessages
-            ? (props.answeredNote ?? null)
-            : "Public knowledge. Please avoid private details."}
-      </p>
+      <div className="brain-box-note">
+        <p
+          id="brain-chat-notice"
+          className={`brain-box-hint${over > 0 ? " invalid" : ""}`}
+        >
+          {over > 0
+            ? `${over} characters over the limit.`
+            : "Answers use published work only. Leave private details out."}
+        </p>
+        {props.noteAction}
+      </div>
     </form>
   );
 }

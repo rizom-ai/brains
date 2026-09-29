@@ -636,12 +636,14 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(document.querySelector("#brain-chat-recording")).toBeNull();
     expect(document.body.textContent).not.toContain("kept for");
   });
-  it("adds no hint under the box's composer while an answer streams", async () => {
+  it("keeps the one note under the box's composer while an answer streams", async () => {
     held = true;
     await mount({ box: boxCopy });
     await ask("Energy efficiency");
     expect(document.body.textContent).toContain("Partial");
-    expect(document.querySelector("#brain-chat-notice")?.textContent).toBe("");
+    expect(document.querySelector("#brain-chat-notice")?.textContent).toBe(
+      "Answers use published work only. Leave private details out.",
+    );
   });
   it("follows the box to the newest answer when the visitor sends while scrolled back", async () => {
     await mount({ box: boxCopy });
@@ -654,14 +656,14 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(region.scrollTop).toBe(1000);
   });
 
-  it("offers Latest once the visitor scrolls back, and it returns them to the newest", async () => {
+  it("offers the rest of the answer once the visitor scrolls back, and it returns them to the newest", async () => {
     await mount({ box: boxCopy });
     await ask("First question");
     const region = boxRegion();
     expect(document.querySelector(".brain-box-latest")).toBeNull();
 
     await scrollRegion(region, 100);
-    await click("Latest");
+    await click("Rest of the answer");
 
     expect(region.scrollTop).toBe(1000);
     expect(document.querySelector(".brain-box-latest")).toBeNull();
@@ -682,7 +684,7 @@ describe("public Ask UI with mocked Chat transport", () => {
 
     await click("Close");
     expect(region.scrollTop).toBe(300);
-    expect(document.activeElement?.textContent).toBe("About");
+    expect(document.activeElement?.textContent).toBe("About this chat");
   });
 
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {

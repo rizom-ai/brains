@@ -33,7 +33,7 @@ function setup(options: {
       <div class="atlas__map" data-atlas-map><div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
-          <li data-atlas-mark data-atlas-key="post:first" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-atlas-cited>Where it’s cited ↓</button></li>
+          <li data-atlas-mark data-atlas-key="post:first" data-atlas-type="Essay" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-atlas-cited>Where it’s cited ↓</button></li>
           <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
           <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
@@ -319,6 +319,24 @@ describe("atlas and its chat", () => {
     ).map((mark) => mark.getAttribute("data-atlas-key"));
     expect(cited).toEqual(["post:first"]);
     expect(focused()).toBe(true);
+  });
+
+  it("names each listed source's kind as the map's legend does, whenever the list appears", () => {
+    setup({ touch: false, chat: "live" });
+    const type = (id: string): string | null | undefined =>
+      window.document
+        .querySelector(`[data-ask-source="${id}"]`)
+        ?.getAttribute("data-atlas-type");
+    listSources(["post:first", "post:elsewhere"], true);
+    answer(["post:first"]);
+    expect(type("post:first")).toBe("Essay");
+    // A source the map does not show gets no kind.
+    expect(type("post:elsewhere")).toBeNull();
+    // A list the box renders after the answer is named too.
+    window.document.querySelector("details")?.remove();
+    listSources(["post:first"], true);
+    mutate();
+    expect(type("post:first")).toBe("Essay");
   });
 
   it("says how far down the map the sources sit, for a strip that slides to them", () => {

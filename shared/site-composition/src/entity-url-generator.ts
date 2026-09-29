@@ -8,6 +8,8 @@ export interface EntityDisplayMap {
   [entityType: string]: {
     label: string;
     pluralName?: string | undefined;
+    /** A piece of work a visitor's answer may cite as a source. */
+    citable?: boolean | undefined;
   };
 }
 
@@ -50,6 +52,18 @@ export class EntityUrlGenerator {
    */
   hasRoute(entityType: string): boolean {
     return this.entityDisplay?.[entityType] !== undefined;
+  }
+
+  /**
+   * Whether a visitor's answer may cite this type as a source: a type the
+   * site marks citable, or, on a site that marks none, any type with pages.
+   */
+  isCitable(entityType: string): boolean {
+    const entries = Object.values(this.entityDisplay ?? {});
+    if (!entries.some((entry) => entry.citable === true)) {
+      return this.hasRoute(entityType);
+    }
+    return this.entityDisplay?.[entityType]?.citable === true;
   }
 
   /**

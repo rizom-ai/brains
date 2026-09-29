@@ -24,6 +24,7 @@ import {
   ASK_BOX_ATTRIBUTE,
   ASK_DOCK_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
 } from "@brains/contracts";
 
 export interface GuestBoxProps {
@@ -90,15 +91,20 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const sheet = useAskSheet(root, input);
   // Closed on a phone, the box is a composer and a way back to the conversation.
   const compact = sheet.narrow && !sheet.open;
-  // Whose brain this is, from the host (ASK_NAME_ATTRIBUTE), once mounted.
+  // Whose brain this is and what the empty box asks for, from the host
+  // (ASK_NAME_ATTRIBUTE, ASK_PLACEHOLDER_ATTRIBUTE), once mounted.
   const [owner, setOwner] = useState<string>();
+  const [placeholder, setPlaceholder] = useState<string>();
   useEffect(() => {
-    setOwner(
-      root.current
-        ?.closest(`[${ASK_BOX_ATTRIBUTE}]`)
-        ?.getAttribute(ASK_NAME_ATTRIBUTE)
-        ?.trim() ?? undefined,
-    );
+    const host = root.current?.closest(`[${ASK_BOX_ATTRIBUTE}]`);
+    // An empty attribute says nothing.
+    const said = (name: string): string | undefined => {
+      const value = host?.getAttribute(name)?.trim();
+      if (!value) return undefined;
+      return value;
+    };
+    setOwner(said(ASK_NAME_ATTRIBUTE));
+    setPlaceholder(said(ASK_PLACEHOLDER_ATTRIBUTE));
   }, []);
 
   const initialIntent = useRef(props.submitOnReady === true);
@@ -171,21 +177,11 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     else input.current?.focus({ preventScroll: true });
   }
 
-  const actions = (
+  const actions = props.canContinue && !sheet.open && (
     <div className="brain-box-header-actions">
-      {props.canContinue && !sheet.open && (
-        <a href="/ask" onClick={props.onContinue}>
-          Full chat ↗
-        </a>
-      )}
-      <button
-        ref={aboutButton}
-        type="button"
-        aria-expanded={about}
-        onClick={toggleAbout}
-      >
-        About
-      </button>
+      <a href="/ask" onClick={props.onContinue}>
+        Full chat ↗
+      </a>
     </div>
   );
 
@@ -193,11 +189,12 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     if (sheet.open)
       return (
         <div className="brain-box-sheet-head">
-          <span className="brain-box-sheet-title">
+          {/* Full screen, there is no title row: the conversation starts at
+              the top, the title is for screen readers, and the way out sits
+              over the corner. The note under the composer says the rest. */}
+          <span className="brain-box-sheet-title brain-box-sr-only">
             {owner ? `Ask ${owner}` : "Conversation"}
           </span>
-          {/* Full screen, the header is its title and a way out; the note
-              under the composer says what a visitor needs to know. */}
           <button
             className="brain-box-close"
             type="button"
@@ -208,6 +205,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           </button>
         </div>
       );
+    if (!actions) return null;
     return header ? createPortal(actions, header) : actions;
   };
 
@@ -293,9 +291,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
                 <i />
                 <i />
               </span>
-              {owner
-                ? `Looking through ${owner}'s work`
-                : "Looking through the brain's work"}
+              Looking through the published work
             </p>
           </section>
         )}
@@ -352,16 +348,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         )}
       </div>
       <div className="brain-box-bottom">
-        {tail.awayFromLatest && !about && !compact && (
-          <button
-            className="brain-box-latest"
-            type="button"
-            aria-label="Latest"
-            onClick={tail.jumpToLatest}
-          >
-            ↓
-          </button>
-        )}
         {compact && messages.length > 0 && (
           <button
             className="brain-box-resume"
@@ -373,22 +359,40 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           </button>
         )}
         <GuestBoxComposer
-          copy={copy}
+          copy={placeholder ? { ...copy, inputHint: placeholder } : copy}
           inputRef={input}
           onFocus={sheet.show}
           onLand={sheet.land}
-          {...(owner
-            ? { answeredNote: `Answers come from what ${owner} has published.` }
-            : {})}
+          noteAction={
+            <button
+              ref={aboutButton}
+              className="brain-box-quiet"
+              type="button"
+              aria-expanded={about}
+              onClick={toggleAbout}
+            >
+              About this chat
+            </button>
+          }
           draft={draft}
           setDraft={props.setDraft}
           over={over}
           welcome={welcome}
           busy={busy}
           canSend={props.canSend}
-          hasMessages={messages.length > 0}
           onSubmit={submit}
         />
+        {/* The rest of a long answer is offered where the note was, never
+            over the text; the note comes back at the end. */}
+        {tail.awayFromLatest && !about && !compact && (
+          <button
+            className="brain-box-latest"
+            type="button"
+            onClick={tail.jumpToLatest}
+          >
+            ↓ Rest of the answer
+          </button>
+        )}
       </div>
     </div>
   );

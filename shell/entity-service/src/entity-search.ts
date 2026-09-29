@@ -14,6 +14,7 @@ import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
+import { publishedAcrossTypesCondition } from "./published-condition";
 import {
   buildSemanticSpaceProjection,
   type SemanticEmbedding,
@@ -61,6 +62,7 @@ const searchOptionsSchema = z.object({
   weight: z.record(z.string(), z.number()).optional(),
   visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
   includeUngenerated: z.boolean().optional().default(false),
+  publishedOnly: z.boolean().optional().default(false),
   minScore: z.number().min(0).optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
@@ -83,6 +85,8 @@ export class EntitySearch {
   private serializer: EntitySerializer;
   private logger: Logger;
   private readonly embeddingsEnabled: boolean;
+  /** Published statuses by entity type, for the types that declare them. */
+  private readonly publishGates: () => Record<string, string[]>;
 
   constructor(
     db: EntitySearchDB,
@@ -90,12 +94,14 @@ export class EntitySearch {
     serializer: EntitySerializer,
     logger: Logger,
     embeddingsEnabled = true,
+    publishGates: () => Record<string, string[]> = () => ({}),
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
+    this.publishGates = publishGates;
   }
 
   /**
@@ -113,6 +119,7 @@ export class EntitySearch {
       weight,
       visibilityScope,
       includeUngenerated,
+      publishedOnly,
       minScore,
       signal,
       limit,
@@ -136,6 +143,7 @@ export class EntitySearch {
         weight,
         visibilityScope,
         includeUngenerated,
+        publishedOnly,
         minScore,
         signal,
       });
@@ -182,6 +190,7 @@ export class EntitySearch {
         ...typeConditions,
         ...this.buildVisibilityConditions(visibilityScope),
         ...this.buildGenerationStatusConditions(includeUngenerated),
+        ...this.buildPublishedConditions(publishedOnly),
       ],
       limit,
       offset,
@@ -201,6 +210,7 @@ export class EntitySearch {
       readonly weight: Record<string, number> | undefined;
       readonly visibilityScope: ContentVisibility | undefined;
       readonly includeUngenerated: boolean;
+      readonly publishedOnly: boolean;
       readonly minScore: number | undefined;
       readonly signal: AbortSignal | undefined;
     },
@@ -222,6 +232,7 @@ export class EntitySearch {
     conditions.push(
       ...this.buildVisibilityConditions(options.visibilityScope),
       ...this.buildGenerationStatusConditions(options.includeUngenerated),
+      ...this.buildPublishedConditions(options.publishedOnly),
     );
 
     // bm25() returns lower-is-better negative relevance. Map it to (0.5, 1)
@@ -273,6 +284,12 @@ export class EntitySearch {
     return [
       sql`(json_extract(${entities.metadata}, '$.status') IS NULL OR json_extract(${entities.metadata}, '$.status') NOT IN ('generating', 'failed'))`,
     ];
+  }
+
+  private buildPublishedConditions(publishedOnly: boolean): SQL[] {
+    return publishedOnly
+      ? [publishedAcrossTypesCondition(this.publishGates())]
+      : [];
   }
 
   /**

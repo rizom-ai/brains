@@ -64,15 +64,15 @@ export type AskSourcesDetail = z.output<typeof askSourcesDetailSchema>;
  * - ASK_SHEET_ATTRIBUTE is set on the host while the box is open full screen.
  * - ASK_KEYBOARD_ATTRIBUTE is set on the host while the on-screen keyboard
  *   takes part of the screen; the box then fits the space above it.
- * - The open box starts with a header ASK_SHEET_HEADER_HEIGHT tall. A host
- *   may dock something at the top of the conversation, such as a map of
- *   its own content, in ASK_DOCK_ATTRIBUTE, and set `--ask-sheet-inset` on
- *   the host to its height so an answer opens below it.
+ * - The open box has no title row: its conversation starts at the top of the
+ *   screen, with a close button over its corner. A host may dock something
+ *   at the top of the conversation, such as a map of its own content, in
+ *   ASK_DOCK_ATTRIBUTE, and set `--ask-sheet-inset` on the host to its
+ *   height so an answer opens below it.
  */
 export const ASK_SHEET_MEDIA = "(max-width: 47.99rem)";
 export const ASK_SHEET_ATTRIBUTE = "data-ask-sheet";
 export const ASK_KEYBOARD_ATTRIBUTE = "data-ask-keyboard";
-export const ASK_SHEET_HEADER_HEIGHT = "3.25rem";
 
 /**
  * Set by a host on its mount element: whose brain the box speaks for, such
@@ -80,6 +80,13 @@ export const ASK_SHEET_HEADER_HEIGHT = "3.25rem";
  * where they come from with it; without it the box speaks as "the brain".
  */
 export const ASK_NAME_ATTRIBUTE = "data-ask-name";
+
+/**
+ * Set by a host on its mount element: what the empty box asks for, in the
+ * site's own words, such as "Ask about my work…". After the first answer the
+ * box asks for a follow-up.
+ */
+export const ASK_PLACEHOLDER_ATTRIBUTE = "data-ask-placeholder";
 
 /**
  * The key an open sheet marks its history entry with, holding the page's

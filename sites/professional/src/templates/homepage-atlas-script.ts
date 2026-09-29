@@ -413,11 +413,22 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       slot.replaceWith(lent);
       slot = null;
     }
+    // Each source the box lists is named as the legend names its kind, from
+    // its mark, and whenever the box renders the list.
+    function nameSources() {
+      if (!askHost) return;
+      askHost.querySelectorAll("[${ASK_SOURCE_ATTRIBUTE}]").forEach(function (item) {
+        var source = mark(item.getAttribute("${ASK_SOURCE_ATTRIBUTE}"));
+        var type = source && source.getAttribute("data-atlas-type");
+        if (type && item.getAttribute("data-atlas-type") !== type) item.setAttribute("data-atlas-type", type);
+      });
+    }
     if (askHost && typeof MutationObserver === "function")
       // The box mounts, and so its dock appears, after the sheet has opened.
       new MutationObserver(function () {
         if (sheetOpen()) lend();
         else giveBack();
+        nameSources();
       }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}"], childList: true, subtree: true });
 
     root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
@@ -432,6 +443,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       });
       turnTowards(cited);
       citedMarks = cited;
+      nameSources();
       followLeads(Date.now() + TURN);
     });
 

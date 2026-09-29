@@ -11,6 +11,12 @@ import { assertGuestReader } from "./guest-read-context";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
 
+/** A public reader is a site's visitor, and a draft is not theirs to read. */
+const publishedOnlyFor = (
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): { publishedOnly?: true } =>
+  visibilityScope === "public" ? { publishedOnly: true } : {};
+
 export function createEntityReadTools(services: SystemServices): Tool[] {
   const { entityService, logger } = services;
 
@@ -41,6 +47,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                     includeUngenerated: input.includeUngenerated,
                   }),
                   visibilityScope,
+                  ...publishedOnlyFor(visibilityScope),
                 },
               })
             ).map((r) => {
@@ -86,6 +93,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           logger,
           undefined,
           visibilityScope,
+          publishedOnlyFor(visibilityScope),
         );
         if (!result.ok) {
           return { success: false, error: result.error };
@@ -139,6 +147,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           options: {
             limit: input.limit ?? 20,
             filter,
+            ...publishedOnlyFor(visibilityScope),
             ...(defaultSort ? { sortFields: defaultSort } : {}),
           },
         });
