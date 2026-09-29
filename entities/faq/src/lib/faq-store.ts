@@ -4,7 +4,7 @@ import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import { faqSchema, type FaqEntity, type FaqFrontmatter } from "../schemas/faq";
 
 /**
- * Cosine distance between FAQ markdowns within which they ask the same
+ * Default cosine distance between FAQ markdowns within which they ask the same
  * question. Stored FAQs are embedded as markdown, so a FAQ is measured in
  * that form too. Measured paraphrases sit at 0.03–0.14, a different question
  * on the same subject at 0.43 and beyond.
@@ -20,6 +20,8 @@ export interface FaqStoreDeps {
     "getEntity" | "updateEntity"
   >;
   searchWithDistances: EntityPluginContext["entityService"]["searchWithDistances"];
+  /** Largest distance at which two FAQs ask the same question. */
+  sameQuestionDistance: number;
 }
 
 /** A stored FAQ of exactly `visibility` that asks the question `content` asks. */
@@ -40,7 +42,7 @@ export function findSameFaq(
     {
       query: request.content,
       entityType: "faq",
-      maxDistance: SAME_QUESTION_DISTANCE,
+      maxDistance: deps.sameQuestionDistance,
       visibility: request.visibility,
       ...(request.excludeIds ? { excludeIds: request.excludeIds } : {}),
     },

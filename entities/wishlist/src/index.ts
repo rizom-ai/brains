@@ -124,7 +124,11 @@ export class WishlistPlugin extends EntityPlugin<
       };
     }
 
-    const result = await new WishCreateHandler(this.logger, context).process(
+    const result = await new WishCreateHandler(
+      this.logger,
+      context,
+      this.config.sameWishDistance,
+    ).process(
       {
         ...(input.title ? { title: input.title } : {}),
         ...(input.prompt ? { prompt: input.prompt } : {}),
@@ -190,7 +194,11 @@ export class WishlistPlugin extends EntityPlugin<
     });
 
     // Custom create handler with semantic dedup
-    const handler = new WishCreateHandler(this.logger, context);
+    const handler = new WishCreateHandler(
+      this.logger,
+      context,
+      this.config.sameWishDistance,
+    );
     context.jobs.registerHandler("wish:create", {
       process: handler.process.bind(handler),
       validateAndParse: (data: unknown) => data,

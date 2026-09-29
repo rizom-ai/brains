@@ -40,6 +40,7 @@ The plugin registers the `faq:entities` datasource and the `faq-section` templat
 plugins:
   faq:
     enabled: false # default true; off means no subscription, no capture jobs, no AI calls
+    sameQuestionDistance: 0.2 # cosine distance at which two FAQs ask the same question
 ```
 
 ## Validation

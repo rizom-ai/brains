@@ -32,9 +32,16 @@ export class WishCreateHandler {
   private readonly context: EntityPluginContext;
   private readonly adapter = new WishAdapter();
 
-  constructor(logger: Logger, context: EntityPluginContext) {
+  private readonly maxDistance: number;
+
+  constructor(
+    logger: Logger,
+    context: EntityPluginContext,
+    maxDistance: number = SAME_WISH_DISTANCE,
+  ) {
     this.logger = logger;
     this.context = context;
+    this.maxDistance = maxDistance;
   }
 
   async process(
@@ -63,7 +70,7 @@ export class WishCreateHandler {
           this.context.entityService.searchWithDistances(request),
         getEntity: (request) =>
           this.context.entityService.getEntity(request, wishSchema),
-        maxDistance: SAME_WISH_DISTANCE,
+        maxDistance: this.maxDistance,
       },
       { title, content },
     );

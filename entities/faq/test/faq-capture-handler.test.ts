@@ -64,9 +64,13 @@ describe("FaqCaptureHandler", () => {
   let searches: string[];
   let distances: DistanceResult[];
 
-  function createHandler(messages: Message[] = transcript): FaqCaptureHandler {
+  function createHandler(
+    messages: Message[] = transcript,
+    sameQuestionDistance = 0.2,
+  ): FaqCaptureHandler {
     return new FaqCaptureHandler(createSilentLogger(), {
       entityService: context.entityService,
+      sameQuestionDistance,
       searchWithDistances: async (request): Promise<DistanceResult[]> => {
         searches.push(request.query);
         return distances;
@@ -281,6 +285,14 @@ describe("FaqCaptureHandler", () => {
       expect(await capturedFaqs()).toHaveLength(2);
     });
   }
+
+  it("applies the configured same-question distance", async () => {
+    await seedMatch("restricted", 0.3);
+
+    const result = await capture(createHandler(transcript, 0.35), "admin");
+
+    expect(result).toMatchObject({ entityId: "faq-old", merged: true });
+  });
 
   it("keeps a weak match as a separate FAQ", async () => {
     await seedMatch("restricted", 0.3);

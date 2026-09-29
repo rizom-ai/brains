@@ -30,6 +30,7 @@ describe("FaqReconcileHandler", () => {
   function handler(): FaqReconcileHandler {
     return new FaqReconcileHandler(createSilentLogger(), {
       entityService: context.entityService,
+      sameQuestionDistance: 0.2,
       searchWithDistances: async (): Promise<DistanceResult[]> => distances,
     });
   }

@@ -22,15 +22,23 @@ import {
   type FaqReconcileJobData,
 } from "./handlers/faq-reconcile-handler";
 import { FaqDataSource } from "./datasources/faq-datasource";
+import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
 import { faqSchema, type FaqEntity } from "./schemas/faq";
 import { getTemplates } from "./templates/faq-section";
 import packageJson from "../package.json";
 
 const faqConfigSchema: z.ZodObject<{
   enabled: z.ZodDefault<z.ZodBoolean>;
+  sameQuestionDistance: z.ZodDefault<z.ZodNumber>;
 }> = z.object({
   /** Capture Q&A from chats. Off: no subscription, no jobs, no AI calls. */
   enabled: z.boolean().default(true),
+  /** Largest cosine distance at which two FAQs ask the same question. */
+  sameQuestionDistance: z
+    .number()
+    .min(0)
+    .max(1)
+    .default(SAME_QUESTION_DISTANCE),
 });
 
 export type FaqConfig = z.output<typeof faqConfigSchema>;
@@ -91,6 +99,7 @@ export class FaqPlugin extends EntityPlugin<
         searchWithDistances: context.entityService.searchWithDistances.bind(
           context.entityService,
         ),
+        sameQuestionDistance: this.config.sameQuestionDistance,
         conversations: context.conversations,
         ai: context.ai,
       }),
@@ -102,6 +111,7 @@ export class FaqPlugin extends EntityPlugin<
         searchWithDistances: context.entityService.searchWithDistances.bind(
           context.entityService,
         ),
+        sameQuestionDistance: this.config.sameQuestionDistance,
       }),
     );
 
