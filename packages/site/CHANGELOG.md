@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.236
+
+### Patch Changes
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`8df97bf`](https://github.com/rizom-ai/brains/commit/8df97bf413df6bc4d5d0d20e06366b2720a591c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity display entries accept `citable: true`, marking a type as a piece of work a visitor's answer may cite as a source.
+
 ## 0.2.0-alpha.235
 
 ### Patch Changes

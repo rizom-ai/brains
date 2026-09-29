@@ -777,6 +777,7 @@
     "site--brain-landing-local-network",
     "site--consolidate-rizom-package",
     "site--drop-rizom-theme-profiles",
+    "site--entity-display-citable",
     "site--first-party-preact-peer",
     "site--fold-rizom-ui-into-site",
     "site--json-native-section-content",
