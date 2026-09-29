@@ -131,7 +131,7 @@ const FOOTER_COLUMNS: FooterColumn[] = [
     links: [
       { label: "The Knowledge Audit", href: "/work#audit" },
       { label: "Team Type quiz", href: "/work#quiz" },
-      { label: "Contact", href: "/work#contact" },
+      { label: "Contact", href: "/contact" },
     ],
   },
   {

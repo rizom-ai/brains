@@ -109,4 +109,12 @@ describe("the story shell", () => {
     expect(footer).not.toContain('href="/network"');
     expect(footer).not.toContain("The workshop");
   });
+
+  test("the footer's contact link opens the contact form", () => {
+    const footer = renderChrome("/").slice(
+      renderChrome("/").indexOf("<footer"),
+    );
+    expect(footer).toMatch(/<a href="\/contact"[^>]*>Contact<\/a>/);
+    expect(footer).not.toContain("#contact");
+  });
 });

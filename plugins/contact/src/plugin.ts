@@ -15,7 +15,7 @@ import packageJson from "../package.json";
 import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake, type ContactMaintenanceReport } from "./intake";
-import { ContactHttpHandlers } from "./http";
+import { ContactHttpHandlers, previewOriginFor } from "./http";
 import { ContactDelivery } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactPluginConfigSchema, type ContactPluginConfig } from "./config";
@@ -136,7 +136,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     this.http = new ContactHttpHandlers(admission, this.intake, config.http, {
       themeCSS: context.themeCSS,
       // Preview reachability serves the deployment's own preview host too.
-      previewOrigin: config.preview ? context.previewUrl : undefined,
+      previewOrigin: config.preview
+        ? previewOriginFor(config.http.origin, context.previewUrl)
+        : undefined,
       owner: (): string => context.identity.getProfile().name,
     });
     context.endpoints.register({

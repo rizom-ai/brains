@@ -26,6 +26,13 @@ export interface ContactHttpPolicy {
    * its X-Forwarded-Proto: https. Only the protocol; never a visitor address. */
   trustForwardedProto?: boolean | undefined;
 }
+/** Loopback names: the addresses, localhost and its subdomains (RFC 6761). */
+function isLoopback(hostname: string): boolean {
+  return (
+    ["localhost", "127.0.0.1", "[::1]"].includes(hostname) ||
+    hostname.endsWith(".localhost")
+  );
+}
 const originSchema: z.ZodString = z
   .string()
   .url()
@@ -34,10 +41,26 @@ const originSchema: z.ZodString = z
     return (
       value === url.origin &&
       (url.protocol === "https:" ||
-        (url.protocol === "http:" &&
-          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
+        (url.protocol === "http:" && isLoopback(url.hostname)))
     );
   }, "An exact HTTPS origin or loopback HTTP origin is required");
+
+/**
+ * The preview host a deployment serves beside its origin: its domain's
+ * preview host, or locally the `preview.` host the webserver treats as
+ * preview (`http://localhost:8080` beside `http://preview.localhost:8080`).
+ */
+export function previewOriginFor(
+  origin: string,
+  deploymentPreview: string | undefined,
+): string | undefined {
+  if (deploymentPreview) return deploymentPreview;
+  const url = new URL(origin);
+  if (url.protocol !== "http:" || url.hostname !== "localhost")
+    return undefined;
+  url.hostname = "preview.localhost";
+  return url.origin;
+}
 export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
   z.strictObject({
     origin: originSchema,

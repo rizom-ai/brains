@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from "bun:test";
 import { ContactHttpHandlers } from "../src";
+import { previewOriginFor } from "../src/http";
 import { intakeFixture, input, peer } from "./intake-fixture";
 
 const origin = "https://brain.test";
@@ -454,5 +455,58 @@ describe("contact HTTP on the preview host", () => {
       (await page(await withPreview(), new Request(`${preview}/contact`)))
         .status,
     ).toBe(403);
+  });
+});
+
+describe("the preview origin a deployment serves", () => {
+  it("is the deployment's own preview host when it has a domain", () => {
+    expect(
+      previewOriginFor("https://rizom.ai", "https://preview.rizom.ai"),
+    ).toBe("https://preview.rizom.ai");
+  });
+
+  it("is the local preview host beside a local origin, as the webserver serves it", () => {
+    expect(previewOriginFor("http://localhost:8080", undefined)).toBe(
+      "http://preview.localhost:8080",
+    );
+  });
+
+  it("is none for a public origin without a domain, or a bare loopback address", () => {
+    expect(previewOriginFor("https://rizom.ai", undefined)).toBeUndefined();
+    expect(
+      previewOriginFor("http://127.0.0.1:8080", undefined),
+    ).toBeUndefined();
+  });
+
+  it("serves and saves on the local preview host", async () => {
+    const local = "http://localhost:8080";
+    const localPreview = previewOriginFor(local, undefined);
+    const f = await intakeFixture();
+    const handlers = new ContactHttpHandlers(
+      f.admission,
+      f.intake,
+      { origin: local, maxBodyBytes: 65536, readTimeoutMs: 10000 },
+      localPreview ? { previewOrigin: localPreview } : {},
+    );
+    // Plain HTTP is served only to a loopback socket, as a local browser is.
+    const form_ = await page(
+      handlers,
+      new Request("http://preview.localhost:8080/contact"),
+      "127.0.0.1",
+    );
+    expect(form_.status).toBe(200);
+    if (!form_.token) throw new Error("Missing form token");
+    const saved = await handlers.handle(
+      new Request("http://preview.localhost:8080/contact", {
+        method: "POST",
+        body: form(form_.token),
+        headers: {
+          origin: "http://preview.localhost:8080",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+      }),
+      { remoteAddress: "127.0.0.1" },
+    );
+    expect(saved.status).toBe(303);
   });
 });
