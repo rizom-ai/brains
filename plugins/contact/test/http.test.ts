@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from "bun:test";
+import { SitePageResponse } from "@brains/plugins";
 import { ContactHttpHandlers } from "../src";
 import { previewOriginFor } from "../src/http";
 import { intakeFixture, input, peer } from "./intake-fixture";
@@ -510,5 +511,48 @@ describe("the preview origin a deployment serves", () => {
       { remoteAddress: "127.0.0.1" },
     );
     expect(saved.status).toBe(303);
+  });
+});
+
+describe("the contact page inside the site's own page", () => {
+  async function handlers(): Promise<ContactHttpHandlers> {
+    const f = await intakeFixture();
+    return new ContactHttpHandlers(f.admission, f.intake, {
+      origin,
+      maxBodyBytes: 65536,
+      readTimeoutMs: 10000,
+    });
+  }
+
+  it("offers the form for the site page's slot, with the token of its own page", async () => {
+    const response = await (
+      await handlers()
+    ).handle(new Request(`${origin}/contact`), { remoteAddress: peer });
+    expect(response).toBeInstanceOf(SitePageResponse);
+    const slot =
+      response instanceof SitePageResponse ? response.slot : undefined;
+    expect(slot?.name).toBe("contact");
+    const own = await response.text();
+    expect(own.startsWith("<!doctype html>")).toBe(true);
+    const token = /name="token" value="([a-f0-9]{64})"/.exec(own)?.[1];
+    if (!token) throw new Error("Missing form token");
+    expect(slot?.html).toContain(`name="token" value="${token}"`);
+    expect(slot?.html.startsWith('<div class="contact">')).toBe(true);
+    expect(slot?.html).not.toContain("<html");
+  });
+
+  it("lets the site's page load its own styles, fonts and scripts, and keeps the form's guards", async () => {
+    const response = await (
+      await handlers()
+    ).handle(new Request(`${origin}/contact`), { remoteAddress: peer });
+    const policy = response.headers.get("Content-Security-Policy") ?? "";
+    for (const directive of [
+      "default-src 'self'",
+      "form-action 'self'",
+      "base-uri 'none'",
+      "frame-ancestors 'none'",
+    ])
+      expect(policy).toContain(directive);
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
   });
 });

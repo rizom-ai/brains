@@ -8,6 +8,7 @@ import type {
   RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
 import {
+  SITE_SLOT_ATTRIBUTE,
   SitePageResponse,
   type WebRouteTransportContext,
 } from "@brains/plugins/contracts/web-routes";
@@ -119,6 +120,39 @@ export class ServerManager {
   private routes: readonly RegisteredHttpRoute[] = Object.freeze([]);
   private productionServer: RunningServer | null = null;
   private readonly transport = new WeakMap<Request, WebRouteTransportContext>();
+
+  /**
+   * The route's site page at its path with the slot filled, keeping the
+   * route's status and headers; undefined where the page or its slot is
+   * missing, so the route's own page stands.
+   */
+  private async fillSitePage(
+    distDir: string,
+    requestPath: string,
+    response: SitePageResponse,
+  ): Promise<Response | undefined> {
+    const slot = response.slot;
+    if (!slot) return undefined;
+    const path = resolve(distDir, `.${requestPath}`, "index.html");
+    if (!isPathContained(path, resolve(distDir))) return undefined;
+    const page = Bun.file(path);
+    if (!(await page.exists())) return undefined;
+    const marker = `<div ${SITE_SLOT_ATTRIBUTE}="${slot.name}"></div>`;
+    const html = await page.text();
+    if (!html.includes(marker)) return undefined;
+    const headers = new Headers(response.headers);
+    headers.delete("Content-Length");
+    headers.delete("Content-Encoding");
+    headers.delete("ETag");
+    headers.set("Content-Type", "text/html; charset=utf-8");
+    return new Response(
+      html.replace(marker, () => slot.html),
+      {
+        status: response.status,
+        headers,
+      },
+    );
+  }
 
   private isPreviewHost(host: string | null): boolean {
     if (!host) {
@@ -425,6 +459,12 @@ export class ServerManager {
         c.req.raw,
         this.transport.get(c.req.raw),
       );
+      if (response instanceof SitePageResponse && response.slot) {
+        return (
+          (await this.fillSitePage(opts.distDir, requestPath, response)) ??
+          response
+        );
+      }
       if (
         requestMethod === "GET" &&
         response instanceof SitePageResponse &&

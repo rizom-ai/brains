@@ -809,7 +809,13 @@ export type {
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";
-export { jsonResponse, jsonError, SitePageResponse } from "./types/web-routes";
+export {
+  jsonResponse,
+  jsonError,
+  SitePageResponse,
+  SITE_SLOT_ATTRIBUTE,
+  type SitePageSlot,
+} from "./types/web-routes";
 export {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
