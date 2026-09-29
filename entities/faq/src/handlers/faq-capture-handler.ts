@@ -200,7 +200,6 @@ export class FaqCaptureHandler extends BaseJobHandler<
       sourceConversationId: data.conversationId,
       sourceMessageId: data.messageId,
       mergedMessageIds: [],
-      candidateAnswers: [],
     };
     const content = faqAdapter.createFaqContent(
       frontmatter,
@@ -212,7 +211,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
       match &&
       (await mergeIntoFaq(this.deps, match, {
         messageIds: [data.messageId],
-        candidates: [
+        alternatives: [
           { messageId: data.messageId, answer: classification.answer },
         ],
       }));

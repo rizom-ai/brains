@@ -19,10 +19,10 @@ export {
   faqMetadataSchema,
   faqSchema,
   faqStatusSchema,
-  faqCandidateAnswerSchema,
+  faqAlternativeSchema,
 } from "./schemas/faq";
 export type {
-  FaqCandidateAnswer,
+  FaqAlternative,
   FaqEntity,
   FaqFrontmatter,
   FaqFrontmatterInput,

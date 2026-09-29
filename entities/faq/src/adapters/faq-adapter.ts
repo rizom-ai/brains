@@ -2,11 +2,19 @@ import { BaseEntityAdapter } from "@brains/plugins";
 import {
   faqFrontmatterSchema,
   faqSchema,
+  type FaqAlternative,
   type FaqEntity,
   type FaqFrontmatter,
   type FaqFrontmatterInput,
   type FaqMetadata,
 } from "../schemas/faq";
+
+/** Heading that separates the answer from the alternatives in the body. */
+const ALTERNATIVES_HEADING = "## Alternative answers";
+const ALTERNATIVES_HEADING_LINE = /^## Alternative answers[ \t]*$/m;
+
+/** One alternative's heading; the capture is the reply id. */
+const ALTERNATIVE_HEADING_LINE = /^### From reply (\S+)[ \t]*$/m;
 
 /** The query-friendly metadata a FAQ's frontmatter implies. */
 export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
@@ -15,6 +23,42 @@ export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
     status: frontmatter.status,
     asked: 1 + frontmatter.mergedMessageIds.length,
   };
+}
+
+/** The body: the answer, then any alternatives as markdown sections. */
+function faqBody(answer: string, alternatives: FaqAlternative[]): string {
+  if (alternatives.length === 0) return answer.trim();
+  return [
+    answer.trim(),
+    "",
+    ALTERNATIVES_HEADING,
+    ...alternatives.flatMap((alternative) => [
+      "",
+      `### From reply ${alternative.messageId}`,
+      "",
+      alternative.answer.trim(),
+    ]),
+  ].join("\n");
+}
+
+/** Split a body into the answer and the alternatives below the heading. */
+function parseFaqBody(body: string): {
+  answer: string;
+  alternatives: FaqAlternative[];
+} {
+  const [answer = "", section] = body.split(ALTERNATIVES_HEADING_LINE);
+  if (section === undefined) return { answer: answer.trim(), alternatives: [] };
+
+  // split with a capture group yields [preamble, id, text, id, text, ...]
+  const parts = section.split(ALTERNATIVE_HEADING_LINE);
+  const alternatives = Array.from(
+    { length: Math.floor((parts.length - 1) / 2) },
+    (_, index) => ({
+      messageId: parts[1 + index * 2] ?? "",
+      answer: (parts[2 + index * 2] ?? "").trim(),
+    }),
+  ).filter((alternative) => alternative.answer.length > 0);
+  return { answer: answer.trim(), alternatives };
 }
 
 export class FaqAdapter extends BaseEntityAdapter<
@@ -35,19 +79,28 @@ export class FaqAdapter extends BaseEntityAdapter<
   public createFaqContent(
     frontmatter: FaqFrontmatterInput,
     answer: string,
+    alternatives: FaqAlternative[] = [],
   ): string {
-    return this.buildMarkdown(answer, faqFrontmatterSchema.parse(frontmatter));
+    return this.buildMarkdown(
+      faqBody(answer, alternatives),
+      faqFrontmatterSchema.parse(frontmatter),
+    );
   }
 
+  /**
+   * The answer is the body above "## Alternative answers"; each
+   * "### From reply <id>" section below it is one alternative.
+   */
   public parseFaqContent(content: string): {
     frontmatter: FaqFrontmatter;
     answer: string;
+    alternatives: FaqAlternative[];
   } {
     // Parse through the schema to apply defaults (mergedMessageIds)
     const raw = this.parseFrontMatter(content, faqFrontmatterSchema);
     return {
       frontmatter: faqFrontmatterSchema.parse(raw),
-      answer: this.extractBody(content).trim(),
+      ...parseFaqBody(this.extractBody(content)),
     };
   }
 

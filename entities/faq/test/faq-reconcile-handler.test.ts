@@ -69,7 +69,6 @@ describe("FaqReconcileHandler", () => {
       sourceConversationId: "conv-1",
       sourceMessageId: `msg-${id}`,
       mergedMessageIds: options.mergedMessageIds ?? [],
-      candidateAnswers: [],
     };
     await context.entityService.createEntity({
       entity: {
@@ -131,7 +130,7 @@ describe("FaqReconcileHandler", () => {
     ]);
     expect(parsed.answer).toBe("Answer older.");
     expect(remaining[0]?.metadata.asked).toBe(3);
-    expect(parsed.frontmatter.candidateAnswers).toEqual([
+    expect(parsed.alternatives).toEqual([
       { messageId: "msg-newer", answer: "Answer newer." },
     ]);
   });

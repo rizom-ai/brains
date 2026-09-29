@@ -13,7 +13,7 @@ import {
   faqMetadata,
   faqSchema,
   registerFaqReviewWorkspace,
-  type FaqCandidateAnswer,
+  type FaqAlternative,
   type FaqFrontmatter,
 } from "../src";
 
@@ -33,21 +33,26 @@ describe("FAQ review workspace", () => {
   async function seed(
     id: string,
     visibility: ContentVisibility,
-    candidateAnswers: FaqCandidateAnswer[],
+    alternatives: FaqAlternative[],
   ): Promise<void> {
     const frontmatter: FaqFrontmatter = {
       question: `Question ${id}?`,
       status: "draft",
       sourceConversationId: "conv-1",
       sourceMessageId: `msg-${id}`,
-      mergedMessageIds: candidateAnswers.map((c) => c.messageId),
-      candidateAnswers,
+      mergedMessageIds: alternatives.map(
+        (alternative) => alternative.messageId,
+      ),
     };
     await context.entityService.createEntity({
       entity: {
         id,
         entityType: "faq",
-        content: faqAdapter.createFaqContent(frontmatter, `Answer ${id}.`),
+        content: faqAdapter.createFaqContent(
+          frontmatter,
+          `Answer ${id}.`,
+          alternatives,
+        ),
         visibility,
         metadata: faqMetadata(frontmatter),
       },
@@ -56,7 +61,7 @@ describe("FAQ review workspace", () => {
 
   async function read(id: string): Promise<{
     answer: string;
-    candidates: FaqCandidateAnswer[];
+    alternatives: FaqAlternative[];
   }> {
     const faq = await context.entityService.getEntity(
       { entityType: "faq", id, visibilityScope: "restricted" },
@@ -65,7 +70,7 @@ describe("FAQ review workspace", () => {
     const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
     return {
       answer: parsed.answer,
-      candidates: parsed.frontmatter.candidateAnswers,
+      alternatives: parsed.alternatives,
     };
   }
 
@@ -123,7 +128,7 @@ describe("FAQ review workspace", () => {
 
     expect(await read("shared-faq")).toEqual({
       answer: "A clearer answer.",
-      candidates: [],
+      alternatives: [],
     });
   });
 
@@ -132,7 +137,7 @@ describe("FAQ review workspace", () => {
 
     expect(await read("shared-faq")).toEqual({
       answer: "Answer shared-faq.",
-      candidates: [],
+      alternatives: [],
     });
   });
 
@@ -145,7 +150,7 @@ describe("FAQ review workspace", () => {
 
     expect(await read("restricted-faq")).toEqual({
       answer: "Answer restricted-faq.",
-      candidates: [
+      alternatives: [
         { messageId: "msg-secret", answer: "Restricted alternative." },
       ],
     });

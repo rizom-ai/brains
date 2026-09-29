@@ -4,7 +4,7 @@ import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import {
   faqSchema,
-  type FaqCandidateAnswer,
+  type FaqAlternative,
   type FaqEntity,
   type FaqFrontmatter,
 } from "../schemas/faq";
@@ -98,16 +98,18 @@ export function findSameFaq(
  * Records the replies in `merge` on `faq`, writing only over the version that
  * was read. A concurrent merge makes the write stale; the FAQ is re-read and
  * the merge reapplied. Replies the FAQ already records are not added again.
- * The FAQ keeps its answer; a newly added reply's different answer becomes a
- * candidate for the owner. False when the FAQ disappeared.
+ * The FAQ keeps its answer; a newly added reply's different answer joins the
+ * alternatives in the body for the owner. False when the FAQ disappeared.
  */
 export async function mergeIntoFaq(
   deps: FaqStoreDeps,
   faq: FaqEntity,
-  merge: { messageIds: string[]; candidates?: FaqCandidateAnswer[] },
+  merge: { messageIds: string[]; alternatives?: FaqAlternative[] },
   attemptsLeft: number = MERGE_ATTEMPTS,
 ): Promise<boolean> {
-  const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
+  const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
+    faq.content,
+  );
   const recorded = [
     frontmatter.sourceMessageId,
     ...frontmatter.mergedMessageIds,
@@ -115,21 +117,26 @@ export async function mergeIntoFaq(
   const added = merge.messageIds.filter((id) => !recorded.includes(id));
   if (added.length === 0) return true;
 
-  const known = [answer, ...frontmatter.candidateAnswers.map((c) => c.answer)];
-  const candidates = (merge.candidates ?? []).filter(
-    (candidate) =>
-      added.includes(candidate.messageId) &&
-      !known.some((text) => text.trim() === candidate.answer.trim()),
+  const known = [
+    answer,
+    ...alternatives.map((alternative) => alternative.answer),
+  ];
+  const newAlternatives = (merge.alternatives ?? []).filter(
+    (alternative) =>
+      added.includes(alternative.messageId) &&
+      !known.some((text) => text.trim() === alternative.answer.trim()),
   );
   const merged: FaqFrontmatter = {
     ...frontmatter,
     mergedMessageIds: [...frontmatter.mergedMessageIds, ...added],
-    candidateAnswers: [...frontmatter.candidateAnswers, ...candidates],
   };
   const result = await deps.entityService.updateEntity({
     entity: {
       ...faq,
-      content: faqAdapter.createFaqContent(merged, answer),
+      content: faqAdapter.createFaqContent(merged, answer, [
+        ...alternatives,
+        ...newAlternatives,
+      ]),
       metadata: faqMetadata(merged),
     },
     options: { expectedContentHash: faq.contentHash },

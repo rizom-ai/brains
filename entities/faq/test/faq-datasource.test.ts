@@ -28,7 +28,6 @@ describe("FaqDataSource", () => {
       sourceConversationId: "conv-1",
       sourceMessageId: id,
       mergedMessageIds,
-      candidateAnswers: [],
     };
     await context.entityService.createEntity({
       entity: {
@@ -90,5 +89,39 @@ describe("FaqDataSource", () => {
     const section = faqSectionSchema.parse(await fetch(true));
 
     expect(section.faqs.map((faq) => faq.id)).toEqual(["thrice", "once"]);
+  });
+
+  it("serves only the answer, never the alternative answers below it", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "with-alternatives",
+        entityType: "faq",
+        content: faqAdapter.createFaqContent(
+          {
+            question: "Question with alternatives?",
+            status: "published",
+            sourceConversationId: "conv-1",
+            sourceMessageId: "src",
+            mergedMessageIds: ["alt"],
+          },
+          "The chosen answer.",
+          [{ messageId: "alt", answer: "An unreviewed alternative." }],
+        ),
+        visibility: "public",
+        metadata: {
+          question: "Question with alternatives?",
+          status: "published",
+          asked: 9,
+        },
+      },
+    });
+
+    const section = faqSectionSchema.parse(await fetch(true));
+
+    expect(section.faqs[0]).toMatchObject({
+      id: "with-alternatives",
+      answer: "The chosen answer.",
+    });
+    expect(JSON.stringify(section)).not.toContain("unreviewed alternative");
   });
 });

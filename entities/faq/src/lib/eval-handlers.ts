@@ -29,7 +29,6 @@ function faqMarkdown(
     sourceConversationId: "eval-conversation",
     sourceMessageId,
     mergedMessageIds: [],
-    candidateAnswers: [],
   };
   return {
     frontmatter,

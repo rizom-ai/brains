@@ -11,10 +11,9 @@ import {
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import {
-  faqCandidateAnswerSchema,
+  faqAlternativeSchema,
   faqSchema,
   type FaqEntity,
-  type FaqFrontmatter,
 } from "../schemas/faq";
 
 const successSchema = z.object({ success: z.literal(true) });
@@ -47,7 +46,7 @@ const reviewDataSchema = z.object({
       question: z.string(),
       answer: z.string(),
       asked: z.number().int(),
-      candidates: z.array(faqCandidateAnswerSchema),
+      alternatives: z.array(faqAlternativeSchema),
     }),
   ),
 });
@@ -87,18 +86,21 @@ const reviewWorkspace = defineStudioWorkspace({
                 description: faq.answer,
                 metadata: [
                   `Asked ${faq.asked} ${faq.asked === 1 ? "time" : "times"}`,
-                  ...faq.candidates.map(
-                    (candidate, index) =>
-                      `Alternative ${index + 1}: ${candidate.answer}`,
+                  ...faq.alternatives.map(
+                    (alternative, index) =>
+                      `Alternative ${index + 1}: ${alternative.answer}`,
                   ),
                 ],
                 link: { catalog: faqEntities, entityType: "faq", id: faq.id },
                 actionsLabel: "Answer options",
                 actions: [
-                  ...faq.candidates.map((candidate, index) => ({
+                  ...faq.alternatives.map((alternative, index) => ({
                     action: useAnswerAction,
                     label: `Use alternative ${index + 1}`,
-                    input: { entityId: faq.id, messageId: candidate.messageId },
+                    input: {
+                      entityId: faq.id,
+                      messageId: alternative.messageId,
+                    },
                   })),
                   { action: keepAnswerAction, input: { entityId: faq.id } },
                 ],
@@ -127,8 +129,10 @@ async function loadReview(
   );
   return {
     faqs: faqs.flatMap((faq) => {
-      const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
-      return frontmatter.candidateAnswers.length === 0
+      const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
+        faq.content,
+      );
+      return alternatives.length === 0
         ? []
         : [
             {
@@ -136,7 +140,7 @@ async function loadReview(
               question: frontmatter.question,
               answer,
               asked: faq.metadata.asked,
-              candidates: frontmatter.candidateAnswers,
+              alternatives,
             },
           ];
     }),
@@ -159,20 +163,22 @@ async function settleAnswer(
   );
   if (!faq) throw new Error("FAQ not found");
 
-  const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
+  const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
+    faq.content,
+  );
   const chosen = input.messageId
-    ? frontmatter.candidateAnswers.find(
-        (candidate) => candidate.messageId === input.messageId,
+    ? alternatives.find(
+        (alternative) => alternative.messageId === input.messageId,
       )?.answer
     : answer;
   if (chosen === undefined) throw new Error("Alternative answer not found");
 
-  const settled: FaqFrontmatter = { ...frontmatter, candidateAnswers: [] };
   const result = await context.entityService.updateEntity({
     entity: {
       ...faq,
-      content: faqAdapter.createFaqContent(settled, chosen),
-      metadata: faqMetadata(settled),
+      // No alternatives: the chosen or kept answer stands alone.
+      content: faqAdapter.createFaqContent(frontmatter, chosen),
+      metadata: faqMetadata(frontmatter),
     },
     options: { expectedContentHash: faq.contentHash },
   });

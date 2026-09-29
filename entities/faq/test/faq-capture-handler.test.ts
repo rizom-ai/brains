@@ -293,7 +293,7 @@ describe("FaqCaptureHandler", () => {
     const parsed = faqAdapter.parseFaqContent(faqs[0]?.content ?? "");
     expect(parsed.frontmatter.mergedMessageIds).toEqual(["m4"]);
     expect(parsed.answer).toBe("Choose Publish in Studio.");
-    expect(parsed.frontmatter.candidateAnswers).toEqual([
+    expect(parsed.alternatives).toEqual([
       {
         messageId: "m4",
         answer: "Open the post in Studio and choose Publish.",
@@ -310,7 +310,7 @@ describe("FaqCaptureHandler", () => {
     const [faq] = await capturedFaqs();
     const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
     expect(parsed.frontmatter.mergedMessageIds).toEqual(["m4"]);
-    expect(parsed.frontmatter.candidateAnswers).toEqual([]);
+    expect(parsed.alternatives).toEqual([]);
   });
 
   for (const [existing, level] of [

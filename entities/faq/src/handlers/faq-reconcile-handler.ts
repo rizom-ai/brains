@@ -77,15 +77,17 @@ export class FaqReconcileHandler extends BaseJobHandler<
     if (!same) return { outcome: "unique" };
     if (!foldsInto(faq, same)) return { outcome: "kept" };
 
-    const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
+    const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
+      faq.content,
+    );
     const moved = await mergeIntoFaq(this.deps, same, {
       messageIds: [
         frontmatter.sourceMessageId,
         ...frontmatter.mergedMessageIds,
       ],
-      candidates: [
+      alternatives: [
         { messageId: frontmatter.sourceMessageId, answer },
-        ...frontmatter.candidateAnswers,
+        ...alternatives,
       ],
     });
     if (!moved) return { outcome: "unique" };
