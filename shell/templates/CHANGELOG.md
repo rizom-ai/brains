@@ -1,5 +1,14 @@
 # @brains/templates
 
+## 0.2.0-alpha.451
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.451
+  - @brains/contracts@0.2.0-alpha.451
+  - @brains/utils@0.2.0-alpha.451
+
 ## 0.2.0-alpha.450
 
 ### Patch Changes
