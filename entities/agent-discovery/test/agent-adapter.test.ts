@@ -288,6 +288,46 @@ Test agent.
     });
   });
 
+  describe("agents saved before the kinds were renamed", () => {
+    // Until 22 July 2026 an agent's kind named its brain, not its anchor.
+    const saved = (kind: string): string =>
+      [
+        "---",
+        "name: Brain",
+        `kind: ${kind}`,
+        "brainName: Brain",
+        "url: 'https://karim.rizom.ai/a2a'",
+        "status: discovered",
+        "discoveredAt: '2026-07-15T15:38:08.033Z'",
+        "---",
+        "# Agent",
+        "",
+        "## About",
+        "Brain is Karim's Knowledge assistant.",
+        "",
+      ].join("\n");
+
+    it("reads a professional brain as a person, and keeps that in its content", () => {
+      const partial = adapter.fromMarkdown(saved("professional"));
+      expect(partial.metadata?.name).toBe("Brain");
+      expect(partial.content).toContain("kind: person\n");
+      expect(partial.content).not.toContain("professional");
+      expect(partial.content).toContain(
+        "Brain is Karim's Knowledge assistant.",
+      );
+    });
+
+    it("reads a collective as an organization", () => {
+      expect(adapter.fromMarkdown(saved("collective")).content).toContain(
+        "kind: organization\n",
+      );
+    });
+
+    it("still refuses a kind it has never known", () => {
+      expect(() => adapter.fromMarkdown(saved("guild"))).toThrow();
+    });
+  });
+
   describe("fromMarkdown", () => {
     it("should derive slug from name", () => {
       const content = adapter.createAgentContent({

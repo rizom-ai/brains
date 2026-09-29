@@ -17,6 +17,31 @@ import {
 } from "../schemas/agent";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 
+/**
+ * Until 22 July 2026 an agent's kind named its brain (professional, team,
+ * collective); it now names the anchor (person, team, organization). Agents
+ * saved before then read as the anchor they meant, so they are neither
+ * quarantined nor lost.
+ */
+const LEGACY_KINDS: Readonly<Record<string, AgentFrontmatter["kind"]>> = {
+  professional: "person",
+  collective: "organization",
+};
+const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---/;
+const LEGACY_KIND_LINE =
+  /^kind:[ \t]*(['"]?)(professional|collective)\1[ \t]*$/m;
+
+function withCurrentKind(markdown: string): string {
+  const block = FRONTMATTER.exec(markdown)?.[0];
+  if (!block) return markdown;
+  const current = block.replace(
+    LEGACY_KIND_LINE,
+    (line: string, _quote: string, kind: string) =>
+      LEGACY_KINDS[kind] ? `kind: ${LEGACY_KINDS[kind]}` : line,
+  );
+  return current === block ? markdown : current + markdown.slice(block.length);
+}
+
 export interface CreateAgentContentInput {
   name: string;
   kind: AnchorProfileKind;
@@ -63,7 +88,8 @@ export class AgentAdapter extends BaseEntityAdapter<
     });
   }
 
-  public fromMarkdown(markdown: string): Partial<AgentEntity> {
+  public fromMarkdown(saved: string): Partial<AgentEntity> {
+    const markdown = withCurrentKind(saved);
     const frontmatter = this.parseFrontMatter(markdown, agentFrontmatterSchema);
     const slug = slugifyUrl(frontmatter.url);
 
@@ -161,7 +187,7 @@ export class AgentAdapter extends BaseEntityAdapter<
   } {
     return {
       frontmatter: this.parseFrontMatter(
-        entity.content,
+        withCurrentKind(entity.content),
         agentFrontmatterSchema,
       ),
       body: this.parseAgentContent(entity.content),
