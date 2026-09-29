@@ -4,6 +4,7 @@ import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import {
   ASK_BOX_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
+  ASK_PAGE_LOCK_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
   ASK_SHEET_HISTORY_KEY,
@@ -203,6 +204,24 @@ describe("shared Ask box boot", () => {
     await settled();
     expect(status()).toContain("unavailable");
     expect(box.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
+  });
+
+  it("holds the page still from the first tap on a narrow screen, and lets it go if chat cannot load", async () => {
+    window.happyDOM.setViewport({ width: 390, height: 844 });
+    boot();
+    window.scrollTo(0, 300);
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    expect(
+      window.document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE),
+    ).toBe("300");
+    expect(window.document.body.style.position).toBe("fixed");
+    expect(window.document.body.style.top).toBe("-300px");
+    await settled();
+    expect(
+      window.document.documentElement.hasAttribute(ASK_PAGE_LOCK_ATTRIBUTE),
+    ).toBe(false);
+    expect(window.document.body.style.position).toBe("");
+    expect(window.scrollY).toBe(300);
   });
 
   it("keeps the box in the page on a wide screen", () => {

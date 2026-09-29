@@ -1,5 +1,6 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_PAGE_LOCK_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
@@ -61,6 +62,27 @@ export function askBoxBootScript(version: string): string {
     });
     window.history.back();
   }
+  // The page holds still behind the sheet from the first tap (the box's
+  // page-lock does the same once mounted, and releases it on close).
+  var LOCK = ${JSON.stringify(ASK_PAGE_LOCK_ATTRIBUTE)};
+  function lockPage() {
+    var root = document.documentElement;
+    if (root.hasAttribute(LOCK)) return;
+    var y = Math.round(window.scrollY);
+    root.setAttribute(LOCK, String(y));
+    document.body.style.position = "fixed";
+    document.body.style.top = -y + "px";
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+  }
+  function unlockPage() {
+    var root = document.documentElement;
+    var held = root.getAttribute(LOCK);
+    if (held === null) return;
+    root.removeAttribute(LOCK);
+    ["position", "top", "left", "right"].forEach(function (property) { document.body.style.removeProperty(property); });
+    window.scrollTo(0, Number(held) || 0);
+  }
   var guestModule = new URL("/ask/assets/guest.js${suffix}", window.location.origin).href;
   var guestStyles = null;
   // The chat's stylesheet, added once: it only styles an engaged box.
@@ -110,6 +132,7 @@ export function askBoxBootScript(version: string): string {
           (viewport ? viewport.height : window.innerHeight) + "px"
         );
         host.setAttribute("${ASK_SHEET_ATTRIBUTE}", "");
+        lockPage();
       }
       try {
         // Served by the Brain, not bundled inside the site package.
@@ -119,6 +142,7 @@ export function askBoxBootScript(version: string): string {
       } catch {
         // The status line tells the visitor; the draft stays and nothing was sent.
         host.removeAttribute("${ASK_SHEET_ATTRIBUTE}");
+        unlockPage();
         sendRequested = false;
         input.readOnly = false;
         status.textContent =

@@ -9,6 +9,7 @@ import {
   ASK_DOCK_ATTRIBUTE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
+  ASK_PAGE_LOCK_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
   ASK_SHEET_HISTORY_KEY,
   ASK_SOURCE_ATTRIBUTE,
@@ -125,6 +126,14 @@ function composer(): HTMLTextAreaElement {
   return input;
 }
 
+/** Whether the page behind the sheet is pinned in place. */
+function pageLocked(): boolean {
+  return (
+    document.documentElement.hasAttribute(ASK_PAGE_LOCK_ATTRIBUTE) &&
+    document.body.style.position === "fixed"
+  );
+}
+
 async function focusComposer(): Promise<void> {
   await act(async (): Promise<void> => {
     composer().blur();
@@ -150,7 +159,7 @@ describe("the Ask box on a phone", () => {
       const before = history.length;
       await render();
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
-      expect(document.documentElement.style.overflow).toBe("hidden");
+      expect(pageLocked()).toBe(true);
       // Back closes the conversation rather than leaving the page.
       expect(history.length).toBe(before + 1);
       expect(host.querySelector('[aria-label="Close conversation"]')).not.toBe(
@@ -169,6 +178,17 @@ describe("the Ask box on a phone", () => {
       await render({ messages: answer, state: "complete" });
       expect(region?.firstElementChild).toBe(dock);
       expect(dock?.querySelector("#hosts-map")).toBe(lent);
+    });
+
+    it("pins the page where it was, so nothing moves behind the sheet, and returns it there on close", async () => {
+      window.scrollTo(0, 300);
+      await render();
+      expect(pageLocked()).toBe(true);
+      expect(document.body.style.top).toBe("-300px");
+      await click("Close conversation");
+      expect(pageLocked()).toBe(false);
+      expect(document.body.style.position).toBe("");
+      expect(window.scrollY).toBe(300);
     });
 
     it("marks its history entry with where the page was, for a reload to return to", async () => {
@@ -198,7 +218,7 @@ describe("the Ask box on a phone", () => {
       await render();
       await click("Close conversation");
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
-      expect(document.documentElement.style.overflow).toBe("");
+      expect(pageLocked()).toBe(false);
 
       await focusComposer();
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
@@ -237,7 +257,7 @@ describe("the Ask box on a phone", () => {
       });
       expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(false);
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
-      expect(document.documentElement.style.overflow).toBe("");
+      expect(pageLocked()).toBe(false);
       Object.assign(window, { getComputedStyle: computed });
     });
 
@@ -405,7 +425,7 @@ describe("the Ask box on a phone", () => {
       await render({ messages: answer, state: "complete" });
       await focusComposer();
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
-      expect(document.documentElement.style.overflow).toBe("");
+      expect(pageLocked()).toBe(false);
       expect(host.textContent).not.toContain("Continue conversation");
     });
 
