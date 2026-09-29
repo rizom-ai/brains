@@ -154,6 +154,6 @@ export const workOrganism: Organism = organism({
       [452, 168, "AI, with a place"],
       [C, 512, "a map the whole team can act on"],
     ],
-    [[C, 400, "three types of team, which is yours?"]],
+    [[C, 400, "three types of team"]],
   ],
 });

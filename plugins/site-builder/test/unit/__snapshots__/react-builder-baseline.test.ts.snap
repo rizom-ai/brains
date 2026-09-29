@@ -81,60 +81,6 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
               "attributes": [
                 [
                   "href",
-                  "/favicon.svg",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/svg+xml",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.png",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/png",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
                   "/styles/main.css",
                 ],
                 [
@@ -817,60 +763,6 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
               "attributes": [
                 [
                   "href",
-                  "/favicon.svg",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/svg+xml",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.png",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/png",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
                   "/styles/main.css",
                 ],
                 [
@@ -1539,60 +1431,6 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
               ],
               "children": [],
               "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.svg",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/svg+xml",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.png",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/png",
-                ],
-              ],
-              "children": [],
-              "name": "link",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -2312,60 +2150,6 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
               "attributes": [
                 [
                   "href",
-                  "/favicon.svg",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/svg+xml",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.png",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/png",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
                   "/styles/main.css",
                 ],
                 [
@@ -3057,60 +2841,6 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
               ],
               "children": [],
               "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.svg",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/svg+xml",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.png",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/png",
-                ],
-              ],
-              "children": [],
-              "name": "link",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -3831,60 +3561,6 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
               ],
               "children": [],
               "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.svg",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/svg+xml",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "/favicon.png",
-                ],
-                [
-                  "rel",
-                  "icon",
-                ],
-                [
-                  "type",
-                  "image/png",
-                ],
-              ],
-              "children": [],
-              "name": "link",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },

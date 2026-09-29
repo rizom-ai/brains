@@ -110,6 +110,13 @@ describe("the story shell", () => {
     expect(footer).not.toContain("The workshop");
   });
 
+  test("the footer links to no quiz, as none exists", () => {
+    const footer = renderChrome("/").slice(
+      renderChrome("/").indexOf("<footer"),
+    );
+    expect(footer).not.toContain("quiz");
+  });
+
   test("the footer's contact link opens the contact form", () => {
     const footer = renderChrome("/").slice(
       renderChrome("/").indexOf("<footer"),

@@ -9,6 +9,7 @@ import type {
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import storyStyles from "../../story.css" with { type: "text" };
 import writingStyles from "../../writing.css" with { type: "text" };
+import favicon from "../../favicon.svg" with { type: "text" };
 import { brainOrganism } from "../../story/brain-organism";
 import { foundationOrganism } from "../../story/foundation-organism";
 import { livingOrganism } from "../../story/living-organism";
@@ -53,6 +54,8 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,
+  // The site's icon: the lantern the drawings use for a brain.
+  "/favicon.svg": favicon,
   "/boot.js": bootScript,
   "/story.js": storyRuntimeScript,
   // The story pages: the page shape, the drawings and the reading thread.

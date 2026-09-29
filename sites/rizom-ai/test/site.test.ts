@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import site from "../src";
+import { rizomRuntimeStaticAssets } from "../src/rizom/runtime/plugin";
 
 describe("@rizom/site-rizom-ai", () => {
   test("exports a Rizom site definition for the AI site", () => {
@@ -137,5 +138,14 @@ describe("@rizom/site-rizom-ai", () => {
       "living-memory:arc",
       "living-memory:doors",
     ]);
+  });
+});
+
+describe("the site's icon", () => {
+  test("is the lantern, brass on night, served where every page's head points", () => {
+    const icon = rizomRuntimeStaticAssets["/favicon.svg"];
+    expect(icon).toStartWith("<svg");
+    expect(icon).toContain('fill="#14132b"');
+    expect(icon).toContain("#d4af37");
   });
 });

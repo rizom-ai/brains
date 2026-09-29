@@ -8,19 +8,42 @@
  */
 export interface EssentialHeadPaths {
   stylesheetHref?: string | undefined;
-  faviconSvgHref?: string | undefined;
-  faviconPngHref?: string | undefined;
+  /** null leaves the icon out, for a build without that file. */
+  faviconSvgHref?: string | null | undefined;
+  faviconPngHref?: string | null | undefined;
+}
+
+/** The icons a build has, so a page links those and no missing ones. */
+export function iconHeadPaths(
+  assetPaths: Iterable<string>,
+): Required<Pick<EssentialHeadPaths, "faviconSvgHref" | "faviconPngHref">> {
+  const has = new Set(
+    Array.from(assetPaths, (path) =>
+      path.startsWith("/") ? path : `/${path}`,
+    ),
+  );
+  return {
+    faviconSvgHref: has.has("/favicon.svg") ? "/favicon.svg" : null,
+    faviconPngHref: has.has("/favicon.png") ? "/favicon.png" : null,
+  };
 }
 
 export function essentialHeadTags(paths: EssentialHeadPaths = {}): string[] {
   const stylesheet = paths.stylesheetHref ?? "/styles/main.css";
-  const faviconSvg = paths.faviconSvgHref ?? "/favicon.svg";
-  const faviconPng = paths.faviconPngHref ?? "/favicon.png";
+  const faviconSvg =
+    paths.faviconSvgHref === undefined ? "/favicon.svg" : paths.faviconSvgHref;
+  const faviconPng =
+    paths.faviconPngHref === undefined ? "/favicon.png" : paths.faviconPngHref;
   return [
     '<meta charset="UTF-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-    `<link rel="icon" type="image/svg+xml" href="${faviconSvg}">`,
-    `<link rel="icon" type="image/png" href="${faviconPng}">`,
+    // The SVG last: browsers that take the last icon use it and fetch no PNG.
+    ...(faviconPng
+      ? [`<link rel="icon" type="image/png" href="${faviconPng}">`]
+      : []),
+    ...(faviconSvg
+      ? [`<link rel="icon" type="image/svg+xml" href="${faviconSvg}">`]
+      : []),
     `<link rel="stylesheet" href="${stylesheet}">`,
   ];
 }

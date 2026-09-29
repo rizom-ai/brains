@@ -18,6 +18,7 @@ import { dirname, join } from "path";
 import { promises as fs } from "fs";
 import {
   createHTMLShell,
+  iconHeadPaths,
   createSiteImageRenderer,
   HeadCollector,
   TailwindCSSProcessor,
@@ -144,8 +145,15 @@ export class ReactBuilder implements StaticSiteBuilder {
     );
     const siteLayoutInfo = preparedBuild.site;
 
-    // Create head collector for SSR
-    const headCollector = new HeadCollector(preparedBuild.site.title);
+    // Create head collector for SSR, linking only the icons the build has.
+    const headPaths = iconHeadPaths([
+      ...Object.keys(preparedBuild.staticAssets),
+      ...Object.keys(preparedBuild.publicAssets),
+    ]);
+    const headCollector = new HeadCollector(
+      preparedBuild.site.title,
+      headPaths,
+    );
 
     // Get image renderer for markdown content (if ImageBuildService is available)
     const imageRenderer = createSiteImageRenderer(preparedBuild.images);
@@ -223,6 +231,7 @@ export class ReactBuilder implements StaticSiteBuilder {
       preparedBuild.site.themeMode,
       preparedBuild.site.analyticsScript,
       allHeadScripts,
+      headPaths,
     );
 
     // Determine output path
