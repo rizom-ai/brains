@@ -237,6 +237,19 @@ describe("shared Ask box boot", () => {
     ).toBe("0");
   });
 
+  it("hides the page behind the sheet from the first tap, and shows it again if chat cannot load", async () => {
+    window.happyDOM.setViewport({ width: 390, height: 844 });
+    boot();
+    const box = element(`[${ASK_BOX_ATTRIBUTE}]`);
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    // No rise runs in tests, so the sheet covers the page at once.
+    expect(window.document.body.style.visibility).toBe("hidden");
+    expect(box.style.visibility).toBe("visible");
+    await settled();
+    expect(window.document.body.style.visibility).toBe("");
+    expect(box.style.visibility).toBe("");
+  });
+
   it("keeps the box in the page on a wide screen", () => {
     window.happyDOM.setViewport({ width: 1280, height: 900 });
     boot();
