@@ -2,6 +2,22 @@ import { describe, test, expect } from "bun:test";
 import { siteBuilderConfigSchema } from "../../src/config";
 
 describe("siteBuilderConfigSchema", () => {
+  // The site's entity display reaches the builder whole: the builder takes
+  // the site contract's schema instead of a copy that drops what it lacks.
+  test("keeps every entity display setting the site declares", () => {
+    const entityDisplay = {
+      post: {
+        label: "Essay",
+        citable: true,
+        paginate: true,
+        navigation: { slot: "primary" as const, priority: 10 },
+      },
+      topic: { label: "Topic", navigation: { slot: "secondary" as const } },
+    };
+    const result = siteBuilderConfigSchema.parse({ entityDisplay });
+    expect(result.entityDisplay).toEqual(entityDisplay);
+  });
+
   test("accepts valid config with themeCSS", () => {
     const config = {
       templates: {},
