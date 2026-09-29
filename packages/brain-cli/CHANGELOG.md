@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- [#436](https://github.com/rizom-ai/brains/pull/436) [`db31d1f`](https://github.com/rizom-ai/brains/commit/db31d1f8c7c1211ae667c99b5a2966b0a88cd755) Thanks [@yeehaa123](https://github.com/yeehaa123)! - In the phone conversation, a tap on the map's strip brings the whole map back to the top, rather than opening a mark too small to aim at; at full height, taps work on the marks as before.
+
 ## 0.2.0-alpha.449
 
 ### Patch Changes
