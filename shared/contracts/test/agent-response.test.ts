@@ -2,6 +2,17 @@ import { describe, expect, it } from "bun:test";
 import { AgentResponseSchema, parseAgentResponse } from "../src";
 
 describe("shared agent response contract", () => {
+  it("preserves explicit failures without inferring them from response text", () => {
+    const base = {
+      text: "Error: a word used in an explanation",
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
+    expect(parseAgentResponse(base)).toEqual(base);
+    expect(parseAgentResponse({ ...base, error: "Provider failure" })).toEqual({
+      ...base,
+      error: "Provider failure",
+    });
+  });
   it("validates runtime agent responses with structured action cards", () => {
     const response = AgentResponseSchema.parse({
       text: "Choose a next step.",

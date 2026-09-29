@@ -4,12 +4,6 @@ import {
   type EntitySearchDB,
 } from "./db";
 import {
-  entityReadBudgetSchema,
-  type EntityReadBudget,
-  type QueryEmbedding,
-} from "@brains/contracts";
-import { entityRowBudgetCondition } from "./bounded-reads";
-import {
   getVisibleContentVisibilities,
   type BaseEntity,
   type ContentVisibility,
@@ -73,10 +67,6 @@ const searchOptionsSchema = z.object({
   visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
   includeUngenerated: z.boolean().optional().default(false),
   minScore: z.number().min(0).optional(),
-  readBudget: entityReadBudgetSchema.optional(),
-  queryEmbedding: z
-    .custom<QueryEmbedding>((value) => typeof value === "function")
-    .optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
 
@@ -146,23 +136,14 @@ export class EntitySearch {
       visibilityScope,
       includeUngenerated,
       minScore,
-      readBudget,
-      queryEmbedding,
       signal,
+      limit,
     } = validatedOptions;
-    const limit = readBudget
-      ? Math.min(validatedOptions.limit, readBudget.rows)
-      : validatedOptions.limit;
     signal?.throwIfAborted();
-    if (readBudget && query.length > readBudget.queryCharacters)
-      throw new Error("Entity search input limit exceeded");
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
-    const preparedQuery = prepareSearchQuery(
-      query,
-      readBudget ? undefined : this.logger,
-    );
+    const preparedQuery = prepareSearchQuery(query, this.logger);
 
     this.logger.debug(
       `Searching entities with query (${preparedQuery.length} chars)`,
@@ -178,22 +159,16 @@ export class EntitySearch {
         visibilityScope,
         includeUngenerated,
         minScore,
-        readBudget,
         signal,
       });
     }
 
     // Generate embedding for the query
-    if (queryEmbedding && !signal)
-      throw new Error("Query embedding signal required");
-    const vector =
-      queryEmbedding && signal
-        ? await queryEmbedding(preparedQuery, signal)
-        : (
-            await (signal
-              ? this.embeddingService.generateEmbedding(preparedQuery, signal)
-              : this.embeddingService.generateEmbedding(preparedQuery))
-          ).embedding;
+    const vector = (
+      await (signal
+        ? this.embeddingService.generateEmbedding(preparedQuery, signal)
+        : this.embeddingService.generateEmbedding(preparedQuery))
+    ).embedding;
     signal?.throwIfAborted();
 
     // Convert Float32Array to JSON array for SQL
@@ -229,13 +204,11 @@ export class EntitySearch {
         ...typeConditions,
         ...this.buildVisibilityConditions(visibilityScope),
         ...this.buildGenerationStatusConditions(includeUngenerated),
-        ...(readBudget ? [entityRowBudgetCondition(readBudget)] : []),
       ],
       limit,
       offset,
       preparedQuery,
       minScore,
-      readBudget,
       signal,
     );
   }
@@ -251,7 +224,6 @@ export class EntitySearch {
       readonly visibilityScope: ContentVisibility | undefined;
       readonly includeUngenerated: boolean;
       readonly minScore: number | undefined;
-      readonly readBudget: EntityReadBudget | undefined;
       readonly signal: AbortSignal | undefined;
     },
   ): Promise<SearchResult<BaseEntity>[]> {
@@ -260,8 +232,6 @@ export class EntitySearch {
       buildKeywordMatch(query),
       ...this.buildLexicalExclusionConditions(),
     ];
-    if (options.readBudget)
-      conditions.push(entityRowBudgetCondition(options.readBudget));
     if (options.types.length > 0) {
       conditions.push(inArray(entities.entityType, options.types));
     }
@@ -309,11 +279,7 @@ export class EntitySearch {
       .limit(options.limit)
       .offset(options.offset);
     options.signal?.throwIfAborted();
-    return this.mapSearchResults(
-      results,
-      query,
-      options.readBudget !== undefined,
-    );
+    return this.mapSearchResults(results, query);
   }
 
   private buildVisibilityConditions(
@@ -373,7 +339,6 @@ export class EntitySearch {
     offset: number,
     query: string,
     minScore: number | undefined,
-    readBudget?: EntityReadBudget,
     signal?: AbortSignal,
   ): Promise<SearchResult<BaseEntity>[]> {
     const alpha = EntitySearch.KEYWORD_ALPHA;
@@ -435,7 +400,7 @@ export class EntitySearch {
       .limit(limit)
       .offset(offset);
     signal?.throwIfAborted();
-    return this.mapSearchResults(results, query, readBudget !== undefined);
+    return this.mapSearchResults(results, query);
   }
 
   /**
@@ -609,7 +574,6 @@ export class EntitySearch {
       weighted_score: number;
     }>,
     query: string,
-    privateQuery: boolean = false,
   ): SearchResult<BaseEntity>[] {
     const searchResults: SearchResult<BaseEntity>[] = [];
 
@@ -634,19 +598,15 @@ export class EntitySearch {
           excerpt: this.createExcerpt(row.content, query),
         });
       } catch (error) {
-        // Bounded visitor reads must not log parser payloads or query text.
-        if (!privateQuery)
-          this.logger.error(`Failed to parse entity during search: ${error}`);
+        this.logger.error(`Failed to parse entity during search: ${error}`);
       }
     }
 
-    if (!privateQuery) {
-      const queryPreview =
-        query.length > 50 ? query.substring(0, 50) + "..." : query;
-      this.logger.debug(
-        `Found ${searchResults.length} results for query "${queryPreview}"`,
-      );
-    }
+    const queryPreview =
+      query.length > 50 ? query.substring(0, 50) + "..." : query;
+    this.logger.debug(
+      `Found ${searchResults.length} results for query "${queryPreview}"`,
+    );
 
     return searchResults;
   }

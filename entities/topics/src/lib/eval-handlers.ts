@@ -218,11 +218,10 @@ async function clearTopics(context: EntityPluginContext): Promise<void> {
 async function waitForEmbeddingsToDrain(
   context: EntityPluginContext,
 ): Promise<void> {
-  for (;;) {
-    const active = await context.jobs.getActiveJobs([SHELL_CHANNELS.embedding]);
-    if (active.length === 0) return;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  const active = await context.jobs.getActiveJobs([SHELL_CHANNELS.embedding]);
+  if (active.length === 0) return;
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return waitForEmbeddingsToDrain(context);
 }
 
 export function registerTopicEvalHandlers(params: {

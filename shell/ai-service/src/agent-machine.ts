@@ -364,6 +364,7 @@ export const agentMachine: AgentMachine = setup({
           actions: assign(({ event }) => ({
             error: getErrorMessage(event.error, "Unknown error"),
             response: {
+              error: getErrorMessage(event.error, "Unknown error"),
               text:
                 event.error instanceof Error
                   ? `Error: ${event.error.message}`
@@ -501,6 +502,7 @@ export const agentMachine: AgentMachine = setup({
             actions: assign(({ context, event }) => ({
               error: getErrorMessage(event.error, "Unknown error"),
               response: {
+                error: getErrorMessage(event.error, "Unknown error"),
                 text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${getErrorMessage(
                   event.error,
                   "Unknown error",
@@ -516,6 +518,7 @@ export const agentMachine: AgentMachine = setup({
             actions: assign(({ context, event }) => ({
               error: getErrorMessage(event.error, "Unknown error"),
               response: {
+                error: getErrorMessage(event.error, "Unknown error"),
                 text: `Error executing ${context.activeConfirmation?.toolName ?? "action"}: ${getErrorMessage(
                   event.error,
                   "Unknown error",

@@ -2,18 +2,12 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { actionLinkStyles as s } from "./operator-action-link.styles";
+import { styledProps } from "./styled-props";
 
 export function OperatorActionLinks(
   props: ComponentProps<"nav">,
 ): ReactElement {
-  const css = stylex.props(s.group);
-  return (
-    <nav
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <nav {...styledProps(props, s.group)} />;
 }
 /** The host supplies destinations, target/rel, labels, and decorative indicators. */
 export function OperatorActionLink(
@@ -23,18 +17,14 @@ export function OperatorActionLink(
   },
 ): ReactElement {
   const { emphasis = "secondary", indicator, children, ...attributes } = props;
-  const css = stylex.props(
-    stylex.defaultMarker(),
-    s.link,
-    emphasis === "primary" && s.primary,
-  );
   return (
     <a
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
+      {...styledProps(
+        attributes,
+        stylex.defaultMarker(),
+        s.link,
+        emphasis === "primary" && s.primary,
+      )}
     >
       <span {...stylex.props(s.label)}>{children}</span>
       {indicator !== undefined && indicator !== null && indicator !== false && (

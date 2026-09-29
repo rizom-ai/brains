@@ -11,6 +11,8 @@ bundles:
   - chat
 plugins:
   mcp:
+    # Direct system_get is an operator/debug tool, not the basic MCP surface.
+    mode: debug
     transport: http
     authToken: packed-file-runtime
   webserver:

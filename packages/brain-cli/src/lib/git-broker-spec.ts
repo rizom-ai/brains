@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, relative, resolve } from "path";
 import { z } from "@brains/utils/zod";
 import {
+  gitBrokerRuntimeDir,
   gitBrokerSocketPath,
   resolveCheckoutPath,
 } from "@brains/directory-sync";
@@ -22,9 +23,6 @@ import type { BrainYamlConfig } from "./brain-yaml";
  * so this assumption is shared rather than guessed twice.
  */
 export const BRAIN_DEFAULT_DATA_DIR = "./brain-data";
-
-/** Instance-owned, never inside a checkout Git can rewrite. */
-const RUNTIME_DIR_NAME = ".brain-runtime";
 
 /** Prefer the broker-only bundle/source beside a Brain entrypoint. */
 export function resolveGitBrokerEntrypointPath(
@@ -63,7 +61,7 @@ export function resolveGitBrokerSpec(
   const git = pluginConfig.git;
   if (git?.repo === undefined && git?.gitUrl === undefined) return undefined;
 
-  const runtimeDir = join(cwd, RUNTIME_DIR_NAME);
+  const runtimeDir = gitBrokerRuntimeDir(cwd);
   const checkoutPath = resolveCheckoutPath({
     cwd,
     dataDir: BRAIN_DEFAULT_DATA_DIR,

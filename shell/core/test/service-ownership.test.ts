@@ -1,5 +1,6 @@
 import { createMockJobQueueService } from "@brains/job-queue/test";
 import { afterEach, describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
 import { runProcessOrThrow } from "@brains/utils/run-process";
 import type { IEmbeddingService } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
@@ -378,6 +379,10 @@ describe("Shell service ownership", () => {
       logger,
     });
     await entityService.initialize();
+    const client = await entityService
+      .getProjectionStore()
+      .runDatabaseOperation(async (db) => db.$client);
+    await client.execute("SELECT 1");
 
     let installedEntityService = false;
     let shell: Shell | undefined;
@@ -397,18 +402,14 @@ describe("Shell service ownership", () => {
       }).toEqual({ entityService: true, entityRegistry: true });
 
       await shell.shutdown();
-      let queryError: unknown;
-      try {
-        await entityService.listEntities({ entityType: "note" });
-      } catch (error) {
-        queryError = error;
-      }
-      const errorText =
-        String(queryError) +
-        (queryError instanceof Error && queryError.cause
-          ? String(queryError.cause)
-          : "");
-      expect(errorText).toContain("SQL worker driver is closed");
+      await assert.rejects(
+        entityService.listEntities({ entityType: "note" }),
+        /Entity service is closed/,
+      );
+      await assert.rejects(
+        client.execute("SELECT 1"),
+        /SQL worker driver is closed/,
+      );
     } finally {
       if (!installedEntityService) await entityService.closeAsync();
       await jobQueueService.closeAsync();

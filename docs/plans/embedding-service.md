@@ -38,7 +38,7 @@ Brain process (~200MB, no native deps, no API keys)
 | Image generation   | Stable Diffusion    | DALL-E, Gemini — current            |
 | Image optimization | Sharp — current     | — (always local)                    |
 
-Each capability has a backend configured independently. A desktop user might run local embeddings + cloud text gen. A hosted rover uses the remote gateway for everything. A fully offline setup runs all local.
+Each capability has a backend configured independently. A desktop user might run local embeddings + cloud text generation. A hosted brain could use the remote gateway for everything. A fully offline setup runs all local.
 
 ### brain.yaml configuration
 
@@ -47,7 +47,7 @@ Each capability has a backend configured independently. A desktop user might run
 ai:
   endpoint: http://localhost:9999
 
-# Remote gateway (hosted rovers)
+# Remote gateway (hosted brains)
 ai:
   endpoint: https://ai.rizom.ai
   token: ${AI_GATEWAY_TOKEN}
@@ -121,7 +121,7 @@ All endpoints use `Bun.serve()` — no framework.
 - **Native deps isolated** — ONNX and Sharp don't touch the brain binary
 - **Model lifecycle** — load/unload models without restarting the brain
 - **Resource management** — GPU/memory allocation separate from brain
-- **Shareable** — one runtime serves multiple brains (hosted rovers)
+- **Shareable** — one runtime serves multiple hosted brains
 - **Replaceable** — swap Ollama for vLLM, or local for cloud, without touching brain code
 
 ### Deployment modes
@@ -130,7 +130,7 @@ All endpoints use `Bun.serve()` — no framework.
 | ------------- | ----------------------------------------- | ---------------------------------- | ------------------------------ |
 | Desktop       | Local process, auto-started by Electrobun | `endpoint: http://localhost:9999`  | Personal use, optional offline |
 | Docker        | Separate container or sidecar in compose  | `endpoint: http://ai-runtime:9999` | Self-hosted                    |
-| Hosted rovers | Shared gateway service                    | `endpoint: https://ai.rizom.ai`    | Managed hosting                |
+| Hosted brains | Shared gateway service                    | `endpoint: https://ai.rizom.ai`    | Managed hosting                |
 | Dev           | In-process (no sidecar)                   | `endpoint: local`                  | Development, testing           |
 
 ## IAIProvider interface
@@ -208,12 +208,12 @@ Add LLM backends to the runtime.
 2. Electrobun: auto-start runtime alongside brain
 3. Health check: brain waits for runtime `/health` before starting
 
-### Phase 7: Remote gateway (hosted rovers)
+### Phase 7: Remote gateway (hosted brains)
 
 1. Deploy runtime as shared service
 2. Add auth (bearer token)
 3. Usage tracking + rate limiting
-4. Cost metering per rover
+4. Cost metering per brain
 
 ## Relationship to other plans
 
@@ -222,7 +222,7 @@ Add LLM backends to the runtime.
 | System to framework      | System's `ai.query()` calls IAIProvider                              |
 | Entity consolidation     | derive() and generation handlers call context.ai → IAIProvider       |
 | Desktop app (Electrobun) | Runtime auto-starts alongside brain, user configures in app settings |
-| Hosted rovers (K8s)      | Shared gateway replaces per-rover API keys                           |
+| Hosted brains (K8s)      | Shared gateway replaces per-brain API keys                           |
 | Standalone binary        | Brain compiles to binary, runtime ships separately                   |
 
 ## Memory impact

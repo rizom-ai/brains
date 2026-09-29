@@ -1,3 +1,5 @@
+import { GenerationAuthorizer } from "../src/generation-authorization";
+import { PermissionService } from "@brains/templates";
 import { createMockAIService } from "@brains/ai-service/test";
 import {
   createMockDataSourceRegistry,
@@ -43,6 +45,10 @@ describe("ContentService.resolveContent", () => {
       aiService: mockAIService,
       templateRegistry,
       dataSourceRegistry: mockDataSourceRegistry,
+      generationAuthorizer: new GenerationAuthorizer(
+        new PermissionService({}),
+        async () => null,
+      ),
     };
 
     // Set up spies
@@ -176,6 +182,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("dashboard", mockTemplate);
+      const warn = spyOn(mockDependencies.logger, "warn");
       getEntitySpy.mockResolvedValue({
         id: "dashboard-123",
         type: "site-content",
@@ -193,6 +200,9 @@ describe("ContentService.resolveContent", () => {
       // Should skip to fallback since no formatter
       expect(result).toEqual({ cpu: 0, memory: 0 });
       expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled();
+      // Site builds offer saved content to every section; a template that
+      // cannot read it simply does not, which is not worth a warning.
+      expect(warn).not.toHaveBeenCalled();
     });
   });
 

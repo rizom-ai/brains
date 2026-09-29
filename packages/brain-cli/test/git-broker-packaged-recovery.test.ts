@@ -1,5 +1,22 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { Database } from "bun:sqlite";
+import { randomUUID } from "node:crypto";
+import { LocalDatabaseRpcClient, localDatabaseEndpointEnv } from "@brains/core";
+import {
+  ENTITY_RPC_SERVICE,
+  parseEntityRpcResult,
+  type EntityRpcRequest,
+} from "@brains/entity-service";
+import {
+  JOB_QUEUE_RPC_SERVICE,
+  parseJobQueueRpcResult,
+  type JobQueueRpcRequest,
+} from "@brains/job-queue";
+import {
+  RUNTIME_STATE_RPC_SERVICE,
+  parseRuntimeStateRpcResult,
+  type RuntimeStateRpcRequest,
+} from "@brains/runtime-state";
+import { z } from "@brains/utils/zod";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import {
@@ -45,6 +62,18 @@ interface RuntimeController {
 }
 
 let cleanup: (() => Promise<void>) | undefined;
+const ownerClients = new Map<string, LocalDatabaseRpcClient>();
+
+async function ownerRequest(
+  root: string,
+  service: string,
+  payload: EntityRpcRequest | JobQueueRpcRequest | RuntimeStateRpcRequest,
+): Promise<unknown> {
+  const client = ownerClients.get(root);
+  if (!client) throw new Error("Missing supervised database owner connection");
+  await client.initialize();
+  return client.request(service, payload);
+}
 
 const RECOVERS_LOST_COMPLETION =
   "recovers one lost completion without restarting healthy app roles";
@@ -199,14 +228,31 @@ function startRuntime(
   const replacementReady = Promise.withResolvers<void>();
   const ready = new Set<SupervisedChildRole>();
   let brokerReadyCount = 0;
+  let ownerClient: LocalDatabaseRpcClient | undefined;
+  const closeOwnerClient = (): void => {
+    ownerClient?.close();
+    if (ownerClients.get(appDir) === ownerClient) ownerClients.delete(appDir);
+  };
 
   const spawnImpl: SpawnImpl = (command, args, options) => {
-    const child = spawn(command, args, options);
     const roleArg = args.find((arg) => arg.startsWith("--child="));
     const role =
       args[0] === BROKER_ENTRY
         ? "git-broker"
         : roleArg?.slice("--child=".length);
+    if (role === "web") {
+      const address = options.env?.[localDatabaseEndpointEnv.address];
+      const secret = options.env?.[localDatabaseEndpointEnv.secret];
+      if (!address || !secret)
+        throw new Error(
+          "Supervisor did not provision the database owner endpoint",
+        );
+      ownerClient = new LocalDatabaseRpcClient({
+        config: { address, secret, sessionId: randomUUID() },
+      });
+      ownerClients.set(appDir, ownerClient);
+    }
+    const child = spawn(command, args, options);
     if (
       child.pid !== undefined &&
       (role === "git-broker" || role === "web" || role === "worker")
@@ -243,11 +289,15 @@ function startRuntime(
   });
 
   return {
-    result,
+    result: result.finally(closeOwnerClient),
     starts,
     initialReady: initialReady.promise,
     replacementReady: replacementReady.promise,
-    stop: (): void => void processSurface.emitter.emit("SIGTERM"),
+    stop: (): void => {
+      // Metadata borrowers retire before the owner begins joined shutdown.
+      closeOwnerClient();
+      processSurface.emitter.emit("SIGTERM");
+    },
   };
 }
 
@@ -352,52 +402,46 @@ async function connect(app: {
   return connection;
 }
 
-function countNotesWithMarker(root: string, marker: string): number {
-  const database = new Database(join(root, "data", "brain.db"), {
-    readonly: true,
-  });
-  try {
-    const row = database
-      .query<{ count: number }, [string]>(
-        `SELECT count(*) AS count
-         FROM entities
-         WHERE "entityType" = 'note' AND instr(content, ?) > 0`,
-      )
-      .get(marker);
-    return row?.count ?? 0;
-  } finally {
-    database.close();
-  }
+async function countNotesWithMarker(
+  root: string,
+  marker: string,
+): Promise<number> {
+  return parseEntityRpcResult(
+    { operation: "countEntities" },
+    await ownerRequest(root, ENTITY_RPC_SERVICE, {
+      operation: "countEntities",
+      request: {
+        entityType: "note",
+        options: {
+          filter: { contentContains: marker, visibilityScope: "restricted" },
+        },
+      },
+    }),
+  );
 }
 
-function durableCheckpoint(root: string):
-  | {
-      lastReconciledGitHead?: string;
-      lastObservedRemoteHead?: string;
-    }
-  | undefined {
-  const database = new Database(join(root, "data", "runtime-state.db"), {
-    readonly: true,
-  });
-  try {
-    const row = database
-      .query<{ value: string }, []>(
-        `SELECT value FROM runtime_state_records
-         WHERE namespace = 'directory-sync.git-reconciliation'
-           AND key = 'current'`,
-      )
-      .get();
-    if (!row) return undefined;
-    const stored: {
-      checkpoint?: {
-        lastReconciledGitHead?: string;
-        lastObservedRemoteHead?: string;
-      };
-    } = JSON.parse(row.value);
-    return stored.checkpoint;
-  } finally {
-    database.close();
-  }
+const checkpointSchema = z.object({
+  checkpoint: z
+    .object({
+      lastReconciledGitHead: z.string().optional(),
+      lastObservedRemoteHead: z.string().optional(),
+    })
+    .optional(),
+});
+async function durableCheckpoint(
+  root: string,
+): Promise<z.infer<typeof checkpointSchema>["checkpoint"]> {
+  const stored = parseRuntimeStateRpcResult(
+    { operation: "get" },
+    await ownerRequest(root, RUNTIME_STATE_RPC_SERVICE, {
+      operation: "get",
+      namespace: "directory-sync.git-reconciliation",
+      key: "current",
+    }),
+  );
+  return stored === undefined
+    ? undefined
+    : checkpointSchema.parse(stored).checkpoint;
 }
 
 async function pathExists(path: string): Promise<boolean> {
@@ -414,7 +458,7 @@ async function synchronizeWriter(app: {
   writer: string;
 }): Promise<void> {
   await until("the baseline repository and queue to converge", async () => {
-    if (pendingJobCount(app.root) !== 0) return undefined;
+    if ((await pendingJobCount(app.root)) !== 0) return undefined;
     const [remoteHead, checkoutHead] = await Promise.all([
       run(["git", "--git-dir", app.remote, "rev-parse", "main"], app.root),
       run(["git", "rev-parse", "HEAD"], app.checkout),
@@ -453,20 +497,12 @@ async function commitRemoteTransition(
   await run(["git", "push", "origin", "main"], writer);
 }
 
-function pendingJobCount(root: string): number {
-  const database = new Database(join(root, "data", "brain-jobs.db"), {
-    readonly: true,
-  });
-  try {
-    const row = database
-      .query<{ count: number }, []>(
-        "SELECT COUNT(*) AS count FROM job_queue WHERE status IN ('pending', 'processing')",
-      )
-      .get();
-    return row?.count ?? 0;
-  } finally {
-    database.close();
-  }
+async function pendingJobCount(root: string): Promise<number> {
+  const stats = parseJobQueueRpcResult(
+    { operation: "getStats" },
+    await ownerRequest(root, JOB_QUEUE_RPC_SERVICE, { operation: "getStats" }),
+  );
+  return stats.pending + stats.processing;
 }
 
 interface DurableJobState {
@@ -475,110 +511,94 @@ interface DurableJobState {
   completedAt: number | null;
 }
 
-function enqueueWorkerWish(root: string): string {
-  const database = new Database(join(root, "data", "brain-jobs.db"));
-  const id = "worker-created-export-regression";
-  const now = Date.now();
-  try {
-    database
-      .query(
-        `INSERT INTO job_queue (
-           id, type, data, source, metadata, status, priority,
-           retryCount, maxRetries, createdAt, scheduledFor
-         ) VALUES (
-           $id, 'wish:create', $data, 'packaged-regression', $metadata,
-           'pending', 10, 0, 3, $now, $now
-         )`,
-      )
-      .run({
-        $id: id,
-        $data: JSON.stringify({
+async function enqueueWorkerWish(root: string): Promise<string> {
+  return parseJobQueueRpcResult(
+    { operation: "enqueue" },
+    await ownerRequest(root, JOB_QUEUE_RPC_SERVICE, {
+      operation: "enqueue",
+      request: {
+        type: "wish:create",
+        data: {
           title: "Worker Created Export Regression",
           content: "Created by the execution-only worker after web readiness.",
-        }),
-        $metadata: JSON.stringify({
-          rootJobId: id,
-          operationType: "data_processing",
-          operationTarget: "worker-created-export-regression",
-          silent: true,
-        }),
-        $now: now,
-      });
-    return id;
-  } finally {
-    database.close();
-  }
+        },
+        options: {
+          priority: 10,
+          maxRetries: 3,
+          source: "packaged-regression",
+          // The owner assigns the job identity and its root provenance.
+          metadata: {
+            operationType: "data_processing",
+            operationTarget: "worker-created-export-regression",
+            silent: true,
+          },
+        },
+      },
+    }),
+  );
 }
 
-function durableJobState(root: string, jobId: string): DurableJobState | null {
-  const database = new Database(join(root, "data", "brain-jobs.db"), {
-    readonly: true,
-  });
-  try {
-    return (
-      database
-        .query<DurableJobState, [string]>(
-          `SELECT status, lastError, completedAt
-           FROM job_queue
-           WHERE id = ?`,
-        )
-        .get(jobId) ?? null
+async function durableJobState(
+  root: string,
+  jobId: string,
+): Promise<DurableJobState | null> {
+  return parseJobQueueRpcResult(
+    { operation: "getStatus" },
+    await ownerRequest(root, JOB_QUEUE_RPC_SERVICE, {
+      operation: "getStatus",
+      jobId,
+    }),
+  );
+}
+
+async function hasPendingEntityExports(root: string): Promise<boolean> {
+  return parseEntityRpcResult(
+    { operation: "hasPendingEntityExports" },
+    await ownerRequest(root, ENTITY_RPC_SERVICE, {
+      operation: "hasPendingEntityExports",
+    }),
+  );
+}
+
+async function recurringDigestCounts(
+  root: string,
+): Promise<{ completed: number; failed: number }> {
+  const jobs = new Map<string, { status: string; data: string }>();
+  let cursor = { updatedAt: 0, jobId: "" };
+  for (;;) {
+    const page = parseJobQueueRpcResult(
+      { operation: "getRuntimeUpdates" },
+      await ownerRequest(root, JOB_QUEUE_RPC_SERVICE, {
+        operation: "getRuntimeUpdates",
+        cursor,
+        limit: 32,
+      }),
     );
-  } finally {
-    database.close();
+    for (const entry of page) {
+      if (entry.job.type === "shell:recurring-check")
+        jobs.set(entry.job.id, {
+          status: entry.job.status,
+          data: entry.job.data,
+        });
+    }
+    const last = page.at(-1);
+    if (!last) break;
+    cursor = last.cursor;
   }
-}
-
-function pendingEntityExportCount(root: string): number {
-  const database = new Database(join(root, "data", "brain.db"), {
-    readonly: true,
-  });
-  try {
-    return (
-      database
-        .query<{ count: number }, []>(
-          "SELECT COUNT(*) AS count FROM entity_export_intents",
-        )
-        .get()?.count ?? 0
-    );
-  } finally {
-    database.close();
-  }
-}
-
-function recurringDigestCounts(root: string): {
-  completed: number;
-  failed: number;
-} {
-  const database = new Database(join(root, "data", "brain-jobs.db"), {
-    readonly: true,
-  });
-  try {
-    const row = database
-      .query<{ completed: number; failed: number }, [string, string, string]>(
-        `SELECT
-           SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS completed,
-           SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS failed
-         FROM job_queue
-         WHERE type = 'shell:recurring-check' AND data = ?`,
-      )
-      .get(
-        "completed",
-        "failed",
-        JSON.stringify({ checkId: "unified-inbox:daily-digest" }),
-      );
-    return {
-      completed: row?.completed ?? 0,
-      failed: row?.failed ?? 0,
-    };
-  } finally {
-    database.close();
-  }
+  const matching = [...jobs.values()].filter(
+    (job) =>
+      job.data === JSON.stringify({ checkId: "unified-inbox:daily-digest" }),
+  );
+  return {
+    completed: matching.filter((job) => job.status === "completed").length,
+    failed: matching.filter((job) => job.status === "failed").length,
+  };
 }
 
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
+  expect(ownerClients.size).toBe(0);
 });
 
 it("exposes the packaged recovery proof as a named repository gate", async () => {
@@ -617,9 +637,9 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
         throw new Error("Expected packaged web and worker children");
       }
 
-      const jobId = enqueueWorkerWish(app.root);
+      const jobId = await enqueueWorkerWish(app.root);
       await until("the worker mutation", async () => {
-        const state = durableJobState(app.root, jobId);
+        const state = await durableJobState(app.root, jobId);
         if (state?.status === "failed") {
           throw new Error(`Worker mutation failed: ${state.lastError}`);
         }
@@ -636,11 +656,11 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
         "worker-created-export-regression.md",
       );
       await until("confirmed worker entity export", async () => {
-        if (pendingEntityExportCount(app.root) !== 0) return undefined;
+        if (await hasPendingEntityExports(app.root)) return undefined;
         return (await pathExists(entityPath)) ? true : undefined;
       });
       expect(await pathExists(entityPath)).toBe(true);
-      expect(pendingEntityExportCount(app.root)).toBe(0);
+      expect(await hasPendingEntityExports(app.root)).toBe(false);
       const remotePath = await run(
         [
           "git",
@@ -657,7 +677,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       expect(remotePath.trim()).toBe(
         "wish/worker-created-export-regression.md",
       );
-      expect(recurringDigestCounts(app.root)).toEqual({
+      expect(await recurringDigestCounts(app.root)).toEqual({
         completed: 1,
         failed: 0,
       });
@@ -695,7 +715,9 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       }
 
       await until("the baseline note to persist", async () =>
-        countNotesWithMarker(app.root, "baseline") === 1 ? true : undefined,
+        (await countNotesWithMarker(app.root, "baseline")) === 1
+          ? true
+          : undefined,
       );
       await synchronizeWriter(app);
       await commitRemoteTransition(
@@ -756,19 +778,19 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       await until(
         "repository, remote-delete, and queue convergence",
         async () => {
-          if (pendingJobCount(app.root) !== 0) return undefined;
+          if ((await pendingJobCount(app.root)) !== 0) return undefined;
           if (await pathExists(join(app.checkout, "baseline.md"))) {
             return undefined;
           }
           if (!(await pathExists(join(app.checkout, "recovered-remote.md")))) {
             return undefined;
           }
-          if (countNotesWithMarker(app.root, "baseline") !== 0)
+          if ((await countNotesWithMarker(app.root, "baseline")) !== 0)
             return undefined;
-          return countNotesWithMarker(
+          return (await countNotesWithMarker(
             app.root,
             "recovered through broker replacement",
-          ) === 1
+          )) === 1
             ? true
             : undefined;
         },
@@ -782,7 +804,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       const localHead = (
         await run(["git", "rev-parse", "HEAD"], app.checkout)
       ).trim();
-      expect(durableCheckpoint(app.root)).toMatchObject({
+      expect(await durableCheckpoint(app.root)).toMatchObject({
         lastReconciledGitHead: localHead,
         lastObservedRemoteHead: remoteHead,
       });
@@ -826,7 +848,9 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       if (!firstBroker) throw new Error("Expected packaged broker child");
 
       await until("the fallback baseline note to persist", async () =>
-        countNotesWithMarker(app.root, "baseline") === 1 ? true : undefined,
+        (await countNotesWithMarker(app.root, "baseline")) === 1
+          ? true
+          : undefined,
       );
       await synchronizeWriter(app);
       await commitRemoteTransition(
@@ -869,19 +893,19 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       await until(
         "fallback repository, delete, and queue convergence",
         async () => {
-          if (pendingJobCount(app.root) !== 0) return undefined;
+          if ((await pendingJobCount(app.root)) !== 0) return undefined;
           if (await pathExists(join(app.checkout, "baseline.md"))) {
             return undefined;
           }
           if (!(await pathExists(join(app.checkout, "fallback-remote.md")))) {
             return undefined;
           }
-          if (countNotesWithMarker(app.root, "baseline") !== 0)
+          if ((await countNotesWithMarker(app.root, "baseline")) !== 0)
             return undefined;
-          return countNotesWithMarker(
+          return (await countNotesWithMarker(
             app.root,
             "recovered after full-runtime fallback",
-          ) === 1
+          )) === 1
             ? true
             : undefined;
         },
@@ -895,7 +919,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       const localHead = (
         await run(["git", "rev-parse", "HEAD"], app.checkout)
       ).trim();
-      expect(durableCheckpoint(app.root)).toMatchObject({
+      expect(await durableCheckpoint(app.root)).toMatchObject({
         lastReconciledGitHead: localHead,
         lastObservedRemoteHead: remoteHead,
       });

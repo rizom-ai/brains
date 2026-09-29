@@ -1,5 +1,9 @@
 import { z } from "@brains/utils/zod";
 import type { EntityFileActorOptions } from "@brains/entity-service";
+import type {
+  JobHandlerRegistrationMode,
+  JobProgressMonitorMode,
+} from "@brains/job-queue";
 
 export type RuntimeProcessRole = "web" | "worker";
 
@@ -45,54 +49,54 @@ export interface ShellRuntimeOptions {
   readonly localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
 }
 
-export interface RuntimeProcessTopology {
-  readonly role: RuntimeProcessRole | undefined;
+/**
+ * What a process does in the runtime, decided once from its role. The web
+ * process serves requests and owns local databases, the worker executes work
+ * through the owner's endpoint, and a process without a role does both.
+ */
+export interface RuntimeRoleProfile {
   readonly endpointRole: "owner" | "client" | "none";
-  readonly executionOnly: boolean;
-  readonly ownsControlPlane: boolean;
-  readonly runsJobWorker: boolean;
-  readonly jobHandlerMode: "combined" | "validation-only" | "execution-only";
-  readonly progressMonitorMode:
-    "combined" | "durable-reader" | "durable-writer";
-  readonly projectionMode: "scheduler" | "executor";
+  /** Answers requests: shell daemons, system capabilities, the webserver. */
+  readonly serves: boolean;
+  /** Runs queued jobs. */
+  readonly executes: boolean;
+  readonly handlerRegistrationMode: JobHandlerRegistrationMode;
+  readonly progressMonitorMode: JobProgressMonitorMode;
+  readonly projectionActivation: "scheduler" | "executor";
 }
 
-/** Derive every process-placement decision once from the supervised role. */
-export function resolveRuntimeProcessTopology(
-  role?: RuntimeProcessRole,
-): RuntimeProcessTopology {
-  if (role === "web") {
-    return {
-      role,
-      endpointRole: "owner",
-      executionOnly: false,
-      ownsControlPlane: true,
-      runsJobWorker: false,
-      jobHandlerMode: "validation-only",
-      progressMonitorMode: "durable-reader",
-      projectionMode: "scheduler",
-    };
-  }
-  if (role === "worker") {
-    return {
-      role,
-      endpointRole: "client",
-      executionOnly: true,
-      ownsControlPlane: false,
-      runsJobWorker: true,
-      jobHandlerMode: "execution-only",
-      progressMonitorMode: "durable-writer",
-      projectionMode: "executor",
-    };
-  }
-  return {
-    role: undefined,
+const ROLE_PROFILES: Record<
+  RuntimeProcessRole | "combined",
+  RuntimeRoleProfile
+> = {
+  web: {
+    endpointRole: "owner",
+    serves: true,
+    executes: false,
+    handlerRegistrationMode: "validation-only",
+    progressMonitorMode: "durable-reader",
+    projectionActivation: "scheduler",
+  },
+  worker: {
+    endpointRole: "client",
+    serves: false,
+    executes: true,
+    handlerRegistrationMode: "execution-only",
+    progressMonitorMode: "durable-writer",
+    projectionActivation: "executor",
+  },
+  combined: {
     endpointRole: "none",
-    executionOnly: false,
-    ownsControlPlane: true,
-    runsJobWorker: true,
-    jobHandlerMode: "combined",
+    serves: true,
+    executes: true,
+    handlerRegistrationMode: "combined",
     progressMonitorMode: "combined",
-    projectionMode: "scheduler",
-  };
+    projectionActivation: "scheduler",
+  },
+};
+
+export function runtimeRoleProfile(
+  role: RuntimeProcessRole | undefined,
+): RuntimeRoleProfile {
+  return ROLE_PROFILES[role ?? "combined"];
 }

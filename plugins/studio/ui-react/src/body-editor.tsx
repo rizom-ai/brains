@@ -49,11 +49,15 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
 const externalDocumentSync = Annotation.define<boolean>();
 
 const studioMarkdownHighlightStyle = HighlightStyle.define([
-  { tag: tags.heading, color: "var(--console-accent-dim)", fontWeight: "500" },
+  { tag: tags.heading, color: "var(--console-text)", fontWeight: "600" },
   { tag: tags.meta, color: "var(--console-text-muted)" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "600" },
-  { tag: [tags.link, tags.url], color: "var(--console-accent-dim)" },
+  {
+    tag: [tags.link, tags.url],
+    color: "var(--console-text)",
+    textDecoration: "underline",
+  },
   { tag: tags.quote, color: "var(--console-text-dim)" },
 ]);
 
@@ -61,6 +65,10 @@ const bodyEditorBaseExtensions: Extension[] = [
   markdown(),
   syntaxHighlighting(studioMarkdownHighlightStyle),
   EditorView.lineWrapping,
+  EditorView.contentAttributes.of({
+    "aria-label": "Markdown source",
+    tabindex: "0",
+  }),
 ];
 
 export interface SelectionRange {
@@ -290,16 +298,25 @@ export function BodyEditor(props: {
     agents?: AgentTarget[];
   };
   readOnly?: boolean;
+  /** Stacked editors own their mode controls at every viewport width. */
+  singlePane?: boolean;
 }): ReactElement {
   const api = useStudioApi();
   const {
     value,
-    mode,
+    mode: requestedMode,
     onChange,
     onModeChange,
     assist,
     readOnly = false,
+    singlePane = false,
   } = props;
+  const mode =
+    singlePane && requestedMode === "split"
+      ? readOnly
+        ? "preview"
+        : "source"
+      : requestedMode;
   const panelId = useId();
   const [selection, setSelection] = useState<SelectionRange | null>(null);
   const [instruction, setInstruction] = useState("");
@@ -414,8 +431,13 @@ export function BodyEditor(props: {
             if (isBodyMode(value)) onModeChange(value);
           }}
         >
-          <TabsList {...stylex.props(s.modes)} aria-label="Editor body view">
-            {BODY_MODES.map((candidate) => (
+          <TabsList
+            {...stylex.props(s.modes, singlePane && s.inlineModes)}
+            aria-label="Editor body view"
+          >
+            {BODY_MODES.filter(
+              (candidate) => !singlePane || candidate !== "split",
+            ).map((candidate) => (
               <TabsTrigger
                 key={candidate}
                 value={candidate}

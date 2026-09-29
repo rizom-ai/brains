@@ -124,6 +124,7 @@ function normalizeHandlerRoute(
     method,
     match,
     sharedHostAdmission: definition.public === true ? "admit" : "deny",
+    ...(definition.preview === true ? { preview: true } : {}),
     handler: definition.handler,
   });
 }

@@ -184,7 +184,7 @@ describe("MessageInterfacePlugin", () => {
   });
 
   afterEach(async () => {
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   });
 
   it("does not expose a buffered native-artifact escape hatch", () => {
@@ -235,7 +235,7 @@ describe("MessageInterfacePlugin", () => {
       await plugin.testHandleProgressEvent(event, createJobContext());
       expect(plugin.getProgressEventsMap().has(event.id)).toBe(true);
 
-      await plugin.shutdown?.();
+      await plugin.shutdown();
 
       expect(plugin.getProgressEventsMap().size).toBe(0);
     });

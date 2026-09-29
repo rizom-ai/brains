@@ -4,7 +4,7 @@
 
 `brains` is an open framework for building self-hosted personal AI agents. You define what content types your brain understands, which integrations it has, and how it connects to the outside world. The framework handles the orchestration: storage, embeddings, MCP/A2A protocols, AI generation, site building, deployment.
 
-> **Status:** `v0.1.0` — pre-stable. The architecture is settled but the API surface will change before `1.0`. See [STABILITY.md](STABILITY.md) for what's stable today and what isn't.
+> **Status:** `v0.2.0` alpha — stable nomination is pending final authoring, live/eval, and deployment evidence. The architecture is settled, but only the documented `0.2` candidate surface is being prepared for patch-line compatibility. See [the roadmap](../roadmap.md) and [STABILITY.md](STABILITY.md).
 
 > **Contribution model:** maintainer-only development. Bug reports and small fixes welcome; large feature PRs are not accepted right now. See [CONTRIBUTING.md](CONTRIBUTING.md) for the rationale and exit criteria.
 
@@ -71,7 +71,7 @@ brain.yaml (instance config)
   = a running brain
     ├── Entities       typed content: blog post, link, deck, project, note, ...
     ├── Plugins        services and integrations: site builder, git sync, analytics, ...
-    ├── Interfaces     transports: MCP, A2A, Discord, webserver, CLI
+    ├── Interfaces     transports: MCP, A2A, Discord/Slack, email, web chat, CLI
     └── Shell          core orchestration: storage, AI, jobs, messaging
 ```
 
@@ -91,7 +91,7 @@ A **brain instance** selects explicit bundles in `brain.yaml` and supplies its o
 
 External packages default-export a definition. A brain-definition package imports those defaults and composes typed configured references through `use()`, `defineBundle()`, and `defineBrain()`. Runtime classes and YAML-loaded factories are not public authoring contracts. See the [exact `0.2` authoring ledger](./AUTHORING_API_0.2.md) and [alpha migration guide](./AUTHORING_0.2_MIGRATION.md).
 
-**Interfaces** are how users and other agents talk to your brain. Built-in: MCP, A2A, Discord, webserver, CLI.
+**Interfaces** are how users and other agents talk to your brain. Built in: MCP, A2A, Discord/Slack, email, Web Chat, and the chat REPL. HTTP hosting is infrastructure rather than a public extension contract; the current alpha still carries the built-in webserver while the intended stable source moves that ownership into the runtime.
 
 For the deeper picture: [Architecture Overview](../architecture-overview.md), [Plugin System](../plugin-system.md), [Entity Model](../entity-model.md).
 

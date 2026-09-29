@@ -156,6 +156,17 @@ describe("DataSourceRegistry", () => {
       expect(generateDataSources).toContain(mockMultiCapabilityDataSource);
     });
 
+    test("discovers scoped-only generation without advertising an ambient method", () => {
+      const scoped: DataSource = {
+        id: "scoped",
+        name: "Scoped generator",
+        generateScoped: async (_request, schema) => schema.parse("generated"),
+      };
+      registry.register(scoped);
+      expect(registry.getByCapability("canGenerate")).toContain(scoped);
+      expect(scoped.generate).toBeUndefined();
+    });
+
     test("should get data sources by transform capability", () => {
       const transformDataSources = registry.getByCapability("canTransform");
       expect(transformDataSources).toHaveLength(2);

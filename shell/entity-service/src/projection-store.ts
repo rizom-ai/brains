@@ -1,53 +1,57 @@
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  lte,
-  ne,
-  or,
-  sql,
-} from "drizzle-orm";
-import { AsyncLocalStorage } from "node:async_hooks";
-import { getErrorMessage } from "@brains/utils/error";
-import { computeContentHash } from "@brains/utils/hash";
-import { createId } from "@brains/utils/id";
-import { SerialQueue } from "@brains/utils/serial-queue";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "@brains/utils/zod";
-import { normalizeSearchText, type EntityDB } from "./db";
+import type { EntityDB } from "./db";
 import { EntityExportStore } from "./entity-export-store";
-import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 import type { EntityMutationAdmission } from "./mutation-admission";
 import {
-  ProjectionWriteIntentSchema,
-  type ProjectionWriteIntent,
-} from "./projection-contracts";
+  type BulkMutationInput,
+  type DurableBulkMutationChildInput,
+  type DurableBulkMutationRootInput,
+  type ProjectionBatchRecoveryResult,
+  type ProjectionBatchRootReader,
+  type SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
 import {
-  projectionAdmissionState,
-  projectionBatchChildren,
-  projectionBatches,
-} from "./schema/projection-batches";
+  ProjectionBatchCoordinator,
+  type ProjectionBatchDiagnostics,
+  type ProjectionBatchScope,
+} from "./projection-batch-coordinator";
+import { ProjectionRuleCoordinator } from "./projection-rule-coordinator";
+export type {
+  ApplyProjectionRuleResultInput,
+  GetProjectionRuleMemoInput,
+  ProjectionRuleMemoValue,
+  ProjectionWaveRuleInput,
+} from "./projection-rule-contracts";
+import type {
+  ApplyProjectionRuleResultInput,
+  GetProjectionRuleMemoInput,
+  ProjectionRuleMemoValue,
+  ProjectionWaveRuleInput,
+} from "./projection-rule-contracts";
+import { ProjectionWaveCoordinator } from "./projection-wave-coordinator";
+import {
+  coalesceLatestInputs,
+  type ClaimProjectionWaveInput,
+  type ProjectionIncidentDiagnostics,
+  type ProjectionIncidentInput,
+} from "./projection-wave-contracts";
+import {
+  ProjectionWriteIntentApplier,
+  type ProjectionEntityStoragePolicy,
+} from "./projection-write-intent-applier";
+import {
+  type EntityTransaction,
+  ProjectionTransactionRunner,
+} from "./projection-transaction-runner";
 import {
   projectionDirtyInputs,
   projectionEntityOwners,
-  projectionIncidents,
-  projectionRuleMemos,
-  projectionWaveInputs,
-  projectionWaveRules,
-  projectionWaves,
-  type ProjectionChangedTarget,
   type ProjectionDirtyInput,
-  type ProjectionIncident,
-  type ProjectionRuleMemo,
   type ProjectionWave,
   type ProjectionWaveInput,
   type ProjectionWaveRule,
 } from "./schema/projection-state";
-import { embeddings } from "./schema/embeddings";
-import { entities } from "./schema/entities";
 
 const dirtyInputSchema = z.strictObject({
   sourceType: z.string().trim().min(1),
@@ -57,125 +61,30 @@ const dirtyInputSchema = z.strictObject({
   markedAt: z.number().int().nonnegative(),
 });
 
-const projectionIncidentInputSchema = z.strictObject({
-  waveId: z.string().trim().min(1),
-  ruleId: z.string().trim().min(1),
-  jobId: z.string().trim().min(1).nullable(),
-  failureReason: z.string().trim().min(1).max(500),
-  failedAt: z.number().int().nonnegative(),
-});
-
-const memoKeySchema = z.strictObject({
-  ruleId: z.string().trim().min(1),
-  ruleVersion: z.string().trim().min(1),
-  inputFingerprint: z.string().trim().min(1),
-});
-
 const projectionOwnedEntitySchema = z.strictObject({
   entityType: z.string().trim().min(1),
   id: z.string().trim().min(1),
 });
 
-const waveRuleInputSchema = z.strictObject({
-  ruleId: z.string().trim().min(1),
-  targetType: z.string().trim().min(1),
-  level: z.number().int().nonnegative(),
-});
+export type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchOwnedJob,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
 
-const bulkMutationInputSchema = z.strictObject({
-  source: z.string().trim().min(1).max(100),
-  operationId: z.string().trim().min(1).max(200),
-});
-
-const DURABLE_ROOT_RECOVERY_GRACE_MS = 5_000;
-// These state transitions are idempotent and may race entity writes in the
-// worker process. Retry by time budget so transient SQLite writers can drain.
-const BATCH_STATE_WRITE_RETRY_BUDGET_MS = 2_000;
-const BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS = 5;
-const BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS = 40;
-
-const durableBulkMutationRootSchema = bulkMutationInputSchema.extend({
-  rootJobId: z.string().trim().min(1).max(200),
-  expectedChildren: z.number().int().positive().max(10_000),
-});
-
-const durableBulkMutationChildSchema = durableBulkMutationRootSchema.extend({
-  rootJobId: z.string().trim().min(1).max(200),
-  childKey: z.string().trim().min(1).max(200),
-  expectedChildren: z.number().int().positive().max(10_000),
-  jobId: z.string().trim().min(1).max(200),
-});
-
-const settleDurableBulkMutationChildSchema = z.strictObject({
-  operationId: z.string().trim().min(1).max(200),
-  childKey: z.string().trim().min(1).max(200),
-  jobId: z.string().trim().min(1).max(200),
-  outcome: z.enum(["completed", "failed"]),
-});
-
-const changedTargetSchema = z.strictObject({
-  entityType: z.string().trim().min(1),
-  entityId: z.string().trim().min(1),
-  operation: z.enum(["upsert", "delete"]),
-  contentHash: z.string().min(1).optional(),
-});
-
-export interface BulkMutationInput {
-  source: string;
-  operationId: string;
-}
-
-export interface DurableBulkMutationRootInput extends BulkMutationInput {
-  rootJobId: string;
-  expectedChildren: number;
-}
-
-export interface DurableBulkMutationChildInput extends DurableBulkMutationRootInput {
-  childKey: string;
-  jobId: string;
-}
-
-export interface SettleDurableBulkMutationChildInput {
-  operationId: string;
-  childKey: string;
-  jobId: string;
-  outcome: "completed" | "failed";
-}
-
-export class ProjectionBatchFencedError extends Error {}
-
-export interface ProjectionBatchScope {
-  batchId: string;
-  source: string;
-  operationId: string;
-  ownerToken: string;
-}
-
-export interface ProjectionBatchOwnedJob {
-  jobId: string;
-  childKey: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  terminalAt: number | null;
-}
-
-export type ProjectionBatchRootReader = (
-  rootJobId: string,
-  operationId: string,
-) => Promise<readonly ProjectionBatchOwnedJob[]>;
-
-export interface ProjectionBatchRecoveryResult {
-  fencedCallbacks: number;
-  releasedDurableRoots: number;
-}
-
-export interface ProjectionBatchDiagnostics {
-  preparing: number;
-  open: number;
-  abandoned: number;
-  expiredCallbackLeases: number;
-  oldestActiveAgeMs: number | null;
-  oldestProgressAgeMs: number | null;
-}
+export {
+  ProjectionBatchFencedError,
+  type ProjectionBatchDiagnostics,
+  type ProjectionBatchScope,
+} from "./projection-batch-coordinator";
+export {
+  retrySqliteWrite,
+  type SqliteWriteRetryOptions,
+} from "./projection-transaction-runner";
 
 export interface MarkProjectionDirtyInput {
   sourceType: string;
@@ -185,68 +94,21 @@ export interface MarkProjectionDirtyInput {
   markedAt: number;
 }
 
-export interface ClaimProjectionWaveInput {
-  waveId: string;
-  graphFingerprint: string;
-  startedAt: number;
-}
-
-export interface GetProjectionRuleMemoInput {
-  ruleId: string;
-  ruleVersion: string;
-  inputFingerprint: string;
-}
-
 export interface ProjectionOwnedEntityInput {
   entityType: string;
   id: string;
 }
 
-export interface ProjectionWaveRuleInput {
-  ruleId: string;
-  targetType: string;
-  level: number;
-}
-
-export interface ProjectionIncidentInput {
-  waveId: string;
-  ruleId: string;
-  jobId: string | null;
-  failureReason: string;
-  failedAt: number;
-}
-
-export interface ProjectionIncidentDiagnostics {
-  total: number;
-  incidents: ProjectionIncident[];
-}
-
-interface FailedProjectionWave {
-  wave: ProjectionWave;
-  recoveryGeneration: number;
-}
-
-export interface ApplyProjectionRuleResultInput {
-  waveId: string;
-  ruleId: string;
-  ruleVersion: string;
-  inputFingerprint: string;
-  writeIntents: readonly ProjectionWriteIntent[];
-  completedAt: number;
-}
-
-export interface ProjectionRuleMemoValue extends Omit<
-  ProjectionRuleMemo,
-  "writeIntents"
-> {
-  writeIntents: ProjectionWriteIntent[];
-}
+export type {
+  ClaimProjectionWaveInput,
+  ProjectionIncidentDiagnostics,
+  ProjectionIncidentInput,
+} from "./projection-wave-contracts";
+export type { ProjectionEntityStoragePolicy } from "./projection-write-intent-applier";
 
 /** Async projection persistence surface safe to keep behind the owner endpoint. */
 export interface IProjectionStore {
   markDirty(input: MarkProjectionDirtyInput): Promise<number>;
-  // Batch primitives are plain data on both ends: a worker opens and closes a
-  // batch here while running the mutation body in its own process.
   openCallbackBatch(input: BulkMutationInput): Promise<ProjectionBatchScope>;
   renewCallbackBatch(scope: ProjectionBatchScope): Promise<void>;
   closeCallbackBatch(scope: ProjectionBatchScope): Promise<void>;
@@ -290,888 +152,136 @@ export interface IProjectionStore {
   ): Promise<ProjectionRuleMemoValue | null>;
 }
 
-type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
-
-function inputKey(
-  input: Pick<ProjectionDirtyInput, "sourceType" | "sourceId">,
-): string {
-  return `${input.sourceType}\u0000${input.sourceId}`;
-}
-
-function coalesceLatestInputs(
-  inputs: readonly ProjectionDirtyInput[],
-): ProjectionDirtyInput[] {
-  const latestBySource = new Map<string, ProjectionDirtyInput>();
-  for (const input of inputs) {
-    latestBySource.set(inputKey(input), input);
-  }
-  return [...latestBySource.values()].sort(
-    (left, right) => left.generation - right.generation,
-  );
-}
-
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
-  }
-  if (value !== null && typeof value === "object") {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
-  const changedTargets: ProjectionChangedTarget[] = z
-    .array(changedTargetSchema)
-    .parse(rule.changedTargets);
-  return { ...rule, changedTargets };
-}
-
-export interface SqliteWriteRetryOptions {
-  retryBudgetMs?: number;
-  now?: () => number;
-  sleep?: (delayMs: number) => Promise<void>;
-  random?: () => number;
-}
-
-function isSqliteWriteConflict(error: unknown): boolean {
-  for (let current = error; current !== undefined;) {
-    const code =
-      typeof current === "object" && current !== null && "code" in current
-        ? String(current.code)
-        : "";
-    const message = getErrorMessage(current, "");
-    if (
-      /SQLITE_(?:BUSY|LOCKED)/u.test(code) ||
-      /SQLITE_(?:BUSY|LOCKED)|database is locked/iu.test(message)
-    ) {
-      return true;
-    }
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return false;
-}
-
-export async function retrySqliteWrite<TResult>(
-  write: () => Promise<TResult>,
-  options: SqliteWriteRetryOptions = {},
-): Promise<TResult> {
-  const retryBudgetMs =
-    options.retryBudgetMs ?? BATCH_STATE_WRITE_RETRY_BUDGET_MS;
-  const now = options.now ?? Date.now;
-  const sleep =
-    options.sleep ??
-    ((delayMs: number): Promise<void> =>
-      new Promise((resolve) => setTimeout(resolve, delayMs)));
-  const random = options.random ?? Math.random;
-  const deadline = now() + retryBudgetMs;
-  let attempt = 1;
-
-  for (;;) {
-    try {
-      return await write();
-    } catch (error) {
-      if (!isSqliteWriteConflict(error)) throw error;
-      const backoff = Math.min(
-        BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
-        BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS,
-      );
-      const delay = backoff / 2 + random() * (backoff / 2);
-      if (now() + delay >= deadline) throw error;
-      await sleep(delay);
-      attempt += 1;
-    }
-  }
-}
-
-export interface ProjectionEntityStoragePolicy {
-  assetRepository: SqliteAssetRepository;
-  isAssetBacked(entityType: string): boolean;
-  isFullTextSearchable(entityType: string): boolean;
-}
-
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore implements IProjectionStore {
   private readonly db: EntityDB;
-  private readonly entityExportStore: EntityExportStore;
-  private readonly mutationAdmission: EntityMutationAdmission | undefined;
-  private readonly now: () => number;
-  private readonly storagePolicy: ProjectionEntityStoragePolicy | undefined;
-  private readonly transactionTail = new SerialQueue();
-  private readonly batchScope = new AsyncLocalStorage<ProjectionBatchScope>();
+  private readonly writeIntentApplier: ProjectionWriteIntentApplier;
+  private readonly transactions: ProjectionTransactionRunner;
+  private readonly batches: ProjectionBatchCoordinator;
+  private readonly waves: ProjectionWaveCoordinator;
+  private readonly rules: ProjectionRuleCoordinator;
 
   constructor(
     db: EntityDB,
     mutationAdmission?: EntityMutationAdmission,
     now: () => number = Date.now,
     storagePolicy?: ProjectionEntityStoragePolicy,
+    beforeTransaction?: () => Promise<void>,
   ) {
     this.db = db;
-    this.entityExportStore = new EntityExportStore(db, now);
-    this.mutationAdmission = mutationAdmission;
-    this.now = now;
-    this.storagePolicy = storagePolicy;
+    this.transactions = new ProjectionTransactionRunner(db, beforeTransaction);
+    this.batches = new ProjectionBatchCoordinator({
+      db,
+      transactions: this.transactions,
+      now,
+      // Resolved when a batch asks, not now: the wave coordinator is built
+      // next and needs the batch coordinator it is being handed to.
+      getRecoveryGeneration: (transaction, fallback): Promise<number> =>
+        this.waves.getRecoveryGeneration(transaction, fallback),
+    });
+    this.waves = new ProjectionWaveCoordinator({
+      db,
+      transactions: this.transactions,
+      batches: this.batches,
+    });
+    this.writeIntentApplier = new ProjectionWriteIntentApplier({
+      entityExportStore: new EntityExportStore(db, now),
+      ...(mutationAdmission && { mutationAdmission }),
+      ...(storagePolicy && { storagePolicy }),
+    });
+    this.rules = new ProjectionRuleCoordinator({
+      db,
+      transactions: this.transactions,
+      batches: this.batches,
+      waves: this.waves,
+      writeIntentApplier: this.writeIntentApplier,
+    });
   }
 
-  /**
-   * Run `fn` inside an existing batch scope.
-   *
-   * A worker owns the mutation body but not the database, so it opens the
-   * batch remotely and sends the resulting scope back with each proxied
-   * write. The owner re-enters the scope here so `withDirtyInput` still
-   * fences those writes against the batch.
-   */
   /** Metadata-only scope propagation for owner-local file RPC handoffs. */
   public currentBatchScope(): ProjectionBatchScope | undefined {
-    return this.batchScope.getStore();
+    return this.batches.currentBatchScope();
   }
+
   public runInBatchScope<TResult>(
     scope: ProjectionBatchScope,
-    fn: () => Promise<TResult>,
+    mutation: () => Promise<TResult>,
   ): Promise<TResult> {
-    if (this.batchScope.getStore()) return fn();
-    return this.batchScope.run(scope, fn);
+    return this.batches.runInBatchScope(scope, mutation);
   }
 
-  public async runBulkMutation<TResult>(
+  /** Remote brackets: the worker owns the body, the owner enforces its fence. */
+  public openCallbackBatch(
+    input: BulkMutationInput,
+  ): Promise<ProjectionBatchScope> {
+    return this.batches.openCallbackBatch(input);
+  }
+
+  public renewCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
+    return this.batches.renewCallbackBatch(scope);
+  }
+
+  public closeCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
+    return this.batches.closeCallbackBatch(scope);
+  }
+
+  public openDurableBatchChild(
+    input: DurableBulkMutationChildInput,
+  ): Promise<ProjectionBatchScope> {
+    return this.batches.openDurableBatchChild(input);
+  }
+
+  public runBulkMutation<TResult>(
     input: BulkMutationInput,
     mutation: () => Promise<TResult>,
   ): Promise<TResult> {
-    const parsed = bulkMutationInputSchema.parse(input);
-    const existingScope = this.batchScope.getStore();
-    if (existingScope) return mutation();
-
-    const scope = await this.openCallbackBatch(parsed);
-    const heartbeat = setInterval(() => {
-      void this.renewCallbackBatch(scope).catch(() => {
-        // Mutation transactions enforce the fence if renewal loses ownership.
-      });
-    }, 10_000);
-    heartbeat.unref();
-    try {
-      return await this.batchScope.run(scope, mutation);
-    } finally {
-      clearInterval(heartbeat);
-      await this.closeCallbackBatch(scope);
-    }
+    return this.batches.runBulkMutation(input, mutation);
   }
 
-  public async prepareDurableBulkMutation(
+  public prepareDurableBulkMutation(
     input: DurableBulkMutationRootInput,
   ): Promise<void> {
-    const parsed = durableBulkMutationRootSchema.parse(input);
-    const now = this.now();
-    await this.runTransaction(async (transaction) => {
-      const existing = await transaction
-        .select()
-        .from(projectionBatches)
-        .where(
-          and(
-            eq(projectionBatches.source, parsed.source),
-            eq(projectionBatches.operationId, parsed.operationId),
-          ),
-        )
-        .limit(1);
-      const batch = existing[0];
-      if (batch) {
-        if (
-          (batch.status === "preparing" || batch.status === "open") &&
-          batch.rootJobId === parsed.rootJobId &&
-          batch.expectedChildren === parsed.expectedChildren
-        ) {
-          return;
-        }
-        throw new ProjectionBatchFencedError(
-          `Durable projection batch "${parsed.operationId}" cannot be prepared`,
-        );
-      }
-      await transaction
-        .insert(projectionAdmissionState)
-        .values({ id: 1, epoch: 0 })
-        .onConflictDoNothing({ target: projectionAdmissionState.id });
-      await transaction
-        .update(projectionAdmissionState)
-        .set({ epoch: sql`${projectionAdmissionState.epoch} + 1` })
-        .where(eq(projectionAdmissionState.id, 1));
-      await transaction.insert(projectionBatches).values({
-        id: createId(),
-        source: parsed.source,
-        operationId: parsed.operationId,
-        status: "preparing",
-        ownerKind: "job-root",
-        ownerToken: createId(),
-        rootJobId: parsed.rootJobId,
-        expectedChildren: parsed.expectedChildren,
-        enqueueComplete: 0,
-        enqueueFailed: 0,
-        openedAt: now,
-        lastProgressAt: now,
-        leaseExpiresAt: now + 30_000,
-      });
-    });
+    return this.batches.prepareDurableBulkMutation(input);
   }
 
-  public async finalizeDurableBulkMutationEnqueue(
+  public finalizeDurableBulkMutationEnqueue(
     operationId: string,
   ): Promise<void> {
-    const parsedOperationId = z
-      .string()
-      .trim()
-      .min(1)
-      .max(200)
-      .parse(operationId);
-    const now = this.now();
-    await this.runBatchStateWrite(() =>
-      this.db
-        .update(projectionBatches)
-        .set({
-          status: "open",
-          enqueueComplete: 1,
-          lastProgressAt: now,
-          leaseExpiresAt: null,
-        })
-        .where(
-          and(
-            eq(projectionBatches.operationId, parsedOperationId),
-            inArray(projectionBatches.status, ["preparing", "open"]),
-          ),
-        ),
-    );
+    return this.batches.finalizeDurableBulkMutationEnqueue(operationId);
   }
 
-  public async failDurableBulkMutationEnqueue(
-    operationId: string,
-  ): Promise<void> {
-    const parsedOperationId = z
-      .string()
-      .trim()
-      .min(1)
-      .max(200)
-      .parse(operationId);
-    const now = this.now();
-    await this.runBatchStateWrite(() =>
-      this.db
-        .update(projectionBatches)
-        .set({
-          enqueueComplete: 1,
-          enqueueFailed: 1,
-          lastProgressAt: now,
-          leaseExpiresAt: null,
-        })
-        .where(
-          and(
-            eq(projectionBatches.operationId, parsedOperationId),
-            inArray(projectionBatches.status, ["preparing", "open"]),
-          ),
-        ),
-    );
+  public failDurableBulkMutationEnqueue(operationId: string): Promise<void> {
+    return this.batches.failDurableBulkMutationEnqueue(operationId);
   }
 
-  public async runDurableBulkMutationChild<TResult>(
+  public runDurableBulkMutationChild<TResult>(
     input: DurableBulkMutationChildInput,
     mutation: () => Promise<TResult>,
   ): Promise<TResult> {
-    const parsed = durableBulkMutationChildSchema.parse(input);
-    const existingScope = this.batchScope.getStore();
-    if (existingScope) return mutation();
-    const scope = await this.openDurableBatchChild(parsed);
-    return this.batchScope.run(scope, mutation);
+    return this.batches.runDurableBulkMutationChild(input, mutation);
   }
 
-  public async settleDurableBulkMutationChild(
+  public settleDurableBulkMutationChild(
     input: SettleDurableBulkMutationChildInput,
   ): Promise<boolean> {
-    const parsed = settleDurableBulkMutationChildSchema.parse(input);
-    const now = this.now();
-    return this.runTransaction(async (transaction) => {
-      const batches = await transaction
-        .select()
-        .from(projectionBatches)
-        .where(
-          and(
-            eq(projectionBatches.operationId, parsed.operationId),
-            eq(projectionBatches.ownerKind, "job-root"),
-          ),
-        )
-        .limit(1);
-      const batch = batches[0];
-      if (!batch || batch.status === "closed" || batch.status === "abandoned") {
-        return false;
-      }
-      const updated = await transaction
-        .update(projectionBatchChildren)
-        .set({ status: parsed.outcome, terminalAt: now })
-        .where(
-          and(
-            eq(projectionBatchChildren.batchId, batch.id),
-            eq(projectionBatchChildren.childKey, parsed.childKey),
-            eq(projectionBatchChildren.jobId, parsed.jobId),
-          ),
-        )
-        .returning({ childKey: projectionBatchChildren.childKey });
-      if (updated.length === 0) return false;
-
-      const terminalRows = await transaction
-        .select({ total: sql<number>`count(*)` })
-        .from(projectionBatchChildren)
-        .where(
-          and(
-            eq(projectionBatchChildren.batchId, batch.id),
-            inArray(projectionBatchChildren.status, ["completed", "failed"]),
-          ),
-        );
-      if (Number(terminalRows[0]?.total ?? 0) < batch.expectedChildren) {
-        return false;
-      }
-      const failedRows = await transaction
-        .select({ total: sql<number>`count(*)` })
-        .from(projectionBatchChildren)
-        .where(
-          and(
-            eq(projectionBatchChildren.batchId, batch.id),
-            eq(projectionBatchChildren.status, "failed"),
-          ),
-        );
-      const abandoned = Number(failedRows[0]?.total ?? 0) > 0;
-      const recoveryGeneration = abandoned
-        ? await this.getRecoveryGeneration(
-            transaction,
-            batch.highestGeneration ?? 0,
-          )
-        : null;
-      await transaction
-        .update(projectionBatches)
-        .set({
-          status: abandoned ? "abandoned" : "closed",
-          terminalAt: now,
-          lastProgressAt: now,
-          leaseExpiresAt: null,
-          recoveryGeneration,
-          recoveredAt:
-            abandoned && batch.highestGeneration === null ? now : null,
-        })
-        .where(eq(projectionBatches.id, batch.id));
-      return true;
-    });
+    return this.batches.settleDurableBulkMutationChild(input);
   }
 
-  public async recoverProjectionBatches(
+  public recoverProjectionBatches(
     readRoot: ProjectionBatchRootReader,
   ): Promise<ProjectionBatchRecoveryResult> {
-    const now = this.now();
-    const expiredCallbackCandidates = await this.db
-      .select({ id: projectionBatches.id })
-      .from(projectionBatches)
-      .where(
-        and(
-          eq(projectionBatches.ownerKind, "callback"),
-          eq(projectionBatches.status, "open"),
-          lte(projectionBatches.leaseExpiresAt, now),
-        ),
-      );
-    const fencedCallbacks =
-      expiredCallbackCandidates.length === 0
-        ? 0
-        : await this.runTransaction(async (transaction) => {
-            const expired = await transaction
-              .select()
-              .from(projectionBatches)
-              .where(
-                and(
-                  eq(projectionBatches.ownerKind, "callback"),
-                  eq(projectionBatches.status, "open"),
-                  lte(projectionBatches.leaseExpiresAt, now),
-                ),
-              );
-            for (const batch of expired) {
-              const recoveryGeneration = await this.getRecoveryGeneration(
-                transaction,
-                batch.highestGeneration ?? 0,
-              );
-              await transaction
-                .update(projectionBatches)
-                .set({
-                  status: "abandoned",
-                  ownerToken: createId(),
-                  terminalAt: now,
-                  lastProgressAt: now,
-                  leaseExpiresAt: null,
-                  recoveryGeneration,
-                  recoveredAt: batch.highestGeneration === null ? now : null,
-                })
-                .where(
-                  and(
-                    eq(projectionBatches.id, batch.id),
-                    eq(projectionBatches.ownerToken, batch.ownerToken),
-                    eq(projectionBatches.status, "open"),
-                  ),
-                );
-            }
-            return expired.length;
-          });
-
-    const durableBatches = await this.db
-      .select()
-      .from(projectionBatches)
-      .where(
-        and(
-          eq(projectionBatches.ownerKind, "job-root"),
-          inArray(projectionBatches.status, ["preparing", "open"]),
-        ),
-      );
-    let releasedDurableRoots = 0;
-    for (const batch of durableBatches) {
-      if (!batch.rootJobId) continue;
-      const jobs = await readRoot(batch.rootJobId, batch.operationId);
-      const hasActiveJob = jobs.some(
-        (job) => job.status === "pending" || job.status === "processing",
-      );
-      const terminalRecoveryReady = jobs.every(
-        (job) =>
-          job.terminalAt !== null &&
-          job.terminalAt <= now - DURABLE_ROOT_RECOVERY_GRACE_MS,
-      );
-      const completeRoot = jobs.length >= batch.expectedChildren;
-      const provablyPartial = now - batch.openedAt >= 30_000;
-      if (
-        hasActiveJob ||
-        !terminalRecoveryReady ||
-        (!completeRoot && !provablyPartial)
-      ) {
-        continue;
-      }
-      const released = await this.reconcileDurableRoot(batch.id, jobs, now);
-      if (released) releasedDurableRoots++;
-    }
-    await this.cleanupProjectionBatches();
-    return { fencedCallbacks, releasedDurableRoots };
+    return this.batches.recoverProjectionBatches(readRoot);
   }
 
-  public async cleanupProjectionBatches(
-    retentionMs: number = 7 * 24 * 60 * 60 * 1_000,
-    maximumRecords: number = 100,
+  public cleanupProjectionBatches(
+    retentionMs?: number,
+    maximumRecords?: number,
   ): Promise<number> {
-    const parsedRetention = z.number().int().nonnegative().parse(retentionMs);
-    const parsedMaximum = z
-      .number()
-      .int()
-      .nonnegative()
-      .max(10_000)
-      .parse(maximumRecords);
-    const terminalPredicate = or(
-      eq(projectionBatches.status, "closed"),
-      and(
-        eq(projectionBatches.status, "abandoned"),
-        isNotNull(projectionBatches.recoveredAt),
-      ),
-    );
-    const expired = await this.db
-      .select({ id: projectionBatches.id })
-      .from(projectionBatches)
-      .where(
-        and(
-          terminalPredicate,
-          lte(projectionBatches.terminalAt, this.now() - parsedRetention),
-        ),
-      );
-    const overflow = await this.db
-      .select({ id: projectionBatches.id })
-      .from(projectionBatches)
-      .where(terminalPredicate)
-      .orderBy(desc(projectionBatches.terminalAt))
-      .limit(10_000)
-      .offset(parsedMaximum);
-    const ids = [...new Set([...expired, ...overflow].map(({ id }) => id))];
-    if (ids.length === 0) return 0;
-    const deleted = await this.db
-      .delete(projectionBatches)
-      .where(inArray(projectionBatches.id, ids))
-      .returning({ id: projectionBatches.id });
-    return deleted.length;
+    return this.batches.cleanupProjectionBatches(retentionMs, maximumRecords);
   }
 
-  private async reconcileDurableRoot(
-    batchId: string,
-    jobs: readonly ProjectionBatchOwnedJob[],
-    now: number,
-  ): Promise<boolean> {
-    return this.runTransaction(async (transaction) => {
-      const batches = await transaction
-        .select()
-        .from(projectionBatches)
-        .where(eq(projectionBatches.id, batchId))
-        .limit(1);
-      const batch = batches[0];
-      if (!batch || (batch.status !== "open" && batch.status !== "preparing")) {
-        return false;
-      }
-      for (const job of jobs) {
-        const childStatus =
-          job.status === "completed"
-            ? "completed"
-            : job.status === "failed"
-              ? "failed"
-              : "active";
-        await transaction
-          .insert(projectionBatchChildren)
-          .values({
-            batchId,
-            childKey: job.childKey,
-            jobId: job.jobId,
-            status: childStatus,
-            ...(childStatus === "completed" || childStatus === "failed"
-              ? { terminalAt: now }
-              : {}),
-          })
-          .onConflictDoUpdate({
-            target: [
-              projectionBatchChildren.batchId,
-              projectionBatchChildren.childKey,
-            ],
-            set: {
-              jobId: job.jobId,
-              status: childStatus,
-              terminalAt:
-                childStatus === "completed" || childStatus === "failed"
-                  ? now
-                  : null,
-            },
-          });
-      }
-
-      const active = jobs.some(
-        (job) => job.status === "pending" || job.status === "processing",
-      );
-      const completeRoot = jobs.length >= batch.expectedChildren && !active;
-      const provablyPartial =
-        !active &&
-        jobs.length < batch.expectedChildren &&
-        now - batch.openedAt >= 30_000;
-      if (!completeRoot && !provablyPartial) return false;
-
-      const abandoned =
-        provablyPartial || jobs.some((job) => job.status === "failed");
-      const recoveryGeneration = abandoned
-        ? await this.getRecoveryGeneration(
-            transaction,
-            batch.highestGeneration ?? 0,
-          )
-        : null;
-      await transaction
-        .update(projectionBatches)
-        .set({
-          status: abandoned ? "abandoned" : "closed",
-          ownerToken: abandoned ? createId() : batch.ownerToken,
-          terminalAt: now,
-          lastProgressAt: now,
-          recoveryGeneration,
-          recoveredAt:
-            abandoned && batch.highestGeneration === null ? now : null,
-        })
-        .where(eq(projectionBatches.id, batchId));
-      return true;
-    });
-  }
-
-  public async getProjectionBatchDiagnostics(): Promise<ProjectionBatchDiagnostics> {
-    const now = this.now();
-    const rows = await this.db
-      .select({
-        status: projectionBatches.status,
-        ownerKind: projectionBatches.ownerKind,
-        openedAt: projectionBatches.openedAt,
-        lastProgressAt: projectionBatches.lastProgressAt,
-        leaseExpiresAt: projectionBatches.leaseExpiresAt,
-        recoveredAt: projectionBatches.recoveredAt,
-      })
-      .from(projectionBatches)
-      .where(
-        inArray(projectionBatches.status, ["preparing", "open", "abandoned"]),
-      );
-    const active = rows.filter(
-      (row) => row.status === "preparing" || row.status === "open",
-    );
-    return {
-      preparing: rows.filter((row) => row.status === "preparing").length,
-      open: rows.filter((row) => row.status === "open").length,
-      abandoned: rows.filter(
-        (row) => row.status === "abandoned" && row.recoveredAt === null,
-      ).length,
-      expiredCallbackLeases: active.filter(
-        (row) =>
-          row.ownerKind === "callback" &&
-          row.leaseExpiresAt !== null &&
-          row.leaseExpiresAt <= now,
-      ).length,
-      oldestActiveAgeMs:
-        active.length === 0
-          ? null
-          : Math.max(0, now - Math.min(...active.map((row) => row.openedAt))),
-      oldestProgressAgeMs:
-        active.length === 0
-          ? null
-          : Math.max(
-              0,
-              now - Math.min(...active.map((row) => row.lastProgressAt)),
-            ),
-    };
-  }
-
-  /**
-   * Open a durable batch child and return its scope. Remote-bracket primitive
-   * — see {@link openCallbackBatch}. In-process callers must use
-   * {@link runDurableBulkMutationChild}. A durable child is settled through
-   * {@link settleDurableBulkMutationChild} rather than closed.
-   */
-  public async openDurableBatchChild(
-    input: DurableBulkMutationChildInput,
-  ): Promise<ProjectionBatchScope> {
-    const now = this.now();
-    return this.runTransaction(async (transaction) => {
-      let batch = (
-        await transaction
-          .select()
-          .from(projectionBatches)
-          .where(
-            and(
-              eq(projectionBatches.source, input.source),
-              eq(projectionBatches.operationId, input.operationId),
-            ),
-          )
-          .limit(1)
-      )[0];
-      if (!batch) {
-        await transaction
-          .insert(projectionAdmissionState)
-          .values({ id: 1, epoch: 0 })
-          .onConflictDoNothing({ target: projectionAdmissionState.id });
-        await transaction
-          .update(projectionAdmissionState)
-          .set({ epoch: sql`${projectionAdmissionState.epoch} + 1` })
-          .where(eq(projectionAdmissionState.id, 1));
-        const inserted = await transaction
-          .insert(projectionBatches)
-          .values({
-            id: createId(),
-            source: input.source,
-            operationId: input.operationId,
-            status: "open",
-            ownerKind: "job-root",
-            ownerToken: createId(),
-            rootJobId: input.rootJobId,
-            expectedChildren: input.expectedChildren,
-            enqueueComplete: 1,
-            enqueueFailed: 0,
-            openedAt: now,
-            lastProgressAt: now,
-          })
-          .returning();
-        batch = inserted[0];
-      }
-      if (
-        (batch?.status !== "preparing" && batch?.status !== "open") ||
-        batch.ownerKind !== "job-root" ||
-        batch.rootJobId !== input.rootJobId ||
-        batch.expectedChildren !== input.expectedChildren
-      ) {
-        throw new ProjectionBatchFencedError(
-          `Durable projection batch "${input.operationId}" is not open for this owner`,
-        );
-      }
-
-      const existingChildren = await transaction
-        .select()
-        .from(projectionBatchChildren)
-        .where(
-          and(
-            eq(projectionBatchChildren.batchId, batch.id),
-            eq(projectionBatchChildren.childKey, input.childKey),
-          ),
-        )
-        .limit(1);
-      const existingChild = existingChildren[0];
-      if (
-        existingChild &&
-        (existingChild.status === "completed" ||
-          existingChild.status === "failed" ||
-          existingChild.status === "missing")
-      ) {
-        throw new ProjectionBatchFencedError(
-          `Durable projection batch child "${input.childKey}" is terminal`,
-        );
-      }
-      await transaction
-        .insert(projectionBatchChildren)
-        .values({
-          batchId: batch.id,
-          childKey: input.childKey,
-          jobId: input.jobId,
-          status: "active",
-        })
-        .onConflictDoUpdate({
-          target: [
-            projectionBatchChildren.batchId,
-            projectionBatchChildren.childKey,
-          ],
-          set: { jobId: input.jobId, status: "active", terminalAt: null },
-        });
-      await transaction
-        .update(projectionBatches)
-        .set({ status: "open", lastProgressAt: now, leaseExpiresAt: null })
-        .where(eq(projectionBatches.id, batch.id));
-      return {
-        batchId: batch.id,
-        source: batch.source,
-        operationId: batch.operationId,
-        ownerToken: batch.ownerToken,
-      };
-    });
-  }
-
-  /**
-   * Open a callback batch and return its scope.
-   *
-   * Remote-bracket primitive: a worker calls this over RPC because it runs the
-   * mutation body in its own process. In-process callers must use
-   * {@link runBulkMutation}, which guarantees the heartbeat and the closing
-   * `finally`. Calling this directly makes you responsible for pairing it with
-   * {@link closeCallbackBatch}; an unclosed batch holds its lease until it
-   * expires.
-   */
-  public async openCallbackBatch(
-    input: BulkMutationInput,
-  ): Promise<ProjectionBatchScope> {
-    const scope: ProjectionBatchScope = {
-      batchId: createId(),
-      source: input.source,
-      operationId: input.operationId,
-      ownerToken: createId(),
-    };
-    const now = this.now();
-    await this.runTransaction(async (transaction) => {
-      await transaction
-        .insert(projectionAdmissionState)
-        .values({ id: 1, epoch: 0 })
-        .onConflictDoNothing({ target: projectionAdmissionState.id });
-      await transaction
-        .update(projectionAdmissionState)
-        .set({ epoch: sql`${projectionAdmissionState.epoch} + 1` })
-        .where(eq(projectionAdmissionState.id, 1));
-      await transaction.insert(projectionBatches).values({
-        id: scope.batchId,
-        source: scope.source,
-        operationId: scope.operationId,
-        status: "open",
-        ownerKind: "callback",
-        ownerToken: scope.ownerToken,
-        expectedChildren: 0,
-        enqueueComplete: 1,
-        enqueueFailed: 0,
-        openedAt: now,
-        lastProgressAt: now,
-        leaseExpiresAt: now + 30_000,
-      });
-    });
-    return scope;
-  }
-
-  /**
-   * Renew a callback batch lease. Remote-bracket primitive — see
-   * {@link openCallbackBatch}; in-process callers get this from
-   * {@link runBulkMutation}'s heartbeat.
-   */
-  public async renewCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
-    const now = this.now();
-    const rows = await this.db
-      .update(projectionBatches)
-      .set({ lastProgressAt: now, leaseExpiresAt: now + 30_000 })
-      .where(
-        and(
-          eq(projectionBatches.id, scope.batchId),
-          eq(projectionBatches.ownerToken, scope.ownerToken),
-          eq(projectionBatches.status, "open"),
-        ),
-      )
-      .returning({ id: projectionBatches.id });
-    if (rows.length === 0) {
-      throw new ProjectionBatchFencedError(
-        `Projection batch "${scope.batchId}" no longer owns its fence`,
-      );
-    }
-  }
-
-  /**
-   * Close a callback batch. Remote-bracket primitive — see
-   * {@link openCallbackBatch}. Every `openCallbackBatch` must reach this call,
-   * including on failure paths.
-   */
-  public async closeCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
-    const now = this.now();
-    await this.db
-      .update(projectionBatches)
-      .set({
-        status: "closed",
-        terminalAt: now,
-        lastProgressAt: now,
-        leaseExpiresAt: null,
-      })
-      .where(
-        and(
-          eq(projectionBatches.id, scope.batchId),
-          eq(projectionBatches.ownerToken, scope.ownerToken),
-          eq(projectionBatches.status, "open"),
-        ),
-      );
-  }
-
-  private async assertBatchScope(
-    transaction: EntityTransaction,
-    scope: ProjectionBatchScope,
-  ): Promise<void> {
-    const rows = await transaction
-      .select({ status: projectionBatches.status })
-      .from(projectionBatches)
-      .where(
-        and(
-          eq(projectionBatches.id, scope.batchId),
-          eq(projectionBatches.ownerToken, scope.ownerToken),
-        ),
-      )
-      .limit(1);
-    if (rows[0]?.status !== "open") {
-      throw new ProjectionBatchFencedError(
-        `Projection batch "${scope.batchId}" no longer owns its fence`,
-      );
-    }
-  }
-
-  private async recordBatchGeneration(
-    transaction: EntityTransaction,
-    scope: ProjectionBatchScope,
-    generation: number,
-  ): Promise<void> {
-    const now = this.now();
-    // assertBatchScope already validated this owner in the same write
-    // transaction, so recovery cannot fence it between validation and update.
-    await transaction
-      .update(projectionBatches)
-      .set({
-        firstGeneration: sql`coalesce(${projectionBatches.firstGeneration}, ${generation})`,
-        highestGeneration: generation,
-        mutationCount: sql`${projectionBatches.mutationCount} + 1`,
-        lastProgressAt: now,
-        leaseExpiresAt: now + 30_000,
-      })
-      .where(
-        and(
-          eq(projectionBatches.id, scope.batchId),
-          eq(projectionBatches.ownerToken, scope.ownerToken),
-          eq(projectionBatches.status, "open"),
-        ),
-      );
+  public getProjectionBatchDiagnostics(): Promise<ProjectionBatchDiagnostics> {
+    return this.batches.getProjectionBatchDiagnostics();
   }
 
   public async isProjectionOwnedEntity(
@@ -1210,7 +320,7 @@ export class ProjectionStore implements IProjectionStore {
     mutation: (transaction: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
     const parsed = projectionOwnedEntitySchema.parse(input);
-    return this.runTransaction(async (transaction) => {
+    return this.transactions.run(async (transaction) => {
       const result = await mutation(transaction);
       await transaction
         .delete(projectionEntityOwners)
@@ -1237,11 +347,11 @@ export class ProjectionStore implements IProjectionStore {
     return generation;
   }
 
-  /** Serialize owner-local database work with projection/entity transactions. */
+  /** Serialize owner-local work with projection/entity transactions. */
   public runDatabaseOperation<TResult>(
-    operation: () => Promise<TResult>,
+    operation: (database: EntityDB) => Promise<TResult>,
   ): Promise<TResult> {
-    return this.transactionTail.run(operation);
+    return this.transactions.runDatabaseOperation(operation);
   }
 
   public withDirtyInput<TResult>(
@@ -1249,31 +359,29 @@ export class ProjectionStore implements IProjectionStore {
     mutation: (transaction: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
     const parsed = dirtyInputSchema.parse(input);
-    const scope = this.batchScope.getStore();
-    return this.runTransaction(async (transaction) => {
-      if (scope) await this.assertBatchScope(transaction, scope);
-      const result = await mutation(transaction);
-      await transaction
-        .delete(projectionEntityOwners)
-        .where(
-          and(
-            eq(projectionEntityOwners.entityType, parsed.sourceType),
-            eq(projectionEntityOwners.entityId, parsed.sourceId),
-          ),
-        );
-      const rows = await transaction
-        .insert(projectionDirtyInputs)
-        .values(parsed)
-        .returning({ generation: projectionDirtyInputs.generation });
-      const generation = rows[0]?.generation;
-      if (generation === undefined) {
-        throw new Error("Failed to persist projection dirty input");
-      }
-      if (scope) {
-        await this.recordBatchGeneration(transaction, scope, generation);
-      }
-      return result;
-    });
+    return this.batches.runMutationTransaction(
+      async (transaction, recordGeneration) => {
+        const result = await mutation(transaction);
+        await transaction
+          .delete(projectionEntityOwners)
+          .where(
+            and(
+              eq(projectionEntityOwners.entityType, parsed.sourceType),
+              eq(projectionEntityOwners.entityId, parsed.sourceId),
+            ),
+          );
+        const rows = await transaction
+          .insert(projectionDirtyInputs)
+          .values(parsed)
+          .returning({ generation: projectionDirtyInputs.generation });
+        const generation = rows[0]?.generation;
+        if (generation === undefined) {
+          throw new Error("Failed to persist projection dirty input");
+        }
+        await recordGeneration(generation);
+        return result;
+      },
+    );
   }
 
   public async listPendingInputs(): Promise<ProjectionDirtyInput[]> {
@@ -1284,855 +392,93 @@ export class ProjectionStore implements IProjectionStore {
     return coalesceLatestInputs(inputs);
   }
 
-  public async hasActiveProjectionBatch(): Promise<boolean> {
-    const activeBarriers = await this.db
-      .select({ id: projectionBatches.id })
-      .from(projectionBatches)
-      .where(inArray(projectionBatches.status, ["preparing", "open"]))
-      .limit(1);
-    return activeBarriers.length > 0;
+  public hasActiveProjectionBatch(): Promise<boolean> {
+    return this.batches.hasActiveBatch();
   }
 
-  public async claimPendingWave(
+  public claimPendingWave(
     input: ClaimProjectionWaveInput,
   ): Promise<ProjectionWave | null> {
-    const waveId = z.string().trim().min(1).parse(input.waveId);
-    const graphFingerprint = z
-      .string()
-      .trim()
-      .min(1)
-      .parse(input.graphFingerprint);
-    const startedAt = z.number().int().nonnegative().parse(input.startedAt);
-
-    if (await this.hasActiveProjectionBatch()) return null;
-
-    return this.runTransaction(async (transaction) => {
-      const active = await transaction
-        .select({ id: projectionWaves.id })
-        .from(projectionWaves)
-        .where(eq(projectionWaves.status, "running"))
-        .limit(1);
-      // Another coordinator may have claimed after our caller observed no
-      // active wave. Losing admission is normal; leave pending ingress intact.
-      if (active.length > 0) return null;
-
-      const barriers = await transaction
-        .select({ id: projectionBatches.id })
-        .from(projectionBatches)
-        .where(inArray(projectionBatches.status, ["preparing", "open"]))
-        .limit(1);
-      if (barriers.length > 0) return null;
-
-      await transaction
-        .insert(projectionAdmissionState)
-        .values({ id: 1, epoch: 0 })
-        .onConflictDoNothing({ target: projectionAdmissionState.id });
-      const admissionRows = await transaction
-        .select({ epoch: projectionAdmissionState.epoch })
-        .from(projectionAdmissionState)
-        .where(eq(projectionAdmissionState.id, 1))
-        .limit(1);
-      const admissionEpoch = admissionRows[0]?.epoch ?? 0;
-
-      const latest = await transaction
-        .select({ generation: projectionDirtyInputs.generation })
-        .from(projectionDirtyInputs)
-        .orderBy(desc(projectionDirtyInputs.generation))
-        .limit(1);
-      const cutoffGeneration = latest[0]?.generation;
-      if (cutoffGeneration === undefined) return null;
-
-      const wave: ProjectionWave = {
-        id: waveId,
-        cutoffGeneration,
-        graphFingerprint,
-        admissionEpoch,
-        status: "running",
-        startedAt,
-        completedAt: null,
-      };
-      await transaction.insert(projectionWaves).values(wave);
-
-      const journalRows = await transaction
-        .select()
-        .from(projectionDirtyInputs)
-        .where(lte(projectionDirtyInputs.generation, cutoffGeneration))
-        .orderBy(asc(projectionDirtyInputs.generation));
-      const claimed = coalesceLatestInputs(journalRows);
-      // Six bindings per row: 32 rows stay below the worker's 256-argument
-      // limit. All batches and journal retirement share this transaction.
-      const inputBatchSize = 32;
-      for (let offset = 0; offset < claimed.length; offset += inputBatchSize) {
-        await transaction.insert(projectionWaveInputs).values(
-          claimed.slice(offset, offset + inputBatchSize).map((entry) => ({
-            waveId,
-            sourceType: entry.sourceType,
-            sourceId: entry.sourceId,
-            revision: entry.revision,
-            operation: entry.operation,
-            generation: entry.generation,
-          })),
-        );
-      }
-      await transaction
-        .delete(projectionDirtyInputs)
-        .where(lte(projectionDirtyInputs.generation, cutoffGeneration));
-
-      return wave;
-    });
+    return this.waves.claimPendingWave(input);
   }
 
   public listWaveInputs(waveId: string): Promise<ProjectionWaveInput[]> {
-    return this.db
-      .select()
-      .from(projectionWaveInputs)
-      .where(eq(projectionWaveInputs.waveId, waveId))
-      .orderBy(asc(projectionWaveInputs.generation));
+    return this.waves.listWaveInputs(waveId);
   }
 
-  public async getWave(waveId: string): Promise<ProjectionWave | null> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const rows = await this.db
-      .select()
-      .from(projectionWaves)
-      .where(eq(projectionWaves.id, parsedWaveId))
-      .limit(1);
-    return rows[0] ?? null;
+  public getWave(waveId: string): Promise<ProjectionWave | null> {
+    return this.waves.getWave(waveId);
   }
 
-  public async getActiveWave(): Promise<ProjectionWave | null> {
-    const rows = await this.db
-      .select()
-      .from(projectionWaves)
-      .where(eq(projectionWaves.status, "running"))
-      .limit(1);
-    return rows[0] ?? null;
+  public getActiveWave(): Promise<ProjectionWave | null> {
+    return this.waves.getActiveWave();
   }
 
-  public async completeWave(
+  public completeWave(
     waveId: string,
     completedAt: number,
   ): Promise<ProjectionWave> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedCompletedAt = z.number().int().nonnegative().parse(completedAt);
-    return this.runTransaction(async (transaction) => {
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) {
-        throw new Error(`Projection wave "${parsedWaveId}" does not exist`);
-      }
-      if (wave.status === "completed") return wave;
-      if (wave.status === "failed") {
-        throw new Error(`Projection wave "${parsedWaveId}" already failed`);
-      }
-      if (wave.status === "superseded") {
-        throw new Error(`Projection wave "${parsedWaveId}" was superseded`);
-      }
-
-      const incompleteRules = await transaction
-        .select({ ruleId: projectionWaveRules.ruleId })
-        .from(projectionWaveRules)
-        .where(
-          and(
-            eq(projectionWaveRules.waveId, parsedWaveId),
-            ne(projectionWaveRules.status, "completed"),
-          ),
-        )
-        .limit(1);
-      if (incompleteRules.length > 0) {
-        throw new Error(
-          `Projection wave "${parsedWaveId}" has incomplete projection rules`,
-        );
-      }
-
-      const updated = await transaction
-        .update(projectionWaves)
-        .set({ status: "completed", completedAt: parsedCompletedAt })
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .returning();
-      const completedWave = updated[0];
-      if (!completedWave) {
-        throw new Error(
-          `Failed to mark projection wave "${parsedWaveId}" completed`,
-        );
-      }
-      await transaction
-        .update(projectionIncidents)
-        .set({ resolvedAt: parsedCompletedAt })
-        .where(
-          and(
-            isNull(projectionIncidents.resolvedAt),
-            lte(projectionIncidents.recoveryGeneration, wave.cutoffGeneration),
-          ),
-        );
-      await transaction
-        .update(projectionBatches)
-        .set({ recoveredAt: parsedCompletedAt })
-        .where(
-          and(
-            eq(projectionBatches.status, "abandoned"),
-            isNull(projectionBatches.recoveredAt),
-            lte(projectionBatches.recoveryGeneration, wave.cutoffGeneration),
-          ),
-        );
-      return completedWave;
-    });
+    return this.waves.completeWave(waveId, completedAt);
   }
 
-  public async supersedeWaveIfStale(
+  public supersedeWaveIfStale(
     waveId: string,
     supersededAt: number,
   ): Promise<boolean> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedAt = z.number().int().nonnegative().parse(supersededAt);
-    return this.runTransaction(async (transaction) => {
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) {
-        throw new Error(`Projection wave "${parsedWaveId}" does not exist`);
-      }
-      if (wave.status === "superseded") return true;
-      if (wave.status !== "running") return false;
-      const epoch = await this.getAdmissionEpoch(transaction);
-      if (wave.admissionEpoch === epoch) return false;
-      await this.supersedeWaveInTransaction(transaction, wave, parsedAt);
-      return true;
-    });
+    return this.waves.supersedeWaveIfStale(waveId, supersededAt);
   }
 
-  public async failWave(
-    waveId: string,
-    failedAt: number,
-  ): Promise<ProjectionWave> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedFailedAt = z.number().int().nonnegative().parse(failedAt);
-    return this.runTransaction(
-      async (transaction) =>
-        (
-          await this.failWaveInTransaction(
-            transaction,
-            parsedWaveId,
-            parsedFailedAt,
-          )
-        ).wave,
-    );
+  public failWave(waveId: string, failedAt: number): Promise<ProjectionWave> {
+    return this.waves.failWave(waveId, failedAt);
   }
 
-  public async failWaveWithIncident(
+  public failWaveWithIncident(
     input: ProjectionIncidentInput,
   ): Promise<ProjectionWave> {
-    const parsed = projectionIncidentInputSchema.parse(input);
-    return this.runTransaction(async (transaction) => {
-      const failure = await this.failWaveInTransaction(
-        transaction,
-        parsed.waveId,
-        parsed.failedAt,
-      );
-      const updatedRules = await transaction
-        .update(projectionWaveRules)
-        .set({ status: "failed" })
-        .where(
-          and(
-            eq(projectionWaveRules.waveId, parsed.waveId),
-            eq(projectionWaveRules.ruleId, parsed.ruleId),
-          ),
-        )
-        .returning({ ruleId: projectionWaveRules.ruleId });
-      if (updatedRules.length === 0) {
-        throw new Error(
-          `Projection rule "${parsed.ruleId}" is not scheduled for wave "${parsed.waveId}"`,
-        );
-      }
-      await transaction
-        .insert(projectionIncidents)
-        .values({
-          waveId: parsed.waveId,
-          ruleId: parsed.ruleId,
-          jobId: parsed.jobId,
-          failureReason: parsed.failureReason,
-          recoveryGeneration: failure.recoveryGeneration,
-          createdAt: parsed.failedAt,
-          resolvedAt: null,
-        })
-        .onConflictDoNothing({ target: projectionIncidents.waveId });
-      return failure.wave;
-    });
+    return this.waves.failWaveWithIncident(input);
   }
 
-  public async getUnresolvedProjectionIncidentDiagnostics(
-    limit: number = 10,
+  public getUnresolvedProjectionIncidentDiagnostics(
+    limit?: number,
   ): Promise<ProjectionIncidentDiagnostics> {
-    const parsedLimit = z.number().int().positive().max(100).parse(limit);
-    const [countRows, incidents] = await Promise.all([
-      this.db
-        .select({ total: sql<number>`count(*)` })
-        .from(projectionIncidents)
-        .where(isNull(projectionIncidents.resolvedAt)),
-      this.db
-        .select()
-        .from(projectionIncidents)
-        .where(isNull(projectionIncidents.resolvedAt))
-        .orderBy(desc(projectionIncidents.createdAt))
-        .limit(parsedLimit),
-    ]);
-    return {
-      total: Number(countRows[0]?.total ?? 0),
-      incidents,
-    };
+    return this.waves.getUnresolvedProjectionIncidentDiagnostics(limit);
   }
 
-  private async failWaveInTransaction(
-    transaction: EntityTransaction,
-    waveId: string,
-    failedAt: number,
-  ): Promise<FailedProjectionWave> {
-    const waveRows = await transaction
-      .select()
-      .from(projectionWaves)
-      .where(eq(projectionWaves.id, waveId))
-      .limit(1);
-    const wave = waveRows[0];
-    if (!wave) {
-      throw new Error(`Projection wave "${waveId}" does not exist`);
-    }
-    if (wave.status === "completed") {
-      throw new Error(`Projection wave "${waveId}" already completed`);
-    }
-    if (wave.status === "superseded") {
-      return {
-        wave,
-        recoveryGeneration: await this.getRecoveryGeneration(
-          transaction,
-          wave.cutoffGeneration,
-        ),
-      };
-    }
-    if (wave.status === "failed") {
-      return {
-        wave,
-        recoveryGeneration: await this.getRecoveryGeneration(
-          transaction,
-          wave.cutoffGeneration,
-        ),
-      };
-    }
-
-    await this.requeueWaveInputs(transaction, waveId, failedAt);
-
-    const recoveryGeneration = await this.getRecoveryGeneration(
-      transaction,
-      wave.cutoffGeneration,
-    );
-    const updated = await transaction
-      .update(projectionWaves)
-      .set({ status: "failed", completedAt: failedAt })
-      .where(eq(projectionWaves.id, waveId))
-      .returning();
-    const failedWave = updated[0];
-    if (!failedWave) {
-      throw new Error(`Failed to mark projection wave "${waveId}" failed`);
-    }
-    return { wave: failedWave, recoveryGeneration };
-  }
-
-  private async supersedeWaveInTransaction(
-    transaction: EntityTransaction,
-    wave: ProjectionWave,
-    supersededAt: number,
-  ): Promise<ProjectionWave> {
-    await this.requeueWaveInputs(transaction, wave.id, supersededAt);
-    const updated = await transaction
-      .update(projectionWaves)
-      .set({ status: "superseded", completedAt: supersededAt })
-      .where(
-        and(
-          eq(projectionWaves.id, wave.id),
-          eq(projectionWaves.status, "running"),
-        ),
-      )
-      .returning();
-    return (
-      updated[0] ?? { ...wave, status: "superseded", completedAt: supersededAt }
-    );
-  }
-
-  private async requeueWaveInputs(
-    transaction: EntityTransaction,
-    waveId: string,
-    markedAt: number,
-  ): Promise<void> {
-    const claimedInputs = await transaction
-      .select()
-      .from(projectionWaveInputs)
-      .where(eq(projectionWaveInputs.waveId, waveId));
-    const pendingInputs = await transaction
-      .select()
-      .from(projectionDirtyInputs);
-    const pendingKeys = new Set(pendingInputs.map(inputKey));
-    const requeued = claimedInputs.filter(
-      (input) => !pendingKeys.has(inputKey(input)),
-    );
-    if (requeued.length === 0) return;
-    await transaction.insert(projectionDirtyInputs).values(
-      requeued.map((input) => ({
-        sourceType: input.sourceType,
-        sourceId: input.sourceId,
-        revision: input.revision,
-        operation: input.operation,
-        markedAt,
-      })),
-    );
-  }
-
-  private async getAdmissionEpoch(
-    transaction: EntityTransaction,
-  ): Promise<number> {
-    await transaction
-      .insert(projectionAdmissionState)
-      .values({ id: 1, epoch: 0 })
-      .onConflictDoNothing({ target: projectionAdmissionState.id });
-    const rows = await transaction
-      .select({ epoch: projectionAdmissionState.epoch })
-      .from(projectionAdmissionState)
-      .where(eq(projectionAdmissionState.id, 1))
-      .limit(1);
-    return rows[0]?.epoch ?? 0;
-  }
-
-  private async getRecoveryGeneration(
-    transaction: EntityTransaction,
-    fallback: number,
-  ): Promise<number> {
-    const rows = await transaction
-      .select({
-        generation: sql<
-          number | null
-        >`max(${projectionDirtyInputs.generation})`,
-      })
-      .from(projectionDirtyInputs);
-    return Number(rows[0]?.generation ?? fallback);
-  }
-
-  public async putWaveRules(
+  public putWaveRules(
     waveId: string,
     rules: readonly ProjectionWaveRuleInput[],
   ): Promise<void> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedRules = z.array(waveRuleInputSchema).min(1).parse(rules);
-    const values: Array<typeof projectionWaveRules.$inferInsert> =
-      parsedRules.map((rule) => ({
-        waveId: parsedWaveId,
-        ruleId: rule.ruleId,
-        targetType: rule.targetType,
-        level: rule.level,
-        status: "pending",
-        changedTargets: [],
-      }));
-    await this.db.insert(projectionWaveRules).values(values);
+    return this.rules.putWaveRules(waveId, rules);
   }
 
-  public async listWaveRules(waveId: string): Promise<ProjectionWaveRule[]> {
-    const rows = await this.db
-      .select()
-      .from(projectionWaveRules)
-      .where(eq(projectionWaveRules.waveId, waveId))
-      .orderBy(asc(projectionWaveRules.level), asc(projectionWaveRules.ruleId));
-    return rows.map(parseWaveRule);
+  public listWaveRules(waveId: string): Promise<ProjectionWaveRule[]> {
+    return this.rules.listWaveRules(waveId);
   }
 
-  public async queueWaveRule(
+  public queueWaveRule(
     waveId: string,
     ruleId: string,
     jobId: string,
   ): Promise<ProjectionWaveRule> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedRuleId = z.string().trim().min(1).parse(ruleId);
-    const parsedJobId = z.string().trim().min(1).parse(jobId);
-    const updated = await this.db
-      .update(projectionWaveRules)
-      .set({ status: "queued", jobId: parsedJobId })
-      .where(
-        and(
-          eq(projectionWaveRules.waveId, parsedWaveId),
-          eq(projectionWaveRules.ruleId, parsedRuleId),
-          eq(projectionWaveRules.status, "pending"),
-        ),
-      )
-      .returning();
-    const queued = updated[0];
-    if (queued) return parseWaveRule(queued);
-
-    const current = await this.getWaveRule(parsedWaveId, parsedRuleId);
-    if (
-      current?.status === "completed" ||
-      (current?.status === "queued" && current.jobId === parsedJobId)
-    ) {
-      return current;
-    }
-    throw new Error(
-      `Projection rule "${parsedRuleId}" is not pending for wave "${parsedWaveId}"`,
-    );
+    return this.rules.queueWaveRule(waveId, ruleId, jobId);
   }
 
-  public async getWaveRule(
+  public getWaveRule(
     waveId: string,
     ruleId: string,
   ): Promise<ProjectionWaveRule | null> {
-    const rows = await this.db
-      .select()
-      .from(projectionWaveRules)
-      .where(
-        and(
-          eq(projectionWaveRules.waveId, waveId),
-          eq(projectionWaveRules.ruleId, ruleId),
-        ),
-      )
-      .limit(1);
-    const rule = rows[0];
-    return rule ? parseWaveRule(rule) : null;
+    return this.rules.getWaveRule(waveId, ruleId);
   }
 
-  public async applyRuleResult(
+  public applyRuleResult(
     input: ApplyProjectionRuleResultInput,
   ): Promise<ProjectionWaveRule | null> {
-    const waveId = z.string().trim().min(1).parse(input.waveId);
-    const key = memoKeySchema.parse({
-      ruleId: input.ruleId,
-      ruleVersion: input.ruleVersion,
-      inputFingerprint: input.inputFingerprint,
-    });
-    const writeIntents = z
-      .array(ProjectionWriteIntentSchema)
-      .parse(input.writeIntents);
-    const completedAt = z.number().int().nonnegative().parse(input.completedAt);
-
-    return this.runTransaction(async (transaction) => {
-      const ruleRows = await transaction
-        .select()
-        .from(projectionWaveRules)
-        .where(
-          and(
-            eq(projectionWaveRules.waveId, waveId),
-            eq(projectionWaveRules.ruleId, key.ruleId),
-          ),
-        )
-        .limit(1);
-      const currentRule = ruleRows[0];
-      if (!currentRule) {
-        throw new Error(
-          `Projection rule "${key.ruleId}" is not scheduled for wave "${waveId}"`,
-        );
-      }
-
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, waveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) throw new Error(`Projection wave "${waveId}" does not exist`);
-      if (wave.status === "superseded") return null;
-      if (wave.status !== "running") {
-        throw new Error(`Projection wave "${waveId}" is not running`);
-      }
-      const admissionEpoch = await this.getAdmissionEpoch(transaction);
-      if (wave.admissionEpoch !== admissionEpoch) {
-        await this.supersedeWaveInTransaction(transaction, wave, completedAt);
-        return null;
-      }
-
-      for (const intent of writeIntents) {
-        const intentType =
-          intent.operation === "upsert"
-            ? intent.entity.entityType
-            : intent.entityType;
-        if (intentType !== currentRule.targetType) {
-          throw new Error(
-            `Projection rule "${key.ruleId}" cannot write entity type "${intentType}"`,
-          );
-        }
-      }
-      if (currentRule.status === "completed") {
-        if (currentRule.inputFingerprint !== key.inputFingerprint) {
-          throw new Error(
-            `Projection rule "${key.ruleId}" already completed with another input`,
-          );
-        }
-        return parseWaveRule(currentRule);
-      }
-      if (currentRule.status === "failed") {
-        throw new Error(
-          `Projection rule "${key.ruleId}" already failed for wave "${waveId}"`,
-        );
-      }
-
-      const memoRows = await transaction
-        .select()
-        .from(projectionRuleMemos)
-        .where(
-          and(
-            eq(projectionRuleMemos.ruleId, key.ruleId),
-            eq(projectionRuleMemos.ruleVersion, key.ruleVersion),
-            eq(projectionRuleMemos.inputFingerprint, key.inputFingerprint),
-          ),
-        )
-        .limit(1);
-      const existingMemo = memoRows[0];
-      if (
-        existingMemo &&
-        canonicalJson(existingMemo.writeIntents) !== canonicalJson(writeIntents)
-      ) {
-        throw new Error(
-          `Projection memo conflict for rule "${key.ruleId}" and fingerprint "${key.inputFingerprint}"`,
-        );
-      }
-      if (!existingMemo) {
-        await transaction.insert(projectionRuleMemos).values({
-          ...key,
-          writeIntents,
-          createdAt: completedAt,
-        });
-      }
-
-      const changedTargets = await writeIntents.reduce<
-        Promise<ProjectionChangedTarget[]>
-      >(async (pendingTargets, intent) => {
-        const targets = await pendingTargets;
-        const target = await this.applyWriteIntent(
-          transaction,
-          intent,
-          completedAt,
-          key,
-        );
-        return target ? [...targets, target] : targets;
-      }, Promise.resolve([]));
-
-      const updatedRules = await transaction
-        .update(projectionWaveRules)
-        .set({
-          status: "completed",
-          inputFingerprint: key.inputFingerprint,
-          changedTargets,
-        })
-        .where(
-          and(
-            eq(projectionWaveRules.waveId, waveId),
-            eq(projectionWaveRules.ruleId, key.ruleId),
-          ),
-        )
-        .returning();
-      const updatedRule = updatedRules[0];
-      if (!updatedRule) {
-        throw new Error(
-          `Failed to complete projection rule "${key.ruleId}" for wave "${waveId}"`,
-        );
-      }
-      return parseWaveRule(updatedRule);
-    });
+    return this.rules.applyRuleResult(input);
   }
 
-  public async getRuleMemo(
+  public getRuleMemo(
     input: GetProjectionRuleMemoInput,
   ): Promise<ProjectionRuleMemoValue | null> {
-    const key = memoKeySchema.parse(input);
-    const rows = await this.db
-      .select()
-      .from(projectionRuleMemos)
-      .where(
-        and(
-          eq(projectionRuleMemos.ruleId, key.ruleId),
-          eq(projectionRuleMemos.ruleVersion, key.ruleVersion),
-          eq(projectionRuleMemos.inputFingerprint, key.inputFingerprint),
-        ),
-      )
-      .limit(1);
-    const memo = rows[0];
-    if (!memo) return null;
-    return {
-      ...memo,
-      writeIntents: z
-        .array(ProjectionWriteIntentSchema)
-        .parse(memo.writeIntents),
-    };
-  }
-
-  private async runTransaction<TResult>(
-    transaction: (database: EntityTransaction) => Promise<TResult>,
-  ): Promise<TResult> {
-    return this.runDatabaseOperation(() => this.db.transaction(transaction));
-  }
-
-  private async runBatchStateWrite<TResult>(
-    write: () => Promise<TResult>,
-  ): Promise<TResult> {
-    return this.transactionTail.run(() => retrySqliteWrite(write));
-  }
-
-  private async applyWriteIntent(
-    transaction: EntityTransaction,
-    intent: ProjectionWriteIntent,
-    changedAt: number,
-    owner: GetProjectionRuleMemoInput,
-  ): Promise<ProjectionChangedTarget | null> {
-    const entityType =
-      intent.operation === "upsert"
-        ? intent.entity.entityType
-        : intent.entityType;
-    const entityId =
-      intent.operation === "upsert" ? intent.entity.id : intent.id;
-    const existingRows = await transaction
-      .select({
-        content: entities.content,
-        contentHash: entities.contentHash,
-        metadata: entities.metadata,
-        visibility: entities.visibility,
-      })
-      .from(entities)
-      .where(
-        and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-      )
-      .limit(1);
-    const existing = existingRows[0];
-
-    if (intent.operation === "delete") {
-      await transaction
-        .delete(projectionEntityOwners)
-        .where(
-          and(
-            eq(projectionEntityOwners.entityType, entityType),
-            eq(projectionEntityOwners.entityId, entityId),
-          ),
-        );
-      if (!existing) return null;
-      await this.mutationAdmission?.assertMutationAdmission({
-        operation: "delete",
-        entityType,
-        entityId,
-      });
-      await transaction
-        .delete(embeddings)
-        .where(
-          and(
-            eq(embeddings.entityType, entityType),
-            eq(embeddings.entityId, entityId),
-          ),
-        );
-      await transaction
-        .delete(entities)
-        .where(
-          and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-        );
-      await this.entityExportStore.record(transaction, {
-        entityType,
-        entityId,
-        operation: "delete",
-        markedAt: changedAt,
-      });
-      return { entityType, entityId, operation: "delete" };
-    }
-
-    const contentHash = computeContentHash(intent.entity.content);
-    await transaction
-      .insert(projectionEntityOwners)
-      .values({
-        entityType,
-        entityId,
-        ruleId: owner.ruleId,
-        ruleVersion: owner.ruleVersion,
-        inputFingerprint: owner.inputFingerprint,
-        claimedAt: changedAt,
-      })
-      .onConflictDoUpdate({
-        target: [
-          projectionEntityOwners.entityType,
-          projectionEntityOwners.entityId,
-        ],
-        set: {
-          ruleId: owner.ruleId,
-          ruleVersion: owner.ruleVersion,
-          inputFingerprint: owner.inputFingerprint,
-          claimedAt: changedAt,
-        },
-      });
-    if (this.storagePolicy?.isAssetBacked(entityType)) {
-      await this.storagePolicy.assetRepository.bindEntityContent(
-        transaction,
-        intent.entity.content,
-      );
-    }
-
-    if (
-      existing?.contentHash === contentHash &&
-      existing.content === intent.entity.content &&
-      existing.visibility === intent.entity.visibility &&
-      canonicalJson(existing.metadata) === canonicalJson(intent.entity.metadata)
-    ) {
-      return null;
-    }
-
-    await this.mutationAdmission?.assertMutationAdmission({
-      operation: existing ? "update" : "create",
-      entityType,
-      entityId,
-    });
-
-    if (existing) {
-      if (existing.contentHash !== contentHash) {
-        await transaction
-          .delete(embeddings)
-          .where(
-            and(
-              eq(embeddings.entityType, entityType),
-              eq(embeddings.entityId, entityId),
-            ),
-          );
-      }
-      await transaction
-        .update(entities)
-        .set({
-          content: intent.entity.content,
-          searchText: normalizeSearchText(intent.entity.content),
-          contentHash,
-          metadata: intent.entity.metadata,
-          visibility: intent.entity.visibility,
-          updated: changedAt,
-        })
-        .where(
-          and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-        );
-    } else {
-      await transaction.insert(entities).values({
-        id: entityId,
-        entityType,
-        content: intent.entity.content,
-        searchText: normalizeSearchText(intent.entity.content),
-        contentHash,
-        metadata: intent.entity.metadata,
-        visibility: intent.entity.visibility,
-        created: changedAt,
-        updated: changedAt,
-      });
-    }
-
-    await this.entityExportStore.record(transaction, {
-      entityType,
-      entityId,
-      operation: "upsert",
-      markedAt: changedAt,
-    });
-    return {
-      entityType,
-      entityId,
-      operation: "upsert",
-      contentHash,
-    };
+    return this.rules.getRuleMemo(input);
   }
 }

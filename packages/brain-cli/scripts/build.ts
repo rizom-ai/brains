@@ -74,7 +74,6 @@ const webChatUiStylesheetPath = join(
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
 const studioUiDirectory = join(studioPackageDir, "dist", "ui");
-const studioUiAssetPath = join(studioUiDirectory, "studio-app.js");
 const studioUiManifestPath = join(
   studioUiDirectory,
   "studio-asset-manifest.json",
@@ -125,10 +124,6 @@ const studioBuildResult = await Bun.spawn(["bun", "run", "build"], {
 }).exited;
 if (studioBuildResult !== 0) {
   console.error("Studio editor UI build failed");
-  process.exit(1);
-}
-if (!existsSync(studioUiAssetPath)) {
-  console.error(`Studio editor UI asset not found at ${studioUiAssetPath}`);
   process.exit(1);
 }
 if (!existsSync(studioUiManifestPath)) {
@@ -295,11 +290,14 @@ const libraryEntries = [
 ] as const;
 
 async function bundleLibraries(): Promise<void> {
-  // Build public subpaths together so shared runtime code (including Effect)
-  // is emitted once instead of copied into every independently built bundle.
+  // Share server runtime code (including Effect) across server subpaths.
+  // Chat is a browser contract: sharing its chunks with server entrypoints can
+  // leak Node-only imports into consumers even when its own source is pure.
   rmSync(join(outdir, "chunks"), { recursive: true, force: true });
   const result = await Bun.build({
-    entrypoints: libraryEntries.map((entry) => entry.source),
+    entrypoints: libraryEntries
+      .filter((entry) => entry.name !== "chat")
+      .map((entry) => entry.source),
     outdir,
     target: "bun",
     format: "esm",
@@ -321,7 +319,25 @@ async function bundleLibraries(): Promise<void> {
     }
     process.exit(1);
   }
-  for (const output of result.outputs) {
+  const browserResult = await Bun.build({
+    entrypoints: libraryEntries
+      .filter((entry) => entry.name === "chat")
+      .map((entry) => entry.source),
+    outdir,
+    target: "browser",
+    format: "esm",
+    minify: true,
+    splitting: false,
+    sourcemap: "linked",
+    external: sharedExternals,
+    naming: "[name].js",
+  });
+  if (!browserResult.success) {
+    console.error("Public browser contract bundle build failed:");
+    for (const log of browserResult.logs) console.error(log);
+    process.exit(1);
+  }
+  for (const output of [...result.outputs, ...browserResult.outputs]) {
     if (output.path.endsWith(".js")) {
       assertProductionReactBundle(await output.text(), output.path);
     }
@@ -447,7 +463,14 @@ cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
 mkdirSync(bundledWebChatUiDir, { recursive: true });
 cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
 cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
-for (const asset of ["guest.js", "guest.css"]) {
+for (const asset of [
+  "guest.js",
+  "guest.css",
+  "ask.js",
+  "ask.css",
+  "dashboard.js",
+  "dashboard.css",
+]) {
   cpSync(
     join(webChatPackageDir, "dist", "ui", asset),
     join(bundledWebChatUiDir, asset),

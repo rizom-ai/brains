@@ -13,6 +13,7 @@ export type ComponentType<P = unknown> = {
 }["bivarianceHack"];
 
 export type TemplateDataSchema<T> = ZodType<T, unknown>;
+
 /** @deprecated Use TemplateDataSchema<T>. */
 export type TemplateSchemaParser<T> = TemplateDataSchema<T>;
 
@@ -157,10 +158,10 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
     ...rest,
     // The guard proves TSchema is JSON-shaped at the call site; piping proves
     // it of the parsed value too, so the snapshot contract is checked rather
-    // than asserted.
-    schema: z
-      .unknown()
-      .transform((data) => jsonObjectSchema.parse(schema.parse(data))),
+    // than asserted. The author's schema stays on the outside: providers
+    // derive their structured-output schema from the input side, and a
+    // transform around unknown would hand them an empty one.
+    schema: schema.transform((data) => jsonObjectSchema.parse(data)),
     layout: {},
   };
   if (layout.renderSchema) {

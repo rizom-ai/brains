@@ -1,9 +1,20 @@
 import { expect, test } from "bun:test";
 import { runProcess } from "@brains/utils/run-process";
+import { studioAssetManifestSchema } from "../src/ui-assets";
 
 test("concurrent UI rebuilds keep published CSS readable", async () => {
   const cwd = new URL("..", import.meta.url).pathname;
-  const css = Bun.file(new URL("../dist/ui/studio-app.css", import.meta.url));
+  const manifestFile = Bun.file(
+    new URL("../dist/ui/studio-asset-manifest.json", import.meta.url),
+  );
+  const manifest = studioAssetManifestSchema.parse(await manifestFile.json());
+  const css = Bun.file(
+    new URL(`../dist/ui/${manifest.entrypoints.stylesheet}`, import.meta.url),
+  );
+  const script = Bun.file(
+    new URL(`../dist/ui/${manifest.entrypoints.script}`, import.meta.url),
+  );
+  const initialScript = await script.text();
   const initial = await css.text();
   expect(initial.length).toBeGreaterThan(0);
   const state = { finished: false };
@@ -31,4 +42,11 @@ test("concurrent UI rebuilds keep published CSS readable", async () => {
   }
   expect(reads).toBeGreaterThan(0);
   expect(failures).toEqual([]);
+  // Test subprocesses inherit NODE_ENV=test, unlike a preceding normal build.
+  // Different JS build conditions may change its URL, but never its old bytes.
+  expect(await script.text()).toBe(initialScript);
+  expect(
+    studioAssetManifestSchema.parse(await manifestFile.json()).entrypoints
+      .stylesheet,
+  ).toBe(manifest.entrypoints.stylesheet);
 }, 120_000);

@@ -29,7 +29,7 @@ describe("directory-sync lifecycle characterization", () => {
 
   afterEach(async () => {
     for (const plugin of plugins.splice(0).reverse()) {
-      await plugin.shutdown?.();
+      await plugin.shutdown();
     }
     for (const path of paths.splice(0).reverse()) {
       if (existsSync(path)) rmSync(path, { recursive: true, force: true });
@@ -93,7 +93,7 @@ describe("directory-sync lifecycle characterization", () => {
     await plugin.ready();
     expect((await directorySync.getStatus()).watching).toBe(true);
 
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect((await directorySync.getStatus()).watching).toBe(false);
   });
 

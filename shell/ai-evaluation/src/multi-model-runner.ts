@@ -8,6 +8,7 @@ import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
+import { MCPProtocolAgentService } from "./mcp-protocol-agent-service";
 import { resolveProviderKey } from "./multi-model";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 import { hasPrebuiltEvalDatabase, waitForJobsToDrain } from "./eval-settle";
@@ -33,6 +34,7 @@ export interface MultiModelRunOptions {
   testType?: "agent" | "plugin" | undefined;
   remoteUrl?: string | undefined;
   authToken?: string | undefined;
+  mcpBasic: boolean;
   resolveConfig?: (() => AppConfig) | undefined;
   runEvaluationsCollect: (
     options: RunEvaluationsOptions,
@@ -184,14 +186,19 @@ async function runSingleModelIteration(
     // seed content; settle the brain instead of racing the ingestion jobs.
     await waitForJobsToDrain(shell.getJobQueueService());
   }
-  const agentService = options.remoteUrl
-    ? RemoteAgentService.createFresh({
-        baseUrl: options.remoteUrl,
-        authToken: options.authToken,
-      })
-    : shell.getAgentService();
+  let mcpAgentService: MCPProtocolAgentService | undefined;
 
   try {
+    mcpAgentService = options.mcpBasic
+      ? await MCPProtocolAgentService.connect(shell.getMCPService())
+      : undefined;
+    const agentService = options.remoteUrl
+      ? RemoteAgentService.createFresh({
+          baseUrl: options.remoteUrl,
+          authToken: options.authToken,
+        })
+      : (mcpAgentService ?? shell.getAgentService());
+
     const summary = await options.runEvaluationsCollect({
       agentService,
       aiService: judgeAiService,
@@ -217,6 +224,7 @@ async function runSingleModelIteration(
     }
     return { model, summary };
   } finally {
+    await mcpAgentService?.close();
     // Stop background services and close DB connections. The next
     // bootEvalApp() → Shell.createFresh() resets singleton references.
     await shell.shutdown();

@@ -15,6 +15,7 @@ import type {
   SharedHostAdmission,
 } from "@brains/plugins/internal/http-routes";
 import { createMockMessageBus } from "@brains/plugins/test";
+import { SitePageResponse } from "@brains/plugins";
 import {
   ServerManager,
   type ServerManagerOptions,
@@ -35,6 +36,7 @@ describe("ServerManager (in-process)", () => {
       method?: WebRouteMethod;
       match?: WebRouteMatch;
       admission?: SharedHostAdmission;
+      preview?: boolean;
     } = {},
   ): RegisteredHttpRoute {
     return {
@@ -45,6 +47,7 @@ describe("ServerManager (in-process)", () => {
       match: options.match ?? "exact",
       sharedHostAdmission: options.admission ?? "admit",
       handler,
+      ...(options.preview ? { preview: true } : {}),
     };
   }
 
@@ -112,6 +115,7 @@ describe("ServerManager (in-process)", () => {
 
   function setup(options?: {
     preview?: boolean;
+    getRoutes?: ServerManagerOptions["getRoutes"];
     getOperationalInfo?: ServerManagerOptions["getOperationalInfo"];
     getReadinessData?: () => Promise<RuntimeReadiness>;
   }): ServerManager {
@@ -127,6 +131,7 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0, // random port
+      ...(options?.getRoutes ? { getRoutes: options.getRoutes } : {}),
       ...(options?.getOperationalInfo && {
         getOperationalInfo: options.getOperationalInfo,
       }),
@@ -318,6 +323,59 @@ describe("ServerManager (in-process)", () => {
     if (!url) return;
     const res = await fetch(`${url}/nonexistent`);
     expect(res.status).toBe(404);
+  });
+
+  it("serves only explicitly declared preview handlers without granting admission", async () => {
+    let calls = 0;
+    const m = setup({
+      preview: true,
+      getRoutes: () => [
+        handlerRoute(
+          "guest",
+          "/ask",
+          () => {
+            calls++;
+            return new Response("guest");
+          },
+          { preview: true },
+        ),
+        handlerRoute("admin", "/admin", () => {
+          calls++;
+          return new Response("admin");
+        }),
+        handlerRoute(
+          "private",
+          "/private",
+          () => {
+            calls++;
+            return new Response("private");
+          },
+          { preview: true, admission: "deny" },
+        ),
+        toolRoute("tools", "/api/tools/run", {
+          path: "/run",
+          method: "POST",
+          tool: "run",
+          public: true,
+        }),
+      ],
+    });
+    await m.start();
+    const base = m.getStatus().productionUrl;
+    for (const host of ["preview.localhost", "brain-preview.localhost"]) {
+      const headers = { Host: host };
+      expect(await (await fetch(`${base}/ask`, { headers })).text()).toBe(
+        "guest",
+      );
+      expect((await fetch(`${base}/admin`, { headers })).status).toBe(404);
+      expect((await fetch(`${base}/private`, { headers })).status).toBe(401);
+      expect(
+        (await fetch(`${base}/api/tools/run`, { method: "POST", headers }))
+          .status,
+      ).toBe(404);
+    }
+    expect(calls).toBe(2);
+    expect(await (await fetch(`${base}/admin`)).text()).toBe("admin");
   });
 
   it("should expose preview on the shared host when configured", async () => {
@@ -550,6 +608,48 @@ describe("ServerManager (in-process)", () => {
         })
       ).status,
     ).toBe(404);
+  });
+
+  it("uses site-owned presentation only after explicit handler admission", async () => {
+    let response: Response = new SitePageResponse("standalone", {
+      headers: { "Cache-Control": "no-store" },
+    });
+    const m = setup({
+      preview: true,
+      getRoutes: () => [
+        handlerRoute("chat", "/ask", () => response, { preview: true }),
+      ],
+    });
+    for (const surface of ["production", "preview"]) {
+      mkdirSync(join(testDir, "dist", surface, "ask"));
+      writeFileSync(
+        join(testDir, "dist", surface, "ask", "index.html"),
+        `${surface} site chrome`,
+      );
+    }
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Missing server URL");
+    const get = (): Promise<Response> =>
+      fetch(`${url}/ask`, {
+        headers: { host: "preview.example.com" },
+        redirect: "manual",
+      });
+    const result = await get();
+    expect(await result.text()).toBe("preview site chrome");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    response = new Response("Authenticated UI");
+    expect(await (await get()).text()).toBe("Authenticated UI");
+    response = new SitePageResponse("Denied", { status: 403 });
+    expect((await get()).status).toBe(403);
+    response = new Response(null, {
+      status: 302,
+      headers: { Location: "/login" },
+    });
+    expect((await get()).status).toBe(302);
+    response = new SitePageResponse("standalone");
+    rmSync(join(testDir, "dist", "preview", "ask"), { recursive: true });
+    expect(await (await get()).text()).toBe("standalone");
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {

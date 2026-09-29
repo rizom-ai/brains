@@ -26,6 +26,8 @@ import {
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
+import { registerGroupingDefinitions } from "./grouping-definitions";
+import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
@@ -54,10 +56,13 @@ const entityDisplaySchema: z.ZodRecord<
   typeof entityDisplayEntrySchema
 > = z.record(z.string(), entityDisplayEntrySchema);
 
-const studioPluginConfigSchema: z.ZodObject<{
-  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
-  routePath: z.ZodDefault<z.ZodString>;
-}> = z.object({
+const studioPluginConfigSchema: z.ZodObject<
+  {
+    entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+    routePath: z.ZodDefault<z.ZodString>;
+  },
+  z.core.$strict
+> = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
   routePath: z
     .string()
@@ -135,9 +140,20 @@ export class StudioPlugin extends ServicePlugin<
 > {
   private readonly workspaceRegistry = new StudioWorkspaceRegistry();
   private readonly overviewRegistry = new StudioOverviewRegistry();
+  private definitionSource: GroupingDefinitionSource | undefined;
 
   constructor(config: StudioPluginConfigInput = {}) {
     super("studio", packageJson, config, studioPluginConfigSchema);
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (context.entities.getGroupings().length > 0)
+      throw new Error(
+        "Studio groupings must be defined in the Groupings document, not registered by another owner.",
+      );
+    this.definitionSource = registerGroupingDefinitions(context);
   }
 
   protected override async onRegister(
@@ -289,6 +305,8 @@ export class StudioPlugin extends ServicePlugin<
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),
       workspaceRegistry: this.workspaceRegistry,
+      getGroupingDefinitions: () =>
+        this.definitionSource?.getSnapshot() ?? { groupings: {}, issues: [] },
       recordAuditEvent: async (event) => {
         const authService = getActiveAuthService();
         if (authService) await authService.recordAuditEvent(event);

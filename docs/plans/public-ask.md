@@ -1,87 +1,114 @@
-# Plan: Public `/ask` and the Brain landing-page chat
+# Plan: Public Ask — guest chat on a Brain's public pages
 
-## Current position
+Last updated: 2026-09-21
 
-**The user reported the manual localhost `/ask` test working.** The standalone guest UI and HTTP flow are wired and tested with mocks: establish a session, ask, follow up, reload history, deliberately retry and delete an owned conversation. Independent provider/billing verification and complete live follow-up/history/deletion verification remain.
+## Status
 
-- Code was pushed through `71104c6a81` with release approval. Site Release published `0.2.0-alpha.249`; Core Release was skipped after Core CI failed, and Architecture CI also failed. The corrective changes below are pending CI confirmation. Content remains unpushed and production pins are unchanged.
-- **Use the existing `#brain-chat` hero box from `feat/rizom-brain-landing` (`9a8329cca4`). The separate panel was rejected.** Its site-design diff has been applied to this integration worktree, without merging branches or changing the original site worktree. Rejected panel work is archived in `/tmp/public-ask-rejected-panel`; it is no longer the active implementation.
-- Guest access is **default-off**. The opt-in localhost test requires trusted loopback transport, a supported profile, index readiness and admission; production HTTPS admission remains default-closed.
-- Implementation and code/package releases are approved. Production limits, provider/spending policy, disclosures, content rollout and deployment are **not approved**.
-- Incremental snapshots and normal commit hooks passed, but the pre-push checks missed dependency architecture and SDK mock leakage across test files. These were validation gaps, not proof of CI readiness. The canonical same-brain browser checks use synthetic providers, not paid calls.
-- Committed integration uses `/api/chat/guest`, the existing Chat client/protocol, Markdown presentation and agent/conversation namespaces. New conversations require fresh admission; retries retain submission identity and pin the server locator once known. Delivery includes text and bounded search/get source cards, never action or attachment cards. The existing sources component is reused; projected citations persist in owned history and survive refresh. Raw provenance, context cards and unsafe navigation are dropped. This projection is not an authorization mechanism: public visibility still comes from the guest-scoped read tools.
-- When guest policy is enabled, the configured page (default `/ask`) renders the guest presentation even for signed-in operators. Standalone authenticated Chat remains at `/ask/authenticated` (relative to the configured page); operator discovery and Inbox links point there. With guest policy off, the existing authenticated page is unchanged. Studio `/chat` is not modified.
-- The UI shows provider/retention/deletion disclosures before first send, preserves visible partial replies on failure, distinguishes new conversation from confirmed deletion, and stores only conversation locators in tab-scoped session storage. Markdown images, executable HTML and unsafe links are blocked. No generation occurs on mount.
-- HTTP-stage checks passed: Web Chat 295 tests, contracts and plugin suites, changed-package lint, and all 101 repository typecheck tasks. UI-stage checks pass: 304 Web Chat tests, package lint, its typecheck/build dependency graph, and docs checks; these include DOM interaction and guest/authenticated page routing. These are harness checks, not a running-app, visual-browser or real-provider demonstration.
-- The elapsed-time/clock follow-up remains **paused and uncommitted**, untouched by the HTTP work. It has not been reviewed or validated as a feature; dependency typechecks are not that review. Do not resume, discard or treat it as a milestone dependency without reviewing its necessity.
+**Production guest activation and production-page publication remain unapproved on every deployment. The Rizom preview allowance of two messages and four dollars has been spent. Further paid messages need an owner-set monthly budget (Slice C), never ledger renewal.**
 
-This plan covers the visitor posture anticipated in Phase 5 of [Studio Chat integration](studio-chat-integration.md). The current sign-in restriction is temporary, not the intended visitor experience.
+Guest admission is per deployment. No deployment's authorization, allowance, spend or evidence carries to another. This plan owns the capability and every site's rollout.
 
-## Release preparation and coordinated rollout — not activation approval
+Shipped baseline, verified with synthetic providers:
 
-Read-only checks confirmed the running core is `0.2.0-alpha.368`, deployment state pins `@rizom/site-rizom-ai` to `0.2.0-alpha.248`, and both versions are already published. Directory sync defaults to pulling content `main` every two minutes; imports can cause billable indexing and automatic preview rebuilds. The live server reports preview and production enabled. The published capture schema requires `intro` and `checks`, while the new schema requires `body`, `aside` and `capture`: neither direction is a safe schema-only/content-only cutover.
+- a server-owned guest identity and isolated conversation scope;
+- default-off guest admission and a localhost-only test preset;
+- atomic issuance, request, concurrency, turn, retention, and spend accounting;
+- public-only context with an explicit read/search allowlist;
+- owned send, follow-up, history, retry/status, expiry, and deletion paths;
+- safe Markdown plus bounded public source cards;
+- the standalone `/ask` presentation, the Brain-page hero box, and an optional Dashboard tab, all on the same guest runtime;
+- the shared `ask-content` singleton entity as the authored welcome and topics for all three;
+- fail-closed handling for ambiguous first sends, lost credentials, unsupported browsers, and uncertain remote completion; and
+- packaged/browser/canary checks against the published core/site pair.
 
-Release entries remain lane-scoped:
+Open from the Dashboard Ask rollout, carried forward verbatim:
 
-- `.changeset/core--public-ask-semantic-guest.md`: the bundled Brain runtime and guest HTTP/UI, still pending.
-- `.changeset/site--brain-landing-local-network.md`: consumed by the independent site `0.2.0-alpha.249` release.
-- `.changeset/site--brain-chat-runtime-module-url.md`: the corrective browser-runtime import, pending.
+- the operator configuration path for per-user `plugins.dashboard.ask` is not yet merged or released;
+- content PR [rizom-content#2](https://github.com/rizom-ai/rizom-content/pull/2) prepares the public `ask-content/ask-content.md` and removes the obsolete `hero.chat` section, and remains draft; and
+- enabling the Ask tab on Rizom is an owner choice that has not been applied.
 
-The initial read-only preview projected core `0.2.0-alpha.369` and site `0.2.0-alpha.249`. Site published independently despite the other CI failures; the corrective site entry requires another release. Forecasts are not reservations or deployed versions; recheck before publication. The existing fixed core group also advances `@rizom/ops` and the other core members. This does not itself change fleet pins. Patch entries follow the existing alpha-release convention and do **not** imply that the old content schemas remain compatible. No compatibility shim is being introduced.
+## Next milestone
 
-### 1. Publish artifacts without activating the content
+Slice A, the usage record, then Slice B, the Studio monitor. No deployment opens production guest access before its owner can see what the endpoint did and switch it off. No release, deployment or enablement is authorized by plan approval alone.
 
-After separate commit/push/release approval, let Core CI/Release and Site CI/Release process their respective queues. Do not run version/publish commands merely to preview their results. Wait for both workflows and verify the exact registry artifacts, their paired versions and the built guest assets. Do not push the content branch to remote `main` or change operator pins during this phase. Do not rely on `latest`, predict version numbers in deploy config, or assume the two release lanes complete atomically.
+This milestone does **not** enable production guests or publish a new production page on any deployment.
 
-### 2. Prove the packaged pair and establish the maintenance gate
+### Remaining acceptance work
 
-Test the exact published pair against all seven new Brain sections in a separate canary with isolated storage and synthetic providers. The source-level canonical publishing/browser check already passed; it is not proof of newly published artifacts. Verify the native local map, default-closed guest access and that retired network captures are absent. Do not point the canary at production storage or allow it to push to the live content repository.
+1. **Validate with synthetic providers.** Use an isolated canonical running app with an app-managed preview rebuild, theme and mobile checks, and owned conversation recovery and deletion. Never spend a hosted allowance in automated checks.
+2. **Keep evidence boundaries explicit.** Owner-reported activation and an owner-reported live flow are not independent billing evidence. Obtain existing evidence only through ordinary authenticated access. Additional paid messages require fresh explicit approval, not ledger renewal.
+3. **Retain honest failure handling.** Check partial and disconnected delivery, known-locator retry and status, expiry, denial and deletion races, without replaying ambiguous work or promising remote cancellation.
+4. **Release and enable separately, per deployment.** Review implementation evidence before release or deployment. Production policy, publication and guest enablement remain separate decisions for each site.
 
-Before any production activation, obtain approval for the maintenance window, the affected consumer set and bounded provider work. Inventory every consumer of `rizom-content`; verify an operator-supported way to quiesce its sync and writes. Setting `autoSync: false` alone is not a proven gate: initial sync is separately controlled. Keep embeddings enabled. Do not reuse the closed local indexing allowance, reset guest reservations or mistake the guest turn cap for a background budget. Automatic site builds enable content generation, so the spending review must cover possible generation as well as embeddings; unapproved provider traffic must fail closed.
+## Launch gates
 
-Capture verified backups of content/Git state, entity and embedding stores, operational state, current pins and the last-good production output. Prove restoration before proceeding. Do not push deploy-repo configuration while still investigating: its Reconcile/Deploy workflows can activate changes automatically.
+Before unattended public access on any deployment:
 
-### 3. Coordinated production cutover, only after the gate is satisfied
+- approve exact provider, spend, request, concurrency, issuance, retention, timeout, cleanup, and disclosure policy;
+- validate the HTTPS/origin/proxy posture and network-level abuse controls;
+- verify shared transactional accounting for every production replica;
+- verify cleanup throughput and admission behavior during unhealthy storage or maintenance;
+- document recovery for uncertain execution and credential work without refunding or releasing reservations based only on elapsed time;
+- approve finite usage-record retention and storage limits, and verify denial-flood and storage-failure behavior;
+- record and display guest requests, denials, known settled cost and outstanding or unknown reservations to the owner, with a reachable kill switch, before admitting any production visitor;
+- verify the kill switch, already-running work behavior, authenticated Chat regressions, operational visibility, backup, and rollback;
+- publish production output only after explicit preview approval; and
+- obtain separate explicit authorization to enable guest admission.
 
-With consumers and writes quiesced, reconcile fresh remote content history without force-pushing, and retain unrelated content changes. Align the new seven-section content with the exact new site/core pair before allowing the upgraded runtime to import or build. The checked desired-state locations are `cohorts/sites-primary.yaml` for the core override and `users/rizom-ai.yaml` for `siteOverride.version`; recheck membership before changing the cohort, and do not bump the global fleet version for this one-site rollout. Generated user environment files remain CI-owned.
+Passing tests, deploying packages, pushing content, or building preview does not satisfy these gates.
 
-Use the documented operator deployment/reconciliation path with the verified import/build gate. Wait for content import and indexing readiness, then explicitly rebuild **preview** through the running app's command surface and inspect the actual output. Inspect schema errors, sources, network behavior and provider accounting before an explicitly approved production build/promotion. Production guest admission stays closed; no synthetic or live question should silently consume a paid allowance. Resume normal sync/writes only after acceptance.
+## Product scope
 
-Do not execute this phase until the concrete quiesce/import/build procedure and provider-spend enforcement are verified. The plan is not a claim that an atomic code/database/content swap already exists.
+Public Ask is a visitor's encounter with a Brain's own public knowledge, on that Brain's pages:
 
-### Rollback
+- no account is required after production guest admission is explicitly enabled;
+- answers and synthesis use public Brain knowledge and may include validated public sources;
+- visitors may supply question text but cannot edit Brain content, publish, administer, schedule work, approve actions, upload files, call arbitrary URLs, or access operator tools;
+- visitor conversations remain isolated and do not automatically become Brain knowledge;
+- visitor questions are recorded for the owner in the Slice A usage record, which the disclosure states plainly; and
+- the standalone page, the Brain-page hero box and the Dashboard tab continue the same owned conversation under identical policy.
 
-Re-quiesce consumers and restore a matched code/site/content set, not just one half of the schema change. Revert only the relevant Brain sections through a reviewed forward commit; preserve unrelated content history and any post-cutover writes. Use database restoration only when its consistency and write-loss implications have been checked. Never restore older spending-ledger state to regain an allowance. Keep production serving a verified last-good output or an explicitly approved maintenance response until the matched state passes preview validation.
+It is not a scripted sales bot, a support-only interface, public Studio access, or a second chat engine. Ask's visibility setting does not enable guest execution, renew credentials, reset limits or change public-only permissions.
 
-The subsequently approved code push and independent site publication did not change live sync, production pins or spending allowances. Impact evidence is in `/tmp/public-ask-push-impact/`; the published-artifact and controlled-cutover gates remain outstanding.
+## Non-negotiable boundaries
 
-### CI correction
+### Identity and authorization
 
-The UI copy type now lives in the presentation component instead of creating a `GuestApp`/`GuestBox` dependency cycle. The hero boot script constructs an explicit same-origin runtime module URL: the Brain serves this asset, so it is not a site filesystem dependency. Architecture rules and exemptions were not relaxed.
+- Guest credentials are opaque, server-owned, and held only in secure HTTP cookies in production; URLs and browser storage carry only bounded locators.
+- Conversation IDs are locators, never authorization. Forged, foreign, expired, or deleted conversations reveal no content.
+- Signed-in owner authority does not upgrade the guest surface, and a signed-in viewer must never silently elevate guest chat to owner Chat.
+- Public visibility filtering happens before context, excerpts, metadata, attachments, or tool results reach the model.
+- Installing another plugin never grants its tools to guests automatically.
+- Browser input cannot supply roles, system instructions, operator context, approvals, tool permissions, or owner identity.
 
-Running `aiService.test.ts` before `guest-model-boundary.test.ts` reproduced all four CI failures locally: the former replaces SDK exports process-wide. The seven real-SDK checks are preserved unchanged in `guest-model-boundary.check.ts`, run by the normal suite in a fresh subprocess, following the existing OpenAI profile test pattern. The previously failing order and a randomized AI-service suite pass. No assertions were removed or softened.
+### Authored content
 
-The clean correction snapshot passed 100 uncached test tasks, 102 uncached typecheck tasks, 94 uncached lint tasks, all eight build tasks, 80 repository-script tests, package-surface checks, release-queue/docs/format checks and architecture with zero errors. Console visuals passed with process-local RGB font rendering; the host's default grayscale rendering differed from the committed baselines. No baseline, threshold or repository font setting was changed.
+- The `ask-content` singleton is the only authored source of the welcome and suggested topics, across the standalone page, the Dashboard tab and the Brain-page chat. It is independent of any site page schema, and no hero-copy fallback is retained.
+- Missing or invalid optional content means no welcome and no suggestions. No invented fallback prose, promotional defaults, implicit generation, or page-specific copy shims.
+- Only public entity content may reach a public visitor.
+- Privacy, availability, expiry and limits come from runtime policy, never from this entity.
+- Code ships before content. An older site still requires the section a content migration removes, so a rollback to that site version must restore the old content section too.
 
-Correction evidence is in `/tmp/public-ask-ci-fix/` and the fresh canonical same-brain browser fixture `/tmp/public-ask-ci-site/`. The browser test uses synthetic providers with no upstream transport, a running-app MCP preview rebuild, one query embedding and the native empty network state. All required CI results and exact published artifacts still need verification before any rollout.
+### Accounting and lifecycle
 
-## Next milestone: a real conversation at `/ask`
+- Capacity is reserved transactionally before generation. Cookie resets, tabs, retries, restarts, and replicas must not evade limits.
+- Disconnection, timeout, expiry, or local abort is not proof that provider work stopped, so its cost is never taken as zero: an answer whose model call errors, or that is still active past its deadline, settles at the answer cap and stops holding its place.
+- Retries require a known conversation locator and submission identity. Losing both credential and locator is deliberately unrecoverable; the UI must not replay the request.
+- Retention cannot be extended by resume or policy loosening. Deletion/expiry prevents late writes from resurrecting a conversation.
+- Credentials, replies, and raw conversation identifiers stay out of routine logs and analytics. Visitor question text is recorded only in the owner-facing usage record defined in Slice A, never in routine logs, and the visitor disclosure must say so.
 
-**A visitor can open `/ask` without an account, send a real question, receive an answer grounded in public sources, and ask a follow-up in the same conversation in an isolated test app.**
+### Presentation
 
-This milestone includes safe refresh/history, owned deletion, expiry and honest failure states. It does not include the landing panel or production enablement.
+- Render safe Markdown and reviewed source cards only; reject executable HTML, unsafe links, unsupported actions, and fabricated citations.
+- Keep submitted text and received partial output visible on failure. Retry is deliberate and deduplicated.
+- Distinguish waiting, stopped waiting, disconnected, complete, unavailable, expired, deleted, and limit-reached states.
+- Topic suggestions fill the composer but never submit automatically.
+- No generation occurs on page load, availability checks, focus, tab selection, navigation, or recovery.
+- Missing content and unavailable access render honestly.
 
-Use one explicitly selected, narrowly supported provider/model and retrieval configuration first. Do not build a universal provider, proxy or recovery framework before proving this slice. Choosing the test configuration does not approve production defaults.
+## Supported test posture
 
-### Approved initial test slice
-
-Use localhost and the canonical `packages/brain-cli` `start:personal` posture, with OpenAI-only initial live support. Connect the HTTP flow and `/ask` using mocked-agent integration tests while verifying live support. Official OpenAI documentation now confirms the configured `gpt-5.6-luna` model and published pricing. Account access was untested at the initial preflight. Canonical core wiring now installs the paired OpenAI profile for `gpt-5.6-luna`, enabled `text-embedding-3-small` indexing at 1536 dimensions, and a configured key. Guest readiness also requires a ready index. A read-only agent-namespace signal allows automatic Web Chat readiness only for an enabled loopback-HTTP policy; HTTPS deployments remain closed by default. This verifies profile selection, not a successful live provider turn. The user approved the localhost-only $2-per-turn/$4-total guest test ceiling, conditional on accounting and corpus/host verification. No authenticated provider API calls had been made at that initial gate; later runs are recorded separately.
-
-There is no scope expansion into additional providers, production proxy frameworks, automatic recovery or clock work. The HTTP addition includes only the session/request/status DTOs and client handling needed for this flow. A trusted host readiness check defaults closed; setting it true in a mock harness does not establish production readiness.
-
-### Configuration: conventions first
-
-Guest access is off when omitted or set to `false`. The controlled test is one opt-in:
+The existing localhost test convention remains:
 
 ```yaml
 plugins:
@@ -89,289 +116,149 @@ plugins:
     guest: local-test
 ```
 
-The default origin is `http://127.0.0.1:8080`. For a different local port, use `guest: { preset: local-test, origin: "http://127.0.0.1:18180" }`. Limits, retention, disclosures and the approved $2/turn/$4 test ceiling are internal conventions, not author-facing knobs. Saved configuration stays compact; the old expanded policy block is not accepted as configuration. Full policy objects remain internal runtime/test contracts.
+- canonical `packages/brain-cli` `start:personal` posture;
+- trusted loopback socket metadata and loopback binding;
+- the brain's own agent answering as a public user: its model, identity and public profile (without the owner's email), limited to the reviewed public read tools and without provider web search;
+- text input only, 4,000 characters per message, and a three-minute deadline per answer; and
+- a small inspected public-source corpus.
 
-Local guest routes require trusted loopback socket metadata from the HTTP host. Webserver captures Bun’s `requestIP` before routing and passes it separately from the Request; missing or non-loopback peers fail closed, regardless of Host, Origin or forwarding headers. Other hosts must supply trusted transport context to serve local guest routes. Bind the test webserver to loopback as defense in depth. Keep embeddings enabled: guest query embeddings are prepaid inside the turn cap, separately from background indexing. Runtime accounting and atomic admission still gate execution. No production preset or public-launch approval is implied.
+These are test conventions, not approved production defaults.
 
-Regression checks cover IPv4/IPv6/mapped loopback addresses, missing peers, forged forwarding headers and all guest API methods. A native wildcard-listener fixture using the real ServerManager and guest handler rejects a non-loopback TCP request with forged localhost headers (403), while a local request reaches body validation. No credentials or model calls are used by that fixture.
+## Shipped authorization surface
 
-### Approved live-test slice — verification incomplete
+Live constraints of the deployed guest-authorization code, not a rollout log:
 
-**Capability advanced:** `createOpenAiGuestProfile` now couples the fixed model with non-billable conservative accounting, without a tokenizer or remote quoting service. `createBrainAgentFactory` accepts the paired profile for guests while leaving authenticated generation unchanged. Mocked tests exercise the real SDK's wire format and a two-step public-read/answer loop. This is not account-access, live billing or app-readiness verification.
+- Guest admission is default-off. An explicit `guest: false` also blocks runtime activation.
+- The owner opens managed guest chat in Studio's Guest chat workspace with a monthly budget, through a prepared confirmation that states it. Activation is also an admin-only, same-origin `GET/POST` on the chat API: `POST` accepts only `{ enabled }` and reopens with the budget set in Studio, refusing while none is set; there is no hostname, budget or reset override. `GET` grants nothing and calls no model, and activation is primary-host-only.
+- Authorization, the owner's monthly budget and the month's spend share one compare-and-set ledger. Each answer adds its measured cost, or the $0.05 answer cap when unknown. Disabling and re-enabling, changing the budget, retries, cleanup and restarts never reduce what the month has spent.
+- Guest handlers and their presentation assets declare their own routing. The transport preserves admission checks and excludes undeclared handlers and tool APIs.
+- Owned history and deletion stay available after the month's budget is spent.
 
-The wire guard restricts the endpoint, standard tier, model, output cap, text/function inputs and three reviewed read tools; disables response storage and cache writes; rejects reference-only inputs, native provider tools/options, streaming and redirects; and checks returned processing-tier/model metadata. Requests are bounded before fetch and provider errors are sanitized. The earlier profile required an embeddings-disabled host assertion. That restriction is superseded by the bounded semantic-search accounting described below. Preflight ran through canonical `start:personal` with a nonfunctional key: the actual listener was `127.0.0.1:18180`, readiness returned 200, disabled guest admission 503 and unauthenticated MCP 401. Two operator-curated notes based on public Green Software Foundation guidance were created through normal MCP confirmations. The small corpus was inspected; embeddings remained empty and only a recurring-check job was observed. Bootstrap prompts and brain character were restricted; the public Anchor placeholder contains only `Unknown`. These observations are scoped to this isolated app, not general production proofs.
+## Planned slices
 
-The user provisioned `AI_API_KEY` locally; its value was not displayed. The compact-preset app subsequently ran on loopback, with the paused clock changes excluded from the build and restored unchanged afterward. A real Chromium browser verified the pre-send disclosures and submitted one question. It received the agent's static “knowledge base getting ready” response, not a model answer: the semantic-index gate incorrectly blocked lexical mode before model execution or message persistence. No follow-up or retry was submitted; refresh/deletion checks were not reached. The app was stopped and the original personal posture restored.
+Four slices, plus explicit site integration in each rollout. None is authorized by this plan alone; each needs its own review. Slices A and B gate Slice C: production guest access is not opened until the usage record and its Studio view exist, because an endpoint nobody can observe cannot be sized or defended. The standalone Slice D form and authored homepage can ship without A through C, after their own review; attaching a guest conversation is a later integration. No slice adds a second chat engine.
 
-The minimal correction is to install the semantic readiness gate only when embeddings are enabled. A regression reproduces the failure and verifies that lexical requests now reach normal validation without a provider call, while semantic mode keeps its warmup gate. Live re-verification remains outstanding. The original receipt is retained unchanged as `completed` with a $2 reservation; this is not measured provider spend or proof of a sourced answer. Do not reset it to obtain more attempts. Browser evidence for that failed first attempt is in `/tmp/public-ask-preflight.KAgIeX/browser-report.json` and `ask-result.png`.
+### Slice A: the usage record
 
-After the readiness fix, the app was restarted at the user's request for one remaining question, with an automatic 30-minute shutdown. The user reported it working and requested immediate shutdown; port 18180 was confirmed closed. This is user-reported success, not an independently inspected answer or provider bill. The original posture was restored, the paused clock files preserved, and no further generation was submitted by the assistant. Source-card persistence, transport, projection safety and UI refresh subsequently passed mocked regressions; those changes were not part of the user's earlier browser test.
+Goal: a durable answer to what the public endpoint actually did, because today almost nothing survives.
 
-Subsequent Chromium checks used the built guest UI with fully intercepted, mocked HTTP—not a running app or provider. They verified source display, follow-up locator reuse, refresh with sources, composer focus, locator-only storage, acknowledged fixture deletion and mobile overflow. Inspection found and fixed the missing shared console stylesheet in guest HTML; colors, typography and borders now resolve from the existing theme. Evidence: `/tmp/public-ask-preflight.KAgIeX/guest-ui-browser-report.json`, `guest-sources-desktop.png` and `guest-sources-mobile.png`.
+Current state, verified against `origin/main`: two monotonic lifetime counters, a set of reservation receipts that self-prunes after roughly a day, and an admin-only endpoint returning the counters. Both the admission ledger and `GuestTurnBudget` charge worst-case quotes; neither supplies an actual-cost settlement contract. The ten admission denial reasons are recorded nowhere, and the guest modules contain no logger calls at all. The analytics plugin is a read-only Cloudflare proxy and cannot accept events.
 
-Normal same-origin tabs now serialize session opening with one browser Web Lock. Only queued acquisition is abortable; an in-flight issuance holds the lock until its response settles, even if its view unmounts. This avoids overlapping cookie installation without exposing or storing credentials in JavaScript. Unsupported browsers fail closed; no compatibility fallback or new author configuration was added. Four Chromium fixtures cover concurrent tabs, acquired/queued cancellation and missing Web Locks (`guest-locks-browser-report.json` in the same artifact directory). These checks do not establish recovery after a browser crash or an ambiguous network outcome. Server ownership and admission remain the authority.
+**Implementation progress:** the record exists in `interfaces/web-chat` (`GuestUsageRecord`, runtime state). Each guest request takes a place before the admission ledger is asked; a full or unwritable record denies with the existing `unavailable` response and spends nothing. An admitted request is recorded as unresolved before generation and records its outcome once, before the ledger settles; work that stops without an outcome stays unresolved. It holds no credential, locator or reply and names a visitor only by a digest salted per deployment. Its bounds are the policy's required `usageRecord` section (`maxRecords`, `retentionSeconds`). Each turn settles from the usage the provider reported for each of the agent's steps (input, cached, cache-write and output tokens), priced at the pinned revision `openai-gpt-5.6-luna-2026-09-26` when the brain's model is Luna (published rates read 2026-09-26; long-context requests at 2× input and 1.5× output); another model, or a step without usage, leaves the cost unknown and the turn is charged the answer cap. The settlement travels on the agent response as `guestSettlement` and is recorded with the outcome. Missing usage, a long-context request with cached input (its rate is unpublished) or an accounting without pricing is recorded as unknown, never zero. Question text is recorded for every admitted question, within the policy's `usageRecord.questionBytes`, cut on a character boundary and marked when cut. Visitors are shown no retention notice. Refused questions are recorded too: an admission denial with its reason and the visitor's salted digest, the send route's own refusals by category (forbidden, method, media type, invalid request, oversized, not found, closed) without their body or a visitor, and refusals by a full or unwritable record. Detailed denials have their own allowance (`usageRecord.maxDenialRecords`), so denial traffic never takes the places admissions need; beyond it, denials are daily counts by reason, kept in memory and written by the guest maintenance tick, so a flood writes at most once a minute; unwritten counts wait for the next tick. The guest maintenance tick removes records, denials and daily counts past their own retention (a day's counts once the whole day is past it) and never touches admission accounting or unresolved reservations; deleting a conversation leaves its record. Kept question text has a total bound (`usageRecord.maxStoredBytes`): a request whose largest possible question could exceed it is refused like a full record. The record reports bounded operational health as `guest-usage-record` — degraded while full, unhealthy while its writes fail, counts only. Slice A is complete; Slice B reads this record.
 
-An ambiguous first send without a received server locator now fails closed in the UI: it preserves the visible question but disables replay, including form submission. Reusing that submission after a cookie replacement could otherwise create a new visitor-scoped turn. A known locator remains mandatory for UI retries; replacement credentials cannot read, delete or rerun its in-flight conversation. Regression tests and a Chromium fixture cover these cases without generation or state resets. This is deliberate non-recovery, not a claim that lost credentials can be restored.
+- Persist an admission event before execution and append an idempotent outcome event when known, joined by an internal request key. Retries and concurrent settlement must not duplicate requests or cost. Record timestamps, outcome, reserved cost, known settled cost or an explicit unknown-cost state, a salted visitor digest when identity exists, and validated question text. Interrupted work remains visibly unresolved, not silently successful or zero-cost.
+- Add a typed settlement contract based on returned provider usage and a pinned supported pricing revision, including applicable input, output, cache, reasoning and tool/embedding charges. A quote or the difference in `GuestTurnBudget`'s balance is never actual cost. Missing usage, unsupported pricing or uncertain remote completion stays unknown; retain its reservation. Recording measured cost does not refund or reset the existing authorization ledger. Do not describe locally calculated cost as independently reconciled provider billing.
+- Question text is recorded deliberately, only after bounded validation and the recording disclosure has been presented. Denials before that point record no question text; missing visitor identity is represented as absent, never invented. Update the runtime disclosure before enabling recording, including the separate retention period and the fact that deleting a conversation does not delete its usage record.
+- Recorded questions are admin-only monitor records, not entities, embeddings or projection inputs. Slice B carries an owner action to promote a single question deliberately. Credentials, replies and raw conversation locators are never recorded.
+- Set finite record age, question-byte, row and total-storage limits before recording is enabled. Records may outlive conversations but expire on their own fixed schedule; retries do not renew them. Cleanup must not erase lifetime accounting or unresolved reservations, which remain separately bounded admission state.
+- Within the detailed-record allowance, append denial events with their reason. Once that allowance is reached, retain bounded time-bucketed counts by reason without text or per-visitor cardinality, and show aggregation explicitly in Studio. Reject malformed or oversized input without retaining its raw body. Denied traffic must not bypass storage or write-rate limits.
+- Reserve record and outcome capacity before admitting work. If durable recording is unhealthy or full, deny new generation while preserving owned history/deletion and the existing denial response contract. Surface recording outages through bounded, sanitized operational health; do not fall back to transcript logging. A failed settlement write leaves the request unresolved and its reservation intact.
+- The auth audit event store is the precedent for append-only events and an admin view, not permission to retain unbounded question text.
+- Tests first: admission survives a crash before completion; retries settle once; known usage prices correctly and missing usage remains unknown; denial floods stay bounded without changing denial responses; storage failure prevents generation; cleanup honors independent retention without restoring credit; conversation deletion leaves unexpired monitor records intact; no credential or reply text is written.
 
-The existing 255-second host timeout covers the 90-second turn lifetime. Guest HTTP now closes its idle wait at the policy limit without treating cancellation as remote completion; a regression covers ignored cancellation and late fulfillment. Guest instructions now advise short literal search phrases after preflight exposed the lexical fallback's phrase-matching behavior.
+### Slice B: the Studio monitor
 
-Activation regressions pass: all 101 repository typecheck tasks and 99 test tasks, plus changed-package lint. The real-SDK wire checks run in a child process within the ordinary suite because existing AI service tests replace provider modules process-wide. Full working-tree regressions include the untouched paused clock files; this is not review or approval of that patch.
+Goal: the owner can see what the endpoint is doing and stop it, in one place.
 
-Official references reviewed:
+**Implementation progress:** web-chat registers an admin-only Studio workspace, **Guest chat** (`web-chat:guest-chat`), wherever guest chat has a usage record. Its loader reads the Slice A record and the admission ledger: questions, measured cost, unknown-cost and unresolved counts for today and this month (the unresolved with their reservations); a meter of the month's spend against the owner's budget, with the note that each answer is charged its measured cost, or the answer cap when that cannot be measured; recording health, retention and storage; recent questions, refusals by reason with detailed and counted coverage (and a notice once detailed refusals are full), and visitors ranked within the retained window. The switch sits beside the numbers: opening takes a monthly budget and a prepared confirmation stating it, the answer cap and what the month has already spent; the same form changes the budget while open; closing is one step and stops admissions at once. A recorded question becomes a note only through a prepared-confirmation action, sent as `note:capture` to the note plugin, which keeps it restricted and never lets the sender choose visibility; the action appears only where the note type exists.
 
-- [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna): 1,050,000-token context window; standard short-context prices are $0.20/M input, $0.25/M cache writes, and $1.20/M output. Long-context prices are $0.40/M input, $0.50/M cache writes and $1.80/M output.
-- [Pricing](https://developers.openai.com/api/docs/pricing): Fast mode and regional processing can cost more. Do not assume the account's default tier is standard.
-- [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create): omitted `service_tier` uses project settings; omitted `store` defaults to true. The installed SDK also honors `OPENAI_BASE_URL`. A guest-specific profile must explicitly bind the official endpoint, standard tier and `store: false`, rather than inheriting those defaults.
-- [Prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching): explicit-only mode without breakpoints does not use caching or create cache writes. The proposed profile must enforce this on the actual outgoing request, not merely claim it in its quote.
-- [Counting tokens](https://developers.openai.com/api/docs/guides/token-counting): the counting endpoint includes structural/tool overhead; output caps include non-visible tokens. Its billing has not been established here, so it is **not** being used as a purportedly free preflight.
+- An admin-only Studio workspace declared with `defineStudioWorkspace`, whose server-side loader reads the Slice A records directly. Studio workspaces are schema-driven and a plugin cannot ship its own React view, so the display is built from the existing block set.
+- Shows requests and known settled cost for today and the current month, outstanding/unknown reservations separately, and the amount still charged against the admission ceiling. Never imply that low measured cost restores allowance. Denials are grouped by reason, with detailed versus aggregated coverage explicit; visitor rankings and recent questions describe only the retained detail window. Queries and result sizes are bounded.
+- There is no chart or timeseries block. Trends use `stats`, `meters` and `table`.
+- The existing enable and disable authorization becomes a workspace action, so the off switch sits next to the numbers rather than in configuration. Recording health and retention are visible beside it.
+- A separate, confirmed admin action may promote one recorded question to an entity. Reading the monitor never promotes content automatically.
+- Tests first: the workspace refuses a non-admin caller at both the registry floor and the runtime check; empty, aggregated and unknown-cost states render truthfully; promotion requires confirmation; the off action denies further admissions immediately.
 
-Approved controlled test (the runtime/host prerequisites below are still mandatory):
+### Slice C: production guest access
 
-1. Keep canonical `gpt-5.6-luna`, on localhost `start:personal`, using only a bounded, inspected public-source corpus in an isolated app. Keep embeddings enabled. Every guest search reserves one query embedding from its turn budget; background indexing requires its own allowance. Verify loopback binding, startup/background work and corpus work bounds before any paid call.
-2. Implement and install one OpenAI-specific guest profile, not a general provider framework (implementation, mocked SDK checks and canonical same-brain activation with synthetic providers are verified; live acceptance remains separate): fixed official endpoint, standard tier, response storage disabled, cache writes disabled, no native provider tools or retries. Verify the actual SDK HTTP payload with mocked fetch before enabling it. `store: false` does not promise deletion of abuse-monitoring records or other provider retention.
-3. Quote each call conservatively at the full documented 1,050,000-token context ceiling, using long-context input/output prices. With cache writes disabled, a call allowing 1,200 output tokens reserves at most `1,050,000 × $0.40/M + 1,200 × $1.80/M = $0.42216`. Three calls reserve at most **$1.26648 per turn**, before rounding up to the proposed admission ceiling. Each semantic search additionally reserves **164 microUSD ($0.000164)**: the full 8192-token embedding input ceiling at $0.02/million, rounded up. The fixed endpoint/model/dimensions, single input and zero retries are enforced. Each SDK search execution receives a one-use, cancellation-bound embedding capability after its tool quote is charged. Missing capabilities fail closed without falling back to the shared provider. Background indexing stays on its separate provider path; this does not introduce an autonomous background spending cap or reopen its closed allowance.
-4. The user approved **$2 per turn and $4 total guest-test ceiling**, enough for the first question and follow-up. Reservations deliberately overestimate expected usage; this is not a claim about measured spend. No automatic retry or budget reset to obtain additional paid attempts. Stop the test app and disable admission after the approved run; a rolling daily ledger is not permission for another day's test spend.
-5. Retain the 32,000-byte model-payload guard, 4,000-character message limit, 1,200 cumulative output-token limit, three model steps/tool calls and existing bounded read transfers. The controlled test's context-token quote allowance would use the documented full-window ceiling instead of the fixture's 8,000-token allowance. These are internal local-test conventions, not new production defaults.
+Goal: a composer on a public production page actually answers.
 
-**Remaining milestone blockers:** independent live follow-up/history/deletion verification. Recovery after losing both credential and locator is deliberately unavailable; the UI does not replay that request. Source-card and normal tab-lifecycle browser checks pass with mocked HTTP, not a live provider. A further paid test requires fresh approval, not a budget reset. Public access remains closed. The v3 hero box has an app-managed, generation-disabled preview build; full live acceptance still needs separate verification. The clock patch and broader provider/proxy/recovery work remain out of scope.
+Current state, verified against `origin/main`: the guest policy derives its origin from the deployment's preview URL and disables itself when that origin equals the production site URL, and the only authored configuration shape is the local test preset. Preview is a verification step, not a destination.
 
-### Delivery order
+- **Owner-set monthly budget (decided 2026-09-27).** Guest chat is limited by money the owner sets, not by counts of sessions or questions:
+  - The owner sets a monthly budget in US dollars in Studio's Guest chat workspace. Switching on is a prepared confirmation that states the budget; changing it is switching on again with a new amount. The budget covers one UTC calendar month and starts over on the first.
+  - **Simple by design (2026-09-27):** a question is admitted while guest chat is on and the month's spend is under the budget; nothing is reserved up front. An answer runs within fixed caps (context bytes, output tokens, model steps, searches) that hold its cost to about two cents. When it finishes, its measured cost (Slice A settlement) is added to the month; when the provider reports no usage, the answer cap ($0.05, the most one answer can cost) is added instead. Answers already running when the budget runs out may overshoot it by at most the concurrency limit times the answer cap; that is accepted rather than reserved against. An answer whose model call errors settles as failed at the cap; one still active past its deadline settles as interrupted at the cap on the next admission, so a dead process never holds a place.
+  - No per-call cost quotes, no pre-reservation, and no fingerprint of the configured limits refuses sessions or authorization: limits apply as currently configured, and the owner's budget stays in force through a change of limits.
+  - Question and session counts are not limits. Per-visitor and deployment rate limits, concurrency and session issuance stay as flood protection, sized well above normal use.
+  - When the month's budget is spent, the box shows its unavailable state and the contact door keeps working.
+  - The activation endpoint still accepts only `{ enabled }`: it reopens with the budget last set in Studio and refuses while none is set.
+  - The two-question lifetime trial allowance and its authorization are retired; stored trial state authorizes nothing, and the owner switches on again with a budget.
+  - **Implementation progress:** the managed preview policy is `budgeted`; its ledger (a new deployment-wide key, so trial state is never read, while maintenance still sweeps it) holds the owner's budget and the month's spend. Admission refuses once the month's spend reaches the budget; the send route adds the measured cost from Slice A, or the answer cap when it is unknown. `GuestTurnBudget` enforces only the fixed caps. Studio's switch takes `monthlyUsd` ($0.05 to $10,000) and shows the month's spend as a meter. The preview preset's flood limits are 30 sessions a minute and 1,000 a day deployment-wide (300 live), and per visitor 6 questions a minute and 30 a day; 300 questions a day and 3 at once deployment-wide; 10 turns per conversation.
+- Add a production policy shape carrying origin and limits, authored in the brain configuration, with the same owner-set budget. Admission accepts it while staying default-off and still requiring explicit operator authorization.
+- Size the flood limits from what Slice A shows.
+- Per-visitor, per-network and global limits, the owner's monthly budget as the hard ceiling, and a kill switch reachable from Slice B. On exhaustion the composer shows its unavailable state and the Slice D door keeps working.
+- Done: the site-owned chat boot moved into Web Chat as the shared box boot (`/ask/assets/box.js`, served only while guest assets are enabled), with its host DOM contract in `@brains/contracts` (`ask-box`). The Rizom hero and the professional atlas consume it on the existing guest runtime and authored-content contract. Hosts that set `data-ask-styled` get Web Chat's shared box presentation, which the dashboard's Ask panel also uses; the Rizom hero keeps its own frame.
+- Every launch gate above applies. Enablement stays a separate explicit decision per deployment, and preview is where each change is verified before the production deploy.
+- Tests first: every consuming site passes the shared mount/DOM contract; a production-origin request is denied until explicitly authorized; exhaustion degrades to the unavailable state without losing the visitor's draft or the independent contact link.
 
-1. **Specify the supported test slice and remaining safety requirements.** Identify the provider/model, verified token/pricing bounds, capped test spend, public-source configuration and origin/hosting posture. Separate concrete blockers from improvements. Present the scope before extending shared infrastructure.
-2. **Connect the guest backend through the existing Chat API.** Wire credentials, conversation ownership, atomic admission, execution and outcomes. Test the boundary with mocked providers while live-provider support is being completed; do not wait to integrate everything until every operational improvement exists.
-3. **Connect standalone `/ask`.** Reuse the existing client, protocol and presentation. Verify the real question-and-follow-up flow in the selected test app. Mocked answers do not satisfy the milestone.
-4. **Review the working experience and remaining launch gates with the user.** Only then proceed to the compact landing panel. Production approval remains separate.
+### Slice D: a door to the owner
 
-### What is already implemented
+Goal: a visitor can reach the owner without an account and without the chat runtime.
 
-These components and the combined synthetic-provider flow are tested; this is **not production-release approval**.
+**Implementation progress, not deployment approval:** `plugins/contact` now composes the restricted entity and service, with explicit default-off policy, readiness-gated no-JavaScript routes, atomic admission/storage caps, and conditional persistence. A durable notification job uses bounded CAS attempts/leases and a fixed first-attempt retry window; known acknowledgements are repaired into entity status without resending, including late acknowledgements after a failed projection. Notifications contain only a generic alert and a same-origin Studio Inbox link. The notifications plugin's internal subscription now works in execution-only workers. Startup and shell-owned daily maintenance recover pending enqueues and delete expired records plus their delivery ledger state; uncertain writes never regain capacity merely through elapsed time. Failed or overdue maintenance closes intake, and aggregate operational health reports pending/failed work without contact details. The canonical catalog exposes contact only for explicit addition, and the professional site has an opt-in authored opening that appears only beside a matching live form route. Tests use synthetic transport and temporary SQLite connections, covering restart, competing workers, duplicate/conflicting posts, bounded reads, lost acknowledgements, cleanup failure, and server-rendered homepage behavior. This work has not enabled intake on a deployment. Local running-app evidence is recorded below; deployment configuration, verified private sync/backup and proxy policy, approved retention/deletion lag, brand-font visual review, and owner acceptance remain outstanding.
 
-| Area                | Implemented                                                                                                                                             | Remaining integration or limitation                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Architecture        | Existing Web Chat, Chat contracts/client, agent runtime, entity service and scheduler are reused.                                                       | Guest API and standalone UI are wired; live-host/browser verification remains.                                           |
-| Guest isolation     | Distinct server-owned guest scope; public-only context; fixed read-tool allowlist; no operator tools, approvals, uploads or automatic memory ingestion. | Verify these boundaries through real HTTP requests and the final composition.                                            |
-| Ownership           | Opaque, digest-backed visitor credentials; guest conversation ownership; authenticated and guest scopes separated.                                      | Owner binding and UI transport are harness-tested; verify canonical host and browser lifecycle.                          |
-| Admission           | Atomic request/concurrency/turn/spend reservations; deduplication; shared policy/kill switch; restart persistence.                                      | Fresh reservations alone execute through HTTP; actual provider cost remains unverified.                                  |
-| Credential capacity | Atomic issuance rate/storage caps across shared-store replicas and origins; conservative handling of uncertain writes and deletes.                      | Transport abuse controls, recovery procedure and final credential-lifecycle policy.                                      |
-| Retention           | Pinned expiry, expiry-aware reads/writes, deletion-race protection and scheduled cleanup with health reporting.                                         | Owned deletion and delivery-time rechecks are wired. Operational backlog/admission verification and deletion SLA remain. |
-| Runtime limits      | Input/context/output/tool/cost guards, cancellation signals, no guest model retries or native provider-streaming bypass.                                | Canonical profile selection is wired/tested, not live-verified. Uncertain work stays reserved.                           |
-| Retrieval           | SQL result-count and stored-row byte guards; bounded lookup paths; no image expansion; cancellation propagation and reduced diagnostics.                | SQL engine scans/allocations, adapter execution and embedding/retry costs are not fully bounded or verified.             |
+**Local verification, 2026-09-22:**
 
-### Required for the first test milestone
+- Recreated the isolated worktree from `845810658c`. Started the canonical publishing app with temporary explicit contact/site configuration, loopback HTTP, isolated databases and private local sync, no Git remote, disabled embeddings, and a preloaded external-HTTP guard. Rebuilt preview through authenticated remote MCP on the running app. The app is now stopped and the canonical fixture is restored; runtime databases were retained, not reset.
+- Native Chrome form submission with JavaScript disabled exposed a real bug: `Referrer-Policy: no-referrer` caused `Origin: null`, so the strict handler rejected legitimate POSTs. Changed the policy to `same-origin`, preserving cross-site referrer suppression and strict origin rejection. Added a regression assertion. Also fixed the one-day disclosure ("1 day", not "1 days").
+- Verified escaped validation drafts, keyboard focus, saved/303 confirmation with explicit theme preserved, identical retry/303, changed retry/409, foreign-origin/403, restricted persistence, synthetic durable notification acknowledgement, and restart without resending. Filled the explicit ten-record fixture cap and exercised capacity/503 and form-rate/429 states. All ten records remained restricted with sent notification status; submitted addresses were absent from generated preview, routine logs and checked anonymous routes, with no contact FTS entries or embeddings.
+- Captured homepage, form, confirmation, validation, capacity and rate-limit pages at 390px and 1440px widths in both themes: 24 combinations, without horizontal overflow. The captures were a local review set and are not kept in the repository. Copy and posts are unapproved synthetic/local fixtures. External browser traffic was blocked, so screenshots use fallback fonts; final brand typography still needs review. No guest chat or real email was used. The HTTP guard blocked an initial starter-character generation attempt before network access; subsequent startup and contact checks made no model requests.
+- Remaining verification limits: physical expiry cleanup is covered by automated tests, not a 24-hour running-app expiry test; authenticated Inbox interaction and deployed HTTPS/proxy behavior still need acceptance. A remote directory-sync attempt hit a projection-batch fencing error on the restored baseline; startup import succeeded instead. That unrelated failure remains a separate follow-up, not a passing sync check.
 
-- [ ] Select and document the supported provider/model and test spending ceiling. Verify actual token, output, tool/embedding and retry costs fit reservations. Unsupported configurations must remain unavailable.
-- [ ] Establish adequate retrieval-work bounds for the selected public-source configuration, including the database and adapters. Result-size limits alone are insufficient.
-- [x] Wire same-origin guest issuance and request discrimination without browser-role or forwarded-header authority; covered in the HTTP harness. Final loopback host verification remains part of the running-app check.
-- [x] Mint conversations on the server; authorize guest history, sends, retries and deletion. Signed-in authority does not upgrade the guest surface in the harness.
-- [x] Execute only fresh reserved leases. Duplicate submissions return validated status/locator, retained by the shared client for history recovery, rather than another generation.
-- [ ] Finish transport verification: remaining live partial/disconnected delivery checks. Source-card browser inspection passes with mocked HTTP. Bounded source cards, owned-history restoration, idle handling and ownership/expiry rechecks have regression coverage. Native provider streaming remains unavailable.
-- [x] Wire settlement only on fulfilled runtime completion. Empty fulfilled responses settle as failed; rejected or unacknowledged work remains reserved. Provider failures, aborts and deletion races are harness-tested without refund/cancellation promises.
-- [x] Expose the fixed visitor expiry and configured disclosures through the session contract. Refresh does not renew the credential. UI expiry presentation is still required below.
-- [ ] Complete `/ask` acceptance in a running browser. Core states and controls are implemented and DOM-tested, including safe Markdown, refresh, fixed-expiry blocking, preserved partial replies, deliberate retry, and distinct new/delete actions. Visual/mobile/keyboard review and full browser-to-runtime composition remain.
-- [ ] Verify a real public-source answer, follow-up, refresh and owned deletion in the running canonical test app, plus isolation and failure tests.
+- A small compound plugin owns the `contact-request` entity and its service, registers an `InboxSource`, and declares narrowly scoped public form GET/POST handlers through `getWebRoutes`. No existing plugin's domain covers contact. The inbox is a pull-based source registry, not a "create inbox item" call.
+- Do not use the current `getApiRoutes` tool bridge for intake: it parses the whole body before invoking a tool and forwards neither cookies nor trusted network metadata. Web handlers already receive the raw request and socket metadata. Keep intake out of the public tool catalog; the newsletter route is a form/redirect precedent, not an abuse-control precedent.
+- Force admin-only entity visibility regardless of submitted fields. Set `embeddable: false`, `fullTextSearchable: false` and `projectionSource: false`; contact details are private operational records, never automatic Brain knowledge or provider input. Keep them out of public routes, feeds and exports, and preserve visibility in private sync/backups. Approve finite retention, request/storage caps and deletion behavior before enabling intake, and state these on the form.
+- Bound body bytes and read time before parsing, then validate bounded fields with Zod and check the honeypot. Enforce atomic global and network-bucket limits in runtime state, using server-owned socket identity, never cookies, submitted IPs or untrusted forwarding headers. Missing trusted network identity fails closed. Verify the deployment's proxy posture; do not add a client-controlled identity fallback. Kamal deployments terminate TLS at their proxy, which reaches the app over the private container network and forwards plain HTTP: intake opts in with `http.trustForwardedProto`, which believes `X-Forwarded-Proto: https` only from a loopback or private peer. Visitor identity stays the socket peer, so behind a proxy the network limits act as global limits and are configured equal to them. With `preview: true`, the handler also serves the runtime preview origin, and a preview build links the homepage door there. Deployments that run a separate worker execute site builds and recurring checks there: contact declares its routes and runs its maintenance in both processes, keeps maintenance freshness in shared runtime state, and the homepage opening checks declared routes rather than endpoint advertisement, which only the web process registers.
+- Declare the accepted origins and enforce them at the handler, including cross-site form rejection. Preview reachability is an explicit handler opt-in, not exposure of other tool APIs. Verify preview intake on an isolated app with synthetic notification delivery, not by sending test requests to the live owner's inbox.
+- A runtime form GET issues a short-lived opaque submission token under the same issuance limits; never bake one shared token into static site output. A plain POST works without JavaScript or guest credentials. Use the token, a canonical payload digest and deterministic entity identity for conditional creation: an identical retry returns the accepted result, changed payload reuse is rejected, and concurrent submissions or recovery after a crash cannot create another request. Store only bounded, expiring token state; never put contact fields in redirect URLs.
+- Persist notification-pending state with the accepted request. A bounded durable delivery job uses a stable request-derived idempotency key, records delivery status and retries transient failure without recreating the entity. Reconcile a crash between persistence and enqueue. Missing configuration or exhausted retries remain visible to the owner; successful intake means saved, not necessarily notified. Notifications contain a generic alert and an authenticated inbox link, not the submitted address/message. Routine errors and logs must be sanitized too.
+- Once Slice C is live, the Brain may offer the door as text, never invoke it. Optional conversation attachment must be verified server-side by the existing guest ownership rules using the request's credential, locator and expiry/deletion state; expose a narrow shared verifier rather than trusting a form field or copying authorization logic. Foreign, forged, expired, deleted or unverifiable locators are stored as absent without revealing why. The contact request still succeeds independently. Inbox links remain admin-authorized and tolerate later conversation deletion; no transcript is copied into the contact record.
+- The owner replies outside the page, by ordinary email or a call. Contact delivery uses no model or embedding calls and consumes no guest allowance.
+- Tests first: no-JavaScript GET/POST/redirect works; streaming oversized bodies are rejected before parsing; forged headers and cookie resets do not evade limits; private records never enter search, projections or provider calls; concurrent duplicate POSTs and crash recovery create one request; notification failure/retry preserves it without duplicate delivery; invalid conversation attachment does not reject contact or leak history; retention removes the record and associated delivery state; contact details never reach routine logs.
 
-### Required before unattended public launch
+## Per-deployment rollout
 
-These are not waived by the test milestone. They need a concrete solution for the chosen deployment, not necessarily a generalized subsystem.
+Every site verifies its authored-content/rendering integration, writes its `ask-content`, decides on the door, and separately decides on enablement. Authored content alone does not add a renderer to a site that lacks one. Enablement is always last.
 
-- Approve exact provider/spend, request, concurrency, issuance, retention and timeout policy, together with provider/deletion disclosures.
-- Validate the actual HTTPS/origin/proxy posture, network-level abuse controls and production identity isolation.
-- Verify cleanup throughput and admission behavior when maintenance or storage is unhealthy. Specify backup, provider and security-log retention limitations.
-- Resolve the production credential activity/rotation policy. Expired credentials have regression coverage, and normal first-session tab races have native Chromium coverage. Verify cookie loss during an ambiguous first send and crash/navigation behavior without weakening ownership. UI retry requires a known conversation locator. Without one, it preserves visible text and disables replay; recovering both a lost credential and lost first response is deliberately unsupported.
-- Specify a verified operational recovery procedure for uncertain execution/credential work and anomalous state. Recovery must not reset usage or release work merely because time passed.
-- Verify the kill switch and already-running work behavior, authenticated Chat regressions, operational visibility and rollback.
-- Obtain explicit experience, release and deployment approval. Passing tests is not that approval.
+### Rizom
 
-### Later hardening and explicitly deferred work
+1. Merge and release the operator configuration path for per-user `plugins.dashboard.ask`.
+2. Merge and import content PR rizom-content#2, after the supporting code is deployed, then rebuild preview through the running app.
+3. Enable the Ask tab. This is an owner choice and does not authorize guest execution.
 
-Do not turn these into first-milestone prerequisites without identifying a concrete safety or acceptance failure and explaining the scope change.
+### yeehaa.io
 
-- More provider/model combinations and additional deployment/proxy topologies.
-- Automatic reconciliation beyond the verified recovery procedure required for launch.
-- More elaborate credential renewal/recovery UX beyond the chosen policy.
-- Cleanup throughput optimizations, richer operational dashboards and broader scale testing beyond the selected deployment's requirements.
-- Additional timing abstractions. Review the paused clock patch against the chosen runtime's actual deadline requirements before deciding whether to keep it.
-- Landing-panel integration: a separate product milestone after standalone `/ask` works, not a substitute for it.
+Served by `@brains/site-professional` from the yeehaa rover deployment. The homepage is the Brain itself: a full-screen atlas of everything the owner has published, drawn as topographic terrain from the topics knowledge map, with the owner's authored opening and the visitor's next move floating over it. The page addresses organizations whose knowledge is their asset, and its single outcome is a conversation with the owner. Rizom appears as the current work, not as the subject of the page.
 
-No item here permits weakening public-only access, ownership, cost controls, expiry or truthful cancellation semantics.
+Design study: [`docs/design/yeehaa-landing-redesign-mockup.html`](../design/yeehaa-landing-redesign-mockup.html). Five states: landing, answer, talk to me, before chat, contact. Its state switcher, simulated answer and topic placement are design references, not production features. It supersedes `yeehaa-landing-dialog-mockup.html`, which is deleted.
 
-## Approved product scope
+Shipped in PR #351: the opt-in `homepageOpening` site config, build-time loading of public `ask-content`, and the contact door, rendered only beside a matching live form route. Unconfigured deployments keep their current homepage.
 
-`/ask` is a public encounter with Rizom’s actual Brain: visitors can explore its public knowledge, approach and work, ask follow-up questions, and use that knowledge to develop their own thinking.
+1. **Static atlas.** When `homepageOpening` is on and the opening loads, the homepage renders the atlas instead of the hero and lists. No JavaScript.
+   - Data: the homepage datasource adds the knowledge-map projection (`buildKnowledgeMapData`, exported from `@brains/topics`). It keeps only points whose post, deck or project is returned by the build's scoped `listEntities`, so production drafts and private entities drop out, and carries `entityType`, `metadata.slug` and year so site-builder enrichment supplies URLs and type labels. Zones without a shown member are dropped. Missing embeddings or an empty projection render the opening and door without terrain.
+   - Terrain: contours are computed at build time by marching squares over a field of zone and item bumps in the unit square, and server-rendered as SVG. Markers are links placed in the same normalized space; zone names label the territories. The build places each name inside the map's edges and off marks; the atlas script then re-places names by their rendered size, largest territory first, keeping names on one line apart and hiding a name that has no free spot.
+   - Opening and door: the `ask-content` title and Markdown introduction with owner attribution; topics and the contact action link to the contact form. Every word around them is authored too: `ask-content` carries optional `topicsHeading`, `contactLabel`, `contactNote`, `attribution` and `mapCaption`. Unwritten copy is left out; the contact action falls back to "Contact".
+   - Layout: shared header and footer; the atlas fills the first viewport; on desktop the conversation column sits over the left of the map, on phones the map is a band above the opening, sized so the first screen holds the map and the headline; the build records how far down the map's content reaches, and the legend and the opening start there, over the fading outer rings. Long territory names wrap to two lines on phones. Shared theme tokens only, both themes.
+   - Tests first: the atlas renders only when opted in; drafts and private entities are absent; markers link to entity URLs; empty zones are omitted; without map data the opening and door still render; contour output is deterministic and bounded; the page carries no scripts and makes no chat request.
+2. **Living terrain and touch.** Each contour ring drifts a fraction of a pixel on its own phase, so neighbouring rings slide against each other; the CSS animation steps a few times a second instead of repainting every frame, keeps lines anti-aliased (a displacement filter aliases them), and is off under reduced motion. A small runtime script, shipped only with the atlas, pauses the drift off screen and in hidden tabs, and handles touch: devices without hover get no hover styles, the first tap opens the nearest mark's title card within a fingertip (hit targets overlap on phones) and the second follows its link. Mouse and keyboard keep hover and focus cards.
+3. **Chat in the atlas.** Built and verified on the running app with the local-test preset; production guest access stays off until Slice C. When Web Chat serves the shared box boot (preview-enabled, for a preview build), the atlas renders the ask-box host; Web Chat records where the box can answer in shared runtime state (a configured policy everywhere; managed guest chat on preview while the owner has it switched on), on every start and activation change, so site builds in a separate worker, where Web Chat is not registered, see it too. The box boot marks its host ready once the controls are live, and the atlas keeps the box out of sight until then in the conversation column: a disabled composer that the boot enables, mounting the shared guest box on engagement and never sending on its own. The host opts into Web Chat's shared box presentation, themes it with the site tokens and hides the box's welcome, because the page already presents the opening and topics. Topics fill the live draft; while the box is off they stay links to the contact form. Web Chat reports each finished answer's sources (`type:entityId`, the map's own key) with an `ask:sources` event; the map lights them, dims the rest and zooms around them only as far as keeps each clear of the edges and the header. On desktop, dotted leads run from each source the answer lists (`data-ask-source`, same key), or from the list's summary while it is closed, to its mark, following the map as it turns and the conversation as it scrolls. The contact door stays outside the chat mount and survives unavailability and exhaustion. On a phone (below 48rem) engaging opens the box full screen (`data-ask-sheet` on the host, design study `docs/design/yeehaa-mobile-chat-mockup.html`): it fits the visual viewport so the composer rides on the keyboard, locks the page, closes with its close button, Back or Escape, and closes the keyboard on send; the atlas docks its map as a strip under the sheet header where cited sources light up, folds the strip while the keyboard is open, and after closing the box offers the conversation back. Guest enablement remains a separate authorization with its own allowance, ledger and spend.
+4. **Deployment and review.** Write the approved `ask-content`, enable contact and `homepageOpening` in the yeehaa deployment's site config, rebuild preview through the running app, capture phone and desktop in both themes, and review with the owner before publication. Do not substitute a package build or the study for preview evidence.
 
-- No account required.
-- Public-source retrieval, answers and synthesis; visitors may supply text in their questions.
-- No editing the Brain’s content, publishing, administration or unrestricted tool access.
-- The Brain landing-page panel is a compact presentation of the same conversation available at `/ask`.
-- Visitor conversations remain isolated and do not automatically become the Brain’s knowledge.
-- Not a scripted sales bot, a support-only interface, or public access to Studio.
+Open items before this deployment's page is published:
 
-“Public” describes the accessible Brain knowledge. It does **not** mean visitor messages are published.
+- **Introduction copy.** The headline "Building something inhabitable." is accepted. The introduction draft ("I work on how institutions hold what they know. Everything I've published is on this map. …") awaits the owner's markup.
+- **Topic placement** comes from the Brain's projection; the study's six territories are illustrative. Names that do not fit a crowded phone map are hidden there.
+- **Nav and entity labels** on this deployment come from its brain configuration, not from the site package. Confirm the labels the page assumes before relying on them.
 
-## Architecture and non-negotiable boundaries
+## Explicitly deferred
 
-Reuse rather than replace:
+- additional providers/models or a universal provider/proxy framework;
+- automatic recovery of lost first responses or credentials;
+- uploads, approvals, private context, automatic memory ingestion, or any guest write to Brain content;
+- activity-based renewal and broader credential-recovery UX;
+- operational dashboards beyond the Slice B guest-usage workspace, or scale work beyond a selected launch deployment; and
+- the paused elapsed-time/clock patch, which requires its own necessity and privacy review.
 
-- `interfaces/web-chat`: standalone presentation, Chat routes, browser access, streaming and history handling.
-- `shared/contracts/src/chat.ts`: schema-validated Chat contracts, `createChatClient` and `readChatProtocolEvents`.
-- Existing agent runtime, permission-aware retrieval, transactional storage and scheduler.
-- Studio’s authenticated `/chat` remains a separate presentation of the Chat domain.
+## Completion
 
-Authenticated Chat handlers still reject anonymous callers. The guest API uses its own credential-bound routes and remains closed without explicit policy and trusted runtime readiness for new admission. Route registration with `public: true`, or accepting `permissionLevel: public`, does not establish guest ownership or authority. If guest discrimination needs a separate API subpath, it must reuse the existing Chat implementation.
-
-Do not create another chat engine, bypass admission through A2A, embed Studio in an iframe, or ship Studio’s application bundle to the landing page.
-
-### Identity, knowledge and tools
-
-- Use opaque visitor credentials in host-only, HttpOnly, Secure production cookies with an appropriate SameSite policy; never put credentials in URLs or local storage.
-- Conversation IDs are server-minted locators, not authorization. Reject forged, foreign, expired or deleted conversations without revealing their contents.
-- Keep guests distinct from authenticated Public, Trusted and Admin principals. Guest execution is never Anchor execution, including when an owner tests `/ask` while signed in.
-- Apply public visibility filtering before model context is assembled, including metadata, excerpts, attachments and tool results. Retrieved content is data, not authority.
-- Allow only reviewed public read/search operations. Installing another plugin must not automatically grant its tools to guests.
-- Deny content writes, publishing, administration, scheduling, remote agents, arbitrary URL fetching, uploads and approval execution.
-- Do not accept browser-provided system instructions, operator context, owner IDs, roles, approval responses or tool permissions.
-- Exclude visitor transcripts from automatic memory, indexing, summarization and shared-knowledge ingestion, including future hooks.
-- Show validated returned public sources where available; never manufacture verified citations.
-
-### Accounting, cancellation and retention
-
-- Reserve capacity before generation and fail closed if a required mechanism is unavailable. Cookie resets, parallel tabs, retries and restarts must not evade caps.
-- Deployment-wide coordination requires replicas to use the same transactional backing database. Mismatched policies fail closed; operator updates retain existing usage.
-- Disconnection, expiry or a local abort is not proof remote work ended. Expose “stop waiting” rather than a false cancellation promise when genuine cancellation is unavailable.
-- Distinguish completion, partial delivery, denial, expiry, budget exhaustion and provider failure through the existing protocol where possible.
-- Pinned retention cannot be lengthened by resume, metadata changes or policy loosening. Deletion/expiry must prevent late writes from resurrecting conversations.
-- Malformed or unaccounted state requires reconciliation, not guessed lifetimes or destructive cleanup. Preserve uncertain reservations until their outcome is verified.
-- Keep raw prompts, replies, credentials and conversation identifiers out of routine analytics/error logs. Operational metrics should be aggregate and access-controlled.
-- Before first send, identify the Brain/provider, retention and deletion limitations; discourage sensitive material. Do not promise local processing, provider non-training or deletion beyond what the system controls.
-
-## Policy proposals — not approved defaults
-
-| Policy              | Proposal                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| Input               | Text only; no uploads/private attachments; maximum 4,000 characters per message.           |
-| Output              | Maximum 1,200 generated tokens per turn.                                                   |
-| Conversation        | Maximum 20 user turns, plus a bounded model-context token budget.                          |
-| Concurrency         | One active generation per visitor and a separate deployment-wide cap.                      |
-| Rate                | Five submissions per minute and 20 per day per visitor, plus network-level abuse controls. |
-| Duration            | 90-second request bound with explicit idle-timeout handling.                               |
-| Retention           | Expire after 24 hours of inactivity, with a hard seven-day maximum from creation.          |
-| Browser persistence | No transcript in local storage; restore only authorized, unexpired server history.         |
-| Budget              | An operator-approved daily provider-spend ceiling and global caps; no unlimited fallback.  |
-
-These are proposals, not deployment configuration or claims of complete enforcement. Exact global, issuance, retrieval and provider limits require review and representative-turn measurements. Test fixtures are not launch approval. In particular, current fixed credential leases do not implement the proposed activity-based renewal behavior.
-
-## Standalone `/ask` acceptance
-
-Do not redesign the landing page during this milestone.
-
-- Send a question, deliver the actual answer and allow a follow-up in the same conversation.
-- Render safe Markdown and public source links; no executable HTML, unsafe URL schemes or unsupported action buttons.
-- Preserve submitted text and received partial responses on failure. Make retries deliberate and deduplicated.
-- Show waiting, completion, interruption, unavailable, expired and limit-reached states honestly. When guests are disabled, do not present a form that can never succeed.
-- Provide distinct new-conversation and delete-conversation controls. Creating another conversation is not deletion.
-- Support refresh and multiple tabs without mixing conversations or bypassing concurrency limits.
-- Keep focus predictable and announcements accessible; do not announce every token or force scrolling while someone reads earlier messages.
-
-**Exit:** standalone `/ask` works without Studio or an account, against the explicitly supported test posture, with its required safeguards verified.
-
-## Existing hero chat box: approved v3 implemented; live acceptance outstanding
-
-The user approved UX mockup v3 in `/tmp/brain-box-ux-review/index.html` and explicitly requested implementation. The UI remains the original `/brain` hero's `#brain-chat` box: its frame, brand bar, authored title, single-line-height composer, arrow and topic hints. Desktop height is fixed at 640px; mobile uses the visual viewport. Only the middle scrolls. The composer grows inward, the welcome title retires after sending, and About plus optional Full chat sit in the original brand bar. The separate panel, its launcher, `askTopics` schema and conversation-management controls have been removed from the active landing integration. No new marketing or topic copy was added to `rizom-content`.
-
-The page's `/brain-chat.js` bootstrap lazily loads the guest entry on interaction and enhances only `.talk-body`. Topic buttons fill the input; only the send arrow or Enter submits. A deliberate first send while assets are loading pins the draft and authorizes exactly one send after readiness; a failed connection ends that intent. Focus, topics, availability checks and later recovery never send automatically. The textarea preserves oversized pasted text and shows inline validation instead of truncating it. The existing `GuestApp` owns the same guest transport, state, ownership checks and limits, while a shared transcript renderer shows answers and sources within the original box. Follow-ups use the same conversation. There is no second chat engine or additional panel.
-
-`GuestBox` is presentation; `GuestApp` still owns transport, history and admission-facing state. Drafts stay editable during work and survive answers and failures. Earlier text is kept in memory when the visitor explicitly confirms a separate start. That action checks availability, changes only the active local selection, and never deletes, refunds, resets a limit or replays a question. Unavailable saved history now requires this explicit action instead of silently dropping its locator. Full chat is offered only with a saved locator and while not waiting for delivery. No production-backend fallback or transcript-bearing URLs.
-
-“Check answer” is GET-only. Shared `getGuestHistory(id, submissionId)` reads the existing owned history endpoint with an optional submission-ID query and returns a bounded, exact receipt projection. `GuestAdmission.status` only reads the existing ledger: it cannot reserve, settle or clean up. Matching question text or message counts is not used to infer that a pending request completed, since another tab can have asked an identical question. Restored history without a pending local submission uses the stable server user-message ID. HTTP and UI tests cover active/completed distinction, cross-visitor denial, deletion, no replay and unchanged quota enforcement.
-
-A separate guest entry avoids importing disabled rich-rendering plugins while retaining Streamdown. The lazy bundle is approximately 532 KB gzip, guarded by a 600 KB compressed-size regression; the site bootstrap remains a small, page-owned asset. CLI builds package the new assets, which are not served when guest access is disabled.
-
-Built-UI Chromium fixtures at `/tmp/public-ask-v3-browser/report.json` cover lazy loading, a first pre-mount send, topics without sending, draft preservation during delivery, same-conversation follow-ups, read-only receipt/history checks, uncertain separate starts, source presentation, fixed-height hydration, reduced mobile viewport and unavailable access. These use mocked HTTP, not a provider.
-
-The integrated site was also rebuilt through `site-builder_build-site` on a running canonical `start:publishing` app, with embeddings disabled, placeholder keys and general model traffic blocked at loopback port 9. The paid guest profile was unavailable. The app was stopped after the build; its original YAML and paused clock files were restored. The actual generated site and built UI are served at `http://127.0.0.1:8416/brain` with generation deliberately disabled. `/tmp/public-ask-v3-preview/check.json` verifies the actual page without mocked routes, fixed height, editable unavailable-state draft and zero question submissions. No paid turn, budget reset, merge or deployment was performed for this implementation.
-
-Remaining acceptance criteria:
-
-- Keep the hero, input and topic suggestions. Suggestions only fill the input; Send transmits text.
-- Load a small chat bundle on interaction using shared contracts/transport. Keep presentation state local to the site.
-- Keep the approved fixed-height shell across states, with real answers and sources in its scrolling middle and the composer anchored below.
-- “Continue in `/ask`” uses the same guest identity and conversation locator. Load authorized history; do not copy transcripts into URLs or create a replacement conversation.
-- Handle navigation during generation without automatic replay. Verify stream reattachment before promising it; report continuing or interrupted work honestly.
-- Isolate preview and production identities. Use an explicitly configured test backend, never silent production requests.
-- Shared URLs and expired credentials must not reveal someone else’s transcript.
-- No canned answers, invented source cards, premature “Live” labels or automatic generation on page load.
-
-Authoritative public copy and privacy wording belong in `rizom-content`. Rendering, assets and contracts belong in `brains`; use the existing asset/build/fingerprinting pipeline.
-
-**Exit:** a visitor can begin in the existing hero box and continue the same conversation at `/ask`, with identical guest policy enforcement.
-
-## Semantic query accounting and same-brain mocked verification
-
-Embedding is core functionality. The former embeddings-off guest restriction has been replaced with prepaid, single-use query embeddings through the existing tool budget. This does not charge background indexing to guest turns or introduce a new background spending allowance.
-
-A canonical `start:publishing` app was run with embeddings enabled, an isolated XDG data/cache directory and copied public site content. Its default preview was rebuilt through MCP on the running app. Both the generated native network section and Guest Chat used that **same publishing brain**; the loopback preview file server relayed chat only to that backend. No browser routes were mocked. Provider HTTP was intercepted into a local synthetic server with no upstream transport and a placeholder key.
-
-Chromium submitted one **synthetic-provider-only** fixture question. The actual shared guest runtime completed two mocked model requests and one prepaid query embedding. Background indexing separately made 38 mocked embedding requests; those are not the earlier 38 paid indexing requests or measured provider billing. Unsupported background generation was blocked. The native map correctly showed **“No indexed agents yet.”** No agent nodes were invented. The box remained 640px and there were no page errors.
-
-Artifacts: `/tmp/public-ask-semantic-app/{report.json,chat.png,network.png,provider.jsonl}`. The initial isolated output needed a temporary `node_modules` symlink for Tailwind resolution; the app-managed rebuild then succeeded. All fixture servers are stopped. SHA-256 checks confirm the publishing YAML, both paused clock files and the closed embedding ledger were restored or unchanged. No paid allowance was reopened/reset, and nothing was staged or committed. This verifies combined operation with synthetic providers, not new live-provider acceptance or a populated real agent network.
-
-Full-tree validation: 101 typecheck tasks, 99 test tasks and targeted lint passed. Regressions cover pre-call exhaustion, retained failure reservations, no retries, cancellation, one-use capabilities, embedding model/usage bounds, public visibility, index readiness and search/projection coexistence. These checks still do not validate future individual commit partitions.
-
-## Commit delivery
-
-The approved groups were validated as incremental source snapshots in `/tmp/public-ask-commit-validation`, with independently installed workspace dependencies—not links into the dirty integration worktree. The snapshots used the committed budget implementation, excluding its paused clock patch, the untracked deadline test and both retired network captures. Normal commit hooks were also run without bypasses.
-
-- `539524ac57`: reconcile existing workspace lock metadata, without the new site dependencies.
-- `bac03800c7`: trusted transport context and loopback binding.
-- `551efbd108`: accounted semantic runtime, source projection and shared client/history contracts.
-- `3acf67dbca`: owned guest HTTP, standalone/shared UI and build assets.
-- `1a8f8df4a3`: landing composition, native local map, three site dependencies and retained Studio captures.
-
-The runtime snapshot passed all 101 typecheck and 99 test tasks. Transport, HTTP/UI and site snapshots passed their relevant checks; the HTTP/UI snapshot also built UI and CLI assets. The landing snapshot built the site package and ran canonical `start:publishing` with a fresh isolated fixture database, then rebuilt preview via MCP on the running app. Chromium verified one synthetic guest question, two mocked model requests, one query embedding and the native empty local map. Both retired network SVGs were absent from the generated preview. Evidence: `/tmp/public-ask-commit-site/report.json`; check and hook logs: `/tmp/public-ask-commits/`.
-
-The hooks identified an unsorted site dependency list and two undocumented recovery catches; these were corrected in their respective groups and the hooks rerun normally. Original capture files were not deleted. SHA-256 checks preserved the paused files, retired captures, original publishing YAML and closed embedding ledger. Fixture servers are stopped. No merge, release, deployment, paid call or allowance reset was performed.
-
-The three paired Markdown changes in `/home/yeehaa/Documents/rizom-content-worktrees/brain-landing/site-content/brain/{hero,capture,connect}.md` were subsequently committed as `1625268` after separate approval. Together with the authored landing commit `358ece0`, they must accompany the site before deployment. The original `feat/rizom-brain-landing` code worktree remains unchanged.
-
-## Verification and delivery
-
-### Boundary tests
-
-- Guest versus authenticated Public/Trusted/Admin admission; signed-in owners cannot upgrade guests.
-- Two visitors cannot read, delete, continue or enumerate each other’s conversations.
-- Forged tokens/IDs, fixation, expiry, CSRF and injected privilege/context fail safely.
-- Private knowledge, Inbox data, other conversations, private metadata and artifacts never reach guest model context or replies.
-- Prompt injection cannot enable denied/newly installed tools. Guest conversations never become shared knowledge automatically.
-- Cookie resets, parallel requests, retries, restarts, replicas and spoofed forwarding headers cannot bypass applicable quotas or authority checks.
-- Expiry/deletion, late writes, partial delivery, timeout, provider failure and uncertain cancellation behave as disclosed.
-
-### Product tests
-
-- Real answers, follow-up, source rendering, refresh, deletion and explicit retry.
-- Split/malformed protocol frames and unsupported cards fail safely.
-- Keyboard-only use, screen readers, mobile layouts and both themes.
-- No requests before Send, exposed provider keys, transcript-bearing URLs or raw-conversation analytics.
-- Authenticated Chat still works; verify Chat without Studio.
-- After box integration, verify continuity before, during and after generation, including navigation and expiry.
-
-### Delivery discipline
-
-1. Use targeted checks first; broaden when shared contracts change. Mock-provider and SQLite tests do not establish live-provider pricing or product readiness.
-2. Start an isolated canonical test app using `packages/brain-cli` posture scripts, not invented startup commands. Fixtures belong in mocks/in-memory harnesses, not durable app data.
-3. Verify the real public-source conversation in that running app before declaring the milestone complete.
-4. For site verification, trigger the preview rebuild on the running app through its command surface before inspecting `dist/site-preview`. Production output is separate.
-5. Review the actual experience and policy with the user. Tests are not design, release or deployment approval.
-6. Release core/site changes through their respective lanes only with explicit approval. Publication rebuild and deployment are separate actions.
-7. Verify deployment behavior, aggregate failures/limits/cost and rollback via the guest kill switch without disrupting authenticated Chat.
-
-## Progress reporting and scope control
-
-Use this document as the current status, not an accumulating sequence of technical completion reports.
-
-Every implementation checkpoint should state:
-
-1. **Capability advanced:** what a visitor can now do, or the exact blocker removed if nothing is user-visible yet.
-2. **Milestone blockers:** the remaining items from the first-test checklist.
-3. **Scope changes:** why any new shared infrastructure is necessary; obtain agreement before expanding the work.
-
-Detailed historical implementation notes remain in Git history through `51b218fe11`. They are evidence of completed engineering work, not an authoritative current backlog. The old chronological notes included outstanding items that later commits completed; this consolidated plan replaces that ambiguity.
+Delete this plan after the bounded usage record and its Studio monitor are in place, each deployment's content, door and enablement decisions are made and verified through its running app, the production policy is explicitly approved wherever guests are admitted, and the shipped behavior is captured in Web Chat, Dashboard and site documentation and changelogs.

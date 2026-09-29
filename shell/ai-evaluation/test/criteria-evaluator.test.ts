@@ -2,6 +2,36 @@ import { describe, expect, it } from "bun:test";
 import { evaluateCriteria } from "../src/criteria-evaluator";
 
 describe("evaluateCriteria", () => {
+  it("passes responseEquals only for a byte-for-byte match", () => {
+    const exact = "# Saved note\n\nKeep **this** unchanged.";
+    const results = evaluateCriteria(
+      { responseEquals: exact },
+      { text: exact },
+      [],
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({ criterion: "responseEquals", passed: true }),
+    ]);
+  });
+
+  it("fails responseEquals when content is reformatted or wrapped", () => {
+    const exact = "# Saved note\n\nKeep **this** unchanged.";
+    const results = evaluateCriteria(
+      { responseEquals: exact },
+      { text: `Here is the note:\n\n${exact}` },
+      [],
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        criterion: "responseEquals",
+        passed: false,
+        message: "Response does not exactly match expected text",
+      }),
+    ]);
+  });
+
   it("passes responseContainsAny when any alternative is present", () => {
     const results = evaluateCriteria(
       {

@@ -80,11 +80,11 @@ The same plugin-facing shape is shared by the runtime state store (`shell/runtim
 
 ## Incremental path
 
-1. Fix the hosted Rover persistence contract immediately:
+1. Fix the hosted-brain persistence contract immediately:
    - either persist `/app/data` wherever auth-service still writes `./data/auth`, or
    - preferably move auth-service's default storage root to `XDG_DATA_HOME` so hosted auth state lands under the already-persisted `/data` volume.
 2. Add regression coverage that generated deploy templates persist the auth/operator-runtime storage path.
-3. Keep immediate Rover setup-email dedupe file-backed behind a small storage interface until the DB service exists.
+3. Keep immediate hosted setup-email dedupe file-backed behind a small storage interface until the DB service exists.
 4. Define the operator DB service contract and ownership boundary in shell/app or a shared shell package.
 5. [x] Replace auth-service JSON runtime reads with private generated-migration `auth.db` storage and a clean re-onboarding cutover. (Setup-email/notification dedupe is no longer the first consumer here — as ephemeral state it moves to the runtime state store (`shell/runtime-state`).)
 6. [x] Keep auth audit and invitation-delivery history in the private auth database; add other durable security domains only when they have a concrete owner.

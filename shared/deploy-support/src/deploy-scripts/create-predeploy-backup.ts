@@ -602,6 +602,44 @@ function shellSafe(value: string, name: string): string {
   return value;
 }
 
+/**
+ * The 0.3 cold snapshot requires a ready, operational runtime and affirmative
+ * idle-queue evidence before stopping writers. An expired lease does not prove
+ * that a side effect failed, and cannot authorize replay after deployment.
+ */
+export function renderPredeployReadinessProgram(
+  healthUrl: string = "http://127.0.0.1:8080/health/ready",
+): string {
+  return `const response = await fetch(${JSON.stringify(healthUrl)});
+const health = await response.json();
+const queue = health.resources?.queue;
+if (response.status !== 200 || health.status !== "ready") {
+  console.error("pre-deploy snapshot: current runtime is not ready");
+  process.exit(1);
+}
+if (!queue || queue.totals?.pending !== 0 || queue.totals?.processing !== 0 || queue.staleLeaseCount !== 0) {
+  console.error("pre-deploy snapshot: job queue is not idle or lacks verified state");
+  process.exit(1);
+}
+if (health.operationalStatus !== "operational") {
+  console.error("pre-deploy snapshot: current runtime is not operational");
+  process.exit(1);
+}
+`;
+}
+
+/** Forward only the runtime's own notices, not unrelated remote output. */
+export function predeployBackupNotices(stderr: string): string[] {
+  const prefix = "pre-deploy snapshot: ";
+  return stderr
+    .split("\n")
+    .filter((line) => line.startsWith(prefix))
+    .map(
+      (line) =>
+        `::warning title=Pre-deploy backup::${line.slice(prefix.length).trim()}`,
+    );
+}
+
 export function renderPredeployBackupRemoteScript(options?: {
   captureProgramBase64?: string;
 }): string {
@@ -651,9 +689,7 @@ case "$source_version" in 0.3.*) ;; *) echo "pre-deploy snapshot: use 0.2 toolin
 # The supervisor closes admissions and drains workers on SIGTERM. Refuse busy
 # queues before shutdown; the cold copy checks again for unfinished side effects.
 docker exec "$container" bun -e '
-const r = await fetch("http://127.0.0.1:8080/health/ready"); const h = await r.json(); const q = h.resources?.queue;
-if (r.status !== 200 || h.status !== "ready" || h.operationalStatus !== "operational" || !q || q.totals?.pending !== 0 || q.totals?.processing !== 0 || q.staleLeaseCount !== 0) process.exit(1);
-'
+${renderPredeployReadinessProgram()}'
 mapfile -t all_containers < <(docker ps --filter "label=service=\${SERVICE_NAME}" --format '{{.ID}}')
 workers=()
 for id in "\${all_containers[@]}"; do
@@ -880,8 +916,13 @@ export async function runPredeployBackup(): Promise<PredeployBackupResult> {
     new Response(child.stdout).text(),
     new Response(child.stderr).text(),
   ]);
-  if (code !== 0)
-    throw new Error(`Predeploy backup failed: ${stderr.trim().slice(0, 1000)}`);
+  if (code !== 0) {
+    const diagnostic = stderr.trim().slice(0, 1000);
+    throw new Error(
+      `Predeploy backup failed${diagnostic ? `: ${diagnostic}` : ""}`,
+    );
+  }
+  for (const notice of predeployBackupNotices(stderr)) console.log(notice);
   const result = parsePredeployBackupOutput(stdout);
   const output = process.env["GITHUB_OUTPUT"],
     summary = process.env["GITHUB_STEP_SUMMARY"];

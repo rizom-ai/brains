@@ -21,18 +21,14 @@ describe("guest configuration conventions", () => {
     expect(resolveGuestPreset(config.guest)).toMatchObject({
       enabled: true,
       origin: "http://127.0.0.1:8080",
-      budget: { dailyUsd: 4, maxTurnUsd: 2 },
+      budget: { dailyUsd: 4, maxTurnUsd: 0.05 },
       retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
       limits: {
-        userTurns: 2,
-        globalConcurrency: 1,
-        globalRequestsPerDay: 2,
-        contextTokens: 1_050_000,
-        contextBytes: 32000,
-        outputTokens: 1200,
-        toolCalls: 3,
-        toolSteps: 3,
-        streamIdleTimeoutSeconds: 30,
+        userTurns: 10,
+        globalConcurrency: 3,
+        globalRequestsPerDay: 300,
+        messageCharacters: 4000,
+        requestTimeoutSeconds: 180,
       },
       disclosure: { provider: "OpenAI (gpt-5.6-luna)" },
     });
@@ -44,7 +40,7 @@ describe("guest configuration conventions", () => {
     });
     expect(resolveGuestPreset(config.guest)).toMatchObject({
       origin: "http://127.0.0.1:18180",
-      budget: { dailyUsd: 4, maxTurnUsd: 2 },
+      budget: { dailyUsd: 4, maxTurnUsd: 0.05 },
     });
   });
 
@@ -70,8 +66,8 @@ describe("guest configuration conventions", () => {
     const second = resolveGuestPreset("local-test");
     if (!first.enabled || !second.enabled)
       throw new Error("Expected enabled policies");
-    first.limits.outputTokens = 1;
-    expect(second.limits.outputTokens).toBe(1200);
+    first.limits.messageCharacters = 1;
+    expect(second.limits.messageCharacters).toBe(4000);
   });
 
   it("does not turn the preset into runtime admission", async () => {

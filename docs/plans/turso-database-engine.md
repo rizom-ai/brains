@@ -1,1045 +1,123 @@
-# Plan: Turso Database engine migration
+# Plan: Turso-only database runtime for `0.3`
+
+Last updated: 2026-09-13
 
 ## Status
 
-**Release decision: 0.2 stays on libSQL; 0.3 is Turso-only.** This supersedes
-all earlier default-engine, fallback, remote-libSQL, and auth-replica exceptions
-below. The dual-engine implementation is a migration foundation, not the final
-0.3 runtime contract. Phase 7 is reopened as the 0.3 release gate; this worktree
-is not ready to merge into the 0.2 release line as a whole.
-
-Every 0.3 runtime database, including authentication, must use Turso. libSQL
-belongs only in a separately packaged one-time 0.2 import tool, not in the 0.3
-runtime or its transitive dependencies. Backup/restore must replace the current
-libSQL auth-replica dependency. Rollback restores the old binary and its backup,
-not an engine environment variable. No claim of operational readiness is made
-until migration and restore have been rehearsed.
-
-### Implementation history (superseded release policy)
-
-Complete through Phase 6 under the previous policy. The 2026-09-02 pre-merge review confirmed ten
-defects, most on the supervised web-owner plus worker path that no boundary
-test exercised; Phase 5H fixed them and now covers that production-shaped
-boundary end to end. Phase 6 restored libSQL as the alpha default behind a
-dual-engine gate. Phase 7 is the opt-in fleet rollout, and MVCC remains
-deliberately gated. The engine spike
-is done on `work/turso-spike` (commits
-`23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
-presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
-`createSqliteDatabase` selects it for `file:` urls when `BRAINS_DB_ENGINE=turso`.
-
-Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
-was wired through an engine-aware seam, the remaining service differences are
-closed, and packed installs carry the native binding. Phase 6 supersedes the
-earlier default: local files default to libSQL during the alpha fleet soak,
-with Turso available through an explicit opt-in. Phase 4's live sync spike is complete,
-and the owner selected Git-only content sync. Phases 5A through 5C make the web
-process the sole local shell database owner under WAL, fold regenerated
-embeddings into `brain.db`, and atomically journal entity embedding jobs through
-an owner-local outbox. The affected service suites pass on both engines.
-Review uncovered that Turso's persisted native-FTS schema syntax is not
-parseable by libSQL, mitigated at the time by a tested break-glass command
-(`brain-rollback-entities-to-libsql`). Phase 5D removed native FTS entirely,
-so that command and the `index_method` flag guarded a state no released build
-could produce; Phase 5F deleted them before the branch merges. Rebase validation
-then exposed a final ownership violation: `multiprocess_wal` still allowed
-short-lived headless commands to become additional local openers. Phase 5G
-removes that mode, makes headless shutdown await native durability, and keeps
-packed projection checks in exclusive owner epochs.
-
-The corrected production-shaped benchmark reopened the search-backend
-question, and the owner decided it: both engine-specific search indexes are
-replaced by a portable exact-phrase scan in completed Phase 5D, on the measured
-grounds that the scan strictly dominates native FTS on Turso and costs libSQL a
-negligible read margin. Native FTS and its MVCC incompatibility are no longer
-load-bearing, and completed Phase 5F removes the cleanup machinery they
-justified — `main` never shipped Turso, so no installation can hold a native
-index. MVCC
-is parked behind an observed owner-connection
-saturation trigger because job writes are at engine parity under WAL and the
-owner connection is serialized. Phase 5E measured and implemented the selected
-owner-local outbox: entity mutations and their embedding-job intents commit
-together in `brain.db`, while the job queue keeps its own file and accepts
-interrupted relay replays idempotently.
-
-This plan originally asked whether the rewrite is worth adopting at all. The
-spike answered that: yes — phased, with libSQL kept as the alpha default until
-the opt-in fleet soak is complete. Phase 1
-then showed that native-FTS cleanup must accompany the engine flag, and Phase 4
-closed the strategic sync fork in favor of Git-only content sync. Phase 5
-preflight exposed a separate runtime-topology constraint: Turso rejects MVCC
-while `multiprocess_wal` is enabled, but the web and worker processes both
-opened the same local database files. The owner selected the web process as the
-sole local database owner and a private local endpoint for worker traffic.
-That boundary is now enforced and proved under WAL. The subsequent MVCC spike
-exposed the independent native-FTS blocker recorded in Phase 5D.
-
-## Spike findings (measured, not assumed)
-
-Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso`:
-
-- **Works unchanged:** vector search (`F32_BLOB`, `vector32`,
-  `vector_distance_cos`, including the cross-DB `ATTACH` join used by
-  `entity-search.ts`, behind the SDK's `attach` experimental flag).
-  `PRAGMA journal_mode = mvcc` and `BEGIN CONCURRENT` work without
-  `multiprocess_wal`; multi-process file access works behind `multiprocess_wal`
-  and writes gitignored `*.db-tshm` sidecars. These modes are mutually
-  exclusive: with `multiprocess_wal` enabled, the engine rejects MVCC because
-  MVCC does not support multiprocess access.
-- **Suite results:** shared/db 24/24 on both engines; runtime-state 10/10;
-  job-queue 194/195; conversation-service 34/35; entity-service 188/325.
-- **FTS5 does not exist on Turso** — every original entity-service failure was
-  the single error `no such module: fts5`. Turso replaces FTS5 with a native
-  Tantivy-based engine: `CREATE INDEX … USING fts (cols)` behind the
-  `index_method` experimental flag. Queries use `content MATCH ?` against the
-  indexed source table, not the index name or a virtual table. Quoted phrases
-  also escape embedded quotes with backslashes rather than FTS5's doubled
-  quotes. The index is transactional — no shadow-table sync is needed.
-- **Native FTS breaks direct libSQL reopening until it is removed.** Its
-  `sqlite_master` entries use the Turso-only `fts` and `backing_btree` index
-  methods; libSQL reports `SQLITE_CORRUPT: malformed database schema`.
-  Dropping `entities_content_fts` while the file is open in Turso removes the
-  internal objects and makes it libSQL-readable again. Therefore
-  the engine env var alone is not an instant fallback after Phase 1 creates the
-  index. Existing FTS5 shadow tables also become stale while Turso is active
-  and must be dropped before cutover or rebuilt on fallback.
-- **Row-value cursor predicates don't seek.** `(runtimeUpdatedAt, id) > (?, ?)`
-  plans as a full covering-index scan (the job-queue failure); plain
-  `runtimeUpdatedAt >= ?` seeks correctly. The expanded-OR form is worse
-  (multi-index OR + sorter).
-- **`PRAGMA busy_timeout` is a no-op** (the conversation-service failure — its
-  readiness test asserts the timeout value). Application retries remain
-  necessary while Turso uses multiprocess WAL.
-- **The SDK loads a NAPI native binding at import time.** It is dynamically
-  imported and marked external in the app/CLI bundles so libsql-mode consumers
-  never resolve it. The packed consumer's nested install did not materialize
-  the platform-specific optional dependency — shipping turso-by-default in the
-  packed CLI needed that story verified. Phase 3 resolved it by declaring the
-  SDK as a direct optional dependency of `@rizom/brain`; its packed-consumer
-  test started under Turso, ran the rollback command required by native FTS,
-  and restarted under libSQL. Phase 5F replaces that historical sequence with
-  a direct engine-flag fallback because the final schema is portable.
-- **drizzle-orm 0.45.2 ships no turso driver** (contrary to this plan's earlier
-  claim). The adapter therefore implements the libSQL `Client` contract that
-  `drizzle-orm/libsql` already speaks — hybrid rows (non-enumerable indices +
-  `length`, enumerable named columns), `batch`/`migrate`/`transaction`,
-  `CLIENT_CLOSED` on use-after-close. This also means zero per-service swap
-  work: the flag covers every service through `createSqliteDatabase`.
-- **The libsql vector index was dead weight** on both engines — created on
-  every embedding insert, never queried (nothing issues `vector_top_k`).
-  Removed in `23d7d468d`, independent of the migration.
-- **Phase 5D MVCC/FTS incompatibility:** with `multiprocess_wal` removed,
-  MVCC, `BEGIN CONCURRENT`, disjoint concurrent writes, and MVCC-to-WAL
-  conversion all work. Native FTS does not: both released
-  `@tursodatabase/database@0.7.2` and `0.8.0-pre.3` reject
-  `CREATE INDEX … USING fts` because custom index modules are unsupported in
-  MVCC mode. The Turso entity suite reached 183/327, with all 144 failures
-  rooted in that error. Creating native FTS under WAL and then converting the
-  file to MVCC instead triggered a Turso `root_page must be positive` panic.
-- **Corrected search benchmark:** `scripts/perf-engine-comparison.ts` applies
-  production WAL pragmas to both engines, uses the production transaction and
-  libSQL FTS-shadow update shapes, isolates `brain.db` from `brain-jobs.db`, and
-  measures both FTS query shapes plus the proposed scan. On the recorded
-  1,000-entity run, materializing the FTS match set removed the correlated-query
-  pathology (Turso hybrid search fell from 1,096 to 14.3 ms/query), but the
-  Turso scan was still 4.0 ms/query and removed substantial native-index write
-  cost (entity writes 21.3 to 1.1 ms; updates 47.9 to 1.4 ms). Under libSQL,
-  materialized FTS was faster than the scan for hybrid reads (3.0 vs 5.5 ms)
-  while writes were effectively at parity. Job writes were at parity between
-  engines once both used WAL. The owner selected the portable scan. A
-  10,000-entity follow-up kept scan-mode writes near 1.2–1.6 ms and measured
-  hybrid search at 27 ms/query on libSQL and 42 ms/query on Turso.
-- **Entity/job atomicity benchmark:**
-  `scripts/perf-entity-job-atomicity.ts` isolates the persistence boundary with
-  the production entity + projection-journal write shape. Across 2,000
-  operations on Turso, the current entity-then-job commits measured 2.26 ms p50
-  and 427 operations/s; an entity-local outbox measured 1.14 ms p50 and 837
-  acknowledged intents/s plus a 19,098 jobs/s batch relay; a merged entity/job
-  transaction measured 1.17 ms p50 and 829 operations/s. libSQL measured 2.47
-  ms, 1.28 ms, and 1.39 ms p50 respectively. Failure probes reproduce the
-  current missing-job window, prove that an interrupted outbox relay replays to
-  exactly one stable job row, and prove merged rollback leaves neither row.
-- **Not covered:** auth-service's embedded replica (`runtime-db.ts` constructs
-  its own `@libsql/client` with `syncUrl`; it syncs against Turso Cloud and
-  stays on libSQL throughout this plan). Phase 3 separately handled the
-  pre-existing `libsql_vector_idx` schema gap while the embedding database was
-  still in the cutover path. Phase 5C retired that separate database without
-  opening it; Phase 5F removes the now-no-op vector-index drop from the active
-  `brain.db` migration path.
-
-## Context (unchanged)
-
-Every shell service builds its DB through `createSqliteDatabase` in
-`shared/db` over a local `file:` SQLite DB. "libSQL" is Turso's fork of
-SQLite, now in maintenance; "Turso Database" is the clean-room Rust rewrite
-where development happens. Git remains the content sync layer; the entity DB
-is a derived index. A brain is one shared store with per-entity visibility —
-multi-user exerts no pressure on DB layout.
-
-## Design
-
-Thin vertical slices. The engine flag remains the runtime selector. Released
-libSQL builds persist an FTS5 `entity_fts` table in `brain.db`, so normal
-parent-owned migrations remove it before either engine opens the application
-schema. Native Turso FTS existed only on this unmerged branch; Phase 5F removes
-its special cleanup and the explicit rollback command before release. The
-portable final schema makes fallback a clean shutdown followed by a
-`BRAINS_DB_ENGINE=libsql` restart. Tests precede implementation in each phase.
-
-### Phase 0 — Engine adapter behind a flag — DONE (spike)
-
-`createTursoClient` + `BRAINS_DB_ENGINE=turso` selection in
-`createSqliteDatabase`; adapter test suite; dead vector index removed;
-bundler externals + dynamic import; `*.db-tshm` gitignored. Landed on
-`work/turso-spike`.
-
-### Phase 1 — FTS port to Turso native FTS — DONE
-
-The one real port, and the walking skeleton for production parity.
-
-- Existing search suites pass on both engines; an explicit parity test verifies
-  the same keyword-boost decisions.
-- `SqliteConnection` reports its selected engine. The entity-service seam keeps
-  the FTS5 virtual table on libSQL and creates
-  `entities_content_fts ON entities USING fts (content)` on Turso, with the
-  adapter's `index_method` flag enabled.
-- The keyword subquery is engine-specific: FTS5 queries `entity_fts MATCH`;
-  Turso queries `fts_entities.content MATCH` against the source table and uses
-  Tantivy-compatible phrase escaping.
-- FTS5 shadow-row writes are skipped on Turso because the native index tracks
-  entity transactions directly.
-
-**Exit met:** entity-service 328/328 under `BRAINS_DB_ENGINE=turso` and
-328/328 on libSQL. The explicit rollback command removes native FTS through
-Turso, checkpoints the schema change, then recreates and backfills the libSQL
-FTS5 table; its file round-trip test passes.
-
-### Phase 2 — Close the small diffs — DONE
-
-- The job-queue durable cursor pages with two bounded covering-index seeks —
-  ties at the cursor timestamp by `id`, then rows beyond it — after review
-  found the first rewrite fetched unbounded rows. Both engines report
-  `SEARCH … USING INDEX` for both query shapes.
-- Conversation-service readiness is engine-aware: libSQL still verifies the
-  echoed busy timeout, while Turso verifies that the pragma is accepted and a
-  write waits for a contending process to commit.
-
-**Exit met:** job-queue has 196 passing tests plus one intentional remote-only
-skip, and conversation-service is 35/35 on both engines.
-
-### Phase 3 — Default flip with fallback — DONE
-
-- `@rizom/brain` directly declares the Turso SDK as an optional dependency, so
-  packed installs materialize the platform native binding. The packed-consumer
-  test starts in Turso mode outside the monorepo.
-- Before Turso opens existing local files, the entity migration uses libSQL to
-  remove the dead `embeddings_embedding_idx` from both historical entity DBs
-  and current embedding DBs, and removes the stale FTS5 shadow table. A
-  populated WAL-mode cutover test preserves entity and embedding data.
-- The explicit fallback command is shipped by `@rizom/brain` and covered by a
-  production-shaped migration round trip. It drops `entities_content_fts`
-  through Turso before libSQL opens the file, then recreates and backfills the
-  FTS5 shadow table from `entities`.
-- Local `file:` urls now default to Turso; remote URLs remain on libSQL and
-  `BRAINS_DB_ENGINE=libsql` selects the local fallback. WAL keeps the base file
-  SQLite-compatible, while the explicit cleanup handles engine-specific FTS.
-
-**Exit met:** packed startup succeeds under Turso, the shipped rollback command
-prepares the same database for a packed libSQL restart, and no one-env-var or
-automatic rollback promise remains.
-
-### Phase 4 — Sync-model spike — DONE: owner selected Git-only
-
-Live probes used `@tursodatabase/sync@0.7.2`,
-`@tursodatabase/sync-wasm@0.7.2`, and temporary Turso Cloud databases:
-
-- Two Node clients completed bidirectional `push()`/`pull()` through Turso
-  Cloud. A separate local embedding database remained absent from the remote.
-- A Chromium browser under the required COOP/COEP headers opened only the
-  synced entity database, pulled both Node mutations, pushed a browser
-  mutation, and a Node client pulled that mutation back.
-- This proves the transport, but not a viable Brain topology. The sync package
-  manages its own database file family and did not adopt the existing
-  standalone production file as an in-place toggle. Replaying the full entity
-  migration history into an empty remote also failed on transient projection
-  DDL ordering.
-- The current Turso Cloud SQL endpoint rejected the native FTS
-  schema (`CREATE INDEX … USING fts`) near `USING`, so the production entity
-  schema cannot sync unchanged.
-- Direct browser writes would bypass the entity service's permission checks,
-  visibility scoping, mutation events, projection admission, embedding jobs,
-  markdown export, and Git commit chain. A database token would also expose
-  the shared store rather than the caller's visibility slice. A read-only
-  replica adds a second distribution path without replacing Git's durable,
-  reviewable markdown history.
-
-**Owner decision:** retain Git as the only content sync model and keep Studio
-reads and writes behind the entity service. No sync SDK dependency or
-production path is added. Folding the regenerable embedding table into the
-entity database is now available in Phase 5.
-
-### Phase 5 — One local database owner, then layout and MVCC
-
-Phase 5 preflight measured a hard engine constraint. The Turso adapter enables
-`multiprocess_wal` because the supervised web and worker processes both open
-the local service databases. With that flag active, Turso rejects
-`PRAGMA journal_mode = mvcc` with `MVCC does not support multiprocess access`.
-Removing the flag without first removing direct cross-process file access is
-not an acceptable implementation.
-
-#### Phase 5A — Prove the web owner's private endpoint under WAL
-
-**Owner decision: the web process owns the local databases**; the worker routes
-durable persistence calls to it. The interactive path and directory imports
-already run in web, so this keeps their database access local and preserves the
-current two-child supervisor plus worker-after-web startup order. A separate
-state process would isolate database lifetime, but would add a third child and
-put both web and worker traffic over IPC.
-
-Do not assume worker traffic is small or insensitive to latency. The worker
-constructs every executable job handler; generation, projection, publishing,
-queue lease/progress, conversation, runtime-state, and embedding paths all use
-persistent services. Capture a direct-database baseline and exercise those
-flows through the proposed boundary before removing any worker connection.
-
-A temporary transport spike ran nine interleaved trials against real Turso
-job-queue repository operations. Parent relay and a private local socket were
-both comfortably above the expected request rate and neither dominated normal
-database calls: median sequential throughput was 1,291 versus 1,377 requests
-per second, while 32-request concurrency was 1,628 versus 1,474. Parent relay
-serialized 256 KiB and 5 MiB payloads faster in the prototype, but payload
-throughput is not the deciding requirement.
-
-**Owner decision: use a private web-owned local endpoint.** Phase 5 eventually
-moves all worker persistence, so database traffic must not share the parent's
-heartbeat and restart-control channel. The rejected parent relay has less
-endpoint setup, but permanently turns the supervisor into a data broker and
-couples persistence backpressure to process health.
-
-Keep WAL while proving the endpoint with a representative job-queue slice:
-
-- Use OS-local IPC only: a Unix-domain socket on Unix and the equivalent named
-  pipe abstraction where supported, never a TCP listener.
-- The parent creates a per-runtime endpoint name and capability secret and
-  passes them only to its children. Web owns listen/cleanup; filesystem
-  permissions or platform ACLs restrict the endpoint to the runtime user.
-- Web reports runtime readiness only after the endpoint is listening. A worker
-  performs a versioned, authenticated handshake before queue startup.
-- Use length-prefixed, size-bounded frames rather than newline-delimited JSON.
-  Validate every decoded envelope before dispatch and define an explicit binary
-  representation for embeddings and other typed-array payloads.
-- Closing the endpoint rejects every pending request. Worker reconnect is
-  allowed only for a newly supervised worker session; requests and responses
-  carry that session identity so stale replies cannot cross restarts.
-
-For the endpoint boundary:
-
-- Inventory each service contract before implementation. Preserve external
-  plugin APIs and their Promise-based operation surfaces, but split internal
-  process-local control from remote durable operations where the current
-  interface carries functions, concrete classes, or synchronous registry state.
-- Define package-owned, Zod-validated request/response envelopes. Do not expose
-  SQL or Drizzle, and do not send callbacks, handlers, class instances, or
-  `AbortSignal` objects over IPC. Represent cancellation with request IDs and
-  explicit cancel messages.
-- Propagate operation-context snapshots, request identity, typed failures, and
-  cancellation. Bound queues and in-flight requests with explicit limits and
-  timeouts.
-- Keep owner request handlers leaf-shaped with respect to IPC: they may call
-  owner-local services and databases but must never issue a synchronous request
-  back to the worker handling the original call.
-- Preserve current supervisor semantics and keep heartbeats on parent-child
-  IPC. A worker restart establishes a fresh endpoint session with the surviving
-  web owner. A web/owner exit closes the endpoint, rejects in-flight requests,
-  terminates the worker, and exits the parent; Phase 5 does not add web-child
-  restart.
-- Parent-owned migrations still run once before web starts. Auth-service's
-  embedded replica remains outside this change.
-
-The contract inventory fixes the process split before later services move:
-
-| Service       | Remains process-local                                                                                                                     | Safe durable boundary                                                                                                            |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Job queue     | Handler and validator registries, executable handlers, worker lifecycle, batch coordination, and progress event behavior                  | Enqueue, typed claims, worker sessions, attempt leases/progress, terminal writes, status, diagnostics, cursors, and cleanup      |
-| Entities      | Entity registry, adapters and schemas, Markdown serialization, interceptors, validators, upload handlers, and projection wakeup callbacks | CRUD, list/search/count, semantic and embedding operations, index readiness, and a future narrow async projection-store contract |
-| Conversations | Message-bus subscriptions and event delivery policy                                                                                       | Start, message and metadata writes, reads, search, and delete; the owner must emit each durable event exactly once               |
-| Runtime state | `scoped()` schema validation and the returned facade                                                                                      | The scoped store's async get/set/list/delete/clear operations, with dates encoded explicitly                                     |
-
-`ProjectionStore`, schemas, handlers, callbacks, scoped stores, and concrete
-service instances are therefore not endpoint payloads.
-
-Phase 5A now implements the representative job-queue slice. The supervisor
-creates one endpoint and secret, gives every child a fresh process session,
-and keeps heartbeat traffic on parent IPC. The web child listens before
-readiness; the worker authenticates before database readiness and constructs a
-remote queue service without calling `createJobQueueDatabase()`. Package-owned
-Zod envelopes cover every durable queue operation while execution registries
-stay local. Operation provenance is restored in the web owner before dispatch.
-
-Coverage now includes authentication and version rejection, fragmented and
-oversized frames, explicit typed-array encoding, class-instance rejection,
-bounded admission, cancellation, request deadlines, owner process loss,
-stale-session isolation, socket cleanup, worker session rotation, terminal
-owner shutdown, and a full web/worker queue claim-complete round trip.
-The remote-service test also asserts that its configured worker database file
-is never created. Both Turso and libSQL job-queue suites pass with 198 tests and
-one existing remote-contract skip; the Turso path remains in WAL for this
-phase. The earlier nine-trial throughput measurements remain the transport
-baseline because the implemented endpoint uses the selected private-socket
-shape and the parent never brokers its traffic.
-
-**Phase 5A exit: met.** The representative slice passes without a worker-side
-job database handle; measured latency/throughput remains recorded; transport
-saturation cannot delay the parent heartbeat watchdog.
-
-#### Phase 5B — Route all local shell persistence through the web owner
-
-Build hybrid process facades rather than pretending every existing service is
-serializable:
-
-- **Job queue:** handler and validator registration stays local to each process;
-  the worker routes durable queue operations to the web-owned repository.
-- **Entities:** entity registry, adapters, serialization, and synchronous type
-  metadata stay process-local. Async persistence/search runs in web. Replace the
-  worker's concrete `ProjectionStore` dependency with a narrow async contract
-  whose operations are safe to proxy.
-- **Conversations:** keep process-local message-bus behavior explicit while web
-  owns conversation persistence; test that events are emitted in the intended
-  process exactly once.
-- **Runtime state:** `scoped()` returns a local store facade whose async reads,
-  writes, and deletes use the selected transport.
-
-Preserve process roles: web validates enqueue requests and owns interfaces;
-worker owns executable handlers and durable execution. Verify entity events,
-projection lineage, generation and projection bursts, queue heartbeats and
-progress, embedding backfill, directory import, visibility, conversation
-updates, runtime-state access, and health reports across the boundary. Compare
-these flows with the recorded direct-database baseline; do not describe worker
-traffic as low-rate or batchable without measurements.
-
-Add a packed-runtime invariant test that fails if the worker opens a local
-SQLite file. Cover worker crash/restart, transport interruption, request
-timeouts, web-owner shutdown, and terminal parent shutdown after owner loss.
-Keep WAL and `multiprocess_wal` until every local shell database has exactly one
-process owner.
-
-Phase 5B now implements package-owned, Zod-validated RPC contracts for entity,
-projection, conversation, and runtime-state persistence. Worker entity
-registries, adapters, serializers, validators, embedding execution handler,
-and projection execution handler remain local. The projection facade exposes
-only async durable operations; `withDirtyInput()` and database transactions
-remain owner-internal. Runtime-state schemas and scoped facades stay in the
-worker, while records encode dates as integer milliseconds. Conversation and
-entity mutations dispatch through owner-local services, so their durable
-message-bus events are emitted once in web rather than duplicated in worker.
-
-The socket-backed web/worker integration configures nonexistent worker paths
-for all five shell files (entity, embedding, conversation, job queue, and
-runtime state), exercises queue execution, entity CRUD, a 1,536-dimension
-embedding frame, conversation writes, and scoped runtime state, and verifies
-that none of those worker paths appears. The supervisor also fences every
-worker with `BRAINS_FORBID_LOCAL_DATABASE_OPEN=1`; the shared database factory
-rejects any `file:` open in that process. The packed-consumer test proves the
-shipped bundle contains and enforces that fence, while supervisor coverage
-proves fresh and restarted workers receive it and web explicitly does not.
-Remote libSQL remains allowed, and auth-service remains outside the fence.
-
-A seven-trial interleaved WAL experiment compared direct web calls with the
-socket facade. Each trial performed 100 runtime-state writes, 51 conversation
-writes, 50 projection-journal writes, and 20 entity creates. Median completion
-was 662 ms direct and 614 ms remote (0.93x); the result is parity, not a claim
-that IPC improves database work. The experiment is recorded in
-`/tmp/brains-phase5b-owner-load.ts`; correctness tests use acknowledgements and
-settled promises rather than timing thresholds.
-
-Both engines pass entity-service 332/332, conversation-service 38/38, and
-runtime-state 13/13. Core passes 432/432 on both engines, including endpoint
-failure, restart, shutdown, visibility, projection, health, and lifecycle
-coverage. WAL and `multiprocess_wal` remain unchanged.
-
-**Phase 5B exit: met.** Behavior and bounded-load results are at parity, while
-the web process is the only process permitted to open local shell database
-files.
-
-#### Phase 5C — Fold embeddings into the entity database
-
-Existing vectors are regenerated rather than copied. The legacy rows contain a
-content hash but no model, model version, or provider-dimension provenance, so
-copying them could make the active provider query incompatible vectors. The
-migration preserves entities, replaces `embeddings` with an empty local table,
-and lets the existing startup backfill enqueue every embeddable entity. The old
-`embeddings.db` file is left untouched as a recovery artifact but is never
-opened by the runtime.
-
-The generated Drizzle migration gives `embeddings` a composite foreign key to
-`entities` with cascade delete. Entity updates and projection writes invalidate
-changed-content vectors in their entity transaction; entity deletes remove the
-vector in that same transaction. Embedding writes validate the active provider
-dimensions and conditionally commit only while the entity content hash still
-matches, closing the generation/write race.
-
-Search now joins the local table directly. The separate embedding connection,
-raw embedding migrator, `ATTACH` plumbing, embedding database config, packed and
-evaluation artifact handling, and Turso SDK `attach` flag are removed. Eval
-artifacts now checkpoint and copy one `brain.db`. Turso's client adapter also
-holds top-level operations behind an interactive transaction so concurrent
-owner requests cannot leak into that transaction on its single connection.
-
-Coverage proves populated pre-cutover rows are cleared while entities survive,
-a failed table rebuild leaves the old table intact, provider-dimension
-validation, stale-write rejection, atomic invalidation, cascade and orphan
-behavior, rollback preservation, direct vector/FTS search, worker-owned RPC
-embedding writes, and absence of a legacy file. Entity-service passes 327/327
-on both Turso and libSQL; shared DB passes 30/30 and core passes 432/432.
-
-**Phase 5C exit: met.** Entities and embeddings use one owner, one connection,
-and one database file, with no runtime configuration or dependency for the
-legacy embedding file.
-
-#### Phase 5D — Portable-scan search backend — DONE; MVCC gated on saturation
-
-The single-owner prerequisite is met, but the implementation spike found that
-Turso native FTS and MVCC cannot coexist. With `multiprocess_wal` removed, the
-adapter successfully opened MVCC files, used `BEGIN CONCURRENT`, committed
-disjoint writes from independent connections, surfaced write-write conflicts,
-and converted MVCC files back to WAL without losing rows. Shared database tests
-passed 35/35.
-
-Entity initialization then failed because Turso rejects its custom FTS index in
-MVCC mode. The released 0.7.2 SDK and the available 0.8.0 pre-release behave the
-same. Pre-creating the index under WAL is not a workaround: converting that
-file to MVCC panicked inside Turso. No MVCC code was retained after the spike.
-
-**Owner decision (2026-08-10, on the corrected benchmark; supersedes the
-retain-native-FTS decision):** replace both engine-specific indexes with the
-portable exact-phrase scan. Grounds: under production WAL settings the scan
-strictly dominates native FTS on Turso (reads ~4.0ms vs 14.4ms even with the
-match-set fix; content updates 1.4ms vs 41.6ms; entity inserts ~1ms vs ~21ms),
-and libSQL's FTS5 read edge over the scan (2.9ms vs 5.5ms) is negligible at
-real usage while a single code path deletes the engine seam. The rejected
-alternatives: native FTS with the materialized match-set query (keeps the
-write tax, the `index_method` flag, and the MVCC incompatibility) and a
-per-engine split (optimizes the fallback engine at the cost of a permanent
-dual path). A separate WAL search database remains rejected.
-
-`buildKeywordMatch()` now implements the portable predicate and all entity and
-projection mutation paths have dropped FTS shadow-row maintenance. Before the
-selected engine runs normal migrations, `preparePortableEntitySearch()` drops
-legacy FTS5 and dead vector-index schema through libSQL. If libSQL detects an
-unreadable native Turso schema, a maintenance connection drops
-`entities_content_fts`, rebuilds the offline file with `VACUUM` to remove pages
-leaked by Turso 0.7's native-index cleanup, and libSQL completes a second
-cleanup pass. Direct Turso-to-libSQL migration therefore works without a
-separate schema transform.
-The recovery command performs the same historical cleanup without rebuilding
-FTS5.
-
-At Phase 5D completion, the branch retained `index_method` cleanup and the
-rollback command on the assumption that installations could skip cleanup
-releases or restore native-FTS backups. Phase 5F supersedes that precaution
-before release: `main` never produced those files, so no released backup or
-upgrade path can contain the native index.
-
-MVCC then becomes technically available (no custom index module remains), but
-still must not ship until owner-connection saturation gives it a concrete
-benefit: the owner uses one Turso connection whose adapter serializes
-top-level operations, and the corrected benchmark found job writes at engine
-parity under WAL. The conversion panic stands as a hard precondition — no
-file may retain a native FTS index when a future conversion runs. When
-triggered by observed saturation, the MVCC work is: owner connection pool
-with `BEGIN CONCURRENT`, conflict-abort retry semantics in every owner write
-path, `multiprocess_wal` removal, and conversion with a tested MVCC-to-WAL
-rollback.
-
-Coverage pins literal punctuation, ASCII case-insensitivity, scoring,
-visibility, engine parity, populated WAL cutover, native-index cleanup, direct
-engine round trips, embeddings, and rollback. Entity-service passes 327/327 on
-both engines. The 10,000-entity scan run measured 27–42 ms hybrid queries and
-1.2–1.6 ms writes/updates.
-
-**Phase 5D exit: met.** Scan is the only current search path on both engines,
-no engine-specific search schema remains after migration, dual-engine suites
-are green, and MVCC is explicitly parked behind the saturation trigger.
-
-#### Phase 5E — Entity/job atomicity: owner-local outbox
-
-A single owner process does not by itself make separate entity and job files
-transactional. The direct uncovered gap is embedding enqueue after an entity
-create/update: the entity, embedding invalidation, and projection dirty input
-commit together, but the embedding job commits later in `brain-jobs.db`.
-Projection scheduling already uses its durable dirty-input journal, while
-startup embedding backfill eventually repairs the direct gap. An enqueue or
-process interruption can nevertheless leave a successful entity write without
-an immediately durable embedding job and can surface an error after the entity
-has committed.
-
-`scripts/perf-entity-job-atomicity.ts` compares the storage boundaries without
-conflating them with validation, event subscribers, or embedding execution. It
-uses the production entity + projection-journal write shape, WAL on both
-engines, 2,000 sequential entity operations, and outbox relay batches of 100:
-
-| Topology                           | Turso p50 / p95 | Turso rate | libSQL p50 / p95 | libSQL rate |
-| ---------------------------------- | --------------: | ---------: | ---------------: | ----------: |
-| Current separate commits           |  2.26 / 2.59 ms |  427 ops/s |   2.47 / 3.10 ms |   386 ops/s |
-| Entity-local durable outbox intent |  1.14 / 1.33 ms |  837 ops/s |   1.28 / 1.56 ms |   743 ops/s |
-| Merged entity + job transaction    |  1.17 / 1.34 ms |  829 ops/s |   1.39 / 2.62 ms |   637 ops/s |
-
-The outbox relay separately sustained 19,098 jobs/s on Turso and 23,836 jobs/s
-on libSQL. Its failure probe interrupts after the queue commit but before
-outbox acknowledgement; startup replay uses the stable job id and leaves
-exactly one queue row. The merged probe interrupts inside the transaction and
-leaves neither an entity nor a job. The current probe commits the entity and
-interrupts before enqueue, reproducing one entity and zero jobs.
-
-The choices are now explicit:
-
-1. **Keep separate files and the compensated gap.** No migration or new runtime
-   component, and independent entity/job failure and checkpoint domains remain.
-   The cost is an ambiguous partial success when enqueue fails; startup
-   backfill is the repair boundary.
-2. **Add an owner-local outbox to `brain.db` and keep `brain-jobs.db`
-   separate.** Entity mutation and a fully validated embedding-job intent
-   commit together. A triggered relay plus startup drain copies intents with a
-   stable delivery/job id and deletes an intent only after durable queue
-   acknowledgement. This preserves workload, backup, migration, and rollback
-   isolation while removing the missing-intent window. It adds one table, an
-   idempotent owner-internal queue admission path, relay lifecycle and
-   diagnostics, and changes mutation acknowledgement from “queue row is
-   visible” to “job intent is durable.” It must not poll.
-3. **Merge job tables into `brain.db`.** This gives a direct entity + job-row
-   transaction with essentially the same measured acknowledgement latency as
-   the outbox. It also merges all job churn, migrations, backup/restore,
-   rollback, and corruption scope into the content database and requires a
-   cross-service transactional writer or shared connection. The benchmark
-   shows no performance advantage that justifies that larger boundary change.
-
-**Owner decision (2026-08-10):** adopt the owner-local outbox. It closes the
-durability gap at the same measured acknowledgement cost as a file merge —
-and faster than today's two commits — without turning generic job runtime
-traffic into content-database traffic. The job queue stays in its own file:
-the separate-writer rationale ended with the Phase 5A/5B single owner, but
-churn isolation, backup and restore scope, and cleanup fragmentation still
-justify the boundary, and the benchmark gives merging no advantage to weigh
-against them. Keep startup backfill as regeneration and operational repair
-rather than as the normal entity/enqueue bridge.
-
-Implementation:
-
-- Drizzle-generated migration `0007_grey_the_professor.sql` adds
-  `entity_job_outbox` beside `projection_dirty_inputs`. Entity create/update,
-  embedding invalidation, projection dirty input, and the fully validated job
-  intent now share one `brain.db` transaction.
-- `prepareEnqueue()` freezes the generated job id, validated payload, retry
-  options, and operation provenance before the entity transaction. The queue
-  treats that id as an idempotency key, returns the existing row on a matching
-  replay, and rejects reuse for different job data.
-- `EntityJobOutbox` drains on mutation triggers and startup, never by polling.
-  It acknowledges a batch only after queue admission and serializes its local
-  database work with entity/projection transactions for libSQL and Turso
-  parity. A queue outage leaves the committed intent for a later trigger,
-  shutdown, or restart.
-- The web-owner lifecycle closes remote traffic first, flushes the outbox while
-  both databases are open, closes `brain.db`, and closes `brain-jobs.db` last.
-  Pending-count and explicit flush/idle operations provide owner diagnostics
-  and deterministic tests without timers.
-- Mutation acknowledgement is now "job intent is durable," not "queue row is
-  already visible." Startup embedding backfill remains regeneration and
-  operational repair rather than the normal mutation bridge.
-
-Coverage injects a queue outage, interrupts after queue admission but before
-outbox acknowledgement, reopens the entity service to exercise startup replay,
-proves one stable queue row, preserves provenance across delayed relay, covers
-RPC idempotency and conflicting-key rejection, and pins shutdown ordering.
-The full entity and job suites pass on both Turso and fallback libSQL.
-
-**Phase 5E exit: met.** Entity mutation and embedding-job intent commit
-together; interrupted delivery replays to exactly one queue row; the former
-post-commit enqueue gap is no longer the normal mutation path.
-
-#### Phase 5F — Delete the native-FTS back-compat — DONE
-
-Phases 1–5C created a Turso native FTS index, so Phases 3–5D carried
-machinery to clean it out of existing files and to transform a Turso file
-back into a libSQL-readable one. That machinery protects against a state no
-installation can be in: `main` contains no Turso at all — no
-`@tursodatabase` dependency in `@rizom/brain`, no Turso branch in
-`shared/db/src/sqlite.ts`, and no `USING fts` index in entity-service — so
-`entities_content_fts` has never existed in a released build. Only developer
-machines that ran this branch mid-flight can hold one, and `brain.db` is a
-derived index whose source of truth is git, so the remedy there is deleting
-the file and re-importing, not shipping permanent machinery.
-
-Retained, because released builds really do create it:
-
-- startup cleanup drops `entity_fts` from `brain.db` before either engine opens
-  the database. Every installation upgrading from `main` needs that cleanup.
-
-The released `embeddings_embedding_idx` is different: runtime code created it
-only in the retired separate `embeddings.db`, which Phase 5C deliberately
-leaves untouched. No released path created that index in `brain.db`, so Phase
-5F removed its no-op drop from `preparePortableEntitySearch` rather than
-preserving a second unreachable compatibility case.
-
-Deleted, because nothing outside this branch can hold a native index:
-
-- `dropTursoIndexForFallback`, its maintenance module, malformed-schema
-  detection, and the second cleanup pass. The remaining `entity_fts` cleanup is
-  one libSQL pass.
-- the `index_method` experimental flag. `multiprocess_wal` remained temporarily
-  for WAL-era parity and Phase 5G removes it after the single-owner boundary is
-  enforced.
-- `brain-rollback-entities-to-libsql` end to end: entity-service implementation
-  and export, CLI bin and bundle target, tests, and operator documentation.
-  Fallback is now a clean shutdown followed by a
-  `BRAINS_DB_ENGINE=libsql` restart with no schema transform.
-- the historical FTS mode in `scripts/perf-engine-comparison.ts`. The checked-in
-  benchmark now measures only the selected portable scan; the historical FTS
-  measurements remain recorded in this plan.
-
-Coverage was rewritten rather than deleted:
-
-- `turso-cutover.test.ts` retains the populated released-libSQL-to-Turso
-  upgrade, including data preservation and `entity_fts` removal.
-- the same fixture writes entities, embeddings, and an outbox intent under
-  Turso, switches directly to libSQL, and verifies all three plus portable
-  search.
-- the packed-consumer test starts under Turso and restarts under libSQL using
-  only the engine flag.
-
-Sequencing is satisfied: Phase 5F is implemented on the migration branch
-before merge. Once a build carrying native FTS reaches a user, this removal
-would no longer be valid.
-
-**Phase 5F exit: met.** No `index_method` flag, rollback command, native-FTS
-cleanup path, native-FTS benchmark path, or no-op vector-index drop remains;
-released-libSQL `entity_fts` cleanup still runs; a populated released database
-upgrades under Turso without data loss; direct libSQL fallback preserves entity,
-embedding, outbox, and search state; dual-engine suites pass; and the packed
-consumer exercises the env-var fallback without a rollback command.
-
-#### Phase 5G — Enforce one opener and durable headless shutdown — DONE
-
-Rebasing onto the released background-work contracts exposed two omissions that
-package-local suites did not cover:
-
-- the projection and queue RPC facades lacked the new incident diagnostics and
-  due-work fields, and worker-session expiry had to cross the remote queue
-  boundary;
-- `multiprocess_wal` remained enabled after Phases 5A–5B had made web the sole
-  database owner. Repeated packed headless commands could acknowledge writes
-  that disappeared on reopen, while direct headless reads during a running web
-  owner could erase the owner's later projection commits.
-
-The adapter now opens local Turso files without `multiprocess_wal`. Parent
-migrations, a standalone headless command, or the web process owns each local
-file for its whole epoch; the worker continues to use the private endpoint.
-A second direct opener fails closed rather than silently participating. Packed
-projection evidence therefore stops the runtime before opening a headless query
-and restarts bounded runtime slices until the durable condition is visible.
-
-Turso's native close is asynchronous even though the emulated libSQL `Client`
-contract exposes `close(): void`. `closeSqliteClient()` now awaits admitted
-operations, a truncating WAL checkpoint, the native close, and transient
-sidecar cleanup. Migrations and the shell's ordered database finalizers use
-that path, and headless CLI commands
-stop the app instead of calling `process.exit()` with live database handles.
-The remote projection contract now carries terminal incidents and bounded
-incident diagnostics; queue RPC carries worker expiry and all operational
-queue fields.
-
-**Phase 5G exit: met.** Three consecutive packed Phase 2 create/update/delete
-runs converge across exclusive owner restarts; native close durability, remote
-projection incidents, queue diagnostics, worker expiry, and the renumbered
-migration chain have focused coverage.
-
-### Phase 5H — Pre-merge review remediation — MERGE GATE
-
-The 2026-09-02 review of `origin/main..HEAD` confirmed ten defects, most
-reproduced on a supervised web-owner plus endpoint-backed worker boot. The
-existing boundary tests never caught them because their worker has no local
-database endpoint. Each slice below carries its own test; the branch does not
-merge until all are closed.
-
-1. **Worker RPC contract parity.** The owner's request schemas are
-   `strictObject` re-declarations that omit fields the service types carry:
-   `persistenceOrigin` on job/delete options (every directory-sync import
-   upsert and delete), `preparedAsset` on create/update/upsert (asset
-   foundation), and `expectedChildren` on `prepareDurableBulkMutation`, which
-   `DurableBulkMutationRootInput` requires — so every remote
-   `beginDurableBulkMutation` is rejected. The `as z.ZodType<EntityRpcRequest,
-unknown>` cast hid the drift; the schemas also diverge from
-   entity-queries/entity-search constraints (`limit` nonnegative vs positive,
-   unbounded `minScore`, no datetime validation). Fix: one schema per request
-   shape, declared once and shared by the service types and the RPC parser
-   (zod is the source of truth; the cast goes). Test: a boundary suite that
-   boots owner + endpoint-backed worker and runs a directory import, a
-   sync-request batch, a delete, and a cleanup over the real RPC.
-2. **Owner-only calls on worker code paths.** `getRecentJobs` (site-builder's
-   `reconcileFromQueue` at register) and `getJobsByRootJobId` throw in the
-   worker, so site-builder fails to initialize there and site-build jobs never
-   execute; directory cleanup's admission callback calls
-   `hasPendingEntityExports`, rejected as owner-only, so every cleanup job
-   fails its retries. Decision: queue status reconciliation is owner work —
-   site-builder skips it under `executionOnly` registration, and the two queue
-   reads stay owner-only. `hasPendingEntityExports` is a cheap read the worker
-   genuinely needs and becomes a worker RPC operation. Both covered by the
-   boundary suite above.
-3. **Turso transaction commit failure.** `TursoTransaction.finish` sets
-   `closed` before `COMMIT`; a failed commit releases the operation lock with
-   the SQL transaction still open on the single connection, and drizzle's
-   rollback is a no-op, so every later `BEGIN` fails for the process lifetime
-   and uncommitted rows leak into later executes. Fix: mark closed only after
-   commit succeeds; on commit failure roll back, then release. Test: deferred
-   foreign-key violation at commit leaves the connection usable.
-4. **Turso client close drops admitted work.** `closeAsync` sets `closed`
-   synchronously before awaiting the operation tail, so an operation already
-   admitted but queued behind the lock rejects `CLIENT_CLOSED` while close
-   resolves — a shutdown write queued behind an entity transaction is dropped
-   despite ordered finalizers. Fix: refuse new admissions, drain admitted ones,
-   then close. Test: execute queued behind an open transaction survives
-   `closeSqliteClient`.
-5. **Endpoint severs on encode failure.** A response over the 16 MB frame
-   limit (or a non-JSON value) throws inside `send()`, which destroys the
-   socket; the client never reconnects and the worker is cut off until the
-   heartbeat kills it. Unbounded worker-side `listEntities` callers make this
-   realistic on a large brain. Fix: encode failures answer with a failure
-   envelope; `listEntities` over RPC takes an explicit bound. Test: oversized
-   handler result rejects that request only and the next request succeeds.
-6. **Outbox head-of-line blocking.** `drainAll` relays in order with no
-   per-row isolation; one undeliverable intent (unregistered handler after
-   embeddings were disabled, payload schema change on upgrade) aborts the pass
-   before the delete, so no embedding job is ever enqueued again. Fix: per-row
-   delivery; a non-transient failure parks the row with its reason and the
-   pass continues. Test: a poisoned head row does not block the rows behind it.
-7. **Search parity with main.** `instr(lower(content), lower(?))` folds
-   ASCII only (`CAFÉ` no longer matches `Café`), matches a literal substring
-   rather than tokens (`python programming` misses `Python, programming`),
-   and the lexical score is a constant, so `ORDER BY weighted_score` is a full
-   tie and pagination is unstable. Decision: entities gain a `search_text`
-   column maintained on write (NFKC, lower-cased in JS, punctuation collapsed
-   to spaces); the scan splits the query into terms and requires every term as
-   a substring of `search_text`; lexical score is the matched-term ratio with
-   `updated` as the deterministic tiebreak. Tests: unicode case folding,
-   multi-term match across punctuation, stable pagination, type weights below
-   1 still clear the system minimum score.
-8. **Embedding job coalescing.** `buildEmbeddingJobRequest` attaches the
-   `embedding:<type>:<id>:<hash>` key only when `deduplicate` is true, and the
-   outbox path passes false, so repeated same-hash mutations each spend an
-   embedding call and backfill jobs never coalesce with relayed ones. Fix:
-   always attach the key. Test: restore "embedding jobs use stable
-   deduplication keys".
-9. **Exclusive lock versus headless commands.** The Turso default opens
-   files exclusively, so `brain <cmd>` or `brain operate` beside a running
-   `brain start` fails with a raw locking error, and `formatBootError` only
-   matches libSQL's "database is locked" strings, so it prints "delete
-   ./data/". Decision: this is the single-owner principle applied to the CLI —
-   headless commands detect a running owner through its endpoint socket and
-   route through it; without an owner they open locally as today. The boot
-   hint matches Turso's locking message. Test: CLI command with an owner
-   running.
-
-Confirmed cleanup findings from the same review are fixed in the same pass,
-not deferred: the in-process double-open WAL unlink, the 30 s RPC timeout
-that commits owner work the worker treats as failed (the worker's
-`awaitIndexReady` monitor is cancelled at 30 s), edited entities vanishing from
-semantic search until re-embedded, the five copy-pasted transport literals and
-`instanceof` topology checks, per-method owner-only rejections on flat shared
-interfaces, role strings re-derived at five sites, the unconditional libSQL
-pre-open on every boot, dead `afterMigrate` and `projectionWakeup` plumbing,
-the `sqlite_master` probe per drain, O(n²) frame reassembly and double
-tree-clone per frame, the four-statement `storeEmbedding` transaction on the
-serial tail, `vector32(?)` bound five times per search, and the duplicated
-file-url, constant-time-compare, `toError`, and socket-address helpers.
-
-**Phase 5H status (verified 2026-09-04): complete.** Slices 1–10 and the
-cleanup list are green on both engines.
-
-10. **Owner + endpoint-worker boundary suite — DONE.**
-    `job-execution-boundary.test.ts` now creates the full preset twice,
-    migrates only the web owner, and initializes both apps against one
-    authenticated local database endpoint and the owner's database files. A
-    real Git-backed markdown fixture drives `sync-request` and its
-    `directory-import` child through the worker, including durable-bulk
-    `expectedChildren` and `persistenceOrigin` over entity RPC. The same suite
-    executes `directory-delete` and `directory-cleanup`, proves their
-    owner-side effects, exercises remote `hasPendingEntityExports`, and pins
-    site-builder's execution-only registration while its owner-only queue read
-    still fails directly on the worker. Test-only terminal callbacks provide
-    deterministic completion signals without sleep or deadline polling. The
-    suite passes with both `BRAINS_DB_ENGINE=libsql` and
-    `BRAINS_DB_ENGINE=turso`.
-
-**Phase 5H exit: met.** The production-shaped owner/worker boundary now fails
-if the directory-sync RPC fields, cleanup read, or execution-only site-builder
-registration regress.
-
-### Phase 6 — Engine default and dual-engine gate — Historical
-
-Decided 2026-09-02, superseding the default-Turso decision for the alpha
-channel: local files default to **libSQL** until the fleet has soaked;
-`BRAINS_DB_ENGINE=turso` opts an instance in. The safety control lives in
-code, where every instance and every outside consumer inherits it, rather
-than in deploy configuration the gates cannot see. The proposed stable v0.2.0 default flip was superseded by the 0.3-only
-release decision above.
-
-The gate runs both engines: today `turbo run test` runs once under the
-default and only four test files pin an engine, so whichever engine is not
-the default is almost entirely untested. CI's test job becomes an engine
-matrix (`libsql`, `turso`); pre-commit runs the database-touching packages
-under the non-default engine as well. The branch's `@rizom/brain` changeset
-is a minor, not a patch: a default-engine change and the owner topology are
-behavior changes.
-
-**Phase 6 exit: met.** The code default and packed-consumer test use libSQL;
-CI, pre-commit, and the migration-sensitive package suites gate both engines.
-
-### Phase 7 — Turso-only 0.3 migration and rollout — RELEASE GATE
-
-**Open.** Keep 0.2 on its libSQL storage contract. Ship the single-owner
-boundary, consolidated embeddings, search storage changes, and Turso-only
-runtime together in 0.3; retaining a libSQL default would not isolate 0.2 from
-those behavior changes.
-
-#### Runtime and recovery prerequisites
-
-**Runtime implementation:** all service databases now open local Turso through
-`@brains/db`. The selector, remote URLs, database tokens, and auth replica
-configuration are removed. Drizzle's public session/database classes preserve
-queries and transactions without loading its libSQL client factory. The packed
-runtime no longer installs `@libsql/client`; development-only types, historical
-benchmarks, and legacy fixtures may still use it. Auth shutdown awaits admitted
-writes and durable close. The runtime refuses legacy FTS5 entity files instead
-of rewriting them with libSQL. CI and pre-commit now run one Turso runtime gate.
-The separate database importer and offline Turso backup/restore implementation
-now exist; full operational migration and production recovery rehearsals remain open.
-
-**Offline importer implementation:** [`@rizom/db-migration`](../../packages/db-migration/README.md)
-imports the five runtime databases from a checksum-verified 0.2 snapshot into a
-new private directory. It never opens a source database handle, confines libSQL
-cleanup to staging copies, checks required source tables and integrity, and
-compares paged durable-table counts/content digests across migration. Processing
-jobs are refused; pending jobs and auth data are preserved without automatic
-replay. Failed imports retain incomplete staging and never overwrite a destination.
-Tests cover preservation across multiple pages, checksum/sidecar rejection,
-existing destinations, cancellation, failed-import retry, and an independently
-installed packed CLI with its bundled migration assets. Turbo invalidates the
-importer build/test when those source migration files change.
-
-This is a database-only importer, not deployment-ready output: restoring Git,
-configuration and encryption secrets, validating queued-job execution and login,
-and production-snapshot interruption/rollback rehearsal still gate release.
-
-**Offline backup/restore implementation:** [runbook](../turso-backup-restore.md).
-The 0.3 deploy gate stops workers and the owner under backup/watchdog locks, then
-uses the original image with read-only source mounts and networking disabled.
-Only private copies are opened by Turso. All five databases, consolidated vectors,
-Git refs and dirty files, runtime configuration, and private environment values
-are captured and restored into isolation before publication. Checks cover WAL
-recovery, database hashes, Git restoration (including local branches/stashes),
-configuration and encryption-key preservation. Original containers restart on
-success and ordinary failure; Docker health events drive readiness without polling.
-An uncatchable interruption leaves a durable maintenance marker for operator
-recovery. Restore never overwrites existing state or automatically starts jobs.
-Shared Zod validation stays behind the public deploy helper boundary, and the
-packed consumer can bundle the copied scripts without workspace dependencies.
-The remote path rejects 0.2 sources and noncanonical mounts rather than guessing.
-A local real-Docker fixture now passes capture, restore, source restart, failure
-cleanup, and restored auth-store/session/signature/decryption checks. It exposed
-and fixed ArrayBuffer argument coercion and previous-generation health events.
-This is not a canonical brain boot or browser passkey/plugin-job acceptance test;
-rover and real-instance authentication/job recovery rehearsal remain required.
-
-- Remove engine selection, remote-libSQL runtime paths, and libSQL runtime
-  dependencies, including the auth database and its optional replica path.
-  Retain the owner/worker boundary and standalone combined-process behavior.
-- Move released-schema import and legacy FTS cleanup into a separately packaged
-  migration tool. New 0.3 databases start with the supported destination schema;
-  their boot path must not open libSQL to clean up old schema objects.
-- Replace the backup gate's retired `embeddings.db` requirement and live Bun
-  SQLite reads with a Turso-supported, verified capture/restore procedure.
-  Include auth data and document the replacement for auth replica recovery.
-  Never read a live Turso database with libSQL or SQLite backup tooling: their
-  WAL formats are not mutually visible.
-- Replace permanent dual-engine runtime gates with Turso runtime tests and
-  released-0.2-to-0.3 migration tests. Verify the packed runtime contains no
-  libSQL dependency; only the separate migration tool may carry it.
-
-#### Off-thread persistence and binary processing — OPEN
-
-The installed Turso 0.7.2 Promise facade calls native `prepare`, `bindAt`,
-`stepSync` and row extraction on the calling thread. Its default Node I/O wait
-is a no-op. Asynchronous method signatures therefore do not establish request-loop
-isolation. The chunked-transfer prototype passes a local 100 MiB persistence/read
-rehearsal, but still assembles and hashes bulk data on calling threads.
-
-[The architecture proposal](turso-off-thread-persistence.md) requires an explicit
-native-execution and binary-processing boundary, retaining single ownership and
-atomic asset/entity writes. Driver commands, connection affinity, binary ownership,
-packaging and crash/shutdown semantics must be reviewed before that refactor.
-Performance measurements verify the eventual design; they do not waive this gate.
-
-The approved isolated driver proof now passes source, packed-JavaScript and
-compiled-consumer acceptance, including deterministic main-thread HTTP progress
-while its native-owning worker is blocked, transaction isolation and durable
-main-file-only recovery. It uses an installed worker sidecar; compiled Bun needs
-`--compile-autoload-package-json` for SDK/native-addon resolution. No runtime
-caller was switched. Full driver parity, binary staging and canonical build/runtime
-integration remain open; see the proposal for the precise proof limits.
-
-#### Per-instance procedure
-
-1. Stop the 0.2 runtime and fence all writers, including any auth replica sync.
-2. Capture and verify the complete source state with the old engine. Retain
-   the old binary, configuration, content checkout, and database directory.
-3. Import into a new data directory; never convert the only source copy in
-   place. Preserve entities, conversations, auth, runtime state, and durable
-   jobs. Define recovery of in-flight jobs explicitly. Rebuild derived indexes
-   and embeddings under a documented readiness policy; Git alone is not a
-   complete backup.
-4. Validate the destination before switching paths: counts and content, auth
-   access, job recovery, search, imports/exports, and owner/worker operation.
-   Interrupted imports must leave the source usable and have a tested restart
-   or discard-and-retry path.
-5. Start 0.3 with traffic fenced, run smoke checks, then reopen traffic.
-6. Before accepting new writes, rollback can restore the old binary and source
-   directory. After accepting writes, reverting that snapshot loses new state:
-   document and approve the recovery policy rather than claiming lossless
-   rollback. Do not reopen 0.3 files using the 0.2 engine.
-
-Rehearse migration, interruption, backup, restore, and rollback on smoke rover
-first. Soak it for several days, then migrate yeehaa and rizom.ai one at a time.
-Stable 0.3 requires smoke rover and at least one real instance to have soaked
-successfully, including a verified backup and restore of the Turso runtime.
-
-**Exit: not met.** The existing dual-engine tests and boundary suite do not
-prove these operational gates.
+**Active `0.3` release work on `work/turso-migration`; `0.2` remains on libSQL.**
+
+The exploratory engine decision is closed: the `0.3` runtime will use Turso Database for every runtime database, including authentication. libSQL remains only in a separately packaged one-time `0.2` importer and does not remain as a runtime selector, fallback, remote path, or auth-replica exception.
+
+The implementation foundation is extensive but not ready to merge as a `0.2` change or to deploy. Runtime conversion, the owner/worker boundary, consolidated embeddings, portable search, entity/job outbox, offline importer, backup/restore tooling, and isolated driver proof exist. Canonical migration, full off-thread driver integration, production recovery rehearsal, and fleet soak remain release gates.
+
+Git remains the content synchronization model. The investigation rejected database-level/browser sync as the migration reason: current Turso sync is whole-database, while entity content and regenerable embeddings need different sync fates. MVCC remains parked until observed owner-connection saturation justifies it.
+
+## Goal
+
+Ship `0.3` with one Turso-only local database architecture that:
+
+- preserves all durable `0.2` state through a verified offline migration;
+- gives the web process sole ownership of local databases while workers use typed local transport;
+- keeps entity changes and embedding-job intents durable together;
+- stores regenerated embeddings in the entity database without retaining a second runtime engine;
+- preserves auth, conversations, jobs, runtime state, content Git state, configuration, and encryption material through backup/restore; and
+- has a rehearsed per-instance cutover and bounded rollback policy.
+
+## Implemented foundation
+
+### Runtime storage
+
+- All service databases can open through the shared Turso adapter.
+- The intended runtime removes engine selection, remote libSQL URLs/tokens, auth replicas, and transitive libSQL runtime loading.
+- Native FTS is replaced by a portable exact-phrase scan; the runtime refuses unsupported legacy FTS files rather than rewriting live state with another engine.
+- Embeddings are consolidated into `brain.db` and remain derived/regenerable.
+- Entity mutations journal embedding-job intents atomically through an owner-local outbox; relay into the separate job queue is idempotent.
+- Auth shutdown awaits admitted writes and durable close.
+
+### Process ownership
+
+- The web process is the sole local database owner.
+- Worker and headless operations use typed owner transport rather than opening another local handle.
+- Production-shaped boundary tests cover service behavior, shutdown, and persistence under WAL.
+
+### Offline migration
+
+`@rizom/db-migration` imports the five `0.2` runtime databases from a checksum-verified snapshot into a new private destination. It preserves paged durable-table content, pending jobs, and auth state; refuses processing jobs; never opens the sole source in place; and retains failed staging for diagnosis/retry.
+
+The importer is the only package allowed to carry libSQL after `0.3` runtime publication.
+
+### Backup and restore
+
+The branch's `docs/turso-backup-restore.md` runbook and deploy helpers capture databases, Git refs/dirty files, configuration, private environment, and encryption keys with writers fenced. Restore targets isolation, never overwrites an existing destination, and does not automatically restart jobs. Real-Docker fixtures cover capture, restore, source restart, failure cleanup, and restored auth/session/signature/decryption data.
+
+### Off-thread proof
+
+An isolated native-owning worker proof demonstrates main-thread HTTP progress while database native work blocks, transaction isolation, packaging, and durable main-file recovery. No canonical runtime caller uses that driver yet.
+
+## Remaining release gates
+
+### 1. Complete off-thread persistence
+
+Review and implement the branch's `docs/plans/turso-off-thread-persistence.md` proposal:
+
+- full driver command/query/transaction parity;
+- connection affinity and single-owner enforcement;
+- binary staging, hashing, and transfer without request-loop stalls;
+- atomic asset/entity writes;
+- package and compiled-runtime loading; and
+- crash, cancellation, drain, and shutdown semantics.
+
+Async method signatures alone do not prove isolation: Turso `0.7.2` performs native prepare/bind/step/row extraction on the calling thread.
+
+### 2. Prove canonical `0.2` migration
+
+From a complete representative `0.2` snapshot:
+
+- fence all writers and capture verified source state;
+- import into a new destination, never in place;
+- compare durable counts and content digests;
+- restore Git/config/private environment and encryption material;
+- verify passkey login, sessions, signatures, decryption, pending-job recovery, search, embeddings readiness, directory import/export, and owner/worker traffic; and
+- prove interruption leaves the source usable and supports deterministic retry/discard.
+
+### 3. Prove production recovery
+
+- Run the real deploy backup gate with canonical images and mounts.
+- Verify restore after interrupted migration and interrupted deployment.
+- Replace every retired `embeddings.db`, live libSQL, and auth-replica assumption in ops.
+- Document the point after which rollback to the old snapshot would lose accepted `0.3` writes; do not claim lossless rollback across that boundary.
+
+### 4. Soak the fleet deliberately
+
+1. Rehearse migration, failure, restore, and rollback on Smoke.
+2. Soak for several days with operational and request-loop evidence.
+3. Migrate `yeehaa.io` and `rizom.ai` one at a time after explicit approval.
+4. Require Smoke plus at least one real instance to complete a verified backup/restore and sustained healthy operation before stable `0.3`.
+
+## Cutover invariant
+
+For each instance:
+
+1. stop `0.2` and fence web, worker, auth-replica, and operator writes;
+2. retain the old image, config, content checkout, and verified source snapshot;
+3. import into a new directory;
+4. validate all durable domains before switching paths;
+5. start `0.3` with traffic fenced and run smoke checks;
+6. reopen traffic only after acceptance; and
+7. never open `0.3` files with the `0.2` engine.
+
+Before new writes, rollback restores the old binary and source snapshot. After new writes, recovery requires an explicit data policy rather than silently discarding them.
 
 ## Non-goals
 
-- No permanent dual-engine runtime, environment-variable fallback, or remote
-  libSQL exception in 0.3. Authentication is included, not exempted.
-- No reliance on experimental page-level "partial sync" for embeddings
-  exclusion — access-pattern lazy loading guarantees nothing on `push()`.
-- No wholesale one-DB consolidation. Phase 5 folds only embeddings into the
-  entity database; any entity/job merge remains a separate owner decision.
+- Changing the `0.2` storage contract.
+- Permanent dual-engine runtime support or an engine environment switch.
+- Remote libSQL or auth-replica exceptions in `0.3`.
+- Replacing Git content sync with database sync.
+- Browser-synced Studio as part of this migration.
+- MVCC without measured owner-connection pressure.
+- Opening live Turso databases with libSQL/SQLite backup tools.
 
-## Risks
+## Completion
 
-- Installations upgrading from a released build carry the libSQL-era
-  `entity_fts` table in `brain.db`; the separate import tool must handle it
-  without leaving a permanent libSQL cleanup path in the 0.3 runtime. The dead `embeddings_embedding_idx` exists only in the retired
-  separate `embeddings.db`, which the final runtime does not open. Turso native
-  FTS is also different: it never shipped, so no released installation can
-  hold it (see Phase 5F).
-- The portable predicate is a linear scan over NFKC-normalized, lower-cased,
-  punctuation-collapsed text, not tokenizer-based FTS. Ranking changes are
-  bounded to the 30% keyword boost; behavior tests pin Unicode, punctuation,
-  and pagination semantics, and the 10,000-row benchmark records the current
-  scale envelope.
-- The single-owner boundary adds IPC latency to substantial worker persistence
-  traffic. The private endpoint also adds framing, authentication, discovery,
-  and cleanup responsibilities. Overload bounds, failure, restart, and
-  shutdown coverage must stay green.
-- If MVCC is triggered, conflicts abort instead of waiting. Every owner write
-  path needs bounded retry semantics, and MVCC-to-WAL recovery remains a
-  prerequisite.
+Delete this plan after stable `0.3` ships from the Turso-only contract and the migration, recovery, soak, and rollback procedures are captured in durable runtime/ops documentation.

@@ -150,23 +150,29 @@ async function resolveWorkspaceVersion(
   name: string,
   resolveFrom: string,
 ): Promise<string> {
-  let dir = resolveFrom;
-  for (;;) {
-    const candidate = join(dir, "node_modules", name, "package.json");
-    const text = await readFile(candidate, "utf8").catch(() => undefined);
-    if (text !== undefined) {
-      const version = parseJsonObject(text, candidate)["version"];
-      if (typeof version !== "string") {
-        throw new Error(`Workspace dependency ${name} has no version`);
-      }
-      return version;
+  return resolveFromDirectory(name, resolveFrom, resolveFrom);
+}
+
+/** Walks one directory up per step, the way Node resolves `node_modules`. */
+async function resolveFromDirectory(
+  name: string,
+  dir: string,
+  resolveFrom: string,
+): Promise<string> {
+  const candidate = join(dir, "node_modules", name, "package.json");
+  const text = await readFile(candidate, "utf8").catch(() => undefined);
+  if (text !== undefined) {
+    const version = parseJsonObject(text, candidate)["version"];
+    if (typeof version !== "string") {
+      throw new Error(`Workspace dependency ${name} has no version`);
     }
-    const parent = dirname(dir);
-    if (parent === dir) {
-      throw new Error(
-        `Could not resolve workspace dependency version for ${name} from ${resolveFrom}`,
-      );
-    }
-    dir = parent;
+    return version;
   }
+  const parent = dirname(dir);
+  if (parent === dir) {
+    throw new Error(
+      `Could not resolve workspace dependency version for ${name} from ${resolveFrom}`,
+    );
+  }
+  return resolveFromDirectory(name, parent, resolveFrom);
 }

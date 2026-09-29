@@ -7,6 +7,7 @@ import { brainNetworkTemplate } from "./brain-network";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
+import { publicAskSections } from "./public-ask";
 
 export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
@@ -24,6 +25,7 @@ export const rizomAiSite: SitePackage = createRizomSite({
     homeSections,
     livingMemorySections,
     brainSections,
+    publicAskSections,
     workSections,
     foundationSections,
   ],

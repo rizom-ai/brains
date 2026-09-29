@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
   requireSameOriginJson,
   requireSameOriginRequest,
@@ -14,6 +15,7 @@ import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
   isRawEntityType,
+  studioTypeHierarchy,
   zodFieldToStudioWidget,
   type StudioEntityDisplayMap,
 } from "./config";
@@ -27,10 +29,16 @@ import {
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
+import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
+import { isGroupingContributorType } from "./grouping-definitions";
 import {
   handleCreateEntity,
   handleDeleteEntity,
   handleGetEntities,
+  handleGetEntityHierarchy,
+  handleGetImagePreview,
+  handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
 import { handleUpload } from "./editor-upload";
@@ -47,6 +55,7 @@ import {
   toStudioWorkspaceActor,
 } from "./editor-access";
 import type {
+  StudioEntityTypeInfo,
   StudioRequestAccess,
   StudioRequestAccessResolution,
   EditorRouteOptions,
@@ -92,10 +101,13 @@ const uiAssetManifestFile = join(
   uiAssetDirectory,
   "studio-asset-manifest.json",
 );
-const studioAssetManifestSchema = z.object({
-  version: z.literal(1),
-  assets: z.record(z.string(), z.string()),
-});
+async function readStudioAssetManifest(): Promise<
+  z.output<typeof studioAssetManifestSchema>
+> {
+  return studioAssetManifestSchema.parse(
+    await Bun.file(uiAssetManifestFile).json(),
+  );
+}
 
 const workspaceActionPayloadSchema = z.object({
   id: z.string().trim().min(1),
@@ -118,56 +130,48 @@ const syncStatusMessageSchema = z.object({
 });
 
 function isSafeStudioAssetPath(value: string): boolean {
-  return (
-    value.length > 0 &&
-    !value.startsWith("/") &&
-    !value.includes("\\") &&
-    value
-      .split("/")
-      .every(
-        (segment) => segment !== "" && segment !== "." && segment !== "..",
-      ) &&
-    /^(?:app\.(?:js|css)|studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[a-zA-Z0-9_-]+\.(?:js|js\.map))$/.test(
-      value,
-    )
-  );
+  return studioAssetPathSchema.safeParse(value).success;
 }
 
 async function serveStudioAsset(
   request: Request,
   assetPrefix: string,
 ): Promise<Response> {
+  const notFound = (): Response =>
+    new Response("Studio UI asset not found", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   const pathname = new URL(request.url).pathname;
   if (!pathname.startsWith(`${assetPrefix}/`)) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
 
   let publicPath: string;
   try {
     publicPath = decodeURIComponent(pathname.slice(assetPrefix.length + 1));
   } catch {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
   if (!isSafeStudioAssetPath(publicPath)) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
 
   let manifest: z.output<typeof studioAssetManifestSchema>;
   try {
-    manifest = studioAssetManifestSchema.parse(
-      await Bun.file(uiAssetManifestFile).json(),
-    );
+    manifest = await readStudioAssetManifest();
   } catch {
-    return new Response("Studio editor UI assets not built", { status: 404 });
+    // Missing builds fail closed, without caching the temporary error.
+    return notFound();
   }
 
   const relativeFile = manifest.assets[publicPath];
   if (!relativeFile || !isSafeStudioAssetPath(relativeFile)) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
   const file = Bun.file(join(uiAssetDirectory, relativeFile));
   if (!(await file.exists())) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
   return new Response(file, {
     headers: {
@@ -176,7 +180,7 @@ async function serveStudioAsset(
         : relativeFile.endsWith(".css")
           ? "text/css; charset=utf-8"
           : "text/javascript; charset=utf-8",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
 }
@@ -200,8 +204,6 @@ export function createEditorRoutes(
   const normalizedBase = normalizeStudioBasePath(routePath);
   const shellPath = normalizedBase || "/";
   const assetPrefix = `${normalizedBase}/assets`;
-  const assetPath = `${assetPrefix}/app.js`;
-  const stylesheetPath = `${assetPrefix}/app.css`;
   const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
   const resolveRequestAccess = async (
@@ -274,10 +276,20 @@ export function createEditorRoutes(
       .map((route) => route.fullPath)
       .sort((left, right) => left.length - right.length)[0];
     const profileName = context.identity.getProfile().name.trim();
+    let manifest: z.output<typeof studioAssetManifestSchema>;
+    try {
+      manifest = await readStudioAssetManifest();
+    } catch {
+      // A missing or invalid build must not advertise stale or mutable assets.
+      return new Response("Studio editor UI assets not built", {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     return new Response(
       renderEditorShellHtml({
-        assetPath,
-        stylesheetPath,
+        assetPath: `${assetPrefix}/${manifest.entrypoints.script}`,
+        stylesheetPath: `${assetPrefix}/${manifest.entrypoints.stylesheet}`,
         basePath: shellPath,
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
         dashboardHref: `${dashboardHref ?? "/dashboard"}?view=public`,
@@ -318,6 +330,13 @@ export function createEditorRoutes(
       handler: serveShell,
     },
     {
+      path: `${normalizedBase}/groups`,
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: serveShell,
+    },
+    {
       path: `${normalizedBase}/workspaces`,
       match: "prefix",
       method: "GET",
@@ -344,6 +363,7 @@ export function createEditorRoutes(
           getEntityDisplay(),
           workspaceRegistry,
           access,
+          options.getGroupingDefinitions,
         );
       },
     },
@@ -376,7 +396,57 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
-        return handleGetSchema(getContext(), request, access);
+        return handleGetSchema(getContext(), request, access, options);
+      },
+    },
+    {
+      path: apiPath("images"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetImagePreview(getContext(), request, access);
+      },
+    },
+    {
+      path: apiPath("destination"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireSameOriginJson(request);
+        if (denied) return denied;
+        return handlePreviewDestination(getContext(), request, access);
+      },
+    },
+    ...(["catalog", "members", "usage"] as const).map(
+      (mode): WebRouteDefinition => ({
+        path: apiPath(`groups/${mode}`),
+        method: "GET",
+        public: true,
+        handler: async (request): Promise<Response> => {
+          const access = await requireTrustedAccess(request);
+          if (access instanceof Response) return access;
+          return handleGroupingRead(
+            getContext(),
+            request,
+            access,
+            mode,
+            options.getGroupingDefinitions,
+          );
+        },
+      }),
+    ),
+    {
+      path: apiPath("hierarchy"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetEntityHierarchy(getContext(), request, access);
       },
     },
     {
@@ -544,9 +614,11 @@ async function handleListTypes(
   entityDisplay: StudioEntityDisplayMap | undefined,
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
+  getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
-  const types = [];
+  const types: StudioEntityTypeInfo[] = [];
   if (access.permissionLevel !== "public") {
+    await context.entities.ensureGroupingsCurrent();
     const counts = new Map(
       (await context.entityService.getEntityCounts(access.visibilityScope)).map(
         (entry) => [entry.entityType, entry.count],
@@ -572,6 +644,7 @@ async function handleListTypes(
         hasBody: adapter?.hasBody !== false,
         count,
         capabilities,
+        hierarchy: studioTypeHierarchy(entityType),
       });
     }
   }
@@ -590,7 +663,11 @@ async function handleListTypes(
       left.priority - right.priority || left.id.localeCompare(right.id),
   );
 
-  return jsonResponse({ types, workspaces });
+  const groupings = studioGroupDescriptors(
+    getDefinitions?.().groupings ?? {},
+    new Set(types.map((type) => type.entityType)),
+  );
+  return jsonResponse({ types, workspaces, groupings });
 }
 
 async function handleGetWorkspace(
@@ -698,12 +775,14 @@ async function handleGetSchema(
   context: ServicePluginContext,
   request: Request,
   access: StudioRequestAccess,
+  options: EditorRouteOptions,
 ): Promise<Response> {
   const entityType = new URL(request.url).searchParams.get("type");
   if (!entityType) {
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
 
+  await context.entities.ensureGroupingsCurrent();
   const capabilities = await getTypeCapabilities(context, entityType, access);
   const schema = capabilities
     ? context.entities.getEffectiveFrontmatterSchema(entityType)
@@ -713,15 +792,23 @@ async function handleGetSchema(
   }
 
   const adapter = context.entities.getAdapter(entityType);
-  const raw = isRawEntityType(entityType);
+  const raw = isRawEntityType(entityType, context.entities);
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.
+  const definitions = options.getGroupingDefinitions?.();
+  const labels = new Map(
+    Object.entries(definitions?.groupings ?? {})
+      .filter(([, definition]) => definition.types.includes(entityType))
+      .map(([key, definition]) => [key, definition.label]),
+  );
   const domainFields = raw
     ? []
-    : Object.keys(schema.shape).map((name) =>
-        zodFieldToStudioWidget(name, schema.shape[name]),
-      );
+    : Object.keys(schema.shape).map((name) => {
+        const field = zodFieldToStudioWidget(name, schema.shape[name]);
+        const label = labels.get(name);
+        return label === undefined ? field : { ...field, label };
+      });
   const visibilityField = {
     name: "visibility",
     label: "Visibility",
@@ -732,9 +819,36 @@ async function handleGetSchema(
       canWriteVisibility(access.permissionLevel, visibility),
     ),
   };
-  const fields = [...domainFields, visibilityField];
+  // Definitions have exactly one workable visibility: the editors they
+  // constrain must be able to read them. Offering a choice invites a list
+  // that silently refuses saves nobody can explain.
+  const fields =
+    entityType === GROUPING_DEFINITIONS_TYPE
+      ? domainFields
+      : [...domainFields, visibilityField];
 
+  const contributorTypes: Array<{ entityType: string; label: string }> = [];
+  if (entityType === GROUPING_DEFINITIONS_TYPE) {
+    const display = options.getEntityDisplay();
+    for (const type of context.entityService.getEntityTypes()) {
+      if (
+        isGroupingContributorType(context, type) &&
+        (await getTypeCapabilities(context, type, access))
+      ) {
+        contributorTypes.push({
+          entityType: type,
+          label: entityTypeLabels(type, display?.[type]).pluralLabel,
+        });
+      }
+    }
+  }
   return jsonResponse({
+    ...(entityType === GROUPING_DEFINITIONS_TYPE && {
+      groupingDefinitions: {
+        contributorTypes,
+        issues: definitions?.issues ?? [],
+      },
+    }),
     entityType,
     format: raw ? "raw" : "frontmatter",
     isSingleton: adapter?.isSingleton === true,

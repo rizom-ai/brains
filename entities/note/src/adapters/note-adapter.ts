@@ -48,7 +48,14 @@ export class NoteAdapter extends BaseEntityAdapter<
 
   public fromMarkdown(markdown: string): Partial<Note> {
     const frontmatter = this.parseMarkdownFrontmatter(markdown);
-    const title = frontmatter.title ?? this.extractH1(markdown) ?? "Untitled";
+    const body = this.extractBody(markdown);
+    const firstLine = body.split(/\r?\n/).find((line) => line.trim());
+    const title =
+      [
+        frontmatter.title?.trim(),
+        this.extractH1(body),
+        this.limitFallbackTitle(firstLine?.trim().replace(/^#{1,6}\s+/, "")),
+      ].find((candidate) => (candidate?.length ?? 0) > 0) ?? "Untitled";
     return {
       content: markdown,
       entityType: "note",
@@ -57,6 +64,17 @@ export class NoteAdapter extends BaseEntityAdapter<
         ...(frontmatter.status && { status: frontmatter.status }),
         ...(frontmatter.error && { error: frontmatter.error }),
       },
+    };
+  }
+
+  /** Resolve missing/default labels for stored notes without changing their source. */
+  public override extractMetadata(entity: Note): NoteMetadata {
+    if (entity.metadata.title.trim() && entity.metadata.title !== "Untitled") {
+      return entity.metadata;
+    }
+    return {
+      ...entity.metadata,
+      title: this.fromMarkdown(entity.content).metadata?.title ?? "Untitled",
     };
   }
 
@@ -108,6 +126,18 @@ export class NoteAdapter extends BaseEntityAdapter<
       // Parse error — save as-is
       return content;
     }
+  }
+
+  /** Reserve one character for the ellipsis; split long tokens only when necessary. */
+  private limitFallbackTitle(title: string | undefined): string | undefined {
+    if (title === undefined) return undefined;
+    const characters = Array.from(title);
+    if (characters.length <= 80) return title;
+    const prefix = characters.slice(0, 79).join("");
+    const boundary = /\s/u.test(characters[79] ?? "")
+      ? prefix
+      : prefix.replace(/\s+\S*$/u, "");
+    return `${boundary.trimEnd()}…`;
   }
 
   private extractH1(markdown: string): string | null {

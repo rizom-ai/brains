@@ -40,6 +40,7 @@ export function createWebChatRoutes({
       path: routePath,
       method: "GET",
       public: true,
+      preview: true,
       handler: (request): Promise<Response> => handlers.handleChatPage(request),
     },
     {
@@ -123,12 +124,14 @@ export function createWebChatRoutes({
       path: uiAssetPath,
       method: "GET",
       public: true,
+      preview: true,
       handler: (): Promise<Response> => handlers.handleUiAssetRequest(),
     },
     {
       path: uiStylesheetPath,
       method: "GET",
       public: true,
+      preview: true,
       handler: (): Promise<Response> => handlers.handleUiStylesheetRequest(),
     },
     {

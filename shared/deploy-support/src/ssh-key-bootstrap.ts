@@ -16,7 +16,7 @@ import {
   resolveLocalPath,
 } from "./local-env";
 import type { FetchLike } from "@brains/utils/fetch-like";
-import { pushSecretsToBackend } from "./push-secrets";
+import { pushSecretsToGitHub } from "./push-secrets";
 import { normalizePushTarget } from "./push-target";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 import { getErrorMessage } from "@brains/utils/error";
@@ -155,8 +155,7 @@ export async function bootstrapSshKey(
 
   const pushTarget = normalizePushTarget(options.pushTo);
   if (pushTarget) {
-    await pushSecretsToBackend(
-      pushTarget,
+    await pushSecretsToGitHub(
       [["KAMAL_SSH_PRIVATE_KEY", readFileSync(privateKeyPath, "utf-8")]],
       {
         logger,

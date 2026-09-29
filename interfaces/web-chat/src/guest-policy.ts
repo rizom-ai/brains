@@ -33,7 +33,6 @@ const limitsSchema: Strict<
     globalRequestsPerMinute: z.ZodNumber;
     globalRequestsPerDay: z.ZodNumber;
     globalConcurrency: z.ZodNumber;
-    streamIdleTimeoutSeconds: z.ZodNumber;
   }
 > = z
   .strictObject({
@@ -44,15 +43,12 @@ const limitsSchema: Strict<
     globalRequestsPerMinute: positiveInteger,
     globalRequestsPerDay: positiveInteger,
     globalConcurrency: positiveInteger,
-    streamIdleTimeoutSeconds: positiveInteger,
   })
   .refine(
     (limits) =>
-      limits.outputTokens < limits.contextTokens &&
       limits.requestsPerMinute <= limits.requestsPerDay &&
-      limits.globalRequestsPerMinute <= limits.globalRequestsPerDay &&
-      limits.streamIdleTimeoutSeconds <= limits.requestTimeoutSeconds,
-    "Guest limits must have consistent token, rate and timeout bounds",
+      limits.globalRequestsPerMinute <= limits.globalRequestsPerDay,
+    "Guest rate limits must fit their daily limits",
   );
 
 const budgetSchema: Strict<{
@@ -69,7 +65,7 @@ const budgetSchema: Strict<{
   );
 
 /** Exact deployment origin; forwarded headers and browser claims cannot supply it. */
-function isGuestOrigin(value: string): boolean {
+export function isGuestOrigin(value: string): boolean {
   try {
     const url = new URL(value);
     if (url.origin !== value || url.username || url.password) return false;
@@ -84,15 +80,36 @@ function isGuestOrigin(value: string): boolean {
   }
 }
 
+/** Finite bounds of the owner's usage record; set before anything is recorded. */
+export const guestUsageBoundsSchema: Strict<{
+  maxRecords: z.ZodNumber;
+  maxDenialRecords: z.ZodNumber;
+  retentionSeconds: z.ZodNumber;
+  questionBytes: z.ZodNumber;
+  maxStoredBytes: z.ZodNumber;
+}> = z.strictObject({
+  maxRecords: positiveInteger.max(10_000),
+  /** Detailed denials kept; beyond this, only daily counts by reason. */
+  maxDenialRecords: positiveInteger.max(10_000),
+  retentionSeconds: positiveInteger.max(366 * 86_400),
+  /** UTF-8 bytes of a question kept; longer questions are cut and marked. */
+  questionBytes: positiveInteger.max(65_536),
+  /** Total question text kept; a request that could exceed it is refused. */
+  maxStoredBytes: positiveInteger.max(64 * 1024 * 1024),
+});
+export type GuestUsageBounds = z.output<typeof guestUsageBoundsSchema>;
+
 const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
   z.strictObject({ enabled: z.literal(false) });
 const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
+  budgeted: z.ZodOptional<z.ZodLiteral<true>>;
   issuance: typeof guestIssuanceLimitsSchema;
   limits: typeof limitsSchema;
   retention: typeof guestRetentionSchema;
   budget: typeof budgetSchema;
+  usageRecord: typeof guestUsageBoundsSchema;
   disclosure: Strict<{
     provider: z.ZodString;
     notice: z.ZodString;
@@ -106,10 +123,13 @@ const enabledPolicySchema: Strict<{
       isGuestOrigin,
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
+  /** The owner authorizes it with a monthly budget; admission needs that authorization. */
+  budgeted: z.literal(true).optional(),
   issuance: guestIssuanceLimitsSchema,
   limits: limitsSchema,
   retention: guestRetentionSchema,
   budget: budgetSchema,
+  usageRecord: guestUsageBoundsSchema,
   disclosure: z.strictObject({
     provider: z.string().trim().min(1),
     notice: z.string().trim().min(1),
@@ -128,3 +148,22 @@ export const guestPolicySchema: z.ZodDiscriminatedUnion<
 ]);
 export type GuestPolicy = z.output<typeof guestPolicySchema>;
 export type EnabledGuestPolicy = Extract<GuestPolicy, { enabled: true }>;
+
+/** Deployment TLS terminates at the HTTPS proxy. For bounded guest access,
+ * accept its backend HTTP scheme only for the exact configured HTTPS host.
+ * Never infer the public host or protocol from Forwarded/X-Forwarded-* claims.
+ * Loopback policies retain exact-origin and socket-peer checks.
+ */
+export function matchesGuestOrigin(
+  request: Request,
+  policy: EnabledGuestPolicy,
+): boolean {
+  const url = new URL(request.url);
+  if (url.origin === policy.origin) return true;
+  return Boolean(
+    policy.budgeted &&
+    new URL(policy.origin).protocol === "https:" &&
+    url.protocol === "http:" &&
+    url.host === new URL(policy.origin).host,
+  );
+}

@@ -10,6 +10,7 @@ import type { CommandResult } from "../lib/command-result";
 import type { BootedBrain } from "../lib/boot";
 import { toolResponseSchema, type ToolResponse } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
+import { createCliOperatorContext } from "@brains/app";
 import { findRunner, resolveRunnerType } from "./start";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { getErrorMessage } from "@brains/utils/error";
@@ -206,11 +207,10 @@ async function operateBuiltin(
     const { mapArgsToInput } = await import("@brains/mcp-service");
     const toolInput = mapArgsToInput(match.tool.inputSchema, args, flags);
 
-    const result = await match.tool.handler(toolInput, {
-      interfaceType: "cli",
-      actor: { kind: "service", serviceId: "brain-cli" },
-      userPermissionLevel: "admin",
-    });
+    const result = await match.tool.handler(
+      toolInput,
+      createCliOperatorContext(),
+    );
 
     return printToolResult(result, { success: true });
   } catch (error) {
@@ -287,11 +287,7 @@ export async function operateRawTool(
       };
     }
 
-    const context = {
-      interfaceType: "cli",
-      actor: { kind: "service" as const, serviceId: "brain-cli" },
-      userPermissionLevel: options.permission ?? "admin",
-    };
+    const context = createCliOperatorContext(options.permission);
     let result = await match.tool.handler(input, context);
     if ("needsConfirmation" in result && options.confirm) {
       result = await match.tool.handler(result.args, context);

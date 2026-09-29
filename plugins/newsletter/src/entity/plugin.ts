@@ -6,20 +6,11 @@ import type {
   DataSource,
   Template,
 } from "@brains/plugins";
-import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import {
-  GENERATE_CHANNELS,
-  NEWSLETTER_CHANNELS,
-  PUBLISH_CHANNELS,
-  SITE_BUILDER_CHANNELS,
-  type PublishProvider,
-} from "@brains/contracts";
-import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
-import { createElement as h } from "react";
+import { GENERATE_CHANNELS, NEWSLETTER_CHANNELS } from "@brains/contracts";
 import { fetchVoiceGuidance } from "@brains/contracts";
-import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import {
   newsletterAdapter,
@@ -99,78 +90,13 @@ export class NewsletterPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    // Publish pipeline registration (deferred to plugins-registered)
-    this.deferPublishRegistration(context);
-
     // Generate execute handler (from content-pipeline)
     this.subscribeToGenerateExecute(context);
 
     // Register eval handlers
     this.registerEvalHandlers(context);
 
-    // Newsletter signup slot (if buttondown plugin is loaded, it provides the config)
-    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      // Check if buttondown is configured by sending a message
-      const response = await context.messaging.send({
-        type: BUTTONDOWN_CHANNELS.isConfigured,
-        payload: {},
-      });
-      if (!("noop" in response) && response.success) {
-        await context.messaging.send({
-          type: SITE_BUILDER_CHANNELS.slotRegister,
-          payload: {
-            pluginId: this.id,
-            slotName: "footer-top",
-            render: () => h(NewsletterSignup, { variant: "inline" }),
-          },
-        });
-      }
-      return { success: true };
-    });
-
     this.logger.debug("Newsletter plugin registered");
-  }
-
-  private deferPublishRegistration(context: EntityPluginContext): void {
-    const provider: PublishProvider = {
-      name: "internal",
-      publish: async (content, metadata) => {
-        const subject =
-          typeof metadata["subject"] === "string" ? metadata["subject"] : "";
-        const sendResult = await context.messaging.send<
-          { entityId: string; subject: string; content: string },
-          { emailId?: string }
-        >({
-          type: BUTTONDOWN_CHANNELS.send,
-          payload: {
-            entityId: "",
-            subject,
-            content,
-          },
-        });
-
-        const buttondownId =
-          !("noop" in sendResult) && sendResult.data?.emailId
-            ? sendResult.data.emailId
-            : "internal";
-        return { id: buttondownId };
-      },
-    };
-
-    context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.messaging.send({
-        type: PUBLISH_CHANNELS.register,
-        payload: {
-          entityType: "newsletter",
-          provider,
-          config: {
-            publishResultIdField: "buttondownId",
-            publishTimestampField: "sentAt",
-          },
-        },
-      });
-      return { success: true };
-    });
   }
 
   private subscribeToGenerateExecute(context: EntityPluginContext): void {

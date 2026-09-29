@@ -190,9 +190,26 @@ describe("canonical HTTP route manifests", () => {
     expect(routeManifest([chat])).toEqual(readExpected("chat-sdk"));
   });
 
-  test("records the configured newsletter tool route without making it a public fixture", () => {
-    expect(routeManifest(newsletter({ apiKey: "fixture-api-key" }))).toEqual(
-      readExpected("newsletter"),
-    );
+  test("records configured newsletter provider routes", () => {
+    expect(
+      routeManifest(
+        newsletter({
+          provider: { type: "buttondown", apiKey: "fixture-api-key" },
+        }),
+      ),
+    ).toEqual(readExpected("newsletter"));
+
+    expect(
+      routeManifest(
+        newsletter({
+          provider: {
+            type: "resend",
+            apiKey: "fixture-api-key",
+            segmentId: "fixture-segment",
+            from: "Newsletter <newsletter@example.com>",
+          },
+        }),
+      ),
+    ).toEqual(readExpected("newsletter-resend"));
   });
 });

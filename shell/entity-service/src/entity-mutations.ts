@@ -1,4 +1,4 @@
-import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import { normalizeSearchText, type EntityDB } from "./db";
 import type {
   AssetTransaction,
@@ -7,13 +7,11 @@ import type {
 } from "./sqlite-asset-repository";
 import type {
   BaseEntity,
-  EmbeddingJobData,
   EntityJobOptions,
   EntityMutationEventContext,
   EntityMutationResult,
   EmbeddingBackfillResult,
   EmbeddingIndexStats,
-  EmbeddingFailureReference,
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
@@ -31,83 +29,39 @@ import type {
   EntityExportStore,
   EntityExportTransaction,
 } from "./entity-export-store";
-import type {
-  IJobQueueService,
-  JobInfo,
-  JobQueueEnqueueRequest,
-  PreparedJobEnqueue,
-} from "@brains/job-queue";
+import type { IJobQueueService } from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
-import { and, eq, sql } from "drizzle-orm";
+import { EmbeddingIndexCoordinator } from "./embedding-index-coordinator";
+import { and, eq } from "drizzle-orm";
+import {
+  entityWriteConditionSchema,
+  EntityWriteConflictError,
+} from "./entity-write-contracts";
+import {
+  assertEntityWriteCondition,
+  type EntityWritePrecondition,
+} from "./entity-write-state";
+import { entityRevision, stableJson } from "./entity-revision";
+import { toEntityValidationError } from "./errors";
 
-const jsonObjectSchema = z.custom<object>(
-  (value) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
-);
-
-function toStableJsonValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) =>
-      item === undefined ? null : toStableJsonValue(item),
-    );
-  }
-
-  const parsedObject = jsonObjectSchema.safeParse(value);
-  if (parsedObject.success) {
-    return Object.fromEntries(
-      Object.entries(parsedObject.data)
-        .filter(([, item]) => item !== undefined)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, toStableJsonValue(item)]),
-    );
-  }
-
-  return value;
-}
-
-function stableJson(value: unknown): string {
-  return JSON.stringify(toStableJsonValue(value));
-}
-
-function entityRevision(input: {
-  contentHash: string;
-  metadata: unknown;
-  visibility: string;
-}): string {
-  return computeContentHash(stableJson(input));
-}
-
-const failedEmbeddingJobDataSchema = z.object({
-  id: z.string().min(1),
-  entityType: z.string().min(1),
-  contentHash: z.string().min(1),
-});
-
-function parseEmbeddingFailureReference(
-  job: JobInfo,
-): EmbeddingFailureReference | null {
+/** Shared by ordinary mutations and atomic projection upserts. */
+export async function validatePersist(
+  registry: EntityRegistry,
+  entity: BaseEntity,
+  operation: "create" | "update",
+): Promise<void> {
   try {
-    const data = failedEmbeddingJobDataSchema.parse(JSON.parse(job.data));
-    return {
-      entityId: data.id,
-      entityType: data.entityType,
-      contentHash: data.contentHash,
-    };
-  } catch {
-    // Job data we cannot read yields no reference; the caller treats that
-    // the same as a job that named no entity.
-    return null;
+    await registry.getPersistValidator(entity.entityType)?.(entity, {
+      operation,
+    });
+  } catch (error) {
+    throw toEntityValidationError(entity.entityType, error, "persist") ?? error;
   }
-}
-
-function embeddingReferenceKey(reference: EmbeddingFailureReference): string {
-  return `${reference.entityType}:${reference.entityId}:${reference.contentHash}`;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -124,18 +78,6 @@ function isUniqueConstraintError(error: unknown): boolean {
 }
 
 class StaleEntityUpdateError extends Error {}
-
-interface EmbeddingBackfillCandidate {
-  id: string;
-  entityType: string;
-  contentHash: string;
-}
-
-interface EmbeddingBackfillCandidates extends EmbeddingIndexStats {
-  tableMissing: boolean;
-  skipped: number;
-  rowsToBackfill: EmbeddingBackfillCandidate[];
-}
 
 export interface EntityMutationDeps {
   db: EntityDB;
@@ -164,7 +106,6 @@ export class EntityMutations {
   private entityRegistry: EntityRegistry;
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
-  private jobQueueService: IJobQueueService;
   private readonly jobOutbox: EntityJobOutbox;
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
@@ -172,29 +113,30 @@ export class EntityMutations {
   private readonly assetRepository: SqliteAssetRepository;
   private readonly entityExportStore: EntityExportStore;
   private readonly projectionNow: () => number;
-  private readonly embeddingsEnabled: boolean;
+  private readonly embeddingIndex: EmbeddingIndexCoordinator;
   private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
-  private embeddingDimensions: number;
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
     this.entityRegistry = deps.entityRegistry;
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
-    this.jobQueueService = deps.jobQueueService;
     this.jobOutbox = deps.jobOutbox;
     this.projectionStore = deps.projectionStore;
     this.assetRepository = deps.assetRepository;
     this.entityExportStore = deps.entityExportStore;
     this.projectionNow = deps.projectionNow;
-    this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
-    this.embeddingDimensions = z
-      .number()
-      .int()
-      .positive()
-      .parse(deps.embeddingDimensions);
+    this.embeddingIndex = new EmbeddingIndexCoordinator({
+      entityDb: deps.db,
+      projectionStore: deps.projectionStore,
+      embeddingDimensions: deps.embeddingDimensions,
+      entityRegistry: deps.entityRegistry,
+      jobQueueService: deps.jobQueueService,
+      logger: this.logger,
+      embeddingsEnabled: deps.embeddingsEnabled,
+    });
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;
     }
@@ -220,10 +162,33 @@ export class EntityMutations {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    options?.signal?.throwIfAborted();
+    const condition =
+      options?.conditionalWrite &&
+      entityWriteConditionSchema.parse(options.conditionalWrite);
+    if (
+      condition &&
+      (condition.expectedRevision !== null ||
+        options.deduplicateId ||
+        !entity.id)
+    ) {
+      throw new Error(
+        "Conditional creation requires an explicit ID, an absent precondition, and no deduplication",
+      );
+    }
+    const precondition: EntityWritePrecondition | undefined = condition
+      ? {
+          ...condition,
+          entityType: entity.entityType,
+          entityId: entity.id ?? "",
+        }
+      : undefined;
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
 
+    const assertGroupingsCurrent =
+      this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Generate ID, timestamps, and contentHash if not provided
     const now = new Date().toISOString();
     const entityWithDefaults = {
@@ -240,12 +205,8 @@ export class EntityMutations {
       entityWithDefaults,
     );
 
-    const persistValidator = this.entityRegistry.getPersistValidator(
-      validatedEntity.entityType,
-    );
-    if (persistValidator) {
-      await persistValidator(validatedEntity, { operation: "create" });
-    }
+    await validatePersist(this.entityRegistry, validatedEntity, "create");
+    options?.signal?.throwIfAborted();
 
     // Prepare entity for storage
     const { markdown, metadata } =
@@ -278,7 +239,7 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    const embeddingIntent = this.prepareEmbeddingJob({
+    const embeddingIntent = this.embeddingIndex.prepare({
       entityId: finalId,
       entityType: validatedEntity.entityType,
       contentHash,
@@ -305,12 +266,29 @@ export class EntityMutations {
         markedAt,
       },
       async (transaction) => {
+        if (precondition)
+          await assertEntityWriteCondition(
+            transaction,
+            precondition,
+            validatedEntity,
+          );
         await this.bindAssetContent(
           transaction,
           validatedEntity.entityType,
           markdown,
           stagedAsset,
         );
+        await options?.beforeWrite?.({
+          ...validatedEntity,
+          id: finalId,
+          content: markdown,
+          contentHash,
+          metadata,
+        });
+        options?.signal?.throwIfAborted();
+        assertGroupingsCurrent();
+        options?.signal?.throwIfAborted();
+        // Once the entity write starts, settle the complete atomic mutation.
         await transaction.insert(entities).values({
           id: finalId,
           entityType: validatedEntity.entityType,
@@ -355,7 +333,11 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.embeddingIntentResult(finalId, embeddingIntent);
+    return {
+      entityId: finalId,
+      jobId: embeddingIntent?.jobId ?? "",
+      skipped: false,
+    };
   }
 
   /**
@@ -365,10 +347,28 @@ export class EntityMutations {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    options?.signal?.throwIfAborted();
+    const condition =
+      options?.conditionalWrite &&
+      entityWriteConditionSchema.parse(options.conditionalWrite);
+    if (
+      condition &&
+      (condition.expectedRevision === null ||
+        options.expectedContentHash !== undefined)
+    ) {
+      throw new Error(
+        "Conditional replacement requires a revision and cannot combine preconditions",
+      );
+    }
+    const precondition: EntityWritePrecondition | undefined = condition
+      ? { ...condition, entityType: entity.entityType, entityId: entity.id }
+      : undefined;
     this.logger.debug(
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
 
+    const assertGroupingsCurrent =
+      this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Validate and serialize first to compute the new content hash
     const updatedEntity = {
       ...entity,
@@ -381,12 +381,8 @@ export class EntityMutations {
       updatedEntity,
     );
 
-    const persistValidator = this.entityRegistry.getPersistValidator(
-      validatedEntity.entityType,
-    );
-    if (persistValidator) {
-      await persistValidator(validatedEntity, { operation: "update" });
-    }
+    await validatePersist(this.entityRegistry, validatedEntity, "update");
+    options?.signal?.throwIfAborted();
 
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
@@ -418,6 +414,11 @@ export class EntityMutations {
     const existingEntity = existing.at(0);
 
     if (!existingEntity) {
+      if (precondition)
+        throw new EntityWriteConflictError(
+          precondition.entityType,
+          precondition.entityId,
+        );
       throw new Error(
         `Entity not found: ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
@@ -446,6 +447,7 @@ export class EntityMutations {
     );
 
     if (
+      !precondition &&
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -456,12 +458,15 @@ export class EntityMutations {
           id: validatedEntity.id,
         },
         async (transaction) => {
+          options?.signal?.throwIfAborted();
+          assertGroupingsCurrent();
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
             markdown,
             stagedAsset,
           );
+          options?.signal?.throwIfAborted();
           return this.persistEntityExport(
             transaction,
             {
@@ -495,7 +500,7 @@ export class EntityMutations {
       entityId: validatedEntity.id,
     });
 
-    const embeddingIntent = this.prepareEmbeddingJob({
+    const embeddingIntent = this.embeddingIndex.prepare({
       entityId: validatedEntity.id,
       entityType: validatedEntity.entityType,
       contentHash,
@@ -522,6 +527,12 @@ export class EntityMutations {
           markedAt,
         },
         async (transaction) => {
+          if (precondition)
+            await assertEntityWriteCondition(
+              transaction,
+              precondition,
+              validatedEntity,
+            );
           if (existingEntity.contentHash !== contentHash) {
             await transaction
               .delete(embeddings)
@@ -538,6 +549,16 @@ export class EntityMutations {
             markdown,
             stagedAsset,
           );
+          await options?.beforeWrite?.({
+            ...validatedEntity,
+            content: markdown,
+            contentHash,
+            metadata,
+          });
+          options?.signal?.throwIfAborted();
+          assertGroupingsCurrent();
+          options?.signal?.throwIfAborted();
+          // Cancellation after this boundary must not split the entity from its journals.
           const updateResult = await transaction
             .update(entities)
             .set({
@@ -558,9 +579,14 @@ export class EntityMutations {
               ),
             );
           if (
-            options?.expectedContentHash !== undefined &&
+            (condition || options?.expectedContentHash !== undefined) &&
             Number(updateResult.rowsAffected) === 0
           ) {
+            if (precondition)
+              throw new EntityWriteConflictError(
+                precondition.entityType,
+                precondition.entityId,
+              );
             throw new StaleEntityUpdateError();
           }
           if (embeddingIntent) {
@@ -612,7 +638,11 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.embeddingIntentResult(validatedEntity.id, embeddingIntent);
+    return {
+      entityId: validatedEntity.id,
+      jobId: embeddingIntent?.jobId ?? "",
+      skipped: false,
+    };
   }
 
   /**
@@ -625,7 +655,14 @@ export class EntityMutations {
     // `seriesName` field that drives the series projection). Without this,
     // every delete forces subscribers into a full resync because they can't
     // tell whether the deleted entity was relevant to them.
-    const priorData = await this.entityQueries.getEntityData(entityType, id);
+    // Authorization belongs to the calling capability. This internal mutation
+    // must find the admitted row at every visibility tier, not silently turn a
+    // shared/restricted deletion into a public-scoped lookup miss.
+    const priorData = await this.entityQueries.getEntityData(
+      entityType,
+      id,
+      "restricted",
+    );
     const prior = priorData
       ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
       : undefined;
@@ -640,9 +677,7 @@ export class EntityMutations {
 
     if (!priorData) return false;
 
-    // The entity, embedding, and scheduler journal share one atomic
-    // transaction. The explicit embedding delete also works if FK enforcement
-    // is unavailable on a remote libSQL connection.
+    // The entity, embedding, and scheduler journal share one atomic transaction.
     await this.projectionStore.withDirtyInput(
       {
         sourceType: entityType,
@@ -765,7 +800,7 @@ export class EntityMutations {
           target.entityType,
           target.entityId,
         );
-        await this.enqueueEmbeddingJob({
+        await this.embeddingIndex.enqueue({
           entityId: target.entityId,
           entityType: target.entityType,
           contentHash: target.contentHash,
@@ -781,201 +816,15 @@ export class EntityMutations {
    * Entity must already exist in entities table
    */
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
-    if (data.embedding.length !== this.embeddingDimensions) {
-      throw new RangeError(
-        `Expected ${this.embeddingDimensions} embedding dimensions, received ${data.embedding.length}`,
-      );
-    }
-
-    const embedding = Buffer.from(
-      data.embedding.buffer,
-      data.embedding.byteOffset,
-      data.embedding.byteLength,
-    );
-    await this.projectionStore.runDatabaseOperation(() =>
-      this.db.run(sql`
-        INSERT INTO embeddings (entity_id, entity_type, embedding, content_hash)
-        SELECT ${data.entityId}, ${data.entityType}, ${embedding}, ${data.contentHash}
-        WHERE EXISTS (
-          SELECT 1 FROM entities
-          WHERE id = ${data.entityId}
-            AND entityType = ${data.entityType}
-            AND contentHash = ${data.contentHash}
-        )
-        ON CONFLICT(entity_id, entity_type) DO UPDATE SET
-          embedding = excluded.embedding,
-          content_hash = excluded.content_hash
-      `),
-    );
+    await this.embeddingIndex.store(data);
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
-    if (!this.embeddingsEnabled) {
-      this.logger.debug(
-        "Skipping embedding backfill; semantic indexing is disabled",
-      );
-      return { queued: 0, skipped: 0 };
-    }
-
-    const candidates = await this.getEmbeddingBackfillCandidates();
-
-    if (candidates.tableMissing) {
-      this.logger.debug("Skipping embedding backfill; entities table missing");
-      return { queued: 0, skipped: 0 };
-    }
-
-    let queued = 0;
-    let skipped = candidates.skipped;
-
-    for (const row of candidates.rowsToBackfill) {
-      const result = await this.enqueueEmbeddingJob({
-        entityId: row.id,
-        entityType: row.entityType,
-        contentHash: row.contentHash,
-        operation: "update",
-      });
-      if (result.jobId) {
-        queued++;
-      } else {
-        skipped++;
-      }
-    }
-
-    return { queued, skipped };
+    return this.embeddingIndex.backfillMissing();
   }
 
   public async getEmbeddingIndexStats(): Promise<EmbeddingIndexStats> {
-    const candidates = await this.getEmbeddingBackfillCandidates();
-    return {
-      missingEmbeddings: candidates.missingEmbeddings,
-      staleEmbeddings: candidates.staleEmbeddings,
-      failedEmbeddings: candidates.failedEmbeddings,
-      embeddableEntities: candidates.embeddableEntities,
-      embeddedEntities: candidates.embeddedEntities,
-    };
-  }
-
-  private async getEmbeddingBackfillCandidates(): Promise<EmbeddingBackfillCandidates> {
-    if (!(await this.hasEntityTable())) {
-      return {
-        tableMissing: true,
-        skipped: 0,
-        rowsToBackfill: [],
-        missingEmbeddings: 0,
-        staleEmbeddings: 0,
-        failedEmbeddings: 0,
-        embeddableEntities: 0,
-        embeddedEntities: 0,
-      };
-    }
-
-    const failedEmbeddingKeys = await this.getFailedEmbeddingKeys();
-
-    const entityRows = await this.db
-      .select({
-        id: entities.id,
-        entityType: entities.entityType,
-        contentHash: entities.contentHash,
-      })
-      .from(entities);
-
-    const embeddingRows = await this.db
-      .select({
-        entityId: embeddings.entityId,
-        entityType: embeddings.entityType,
-        contentHash: embeddings.contentHash,
-      })
-      .from(embeddings);
-
-    const embeddingHashes = new Map<string, string>();
-    for (const row of embeddingRows) {
-      embeddingHashes.set(`${row.entityType}:${row.entityId}`, row.contentHash);
-    }
-
-    const rowsToBackfill: EmbeddingBackfillCandidate[] = [];
-    let skipped = 0;
-    let missingEmbeddings = 0;
-    let staleEmbeddings = 0;
-    let failedEmbeddings = 0;
-    let embeddableEntities = 0;
-    let embeddedEntities = 0;
-
-    for (const row of entityRows) {
-      const entityConfig = this.entityRegistry.getEntityTypeConfig(
-        row.entityType,
-      );
-      if (entityConfig.embeddable === false) {
-        skipped++;
-        continue;
-      }
-      embeddableEntities++;
-
-      const failureKey = embeddingReferenceKey({
-        entityId: row.id,
-        entityType: row.entityType,
-        contentHash: row.contentHash,
-      });
-      const hasTerminalFailure = failedEmbeddingKeys.has(failureKey);
-      const embeddingHash = embeddingHashes.get(`${row.entityType}:${row.id}`);
-      if (embeddingHash === undefined) {
-        if (hasTerminalFailure) {
-          failedEmbeddings++;
-          skipped++;
-        } else {
-          missingEmbeddings++;
-          rowsToBackfill.push(row);
-        }
-        continue;
-      }
-
-      if (embeddingHash !== row.contentHash) {
-        if (hasTerminalFailure) {
-          failedEmbeddings++;
-          skipped++;
-        } else {
-          staleEmbeddings++;
-          rowsToBackfill.push(row);
-        }
-        continue;
-      }
-
-      embeddedEntities++;
-      skipped++;
-    }
-
-    return {
-      tableMissing: false,
-      skipped,
-      rowsToBackfill,
-      missingEmbeddings,
-      staleEmbeddings,
-      failedEmbeddings,
-      embeddableEntities,
-      embeddedEntities,
-    };
-  }
-
-  private async getFailedEmbeddingKeys(): Promise<Set<string>> {
-    const failedJobs = await this.jobQueueService.getFailedJobs([
-      SHELL_CHANNELS.embedding,
-    ]);
-    const failedEmbeddingKeys = new Set<string>();
-
-    for (const job of failedJobs) {
-      const reference = parseEmbeddingFailureReference(job);
-      if (reference) {
-        failedEmbeddingKeys.add(embeddingReferenceKey(reference));
-      }
-    }
-
-    return failedEmbeddingKeys;
-  }
-
-  private async hasEntityTable(): Promise<boolean> {
-    const rows = await this.db.all<{ name: string }>(
-      sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entities'`,
-    );
-    return rows.length > 0;
+    return this.embeddingIndex.getIndexStats();
   }
 
   private stageAsset(
@@ -1162,108 +1011,5 @@ export class EntityMutations {
       ...target,
       markedAt: this.projectionNow(),
     });
-  }
-
-  /** Prepare an entity-transactional embedding intent for the owner outbox. */
-  private prepareEmbeddingJob(
-    params: Omit<EmbeddingJobData, "id"> &
-      EntityJobOptions & { entityId: string },
-  ): PreparedJobEnqueue | null {
-    const request = this.buildEmbeddingJobRequest(params);
-    return request ? this.jobQueueService.prepareEnqueue(request) : null;
-  }
-
-  private embeddingIntentResult(
-    entityId: string,
-    intent: PreparedJobEnqueue | null,
-  ): EntityMutationResult {
-    if (!intent) return { entityId, jobId: "", skipped: false };
-    this.logger.debug("Recorded durable embedding job intent", {
-      entityId,
-      jobId: intent.jobId,
-    });
-    return { entityId, jobId: intent.jobId, skipped: false };
-  }
-
-  /** Enqueue repair/projection work whose source already has durable recovery. */
-  private async enqueueEmbeddingJob(
-    params: Omit<EmbeddingJobData, "id"> &
-      EntityJobOptions & { entityId: string },
-  ): Promise<EntityMutationResult> {
-    const request = this.buildEmbeddingJobRequest(params);
-    if (!request) {
-      return { entityId: params.entityId, jobId: "", skipped: false };
-    }
-
-    const jobId = await this.jobQueueService.enqueue(request);
-    this.logger.debug(
-      `Queued embedding job for ${params.entityType}:${params.entityId} (job: ${jobId})`,
-    );
-    return { entityId: params.entityId, jobId, skipped: false };
-  }
-
-  private buildEmbeddingJobRequest(
-    params: Omit<EmbeddingJobData, "id"> &
-      EntityJobOptions & { entityId: string },
-  ): JobQueueEnqueueRequest | null {
-    const {
-      entityId,
-      entityType,
-      contentHash,
-      operation,
-      priority,
-      maxRetries,
-      eventContext,
-    } = params;
-    const entityConfig = this.entityRegistry.getEntityTypeConfig(entityType);
-    if (!this.embeddingsEnabled || entityConfig.embeddable === false) {
-      this.logger.debug(
-        `Skipping embedding for ${
-          this.embeddingsEnabled
-            ? "non-embeddable entity type"
-            : "disabled indexing"
-        }: ${entityType}:${entityId}`,
-      );
-      return null;
-    }
-
-    const jobData: EmbeddingJobData = {
-      id: entityId,
-      entityType,
-      contentHash,
-      operation,
-    };
-    return {
-      type: SHELL_CHANNELS.embedding,
-      data: jobData,
-      options: {
-        ...(priority !== undefined && { priority }),
-        ...(maxRetries !== undefined && { maxRetries }),
-        source: "entity-service",
-        deduplication: "coalesce",
-        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
-        metadata: {
-          operationType: "data_processing",
-          operationTarget: entityId,
-          ...(eventContext?.interfaceType
-            ? {
-                interfaceType: eventContext.interfaceType,
-                requestedByInterface: eventContext.interfaceType,
-              }
-            : {}),
-          ...(eventContext?.actor
-            ? {
-                requestedByActor: eventContext.actor,
-                ...(eventContext.actor.kind === "user"
-                  ? { requestedByUserId: eventContext.actor.userId }
-                  : {}),
-              }
-            : {}),
-          // Embedding jobs are background bookkeeping — suppress progress
-          // and completion events (entity:embedding:ready covers consumers)
-          silent: true,
-        },
-      },
-    };
   }
 }

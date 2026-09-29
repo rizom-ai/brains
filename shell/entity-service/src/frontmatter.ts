@@ -150,11 +150,18 @@ function convertDatesToStrings(obj: unknown): unknown {
 export function parseMarkdownWithFrontmatter<T>(
   markdown: string,
   schema: FrontmatterValidationSchema<T>,
+  options?: { cache?: boolean },
 ): {
   content: string;
   metadata: T;
 } {
-  const { content, data } = matter(markdown);
+  // gray-matter keeps every distinct input forever when called without
+  // options. Bulk passes see each document once, so caching them only grows
+  // the process; `cache: false` opts those callers out.
+  const { content, data } = matter(
+    markdown,
+    options?.cache === false ? {} : undefined,
+  );
 
   // Convert all Date objects to strings before parsing with Zod
   const normalizedData = convertDatesToStrings(data);

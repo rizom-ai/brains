@@ -1,3 +1,5 @@
+import { GenerationAuthorizer } from "../src/generation-authorization";
+import { PermissionService } from "@brains/templates";
 import { createMockAIService } from "@brains/ai-service/test";
 import {
   createMockDataSourceRegistry,
@@ -39,6 +41,10 @@ describe("ContentService template access", () => {
       aiService: createMockAIService(),
       templateRegistry,
       dataSourceRegistry: createMockDataSourceRegistry(),
+      generationAuthorizer: new GenerationAuthorizer(
+        new PermissionService({}),
+        async () => null,
+      ),
     };
 
     contentService = new ContentService(mockDependencies);

@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement } from "react";
 import { mapStyles as s } from "./operator-map.styles";
+import { styledProps } from "./styled-props";
 
 /** Hosts supply the visualization, supporting content, and all data interpretation. */
 export function OperatorMapFrame(
@@ -12,32 +13,21 @@ export function OperatorMapFrame(
   },
 ): ReactElement {
   const { layout, joined, ambient, ...attributes } = props;
-  const css = stylex.props(
-    s.frame,
-    layout === "split" && s.split,
-    joined && s.joined,
-    ambient && s.ambient,
-  );
   return (
     <div
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
+      {...styledProps(
+        attributes,
+        s.frame,
+        layout === "split" && s.split,
+        joined && s.joined,
+        ambient && s.ambient,
+      )}
     />
   );
 }
 
 export function OperatorMapCanvas(props: ComponentProps<"div">): ReactElement {
-  const css = stylex.props(s.canvas);
-  return (
-    <div
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <div {...styledProps(props, s.canvas)} />;
 }
 
 /** Decorative coordinate labels; meaningful axes also belong in the SVG description. */
@@ -57,27 +47,19 @@ export function OperatorMapGraphic(
   props: ComponentProps<"svg"> & { presentation?: "tall" },
 ): ReactElement {
   const { presentation, ...attributes } = props;
-  const css = stylex.props(s.graphic, presentation === "tall" && s.tallGraphic);
   return (
     <svg
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
+      {...styledProps(
+        attributes,
+        s.graphic,
+        presentation === "tall" && s.tallGraphic,
+      )}
     />
   );
 }
 
 export function OperatorMapEmpty(props: ComponentProps<"div">): ReactElement {
-  const css = stylex.props(s.empty);
-  return (
-    <div
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <div {...styledProps(props, s.empty)} />;
 }
 
 interface MapMetric {
@@ -93,15 +75,10 @@ export function OperatorMapSummary(
   },
 ): ReactElement {
   const { metrics, status, tone, ...attributes } = props;
-  const css = stylex.props(s.summary);
   return (
     <div
-      {...attributes}
-      {...css}
+      {...styledProps(attributes, s.summary)}
       role={attributes.role ?? "group"}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
     >
       {metrics.map((metric, index) => (
         <dl key={`${index}:${metric.label}`} {...stylex.props(s.metric)}>

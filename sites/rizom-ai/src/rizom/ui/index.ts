@@ -11,7 +11,7 @@ export { Badge } from "./Badge";
 export type { BadgeProps } from "./Badge";
 export { Divider } from "./Divider";
 export type { DividerProps } from "./Divider";
-export { renderHighlightedText } from "./highlighted-text";
+export { renderHighlightedText } from "@brains/ui-library";
 export { socialLinksToRizomLinks } from "./site-info-links";
 export type {
   RizomBrandSuffix,

@@ -1,34 +1,29 @@
 /** @jsxImportSource react */
-import { OperatorCard } from "@brains/operator-view-react";
 import { headStyles } from "../studio-page-head.styles";
-import { typographyStyles } from "../studio-typography.styles";
-
-import { Button, ConfirmDialog, Input, Switch } from "@brains/app-ui-react";
+import {
+  ConfirmDialog,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@brains/app-ui-react";
 import {
   accountClass,
   accountStyles as accountLayout,
 } from "../studio-account.styles";
-import {
-  AUTH_ACCOUNT_MUTATION_ACTIONS,
-  type AuthAccountMutation,
-  type AuthAccountRole,
-  type AuthAccountSnapshot,
+import type {
+  AuthAccountRole,
+  AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
-import { getErrorMessage } from "@brains/utils/error";
-import {
-  AccountAccessItem,
-  AccountButton,
-  AccountDetailSection,
-} from "./account-primitives";
-import { studioEntityHref, initials, roleLabel } from "./account-format";
+import { useMemo, useState } from "react";
 import { AccountClient } from "./account-api";
+import {
+  AccountIdentitiesTab,
+  AccountProfileTab,
+  AccountSecurityTab,
+  AccountSettingsTab,
+} from "./account-tabs";
+import { useAccountActions } from "./use-account-actions";
 import { useStudioApi } from "../studio-api-context";
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
 
@@ -46,21 +41,6 @@ export interface AccountAppProps {
   client?: AccountClient | undefined;
 }
 
-interface AccountConfirmation {
-  title: string;
-  message: string;
-  confirmLabel: string;
-  action: () => void;
-}
-
-function accountTimestamp(value: number, milliseconds = false): string {
-  return new Date(milliseconds ? value : value * 1000).toISOString();
-}
-
-function messageOf(error: unknown): string {
-  return getErrorMessage(error, "Account request failed");
-}
-
 export function AccountApp({
   bootstrap,
   initialAccount,
@@ -71,155 +51,14 @@ export function AccountApp({
     () => providedClient ?? new AccountClient({ fetch: api.fetch }),
     [providedClient, api],
   );
-  const [account, setAccount] = useState(initialAccount);
-  const [displayName, setDisplayName] = useState(
-    initialAccount?.displayName ?? bootstrap.displayName,
-  );
-  const [status, setStatus] = useState("");
-  const [error, setError] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [confirmation, setConfirmation] = useState<AccountConfirmation | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (initialAccount) return;
-    let cancelled = false;
-    client
-      .fetchAccount()
-      .then((next) => {
-        if (cancelled) return;
-        setAccount(next);
-        setDisplayName(next.displayName);
-      })
-      .catch((nextError: unknown) => {
-        if (cancelled) return;
-        setError(true);
-        setStatus(messageOf(nextError));
-      });
-    return (): void => {
-      cancelled = true;
-    };
-  }, [client, initialAccount]);
-
-  const run = useCallback(
-    async (
-      pending: string,
-      complete: string,
-      action: () => Promise<AuthAccountSnapshot | undefined>,
-    ): Promise<void> => {
-      setBusy(true);
-      setError(false);
-      setStatus(pending);
-      try {
-        const next = await action();
-        if (next) {
-          setAccount(next);
-          setDisplayName(next.displayName);
-        }
-        setStatus(complete);
-      } catch (nextError) {
-        setError(true);
-        setStatus(messageOf(nextError));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [],
-  );
-
-  const mutate = useCallback(
-    async (
-      mutation: AuthAccountMutation,
-    ): Promise<AuthAccountSnapshot | undefined> =>
-      (await client.mutateAccount(mutation)).account,
-    [client],
-  );
-
-  const saveName = (event: FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    void run("Saving…", "Display name updated.", () =>
-      mutate({
-        action: AUTH_ACCOUNT_MUTATION_ACTIONS.updateDisplayName,
-        confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.updateDisplayName,
-        displayName,
-      }),
-    );
-  };
-
-  const revokePasskey = (credentialId: string): void => {
-    setConfirmation({
-      title: "Revoke this passkey?",
-      message: "You will not be able to use this passkey again.",
-      confirmLabel: "Revoke passkey",
-      action: () => {
-        void run("Revoking passkey…", "Passkey revoked.", () =>
-          mutate({
-            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokePasskey,
-            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokePasskey,
-            credentialId,
-          }),
-        );
-      },
-    });
-  };
-
-  const revokeSession = (sessionId: string): void => {
-    setConfirmation({
-      title: "End this browser session?",
-      message: "That browser will need a passkey to sign in again.",
-      confirmLabel: "End session",
-      action: () => {
-        void run("Ending session…", "Session ended.", () =>
-          mutate({
-            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeSession,
-            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeSession,
-            sessionId,
-          }),
-        );
-      },
-    });
-  };
-
-  const revokeOtherSessions = (): void => {
-    setConfirmation({
-      title: "End every other browser session?",
-      message: "Your current browser will remain signed in.",
-      confirmLabel: "End other sessions",
-      action: () => {
-        void run("Ending other sessions…", "Other sessions ended.", () =>
-          mutate({
-            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeOtherSessions,
-            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeOtherSessions,
-          }),
-        );
-      },
-    });
-  };
-
-  const revokeAllSessions = (): void => {
-    setConfirmation({
-      title: "Sign out everywhere?",
-      message:
-        "This ends every session, including this one. You will need your passkey to return.",
-      confirmLabel: "Sign out everywhere",
-      action: () => {
-        void run("Signing out everywhere…", "Signed out.", async () => {
-          await client.mutateAccount({
-            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions,
-            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions,
-          });
-          window.location.assign(
-            `/login?return_to=${encodeURIComponent(bootstrap.routePath)}`,
-          );
-          return undefined;
-        });
-      },
-    });
-  };
-
-  const current = account;
-  const role = current?.role ?? bootstrap.role;
+  const actions = useAccountActions({
+    client,
+    initialAccount,
+    initialDisplayName: bootstrap.displayName,
+    routePath: bootstrap.routePath,
+  });
+  const { account: current, status, error, busy, confirmation } = actions;
+  const [section, setSection] = useState("profile");
   const title = current?.displayName ?? bootstrap.displayName;
 
   return (
@@ -234,10 +73,15 @@ export function AccountApp({
         <StudioPageHead
           model={{
             access: studioAccessRequirement("public"),
-            title: "Account",
+            title: "Your account",
             totals: [],
           }}
         />
+        <p className={accountClass("account-scope", accountLayout.description)}>
+          Your account on this brain. Manage your profile, sign-in security,
+          linked identities, and personal settings here—not shared services or
+          other people’s access.
+        </p>
         <p
           className={accountClass(
             `account-status${error ? " is-error" : ""}`,
@@ -255,400 +99,73 @@ export function AccountApp({
             Reading your account…
           </p>
         ) : (
-          <section className="account-details" aria-live="polite">
-            <div
+          <Tabs
+            className="account-details"
+            value={section}
+            onValueChange={setSection}
+          >
+            <TabsList
+              aria-label="Account sections"
+              className={accountClass("account-tabs", accountLayout.tabs)}
+            >
+              <TabsTrigger value="profile" disabled={busy}>
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="security" disabled={busy}>
+                Sign-in &amp; sessions
+              </TabsTrigger>
+              <TabsTrigger value="identities" disabled={busy}>
+                Linked identities
+              </TabsTrigger>
+              {current.pluginSettings.length > 0 && (
+                <TabsTrigger value="settings" disabled={busy}>
+                  Personal settings
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <TabsContent
+              value="profile"
+              forceMount
+              hidden={section !== "profile"}
               className={accountClass(
                 "account-detail-sections",
-                accountLayout.grid,
+                accountLayout.tabPanel,
               )}
             >
-              <div className={accountClass("", accountLayout.column)}>
-                <AccountDetailSection title="Profile">
-                  <div
-                    className={accountClass(
-                      "account-identity",
-                      accountLayout.identity,
-                    )}
-                  >
-                    <div
-                      className={accountClass(
-                        "people-detail-person",
-                        accountLayout.person,
-                      )}
-                    >
-                      <span
-                        className={accountClass(
-                          "people-avatar people-avatar--large",
-                          accountLayout.avatar,
-                        )}
-                      >
-                        {initials(title)}
-                      </span>
-                      <span
-                        className={accountClass("", accountLayout.personCopy)}
-                      >
-                        <span
-                          className={accountClass(
-                            "people-detail-name",
-                            accountLayout.name,
-                            typographyStyles.secondaryDisplay,
-                          )}
-                        >
-                          {title}
-                        </span>
-                        <span
-                          data-account-role={role}
-                          className={accountClass(
-                            "account-role",
-                            accountLayout.role,
-                          )}
-                        >
-                          {roleLabel(role)}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {current.profileEntityId ? (
-                    <>
-                      <p
-                        className={accountClass(
-                          "account-profile-note",
-                          accountLayout.description,
-                        )}
-                      >
-                        Managed by the Anchor profile — your account name
-                        follows the published profile.
-                      </p>
-                      <AccountAccessItem
-                        kind="Anchor profile"
-                        description={title}
-                        action={
-                          studioEntityHref(
-                            bootstrap.studioPath,
-                            current.profileEntityId,
-                          ) ? (
-                            <Button asChild variant="link">
-                              <a
-                                href={studioEntityHref(
-                                  bootstrap.studioPath,
-                                  current.profileEntityId,
-                                )}
-                              >
-                                Edit in Studio →
-                              </a>
-                            </Button>
-                          ) : undefined
-                        }
-                      />
-                    </>
-                  ) : (
-                    <form
-                      className={accountClass("name-form", accountLayout.form)}
-                      onSubmit={saveName}
-                    >
-                      <label
-                        className={accountClass("", accountLayout.formLabel)}
-                        htmlFor="display-name"
-                      >
-                        Display name
-                      </label>
-                      <Input
-                        id="display-name"
-                        maxLength={200}
-                        autoComplete="name"
-                        required
-                        value={displayName}
-                        onChange={(event) => setDisplayName(event.target.value)}
-                      />
-                      <AccountButton type="submit" disabled={busy}>
-                        Save name
-                      </AccountButton>
-                    </form>
-                  )}
-                </AccountDetailSection>
-
-                <AccountDetailSection title="Connected channels">
-                  {current.connectedChannels.length === 0 ? (
-                    <p
-                      className={accountClass(
-                        "people-empty",
-                        accountLayout.empty,
-                      )}
-                    >
-                      No connected channels.
-                    </p>
-                  ) : (
-                    current.connectedChannels.map((channel) => (
-                      <AccountAccessItem
-                        key={`${channel.type}:${channel.label}`}
-                        kind={channel.type}
-                        description={channel.label}
-                        metadata={[
-                          `Verified: ${accountTimestamp(channel.verifiedAt, true)}`,
-                        ]}
-                      />
-                    ))
-                  )}
-                </AccountDetailSection>
-
-                {current.pluginSettings.map((settings) => (
-                  <OperatorCard
-                    key={settings.id}
-                    label={settings.title}
-                    density="comfortable"
-                    presentation="disclosure"
-                  >
-                    <p
-                      className={accountClass(
-                        "account-settings-description",
-                        accountLayout.description,
-                      )}
-                    >
-                      {settings.description ??
-                        "Private settings for this account."}
-                    </p>
-                    <form
-                      key={`${settings.id}:${settings.revision ?? "unset"}`}
-                      className={accountClass("name-form", accountLayout.form)}
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        const formData = new FormData(event.currentTarget);
-                        const values: Record<string, unknown> =
-                          Object.fromEntries(formData.entries());
-                        for (const field of settings.fields) {
-                          if (field.control === "checkbox") {
-                            values[field.name] = formData.has(field.name);
-                          } else if (
-                            field.control === "number" &&
-                            typeof values[field.name] === "string" &&
-                            values[field.name] !== ""
-                          ) {
-                            values[field.name] = Number(values[field.name]);
-                          }
-                        }
-                        void run(
-                          `Saving ${settings.title}…`,
-                          `${settings.title} updated.`,
-                          () =>
-                            client.mutatePluginSettings({
-                              action: "save",
-                              definitionId: settings.id,
-                              values,
-                            }),
-                        );
-                      }}
-                    >
-                      {settings.fields.map((field) => (
-                        <label
-                          key={field.name}
-                          htmlFor={`setting-${settings.id}-${field.name}`}
-                          className={accountClass("", accountLayout.field)}
-                        >
-                          <span
-                            className={accountClass(
-                              "",
-                              accountLayout.formLabel,
-                            )}
-                          >
-                            {field.label}
-                          </span>
-                          {field.control === "checkbox" ? (
-                            <Switch
-                              id={`setting-${settings.id}-${field.name}`}
-                              name={field.name}
-                              defaultChecked={field.value === true}
-                            />
-                          ) : (
-                            <Input
-                              id={`setting-${settings.id}-${field.name}`}
-                              name={field.name}
-                              type={
-                                field.secret
-                                  ? "password"
-                                  : field.control === "url"
-                                    ? "url"
-                                    : field.control === "number"
-                                      ? "number"
-                                      : "text"
-                              }
-                              required={
-                                field.required &&
-                                (!settings.configured || field.secret) &&
-                                !field.set
-                              }
-                              defaultValue={
-                                field.secret
-                                  ? ""
-                                  : typeof field.value === "string" ||
-                                      typeof field.value === "number"
-                                    ? field.value
-                                    : ""
-                              }
-                              placeholder={
-                                field.secret && field.set
-                                  ? "Stored — leave blank to keep"
-                                  : undefined
-                              }
-                              autoComplete="off"
-                            />
-                          )}
-                        </label>
-                      ))}
-                      <div
-                        className={accountClass(
-                          "people-inline-actions",
-                          accountLayout.inlineActions,
-                        )}
-                      >
-                        <AccountButton
-                          type="submit"
-                          tone="primary"
-                          disabled={busy}
-                        >
-                          Save settings
-                        </AccountButton>
-                        {settings.configured ? (
-                          <Button
-                            variant="danger"
-                            disabled={busy}
-                            type="button"
-                            onClick={() =>
-                              setConfirmation({
-                                title: `Remove ${settings.title}?`,
-                                message:
-                                  "The stored settings for this integration will be removed.",
-                                confirmLabel: "Remove settings",
-                                action: () => {
-                                  void run(
-                                    `Removing ${settings.title}…`,
-                                    `${settings.title} removed.`,
-                                    () =>
-                                      client.mutatePluginSettings({
-                                        action: "delete",
-                                        definitionId: settings.id,
-                                      }),
-                                  );
-                                },
-                              })
-                            }
-                          >
-                            Remove
-                          </Button>
-                        ) : null}
-                      </div>
-                    </form>
-                  </OperatorCard>
-                ))}
-              </div>
-              <div className={accountClass("", accountLayout.column)}>
-                <AccountDetailSection
-                  title="Sign-in"
-                  description="Passkeys used to access this account. Your final passkey is protected from revocation."
-                >
-                  {current.passkeys.map((passkey) => (
-                    <AccountAccessItem
-                      key={passkey.id}
-                      kind={
-                        passkey.credentialBackedUp
-                          ? "Synced passkey"
-                          : "Device passkey"
-                      }
-                      metadata={[
-                        `Added: ${accountTimestamp(passkey.createdAt, true)}`,
-                      ]}
-                      action={
-                        current.passkeys.length > 1 ? (
-                          <Button
-                            variant="danger"
-                            disabled={busy}
-                            type="button"
-                            onClick={() => revokePasskey(passkey.id)}
-                          >
-                            Revoke
-                          </Button>
-                        ) : undefined
-                      }
-                    />
-                  ))}
-                  <div
-                    className={accountClass(
-                      "people-inline-actions",
-                      accountLayout.inlineActions,
-                    )}
-                  >
-                    <Button
-                      variant="outline"
-                      disabled={busy}
-                      type="button"
-                      onClick={() =>
-                        void run(
-                          "Waiting for your authenticator…",
-                          "Passkey added.",
-                          client.registerPasskey,
-                        )
-                      }
-                    >
-                      Add passkey
-                    </Button>
-                  </div>
-                </AccountDetailSection>
-
-                <AccountDetailSection title="Signed-in sessions">
-                  {current.sessions.map((session) => (
-                    <AccountAccessItem
-                      key={session.id}
-                      kind={
-                        session.current ? "This session" : "Browser session"
-                      }
-                      metadata={[
-                        `Started: ${accountTimestamp(session.createdAt)}`,
-                        ...(session.current ? ["Current browser"] : []),
-                      ]}
-                      action={
-                        !session.current ? (
-                          <Button
-                            variant="danger"
-                            disabled={busy}
-                            type="button"
-                            onClick={() => revokeSession(session.id)}
-                          >
-                            End
-                          </Button>
-                        ) : undefined
-                      }
-                    />
-                  ))}
-                </AccountDetailSection>
-                <footer
-                  className={accountClass(
-                    "account-session-actions",
-                    accountLayout.footer,
-                  )}
-                >
-                  <small>Access changes require an Admin.</small>
-                  <div className={accountClass("", accountLayout.actions)}>
-                    <AccountButton
-                      disabled={
-                        busy ||
-                        current.sessions.every((session) => session.current)
-                      }
-                      onClick={revokeOtherSessions}
-                    >
-                      End other sessions
-                    </AccountButton>
-                    <AccountButton
-                      tone="danger"
-                      disabled={busy}
-                      onClick={revokeAllSessions}
-                    >
-                      Sign out everywhere
-                    </AccountButton>
-                  </div>
-                </footer>
-              </div>
-            </div>
-          </section>
+              <AccountProfileTab
+                account={current}
+                actions={actions}
+                title={title}
+                studioPath={bootstrap.studioPath}
+              />
+            </TabsContent>
+            <TabsContent
+              value="identities"
+              forceMount
+              hidden={section !== "identities"}
+              className={accountClass("", accountLayout.tabPanel)}
+            >
+              <AccountIdentitiesTab account={current} />
+            </TabsContent>
+            {current.pluginSettings.length > 0 && (
+              <TabsContent
+                value="settings"
+                forceMount
+                hidden={section !== "settings"}
+                className={accountClass("", accountLayout.tabPanel)}
+              >
+                <AccountSettingsTab account={current} actions={actions} />
+              </TabsContent>
+            )}
+            <TabsContent
+              value="security"
+              forceMount
+              hidden={section !== "security"}
+              className={accountClass("", accountLayout.tabPanel)}
+            >
+              <AccountSecurityTab account={current} actions={actions} />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
       {confirmation && (
@@ -660,12 +177,8 @@ export function AccountApp({
           confirmLabel={confirmation.confirmLabel}
           confirmVariant="danger"
           pending={busy}
-          onCancel={() => setConfirmation(null)}
-          onConfirm={() => {
-            const action = confirmation.action;
-            setConfirmation(null);
-            action();
-          }}
+          onCancel={actions.cancelConfirmation}
+          onConfirm={actions.confirm}
         >
           <p>{confirmation.message}</p>
         </ConfirmDialog>

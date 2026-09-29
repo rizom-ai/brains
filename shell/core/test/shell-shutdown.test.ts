@@ -9,6 +9,8 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
+import assert from "node:assert/strict";
+import { EntityService } from "@brains/entity-service";
 
 async function runMigrations(dir: string): Promise<void> {
   await migrateEntities({ url: `file:${dir}/test.db` });
@@ -120,6 +122,11 @@ describe("Shell shutdown", () => {
 
     const entityService = shell.getEntityService();
 
+    assert.ok(entityService instanceof EntityService);
+    const client = await entityService
+      .getProjectionStore()
+      .runDatabaseOperation(async (db) => db.$client);
+    await client.execute("SELECT 1");
     // Verify DB works before shutdown
     const result = await entityService.listEntities({
       entityType: "note",
@@ -128,19 +135,15 @@ describe("Shell shutdown", () => {
 
     await shell.shutdown();
 
-    // After shutdown, entity DB client should be closed.
-    let threw = false;
-    try {
-      await entityService.listEntities({
-        entityType: "note",
-      });
-    } catch (e: unknown) {
-      threw = true;
-      const fullError =
-        String(e) + (e instanceof Error && e.cause ? String(e.cause) : "");
-      expect(fullError).toMatch(/driver is clos(?:ed|ing)/);
-    }
-    expect(threw).toBe(true);
+    // Prove both service admission fencing and retirement of the existing driver.
+    await assert.rejects(
+      entityService.listEntities({ entityType: "note" }),
+      /Entity service is closed/,
+    );
+    await assert.rejects(
+      client.execute("SELECT 1"),
+      /driver is clos(?:ed|ing)/,
+    );
   });
 
   it("should close job queue database connection on shutdown", async () => {

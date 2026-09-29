@@ -1,5 +1,6 @@
 import {
   GIT_BROKER_SOCKET_ENV,
+  gitBrokerRuntimeDir,
   startGitBrokerHost,
   type GitBrokerHostOptions,
 } from "@brains/directory-sync/broker-runtime";
@@ -91,6 +92,9 @@ export async function runGitBrokerChild(
   // use instead — so it exits without ever reporting ready.
   const started = await startHost({
     socketPath,
+    // Named explicitly: a deep instance path puts the socket outside this
+    // directory, so it cannot be recovered from the socket's location.
+    runtimeDir: gitBrokerRuntimeDir(cwd),
     cwd,
     dataDir: BRAIN_DEFAULT_DATA_DIR,
     pluginConfig: interpolateEnv(

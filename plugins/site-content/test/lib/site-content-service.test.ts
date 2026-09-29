@@ -45,10 +45,7 @@ describe("SiteContentService", () => {
       },
     });
 
-    service = new SiteContentService(context, {
-      title: "Test Site",
-      description: "Test Description",
-    });
+    service = new SiteContentService(context);
   });
 
   describe("generateContent", () => {
@@ -86,7 +83,6 @@ describe("SiteContentService", () => {
           force: true,
           dryRun: false,
         },
-        { title: "Test Site", description: "Test Description" },
         undefined,
       );
 
@@ -101,7 +97,7 @@ describe("SiteContentService", () => {
       });
     });
 
-    test("should pass metadata when provided", async () => {
+    test("should pass the tool context when provided", async () => {
       generateSpy.mockResolvedValue({
         jobs: [],
         totalSections: 0,
@@ -109,22 +105,20 @@ describe("SiteContentService", () => {
         batchId: "batch-456",
       });
 
-      const metadata = {
-        rootJobId: "root-123",
+      const toolContext = {
+        interfaceType: "mcp",
+        actor: { kind: "service" as const, serviceId: "site-content" },
         progressToken: "token-abc",
-        pluginId: "site-content",
-        operationType: "content_operations" as const,
       };
 
       await service.generateContent(
         { routeId: "about", sectionId: "main" },
-        metadata,
+        toolContext,
       );
 
       expect(generateSpy).toHaveBeenCalledWith(
         { routeId: "about", sectionId: "main", dryRun: false, force: false },
-        { title: "Test Site", description: "Test Description" },
-        metadata,
+        toolContext,
       );
     });
 
@@ -132,8 +126,8 @@ describe("SiteContentService", () => {
       generateSpy.mockResolvedValue({
         jobs: [],
         totalSections: 3,
-        queuedSections: 3,
-        batchId: "dry-run-789",
+        queuedSections: 0,
+        batchId: "",
       });
 
       const result = await service.generateContent({
@@ -142,15 +136,14 @@ describe("SiteContentService", () => {
 
       expect(generateSpy).toHaveBeenCalledWith(
         { dryRun: true, force: false },
-        { title: "Test Site", description: "Test Description" },
         undefined,
       );
 
       expect(result).toMatchObject({
         jobs: [],
         totalSections: 3,
-        queuedSections: 3,
-        batchId: "dry-run-789",
+        queuedSections: 0,
+        batchId: "",
       });
     });
 
@@ -181,21 +174,19 @@ describe("SiteContentService", () => {
       expect(outcome).toBeInstanceOf(Error);
     });
 
-    test("should work without site config", async () => {
-      const serviceNoConfig = new SiteContentService(context);
+    test("should apply option defaults without a tool context", async () => {
       generateSpy.mockResolvedValue({
         jobs: [],
         totalSections: 0,
         queuedSections: 0,
-        batchId: "batch-no-config",
+        batchId: "batch-no-context",
       });
 
-      const result = await serviceNoConfig.generateContent({});
+      const result = await service.generateContent({});
       expect(result).toBeDefined();
 
       expect(generateSpy).toHaveBeenCalledWith(
         { dryRun: false, force: false },
-        undefined,
         undefined,
       );
     });

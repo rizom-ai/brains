@@ -133,7 +133,9 @@ export class JobQueueRepository {
   }
 
   public async insert(jobData: InsertJobQueue): Promise<void> {
-    await this.db.insert(jobQueue).values(jobData);
+    await this.write("insert", async () =>
+      this.db.insert(jobQueue).values(jobData),
+    );
   }
 
   public async enqueueAtomic(
@@ -141,63 +143,78 @@ export class JobQueueRepository {
   ): Promise<EnqueueDecision> {
     return writeTransactions.run(this.databaseUrl, async () => {
       const deadline = Date.now() + this.writeRetryBudgetMs;
-      let commitAttempt = 1;
+      return this.attemptEnqueue(request, deadline, 1);
+    });
+  }
 
-      for (;;) {
-        const transaction = await this.acquireWriteTransaction(
-          request,
-          deadline,
-        );
-        const insertPreparation = { prepared: false };
-        let commitStarted = false;
+  /**
+   * One complete transaction per step. A failed COMMIT can leave libSQL with a
+   * statement in progress, so a conflict retries the whole transaction rather
+   * than reusing a poisoned one; the previous one is always closed first.
+   */
+  private async attemptEnqueue(
+    request: AtomicEnqueueRequest,
+    deadline: number,
+    commitAttempt: number,
+  ): Promise<EnqueueDecision> {
+    const outcome = await this.runEnqueueTransaction(
+      request,
+      deadline,
+      commitAttempt,
+    );
+    if (outcome.retry)
+      return this.attemptEnqueue(request, deadline, commitAttempt + 1);
+    return outcome.decision;
+  }
 
+  private async runEnqueueTransaction(
+    request: AtomicEnqueueRequest,
+    deadline: number,
+    commitAttempt: number,
+  ): Promise<{ retry: true } | { retry: false; decision: EnqueueDecision }> {
+    const transaction = await this.acquireWriteTransaction(request, deadline);
+    const insertPreparation = { prepared: false };
+    let commitStarted = false;
+
+    try {
+      const decision = await this.decideEnqueue(transaction, request, () => {
+        insertPreparation.prepared = true;
+      });
+      commitStarted = true;
+      await transaction.commit();
+      return { retry: false, decision };
+    } catch (error) {
+      const retryCommit =
+        commitStarted &&
+        this.isSerializationConflict(error) &&
+        !transaction.closed;
+      let rollbackSucceeded = true;
+
+      if (!transaction.closed) {
         try {
-          const decision = await this.decideEnqueue(
-            transaction,
-            request,
-            () => {
-              insertPreparation.prepared = true;
-            },
-          );
-          commitStarted = true;
-          await transaction.commit();
-          return decision;
-        } catch (error) {
-          // libSQL can leave a failed COMMIT with a statement in progress, so
-          // retry the complete transaction rather than reusing a poisoned one.
-          const retryCommit =
-            commitStarted &&
-            this.isSerializationConflict(error) &&
-            !transaction.closed;
-          let rollbackSucceeded = true;
-
-          if (!transaction.closed) {
-            try {
-              await transaction.rollback();
-            } catch (rollbackError) {
-              rollbackSucceeded = false;
-              this.logger.error("Failed to roll back atomic enqueue", {
-                type: request.jobData.type,
-                rollbackError,
-              });
-            }
-          }
-          if (insertPreparation.prepared) request.onInsertRollback?.();
-          if (!retryCommit || !rollbackSucceeded) throw error;
-
-          await this.waitForConflictRetry(
-            "commit",
-            request,
-            deadline,
-            commitAttempt,
-            error,
-          );
-          commitAttempt++;
-        } finally {
-          transaction.close();
+          await transaction.rollback();
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          this.logger.error("Failed to roll back atomic enqueue", {
+            type: request.jobData.type,
+            rollbackError,
+          });
         }
       }
-    });
+      if (insertPreparation.prepared) request.onInsertRollback?.();
+      if (!retryCommit || !rollbackSucceeded) throw error;
+
+      await this.waitForConflictRetry(
+        "commit",
+        request,
+        deadline,
+        commitAttempt,
+        error,
+      );
+      return { retry: true };
+    } finally {
+      transaction.close();
+    }
   }
 
   private async decideEnqueue(
@@ -388,8 +405,8 @@ export class JobQueueRepository {
   }
 
   private async waitForConflictRetry(
-    phase: "acquire" | "commit",
-    request: AtomicEnqueueRequest,
+    phase: "acquire" | "commit" | "write",
+    request: AtomicEnqueueRequest | string,
     deadline: number,
     attempt: number,
     cause: unknown,
@@ -407,8 +424,8 @@ export class JobQueueRepository {
   }
 
   private async retryOnConflict<T>(
-    phase: "acquire" | "commit",
-    request: AtomicEnqueueRequest,
+    phase: "acquire" | "commit" | "write",
+    request: AtomicEnqueueRequest | string,
     operation: () => Promise<T>,
     isRetryable: (error: unknown) => boolean,
     deadline = Date.now() + this.writeRetryBudgetMs,
@@ -431,17 +448,46 @@ export class JobQueueRepository {
   }
 
   private transactionConflictError(
-    phase: "acquire" | "commit",
-    request: AtomicEnqueueRequest,
+    phase: "acquire" | "commit" | "write",
+    request: AtomicEnqueueRequest | string,
     attempts: number,
     cause: unknown,
   ): Error {
+    if (typeof request === "string") {
+      return new Error(
+        `Failed job queue write "${request}" within ${this.writeRetryBudgetMs}ms after ${attempts} attempts`,
+        { cause },
+      );
+    }
     const strategy = request.strategy ?? "none";
     const keyPresence = request.deduplicationKey ? "present" : "absent";
     return new Error(
       `Failed to ${phase} atomic enqueue transaction for type "${request.jobData.type}" within ${this.writeRetryBudgetMs}ms after ${attempts} attempts (strategy: ${strategy}, key: ${keyPresence})`,
       { cause },
     );
+  }
+
+  /** Retry only the rejected database statement, never a handler or its callbacks. */
+  private write<T>(name: string, operation: () => Promise<T>): Promise<T> {
+    // These writes can contend with enqueue transactions on another connection
+    // even through the same client. Async backoff lets that transaction finish;
+    // joining its serial turn could deadlock an enqueue preparation callback.
+    return this.retryOnConflict("write", name, operation, (error) => {
+      const seen = new Set<unknown>();
+      for (let current = error; current !== undefined && !seen.has(current);) {
+        seen.add(current);
+        if (
+          typeof current === "object" &&
+          current !== null &&
+          "code" in current &&
+          /^SQLITE_(?:BUSY|LOCKED)(?:_|$)/u.test(String(current.code))
+        )
+          return true;
+        // Do not mistake payload text in a Drizzle query error for a lock error.
+        current = current instanceof Error ? current.cause : undefined;
+      }
+      return false;
+    });
   }
 
   private isSerializationConflict(error: unknown): boolean {
@@ -472,24 +518,26 @@ export class JobQueueRepository {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<void> {
     const expiresAt = now + workerSessionTimeoutMs;
-    await this.db
-      .insert(jobWorkerSessions)
-      .values({
-        slotId: workerSlotId,
-        sessionId: workerSessionId,
-        startedAt: now,
-        heartbeatAt: now,
-        expiresAt,
-      })
-      .onConflictDoUpdate({
-        target: jobWorkerSessions.slotId,
-        set: {
+    await this.write("start worker session", async () =>
+      this.db
+        .insert(jobWorkerSessions)
+        .values({
+          slotId: workerSlotId,
           sessionId: workerSessionId,
           startedAt: now,
           heartbeatAt: now,
           expiresAt,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: jobWorkerSessions.slotId,
+          set: {
+            sessionId: workerSessionId,
+            startedAt: now,
+            heartbeatAt: now,
+            expiresAt,
+          },
+        }),
+    );
   }
 
   /** Update liveness only if this session still owns the stable slot. */
@@ -499,19 +547,21 @@ export class JobQueueRepository {
     now: number = Date.now(),
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
-    const result = await this.db
-      .update(jobWorkerSessions)
-      .set({
-        heartbeatAt: now,
-        expiresAt: now + workerSessionTimeoutMs,
-      })
-      .where(
-        and(
-          eq(jobWorkerSessions.slotId, workerSlotId),
-          eq(jobWorkerSessions.sessionId, workerSessionId),
-        ),
-      )
-      .returning({ slotId: jobWorkerSessions.slotId });
+    const result = await this.write("heartbeat worker session", async () =>
+      this.db
+        .update(jobWorkerSessions)
+        .set({
+          heartbeatAt: now,
+          expiresAt: now + workerSessionTimeoutMs,
+        })
+        .where(
+          and(
+            eq(jobWorkerSessions.slotId, workerSlotId),
+            eq(jobWorkerSessions.sessionId, workerSessionId),
+          ),
+        )
+        .returning({ slotId: jobWorkerSessions.slotId }),
+    );
     return result.length === 1;
   }
 
@@ -520,15 +570,17 @@ export class JobQueueRepository {
     workerSlotId: string,
     workerSessionId: string,
   ): Promise<boolean> {
-    const result = await this.db
-      .delete(jobWorkerSessions)
-      .where(
-        and(
-          eq(jobWorkerSessions.slotId, workerSlotId),
-          eq(jobWorkerSessions.sessionId, workerSessionId),
-        ),
-      )
-      .returning({ slotId: jobWorkerSessions.slotId });
+    const result = await this.write("end worker session", async () =>
+      this.db
+        .delete(jobWorkerSessions)
+        .where(
+          and(
+            eq(jobWorkerSessions.slotId, workerSlotId),
+            eq(jobWorkerSessions.sessionId, workerSessionId),
+          ),
+        )
+        .returning({ slotId: jobWorkerSessions.slotId }),
+    );
     return result.length === 1;
   }
 
@@ -539,17 +591,19 @@ export class JobQueueRepository {
     attemptId?: string,
   ): Promise<boolean> {
     const now = Date.now();
-    const updated = await this.db
-      .update(jobQueue)
-      .set({
-        status: JOB_STATUS.COMPLETED,
-        result,
-        lastError: null,
-        completedAt: now,
-        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
-      })
-      .where(this.attemptWriteGuard(jobId, attemptId))
-      .returning({ id: jobQueue.id });
+    const updated = await this.write("complete", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          status: JOB_STATUS.COMPLETED,
+          result,
+          lastError: null,
+          completedAt: now,
+          runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
+        })
+        .where(this.attemptWriteGuard(jobId, attemptId))
+        .returning({ id: jobQueue.id }),
+    );
 
     const applied = updated.length === 1;
     if (applied) {
@@ -567,11 +621,13 @@ export class JobQueueRepository {
     data: unknown,
     attemptId?: string,
   ): Promise<boolean> {
-    const updated = await this.db
-      .update(jobQueue)
-      .set({ data: JSON.stringify(data) })
-      .where(this.attemptWriteGuard(jobId, attemptId))
-      .returning({ id: jobQueue.id });
+    const updated = await this.write("update", async () =>
+      this.db
+        .update(jobQueue)
+        .set({ data: JSON.stringify(data) })
+        .where(this.attemptWriteGuard(jobId, attemptId))
+        .returning({ id: jobQueue.id }),
+    );
 
     const applied = updated.length === 1;
     if (applied) this.logger.debug("Job data updated", { jobId });
@@ -585,15 +641,17 @@ export class JobQueueRepository {
     progress: ProgressNotification,
     now: number = Date.now(),
   ): Promise<boolean> {
-    const updated = await this.db
-      .update(jobQueue)
-      .set({
-        attemptHeartbeatAt: now,
-        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
-        progress,
-      })
-      .where(this.attemptWriteGuard(jobId, attemptId))
-      .returning({ id: jobQueue.id });
+    const updated = await this.write("record progress", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          attemptHeartbeatAt: now,
+          runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
+          progress,
+        })
+        .where(this.attemptWriteGuard(jobId, attemptId))
+        .returning({ id: jobQueue.id }),
+    );
     return updated.length === 1;
   }
 
@@ -604,14 +662,16 @@ export class JobQueueRepository {
     now: number,
     leaseDurationMs: number,
   ): Promise<boolean> {
-    const updated = await this.db
-      .update(jobQueue)
-      .set({
-        attemptHeartbeatAt: now,
-        leaseExpiresAt: now + leaseDurationMs,
-      })
-      .where(this.attemptWriteGuard(jobId, attemptId))
-      .returning({ id: jobQueue.id });
+    const updated = await this.write("renew attempt lease", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          attemptHeartbeatAt: now,
+          leaseExpiresAt: now + leaseDurationMs,
+        })
+        .where(this.attemptWriteGuard(jobId, attemptId))
+        .returning({ id: jobQueue.id }),
+    );
     return updated.length === 1;
   }
 
@@ -641,31 +701,33 @@ export class JobQueueRepository {
     const nextRetryCount = canRetry ? job.retryCount + 1 : job.retryCount;
     const backoffMs = Math.min(1000 * 2 ** job.retryCount, 60_000);
     const scheduledFor = canRetry ? now + backoffMs : job.scheduledFor;
-    const updated = await this.db
-      .update(jobQueue)
-      .set({
-        status: canRetry ? JOB_STATUS.PENDING : JOB_STATUS.FAILED,
-        retryCount: nextRetryCount,
-        lastError: error.message,
-        scheduledFor,
-        completedAt: canRetry ? null : now,
-        runtimeUpdatedAt: canRetry
-          ? job.runtimeUpdatedAt
-          : this.nextRuntimeUpdatedAt(now),
-        startedAt: canRetry ? null : job.startedAt,
-        attemptId: null,
-        workerSlotId: null,
-        workerSessionId: null,
-        leaseExpiresAt: null,
-        attemptHeartbeatAt: null,
-      })
-      .where(
-        and(
-          this.attemptWriteGuard(jobId, attemptId),
-          eq(jobQueue.retryCount, job.retryCount),
-        ),
-      )
-      .returning({ id: jobQueue.id });
+    const updated = await this.write("fail", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          status: canRetry ? JOB_STATUS.PENDING : JOB_STATUS.FAILED,
+          retryCount: nextRetryCount,
+          lastError: error.message,
+          scheduledFor,
+          completedAt: canRetry ? null : now,
+          runtimeUpdatedAt: canRetry
+            ? job.runtimeUpdatedAt
+            : this.nextRuntimeUpdatedAt(now),
+          startedAt: canRetry ? null : job.startedAt,
+          attemptId: null,
+          workerSlotId: null,
+          workerSessionId: null,
+          leaseExpiresAt: null,
+          attemptHeartbeatAt: null,
+        })
+        .where(
+          and(
+            this.attemptWriteGuard(jobId, attemptId),
+            eq(jobQueue.retryCount, job.retryCount),
+          ),
+        )
+        .returning({ id: jobQueue.id }),
+    );
     if (updated.length !== 1) return false;
 
     if (canRetry) {
@@ -699,32 +761,34 @@ export class JobQueueRepository {
       throw new Error("Retired job reason must not be empty");
     }
 
-    const updated = await this.db
-      .update(jobQueue)
-      .set({
-        status: JOB_STATUS.FAILED,
-        lastError: reason,
-        completedAt: request.now,
-        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(request.now),
-      })
-      .where(
-        and(
-          eq(jobQueue.id, request.jobId),
-          eq(jobQueue.type, request.expectedType),
-          or(
-            eq(jobQueue.status, JOB_STATUS.PENDING),
-            eq(jobQueue.status, JOB_STATUS.PROCESSING),
+    const updated = await this.write("retire unowned job", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          status: JOB_STATUS.FAILED,
+          lastError: reason,
+          completedAt: request.now,
+          runtimeUpdatedAt: this.nextRuntimeUpdatedAt(request.now),
+        })
+        .where(
+          and(
+            eq(jobQueue.id, request.jobId),
+            eq(jobQueue.type, request.expectedType),
+            or(
+              eq(jobQueue.status, JOB_STATUS.PENDING),
+              eq(jobQueue.status, JOB_STATUS.PROCESSING),
+            ),
+            isNull(jobQueue.attemptId),
+            isNull(jobQueue.workerSlotId),
+            isNull(jobQueue.workerSessionId),
+            isNull(jobQueue.leaseExpiresAt),
+            isNull(jobQueue.attemptHeartbeatAt),
+            isNull(jobQueue.progress),
+            isNull(jobQueue.result),
           ),
-          isNull(jobQueue.attemptId),
-          isNull(jobQueue.workerSlotId),
-          isNull(jobQueue.workerSessionId),
-          isNull(jobQueue.leaseExpiresAt),
-          isNull(jobQueue.attemptHeartbeatAt),
-          isNull(jobQueue.progress),
-          isNull(jobQueue.result),
-        ),
-      )
-      .returning();
+        )
+        .returning(),
+    );
     const retired = updated[0] ?? null;
     if (retired) {
       this.logger.warn("Retired unowned legacy job", {
@@ -911,17 +975,19 @@ export class JobQueueRepository {
   public async cleanup(olderThanMs: number): Promise<number> {
     const cutoff = Date.now() - olderThanMs;
 
-    const result = await this.db
-      .delete(jobQueue)
-      .where(
-        and(
-          or(
-            eq(jobQueue.status, JOB_STATUS.COMPLETED),
-            eq(jobQueue.status, JOB_STATUS.FAILED),
+    const result = await this.write("cleanup", async () =>
+      this.db
+        .delete(jobQueue)
+        .where(
+          and(
+            or(
+              eq(jobQueue.status, JOB_STATUS.COMPLETED),
+              eq(jobQueue.status, JOB_STATUS.FAILED),
+            ),
+            lte(jobQueue.completedAt, cutoff),
           ),
-          lte(jobQueue.completedAt, cutoff),
         ),
-      );
+    );
 
     return result.rowsAffected;
   }
@@ -972,8 +1038,8 @@ export class JobQueueRepository {
 
   /**
    * Atomically claim the highest-priority executable pending or reclaimable job.
-   * A superseded session is reclaimable immediately. Another slot's attempt
-   * requires both an expired lease and an expired owner-session heartbeat.
+   * A superseded session is reclaimable immediately; any other attempt once
+   * its lease expires, since a live worker renews the leases it still runs.
    */
   public async claimNextReady(
     claim: JobAttemptClaim,
@@ -1006,23 +1072,12 @@ export class JobQueueRepository {
           eq(jobWorkerSessions.sessionId, jobQueue.workerSessionId),
         ),
       );
-    const staleOwnerSession = this.db
-      .select({ slotId: jobWorkerSessions.slotId })
-      .from(jobWorkerSessions)
-      .where(
-        and(
-          eq(jobWorkerSessions.slotId, jobQueue.workerSlotId),
-          eq(jobWorkerSessions.sessionId, jobQueue.workerSessionId),
-          lte(jobWorkerSessions.expiresAt, now),
-        ),
-      );
-
     const processingReclaimable = and(
       eq(jobQueue.status, JOB_STATUS.PROCESSING),
       or(
         isNull(jobQueue.attemptId),
         notExists(matchingOwnerSession),
-        and(lte(jobQueue.leaseExpiresAt, now), exists(staleOwnerSession)),
+        lte(jobQueue.leaseExpiresAt, now),
       ),
     );
     const terminalReclaim = sql`${jobQueue.status} = ${JOB_STATUS.PROCESSING} AND ${jobQueue.retryCount} + 1 > ${jobQueue.maxRetries}`;
@@ -1045,23 +1100,25 @@ export class JobQueueRepository {
       .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))
       .limit(1);
 
-    const result = await this.db
-      .update(jobQueue)
-      .set({
-        status: sql`CASE WHEN ${terminalReclaim} THEN ${JOB_STATUS.FAILED} ELSE ${JOB_STATUS.PROCESSING} END`,
-        retryCount: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN ${jobQueue.retryCount} + 1 ELSE ${jobQueue.retryCount} END`,
-        lastError: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN 'Attempt lease expired' ELSE ${jobQueue.lastError} END`,
-        startedAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.startedAt} ELSE ${now} END`,
-        completedAt: sql`CASE WHEN ${terminalReclaim} THEN ${now} ELSE NULL END`,
-        attemptId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptId} ELSE ${attemptId} END`,
-        workerSlotId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.workerSlotId} ELSE ${workerSlotId} END`,
-        workerSessionId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.workerSessionId} ELSE ${workerSessionId} END`,
-        leaseExpiresAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.leaseExpiresAt} ELSE ${now + leaseDurationMs} END`,
-        attemptHeartbeatAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptHeartbeatAt} ELSE ${now} END`,
-        runtimeUpdatedAt: sql`CASE WHEN ${terminalReclaim} THEN ${this.nextRuntimeUpdatedAt(now)} ELSE ${jobQueue.runtimeUpdatedAt} END`,
-      })
-      .where(and(inArray(jobQueue.id, candidate), exists(claimingSession)))
-      .returning();
+    const result = await this.write("claim", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          status: sql`CASE WHEN ${terminalReclaim} THEN ${JOB_STATUS.FAILED} ELSE ${JOB_STATUS.PROCESSING} END`,
+          retryCount: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN ${jobQueue.retryCount} + 1 ELSE ${jobQueue.retryCount} END`,
+          lastError: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN 'Attempt lease expired' ELSE ${jobQueue.lastError} END`,
+          startedAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.startedAt} ELSE ${now} END`,
+          completedAt: sql`CASE WHEN ${terminalReclaim} THEN ${now} ELSE NULL END`,
+          attemptId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptId} ELSE ${attemptId} END`,
+          workerSlotId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.workerSlotId} ELSE ${workerSlotId} END`,
+          workerSessionId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.workerSessionId} ELSE ${workerSessionId} END`,
+          leaseExpiresAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.leaseExpiresAt} ELSE ${now + leaseDurationMs} END`,
+          attemptHeartbeatAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptHeartbeatAt} ELSE ${now} END`,
+          runtimeUpdatedAt: sql`CASE WHEN ${terminalReclaim} THEN ${this.nextRuntimeUpdatedAt(now)} ELSE ${jobQueue.runtimeUpdatedAt} END`,
+        })
+        .where(and(inArray(jobQueue.id, candidate), exists(claimingSession)))
+        .returning(),
+    );
 
     const claimed = result[0];
     if (claimed?.status !== JOB_STATUS.PROCESSING) return null;

@@ -96,7 +96,7 @@ async function writeUnmatchedApprovalTerminal(
   writer: StreamWriter,
   conversationId: string,
   approvalResponse: ApprovalResponse,
-  response: Pick<AgentResponse, "cards" | "text">,
+  response: Pick<AgentResponse, "cards" | "text" | "error">,
   deps: StreamDeps,
 ): Promise<void> {
   if (hasMatchingApprovalCard(response, approvalResponse)) return;
@@ -104,7 +104,10 @@ async function writeUnmatchedApprovalTerminal(
   // AI SDK automatically resubmits a trailing approval response until its
   // tool part reaches a terminal state. A stale server-side approval has no
   // result card, so close the client-side tool instead of replaying forever.
-  const responseText = stripInternalEntityMemoryNote(response.text).trim();
+  const responseText =
+    response.error !== undefined
+      ? "The action failed."
+      : stripInternalEntityMemoryNote(response.text).trim();
   const errorText = responseText || "This approval is no longer pending.";
   writer.write({
     type: "tool-output-error",
@@ -150,6 +153,7 @@ export async function handleStreamedChat(
     );
 
     await deps.handleAgentResponseToolStatuses(response, input.conversationId);
+    if (response.error !== undefined) throw new Error(response.error);
     const deniedCardIds = await deniedArtifactCardIds(
       deps,
       response,
@@ -189,6 +193,7 @@ export async function handleStreamedConfirmations(
   deps.startProcessingInput(input.conversationId);
 
   try {
+    let failure: string | undefined;
     for (const approvalResponse of input.approvalResponses) {
       const response = await deps.agent.confirmPendingAction(
         input.conversationId,
@@ -212,7 +217,8 @@ export async function handleStreamedConfirmations(
         input.permissionLevel,
       );
       const plan = buildResponsePlan(response, { deniedCardIds });
-      writeText(input.writer, response.text, "text", deps.createId);
+      if (response.error !== undefined) failure = response.error;
+      else writeText(input.writer, response.text, "text", deps.createId);
       writePlanCards(input.writer, plan);
       await writeUnmatchedApprovalTerminal(
         input.writer,
@@ -222,6 +228,9 @@ export async function handleStreamedConfirmations(
         deps,
       );
     }
+    // Finish the explicitly submitted decisions without replaying any of them,
+    // then let the SDK report a sanitized stream error rather than success.
+    if (failure !== undefined) throw new Error(failure);
   } finally {
     deps.endProcessingInput();
     deps.activeStreams.delete(input.conversationId);

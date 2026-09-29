@@ -28,9 +28,19 @@ export interface WebRouteDefinition {
   method?: WebRouteMethod;
   /** Allow unauthenticated access */
   public?: boolean;
+  /** Also serve on the preview host. Reachability only; admission checks still apply. */
+  preview?: boolean;
   /** Request handler */
   handler: WebRouteHandler;
 }
+
+/**
+ * An admitted public page whose presentation belongs to the installed site.
+ * The host may use its generated page at the same path; this response is the
+ * fallback for apps without that site page. Denials and redirects never delegate.
+ * APIs and authenticated pages use ordinary Responses, not this opt-in.
+ */
+export class SitePageResponse extends Response {}
 
 export interface JsonResponseInit {
   status?: number;

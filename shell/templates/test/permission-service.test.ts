@@ -5,6 +5,7 @@ import {
   UserPermissionLevelSchema,
 } from "../src/permission-service";
 import type {
+  EntityActionPolicyRule,
   PermissionConfig,
   UserPermissionLevel,
   WithVisibility,
@@ -817,5 +818,119 @@ describe("PermissionService", () => {
         "Publishing `summary` requires Admin permission; your current permission is Trusted.",
       );
     });
+  });
+});
+
+describe("entity action floors", () => {
+  const floor = (entityType: string): EntityActionPolicyRule | undefined =>
+    entityType === "vocabulary"
+      ? { create: "admin" as const, update: "admin" as const }
+      : undefined;
+
+  it("applies a type's floor when no instance policy names the type", () => {
+    const service = new PermissionService({}, { entityActionFloor: floor });
+    expect(
+      service.canPerformEntityAction("trusted", "vocabulary", "update"),
+    ).toBe(false);
+    expect(
+      service.canPerformEntityAction("admin", "vocabulary", "update"),
+    ).toBe(true);
+    // A type without a floor and without policy stays unconstrained.
+    expect(service.canPerformEntityAction("trusted", "note", "update")).toBe(
+      true,
+    );
+  });
+
+  for (const action of [
+    "create",
+    "update",
+    "delete",
+    "extract",
+    "publish",
+  ] as const) {
+    it(`preserves a wildcard denial for ${action}`, () => {
+      const service = new PermissionService(
+        { entityActions: { "*": { [action]: "never" } } },
+        {
+          entityActionFloor: (): EntityActionPolicyRule => ({
+            [action]: "admin",
+          }),
+        },
+      );
+      expect(service.getEntityActionRequiredLevel("vocabulary", action)).toBe(
+        "never",
+      );
+      expect(
+        service.canPerformEntityAction("admin", "vocabulary", action),
+      ).toBe(false);
+      expect(() =>
+        service.assertEntityActionAllowed("vocabulary", action, "admin"),
+      ).toThrow("is not allowed through system tools");
+    });
+
+    it(`preserves a stricter wildcard role for ${action}`, () => {
+      const service = new PermissionService(
+        { entityActions: { "*": { [action]: "admin" } } },
+        {
+          entityActionFloor: (): EntityActionPolicyRule => ({
+            [action]: "trusted",
+          }),
+        },
+      );
+      expect(service.getEntityActionRequiredLevel("vocabulary", action)).toBe(
+        "admin",
+      );
+      expect(
+        service.canPerformEntityAction("trusted", "vocabulary", action),
+      ).toBe(false);
+      expect(
+        service.canPerformEntityAction("admin", "vocabulary", action),
+      ).toBe(true);
+      expect(() =>
+        service.assertEntityActionAllowed("vocabulary", action, "trusted"),
+      ).toThrow("requires Admin permission");
+    });
+  }
+
+  it("keeps a type's never floor against a looser wildcard", () => {
+    const service = new PermissionService(
+      { entityActions: { "*": { publish: "admin" } } },
+      {
+        entityActionFloor: (): EntityActionPolicyRule => ({ publish: "never" }),
+      },
+    );
+    expect(
+      service.canPerformEntityAction("admin", "vocabulary", "publish"),
+    ).toBe(false);
+  });
+
+  it("tightens a looser wildcard but yields to an explicit policy for the type", () => {
+    const service = new PermissionService(
+      { entityActions: { "*": { update: "trusted" } } },
+      { entityActionFloor: floor },
+    );
+    expect(service.getEntityActionRequiredLevel("vocabulary", "update")).toBe(
+      "admin",
+    );
+    expect(service.getEntityActionRequiredLevel("note", "update")).toBe(
+      "trusted",
+    );
+
+    const overridden = new PermissionService(
+      {
+        entityActions: {
+          "*": { update: "never" },
+          vocabulary: { update: "trusted" },
+        },
+      },
+      { entityActionFloor: floor },
+    );
+    expect(
+      overridden.canPerformEntityAction("trusted", "vocabulary", "update"),
+    ).toBe(true);
+    // Actions the override does not mention keep the floor.
+    expect(
+      overridden.canPerformEntityAction("trusted", "vocabulary", "create"),
+    ).toBe(false);
   });
 });

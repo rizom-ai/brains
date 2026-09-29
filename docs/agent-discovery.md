@@ -11,8 +11,9 @@ different layers:
 1. **In-brain capability discovery** — how a brain knows which tools/resources
    it can expose, and to whom. Mature and in production.
 2. **Cross-brain (A2A) agent discovery** — how a brain finds other brains,
-   reviews them, and is allowed to call them. The manual/seeded path is shipped;
-   ambient network discovery is partially shipped (see "What's coming").
+   reviews them, and is allowed to call them. Manual and seeded discovery, signed
+   peer calls, and the bounded Jetstream consumer are implemented; ambient discovery
+   remains disabled pending the policy correction described under "What's coming".
 
 ---
 
@@ -75,9 +76,9 @@ deliberately opts down to `trusted`/`public`.
 ## 2. Cross-brain (A2A) agent discovery
 
 Other brains are stored as first-class **`agent` entities** and gated by an
-approval lifecycle. A brain can be added three ways: by URL (manual), by an
-ATProto signed card (network), or — in future — via firehose. All converge on
-the same entity and the same lifecycle.
+approval lifecycle. A brain can be added by URL, from a supplied ATProto repo,
+or through the opt-in bounded Jetstream consumer. All paths converge on the same
+entity and lifecycle; Jetstream is not enabled in current fleet configuration.
 
 ### The agent entity
 
@@ -148,15 +149,29 @@ A brain publishes a signed `ai.rizom.brain.card` record to its PDS
 (DID, name, role, purpose), a minimal anchor snapshot, public skills, and the
 site URL.
 
-Discovery of _other_ brains is currently **seeded, not ambient**:
-`discoverBrainCards()` (`plugins/atproto/src/plugin.ts`) takes a supplied list
-of repo DIDs/handles, resolves each PDS, fetches the card via
+The default discovery path remains seeded:
+`discoverBrainCards()` (`plugins/atproto/src/plugin.ts`) takes supplied repo
+DIDs/handles, resolves each PDS, fetches the card through
 `com.atproto.repo.getRecord`, validates it against the lexicon, and emits an
 `ATPROTO_BRAIN_CARD_DISCOVERED` event. The agent-directory side
 (`atproto-card-events.ts`) upserts an `agent` entity from that event —
 **preserving an existing `approved` status and only defaulting new entries to
 `discovered`** — so a card refresh can enrich a known peer but never silently
 grant it call access.
+
+### Signed peer identity
+
+A2A requests use RFC 9421 HTTP Message Signatures. Each brain serves its public
+keys, peer trust stores the approved domain/key binding and permission grant,
+and inbound tasks bind the verified caller rather than accepting a claimed role
+from request content. This replaces bearer-token identity for trusted peers
+without making discovery itself an approval.
+
+### Bundle ownership
+
+The `agents` capability lives in the posture-independent `core` bundle. Web and
+federation bundles provide publication/discovery channels; they do not own the
+agent entity or approval lifecycle.
 
 ---
 
@@ -167,20 +182,13 @@ grant it call access.
 > behavior — and expect these plans to be deleted once they ship, so verify
 > against code before relying on any of it.
 
-- **Ambient network discovery** — `docs/plans/atproto-integration.md`, Phase 4.
-  The shipped slice only discovers from _supplied_ repo DIDs. The remaining
-  targets add **Jetstream candidate sourcing** and a **firehose subscription**
-  for ongoing brain-to-brain awareness, plus **configurable discovery filters**
-  (allow/deny domains, anchor DIDs, skill keywords, max cards per run). New
-  firehose-sourced brains enter as `discovered`; the approval gate above is
-  unchanged.
-- **Signed peer identity** — `docs/plans/a2a-request-signing.md`. Replaces
-  bearer-token secrets with domain-as-identity: each brain serves a JWKS at
-  `/.well-known/jwks.json`, approving a peer writes a runtime peer-trust
-  record (domain, pinned key fingerprint, granted permission level), and
-  calls are signed with RFC 9421 HTTP Message Signatures. Plugs into the
-  same discovered → approved lifecycle, which then covers inbound trust as
-  well as outbound calling.
-- **Agents in the core bundle** — `docs/plans/brain-model-unification.md`. The
-  `agents` plugin lives in the posture-independent `core` bundle; "agents phase
-  2 (ATProto firehose) — auto-discover peer brains" is the next named capability.
+- **Safe ambient network discovery** — [AT Protocol integration](./plans/atproto-integration.md).
+  The bounded Jetstream consumer, durable cursor/dedupe state, authoritative PDS
+  refetch, and egress checks exist, but no fleet instance enables them. Before a
+  canary, discovery must be corrected to known-peer monitoring so an unknown valid
+  card cannot create an approved or implicitly trusted relationship. Configurable
+  allow/deny filters and later ingestion/feed work follow only after that gate.
+- **Trust calibration in real use** — [Identity and trust](./plans/identity-and-trust.md).
+  Signed transport and runtime identity are shipped; sustained collective use must
+  now show whether peer grants, attribution, and review surfaces communicate the
+  right trust boundaries.

@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -7,8 +8,9 @@ import { Window } from "happy-dom";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
 import { createWebChatQueryClient } from "./query-client";
-import { WebChatFetchProvider } from "./web-chat-fetch";
+import { AppFetchProvider } from "@brains/app-ui-react";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let stubbedFetch: FetchLike;
 let root: Root;
@@ -33,14 +35,8 @@ beforeEach(() => {
   historyMessages = [
     { id: "old-message", role: "user", content: "Before reload" },
   ];
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
+  restoreGlobals = installDomGlobals(windowInstance, {
     localStorage: windowInstance.localStorage,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     MutationObserver: windowInstance.MutationObserver,
@@ -50,7 +46,6 @@ beforeEach(() => {
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   windowInstance.localStorage.setItem(
     "brain:web-chat:conversation-id",
@@ -86,7 +81,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 
 describe("startup session restoration", () => {
@@ -98,7 +95,7 @@ describe("startup session restoration", () => {
           QueryClientProvider,
           { client: queryClient },
           createElement(
-            WebChatFetchProvider,
+            AppFetchProvider,
             { fetch: stubbedFetch },
             createElement(App),
           ),
@@ -141,7 +138,7 @@ describe("startup session restoration", () => {
           QueryClientProvider,
           { client: queryClient },
           createElement(
-            WebChatFetchProvider,
+            AppFetchProvider,
             { fetch: stubbedFetch },
             createElement(App),
           ),
@@ -224,7 +221,7 @@ describe("startup session restoration", () => {
           QueryClientProvider,
           { client: queryClient },
           createElement(
-            WebChatFetchProvider,
+            AppFetchProvider,
             { fetch: stubbedFetch },
             createElement(App),
           ),

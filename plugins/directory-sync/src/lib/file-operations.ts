@@ -15,7 +15,9 @@ import {
   buildEntityFilePath,
   getEntityFileExtension,
   parseEntityPath,
+  resolveEntityPlacement,
 } from "./entity-paths";
+import { EntityPlacementError } from "./entity-placement-error";
 import { mkdir, readFile, unlink, writeFile, stat, utimes } from "fs/promises";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
@@ -191,11 +193,42 @@ export class FileOperations {
     }
   }
 
+  /** Shared pure admission for automatic/manual exports and orphan cleanup. */
+  assertEntityPlacement(entity: BaseEntity): void {
+    this.assertPlacement(
+      entity.entityType,
+      entity.id,
+      getEntityFileExtension(entity),
+    );
+  }
+
+  private assertPlacement(
+    entityType: string,
+    entityId: string,
+    extension: string,
+  ): void {
+    const placement = resolveEntityPlacement(
+      this.syncPath,
+      entityType,
+      entityId,
+      extension,
+    );
+    if (!placement.writable) {
+      throw new EntityPlacementError(
+        entityType,
+        entityId,
+        placement.relativePath,
+        placement.owner,
+      );
+    }
+  }
+
   /**
    * Write entity to file
    * Skips write if serialized content matches current file content
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
+    this.assertEntityPlacement(entity);
     const filePath = this.getEntityFilePath(entity);
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
@@ -213,7 +246,7 @@ export class FileOperations {
     if (isImage) {
       const files = this.entityService.fileAssets;
       if (!files) throw new Error("Image file export is not provisioned");
-      await this.ensureEntityDirectory(entity, filePath);
+      await this.ensureEntityDirectory(filePath);
       await exportBinaryFile(
         files,
         filePath,
@@ -226,7 +259,7 @@ export class FileOperations {
     if (isDocument) {
       const files = this.entityService.fileAssets;
       if (!files) throw new Error("Document file export is not provisioned");
-      await this.ensureEntityDirectory(entity, filePath);
+      await this.ensureEntityDirectory(filePath);
       await exportBinaryFile(
         files,
         filePath,
@@ -248,7 +281,7 @@ export class FileOperations {
         }
       }
 
-      await this.ensureEntityDirectory(entity, filePath);
+      await this.ensureEntityDirectory(filePath);
       await writeFile(filePath, contentToWrite, "utf-8");
     }
 
@@ -281,13 +314,8 @@ export class FileOperations {
     );
   }
 
-  private async ensureEntityDirectory(
-    entity: BaseEntity,
-    filePath: string,
-  ): Promise<void> {
-    if (entity.entityType !== "note") {
-      await mkdir(dirname(filePath), { recursive: true });
-    }
+  private async ensureEntityDirectory(filePath: string): Promise<void> {
+    await mkdir(dirname(filePath), { recursive: true });
   }
 
   /**
@@ -318,7 +346,7 @@ export class FileOperations {
       }
     }
 
-    await this.ensureEntityDirectory(entity, sidecarPath);
+    await this.ensureEntityDirectory(sidecarPath);
     await writeFile(sidecarPath, serialized, "utf-8");
   }
 
@@ -365,6 +393,15 @@ export class FileOperations {
   }
 
   async deleteEntityFiles(entityType: string, entityId: string): Promise<void> {
+    this.assertPlacement(
+      entityType,
+      entityId,
+      entityType === "document"
+        ? ".pdf"
+        : entityType === "image"
+          ? (IMAGE_EXTENSIONS[0] ?? ".md")
+          : ".md",
+    );
     await Promise.all(
       this.getEntityDeletePaths(entityType, entityId).map(async (filePath) => {
         try {

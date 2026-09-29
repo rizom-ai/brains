@@ -4,11 +4,11 @@ Last updated: 2026-06-23
 
 ## Status
 
-Parked — demand-gated. The `team` bundle ([brain-model-unification.md](./brain-model-unification.md)) ships the collaboration _substrate_ (conversation-memory `shared`, docs, the trusted-collaborator permission posture). This plan tracks the team-**native** capabilities that would make the collective posture distinctive — more than "the personal posture minus publishing." None are required for the current POC; build each when real team usage forces it. Extracted from the retired `relay-presets.md` (its preset/tier mechanics were superseded by the bundle model).
+Parked — demand-gated. The [`team` bundle](../brain-model.md) ships the collaboration _substrate_ (conversation-memory `shared`, docs, and the trusted-collaborator permission posture). This plan tracks the team-**native** capabilities that would make the collective posture distinctive — more than "the personal posture minus publishing." None are required for the current POC; build each when real team usage forces it. The former preset/tier mechanics were superseded by the shipped bundle model.
 
 ## Context
 
-A team brain that only captures notes/links and summarizes conversations is "rover minus the personal stuff." To differentiate, the collective posture needs artifacts and workflows that are _inherently_ about multiple people co-authoring understanding. These are deferred deliberately: each should be designed as a dedicated plugin with a Brains-native shape, not by reusing the publishing/newsletter stack.
+A team brain that only captures notes/links and summarizes conversations is the personal posture minus its individual focus. To differentiate, the collective posture needs artifacts and workflows that are _inherently_ about multiple people co-authoring understanding. These are deferred deliberately: each should be designed as a dedicated plugin with a Brains-native shape, not by reusing the publishing/newsletter stack.
 
 These capabilities assume the §3 trust/identity substrate, which has shipped in [`shell/auth-service`](../../shell/auth-service/README.md), for real per-person attribution.
 
@@ -19,7 +19,7 @@ If the goal is to make the collective posture stand on its own, this is the orde
 1. **`meeting-notes`** — capture and structure meeting transcripts. The most concrete "team" artifact after basic notes.
 2. **`decision-record`** — ADR-style decision logs with rationale. A core team artifact; pairs naturally with conversation-memory's existing `decision` projection.
 3. **`rag-qa`** — conversational Q&A over the brain ("ask the team"). Arguably the single most valuable thing a team brain does.
-4. **`team-digest`** — scheduled "what the team did this week" rollup. Needs a Relay-native product shape _before_ reusing the existing content-pipeline/newsletter machinery.
+4. **`team-digest`** — scheduled "what the team did this week" rollup. Needs a team-native product shape _before_ reusing the existing content-pipeline/newsletter machinery.
 
 Second tier, clearly team-shaped but heavier or less proven:
 
@@ -38,9 +38,9 @@ Team source bridges worth adding once the import/sync UX is scoped — read-only
 ## Open design questions
 
 - **Content-entity nav/route policy.** `docs` and `decks` already add public routes; future team types (decision records, meeting notes, digests) need explicit nav/route policy instead of inheriting the publishing posture's assumptions.
-- **`team-digest` product shape.** Define it as a team-specific surface before reaching for the publishing/newsletter stack — otherwise it collapses back into "rover minus the personal stuff."
+- **`team-digest` product shape.** Define it as a team-specific surface before reaching for the publishing/newsletter stack — otherwise it collapses back into a diminished personal posture.
 
 ## Related plans
 
-- [brain-model-unification.md](./brain-model-unification.md) — defines the `team` bundle these capabilities extend.
+- [Brain model](../brain-model.md) — defines the shipped `team` bundle these capabilities extend.
 - [`shell/auth-service`](../../shell/auth-service/README.md) — the shipped per-person identity substrate real team attribution depends on.

@@ -15,6 +15,7 @@ import {
   type EntityPublicationRpcRequest,
 } from "./entity-rpc";
 import type { EntityMutationResult } from "./types";
+import { isEntityValidationError } from "./errors";
 
 type WithoutTicket<T> = T extends EntityPublicationRpcRequest
   ? Omit<T, "assetUploadId">
@@ -155,7 +156,10 @@ export async function publishEntityFile(
         if (published.ok) result = published.value;
         else {
           remember(published.error);
-          state.fenceNeeded = true;
+          // A validated domain reply arrives after the owner's claim consumer
+          // settles. Keep the connection usable for distinct future work, but
+          // never replay this publication. Unknown/aggregate failures still fence.
+          state.fenceNeeded = !isEntityValidationError(published.error);
         }
       }
     }

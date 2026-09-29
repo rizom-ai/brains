@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prepareAsset, assetRefSchema } from "@brains/assets";
 import { EntityBinaryClient } from "../src/entity-binary-client";
+import { EntityWriteConflictError } from "../src/entity-write-contracts";
 import { EntityFileRuntime } from "../src/entity-file-runtime";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { BinaryPersistence } from "@brains/db/binary-publication";
@@ -50,14 +51,17 @@ class DirectEntityTransport implements EntityRpcTransport {
 
   public async initialize(): Promise<void> {}
 
-  public request(payload: EntityRpcCall): Promise<unknown> {
+  public request(
+    payload: EntityRpcCall,
+    options?: { signal?: AbortSignal | undefined },
+  ): Promise<unknown> {
     // Mirrors the owner registration in service-factory: parse the call
     // envelope and re-enter any batch scope it carries before dispatch.
     const call = parseEntityRpcCall(payload);
     const dispatch = (): Promise<unknown> =>
       this.handler(
         call.request,
-        new AbortController().signal,
+        options?.signal ?? new AbortController().signal,
         this.connection.signal,
       );
     if (!call.batchScope) return dispatch();
@@ -100,8 +104,7 @@ function captureThrown(invocation: () => unknown): Error {
 }
 
 describe("entity owner RPC", () => {
-  it("preserves main's bounded reads and literal filters through RPC", () => {
-    const readBudget = { rows: 1, rowBytes: 1024, queryCharacters: 128 };
+  it("preserves literal filters and rejects retired guest-only read options", () => {
     const filter = {
       contentContains: "100%_",
       visibility: "restricted",
@@ -110,13 +113,13 @@ describe("entity owner RPC", () => {
     for (const request of [
       {
         operation: "getEntity",
-        request: { entityType: "test", id: "one", readBudget },
+        request: { entityType: "test", id: "one" },
       },
       {
         operation: "listEntities",
         request: {
           entityType: "test",
-          options: { limit: 1, readBudget, filter },
+          options: { limit: 1, filter },
         },
       },
       {
@@ -125,12 +128,19 @@ describe("entity owner RPC", () => {
       },
       {
         operation: "search",
-        request: { query: "needle", options: { readBudget } },
+        request: { query: "needle" },
       },
     ] as const)
       expect(parseEntityRpcRequest(request)).toEqual(request);
+    expect(() =>
+      parseEntityRpcRequest({
+        operation: "getEntity",
+        request: { entityType: "test", id: "one", readBudget: { rows: 1 } },
+      }),
+    ).toThrow();
   });
   let owner: EntityService;
+  let ownerRegistry: EntityRegistry;
   let remote: RemoteEntityService;
   let cleanup: () => Promise<void>;
   let createdEvents: number;
@@ -165,6 +175,7 @@ describe("entity owner RPC", () => {
       { messageBus: eventBus },
     );
     owner = context.entityService;
+    ownerRegistry = context.entityRegistry;
     cleanup = context.cleanup;
 
     const logger = createSilentLogger("entity-rpc-worker");
@@ -203,6 +214,197 @@ describe("entity owner RPC", () => {
   afterEach(async () => {
     remote.close();
     await cleanup();
+  });
+
+  it("round-trips grouping, hierarchy and write snapshots with owner visibility", async () => {
+    ownerRegistry.registerGrouping({
+      key: "clients",
+      label: "Clients",
+      field: "clients",
+      types: ["note"],
+    });
+    for (const visibility of ["public", "restricted"] as const) {
+      await owner.createEntity<Note>({
+        entity: {
+          id: `folder:${visibility}`,
+          entityType: "note",
+          title: visibility,
+          tags: [],
+          content: "---\nclients: [Acme]\n---\n\nBody",
+          metadata: {},
+          visibility,
+        },
+      });
+    }
+    await owner.reprojectRegisteredGroupings();
+    expect(await remote.ensureGroupingsReady()).toBe(true);
+    expect(remote.areGroupingsReady()).toBe(false);
+    await assert.rejects(
+      remote.reprojectRegisteredGroupings(),
+      /database owner/,
+    );
+    const request = { grouping: "clients", entityTypes: ["note"] };
+    expect(await remote.queryGroupingCatalog(request)).toEqual({
+      values: [{ value: "Acme", count: 1 }],
+      total: 1,
+    });
+    expect(
+      await remote.queryGroupingUsage({ ...request, values: ["Acme"] }),
+    ).toEqual({
+      entries: 1,
+      values: [{ value: "Acme", count: 1 }],
+    });
+    const members = await remote.queryGroupingMembers({
+      ...request,
+      value: "Acme",
+    });
+    expect(members.total).toBe(1);
+    expect(members.entities.map((entity) => entity.id)).toEqual([
+      "folder:public",
+    ]);
+    const hierarchy = await remote.queryEntityHierarchy({ entityType: "note" });
+    expect(hierarchy.folders).toEqual([
+      { path: ["folder"], name: "folder", descendantCount: 1 },
+    ]);
+    expect(
+      (
+        await remote.queryEntityHierarchy({
+          entityType: "note",
+          prefix: ["folder"],
+        })
+      ).entities.map((entry) => entry.path),
+    ).toEqual([["folder", "public"]]);
+    const hidden = { entityType: "note", id: "folder:restricted" };
+    expect(await remote.getEntityWriteSnapshot(hidden)).toBeNull();
+    expect(
+      await remote.getEntityWriteSnapshot({
+        ...hidden,
+        visibilityScope: "restricted",
+      }),
+    ).toEqual(
+      await owner.getEntityWriteSnapshot({
+        ...hidden,
+        visibilityScope: "restricted",
+      }),
+    );
+  });
+
+  it("enforces conditional writes on the owner rather than a worker snapshot", async () => {
+    const entity = createNoteInput(
+      { title: "Conditional", content: "Original", tags: [] },
+      "conditional",
+    );
+    await remote.createEntity({
+      entity,
+      options: { conditionalWrite: { expectedRevision: null } },
+    });
+    const request = { entityType: "note", id: "conditional" };
+    const snapshot = await remote.getEntityWriteSnapshot(request);
+    assert(snapshot);
+    const outcomes = await Promise.allSettled(
+      ["first", "second"].map((content) =>
+        remote.updateEntity({
+          entity: { ...snapshot.entity, content },
+          options: {
+            conditionalWrite: { expectedRevision: snapshot.revision },
+          },
+        }),
+      ),
+    );
+    expect(
+      outcomes.filter((outcome) => outcome.status === "fulfilled"),
+    ).toHaveLength(1);
+    const rejected = outcomes.find((outcome) => outcome.status === "rejected");
+    expect(rejected?.reason).toBeInstanceOf(EntityWriteConflictError);
+    await assert.rejects(
+      remote.createEntity({
+        entity,
+        options: { conditionalWrite: { expectedRevision: null } },
+      }),
+      EntityWriteConflictError,
+    );
+    expect((await remote.getEntityWriteSnapshot(request))?.revision).not.toBe(
+      snapshot.revision,
+    );
+  });
+
+  it("forwards mutation cancellation and refuses runtime callbacks before persistence", async () => {
+    const entity = createNoteInput(
+      { title: "Cancelled", content: "Original", tags: [] },
+      "cancelled",
+    );
+    const controller = new AbortController();
+    ownerRegistry.registerPersistValidator("note", async () => {
+      controller.abort(new Error("cancelled validation"));
+    });
+    await assert.rejects(
+      remote.createEntity({ entity, options: { signal: controller.signal } }),
+      /cancelled validation/,
+    );
+    expect(
+      await owner.getEntityRaw({ entityType: "note", id: "cancelled" }),
+    ).toBeNull();
+    let guarded = false;
+    await assert.rejects(
+      remote.createEntity({
+        entity,
+        options: {
+          beforeWrite: async () => {
+            guarded = true;
+          },
+        },
+      }),
+      /beforeWrite/,
+    );
+    expect(guarded).toBe(false);
+    expect(
+      await owner.getEntityRaw({ entityType: "note", id: "cancelled" }),
+    ).toBeNull();
+  });
+
+  it("keeps grouping and hierarchy reads bounded and cancellation out of the wire", async () => {
+    for (const operation of [
+      "queryGroupingCatalog",
+      "queryGroupingMembers",
+      "queryEntityHierarchy",
+    ] as const) {
+      const request =
+        operation === "queryEntityHierarchy"
+          ? { entityType: "test", limit: 101 }
+          : {
+              grouping: "clients",
+              entityTypes: ["test"],
+              limit: 101,
+              ...(operation === "queryGroupingMembers" && { value: "Acme" }),
+            };
+      expect(() => parseEntityRpcRequest({ operation, request })).toThrow();
+    }
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled grouping read"));
+    await assert.rejects(
+      remote.queryGroupingCatalog({
+        grouping: "clients",
+        entityTypes: ["test"],
+        signal: controller.signal,
+      }),
+      /cancelled grouping read/,
+    );
+    expect(() =>
+      parseEntityRpcRequest({
+        operation: "queryGroupingCatalog",
+        request: {
+          grouping: "clients",
+          entityTypes: ["test"],
+          signal: controller.signal,
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      parseEntityRpcResult(
+        { operation: "queryGroupingUsage" },
+        { entries: 0, values: [{ value: "Acme", count: -1 }] },
+      ),
+    ).toThrow();
   });
 
   it("exposes a metadata transfer client on the remote facade and closes its admission", async () => {

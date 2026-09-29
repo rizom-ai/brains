@@ -1,0 +1,2 @@
+[test]
+preload = ["@brains/build-tools/stylex-test-preload", "./test/ui-dom-preload.ts"]

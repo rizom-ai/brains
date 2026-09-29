@@ -1,0 +1,107 @@
+name: Offboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      handles:
+        description: Comma-separated pilot handles
+        required: true
+        type: string
+      confirm:
+        description: Exact confirmation (sunset:<sorted-comma-separated-handles>)
+        required: true
+        type: string
+      apply:
+        description: Archive content repos and destroy DNS, servers, and desired state
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: offboard-pilot-users
+  cancel-in-progress: false
+
+jobs:
+  offboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load provider credentials
+        uses: ./.github/actions/varlock-env
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+      - name: Resolve handles
+        id: handles
+        env:
+          OFFBOARD_HANDLES: ${{ inputs.handles }}
+        run: |
+          node <<'NODE'
+          const handles = [...new Set(process.env.OFFBOARD_HANDLES
+            .split(',')
+            .map((handle) => handle.trim())
+            .filter(Boolean))]
+            .sort((left, right) => left.localeCompare(right));
+          if (handles.length === 0 || handles.some((handle) => !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(handle))) {
+            throw new Error('Invalid offboarding handle list');
+          }
+          const output = process.env.GITHUB_OUTPUT;
+          require('node:fs').appendFileSync(output, `json=${JSON.stringify(handles)}\n`);
+          NODE
+
+      - name: Preview offboarding plan
+        env:
+          OFFBOARD_HANDLES_JSON: ${{ steps.handles.outputs.json }}
+        run: |
+          mapfile -t handles < <(node -e 'for (const handle of JSON.parse(process.env.OFFBOARD_HANDLES_JSON)) console.log(handle)')
+          bunx brains-ops user:offboard "$GITHUB_WORKSPACE" "${handles[@]}"
+
+      - name: Apply offboarding plan
+        if: inputs.apply
+        env:
+          OFFBOARD_CONFIRM: ${{ inputs.confirm }}
+          OFFBOARD_HANDLES_JSON: ${{ steps.handles.outputs.json }}
+        run: |
+          mapfile -t handles < <(node -e 'for (const handle of JSON.parse(process.env.OFFBOARD_HANDLES_JSON)) console.log(handle)')
+          bunx brains-ops user:offboard "$GITHUB_WORKSPACE" "${handles[@]}" \
+            --apply --confirm "$OFFBOARD_CONFIRM"
+
+      - name: Validate changed paths
+        if: inputs.apply
+        run: |
+          unexpected="$(git status --short | awk '{print $2}' | grep -Ev '^(cohorts/|users/|views/users\.md$)' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "Offboarding changed unexpected paths:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
+
+      - name: Commit desired-state removal
+        if: inputs.apply
+        env:
+          OFFBOARD_HANDLES: ${{ inputs.handles }}
+        run: |
+          git add --all -- cohorts users views/users.md
+          if git diff --cached --quiet; then
+            echo "No desired-state changes remain to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ops): sunset pilot brains" \
+            -m "Retired handles: $OFFBOARD_HANDLES"
+          git pull --rebase origin main
+          git push origin HEAD:main

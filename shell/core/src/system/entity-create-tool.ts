@@ -134,32 +134,25 @@ interface NormalizedCreateSource {
   transform?: CreateInput["transform"];
 }
 
-function normalizeCreateSource(source: PreferredCreateSource): {
-  success: true;
-  source: NormalizedCreateSource;
-} {
+function normalizeCreateSource(
+  source: PreferredCreateSource,
+): NormalizedCreateSource {
   switch (source.kind) {
     case "text":
-      return { success: true, source: { content: source.content } };
+      return { content: source.content };
     case "url":
-      return { success: true, source: { url: source.url } };
+      return { url: source.url };
     case "upload":
       return {
-        success: true,
-        source: {
-          from: source.upload,
-          uploadRef: source.upload,
-          transform: source.transform,
-        },
+        from: source.upload,
+        uploadRef: source.upload,
+        transform: source.transform,
       };
     case "prior-response":
       return {
-        success: true,
-        source: {
-          conversationMessageRef: {
-            kind: "conversation-message",
-            ...(source.messageId ? { messageId: source.messageId } : {}),
-          },
+        conversationMessageRef: {
+          kind: "conversation-message",
+          ...(source.messageId ? { messageId: source.messageId } : {}),
         },
       };
   }
@@ -288,6 +281,201 @@ interface PreparedCreate {
   };
 }
 
+type Guarded<T> =
+  { kind: "error"; result: ToolResponse } | { kind: "ok"; value: T };
+
+function guardError(error: string): { kind: "error"; result: ToolResponse } {
+  return { kind: "error", result: { success: false, error } };
+}
+
+interface ResolvedCreateSource {
+  /** Text content, with a prior-response ref already resolved to its message. */
+  content: string | undefined;
+  url: string | undefined;
+  from: NormalizedCreateSource["from"];
+  uploadRef: NormalizedCreateSource["uploadRef"];
+  transform: NormalizedCreateSource["transform"];
+  resolvedMessageId: string | undefined;
+}
+
+/** Normalise the requested source and resolve a prior-response ref to its content. */
+async function resolveCreateSource(
+  services: SystemServices,
+  input: CreateToolInput,
+  toolContext: CreateToolContext,
+): Promise<Guarded<ResolvedCreateSource>> {
+  const { content, url, from, uploadRef, conversationMessageRef, transform } =
+    normalizeCreateSource(input.source);
+  const resolvedMessage = conversationMessageRef
+    ? await resolveConversationMessageContent(
+        services,
+        conversationMessageRef,
+        toolContext.conversationId ?? toolContext.channelId,
+      )
+    : undefined;
+  if (resolvedMessage && !resolvedMessage.success) {
+    return { kind: "error", result: resolvedMessage };
+  }
+  const resolvedContent =
+    resolvedMessage?.success === true ? resolvedMessage.content : content;
+
+  if (
+    transform === "extract-markdown" &&
+    (!uploadRef || input.entityType !== "note")
+  ) {
+    return guardError(
+      'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
+    );
+  }
+  if (!resolvedContent && !url && !from) {
+    return guardError(
+      'Provide `source` with kind "text", "url", "prior-response", or "upload". Use system_generate for generated content or artifacts.',
+    );
+  }
+
+  return {
+    kind: "ok",
+    value: {
+      content: resolvedContent,
+      url,
+      from,
+      uploadRef,
+      transform,
+      resolvedMessageId:
+        resolvedMessage?.success === true
+          ? resolvedMessage.messageId
+          : undefined,
+    },
+  };
+}
+
+interface UploadPreserveResolution {
+  /** The entity type that will own the upload: the registered saver's for preserve, else the request's. */
+  entityType: string;
+  uploadPreserve: PreparedCreate["uploadPreserve"];
+}
+
+/** Check the upload is reachable and, for transform "preserve", find the plugin that saves it. */
+async function resolveUploadPreserve(
+  services: SystemServices,
+  input: {
+    entityType: string;
+    uploadRef: NonNullable<NormalizedCreateSource["uploadRef"]>;
+    transform: NormalizedCreateSource["transform"];
+  },
+  toolContext: CreateToolContext,
+): Promise<Guarded<UploadPreserveResolution>> {
+  const hasAccess = await isUploadRefInConversation(
+    services,
+    input.uploadRef,
+    toolContext.conversationId ?? toolContext.channelId,
+  );
+  if (!hasAccess) {
+    return guardError(
+      "Upload ref is not accessible in this conversation or no longer exists.",
+    );
+  }
+  if (input.transform !== "preserve") {
+    return {
+      kind: "ok",
+      value: { entityType: input.entityType, uploadPreserve: undefined },
+    };
+  }
+
+  let uploadRecord: { filename: string; mediaType: string };
+  try {
+    uploadRecord = await services.runtimeUploads
+      .scoped(uploadScope)
+      .readRecord(input.uploadRef.id);
+  } catch {
+    return guardError("Upload ref not found");
+  }
+
+  const registration = services.entityRegistry.getUploadSaveHandler(
+    uploadRecord.mediaType,
+  );
+  if (!registration) {
+    return guardError(
+      `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".`,
+    );
+  }
+
+  return {
+    kind: "ok",
+    value: {
+      entityType: registration.entityType,
+      uploadPreserve: {
+        upload: input.uploadRef,
+        filename: uploadRecord.filename,
+        mediaType: uploadRecord.mediaType,
+        handler: registration.handler,
+      },
+    },
+  };
+}
+
+/**
+ * Reconcile the requested visibility with any frontmatter declaration, then
+ * check the caller may write at the effective level.
+ */
+function resolveCreateVisibility(
+  requested: CreateToolInput["visibility"],
+  content: string | undefined,
+  toolContext: CreateToolContext,
+): Guarded<CreateInput["visibility"] | undefined> {
+  const fromSource = content
+    ? extractVisibilityFromMarkdown(content)
+    : undefined;
+  if (
+    requested !== undefined &&
+    fromSource !== undefined &&
+    requested !== fromSource
+  ) {
+    return guardError(
+      `Conflicting entity visibility: system_create requested "${requested}" but the source frontmatter declares "${fromSource}".`,
+    );
+  }
+
+  const declared = requested ?? fromSource;
+  const effective = declared ?? "public";
+  if (!canWriteVisibility(toolContext.userPermissionLevel, effective)) {
+    return guardError(
+      `Cannot create entity with visibility "${effective}" — caller permission "${toolContext.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
+    );
+  }
+  return { kind: "ok", value: declared };
+}
+
+/**
+ * Boundary: system_create makes NEW entities. If the derived id already
+ * resolves to an existing entity, the caller almost certainly wants to
+ * change that entity (status/title/fields) and misrouted to create.
+ * Refuse with a self-documenting error pointing to system_update rather
+ * than silently minting a deduplicated copy. `replace: true` is the
+ * explicit opt-in for intentionally creating a new copy. Interceptor-
+ * backed types own their own id/existence handling, so skip them.
+ */
+async function assertCreateTargetIsNew(
+  services: SystemServices,
+  createInput: CreateInput,
+  interceptor: PreparedCreate["interceptor"],
+): Promise<ToolResponse | undefined> {
+  if (interceptor || createInput.replace) return undefined;
+  const candidateId = createInput.title
+    ? slugify(createInput.title)
+    : undefined;
+  if (!candidateId) return undefined;
+  const existing = await services.entityService.getEntity({
+    entityType: createInput.entityType,
+    id: candidateId,
+  });
+  if (!existing) return undefined;
+  return {
+    success: false,
+    error: `A ${createInput.entityType} already exists for "${candidateId}". To change its fields or status, use system_update; pass replace:true to create a new copy intentionally.`,
+  };
+}
+
 /**
  * Resolve the source, run every input/policy guard, and build the canonical
  * `createInput`. Returns a structured error response on any guard failure, or
@@ -312,156 +500,44 @@ async function prepareCreate(
     if (unregisteredError) return { kind: "error", result: unregisteredError };
   }
 
-  const normalizedSource = normalizeCreateSource(input.source);
+  const source = await resolveCreateSource(services, input, toolContext);
+  if (source.kind === "error") return source;
+  const { content, url, from, uploadRef, transform, resolvedMessageId } =
+    source.value;
 
-  const { content, url, from, uploadRef, conversationMessageRef, transform } =
-    normalizedSource.source;
-  const resolvedConversationMessage = conversationMessageRef
-    ? await resolveConversationMessageContent(
+  const upload = uploadRef
+    ? await resolveUploadPreserve(
         services,
-        conversationMessageRef,
-        toolContext.conversationId ?? toolContext.channelId,
+        { entityType: input.entityType, uploadRef, transform },
+        toolContext,
       )
     : undefined;
-  if (resolvedConversationMessage && !resolvedConversationMessage.success) {
-    return { kind: "error", result: resolvedConversationMessage };
-  }
-  const resolvedContent =
-    resolvedConversationMessage?.success === true
-      ? resolvedConversationMessage.content
-      : content;
-  const title = normalizeOptionalString(input.title);
-  if (
-    transform === "extract-markdown" &&
-    (!uploadRef || input.entityType !== "note")
-  ) {
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error:
-          'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
-      },
-    };
-  }
-  const replace = input.replace === true;
-
-  if (!resolvedContent && !url && !from)
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error:
-          'Provide `source` with kind "text", "url", "prior-response", or "upload". Use system_generate for generated content or artifacts.',
-      },
-    };
-
-  let uploadPreserve: PreparedCreate["uploadPreserve"];
-  let derivedEntityType = input.entityType;
-  if (uploadRef) {
-    const hasAccess = await isUploadRefInConversation(
-      services,
-      uploadRef,
-      toolContext.conversationId ?? toolContext.channelId,
-    );
-    if (!hasAccess) {
-      return {
-        kind: "error",
-        result: {
-          success: false,
-          error:
-            "Upload ref is not accessible in this conversation or no longer exists.",
-        },
-      };
-    }
-
-    if (transform === "preserve") {
-      let uploadRecord: {
-        filename: string;
-        mediaType: string;
-      };
-      try {
-        uploadRecord = await services.runtimeUploads
-          .scoped(uploadScope)
-          .readRecord(uploadRef.id);
-      } catch {
-        return {
-          kind: "error",
-          result: { success: false, error: "Upload ref not found" },
-        };
-      }
-
-      const registration = services.entityRegistry.getUploadSaveHandler(
-        uploadRecord.mediaType,
-      );
-      if (!registration) {
-        return {
-          kind: "error",
-          result: {
-            success: false,
-            error: `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".`,
-          },
-        };
-      }
-
-      derivedEntityType = registration.entityType;
-      uploadPreserve = {
-        upload: uploadRef,
-        filename: uploadRecord.filename,
-        mediaType: uploadRecord.mediaType,
-        handler: registration.handler,
-      };
-    }
-  }
+  if (upload?.kind === "error") return upload;
+  const entityType = upload?.value.entityType ?? input.entityType;
+  const uploadPreserve = upload?.value.uploadPreserve;
 
   const unregisteredDerivedError = assertEntityTypeRegistered(
     services,
-    derivedEntityType,
+    entityType,
   );
   if (unregisteredDerivedError) {
     return { kind: "error", result: unregisteredDerivedError };
   }
 
-  const sourceVisibility = resolvedContent
-    ? extractVisibilityFromMarkdown(resolvedContent)
-    : undefined;
-  if (
-    input.visibility !== undefined &&
-    sourceVisibility !== undefined &&
-    input.visibility !== sourceVisibility
-  ) {
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error: `Conflicting entity visibility: system_create requested "${input.visibility}" but the source frontmatter declares "${sourceVisibility}".`,
-      },
-    };
-  }
+  const visibility = resolveCreateVisibility(
+    input.visibility,
+    content,
+    toolContext,
+  );
+  if (visibility.kind === "error") return visibility;
 
-  const declaredVisibility = input.visibility ?? sourceVisibility;
-  const requestedVisibility = declaredVisibility ?? "public";
-  if (
-    !canWriteVisibility(toolContext.userPermissionLevel, requestedVisibility)
-  ) {
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error: `Cannot create entity with visibility "${requestedVisibility}" — caller permission "${toolContext.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
-      },
-    };
-  }
-
-  const eventContext = buildEntityMutationEventContext(toolContext);
-
+  const title = normalizeOptionalString(input.title);
+  const replace = input.replace === true;
   const createInput: CreateInput = {
-    entityType: derivedEntityType,
+    entityType,
     ...(title && { title }),
-    ...(declaredVisibility !== undefined
-      ? { visibility: declaredVisibility }
-      : {}),
-    ...(resolvedContent && { content: resolvedContent }),
+    ...(visibility.value !== undefined ? { visibility: visibility.value } : {}),
+    ...(content && { content }),
     ...(url && { url }),
     ...(from && { from }),
     ...(transform && { transform }),
@@ -479,56 +555,26 @@ async function prepareCreate(
   const interceptor = services.entityRegistry.getCreateInterceptor(
     createInput.entityType,
   );
-
   if (!createInput.content && !interceptor && !uploadPreserve) {
-    return {
-      kind: "error",
-      result: {
-        success: false,
-        error:
-          'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
-      },
-    };
+    return guardError(
+      'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
+    );
   }
 
-  // Boundary: system_create makes NEW entities. If the derived id already
-  // resolves to an existing entity, the caller almost certainly wants to
-  // change that entity (status/title/fields) and misrouted to create.
-  // Refuse with a self-documenting error pointing to system_update rather
-  // than silently minting a deduplicated copy. `replace: true` is the
-  // explicit opt-in for intentionally creating a new copy. Interceptor-
-  // backed types own their own id/existence handling, so skip them.
-  if (!interceptor && !replace) {
-    const candidateId = createInput.title
-      ? slugify(createInput.title)
-      : undefined;
-    if (candidateId) {
-      const existing = await services.entityService.getEntity({
-        entityType: createInput.entityType,
-        id: candidateId,
-      });
-      if (existing) {
-        return {
-          kind: "error",
-          result: {
-            success: false,
-            error: `A ${createInput.entityType} already exists for "${candidateId}". To change its fields or status, use system_update; pass replace:true to create a new copy intentionally.`,
-          },
-        };
-      }
-    }
-  }
+  const existingError = await assertCreateTargetIsNew(
+    services,
+    createInput,
+    interceptor,
+  );
+  if (existingError) return { kind: "error", result: existingError };
 
   return {
     kind: "ok",
     prepared: {
       createInput,
-      resolvedMessageId:
-        resolvedConversationMessage?.success === true
-          ? resolvedConversationMessage.messageId
-          : undefined,
+      resolvedMessageId,
       interceptor,
-      eventContext,
+      eventContext: buildEntityMutationEventContext(toolContext),
       ...(uploadPreserve && { uploadPreserve }),
     },
   };

@@ -534,10 +534,10 @@ export class JetstreamConsumer {
       });
     }
 
+    // Checkpoint only across an unbroken run from the next expected sequence.
     let advanced = false;
-    for (;;) {
-      const outcome = this.terminal.get(this.nextCheckpointSequence);
-      if (!outcome) break;
+    let outcome = this.terminal.get(this.nextCheckpointSequence);
+    while (outcome) {
       this.terminal.delete(this.nextCheckpointSequence);
       this.nextCheckpointSequence += 1;
       this.state.cursorTimeUs = Math.max(
@@ -550,6 +550,7 @@ export class JetstreamConsumer {
       });
       this.dedupeKeys.add(outcome.dedupeKey);
       advanced = true;
+      outcome = this.terminal.get(this.nextCheckpointSequence);
     }
     if (!advanced) return;
 

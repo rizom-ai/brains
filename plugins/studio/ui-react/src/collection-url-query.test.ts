@@ -1,6 +1,15 @@
 import { expect, it } from "bun:test";
 import { collectionQuery, collectionSearch } from "./collection-url-query";
 
+it("round-trips folder segments and explicit search scope without touching stored IDs", () => {
+  const query = collectionQuery(
+    `?prefix=${encodeURIComponent(JSON.stringify(["book-1", "part/with%sign"]))}&scope=collection&q=shared&offset=25`,
+  );
+  expect(query.prefix).toEqual(["book-1", "part/with%sign"]);
+  expect(query.scope).toBe("collection");
+  expect(collectionQuery(collectionSearch(query))).toEqual(query);
+});
+
 it("restores normalized collection offsets from links", () => {
   expect(collectionQuery("?offset=25").offset).toBe(25);
   expect(collectionQuery("?offset=74").offset).toBe(50);

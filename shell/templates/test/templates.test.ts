@@ -37,6 +37,35 @@ createTemplate({
 });
 
 describe("Templates", () => {
+  it("keeps a rendered template's own schema for structured generation", () => {
+    const template = createTemplate({
+      name: "generated-view",
+      description: "Rendered and generated",
+      schema: z.object({ headline: z.string(), themes: z.array(z.string()) }),
+      requiredPermission: "public",
+      basePrompt: "Write",
+      dataSourceId: "shell:ai-content",
+      layout: {},
+    });
+
+    // Providers build their structured-output schema from the input side, so
+    // the JSON-object check must be piped after the author's schema, never
+    // wrapped around an unknown: that converts to an empty schema and the
+    // provider rejects the request.
+    expect(z.toJSONSchema(template.schema, { io: "input" })).toMatchObject({
+      type: "object",
+      properties: {
+        headline: { type: "string" },
+        themes: { type: "array", items: { type: "string" } },
+      },
+    });
+    expect(template.schema.parse({ headline: "h", themes: ["a"] })).toEqual({
+      headline: "h",
+      themes: ["a"],
+    });
+    expect(() => template.schema.parse({ headline: 1, themes: [] })).toThrow();
+  });
+
   it("should validate a basic template", () => {
     const template: Template = {
       name: "test",

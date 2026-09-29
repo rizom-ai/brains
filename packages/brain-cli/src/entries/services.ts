@@ -1,6 +1,7 @@
 /** Declarative service authoring contract. */
 
 export {
+  contentGenerationResultSchema,
   defineAccountSettings,
   defineStudioWorkspace,
   defineDashboardWidget,
@@ -32,10 +33,19 @@ export type {
   OperatorView,
   OperatorViewBlock,
   OperatorViewStatus,
+  ServiceContentGeneration,
+  ServiceContentGenerationContext,
+  ServiceContentGenerationItem,
+  ServiceContentGenerationResult,
+  ServiceContentGenerationSkipReason,
+  ServiceContentGenerationTarget,
+  ServiceContentGenerationTargetInput,
+  ServiceEntityIdPath,
   ServiceJobDefinition,
   ServiceJobReference,
   ServiceJobStatus,
   ServicePackageDefinition,
+  ServiceTemplateGenerationDefinition,
   WorkspaceActionConfirmation,
   WorkspaceActionDefinition,
   WorkspaceActionFormControl,

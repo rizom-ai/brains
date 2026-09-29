@@ -84,7 +84,12 @@ async function open(path: string, initialize = true): Promise<Fixture> {
   return {
     driver,
     db,
-    queries: new EntityQueries({ db, serializer, logger }),
+    queries: new EntityQueries({
+      db,
+      serializer,
+      logger,
+      entityRegistry: registry,
+    }),
     assets: new SqliteAssetRepository(db, { now: () => 1000 }),
     search: (enabled, embedder = forbidden, excluded) =>
       new EntitySearch(db, embedder, serializer, logger, enabled, excluded),

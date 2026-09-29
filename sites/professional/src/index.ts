@@ -8,6 +8,7 @@ import {
   type HomepageListData,
 } from "./templates/homepage-list";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
+import { AboutHighlightsLayout } from "./templates/about-highlights";
 import {
   SubscribeThanksLayout,
   SubscribeErrorLayout,
@@ -24,6 +25,7 @@ export {
   type HomepageListData,
   AboutPageLayout,
   type AboutPageData,
+  AboutHighlightsLayout,
   SubscribeThanksLayout,
   SubscribeErrorLayout,
   HomepageListDataSource,

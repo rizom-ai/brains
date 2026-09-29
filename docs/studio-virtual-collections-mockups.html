@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en" data-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio · Virtual collections · Design review</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ui: "IBM Plex Sans", sans-serif;
+        --display: "Fraunces", Georgia, serif;
+        --mono: "JetBrains Mono", monospace;
+      }
+      [data-climate="paper"] {
+        --bg: #faf4e6;
+        --rail: #ebe2cb;
+        --panel: #f0e8d4;
+        --ink: #181227;
+        --dim: #605876;
+        --rule: #d8cfbe;
+        --accent: #b8420d;
+        --on-accent: #fff8ec;
+        --field: #faf4e6;
+        color-scheme: light;
+      }
+      [data-climate="instrument"] {
+        --bg: #15122c;
+        --rail: #1c1739;
+        --panel: #201a3f;
+        --ink: #fff8f0;
+        --dim: #bcb2cd;
+        --rule: #3c3454;
+        --accent: #fe8b3e;
+        --on-accent: #19112b;
+        --field: #181433;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        background: #211f23;
+        color: #f5eee4;
+        font: 14px/1.5 var(--ui);
+      }
+      .review {
+        max-width: 1520px;
+        margin: auto;
+        padding: 32px 24px 52px;
+      }
+      .review h1 {
+        font: 500 30px/1.15 var(--display);
+        margin: 8px 0;
+      }
+      .kicker {
+        font: 11px var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: #f4a779;
+      }
+      .review > p {
+        color: #c4bbb2;
+        max-width: 85ch;
+        margin: 12px 0 22px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 20px 0;
+        align-items: end;
+      }
+      .controls label {
+        display: grid;
+        gap: 5px;
+        font: 11px var(--mono);
+        color: #d7c9bd;
+      }
+      .controls select {
+        padding: 10px;
+        background: #302b30;
+        color: #fff7ed;
+        border: 1px solid #66564a;
+        border-radius: 5px;
+        font: 13px var(--ui);
+      }
+      .preview {
+        container-type: inline-size;
+        width: 100%;
+        height: 900px;
+        margin: 26px auto;
+        background: var(--bg);
+        color: var(--ink);
+        border: 1px solid var(--rule);
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 24px 60px #0003;
+      }
+      .preview[data-size="phone"] {
+        width: min(390px, 100%);
+        height: 844px;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      .preview button {
+        color: inherit;
+        cursor: pointer;
+      }
+      .preview button:focus-visible,
+      .preview input:focus-visible,
+      .preview select:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        height: 56px;
+        border-bottom: 1px solid var(--rule);
+        padding: 0 18px;
+        font-size: 12px;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font: 11px var(--mono);
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+      }
+      .seal {
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font: 14px var(--display);
+      }
+      .crumb {
+        padding-left: 24px;
+        border-left: 1px solid var(--rule);
+        color: var(--dim);
+      }
+      .command {
+        margin-left: auto;
+        padding: 9px 12px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        color: var(--dim);
+      }
+      .avatar {
+        border: 1px solid var(--rule);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        font: 10px var(--mono);
+      }
+      .mobile-browse {
+        display: none;
+        background: none;
+        border: 0;
+        font: 11px var(--mono);
+        letter-spacing: 0.08em;
+        min-height: 44px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 124px 220px minmax(0, 1fr);
+        height: calc(100% - 56px);
+      }
+      .rail {
+        background: var(--rail);
+        border-right: 1px solid var(--rule);
+        padding: 26px 10px;
+      }
+      .rail .kicker {
+        padding: 0 9px 25px;
+        color: var(--dim);
+        font-size: 10px;
+      }
+      .rail button {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        width: 100%;
+        padding: 12px 8px;
+        margin: 4px 0;
+        font-size: 11px;
+        text-align: left;
+        min-height: 42px;
+      }
+      .rail button span {
+        font: 9px var(--mono);
+        color: var(--dim);
+      }
+      .rail button.active {
+        border-color: var(--rule);
+        background: var(--bg);
+      }
+      .library {
+        background: color-mix(in srgb, var(--rail) 60%, var(--bg));
+        border-right: 1px solid var(--rule);
+      }
+      .library h2 {
+        font: 500 26px var(--display);
+        padding: 26px 18px 20px;
+        border-bottom: 1px solid var(--rule);
+        margin: 0;
+      }
+      .section-label {
+        padding: 20px 18px 8px;
+        color: var(--dim);
+        font: 10px var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .library button {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        min-height: 38px;
+        border: 0;
+        background: none;
+        padding: 10px 18px;
+        font-size: 12px;
+        text-align: left;
+      }
+      .library button.active {
+        border-left: 2px solid var(--accent);
+        background: var(--bg);
+        font-weight: 600;
+      }
+      .library small {
+        font: 9px var(--mono);
+        color: var(--dim);
+      }
+      .main {
+        padding: 34px 36px;
+        overflow: auto;
+        min-width: 0;
+      }
+      .page-head {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 23px;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .page-head h2 {
+        font: 500 36px/1.15 var(--display);
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+      .page-head small {
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .back {
+        padding: 0;
+        margin: 0 0 22px;
+        border: 0;
+        background: none;
+        font-weight: 500;
+        font-size: 12px;
+        min-height: 24px;
+      }
+      .hint {
+        color: var(--dim);
+        font-size: 13px;
+        margin: 16px 0 26px;
+      }
+      .list {
+        margin-top: 22px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        width: 100%;
+        padding: 20px 4px;
+        border: 0;
+        border-bottom: 1px solid var(--rule);
+        background: none;
+        text-align: left;
+        min-height: 84px;
+      }
+      .row:hover {
+        background: color-mix(in srgb, var(--panel) 55%, transparent);
+      }
+      .index {
+        font: 10px var(--mono);
+        color: var(--dim);
+        min-width: 30px;
+      }
+      .row-title {
+        display: block;
+        font: 500 20px/1.25 var(--display);
+      }
+      .row-meta {
+        color: var(--dim);
+        display: block;
+        font-size: 11px;
+        margin-top: 5px;
+      }
+      .row-end {
+        margin-left: auto;
+        color: var(--dim);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .type {
+        font: 9px var(--mono);
+        text-transform: uppercase;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 2px 5px;
+        display: inline-block;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 14px 0 22px;
+      }
+      .search {
+        background: var(--field);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 10px 12px;
+        width: min(360px, 100%);
+        color: var(--ink);
+        min-height: 40px;
+      }
+      .button {
+        background: none;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 10px 14px;
+        min-height: 40px;
+        font-size: 12px;
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: var(--panel);
+        padding: 16px;
+        border: 1px solid var(--rule);
+        margin: 0 0 20px;
+      }
+      .filters label {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .filters select {
+        color: var(--ink);
+        background: var(--field);
+        border: 1px solid var(--rule);
+        padding: 8px;
+        border-radius: 4px;
+      }
+      .pagination {
+        font: 10px var(--mono);
+        color: var(--dim);
+        text-align: right;
+        margin: 26px 4px 4px;
+      }
+      .state {
+        border-bottom: 1px solid var(--rule);
+        padding: 72px 0;
+        max-width: 650px;
+      }
+      .state .state-mark {
+        font: 22px var(--mono);
+        color: var(--accent);
+        margin-bottom: 20px;
+      }
+      .state h3 {
+        font: 500 25px var(--display);
+        margin: 0 0 12px;
+      }
+      .state p {
+        color: var(--dim);
+        font-size: 14px;
+        max-width: 47ch;
+      }
+      .state code {
+        color: var(--ink);
+        font: 12px var(--mono);
+      }
+      .editor-actions {
+        margin-left: auto;
+      }
+      .editor-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 270px;
+        gap: 28px;
+        padding-top: 24px;
+      }
+      .body-copy h3 {
+        font: 500 26px var(--display);
+        margin-top: 15px;
+      }
+      .body-copy p {
+        color: var(--ink);
+        font-size: 15px;
+        max-width: 52ch;
+      }
+      .editor-label {
+        font: 10px var(--mono);
+        letter-spacing: 0.1em;
+        color: var(--dim);
+        text-transform: uppercase;
+      }
+      .properties {
+        padding: 18px;
+        background: var(--panel);
+        border: 1px solid var(--rule);
+      }
+      .properties summary {
+        font: 11px var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+      .properties label {
+        display: grid;
+        gap: 8px;
+        margin: 24px 0;
+        font-size: 12px;
+      }
+      .properties input {
+        background: var(--field);
+        color: var(--ink);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 10px;
+        width: 100%;
+      }
+      .tags {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .tag {
+        padding: 4px 7px;
+        background: var(--field);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        font-size: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .tag button {
+        border: 0;
+        background: none;
+        padding: 0 3px;
+      }
+      .saved {
+        color: var(--dim);
+        margin-top: 22px;
+        font-size: 12px;
+      }
+      .note {
+        max-width: 100ch;
+        font-size: 13px;
+        color: #c4bbb2;
+      }
+      @container (max-width: 760px) {
+        .brand,
+        .command {
+          display: none;
+        }
+        .mobile-browse {
+          display: block;
+        }
+        .topbar {
+          padding: 0 16px;
+          gap: 12px;
+        }
+        .avatar {
+          margin-left: auto;
+          flex-shrink: 0;
+        }
+        .crumb {
+          padding-left: 12px;
+          font-size: 11px;
+        }
+        .shell {
+          display: block;
+        }
+        .rail,
+        .library {
+          display: none;
+        }
+        .preview[data-browse="true"] .library {
+          display: block;
+          position: absolute;
+          left: 0;
+          top: 56px;
+          bottom: 0;
+          width: 260px;
+          z-index: 2;
+          box-shadow: 12px 0 24px #0003;
+        }
+        .main {
+          height: 100%;
+          padding: 28px 20px;
+        }
+        .page-head h2 {
+          font-size: 30px;
+        }
+        .page-head {
+          padding-bottom: 20px;
+        }
+        .row {
+          gap: 12px;
+          padding: 18px 0;
+        }
+        .index {
+          min-width: 20px;
+          font-size: 9px;
+        }
+        .row-title {
+          font-size: 19px;
+        }
+        .row-end {
+          font-size: 10px;
+        }
+        .row-meta {
+          font-size: 10px;
+        }
+        .search {
+          width: 100%;
+        }
+        .toolbar .button {
+          min-height: 42px;
+        }
+        .pagination {
+          margin-top: 12px;
+        }
+        .editor-layout {
+          display: flex;
+          flex-direction: column-reverse;
+          gap: 22px;
+        }
+        .editor-actions {
+          margin: 0;
+        }
+        .editor-layout .properties {
+          padding: 16px;
+        }
+        .back {
+          min-height: 30px;
+          margin-bottom: 16px;
+        }
+        .state {
+          padding: 44px 0;
+        }
+      }
+      @media (max-width: 600px) {
+        .review {
+          padding: 22px 10px;
+        }
+        .review h1 {
+          font-size: 26px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="review">
+      <div class="kicker">Studio / design review / virtual collections</div>
+      <h1>Related content. Original homes.</h1>
+      <p>
+        One Clients entry in the existing Library rail. Values inside; notes and
+        posts together. No new membership editor, no creation or moving from
+        this view. Synthetic review data—not a running app.
+      </p>
+      <div class="controls">
+        <label
+          >Review state<select id="view">
+            <option value="catalog">01 · Client catalog</option>
+            <option value="members">02 · Acme members</option>
+            <option value="empty">03 · Empty catalog</option>
+            <option value="editor">04 · Editor & return</option>
+            <option value="readonly">05 · Read-only member</option>
+            <option value="initializing">06 · Initializing</option>
+            <option value="timeout">07 · Initialization timeout</option>
+          </select></label
+        >
+        <label
+          >Climate<select id="climate">
+            <option value="paper">Paper</option>
+            <option value="instrument">Instrument</option>
+          </select></label
+        >
+        <label
+          >Viewport<select id="size">
+            <option value="desktop">Desktop</option>
+            <option value="phone">Phone · 390 px</option>
+          </select></label
+        >
+      </div>
+      <section
+        class="preview"
+        data-size="desktop"
+        aria-label="Interactive Studio mockup"
+      >
+        <header class="topbar">
+          <div class="brand">
+            <span class="seal">R</span> ROVER COLLECTIVE
+            <span aria-hidden="true">/</span> STUDIO
+          </div>
+          <button class="mobile-browse" aria-expanded="false">≡ BROWSE</button
+          ><span class="crumb">Library · Clients</span>
+          <div class="command">
+            Search or run a command… <span aria-hidden="true">⌘K</span>
+          </div>
+          <div class="avatar">MR</div>
+        </header>
+        <div class="shell">
+          <nav class="rail" aria-label="Studio">
+            <div class="kicker">Studio</div>
+            <button><span>00</span>Overview</button
+            ><button><span>01</span>Chat</button
+            ><button class="active"><span>02</span>Library</button
+            ><button><span>03</span>Work</button
+            ><button><span>04</span>Admin</button
+            ><button><span>05</span>System</button>
+          </nav>
+          <aside class="library">
+            <h2>Library</h2>
+            <div class="section-label">Content</div>
+            <button>Notes <small>4</small></button
+            ><button>Posts <small>3</small></button>
+            <div class="section-label">Groupings</div>
+            <button class="active" data-go="catalog">Clients</button>
+          </aside>
+          <main class="main" id="content"></main>
+        </div>
+      </section>
+      <p class="note">
+        <strong>Review:</strong> Catalog rows reuse the Library’s typographic
+        list. Members retain type badges and normal entity links. The editor
+        keeps a visible return to Acme; membership uses its existing Properties
+        list field. Phone navigation stays in Browse. Initializing is not an
+        empty-success state; timeout offers an explicit retry.
+      </p>
+      <p class="note">
+        Try Clients → Acme → Homepage rollout, remove Acme in Properties, Save,
+        then Back. The fixture updates the catalog count and removes the row
+        without deleting the post. Other Studio sections are visual context
+        only.
+      </p>
+    </section>
+    <script>
+      const parameters = new URLSearchParams(location.search);
+      const controls = ["view", "climate", "size"].map((id) =>
+        document.getElementById(id),
+      );
+      for (const control of controls)
+        if (
+          [...control.options].some(
+            (option) => option.value === parameters.get(control.id),
+          )
+        )
+          control.value = parameters.get(control.id);
+      let activeClient = "Acme";
+      let openedTitle = "Homepage rollout";
+      let membership = ["Acme", "Beta"];
+      let draft = [...membership];
+      let saved = false;
+      const rows = [
+        {
+          title: "Homepage rollout",
+          type: "Post",
+          when: "Today",
+          editor: true,
+        },
+        { title: "Quarterly brief", type: "Note", when: "Yesterday" },
+        { title: "Discovery workshop", type: "Note", when: "15 Sep" },
+        { title: "Shipping the pilot", type: "Post", when: "12 Sep" },
+      ];
+      const preview = document.querySelector(".preview");
+      const content = document.getElementById("content");
+      const view = document.getElementById("view");
+      function go(next) {
+        if (next.startsWith("client:")) {
+          activeClient = next.slice(7);
+          next = "members";
+        }
+        view.value = next;
+        saved = false;
+        draft = [...membership];
+        render();
+      }
+      function head(title, count = "") {
+        return `<div class="page-head"><h2>${title}</h2>${count ? `<small>${count}</small>` : ""}</div>`;
+      }
+      function row(title, index, meta, end, destination) {
+        return `<button class="row" data-go="${destination}"><span class="index">${String(index + 1).padStart(2, "0")}</span><span><span class="row-title">${title}</span>${meta ? `<span class="row-meta">${meta}</span>` : ""}</span><span class="row-end">${end}</span></button>`;
+      }
+      function render() {
+        document.documentElement.dataset.climate =
+          document.getElementById("climate").value;
+        preview.dataset.size = document.getElementById("size").value;
+        preview.dataset.browse = "false";
+        document
+          .querySelector(".mobile-browse")
+          .setAttribute("aria-expanded", "false");
+        const state = view.value;
+        document.querySelector(".crumb").textContent =
+          state === "catalog" || state === "empty"
+            ? "Library · Clients"
+            : `Library · Clients / ${activeClient}`;
+        const memberRows =
+          activeClient === "Acme"
+            ? rows.filter((item) => !item.editor || membership.includes("Acme"))
+            : activeClient === "Beta"
+              ? [
+                  ...(membership.includes("Beta") ? [rows[0]] : []),
+                  { title: "Feedback notes", type: "Note", when: "Yesterday" },
+                ]
+              : [{ title: "A living handover", type: "Note", when: "15 Sep" }];
+        if (state === "catalog") {
+          content.innerHTML =
+            head("Clients", "3 collections") +
+            '<p class="hint">Content grouped by its Clients property. An entry can belong to more than one client.</p><div class="list">' +
+            row(
+              "Acme",
+              0,
+              "Notes · Posts",
+              `${3 + Number(membership.includes("Acme"))} entities →`,
+              "client:Acme",
+            ) +
+            row(
+              "Beta",
+              1,
+              "Notes · Posts",
+              `${1 + Number(membership.includes("Beta"))} entities →`,
+              "client:Beta",
+            ) +
+            row("Cedar", 2, "Notes", "1 entity →", "client:Cedar") +
+            "</div>";
+        } else if (state === "members") {
+          content.innerHTML =
+            '<button class="back" data-go="catalog">← Clients</button>' +
+            head(activeClient, `${memberRows.length} entities`) +
+            '<div class="toolbar"><input class="search" aria-label="Search title or content" placeholder="Search title or content" /><button class="button" id="filter-toggle" aria-expanded="false">Filter and sort</button></div><div class="filters" hidden><label>Type<select id="type-filter"><option value="all">All types</option><option>Note</option><option>Post</option></select></label><label>Sort<select><option>Updated · newest first</option><option>Created · newest first</option></select></label></div><div class="pagination">1–' +
+            memberRows.length +
+            " of " +
+            memberRows.length +
+            '</div><div class="list" id="member-list"></div>';
+          const update = () => {
+            const needle = content.querySelector(".search").value.toLowerCase();
+            const type = document.getElementById("type-filter").value;
+            const filtered = memberRows.filter(
+              (item) =>
+                item.title.toLowerCase().includes(needle) &&
+                (type === "all" || item.type === type),
+            );
+            document.getElementById("member-list").innerHTML =
+              filtered
+                .map((item, i) =>
+                  row(
+                    item.title,
+                    i,
+                    `<span class="type">${item.type}</span>`,
+                    item.when,
+                    item.editor
+                      ? "editor"
+                      : item.type === "Post"
+                        ? "readonly"
+                        : "members",
+                  ),
+                )
+                .join("") ||
+              '<p class="hint">No entries match these filters.</p>';
+          };
+          update();
+          content.querySelector(".search").addEventListener("input", update);
+          document
+            .getElementById("type-filter")
+            .addEventListener("change", update);
+          document.getElementById("filter-toggle").onclick = (event) => {
+            const filters = content.querySelector(".filters");
+            filters.hidden = !filters.hidden;
+            event.currentTarget.setAttribute(
+              "aria-expanded",
+              String(!filters.hidden),
+            );
+          };
+        } else if (state === "empty") {
+          content.innerHTML =
+            head("Clients", "0 collections") +
+            '<section class="state"><div class="state-mark">∅</div><h3>No clients here yet</h3><p>Add Clients to a note’s frontmatter or a post’s Properties. Their values appear here when you can read the entries.</p><p><code>clients: [Acme, Beta]</code></p></section>';
+        } else if (state === "initializing" || state === "timeout") {
+          content.innerHTML =
+            '<button class="back" data-go="catalog">← Clients</button>' +
+            head("Acme") +
+            '<section class="state" role="status"><div class="state-mark">' +
+            (state === "initializing" ? "◌" : "!") +
+            "</div><h3>" +
+            (state === "initializing"
+              ? "Preparing collections"
+              : "Collections aren’t ready yet") +
+            "</h3><p>" +
+            (state === "initializing"
+              ? "Checking existing content for its Clients values. This view will update automatically when the complete collection is ready."
+              : "Initialization took longer than expected. Your content has not changed. Try loading this collection again.") +
+            "</p>" +
+            (state === "timeout"
+              ? '<button class="button" data-go="initializing">Retry</button>'
+              : "") +
+            "</section>";
+        } else {
+          const readonly = state === "readonly";
+          content.innerHTML =
+            '<button class="back" data-go="members">← Back to ' +
+            activeClient +
+            '</button><div class="page-head"><h2>' +
+            openedTitle +
+            '</h2><div class="editor-actions">' +
+            (readonly
+              ? '<span class="type">Read only</span>'
+              : '<button class="button" id="save">Save changes</button>') +
+            '</div></div><div class="editor-layout"><article class="body-copy"><div class="editor-label">Post / body</div><h3>A clearer way to begin</h3><p>The homepage should make one promise clearly, then give people a useful next step.</p><p>We are starting with the introduction, the service overview, and a short account of the work behind them.</p><p>This entry stays in Posts. Clients is another way to find it—not another copy.</p></article><details class="properties" open><summary>Properties</summary><label>Title<input value="' +
+            openedTitle +
+            '" ' +
+            (readonly ? "readonly" : "") +
+            ' /></label><label>Status<input value="Draft" readonly /></label><span style="font-size:12px">Clients <small style="color:var(--dim)">tags</small></span><div class="tags">' +
+            draft
+              .map(
+                (value) =>
+                  `<span class="tag">${value}${readonly ? "" : `<button data-remove="${value}" aria-label="Remove ${value}">×</button>`}</span>`,
+              )
+              .join("") +
+            '</div><p class="hint" style="font-size:11px">One entry, multiple collections.</p></details></div><div class="saved" role="status">' +
+            (readonly
+              ? "You can read this entry, but cannot change it."
+              : saved
+                ? "Saved · Membership updated"
+                : "Saved") +
+            "</div>";
+          if (!readonly)
+            document.getElementById("save").onclick = () => {
+              membership = [...draft];
+              saved = true;
+              render();
+            };
+        }
+        content.scrollTop = 0;
+        const url = new URL(location.href);
+        for (const control of controls)
+          url.searchParams.set(control.id, control.value);
+        history.replaceState(null, "", url);
+      }
+      for (const control of controls)
+        control.addEventListener("change", () => {
+          if (control.id === "view") {
+            activeClient = "Acme";
+            openedTitle = "Homepage rollout";
+          }
+          draft = [...membership];
+          render();
+        });
+      document.addEventListener("click", (event) => {
+        const destination = event.target.closest("[data-go]");
+        if (destination) {
+          if (["editor", "readonly"].includes(destination.dataset.go))
+            openedTitle =
+              destination.querySelector(".row-title")?.textContent ??
+              "Homepage rollout";
+          go(destination.dataset.go);
+        }
+        const removal = event.target.closest("[data-remove]");
+        if (removal) {
+          draft = draft.filter((value) => value !== removal.dataset.remove);
+          saved = false;
+          render();
+        }
+      });
+      document.querySelector(".mobile-browse").onclick = (event) => {
+        const open = preview.dataset.browse !== "true";
+        preview.dataset.browse = String(open);
+        event.currentTarget.setAttribute("aria-expanded", String(open));
+      };
+      render();
+    </script>
+  </body>
+</html>

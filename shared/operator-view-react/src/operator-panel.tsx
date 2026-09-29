@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { panelStyles as s } from "./operator-panel.styles";
+import { styledProps } from "./styled-props";
 
 /** A framed, labelled content surface; hosts own its content and source copy. */
 export function OperatorPanel(
@@ -25,21 +26,17 @@ export function OperatorPanel(
     children,
     ...attributes
   } = props;
-  const css = stylex.props(
-    s.panel,
-    inset === "tight" && s.tight,
-    inset === "flush-bottom" && s.flushBottom,
-    fullWidth && s.fullWidth,
-    wash === "neutral" && s.neutralWash,
-    wash === "good" && s.goodWash,
-  );
   return (
     <article
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
+      {...styledProps(
+        attributes,
+        s.panel,
+        inset === "tight" && s.tight,
+        inset === "flush-bottom" && s.flushBottom,
+        fullWidth && s.fullWidth,
+        wash === "neutral" && s.neutralWash,
+        wash === "good" && s.goodWash,
+      )}
     >
       <header {...stylex.props(s.heading)}>
         <span {...stylex.props(s.title)}>{heading}</span>
@@ -55,12 +52,5 @@ export function OperatorPanel(
 }
 
 export function OperatorPanelGrid(props: ComponentProps<"div">): ReactElement {
-  const css = stylex.props(s.grid);
-  return (
-    <div
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <div {...styledProps(props, s.grid)} />;
 }

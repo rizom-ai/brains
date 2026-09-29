@@ -9,7 +9,7 @@ import { PersistenceBudgetPool } from "./turso-worker/budget-pool";
 
 export type SqliteDatabase<
   TSchema extends Record<string, unknown> = Record<string, unknown>,
-> = LibSQLDatabase<TSchema>;
+> = LibSQLDatabase<TSchema> & { readonly $client: Client };
 const forbidLocalDatabaseOpenEnv = "BRAINS_FORBID_LOCAL_DATABASE_OPEN";
 // One controller ledger across every store, not a fresh allowance per connection.
 // The packaged CLI and public model chunks can contain separate module copies.

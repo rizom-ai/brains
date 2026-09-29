@@ -1,0 +1,25 @@
+{
+  "jsonrpc": "2.0",
+  "id": "rizom-page-evidence-6b0721ad-623f-4ad8-b399-de95e991e804",
+  "result": {
+    "id": "6bd27dc0-a5c6-40d0-8c8b-e8e9aa488f7c",
+    "contextId": "f4eadb0c-ba5e-4361-83e5-9aeb062df765",
+    "kind": "task",
+    "status": { "state": "working", "timestamp": "2026-09-08T08:02:21.356Z" },
+    "history": [
+      {
+        "kind": "message",
+        "messageId": "50aa4961-a6fd-4871-8142-cbee6da1a790",
+        "role": "user",
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Website design research: please answer in this message only. Do not save, publish, update records, contact peers, or start a publishing workflow.\nFind and read Rizom's public essay \"The Future of Work is Play\". Use it to draft a concise 30-minute workshop brief for independent professionals exploring better collaboration.\nInclude: a title; the purpose in one sentence; three discussion questions; a timed agenda that totals 30 minutes; and the exact source title and its public URL if known. Mark the result as a proposed workshop, not an existing Rizom service or a completed event. Treat the essay as a viewpoint, not proof that its proposed economic structures are implemented. If you cannot retrieve the essay, say so rather than substitute generic knowledge. Keep the whole response under 400 words."
+          }
+        ],
+        "contextId": "f4eadb0c-ba5e-4361-83e5-9aeb062df765",
+        "taskId": "6bd27dc0-a5c6-40d0-8c8b-e8e9aa488f7c"
+      }
+    ]
+  }
+}

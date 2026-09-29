@@ -231,3 +231,81 @@ class ImageTestAdapter extends BaseEntityAdapter<ImageEntity> {
 }
 
 export const imageAdapter: ImageTestAdapter = new ImageTestAdapter();
+
+// -- Strict entity: a validated sibling field, like Note's status enum --
+
+export const strictStatusSchema: z.ZodOptional<
+  z.ZodEnum<{ draft: "draft"; published: "published" }>
+> = z.enum(["draft", "published"]).optional();
+
+export const strictSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"strict">;
+  }>
+> = baseEntitySchema.extend({
+  entityType: z.literal("strict"),
+});
+
+export type StrictEntity = z.infer<typeof strictSchema>;
+
+class StrictTestAdapter extends BaseEntityAdapter<StrictEntity> {
+  constructor() {
+    super({
+      entityType: "strict",
+      purpose: "Test entity whose frontmatter rejects an invalid status.",
+      schema: strictSchema,
+      frontmatterSchema: z.object({ status: strictStatusSchema }),
+    });
+  }
+
+  public override toMarkdown(entity: StrictEntity): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(): Partial<StrictEntity> {
+    return {};
+  }
+}
+
+export const strictAdapter: StrictTestAdapter = new StrictTestAdapter();
+
+// -- Reuse entity: one list field declared in both of its contracts --
+
+const reuseListSchema = (): z.ZodOptional<z.ZodArray<z.ZodString>> =>
+  z.array(z.string()).optional();
+
+export const reuseSchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"reuse">;
+    metadata: z.ZodObject<{
+      clients: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    }>;
+  }>
+> = baseEntitySchema.extend({
+  entityType: z.literal("reuse"),
+  metadata: z.object({ clients: reuseListSchema() }),
+});
+
+export type ReuseEntity = z.infer<typeof reuseSchema>;
+
+/** Its frontmatter and metadata contracts are equal, written separately. */
+class ReuseTestAdapter extends BaseEntityAdapter<ReuseEntity> {
+  constructor() {
+    super({
+      entityType: "reuse",
+      purpose: "Test entity that already owns a string-list field.",
+      schema: reuseSchema,
+      frontmatterSchema: z.object({ clients: reuseListSchema() }),
+    });
+  }
+
+  public override toMarkdown(entity: ReuseEntity): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(): Partial<ReuseEntity> {
+    return {};
+  }
+}
+
+export const reuseAdapter: ReuseTestAdapter = new ReuseTestAdapter();

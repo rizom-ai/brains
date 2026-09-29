@@ -1,4 +1,10 @@
 /** @jsxImportSource react */
+import {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_SEND_ATTRIBUTE,
+  ASK_STATUS_ATTRIBUTE,
+} from "@brains/contracts";
 import type { JSX, ReactNode } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
 import type { SiteSectionGroup } from "@rizom/site";
@@ -52,13 +58,6 @@ const heroSchema = z.object({
   provenance: z.string(),
   primaryCta: ctaSchema,
   secondaryCta: ctaSchema,
-  chat: z.object({
-    title: z.string(),
-    inputHint: z.string(),
-    notice: z.string(),
-    topicsLabel: z.string(),
-    topics: z.array(z.string()).min(1),
-  }),
   navigation: z.array(ctaSchema).length(4),
 });
 const layersSchema = z.object({
@@ -206,45 +205,32 @@ function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
               <div className="ui-bar">
                 <span className="brand">rizom.ai</span>
               </div>
-              <div className="talk-body">
+              <div className="talk-body" {...{ [ASK_BOX_ATTRIBUTE]: "" }}>
                 <div className="brain-box-static-scroll">
                   <div className="brain-box-welcome">
                     <h2 id="brain-chat-heading" className="display">
-                      {data.chat.title}
+                      Ask
                     </h2>
-                    <p id="brain-chat-notice" className="chat-notice">
-                      {data.chat.notice}
-                    </p>
-                    <p
-                      className="hints"
-                      data-topics-label={data.chat.topicsLabel}
-                    >
-                      {data.chat.topics.map((topic, index) => (
-                        <button
-                          key={`${index}:${topic}`}
-                          type="button"
-                          data-chat-topic
-                          disabled
-                        >
-                          {topic}
-                        </button>
-                      ))}
-                    </p>
                   </div>
+                  <p
+                    id="ask-status"
+                    role="status"
+                    {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
+                  />
                 </div>
                 <p className="prompt-row brain-box-static-composer">
                   <textarea
                     rows={1}
                     disabled
-                    placeholder={data.chat.inputHint}
-                    aria-label={data.chat.title}
-                    aria-describedby="brain-chat-notice"
+                    placeholder="Start with a question…"
+                    aria-label="Your question"
                   />
                   <button
                     className="send"
                     type="button"
                     aria-label="Send question"
                     disabled
+                    {...{ [ASK_SEND_ATTRIBUTE]: "" }}
                   >
                     ↑
                   </button>
@@ -254,7 +240,8 @@ function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
           </div>
         </div>
       </section>
-      <script src="/brain-chat.js" defer />
+      {/* Web Chat serves the shared box boot only while guest chat is enabled. */}
+      <script src={ASK_BOX_SCRIPT_PATH} defer />
       <nav className="chapter-nav shell" aria-label="What a brain does">
         {data.navigation.map((link, index) => (
           <a key={link.href} href={link.href}>

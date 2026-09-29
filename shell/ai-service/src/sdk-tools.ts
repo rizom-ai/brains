@@ -1,12 +1,10 @@
 import { dynamicTool, type ToolSet } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
-import type { GuestTurnBudget } from "./guest-turn-budget";
 import {
   jsonValueSchema,
   type ActorRef,
   type JsonValue,
-  type QueryEmbedding,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -14,6 +12,31 @@ import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
 import { definedFields } from "@brains/utils/strip-undefined";
+
+const GUEST_RETRIEVAL_UNAVAILABLE = {
+  success: false,
+  error: "Public retrieval unavailable",
+} as const;
+
+const GUEST_LOOKUP_ERROR_CHARACTERS = 500;
+
+/**
+ * A guest lookup as the model sees it: a result, or the read tool's own answer
+ * (such as the entity types it knows), so the model can correct its request.
+ * Read tools only see public entities; thrown errors stay private.
+ */
+function guestOutcome(result: unknown): unknown {
+  if (!isPlainRecord(result)) return GUEST_RETRIEVAL_UNAVAILABLE;
+  if (result["success"] === true) return result;
+  const error = result["error"];
+  return {
+    success: false,
+    error:
+      typeof error === "string" && error.trim()
+        ? error.slice(0, GUEST_LOOKUP_ERROR_CHARACTERS)
+        : "Nothing public matches that request.",
+  };
+}
 
 export interface ToolContextInfo {
   conversationId: string;
@@ -155,8 +178,6 @@ export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
-  guestBudget?: GuestTurnBudget,
-  queryEmbedding?: QueryEmbedding,
 ): ToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -185,10 +206,7 @@ export function convertToSDKTools(
       ) => {
         if (guest && !isGuestToolAllowed(t))
           throw new Error("Guest execution denied");
-        if (guest && !guestBudget)
-          throw new Error("Guest execution limits required");
-        const signal = guestBudget?.signal ?? options?.abortSignal;
-        let embeddingUsed = false;
+        const signal = options?.abortSignal;
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           actor: contextInfo.actor ?? {
@@ -212,25 +230,6 @@ export function convertToSDKTools(
             isAnchor: contextInfo.isAnchor,
           }),
           ...(guest && { userPermissionLevel: "public", isAnchor: false }),
-          ...(guest &&
-            guestBudget && {
-              guestExecution: structuredClone(guestBudget.policy),
-              guestQueryEmbedding: async (
-                query,
-                embeddingSignal,
-              ): Promise<Float32Array> => {
-                if (
-                  t.name !== "system_search" ||
-                  !queryEmbedding ||
-                  embeddingUsed ||
-                  embeddingSignal !== signal
-                )
-                  throw new Error("Guest query embedding denied");
-                embeddingSignal.throwIfAborted();
-                embeddingUsed = true;
-                return queryEmbedding(query, embeddingSignal);
-              },
-            }),
         };
         if (t.sideEffects !== "none") {
           if (t.sideEffects === "writes" || t.sideEffects === "external") {
@@ -245,21 +244,16 @@ export function convertToSDKTools(
         }
         let result: unknown;
         try {
-          result =
-            guest && guestBudget
-              ? await guestBudget.executeTool(t.name, args, () =>
-                  t.handler(args, context),
-                )
-              : await t.handler(args, context);
+          result = guest
+            ? guestOutcome(await t.handler(args, context))
+            : await t.handler(args, context);
         } catch (error) {
           if (!guest) throw error;
           // Storage/provider exceptions may contain private internals or SQL parameters.
-          // Normalize below without retaining a potentially transcript-bearing cause.
-          result = undefined;
+          result = GUEST_RETRIEVAL_UNAVAILABLE;
         }
-        if (guest && (!isPlainRecord(result) || result["success"] !== true)) {
-          result = { success: false, error: "Public retrieval unavailable" };
-        }
+        if (guest && !isPlainRecord(result))
+          result = GUEST_RETRIEVAL_UNAVAILABLE;
         if (!guest) readCache.set(cacheKey, result);
         return result;
       },

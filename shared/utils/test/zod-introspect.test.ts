@@ -5,11 +5,86 @@ import {
   getKind,
   getObjectShape,
   hasStringFormat,
+  haveSameStringListContract,
   readEnumValues,
   readLiteralValue,
   readMetadata,
   unwrapField,
 } from "../src/zod-introspect";
+
+describe("haveSameStringListContract", () => {
+  it("compares plain list contracts and distinguishes their wrappers and values", () => {
+    expect(
+      haveSameStringListContract(
+        z.array(z.string()).optional(),
+        z.array(z.string()).optional(),
+      ),
+    ).toBe(true);
+    expect(
+      haveSameStringListContract(
+        z.array(z.enum(["Acme", "Beta"])),
+        z.array(z.enum(["Acme", "Beta"])),
+      ),
+    ).toBe(true);
+    expect(
+      haveSameStringListContract(
+        z.array(z.enum(["Acme"])),
+        z.array(z.enum(["Beta"])),
+      ),
+    ).toBe(false);
+    expect(
+      haveSameStringListContract(
+        z.array(z.string()).optional(),
+        z.array(z.string()).nullable(),
+      ),
+    ).toBe(false);
+    expect(haveSameStringListContract(undefined, undefined)).toBe(false);
+  });
+  it("keeps shared refinements but rejects different runtime checks and regex flags", () => {
+    const refined = z
+      .array(z.string())
+      .refine((values) => values.includes("Acme"));
+    expect(
+      haveSameStringListContract(refined.optional(), refined.optional()),
+    ).toBe(true);
+    expect(
+      haveSameStringListContract(
+        refined,
+        z.array(z.string()).refine((values) => values.includes("Beta")),
+      ),
+    ).toBe(false);
+    expect(
+      haveSameStringListContract(
+        z.array(z.string().regex(/acme/i)),
+        z.array(z.string().regex(/acme/)),
+      ),
+    ).toBe(false);
+    expect(
+      haveSameStringListContract(
+        z.array(z.string()).min(1),
+        z.array(z.string()).min(2),
+      ),
+    ).toBe(false);
+  });
+  it("does not invoke defaults or mistake transforms for their input contract", () => {
+    let defaults = 0;
+    const makeDefault = (): z.ZodDefault<z.ZodArray<z.ZodString>> =>
+      z.array(z.string()).default(() => {
+        defaults++;
+        return [];
+      });
+    expect(haveSameStringListContract(makeDefault(), makeDefault())).toBe(
+      false,
+    );
+    expect(defaults).toBe(0);
+    expect(
+      haveSameStringListContract(
+        z.array(z.string()),
+        z.array(z.string()).transform(() => ["Acme"]),
+      ),
+    ).toBe(false);
+  });
+});
 
 describe("getKind", () => {
   it("returns the def kind for base schemas", () => {

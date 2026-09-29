@@ -14,6 +14,7 @@ import {
   OperatorSections,
 } from "@brains/operator-view-react";
 import { Colophon } from "./colophon";
+import { AskPanel } from "./ask-panel";
 import { TabBar } from "./dashboard-tabs";
 import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
@@ -118,11 +119,13 @@ export function DashboardDocument({
             <TabBar
               knowledgeCount={input.appInfo.entities}
               networkCount={networkCount}
+              askEnabled={input.askEnabled ?? false}
             />
 
             <OperatorCanvas className="canvas">
               <OperatorSections className="dashboard-tab-panels">
                 <OverviewPanel input={input} />
+                {input.askEnabled && <AskPanel />}
                 <KnowledgeMapPanel
                   block={knowledgeMap}
                   entityTotal={input.appInfo.entities}

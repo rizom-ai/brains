@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { EntityValidationError } from "./errors";
 import type { AssetRef } from "@brains/assets";
 import {
   binaryUploadOfferSchema,
@@ -106,7 +107,8 @@ export class EntityBinaryClient {
     try {
       return parse();
     } catch (error) {
-      this.fence(error);
+      // A validated domain refusal is not a malformed wire response.
+      if (!(error instanceof EntityValidationError)) this.fence(error);
       throw error;
     }
   }

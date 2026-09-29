@@ -1,5 +1,9 @@
 import { z } from "@brains/utils/zod";
 import {
+  throwEntityRpcValidationFailure,
+  withEntityRpcValidation,
+} from "./entity-rpc-validation";
+import {
   createRpcResultParser,
   type LocalDatabaseTransport,
   type RpcResultParser,
@@ -341,10 +345,25 @@ const resultSchemas: RpcResultSchemas<ProjectionStoreRpcResults> = {
   closeCallbackBatch: undefinedResultSchema,
 };
 
-export const parseProjectionStoreRpcResult: RpcResultParser<ProjectionStoreRpcResults> =
-  createRpcResultParser(resultSchemas);
+const parseResult = createRpcResultParser(resultSchemas);
+export const parseProjectionStoreRpcResult: RpcResultParser<
+  ProjectionStoreRpcResults
+> = (request, value) => {
+  throwEntityRpcValidationFailure(value);
+  return parseResult(request, value);
+};
 
 export function handleProjectionStoreRpcRequest(
+  store: IProjectionStore,
+  input: unknown,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return withEntityRpcValidation(() =>
+    dispatchProjectionStoreRpcRequest(store, input, signal),
+  );
+}
+
+function dispatchProjectionStoreRpcRequest(
   store: IProjectionStore,
   input: unknown,
   signal?: AbortSignal,

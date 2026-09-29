@@ -33,21 +33,28 @@ export async function waitForJobsToDrain(
     options.pollIntervalMs ?? DEFAULT_DRAIN_POLL_INTERVAL_MS;
   console.log("Waiting for jobs to drain...");
 
-  for (;;) {
-    const active = await jobQueue.getActiveJobs();
-    if (active.length === 0) break;
+  return pollUntilDrained(jobQueue, pollIntervalMs);
+}
 
-    const byType: Record<string, number> = {};
-    for (const job of active) {
-      byType[job.type] = (byType[job.type] ?? 0) + 1;
-    }
-    console.log(
-      `  ${active.length} jobs: ${Object.entries(byType)
-        .map(([type, count]) => `${type}(${count})`)
-        .join(" ")}`,
-    );
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+/** One poll per step; an empty active list is the only exit. */
+async function pollUntilDrained(
+  jobQueue: JobQueueLike,
+  pollIntervalMs: number,
+): Promise<void> {
+  const active = await jobQueue.getActiveJobs();
+  if (active.length === 0) return;
+
+  const byType: Record<string, number> = {};
+  for (const job of active) {
+    byType[job.type] = (byType[job.type] ?? 0) + 1;
   }
+  console.log(
+    `  ${active.length} jobs: ${Object.entries(byType)
+      .map(([type, count]) => `${type}(${count})`)
+      .join(" ")}`,
+  );
+  await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  return pollUntilDrained(jobQueue, pollIntervalMs);
 }
 
 export async function waitForIndexReadiness(

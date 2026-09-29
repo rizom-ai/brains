@@ -9,6 +9,10 @@ import {
   type AssetVerification,
 } from "@brains/assets";
 import { actorRefSchema } from "@brains/contracts";
+import {
+  throwEntityRpcValidationFailure,
+  withEntityRpcValidation,
+} from "./entity-rpc-validation";
 import type { OwnedAssetPublication } from "./sqlite-asset-repository";
 import type { EntityService as PublicationOwner } from "./entityService";
 import {
@@ -17,7 +21,6 @@ import {
   assetChunkRangeSchema,
 } from "./asset-transfers";
 import { z } from "@brains/utils/zod";
-import { entityReadBudgetSchema } from "@brains/contracts";
 import {
   createRpcResultParser,
   type LocalDatabaseTransport,
@@ -56,6 +59,30 @@ import type {
   EntityExportIntent,
 } from "./entity-export-types";
 import { contentVisibilitySchema } from "./visibility";
+import { entityWriteConditionSchema } from "./entity-write-contracts";
+import { hierarchyRpcRequestSchema } from "./entity-queries";
+import { storedEntityIdPathSchema } from "./entity-id-path";
+import {
+  queryGroupingCatalogSchema,
+  queryGroupingMembersSchema,
+  queryGroupingUsageSchema,
+} from "./entity-grouping";
+
+type EntityReadOperation =
+  | "getEntityWriteSnapshot"
+  | "queryEntityHierarchy"
+  | "queryGroupingCatalog"
+  | "queryGroupingMembers"
+  | "queryGroupingUsage";
+type EntityReadRpcRequest = {
+  [K in EntityReadOperation]: {
+    operation: K;
+    request: Omit<Parameters<EntityService[K]>[0], "signal">;
+  };
+}[EntityReadOperation];
+type EntityReadRpcResults = {
+  [K in EntityReadOperation]: Awaited<ReturnType<EntityService[K]>>;
+};
 
 export const ENTITY_RPC_SERVICE = "entity";
 
@@ -67,6 +94,8 @@ export interface EntityIndexReadinessRpcOptions {
 }
 
 export type EntityRpcRequest =
+  | EntityReadRpcRequest
+  | { operation: "ensureGroupingsReady" }
   | {
       operation: "createEntity";
       request: CreateEntityRequest<BaseEntity>;
@@ -173,10 +202,12 @@ const jobOptionsShape = {
 const createOptionsSchema = z.strictObject({
   ...jobOptionsShape,
   deduplicateId: z.boolean().optional(),
+  conditionalWrite: entityWriteConditionSchema.optional(),
 });
 const updateOptionsSchema = z.strictObject({
   ...jobOptionsShape,
   expectedContentHash: z.string().optional(),
+  conditionalWrite: entityWriteConditionSchema.optional(),
 });
 const jobOptionsSchema = z.strictObject(jobOptionsShape);
 const deleteOptionsSchema = z.strictObject({
@@ -211,7 +242,6 @@ const listFilterSchema = z.strictObject({
   visibilityScope: contentVisibilitySchema.optional(),
 });
 const listOptionsSchema = z.strictObject({
-  readBudget: entityReadBudgetSchema.optional(),
   limit: z.number().int().positive().optional(),
   offset: z.number().int().nonnegative().optional(),
   sortFields: z
@@ -227,7 +257,6 @@ const listOptionsSchema = z.strictObject({
   publishedOnly: z.boolean().optional(),
 });
 const getRequestSchema = z.strictObject({
-  readBudget: entityReadBudgetSchema.optional(),
   entityType: nonEmptyString,
   id: nonEmptyString,
   visibilityScope: contentVisibilitySchema.optional(),
@@ -246,7 +275,6 @@ const countRequestSchema = z.strictObject({
     .optional(),
 });
 const searchOptionsSchema = z.strictObject({
-  readBudget: entityReadBudgetSchema.optional(),
   limit: z.number().int().positive().optional(),
   offset: z.number().int().nonnegative().optional(),
   types: z.array(nonEmptyString).optional(),
@@ -386,6 +414,27 @@ export const settleDurableBulkMutationChildInputSchema: z.ZodType<
 
 export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
   z.discriminatedUnion("operation", [
+    z.strictObject({
+      operation: z.literal("getEntityWriteSnapshot"),
+      request: getEntityRequestSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("queryEntityHierarchy"),
+      request: hierarchyRpcRequestSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("queryGroupingCatalog"),
+      request: queryGroupingCatalogSchema.omit({ signal: true }).strict(),
+    }),
+    z.strictObject({
+      operation: z.literal("queryGroupingMembers"),
+      request: queryGroupingMembersSchema.omit({ signal: true }).strict(),
+    }),
+    z.strictObject({
+      operation: z.literal("queryGroupingUsage"),
+      request: queryGroupingUsageSchema.omit({ signal: true }).strict(),
+    }),
+    z.strictObject({ operation: z.literal("ensureGroupingsReady") }),
     z.strictObject({
       operation: z.literal("createEntity"),
       request: createEntityRequestSchema,
@@ -669,7 +718,8 @@ const upsertResultSchema = mutationResultSchema.extend({
  * `parseEntityRpcResult` return the operation's own type — callers no longer
  * re-assert it at the transport boundary.
  */
-export interface EntityRpcResults {
+export interface EntityRpcResults extends EntityReadRpcResults {
+  ensureGroupingsReady: boolean;
   createEntity: EntityMutationResult;
   createEntityFromMarkdown: EntityMutationResult;
   updateEntity: EntityMutationResult;
@@ -714,7 +764,57 @@ export interface EntityRpcResults {
 
 export type EntityRpcOperation = keyof EntityRpcResults;
 
+const groupingCountsSchema = z
+  .array(
+    z.strictObject({
+      value: z.string().max(10000),
+      count: nonNegativeIntSchema,
+    }),
+  )
+  .max(100);
+
 const resultSchemas: RpcResultSchemas<EntityRpcResults> = {
+  getEntityWriteSnapshot: z
+    .strictObject({
+      entity: entitySchema,
+      revision: z.string().min(1),
+    })
+    .nullable(),
+  queryEntityHierarchy: z.strictObject({
+    prefix: storedEntityIdPathSchema.nullable(),
+    folders: z
+      .array(
+        z.strictObject({
+          path: storedEntityIdPathSchema,
+          name: z.string(),
+          descendantCount: nonNegativeIntSchema,
+        }),
+      )
+      .max(1000),
+    entities: z
+      .array(
+        z.strictObject({
+          entity: entitySchema,
+          path: storedEntityIdPathSchema,
+        }),
+      )
+      .max(100),
+    offset: nonNegativeIntSchema,
+    totalEntities: nonNegativeIntSchema,
+  }),
+  queryGroupingCatalog: z.strictObject({
+    values: groupingCountsSchema,
+    total: nonNegativeIntSchema,
+  }),
+  queryGroupingMembers: z.strictObject({
+    entities: z.array(entitySchema).max(100),
+    total: nonNegativeIntSchema,
+  }),
+  queryGroupingUsage: z.strictObject({
+    entries: nonNegativeIntSchema,
+    values: groupingCountsSchema,
+  }),
+  ensureGroupingsReady: booleanResultSchema,
   createEntity: mutationResultSchema,
   createEntityFromMarkdown: mutationResultSchema,
   updateEntity: mutationResultSchema,
@@ -752,8 +852,14 @@ const resultSchemas: RpcResultSchemas<EntityRpcResults> = {
   failDurableBulkMutationEnqueue: undefinedResultSchema,
 };
 
-export const parseEntityRpcResult: RpcResultParser<EntityRpcResults> =
-  createRpcResultParser(resultSchemas);
+const parseResult = createRpcResultParser(resultSchemas);
+export const parseEntityRpcResult: RpcResultParser<EntityRpcResults> = (
+  request,
+  value,
+) => {
+  throwEntityRpcValidationFailure(value);
+  return parseResult(request, value);
+};
 
 export type EntityPublicationRpcRequest =
   | {
@@ -833,30 +939,32 @@ export function createEntityPublicationRpcHandler(
     signal.throwIfAborted();
     connectionSignal.throwIfAborted();
     const request = parseEntityPublicationRpcRequest(input);
-    return consumer.consumeClaim(
-      { signal, connectionSignal },
-      request.assetUploadId,
-      async (publication) => {
-        // Admission is the consumer's linearization point. Cancellation afterwards
-        // is not permission to replay or retract an admitted mutation.
-        switch (request.operation) {
-          case "createEntity":
-            return service.createEntityWithPublication(
-              publication,
-              request.request,
-            );
-          case "updateEntity":
-            return service.updateEntityWithPublication(
-              publication,
-              request.request,
-            );
-          case "upsertEntity":
-            return service.upsertEntityWithPublication(
-              publication,
-              request.request,
-            );
-        }
-      },
+    return withEntityRpcValidation(() =>
+      consumer.consumeClaim(
+        { signal, connectionSignal },
+        request.assetUploadId,
+        async (publication) => {
+          // Admission is the consumer's linearization point. Cancellation afterwards
+          // is not permission to replay or retract an admitted mutation.
+          switch (request.operation) {
+            case "createEntity":
+              return service.createEntityWithPublication(
+                publication,
+                request.request,
+              );
+            case "updateEntity":
+              return service.updateEntityWithPublication(
+                publication,
+                request.request,
+              );
+            case "upsertEntity":
+              return service.upsertEntityWithPublication(
+                publication,
+                request.request,
+              );
+          }
+        },
+      ),
     );
   };
 }
@@ -870,7 +978,11 @@ export function createEntityRpcHandler(
   connectionSignal: AbortSignal,
 ) => Promise<unknown> {
   const transfers = new EntityAssetTransfers();
-  return async (input, signal, connectionSignal): Promise<unknown> => {
+  const dispatch = async (
+    input: unknown,
+    signal: AbortSignal,
+    connectionSignal: AbortSignal,
+  ): Promise<unknown> => {
     signal.throwIfAborted();
     connectionSignal.throwIfAborted();
     const request = parseEntityRpcRequest(input);
@@ -910,11 +1022,13 @@ export function createEntityRpcHandler(
                   return service.createEntity({
                     ...request.request,
                     preparedAsset,
+                    options: { ...request.request.options, signal },
                   });
                 case "updateEntity":
                   return service.updateEntity({
                     ...request.request,
                     preparedAsset,
+                    options: { ...request.request.options, signal },
                   });
                 case "upsertEntity":
                   return service.upsertEntity({
@@ -928,6 +1042,8 @@ export function createEntityRpcHandler(
     }
     return handleEntityRpcRequest(service, request, signal);
   };
+  return (input, signal, connectionSignal): Promise<unknown> =>
+    withEntityRpcValidation(() => dispatch(input, signal, connectionSignal));
 }
 
 /** Dispatch one validated request against the web-owned entity service. */
@@ -951,11 +1067,20 @@ export function handleEntityRpcRequest(
         "Asset uploads require an authenticated connection handler",
       );
     case "createEntity":
-      return service.createEntity(request.request);
+      return service.createEntity({
+        ...request.request,
+        options: { ...request.request.options, ...(signal && { signal }) },
+      });
     case "createEntityFromMarkdown":
-      return service.createEntityFromMarkdown(request.request);
+      return service.createEntityFromMarkdown({
+        ...request.request,
+        options: { ...request.request.options, ...(signal && { signal }) },
+      });
     case "updateEntity":
-      return service.updateEntity(request.request);
+      return service.updateEntity({
+        ...request.request,
+        options: { ...request.request.options, ...(signal && { signal }) },
+      });
     case "deleteEntity":
       return service.deleteEntity(request.request);
     case "upsertEntity":
@@ -976,6 +1101,18 @@ export function handleEntityRpcRequest(
         }),
         ...(signal && { signal }),
       });
+    case "getEntityWriteSnapshot":
+      return service.getEntityWriteSnapshot(request.request);
+    case "queryEntityHierarchy":
+      return service.queryEntityHierarchy({ ...request.request, signal });
+    case "queryGroupingCatalog":
+      return service.queryGroupingCatalog({ ...request.request, signal });
+    case "queryGroupingMembers":
+      return service.queryGroupingMembers({ ...request.request, signal });
+    case "queryGroupingUsage":
+      return service.queryGroupingUsage({ ...request.request, signal });
+    case "ensureGroupingsReady":
+      return service.ensureGroupingsReady();
     case "getEntity":
       return service.getEntity(request.request);
     case "getEntityRaw":

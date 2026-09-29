@@ -1,16 +1,14 @@
-import { writeFile } from "fs/promises";
-import { join } from "path";
 import { z } from "@brains/utils/zod";
 import { parseBrainYaml } from "../lib/brain-yaml";
-import { normalizePushTarget } from "../lib/push-target";
-import { runSubprocess, type RunCommand } from "../lib/run-subprocess";
+import { normalizePushTarget } from "@brains/deploy-support/push-target";
+import { pushSecretsToGitHub } from "@brains/deploy-support/push-secrets";
+import type { RunCommand } from "@brains/deploy-support/run-subprocess";
 import {
-  createOriginCertificateRequest,
-  generateOriginKeyPair,
-  issueCloudflareOriginCertificate,
+  issueOriginCertificate,
   setCloudflareZoneSslStrict,
-  type FetchLike,
-} from "../lib/origin-ca";
+  writeOriginCertificateFiles,
+} from "@brains/deploy-support/origin-ca";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface CertBootstrapOptions {
@@ -76,39 +74,27 @@ export async function bootstrapOriginCertificate(
   const fetchImpl = options.fetchImpl ?? fetch;
   const logger = options.logger ?? console.log;
 
-  const keyPair = generateOriginKeyPair();
-  const { csrPem } = createOriginCertificateRequest(domain, keyPair);
-
-  const certResult = await issueCloudflareOriginCertificate(
+  const certResult = await issueOriginCertificate(
     fetchImpl,
     cfApiToken,
-    csrPem,
     domain,
   );
-
-  const certificatePath = join(cwd, "origin.pem");
-  const privateKeyPath = join(cwd, "origin.key");
-
-  await Promise.all([
-    writeFile(certificatePath, certResult.certificatePem, "utf-8"),
-    // Set mode at creation so the private key is never briefly world-readable
-    // between write and chmod.
-    writeFile(privateKeyPath, keyPair.privateKeyPem, {
-      encoding: "utf-8",
-      mode: 0o600,
-    }),
-  ]);
+  const { certificatePath, privateKeyPath } = await writeOriginCertificateFiles(
+    cwd,
+    certResult,
+  );
 
   await setCloudflareZoneSslStrict(fetchImpl, cfApiToken, cfZoneId);
 
   const pushTarget = normalizePushTarget(options.pushTo);
   if (pushTarget) {
-    await pushCertificateArtifactsToGh({
-      certificatePem: certResult.certificatePem,
-      privateKeyPem: keyPair.privateKeyPem,
-      runCommand: options.runCommand,
-      logger,
-    });
+    await pushSecretsToGitHub(
+      [
+        ["CERTIFICATE_PEM", certResult.certificatePem],
+        ["PRIVATE_KEY_PEM", certResult.privateKeyPem],
+      ],
+      { runCommand: options.runCommand, logger },
+    );
   }
 
   logger(`Issued Origin CA cert for ${domain}`);
@@ -128,22 +114,4 @@ export async function bootstrapOriginCertificate(
     privateKeyPath,
     certificatePem: certResult.certificatePem,
   };
-}
-
-async function pushCertificateArtifactsToGh(options: {
-  certificatePem: string;
-  privateKeyPem: string;
-  runCommand: RunCommand | undefined;
-  logger: (message: string) => void;
-}): Promise<void> {
-  const runCommand = options.runCommand ?? runSubprocess;
-  options.logger("Pushing certificate into GitHub secrets...");
-  await Promise.all([
-    runCommand("gh", ["secret", "set", "CERTIFICATE_PEM"], {
-      stdin: options.certificatePem,
-    }),
-    runCommand("gh", ["secret", "set", "PRIVATE_KEY_PEM"], {
-      stdin: options.privateKeyPem,
-    }),
-  ]);
 }

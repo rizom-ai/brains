@@ -96,15 +96,17 @@ export {
   OperatorSectionTab,
 } from "./operator-chrome";
 export { ConfirmDialog, type ConfirmDialogProps } from "./confirm-dialog";
+export type {
+  OperatorControlButtonProps,
+  OperatorControlVariant,
+  OperatorDisclosureProps,
+  OperatorTabsProps,
+  OperatorViewComponents,
+  OperatorViewQuery,
+} from "./operator-view-host";
+export { OperatorActionButton } from "./operator-view-actions";
 export {
-  OperatorActionButton,
   OperatorViewRenderer,
-  type OperatorControlButtonProps,
-  type OperatorControlVariant,
-  type OperatorDisclosureProps,
-  type OperatorTabsProps,
-  type OperatorViewComponents,
-  type OperatorViewQuery,
   type OperatorViewRendererProps,
 } from "./operator-view-renderer";
 

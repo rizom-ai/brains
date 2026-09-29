@@ -1,3 +1,4 @@
+import type { ServicePluginContext } from "@brains/plugins";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
 import {
   getArrayElement,
@@ -63,11 +64,38 @@ function pluralizeLabel(label: string): string {
 }
 
 /**
- * Base notes are raw Markdown: no frontmatter form, and a leading `---`
- * is a horizontal rule, not a YAML delimiter.
+ * Notes use whole-document editing unless their type participates in a
+ * registered grouping. Participation exposes the effective Properties schema
+ * for every note, including notes with no membership yet.
  */
-export function isRawEntityType(entityType: string): boolean {
-  return entityType === NOTE_ENTITY_TYPE;
+export function isRawEntityType(
+  entityType: string,
+  entities: Pick<ServicePluginContext["entities"], "isGroupingContributor">,
+): boolean {
+  return (
+    entityType === NOTE_ENTITY_TYPE &&
+    !entities.isGroupingContributor(entityType)
+  );
+}
+
+/** How a type's entries nest, as Studio presents and creates them. */
+export interface StudioTypeHierarchy {
+  /** What a level of the hierarchy is called. */
+  kind: "page" | "folder";
+  /** Whether new entries may be created inside a folder. */
+  nested: boolean;
+}
+
+/**
+ * How Studio nests a type's entries. Site content is organised in pages.
+ * Directory-sync exports notes as one segment at its root, so new notes are
+ * created there rather than inside a folder.
+ */
+export function studioTypeHierarchy(entityType: string): StudioTypeHierarchy {
+  return {
+    kind: entityType === "site-content" ? "page" : "folder",
+    nested: entityType !== NOTE_ENTITY_TYPE,
+  };
 }
 
 /**
@@ -78,6 +106,11 @@ export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
+  if (entityType === "grouping-definitions")
+    return {
+      label: display?.label ?? "Groupings",
+      pluralLabel: display?.pluralName ?? "Groupings",
+    };
   const defaultLabel =
     entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
   const label = display?.label ?? defaultLabel;

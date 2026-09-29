@@ -131,7 +131,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
     });
     await shell.initialize();
     // Boot publishing is scheduled, not awaited; shutdown drains the tasks.
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     const cardCalls = putRecord.mock.calls.filter(
       (call) =>
@@ -155,7 +155,7 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
       profileKindRegistry: createTestProfileKindRegistry(),
     });
     await shell.initialize({ mode: "startup-check" });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(putRecord).not.toHaveBeenCalled();
   });

@@ -22,6 +22,8 @@ type FieldStyle =
   | "tagButton"
   | "tagAdd"
   | "tagInput"
+  | "listHelp"
+  | "literalInput"
   | "assist"
   | "suggestion"
   | "suggestionCopy"
@@ -37,6 +39,11 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
       "@media (max-width: 640px)": {
         paddingTop: 12,
         paddingBottom: { default: 12, ":is([data-studio-field-assist] *)": 9 },
+      },
+      ":is([data-studio-system-fields] *)": {
+        paddingTop: 0,
+        paddingBottom: 0,
+        borderTopWidth: 0,
       },
     },
     label: {
@@ -219,6 +226,14 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
       cursor: "pointer",
       font: "13px/1 var(--console-mono)",
       "@media (max-width: 640px)": { width: 44, height: 44 },
+    },
+    // Keep Add under the pointer when focusing it blurs the input.
+    literalInput: { width: { default: "12ch", ":focus": "12ch" } },
+    listHelp: {
+      color: "var(--console-text-muted)",
+      fontSize: 12,
+      lineHeight: 1.5,
+      overflowWrap: "anywhere",
     },
     tagAdd: { borderStyle: "dashed", paddingLeft: 9 },
     tagInput: {

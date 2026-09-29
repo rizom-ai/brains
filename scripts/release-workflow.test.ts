@@ -27,6 +27,65 @@ function workflowStep(fileName: string, name: string): string {
   return step[0];
 }
 
+describe("packed and publication gates", () => {
+  test.each(["ci.yml", "site-ci.yml"])(
+    "%s runs packed compatibility as a blocking CI step",
+    (fileName) => {
+      const step = workflowStep(fileName, "Run packed compatibility matrix");
+      expect(step).toContain("bun run test:packed:compat");
+      expect(step).not.toContain("continue-on-error");
+      expect(step).not.toContain("if:");
+    },
+  );
+
+  test("core publication is followed by exact registry/archive/smoke verification", () => {
+    const workflow = readWorkflow("release.yml");
+    const step = workflowStep("release.yml", "Verify published core artifacts");
+    expect(
+      workflow.indexOf("- name: Verify published core artifacts"),
+    ).toBeGreaterThan(workflow.indexOf("- name: Publish to npm"));
+    expect(step).toContain("bun scripts/verify-published-core.ts");
+    expect(step).not.toContain("continue-on-error");
+    expect(step).not.toContain("if:");
+  });
+});
+
+describe("release verification waits out registry propagation", () => {
+  test.each([
+    ["release.yml", "Verify published core artifacts"],
+    ["site-release.yml", "Verify registry and tarball metadata"],
+  ])("%s gives %s room for a 30-minute registry wait", (file, name) => {
+    const step = workflowStep(file, name);
+    const minutes = Number(/timeout-minutes: (\d+)/.exec(step)?.[1]);
+    expect(minutes).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe("a merge landing mid-release never fails the version push", () => {
+  test.each([
+    [
+      "release.yml",
+      "chore(release): version packages",
+      "steps.release_mode.outputs.mode",
+    ],
+    [
+      "site-release.yml",
+      "chore(release): version site and theme packages",
+      "needs.classify.outputs.mode",
+    ],
+  ])(
+    "%s pushes through the merge-aware version push",
+    (file, message, mode) => {
+      const step = workflowStep(file, "Commit and push version bump");
+      expect(step).toContain(`RELEASE_MODE: \${{ ${mode} }}`);
+      expect(step).toContain(
+        `bun scripts/push-version-commit.ts "${message}" "$RELEASE_MODE"`,
+      );
+      expect(step).not.toContain("git push");
+    },
+  );
+});
+
 describe("core release workflow", () => {
   test("publishes through GitHub OIDC without a registry token", () => {
     const workflow = readWorkflow("release.yml");

@@ -51,11 +51,33 @@ describe("brain-cli build config", () => {
     expect(buildScript).toContain("brokerBuild");
   });
 
-  it("builds public library entries together with shared chunks", () => {
-    expect(buildScript).toContain(
-      "entrypoints: libraryEntries.map((entry) => entry.source)",
+  const libraryBuilds = buildScript.slice(
+    buildScript.indexOf("async function bundleLibraries"),
+  );
+
+  it("builds server library entries together with shared chunks", () => {
+    const serverBuild =
+      libraryBuilds.match(
+        /const result = await Bun\.build\(\{([\s\S]*?)\n {2}\}\);/,
+      )?.[1] ?? "";
+    expect(serverBuild.replace(/\s+/g, " ")).toContain(
+      'entrypoints: libraryEntries .filter((entry) => entry.name !== "chat") .map((entry) => entry.source)',
     );
-    expect(buildScript).toContain("splitting: true");
-    expect(buildScript).toContain('chunk: "chunks/[name]-[hash].js"');
+    expect(serverBuild).toContain('target: "bun"');
+    expect(serverBuild).toContain("splitting: true");
+    expect(serverBuild).toContain('chunk: "chunks/[name]-[hash].js"');
+  });
+
+  it("isolates Chat in an unsplit browser bundle", () => {
+    const browserBuild =
+      libraryBuilds.match(
+        /const browserResult = await Bun\.build\(\{([\s\S]*?)\n {2}\}\);/,
+      )?.[1] ?? "";
+    expect(browserBuild.replace(/\s+/g, " ")).toContain(
+      'entrypoints: libraryEntries .filter((entry) => entry.name === "chat") .map((entry) => entry.source)',
+    );
+    expect(browserBuild).toContain('target: "browser"');
+    expect(browserBuild).toContain("splitting: false");
+    expect(browserBuild).toContain("external: sharedExternals");
   });
 });

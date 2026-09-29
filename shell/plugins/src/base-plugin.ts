@@ -98,13 +98,10 @@ export abstract class BasePlugin<
     // Let Zod schema handle defaults during parsing
     const parsedConfig = configSchema.safeParse(partialConfig);
     if (!parsedConfig.success) {
-      throw new PluginConfigValidationError(
+      throw PluginConfigValidationError.fromZod(
         id,
-        parsedConfig.error.issues.map((issue) => ({
-          path: issue.path.map(String).join("."),
-          code: issue.code,
-          message: issue.message,
-        })),
+        parsedConfig.error,
+        partialConfig,
       );
     }
     this.config = parsedConfig.data;
@@ -333,10 +330,10 @@ export abstract class BasePlugin<
   }
 
   /**
-   * Optional shutdown method for cleanup
-   * Override this if your plugin needs cleanup
+   * Run cleanup through the lifecycle hook. Concrete plugins always expose
+   * shutdown; plugins without cleanup inherit the default no-op onShutdown.
    */
-  async shutdown?(): Promise<void> {
+  async shutdown(): Promise<void> {
     await this.onShutdown();
   }
 

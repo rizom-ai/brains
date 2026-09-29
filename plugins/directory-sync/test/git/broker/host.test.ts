@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
 import { BrokerConnection } from "../../../src/lib/broker/client";
 import { startGitBrokerHost } from "../../../src/lib/broker/host";
-import { gitBrokerSocketPath } from "../../../src/lib/broker/server";
+import {
+  gitBrokerRuntimeDir,
+  gitBrokerSocketPath,
+} from "../../../src/lib/broker/server";
 import type { GitBrokerServer } from "../../../src/lib/broker/server";
 import { getGitRemoteFingerprint } from "../../../src/lib/git-options";
 
@@ -85,6 +88,54 @@ describe.skipIf(!LINUX)("git broker host", () => {
 
     connection.close();
   }, 30_000);
+
+  it("binds the supervisor-assigned fallback socket for an instance too deep to hold its own", async () => {
+    const { cwd, dataDir, gitUrl } = await harness();
+    // Deep enough that cwd/.brain-runtime/git-broker.sock exceeds the unix
+    // socket limit; the supervisor then hands down a temp-dir address.
+    const deepCwd = join(cwd, "d".repeat(110));
+    const runtimeDir = gitBrokerRuntimeDir(deepCwd);
+    const socketPath = gitBrokerSocketPath(runtimeDir);
+    expect(socketPath.startsWith(runtimeDir)).toBe(false);
+
+    broker = await startGitBrokerHost({
+      socketPath,
+      runtimeDir,
+      cwd: deepCwd,
+      dataDir,
+      logger: createSilentLogger(),
+      pluginConfig: { git: { gitUrl, branch: "main" } },
+    });
+
+    expect(broker.socketPath).toBe(socketPath);
+    const connection = await BrokerConnection.connect(socketPath);
+    const status = await connection.registerCheckout({
+      checkoutPath: dataDir,
+      branch: "main",
+      remoteFingerprint: getGitRemoteFingerprint(gitUrl),
+    });
+    expect(status.checkouts).toEqual([dataDir]);
+    connection.close();
+  }, 30_000);
+
+  it("refuses a handed socket its runtime dir does not derive", async () => {
+    const { socketPath, cwd, dataDir, gitUrl } = await harness();
+    const outcome = await startGitBrokerHost({
+      socketPath,
+      runtimeDir: join(cwd, "elsewhere"),
+      cwd,
+      dataDir,
+      logger: createSilentLogger(),
+      pluginConfig: { git: { gitUrl, branch: "main" } },
+    }).then(
+      (started) => {
+        broker = started;
+        return "started";
+      },
+      (error: unknown) => String(error),
+    );
+    expect(outcome).toContain("supervisor-assigned");
+  });
 
   it("prefers a configured syncPath over the Brain data dir", async () => {
     const { socketPath, cwd, dataDir, gitUrl } = await harness();

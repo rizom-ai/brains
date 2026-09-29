@@ -32,10 +32,11 @@ import type {
   AnchorProfile,
 } from "@brains/identity-service";
 import type { Tool } from "@brains/mcp-service";
-import type { ModelMessage } from "ai";
+import type { LanguageModelUsage, ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
 import {
   guestExecutionPolicySchema,
+  type GuestTurnSettlement,
   type GuestExecutionPolicy,
 } from "@brains/contracts/chat";
 
@@ -112,12 +113,16 @@ export interface BrainAgentResult {
       toolName: string;
       output: unknown;
     }>;
+    /** What the provider reported for this step's model call. */
+    usage?: LanguageModelUsage;
   }>;
   usage: {
     inputTokens: number | undefined;
     outputTokens: number | undefined;
     totalTokens: number | undefined;
   };
+  /** A guest turn's reported usage and settled cost; never set for owners. */
+  guestSettlement?: GuestTurnSettlement;
 }
 
 /**
@@ -135,10 +140,7 @@ export interface BrainAgent {
 /**
  * Factory function type for creating brain agents
  */
-export type BrainAgentFactory = ((config: BrainAgentConfig) => BrainAgent) & {
-  /** A paired guest model/accounting profile is installed; not transport admission. */
-  readonly guestProfileAvailable?: boolean;
-};
+export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
 
 /**
  * The part of the canonical identity service that fills in an actor.
@@ -228,7 +230,8 @@ export interface ChatContext {
  * Agent service interface
  */
 export interface IAgentService {
-  readonly guestProfileAvailable?: boolean;
+  /** Guest turns can run: the search index they read is ready. */
+  readonly guestReady?: boolean;
   /**
    * Send a message to the agent and get a response
    * @param message - The user's message

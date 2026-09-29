@@ -1,5 +1,29 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.255
+
+### Patch Changes
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask section loads Web Chat's guest page bundle (`/ask/assets/ask.js` and `ask.css`) instead of the signed-in chat app. It needs a Brain release that serves the guest page bundle; on an older Brain the section stays on its "Connecting" line.
+
+## 0.2.0-alpha.254
+
+### Patch Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`9204df2`](https://github.com/rizom-ai/brains/commit/9204df219fee7f726a38ba60281f780373110403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hero chat uses Web Chat's shared Ask box boot (`/ask/assets/box.js`) instead of the site's own `/brain-chat.js`, which is removed. The box needs a Brain release that serves the shared boot; on an older Brain the hero composer stays disabled and nothing is sent.
+
+## 0.2.0-alpha.253
+
+### Patch Changes
+
+- [#269](https://github.com/rizom-ai/brains/pull/269) [`54d112a`](https://github.com/rizom-ai/brains/commit/54d112a5335806940e1a8fba23c85e6f929fc3fa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the shared authored Ask presentation in the Brain-page chat instead of reading chat copy from the page hero. Keep the site frame and existing guest enhancement behavior.
+
+## 0.2.0-alpha.252
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose public Ask inside the existing Rizom layout, including its navigation, theme control and footer. Mount the shared guest UI rather than introducing separate page chrome or a second conversation runtime.
+
 ## 0.2.0-alpha.251
 
 ### Patch Changes

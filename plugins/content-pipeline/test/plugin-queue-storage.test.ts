@@ -33,7 +33,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
   });
 
   afterEach(async () => {
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   });
 
   it("routes message mutations through durable queue storage", async () => {

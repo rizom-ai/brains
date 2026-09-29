@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { mapDetailsStyles as s } from "./operator-map-details.styles";
+import { styledProps } from "./styled-props";
 
 export function OperatorMapIndex(
   props: ComponentProps<"aside"> & {
@@ -13,16 +14,8 @@ export function OperatorMapIndex(
 ): ReactElement {
   const { heading, description, remainder, note, children, ...attributes } =
     props;
-  const css = stylex.props(s.index);
   return (
-    <aside
-      {...attributes}
-      {...css}
-      data-map-index
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <aside {...styledProps(attributes, s.index)} data-map-index>
       <header {...stylex.props(s.heading)}>
         <h3 {...stylex.props(s.title)}>{heading}</h3>
         <p {...stylex.props(s.description)}>{description}</p>
@@ -51,17 +44,12 @@ export function OperatorMapIndexItem(
   },
 ): ReactElement {
   const { rank, label, count, ...attributes } = props;
-  const css = stylex.props(s.control);
   return (
     <li {...stylex.props(s.item)}>
       <button
-        {...attributes}
+        {...styledProps(attributes, s.control)}
         type={attributes.type ?? "button"}
         title={attributes.title ?? label}
-        {...css}
-        className={[attributes.className, css.className]
-          .filter(Boolean)
-          .join(" ")}
       >
         <span {...stylex.props(s.rank)}>{rank}</span>
         <strong {...stylex.props(s.label)}>{label}</strong>
@@ -72,15 +60,7 @@ export function OperatorMapIndexItem(
 }
 
 export function OperatorMapLegend(props: ComponentProps<"div">): ReactElement {
-  const css = stylex.props(s.legend);
-  return (
-    <div
-      {...props}
-      role={props.role ?? "group"}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <div {...styledProps(props, s.legend)} role={props.role ?? "group"} />;
 }
 
 export function OperatorMapLegendItem(props: {
@@ -111,12 +91,5 @@ export function OperatorMapLegendItem(props: {
 export function OperatorMapLegendNote(
   props: ComponentProps<"span">,
 ): ReactElement {
-  const css = stylex.props(s.legendNote);
-  return (
-    <span
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <span {...styledProps(props, s.legendNote)} />;
 }

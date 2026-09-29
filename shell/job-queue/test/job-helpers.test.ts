@@ -46,6 +46,48 @@ describe("createEnqueueJobFn", () => {
     );
   });
 
+  it("routes the caller's progress token, and keeps an explicit one when the context has none", async () => {
+    const enqueue = mock(
+      async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",
+    );
+    const enqueueJob = createEnqueueJobFn(
+      { enqueue } satisfies JobEnqueuer,
+      "site-content",
+      true,
+    );
+    const caller = {
+      interfaceType: "cli",
+      actor: { kind: "service" as const, serviceId: "site-content" },
+    };
+
+    await enqueueJob({
+      type: "generate",
+      data: {},
+      toolContext: { ...caller, progressToken: "token-from-caller" },
+    });
+    expect(
+      expectDefined(enqueue.mock.calls[0]?.[0].options).metadata,
+    ).toMatchObject({ progressToken: "token-from-caller" });
+
+    // Progress routing without a token cannot reach anyone, so a token passed
+    // explicitly by the plugin must survive a context that carries none.
+    await enqueueJob({
+      type: "generate",
+      data: {},
+      toolContext: caller,
+      options: {
+        source: "site-content",
+        metadata: {
+          operationType: "content_operations",
+          progressToken: "token-from-plugin",
+        },
+      },
+    });
+    expect(
+      expectDefined(enqueue.mock.calls[1]?.[0].options).metadata,
+    ).toMatchObject({ progressToken: "token-from-plugin" });
+  });
+
   it("does not let option metadata override verified requester attribution", async () => {
     const enqueue = mock(
       async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",

@@ -41,6 +41,7 @@ type ExpectedToolCallSchema = z.ZodObject<{
   toolName: z.ZodString;
   argsContain: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   argsAbsent: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  resultContains: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   resultErrorContains: z.ZodOptional<z.ZodString>;
   resultRefused: z.ZodOptional<z.ZodBoolean>;
   shouldBeCalled: z.ZodDefault<z.ZodBoolean>;
@@ -57,6 +58,12 @@ export const expectedToolCallSchema: ExpectedToolCallSchema = z.object({
     .optional()
     .describe(
       "Tool argument paths that must be absent from all matching calls",
+    ),
+  resultContains: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      "Dotted result paths that must equal the expected values exactly in every call matching toolName and argsContain. String values are compared byte-for-byte, not as substrings.",
     ),
   resultErrorContains: z
     .string()
@@ -108,6 +115,7 @@ type SuccessCriteriaSchema = z.ZodObject<{
   expectedTools: z.ZodOptional<z.ZodArray<ExpectedToolCallSchema>>;
   expectedAnyTool: z.ZodOptional<z.ZodArray<ExpectedAnyToolCallSchema>>;
   toolCountRange: z.ZodOptional<ToolCountRangeSchema>;
+  responseEquals: z.ZodOptional<z.ZodString>;
   responseContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
   responseContainsAny: z.ZodOptional<z.ZodArray<z.ZodArray<z.ZodString>>>;
   responseNotContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -126,6 +134,7 @@ export const successCriteriaSchema: SuccessCriteriaSchema = z.object({
   toolCountRange: toolCountRangeSchema.optional(),
 
   // Response-based criteria
+  responseEquals: z.string().optional(),
   responseContains: z.array(z.string()).optional(),
   responseContainsAny: z.array(z.array(z.string()).min(1)).optional(),
   responseNotContains: z.array(z.string()).optional(),

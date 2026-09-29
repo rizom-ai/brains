@@ -5,9 +5,19 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { homepageOpeningSchema } from "./schemas/homepage-opening";
+import { loadHomepageOpening } from "./datasources/homepage-opening";
+import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { homepageChatAvailable } from "./datasources/homepage-chat";
+import {
+  HOMEPAGE_ATLAS_SCRIPT,
+  HOMEPAGE_ATLAS_SCRIPT_PATH,
+} from "./templates/homepage-atlas-script";
+import { homepageAtlasSchema } from "./schemas/homepage-atlas";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
-import { professionalProfileSchema } from "./schemas";
+import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
@@ -17,6 +27,7 @@ import {
   type HomepageListData,
 } from "./templates/homepage-list";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
+import { AboutHighlightsLayout } from "./templates/about-highlights";
 import {
   SubscribeThanksLayout,
   SubscribeErrorLayout,
@@ -81,6 +92,24 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     const homepageDataSource = new HomepageListDataSource(
       postsListUrl,
       decksListUrl,
+      this.config.homepageOpening
+        ? {
+            loadOpening: (
+              buildContext,
+            ): ReturnType<typeof loadHomepageOpening> =>
+              loadHomepageOpening(buildContext, context),
+            loadAtlas: (buildContext): ReturnType<typeof loadHomepageAtlas> =>
+              loadHomepageAtlas({
+                entityService: buildContext.entityService,
+                semantic: {
+                  project: (request) =>
+                    buildContext.entityService.projectSemanticSpace(request),
+                },
+              }),
+            chatAvailable: (buildContext): Promise<boolean> =>
+              homepageChatAvailable(buildContext, context),
+          }
+        : {},
     );
     context.entities.registerDataSource(homepageDataSource);
 
@@ -92,12 +121,27 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
       profile: professionalProfileSchema,
+      homepageOpening: z.boolean().default(false),
+      opening: homepageOpeningSchema,
+      atlas: homepageAtlasSchema,
+      askBox: z.boolean().default(false),
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),
       decksListUrl: z.string(),
       cta: siteInfoCTASchema,
       sections: z.record(z.string(), homepageSectionSchema),
+    });
+
+    const enrichedLinks = {
+      url: z.string(),
+      typeLabel: z.string(),
+      listUrl: z.string(),
+      listLabel: z.string(),
+    };
+    const homepageRenderSchema = homepageListSchema.extend({
+      posts: z.array(blogPostSchema.extend(enrichedLinks)),
+      decks: z.array(deckSchema.extend(enrichedLinks)),
     });
 
     // About page schema
@@ -118,8 +162,20 @@ export class ProfessionalSitePlugin extends ServicePlugin<
         schema: homepageListSchema,
         dataSourceId: "professional:homepage-list",
         requiredPermission: "public",
+        // Touch titles and motion pausing, shipped only to sites that opt into the atlas.
+        ...(this.config.homepageOpening
+          ? {
+              runtimeScripts: [
+                { src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true },
+              ],
+              staticAssets: {
+                [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT,
+              },
+            }
+          : {}),
         layout: {
           component: HomepageListLayout,
+          renderSchema: homepageRenderSchema,
         },
       }),
       about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({
@@ -132,6 +188,39 @@ export class ProfessionalSitePlugin extends ServicePlugin<
           component: AboutPageLayout,
         },
       }),
+      // The default site's one generated section. Knowledge-aware, so the
+      // portrait is drawn from what the brain actually holds about its owner.
+      "about-highlights": createTemplate<z.infer<typeof aboutHighlightsSchema>>(
+        {
+          name: "about-highlights",
+          description: "Short generated portrait shown under the about page",
+          schema: aboutHighlightsSchema,
+          dataSourceId: "shell:ai-content",
+          useKnowledgeContext: true,
+          requiredPermission: "public",
+          basePrompt: `Write a short professional portrait of the owner of this site, in the third person, from the knowledge available to you.
+
+Be concrete: name the kind of work they do, the problems they return to, and how they approach them. Do not invent employers, credentials, dates, or achievements that the knowledge does not support. If the knowledge is thin, stay general rather than making things up.
+
+The headline is one sentence of at most 90 characters. The summary is two or three sentences. The themes are two to five short phrases, three words or fewer each, naming recurring threads in their work.`,
+          formatter: new StructuredContentFormatter(aboutHighlightsSchema, {
+            title: "About highlights",
+            mappings: [
+              { key: "headline", label: "Headline", type: "string" },
+              { key: "summary", label: "Summary", type: "string" },
+              {
+                key: "themes",
+                label: "Themes",
+                type: "array",
+                itemType: "string",
+              },
+            ],
+          }),
+          layout: {
+            component: AboutHighlightsLayout,
+          },
+        },
+      ),
       "subscribe-thanks": createTemplate<
         z.infer<typeof emptySchema>,
         Record<string, never>

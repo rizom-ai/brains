@@ -1,8 +1,11 @@
 import { createTestEntity } from "@brains/entity-service/test";
+import type { BaseEntity } from "@brains/plugins";
 import { describe, expect, it, mock } from "bun:test";
+import { EntityPlacementError } from "../src/lib/entity-placement-error";
 import {
   drainDurableEntityExports,
   type DurableEntityExportDeps,
+  type DurableEntityExportIntent,
 } from "../src/lib/durable-entity-export";
 
 const intent = {
@@ -63,6 +66,31 @@ async function captureFailure(
 }
 
 describe("durable entity export draining", () => {
+  it.each(["upsert", "delete"] as const)(
+    "acknowledges a refused %s without requesting an empty Git checkpoint",
+    async (operation) => {
+      const { deps, order } = createDeps();
+      deps.listPendingEntityExports = async (): Promise<
+        DurableEntityExportIntent[]
+      > => [{ ...intent, entityId: "book:intro", operation }];
+      deps.getEntity = async (): Promise<BaseEntity> =>
+        createTestEntity("note", { id: "book:intro" });
+      const refuse = async (): Promise<never> => {
+        throw new EntityPlacementError("note", "book:intro", "book/intro.md", {
+          entityType: "book",
+          id: "intro",
+        });
+      };
+      deps.writeEntity = refuse;
+      deps.deleteEntityFile = refuse;
+      expect(await drainDurableEntityExports(deps)).toEqual({
+        processed: 1,
+        acknowledged: 1,
+        pushed: false,
+      });
+      expect(order).toEqual(["ack"]);
+    },
+  );
   it("acknowledges an entity mutation only after its file is pushed", async () => {
     const { deps, order } = createDeps();
 

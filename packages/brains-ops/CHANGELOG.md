@@ -1,5 +1,135 @@
 # @brains/ops
 
+## 0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+## 0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`5a70a6f`](https://github.com/rizom-ai/brains/commit/5a70a6f918644186ee01cfbffe7c23b64c97c479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A successful pre-deploy backup now shows the runtime's own notices, such as the degraded checks it backed up anyway, as workflow warnings. Before, the remote output of a successful capture was discarded. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- [#372](https://github.com/rizom-ai/brains/pull/372) [`e3d947f`](https://github.com/rizom-ai/brains/commit/e3d947fcb7aaa67b9ff6a8478e975ef32f816c66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup no longer refuses a runtime whose plugins report degraded health. It still requires a ready runtime with an idle job queue, names the degraded checks in the deploy log and backs the runtime up, because a deploy is often the fix for what a plugin reports. A refusal now states its reason (runtime not ready, job queue not idle) instead of exiting silently. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+## 0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+## 0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Minor Changes
+
+- [#323](https://github.com/rizom-ai/brains/pull/323) [`972e900`](https://github.com/rizom-ai/brains/commit/972e900adedb251ee22e3d6b1184ebd822e42234) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit, dry-run-first `user:offboard` command and scaffolded Offboard workflow that archive pilot content repositories, remove managed DNS, destroy dedicated servers, and commit desired-state removal with exact batch confirmation.
+
+## 0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- [#285](https://github.com/rizom-ai/brains/pull/285) [`6fa0d8e`](https://github.com/rizom-ai/brains/commit/6fa0d8edbfc3f3e3363e7ed7ba5c101eba57587c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose operator-generated brain configuration as an object and serialize once. Carry per-user canonical plugin configuration through reconciliation, using the runtime's shared merge implementation with explicit preservation of null deletion markers until runtime resolution. Plugin schemas remain authoritative; no dashboard-specific operator switch is introduced.
+
+## 0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+## 0.2.0-alpha.379
+
+## 0.2.0-alpha.378
+
+## 0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
 ## 0.2.0-alpha.373
 
 ## 0.2.0-alpha.372

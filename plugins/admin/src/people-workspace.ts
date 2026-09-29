@@ -13,6 +13,11 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
+  setupResultPresentation as setupResultPresentationFor,
+  setupResultSchema,
+  statusResultSchema,
+} from "./setup-forms";
+import {
   adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
@@ -87,12 +92,6 @@ export function composePeopleTabSections(
 
 const peopleQuerySchema = z.strictObject({
   selected: z.string().trim().min(1).max(200).optional(),
-});
-const statusResultSchema = z.strictObject({ status: z.string() });
-const setupResultSchema = z.strictObject({
-  status: z.string(),
-  setupUrl: z.url(),
-  expiresAt: z.string(),
 });
 const userInputSchema = z.strictObject({ userId: z.string().min(1) });
 const roleInputSchema = z.strictObject({
@@ -265,18 +264,7 @@ type PeopleBlock = OperatorViewBlock<PeopleAction>;
 type PeopleRegion = OperatorRegionBlock<PeopleAction>;
 type PeoplePanel = Exclude<PeopleRegion, { type: "card" }>;
 
-const setupResultPresentation = {
-  title: "Passkey setup",
-  fields: {
-    status: { label: "Status" },
-    setupUrl: {
-      label: "Single-use setup URL",
-      copyable: true,
-      sensitive: true,
-    },
-    expiresAt: { label: "Expires" },
-  },
-};
+const setupResultPresentation = setupResultPresentationFor("Passkey setup");
 
 function accountLinkBlock(): PeoplePanel {
   return {
@@ -381,14 +369,14 @@ const peopleWorkspace = defineStudioWorkspace({
         selected.status === "active" &&
         data.activeAdminCount <= 1;
       const roleProtection = selected.isAnchor
-        ? "A professional Anchor must remain an active Admin."
+        ? "The protected brain identity must remain an active Admin."
         : selected.status === "suspended"
           ? "Reactivate this person before changing access."
           : protectsLastAdmin
             ? "Add another active Admin before changing this role."
             : undefined;
       const suspensionProtection = selected.isAnchor
-        ? "The professional Anchor cannot be suspended."
+        ? "The protected brain identity cannot be suspended."
         : protectsLastAdmin
           ? "Add another active Admin before suspending this person."
           : undefined;
@@ -398,7 +386,7 @@ const peopleWorkspace = defineStudioWorkspace({
         items: [
           { label: "Role", value: titleCase(selected.role) },
           { label: "Status", value: titleCase(selected.status) },
-          { label: "Anchor", value: selected.isAnchor },
+          { label: "Protected brain identity", value: selected.isAnchor },
           {
             label: "Brain relationship",
             value:
@@ -542,12 +530,12 @@ const peopleWorkspace = defineStudioWorkspace({
       openBlocks.push({
         type: "card",
         id: "person-channels",
-        label: "Connected channels",
+        label: "Linked identities",
         blocks: [
           {
             type: "table",
             id: "person-identities",
-            empty: "No connected channel.",
+            empty: "No linked identity.",
             columns: [
               { key: "channel", label: "Channel" },
               { key: "identity", label: "Identity" },
@@ -627,7 +615,7 @@ const peopleWorkspace = defineStudioWorkspace({
       {
         type: "card",
         id: "brain-anchor",
-        label: "Brain Anchor",
+        label: "Brain identity",
         blocks: [
           {
             type: "key-values",
@@ -664,16 +652,14 @@ const peopleWorkspace = defineStudioWorkspace({
                 titleCase(person.role),
                 titleCase(person.status),
                 ...(person.isSelf ? ["You"] : []),
-                ...(person.isAnchor ? ["Anchor"] : []),
+                ...(person.isAnchor ? ["Protected brain identity"] : []),
               ].join(" · "),
               metadata: [
-                person.isAnchor
-                  ? "Protected brain identity"
-                  : person.isSelf
-                    ? "Not the Anchor"
-                    : person.identities.length === 1
-                      ? "One connected channel"
-                      : `${person.identities.length} connected channels`,
+                person.identities.length === 0
+                  ? "No linked identities"
+                  : person.identities.length === 1
+                    ? "One linked identity"
+                    : `${person.identities.length} linked identities`,
                 ...(person.peers.length > 0
                   ? [`Arrived via ${peerOriginLabel(person.peers[0]?.peerId)}`]
                   : []),
@@ -712,7 +698,7 @@ const peopleWorkspace = defineStudioWorkspace({
       kicker: "Access administration",
       title: "People",
       description:
-        "Inspect membership, sign-in, connected channels, and local access.",
+        "Manage people’s access to this brain, linked identities, and account recovery. Use Account for your own profile and sign-in settings.",
       status: {
         label: `${data.activeCount} active`,
         tone: data.suspendedCount > 0 ? "warn" : "neutral",

@@ -2,7 +2,10 @@ import { verifyRuntimeImage } from "./image-inventory";
 import type { RequiredImage } from "./image-types";
 export type { RequiredImage } from "./image-types";
 import { loadPilotRegistry, type ResolvedSiteOverride } from "./load-registry";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 
 /**
  * Resolve the immutable runtime image shared by every fleet instance on one

@@ -1,58 +1,18 @@
 import { z } from "@brains/utils/zod";
-import type { Plugin } from "@brains/plugins";
-import type { Shell } from "@brains/core";
+import {
+  BrainCharacterSchema,
+  pluginMetadataSchema,
+  type Plugin,
+} from "@brains/plugins";
+import {
+  logLevelSchema,
+  reasoningEffortSchema,
+  type Shell,
+} from "@brains/core";
 import type { CLIConfig } from "@brains/chat-repl";
 import type { PermissionConfig } from "@brains/templates";
 
-const pluginMetadataSchema: z.ZodObject<{
-  id: z.ZodString;
-  version: z.ZodString;
-  type: z.ZodEnum<{
-    core: "core";
-    entity: "entity";
-    service: "service";
-    interface: "interface";
-  }>;
-  description: z.ZodOptional<z.ZodString>;
-  dependencies: z.ZodOptional<z.ZodArray<z.ZodString>>;
-  packageName: z.ZodString;
-}> = z.object({
-  id: z.string(),
-  version: z.string(),
-  type: z.enum(["core", "entity", "service", "interface"]),
-  description: z.string().optional(),
-  dependencies: z.array(z.string()).optional(),
-  packageName: z.string(),
-});
-
-const appIdentitySchema: z.ZodObject<{
-  name: z.ZodString;
-  role: z.ZodString;
-  purpose: z.ZodString;
-  values: z.ZodArray<z.ZodString>;
-}> = z.object({
-  name: z.string(),
-  role: z.string(),
-  purpose: z.string(),
-  values: z.array(z.string()),
-});
-
-// Log level schema — shared between AppConfig and brain-resolver
-export const logLevelSchema: z.ZodEnum<{
-  debug: "debug";
-  info: "info";
-  warn: "warn";
-  error: "error";
-}> = z.enum(["debug", "info", "warn", "error"]);
-
-export const reasoningEffortSchema: z.ZodEnum<{
-  none: "none";
-  low: "low";
-  medium: "medium";
-  high: "high";
-  xhigh: "xhigh";
-  max: "max";
-}> = z.enum(["none", "low", "medium", "high", "xhigh", "max"]);
+export { logLevelSchema, reasoningEffortSchema } from "@brains/core";
 export type ReasoningEffort = z.output<typeof reasoningEffortSchema>;
 export type LogLevel = z.output<typeof logLevelSchema>;
 
@@ -160,7 +120,7 @@ type AppConfigSchema = z.ZodObject<{
   profileKind: z.ZodOptional<z.ZodString>;
   plugins: z.ZodDefault<z.ZodArray<typeof pluginMetadataSchema>>;
   spaces: z.ZodDefault<z.ZodArray<z.ZodString>>;
-  identity: z.ZodOptional<typeof appIdentitySchema>;
+  identity: z.ZodOptional<typeof BrainCharacterSchema>;
   agentInstructions: z.ZodOptional<z.ZodArray<z.ZodString>>;
   deployment: z.ZodPrefault<typeof deploymentConfigSchema>;
 }>;
@@ -184,7 +144,7 @@ export const appConfigSchema: AppConfigSchema = z.object({
   // Shared conversation spaces for this brain/team
   spaces: z.array(z.string()).default([]),
   // Identity - override default identity for this app
-  identity: appIdentitySchema.optional(),
+  identity: BrainCharacterSchema.optional(),
   // Brain-specific instructions appended to shell-neutral agent instructions
   agentInstructions: z.array(z.string()).optional(),
   // Deployment configuration

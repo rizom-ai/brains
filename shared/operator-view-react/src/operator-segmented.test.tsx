@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import { installDomGlobals } from "@brains/test-utils";
 import {
   OperatorSegmentedGroup,
   OperatorSegmentedButton,
@@ -46,16 +47,7 @@ test("compiled segmented controls preserve native states, hiding and bounded pho
 
 test("CSS renderer tabs retain exact counts and switch only the active panel", async () => {
   const window = new Window();
-  Object.assign(globalThis, {
-    window,
-    document: window.document,
-    navigator: window.navigator,
-    HTMLElement: window.HTMLElement,
-    Element: window.Element,
-    Node: window.Node,
-    Event: window.Event,
-    IS_REACT_ACT_ENVIRONMENT: true,
-  });
+  const restoreGlobals = installDomGlobals(window, { Event: window.Event });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -116,5 +108,6 @@ test("CSS renderer tabs retain exact counts and switch only the active panel", a
   } finally {
     await act(async () => root.unmount());
     await window.happyDOM.close();
+    restoreGlobals();
   }
 });

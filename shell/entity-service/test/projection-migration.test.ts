@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { createClient } from "@libsql/client";
-import { closeSqliteClient, runPackageMigrations } from "@brains/db";
+import type { Client } from "@libsql/client";
+import {
+  closeSqliteClient,
+  createSqliteDatabase,
+  runPackageMigrations,
+} from "@brains/db";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,8 +33,15 @@ const ownershipMigrationNames = [
 
 describe("projection migrations", () => {
   let testDirectory: string | undefined;
+  const clients: Client[] = [];
+  function fixtureClient(url: string): Client {
+    const { client } = createSqliteDatabase({ url, schema: {} });
+    clients.push(client);
+    return client;
+  }
 
   afterEach(async () => {
+    await Promise.all(clients.splice(0).map(closeSqliteClient));
     if (testDirectory) {
       await rm(testDirectory, { recursive: true, force: true });
       testDirectory = undefined;
@@ -68,7 +79,7 @@ describe("projection migrations", () => {
       migrationsFolder: legacyMigrations,
     });
 
-    const legacyClient = createClient({ url: databaseUrl });
+    const legacyClient = fixtureClient(databaseUrl);
     await legacyClient.execute({
       sql: `INSERT INTO entities
         (id, entityType, content, contentHash, visibility, metadata, created, updated)
@@ -104,6 +115,7 @@ describe("projection migrations", () => {
     if (exitCode !== 0) throw new Error(stderr);
 
     const connection = createEntityDatabase({ url: databaseUrl });
+    clients.push(connection.client);
     const store = new ProjectionStore(connection.db);
 
     expect(await store.listPendingInputs()).toEqual([
@@ -151,7 +163,7 @@ describe("projection migrations", () => {
       migrationsFolder: legacyMigrations,
     });
 
-    const legacyClient = createClient({ url: databaseUrl });
+    const legacyClient = fixtureClient(databaseUrl);
     for (const [id, updated] of [
       ["derived-skill", 90],
       ["pending-ordinary-skill", 95],
@@ -247,11 +259,12 @@ describe("projection migrations", () => {
         30,
       ],
     });
-    legacyClient.close();
+    await closeSqliteClient(legacyClient);
 
     await migrateEntities({ url: databaseUrl });
     await migrateEntities({ url: databaseUrl });
     const connection = createEntityDatabase({ url: databaseUrl });
+    clients.push(connection.client);
     const store = new ProjectionStore(connection.db);
 
     expect(
@@ -273,6 +286,6 @@ describe("projection migrations", () => {
       }),
     ).toBe(false);
 
-    connection.client.close();
+    await closeSqliteClient(connection.client);
   });
 });

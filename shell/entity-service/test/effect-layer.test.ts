@@ -36,7 +36,8 @@ async function expectClientClosed(promise: Promise<unknown>): Promise<void> {
     (closeError instanceof Error && closeError.cause
       ? String(closeError.cause)
       : "");
-  expect(errorText).toMatch(/driver is clos(?:ed|ing)/);
+  // The service now fences admission before any database readiness/read work.
+  expect(errorText).toBe("Error: Entity service is closed");
 }
 
 function createLayerOptions(database: TestDatabase): TestLayerOptions {
@@ -62,9 +63,11 @@ function createLayerOptions(database: TestDatabase): TestLayerOptions {
 describe("entity-service Effect layer", () => {
   const scopes: Scope.CloseableScope[] = [];
   const databaseCleanups: Array<() => Promise<void>> = [];
+  const ownerCloses: Array<() => Promise<void>> = [];
 
   afterEach(async () => {
     for (const scope of scopes.splice(0).reverse()) closeScope(scope);
+    for (const close of ownerCloses.splice(0).reverse()) await close();
     for (const cleanup of databaseCleanups.splice(0).reverse()) await cleanup();
   });
 
@@ -99,6 +102,12 @@ describe("entity-service Effect layer", () => {
     );
     const first = Context.get(firstContext, EntityServiceTag);
     const second = Context.get(secondContext, EntityServiceTag);
+    if (!(first instanceof EntityService) || !(second instanceof EntityService))
+      throw new Error("Expected local database owners");
+    ownerCloses.push(
+      () => first.closeAsync(),
+      () => second.closeAsync(),
+    );
 
     expect(first).not.toBe(second);
     await first.initialize();
@@ -126,6 +135,7 @@ describe("entity-service Effect layer", () => {
     const database = await createDatabase();
     const options = createLayerOptions(database);
     const service = EntityService.createFresh(options);
+    ownerCloses.push(() => service.closeAsync());
     await service.initialize();
     let closeCalls = 0;
     const closeService = service.close.bind(service);
@@ -162,6 +172,9 @@ describe("entity-service Effect layer", () => {
       Layer.buildWithScope(createEntityServiceLayer(options), scope),
     );
     const service = Context.get(context, EntityServiceTag);
+    if (!(service instanceof EntityService))
+      throw new Error("Expected local database owner");
+    ownerCloses.push(() => service.closeAsync());
 
     closeScope(scope);
     try {

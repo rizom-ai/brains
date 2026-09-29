@@ -149,7 +149,7 @@ The system tool builds its input schema from registered report definitions after
 - Rename `system_insights` to `system_analytics`.
 - Rename core files/types from insights to analytics where low risk.
 - Keep current behavior: `{ type }` only.
-- Update Rover evals and system instructions.
+- Update canonical professional-posture evals and system instructions.
 - Do not keep a tool alias unless a compatibility need appears before implementation.
 
 ### Phase 2 — Registry definitions with params
@@ -180,7 +180,7 @@ Note that this phase changes the plugin SDK surface, not just core: the
 
 - Move `analytics_query` behavior into `system_analytics` via `traffic-overview` params or a more specific `traffic-query` report.
 - Decide whether to remove `analytics_query` cleanly or leave it as a plugin-local CLI/admin affordance only.
-- Ensure no duplicate LLM-callable traffic analytics surface remains in Rover.
+- Ensure no duplicate LLM-callable traffic analytics surface remains in the professional posture.
 
 ### Phase 4 — Tighten report quality
 
@@ -222,7 +222,7 @@ Required checks:
 - core system analytics tests for name, metadata, visibility filtering, and built-in reports;
 - plugin registration tests for typed plugin reports;
 - analytics plugin tests proving Cloudflare params are visible and validated through `system_analytics`;
-- Rover eval updates for:
+- Canonical professional-posture eval updates for:
   - general content overview uses `system_list`, not `system_analytics`;
   - metrics/cadence/health requests use `system_analytics`;
   - traffic requests use the Cloudflare-backed analytics report when configured.

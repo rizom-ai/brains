@@ -131,9 +131,9 @@ describe("Studio page-head normalization", () => {
   });
 
   it("compiles the approved heading hierarchy and keeps primary actions in the head at both widths", async () => {
-    const css = await Bun.file(
-      new URL("../../dist/ui/studio-app.css", import.meta.url),
-    ).text();
+    const { readStudioStylesheet } =
+      await import("../../test/ui-asset-fixture");
+    const css = await readStudioStylesheet();
     expect(css).toContain("-webkit-line-clamp:2");
     for (const [width, size] of [
       [1440, "36px"],

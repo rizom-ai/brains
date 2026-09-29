@@ -31,7 +31,7 @@ import { MCPInterface } from "@brains/mcp";
 // For STDIO transport
 const stdioInterface = new MCPInterface({
   transport: "stdio",
-  mode: "basic", // default: read-only query tools + chat/confirm
+  mode: "basic", // default: chat/confirm only
 });
 
 // For authenticated HTTP transport
@@ -44,6 +44,34 @@ const httpInterface = new MCPInterface({
 // Register with shell
 await shell.registerPlugin(stdioInterface);
 ```
+
+### Protocol registration without a transport host
+
+`MCPInterface` implements `ProtocolPluginProvider`. Its `createProtocolPlugin()`
+returns a fresh `MCPProtocol` plugin with the same identity, protocol mode, and
+shared `chat`/`confirm` handlers, but no HTTP routes, endpoint advertisements, or
+listener daemon. Install either the hosted interface or its protocol plugin, not
+both under the same `mcp` identity.
+
+The embedding connects SDK transports to permission-scoped servers created by the
+shell's MCP service. It owns connection cleanup and must supply trusted caller
+context; protocol-only registration is not an authentication bypass for remote
+clients. Hosted HTTP still requires webserver and retains its authentication and
+debug-mode checks.
+
+The evaluator uses this registration path for `--mcp-basic`. It does not change
+transport configuration, restore a production webserver, or open stdio. From
+`packages/brain-cli`, run the protocol-specific regression with:
+
+```bash
+bun run eval:personal --mcp-basic --test mcp-long-note-update --skip-llm-judge
+```
+
+Protocol evals assert what MCP actually exposes. A confirmation contains the
+pending action and summary, not the agent's internal read-call trace. The
+long-note protocol case checks exact pending edits, unchanged storage after
+cancellation, and exact saved content and metadata after approval. In-memory
+protocol evals do not cover HTTP authentication, proxy deadlines, or Cloudflare.
 
 ### Transport Implementations
 
@@ -150,20 +178,20 @@ interface MCPConfig {
 }
 ```
 
-`basic` mode is the default and is suitable for remote callers. It exposes raw
-read-only query tools plus:
+`basic` mode is the default and is suitable for remote callers. It exposes only
+the conversational adapters:
 
 - `chat` — routes commands/reasoned requests through the brain agent
 - `confirm` — resolves pending confirmations returned by `chat`
 
-Use raw query tools such as `search`, `get`, `list`, and `job_status` for cheap
-structured reads. Use `chat` for any create/update/delete request so the brain's
-system prompt, permissions, and confirmation flow stay in the loop. Successful
+Every request — reads included — goes through `chat` so the brain's system
+prompt, context, permissions, and confirmation flow stay in the loop. Successful
 `chat`/`confirm` responses include the agent text and may include `toolResults`
-and `readYourWrites` handles with entity IDs and job IDs to fetch or poll. For
-non-public saves, ask for team/shared visibility or private/Admin-only
+and `readYourWrites` handles with entity IDs and job IDs. In basic mode, ask
+through `chat` to retrieve or poll those results. For non-public saves, ask for
+team/shared visibility or private/Admin-only
 visibility explicitly; the agent maps those requests to the canonical
-`system_create.visibility` field while basic mode continues to hide raw writes.
+`system_create.visibility` field while basic mode continues to hide raw tools.
 
 `debug` mode preserves raw tool exposure for local inspection. It requires
 `admin` permissions and is refused for unauthenticated HTTP transport.
@@ -245,14 +273,15 @@ describe("StreamableHTTPServer", () => {
 
 ## MCP Tools
 
-In `basic` mode, the interface exposes raw read-only query tools from the shell
-plus the MCP interface tools:
+In `basic` mode, the interface exposes only the MCP interface tools:
 
 - `chat` - Route commands and reasoned requests through the brain agent
 - `confirm` - Confirm or deny a pending action returned by `chat`
 
-Raw write tools are not advertised in `basic` mode. Use `debug` mode only for
-local/operator inspection when you intentionally need raw tool access.
+Raw tools — reads and writes alike — are not advertised in `basic` mode. Use
+`debug` mode only for local/operator inspection when you intentionally need raw
+tool access (raw reads such as `system_search`, `system_get`, `system_list`, and
+`system_job_status` included).
 
 ## Exports
 

@@ -1,10 +1,17 @@
 import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
+import { createTestEntity } from "./fixtures";
 import type {
   AssetStat,
   AssetVerification,
   BaseEntity,
   EntityMutationResult,
+  EntityWriteSnapshot,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
+  EntityGroupingCatalog,
+  EntityGroupingUsage,
+  EntityGroupingMembers,
   IEntityService,
   SearchResult,
 } from "../index";
@@ -14,10 +21,15 @@ import type {
  */
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
+  getEntityWriteSnapshot?: EntityWriteSnapshot | null;
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
+  queryEntityHierarchy?: EntityHierarchyPage;
+  queryGroupingCatalog?: EntityGroupingCatalog;
+  queryGroupingMembers?: EntityGroupingMembers;
+  queryGroupingUsage?: EntityGroupingUsage;
   search?: SearchResult[];
   countEntities?: number;
   readAsset?: Uint8Array;
@@ -33,6 +45,22 @@ const mutationResult = (
     jobId: "mock-job-id",
     skipped: false,
   };
+
+/** The fields a write guard inspects, filled in the way persistence would. */
+function writtenEntity(entity: {
+  entityType: string;
+  id?: string | undefined;
+  content?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  visibility?: BaseEntity["visibility"] | undefined;
+}): BaseEntity {
+  return createTestEntity(entity.entityType, {
+    id: entity.id ?? "mock-entity-id",
+    ...(entity.content !== undefined && { content: entity.content }),
+    ...(entity.metadata && { metadata: entity.metadata }),
+    ...(entity.visibility && { visibility: entity.visibility }),
+  });
+}
 
 /**
  * Options for creating a mock entity service
@@ -109,10 +137,37 @@ export function createMockEntityService(
     Promise.resolve(returns.search ?? []),
   );
 
-  return {
+  const service: IEntityService = {
+    getEntityWriteSnapshot: mock(
+      async () => returns.getEntityWriteSnapshot ?? null,
+    ),
+    areGroupingsReady: mock(() => true),
+    ensureGroupingsReady: mock(async () => service.areGroupingsReady()),
+    reprojectRegisteredGroupings: mock(async () => {}),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
+    queryEntityHierarchy: mock(
+      async (
+        request: QueryEntityHierarchyRequest,
+      ): Promise<EntityHierarchyPage> =>
+        returns.queryEntityHierarchy ?? {
+          prefix: request.prefix ? [...request.prefix] : null,
+          folders: [],
+          entities: [],
+          offset: request.offset ?? 0,
+          totalEntities: 0,
+        },
+    ),
+    queryGroupingCatalog: mock(
+      async () => returns.queryGroupingCatalog ?? { values: [], total: 0 },
+    ),
+    queryGroupingMembers: mock(
+      async () => returns.queryGroupingMembers ?? { entities: [], total: 0 },
+    ),
+    queryGroupingUsage: mock(
+      async () => returns.queryGroupingUsage ?? { entries: 0, values: [] },
+    ),
     search: genericSpy<IEntityService["search"]>(searchMock),
     readAsset: mock(() =>
       Promise.resolve(Uint8Array.from(returns.readAsset ?? [])),
@@ -130,15 +185,19 @@ export function createMockEntityService(
       return Promise.resolve(returns.verifyAsset);
     }),
 
-    createEntity: mock(() =>
-      Promise.resolve(mutationResult(returns.createEntity)),
-    ),
+    // The real mutations run beforeWrite inside the write transaction, so a
+    // guard that throws there must also prevent a mocked write from recording.
+    createEntity: mock(async (request) => {
+      await request.options?.beforeWrite?.(writtenEntity(request.entity));
+      return mutationResult(returns.createEntity);
+    }),
     createEntityFromMarkdown: mock(() =>
       Promise.resolve(mutationResult(undefined)),
     ),
-    updateEntity: mock(() =>
-      Promise.resolve(mutationResult(returns.updateEntity)),
-    ),
+    updateEntity: mock(async (request) => {
+      await request.options?.beforeWrite?.(writtenEntity(request.entity));
+      return mutationResult(returns.updateEntity);
+    }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     upsertEntity: mock(() =>
       Promise.resolve({ ...mutationResult(undefined), created: false }),
@@ -220,4 +279,5 @@ export function createMockEntityService(
     },
     initialize: mock(() => Promise.resolve()),
   } satisfies IEntityService;
+  return service;
 }

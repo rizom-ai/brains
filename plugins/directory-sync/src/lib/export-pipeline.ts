@@ -25,6 +25,7 @@ export interface ExportPipelineDeps {
   };
   logger: Logger;
   fileOperations: {
+    assertEntityPlacement(entity: BaseEntity): void;
     getEntityFilePath(entity: BaseEntity): string;
     fileExists(filePath: string): Promise<boolean>;
     writeEntity(entity: BaseEntity): Promise<void>;
@@ -79,6 +80,8 @@ export async function processEntityExport(
   entity: BaseEntity,
 ): Promise<EntityExportResult> {
   try {
+    // A refused ID has no exportable file; absence must not delete its row.
+    deps.fileOperations.assertEntityPlacement(entity);
     const filePath = deps.fileOperations.getEntityFilePath(entity);
     if (!(await deps.fileOperations.fileExists(filePath))) {
       if (deps.deleteOnFileRemoval) {

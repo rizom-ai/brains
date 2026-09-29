@@ -11,7 +11,14 @@ if (root) {
   const queryClient = createWebChatQueryClient();
   createRoot(root).render(
     <QueryClientProvider client={queryClient}>
-      {root.hasAttribute("data-guest-chat") ? <GuestApp /> : <App />}
+      {root.hasAttribute("data-guest-chat") ? (
+        <GuestApp
+          name={root.getAttribute("data-guest-name") ?? "the Brain"}
+          siteLabel={root.getAttribute("data-guest-label") ?? "Brain"}
+        />
+      ) : (
+        <App />
+      )}
     </QueryClientProvider>,
   );
 }

@@ -34,6 +34,8 @@ describe("SourcesPart", () => {
     expect(markup).toContain("Resilience Is Not Redundancy");
     expect(markup).toContain("post · resilience");
     expect(markup).toContain("score 0.91");
+    // A host page can point at the source it cites.
+    expect(markup).toContain('data-ask-source="post:resilience"');
     expect(markup).toContain(
       "More replicas alone do not make a system resilient.",
     );

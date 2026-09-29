@@ -1,7 +1,19 @@
 import type {
   RuntimeStudioWorkspaceData,
   UserPermissionLevel,
+  EntityIdPath,
+  EntityIdPathInput,
+  EntityGroupingUsage,
 } from "@brains/plugins";
+import {
+  studioGroupingQuerySchema,
+  studioGroupingUsageQuerySchema,
+  type StudioGroupingQuery,
+} from "../../src/grouping-query";
+import type {
+  StudioGrouping,
+  GroupingDefinitionIssue,
+} from "../../src/grouping-definitions-contract";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   studioCollectionQuerySchema,
@@ -14,24 +26,12 @@ import {
  * an authenticated browser session.
  */
 
-export interface StudioTypeCapabilities {
-  canRead: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canExtract: boolean;
-  canPublish: boolean;
-  canAssist: boolean;
-}
+import type { StudioEntityTypeInfo } from "../../src/editor-contracts";
 
-export interface EntityTypeInfo {
-  entityType: string;
-  label: string;
-  isSingleton: boolean;
-  hasBody: boolean;
-  count: number;
-  capabilities: StudioTypeCapabilities;
-}
+export type { StudioTypeCapabilities } from "../../src/editor-contracts";
+export type { StudioTypeHierarchy } from "../../src/config";
+/** One entity type in Studio's type list, as the server describes it. */
+export type EntityTypeInfo = StudioEntityTypeInfo;
 
 export interface StudioWorkspaceInfo {
   id: string;
@@ -54,6 +54,7 @@ export interface StudioWorkspaceInfo {
 }
 
 export interface StudioNavigation {
+  groupings: StudioGrouping[];
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
 }
@@ -108,6 +109,10 @@ export interface FieldDescriptor {
 }
 
 export interface TypeSchema {
+  groupingDefinitions?: {
+    contributorTypes: Array<{ entityType: string; label: string }>;
+    issues: GroupingDefinitionIssue[];
+  };
   entityType: string;
   format: "raw" | "frontmatter";
   isSingleton: boolean;
@@ -122,9 +127,33 @@ export interface EntitySummary {
   entityType: string;
   frontmatter: Record<string, unknown>;
   updated: string;
+  path?: EntityIdPath;
+}
+
+export interface EntityFolder {
+  path: EntityIdPath;
+  name: string;
+  descendantCount: number;
+}
+
+export interface DestinationInput {
+  entityType: string;
+  idPath: EntityIdPathInput;
+  frontmatter: Record<string, unknown>;
+  body?: string;
+}
+
+export interface DestinationPreview {
+  idPath: EntityIdPath;
+  entityId: string;
+  entityLeaf: { start: number; end: number };
+  filePath: string | null;
+  fileLeaf: { start: number; end: number } | null;
 }
 
 export interface EntityPage {
+  prefix?: EntityIdPath | null;
+  folders?: EntityFolder[];
   entities: EntitySummary[];
   /** Count after applying the same filters and visibility scope as the page. */
   total: number;
@@ -165,14 +194,35 @@ export interface ValidationIssue {
   message: string;
 }
 
+export type GroupingPage = { grouping?: StudioGrouping } & (
+  | {
+      kind: "catalog";
+      values: Array<{ value: string; count: number }>;
+      total: number;
+    }
+  | { kind: "members"; entities: EntitySummary[]; total: number }
+);
+
 export class ApiError extends Error {
   readonly status: number;
   readonly issues: ValidationIssue[];
+  readonly code: string | undefined;
+  readonly retryAfterMs: number | undefined;
 
-  constructor(status: number, message: string, issues: ValidationIssue[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    issues: ValidationIssue[] = [],
+    details: {
+      code?: string | undefined;
+      retryAfterMs?: number | undefined;
+    } = {},
+  ) {
     super(message);
     this.status = status;
     this.issues = issues;
+    this.code = details.code;
+    this.retryAfterMs = details.retryAfterMs;
   }
 }
 
@@ -185,9 +235,10 @@ export function studioApiPath(suffix: string, routePath: string): string {
 function apiErrorPayload(payload: unknown): {
   error: string | undefined;
   issues: ValidationIssue[];
+  code: string | undefined;
 } {
   if (typeof payload !== "object" || payload === null) {
-    return { error: undefined, issues: [] };
+    return { error: undefined, issues: [], code: undefined };
   }
   const error =
     "error" in payload && typeof payload.error === "string"
@@ -203,7 +254,14 @@ function apiErrorPayload(payload: unknown): {
             typeof issue.message === "string",
         )
       : [];
-  return { error, issues };
+  return {
+    error,
+    issues,
+    code:
+      "code" in payload && typeof payload.code === "string"
+        ? payload.code
+        : undefined,
+  };
 }
 
 export type FieldAssistResponse =
@@ -258,6 +316,12 @@ export class StudioApi {
         response.status,
         details.error ?? response.statusText,
         details.issues,
+        {
+          code: details.code,
+          retryAfterMs: response.headers.has("Retry-After")
+            ? Number(response.headers.get("Retry-After")) * 1000
+            : undefined,
+        },
       );
     }
     return payload;
@@ -267,8 +331,71 @@ export class StudioApi {
     const response = await this.requestJson<{
       types: EntityTypeInfo[];
       workspaces?: StudioWorkspaceInfo[];
+      groupings?: StudioGrouping[];
     }>(this.path("types"));
-    return { types: response.types, workspaces: response.workspaces ?? [] };
+    return {
+      types: response.types,
+      workspaces: response.workspaces ?? [],
+      // An older server has no groupings; that is no reason to fail navigation.
+      groupings: response.groupings ?? [],
+    };
+  }
+
+  async fetchGrouping(
+    grouping: string,
+    query: StudioGroupingQuery,
+    signal: AbortSignal,
+  ): Promise<GroupingPage> {
+    const input = studioGroupingQuerySchema.parse(query);
+    const params = new URLSearchParams({
+      grouping,
+      offset: String(input.offset),
+      limit: String(input.limit),
+    });
+    if (input.type) params.set("type", input.type);
+    if (input.value === null) {
+      const result = await this.requestJson<{
+        grouping: StudioGrouping;
+        values: Array<{ value: string; count: number }>;
+        total: number;
+      }>(this.path(`groups/catalog?${params}`), { signal });
+      return {
+        kind: "catalog",
+        values: result.values,
+        total: result.total,
+        grouping: result.grouping,
+      };
+    }
+    params.set("value", input.value);
+    params.set("q", input.q);
+    params.set("sort", input.sort);
+    const result = await this.requestJson<{
+      entities: EntitySummary[];
+      total: number;
+      grouping: StudioGrouping;
+    }>(this.path(`groups/members?${params}`), { signal });
+    return {
+      kind: "members",
+      entities: result.entities,
+      total: result.total,
+      grouping: result.grouping,
+    };
+  }
+
+  /** One bounded value-count batch; entries is already distinct, never sum it. */
+  async fetchGroupingUsage(
+    grouping: string,
+    values: readonly string[],
+    signal: AbortSignal,
+  ): Promise<EntityGroupingUsage> {
+    signal.throwIfAborted();
+    const input = studioGroupingUsageQuerySchema.parse({ grouping, values });
+    const params = new URLSearchParams({ grouping: input.grouping });
+    for (const value of input.values) params.append("value", value);
+    return this.requestJson<EntityGroupingUsage>(
+      this.path(`groups/usage?${params}`),
+      { signal },
+    );
   }
 
   async fetchTypes(): Promise<EntityTypeInfo[]> {
@@ -320,13 +447,27 @@ export class StudioApi {
       offset: String(page.offset),
       limit: String(page.limit),
     });
+    if (page.prefix) params.set("prefix", JSON.stringify(page.prefix));
+    if (page.scope !== "folder") params.set("scope", page.scope);
     if (page.q) params.set("q", page.q);
     if (page.visibility !== "all") params.set("visibility", page.visibility);
     if (page.status) params.set("status", page.status);
     if (page.sort !== "updated-desc") params.set("sort", page.sort);
     return this.requestJson<EntityPage>(
-      this.path(`entities?${params.toString()}`),
+      this.path(`hierarchy?${params.toString()}`),
     );
+  }
+
+  async fetchImagePreview(id: string, signal: AbortSignal): Promise<string> {
+    const { source } = await this.requestJson<{ source: unknown }>(
+      this.path(`images?id=${encodeURIComponent(id)}`),
+      { signal },
+    );
+    const expected = this.path(
+      `images?${new URLSearchParams({ id, format: "source" })}`,
+    );
+    if (source !== expected) throw new Error("Invalid Studio image source URL");
+    return expected;
   }
 
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {
@@ -356,8 +497,21 @@ export class StudioApi {
     });
   }
 
+  async previewDestination(
+    input: DestinationInput,
+    signal?: AbortSignal,
+  ): Promise<DestinationPreview> {
+    return this.requestJson<DestinationPreview>(this.path("destination"), {
+      ...(signal && { signal }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  }
+
   async createEntity(input: {
     entityType: string;
+    idPath?: EntityIdPathInput;
     frontmatter: Record<string, unknown>;
     body?: string;
   }): Promise<{ entityId: string; jobId: string }> {

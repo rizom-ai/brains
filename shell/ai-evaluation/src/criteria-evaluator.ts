@@ -38,6 +38,7 @@ export function evaluateCriteria(
     ...evaluateExpectedTools(criteria, toolCalls),
     ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
+    ...evaluateResponseEquals(criteria, response.text),
     ...evaluateResponseContains(criteria, response.text),
     ...evaluateResponseContainsAny(criteria, response.text),
     ...evaluateResponseNotContains(criteria, response.text),
@@ -190,6 +191,21 @@ function evaluateExpectedTools(
           expected.toolName,
           expected.argsAbsent,
           matchingCalls,
+        ),
+      );
+    }
+
+    if (expected.resultContains) {
+      const selectedCalls = expected.argsContain
+        ? matchingCalls.filter((toolCall) =>
+            argsContainMatches(toolCall.args, expected.argsContain ?? {}),
+          )
+        : matchingCalls;
+      results.push(
+        ...evaluateResultContains(
+          expected.toolName,
+          expected.resultContains,
+          selectedCalls,
         ),
       );
     }
@@ -367,6 +383,31 @@ function evaluateArgsContain(
   return results;
 }
 
+function evaluateResultContains(
+  toolName: string,
+  expectedValues: Record<string, unknown>,
+  matchingCalls: ToolCallRecord[],
+): CriteriaEvaluationResult[] {
+  return Object.entries(expectedValues).map(([path, expected]) => {
+    const actual = matchingCalls.map((call) => {
+      const parsed = recordSchema.safeParse(call.result);
+      return parsed.success ? resolveDottedPath(parsed.data, path) : undefined;
+    });
+    const passed =
+      actual.length > 0 &&
+      actual.every((value) => Bun.deepEquals(value, expected));
+    return {
+      criterion: "toolResultContains",
+      expected: { toolName, path, value: expected },
+      actual,
+      passed,
+      ...(passed
+        ? {}
+        : { message: `Tool result mismatch for ${toolName}.${path}` }),
+    };
+  });
+}
+
 /** Error text of a refused tool call, or undefined when it did not refuse. */
 function refusalErrorText(result: unknown): string | undefined {
   if (typeof result !== "object" || result === null) return undefined;
@@ -484,6 +525,26 @@ function evaluateToolCountRange(
   }
 
   return results;
+}
+
+function evaluateResponseEquals(
+  criteria: SuccessCriteria,
+  responseText: string,
+): CriteriaEvaluationResult[] {
+  if (criteria.responseEquals === undefined) return [];
+
+  const passed = responseText === criteria.responseEquals;
+  return [
+    {
+      criterion: "responseEquals",
+      expected: criteria.responseEquals,
+      actual: responseText,
+      ...(passed
+        ? {}
+        : { message: "Response does not exactly match expected text" }),
+      passed,
+    },
+  ];
 }
 
 function evaluateResponseContains(

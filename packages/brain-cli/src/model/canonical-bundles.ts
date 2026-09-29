@@ -25,6 +25,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "profile",
     "prompt",
     "style-guide",
+    "ask-content",
     "directory-sync",
     "note",
     "link",
@@ -55,6 +56,19 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
     {
       member: "mcp",
       config: { rules: [{ pattern: "mcp:http", level: "public" }] },
+    },
+    {
+      member: "studio",
+      config: {
+        entityActions: {
+          "grouping-definitions": {
+            create: "admin",
+            update: "admin",
+            delete: "admin",
+            publish: "never",
+          },
+        },
+      },
     },
   ],
   evalDisable: ["webserver", "dashboard"],

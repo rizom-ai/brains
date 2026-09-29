@@ -7,32 +7,44 @@ import type { DirectorySyncOperationStatusService } from "./directory-sync-opera
 import { copySeedContentIfNeeded } from "./seed-content";
 import { validateSeedContentEntityTypes } from "./file-discovery";
 
+export interface InitialSyncRecovery {
+  onGitProgress(): void;
+  onGitRecoverySucceeded(): Promise<void>;
+  onGitRecoveryFailed(error: unknown): Promise<void>;
+}
+
+export interface InitialSyncOptions {
+  context: ServicePluginContext;
+  getDirectorySync: () => IDirectorySync;
+  config: DirectorySyncConfig;
+  logger: Logger;
+  settlePendingExports: () => Promise<void>;
+  gitSync?: IGitSync | undefined;
+  reconciliation?:
+    | Pick<GitReconciliationService, "captureCurrent" | "saveCheckpoint">
+    | undefined;
+  recovery?: InitialSyncRecovery | undefined;
+  operationStatus?:
+    Pick<DirectorySyncOperationStatusService, "addImportResult"> | undefined;
+}
+
 /**
  * Wire up initial-sync orchestration: subscribe to startup messages,
  * optionally copy seed content, import files synchronously, then broadcast
  * SYSTEM_CHANNELS.initialSyncCompleted.
  */
-export function setupInitialSync(
-  context: ServicePluginContext,
-  getDirectorySync: () => IDirectorySync,
-  config: DirectorySyncConfig,
-  logger: Logger,
-  settlePendingExports: () => Promise<void>,
-  gitSync?: IGitSync,
-  reconciliation?: Pick<
-    GitReconciliationService,
-    "captureCurrent" | "saveCheckpoint"
-  >,
-  recovery?: {
-    onGitProgress(): void;
-    onGitRecoverySucceeded(): Promise<void>;
-    onGitRecoveryFailed(error: unknown): Promise<void>;
-  },
-  operationStatus?: Pick<
-    DirectorySyncOperationStatusService,
-    "addImportResult"
-  >,
-): void {
+export function setupInitialSync(options: InitialSyncOptions): void {
+  const {
+    context,
+    getDirectorySync,
+    config,
+    logger,
+    settlePendingExports,
+    gitSync,
+    reconciliation,
+    recovery,
+    operationStatus,
+  } = options;
   let initialSyncStarted = false;
 
   const runInitialSync = async (): Promise<void> => {

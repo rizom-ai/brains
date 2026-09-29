@@ -71,19 +71,19 @@ describe("setupInitialSync with git", () => {
       saveCheckpoint: mock(async () => {}),
     };
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      async () => {
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: async () => {
         settlementStarted.resolve();
         await settlement.promise;
         callOrder.push("settle-exports");
       },
-      gs,
+      gitSync: gs,
       reconciliation,
-    );
+    });
 
     const initialSync = context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -148,17 +148,16 @@ describe("setupInitialSync with git", () => {
       }),
     };
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-      gs,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+      gitSync: gs,
       reconciliation,
-      undefined,
       operationStatus,
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -187,15 +186,15 @@ describe("setupInitialSync with git", () => {
       saveCheckpoint: mock(async () => {}),
     };
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => createMockDirectorySync(),
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-      gs,
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+      gitSync: gs,
       reconciliation,
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -225,20 +224,19 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => createMockDirectorySync(),
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-      gs,
-      undefined,
-      {
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+      gitSync: gs,
+      recovery: {
         onGitProgress,
         onGitRecoverySucceeded,
         onGitRecoveryFailed,
       },
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -259,13 +257,13 @@ describe("setupInitialSync with git", () => {
     }));
     const ds = createMockDirectorySync({ sync: syncMock });
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-    );
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -280,14 +278,14 @@ describe("setupInitialSync with git", () => {
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-      gs,
-    );
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+      gitSync: gs,
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -310,14 +308,14 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-      gs,
-    );
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+      gitSync: gs,
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -343,13 +341,13 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      settleNoPendingExports,
-    );
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      settlePendingExports: settleNoPendingExports,
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,

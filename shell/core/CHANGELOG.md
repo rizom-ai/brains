@@ -1,5 +1,941 @@
 # @brains/core
 
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.430
+  - @brains/image@0.2.0-alpha.430
+  - @brains/operation-context@0.2.0-alpha.430
+  - @brains/site-composition@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/plugins@0.2.0-alpha.430
+  - @brains/recurring-checks@0.2.0-alpha.430
+  - @brains/runtime-state@0.2.0-alpha.430
+  - @brains/scheduler@0.2.0-alpha.430
+  - @brains/templates@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/image@0.2.0-alpha.429
+  - @brains/operation-context@0.2.0-alpha.429
+  - @brains/site-composition@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+  - @brains/recurring-checks@0.2.0-alpha.429
+  - @brains/runtime-state@0.2.0-alpha.429
+  - @brains/scheduler@0.2.0-alpha.429
+  - @brains/templates@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.428
+  - @brains/image@0.2.0-alpha.428
+  - @brains/operation-context@0.2.0-alpha.428
+  - @brains/site-composition@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/plugins@0.2.0-alpha.428
+  - @brains/recurring-checks@0.2.0-alpha.428
+  - @brains/runtime-state@0.2.0-alpha.428
+  - @brains/scheduler@0.2.0-alpha.428
+  - @brains/templates@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.427
+  - @brains/image@0.2.0-alpha.427
+  - @brains/operation-context@0.2.0-alpha.427
+  - @brains/site-composition@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/plugins@0.2.0-alpha.427
+  - @brains/recurring-checks@0.2.0-alpha.427
+  - @brains/runtime-state@0.2.0-alpha.427
+  - @brains/scheduler@0.2.0-alpha.427
+  - @brains/templates@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.426
+  - @brains/image@0.2.0-alpha.426
+  - @brains/operation-context@0.2.0-alpha.426
+  - @brains/site-composition@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/plugins@0.2.0-alpha.426
+  - @brains/recurring-checks@0.2.0-alpha.426
+  - @brains/runtime-state@0.2.0-alpha.426
+  - @brains/scheduler@0.2.0-alpha.426
+  - @brains/templates@0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- Updated dependencies [[`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c), [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2), [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f), [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f)]:
+  - @brains/plugins@0.2.0-alpha.425
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/image@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+  - @brains/site-composition@0.2.0-alpha.425
+  - @brains/recurring-checks@0.2.0-alpha.425
+  - @brains/runtime-state@0.2.0-alpha.425
+  - @brains/scheduler@0.2.0-alpha.425
+  - @brains/templates@0.2.0-alpha.425
+  - @brains/operation-context@0.2.0-alpha.425
+
+## 0.2.0-alpha.424
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.424
+  - @brains/image@0.2.0-alpha.424
+  - @brains/operation-context@0.2.0-alpha.424
+  - @brains/site-composition@0.2.0-alpha.424
+  - @brains/utils@0.2.0-alpha.424
+  - @brains/plugins@0.2.0-alpha.424
+  - @brains/recurring-checks@0.2.0-alpha.424
+  - @brains/runtime-state@0.2.0-alpha.424
+  - @brains/scheduler@0.2.0-alpha.424
+  - @brains/templates@0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.423
+  - @brains/image@0.2.0-alpha.423
+  - @brains/operation-context@0.2.0-alpha.423
+  - @brains/site-composition@0.2.0-alpha.423
+  - @brains/utils@0.2.0-alpha.423
+  - @brains/plugins@0.2.0-alpha.423
+  - @brains/recurring-checks@0.2.0-alpha.423
+  - @brains/runtime-state@0.2.0-alpha.423
+  - @brains/scheduler@0.2.0-alpha.423
+  - @brains/templates@0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add exact-match `edits` to agent-backed `system_update` so small changes do not require regenerating an entire document. Reject missing, ambiguous, overlapping, and mixed-mode edits; preserve confirmation and content-conflict protection. Refresh changed source-derived metadata so a note heading edit also updates its title. Reject entity updates that supply both fields and content instead of silently discarding content. Align confirmation preview lines so insertions and deletions do not mark an unchanged suffix as rewritten, and preserve visible blank-line changes. Add long-note coverage for exact content and backslash preservation through confirmation.
+
+  Add agent evals for 7, 14, and 17 KB note edits and combined title/body edits. Exact tool-result assertions verify stored Markdown after cancellation and approval, rather than relying on the assistant's success claims.
+
+- Updated dependencies [[`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319)]:
+  - @brains/plugins@0.2.0-alpha.422
+  - @brains/image@0.2.0-alpha.422
+  - @brains/contracts@0.2.0-alpha.422
+  - @brains/operation-context@0.2.0-alpha.422
+  - @brains/site-composition@0.2.0-alpha.422
+  - @brains/utils@0.2.0-alpha.422
+  - @brains/recurring-checks@0.2.0-alpha.422
+  - @brains/runtime-state@0.2.0-alpha.422
+  - @brains/scheduler@0.2.0-alpha.422
+  - @brains/templates@0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.421
+  - @brains/image@0.2.0-alpha.421
+  - @brains/operation-context@0.2.0-alpha.421
+  - @brains/site-composition@0.2.0-alpha.421
+  - @brains/utils@0.2.0-alpha.421
+  - @brains/plugins@0.2.0-alpha.421
+  - @brains/recurring-checks@0.2.0-alpha.421
+  - @brains/runtime-state@0.2.0-alpha.421
+  - @brains/scheduler@0.2.0-alpha.421
+  - @brains/templates@0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.420
+  - @brains/image@0.2.0-alpha.420
+  - @brains/operation-context@0.2.0-alpha.420
+  - @brains/site-composition@0.2.0-alpha.420
+  - @brains/utils@0.2.0-alpha.420
+  - @brains/plugins@0.2.0-alpha.420
+  - @brains/recurring-checks@0.2.0-alpha.420
+  - @brains/runtime-state@0.2.0-alpha.420
+  - @brains/scheduler@0.2.0-alpha.420
+  - @brains/templates@0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.419
+  - @brains/image@0.2.0-alpha.419
+  - @brains/operation-context@0.2.0-alpha.419
+  - @brains/site-composition@0.2.0-alpha.419
+  - @brains/utils@0.2.0-alpha.419
+  - @brains/plugins@0.2.0-alpha.419
+  - @brains/recurring-checks@0.2.0-alpha.419
+  - @brains/runtime-state@0.2.0-alpha.419
+  - @brains/scheduler@0.2.0-alpha.419
+  - @brains/templates@0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.418
+  - @brains/image@0.2.0-alpha.418
+  - @brains/operation-context@0.2.0-alpha.418
+  - @brains/site-composition@0.2.0-alpha.418
+  - @brains/utils@0.2.0-alpha.418
+  - @brains/plugins@0.2.0-alpha.418
+  - @brains/recurring-checks@0.2.0-alpha.418
+  - @brains/runtime-state@0.2.0-alpha.418
+  - @brains/scheduler@0.2.0-alpha.418
+  - @brains/templates@0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.417
+  - @brains/image@0.2.0-alpha.417
+  - @brains/operation-context@0.2.0-alpha.417
+  - @brains/site-composition@0.2.0-alpha.417
+  - @brains/utils@0.2.0-alpha.417
+  - @brains/plugins@0.2.0-alpha.417
+  - @brains/recurring-checks@0.2.0-alpha.417
+  - @brains/runtime-state@0.2.0-alpha.417
+  - @brains/scheduler@0.2.0-alpha.417
+  - @brains/templates@0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.416
+  - @brains/image@0.2.0-alpha.416
+  - @brains/operation-context@0.2.0-alpha.416
+  - @brains/site-composition@0.2.0-alpha.416
+  - @brains/utils@0.2.0-alpha.416
+  - @brains/plugins@0.2.0-alpha.416
+  - @brains/recurring-checks@0.2.0-alpha.416
+  - @brains/runtime-state@0.2.0-alpha.416
+  - @brains/scheduler@0.2.0-alpha.416
+  - @brains/templates@0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.415
+  - @brains/image@0.2.0-alpha.415
+  - @brains/operation-context@0.2.0-alpha.415
+  - @brains/site-composition@0.2.0-alpha.415
+  - @brains/utils@0.2.0-alpha.415
+  - @brains/plugins@0.2.0-alpha.415
+  - @brains/recurring-checks@0.2.0-alpha.415
+  - @brains/runtime-state@0.2.0-alpha.415
+  - @brains/scheduler@0.2.0-alpha.415
+  - @brains/templates@0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.414
+  - @brains/image@0.2.0-alpha.414
+  - @brains/operation-context@0.2.0-alpha.414
+  - @brains/site-composition@0.2.0-alpha.414
+  - @brains/utils@0.2.0-alpha.414
+  - @brains/plugins@0.2.0-alpha.414
+  - @brains/recurring-checks@0.2.0-alpha.414
+  - @brains/runtime-state@0.2.0-alpha.414
+  - @brains/scheduler@0.2.0-alpha.414
+  - @brains/templates@0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.413
+  - @brains/image@0.2.0-alpha.413
+  - @brains/operation-context@0.2.0-alpha.413
+  - @brains/site-composition@0.2.0-alpha.413
+  - @brains/utils@0.2.0-alpha.413
+  - @brains/plugins@0.2.0-alpha.413
+  - @brains/recurring-checks@0.2.0-alpha.413
+  - @brains/runtime-state@0.2.0-alpha.413
+  - @brains/scheduler@0.2.0-alpha.413
+  - @brains/templates@0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.412
+  - @brains/image@0.2.0-alpha.412
+  - @brains/operation-context@0.2.0-alpha.412
+  - @brains/site-composition@0.2.0-alpha.412
+  - @brains/utils@0.2.0-alpha.412
+  - @brains/plugins@0.2.0-alpha.412
+  - @brains/recurring-checks@0.2.0-alpha.412
+  - @brains/runtime-state@0.2.0-alpha.412
+  - @brains/scheduler@0.2.0-alpha.412
+  - @brains/templates@0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.411
+  - @brains/image@0.2.0-alpha.411
+  - @brains/operation-context@0.2.0-alpha.411
+  - @brains/site-composition@0.2.0-alpha.411
+  - @brains/utils@0.2.0-alpha.411
+  - @brains/plugins@0.2.0-alpha.411
+  - @brains/recurring-checks@0.2.0-alpha.411
+  - @brains/runtime-state@0.2.0-alpha.411
+  - @brains/scheduler@0.2.0-alpha.411
+  - @brains/templates@0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.410
+  - @brains/image@0.2.0-alpha.410
+  - @brains/operation-context@0.2.0-alpha.410
+  - @brains/site-composition@0.2.0-alpha.410
+  - @brains/utils@0.2.0-alpha.410
+  - @brains/plugins@0.2.0-alpha.410
+  - @brains/recurring-checks@0.2.0-alpha.410
+  - @brains/runtime-state@0.2.0-alpha.410
+  - @brains/scheduler@0.2.0-alpha.410
+  - @brains/templates@0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.409
+  - @brains/image@0.2.0-alpha.409
+  - @brains/operation-context@0.2.0-alpha.409
+  - @brains/site-composition@0.2.0-alpha.409
+  - @brains/utils@0.2.0-alpha.409
+  - @brains/plugins@0.2.0-alpha.409
+  - @brains/recurring-checks@0.2.0-alpha.409
+  - @brains/runtime-state@0.2.0-alpha.409
+  - @brains/scheduler@0.2.0-alpha.409
+  - @brains/templates@0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.408
+  - @brains/image@0.2.0-alpha.408
+  - @brains/operation-context@0.2.0-alpha.408
+  - @brains/site-composition@0.2.0-alpha.408
+  - @brains/utils@0.2.0-alpha.408
+  - @brains/plugins@0.2.0-alpha.408
+  - @brains/recurring-checks@0.2.0-alpha.408
+  - @brains/runtime-state@0.2.0-alpha.408
+  - @brains/scheduler@0.2.0-alpha.408
+  - @brains/templates@0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.407
+  - @brains/image@0.2.0-alpha.407
+  - @brains/operation-context@0.2.0-alpha.407
+  - @brains/site-composition@0.2.0-alpha.407
+  - @brains/utils@0.2.0-alpha.407
+  - @brains/plugins@0.2.0-alpha.407
+  - @brains/recurring-checks@0.2.0-alpha.407
+  - @brains/runtime-state@0.2.0-alpha.407
+  - @brains/scheduler@0.2.0-alpha.407
+  - @brains/templates@0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.406
+  - @brains/image@0.2.0-alpha.406
+  - @brains/operation-context@0.2.0-alpha.406
+  - @brains/site-composition@0.2.0-alpha.406
+  - @brains/utils@0.2.0-alpha.406
+  - @brains/plugins@0.2.0-alpha.406
+  - @brains/recurring-checks@0.2.0-alpha.406
+  - @brains/runtime-state@0.2.0-alpha.406
+  - @brains/scheduler@0.2.0-alpha.406
+  - @brains/templates@0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.405
+  - @brains/recurring-checks@0.2.0-alpha.405
+  - @brains/image@0.2.0-alpha.405
+  - @brains/contracts@0.2.0-alpha.405
+  - @brains/operation-context@0.2.0-alpha.405
+  - @brains/site-composition@0.2.0-alpha.405
+  - @brains/utils@0.2.0-alpha.405
+  - @brains/runtime-state@0.2.0-alpha.405
+  - @brains/scheduler@0.2.0-alpha.405
+  - @brains/templates@0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A registered entity type can now carry its own `actionPolicy` floor, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule. Each action preserves the stricter of the type's minimum and the wildcard policy, including `never`; an explicit per-type entry still overrides the result. Primary buttons keep a visible hover cue when motion is reduced. System forms omit empty field sections, including the Groupings reader's empty Access section.
+
+  Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. The vocabulary is always shared so the editors it constrains can read it. Create/update persistence enforces closed lists across Studio, tools, MCP and imports.
+
+  **Derived projection upserts are now validated.** They previously wrote without owner validation or persist validators; they now reconstruct the adapter's fields, project membership from the full source, and run both inside the admitted rule transaction. A rule can no longer write an entity its own type would reject, and supplied metadata cannot invent membership the source does not carry. A refusal rolls back the entire rule result, including export intents and ownership claims, and completed rule reports stay idempotent. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
+
+  Add configurable, visibility-scoped virtual collections across entity types, with source-authoritative frontmatter membership, startup reprojection, and Studio browsing and editor return navigation. Multiple grouping fields and multiple values per field are supported without copying entities or changing file placement.
+
+  Notes use the normal frontmatter/Properties editor while their type participates in any registered grouping, including Notes with no membership. Notes without a grouping retain whole-document Markdown editing. Removing configuration preserves authored fields. Grouping inputs preserve literal commas and whitespace with explicit Enter/Add submission, mark spaces a reader could not otherwise see, and offer the values that already exist so exact matching does not fragment one group into several. Ordinary tag inputs and stored memberships are unchanged.
+
+  **Behaviour change for every frontmatter entity type:** ordinary frontmatter-form saves and entity exports now preserve existing unclaimed, non-policy frontmatter keys instead of dropping them, including inactive grouping fields. Preservation does not authorize arbitrary new form fields, and explicit full-source replacement remains authoritative. Field-update tools author registered extension fields in Markdown and show their actual previous source values in confirmation previews.
+
+  Each registered field is validated against its own schema entry, so frontmatter the entity owner rejects elsewhere in the document no longer removes an entity from its collections. The bounded startup pass runs on each serving start, including after register-only writes with grouping disabled or changed field constraints. It commits metadata updates in bounded 200-row pages instead of one transaction per entity, retaining per-row source/revision checks, bounded conflict retries, and no-resurrection guarantees. Reusable owner fields are compared conservatively without dropping runtime checks. Failed suggestion refetches discard previously readable values, and the empty-value display marker cannot collide with a literal authored name.
+
+- Updated dependencies [[`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b)]:
+  - @brains/utils@0.2.0-alpha.404
+  - @brains/contracts@0.2.0-alpha.404
+  - @brains/plugins@0.2.0-alpha.404
+  - @brains/templates@0.2.0-alpha.404
+  - @brains/image@0.2.0-alpha.404
+  - @brains/site-composition@0.2.0-alpha.404
+  - @brains/recurring-checks@0.2.0-alpha.404
+  - @brains/runtime-state@0.2.0-alpha.404
+  - @brains/scheduler@0.2.0-alpha.404
+  - @brains/operation-context@0.2.0-alpha.404
+
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.403
+  - @brains/image@0.2.0-alpha.403
+  - @brains/operation-context@0.2.0-alpha.403
+  - @brains/site-composition@0.2.0-alpha.403
+  - @brains/utils@0.2.0-alpha.403
+  - @brains/plugins@0.2.0-alpha.403
+  - @brains/recurring-checks@0.2.0-alpha.403
+  - @brains/runtime-state@0.2.0-alpha.403
+  - @brains/scheduler@0.2.0-alpha.403
+  - @brains/templates@0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/image@0.2.0-alpha.402
+  - @brains/operation-context@0.2.0-alpha.402
+  - @brains/site-composition@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/plugins@0.2.0-alpha.402
+  - @brains/recurring-checks@0.2.0-alpha.402
+  - @brains/runtime-state@0.2.0-alpha.402
+  - @brains/scheduler@0.2.0-alpha.402
+  - @brains/templates@0.2.0-alpha.402
+
+## 0.2.0-alpha.401
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.401
+  - @brains/image@0.2.0-alpha.401
+  - @brains/operation-context@0.2.0-alpha.401
+  - @brains/site-composition@0.2.0-alpha.401
+  - @brains/utils@0.2.0-alpha.401
+  - @brains/plugins@0.2.0-alpha.401
+  - @brains/recurring-checks@0.2.0-alpha.401
+  - @brains/runtime-state@0.2.0-alpha.401
+  - @brains/scheduler@0.2.0-alpha.401
+  - @brains/templates@0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.400
+  - @brains/recurring-checks@0.2.0-alpha.400
+  - @brains/image@0.2.0-alpha.400
+  - @brains/contracts@0.2.0-alpha.400
+  - @brains/operation-context@0.2.0-alpha.400
+  - @brains/site-composition@0.2.0-alpha.400
+  - @brains/utils@0.2.0-alpha.400
+  - @brains/runtime-state@0.2.0-alpha.400
+  - @brains/scheduler@0.2.0-alpha.400
+  - @brains/templates@0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/recurring-checks@0.2.0-alpha.399
+  - @brains/image@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/operation-context@0.2.0-alpha.399
+  - @brains/site-composition@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+  - @brains/runtime-state@0.2.0-alpha.399
+  - @brains/scheduler@0.2.0-alpha.399
+  - @brains/templates@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/image@0.2.0-alpha.398
+  - @brains/operation-context@0.2.0-alpha.398
+  - @brains/site-composition@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+  - @brains/recurring-checks@0.2.0-alpha.398
+  - @brains/runtime-state@0.2.0-alpha.398
+  - @brains/scheduler@0.2.0-alpha.398
+  - @brains/templates@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/recurring-checks@0.2.0-alpha.397
+  - @brains/image@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/operation-context@0.2.0-alpha.397
+  - @brains/site-composition@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+  - @brains/runtime-state@0.2.0-alpha.397
+  - @brains/scheduler@0.2.0-alpha.397
+  - @brains/templates@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/image@0.2.0-alpha.396
+  - @brains/operation-context@0.2.0-alpha.396
+  - @brains/site-composition@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+  - @brains/recurring-checks@0.2.0-alpha.396
+  - @brains/runtime-state@0.2.0-alpha.396
+  - @brains/scheduler@0.2.0-alpha.396
+  - @brains/templates@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.395
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/operation-context@0.2.0-alpha.395
+  - @brains/site-composition@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/recurring-checks@0.2.0-alpha.395
+  - @brains/runtime-state@0.2.0-alpha.395
+  - @brains/scheduler@0.2.0-alpha.395
+  - @brains/templates@0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.394
+  - @brains/image@0.2.0-alpha.394
+  - @brains/operation-context@0.2.0-alpha.394
+  - @brains/site-composition@0.2.0-alpha.394
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/plugins@0.2.0-alpha.394
+  - @brains/recurring-checks@0.2.0-alpha.394
+  - @brains/runtime-state@0.2.0-alpha.394
+  - @brains/scheduler@0.2.0-alpha.394
+  - @brains/templates@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.393
+  - @brains/plugins@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/operation-context@0.2.0-alpha.393
+  - @brains/site-composition@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/recurring-checks@0.2.0-alpha.393
+  - @brains/runtime-state@0.2.0-alpha.393
+  - @brains/scheduler@0.2.0-alpha.393
+  - @brains/templates@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.392
+  - @brains/plugins@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/operation-context@0.2.0-alpha.392
+  - @brains/site-composition@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/recurring-checks@0.2.0-alpha.392
+  - @brains/runtime-state@0.2.0-alpha.392
+  - @brains/scheduler@0.2.0-alpha.392
+  - @brains/templates@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.391
+  - @brains/image@0.2.0-alpha.391
+  - @brains/operation-context@0.2.0-alpha.391
+  - @brains/site-composition@0.2.0-alpha.391
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/plugins@0.2.0-alpha.391
+  - @brains/recurring-checks@0.2.0-alpha.391
+  - @brains/runtime-state@0.2.0-alpha.391
+  - @brains/scheduler@0.2.0-alpha.391
+  - @brains/templates@0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.390
+  - @brains/image@0.2.0-alpha.390
+  - @brains/operation-context@0.2.0-alpha.390
+  - @brains/site-composition@0.2.0-alpha.390
+  - @brains/utils@0.2.0-alpha.390
+  - @brains/plugins@0.2.0-alpha.390
+  - @brains/recurring-checks@0.2.0-alpha.390
+  - @brains/runtime-state@0.2.0-alpha.390
+  - @brains/scheduler@0.2.0-alpha.390
+  - @brains/templates@0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.389
+  - @brains/image@0.2.0-alpha.389
+  - @brains/operation-context@0.2.0-alpha.389
+  - @brains/site-composition@0.2.0-alpha.389
+  - @brains/utils@0.2.0-alpha.389
+  - @brains/plugins@0.2.0-alpha.389
+  - @brains/recurring-checks@0.2.0-alpha.389
+  - @brains/runtime-state@0.2.0-alpha.389
+  - @brains/scheduler@0.2.0-alpha.389
+  - @brains/templates@0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.388
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/image@0.2.0-alpha.388
+  - @brains/operation-context@0.2.0-alpha.388
+  - @brains/site-composition@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/recurring-checks@0.2.0-alpha.388
+  - @brains/runtime-state@0.2.0-alpha.388
+  - @brains/scheduler@0.2.0-alpha.388
+  - @brains/templates@0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/image@0.2.0-alpha.387
+  - @brains/operation-context@0.2.0-alpha.387
+  - @brains/site-composition@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/plugins@0.2.0-alpha.387
+  - @brains/recurring-checks@0.2.0-alpha.387
+  - @brains/runtime-state@0.2.0-alpha.387
+  - @brains/scheduler@0.2.0-alpha.387
+  - @brains/templates@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/image@0.2.0-alpha.386
+  - @brains/operation-context@0.2.0-alpha.386
+  - @brains/site-composition@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/plugins@0.2.0-alpha.386
+  - @brains/recurring-checks@0.2.0-alpha.386
+  - @brains/runtime-state@0.2.0-alpha.386
+  - @brains/scheduler@0.2.0-alpha.386
+  - @brains/templates@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/image@0.2.0-alpha.385
+  - @brains/operation-context@0.2.0-alpha.385
+  - @brains/site-composition@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/plugins@0.2.0-alpha.385
+  - @brains/recurring-checks@0.2.0-alpha.385
+  - @brains/runtime-state@0.2.0-alpha.385
+  - @brains/scheduler@0.2.0-alpha.385
+  - @brains/templates@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/image@0.2.0-alpha.384
+  - @brains/operation-context@0.2.0-alpha.384
+  - @brains/site-composition@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/plugins@0.2.0-alpha.384
+  - @brains/recurring-checks@0.2.0-alpha.384
+  - @brains/runtime-state@0.2.0-alpha.384
+  - @brains/scheduler@0.2.0-alpha.384
+  - @brains/templates@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/image@0.2.0-alpha.383
+  - @brains/operation-context@0.2.0-alpha.383
+  - @brains/site-composition@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/plugins@0.2.0-alpha.383
+  - @brains/recurring-checks@0.2.0-alpha.383
+  - @brains/runtime-state@0.2.0-alpha.383
+  - @brains/scheduler@0.2.0-alpha.383
+  - @brains/templates@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/image@0.2.0-alpha.382
+  - @brains/operation-context@0.2.0-alpha.382
+  - @brains/site-composition@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+  - @brains/recurring-checks@0.2.0-alpha.382
+  - @brains/runtime-state@0.2.0-alpha.382
+  - @brains/scheduler@0.2.0-alpha.382
+  - @brains/templates@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/image@0.2.0-alpha.381
+  - @brains/operation-context@0.2.0-alpha.381
+  - @brains/site-composition@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/plugins@0.2.0-alpha.381
+  - @brains/recurring-checks@0.2.0-alpha.381
+  - @brains/runtime-state@0.2.0-alpha.381
+  - @brains/scheduler@0.2.0-alpha.381
+  - @brains/templates@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/image@0.2.0-alpha.380
+  - @brains/operation-context@0.2.0-alpha.380
+  - @brains/site-composition@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/plugins@0.2.0-alpha.380
+  - @brains/recurring-checks@0.2.0-alpha.380
+  - @brains/runtime-state@0.2.0-alpha.380
+  - @brains/scheduler@0.2.0-alpha.380
+  - @brains/templates@0.2.0-alpha.380
+
+## 0.2.0-alpha.379
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.379
+  - @brains/image@0.2.0-alpha.379
+  - @brains/operation-context@0.2.0-alpha.379
+  - @brains/site-composition@0.2.0-alpha.379
+  - @brains/utils@0.2.0-alpha.379
+  - @brains/plugins@0.2.0-alpha.379
+  - @brains/recurring-checks@0.2.0-alpha.379
+  - @brains/runtime-state@0.2.0-alpha.379
+  - @brains/scheduler@0.2.0-alpha.379
+  - @brains/templates@0.2.0-alpha.379
+
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.378
+  - @brains/image@0.2.0-alpha.378
+  - @brains/operation-context@0.2.0-alpha.378
+  - @brains/site-composition@0.2.0-alpha.378
+  - @brains/utils@0.2.0-alpha.378
+  - @brains/plugins@0.2.0-alpha.378
+  - @brains/recurring-checks@0.2.0-alpha.378
+  - @brains/runtime-state@0.2.0-alpha.378
+  - @brains/scheduler@0.2.0-alpha.378
+  - @brains/templates@0.2.0-alpha.378
+
+## 0.2.0-alpha.377
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.377
+  - @brains/image@0.2.0-alpha.377
+  - @brains/operation-context@0.2.0-alpha.377
+  - @brains/site-composition@0.2.0-alpha.377
+  - @brains/utils@0.2.0-alpha.377
+  - @brains/plugins@0.2.0-alpha.377
+  - @brains/recurring-checks@0.2.0-alpha.377
+  - @brains/runtime-state@0.2.0-alpha.377
+  - @brains/scheduler@0.2.0-alpha.377
+  - @brains/templates@0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.376
+  - @brains/image@0.2.0-alpha.376
+  - @brains/operation-context@0.2.0-alpha.376
+  - @brains/site-composition@0.2.0-alpha.376
+  - @brains/utils@0.2.0-alpha.376
+  - @brains/plugins@0.2.0-alpha.376
+  - @brains/recurring-checks@0.2.0-alpha.376
+  - @brains/runtime-state@0.2.0-alpha.376
+  - @brains/scheduler@0.2.0-alpha.376
+  - @brains/templates@0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.375
+  - @brains/image@0.2.0-alpha.375
+  - @brains/operation-context@0.2.0-alpha.375
+  - @brains/site-composition@0.2.0-alpha.375
+  - @brains/utils@0.2.0-alpha.375
+  - @brains/plugins@0.2.0-alpha.375
+  - @brains/recurring-checks@0.2.0-alpha.375
+  - @brains/runtime-state@0.2.0-alpha.375
+  - @brains/scheduler@0.2.0-alpha.375
+  - @brains/templates@0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.374
+  - @brains/image@0.2.0-alpha.374
+  - @brains/operation-context@0.2.0-alpha.374
+  - @brains/site-composition@0.2.0-alpha.374
+  - @brains/utils@0.2.0-alpha.374
+  - @brains/plugins@0.2.0-alpha.374
+  - @brains/recurring-checks@0.2.0-alpha.374
+  - @brains/runtime-state@0.2.0-alpha.374
+  - @brains/scheduler@0.2.0-alpha.374
+  - @brains/templates@0.2.0-alpha.374
+
 ## 0.2.0-alpha.373
 
 ### Patch Changes

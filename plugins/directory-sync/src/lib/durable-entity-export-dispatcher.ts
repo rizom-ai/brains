@@ -13,6 +13,8 @@ import {
   type DurableEntityExportIntent,
 } from "./durable-entity-export";
 
+import { EntityPlacementError } from "./entity-placement-error";
+
 const DEFAULT_RECONCILIATION_INTERVAL_MS = 5_000;
 const MAX_DRAIN_PASSES = 100;
 
@@ -22,7 +24,7 @@ export interface DurableEntityExportEntityService {
   acknowledgeEntityExports(request: {
     intents: readonly DurableEntityExportIntent[];
   }): Promise<number>;
-  getEntity(request: {
+  getEntityRaw(request: {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
@@ -148,12 +150,31 @@ export class DurableEntityExportDispatcher {
       listPendingEntityExports: (): ReturnType<
         DurableEntityExportDispatcherOptions["entityService"]["listPendingEntityExports"]
       > => this.entityService.listPendingEntityExports(),
-      getEntity: this.entityService.getEntity.bind(this.entityService),
+      // Exports materialize authored source, never preview-expanded content.
+      getEntity: this.entityService.getEntityRaw.bind(this.entityService),
       writeEntity: async (entity: BaseEntity): Promise<void> => {
         this.directorySync.suppressWatchPaths(
           this.directorySync.fileOps.getEntityConvergencePaths(entity),
         );
-        await this.directorySync.fileOps.writeEntity(entity);
+        try {
+          await this.directorySync.fileOps.writeEntity(entity);
+        } catch (error) {
+          if (error instanceof EntityPlacementError) {
+            // Persist the standing issue before the helper acknowledges this
+            // refusal. Status-store failures must keep the intent retryable.
+            this.logger.warn("Entity placement refused", { error });
+            await this.operationStatus?.recordIssue({
+              kind: "placement",
+              path: `${entity.entityType}/${entity.id}`,
+              message: `Saved but not exported: ${error.message}`,
+            });
+          }
+          throw error;
+        }
+        await this.operationStatus?.clearIssue({
+          kind: "placement",
+          path: `${entity.entityType}/${entity.id}`,
+        });
       },
       deleteEntityFile: async (
         entityType: string,
@@ -169,8 +190,21 @@ export class DurableEntityExportDispatcher {
       },
       isPendingRemoteDelete: (entityType: string, entityId: string): boolean =>
         this.directorySync.isPendingDelete(entityType, entityId),
-      acknowledgeEntityExports:
-        this.entityService.acknowledgeEntityExports.bind(this.entityService),
+      acknowledgeEntityExports: async (
+        request: Parameters<
+          DurableEntityExportEntityService["acknowledgeEntityExports"]
+        >[0],
+      ): Promise<number> => {
+        for (const intent of request.intents) {
+          if (intent.operation === "delete") {
+            await this.operationStatus?.clearIssue({
+              kind: "placement",
+              path: `${intent.entityType}/${intent.entityId}`,
+            });
+          }
+        }
+        return this.entityService.acknowledgeEntityExports(request);
+      },
     };
     const gitSync = this.gitSync;
     const saveCheckpoint = this.saveCheckpoint;

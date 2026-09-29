@@ -1,4 +1,3 @@
-import { type PushTarget } from "./push-target";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
 export type SecretPair = readonly [name: string, value: string];
@@ -39,15 +38,15 @@ export function logMissingSecrets(
   logKeyGroup(logger, "Safe to ignore for now", optional);
 }
 
-export async function pushSecretsToBackend(
-  _target: PushTarget,
+/** Stores each secret as a GitHub Actions secret, where deploy workflows read them. */
+export async function pushSecretsToGitHub(
   secrets: readonly SecretPair[],
   options: PushSecretsOptions = {},
 ): Promise<void> {
   const runCommand = options.runCommand ?? runSubprocess;
   const logger = options.logger ?? console.log;
 
-  logger(`Pushing ${secrets.length} env-backed secrets to GitHub Secrets...`);
+  logger(`Pushing ${secrets.length} secrets to GitHub Secrets...`);
   await Promise.all(
     secrets.map(([name, value]) =>
       runCommand("gh", ["secret", "set", name], { stdin: value }),

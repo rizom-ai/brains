@@ -178,6 +178,9 @@ describe("initPilotRepo", () => {
     expect(
       existsSync(join(repo, ".github", "actions", "varlock-env", "action.yml")),
     ).toBe(true);
+    expect(existsSync(join(repo, ".github", "workflows", "offboard.yml"))).toBe(
+      true,
+    );
     expect(
       existsSync(join(repo, ".github", "workflows", "reconcile.yml")),
     ).toBe(true);
@@ -1196,6 +1199,40 @@ describe("initPilotRepo", () => {
 
     const output = await readFile(outputPath, "utf8");
     expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles ignores generated-file deletions for retired users", async () => {
+    const root = await createTempDir("brains-ops-init-");
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(join(repo, "users", "alice", ".env"), "generated\n");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "deployed alice");
+
+    await rm(join(repo, "users", "alice.yaml"));
+    await rm(join(repo, "users", "alice"), { recursive: true });
+    const currentSha = await commitAll(repo, "retire alice");
+    await writeFile(outputPath, "");
+
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: beforeSha,
+          GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+      },
+    );
+
+    expect(await readFile(outputPath, "utf8")).toContain("handles_json=[]");
   });
 
   it("resolve-deploy-handles deploys the reconciled brain.yaml, not the raw registry file", async () => {

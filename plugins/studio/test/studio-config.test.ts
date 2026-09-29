@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { zodFieldToStudioWidget } from "../src/config";
+import { studioTypeHierarchy, zodFieldToStudioWidget } from "../src/config";
 
 describe("zodFieldToStudioWidget", () => {
   it("should map z.string() to string widget", () => {
@@ -79,5 +79,28 @@ describe("zodFieldToStudioWidget", () => {
     expect(zodFieldToStudioWidget("imageIdea", z.string()).widget).toBe(
       "string",
     );
+  });
+});
+
+describe("studioTypeHierarchy", () => {
+  it("nests entries in folders by default", () => {
+    expect(studioTypeHierarchy("post")).toEqual({
+      kind: "folder",
+      nested: true,
+    });
+  });
+
+  it("presents site content as pages", () => {
+    expect(studioTypeHierarchy("site-content")).toEqual({
+      kind: "page",
+      nested: true,
+    });
+  });
+
+  it("keeps new notes at the root, where directory-sync exports them", () => {
+    expect(studioTypeHierarchy("note")).toEqual({
+      kind: "folder",
+      nested: false,
+    });
   });
 });

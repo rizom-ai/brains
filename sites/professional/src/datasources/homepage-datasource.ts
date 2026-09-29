@@ -1,3 +1,5 @@
+import type { HomepageOpeningData } from "./homepage-opening";
+import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
@@ -42,6 +44,22 @@ interface HomepageDataSourceOutput {
   decksListUrl: string;
   cta: SiteInfoCTA;
   sections: HomepageSections;
+  opening?: HomepageOpeningData | null;
+  atlas?: HomepageAtlasData | null;
+  askBox?: boolean;
+  homepageOpening?: boolean;
+}
+
+/** The authored-homepage placement, only when the site opts in. */
+export interface HomepagePlacementLoaders {
+  loadOpening?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
+    | undefined;
+  loadAtlas?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
+    | undefined;
+  chatAvailable?:
+    ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
 }
 
 /**
@@ -56,9 +74,34 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  constructor(postsListUrl: string, decksListUrl: string) {
+  private readonly placement: HomepagePlacementLoaders;
+
+  constructor(
+    postsListUrl: string,
+    decksListUrl: string,
+    placement: HomepagePlacementLoaders = {},
+  ) {
+    this.placement = placement;
     this.postsListUrl = postsListUrl;
     this.decksListUrl = decksListUrl;
+  }
+
+  /** The atlas is only worth projecting when the authored opening renders. */
+  private async loadPlacement(
+    context: BaseDataSourceContext,
+  ): Promise<
+    Pick<
+      HomepageDataSourceOutput,
+      "homepageOpening" | "opening" | "atlas" | "askBox"
+    >
+  > {
+    const { loadOpening, loadAtlas, chatAvailable } = this.placement;
+    if (!loadOpening) return {};
+    const opening = await loadOpening(context);
+    if (!opening) return { homepageOpening: true, opening, atlas: null };
+    const atlas = loadAtlas ? await loadAtlas(context) : null;
+    const askBox = (await chatAvailable?.(context)) ?? false;
+    return { homepageOpening: true, opening, atlas, askBox };
   }
 
   /**
@@ -97,6 +140,7 @@ export class HomepageListDataSource implements DataSource {
       decksListUrl: this.decksListUrl,
       cta: requireCta(siteInfo.cta),
       sections: siteInfo.sections ?? {},
+      ...(await this.loadPlacement(context)),
     };
 
     return outputSchema.parse(data);

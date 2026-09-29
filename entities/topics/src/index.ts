@@ -168,3 +168,9 @@ export {
   buildTopicAtprotoRecord,
   createTopicAtprotoProjection,
 } from "./atproto-projection";
+export {
+  buildKnowledgeMapData,
+  knowledgeMapDataSchema,
+  type KnowledgeMapData,
+  type KnowledgeMapDataContext,
+} from "./lib/knowledge-map-data";

@@ -16,41 +16,37 @@ afterEach(async () => {
   await ctx.cleanup();
 });
 
-test.each([undefined, { rows: 1, rowBytes: 4096, queryCharacters: 100 }])(
-  "entity reads preserve image references without nested reads; budget=%j",
-  async (readBudget) => {
-    const entity = createTestEntity("test", {
-      id: "logical-content",
-      content:
-        "![Cover](entity://image/cover)\n\n`![Code](entity://image/code)`\n\n![Missing](entity://image/missing)",
-    });
-    await ctx.entityService.createEntity({ entity });
-    const rawRead = spyOn(ctx.entityService, "getEntityRaw");
-    const readAsset = spyOn(ctx.entityService, "readAsset").mockImplementation(
-      async (): Promise<never> => {
-        throw new Error("Controller asset read forbidden");
-      },
+test("entity reads preserve image references without nested reads", async () => {
+  const entity = createTestEntity("test", {
+    id: "logical-content",
+    content:
+      "![Cover](entity://image/cover)\n\n`![Code](entity://image/code)`\n\n![Missing](entity://image/missing)",
+  });
+  await ctx.entityService.createEntity({ entity });
+  const rawRead = spyOn(ctx.entityService, "getEntityRaw");
+  const readAsset = spyOn(ctx.entityService, "readAsset").mockImplementation(
+    async (): Promise<never> => {
+      throw new Error("Controller asset read forbidden");
+    },
+  );
+  try {
+    const request = {
+      entityType: "test",
+      id: entity.id,
+    };
+    const result = await ctx.entityService.getEntity(
+      request,
+      minimalTestSchema,
     );
-    try {
-      const request = {
-        entityType: "test",
-        id: entity.id,
-        ...(readBudget ? { readBudget } : {}),
-      };
-      const result = await ctx.entityService.getEntity(
-        request,
-        minimalTestSchema,
-      );
-      expect(result?.content).toBe(entity.content);
-      expect(rawRead).toHaveBeenCalledTimes(1);
-      expect(rawRead).toHaveBeenCalledWith(request);
-      expect(readAsset).not.toHaveBeenCalled();
-    } finally {
-      rawRead.mockRestore();
-      readAsset.mockRestore();
-    }
-  },
-);
+    expect(result?.content).toBe(entity.content);
+    expect(rawRead).toHaveBeenCalledTimes(1);
+    expect(rawRead).toHaveBeenCalledWith(request);
+    expect(readAsset).not.toHaveBeenCalled();
+  } finally {
+    rawRead.mockRestore();
+    readAsset.mockRestore();
+  }
+});
 
 test("logical content reads retain visibility and cancellation gates", async () => {
   const entity = createTestEntity("test", {

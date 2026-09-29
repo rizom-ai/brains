@@ -426,6 +426,9 @@ describe("Shell initialization order", () => {
 
     expect(initOrder).toContain("register");
     expect(initOrder).not.toContain("ready");
+    // One-shot CLI boots rely on this: a register-only shell must never take
+    // the queue's stable worker slot from a running app.
+    expect(shell.isJobQueueWorkerRunning()).toBe(false);
   });
 
   it("should emit plugins-registered signal before background services start", async () => {

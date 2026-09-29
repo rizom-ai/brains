@@ -1,5 +1,749 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.430
+  - @brains/content-formatters@0.2.0-alpha.430
+  - @brains/contracts@0.2.0-alpha.430
+  - @brains/db@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/job-queue@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.429
+  - @brains/content-formatters@0.2.0-alpha.429
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/db@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/job-queue@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.428
+  - @brains/content-formatters@0.2.0-alpha.428
+  - @brains/contracts@0.2.0-alpha.428
+  - @brains/db@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/job-queue@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.427
+  - @brains/content-formatters@0.2.0-alpha.427
+  - @brains/contracts@0.2.0-alpha.427
+  - @brains/db@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/job-queue@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.426
+  - @brains/content-formatters@0.2.0-alpha.426
+  - @brains/contracts@0.2.0-alpha.426
+  - @brains/db@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/job-queue@0.2.0-alpha.426
+
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add grouping usage reads with distinct entry totals and bounded, exact-value counts, including zero counts for unused values. One SQL statement applies admitted contributor types and visibility to every aggregate; duplicate and overlapping memberships do not inflate entry totals.
+
+  Expose the read through Studio's trusted-session API and typed client, retaining cancellation, source refresh and initializing/retry behavior. No durable state or content changes are introduced. Mounting usage data in the reviewed Groupings page and activating the replacement document source remain pending.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reproject added grouping type/field pairs after definition writes, using the existing bounded metadata-only scan. Keep pending work and readiness entirely in memory: Studio returns initializing during scans, failed scans remain retryable without misreporting saved definitions, and startup reconstructs progress from source.
+
+  Guard ordinary entity commits against a definition change after preparation. Stale writes, including no-op updates, are refused for retry before committing source or exports, using an in-memory publication revision and the existing write transaction.
+
+  Independent processes conservatively verify their own projections on observed definition changes, including remove/re-add cycles detected through existing document timestamps. No database tables, migrations or persistent status records are added. The new definitions registration module remains an internal implementation checkpoint, not yet activated by StudioPlugin.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add atomic replacement of an entity registry's complete grouping set through `replaceGroupings`. Grouping-owned schema extensions are kept separate from permanent plugin extensions, so removing a grouping preserves owner/plugin fields and their refinements. Invalid replacements leave the active set unchanged; authored memberships and file identities are never rewritten.
+
+  `validateGroupings` now preflights a complete replacement set. Studio's existing registration path includes already-registered declarations in that preflight. These registry primitives do not load a definitions document, coordinate readiness or automatically reproject stored content; their caller still owns those steps.
+
+- Updated dependencies [[`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c)]:
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/assets@0.2.0-alpha.425
+  - @brains/content-formatters@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+  - @brains/db@0.2.0-alpha.425
+  - @brains/job-queue@0.2.0-alpha.425
+
+## 0.2.0-alpha.424
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.424
+  - @brains/content-formatters@0.2.0-alpha.424
+  - @brains/contracts@0.2.0-alpha.424
+  - @brains/db@0.2.0-alpha.424
+  - @brains/utils@0.2.0-alpha.424
+  - @brains/job-queue@0.2.0-alpha.424
+
+## 0.2.0-alpha.423
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.423
+  - @brains/content-formatters@0.2.0-alpha.423
+  - @brains/contracts@0.2.0-alpha.423
+  - @brains/db@0.2.0-alpha.423
+  - @brains/utils@0.2.0-alpha.423
+  - @brains/job-queue@0.2.0-alpha.423
+
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.422
+  - @brains/content-formatters@0.2.0-alpha.422
+  - @brains/contracts@0.2.0-alpha.422
+  - @brains/db@0.2.0-alpha.422
+  - @brains/utils@0.2.0-alpha.422
+  - @brains/job-queue@0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.421
+  - @brains/content-formatters@0.2.0-alpha.421
+  - @brains/contracts@0.2.0-alpha.421
+  - @brains/db@0.2.0-alpha.421
+  - @brains/utils@0.2.0-alpha.421
+  - @brains/job-queue@0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.420
+  - @brains/content-formatters@0.2.0-alpha.420
+  - @brains/contracts@0.2.0-alpha.420
+  - @brains/db@0.2.0-alpha.420
+  - @brains/utils@0.2.0-alpha.420
+  - @brains/job-queue@0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.419
+  - @brains/content-formatters@0.2.0-alpha.419
+  - @brains/contracts@0.2.0-alpha.419
+  - @brains/db@0.2.0-alpha.419
+  - @brains/utils@0.2.0-alpha.419
+  - @brains/job-queue@0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.418
+  - @brains/content-formatters@0.2.0-alpha.418
+  - @brains/contracts@0.2.0-alpha.418
+  - @brains/db@0.2.0-alpha.418
+  - @brains/utils@0.2.0-alpha.418
+  - @brains/job-queue@0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.417
+  - @brains/content-formatters@0.2.0-alpha.417
+  - @brains/contracts@0.2.0-alpha.417
+  - @brains/db@0.2.0-alpha.417
+  - @brains/utils@0.2.0-alpha.417
+  - @brains/job-queue@0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.416
+  - @brains/content-formatters@0.2.0-alpha.416
+  - @brains/contracts@0.2.0-alpha.416
+  - @brains/db@0.2.0-alpha.416
+  - @brains/utils@0.2.0-alpha.416
+  - @brains/job-queue@0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.415
+  - @brains/content-formatters@0.2.0-alpha.415
+  - @brains/contracts@0.2.0-alpha.415
+  - @brains/db@0.2.0-alpha.415
+  - @brains/utils@0.2.0-alpha.415
+  - @brains/job-queue@0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.414
+  - @brains/content-formatters@0.2.0-alpha.414
+  - @brains/contracts@0.2.0-alpha.414
+  - @brains/db@0.2.0-alpha.414
+  - @brains/utils@0.2.0-alpha.414
+  - @brains/job-queue@0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.413
+  - @brains/content-formatters@0.2.0-alpha.413
+  - @brains/contracts@0.2.0-alpha.413
+  - @brains/db@0.2.0-alpha.413
+  - @brains/utils@0.2.0-alpha.413
+  - @brains/job-queue@0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.412
+  - @brains/content-formatters@0.2.0-alpha.412
+  - @brains/contracts@0.2.0-alpha.412
+  - @brains/db@0.2.0-alpha.412
+  - @brains/utils@0.2.0-alpha.412
+  - @brains/job-queue@0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.411
+  - @brains/content-formatters@0.2.0-alpha.411
+  - @brains/contracts@0.2.0-alpha.411
+  - @brains/db@0.2.0-alpha.411
+  - @brains/utils@0.2.0-alpha.411
+  - @brains/job-queue@0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.410
+  - @brains/content-formatters@0.2.0-alpha.410
+  - @brains/contracts@0.2.0-alpha.410
+  - @brains/db@0.2.0-alpha.410
+  - @brains/utils@0.2.0-alpha.410
+  - @brains/job-queue@0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.409
+  - @brains/content-formatters@0.2.0-alpha.409
+  - @brains/contracts@0.2.0-alpha.409
+  - @brains/db@0.2.0-alpha.409
+  - @brains/utils@0.2.0-alpha.409
+  - @brains/job-queue@0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.408
+  - @brains/content-formatters@0.2.0-alpha.408
+  - @brains/contracts@0.2.0-alpha.408
+  - @brains/db@0.2.0-alpha.408
+  - @brains/utils@0.2.0-alpha.408
+  - @brains/job-queue@0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.407
+  - @brains/content-formatters@0.2.0-alpha.407
+  - @brains/contracts@0.2.0-alpha.407
+  - @brains/db@0.2.0-alpha.407
+  - @brains/utils@0.2.0-alpha.407
+  - @brains/job-queue@0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.406
+  - @brains/content-formatters@0.2.0-alpha.406
+  - @brains/contracts@0.2.0-alpha.406
+  - @brains/db@0.2.0-alpha.406
+  - @brains/utils@0.2.0-alpha.406
+  - @brains/job-queue@0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+### Patch Changes
+
+- Updated dependencies [[`eef433e`](https://github.com/rizom-ai/brains/commit/eef433e436770aca170136cb5b2e79b304ae2c55)]:
+  - @brains/job-queue@0.2.0-alpha.405
+  - @brains/assets@0.2.0-alpha.405
+  - @brains/content-formatters@0.2.0-alpha.405
+  - @brains/contracts@0.2.0-alpha.405
+  - @brains/db@0.2.0-alpha.405
+  - @brains/utils@0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Give every unbounded loop an explicit shape. Schema unwrapping, workspace version resolution, redirect following, job-drain polling, SQLite write retries and atomic enqueue retries now recurse once per step, so each step's exit condition sits in its own signature. Stream reading and checkpoint draining keep a loop, but one with a real condition in its head rather than an open `for (;;)` and an interior break.
+
+  Behaviour is unchanged: the same retry budgets, backoff, redirect limits and cursor advancement apply. The atomic enqueue retry now closes its failed transaction before opening the next one rather than after, which was already the intent.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix admitted shared and restricted entity deletions silently returning a lookup miss. The internal deletion transaction now loads its prior row across visibility tiers; caller-side authentication, visibility checks, and action permissions remain unchanged. This also removes the deleted entity from virtual-collection counts and membership immediately.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A registered entity type can now carry its own `actionPolicy` floor, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule. Each action preserves the stricter of the type's minimum and the wildcard policy, including `never`; an explicit per-type entry still overrides the result. Primary buttons keep a visible hover cue when motion is reduced. System forms omit empty field sections, including the Groupings reader's empty Access section.
+
+  Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. The vocabulary is always shared so the editors it constrains can read it. Create/update persistence enforces closed lists across Studio, tools, MCP and imports.
+
+  **Derived projection upserts are now validated.** They previously wrote without owner validation or persist validators; they now reconstruct the adapter's fields, project membership from the full source, and run both inside the admitted rule transaction. A rule can no longer write an entity its own type would reject, and supplied metadata cannot invent membership the source does not carry. A refusal rolls back the entire rule result, including export intents and ownership claims, and completed rule reports stay idempotent. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
+
+  Add configurable, visibility-scoped virtual collections across entity types, with source-authoritative frontmatter membership, startup reprojection, and Studio browsing and editor return navigation. Multiple grouping fields and multiple values per field are supported without copying entities or changing file placement.
+
+  Notes use the normal frontmatter/Properties editor while their type participates in any registered grouping, including Notes with no membership. Notes without a grouping retain whole-document Markdown editing. Removing configuration preserves authored fields. Grouping inputs preserve literal commas and whitespace with explicit Enter/Add submission, mark spaces a reader could not otherwise see, and offer the values that already exist so exact matching does not fragment one group into several. Ordinary tag inputs and stored memberships are unchanged.
+
+  **Behaviour change for every frontmatter entity type:** ordinary frontmatter-form saves and entity exports now preserve existing unclaimed, non-policy frontmatter keys instead of dropping them, including inactive grouping fields. Preservation does not authorize arbitrary new form fields, and explicit full-source replacement remains authoritative. Field-update tools author registered extension fields in Markdown and show their actual previous source values in confirmation previews.
+
+  Each registered field is validated against its own schema entry, so frontmatter the entity owner rejects elsewhere in the document no longer removes an entity from its collections. The bounded startup pass runs on each serving start, including after register-only writes with grouping disabled or changed field constraints. It commits metadata updates in bounded 200-row pages instead of one transaction per entity, retaining per-row source/revision checks, bounded conflict retries, and no-resurrection guarantees. Reusable owner fields are compared conservatively without dropping runtime checks. Failed suggestion refetches discard previously readable values, and the empty-value display marker cannot collide with a literal authored name.
+
+- Updated dependencies [[`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b)]:
+  - @brains/utils@0.2.0-alpha.404
+  - @brains/contracts@0.2.0-alpha.404
+  - @brains/job-queue@0.2.0-alpha.404
+  - @brains/assets@0.2.0-alpha.404
+  - @brains/content-formatters@0.2.0-alpha.404
+  - @brains/db@0.2.0-alpha.404
+
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.403
+  - @brains/content-formatters@0.2.0-alpha.403
+  - @brains/contracts@0.2.0-alpha.403
+  - @brains/db@0.2.0-alpha.403
+  - @brains/utils@0.2.0-alpha.403
+  - @brains/job-queue@0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.402
+  - @brains/content-formatters@0.2.0-alpha.402
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/db@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/job-queue@0.2.0-alpha.402
+
+## 0.2.0-alpha.401
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.401
+  - @brains/content-formatters@0.2.0-alpha.401
+  - @brains/contracts@0.2.0-alpha.401
+  - @brains/db@0.2.0-alpha.401
+  - @brains/utils@0.2.0-alpha.401
+  - @brains/job-queue@0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.400
+  - @brains/assets@0.2.0-alpha.400
+  - @brains/content-formatters@0.2.0-alpha.400
+  - @brains/contracts@0.2.0-alpha.400
+  - @brains/db@0.2.0-alpha.400
+  - @brains/utils@0.2.0-alpha.400
+
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.399
+  - @brains/assets@0.2.0-alpha.399
+  - @brains/content-formatters@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/db@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.398
+  - @brains/content-formatters@0.2.0-alpha.398
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/db@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/job-queue@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/job-queue@0.2.0-alpha.397
+  - @brains/assets@0.2.0-alpha.397
+  - @brains/content-formatters@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/db@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.396
+  - @brains/content-formatters@0.2.0-alpha.396
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/db@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/job-queue@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#305](https://github.com/rizom-ai/brains/pull/305) [`5d0a6fa`](https://github.com/rizom-ai/brains/commit/5d0a6faf3dfc5b5adbda3038862e2c665194b762) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate projection-batch admission, fencing, recovery, and diagnostics from projection-wave persistence while preserving their shared serialized transaction boundary.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.395
+  - @brains/content-formatters@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/db@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/job-queue@0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.394
+  - @brains/content-formatters@0.2.0-alpha.394
+  - @brains/contracts@0.2.0-alpha.394
+  - @brains/db@0.2.0-alpha.394
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/job-queue@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- [`0010eb2`](https://github.com/rizom-ai/brains/commit/0010eb2834335a8a0a88a66a96c2c6267b29d2df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate recoverable embedding persistence, queueing, backfill, and readiness statistics from the core entity mutation pipeline while preserving its public service surface.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.393
+  - @brains/content-formatters@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/db@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/job-queue@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- [`384bac5`](https://github.com/rizom-ai/brains/commit/384bac51f68f6f11d255d61f1a78dacd78fc9abe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Centralize projection-batch contracts and terminal transitions, enforce nested batch identity, and isolate projection write-intent application without changing persistence boundaries.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.392
+  - @brains/content-formatters@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/db@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/job-queue@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.391
+  - @brains/content-formatters@0.2.0-alpha.391
+  - @brains/contracts@0.2.0-alpha.391
+  - @brains/db@0.2.0-alpha.391
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/job-queue@0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.390
+  - @brains/content-formatters@0.2.0-alpha.390
+  - @brains/contracts@0.2.0-alpha.390
+  - @brains/db@0.2.0-alpha.390
+  - @brains/utils@0.2.0-alpha.390
+  - @brains/job-queue@0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.389
+  - @brains/content-formatters@0.2.0-alpha.389
+  - @brains/contracts@0.2.0-alpha.389
+  - @brains/db@0.2.0-alpha.389
+  - @brains/utils@0.2.0-alpha.389
+  - @brains/job-queue@0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Use the shared entity-path codec for directory-sync ID interpretation without changing existing filesystem placement. Decode stored IDs losslessly while retaining strict validation for newly authored paths. Permit only the named codec functions through the entity-service package import boundary.
+
+- Add a visibility-scoped hierarchy query to the existing entity-service client. Derive immediate folders and counts in SQLite, page direct entries independently, and keep stored IDs intact. Prefix queries use the existing ID index and the shared codec; no database migration is required.
+
+- Preserve complete historical entity IDs in detail reads and revision snapshots, including embedded NUL characters and leading BOMs. Match the hierarchy query's byte-based ID decoding so opening and editing an entry cannot target its truncated ID. Stored IDs, filesystem placement, and database schemas are unchanged.
+
+- Add Studio virtual-folder navigation, explicit folder/collection search, and folder-aware creation with server-encoded IDs and conditional writes. Preserve direct entity links, history, permissions, and ordinary singleton/capture flows.
+
+  Directory-sync supplies read-only destination previews and creates missing parent directories for nested notes without changing placement. No folder entities, ID rewrites, file moves, or database migrations are introduced.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/assets@0.2.0-alpha.388
+  - @brains/content-formatters@0.2.0-alpha.388
+  - @brains/db@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/job-queue@0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.387
+  - @brains/content-formatters@0.2.0-alpha.387
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/db@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/job-queue@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.386
+  - @brains/content-formatters@0.2.0-alpha.386
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/db@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/job-queue@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.385
+  - @brains/content-formatters@0.2.0-alpha.385
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/db@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/job-queue@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.384
+  - @brains/content-formatters@0.2.0-alpha.384
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/db@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/job-queue@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.383
+  - @brains/content-formatters@0.2.0-alpha.383
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/db@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/job-queue@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.382
+  - @brains/content-formatters@0.2.0-alpha.382
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/db@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/job-queue@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.381
+  - @brains/content-formatters@0.2.0-alpha.381
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/db@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/job-queue@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.380
+  - @brains/content-formatters@0.2.0-alpha.380
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/db@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/job-queue@0.2.0-alpha.380
+
+## 0.2.0-alpha.379
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.379
+  - @brains/content-formatters@0.2.0-alpha.379
+  - @brains/contracts@0.2.0-alpha.379
+  - @brains/db@0.2.0-alpha.379
+  - @brains/utils@0.2.0-alpha.379
+  - @brains/job-queue@0.2.0-alpha.379
+
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.378
+  - @brains/content-formatters@0.2.0-alpha.378
+  - @brains/contracts@0.2.0-alpha.378
+  - @brains/db@0.2.0-alpha.378
+  - @brains/utils@0.2.0-alpha.378
+  - @brains/job-queue@0.2.0-alpha.378
+
+## 0.2.0-alpha.377
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.377
+  - @brains/content-formatters@0.2.0-alpha.377
+  - @brains/contracts@0.2.0-alpha.377
+  - @brains/db@0.2.0-alpha.377
+  - @brains/utils@0.2.0-alpha.377
+  - @brains/job-queue@0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.376
+  - @brains/content-formatters@0.2.0-alpha.376
+  - @brains/contracts@0.2.0-alpha.376
+  - @brains/db@0.2.0-alpha.376
+  - @brains/utils@0.2.0-alpha.376
+  - @brains/job-queue@0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.375
+  - @brains/content-formatters@0.2.0-alpha.375
+  - @brains/contracts@0.2.0-alpha.375
+  - @brains/db@0.2.0-alpha.375
+  - @brains/utils@0.2.0-alpha.375
+  - @brains/job-queue@0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.374
+  - @brains/content-formatters@0.2.0-alpha.374
+  - @brains/contracts@0.2.0-alpha.374
+  - @brains/db@0.2.0-alpha.374
+  - @brains/utils@0.2.0-alpha.374
+  - @brains/job-queue@0.2.0-alpha.374
+
 ## 0.2.0-alpha.373
 
 ### Patch Changes

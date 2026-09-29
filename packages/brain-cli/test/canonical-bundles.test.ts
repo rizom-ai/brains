@@ -66,6 +66,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "prompt",
     "profile",
     "style-guide",
+    "ask-content",
     "note",
     "link",
     "topics",
@@ -79,6 +80,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "prompt",
     "profile",
     "style-guide",
+    "ask-content",
     "image",
     "document",
     "note",
@@ -104,6 +106,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "prompt",
     "profile",
     "style-guide",
+    "ask-content",
     "image",
     "document",
     "note",
@@ -146,6 +149,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "prompt",
     "profile",
     "style-guide",
+    "ask-content",
     "image",
     "document",
     "note",
@@ -185,6 +189,20 @@ const webPermission: ResolvedBundlePermissionContribution = {
 
 const channelPermissions: ResolvedBundlePermissionContribution[] = [
   webPermission,
+  {
+    bundleId: "web",
+    member: "studio",
+    config: {
+      entityActions: {
+        "grouping-definitions": {
+          create: "admin",
+          update: "admin",
+          delete: "admin",
+          publish: "never",
+        },
+      },
+    },
+  },
   {
     bundleId: "chat",
     member: "chat",
@@ -335,7 +353,6 @@ describe("canonical bundle taxonomy", () => {
         },
       },
       "social-media": { autoGenerateOnBlogPublish: true },
-      newsletter: { doubleOptIn: true },
     });
     expect(resolution.permissionContributions).toEqual(channelPermissions);
     expect(resolution.agentInstructions).toEqual(publishingAgentInstructions);
@@ -381,6 +398,14 @@ describe("canonical bundle taxonomy", () => {
     const personal = resolve(canonicalBrain, {}, targetRecipes.personal);
     expect(pluginConfig(personal, "mcp")?.["transport"]).toBe("http");
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
+    expect(
+      personal.permissions?.entityActions?.["grouping-definitions"],
+    ).toEqual({
+      create: "admin",
+      update: "admin",
+      delete: "admin",
+      publish: "never",
+    });
 
     const team = resolve(canonicalBrain, {}, targetRecipes.team);
     expect(permissionLevel(team, "mcp:http")).toBe("admin");

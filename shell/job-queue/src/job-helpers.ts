@@ -110,6 +110,11 @@ export function createEnqueueJobFn(
         requestedByActor: toolContext.actor,
         ...(requestedByUserId ? { requestedByUserId } : {}),
         requestedByInterface: toolContext.interfaceType,
+        // Routing is useless without the token the caller is waiting on. A
+        // context that carries none must not erase an explicitly passed one.
+        ...(toolContext.progressToken !== undefined && {
+          progressToken: toolContext.progressToken,
+        }),
       }),
     };
     if (toolContext && !requestedByUserId) {

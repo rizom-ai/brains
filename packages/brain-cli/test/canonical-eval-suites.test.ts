@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  App,
-  resolve,
-  resolveBundleSelection,
-  type AppConfigInput,
-} from "@brains/app";
+import { App, resolveBundleSelection, type AppConfigInput } from "@brains/app";
 import { Shell } from "@brains/core";
 import { assetRefSchema } from "@brains/assets";
 import { installEvalImageFiles } from "./helpers/eval-image-files";
@@ -12,6 +7,7 @@ import { caughtError } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
   resolveEvalSelection,
+  resolveEvalConfig,
   YAMLLoader,
   type EvalSelection,
   type SuccessCriteria,
@@ -62,16 +58,16 @@ const catalogIds = [
 ];
 const expectedMembers: Record<SuiteName, string> = {
   headless:
-    "a2a agents directory-sync link mcp note profile prompt style-guide topics unified-inbox",
+    "a2a agents ask-content directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a admin agents auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:
-    "a2a admin agents analytics atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a admin agents analytics auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
-  headless: 17,
-  personal: 20,
+  headless: 19,
+  personal: 25,
   professional: 85,
   team: 38,
 };
@@ -114,6 +110,7 @@ async function createSuiteApp(
   name: SuiteName,
   selection: EvalSelection,
   seedDirectory: string,
+  includeMcp = false,
 ): Promise<{ app: App; evalHandlers: EvalHandlerRegistry }> {
   const directory = createTempDirectory(name);
   const basePlugins = rawManifest.plugins;
@@ -137,20 +134,28 @@ async function createSuiteApp(
     },
   };
   const evalHandlers = EvalHandlerRegistry.createFresh();
-  const resolved = resolve(
+  const environment = { AI_API_KEY: "placeholder-canonical-eval-test" };
+  const overrides = {
+    bundleContract: rawManifest.bundleContract,
+    anchor: selection.anchor ?? rawManifest.anchor,
+    kind: selection.kind ?? rawManifest.kind,
+    bundles: selection.bundles,
+    ...(selection.add ? { add: selection.add } : {}),
+    ...(selection.remove ? { remove: selection.remove } : {}),
+    plugins,
+  };
+  const resolved = resolveEvalConfig(
     canonicalBrain,
-    { AI_API_KEY: "placeholder-canonical-eval-test" },
-    {
-      bundleContract: rawManifest.bundleContract,
-      anchor: selection.anchor ?? rawManifest.anchor,
-      kind: selection.kind ?? rawManifest.kind,
-      bundles: selection.bundles,
-      ...(selection.add ? { add: selection.add } : {}),
-      ...(selection.remove ? { remove: selection.remove } : {}),
-      mode: "eval",
-      plugins,
-    },
+    environment,
+    { ...overrides, mode: "eval" },
+    includeMcp,
   );
+  if (includeMcp) {
+    expect(resolved.plugins?.some(({ id }) => id === "webserver")).toBe(false);
+    expect(
+      resolved.plugins?.find(({ id }) => id === "mcp")?.getWebRoutes?.(),
+    ).toEqual([]);
+  }
 
   const config: AppConfigInput = {
     ...resolved,
@@ -262,7 +267,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(194);
+    expect(testCases.length).toBe(201);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -288,19 +293,26 @@ describe("canonical eval recipe ladder", () => {
         const entityService = shell.getEntityService();
         for (const entityType of seededEntityTypes(seedDirectory)) {
           expect(entityService.hasEntityType(entityType)).toBe(true);
-          const imported = await entityService.listEntities({
+          const filter = {
+            visibilityScope: internalFullScope(
+              "canonical eval fixture import verification",
+            ),
+          };
+          // Presence does not require materializing every document's content.
+          const count = await entityService.countEntities({
             entityType,
-            options: {
-              filter: {
-                visibilityScope: internalFullScope(
-                  "canonical eval fixture import verification",
-                ),
-              },
-            },
+            options: { filter },
           });
-          expect(imported.length).toBeGreaterThan(0);
+          expect(count).toBeGreaterThan(0);
           if (entityType === "image") {
-            for (const image of imported) {
+            for (let offset = 0; offset < count; offset++) {
+              const imported = await entityService.listEntities({
+                entityType,
+                options: { filter, offset, limit: 1 },
+              });
+              expect(imported).toHaveLength(1);
+              const image = imported[0];
+              if (!image) throw new Error("Missing imported image");
               const ref = assetRefSchema.parse(image.content);
               const asset = await entityService.statAsset(ref);
               expect(asset?.ref).toBe(ref);
@@ -335,6 +347,19 @@ describe("canonical eval recipe ladder", () => {
             continue;
           }
 
+          if (
+            testCase.tags?.includes("long-note-update") ||
+            testCase.id === "mcp-long-note-update"
+          ) {
+            const entity = await entityService.getEntity({
+              entityType: "note",
+              id: testCase.id,
+            });
+            expect(entity?.content).toBe(
+              readFileSync(join(seedDirectory, `${testCase.id}.md`), "utf8"),
+            );
+          }
+
           for (const criteria of allCriteria(testCase)) {
             for (const expectedTool of criteria.expectedTools ?? []) {
               if (!expectedTool.shouldBeCalled) continue;
@@ -359,6 +384,119 @@ describe("canonical eval recipe ladder", () => {
       }
     }
   }, 120_000);
+
+  test.each(["content", "edits"])(
+    "persists a note title/body %s update exactly after approval",
+    async (mode) => {
+      const selection = suiteSelection("personal");
+      const { app } = await createSuiteApp(
+        "personal",
+        selection,
+        seedContentPath(selection),
+      );
+      try {
+        await app.initialize();
+        const shell = app.getShell();
+        const service = shell.getEntityService();
+        const id = "long-note-update-title-and-body";
+        const original = await service.getEntity({ entityType: "note", id });
+        if (!original) throw new Error("Missing seeded note");
+        const expected = original.content
+          .replace("# Working Plan", "# Approved Plan")
+          .replace("monthly.", "weekly.");
+        const tool = shell
+          .getMCPService()
+          .listAgentToolsForPermissionLevel("admin")
+          .find((entry) => entry.tool.name === "system_update")?.tool;
+        if (!tool) throw new Error("Missing update tool");
+        const context = {
+          interfaceType: "mcp",
+          userPermissionLevel: "admin",
+          actor: { kind: "user", userId: "patch-regression" },
+        } as const;
+        const proposal = await tool.handler(
+          {
+            entityType: "note",
+            id,
+            ...(mode === "content"
+              ? { content: expected }
+              : {
+                  edits: [
+                    { oldText: "# Working Plan", newText: "# Approved Plan" },
+                    {
+                      oldText: "Review cadence: monthly.",
+                      newText: "Review cadence: weekly.",
+                    },
+                  ],
+                }),
+          },
+          context,
+        );
+        const approval = z
+          .object({
+            needsConfirmation: z.literal(true),
+            args: z.record(z.string(), z.unknown()),
+          })
+          .parse(proposal);
+        expect(
+          (await service.getEntity({ entityType: "note", id }))?.content,
+        ).toBe(original.content);
+        expect(await tool.handler(approval.args, context)).toMatchObject({
+          success: true,
+        });
+        const saved = await service.getEntity({ entityType: "note", id });
+        expect(saved?.content).toBe(expected);
+        expect(saved?.metadata["title"]).toBe("Approved Plan");
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
+
+  test.each(["headless", "personal"] as const)(
+    "exposes chat-only basic MCP at every canonical permission level in %s",
+    async (name) => {
+      const selection = suiteSelection(name);
+      const { app } = await createSuiteApp(
+        name,
+        selection,
+        seedContentPath(selection),
+        true,
+      );
+
+      try {
+        await app.initialize();
+        const mcpService = app.getShell().getMCPService();
+
+        for (const level of ["public", "trusted", "admin"] as const) {
+          expect(
+            mcpService
+              .listProtocolToolsForPermissionLevel(level, "basic")
+              .map(({ tool }) => tool.name)
+              .sort(),
+          ).toEqual(["chat", "confirm"]);
+        }
+
+        const adminDebugTools = mcpService
+          .listProtocolToolsForPermissionLevel("admin", "debug")
+          .map(({ tool }) => tool.name);
+        for (const toolName of [
+          "chat",
+          "confirm",
+          "system_search",
+          "system_get",
+          "system_list",
+          "system_create",
+        ]) {
+          expect(adminDebugTools).toContain(toolName);
+        }
+      } finally {
+        await app.stop();
+      }
+    },
+    120_000,
+  );
 
   test("fails startup when a suite seeds an unregistered entity type", async () => {
     const seedDirectory = createTempDirectory("invalid-seed");

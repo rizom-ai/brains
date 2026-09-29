@@ -54,6 +54,7 @@ export function studioAccessRequirement(
 export function StudioPageHead(props: {
   readonly model: StudioPageHeadModel;
   readonly action?: ReactNode;
+  readonly navigation?: ReactNode;
   readonly appearance?: "document";
 }): ReactElement {
   const metadata = props.model.metadata?.slice(0, 4) ?? [];
@@ -74,6 +75,14 @@ export function StudioPageHead(props: {
         data-has-status="false"
         data-has-totals="false"
       >
+        {props.navigation ? (
+          <nav
+            aria-label="Collection navigation"
+            {...stylex.props(s.navigation)}
+          >
+            {props.navigation}
+          </nav>
+        ) : null}
         <div {...stylex.props(s.copy)}>
           <h1 className={editorClass("", s.title)}>{props.model.title}</h1>
         </div>
@@ -93,6 +102,11 @@ export function StudioPageHead(props: {
       data-has-status={props.model.status ? "true" : "false"}
       data-has-totals={totals.length > 0 ? "true" : "false"}
     >
+      {props.navigation ? (
+        <nav aria-label="Collection navigation" {...stylex.props(s.navigation)}>
+          {props.navigation}
+        </nav>
+      ) : null}
       <div
         className={editorClass(
           "studio-page-head-title-row",

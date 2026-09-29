@@ -10,6 +10,7 @@ export type {
   ImageFileDependencies,
   GeneratedImageConsumer,
 } from "./image-generation";
+export { AIOutputValidationError } from "./errors";
 export {
   resolveTextProvider,
   selectTextProvider,
@@ -41,20 +42,8 @@ export type {
 export { AgentService } from "./agent-service";
 export { buildAssistantActor, createBrainAgentId } from "./assistant-actor";
 export { createBrainAgentFactory } from "./brain-agent";
-export {
-  createOpenAiGuestProfile,
-  openAiGuestContextTokens,
-  openAiGuestEmbeddingModel,
-  openAiGuestEmbeddingDimensions,
-} from "./openai-guest-profile";
-export type {
-  GuestModelProfile,
-  OpenAiGuestProfileOptions,
-} from "./openai-guest-profile";
-export type {
-  GuestExecutionAccounting,
-  GuestModelCall,
-} from "./guest-turn-budget";
+export { priceOpenAiGuestTurn } from "./openai-guest-pricing";
+export type { GuestPricing } from "./openai-guest-pricing";
 export { aiServiceEnvSchema } from "./env-schema";
 export {
   createToolExecuteWrapper,

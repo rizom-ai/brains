@@ -28,6 +28,7 @@ import {
   ENTITY_RPC_EXPORT_PAGE_SIZE,
   ENTITY_RPC_LIST_PAGE_SIZE,
   parseEntityRpcResult,
+  parseEntityRpcRequest,
   type EntityIndexReadinessRpcOptions,
   type EntityRpcRequest,
   type EntityRpcResults,
@@ -49,6 +50,10 @@ import type {
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   BaseEntity,
+  EntityWriteSnapshot,
+  EntityHierarchyPage,
+  EntityGroupingMembers,
+  QueryEntityHierarchyRequest,
   ContentVisibility,
   CountEntitiesRequest,
   CreateEntityFromMarkdownRequest,
@@ -76,6 +81,14 @@ import type {
   UpdateEntityRequest,
   UpsertEntityRequest,
 } from "./types";
+
+import type {
+  EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  QueryGroupingUsageRequest,
+} from "./entity-grouping";
 
 export interface RemoteEntityServiceOptions {
   transport: EntityRpcTransport;
@@ -166,11 +179,15 @@ export class RemoteEntityService implements EntityService {
     options?: { signal?: AbortSignal | undefined },
   ): Promise<EntityRpcResults[TRequest["operation"]]> {
     this.assertOpen();
+    options?.signal?.throwIfAborted();
     // The owner re-enters this scope before dispatch so writes made inside a
     // worker-run bulk mutation are still fenced against its batch.
     const batchScope = this.batchScope.getStore();
     const result = await this.transport.request(
-      { request, ...(batchScope !== undefined && { batchScope }) },
+      {
+        request: parseEntityRpcRequest(request),
+        ...(batchScope !== undefined && { batchScope }),
+      },
       options,
     );
     return parseEntityRpcResult<TRequest["operation"]>(request, result);
@@ -199,35 +216,48 @@ export class RemoteEntityService implements EntityService {
       EntityRpcRequest,
       { operation: "createEntity" | "updateEntity" | "upsertEntity" }
     >,
-  >(request: TRequest): Promise<EntityRpcResults[TRequest["operation"]]> {
+  >(
+    request: TRequest,
+    options?: { signal?: AbortSignal | undefined },
+  ): Promise<EntityRpcResults[TRequest["operation"]]> {
+    options?.signal?.throwIfAborted();
     const asset = request.request.preparedAsset;
     if (!asset || asset.bytes.byteLength <= ASSET_RPC_CHUNK_BYTES)
-      return this.requestRemote(request);
+      return this.requestRemote(request, options);
     return this.withTransferBudget(asset.bytes.byteLength, async () => {
       assertPreparedAsset(asset);
       // Know the ID before admission so a failed/lost acknowledgement can be discarded.
       const uploadId = randomUUID();
       try {
-        await this.requestRemote({
-          operation: "beginAssetUpload",
-          uploadId,
-          asset: {
-            ref: asset.ref,
-            digest: asset.digest,
-            sizeBytes: asset.sizeBytes,
+        await this.requestRemote(
+          {
+            operation: "beginAssetUpload",
+            uploadId,
+            asset: {
+              ref: asset.ref,
+              digest: asset.digest,
+              sizeBytes: asset.sizeBytes,
+            },
           },
-        });
+          options,
+        );
         for (
           let offset = 0;
           offset < asset.bytes.byteLength;
           offset += ASSET_RPC_CHUNK_BYTES
         ) {
-          await this.requestRemote({
-            operation: "appendAssetUpload",
-            uploadId,
-            offset,
-            bytes: asset.bytes.subarray(offset, offset + ASSET_RPC_CHUNK_BYTES),
-          });
+          await this.requestRemote(
+            {
+              operation: "appendAssetUpload",
+              uploadId,
+              offset,
+              bytes: asset.bytes.subarray(
+                offset,
+                offset + ASSET_RPC_CHUNK_BYTES,
+              ),
+            },
+            options,
+          );
         }
         const mutation = {
           ...request,
@@ -235,7 +265,7 @@ export class RemoteEntityService implements EntityService {
           assetUploadId: uploadId,
         };
         delete mutation.request.preparedAsset;
-        return await this.requestRemote(mutation);
+        return await this.requestRemote(mutation, options);
       } catch (error) {
         if (!this.closeRequested) {
           try {
@@ -268,28 +298,40 @@ export class RemoteEntityService implements EntityService {
   public createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.requestMutation({
-      operation: "createEntity",
-      request,
-    });
+    const { signal, ...options } = request.options ?? {};
+    return this.requestMutation(
+      {
+        operation: "createEntity",
+        request: { ...request, options },
+      },
+      { signal },
+    );
   }
 
   public createEntityFromMarkdown(
     request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult> {
-    return this.requestRemote({
-      operation: "createEntityFromMarkdown",
-      request,
-    });
+    const { signal, ...options } = request.options ?? {};
+    return this.requestRemote(
+      {
+        operation: "createEntityFromMarkdown",
+        request: { ...request, options },
+      },
+      { signal },
+    );
   }
 
   public updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.requestMutation({
-      operation: "updateEntity",
-      request,
-    });
+    const { signal, ...options } = request.options ?? {};
+    return this.requestMutation(
+      {
+        operation: "updateEntity",
+        request: { ...request, options },
+      },
+      { signal },
+    );
   }
 
   public deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
@@ -323,6 +365,69 @@ export class RemoteEntityService implements EntityService {
     return this.requestRemote({
       operation: "backfillMissingEmbeddings",
     });
+  }
+
+  public areGroupingsReady(): boolean {
+    // This synchronous probe cannot certify another process's current registry.
+    // Call ensureGroupingsReady for an authoritative owner check instead.
+    return false;
+  }
+
+  public ensureGroupingsReady(): Promise<boolean> {
+    return this.requestRemote({ operation: "ensureGroupingsReady" });
+  }
+
+  public async reprojectRegisteredGroupings(): Promise<void> {
+    this.assertOpen();
+    throw new Error(
+      "Grouping startup reprojection requires the database owner",
+    );
+  }
+
+  public getEntityWriteSnapshot(
+    request: GetEntityRawRequest,
+  ): Promise<EntityWriteSnapshot | null> {
+    return this.requestRemote({ operation: "getEntityWriteSnapshot", request });
+  }
+
+  public queryEntityHierarchy(
+    input: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage> {
+    const { signal, ...request } = input;
+    return this.requestRemote(
+      { operation: "queryEntityHierarchy", request },
+      { signal },
+    );
+  }
+
+  public queryGroupingCatalog(
+    input: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog> {
+    const { signal, ...request } = input;
+    return this.requestRemote(
+      { operation: "queryGroupingCatalog", request },
+      { signal },
+    );
+  }
+
+  public queryGroupingMembers(
+    input: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers> {
+    const { signal, ...request } = input;
+    return this.requestRemote(
+      { operation: "queryGroupingMembers", request },
+      { signal },
+    );
+  }
+
+  public queryGroupingUsage(
+    input: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    const { signal, ...request } = input;
+    return this.requestRemote(
+      { operation: "queryGroupingUsage", request },
+      { signal },
+    );
   }
 
   public isIndexReady(): boolean {

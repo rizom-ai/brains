@@ -6,6 +6,7 @@ const config: Config = defineSqliteDrizzleConfig({
     "./src/schema/assets.ts",
     "./src/schema/entities.ts",
     "./src/schema/entity-export-state.ts",
+    "./src/schema/entity-write-state.ts",
     "./src/schema/embeddings.ts",
     "./src/schema/entity-job-outbox.ts",
     "./src/schema/projection-batches.ts",

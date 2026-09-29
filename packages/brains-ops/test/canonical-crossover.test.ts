@@ -129,7 +129,7 @@ describe("ops clean canonical crossover", () => {
 
     expect(indexSource).not.toContain("schemaVersion");
     expect(loaderSource).not.toMatch(/\bmodel\b|\bpreset\b/);
-    expect(rendererSource).toContain('"brain: brain"');
+    expect(rendererSource).toContain('brain: "brain"');
     expect(rendererSource).toContain("bundles:");
     expect(rendererSource).not.toMatch(/\bmodel\b|\bpreset\b/);
   });

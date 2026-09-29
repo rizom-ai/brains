@@ -1,10 +1,17 @@
 import { z } from "@brains/utils/zod";
+import { askContentSchema } from "./ask-content";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
 export {
   guestExecutionLimitsSchema,
   guestExecutionPolicySchema,
+  guestTurnCostSchema,
+  guestTurnSettlementSchema,
+  guestTurnUsageSchema,
   type GuestExecutionPolicy,
+  type GuestTurnCost,
+  type GuestTurnSettlement,
+  type GuestTurnUsage,
 } from "./guest-execution";
 
 export const CHAT_API_VERSION = 1 as const;
@@ -62,6 +69,7 @@ export const guestChatSessionResponseSchema: Strict<{
   retention: typeof guestRetentionSchema;
   messageCharacters: z.ZodNumber;
   canSend: z.ZodBoolean;
+  presentation: z.ZodOptional<typeof askContentSchema>;
 }> = z.strictObject({
   expiresAt: z.number().int().positive(),
   provider: z.string().min(1),
@@ -70,6 +78,7 @@ export const guestChatSessionResponseSchema: Strict<{
   retention: guestRetentionSchema,
   messageCharacters: z.number().int().positive(),
   canSend: z.boolean(),
+  presentation: askContentSchema.optional(),
 });
 export type GuestChatSessionResponse = z.output<
   typeof guestChatSessionResponseSchema
@@ -1360,22 +1369,24 @@ export async function* readChatProtocolEvents(
     throw new ChatApiError("read stream", 502, "invalid-response");
   }
 
+  // Read through the reader rather than iterating the body: this contract also
+  // runs in browsers that do not async-iterate a ReadableStream.
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
+  let finished = false;
   try {
-    for (;;) {
+    while (!finished) {
       const { value, done } = await reader.read();
+      finished = done;
       buffered += decoder.decode(value, { stream: !done });
-      let newline = buffered.indexOf("\n");
-      while (newline >= 0) {
-        const line = buffered.slice(0, newline);
-        buffered = buffered.slice(newline + 1);
+      // Everything before the last newline is a complete line; the tail is not.
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
+      for (const line of lines) {
         const event = parseChatProtocolLine(line);
         if (event) yield event;
-        newline = buffered.indexOf("\n");
       }
-      if (done) break;
     }
     if (buffered.length > 0) {
       const event = parseChatProtocolLine(buffered);
@@ -1614,3 +1625,24 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
     },
   };
 }
+
+export {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_READY_ATTRIBUTE,
+  ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HEADER_HEIGHT,
+  ASK_SHEET_MEDIA,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+  askBoxAvailabilitySchema,
+  askSourcesDetailSchema,
+  type AskBoxAvailability,
+  type AskSourcesDetail,
+} from "./ask-box";

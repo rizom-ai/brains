@@ -7,6 +7,7 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import type { EntityData } from "./entity-data";
 import { toEntityValidationError } from "./errors";
+import { preserveSourceFrontmatter } from "./frontmatter-extensions";
 
 /**
  * EntitySerializer handles conversion between entities and markdown
@@ -26,9 +27,18 @@ export class EntitySerializer {
    */
   public serializeEntity(entity: BaseEntity): string {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
-    return applyVisibilityToMarkdown(
-      adapter.toMarkdown(entity),
-      entity.visibility,
+    return preserveSourceFrontmatter(
+      entity.content,
+      applyVisibilityToMarkdown(adapter.toMarkdown(entity), entity.visibility),
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage === "asset"
+        ? undefined
+        : adapter.frontmatterSchema,
+      this.entityRegistry.getFrontmatterExtensions(entity.entityType),
+      this.entityRegistry
+        .getGroupings()
+        .filter((grouping) => grouping.types.includes(entity.entityType))
+        .map((grouping) => grouping.field),
     );
   }
 
@@ -55,7 +65,13 @@ export class EntitySerializer {
     // Left unset when the file declares no visibility, so callers can tell
     // "the file said nothing" from "the file said public".
     const visibility = extractVisibilityFromMarkdown(markdown);
-    const metadata = this.stripPolicyMetadata(parsedMetadata ?? {});
+    const metadata = this.stripPolicyMetadata(
+      this.entityRegistry.projectMetadata(
+        entityType,
+        markdown,
+        parsedMetadata ?? {},
+      ),
+    );
     return {
       ...parsed,
       ...(visibility && { visibility }),
@@ -68,18 +84,14 @@ export class EntitySerializer {
    */
   public async convertToEntity(
     entityData: EntityData,
-    reportErrors: boolean = true,
   ): Promise<BaseEntity | null> {
     try {
       return this.reconstructEntity(entityData);
     } catch (error) {
-      // Bounded reads omit diagnostics that can contain raw payloads/identifiers.
-      if (reportErrors) {
-        const errorMessage = getErrorMessage(error);
-        this.logger.error(
-          `Failed to parse entity of type ${entityData.entityType} with ID ${entityData.id}: ${errorMessage}`,
-        );
-      }
+      const errorMessage = getErrorMessage(error);
+      this.logger.error(
+        `Failed to parse entity of type ${entityData.entityType} with ID ${entityData.id}: ${errorMessage}`,
+      );
       return null;
     }
   }
@@ -90,7 +102,6 @@ export class EntitySerializer {
   public async convertToEntities(
     rows: EntityData[],
     entityType: string,
-    reportErrors: boolean = true,
   ): Promise<BaseEntity[]> {
     const entityList: BaseEntity[] = [];
 
@@ -98,13 +109,10 @@ export class EntitySerializer {
       try {
         entityList.push(this.reconstructEntity(entityData));
       } catch (error) {
-        // Bounded reads omit diagnostics that can contain raw payloads/identifiers.
-        if (reportErrors) {
-          const errorMessage = getErrorMessage(error);
-          this.logger.error(
-            `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
-          );
-        }
+        const errorMessage = getErrorMessage(error);
+        this.logger.error(
+          `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
+        );
       }
     }
 
@@ -159,15 +167,20 @@ export class EntitySerializer {
 
     // Asset bodies remain canonical refs (or empty pending bodies). Visibility
     // is authoritative in the DB column; wrapping refs breaks native binding.
-    const body = adapter.toMarkdown(entity);
     const markdown =
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage ===
       "asset"
-        ? body
-        : applyVisibilityToMarkdown(body, entity.visibility);
+        ? adapter.toMarkdown(entity)
+        : this.serializeEntity(entity);
 
     // Extract metadata using adapter, keeping visibility as a top-level field.
-    const metadata = this.stripPolicyMetadata(adapter.extractMetadata(entity));
+    const metadata = this.stripPolicyMetadata(
+      this.entityRegistry.projectMetadata(
+        entityType,
+        markdown,
+        adapter.extractMetadata(entity),
+      ),
+    );
 
     return { markdown, metadata };
   }

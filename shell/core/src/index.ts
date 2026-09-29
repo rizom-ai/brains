@@ -5,10 +5,10 @@ export {
   localDatabaseEndpointEnv,
   localDatabaseOwnershipEnv,
   parseLocalDatabaseEndpointConfig,
-  resolveRuntimeProcessTopology,
+  runtimeRoleProfile,
   type LocalDatabaseEndpointConfig,
   type RuntimeProcessRole,
-  type RuntimeProcessTopology,
+  type RuntimeRoleProfile,
   type ShellRuntimeOptions,
 } from "./runtime-process-role";
 export { PROJECTION_RULE_JOB_TYPE } from "./projection-wave-scheduler";
@@ -24,6 +24,8 @@ export {
   createShellConfig,
   createStandardConfig,
   getStandardConfig,
+  logLevelSchema,
+  reasoningEffortSchema,
   shellConfigSchema,
   STANDARD_PATHS,
 } from "./config";

@@ -1,7 +1,29 @@
 import { describe, expect, it } from "bun:test";
 import { defineConfig } from "../src/config";
-import type { AppConfigInput } from "../src/types";
-import type { Plugin, PluginCapabilities } from "@brains/plugins";
+import { appConfigSchema, type AppConfigInput } from "../src/types";
+import {
+  BrainCharacterSchema,
+  pluginMetadataSchema,
+  type Plugin,
+  type PluginCapabilities,
+} from "@brains/plugins";
+import { logLevelSchema, reasoningEffortSchema } from "@brains/core";
+
+describe("appConfigSchema", () => {
+  it("validates plugins and identity with the plugin package schemas", () => {
+    expect(appConfigSchema.shape.plugins.unwrap().element).toBe(
+      pluginMetadataSchema,
+    );
+    expect(appConfigSchema.shape.identity.unwrap()).toBe(BrainCharacterSchema);
+  });
+
+  it("shares the log level and reasoning effort enums with the shell config", () => {
+    expect(appConfigSchema.shape.logLevel.unwrap()).toBe(logLevelSchema);
+    expect(appConfigSchema.shape.aiReasoningEffort.unwrap()).toBe(
+      reasoningEffortSchema,
+    );
+  });
+});
 
 const mockPlugin = {
   id: "test-plugin",

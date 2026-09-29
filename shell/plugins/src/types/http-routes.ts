@@ -17,6 +17,8 @@ interface RegisteredHttpRouteBase {
 
 export interface RegisteredHandlerHttpRoute extends RegisteredHttpRouteBase {
   kind: "handler";
+  /** Explicit preview reachability, independent of shared-host admission. */
+  preview?: boolean;
   handler: WebRouteHandler;
 }
 

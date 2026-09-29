@@ -12,8 +12,7 @@ import { studioPlugin } from "../src";
 
 const authPlugins: AuthServicePlugin[] = [];
 afterEach(async () => {
-  for (const plugin of authPlugins.splice(0).reverse())
-    await plugin.shutdown?.();
+  for (const plugin of authPlugins.splice(0).reverse()) await plugin.shutdown();
 });
 
 function createStudioTestShell(): MockShell {
@@ -114,12 +113,19 @@ describe("studio plugin", () => {
       "GET /chat exact",
       "GET /studio exact",
       "GET /studio/entities prefix",
+      "GET /studio/groups prefix",
       "GET /studio/workspaces prefix",
       "GET /studio/assets prefix",
       "GET /studio/api/types exact",
       "GET /studio/api/workspace exact",
       "POST /studio/api/workspace exact",
       "GET /studio/api/schema exact",
+      "GET /studio/api/images exact",
+      "POST /studio/api/destination exact",
+      "GET /studio/api/groups/catalog exact",
+      "GET /studio/api/groups/members exact",
+      "GET /studio/api/groups/usage exact",
+      "GET /studio/api/hierarchy exact",
       "GET /studio/api/entities exact",
       "PUT /studio/api/entities exact",
       "POST /studio/api/entities exact",

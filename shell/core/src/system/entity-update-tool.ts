@@ -1,4 +1,9 @@
 import { isDeepStrictEqual } from "node:util";
+import { diffArrays } from "diff";
+import {
+  parseMarkdown,
+  updateFrontmatterField,
+} from "@brains/utils/markdown-frontmatter";
 import {
   canWriteVisibility,
   contentVisibilitySchema,
@@ -12,6 +17,7 @@ import type { Tool } from "@brains/mcp-service";
 import { setCoverImageId, setOgImageId } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { updateInputSchema } from "./schemas";
+import { applyContentEdits } from "./content-edits";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
@@ -29,13 +35,35 @@ const pendingApprovalForEntitySchema = z.looseObject({
   id: z.string(),
 });
 
-function currentFieldValue(entity: BaseEntity, key: string): unknown {
+function sourceFieldKeys(
+  entityType: string,
+  registry: SystemServices["entityRegistry"],
+): Set<string> {
+  return new Set([
+    ...registry
+      .getFrontmatterExtensions(entityType)
+      .flatMap((schema) => Object.keys(schema.shape)),
+    ...registry
+      .getGroupings()
+      .filter((grouping) => grouping.types.includes(entityType))
+      .map((grouping) => grouping.field),
+  ]);
+}
+
+function currentFieldValue(
+  entity: BaseEntity,
+  key: string,
+  sourceFields: ReadonlySet<string>,
+): unknown {
+  if (sourceFields.has(key))
+    return parseMarkdown(entity.content).frontmatter[key];
   return key === "visibility" ? entity.visibility : entity.metadata[key];
 }
 
 function applyFieldUpdates(
   entity: BaseEntity,
   fields: Record<string, unknown>,
+  registry: SystemServices["entityRegistry"],
 ): BaseEntity {
   const { visibility, coverImageId, ogImageId, ...metadataFields } = fields;
   const nextVisibility =
@@ -84,7 +112,54 @@ function applyFieldUpdates(
     }
   }
 
+  const sourceFields = sourceFieldKeys(entity.entityType, registry);
+  let authored = false;
+  for (const [key, value] of Object.entries(fields)) {
+    if (!sourceFields.has(key)) continue;
+    nextEntity.content = updateFrontmatterField(nextEntity.content, key, value);
+    authored = true;
+  }
+  if (authored)
+    nextEntity.metadata = registry.projectMetadata(
+      entity.entityType,
+      nextEntity.content,
+      nextMetadata,
+    );
   return nextEntity;
+}
+
+function applyContentUpdate(
+  entity: BaseEntity,
+  content: string,
+  registry: SystemServices["entityRegistry"],
+): BaseEntity {
+  const adapter = registry.getAdapter(entity.entityType);
+  const previous = adapter.fromMarkdown(entity.content);
+  const parsed = adapter.fromMarkdown(content);
+  const metadata = { ...entity.metadata };
+  // Refresh changed source-derived values, but keep curated metadata when its
+  // source did not change (for example a custom title during a body-only edit).
+  for (const key of new Set([
+    ...Object.keys(previous.metadata ?? {}),
+    ...Object.keys(parsed.metadata ?? {}),
+  ])) {
+    const next = parsed.metadata?.[key];
+    if (isDeepStrictEqual(previous.metadata?.[key], next)) continue;
+    if (next === undefined) delete metadata[key];
+    else metadata[key] = next;
+  }
+  return {
+    ...entity,
+    ...parsed,
+    id: entity.id,
+    entityType: entity.entityType,
+    created: entity.created,
+    updated: entity.updated,
+    contentHash: entity.contentHash,
+    content,
+    metadata,
+    visibility: extractVisibilityFromMarkdown(content) ?? entity.visibility,
+  };
 }
 
 function validateAnchorProfileUpdate(
@@ -134,6 +209,7 @@ function validateFieldUpdatePersistence(
   entity: BaseEntity,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
   entityRegistry: SystemServices["entityRegistry"],
+  entityService: SystemServices["entityService"],
 ): { success: false; error: string } | undefined {
   const fields = normalizedInput.fields;
   if (!fields) return undefined;
@@ -143,16 +219,58 @@ function validateFieldUpdatePersistence(
   );
   if (!frontmatterSchema) return undefined;
 
+  const sourceFields = sourceFieldKeys(entity.entityType, entityRegistry);
+  const authoredKeys = Object.keys(fields).filter((key) =>
+    sourceFields.has(key),
+  );
+  let updated: BaseEntity;
+  try {
+    updated = applyFieldUpdates(entity, fields, entityRegistry);
+    if (authoredKeys.length > 0) {
+      const validated = entityRegistry.validateEntity(
+        entity.entityType,
+        updated,
+      );
+      const markdown = entityService.serializeEntity(validated);
+      const source = parseMarkdown(markdown).frontmatter;
+      const metadata =
+        entityService.deserializeEntity(markdown, entity.entityType).metadata ??
+        {};
+      for (const key of authoredKeys) {
+        const expected = fields[key];
+        if (
+          expected === null
+            ? Object.hasOwn(source, key) || Object.hasOwn(metadata, key)
+            : !isDeepStrictEqual(source[key], expected) ||
+              !isDeepStrictEqual(metadata[key], expected)
+        ) {
+          return {
+            success: false,
+            error: `The requested ${key} value would not survive frontmatter persistence.`,
+          };
+        }
+      }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: getErrorMessage(error, "Invalid field update"),
+    };
+  }
   const requested = Object.keys(fields).filter(
     (key) =>
-      !NON_METADATA_FIELD_KEYS.has(key) && key in frontmatterSchema.shape,
+      !sourceFields.has(key) &&
+      !NON_METADATA_FIELD_KEYS.has(key) &&
+      key in frontmatterSchema.shape,
   );
   if (requested.length === 0) return undefined;
 
   const adapter = entityRegistry.getAdapter(entity.entityType);
-  const updated = applyFieldUpdates(entity, fields);
   let persistedMetadata: Record<string, unknown>;
   try {
+    // Persistence validates before serialization. A root property the schema
+    // strips must not make this best-effort probe promise a successful write.
+    updated = entityRegistry.validateEntity(entity.entityType, updated);
     persistedMetadata = adapter.extractMetadata(updated);
   } catch {
     return undefined;
@@ -326,26 +444,45 @@ function getUpdatedStatus(
 function buildUpdateDiff(
   entity: BaseEntity,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  registry: SystemServices["entityRegistry"],
 ): string {
+  const sourceFields = sourceFieldKeys(entity.entityType, registry);
   if (normalizedInput.fields) {
     return Object.entries(normalizedInput.fields)
-      .map(
-        ([key, val]) =>
-          `${key}: ${String(currentFieldValue(entity, key) ?? "(empty)")} → ${String(val)}`,
-      )
+      .map(([key, val]) => {
+        const previous = currentFieldValue(entity, key, sourceFields);
+        if (!sourceFields.has(key))
+          return `${key}: ${String(previous ?? "(empty)")} → ${String(val)}`;
+        const fieldSchema = registry.getEffectiveFrontmatterSchema(
+          entity.entityType,
+        )?.shape[key];
+        const valid =
+          fieldSchema !== undefined &&
+          z.safeParse(fieldSchema, previous).success;
+        const before =
+          previous === undefined
+            ? "(absent)"
+            : `${JSON.stringify(previous)}${valid ? "" : " (invalid existing value)"}`;
+        const after = val === null ? "(removed)" : JSON.stringify(val);
+        return `${key}: ${before} → ${after}`;
+      })
       .join("\n");
   }
 
   const oldLines = entity.content.split("\n");
   const newLines = (normalizedInput.content ?? "").split("\n");
-  const diffLines: string[] = [];
-  for (let i = 0; i < Math.max(oldLines.length, newLines.length); i++) {
-    if ((oldLines[i] ?? "") !== (newLines[i] ?? "")) {
-      if (oldLines[i]) diffLines.push(`- ${oldLines[i]}`);
-      if (newLines[i]) diffLines.push(`+ ${newLines[i]}`);
-    }
+  // Align unchanged lines so insertions do not make the entire suffix look
+  // rewritten. Bound diff work for large, completely different documents.
+  const changes = diffArrays(oldLines, newLines, { timeout: 100 });
+  if (!changes) {
+    return "Full content replacement (line diff omitted: comparison exceeded its time limit).";
   }
-  return diffLines.join("\n");
+  return changes
+    .filter((change) => change.added || change.removed)
+    .flatMap((change) =>
+      change.value.map((line) => `${change.added ? "+" : "-"} ${line}`),
+    )
+    .join("\n");
 }
 
 export function createEntityUpdateTool(services: SystemServices): Tool {
@@ -357,7 +494,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "update",
-    "Update an entity's fields or content. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
+    "Update an entity's fields or content. For small content changes, fetch the entity and use edits with exact oldText/newText pairs instead of regenerating the whole document. Use only one of fields, content, or edits. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
     updateInputSchema,
     async (input, context) => {
       const visibilityScope = permissionToVisibilityScope(
@@ -374,10 +511,36 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
 
-      let normalizedInput = normalizeUpdateInput({
-        ...(input.fields !== undefined ? { fields: input.fields } : {}),
-        ...(input.content !== undefined ? { content: input.content } : {}),
-      });
+      if (
+        input.edits !== undefined &&
+        (input.content !== undefined || input.fields !== undefined)
+      ) {
+        return {
+          success: false,
+          error: "Provide only one of 'edits', 'content', or 'fields'.",
+        };
+      }
+      if (
+        input.confirmed &&
+        input.contentHash &&
+        entity.contentHash !== input.contentHash
+      ) {
+        return {
+          success: false,
+          error:
+            "Entity was modified since you reviewed the changes. Please try again.",
+        };
+      }
+
+      let normalizedInput =
+        input.edits !== undefined
+          ? { content: applyContentEdits(entity.content, input.edits) }
+          : normalizeUpdateInput({
+              ...(input.fields !== undefined ? { fields: input.fields } : {}),
+              ...(input.content !== undefined
+                ? { content: input.content }
+                : {}),
+            });
 
       const isBlankContentApprovalAttempt =
         normalizedInput.content?.trim().length === 0 &&
@@ -412,7 +575,10 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         mangledApprovalReplay = true;
       }
 
-      if (normalizedInput.content && normalizedInput.fields)
+      if (
+        normalizedInput.content !== undefined &&
+        normalizedInput.fields !== undefined
+      )
         return {
           success: false,
           error: "Provide either 'content' or 'fields', not both",
@@ -434,6 +600,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         entity,
         normalizedInput,
         entityRegistry,
+        entityService,
       );
       if (fieldPersistenceError) return fieldPersistenceError;
 
@@ -481,29 +648,18 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           );
           if (gateError) return gateError;
         }
-        if (input.contentHash && entity.contentHash !== input.contentHash) {
-          return {
-            success: false,
-            error:
-              "Entity was modified since you reviewed the changes. Please try again.",
-          };
-        }
-
         const updated =
           normalizedInput.content !== undefined
-            ? {
-                ...entity,
-                content: normalizedInput.content,
-                // Replacement content that declares no visibility is not a
-                // demotion request: export omits the key for public entities,
-                // so regenerated or hand-edited content routinely arrives
-                // without it. Keep the stored tier unless the file says
-                // otherwise.
-                visibility:
-                  extractVisibilityFromMarkdown(normalizedInput.content) ??
-                  entity.visibility,
-              }
-            : applyFieldUpdates(entity, normalizedInput.fields ?? {});
+            ? applyContentUpdate(
+                entity,
+                normalizedInput.content,
+                entityRegistry,
+              )
+            : applyFieldUpdates(
+                entity,
+                normalizedInput.fields ?? {},
+                entityRegistry,
+              );
 
         if (
           updated.visibility !== entity.visibility &&
@@ -517,10 +673,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
         try {
           const eventContext = buildEntityMutationEventContext(context);
-          await entityService.updateEntity({
+          const result = await entityService.updateEntity({
             entity: updated,
-            ...(eventContext ? { options: { eventContext } } : {}),
+            options: {
+              expectedContentHash: entity.contentHash,
+              ...(eventContext ? { eventContext } : {}),
+            },
           });
+          if (result.skipReason === "content-conflict") {
+            return {
+              success: false,
+              error:
+                "Entity was modified before the update could be saved. Please request and confirm the update again.",
+            };
+          }
         } catch (error) {
           return {
             success: false,
@@ -531,7 +697,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       }
 
       const label = getEntityDisplayLabel(entity);
-      const diff = buildUpdateDiff(entity, normalizedInput);
+      const diff = buildUpdateDiff(entity, normalizedInput, entityRegistry);
+      // Approval must replay the normalized operation, not the JSON content
+      // that may have been interpreted as a field update.
+      const {
+        fields: _fields,
+        content: _content,
+        ...confirmationInput
+      } = input;
       return {
         needsConfirmation: true,
         toolName: "system_update",
@@ -539,8 +712,10 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         completionSummary: `Updated ${humanizeEntityType(entity.entityType)}.`,
         preview: diff,
         args: confirmationGate.buildArgs((confirmationToken) => ({
-          ...input,
-          ...normalizedInput,
+          ...confirmationInput,
+          ...(input.edits !== undefined
+            ? { edits: input.edits }
+            : normalizedInput),
           id: entity.id,
           confirmed: true,
           confirmationToken,

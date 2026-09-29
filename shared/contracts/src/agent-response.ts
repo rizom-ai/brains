@@ -1,5 +1,6 @@
 import { stripUndefinedDeep } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
+import { guestTurnSettlementSchema } from "./guest-execution";
 
 type PendingConfirmationSchema = z.ZodObject<{
   id: z.ZodString;
@@ -293,14 +294,18 @@ type AgentResponseUsageSchema = z.ZodObject<{
 
 type AgentResponseSchema = z.ZodObject<{
   text: z.ZodString;
+  error: z.ZodOptional<z.ZodString>;
   toolResults: z.ZodOptional<z.ZodArray<ToolResultDataSchema>>;
   cards: z.ZodOptional<z.ZodArray<StructuredChatCardSchema>>;
   pendingConfirmations: z.ZodOptional<z.ZodArray<PendingConfirmationSchema>>;
   usage: AgentResponseUsageSchema;
+  guestSettlement: z.ZodOptional<typeof guestTurnSettlementSchema>;
 }>;
 
 export const AgentResponseSchema: AgentResponseSchema = z.object({
   text: z.string(),
+  // Explicit failure metadata; transports must not infer failure from prose.
+  error: z.string().optional(),
   toolResults: z.array(ToolResultDataSchema).optional(),
   cards: z.array(StructuredChatCardSchema).optional(),
   pendingConfirmations: z.array(PendingConfirmationSchema).optional(),
@@ -309,6 +314,8 @@ export const AgentResponseSchema: AgentResponseSchema = z.object({
     completionTokens: z.number(),
     totalTokens: z.number(),
   }),
+  /** A guest turn's provider usage and settled cost; never set for owners. */
+  guestSettlement: guestTurnSettlementSchema.optional(),
 });
 
 export type AgentResponse = z.output<typeof AgentResponseSchema>;

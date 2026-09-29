@@ -33,7 +33,8 @@ const receiptSchema: Strict<{
     settledAt: integer.optional(),
     retainUntil: integer,
     deadline: integer,
-    reservedMicroUsd: z.number().int().positive(),
+    /** The quote while active; the measured cost once settled with one. */
+    reservedMicroUsd: integer,
     state: z.union([z.literal("active"), outcomeSchema]),
   })
   .refine(
@@ -47,6 +48,41 @@ const receiptSchema: Strict<{
   );
 export type GuestAdmissionReceipt = z.output<typeof receiptSchema>;
 
+// Retired lifetime trial: still parsed so maintenance can sweep an old
+// ledger, never read for admission and never written.
+const lifetimeUsageSchema: Strict<{
+  requests: z.ZodNumber;
+  reservedMicroUsd: z.ZodNumber;
+}> = z.strictObject({ requests: integer, reservedMicroUsd: integer });
+
+const authorizationSchema: Strict<{
+  origin: z.ZodString;
+  requests: z.ZodNumber;
+  maxCostMicroUsd: z.ZodNumber;
+}> = z.strictObject({
+  origin: z.string().url(),
+  requests: z.number().int().positive(),
+  maxCostMicroUsd: z.number().int().positive(),
+});
+
+/** The owner's monthly budget, granted for one origin. */
+const budgetSchema: Strict<{
+  origin: z.ZodString;
+  monthlyMicroUsd: z.ZodNumber;
+}> = z.strictObject({
+  origin: z.string().url(),
+  monthlyMicroUsd: z.number().int().positive(),
+});
+
+/** What the current UTC month has charged: quotes in flight and settled costs. */
+const monthSchema: Strict<{
+  key: z.ZodString;
+  chargedMicroUsd: z.ZodNumber;
+}> = z.strictObject({
+  key: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  chargedMicroUsd: integer,
+});
+
 export const guestAdmissionStateSchema: Strict<{
   version: z.ZodLiteral<1>;
   revision: z.ZodNumber;
@@ -54,6 +90,10 @@ export const guestAdmissionStateSchema: Strict<{
   enabled: z.ZodBoolean;
   lastSeenAt: z.ZodNumber;
   receipts: z.ZodRecord<z.ZodString, typeof receiptSchema>;
+  lifetime: z.ZodOptional<typeof lifetimeUsageSchema>;
+  authorization: z.ZodOptional<typeof authorizationSchema>;
+  budget: z.ZodOptional<typeof budgetSchema>;
+  month: z.ZodOptional<typeof monthSchema>;
 }> = z.strictObject({
   version: z.literal(1),
   revision: integer,
@@ -61,6 +101,11 @@ export const guestAdmissionStateSchema: Strict<{
   enabled: z.boolean(),
   lastSeenAt: integer,
   receipts: z.record(digest, receiptSchema),
+  lifetime: lifetimeUsageSchema.optional(),
+  authorization: authorizationSchema.optional(),
+  budget: budgetSchema.optional(),
+  // The month's charge survives receipt cleanup, so pruning never returns budget.
+  month: monthSchema.optional(),
 });
 export type GuestAdmissionState = z.output<typeof guestAdmissionStateSchema>;
 export const guestAdmissionNamespace = "web-chat.guest-admission";
@@ -93,17 +138,30 @@ export interface GuestExecutionLease {
   execution: GuestExecutionPolicy;
 }
 
-export type GuestAdmissionDenial =
-  | "unavailable"
-  | "invalid-input"
-  | "conversation-unavailable"
-  | "submission-conflict"
-  | "visitor-busy"
-  | "deployment-busy"
-  | "visitor-rate-limit"
-  | "deployment-rate-limit"
-  | "conversation-limit"
-  | "budget-exhausted";
+export const guestAdmissionDenialSchema: z.ZodEnum<{
+  unavailable: "unavailable";
+  "invalid-input": "invalid-input";
+  "conversation-unavailable": "conversation-unavailable";
+  "submission-conflict": "submission-conflict";
+  "visitor-busy": "visitor-busy";
+  "deployment-busy": "deployment-busy";
+  "visitor-rate-limit": "visitor-rate-limit";
+  "deployment-rate-limit": "deployment-rate-limit";
+  "conversation-limit": "conversation-limit";
+  "budget-exhausted": "budget-exhausted";
+}> = z.enum([
+  "unavailable",
+  "invalid-input",
+  "conversation-unavailable",
+  "submission-conflict",
+  "visitor-busy",
+  "deployment-busy",
+  "visitor-rate-limit",
+  "deployment-rate-limit",
+  "conversation-limit",
+  "budget-exhausted",
+]);
+export type GuestAdmissionDenial = z.output<typeof guestAdmissionDenialSchema>;
 
 export type GuestAdmissionResult =
   | { kind: "reserved"; lease: GuestExecutionLease }

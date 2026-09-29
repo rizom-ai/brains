@@ -142,12 +142,14 @@ describe("JobQueueRepository fenced attempts", () => {
   let cleanup: () => Promise<void>;
   let client: Client;
   let repository: JobQueueRepository;
+  let ownedDatabase: ReturnType<typeof createJobQueueDatabase>;
 
   function createRepository(): {
     client: Client;
     repository: JobQueueRepository;
   } {
-    const database = createJobQueueDatabase(config);
+    // Multiple repository views share the native writer, never its filename.
+    const database = ownedDatabase;
     return {
       client: database.client,
       repository: new JobQueueRepository(
@@ -162,6 +164,7 @@ describe("JobQueueRepository fenced attempts", () => {
   beforeEach(async () => {
     const testDb = await createTestJobQueueDatabase();
     config = testDb.config;
+    ownedDatabase = createJobQueueDatabase(config);
     cleanup = testDb.cleanup;
     const created = createRepository();
     client = created.client;
@@ -171,6 +174,322 @@ describe("JobQueueRepository fenced attempts", () => {
   afterEach(async () => {
     await closeSqliteClient(client);
     await cleanup();
+  });
+
+  for (const operation of [
+    "claim",
+    "progress",
+    "lease",
+    "session",
+    "complete",
+    "fail",
+    "retry",
+  ] as const) {
+    it(`waits asynchronously for an enqueue transaction before ${operation}`, async () => {
+      const job = createTestJob({ maxRetries: operation === "retry" ? 3 : 0 });
+      const pending = createTestJob();
+      const claim = claimOptions();
+      await repository.insert(job);
+      await repository.startWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+        claim.now,
+      );
+      await repository.claimNextReady(claim);
+      await repository.insert(pending);
+      let release!: () => void;
+      let entered!: () => void;
+      const hold = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const acquired = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      const enqueue = repository.enqueueAtomic({
+        jobData: createAtomicTestJob({ scheduledFor: 20_000 }),
+        beforeInsert: async () => {
+          entered();
+          await hold;
+        },
+      });
+      await acquired;
+      const execute = async (): Promise<unknown> => {
+        switch (operation) {
+          case "claim":
+            return repository.claimNextReady(claimOptions());
+          case "progress":
+            return repository.recordAttemptProgress(
+              job.id,
+              claim.attemptId,
+              { message: "rendering", progress: 50, total: 100 },
+              claim.now,
+            );
+          case "lease":
+            return repository.renewAttemptLease(
+              job.id,
+              claim.attemptId,
+              claim.now,
+              2_000,
+            );
+          case "session":
+            return repository.heartbeatWorkerSession(
+              claim.workerSlotId,
+              claim.workerSessionId,
+              claim.now,
+            );
+          case "complete":
+            return repository.complete(job.id, { ok: true }, claim.attemptId);
+          case "fail":
+          case "retry":
+            return repository.fail(
+              job.id,
+              new Error("handler failed"),
+              claim.attemptId,
+              claim.now,
+            );
+        }
+      };
+      const outcome = execute().then(
+        (value) => ({ value, error: undefined }),
+        (error) => ({ value: undefined, error }),
+      );
+      try {
+        // Releasing on the event loop proves this does not use a synchronous busy wait.
+        await Bun.sleep(40);
+      } finally {
+        release();
+        await enqueue;
+      }
+      const result = await outcome;
+      expect(result.error).toBeUndefined();
+      if (operation === "claim")
+        expect(result.value).toMatchObject({
+          id: pending.id,
+          status: JOB_STATUS.PROCESSING,
+          retryCount: 0,
+        });
+      else expect(result.value).toBe(true);
+      const persisted = await repository.getStatus(job.id);
+      if (operation === "complete")
+        expect(persisted?.status).toBe(JOB_STATUS.COMPLETED);
+      if (operation === "fail")
+        expect(persisted).toMatchObject({
+          status: JOB_STATUS.FAILED,
+          retryCount: 0,
+          lastError: "handler failed",
+        });
+      if (operation === "retry")
+        expect(persisted).toMatchObject({
+          status: JOB_STATUS.PENDING,
+          retryCount: 1,
+          attemptId: null,
+          lastError: "handler failed",
+        });
+      if (operation === "progress")
+        expect(persisted?.progress).toMatchObject({ progress: 50 });
+      if (operation === "lease")
+        expect(persisted?.leaseExpiresAt).toBe(claim.now + 2_000);
+    });
+  }
+
+  for (const operation of [
+    "complete",
+    "fail",
+    "progress",
+    "lease",
+    "update",
+  ] as const) {
+    it(`preserves the replacement attempt when ${operation} waits on the native owner's transaction`, async () => {
+      const job = createTestJob();
+      const claim = claimOptions();
+      await repository.insert(job);
+      await repository.startWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+        claim.now,
+      );
+      await repository.claimNextReady(claim);
+      const other = createRepository();
+      const transaction = await other.client.transaction("write");
+      try {
+        await transaction.execute({
+          sql: "UPDATE job_queue SET attemptId = ? WHERE id = ?",
+          args: ["replacement", job.id],
+        });
+        const execute = async (): Promise<boolean> => {
+          switch (operation) {
+            case "complete":
+              return repository.complete(job.id, {}, claim.attemptId);
+            case "fail":
+              return repository.fail(
+                job.id,
+                new Error("old failure"),
+                claim.attemptId,
+              );
+            case "progress":
+              return repository.recordAttemptProgress(job.id, claim.attemptId, {
+                message: "old progress",
+                progress: 20,
+                total: 100,
+              });
+            case "lease":
+              return repository.renewAttemptLease(
+                job.id,
+                claim.attemptId,
+                claim.now,
+                2_000,
+              );
+            case "update":
+              return repository.update(job.id, { old: true }, claim.attemptId);
+          }
+        };
+        let settled = false;
+        const outcome = execute()
+          .then(
+            (value) => ({ value, error: undefined }),
+            (error) => ({ value: undefined, error }),
+          )
+          .finally((): void => {
+            settled = true;
+          });
+        await Bun.sleep(30);
+        expect(settled).toBe(false);
+        await transaction.commit();
+        const result = await outcome;
+        expect(result.error).toBeUndefined();
+        expect(result.value).toBe(false);
+        expect(await repository.getStatus(job.id)).toMatchObject({
+          status: JOB_STATUS.PROCESSING,
+          attemptId: "replacement",
+          retryCount: 0,
+          lastError: null,
+          result: null,
+          progress: null,
+          data: job.data,
+        });
+      } finally {
+        if (!transaction.closed) await transaction.rollback();
+        transaction.close();
+        await closeSqliteClient(other.client);
+      }
+    });
+  }
+
+  it("bounds lock retries and never performs a delayed write after exhaustion", async () => {
+    const job = createTestJob();
+    const claim = claimOptions();
+    await repository.insert(job);
+    await repository.startWorkerSession(
+      claim.workerSlotId,
+      claim.workerSessionId,
+      claim.now,
+    );
+    await repository.claimNextReady(claim);
+    const database = ownedDatabase;
+    const bounded = new JobQueueRepository(
+      database.db,
+      database.client,
+      database.url,
+      createSilentLogger(),
+      { writeRetryBudgetMs: 40 },
+    );
+    const execute = client.execute.bind(client);
+    let blocked = true;
+    let writeAttempts = 0;
+    // Inject a recognized statement conflict at the existing owner boundary.
+    // A second engine/OS lock is not part of native runtime ownership.
+    client.execute = async (statement: InStatement): Promise<ResultSet> => {
+      const sql = typeof statement === "string" ? statement : statement.sql;
+      if (sql.startsWith('update "job_queue"')) {
+        writeAttempts++;
+        if (blocked) throw new BusyCommitError("database is locked");
+      }
+      return execute(statement);
+    };
+    try {
+      const start = Date.now();
+      const failure = await bounded.complete(job.id, {}, claim.attemptId).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(failure).toBeInstanceOf(Error);
+      expect(failure).toHaveProperty(
+        "message",
+        expect.stringContaining(
+          'Failed job queue write "complete" within 40ms',
+        ),
+      );
+      expect(Date.now() - start).toBeLessThan(1_000);
+      expect(writeAttempts).toBeGreaterThan(1);
+      const exhaustedAttempts = writeAttempts;
+      blocked = false;
+      await Bun.sleep(60);
+      expect(writeAttempts).toBe(exhaustedAttempts);
+      expect(await repository.getStatus(job.id)).toMatchObject({
+        status: JOB_STATUS.PROCESSING,
+        attemptId: claim.attemptId,
+        retryCount: 0,
+        result: null,
+      });
+    } finally {
+      client.execute = execute;
+    }
+  });
+
+  it("does not retry a constraint error whose query payload mentions SQLITE_BUSY", async () => {
+    const job = createTestJob({
+      data: JSON.stringify({ message: "SQLITE_BUSY: database is locked" }),
+    });
+    await repository.insert(job);
+    const original = client.execute.bind(client);
+    const execute = mock((statement: InStatement) => original(statement));
+    client.execute = execute;
+    try {
+      const failure = await repository.insert(job).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(failure).toBeInstanceOf(Error);
+      expect(execute).toHaveBeenCalledTimes(1);
+    } finally {
+      client.execute = original;
+    }
+  });
+
+  it("does not heartbeat a replacement worker session after waiting for its writer", async () => {
+    await repository.startWorkerSession("worker-a", "session-a", 10_000);
+    const other = createRepository();
+    const transaction = await other.client.transaction("write");
+    try {
+      await transaction.execute(
+        "UPDATE job_worker_sessions SET sessionId = 'replacement' WHERE slotId = 'worker-a'",
+      );
+      let settled = false;
+      const heartbeat = repository
+        .heartbeatWorkerSession("worker-a", "session-a", 11_000)
+        .then(
+          (value) => ({ value, error: undefined }),
+          (error) => ({ value: undefined, error }),
+        )
+        .finally((): void => {
+          settled = true;
+        });
+      await Bun.sleep(30);
+      expect(settled).toBe(false);
+      await transaction.commit();
+      expect(await heartbeat).toEqual({ value: false, error: undefined });
+      const row = await other.client.execute(
+        "SELECT sessionId, heartbeatAt FROM job_worker_sessions WHERE slotId='worker-a'",
+      );
+      expect(row.rows[0]).toMatchObject({
+        sessionId: "replacement",
+        heartbeatAt: 10_000,
+      });
+    } finally {
+      if (!transaction.closed) await transaction.rollback();
+      transaction.close();
+      await closeSqliteClient(other.client);
+    }
   });
 
   it("atomically claims a pending job with attempt ownership and a lease", async () => {
@@ -249,11 +568,11 @@ describe("JobQueueRepository fenced attempts", () => {
     });
   });
 
-  it("does not reclaim another slot's attempt while its worker session is live", async () => {
+  it("does not reclaim another slot's attempt while its lease is current", async () => {
     const job = createTestJob();
     await repository.insert(job);
     await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
-    await repository.claimNextReady(claimOptions({ leaseDurationMs: 100 }));
+    await repository.claimNextReady(claimOptions({ leaseDurationMs: 300 }));
 
     await repository.startWorkerSession("worker-b", "session-b", 10_200);
     const reclaimed = await repository.claimNextReady(
@@ -268,16 +587,19 @@ describe("JobQueueRepository fenced attempts", () => {
     expect(reclaimed).toBeNull();
   });
 
-  it("reclaims another slot's attempt only after both its lease and owner session expire", async () => {
+  // A live worker that stopped renewing a lease has abandoned that attempt;
+  // the attempt fence keeps its late writes from landing.
+  it("reclaims an attempt whose lease expired while its worker session is live", async () => {
     const job = createTestJob();
     await repository.insert(job);
-    await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
-    await repository.claimNextReady(claimOptions({ leaseDurationMs: 100 }));
-    await repository.startWorkerSession("worker-b", "session-b", 10_700);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000, 5_000);
+    const abandoned = claimOptions({ leaseDurationMs: 100 });
+    await repository.claimNextReady(abandoned);
+    await repository.startWorkerSession("worker-b", "session-b", 10_200);
 
     const reclaimed = await repository.claimNextReady(
       claimOptions({
-        now: 10_700,
+        now: 10_200,
         attemptId: createId(),
         workerSlotId: "worker-b",
         workerSessionId: "session-b",
@@ -290,6 +612,14 @@ describe("JobQueueRepository fenced attempts", () => {
       workerSessionId: "session-b",
       retryCount: 1,
     });
+    expect(
+      await repository.renewAttemptLease(
+        job.id,
+        abandoned.attemptId,
+        10_300,
+        100,
+      ),
+    ).toBe(false);
   });
 
   it("renews long-running attempt and worker-session liveness with fenced heartbeats", async () => {
@@ -727,7 +1057,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("retries recognized write-transaction acquisition conflicts", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     let attempts = 0;
     const transaction = mock(async () => {
       attempts++;
@@ -762,7 +1092,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("replays the transaction after commit conflicts", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     const commitState: CommitConflictState = {
       commitCalls: 0,
       remainingFailures: 2,
@@ -807,7 +1137,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("releases insert preparation when replay resolves to a duplicate", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     const commitState: CommitConflictState = {
       commitCalls: 0,
       remainingFailures: 1,
@@ -876,7 +1206,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("outlasts commit contention beyond any fixed attempt cap", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     const commitState: CommitConflictState = {
       commitCalls: 0,
       remainingFailures: 8,
@@ -916,7 +1246,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("rolls back every replayed insertion after commit conflict exhaustion", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     const commitState: CommitConflictState = {
       commitCalls: 0,
       remainingFailures: Number.POSITIVE_INFINITY,
@@ -970,7 +1300,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("returns actionable context after transaction conflict exhaustion", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     const transaction = mock(async () => {
       throw Object.assign(new Error("database is locked"), {
         code: "SQLITE_BUSY",
@@ -1005,7 +1335,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   it("does not retry unknown transaction acquisition errors", async () => {
-    const database = createJobQueueDatabase(config);
+    const database = ownedDatabase;
     const unknownError = new Error("authentication failed");
     const transaction = mock(async () => {
       throw unknownError;

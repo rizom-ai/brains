@@ -3,7 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Slot, Switch as SwitchPrimitive } from "radix-ui";
 import type {
   ButtonHTMLAttributes,
-  InputHTMLAttributes,
+  ComponentPropsWithRef,
   ReactElement,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
@@ -74,14 +74,31 @@ const styles = stylex.create({
     color: "var(--console-on-accent)",
     transform: {
       default: null,
-      ":hover": {
+      ":hover:not(:disabled)": {
         default: "translateY(-1px)",
         "@media (prefers-reduced-motion: reduce)": "none",
       },
     },
-    ":hover": {
-      backgroundColor: "var(--console-accent-dim)",
-      borderColor: "var(--console-accent-dim)",
+    // The lift signals hover, but reduced motion removes it and the paint pair
+    // is contrast-tested and must not change. An outline carries the cue there.
+    outline: {
+      default: "none",
+      ":hover:not(:disabled)": {
+        default: "none",
+        "@media (prefers-reduced-motion: reduce)":
+          "2px solid var(--console-on-accent)",
+      },
+    },
+    outlineOffset: "-4px",
+    ":hover:not(:disabled)": {
+      backgroundColor: "var(--console-accent)",
+      borderColor: "var(--console-accent)",
+    },
+    ":disabled": {
+      backgroundColor: "var(--console-card-soft)",
+      borderColor: "var(--console-rule-strong)",
+      color: "var(--console-text-muted)",
+      opacity: 1,
     },
   },
   secondary: {
@@ -350,7 +367,7 @@ export function Input({
   xstyle,
   style,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & {
+}: ComponentPropsWithRef<"input"> & {
   xstyle?: stylex.StyleXStyles;
 }): ReactElement {
   const styleProps = stylex.props(styles.control, xstyle);

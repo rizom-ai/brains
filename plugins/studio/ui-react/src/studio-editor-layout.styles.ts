@@ -4,9 +4,9 @@ type LayoutStyle =
   | "editor"
   | "head"
   | "colophon"
+  | "fullWidthProperties"
   | "fields"
   | "manuscript"
-  | "empty"
   | "pipeline"
   | "compactStatus"
   | "compactValue"
@@ -37,12 +37,12 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
     },
     editor: {
       display: "grid",
-      gridTemplateColumns: "clamp(230px, 20vw, 280px) minmax(0, 1fr)",
+      gridTemplateColumns: "clamp(320px, 24vw, 360px) minmax(0, 1fr)",
       gridTemplateRows: "auto minmax(0, 1fr) auto",
       minHeight: 0,
       minWidth: 0,
       "@media (min-width: 641px) and (max-width: 900px)": {
-        gridTemplateColumns: "260px minmax(0, 1fr)",
+        gridTemplateColumns: "320px minmax(0, 1fr)",
       },
       "@media (max-width: 640px)": {
         gridTemplateColumns: "minmax(0, 1fr)",
@@ -78,6 +78,10 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
         },
       },
     },
+    fullWidthProperties: {
+      gridColumn: "1 / -1",
+      borderRightWidth: 0,
+    },
     fields: { borderWidth: 0, margin: 0, padding: 0, minInlineSize: 0 },
     manuscript: {
       display: "flex",
@@ -99,7 +103,6 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
         },
       },
     },
-    empty: { padding: "30px 34px" },
     pipeline: {
       gridColumn: "1 / -1",
       gridRow: "3",

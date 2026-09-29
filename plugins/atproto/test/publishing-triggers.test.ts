@@ -186,7 +186,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "test",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.putRecord).not.toHaveBeenCalled();
   });
@@ -209,7 +209,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.putRecord).toHaveBeenCalledTimes(1);
     expect(client.putRecord).toHaveBeenCalledWith(
@@ -256,7 +256,7 @@ describe("AT Protocol ambient publishing triggers", () => {
         broadcast: true,
       });
     }
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     const cardWrites = client.putRecord.mock.calls.filter(
       ([input]) =>
@@ -275,7 +275,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     const lexicons = listCanonicalAtprotoLexicons();
     expect(client.createSession).toHaveBeenCalledTimes(2);
@@ -305,7 +305,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     for (let index = 0; index < 2; index += 1) {
       await plugin.ready();
     }
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     for (const lexicon of listCanonicalAtprotoLexicons()) {
       const matchingCalls = client.putRecord.mock.calls.filter(
@@ -346,7 +346,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(putRecord).toHaveBeenCalledTimes(
       listCanonicalAtprotoLexicons().length + 1,
@@ -379,7 +379,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(createPdsClient).not.toHaveBeenCalled();
   });
@@ -403,7 +403,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await armFullBoot(shell);
     await plugin.ready();
     await settleTicks();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(failures).toEqual([]);
   });
@@ -419,7 +419,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     await plugin.ready();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.createSession).not.toHaveBeenCalled();
     expect(client.putRecord).not.toHaveBeenCalled();
@@ -458,7 +458,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.ready();
 
     releasePut();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(putRecord).toHaveBeenCalledTimes(1);
   });
 
@@ -475,7 +475,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.putRecord).toHaveBeenCalledTimes(1);
     expect(client.putRecord).toHaveBeenCalledWith({
@@ -504,7 +504,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "entity-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.deleteRecord).toHaveBeenCalledWith({
       repo: "did:plc:repo",
@@ -528,7 +528,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "entity-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.deleteRecord).toHaveBeenCalledWith({
       repo: "did:plc:repo",
@@ -551,7 +551,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(client.createSession).not.toHaveBeenCalled();
     expect(client.putRecord).not.toHaveBeenCalled();
@@ -612,7 +612,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     expect(calls).toEqual(["put:start"]);
 
     releaseUpsert();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(calls).toEqual(["put:start", "put:end", "delete"]);
     expect(deleteRecord).toHaveBeenCalledTimes(1);
@@ -662,7 +662,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
 
     releaseUpserts();
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(putRecord).toHaveBeenCalledTimes(2);
   });
 
@@ -705,7 +705,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(response).toEqual({ success: true });
     expect(failures).toHaveLength(1);
     const report = atprotoPublishFailedPayloadSchema.parse(failures[0]);
@@ -738,7 +738,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(response).toEqual({ success: true });
     expect(failures).toEqual([

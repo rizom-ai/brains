@@ -1,3 +1,4 @@
+import { contentVisibilitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { projectStatusSchema } from "../schemas/project";
 
@@ -9,29 +10,6 @@ const nullableNumber: z.ZodDefault<z.ZodNullable<z.ZodNumber>> = z
   .number()
   .nullable()
   .default(null);
-type Visibility = "public" | "shared" | "restricted";
-const visibilitySchema: z.ZodPipe<
-  z.ZodOptional<
-    z.ZodUnion<
-      readonly [
-        z.ZodEnum<{
-          public: "public";
-          shared: "shared";
-          restricted: "restricted";
-        }>,
-        z.ZodLiteral<"private">,
-      ]
-    >
-  >,
-  z.ZodTransform<Visibility, Visibility | "private" | undefined>
-> = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public" as const;
-    if (value === "private") return "restricted" as const;
-    return value;
-  });
 const frontmatterSchema: z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodDefault<z.ZodNullable<z.ZodString>>;
@@ -86,7 +64,7 @@ export const projectViewSchema: z.ZodObject<{
   content: z.ZodString;
   created: z.ZodString;
   updated: z.ZodString;
-  visibility: typeof visibilitySchema;
+  visibility: typeof contentVisibilitySchema;
   metadata: typeof metadataSchema;
   contentHash: z.ZodString;
   frontmatter: typeof frontmatterSchema;
@@ -104,7 +82,7 @@ export const projectViewSchema: z.ZodObject<{
   content: z.string(),
   created: z.string(),
   updated: z.string(),
-  visibility: visibilitySchema,
+  visibility: contentVisibilitySchema,
   metadata: metadataSchema,
   contentHash: z.string(),
   frontmatter: frontmatterSchema,

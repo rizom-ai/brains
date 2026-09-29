@@ -1,6 +1,6 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import {
@@ -119,6 +119,7 @@ describe("DirectoryImportJobHandler", () => {
         ["/path/to/series.md"],
         reporter,
         25,
+        undefined,
       );
     });
 
@@ -140,10 +141,12 @@ describe("DirectoryImportJobHandler", () => {
         entityService,
         pluginId: "directory-sync",
       });
+      const directory = createMockDirectorySync();
+      const imported = spyOn(directory, "importEntitiesWithProgress");
       const testHandler = new DirectoryImportJobHandler(
         createSilentLogger("test"),
         context,
-        createMockDirectorySync(),
+        directory,
       );
       const data = {
         paths: ["/path/to/series.md"],
@@ -154,8 +157,15 @@ describe("DirectoryImportJobHandler", () => {
         },
       };
 
-      await testHandler.process(data, "job-1", createMockProgressReporter());
+      const reporter = createMockProgressReporter();
+      await testHandler.process(data, "job-1", reporter);
       await testHandler.onTerminalSuccess(data, "job-1");
+      expect(imported).toHaveBeenCalledWith(
+        data.paths,
+        reporter,
+        100,
+        data.projectionBatch,
+      );
 
       expect(runChild).toHaveBeenCalledWith(
         {

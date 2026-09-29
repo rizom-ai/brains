@@ -1,7 +1,9 @@
 import { createMockAppInfo } from "@brains/plugins/test";
+import { studioAssetManifestSchema } from "../plugins/studio/src/ui-assets";
 import { renameChatSessionRequestSchema } from "@brains/contracts/chat";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
+import { isRecord } from "@brains/utils/is-record";
 import path from "node:path";
 import { PNG } from "pngjs";
 import axe from "axe-core";
@@ -9,13 +11,14 @@ import { createAdministrationFixture } from "./fixtures/studio-administration";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
 import { createSyncViewFixture } from "./fixtures/studio-sync-view";
+import { systemFixtures } from "./fixtures/studio-system";
 import {
   studioStudyStateSchema,
   supportsStudioStudyState,
 } from "./fixtures/studio-study-state";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
-import { renderEditorShellHtml } from "@brains/studio";
+import { renderEditorShellHtml, studioTypeHierarchy } from "@brains/studio";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -180,17 +183,26 @@ const entity = {
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
-const styleGuideEntity = {
-  ...entity,
-  id: "style-guide",
-  entityType: "style-guide",
-  frontmatter: {
-    title: "Rover Collective voice",
-    tone: "Warm, precise and candid. Prefer useful language over performance.",
-    accent: "verdigris + vermilion",
-  },
-  body: "# A working voice\n\nWrite as a capable collaborator: direct enough to act on, generous enough to understand.\n\n> The interface should feel authored, but it should never compete with the work.\n\nUse structure to make complex systems legible. Names should describe stable concepts rather than implementation details.",
-};
+let reviewingSystem = false;
+let lastSystemSave:
+  { frontmatter?: Record<string, unknown>; body?: string } | undefined;
+const systemTypes = [...systemFixtures.values()].map((fixture) => ({
+  entityType: fixture.entityType,
+  label: fixture.label,
+  isSingleton: fixture.isSingleton,
+  hasBody: fixture.hasBody,
+  count: 1,
+  capabilities: fixture.readOnly
+    ? {
+        ...editCapabilities,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+        canAssist: false,
+        canPublish: false,
+      }
+    : editCapabilities,
+}));
 const sessions = [
   {
     id: "responsive",
@@ -929,7 +941,7 @@ async function verifyAdministrationRecords(
         ? "People"
         : surface === "studio-administration-invitations"
           ? "Invitations"
-          : "Audit",
+          : "Access activity",
     );
   }
   await waitForPage("Administration collection after closing inspection", () =>
@@ -1818,6 +1830,25 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
     throw new Error(
       "Browse no longer matches the approved direct destinations and independently collapsible groups",
     );
+  await fillLabel(page, "Filter destinations", "agen");
+  await waitForPage("Browse filter narrows every group", () =>
+    evaluatePage(page, () => {
+      const links = Array.from(
+        document.querySelectorAll(".studio-mobile-navigation-link"),
+      );
+      return (
+        links.length === 1 && links[0]?.textContent.includes("Agents") === true
+      );
+    }),
+  );
+  await fillLabel(page, "Filter destinations", "");
+  await waitForPage("Browse filter clears", () =>
+    evaluatePage(
+      page,
+      () =>
+        document.querySelectorAll(".studio-mobile-navigation-link").length > 1,
+    ),
+  );
   await page.cdp("Input.dispatchKeyEvent", {
     type: "keyDown",
     key: "Escape",
@@ -1842,7 +1873,7 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   );
   if (!libraryOpen)
     await clickText(page, ".studio-mobile-navigation-group summary", "Library");
-  await waitForPage("Library group expands", () =>
+  await waitForPage("Library group rests open", () =>
     page.evaluate<boolean>(
       'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
     ),
@@ -2030,14 +2061,27 @@ async function fillLabel(
   const filled = await evaluatePageWith(
     page,
     ({ labelText: text, value: nextValue }) => {
+      // Fields that carry their own label expose it as aria-label rather than
+      // spending a line on it, so match either.
+      const labelled = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "input[aria-label], textarea[aria-label]",
+        ),
+      ).find(
+        (candidate) =>
+          candidate.getAttribute("aria-label") === text &&
+          candidate.getBoundingClientRect().height > 0,
+      );
       const label = Array.from(document.querySelectorAll("label")).find(
         (candidate) =>
           candidate.textContent.includes(text) &&
           candidate.getBoundingClientRect().height > 0,
       );
-      const input = label?.htmlFor
-        ? document.getElementById(label.htmlFor)
-        : label?.querySelector("input, textarea");
+      const input =
+        labelled ??
+        (label?.htmlFor
+          ? document.getElementById(label.htmlFor)
+          : label?.querySelector("input, textarea"));
       if (!(
         input instanceof HTMLInputElement ||
         input instanceof HTMLTextAreaElement
@@ -2219,7 +2263,7 @@ async function addVisualInitScript(
 function isStudioAppShellSurface(surface: string): boolean {
   return (
     surface === "studio-editor" ||
-    surface === "studio-system" ||
+    (surface.startsWith("studio-system") && !surface.endsWith("-collection")) ||
     surface === "studio-delete" ||
     surface === "studio-conflict" ||
     surface === "studio-invalid" ||
@@ -2515,6 +2559,166 @@ async function verifyStudioKeyboardAccess(page: Bun.WebView): Promise<void> {
   }
 }
 
+async function verifyDisabledPrimaries(page: Bun.WebView): Promise<void> {
+  const check = async (): Promise<{ x: number; y: number } | undefined> =>
+    evaluatePage(page, () => {
+      let point: { x: number; y: number } | undefined;
+      for (const button of document.querySelectorAll<HTMLButtonElement>(
+        'button[data-slot="button"]:is([data-variant="default"], [data-variant="primary"]):disabled',
+      )) {
+        const reference = document.createElement("span");
+        reference.style.cssText =
+          "display:none;background-color:var(--console-card-soft);color:var(--console-text-muted);border:1px solid var(--console-rule-strong)";
+        button.append(reference);
+        const expected = getComputedStyle(reference),
+          actual = getComputedStyle(button);
+        const neutral =
+          actual.backgroundColor === expected.backgroundColor &&
+          actual.color === expected.color &&
+          actual.borderTopColor === expected.borderTopColor &&
+          actual.opacity === "1" &&
+          actual.transform === "none";
+        reference.remove();
+        if (!neutral)
+          throw Error(
+            `Disabled primary must stay neutral, including on hover: ${button.getAttribute("aria-label") ?? button.textContent}`,
+          );
+        const rect = button.getBoundingClientRect();
+        if (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.top >= 0 &&
+          rect.bottom <= innerHeight &&
+          rect.left >= 0 &&
+          rect.right <= innerWidth
+        )
+          point = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      }
+      return point;
+    });
+  const point = await check();
+  if (point) {
+    await page.cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      ...point,
+    });
+    await waitForVisualStability(page);
+    await check();
+    await page.cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: 0,
+      y: 0,
+    });
+  }
+}
+
+async function verifyCollectionFiltersFit(page: Bun.WebView): Promise<void> {
+  await evaluatePage(page, () => {
+    const panel = document.querySelector<HTMLElement>(
+      ".studio-collection-controls details[open] > div",
+    );
+    if (!panel) throw Error("Missing open collection filters");
+    const bounds = panel.getBoundingClientRect();
+    if (bounds.width <= 0 || panel.scrollWidth > panel.clientWidth + 1)
+      throw Error("Collection filters overflow their panel");
+    for (const field of panel.querySelectorAll("select, input")) {
+      const rect = field.getBoundingClientRect();
+      if (
+        rect.width <= 0 ||
+        rect.left < bounds.left - 1 ||
+        rect.right > bounds.right + 1 ||
+        rect.right > innerWidth
+      )
+        throw Error("Collection filter control is clipped");
+    }
+    panel.querySelector<HTMLSelectElement>("select")?.focus();
+  });
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await evaluatePage(page, () => {
+    const details = document.querySelector<HTMLDetailsElement>(
+      ".studio-collection-controls details",
+    );
+    if (
+      !details ||
+      details.open ||
+      document.activeElement !== details.querySelector("summary")
+    )
+      throw Error(
+        "Escape must close only the filters and restore their trigger",
+      );
+  });
+  await clickText(page, ".studio-collection-controls summary", "Filter");
+}
+
+async function verifyNativeDateFits(page: Bun.WebView): Promise<void> {
+  // The input's own scrollWidth does not expose clipped native date segments.
+  // Inspect Chromium's user-agent shadow layout instead of guessing its locale.
+  interface NativeNode {
+    nodeId: number;
+    nodeName: string;
+    attributes?: string[];
+    children?: NativeNode[];
+    shadowRoots?: NativeNode[];
+  }
+  const tree = await page.cdp<{ root: NativeNode }>("DOM.getDocument", {
+    depth: -1,
+    pierce: true,
+  });
+  function nodes(node: NativeNode): NativeNode[] {
+    return [
+      node,
+      ...[...(node.children ?? []), ...(node.shadowRoots ?? [])].flatMap(nodes),
+    ];
+  }
+  const input = nodes(tree.root).find(
+    (node) =>
+      node.nodeName === "INPUT" && node.attributes?.includes("datetime-local"),
+  );
+  if (!input) throw Error("Missing native date input");
+  const shadow = nodes(input);
+  const edit = shadow.find((node) =>
+    node.attributes?.includes("-webkit-datetime-edit"),
+  );
+  const fields = shadow.find((node) =>
+    node.attributes?.includes("-webkit-datetime-edit-fields-wrapper"),
+  );
+  if (!edit || !fields) throw Error("Native date layout is unavailable");
+  const box = await page.cdp<{ model: { content: number[] } }>(
+    "DOM.getBoxModel",
+    { nodeId: edit.nodeId },
+  );
+  const text = await page.cdp<{ model: { content: number[] } }>(
+    "DOM.getBoxModel",
+    { nodeId: fields.nodeId },
+  );
+  const left = box.model.content[0],
+    right = box.model.content[2],
+    textLeft = text.model.content[0],
+    textRight = text.model.content[2];
+  if (
+    left === undefined ||
+    right === undefined ||
+    textLeft === undefined ||
+    textRight === undefined ||
+    textLeft < left - 1 ||
+    textRight > right + 1
+  )
+    throw Error(
+      `Native date/time segments are clipped: ${JSON.stringify({ left, right, textLeft, textRight })}`,
+    );
+}
+
 async function checkLayout(
   page: Bun.WebView,
   surface: string,
@@ -2780,21 +2984,20 @@ async function checkLayout(
       }
       const typeRoles = [
         {
-          selector:
-            ".studio-chat-session-heading, .people-detail-name, .studio-leaf-head h2, .studio-mobile-navigation-sheet header h2",
+          selector: ".people-detail-name, .studio-leaf-head h2",
           size: "24px",
           weight: "500",
           tracking: -0.48,
         },
         {
           selector:
-            ".account-section-label h3, .studio-chat-sessions-title, .studio-chat-context-card-title",
+            ".account-section-label h3, .studio-chat-sessions-title, .studio-chat-context-card-title, .studio-mobile-group-name",
           size: "14px",
           weight: "650",
         },
         {
           selector:
-            '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, .studio-mobile-switcher, .studio-mobile-navigation-sheet summary, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
+            '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, .studio-mobile-switcher, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
           size: "10px",
           weight: "600",
           tracking: 1.2,
@@ -2898,22 +3101,44 @@ async function checkLayout(
     const sessions = await elementDisplay(page, ".studio-chat-sessions");
     if (
       destinations === "missing" ||
-      (destinations === "none") !== (width > 860 && STUDY_STATE !== "empty") ||
-      sessions !==
-        (STUDY_STATE === "empty" ? "missing" : width <= 860 ? "none" : "block")
+      destinations === "none" ||
+      sessions !== "missing"
     ) {
-      throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
+      throw new Error(`Studio Chat must keep history on demand at ${width}px`);
     }
     const workspace = await elementBounds(page, ".studio-chat-room");
     const composer = await elementBounds(page, ".studio-chat-composer");
+    const transcript = await elementBounds(page, ".studio-chat-thread-scroll");
     if (
-      STUDY_STATE === "empty" &&
-      workspace &&
-      composer &&
-      Math.abs(workspace.width - composer.width) > 1
+      !transcript ||
+      !workspace ||
+      transcript.height < workspace.height * 0.55
     )
-      throw Error("Empty Chat must not reserve a phantom conversation rail");
-    if (!workspace || !composer) {
+      throw new Error("Conversation must dominate the workspace");
+    await evaluatePage(page, () => {
+      if (
+        document.querySelector(
+          ".studio-chat-workspace > [data-studio-page-head]",
+        )
+      )
+        throw new Error("Chat duplicates its page header");
+      const form = document.querySelector(".studio-chat-composer-form");
+      if (
+        !form ||
+        getComputedStyle(form).borderTopWidth !== "1px" ||
+        getComputedStyle(form).borderRadius !== "12px"
+      )
+        throw new Error(
+          `Composer frame missing: ${form ? getComputedStyle(form).cssText + form.className + getComputedStyle(form).borderTop : "missing"}`,
+        );
+      if (
+        document.querySelector(
+          ".studio-chat-thread-scroll .studio-chat-context",
+        )
+      )
+        throw new Error("Context must stay outside the dialogue");
+    });
+    if (!composer) {
       throw new Error(`Studio Chat workspace did not render at ${width}px`);
     }
     if (composer.y + composer.height > viewportHeight + 1) {
@@ -2928,9 +3153,40 @@ async function checkLayout(
     }
   }
   if (isStudioAppShellSurface(surface)) {
-    const modes = await elementDisplay(page, ".studio-mobile-tabs");
-    if (width <= 640 !== (modes !== "none"))
-      throw new Error(`Studio responsive mode mismatch at ${width}px`);
+    const stacked = await evaluatePage(page, () => {
+      const editor = document.querySelector("[data-studio-editor]");
+      return editor?.getAttribute("data-editor-presentation") !== "split";
+    });
+    if (stacked) {
+      if (await elementBounds(page, ".studio-mobile-tabs"))
+        throw new Error("Stacked editors must not duplicate body navigation");
+      // Compare against the usable scrollport, not its scrollbar-inclusive box.
+      const contentWidth = await evaluatePage(
+        page,
+        () =>
+          document.querySelector("[data-studio-editor-content]")?.clientWidth ??
+          0,
+      );
+      const properties = await elementBounds(page, "[data-studio-properties]");
+      const insets = width > 640 ? 72 : 40;
+      if (
+        !contentWidth ||
+        !properties ||
+        properties.width < contentWidth - insets - 2
+      )
+        throw new Error(
+          "System Properties must use the available editor width",
+        );
+      if (
+        (await elementDisplay(page, '[aria-label="Editor body view"]')) ===
+        "none"
+      )
+        throw new Error("Stacked body modes must remain available on phones");
+    } else {
+      const modes = await elementDisplay(page, ".studio-mobile-tabs");
+      if (width <= 640 !== (modes !== "none"))
+        throw new Error(`Studio responsive mode mismatch at ${width}px`);
+    }
     if (width <= 900) {
       const pipeline = await elementBounds(page, "[data-studio-save-bar]");
       if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
@@ -2941,7 +3197,12 @@ async function checkLayout(
             'button[aria-label="More document actions"]',
           ),
           save = await elementBounds(page, ".studio-editor-head-save");
-        if (!save || save.width < 44 || save.height < 44 || save.y > 220)
+        const readOnlyProfile = systemFixtures.get(
+          surface.slice("studio-system-".length),
+        )?.readOnly;
+        if (readOnlyProfile) {
+          if (save) throw Error("Read-only profiles must not offer Save");
+        } else if (!save || save.width < 44 || save.height < 44 || save.y > 220)
           throw Error("Phone Save must remain visible in the document head");
         if (
           more &&
@@ -2989,7 +3250,18 @@ async function comparePng(
 await mkdir(BASELINE_DIR, { recursive: true });
 await mkdir(ARTIFACT_DIR, { recursive: true });
 const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
-const studioAsset = path.join(studioUiDirectory, "studio-app.js");
+const studioManifest = studioAssetManifestSchema.parse(
+  JSON.parse(
+    await readFile(
+      path.join(studioUiDirectory, "studio-asset-manifest.json"),
+      "utf8",
+    ),
+  ),
+);
+const studioAsset = path.join(
+  studioUiDirectory,
+  studioManifest.entrypoints.script,
+);
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
 const chatStyles = path.join(ROOT, "interfaces/web-chat/dist/ui/app.css");
 await Promise.all([
@@ -3196,8 +3468,8 @@ const server = Bun.serve({
       return new Response(
         climateHtml(
           renderEditorShellHtml({
-            assetPath: "/studio/assets/app.js",
-            stylesheetPath: "/studio/assets/app.css",
+            assetPath: `/studio/assets/${studioManifest.entrypoints.script}`,
+            stylesheetPath: `/studio/assets/${studioManifest.entrypoints.stylesheet}`,
             basePath: "/studio",
             sessionHref: "/logout",
             dashboardHref: "/dashboard",
@@ -3210,17 +3482,8 @@ const server = Bun.serve({
       );
     if (url.pathname.startsWith("/studio/assets/")) {
       const publicPath = url.pathname.slice("/studio/assets/".length);
-      const filePath =
-        publicPath === "app.js"
-          ? "studio-app.js"
-          : publicPath === "app.css"
-            ? "studio-app.css"
-            : publicPath;
-      if (
-        !/^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
-          filePath,
-        )
-      ) {
+      const filePath = studioManifest.assets[publicPath];
+      if (!filePath) {
         return new Response("Not found", { status: 404 });
       }
       return new Response(
@@ -3238,7 +3501,21 @@ const server = Bun.serve({
     }
     if (url.pathname === "/studio/api/types")
       return json({
-        types,
+        // Each type carries the hierarchy the real type list sends for it.
+        types: (reviewingSystem
+          ? [
+              ...types.filter(
+                (item) =>
+                  !systemFixtures.has(item.entityType) &&
+                  item.entityType !== "settings",
+              ),
+              ...systemTypes,
+            ]
+          : types
+        ).map((item) => ({
+          ...item,
+          hierarchy: studioTypeHierarchy(item.entityType),
+        })),
         workspaces: [
           {
             id: "studio:overview",
@@ -3417,7 +3694,37 @@ const server = Bun.serve({
                     verifiedAt: 1_735_689_600_000,
                   },
                 ],
-          pluginSettings: [],
+          pluginSettings:
+            STUDY_STATE === "empty"
+              ? []
+              : [
+                  {
+                    id: "mailbox",
+                    title: "Personal mailbox",
+                    configured: true,
+                    revision: 1,
+                    description:
+                      "Mailbox settings for your account, not the brain’s shared email service.",
+                    fields: [
+                      {
+                        name: "host",
+                        label: "IMAP host",
+                        control: "text",
+                        secret: false,
+                        required: true,
+                        value: "imap.example.test",
+                      },
+                      {
+                        name: "password",
+                        label: "Password",
+                        control: "text",
+                        secret: true,
+                        required: true,
+                        set: true,
+                      },
+                    ],
+                  },
+                ],
           passkeys: [
             {
               id: "passkey-1",
@@ -3442,25 +3749,16 @@ const server = Bun.serve({
           ].slice(0, STUDY_STATE === "empty" ? 1 : undefined),
         },
       });
-    if (
-      url.pathname === "/studio/api/schema" &&
-      url.searchParams.get("type") === "style-guide"
-    )
+    const systemFixture = systemFixtures.get(
+      url.searchParams.get("type") ?? "",
+    );
+    if (url.pathname === "/studio/api/schema" && systemFixture)
       return json({
-        entityType: "style-guide",
+        entityType: systemFixture.entityType,
         format: "frontmatter",
-        isSingleton: true,
-        hasBody: true,
-        fields: [
-          { name: "title", label: "Title", widget: "string", required: true },
-          { name: "tone", label: "Tone", widget: "text", required: false },
-          {
-            name: "accent",
-            label: "Accent",
-            widget: "string",
-            required: false,
-          },
-        ],
+        isSingleton: systemFixture.isSingleton,
+        hasBody: systemFixture.hasBody,
+        fields: systemFixture.fields,
       });
     if (url.pathname === "/studio/api/schema")
       return json({
@@ -3516,8 +3814,29 @@ const server = Bun.serve({
       // title pins the validation error line (studio-invalid), any other
       // save pins the reconcile card (studio-conflict).
       const body = (await request.json()) as {
-        frontmatter?: { title?: string };
+        entityType?: string;
+        frontmatter?: { title?: string; [key: string]: unknown };
+        body?: string;
       };
+      if (body.entityType && systemFixtures.has(body.entityType)) {
+        lastSystemSave = body;
+        const voice = body.frontmatter?.["voice"];
+        if (isRecord(voice) && voice["summary"] === "!!")
+          return Response.json(
+            {
+              error: "Validation failed",
+              issues: [
+                { path: ["voice", "summary"], message: "Review this summary." },
+              ],
+            },
+            { status: 400 },
+          );
+        return json({
+          entityId: body.entityType,
+          jobId: "system-save",
+          skipped: true,
+        });
+      }
       if (body.frontmatter?.title?.includes("!!"))
         return Response.json(
           {
@@ -3559,18 +3878,25 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
+    const hierarchyRequest = url.pathname === "/studio/api/hierarchy";
     if (
-      url.pathname === "/studio/api/entities" &&
-      url.searchParams.get("type") === "style-guide"
+      (hierarchyRequest || url.pathname === "/studio/api/entities") &&
+      systemFixture
     )
       return json(
         url.searchParams.has("id")
-          ? { entity: styleGuideEntity }
-          : { entities: [styleGuideEntity], total: 1 },
+          ? { entity: systemFixture.entity }
+          : {
+              ...(hierarchyRequest ? { prefix: null, folders: [] } : {}),
+              entities: [
+                { ...systemFixture.entity, path: [systemFixture.entity.id] },
+              ],
+              total: 1,
+            },
       );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
-    if (url.pathname === "/studio/api/entities") {
+    if (hierarchyRequest || url.pathname === "/studio/api/entities") {
       const offset = Number(url.searchParams.get("offset") ?? 0);
       const limit = Number(url.searchParams.get("limit") ?? 25);
       const query = (url.searchParams.get("q") ?? "").toLowerCase();
@@ -3582,7 +3908,11 @@ const server = Bun.serve({
       );
       if (url.searchParams.get("sort")?.endsWith("asc")) filtered.reverse();
       return json({
-        entities: filtered.slice(offset, offset + limit),
+        ...(hierarchyRequest ? { prefix: null, folders: [] } : {}),
+        // These fixtures have flat IDs; the real service owns hierarchy derivation.
+        entities: filtered
+          .slice(offset, offset + limit)
+          .map((item) => ({ ...item, path: [item.id] })),
         total: filtered.length,
       });
     }
@@ -3638,14 +3968,15 @@ async function recordVisualCapture(name: string, image: Buffer): Promise<void> {
     const ratio = await comparePng(image, baselinePath).catch(() => 1);
     if (ratio > 0.002) await writeFile(baselinePath, image);
   } else {
+    // Keep CI-native evidence even when small, intentional changes (for
+    // example rail marks) fall below the whole-page comparison threshold.
+    await writeFile(path.join(ARTIFACT_DIR, name), image);
     try {
       const ratio = await comparePng(image, baselinePath);
       if (ratio > 0.002) {
-        await writeFile(path.join(ARTIFACT_DIR, name), image);
         failures.push(`${name}: ${(ratio * 100).toFixed(2)}% pixels changed`);
       }
     } catch (error) {
-      await writeFile(path.join(ARTIFACT_DIR, name), image);
       failures.push(`${name}: ${getErrorMessage(error)}`);
     }
   }
@@ -3685,6 +4016,11 @@ try {
         "studio-account",
         "studio-editor",
         "studio-system",
+        "studio-system-prompt-collection",
+        "studio-system-agent-collection",
+        ...[...systemFixtures.keys()]
+          .filter((key) => key !== "style-guide")
+          .map((key) => `studio-system-${key}`),
         "studio-delete",
         "studio-conflict",
         "studio-invalid",
@@ -3694,15 +4030,8 @@ try {
         if (SURFACE_PREFIX && !surface.startsWith(SURFACE_PREFIX)) continue;
         if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
           continue;
-        // Session and context destinations only exist at phone widths.
+        // Guest Chat's drawer is mobile-only; Studio dialogs work at every width.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
-        if (
-          (surface === "studio-chat-sessions" ||
-            surface === "studio-chat-context") &&
-          viewport.width > 640
-        ) {
-          continue;
-        }
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
         const isStudioSecondary =
@@ -3714,6 +4043,16 @@ try {
         console.error(
           `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
         );
+        reviewingSystem = surface.startsWith("studio-system");
+        const systemCollection =
+          reviewingSystem && surface.endsWith("-collection");
+        const systemType =
+          surface === "studio-system"
+            ? "style-guide"
+            : surface.slice(
+                "studio-system-".length,
+                systemCollection ? -"-collection".length : undefined,
+              );
         const isChat = surface.startsWith("chat");
         const isDashboard = surface.startsWith("dashboard");
         const conversationId =
@@ -3739,7 +4078,7 @@ try {
         await addVisualInitScript(page, conversationId);
         const isStudioEditor =
           surface === "studio-editor" ||
-          surface === "studio-system" ||
+          (reviewingSystem && !systemCollection) ||
           isStudioSecondary;
         const studioSaveSelector = ".studio-editor-head-save";
         const route = isDashboard
@@ -3762,8 +4101,8 @@ try {
                           ? "/studio/workspaces/content-pipeline%3Apublishing"
                           : surface.startsWith("studio-administration")
                             ? "/studio/workspaces/admin%3Aadministration"
-                            : surface === "studio-system"
-                              ? "/studio/entities/style-guide/style-guide"
+                            : surface.startsWith("studio-system")
+                              ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
                               : isStudioEditor
                                 ? "/studio/entities/posts/field-notes"
                                 : "/studio/entities/posts";
@@ -3781,6 +4120,23 @@ try {
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        const emptySystemDocument =
+          reviewingSystem &&
+          !systemCollection &&
+          systemFixtures.get(systemType)?.hasBody &&
+          systemFixtures.get(systemType)?.entity.body.trim() === "";
+        if (emptySystemDocument)
+          await waitForPage(
+            "Properties visible when the document has no body",
+            () =>
+              evaluatePage(
+                page,
+                () =>
+                  document.querySelector<HTMLDetailsElement>(
+                    "details[data-studio-properties]",
+                  )?.open === true,
+              ),
+          );
         if (STUDY_STATE) {
           await settleVisualCapture(page);
           const emptyCopy: Record<string, string> = {
@@ -4013,19 +4369,36 @@ try {
           viewport.width <= 640 &&
           climate === "instrument"
         ) {
-          for (const [label, pane] of [
-            ["Source", "write"],
-            ["Preview", "preview"],
-            ["Properties", "details"],
-          ] as const) {
-            await pointerDownSelector(page, ".studio-mobile-tabs button");
-            await waitForSelector(page, '[role="menuitem"]');
-            await clickText(page, '[role="menuitem"]', label);
-            await waitForSelector(
-              page,
-              `[data-studio-editor][data-mobile-pane="${pane}"]`,
+          for (const label of ["Preview", "Source"]) {
+            await evaluatePage(page, () => {
+              document
+                .querySelector('[aria-label="Editor body view"]')
+                ?.scrollIntoView({ block: "center" });
+            });
+            await activateWorkspaceTab(page, label);
+            await waitForPage(`inline ${label} mode`, () =>
+              evaluatePageWith(
+                page,
+                (expected) => {
+                  const selected = document.querySelector(
+                    '[aria-label="Editor body view"] [aria-selected="true"]',
+                  );
+                  return selected?.textContent.trim() === expected;
+                },
+                label,
+              ),
             );
+            if (!(await elementBounds(page, "[data-studio-properties]")))
+              throw new Error(
+                "Body mode changes must not hide System Properties",
+              );
           }
+          await evaluatePage(page, () => {
+            const content = document.querySelector<HTMLElement>(
+              "[data-studio-editor-content]",
+            );
+            if (content) content.scrollTop = 0;
+          });
         }
         if (surface.startsWith("studio-navigation")) {
           if (viewport.width > 900) {
@@ -4078,6 +4451,11 @@ try {
           await waitForText(page, "And the Studio?");
           await waitForSelector(page, ".studio-chat-upload");
           if (surface === "studio-chat") {
+            await clickSelector(
+              page,
+              '[aria-label="Conversation details and options"]',
+            );
+            await waitForSelector(page, '[role="dialog"]');
             await clickText(page, "button", "Rename");
             await fillLabel(
               page,
@@ -4094,8 +4472,12 @@ try {
             );
             await clickText(page, ".studio-chat-rename button", "Save title");
             await waitForText(page, "Responsive console audit");
+            await clickSelector(
+              page,
+              '[role="dialog"] [data-slot="dialog-close"]',
+            );
           }
-          if (surface === "studio-chat" && viewport.width <= 700) {
+          if (surface === "studio-chat") {
             await clickSelector(
               page,
               ".studio-chat-session-picker-trigger button",
@@ -4115,6 +4497,24 @@ try {
               ),
             );
             await fillLabel(page, "Search conversations", "");
+            await clickText(
+              page,
+              ".studio-collection-controls summary",
+              "Filter",
+            );
+            await verifyCollectionFiltersFit(page);
+            await waitForPage("unfiltered conversation collection", () =>
+              page.evaluate<boolean>(
+                'document.querySelector(".studio-chat-session-list")?.textContent?.includes("Responsive console audit") ?? false',
+              ),
+            );
+            await settleVisualCapture(page);
+            const filtersName = `studio-chat-filters-${viewport.width}x${viewport.height}-${climate}`;
+            await auditStudioAccessibility(page, filtersName);
+            await recordVisualCapture(
+              `${filtersName}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
             await evaluatePage(page, () => {
               const select = document.querySelector<HTMLSelectElement>(
                 '[role="dialog"] select',
@@ -4160,16 +4560,10 @@ try {
             await clickText(
               page,
               ".studio-chat-session-picker-trigger button",
-              "Sessions",
+              "History",
             );
           }
-          if (surface === "studio-chat" && viewport.width <= 860) {
-            const metrics = await evaluatePage(page, () => ({
-              width: innerWidth,
-              height: innerHeight,
-              deviceScaleFactor: devicePixelRatio,
-              mobile: false,
-            }));
+          if (surface === "studio-chat") {
             await fillLabel(
               page,
               "Message",
@@ -4181,8 +4575,11 @@ try {
                 document.querySelector(".studio-chat-thread-scroll")
                   ?.clientHeight,
             );
-            await clickSelector(page, ".studio-chat-working-set-trigger");
-            await waitForSelector(page, ".studio-chat-working-set-dialog");
+            await clickSelector(
+              page,
+              '[aria-label="Conversation details and options"]',
+            );
+            await waitForSelector(page, ".studio-chat-details");
             await evaluatePageWith(
               page,
               (previousHeight) => {
@@ -4190,51 +4587,24 @@ try {
                   document.querySelector(".studio-chat-thread-scroll")
                     ?.clientHeight !== previousHeight
                 )
-                  throw new Error("Working set squeezed the conversation");
+                  throw new Error("Details squeezed the conversation");
                 if (
                   document.querySelectorAll(".studio-chat-context").length !== 1
                 )
-                  throw new Error("Working set content is duplicated");
+                  throw new Error("Context duplicated");
               },
               height,
             );
             await clickSelector(
               page,
-              '.studio-chat-working-set-dialog [data-slot="dialog-close"]',
+              '[role="dialog"] [data-slot="dialog-close"]',
             );
-            await waitForPage("Working set focus restoration", () =>
+            await waitForPage("Details focus restoration", () =>
               evaluatePage(
                 page,
                 () =>
-                  document.activeElement?.matches(
-                    ".studio-chat-working-set-trigger",
-                  ) === true,
-              ),
-            );
-            await clickSelector(page, ".studio-chat-working-set-trigger");
-            await waitForSelector(page, ".studio-chat-working-set-dialog");
-            await page.cdp("Emulation.setDeviceMetricsOverride", {
-              ...metrics,
-              width: 1024,
-            });
-            await waitForPage("Working set desktop focus", () =>
-              evaluatePage(
-                page,
-                () =>
-                  !document.querySelector('[role="dialog"]') &&
-                  document.activeElement?.matches(
-                    ".studio-chat-working-set summary",
-                  ) === true,
-              ),
-            );
-            await page.cdp("Emulation.setDeviceMetricsOverride", metrics);
-            await waitForPage("Working set narrow focus", () =>
-              evaluatePage(
-                page,
-                () =>
-                  document.activeElement?.matches(
-                    ".studio-chat-working-set-trigger",
-                  ) === true,
+                  document.activeElement?.getAttribute("aria-label") ===
+                  "Conversation details and options",
               ),
             );
             await evaluatePage(page, () => {
@@ -4243,15 +4613,24 @@ try {
                   ".studio-chat-message",
                 )?.value !== "Keep this draft while reading context"
               )
-                throw new Error("Working set lost the composer draft");
+                throw new Error("Details lost draft");
             });
             await fillLabel(page, "Message", "");
           }
           if (surface === "studio-chat-context") {
-            await clickSelector(page, ".studio-chat-working-set-trigger");
-            await waitForSelector(page, ".studio-chat-working-set-dialog");
+            await clickSelector(
+              page,
+              '[aria-label="Conversation details and options"]',
+            );
+            await waitForSelector(page, ".studio-chat-details");
+            await clickText(
+              page,
+              ".studio-chat-details summary",
+              "Sources and attachments",
+            );
           }
         }
+
         if (isDashboard) {
           await verifyDashboardChrome(page);
           await verifyDashboardSummary(page);
@@ -4430,7 +4809,6 @@ try {
           await waitForText(page, "1–25 of 54");
           await clickText(page, ".listing-pagination button", "Next");
           await fillLabel(page, "Search title or content", "Archive note 22");
-          await clickText(page, ".studio-collection-controls button", "Search");
           await waitForText(page, "1–1 of 1");
           await evaluatePage(page, () => {
             if (new URLSearchParams(location.search).has("offset"))
@@ -4441,6 +4819,14 @@ try {
             ".studio-collection-controls summary",
             "Filter and sort",
           );
+          await verifyCollectionFiltersFit(page);
+          await settleVisualCapture(page);
+          const filtersName = `studio-library-filters-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, filtersName);
+          await recordVisualCapture(
+            `${filtersName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
           await evaluatePage(page, () => {
             const select = document.querySelector<HTMLSelectElement>(
               ".studio-collection-controls select",
@@ -4450,11 +4836,7 @@ try {
             select.dispatchEvent(new Event("change", { bubbles: true }));
           });
           await waitForText(page, "No entries match these filters");
-          await clickText(
-            page,
-            ".studio-collection-controls button",
-            "Clear search and filters",
-          );
+          await clickText(page, ".studio-collection-controls button", "Clear");
           await waitForText(page, "1–25 of 54");
           await evaluatePage(page, () => history.back());
           await waitForText(page, "No entries match these filters");
@@ -4610,6 +4992,17 @@ try {
         if (surface === "studio-publishing") {
           await waitForText(page, "Notes from the rhizome");
           await evaluatePage(page, () => {
+            if (
+              !document
+                .querySelector("[data-studio-page-head]")
+                ?.textContent.includes("14 published") ||
+              document.querySelector('[data-block-id="publishing-summary"]')
+            )
+              throw Error(
+                "Published totals belong in the page head, not a separate body panel",
+              );
+          });
+          await evaluatePage(page, () => {
             const attention = document.querySelector(
               'section[data-tone="warn"]',
             );
@@ -4699,7 +5092,71 @@ try {
         )
           await verifyRecordTypography(page);
         if (surface === "studio-account") {
-          await waitForText(page, "Signed-in sessions");
+          // Exercise the real account tabs, including native hidden-panel layout.
+          for (const index of [1, 2, 3, 0]) {
+            await evaluatePageWith(
+              page,
+              (tabIndex) => {
+                const tab = document.querySelectorAll<HTMLElement>(
+                  '.account-details [role="tab"]',
+                )[tabIndex];
+                if (!tab) throw new Error("Account section missing");
+                tab.focus();
+                tab.dispatchEvent(
+                  new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+                );
+              },
+              index,
+            );
+            await waitForSelector(
+              page,
+              `.account-details [role="tab"]:nth-child(${index + 1})[aria-selected="true"]`,
+            );
+            await evaluatePage(page, () => {
+              const panels = [
+                ...document.querySelectorAll<HTMLElement>(
+                  '.account-details [role="tabpanel"]',
+                ),
+              ];
+              if (
+                panels.filter(
+                  (panel) => getComputedStyle(panel).display !== "none",
+                ).length !== 1
+              )
+                throw new Error("Inactive account sections must stay hidden");
+              const selected = document.querySelector<HTMLElement>(
+                '.account-details [role="tab"][aria-selected="true"]',
+              );
+              const list = selected
+                ?.closest('[role="tablist"]')
+                ?.getBoundingClientRect();
+              const rect = selected?.getBoundingClientRect();
+              if (
+                !list ||
+                !rect ||
+                rect.left < list.left - 1 ||
+                rect.right > list.right + 1
+              )
+                throw new Error(
+                  "Selected account tab must remain fully visible",
+                );
+            });
+            if (index === 3) {
+              await clickSelector(
+                page,
+                '.account-details [role="tabpanel"]:not([hidden]) summary',
+              );
+            }
+            if (index !== 0) {
+              await settleVisualCapture(page);
+              await recordVisualCapture(
+                `studio-account-${index === 1 ? "security" : index === 2 ? "identities" : "settings"}-${viewport.width}x${viewport.height}-${climate}.png`,
+                Buffer.from(
+                  await page.screenshot({ encoding: "buffer", format: "png" }),
+                ),
+              );
+            }
+          }
         }
         if (surface === "studio-administration-invitations-form") {
           await clickSelector(page, ".declarative-action-disclosure");
@@ -5084,10 +5541,119 @@ try {
             `${surface}-${viewport.width}x${viewport.height}-${climate}`,
           );
         await settleVisualCapture(page);
+        await verifyDisabledPrimaries(page);
         const image = await page.screenshot({
           encoding: "buffer",
           format: "png",
         });
+        if (surface === "studio-editor") {
+          if (viewport.width <= 640) {
+            await pointerDownSelector(page, 'button[aria-label="Editor view"]');
+            await clickText(page, '[role="menuitem"]', "Properties");
+          }
+          await evaluatePage(page, () => {
+            const properties = document.querySelector<HTMLElement>(
+              "[data-studio-properties]",
+            );
+            if (!properties) throw Error("Missing Properties scroller");
+            properties.scrollTop = properties.scrollHeight;
+            window.scrollTo(0, 0);
+          });
+          await settleVisualCapture(page);
+          await verifyNativeDateFits(page);
+          await evaluatePage(page, () => {
+            const date = document.querySelector<HTMLInputElement>(
+              'input[type="datetime-local"]',
+            );
+            const note = document.querySelector<HTMLElement>(
+              'label:has(input[type="file"]) small',
+            );
+            if (
+              date?.value !== "2026-07-14T09:00" ||
+              !note ||
+              note.scrollWidth > note.clientWidth + 1
+            )
+              throw Error(
+                "Properties must retain the date value and wrap the full upload guidance",
+              );
+          });
+          const propertiesName = `studio-editor-properties-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, propertiesName);
+          await recordVisualCapture(
+            `${propertiesName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
+        if (
+          surface === "studio-system" ||
+          surface === "studio-system-anchor-profile"
+        ) {
+          await evaluatePage(page, () =>
+            document
+              .querySelector("[data-studio-editor-content] > section > header")
+              ?.scrollIntoView({ block: "start" }),
+          );
+          await activateWorkspaceTab(page, "Source");
+          await settleVisualCapture(page);
+          const bodyName = `${surface}-body-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, bodyName);
+          await recordVisualCapture(
+            `${bodyName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
+        if (
+          surface === "studio-system" &&
+          viewport.width === 1440 &&
+          climate === "instrument"
+        ) {
+          const original = systemFixtures.get("style-guide")?.entity;
+          if (!original || !isRecord(original.frontmatter["voice"]))
+            throw Error("Missing real Style guide fixture");
+          await fillLabel(page, "Summary", "!!");
+          await clickSelector(page, studioSaveSelector);
+          await waitForText(page, "Review this summary.");
+          if (
+            !(await evaluatePage(
+              page,
+              () =>
+                document.activeElement?.getAttribute("aria-invalid") === "true",
+            ))
+          )
+            throw Error("Nested validation must focus its field");
+          const summary = "A revised voice, kept only in this fixture.";
+          await fillLabel(page, "Summary", summary);
+          for (const label of ["Preview", "Source"]) {
+            await evaluatePage(page, () =>
+              document
+                .querySelector('[aria-label="Editor body view"]')
+                ?.scrollIntoView({ block: "center" }),
+            );
+            await activateWorkspaceTab(page, label);
+          }
+          await clickSelector(page, studioSaveSelector);
+          const expected = {
+            ...original.frontmatter,
+            voice: { ...original.frontmatter["voice"], summary },
+          };
+          await waitForPage(
+            "System save payload",
+            async () =>
+              JSON.stringify(lastSystemSave?.frontmatter) ===
+              JSON.stringify(expected),
+          );
+          if (
+            JSON.stringify(lastSystemSave?.frontmatter) !==
+              JSON.stringify(expected) ||
+            lastSystemSave?.body !== original.body
+          )
+            throw Error(
+              "Nested edits and mode changes must preserve siblings and exact body bytes",
+            );
+          console.log(
+            "✓ System nested validation, draft handoff and unchanged body payload",
+          );
+        }
         if (surface === "dashboard") {
           await navigateToNetworkIdle(
             page,
@@ -5302,6 +5868,80 @@ try {
         await recordVisualCapture(name, image);
         if (surface === "studio-chat" || surface === "studio-account")
           await verifyStudioProfileNavigation(page, surface);
+        if (surface === "studio-chat") {
+          const attachmentUrl = new URL(
+            await page.evaluate<string>("location.href"),
+          );
+          attachmentUrl.pathname = "/chat";
+          attachmentUrl.searchParams.set("session", "cards");
+          attachmentUrl.searchParams.set("climate", climate);
+          await navigateToNetworkIdle(page, attachmentUrl.href);
+          await waitForSelector(page, ".studio-chat-attachment-preview");
+          await evaluatePage(page, () =>
+            document
+              .querySelector(".studio-chat-attachment-preview")
+              ?.scrollIntoView({ block: "center" }),
+          );
+          await waitForPage("generated image to load", () =>
+            evaluatePage(page, () => {
+              const preview = document.querySelector<HTMLImageElement>(
+                ".studio-chat-attachment-preview",
+              );
+              return Boolean(preview?.complete && preview.naturalWidth > 0);
+            }),
+          );
+          await evaluatePage(page, () => {
+            const preview = document.querySelector<HTMLImageElement>(
+              ".studio-chat-attachment-preview",
+            );
+            const card = preview?.closest(".studio-chat-card");
+            if (
+              !preview ||
+              !card ||
+              preview.getBoundingClientRect().width > card.clientWidth ||
+              document.documentElement.scrollWidth > innerWidth
+            )
+              throw new Error("Generated image escaped its card or viewport");
+          });
+          await clickSelector(page, ".studio-chat-image-trigger");
+          await waitForPage("full image to load", () =>
+            evaluatePage(page, () => {
+              const image = document.querySelector<HTMLImageElement>(
+                '[role="dialog"] .studio-chat-full-image',
+              );
+              return Boolean(image?.complete && image.naturalWidth > 0);
+            }),
+          );
+          await auditStudioAccessibility(page, "studio-chat-image-preview");
+          await page.cdp("Input.dispatchKeyEvent", {
+            type: "keyDown",
+            key: "Escape",
+            code: "Escape",
+            windowsVirtualKeyCode: 27,
+          });
+          await page.cdp("Input.dispatchKeyEvent", {
+            type: "keyUp",
+            key: "Escape",
+            code: "Escape",
+            windowsVirtualKeyCode: 27,
+          });
+          await waitForPage("image preview focus restoration", () =>
+            evaluatePage(
+              page,
+              () =>
+                !document.querySelector('[role="dialog"]') &&
+                document.activeElement?.matches(
+                  ".studio-chat-image-trigger",
+                ) === true,
+            ),
+          );
+          const attachmentName = `studio-chat-attachments-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, attachmentName);
+          await recordVisualCapture(
+            `${attachmentName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
         page.close();
       }
     }

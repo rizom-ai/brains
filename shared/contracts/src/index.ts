@@ -1,8 +1,30 @@
 export {
-  entityReadBudgetSchema,
-  type EntityReadBudget,
-  type QueryEmbedding,
-} from "./entity-read";
+  askContentSchema,
+  askContentFrontmatterSchema,
+  type AskContent,
+  type AskContentFrontmatter,
+} from "./ask-content";
+export { parseAskContent } from "./ask-content-markdown";
+export {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_READY_ATTRIBUTE,
+  ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HEADER_HEIGHT,
+  ASK_SHEET_MEDIA,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+  askBoxAvailabilitySchema,
+  askSourcesDetailSchema,
+  type AskBoxAvailability,
+  type AskSourcesDetail,
+} from "./ask-box";
 export {
   AGENT_ACTION_REQUEST_CHANNEL,
   agentActionRequestSchema,
@@ -147,6 +169,11 @@ export {
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
+export {
+  directorySyncPathRequestSchema,
+  directorySyncPathResponseSchema,
+  type DirectorySyncPathRequest,
+} from "./directory-sync-path";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,
@@ -211,6 +238,8 @@ export {
 } from "./response-types";
 export {
   NOTIFICATIONS_SEND,
+  NOTIFICATION_FAILURES,
+  notificationFailureCode,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,
@@ -221,6 +250,13 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "./note-capture";
 export type {
   HeadCollectorInterface,
   HeadProps,

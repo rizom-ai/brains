@@ -95,3 +95,47 @@ function waitForTurn<T>(
     });
   });
 }
+
+/**
+ * Coalesces concurrent callers onto one run of the work.
+ *
+ * The opposite of the queues above: they admit every call and run each one in
+ * turn, while this admits the first and hands everyone else its result. Use it
+ * where a second identical request must not become a second effect — creating
+ * one invitation per idempotency key, recovering an interrupted delivery once.
+ *
+ * The slot is released once the work settles, so a later call starts fresh
+ * rather than replaying a stale result. A rejection is reported to every
+ * caller that joined, and also releases.
+ */
+export class SingleFlight<T> {
+  private active: Promise<T> | undefined;
+
+  public run(operation: () => Promise<T>): Promise<T> {
+    if (this.active) return this.active;
+
+    const current = operation().finally(() => {
+      // Only the run that still owns the slot may clear it. Without this a
+      // finishing call could evict a later one that has already taken over.
+      if (this.active === current) this.active = undefined;
+    });
+    this.active = current;
+    return current;
+  }
+}
+
+/** {@link SingleFlight}, one flight per key. */
+export class KeyedSingleFlight<T> {
+  private readonly active = new Map<string, Promise<T>>();
+
+  public run(key: string, operation: () => Promise<T>): Promise<T> {
+    const existing = this.active.get(key);
+    if (existing) return existing;
+
+    const current = operation().finally(() => {
+      if (this.active.get(key) === current) this.active.delete(key);
+    });
+    this.active.set(key, current);
+    return current;
+  }
+}

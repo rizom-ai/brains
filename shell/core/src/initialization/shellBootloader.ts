@@ -18,9 +18,9 @@ import {
   type ProjectionRuntimeControls,
 } from "../projection-runtime";
 import {
-  resolveRuntimeProcessTopology,
+  runtimeRoleProfile,
   type RuntimeProcessRole,
-  type RuntimeProcessTopology,
+  type RuntimeRoleProfile,
 } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
@@ -70,7 +70,7 @@ export class ShellBootloader {
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
   private readonly initializer: ShellInitializer;
-  private readonly topology: RuntimeProcessTopology;
+  private readonly role: RuntimeRoleProfile;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
@@ -84,7 +84,7 @@ export class ShellBootloader {
     this.services = services;
     this.lifecycle = lifecycle;
     this.initializer = initializer;
-    this.topology = resolveRuntimeProcessTopology(processRole);
+    this.role = runtimeRoleProfile(processRole);
     this.hooks = hooks;
   }
 
@@ -112,7 +112,7 @@ export class ShellBootloader {
       ...(this.config.entityDisplay !== undefined && {
         entityDisplay: this.config.entityDisplay,
       }),
-      ...(this.topology.executionOnly && { executionOnly: true }),
+      ...(!this.role.serves && { executionOnly: true }),
     };
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
@@ -221,7 +221,7 @@ export class ShellBootloader {
               });
             },
           ),
-        activationMode: this.topology.projectionMode,
+        activationMode: this.role.projectionActivation,
       });
       this.services.disposables.push(() => projectionRuntime.dispose());
     }
@@ -229,7 +229,7 @@ export class ShellBootloader {
     this.services.jobQueueService.finalizeHandlerRegistrations();
 
     this.hooks.registerCoreDataSources();
-    if (this.topology.ownsControlPlane) {
+    if (this.role.serves) {
       this.hooks.registerSystemCapabilities();
     }
 
@@ -238,7 +238,7 @@ export class ShellBootloader {
       return;
     }
 
-    if (this.topology.executionOnly) {
+    if (!this.role.serves) {
       await this.initializeIdentityServices();
       this.services.jobProgressMonitor.start();
       await this.services.jobQueueWorker.start();
@@ -261,6 +261,8 @@ export class ShellBootloader {
         queued: backfillResult.queued,
         skipped: backfillResult.skipped,
       });
+      // Existing membership becomes queryable before grouping reads are admitted.
+      await this.services.entityService.reprojectRegisteredGroupings();
     }
 
     await this.prepareReadyState();
@@ -328,7 +330,7 @@ export class ShellBootloader {
       }
     }
     await this.services.pluginManager.startPluginDaemons();
-    if (this.topology.runsJobWorker) {
+    if (this.role.executes) {
       await this.services.jobQueueWorker.start();
     }
     this.services.jobProgressMonitor.start();

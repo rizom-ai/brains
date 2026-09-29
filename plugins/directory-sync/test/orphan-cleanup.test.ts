@@ -6,6 +6,7 @@ import {
   type CleanupPipelineDeps,
 } from "../src/lib/cleanup-pipeline";
 import type { BaseEntity } from "@brains/plugins";
+import { EntityPlacementError } from "../src/lib/entity-placement-error";
 
 function createMockDeps(
   overrides: Partial<{
@@ -28,6 +29,7 @@ function createMockDeps(
     },
     logger: createSilentLogger(),
     fileOperations: {
+      assertEntityPlacement: (): void => {},
       getEntityFilePath: (entity: BaseEntity) =>
         `/data/${entity.entityType}/${entity.id}.md`,
       fileExists: (filePath: string) =>
@@ -38,6 +40,21 @@ function createMockDeps(
 }
 
 describe("removeOrphanedEntities", () => {
+  it("keeps a refused entity even when its diagnostic file is missing", async () => {
+    const entity = createTestEntity("note", { id: "book:intro" });
+    const deps = createMockDeps({ entities: { note: [entity] } });
+    deps.fileOperations.fileExists = mock(async () => false);
+    deps.fileOperations.assertEntityPlacement = (): never => {
+      throw new EntityPlacementError("note", entity.id, "book/intro.md", {
+        entityType: "book",
+        id: "intro",
+      });
+    };
+    const result = await removeOrphanedEntities(deps);
+    expect(result.deleted).toBe(0);
+    expect(deps.fileOperations.fileExists).not.toHaveBeenCalled();
+    expect(deps.entityService.deleteEntity).not.toHaveBeenCalled();
+  });
   it("should delete DB entities whose files no longer exist on disk", async () => {
     const orphan = createTestEntity("social-post", { id: "deleted-post" });
     const deps = createMockDeps({

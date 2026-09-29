@@ -73,28 +73,29 @@ export async function pullGitChanges(
     return result;
   } catch (pullError) {
     return handlePullError(
-      git,
-      logger,
-      branch,
-      net,
-      headBefore,
-      remoteHeadBefore,
+      { git, logger, branch, net, headBefore, remoteHeadBefore, signal },
       pullError,
-      signal,
     );
   }
 }
 
+/** What a pull attempt knew before it failed. */
+interface PullAttempt {
+  git: SimpleGit;
+  logger: Logger;
+  branch: string;
+  net: GitNetwork;
+  headBefore: string;
+  remoteHeadBefore: string | undefined;
+  signal?: AbortSignal | undefined;
+}
+
 async function handlePullError(
-  git: SimpleGit,
-  logger: Logger,
-  branch: string,
-  net: GitNetwork,
-  headBefore: string,
-  remoteHeadBefore: string | undefined,
+  attempt: PullAttempt,
   pullError: unknown,
-  signal?: AbortSignal,
 ): Promise<PullResult> {
+  const { git, logger, branch, net, headBefore, remoteHeadBefore, signal } =
+    attempt;
   if (signal?.aborted) throw signal.reason;
   if (pullError instanceof GitStallError) {
     throw pullError;

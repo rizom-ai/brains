@@ -1,10 +1,15 @@
-import type { DataSource, DataSourceSchema } from "@brains/entity-service";
+import type {
+  DataSource,
+  DataSourceSchema,
+  DataSourceGenerationContext,
+} from "@brains/entity-service";
+import { SHELL_ENTITY_TYPES } from "../constants";
 import type { AIGenerationSchema, IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
-import { resolvePrompt } from "@brains/plugins";
+import { resolvePrompt, readPromptOverride } from "@brains/plugins";
 
 export const GenerationContextSchema: z.ZodObject<{
   prompt: z.ZodOptional<z.ZodString>;
@@ -80,7 +85,29 @@ export class AIContentDataSource implements DataSource {
 
   private readonly siteBaseUrl: string | undefined;
 
-  async generate<T>(request: unknown, schema: DataSourceSchema<T>): Promise<T> {
+  async generate<T>(
+    request: unknown,
+    schema: DataSourceSchema<T>,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    return this.generateWithContext(request, schema, signal);
+  }
+
+  async generateScoped<T>(
+    request: unknown,
+    schema: DataSourceSchema<T>,
+    reads: DataSourceGenerationContext,
+  ): Promise<T> {
+    return this.generateWithContext(request, schema, reads.signal, reads);
+  }
+
+  private async generateWithContext<T>(
+    request: unknown,
+    schema: DataSourceSchema<T>,
+    signal?: AbortSignal,
+    reads?: DataSourceGenerationContext,
+  ): Promise<T> {
+    signal?.throwIfAborted();
     const context = GenerationContextSchema.parse(request);
 
     const template = this.templateRegistry.get(context.templateName);
@@ -95,12 +122,19 @@ export class AIContentDataSource implements DataSource {
     }
 
     // Resolve prompt entity override (falls back to template.basePrompt)
-    const basePrompt = await resolvePrompt(
-      this.entityService,
-      context.templateName,
-      template.basePrompt,
-    );
+    const basePrompt = reads
+      ? await readPromptOverride(
+          (type, id) => reads.getEntity(type, id),
+          context.templateName,
+          template.basePrompt,
+        )
+      : await resolvePrompt(
+          this.entityService,
+          context.templateName,
+          template.basePrompt,
+        );
 
+    signal?.throwIfAborted();
     const searchTerms = [basePrompt, context.prompt].filter(Boolean).join(" ");
     const shouldSearchKnowledgeBase =
       searchTerms.length > 0 && template.useKnowledgeContext === true;
@@ -109,22 +143,38 @@ export class AIContentDataSource implements DataSource {
     const hasWeights = Object.keys(weightMap).length > 0;
 
     const relevantEntities = shouldSearchKnowledgeBase
-      ? await this.entityService.search({
-          query: searchTerms,
-          options: {
+      ? reads
+        ? await reads.search(searchTerms, {
             limit: 5,
             ...(hasWeights && { weight: weightMap }),
-          },
-        })
+          })
+        : await this.entityService.search({
+            query: searchTerms,
+            options: {
+              limit: 5,
+              ...(hasWeights && { weight: weightMap }),
+              ...(signal && { signal }),
+            },
+          })
       : [];
 
+    signal?.throwIfAborted();
     const enhancedPrompt = await this.buildPrompt(
       { basePrompt },
       context,
       relevantEntities,
     );
 
-    const systemPrompt = this.buildSystemPrompt(basePrompt, context);
+    // Bootstrap identity/profile caches are loaded with internal-full scope.
+    // Scoped generation must read the persisted singletons afresh instead.
+    const identities = reads
+      ? await this.readIdentities(reads, context.representedIdentity)
+      : undefined;
+    const systemPrompt = this.buildSystemPrompt(
+      basePrompt,
+      context,
+      identities,
+    );
 
     if (!isAIGenerationSchema(template.schema)) {
       throw new Error(
@@ -132,18 +182,39 @@ export class AIContentDataSource implements DataSource {
       );
     }
 
+    signal?.throwIfAborted();
     const result = await this.aiService.generateObject(
       systemPrompt,
       enhancedPrompt,
       template.schema,
+      signal,
     );
-
+    signal?.throwIfAborted();
     return schema.parse(result.object);
+  }
+
+  /** Both singletons are independent reads; fetch whichever the identity needs at once. */
+  private async readIdentities(
+    reads: DataSourceGenerationContext,
+    representedIdentity: GenerationContext["representedIdentity"],
+  ): Promise<{ brain: string; anchor: string }> {
+    const singleton = async (type: string): Promise<string> =>
+      (await reads.getEntity(type, type))?.content ?? "";
+    const [brain, anchor] = await Promise.all([
+      representedIdentity !== "none"
+        ? singleton(SHELL_ENTITY_TYPES.BRAIN_CHARACTER)
+        : "",
+      representedIdentity === undefined || representedIdentity === "anchor"
+        ? singleton(SHELL_ENTITY_TYPES.ANCHOR_PROFILE)
+        : "",
+    ]);
+    return { brain, anchor };
   }
 
   private buildSystemPrompt(
     templateBasePrompt: string,
     context: GenerationContext,
+    identities?: { brain: string; anchor: string },
   ): string {
     const sections: string[] = [];
 
@@ -152,13 +223,21 @@ export class AIContentDataSource implements DataSource {
       context.representedIdentity === "brain" ||
       context.representedIdentity === "anchor"
     ) {
-      sections.push("# Brain Identity", this.getIdentityContent(), "");
+      sections.push(
+        "# Brain Identity",
+        identities?.brain ?? this.getIdentityContent(),
+        "",
+      );
     }
     if (
       context.representedIdentity === undefined ||
       context.representedIdentity === "anchor"
     ) {
-      sections.push("# Represented Anchor", this.getProfileContent(), "");
+      sections.push(
+        "# Represented Anchor",
+        identities?.anchor ?? this.getProfileContent(),
+        "",
+      );
     }
     const styleGuidance = this.selectStyleGuidance(context);
     if (styleGuidance) {

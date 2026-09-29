@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
+import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { renderChatPage } from "../src/chat-page";
 import {
   createWebChatClient,
@@ -7,17 +8,17 @@ import {
   getWebChatApiPaths,
 } from "../ui-react/src/web-chat-client";
 
-const originalDocument = globalThis.document;
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 
 beforeEach(() => {
   windowInstance = new Window();
-  Object.assign(globalThis, { document: windowInstance.document });
+  restoreGlobals = installGlobals({ document: windowInstance.document });
 });
 
 afterEach(() => {
   windowInstance.close();
-  Object.assign(globalThis, { document: originalDocument });
+  restoreGlobals();
 });
 
 describe("standalone Web Chat transport bootstrap", () => {

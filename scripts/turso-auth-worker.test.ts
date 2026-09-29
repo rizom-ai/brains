@@ -80,7 +80,7 @@ test("execution-only auth uses authenticated owner reads without local storage o
     storageDir: join(directory, "auth"),
     accountSettingsEncryptionKey: "k".repeat(32),
   });
-  const shutdownOwner = owner.shutdown?.bind(owner);
+  const shutdownOwner = owner.shutdown.bind(owner);
   assert(shutdownOwner);
   cleanups.push(shutdownOwner);
   await owner.register(ownerShell);
@@ -100,7 +100,7 @@ test("execution-only auth uses authenticated owner reads without local storage o
   const stored = await backend.write(identity, { token: "test-worker-secret" });
   const workerPath = join(directory, "must-not-open");
   const worker = new AuthServicePlugin({ storageDir: workerPath });
-  const shutdownWorker = worker.shutdown?.bind(worker);
+  const shutdownWorker = worker.shutdown.bind(worker);
   assert(shutdownWorker);
   cleanups.push(shutdownWorker);
   const capabilities = await worker.register(workerShell, {

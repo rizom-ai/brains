@@ -28,6 +28,7 @@ const starterFilePaths = [
   ".github/workflows/deploy.yml",
   ".github/workflows/directory-sync-stress.yml",
   ".github/workflows/health-watchdog-smoke.yml",
+  ".github/workflows/offboard.yml",
   ".github/workflows/reconcile.yml",
   ".github/workflows/upgrade.yml",
   "deploy/Dockerfile",
@@ -203,8 +204,10 @@ function isStaleDecryptUserSecretsScript(
 
 function isStaleResolveDeployHandlesScript(current: string): boolean {
   return (
-    current.includes('if (eventName !== "push") {') &&
-    current.includes('const currentSha = requireEnv("GITHUB_SHA");')
+    (current.includes('if (eventName !== "push") {') &&
+      current.includes('const currentSha = requireEnv("GITHUB_SHA");')) ||
+    (current.includes("path.match(/^users\\/([^/]+)\\/") &&
+      !current.includes("existsSync(`users/${handle}.yaml`)"))
   );
 }
 
@@ -236,6 +239,7 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
   ".github/workflows/deploy.yml": hasOpsScriptFingerprint(
     "install-health-watchdog.ts",
   ),
+  ".github/workflows/offboard.yml": hasOpsScriptFingerprint("user:offboard"),
   ".github/workflows/reconcile.yml": hasOpsScriptFingerprint(
     "brains-ops reconcile",
   ),

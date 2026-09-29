@@ -135,7 +135,10 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
  * out: one endpoint, decided by the process that starts the owner, so no role
  * can guess its way to a second one.
  */
-function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
+function superviseWithBroker(
+  harness: TestHarness,
+  publishRuntimeOwner: () => void = () => undefined,
+): Promise<CommandResult> {
   return superviseRuntimeChildren("/brain", "/dist/brain.js", {
     spawnImpl: harness.spawnImpl,
     processImpl: harness.processEvents,
@@ -157,7 +160,7 @@ function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
     brokerProgressTimeoutMs: 1_000,
     brokerGroupProbeIntervalMs: 10,
     brokerGroupProbeAttempts: 3,
-    publishRuntimeOwner: () => undefined,
+    publishRuntimeOwner,
     removeRuntimeOwner: () => undefined,
   });
 }
@@ -577,6 +580,30 @@ describe("bundled process supervisor", () => {
       success: false,
       message:
         "Brain git broker process group could not be proven gone; the runtime is exiting for external cleanup",
+      exitCode: 1,
+    });
+  });
+
+  it("fails endpoint publication without starting a worker or retiring the broker early", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness, () => {
+      throw new Error("owner record unavailable");
+    });
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    expect(harness.children).toHaveLength(2);
+    expect(harness.signals).toEqual(["1:SIGTERM"]);
+    web.emit("close", null, "SIGTERM");
+    expect(harness.signals).toEqual(["1:SIGTERM", "group-1000:SIGTERM"]);
+    broker.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({
+      success: false,
+      message:
+        "Could not publish the Brain owner endpoint: Error: owner record unavailable",
       exitCode: 1,
     });
   });

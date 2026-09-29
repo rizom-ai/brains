@@ -57,6 +57,7 @@ export interface DashboardRenderInput {
   assetUrls?: DashboardAssetUrls;
   dashboardPath?: string;
   askHref?: string;
+  askEnabled?: boolean;
   character: CharacterInput;
   profile: ProfileInput;
   appInfo: AppInfo;

@@ -1,6 +1,19 @@
 import {
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+  type AskBoxAvailability,
+} from "@brains/contracts";
+import type { IRuntimeStateStore } from "@brains/plugins";
+import {
+  ASK_BOX_BOOT_PATH,
+  ASK_BOX_LOADER_SCRIPT,
+  ASK_BOX_VERSION_PATH,
+  askBoxBootScript,
+} from "./ask-box-boot";
+import {
   AGENT_ACTION_REQUEST_CHANNEL,
-  createExternalActorId,
   parseAgentResponse,
 } from "@brains/contracts";
 import {
@@ -14,6 +27,7 @@ import {
 } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  SitePageResponse,
   createScheduledMaintenanceDaemon,
   type AgentResponse,
   type EditMessageRequest,
@@ -28,10 +42,13 @@ import {
   type ToolStatusUpdate,
   type UserPermissionLevel,
   type ChatAttachment,
-  type ChatContext,
   coerceConversationMetadata,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  handleRemoteAgentChatRequest as handleRemoteAgentChatRoute,
+  handleRemoteAgentConfirmRequest as handleRemoteAgentConfirmRoute,
+  type RemoteAgentHandlerDeps,
+} from "./remote-agent-handlers";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -68,6 +85,7 @@ import { handleContextSessionRequest as handleContextSessionRouteRequest } from 
 import {
   renderChatPage,
   renderGuestChatPage,
+  guestPageStyles,
   uiAssetFile,
   uiStylesheetFile,
 } from "./chat-page";
@@ -88,28 +106,19 @@ import {
 } from "./upload-handlers";
 
 import { GuestStateMaintenance } from "./guest-maintenance";
+import { registerGuestMonitor } from "./guest-monitor";
+import { loadAskContent } from "./ask-content";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
-import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
+import {
+  guestPolicySchema,
+  matchesGuestOrigin,
+  type GuestPolicy,
+} from "./guest-policy";
 import { resolveGuestPreset } from "./guest-preset";
+import { GuestAccessControl } from "./guest-access-control";
 
 const webChatInterfaceType = "web-chat";
-const remoteAgentInterfaceType = "remote-agent";
-
-const remoteAgentChatRequestSchema = z
-  .object({
-    message: z.string().min(1),
-    conversationId: z.string().min(1),
-  })
-  .strict();
-
-const remoteAgentConfirmRequestSchema = z
-  .object({
-    conversationId: z.string().min(1),
-    confirmed: z.boolean(),
-    approvalId: z.string().min(1),
-  })
-  .strict();
 
 type AuthSessionResolver = (request: Request) => Promise<boolean>;
 type BrowserPrincipalResolver = (
@@ -149,6 +158,10 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private readonly guestHttpOptions: GuestHttpOptions;
   private readonly guestPolicy: GuestPolicy;
   private guestHttp: GuestHttpHandlers | undefined;
+  private guestControl: GuestAccessControl | undefined;
+  private askBoxAvailability:
+    IRuntimeStateStore<AskBoxAvailability> | undefined;
+  private readonly runtimeGuestActivationAllowed: boolean;
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
   private readonly resolveAuthPrincipal: BrowserPrincipalResolver;
@@ -157,6 +170,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
+    this.runtimeGuestActivationAllowed =
+      config.guest === undefined && deps.guestPolicy === undefined;
     this.guestPolicy =
       deps.guestPolicy === undefined
         ? resolveGuestPreset(this.config.guest)
@@ -176,25 +191,70 @@ export class WebChatInterface extends MessageInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    // The supported automatic activation is the controlled loopback slice only.
-    // guestPolicySchema permits HTTP origins only on loopback. Enabling policy
-    // still follows operator verification of the actual bind address and corpus.
-    const loopback =
-      this.guestPolicy.enabled && this.guestPolicy.origin.startsWith("http://");
-    this.guestHttp = new GuestHttpHandlers(context, this.guestPolicy, {
-      ...this.guestHttpOptions,
-      ready:
-        this.guestHttpOptions.ready ??
-        ((): boolean =>
-          loopback && context.agent.guestProfileAvailable === true),
+    // Hosted guest access requires an owner-set budget.
+    // Other injected HTTPS policies remain closed without explicit readiness.
+    const boundedPolicy =
+      this.guestPolicy.enabled &&
+      (this.guestPolicy.origin.startsWith("http://") ||
+        this.guestPolicy.budgeted === true);
+    this.guestControl = new GuestAccessControl(
+      context,
+      (request) => this.resolveBrowserAccess(request),
+      () => context.agent.guestReady === true,
+      this.runtimeGuestActivationAllowed,
+      this.guestHttpOptions.now,
+    );
+    const managedPolicy = this.guestControl.policy;
+    this.guestHttp = new GuestHttpHandlers(
+      context,
+      managedPolicy ?? this.guestPolicy,
+      {
+        ...this.guestHttpOptions,
+        presentation: (): ReturnType<typeof loadAskContent> =>
+          loadAskContent(context.entityService),
+        requireAuthorization: managedPolicy !== undefined,
+        ready:
+          this.guestHttpOptions.ready ??
+          ((): boolean =>
+            (managedPolicy !== undefined || boundedPolicy) &&
+            context.agent.guestReady === true),
+      },
+    );
+    // The owner sees whether the guest usage record is recording, full or failing.
+    if ((managedPolicy ?? this.guestPolicy).enabled) {
+      const guestHttp = this.guestHttp;
+      context.operationalHealth.register("guest-usage-record", async () => {
+        const health = await guestHttp.usageHealth();
+        return (
+          health ?? {
+            status: "healthy",
+            message: "Guest access is off; nothing is recorded.",
+          }
+        );
+      });
+    }
+    // Site builds may run in a separate worker, where interfaces are not
+    // registered: record where this deployment serves the Ask box boot.
+    this.askBoxAvailability = context.runtimeState.scoped({
+      namespace: ASK_BOX_STATE_NAMESPACE,
+      schema: askBoxAvailabilitySchema,
     });
+    await this.recordAskBoxAvailability();
     const maintenance = new GuestStateMaintenance(context.runtimeState);
     context.daemons.register(
       "guest-maintenance",
       createScheduledMaintenanceDaemon({
         intervalMs: 60_000,
         logger: context.logger,
-        run: (): Promise<void> => maintenance.run(),
+        run: async (): Promise<void> => {
+          // Neither sweep may starve the other.
+          const results = await Promise.allSettled([
+            maintenance.run(),
+            this.guestHttp?.maintainUsage(),
+          ]);
+          if (results.some((result) => result.status === "rejected"))
+            throw new Error("Guest maintenance unavailable");
+        },
       }),
     );
 
@@ -237,6 +297,54 @@ export class WebChatInterface extends MessageInterfacePlugin<
         };
       },
     });
+  }
+
+  /**
+   * Where the Ask box is offered: a configured guest policy everywhere;
+   * managed guest chat only on preview, while the owner has it switched on.
+   * Written at startup, before the guest profile is ready, so it follows the
+   * switch; the box itself says when chat cannot answer yet.
+   */
+  private async recordAskBoxAvailability(): Promise<void> {
+    const configured = this.guestPolicy.enabled;
+    const activated =
+      this.guestControl?.policy !== undefined &&
+      (await this.guestControl.isSwitchedOn());
+    await this.askBoxAvailability?.set(ASK_BOX_STATE_KEY, {
+      public: configured,
+      preview: configured || activated,
+    });
+  }
+
+  /** The owner's Studio view of guest chat: what it did, and the switch. */
+  protected override async onReady(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    const usage = this.guestHttp?.usageRecord;
+    if (!usage) return;
+    await registerGuestMonitor(context, {
+      record: usage.record,
+      bounds: usage.bounds,
+      control: this.guestControl?.policy ? this.guestControl : undefined,
+      configuredOpen: (): boolean =>
+        this.guestPolicy.enabled && context.agent.guestReady === true,
+      afterSwitch: (): Promise<void> => this.recordAfterActivation(),
+    });
+  }
+
+  private async recordAfterActivation(): Promise<void> {
+    try {
+      await this.recordAskBoxAvailability();
+    } catch (error) {
+      // The activation itself succeeded; the next start rewrites the record,
+      // and the atlas keeps the box out of sight until its boot is live.
+      this.logger.warn("Could not record Ask box availability", { error });
+    }
+  }
+
+  /** Guest chat is configured or managed: its pages and assets are declared (each request is still authorized). */
+  private declaresGuestAssets(): boolean {
+    return this.guestPolicy.enabled || this.guestControl?.policy !== undefined;
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -282,7 +390,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleUploadDownloadRequest(request),
       },
     });
-    if (this.guestPolicy.enabled)
+    if (this.declaresGuestAssets())
       routes.push({
         path: this.authenticatedRoutePath,
         method: "GET",
@@ -290,29 +398,161 @@ export class WebChatInterface extends MessageInterfacePlugin<
         handler: (request): Promise<Response> =>
           this.handleAuthenticatedChatPage(request),
       });
-    if (this.guestPolicy.enabled) {
+    if (this.declaresGuestAssets()) {
+      for (const extension of ["js", "css"] as const) {
+        routes.push({
+          path: `/ask/assets/dashboard.${extension}`,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiAssetFile.replace(/app\.js$/, `dashboard.${extension}`),
+                  extension === "js"
+                    ? "text/javascript; charset=utf-8"
+                    : "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        });
+      }
+      const notFound = (): Response =>
+        new Response("Not found", {
+          status: 404,
+          headers: { "Cache-Control": "no-store" },
+        });
+      routes.push(
+        {
+          path: ASK_BOX_SCRIPT_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(ASK_BOX_LOADER_SCRIPT, {
+                  headers: {
+                    "Content-Type": "text/javascript; charset=utf-8",
+                    "Cache-Control": "no-cache",
+                  },
+                })
+              : notFound(),
+        },
+        {
+          path: ASK_BOX_VERSION_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? Response.json(
+                  { version: await this.guestAssetVersion() },
+                  { headers: { "Cache-Control": "no-store" } },
+                )
+              : notFound(),
+        },
+        {
+          path: ASK_BOX_BOOT_PATH,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(askBoxBootScript(await this.guestAssetVersion()), {
+                  headers: { "Content-Type": "text/javascript; charset=utf-8" },
+                })
+              : notFound(),
+        },
+      );
+      for (const extension of ["js", "css"] as const) {
+        routes.push({
+          path: `/ask/assets/ask.${extension}`,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiAssetFile.replace(/app\.js$/, `ask.${extension}`),
+                  extension === "js"
+                    ? "text/javascript; charset=utf-8"
+                    : "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        });
+      }
       routes.push({
         path: "/ask/assets/guest.js",
         method: "GET",
         public: true,
-        handler: (): Promise<Response> =>
-          this.handleBuiltUiFile(
-            uiAssetFile.replace(/app\.js$/, "guest.js"),
-            "text/javascript; charset=utf-8",
-          ),
+        preview: true,
+        handler: async (request): Promise<Response> =>
+          (await this.canServeGuestAssets(request))
+            ? this.handleBuiltUiFile(
+                uiAssetFile.replace(/app\.js$/, "guest.js"),
+                "text/javascript; charset=utf-8",
+              )
+            : new Response("Not found", {
+                status: 404,
+                headers: { "Cache-Control": "no-store" },
+              }),
       });
-      routes.push({
-        path: "/ask/assets/guest.css",
-        method: "GET",
-        public: true,
-        handler: (): Promise<Response> =>
-          this.handleBuiltUiFile(
-            uiStylesheetFile.replace(/app\.css$/, "guest.css"),
-            "text/css; charset=utf-8",
-          ),
-      });
+      routes.push(
+        {
+          path: "/ask/assets/page.css",
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(guestPageStyles, {
+                  headers: { "Content-Type": "text/css; charset=utf-8" },
+                })
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        },
+        {
+          path: "/ask/assets/guest.css",
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+                  "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        },
+      );
     }
-    return [...routes, ...(this.guestHttp?.routes(this.config.apiPath) ?? [])];
+    return [
+      ...routes,
+      ...(this.guestHttp?.routes(this.config.apiPath) ?? []),
+      ...(this.guestControl?.routes(this.config.apiPath) ?? []).map(
+        (route): WebRouteDefinition =>
+          route.method === "POST"
+            ? {
+                ...route,
+                handler: async (request, transport): Promise<Response> => {
+                  const response = await route.handler(request, transport);
+                  if (response.ok) await this.recordAfterActivation();
+                  return response;
+                },
+              }
+            : route,
+      ),
+    ];
   }
 
   protected override sendMessageToChannel(
@@ -405,21 +645,38 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private get authenticatedRoutePath(): string {
-    return this.guestPolicy.enabled
+    return this.guestPolicy.enabled || this.guestControl?.policy
       ? `${this.config.routePath.replace(/\/+$/, "")}/authenticated`
       : this.config.routePath;
   }
 
+  private async canServeGuestAssets(request: Request): Promise<boolean> {
+    const managed = this.guestControl?.policy;
+    return managed
+      ? matchesGuestOrigin(request, managed) &&
+          (await this.guestControl?.isAuthorized()) === true
+      : this.guestPolicy.enabled;
+  }
+
   private async handleChatPage(request: Request): Promise<Response> {
-    if (this.guestPolicy.enabled) {
-      if (new URL(request.url).origin !== this.guestPolicy.origin)
+    const managed = this.guestControl?.policy;
+    const policy =
+      managed && (await this.guestControl?.isAuthorized())
+        ? managed
+        : this.guestPolicy;
+    if (policy.enabled) {
+      if (!matchesGuestOrigin(request, policy)) {
+        if (policy.budgeted) return this.handleAuthenticatedChatPage(request);
         return new Response("Guest access unavailable", {
           status: 503,
           headers: { "Cache-Control": "no-store" },
         });
-      return new Response(
+      }
+      return new SitePageResponse(
         renderGuestChatPage({
           apiPath: `${createChatApiPaths(this.config.apiPath).stream}/guest`,
+          name: this.getContext().identity.getProfile().name,
+          siteLabel: this.getContext().identity.getProfile().name,
           themeCSS: this.getContext().themeCSS,
         }),
         {
@@ -534,6 +791,28 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return this.handleBuiltUiFile(uiStylesheetFile, "text/css; charset=utf-8");
   }
 
+  private guestAssetVersionPromise: Promise<string> | undefined;
+
+  /**
+   * Names this build of the Ask box: its boot and the guest bundle it loads.
+   * A release changes it, so their versioned addresses are never served from
+   * an older cache.
+   */
+  private guestAssetVersion(): Promise<string> {
+    this.guestAssetVersionPromise ??= Promise.all(
+      [
+        uiAssetFile.replace(/app\.js$/, "guest.js"),
+        uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+      ].map(async (path) => {
+        const file = Bun.file(path);
+        return (await file.exists()) ? file.text() : "";
+      }),
+    ).then((files) =>
+      Bun.hash([askBoxBootScript(""), ...files].join("\0")).toString(36),
+    );
+    return this.guestAssetVersionPromise;
+  }
+
   private async handleBuiltUiFile(
     path: string,
     contentType: string,
@@ -579,124 +858,43 @@ export class WebChatInterface extends MessageInterfacePlugin<
     });
   }
 
+  private remoteAgentDeps(): RemoteAgentHandlerDeps {
+    return {
+      agent: this.getContext().agent,
+      resolveBrowserAccess: (request) => this.resolveBrowserAccess(request),
+      toConversationAccess: (permissionLevel, principal) =>
+        this.toConversationAccess(permissionLevel, principal),
+      ensureConversation: (
+        conversationId,
+        interfaceType,
+        channelName,
+        access,
+      ) =>
+        this.ensureBrowserConversation(
+          conversationId,
+          interfaceType,
+          channelName,
+          access,
+        ),
+      requireExistingConversation: (conversationId, interfaceType, access) =>
+        this.requireExistingBrowserConversation(
+          conversationId,
+          interfaceType,
+          access,
+        ),
+    };
+  }
+
   private async handleRemoteAgentChatRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, permissionLevel, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response("Invalid JSON body", { status: 400 });
-    }
-
-    const parsed = remoteAgentChatRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response("Invalid remote agent chat request", { status: 400 });
-    }
-    const accessError = await this.ensureBrowserConversation(
-      parsed.data.conversationId,
-      remoteAgentInterfaceType,
-      "Remote Agent",
-      this.toConversationAccess(permissionLevel, principal),
-    );
-    if (accessError) return accessError;
-
-    const response = await this.getContext().agent.chat(
-      parsed.data.message,
-      parsed.data.conversationId,
-      this.createRemoteAgentChatContext(
-        parsed.data.conversationId,
-        permissionLevel,
-        principal,
-      ),
-      request.signal,
-    );
-
-    return Response.json(response);
+    return handleRemoteAgentChatRoute(request, this.remoteAgentDeps());
   }
 
   private async handleRemoteAgentConfirmRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, permissionLevel, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response("Invalid JSON body", { status: 400 });
-    }
-
-    const parsed = remoteAgentConfirmRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response("Invalid remote agent confirm request", {
-        status: 400,
-      });
-    }
-    const accessError = await this.requireExistingBrowserConversation(
-      parsed.data.conversationId,
-      remoteAgentInterfaceType,
-      this.toConversationAccess(permissionLevel, principal),
-    );
-    if (accessError) return accessError;
-
-    const response = await this.getContext().agent.confirmPendingAction(
-      parsed.data.conversationId,
-      parsed.data.confirmed,
-      parsed.data.approvalId,
-      this.createRemoteAgentChatContext(
-        parsed.data.conversationId,
-        permissionLevel,
-        principal,
-      ),
-      request.signal,
-    );
-
-    return Response.json(response);
-  }
-
-  private createRemoteAgentChatContext(
-    conversationId: string,
-    permissionLevel: UserPermissionLevel,
-    principal: AuthPrincipal | undefined,
-  ): ChatContext {
-    return {
-      userPermissionLevel: permissionLevel,
-      isAnchor: principal?.isAnchor ?? false,
-      interfaceType: remoteAgentInterfaceType,
-      channelId: conversationId,
-      channelName: "Remote Agent",
-      actor: {
-        identity: principal
-          ? {
-              kind: "user",
-              userId: principal.userId,
-              ...(principal.canonicalId
-                ? { canonicalId: principal.canonicalId }
-                : {}),
-            }
-          : {
-              kind: "external",
-              externalActorId: createExternalActorId(
-                remoteAgentInterfaceType,
-                `${remoteAgentInterfaceType}:${conversationId}:browser-user`,
-              ),
-            },
-        interfaceType: remoteAgentInterfaceType,
-        role: "user",
-        displayName: principal?.displayName ?? "Remote agent user",
-      },
-    };
+    return handleRemoteAgentConfirmRoute(request, this.remoteAgentDeps());
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
@@ -823,29 +1021,33 @@ export class WebChatInterface extends MessageInterfacePlugin<
             },
             streamDeps,
           );
-          return;
-        }
-
-        if (responseText !== undefined) {
+        } else if (responseText !== undefined) {
           this.writeText(writer, responseText, "text");
-          return;
+        } else {
+          await handleStreamedChatRoute(
+            {
+              writer,
+              conversationId,
+              message,
+              permissionLevel,
+              ...(principal ? { principal } : {}),
+              attachments: inboxAttachment
+                ? [inboxAttachment, ...attachments]
+                : attachments,
+              ...(messageId ? { messageId } : {}),
+              interfaceType: webChatInterfaceType,
+              signal: request.signal,
+            },
+            streamDeps,
+          );
         }
 
-        await handleStreamedChatRoute(
-          {
-            writer,
-            conversationId,
-            message,
-            permissionLevel,
-            ...(principal ? { principal } : {}),
-            attachments: inboxAttachment
-              ? [inboxAttachment, ...attachments]
-              : attachments,
-            ...(messageId ? { messageId } : {}),
-            interfaceType: webChatInterfaceType,
-            signal: request.signal,
-          },
-          streamDeps,
+        // Closing SSE is not a successful message completion. The SDK does not
+        // synthesize this event for custom streams; errors must remain errors.
+        writer.write(
+          request.signal.aborted
+            ? { type: "abort" }
+            : { type: "finish", finishReason: "stop" },
         );
       },
     });

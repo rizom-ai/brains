@@ -357,11 +357,6 @@ const publishingWorkspace = defineStudioWorkspace({
       | typeof reorderAction
       | typeof publishAction
     >;
-    const totals: PublishingBlock = {
-      type: "key-values",
-      id: "publishing-summary",
-      items: [{ label: "Published", value: data.summary.published }],
-    };
     const atRest =
       data.queue.length === 0 &&
       data.generating.length === 0 &&
@@ -528,11 +523,11 @@ const publishingWorkspace = defineStudioWorkspace({
               ],
             },
           ]),
-      totals,
     ];
     return {
       kicker: "Publication operations",
       title: "Publishing",
+      status: { label: `${data.summary.published} published`, tone: "neutral" },
       blocks,
     };
   },

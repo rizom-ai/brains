@@ -124,6 +124,7 @@ export class MockLoadTracker {
 interface MockLoadServiceOptions {
   delayMs: number;
   getProjectionId?: (() => string | undefined) | undefined;
+  model?: LanguageModel | undefined;
 }
 
 interface MockLoadEmbeddingOptions extends MockLoadServiceOptions {
@@ -204,22 +205,24 @@ export class MockLoadAIService implements IAIService {
     this.delayMs = options.delayMs;
     this.getProjectionId =
       options.getProjectionId ?? ((): undefined => undefined);
-    this.model = new MockLanguageModelV3({
-      doGenerate: {
-        content: [{ type: "text", text: "{}" }],
-        finishReason: { unified: "stop", raw: "stop" },
-        usage: {
-          inputTokens: {
-            total: 1,
-            noCache: 1,
-            cacheRead: 0,
-            cacheWrite: 0,
+    this.model =
+      options.model ??
+      new MockLanguageModelV3({
+        doGenerate: {
+          content: [{ type: "text", text: "{}" }],
+          finishReason: { unified: "stop", raw: "stop" },
+          usage: {
+            inputTokens: {
+              total: 1,
+              noCache: 1,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            outputTokens: { total: 1, text: 1, reasoning: 0 },
           },
-          outputTokens: { total: 1, text: 1, reasoning: 0 },
+          warnings: [],
         },
-        warnings: [],
-      },
-    });
+      });
   }
 
   async generateText(

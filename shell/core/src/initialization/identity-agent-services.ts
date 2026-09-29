@@ -1,11 +1,10 @@
+import { resolvePrincipalViaBus } from "./principal-resolution";
 import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
   createFileModel,
-  createOpenAiGuestProfile,
-  openAiGuestEmbeddingModel,
-  openAiGuestEmbeddingDimensions,
+  priceOpenAiGuestTurn,
   type ChatAttachment,
   type ChatAttachmentSource,
   type IAgentService,
@@ -13,9 +12,7 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   ENTITY_CHANNELS,
-  authPrincipalResolveResponseSchema,
   parseAgentContextItems,
   type AgentContextRequest,
 } from "@brains/contracts";
@@ -187,44 +184,31 @@ export function initializeIdentityAndAgentServices(
   const canonicalIdentityService = CanonicalIdentityService.createFresh(
     logger,
     async (actor) => {
-      const response = await messageBus.send({
-        type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-        sender: "shell:canonical-identity-service",
-        payload: { actor },
-      });
-      if ("noop" in response || !response.success) return null;
-      const parsed = authPrincipalResolveResponseSchema.safeParse(
-        response.data,
-      );
-      if (!parsed.success || !parsed.data.principal?.canonicalId) return null;
+      // Identity display degrades to anonymous on any resolution failure.
+      const principal = await resolvePrincipalViaBus(
+        messageBus,
+        "shell:canonical-identity-service",
+        actor,
+      ).catch(() => null);
+      if (!principal?.canonicalId) return null;
       return {
-        userId: parsed.data.principal.userId,
-        canonicalId: parsed.data.principal.canonicalId,
-        displayName: parsed.data.principal.displayName,
+        userId: principal.userId,
+        canonicalId: principal.canonicalId,
+        displayName: principal.displayName,
       };
     },
   );
 
-  const aiConfig = aiService.getConfig();
-  // Query embeddings are prepaid by guest search tools; indexing remains separate.
-  // Only the reviewed model/dimension pair can query this index safely.
-  const guestProfile =
-    config.embedding.enabled &&
-    "model" in options.embeddingService &&
-    options.embeddingService.model === openAiGuestEmbeddingModel &&
-    options.embeddingService.dimensions === openAiGuestEmbeddingDimensions &&
-    aiConfig.model === "gpt-5.6-luna" &&
-    aiConfig.apiKey?.trim()
-      ? createOpenAiGuestProfile({
-          apiKey: aiConfig.apiKey,
-          embeddingsEnabled: true,
-        })
-      : undefined;
   const agentFactory = createBrainAgentFactory({
-    ...(guestProfile ? { guestProfile } : {}),
+    // Guest turns are priced where the model's published rates are known;
+    // otherwise their cost is unknown and charged the answer cap.
+    guestPricing:
+      aiService.getConfig().model === "gpt-5.6-luna"
+        ? priceOpenAiGuestTurn
+        : undefined,
     model: createFileModel(
       aiService.getModel(),
-      aiConfig,
+      aiService.getConfig(),
       createAgentUploadFiles(entityService, runtimeUploadRegistry),
     ),
     modelId: aiService.getConfig().model,

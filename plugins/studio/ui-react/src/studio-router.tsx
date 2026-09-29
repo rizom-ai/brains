@@ -110,8 +110,13 @@ export function createStudioRouter(
             getParentRoute: () => rootRoute,
             path: "workspaces/$workspaceId",
           });
+          const groupingRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: "groups/$grouping",
+          });
           return rootRoute.addChildren([
             indexRoute,
+            groupingRoute,
             collectionRoute,
             entityRoute,
             workspaceRoute,
@@ -139,9 +144,14 @@ export function createStudioRouter(
             getParentRoute: () => studioRoute,
             path: "workspaces/$workspaceId",
           });
+          const groupingRoute = createRoute({
+            getParentRoute: () => studioRoute,
+            path: "groups/$grouping",
+          });
           return rootRoute.addChildren([
             studioRoute.addChildren([
               indexRoute,
+              groupingRoute,
               collectionRoute,
               entityRoute,
               workspaceRoute,

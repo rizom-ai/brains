@@ -1,6 +1,7 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { registerAuthWorkerBridge } from "../auth-worker-bridge";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
+import { createGenerationAuthorizer } from "./generation-authorization";
 import {
   CONVERSATION_RPC_SERVICE,
   handleConversationRpcRequest,
@@ -27,6 +28,7 @@ import {
   type EntityFileAssets,
   type EntityBinaryClientTransport,
   type ProjectionStoreRpcTransport,
+  type EntityTypeConfig,
 } from "@brains/entity-service";
 import {
   EntityServiceTag,
@@ -86,7 +88,7 @@ import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import type { EntityFileActorOptions } from "@brains/entity-service";
 import {
-  resolveRuntimeProcessTopology,
+  runtimeRoleProfile,
   type LocalDatabaseEndpointConfig,
   type RuntimeProcessRole,
 } from "../runtime-process-role";
@@ -128,15 +130,15 @@ export function createShellServices(options: {
 }): ShellServices {
   const { config, dependencies, initializerLogger, lifecycle, processRole } =
     options;
-  const topology = resolveRuntimeProcessTopology(processRole);
   initializerLogger.debug("Initializing Shell services");
+  const role = runtimeRoleProfile(processRole);
 
   const logger = createServiceLogger(config, dependencies?.logger);
   const operationContext =
     dependencies?.operationContext ?? OperationContext.createFresh();
   if (
     options.localDatabaseEndpoint &&
-    topology.endpointRole === "none" &&
+    role.endpointRole === "none" &&
     !options.fileActors
   ) {
     throw new Error(
@@ -144,11 +146,11 @@ export function createShellServices(options: {
     );
   }
   const localDatabaseServer =
-    options.localDatabaseEndpoint && topology.endpointRole !== "client"
+    options.localDatabaseEndpoint && role.endpointRole !== "client"
       ? new LocalDatabaseRpcServer({ config: options.localDatabaseEndpoint })
       : undefined;
   const localDatabaseClient =
-    options.localDatabaseEndpoint && topology.endpointRole === "client"
+    options.localDatabaseEndpoint && role.endpointRole === "client"
       ? new LocalDatabaseRpcClient({
           config: options.localDatabaseEndpoint,
           getOperationScope: (): OperationScope | undefined =>
@@ -265,7 +267,15 @@ export function createShellServices(options: {
     PluginManager.createFresh(logger, daemonRegistry);
   const permissionService =
     dependencies?.permissionService ??
-    new PermissionService(config.permissions, { spaces: config.spaces });
+    new PermissionService(config.permissions, {
+      spaces: config.spaces,
+      // A registered type's own minimum, so an admin-only type stays admin-only
+      // in a brain assembled without the bundle that carries its rule.
+      entityActionFloor: (
+        entityType: string,
+      ): EntityTypeConfig["actionPolicy"] =>
+        entityRegistry.getEntityTypeConfig(entityType).actionPolicy,
+    });
   const profileKindRegistry =
     dependencies?.profileKindRegistry ??
     new ProfileKindRegistry(config.profileKind);
@@ -361,8 +371,8 @@ export function createShellServices(options: {
     messageBus,
     operationContext,
     projectionAdmission: projectionRuntimeSupervisor,
-    handlerRegistrationMode: topology.jobHandlerMode,
-    progressMonitorMode: topology.progressMonitorMode,
+    handlerRegistrationMode: role.handlerRegistrationMode,
+    progressMonitorMode: role.progressMonitorMode,
     ...(remoteJobQueueTransport && {
       remoteTransport: remoteJobQueueTransport,
     }),
@@ -407,20 +417,21 @@ export function createShellServices(options: {
     inboxRegistry.unregisterPlugin("shell.recurring-checks"),
   );
 
-  if (topology.ownsControlPlane) {
-    const recurringDaemonName = "shell:recurring-checks";
-    daemonRegistry.register(
-      recurringDaemonName,
-      {
-        start: () => recurringCheckService.start(),
-        stop: () => recurringCheckService.stop(),
-      },
-      "shell",
-    );
-    lifecycle.addSyncFinalizer(() =>
-      daemonRegistry.abandon(recurringDaemonName),
-    );
-  }
+  // Shell daemons serve requests, so only a serving process registers them.
+  // Construction is synchronous and has not started a daemon; runtime
+  // finalizers separately drain each before the databases it uses close.
+  const registerShellDaemon = (
+    name: string,
+    daemon: Parameters<typeof daemonRegistry.register>[1],
+  ): void => {
+    if (!role.serves) return;
+    daemonRegistry.register(name, daemon, "shell");
+    lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(name));
+  };
+  registerShellDaemon("shell:recurring-checks", {
+    start: () => recurringCheckService.start(),
+    stop: () => recurringCheckService.stop(),
+  });
 
   const entityContext = lifecycle.buildLayer(
     createEntityServiceLayer({
@@ -511,23 +522,16 @@ export function createShellServices(options: {
   registerOwnerHandler(CONVERSATION_RPC_SERVICE, (payload, signal) =>
     handleConversationRpcRequest(conversationService, payload, signal),
   );
-  if (processRole !== "worker") {
-    const name = "shell:guest-retention";
-    daemonRegistry.register(
-      name,
-      createScheduledMaintenanceDaemon({
-        intervalMs: 60_000,
-        logger,
-        run: async (): Promise<void> => {
-          await conversationService.deleteExpiredGuestConversations(100);
-        },
-      }),
-      "shell",
-    );
-    // Construction is synchronous and has not started the daemon. Runtime
-    // finalizers separately drain it before the conversation database closes.
-    lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(name));
-  }
+  registerShellDaemon(
+    "shell:guest-retention",
+    createScheduledMaintenanceDaemon({
+      intervalMs: 60_000,
+      logger,
+      run: async (): Promise<void> => {
+        await conversationService.deleteExpiredGuestConversations(100);
+      },
+    }),
+  );
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {
@@ -549,6 +553,10 @@ export function createShellServices(options: {
       aiService,
       templateRegistry,
       dataSourceRegistry,
+      generationAuthorizer: createGenerationAuthorizer(
+        permissionService,
+        messageBus,
+      ),
     });
 
   const {
@@ -568,7 +576,7 @@ export function createShellServices(options: {
     conversationService,
     runtimeUploadRegistry,
     disposables,
-    executionOnly: topology.executionOnly,
+    executionOnly: !role.serves,
   });
 
   return {

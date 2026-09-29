@@ -1,4 +1,5 @@
-import type { BaseEntity } from "@brains/plugins";
+import { entityIdPathSchema, type BaseEntity } from "@brains/plugins";
+import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
 import { extname, join } from "path";
 import { readString } from "@brains/utils/record-fields";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";
@@ -35,7 +36,7 @@ export function parseEntityPath(
     if (lastPart) {
       idPathParts[idPathParts.length - 1] = stripEntityExtension(lastPart);
     }
-    id = idPathParts.join(":");
+    id = encodeEntityIdPath([idPathParts[0] ?? "", ...idPathParts.slice(1)]);
   } else {
     id = stripEntityExtension(idPathParts[0] ?? "");
   }
@@ -49,7 +50,10 @@ export function buildEntityFilePath(
   entityType: string,
   extension: string = ".md",
 ): string {
-  const cleanParts = entityId.split(":").filter((part) => part.length > 0);
+  // Empty components are omitted only for filesystem placement, not identity.
+  const cleanParts = decodeEntityIdPath(entityId).filter(
+    (part) => part.length > 0,
+  );
   const isRootNote = entityType === "note";
 
   if (cleanParts.length === 1) {
@@ -58,14 +62,9 @@ export function buildEntityFilePath(
       : join(syncPath, entityType, `${cleanParts[0]}${extension}`);
   }
 
-  // Skip first part if it duplicates the entity type (e.g., "summary/summary/...")
-  let pathParts = cleanParts;
-  if (cleanParts[0] === entityType) {
-    pathParts = cleanParts.slice(1);
-  }
-
-  const filename = pathParts[pathParts.length - 1];
-  const directories = pathParts.slice(0, -1);
+  // Every segment is identity, including one equal to the entity type.
+  const filename = cleanParts[cleanParts.length - 1];
+  const directories = cleanParts.slice(0, -1);
 
   if (isRootNote) {
     return join(syncPath, ...directories, `${filename}${extension}`);
@@ -74,7 +73,39 @@ export function buildEntityFilePath(
   return join(syncPath, entityType, ...directories, `${filename}${extension}`);
 }
 
-export function getEntityFileExtension(entity: BaseEntity): string {
+/** Pure placement admission. Historical paths remain available for diagnostics. */
+export function resolveEntityPlacement(
+  syncPath: string,
+  entityType: string,
+  entityId: string,
+  extension: string = ".md",
+): {
+  relativePath: string;
+  owner: { entityType: string; id: string };
+  writable: boolean;
+} {
+  const filePath = buildEntityFilePath(
+    syncPath,
+    entityId,
+    entityType,
+    extension,
+  );
+  const owner = parseEntityPath(syncPath, filePath);
+  const segments = decodeEntityIdPath(entityId);
+  return {
+    relativePath: toSyncRelativePath(syncPath, filePath),
+    owner,
+    writable:
+      entityIdPathSchema.safeParse(segments).success &&
+      (entityType !== "note" || segments.length === 1) &&
+      owner.entityType === entityType &&
+      owner.id === entityId,
+  };
+}
+
+export function getEntityFileExtension(
+  entity: Pick<BaseEntity, "entityType" | "metadata" | "content">,
+): string {
   if (entity.entityType === "document") {
     return ".pdf";
   }

@@ -13,11 +13,18 @@ import type {
   StudioNavigation,
   StudioWorkspaceData,
   EntityDetail,
+  DestinationInput,
+  DestinationPreview,
   EntityPage,
   SyncStatus,
   TypeSchema,
 } from "./api";
 
+export type DestinationQueryKey = readonly [
+  "studio",
+  "destination",
+  DestinationInput | null,
+];
 export type NavigationQueryKey = readonly ["studio", "navigation"];
 export type StudioWorkspaceQuery = Readonly<
   Record<string, string | number | undefined>
@@ -53,6 +60,11 @@ export type EntityDetailQueryKey = readonly [
 export const studioKeys = {
   all: (): readonly ["studio"] => ["studio"],
   navigation: (): NavigationQueryKey => ["studio", "navigation"],
+  destination: (input: DestinationInput | null): DestinationQueryKey => [
+    "studio",
+    "destination",
+    input,
+  ],
   workspaceScope: (
     workspaceId: string,
   ): readonly ["studio", "workspace", string] => [
@@ -90,6 +102,26 @@ export const studioKeys = {
     entityId,
   ],
 };
+
+export function destinationQueryOptions(
+  api: StudioApi,
+  input: DestinationInput | null,
+): UseQueryOptions<
+  DestinationPreview,
+  Error,
+  DestinationPreview,
+  DestinationQueryKey
+> {
+  return {
+    queryKey: studioKeys.destination(input),
+    queryFn: ({ signal }): Promise<DestinationPreview> => {
+      if (!input) throw new Error("No creation destination selected");
+      return api.previewDestination(input, signal);
+    },
+    enabled: input !== null,
+    retry: false,
+  };
+}
 
 export function navigationQueryOptions(
   api: StudioApi,

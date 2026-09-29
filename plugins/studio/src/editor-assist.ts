@@ -85,7 +85,7 @@ async function resolveStudioAssistEntity(
   }
   const denied = requireEntityAction(context, entityType, "update", access);
   if (denied) return denied;
-  const content = splitEntityContent(entityType, entity.content);
+  const content = splitEntityContent(entityType, entity.content, context);
   return { entity, ...content };
 }
 

@@ -13,16 +13,28 @@ import { getErrorMessage } from "@brains/utils/error";
  * owns the fixed-cadence schedule, prevents overlapping cycles, and drains an
  * active cycle during shutdown. Git commit+push remains auto-commit's job.
  */
-export function setupPeriodicGitSync(
-  gitSync: IGitSync,
-  directorySync: IDirectorySync,
-  pluginContext: ServicePluginContext,
-  intervalMinutes: number,
-  logger: Logger,
-  runtime: DirectorySyncRuntime,
-  reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
-  operationStatus?: DirectorySyncOperationStatusService,
-): void {
+export interface PeriodicGitSyncOptions {
+  gitSync: IGitSync;
+  directorySync: IDirectorySync;
+  context: ServicePluginContext;
+  intervalMinutes: number;
+  logger: Logger;
+  runtime: DirectorySyncRuntime;
+  reconciliation: Pick<GitReconciliationService, "pullAndQueue">;
+  operationStatus?: DirectorySyncOperationStatusService | undefined;
+}
+
+export function setupPeriodicGitSync(options: PeriodicGitSyncOptions): void {
+  const {
+    gitSync,
+    directorySync,
+    context: pluginContext,
+    intervalMinutes,
+    logger,
+    runtime,
+    reconciliation,
+    operationStatus,
+  } = options;
   if (intervalMinutes <= 0) return;
 
   const intervalMs = intervalMinutes * 60 * 1000;

@@ -17,6 +17,7 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.routes.map((route) => route.id)).toEqual([
       "living-memory",
       "brain",
+      "public-ask",
       "writing",
       "network",
       "work",
@@ -33,6 +34,7 @@ describe("@rizom/site-rizom-ai", () => {
       "home",
       "living-memory",
       "brain",
+      "public-ask",
       "work",
       "foundation",
     ]);

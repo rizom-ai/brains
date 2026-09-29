@@ -35,6 +35,20 @@ Explicit builds also load the fleet registry and include its complete package un
 
 `render` owns the observational `views/users.md` projection. Onboard and reconcile commands own generated per-user config and never rewrite live observed status in that view.
 
+### Per-user plugin configuration
+
+Use canonical plugin configuration in `users/<handle>.yaml`, not edits to generated `brain.yaml`:
+
+```yaml
+plugins:
+  dashboard:
+    ask: true
+```
+
+The generator composes an object before serializing once. Explicit per-user fields override generated defaults; nested maps merge, arrays replace, and `false` is preserved. Null deletion markers remain in the generated document until the app resolves runtime defaults. Both stages use the same shared merger. The operator validates the configuration map shape; individual plugin schemas remain authoritative in the app.
+
+The example enables only the dashboard Ask tab. It does not activate guest access, change allowances, or supply authored content. Users without `plugins` retain the same configuration values. New or changed configuration uses the standard YAML formatter. Reconciliation compares YAML values before writing an existing `brain.yaml`, so formatting-only differences are left untouched and cannot schedule unrelated deployments. Malformed or substantively changed configuration is regenerated.
+
 ## Directory-sync stress profiles
 
 Directory-sync stress is deliberately smoke-only. The handle, domain, and content repository must each identify smoke, and the operator must pass the exact `stress:<handle>` confirmation. The runner refuses production-like targets. The smoke user must also declare the hermetic posture below; reconcile and deploy it before running the workload:

@@ -12,12 +12,18 @@ export function createDirectorySyncFacade(
     sync: () => getActive().sync(),
     processEntityExport: (entity) => getActive().processEntityExport(entity),
     exportEntities: (entityTypes) => getActive().exportEntities(entityTypes),
-    importEntitiesWithProgress: (paths, reporter, batchSize) =>
-      getActive().importEntitiesWithProgress(paths, reporter, batchSize),
+    importEntitiesWithProgress: (paths, reporter, batchSize, projectionBatch) =>
+      getActive().importEntitiesWithProgress(
+        paths,
+        reporter,
+        batchSize,
+        projectionBatch,
+      ),
     exportEntitiesWithProgress: (entityTypes, reporter, batchSize) =>
       getActive().exportEntitiesWithProgress(entityTypes, reporter, batchSize),
     importEntities: (paths) => getActive().importEntities(paths),
-    removeOrphanedEntities: () => getActive().removeOrphanedEntities(),
+    removeOrphanedEntities: (projectionBatch) =>
+      getActive().removeOrphanedEntities(projectionBatch),
     get fileOps(): IFileOperations {
       return getActive().fileOps;
     },

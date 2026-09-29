@@ -3,7 +3,34 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type {
   OperatorEntityCatalogDefinition,
+  OperatorKeyValueItem,
+  OperatorKeyValuesBlock,
+  OperatorMeterBlock,
+  OperatorMeterItem,
+  OperatorNoticeBlock,
+  OperatorProgressBlock,
+  OperatorScalar,
+  OperatorStatItem,
+  OperatorStatsBlock,
+  OperatorTextBlock,
+  OperatorTone,
   WorkspaceActionFormFieldDefinition,
+} from "./operator-view-contract";
+import {
+  operatorCoordinateSchema,
+  operatorMeterBlockSchema,
+  operatorProgressBlockSchema,
+  operatorKeyValuesBlockSchema,
+  operatorNoticeBlockSchema,
+  operatorScalarSchema,
+  operatorStatsBlockSchema,
+  operatorTextBlockSchema,
+  operatorToneSchema,
+  operatorIdentifierSchema,
+  operatorLabelSchema,
+  operatorRowIdentifierSchema,
+  operatorShortTextSchema,
+  operatorTextSchema,
 } from "./operator-view-contract";
 import {
   operatorFieldControlSchema,
@@ -20,8 +47,11 @@ import {
 } from "@brains/utils/zod-introspect";
 import { definedFields } from "@brains/utils/strip-undefined";
 
-export type RuntimeOperatorScalar = string | number | boolean | null;
-export type RuntimeOperatorTone = "good" | "warn" | "neutral" | "error";
+// The renderer's names for the contract's types. A plugin authors an
+// OperatorStatsBlock and studio renders a RuntimeOperatorStatsBlock; they
+// were two hand-written interfaces that happened to agree, and are now one.
+export type RuntimeOperatorScalar = OperatorScalar;
+export type RuntimeOperatorTone = OperatorTone;
 
 export type RuntimeOperatorLaunchIntent =
   | { readonly target: "account-settings" }
@@ -80,46 +110,12 @@ export type RuntimeOperatorLinkTarget =
       readonly itemId: string;
     };
 
-export interface RuntimeOperatorStatItem {
-  readonly label: string;
-  readonly value: string | number;
-  readonly caption?: string | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
-
-export interface RuntimeOperatorStatsBlock {
-  readonly type: "stats";
-  readonly id?: string | undefined;
-  readonly items: readonly RuntimeOperatorStatItem[];
-}
-
-export interface RuntimeOperatorKeyValueItem {
-  readonly label: string;
-  readonly value: RuntimeOperatorScalar;
-}
-
-export interface RuntimeOperatorKeyValuesBlock {
-  readonly type: "key-values";
-  readonly id?: string | undefined;
-  readonly items: readonly RuntimeOperatorKeyValueItem[];
-}
-
-export interface RuntimeOperatorNoticeBlock {
-  readonly type: "notice";
-  readonly id?: string | undefined;
-  readonly title?: string | undefined;
-  readonly text: string;
-  readonly details?: readonly string[] | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
-
-export interface RuntimeOperatorTextBlock {
-  readonly type: "text";
-  readonly id?: string | undefined;
-  readonly label?: string | undefined;
-  readonly text: string;
-  readonly truncated?: boolean | undefined;
-}
+export type RuntimeOperatorStatItem = OperatorStatItem;
+export type RuntimeOperatorStatsBlock = OperatorStatsBlock;
+export type RuntimeOperatorKeyValueItem = OperatorKeyValueItem;
+export type RuntimeOperatorKeyValuesBlock = OperatorKeyValuesBlock;
+export type RuntimeOperatorNoticeBlock = OperatorNoticeBlock;
+export type RuntimeOperatorTextBlock = OperatorTextBlock;
 
 export interface RuntimeOperatorGroupItem {
   readonly id: string;
@@ -151,32 +147,9 @@ export interface RuntimeOperatorFlowBlock {
   readonly steps: readonly RuntimeOperatorFlowStep[];
 }
 
-export interface RuntimeOperatorMeterItem {
-  readonly id: string;
-  readonly label: string;
-  readonly value: number;
-  readonly max?: number | undefined;
-  readonly unit?: string | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
-
-export interface RuntimeOperatorMeterBlock {
-  readonly type: "meters";
-  readonly id: string;
-  readonly items: readonly RuntimeOperatorMeterItem[];
-}
-
-export interface RuntimeOperatorProgressBlock {
-  readonly type: "progress";
-  readonly id: string;
-  readonly label: string;
-  readonly state: string;
-  readonly detail?: string | undefined;
-  readonly startedAt?: string | undefined;
-  readonly updatedAt?: string | undefined;
-  readonly progress?: number | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
+export type RuntimeOperatorMeterItem = OperatorMeterItem;
+export type RuntimeOperatorMeterBlock = OperatorMeterBlock;
+export type RuntimeOperatorProgressBlock = OperatorProgressBlock;
 
 export interface RuntimeOperatorQueryOption {
   readonly value: string;
@@ -668,24 +641,15 @@ export type RuntimeOperatorParseResult<T> =
       readonly issues: readonly RuntimeOperatorValidationIssue[];
     };
 
-const identifierSchema = z.string().trim().min(1).max(120);
-/**
- * Row identity is opaque data, not an authored name: a collection row may be
- * keyed by a composite source identity, so it is bounded more loosely than the
- * identifiers an author chooses.
- */
-const rowIdentifierSchema = z.string().trim().min(1).max(400);
-const labelSchema = z.string().trim().min(1).max(160);
-const shortTextSchema = z.string().max(500);
-const textSchema = z.string().max(4_000);
-const longTextSchema = z.string().max(100_000);
-const toneSchema = z.enum(["good", "warn", "neutral", "error"]);
-const scalarSchema = z.union([
-  z.string().max(2_000),
-  z.number().finite(),
-  z.boolean(),
-  z.null(),
-]);
+// The bounds live with the contract they bound; these are the short names
+// the validation below reads by.
+const identifierSchema = operatorIdentifierSchema;
+const rowIdentifierSchema = operatorRowIdentifierSchema;
+const labelSchema = operatorLabelSchema;
+const shortTextSchema = operatorShortTextSchema;
+const textSchema = operatorTextSchema;
+const toneSchema = operatorToneSchema;
+const scalarSchema = operatorScalarSchema;
 
 const safeExternalUrlSchema = z
   .string()
@@ -865,57 +829,12 @@ const linkTargetSchema: z.ZodType<RuntimeOperatorLinkTarget, unknown> = z.union(
   ],
 );
 
-const statItemSchema = z
-  .object({
-    label: labelSchema,
-    value: z.union([z.string().max(500), z.number().finite()]),
-    /** What the number counts, under the value. */
-    caption: shortTextSchema.optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict();
-
-const keyValueItemSchema = z
-  .object({ label: labelSchema, value: scalarSchema })
-  .strict();
-
-const statsBlockSchema = z
-  .object({
-    type: z.literal("stats"),
-    id: identifierSchema.optional(),
-    items: z.array(statItemSchema).max(20),
-  })
-  .strict();
-
-const keyValuesBlockSchema = z
-  .object({
-    type: z.literal("key-values"),
-    id: identifierSchema.optional(),
-    items: z.array(keyValueItemSchema).max(40),
-  })
-  .strict();
-
-const noticeBlockSchema = z
-  .object({
-    type: z.literal("notice"),
-    id: identifierSchema.optional(),
-    title: labelSchema.optional(),
-    text: textSchema,
-    // Diagnostics use the same bounded, complete source text as text blocks.
-    details: z.array(longTextSchema).max(50).optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict();
-
-const textBlockSchema = z
-  .object({
-    type: z.literal("text"),
-    id: identifierSchema.optional(),
-    label: labelSchema.optional(),
-    text: longTextSchema,
-    truncated: z.boolean().optional(),
-  })
-  .strict();
+// The leaf blocks are defined with the contract they belong to; these are
+// the short names the composites below read by.
+const statsBlockSchema = operatorStatsBlockSchema;
+const keyValuesBlockSchema = operatorKeyValuesBlockSchema;
+const noticeBlockSchema = operatorNoticeBlockSchema;
+const textBlockSchema = operatorTextBlockSchema;
 
 const groupItemSchema = z
   .object({
@@ -951,45 +870,8 @@ const flowBlockSchema = z
     steps: z.array(flowStepSchema).min(2).max(20),
   })
   .strict();
-const meterItemSchema = z
-  .object({
-    id: identifierSchema,
-    label: labelSchema,
-    value: z.number().finite().nonnegative(),
-    max: z.number().finite().positive().optional(),
-    unit: labelSchema.optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict()
-  .superRefine((item, context) => {
-    if (item.max !== undefined && item.value > item.max) {
-      context.addIssue({
-        code: "custom",
-        message: "Meter value cannot exceed its maximum",
-        path: ["value"],
-      });
-    }
-  });
-const meterBlockSchema = z
-  .object({
-    type: z.literal("meters"),
-    id: identifierSchema,
-    items: z.array(meterItemSchema).max(30),
-  })
-  .strict();
-const progressBlockSchema = z
-  .object({
-    type: z.literal("progress"),
-    id: identifierSchema,
-    label: labelSchema,
-    state: labelSchema,
-    detail: textSchema.optional(),
-    startedAt: z.string().datetime().optional(),
-    updatedAt: z.string().datetime().optional(),
-    progress: z.number().finite().min(0).max(1).optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict();
+const meterBlockSchema = operatorMeterBlockSchema;
+const progressBlockSchema = operatorProgressBlockSchema;
 
 const queryKeySchema = z
   .string()
@@ -1343,7 +1225,7 @@ const spatialRelationshipSchema = z
     tone: toneSchema.optional(),
   })
   .strict();
-const coordinateSchema = z.number().finite().min(0).max(1);
+const coordinateSchema = operatorCoordinateSchema;
 const cartesianPointSchema = z
   .object({
     id: identifierSchema,

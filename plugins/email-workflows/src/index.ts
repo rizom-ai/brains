@@ -12,13 +12,10 @@ export function emailWorkflows(
 ): Plugin[] {
   const parsed = emailWorkflowsConfigSchema.safeParse(config);
   if (!parsed.success) {
-    throw new PluginConfigValidationError(
+    throw PluginConfigValidationError.fromZod(
       "email-workflows",
-      parsed.error.issues.map((issue) => ({
-        path: issue.path.map(String).join("."),
-        code: issue.code,
-        message: issue.message,
-      })),
+      parsed.error,
+      config,
     );
   }
   return [new MailItemPlugin(), new EmailWorkflowsPlugin()];

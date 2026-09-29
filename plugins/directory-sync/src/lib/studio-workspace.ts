@@ -277,9 +277,11 @@ const directorySyncWorkspace = defineStudioWorkspace({
               ? "Content export"
               : kind === "import"
                 ? "Content import"
-                : kind === "source"
-                  ? "Content folder"
-                  : kind;
+                : kind === "placement"
+                  ? "Content placement"
+                  : kind === "source"
+                    ? "Content folder"
+                    : kind;
         return [
           {
             type: "notice" as const,

@@ -1,10 +1,14 @@
-import type { RuntimeOperatorActionControl } from "@brains/plugins";
+import type {
+  RuntimeOperatorActionControl,
+  EntityIdPathInput,
+} from "@brains/plugins";
 import type { StudioApi } from "./api";
 
 export type SaveEntityInput =
   | {
       kind: "create";
       entityType: string;
+      idPath?: EntityIdPathInput;
       frontmatter: Record<string, unknown>;
       body?: string;
     }
@@ -78,6 +82,7 @@ export function saveEntity(
   if (input.kind === "create") {
     return api.createEntity({
       entityType: input.entityType,
+      ...(input.idPath && { idPath: input.idPath }),
       frontmatter: input.frontmatter,
       ...body,
     });

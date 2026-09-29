@@ -1,12 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { MockLanguageModelV3 } from "ai/test";
 import { APICallError } from "ai";
-import type { GuestExecutionAccounting } from "../src/guest-turn-budget";
+import type { GuestPricing } from "../src/openai-guest-pricing";
 import { guestInterfaceType } from "@brains/contracts/chat";
-import {
-  testGuestExecution,
-  testGuestAccounting,
-} from "./fixtures/guest-execution";
+import { testGuestExecution } from "./fixtures/guest-execution";
 import { createMockMessageBus } from "@brains/messaging-service/test";
 import type { Tool } from "@brains/mcp-service";
 import { createBrainAgentFactory } from "../src/brain-agent";
@@ -27,24 +24,24 @@ function readTool(overrides: Partial<Tool> = {}): Tool {
 function createAgent(
   model: MockLanguageModelV3,
   tools: Tool[],
-  accounting: GuestExecutionAccounting | null = testGuestAccounting,
+  guestPricing?: GuestPricing,
 ): BrainAgent {
   return createBrainAgentFactory({
     model,
     modelId: "claude-sonnet-4-6",
     webSearch: true,
-    ...(accounting ? { guestAccounting: accounting } : {}),
+    guestPricing,
     messageBus: createMockMessageBus(),
   })({
     identity: {
-      name: "PRIVATE CHARACTER",
-      role: "PRIVATE ROLE",
-      purpose: "PRIVATE PURPOSE",
-      values: ["PRIVATE VALUES"],
+      name: "Brain character",
+      role: "Public role",
+      purpose: "Public purpose",
+      values: ["Public values"],
     },
-    profile: { name: "PRIVATE OWNER", description: "PRIVATE PROFILE" },
-    pluginInstructions: ["PRIVATE PLUGIN"],
-    agentInstructions: ["PRIVATE INSTRUCTIONS"],
+    profile: { name: "Site owner", description: "Owner profile" },
+    pluginInstructions: ["Plugin guidance"],
+    agentInstructions: ["Owner instructions"],
     tools,
     getToolsForPermission: () => tools,
     stepLimit: 3,
@@ -79,14 +76,8 @@ function usage(): ModelResponse["usage"] {
 }
 
 describe("guest provider boundary (real SDK, mocked provider)", () => {
-  it("denies missing accounting and oversized visitor input before any provider request", () => {
+  it("denies oversized visitor input before any provider request", () => {
     const model = new MockLanguageModelV3();
-    expect(
-      createAgent(model, [], null).generate({
-        messages: [{ role: "user", content: "Question" }],
-        options,
-      }),
-    ).rejects.toThrow("Guest accounting unavailable");
     expect(
       createAgent(model, []).generate({
         messages: [
@@ -103,15 +94,70 @@ describe("guest provider boundary (real SDK, mocked provider)", () => {
     expect(model.doGenerateCalls).toHaveLength(0);
   });
 
-  it("does not retry provider failures or expose their private details", () => {
+  it("settles a guest turn from the usage the provider reported", async () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: {
+        content: [{ type: "text", text: "Public answer" }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: { total: 10, noCache: 7, cacheRead: 3, cacheWrite: 0 },
+          outputTokens: { total: 4, text: 3, reasoning: 1 },
+        },
+        warnings: [],
+      },
+    });
+    const agent = createAgent(model, [], () => ({
+      state: "known",
+      microUsd: 9,
+      pricing: "check-revision",
+    }));
+    const result = await agent.generate({
+      messages: [{ role: "user", content: "What is public?" }],
+      options,
+    });
+    expect(result.guestSettlement).toEqual({
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10,
+        cachedInputTokens: 3,
+        outputTokens: 4,
+        reasoningTokens: 1,
+        embeddingTokens: 0,
+      },
+      cost: { state: "known", microUsd: 9, pricing: "check-revision" },
+    });
+  });
+
+  it("settles nothing for an owner's turn", async () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: {
+        content: [{ type: "text", text: "Owner answer" }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: usage(),
+        warnings: [],
+      },
+    });
+    const result = await createAgent(model, []).generate({
+      messages: [{ role: "user", content: "Hello" }],
+      options: {
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+        conversationId: "owner",
+      },
+    });
+    expect(result.guestSettlement).toBeUndefined();
+  });
+
+  it("fails a guest turn whose provider keeps failing", async () => {
     const model = new MockLanguageModelV3({
       doGenerate: async (): Promise<never> => {
         throw new APICallError({
-          message: "PRIVATE provider details",
+          message: "Provider unavailable",
           url: "https://provider.test",
           requestBodyValues: {},
-          statusCode: 503,
-          isRetryable: true,
+          statusCode: 400,
+          isRetryable: false,
         });
       },
     });
@@ -120,11 +166,10 @@ describe("guest provider boundary (real SDK, mocked provider)", () => {
         messages: [{ role: "user", content: "Question" }],
         options,
       }),
-    ).rejects.toThrow("Guest provider unavailable");
-    expect(model.doGenerateCalls).toHaveLength(1);
+    ).rejects.toThrow("Provider unavailable");
   });
 
-  it("excludes private instructions and provider web search from the actual model request", async () => {
+  it("answers as the brain, with only the public read tool and no provider web search", async () => {
     const model = new MockLanguageModelV3({
       doGenerate: {
         content: [{ type: "text", text: "Public answer" }],
@@ -148,7 +193,11 @@ describe("guest provider boundary (real SDK, mocked provider)", () => {
     expect(model.doGenerateCalls).toHaveLength(1);
     const call = model.doGenerateCalls[0];
     if (!call) throw new Error("Expected provider call");
-    expect(JSON.stringify(call)).not.toContain("PRIVATE");
+    expect(JSON.stringify(call.prompt)).toContain("Brain character");
+    expect(JSON.stringify(call.prompt)).toContain("Owner profile");
+    expect(JSON.stringify(call.prompt)).toContain(
+      "answering a visitor on this brain's public website",
+    );
     expect(call.tools?.map((tool) => tool.name)).toEqual(["system_search"]);
     expect(JSON.stringify(call.providerOptions ?? {})).not.toContain(
       "webSearch",

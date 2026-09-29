@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.373",
+  "version": "0.2.0-alpha.430",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",
@@ -22,6 +22,7 @@
     "typescript": "^7.0.2"
   },
   "exports": {
+    "./config-merge": "./src/config-merge.ts",
     "./array": "./src/array.ts",
     "./chunk-message": "./src/chunk-message.ts",
     "./clone": "./src/clone.ts",
@@ -42,6 +43,7 @@
     "./id": "./src/id.ts",
     "./logger": "./src/logger.ts",
     "./markdown": "./src/markdown.ts",
+    "./markdown-frontmatter": "./src/markdown-frontmatter.ts",
     "./object-keys": "./src/object-keys.ts",
     "./p-limit": "./src/p-limit.ts",
     "./parse-schema": "./src/parse-schema.ts",

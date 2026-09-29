@@ -1,3 +1,4 @@
+import type { EntityIdPath } from "@brains/plugins";
 import type { EntityDetail, FieldDescriptor, ValidationIssue } from "./api";
 import type { EditorDocument } from "./editor-document";
 
@@ -12,7 +13,29 @@ export type SaveState =
 export type EditorMode =
   | { kind: "browse" }
   | { kind: "edit"; entity: EntityDetail }
-  | { kind: "create" };
+  | {
+      kind: "create";
+      prefix?: EntityIdPath | null;
+      segment?: string;
+      /** Automatically opened singleton creation is clean until edited. */
+      initial?: { draft: string; body: string };
+    };
+
+/** Studio submits segments; only the server encodes stored identity. */
+/** Distinguishes one open document from another, for keys that reset per document. */
+export function editorDocumentKey(
+  entityType: string,
+  mode: EditorMode,
+): string {
+  return `${entityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`;
+}
+
+export function creationIdPath(mode: EditorMode): EntityIdPath | null {
+  if (mode.kind !== "create" || mode.segment === undefined) return null;
+  return mode.prefix
+    ? [mode.prefix[0], ...mode.prefix.slice(1), mode.segment]
+    : [mode.segment];
+}
 
 export interface EditorWorkflowState {
   mode: EditorMode;
@@ -20,6 +43,11 @@ export interface EditorWorkflowState {
   body: string;
   save: SaveState;
   deleteOpen: boolean;
+  /** Local compound-field drafts may not have a lossless serializable value yet. */
+  compoundFields?: Record<
+    string,
+    { pendingChanges: boolean; invalid: boolean }
+  >;
 }
 
 export type EditorWorkflowAction =
@@ -27,13 +55,22 @@ export type EditorWorkflowAction =
   | { type: "documentOpened"; document: EditorDocument; save?: SaveState }
   | {
       type: "creationStarted";
+      singleton?: boolean;
       draft: Record<string, unknown>;
       body?: string | undefined;
+      prefix?: EntityIdPath | null;
     }
+  | { type: "segmentChanged"; segment: string }
   | { type: "browseRequested" }
   | { type: "fieldChanged"; descriptor: FieldDescriptor; raw: unknown }
   | { type: "fieldAssistApplied"; field: string; suggestion: string | string[] }
   | { type: "bodyChanged"; body: string }
+  | {
+      type: "compoundFieldStateChanged";
+      field: string;
+      pendingChanges: boolean;
+      invalid: boolean;
+    }
   | { type: "saveStarted" }
   | {
       type: "saveFailed";
@@ -75,10 +112,29 @@ export const initialEditorWorkflowState: EditorWorkflowState = {
   deleteOpen: false,
 };
 
+export function hasInvalidEditorFields(state: EditorWorkflowState): boolean {
+  return Object.values(state.compoundFields ?? {}).some(
+    (field) => field.invalid || field.pendingChanges,
+  );
+}
+
 /** Whether leaving the current route would discard an editor draft. */
 export function hasUnsavedEditorChanges(state: EditorWorkflowState): boolean {
   if (state.mode.kind === "browse") return false;
-  if (state.mode.kind === "create") return true;
+  if (
+    Object.values(state.compoundFields ?? {}).some(
+      (field) => field.pendingChanges,
+    )
+  )
+    return true;
+  if (state.mode.kind === "create") {
+    const initial = state.mode.initial;
+    if (!initial) return true;
+    return (
+      state.body !== initial.body ||
+      JSON.stringify(state.draft) !== initial.draft
+    );
+  }
   return (
     state.body !== state.mode.entity.body ||
     JSON.stringify(state.draft) !==
@@ -104,12 +160,32 @@ export function editorWorkflowReducer(
     case "creationStarted":
       if (state.mode.kind !== "browse") return state;
       return {
-        mode: { kind: "create" },
+        mode: {
+          kind: "create",
+          ...(action.singleton && {
+            initial: {
+              draft: JSON.stringify(action.draft),
+              body: action.body ?? "",
+            },
+          }),
+          ...(action.prefix !== undefined && {
+            prefix: action.prefix,
+            segment: "",
+          }),
+        },
         draft: action.draft,
         body: action.body ?? "",
         save: { kind: "idle" },
         deleteOpen: false,
       };
+    case "segmentChanged":
+      return state.mode.kind === "create"
+        ? {
+            ...state,
+            mode: { ...state.mode, segment: action.segment },
+            save: { kind: "idle" },
+          }
+        : state;
     case "browseRequested":
       return initialEditorWorkflowState;
     case "fieldChanged":
@@ -130,6 +206,19 @@ export function editorWorkflowReducer(
       return state.mode.kind === "browse"
         ? state
         : { ...state, body: action.body };
+    case "compoundFieldStateChanged":
+      return state.mode.kind === "browse"
+        ? state
+        : {
+            ...state,
+            compoundFields: {
+              ...state.compoundFields,
+              [action.field]: {
+                pendingChanges: action.pendingChanges,
+                invalid: action.invalid,
+              },
+            },
+          };
     case "saveStarted":
       return state.mode.kind === "browse"
         ? state

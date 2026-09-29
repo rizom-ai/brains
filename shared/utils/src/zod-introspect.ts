@@ -8,6 +8,52 @@
 import { z } from "./zod";
 
 /**
+ * Conservative equality for reusable string-list fields. JSON Schema omits
+ * refinements and transformations. Runtime checks must therefore be shared
+ * objects, and defaults/transforms/unknown wrappers require schema identity.
+ * Check-free lists, strings, enums and their optional/nullable wrappers can
+ * still be declared independently. Never execute defaults to compare them.
+ */
+export function haveSameStringListContract(
+  left: unknown,
+  right: unknown,
+): boolean {
+  if (!(left instanceof z.ZodType) || !(right instanceof z.ZodType))
+    return false;
+  if (left === right) return true;
+  const leftChecks = left.def.checks ?? [];
+  const rightChecks = right.def.checks ?? [];
+  if (
+    leftChecks.length !== rightChecks.length ||
+    leftChecks.some((check, index) => check !== rightChecks[index])
+  )
+    return false;
+  if (left instanceof z.ZodOptional && right instanceof z.ZodOptional)
+    return haveSameStringListContract(left.unwrap(), right.unwrap());
+  if (left instanceof z.ZodNullable && right instanceof z.ZodNullable)
+    return haveSameStringListContract(left.unwrap(), right.unwrap());
+  if (left instanceof z.ZodArray && right instanceof z.ZodArray)
+    return haveSameStringListContract(left.element, right.element);
+  // String formats can carry validation outside def.checks.
+  if (left instanceof z.ZodStringFormat || right instanceof z.ZodStringFormat)
+    return false;
+  if (left instanceof z.ZodString && right instanceof z.ZodString)
+    return left.def.coerce === right.def.coerce;
+  if (left instanceof z.ZodEnum && right instanceof z.ZodEnum)
+    return (
+      JSON.stringify(left.def.entries) === JSON.stringify(right.def.entries)
+    );
+  if (left instanceof z.ZodLiteral && right instanceof z.ZodLiteral)
+    return (
+      left.def.values.length === right.def.values.length &&
+      left.def.values.every((value, index) =>
+        Object.is(value, right.def.values[index]),
+      )
+    );
+  return false;
+}
+
+/**
  * Result of unwrapping optional/nullable/default/pipe wrappers from a field
  * schema. `defaultValue` is only present when a `.default()` wrapper supplied
  * one.
@@ -37,38 +83,48 @@ function readDefaultValue(value: unknown): unknown {
  * requiredness.
  */
 export function unwrapField(schema: unknown): UnwrappedField {
-  let inner: unknown = schema;
-  let required = true;
-  let defaultValue: unknown;
-  let hasDefault = false;
-
-  for (;;) {
-    if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
-      required = false;
-      inner = inner.unwrap();
-      continue;
-    }
-    if (inner instanceof z.ZodDefault) {
-      required = false;
-      hasDefault = true;
-      defaultValue = readDefaultValue(inner.def.defaultValue);
-      inner = inner.def.innerType;
-      continue;
-    }
-    if (inner instanceof z.ZodPipe) {
-      // A preprocess/pipe carries the real field shape in its output schema;
-      // unwrap to it so e.g. enums keep their options.
-      inner = inner.def.out;
-      continue;
-    }
-    break;
-  }
-
-  const result: UnwrappedField = { inner, required };
-  if (hasDefault && defaultValue !== undefined) {
-    result.defaultValue = defaultValue;
+  const peeled = peelWrappers(schema, true, undefined, false);
+  const result: UnwrappedField = {
+    inner: peeled.inner,
+    required: peeled.required,
+  };
+  if (peeled.hasDefault && peeled.defaultValue !== undefined) {
+    result.defaultValue = peeled.defaultValue;
   }
   return result;
+}
+
+interface PeeledField {
+  inner: unknown;
+  required: boolean;
+  defaultValue: unknown;
+  hasDefault: boolean;
+}
+
+/** One wrapper per step; the innermost schema is the one that stops recursing. */
+function peelWrappers(
+  inner: unknown,
+  required: boolean,
+  defaultValue: unknown,
+  hasDefault: boolean,
+): PeeledField {
+  if (inner instanceof z.ZodOptional || inner instanceof z.ZodNullable) {
+    return peelWrappers(inner.unwrap(), false, defaultValue, hasDefault);
+  }
+  if (inner instanceof z.ZodDefault) {
+    return peelWrappers(
+      inner.def.innerType,
+      false,
+      readDefaultValue(inner.def.defaultValue),
+      true,
+    );
+  }
+  if (inner instanceof z.ZodPipe) {
+    // A preprocess/pipe carries the real field shape in its output schema;
+    // unwrap to it so e.g. enums keep their options.
+    return peelWrappers(inner.def.out, required, defaultValue, hasDefault);
+  }
+  return { inner, required, defaultValue, hasDefault };
 }
 
 /**

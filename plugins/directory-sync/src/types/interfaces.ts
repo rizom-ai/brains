@@ -1,4 +1,8 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  DurableBulkMutationChildRef,
+  ServicePluginContext,
+} from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
 import type {
@@ -48,6 +52,7 @@ export interface IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressReporter,
     batchSize: number,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
@@ -55,7 +60,9 @@ export interface IDirectorySync {
     batchSize: number,
   ): Promise<ExportResult>;
   importEntities(paths?: string[]): Promise<ImportResult>;
-  removeOrphanedEntities(): Promise<CleanupResult>;
+  removeOrphanedEntities(
+    projectionBatch?: DurableBulkMutationChildRef,
+  ): Promise<CleanupResult>;
   readonly fileOps: IFileOperations;
   readonly shouldDeleteOnFileRemoval: boolean;
   getAllMarkdownFiles(): Promise<string[]>;

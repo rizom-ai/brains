@@ -126,7 +126,23 @@ function expectEmailDeliveryThreadingInput(
 void expectEmailDeliveryThreadingInput;
 
 export type EmailSendResult =
-  { status: "sent"; id?: string } | { status: "failed" };
+  { status: "sent"; id?: string } | { status: "failed"; code: string };
+
+/** Resend's error name only: its message can name addresses or domains. */
+const resendErrorSchema = z.object({
+  name: z.string().regex(/^[a-z_]{1,64}$/),
+});
+
+async function resendFailureCode(response: Response): Promise<string> {
+  const body: unknown = await response.json().catch((): undefined => {
+    // A body that is not JSON still has its status.
+    return undefined;
+  });
+  const parsed = resendErrorSchema.safeParse(body);
+  return parsed.success
+    ? `resend_${parsed.data.name}`
+    : `resend_http_${response.status}`;
+}
 
 /**
  * Whether a failed delivery must keep recipient and subject out of the logs.
@@ -386,12 +402,21 @@ export class EmailInterface extends MessageInterfacePlugin<
           : {}),
         idempotencyKey: input.idempotencyKey,
       });
-      return result.status === "sent"
-        ? {
-            status: "sent" as const,
-            ...(result.id ? { providerDeliveryId: result.id } : {}),
-          }
-        : { status: "failed" as const, failureCode: "email_delivery_failed" };
+      if (result.status === "sent")
+        return {
+          status: "sent" as const,
+          ...(result.id ? { providerDeliveryId: result.id } : {}),
+        };
+      this.logger.warn(
+        secret
+          ? "Email delivery failed for a secret message"
+          : "Email delivery failed",
+        {
+          failureCode: result.code,
+          ...(secret ? {} : { to: input.recipient, subject: input.subject }),
+        },
+      );
+      return { status: "failed" as const, failureCode: result.code };
     } catch (error) {
       if (secret) {
         this.logger.warn("Email delivery failed for a secret message");
@@ -420,7 +445,7 @@ export class EmailInterface extends MessageInterfacePlugin<
     const apiKey = this.config.apiKey;
     const from = this.config.from;
     if (!apiKey || !from) {
-      return { status: "failed" };
+      return { status: "failed", code: "email_not_configured" };
     }
 
     const response = await this.fetchImpl("https://api.resend.com/emails", {
@@ -450,7 +475,7 @@ export class EmailInterface extends MessageInterfacePlugin<
     });
 
     if (!response.ok) {
-      throw new Error("Resend email request failed");
+      return { status: "failed", code: await resendFailureCode(response) };
     }
 
     const body = resendEmailResponseSchema.parse(await response.json());
