@@ -8,6 +8,25 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Verbatim creation and projection job scope integration
+
+Approved main `eaa3701f6d` adds stored user-message creation with unique literal
+or line boundaries, conversation-local selection, permission floors and pinned
+message/hash confirmation. This is a system-tool workflow, not a new author
+conversation capability. Existing creation ownership, visibility and sanitized
+error boundaries remain. A canonical 17 KB conversation-to-Note regression
+checks persisted source bytes through raw reads and conditional mirror snapshots;
+these now preserve stored frontmatter and whitespace instead of codec-decoded
+bodies. Normal typed reads retain their prior decoding behavior. Real SQLite
+coverage checks this distinction and visibility denial.
+
+Workers reset projection batch ambient scope for each independent job, retaining
+nested identity fences, durable batch coordination and causal attribution. Native
+worker/store regressions cover scope isolation. This does not establish optional
+import-soak or paid-provider evaluation acceptance. Open lit atlas cards retain
+visibility in the dock; public UI remains alpha.443 with separate Core/Site lanes.
+Exact completed commit/tree/check evidence is recorded on PR301.
+
 ## Docked mobile atlas integration scope
 
 Approved main `c3ff151d9f` lends the host-owned map to an empty Ask scroll dock

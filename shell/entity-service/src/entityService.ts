@@ -720,7 +720,7 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, visibilityScope } = request;
-    const entity = await this.getEntityRaw(request);
+    const entity = await this.readStoredEntity(request, false);
     if (!entity) {
       return null;
     }
@@ -792,6 +792,14 @@ export class EntityService implements IEntityService {
     request: GetEntityRawRequest,
     schema?: EntitySchema<BaseEntity>,
   ): Promise<BaseEntity | null> {
+    const entity = await this.readStoredEntity(request, true);
+    return entity && schema ? schema.parse(entity) : entity;
+  }
+
+  private async readStoredEntity(
+    request: GetEntityRawRequest,
+    preserveSource: boolean,
+  ): Promise<BaseEntity | null> {
     request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
@@ -806,9 +814,14 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const decoded = await this.entitySerializer.convertToEntity(entityData);
+    // Source reads retain the stored representation, not the codec's body view.
+    const entity =
+      decoded && preserveSource
+        ? { ...decoded, content: entityData.content }
+        : decoded;
     request.signal?.throwIfAborted();
-    return entity && schema ? schema.parse(entity) : entity;
+    return entity;
   }
 
   public async listEntities(

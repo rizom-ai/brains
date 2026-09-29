@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.443
+
+### Patch Changes
+
+- [#425](https://github.com/rizom-ai/brains/pull/425) [`1568508`](https://github.com/rizom-ai/brains/commit/1568508c68a65ded3e89b3a89a188ff870a2cce5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Save pasted content through a `system_create` user-message source reference instead of making the model reproduce the body. Resolve exact, unique text boundaries in the stored conversation, preserve the selected source text, and bind confirmation to its message ID and content hash. Whole-line delimiter selection preserves intervening whitespace and LF/CRLF line endings, including final newlines. Reject ambiguous boundaries, inaccessible sources, and source changes after proposal. Existing entity visibility, canonical Markdown handling, and approval safeguards still apply.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.443
+  - @brains/image@0.2.0-alpha.443
+  - @brains/operation-context@0.2.0-alpha.443
+  - @brains/site-composition@0.2.0-alpha.443
+  - @brains/utils@0.2.0-alpha.443
+  - @brains/plugins@0.2.0-alpha.443
+  - @brains/recurring-checks@0.2.0-alpha.443
+  - @brains/runtime-state@0.2.0-alpha.443
+  - @brains/scheduler@0.2.0-alpha.443
+  - @brains/templates@0.2.0-alpha.443
+
 ## 0.2.0-alpha.442
 
 ### Patch Changes

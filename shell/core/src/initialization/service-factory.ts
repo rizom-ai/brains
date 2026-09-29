@@ -15,6 +15,7 @@ import {
   createEntityServiceLayer,
 } from "@brains/entity-service/effect";
 import { ProfileKindRegistry } from "@brains/identity-service";
+import type { ResettableAmbientScope } from "@brains/job-queue";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -158,12 +159,26 @@ export function createShellServices(options: {
   const mcpService =
     dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);
 
+  // entityService (and its projection-batch scope) is constructed below,
+  // after job services, but the worker needs to reset that scope before
+  // every job runs regardless of construction order. This box's `current`
+  // is filled in once entityService exists; job processing only begins
+  // once the whole shell has finished booting, well after that happens.
+  const projectionBatchScopeBox: { current?: ResettableAmbientScope } = {};
+  const lateProjectionBatchScope: ResettableAmbientScope = {
+    runFreshBatchScope: (fn) =>
+      projectionBatchScopeBox.current
+        ? projectionBatchScopeBox.current.runFreshBatchScope(fn)
+        : fn(),
+  };
+
   const jobServices = initializeJobServices({
     dependencies,
     jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
     workerConcurrency: config.jobQueue.workerConcurrency,
     messageBus,
     operationContext,
+    projectionBatchScope: lateProjectionBatchScope,
     projectionAdmission: projectionRuntimeSupervisor,
     handlerRegistrationMode: role.handlerRegistrationMode,
     progressMonitorMode: role.progressMonitorMode,
@@ -234,6 +249,7 @@ export function createShellServices(options: {
     }),
   );
   const entityService = Context.get(entityContext, EntityServiceTag);
+  projectionBatchScopeBox.current = entityService.getProjectionStore();
 
   const conversationContext = lifecycle.buildLayer(
     createConversationServiceLayer({

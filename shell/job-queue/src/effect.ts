@@ -19,7 +19,10 @@ import {
   JobQueueService,
   type ProjectionJobAdmission,
 } from "./job-queue-service";
-import { JobQueueWorker } from "./job-queue-worker";
+import {
+  JobQueueWorker,
+  type ResettableAmbientScope,
+} from "./job-queue-worker";
 import type {
   IBatchJobManager,
   IJobQueueService,
@@ -81,6 +84,8 @@ export interface JobQueueRuntimeLayerOptions {
   onWorkerUnhealthy?: (reason: string) => void;
   workerConcurrency: number;
   operationContext?: OperationContext;
+  /** Ambient async context(s) to reset to empty before each job runs. */
+  projectionBatchScope?: ResettableAmbientScope;
   progressMonitorMode?: JobProgressMonitorMode;
 }
 
@@ -153,6 +158,9 @@ export function createJobQueueRuntimeLayer(
         {
           ...(options.operationContext && {
             operationContext: options.operationContext,
+          }),
+          ...(options.projectionBatchScope && {
+            projectionBatchScope: options.projectionBatchScope,
           }),
         },
       );

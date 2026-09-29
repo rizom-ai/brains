@@ -37,7 +37,7 @@ permissions:
         resultRefused: false
         argsContain:
           entityType: note
-          source.kind: text
+          source.kind: user-message
     # No "Confirmation required" here: system_create always asks for approval
     # first, so a trusted caller reaching that prompt is correct behaviour. What
     # must not appear is a claim the note was already saved.
@@ -55,7 +55,7 @@ permissions:
         resultRefused: false
         argsContain:
           entityType: note
-          source.kind: text
+          source.kind: user-message
         argsAbsent:
           - upload
           - sourceAttachment

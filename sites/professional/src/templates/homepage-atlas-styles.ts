@@ -200,6 +200,8 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
 .atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
 .atlas__mark[data-cited] { z-index: 3; }
+/* An open lit piece keeps its card above the other lit ones. */
+.atlas__mark[data-cited][data-open] { z-index: 4; }
 .atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
 .atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
 /* The map zooms; its marks and their cards keep their own size, so a lit

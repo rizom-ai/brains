@@ -235,7 +235,10 @@ export class EntityQueries {
     if (!data) return null;
     const entity = await this.serializer.convertToEntity(data);
     if (!entity) throw new Error("Cannot deserialize entity write snapshot");
-    return { entity, revision: entityRevision(data) };
+    return {
+      entity: { ...entity, content: data.content },
+      revision: entityRevision(data),
+    };
   }
 
   public async getEntityDataMany(

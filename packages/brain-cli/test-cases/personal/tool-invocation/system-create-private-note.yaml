@@ -53,7 +53,7 @@ permissions:
         argsContain:
           entityType: note
           visibility: restricted
-          source.kind: text
+          source.kind: user-message
     responseNotContains:
       - "I've saved"
       - "I saved"

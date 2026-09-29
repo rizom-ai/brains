@@ -311,7 +311,7 @@ describe("system_create tool", () => {
     );
 
     expect(tool?.description).toContain(
-      "If the user includes content in the same direct save request, use source.kind text with that content",
+      "If the user includes content in the same direct save request, use source.kind user-message",
     );
   });
 
@@ -2054,12 +2054,28 @@ A saved research link.`;
         },
       },
       { entityType: "note", source: { kind: "prior-response" } },
+      { entityType: "note", source: { kind: "user-message" } },
+      {
+        entityType: "note",
+        source: {
+          kind: "user-message",
+          messageId: "message-1",
+          startAfter: "BEGIN\n",
+          endBefore: "\nEND",
+        },
+      },
     ];
 
     for (const input of validInputs) {
       expect(createInputSchema.safeParse(input).success).toBe(true);
     }
 
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: { kind: "user-message", content: "Model-copied body" },
+      }).success,
+    ).toBe(false);
     expect(
       createInputSchema.safeParse({
         entityType: "note",

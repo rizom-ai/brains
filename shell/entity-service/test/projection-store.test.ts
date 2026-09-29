@@ -257,6 +257,37 @@ describe("ProjectionStore", () => {
     expect((await store.getProjectionBatchDiagnostics()).open).toBe(0);
   });
 
+  it("runFreshBatchScope lets an unrelated mutation join its own batch despite an ambient outer scope", async () => {
+    // Reproduces the false-positive fence a job scheduler can trigger: two
+    // logically independent operations end up sharing one native async
+    // continuation (this app's job queue dispatches jobs as Effect fibers,
+    // which AsyncLocalStorage has no notion of), so the coordinator's
+    // ambient scope from operation A looks "current" to unrelated operation
+    // B even though B was never nested inside A on purpose. A caller that
+    // knows it is starting a fresh, independent unit of work (the job queue,
+    // once per job) uses runFreshBatchScope to force that ambient scope back
+    // to empty first, so B correctly opens and joins its own batch instead
+    // of being rejected against A's.
+    await store.runBulkMutation(
+      { source: "directory-sync", operationId: "ambient-outer" },
+      async () => {
+        await store.runFreshBatchScope(() =>
+          store.runBulkMutation(
+            { source: "directory-sync", operationId: "unrelated-inner" },
+            async () => {
+              expect((await store.getProjectionBatchDiagnostics()).open).toBe(
+                2,
+              );
+            },
+          ),
+        );
+        expect((await store.getProjectionBatchDiagnostics()).open).toBe(1);
+      },
+    );
+
+    expect((await store.getProjectionBatchDiagnostics()).open).toBe(0);
+  });
+
   it("fences an active wave result when a bulk boundary opens", async () => {
     await store.markDirty({
       sourceType: "document",
