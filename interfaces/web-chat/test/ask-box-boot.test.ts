@@ -224,6 +224,19 @@ describe("shared Ask box boot", () => {
     expect(window.scrollY).toBe(300);
   });
 
+  it("holds the page where it was when the finger landed, before the browser scrolled to the field", () => {
+    window.happyDOM.setViewport({ width: 390, height: 844 });
+    boot();
+    window.scrollTo(0, 0);
+    input().dispatchEvent(new window.Event("touchstart", { bubbles: true }));
+    // Safari scrolls the tapped field into view before it takes focus.
+    window.scrollTo(0, 392);
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    expect(
+      window.document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE),
+    ).toBe("0");
+  });
+
   it("keeps the box in the page on a wide screen", () => {
     window.happyDOM.setViewport({ width: 1280, height: 900 });
     boot();

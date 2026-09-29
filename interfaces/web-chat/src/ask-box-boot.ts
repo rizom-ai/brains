@@ -65,10 +65,10 @@ export function askBoxBootScript(version: string): string {
   // The page holds still behind the sheet from the first tap (the box's
   // page-lock does the same once mounted, and releases it on close).
   var LOCK = ${JSON.stringify(ASK_PAGE_LOCK_ATTRIBUTE)};
-  function lockPage() {
+  function lockPage(at) {
     var root = document.documentElement;
     if (root.hasAttribute(LOCK)) return;
-    var y = Math.round(window.scrollY);
+    var y = Math.round(at === null ? window.scrollY : at);
     root.setAttribute(LOCK, String(y));
     document.body.style.position = "fixed";
     document.body.style.top = -y + "px";
@@ -121,6 +121,12 @@ export function askBoxBootScript(version: string): string {
     var loading = false;
     var mounted = false;
     var sendRequested = false;
+    // Where the page was when the finger landed: Safari scrolls a tapped field
+    // into view before it takes focus, and the page should stay where it was.
+    var landed = null;
+    function land() { landed = window.scrollY; }
+    input.addEventListener("touchstart", land, { passive: true });
+    input.addEventListener("mousedown", land);
     async function open() {
       if (loading || mounted) return;
       loading = true;
@@ -132,7 +138,8 @@ export function askBoxBootScript(version: string): string {
           (viewport ? viewport.height : window.innerHeight) + "px"
         );
         host.setAttribute("${ASK_SHEET_ATTRIBUTE}", "");
-        lockPage();
+        lockPage(landed);
+        landed = null;
       }
       try {
         // Served by the Brain, not bundled inside the site package.
