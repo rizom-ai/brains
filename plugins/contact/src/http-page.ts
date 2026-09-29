@@ -33,7 +33,7 @@ form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.25rem 1rem
 label{display:grid;gap:.4rem;font-size:.9rem;font-weight:500;color:var(--color-text)}.message{grid-column:1/-1}.optional{font-weight:400;color:var(--color-text-muted)}
 input,textarea{width:100%;min-width:0;font:400 1rem/1.5 var(--font-sans);color:var(--color-text);background:var(--color-bg-subtle,var(--color-bg));border:1px solid var(--color-border);border-radius:.5rem;padding:.75rem .85rem}
 textarea{resize:vertical;min-height:9rem}button{grid-column:1/-1;justify-self:start;cursor:pointer;font:600 1rem/1 var(--font-sans);border:0;border-radius:.5rem;padding:1rem 1.5rem;background:var(--color-accent);color:var(--color-on-accent)}button:hover{filter:brightness(1.08)}
-a{color:var(--color-accent);text-underline-offset:.2em}:focus-visible{outline:2px solid var(--color-accent);outline-offset:4px}.trap{position:absolute;left:-10000px}.notice{border-inline-start:2px solid var(--color-error);border-radius:.25rem;padding:1rem 1.25rem;background:var(--color-bg-subtle,var(--color-bg));color:var(--color-text);margin-block:1.5rem}.retry{font-size:.85rem}
+a{color:var(--color-accent);text-underline-offset:.2em}:focus-visible{outline:2px solid var(--color-accent);outline-offset:4px}.trap{position:absolute;left:-10000px}.notice{border-inline-start:2px solid var(--color-error);border-radius:.25rem;padding:1rem 1.25rem;background:var(--color-bg-subtle,var(--color-bg));color:var(--color-text);margin-block:1.5rem}
 @media(max-width:540px){form{grid-template-columns:1fr}button{width:100%}}
 </style></head><body><nav class="contact-nav" aria-label="Site"><a href="/">← Back to the site</a></nav><main>${body}</main></body></html>`;
 }
@@ -71,8 +71,7 @@ export function contactForm(
 <label class="message" for="contact-message"><span>Message <span class="optional">(optional)</span></span><textarea id="contact-message" name="message" rows="5" maxlength="4000">${value(draft.message, 4000)}</textarea></label>
 <div class="trap" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off" value=""></label></div>
 <button type="submit">Send note</button></form>
-<p class="privacy" id="contact-privacy">Your note is kept for ${retentionDays} ${retentionDays === 1 ? "day" : "days"}, then deleted. Deletion can run late if the site is down or has a problem, and backups may keep earlier copies.</p>
-<p class="retry">If this form has expired, copy your message first, then <a href="/contact${query}">open a new form</a>.</p>`,
+<p class="privacy" id="contact-privacy">Your note is kept for ${retentionDays} ${retentionDays === 1 ? "day" : "days"}, then deleted.</p>`,
     presentation,
   );
 }

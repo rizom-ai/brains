@@ -329,11 +329,13 @@ describe("contact page for visitors", () => {
     expect(unnamed).toContain("goes privately to the owner of this site");
   });
 
-  it("says on the form how long a note is kept and how deletion can lag", async () => {
+  it("states only the retention the owner configured, and no other policy", async () => {
     const html = await page("Yeehaa");
-    expect(html).toContain("kept for 1 day, then deleted.");
-    expect(html).toContain("Deletion can run late");
-    expect(html).toContain("backups may keep earlier copies");
+    expect(html).toContain(
+      '<p class="privacy" id="contact-privacy">Your note is kept for 1 day, then deleted.</p>',
+    );
+    for (const unconfigured of ["run late", "backups", "has expired"])
+      expect(html).not.toContain(unconfigured);
   });
 
   it("confirms a saved note without promising the alert arrived", async () => {
