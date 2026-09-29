@@ -342,6 +342,15 @@ export function defineServicePlugin<
     TTemplateDefinitions
   > = {
     ...definition,
+    // Instantiation and later write capabilities must see the same declarations,
+    // not an author's mutable array or a structural entity's mutable type.
+    ...(definition.entities === undefined
+      ? {}
+      : {
+          entities: Object.freeze(
+            definition.entities.map((entity) => Object.freeze({ ...entity })),
+          ),
+        }),
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the header type is a conditional on TAccountSettings: the declaration in one arm, undefined in the other, which is what TAccountSettings is in each. The compiler cannot resolve a conditional over a parameter it has not fixed, and an implementation signature that names the property outright is rejected as incompatible with the overloads.
     accountSettings: header.accountSettings as TAccountSettings,
   };
