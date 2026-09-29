@@ -113,6 +113,7 @@ export class FaqPlugin extends EntityPlugin<
           context.entityService,
         ),
         sameQuestionDistance: this.config.sameQuestionDistance,
+        ai: context.ai,
       }),
     );
 

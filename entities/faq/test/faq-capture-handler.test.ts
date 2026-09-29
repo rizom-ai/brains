@@ -19,6 +19,7 @@ import {
   faqSchema,
   type FaqClassification,
   type FaqEntity,
+  SAME_QUESTION_CHECK,
 } from "../src";
 
 const CONVERSATION_ID = "conv-1";
@@ -60,6 +61,8 @@ const accepted: FaqClassification = {
 describe("FaqCaptureHandler", () => {
   let context: EntityPluginContext;
   let prompts: string[];
+  let checks: string[];
+  let sameVerdict: boolean;
   let classification: FaqClassification;
   let searches: string[];
   let fetches: Array<
@@ -92,6 +95,10 @@ describe("FaqCaptureHandler", () => {
           prompt: string,
           schema: { parse(value: unknown): T },
         ): Promise<{ object: T }> => {
+          if (prompt.includes(SAME_QUESTION_CHECK)) {
+            checks.push(prompt);
+            return { object: schema.parse({ same: sameVerdict }) };
+          }
           prompts.push(prompt);
           return { object: schema.parse(classification) };
         },
@@ -169,6 +176,8 @@ describe("FaqCaptureHandler", () => {
     await harness.installPlugin(new FaqPlugin());
     context = harness.getEntityContext("faq");
     prompts = [];
+    checks = [];
+    sameVerdict = true;
     classification = accepted;
     searches = [];
     fetches = [];
@@ -407,5 +416,27 @@ describe("FaqCaptureHandler", () => {
     const result = await capture(createHandler(), "admin");
 
     expect(result).toMatchObject({ entityId: "faq-m4" });
+  });
+
+  it("keeps a close look-alike separate when the check says the questions differ", async () => {
+    await seedMatch("restricted", 0.08);
+    sameVerdict = false;
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({
+      entityId: "how-do-i-publish-a-draft-post-m4",
+      merged: false,
+    });
+    expect(checks).toHaveLength(1);
+    expect(checks[0]).toContain("How can I publish a draft?");
+    expect(checks[0]).toContain("How do I publish a draft post?");
+    expect(await capturedFaqs()).toHaveLength(2);
+  });
+
+  it("asks nothing extra when no FAQ is close", async () => {
+    await capture(createHandler(), "admin");
+
+    expect(checks).toEqual([]);
   });
 });

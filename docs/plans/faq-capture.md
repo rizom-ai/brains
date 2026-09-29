@@ -18,6 +18,7 @@ A `faq` entity type, owned by `entities/faq`, that captures reusable question-an
 - **Switchable and quiet in evals.** `enabled` (default true) gates the subscription; the chat bundle lists `faq` in `evalDisable`.
 - **Classification is one structured AI call** over the question and the answer. It rejects confirmations, small talk, personal or conversation-specific replies, and anything not reusable, and distills a standalone question and answer when it accepts.
 - **Merging never crosses visibility.** Deduplication compares only FAQs of the same visibility.
+- **Evals guard the model steps.** `bun run eval` in `entities/faq` runs the production classification prompt and the full same-question decision against the real models; `entities/wishlist` does the same for same-wish.
 
 ## Slices
 
@@ -31,11 +32,11 @@ A `faq` entity type, owned by `entities/faq`, that captures reusable question-an
 
 ### Slice 2 — deduplication
 
-- After classification, measure the new FAQ's markdown against stored FAQ embeddings with `searchWithDistances`; stored FAQs are embedded as markdown, so the query takes the same form. A FAQ within cosine distance 0.2 asks the same question (measured paraphrases 0.03–0.14, a different question on the same subject 0.43+). Only a candidate of exactly the turn's visibility can match. A match records the reply in `mergedMessageIds` and keeps its answer; metadata `asked` is one plus the merged count. The hybrid `search` score is not used: without an exact phrase hit it tops out at 0.7.
+- After classification, measure the new FAQ's markdown against stored FAQ embeddings with `searchWithDistances`; stored FAQs are embedded as markdown, so the query takes the same form. FAQs of exactly the turn's visibility within cosine distance 0.25 are shortlisted; one short AI check per candidate, closest first, decides whether one answer serves both, because embeddings barely register opposite meaning (measured: paraphrases 0.03–0.14, publish vs unpublish 0.195, enable vs disable 0.160, a different question on the same subject 0.40+). A confirmed match records the reply in `mergedMessageIds` and keeps its answer; metadata `asked` is one plus the merged count. The hybrid `search` score is not used: without an exact phrase hit it tops out at 0.7.
 - A FAQ that lists the reply as its source or a merge means the reply is already captured, so a retried job neither reclassifies nor double-counts.
 - Merges write only over the version they read (`expectedContentHash`) and retry on conflict, so concurrent merges keep every reply.
 - Two captures moments apart both create a FAQ, since neither is embedded yet. On `entity:embedding:ready` a `faq-reconcile` job folds the duplicate draft into the FAQ that stays: a draft into a published FAQ, of two drafts the newer. A published FAQ never folds.
-- The distance is plugin config (`sameQuestionDistance`, default 0.2), as is wishlist's (`sameWishDistance`, default 0.28).
+- The shortlist distance is plugin config (`sameQuestionDistance`, default 0.25), as is wishlist's (`sameWishDistance`, default 0.3), which confirms candidates with the same kind of check.
 - The job finds the reply by its recorded position in the conversation, not in the latest messages, so traffic cannot push it out of reach.
 - Tests first: a repeat question merges; the same question at a different visibility does not; a concurrent merge survives; a newer duplicate draft folds into the older FAQ.
 

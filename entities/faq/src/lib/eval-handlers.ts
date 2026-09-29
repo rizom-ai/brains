@@ -3,6 +3,7 @@ import { waitForEmbeddingsToDrain } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import { classifyExchange } from "../handlers/faq-capture-handler";
+import { findSameFaq } from "./faq-store";
 import type { FaqFrontmatter } from "../schemas/faq";
 
 const exchangeSchema = z.object({
@@ -79,8 +80,9 @@ export function registerFaqEvalHandlers(params: {
     });
     await waitForEmbeddingsToDrain(context.jobs);
 
+    const query = faqMarkdown(incoming, "eval-incoming-reply").content;
     const distances = await context.entityService.searchWithDistances({
-      query: faqMarkdown(incoming, "eval-incoming-reply").content,
+      query,
     });
     const distance = distances.find(
       (result) => result.entityId === EVAL_STORED_ID,
@@ -88,10 +90,20 @@ export function registerFaqEvalHandlers(params: {
     if (distance === undefined) {
       throw new Error("The stored FAQ was not embedded");
     }
+    // The full production decision: distance shortlist, then the check.
+    const match = await findSameFaq(
+      {
+        entityService: context.entityService,
+        searchWithDistances: async (): Promise<typeof distances> => distances,
+        sameQuestionDistance,
+        ai: context.ai,
+      },
+      { content: query, visibility: "restricted" },
+    );
     return {
       distance,
-      threshold: sameQuestionDistance,
-      sameQuestion: distance <= sameQuestionDistance,
+      shortlisted: distance <= sameQuestionDistance,
+      sameQuestion: match?.id === EVAL_STORED_ID,
     };
   });
 }

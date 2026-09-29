@@ -26,12 +26,21 @@ interface DistanceResult {
 describe("FaqReconcileHandler", () => {
   let context: EntityPluginContext;
   let distances: DistanceResult[];
+  let sameVerdict: boolean;
 
   function handler(): FaqReconcileHandler {
     return new FaqReconcileHandler(createSilentLogger(), {
       entityService: context.entityService,
       sameQuestionDistance: 0.2,
       searchWithDistances: async (): Promise<DistanceResult[]> => distances,
+      ai: {
+        generateObject: async <T>(
+          _prompt: string,
+          schema: { parse(value: unknown): T },
+        ): Promise<{ object: T }> => ({
+          object: schema.parse({ same: sameVerdict }),
+        }),
+      },
     });
   }
 
@@ -98,6 +107,7 @@ describe("FaqReconcileHandler", () => {
     await harness.installPlugin(new FaqPlugin());
     context = harness.getEntityContext("faq");
     distances = [];
+    sameVerdict = true;
   });
 
   it("folds a newer draft into the older FAQ asking the same question", async () => {
@@ -181,5 +191,15 @@ describe("FaqReconcileHandler", () => {
 
   it("does nothing for a FAQ that no longer exists", async () => {
     expect(await reconcile("gone")).toEqual({ outcome: "gone" });
+  });
+
+  it("keeps both when the check says they ask different questions", async () => {
+    await seed("older", { created: "2026-09-01T00:00:00.000Z" });
+    await seed("newer", { created: "2026-09-02T00:00:00.000Z" });
+    near("newer", "older");
+    sameVerdict = false;
+
+    expect(await reconcile("newer")).toEqual({ outcome: "unique" });
+    expect(await faqs()).toHaveLength(2);
   });
 });

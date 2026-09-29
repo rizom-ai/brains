@@ -102,7 +102,8 @@ function buildClassificationPrompt(question: string, answer: string): string {
   return [
     "Decide whether this chat exchange belongs in a FAQ.",
     "Accept only a question other people could plausibly ask, with an answer that stands on its own.",
-    "Reject greetings, small talk, confirmations, requests to perform an action, and answers about one person's private situation or this conversation only.",
+    "Questions about this brain or its owner's public work (what do you write about, what do you offer, how do I reach you) are reusable: visitors ask them.",
+    "Reject greetings, small talk, confirmations, requests to perform an action, and answers that only concern the asker's own private situation or this conversation.",
     "When accepting, rewrite the question and the answer so they read without the conversation. Do not add facts that are not in the answer.",
     "",
     "Question:",

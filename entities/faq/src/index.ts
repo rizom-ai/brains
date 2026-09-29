@@ -44,8 +44,10 @@ export type {
   FaqReconcileResult,
 } from "./handlers/faq-reconcile-handler";
 export {
+  SAME_QUESTION_CHECK,
   SAME_QUESTION_DISTANCE,
   findSameFaq,
+  isSameQuestion,
   mergeIntoFaq,
 } from "./lib/faq-store";
 export type { FaqStoreDeps } from "./lib/faq-store";
