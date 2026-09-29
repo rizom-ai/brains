@@ -11,6 +11,7 @@ import {
 } from "./helpers/setup-entity-service";
 import { createTestEntity } from "../src/test/index";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
+import { scopeEntityReads } from "../src/scoped-entity-reads";
 
 // Reads for people who may only see published work (a site's visitors)
 // apply the same publish gate as a published-only listing: each type's
@@ -86,6 +87,39 @@ describe("publishedOnly reads", () => {
       expect(results.map((result) => result.entity.id)).toContain("post-draft");
     });
   }
+
+  test("a published-only view intersects explicit status filters for lists and counts", async () => {
+    ctx = await seed(false);
+    const published = scopeEntityReads(ctx.entityService, {
+      publishedOnly: true,
+      visibilityScope: "public",
+    });
+    const preview = scopeEntityReads(ctx.entityService, {
+      publishedOnly: false,
+      visibilityScope: "public",
+    });
+    for (const row of rows.filter((row) => row.status !== undefined)) {
+      const request = {
+        entityType: row.entityType,
+        options: {
+          publishedOnly: false,
+          filter: { metadata: { status: row.status } },
+        },
+      };
+      const expected =
+        row.status === "published" || row.status === "approved" ? [row.id] : [];
+      expect(
+        (await published.listEntities(request)).map((entity) => entity.id),
+      ).toEqual(expected);
+      expect(await published.countEntities(request)).toBe(expected.length);
+      // An unbounded preview retains explicit lifecycle filtering.
+      expect(
+        (await preview.listEntities(request)).map((entity) => entity.id),
+      ).toEqual([row.id]);
+      expect(await preview.countEntities(request)).toBe(1);
+      expect(request.options.publishedOnly).toBe(false);
+    }
+  });
 
   test("get: finds a published entity and hides a draft", async () => {
     const seeded = await seed(true);

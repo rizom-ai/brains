@@ -93,8 +93,10 @@ export interface EntityDisplayEntry {
   /** Items per page (default: 10). */
   pageSize?: number | undefined;
   /**
-   * A piece of work a visitor's answer may cite as a source. When no type
-   * is marked, an answer may cite any type the site has pages for.
+   * A piece of work a visitor's answer may cite as a source. False always
+   * excludes a type. If any type is true, only true entries are candidates;
+   * otherwise entries with pages are candidates unless explicitly false.
+   * This selects citations, not access permissions.
    */
   citable?: boolean | undefined;
   navigation?:
