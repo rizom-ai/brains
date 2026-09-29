@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yeehaa.io Ask styling pass</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap");
+/*
+  Styling pass over the phone Ask flow on yeehaa.io (docs/plans/public-ask.md).
+  Each row pairs today's preview (screenshots in yeehaa-ask-styling-pass/,
+  iPhone 13 in WebKit) with the proposed state, drawn at the same 390px width.
+  The proposed answer phones scroll. Tokens from the live yeehaa.io stylesheet.
+*/
+:root{
+  --paper:#f4ede0; --paper-soft:#faf4e6; --paper-deep:#ebe2cb;
+  --ink:#18132a; --ink-muted:#443c54; --ink-subtle:#756c80;
+  --accent:#b8410c; --rule:rgb(24 19 42 / .1); --rule-strong:rgb(24 19 42 / .18);
+  --contour:rgb(24 19 42 / .2);
+  --strip:112px; --map:256px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e5ddcd;color:var(--ink);font:15px/1.55 Barlow,system-ui,sans-serif}
+.page{max-width:1120px;margin:0 auto;padding:40px 24px 80px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 10px}
+.lede{color:var(--ink-muted);max-width:66ch;margin:0 0 36px}
+.row{display:grid;grid-template-columns:auto auto 1fr;gap:28px;align-items:start;padding:32px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:980px){.row{grid-template-columns:auto auto}.row .notes{grid-column:1/-1}}
+@media (max-width:660px){.row{grid-template-columns:1fr;justify-items:center}}
+.frame figcaption{font:500 13px Barlow,sans-serif;color:var(--ink-subtle);margin:0 0 8px}
+.frame.new figcaption{color:var(--accent)}
+.shot,.phone{width:304px;height:518px;border-radius:26px;overflow:hidden;box-shadow:0 0 0 8px #1d1a26,0 14px 30px rgb(0 0 0 / .22);background:var(--paper)}
+.shot img{display:block;width:100%}
+.notes h2{font:600 20px/1.25 Fraunces,Georgia,serif;margin:0 0 10px}
+.notes ul{margin:0;padding-left:18px;color:var(--ink-muted)}
+.notes li{margin-bottom:8px}
+.notes b{color:var(--ink)}
+
+/* ---------- Proposed screens, drawn at 390 x 664 and scaled into the frame ---------- */
+.phone .screen{width:390px;height:664px;zoom:.7795;position:relative;background:var(--paper);overflow:hidden;font:16px/1.55 Barlow,sans-serif}
+
+/* Map */
+.map{position:relative;height:var(--map);overflow:hidden;background:var(--paper)}
+.map svg{position:absolute;left:0;top:50%;width:100%;height:300px;margin-top:-150px;transition:transform .8s cubic-bezier(.3,.7,.2,1);transform-origin:200px 150px}
+.ring{fill:none;stroke:var(--contour);stroke-width:1}
+.ring.deep{stroke:rgb(24 19 42 / .45)}
+.glyph{fill:var(--ink)}
+.lit .map svg{transform:translateY(var(--shift,0px)) scale(1.55)}
+.lit .glyph{opacity:.22}
+.lit .glyph.hit{opacity:1;fill:var(--accent)}
+.ringlit{fill:none;stroke:var(--accent);stroke-width:1.3;opacity:0}
+.lit .ringlit{opacity:.9}
+
+/* Homepage */
+.bar{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--rule)}
+.brand{font:600 27px Fraunces,serif;color:var(--accent)}
+.burger{width:40px;height:40px;border:1px solid var(--rule-strong);border-radius:10px;background:var(--paper-soft);display:grid;place-items:center}
+.burger i{width:16px;height:2px;background:var(--ink);box-shadow:0 -6px var(--ink),0 6px var(--ink)}
+.legend{display:flex;gap:18px;padding:6px 24px 0;font-size:14px;color:var(--ink-subtle)}
+.legend span{display:flex;align-items:center;gap:7px}
+.copy{padding:20px 24px}
+.copy h3{font:600 40px/1.02 Fraunces,serif;letter-spacing:-.035em;margin:0 0 16px}
+.intro{font:19px/1.55 Fraunces,serif;color:var(--ink-muted);margin:0}
+.composer{display:flex;align-items:center;gap:10px;border:1px solid var(--rule-strong);border-radius:28px;background:var(--paper-soft);padding:6px 6px 6px 20px}
+.composer .text{flex:1;color:var(--ink-subtle);font-size:17px}
+.send{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:18px;background:var(--paper-deep);color:var(--ink-subtle)}
+.send.on{background:var(--accent);color:#fff}
+.start h4{font:600 26px/1.2 Fraunces,serif;margin:30px 0 6px}
+.start a{display:block;padding:14px 0;border-bottom:1px solid var(--rule);font:italic 19px/1.35 Fraunces,serif;color:var(--ink);text-decoration:none}
+.start a:first-of-type{border-top:1px solid var(--rule)}
+.talk{margin-top:26px;display:flex;align-items:center;gap:14px}
+.talk b{white-space:nowrap;background:var(--accent);color:#fff;border-radius:24px;padding:11px 22px;font-weight:600;font-size:16px}
+.talk span{font-size:14px;color:var(--ink-subtle)}
+
+/* Sheet */
+.sheet{position:absolute;inset:0;display:flex;flex-direction:column}
+.head{flex:none;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 20px;border-bottom:1px solid var(--rule)}
+.head b{font:600 21px Fraunces,serif}
+.close{width:38px;height:38px;border-radius:50%;border:1px solid var(--rule-strong);display:grid;place-items:center;font-size:16px}
+.scroll{position:relative;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll-padding-top:var(--strip)}
+.scroll::-webkit-scrollbar{display:none}
+/* The map is the conversation's first item; it scrolls up until a strip is left.
+   Text passes under a short fade instead of a cut edge. */
+.scroll>.map{position:sticky;z-index:2;top:calc(var(--strip) - var(--map));border-bottom:1px solid var(--rule)}
+.scroll>.map::after{content:"";position:absolute;left:0;right:0;bottom:-19px;height:18px;background:linear-gradient(var(--paper),transparent);pointer-events:none}
+.conv{padding:18px 20px 28px}
+.you{margin-left:64px;background:var(--paper-soft);border-radius:18px 18px 6px 18px;padding:12px 16px;font-size:17px}
+.answer{margin-top:22px;font-size:17px;line-height:1.6}
+.answer p{margin:0 0 14px}
+.answer b{font-weight:600}
+.waiting{margin-top:24px;display:flex;align-items:center;gap:12px;color:var(--ink-muted);font:italic 18px Fraunces,serif}
+.dots{display:flex;gap:5px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:none}}
+.sources{margin-top:6px;border-top:1px solid var(--rule)}
+.sources a{display:grid;grid-template-columns:18px 1fr;gap:0 10px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--rule);color:var(--ink);text-decoration:none}
+.sources svg{width:11px;height:11px;fill:var(--accent);align-self:center}
+.sources b{font:600 17px/1.3 Fraunces,serif}
+.sources small{grid-column:2;font-size:13.5px;color:var(--ink-subtle)}
+.starters{padding:4px 20px 0}
+.starters a{display:block;padding:13px 0;border-bottom:1px solid var(--rule);font:italic 18px/1.35 Fraunces,serif;color:var(--ink)}
+.dock{position:relative;flex:none;border-top:1px solid var(--rule);padding:12px 16px 12px;background:var(--paper)}
+.note{font-size:13px;color:var(--ink-subtle);text-align:center;margin-top:8px}
+/* While there is more answer below, the line under the composer offers it; nothing floats over the text. */
+.latest{display:block;margin:8px auto 0;width:max-content;font:500 13px Barlow,sans-serif;color:var(--accent);cursor:pointer}
+.latest[hidden]{display:none}
+.latest:not([hidden])+.note{display:none}
+.dock::before{content:"";position:absolute;left:0;right:0;top:-29px;height:28px;background:linear-gradient(transparent,var(--paper));pointer-events:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Ask on a phone: styling pass</h1>
+  <p class="lede">Today's preview on the left and the proposal on the right, one row per state. The two answer phones on the right scroll. What the rows share: the name appears once per screen, the map stays in one place from the moment the sheet opens, text never slides under a hard edge, and the sources list uses the map's own shapes. The map drawing is schematic; the live map keeps its contours and labels.</p>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-home.jpg" alt="Today's homepage top"></div></figure>
+    <figure class="frame new"><figcaption>Proposed</figcaption><div class="phone"><div class="screen">
+      <div class="bar"><span class="brand">Yeehaa</span><span class="burger"><i></i></span></div>
+      <div class="map" data-map></div>
+      <div class="legend"><span><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="#443c54"/></svg>Essay</span><span><svg width="11" height="11"><rect x="2" y="2" width="7" height="7" transform="rotate(45 5.5 5.5)" fill="#443c54"/></svg>Presentation</span><span><svg width="10" height="10"><rect x="1" y="1" width="8" height="8" rx="1.5" fill="#443c54"/></svg>Project</span></div>
+      <div class="copy"><h3>Building something inhabitable.</h3><p class="intro">I work on how institutions hold what they know. Everything I've published is on this map. Wander it, or tell me what you're working on.</p></div>
+    </div></div></figure>
+    <div class="notes"><h2>Homepage</h2><ul>
+      <li><b>The name once.</b> The byline under the map (initial and "Yeehaa") goes; the wordmark in the bar already says whose page this is, and the headline moves up into the space.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-home-ask.jpg" alt="Today's homepage ask box and topics"></div></figure>
+    <figure class="frame new"><figcaption>Proposed</figcaption><div class="phone"><div class="screen"><div class="copy" style="padding-top:34px">
+      <div class="composer"><span class="text">Ask about my work…</span><span class="send">↑</span></div>
+      <div class="start"><h4>Where would you start?</h4>
+        <a>Where should I start with New Institutions?</a>
+        <a>What does an institution actually remember?</a>
+        <a>What are you working on now?</a>
+      </div>
+      <div class="talk"><b>Let's talk</b><span>A private note to me. No account needed.</span></div>
+    </div></div></div></figure>
+    <div class="notes"><h2>Homepage ask</h2><ul>
+      <li><b>The box says what it is for.</b> Today the field is empty; it gets its placeholder, "Ask about my work…".</li>
+      <li><b>One send button.</b> Muted while the box is empty and orange once there is something to send, the same on the page and in the sheet. Today it is solid orange on the page and faded orange in the sheet.</li>
+      <li><b>Questions as a list, not cards.</b> The three starting questions lose their filled boxes and sit between hairlines, the same list the sheet shows when it opens.</li>
+      <li><b>"Let's talk" and its note share a line</b>, so the contact offer reads as one thing.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-open.jpg" alt="Today's sheet when it opens"></div></figure>
+    <figure class="frame new"><figcaption>Proposed</figcaption><div class="phone"><div class="screen"><div class="sheet">
+      <div class="head"><b>Ask Yeehaa</b><span class="close">✕</span></div>
+      <div class="scroll"><div class="map" data-map></div>
+        <div class="starters"><a>Where should I start with New Institutions?</a><a>What does an institution actually remember?</a><a>What are you working on now?</a></div>
+      </div>
+      <div class="dock"><div class="composer"><span class="text">Ask about my work…</span><span class="send">↑</span></div><div class="note">Answers use published work only. Leave private details out.</div></div>
+    </div></div></div></figure>
+    <div class="notes"><h2>The sheet opens</h2><ul>
+      <li><b>The map starts where it stays.</b> Today it sits at the bottom of an empty screen and jumps to the top when the question is sent. It now opens at the top, where every later state has it.</li>
+      <li><b>The starting questions fill the space</b> the map left, so the sheet opens with something to tap.</li>
+      <li><b>One rule above the composer.</b> Today there are two hairlines stacked eight pixels apart.</li>
+      <li><b>One note, the same in every state.</b> Today it changes from "Public knowledge…" to "Answers come from what Yeehaa has published." after the first question.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-waiting.jpg" alt="Today's waiting state"></div></figure>
+    <figure class="frame new"><figcaption>Proposed</figcaption><div class="phone"><div class="screen"><div class="sheet">
+      <div class="head"><b>Ask Yeehaa</b><span class="close">✕</span></div>
+      <div class="scroll"><div class="map" data-map></div>
+        <div class="conv"><div class="you">What have you written about institutional memory?</div>
+          <div class="waiting"><span class="dots"><i></i><i></i><i></i></span>Looking through the essays and talks</div></div>
+      </div>
+      <div class="dock"><div class="composer"><span class="text">Ask a follow-up…</span><span class="send">↑</span></div><div class="note">Answers use published work only. Leave private details out.</div></div>
+    </div></div></div></figure>
+    <div class="notes"><h2>Waiting</h2><ul>
+      <li><b>No speaker label.</b> "YEEHAA" in spaced capitals goes. The question is the bubble and the answer is the full-width text, which is enough to tell them apart.</li>
+      <li><b>The waiting line names the work, not the person</b>: "Looking through the essays and talks".</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-answered.jpg" alt="Today's answer as it arrives"></div></figure>
+    <figure class="frame new"><figcaption>Proposed · scrolls</figcaption><div class="phone"><div class="screen lit" data-answer></div></div></figure>
+    <div class="notes"><h2>The answer arrives</h2><ul>
+      <li><b>The zoom centres the lit pieces.</b> Today they land at the bottom edge of the map, half out of the part that stays visible as a strip.</li>
+      <li><b>A lit piece is its shape in orange with one thin ring.</b> Today two blurred halos overlap when pieces sit close together.</li>
+      <li><b>"↓ Rest of the answer" takes the note's line under the composer</b> while there is more to read, and the note returns at the end. Today a round ↓ covers the end of a line.</li>
+      <li><b>One paragraph rhythm.</b> Today some paragraphs run together and others are spaced.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-scrolled.jpg" alt="Today's answer while reading"></div></figure>
+    <figure class="frame new"><figcaption>Proposed · scrolls</figcaption><div class="phone"><div class="screen lit" data-answer data-at="260"></div></div></figure>
+    <div class="notes"><h2>Reading</h2><ul>
+      <li><b>Text passes under a fade.</b> Today lines are sliced in half at the strip's bottom edge.</li>
+      <li><b>The strip keeps the lit pieces in its middle.</b> Today it shows a band of contour lines with the pieces pressed against its lower edge.</li>
+    </ul></div>
+  </section>
+
+  <section class="row">
+    <figure class="frame"><figcaption>Now</figcaption><div class="shot"><img src="yeehaa-ask-styling-pass/now-sources.jpg" alt="Today's sources under the answer"></div></figure>
+    <figure class="frame new"><figcaption>Proposed · scrolls</figcaption><div class="phone"><div class="screen lit" data-answer data-at="end"></div></div></figure>
+    <div class="notes"><h2>Sources</h2><ul>
+      <li><b>Sources are a list in the map's shapes.</b> Each piece gets its type's shape in orange, its title and its type, so the list and the lit marks read as the same pieces. Today they are orange pills in a ragged wrap.</li>
+      <li><b>Only published pieces, once each.</b> Today the list includes a LinkedIn post about an essay that is already listed, and a draft.</li>
+    </ul></div>
+  </section>
+</div>
+
+<script>
+// One contour map, drawn into every [data-map]. Three essays near the middle are the answer's sources.
+const RINGS = [...Array(11)].map((_, i) => `<path class="ring${i === 5 || i === 6 ? ' deep' : ''}" d="M ${200 - 34 - i * 15} ${150 + i * 1.5} C ${200 - 34 - i * 15} ${150 - 34 - i * 12}, ${200 + 44 + i * 16} ${150 - 40 - i * 11}, ${200 + 50 + i * 16} ${150 - 4 + i} C ${200 + 50 + i * 16} ${150 + 30 + i * 12}, ${200 - 34 - i * 15} ${150 + 38 + i * 12}, ${200 - 34 - i * 15} ${150 + i * 1.5} Z"/>`).join('')
+  + [0, 1, 2].map((i) => `<ellipse class="ring" cx="52" cy="238" rx="${22 + i * 10}" ry="${14 + i * 7}"/>`).join('')
+  + [0, 1, 2].map((i) => `<ellipse class="ring" cx="340" cy="60" rx="${16 + i * 9}" ry="${12 + i * 7}"/>`).join('');
+const SHAPES = {
+  essay: (x, y, c) => `<circle class="${c}" cx="${x}" cy="${y}" r="5"/>`,
+  talk: (x, y, c) => `<rect class="${c}" x="${x - 4.5}" y="${y - 4.5}" width="9" height="9" transform="rotate(45 ${x} ${y})"/>`,
+  project: (x, y, c) => `<rect class="${c}" x="${x - 5}" y="${y - 5}" width="10" height="10" rx="1.5"/>`,
+};
+const MARKS = [
+  ['essay', 180, 138, 1], ['essay', 214, 128, 1], ['essay', 204, 166, 1],
+  ['talk', 150, 110], ['talk', 250, 150], ['talk', 118, 176], ['talk', 280, 110], ['talk', 230, 196],
+  ['project', 196, 96], ['project', 240, 102], ['project', 300, 176], ['project', 150, 200], ['project', 338, 60],
+  ['essay', 92, 128], ['essay', 268, 206], ['essay', 38, 232], ['essay', 64, 246], ['essay', 50, 222], ['essay', 170, 238], ['essay', 320, 232],
+];
+const MAP = `<svg viewBox="0 0 390 300" preserveAspectRatio="xMidYMid slice">${RINGS}${MARKS.map(([t, x, y, hit]) => (hit ? `<circle class="ringlit" cx="${x}" cy="${y}" r="10"/>` : '') + SHAPES[t](x, y, hit ? 'glyph hit' : 'glyph')).join('')}</svg>`;
+
+const ANSWER = `<div class="head"><b>Ask Yeehaa</b><span class="close">✕</span></div>
+<div class="scroll"><div class="map" data-map></div>
+  <div class="conv"><div class="you">What have you written about institutional memory?</div>
+  <div class="answer">
+    <p>Most directly in the New Institutions series, which treats institutional memory as more than storage: the ability to keep context, reasons, judgment, disagreement and responsibility.</p>
+    <p><b>Hiding in Plain Sight</b> argues that storage is not memory. An institution can keep every record and still lose the context it needs to understand what matters and what should happen next.</p>
+    <p><b>Heroics Are Not Infrastructure</b> looks at what happens when memory and coordination live in indispensable people rather than in durable structures.</p>
+    <p><b>A Colleague Without Context</b> follows the same gap into AI tools, which multiply whatever an institution never wrote down.</p>
+    <p>If you want one place to start, read Hiding in Plain Sight first. It sets out the distinction the other two build on.</p>
+    <div class="sources">
+      <a><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5"/></svg><b>Hiding in Plain Sight</b><small>Essay</small></a>
+      <a><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5"/></svg><b>Heroics Are Not Infrastructure</b><small>Essay</small></a>
+      <a><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5"/></svg><b>A Colleague Without Context</b><small>Essay</small></a>
+    </div>
+  </div></div>
+</div>
+<div class="dock"><div class="composer"><span class="text">Ask a follow-up…</span><span class="send">↑</span></div><span class="latest">↓ Rest of the answer</span><div class="note">Answers use published work only. Leave private details out.</div></div>`;
+
+document.querySelectorAll('[data-answer]').forEach((screen) => {
+  screen.innerHTML = `<div class="sheet">${ANSWER}</div>`;
+});
+document.querySelectorAll('[data-map]').forEach((el) => el.insertAdjacentHTML('afterbegin', MAP));
+
+// As the map scrolls up into a strip, shift it by half of what has gone so the lit pieces stay in the middle of what shows.
+document.querySelectorAll('[data-answer]').forEach((screen) => {
+  const scroll = screen.querySelector('.scroll');
+  const map = scroll.querySelector('.map');
+  const latest = screen.querySelector('.latest');
+  const follow = () => {
+    const gone = Math.min(scroll.scrollTop, map.offsetHeight - 112);
+    map.style.setProperty('--shift', gone / 2 + 'px');
+    latest.hidden = scroll.scrollHeight - scroll.clientHeight - scroll.scrollTop < 24;
+  };
+  scroll.addEventListener('scroll', follow);
+  latest.addEventListener('click', () => scroll.scrollTo({ top: scroll.scrollHeight, behavior: 'smooth' }));
+  const at = screen.dataset.at;
+  requestAnimationFrame(() => { scroll.scrollTop = at === 'end' ? scroll.scrollHeight : Number(at || 0); follow(); });
+});
+</script>
+</body>
+</html>
