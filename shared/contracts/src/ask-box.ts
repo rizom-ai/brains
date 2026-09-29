@@ -82,6 +82,13 @@ export const ASK_KEYBOARD_ATTRIBUTE = "data-ask-keyboard";
 export const ASK_NAME_ATTRIBUTE = "data-ask-name";
 
 /**
+ * Set by a host on its mount element: what the empty box asks for, in the
+ * site's own words, such as "Ask about my work…". After the first answer the
+ * box asks for a follow-up.
+ */
+export const ASK_PLACEHOLDER_ATTRIBUTE = "data-ask-placeholder";
+
+/**
  * The key an open sheet marks its history entry with, holding the page's
  * scroll position. A page loaded on such an entry (a reload with the sheet
  * open) steps back off it and returns to that position.

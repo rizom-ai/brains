@@ -93,7 +93,7 @@ describe("contact-first homepage", () => {
     expect(html).toContain("Existing headline");
     expect(html).not.toContain('href="/contact"');
   });
-  it("server-renders public authored Markdown, attribution and functional topic links without chat", async () => {
+  it("server-renders public authored Markdown and functional topic links without chat", async () => {
     const runtime = context();
     const opening = await loadHomepageOpening(
       { entityService: runtime.entityService, publishedOnly: true },
@@ -108,7 +108,8 @@ describe("contact-first homepage", () => {
     );
     expect(html).toContain("A different opening");
     expect(html).toContain("<em>authored</em>");
-    expect(html).toContain("Owner name");
+    // The site's header already says whose page this is.
+    expect(html).not.toContain("Owner name");
     expect(html).toContain(`href="${origin}/contact"`);
     expect(html).toContain("Talk about research");
     expect(html).not.toContain("Existing headline");

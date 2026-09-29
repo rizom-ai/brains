@@ -10,6 +10,7 @@ import {
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
   ASK_PAGE_LOCK_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
   ASK_SHEET_HISTORY_KEY,
   ASK_SOURCE_ATTRIBUTE,
@@ -418,6 +419,14 @@ describe("the Ask box on a phone", () => {
       expect(host.querySelector("#brain-chat-notice")?.textContent).toBe(
         "Answers use published work only. Leave private details out.",
       );
+    });
+
+    it("asks for the first question in the site's words, and for a follow-up after", async () => {
+      host.setAttribute(ASK_PLACEHOLDER_ATTRIBUTE, "Ask about my work…");
+      await render();
+      expect(composer().placeholder).toBe("Ask about my work…");
+      await render({ messages: answer, state: "complete" });
+      expect(composer().placeholder).toBe("Ask a follow-up…");
     });
 
     it("shows where the answer will appear while it is being written", async () => {

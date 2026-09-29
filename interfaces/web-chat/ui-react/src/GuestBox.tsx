@@ -24,6 +24,7 @@ import {
   ASK_BOX_ATTRIBUTE,
   ASK_DOCK_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
+  ASK_PLACEHOLDER_ATTRIBUTE,
 } from "@brains/contracts";
 
 export interface GuestBoxProps {
@@ -90,15 +91,20 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const sheet = useAskSheet(root, input);
   // Closed on a phone, the box is a composer and a way back to the conversation.
   const compact = sheet.narrow && !sheet.open;
-  // Whose brain this is, from the host (ASK_NAME_ATTRIBUTE), once mounted.
+  // Whose brain this is and what the empty box asks for, from the host
+  // (ASK_NAME_ATTRIBUTE, ASK_PLACEHOLDER_ATTRIBUTE), once mounted.
   const [owner, setOwner] = useState<string>();
+  const [placeholder, setPlaceholder] = useState<string>();
   useEffect(() => {
-    setOwner(
-      root.current
-        ?.closest(`[${ASK_BOX_ATTRIBUTE}]`)
-        ?.getAttribute(ASK_NAME_ATTRIBUTE)
-        ?.trim() ?? undefined,
-    );
+    const host = root.current?.closest(`[${ASK_BOX_ATTRIBUTE}]`);
+    // An empty attribute says nothing.
+    const said = (name: string): string | undefined => {
+      const value = host?.getAttribute(name)?.trim();
+      if (!value) return undefined;
+      return value;
+    };
+    setOwner(said(ASK_NAME_ATTRIBUTE));
+    setPlaceholder(said(ASK_PLACEHOLDER_ATTRIBUTE));
   }, []);
 
   const initialIntent = useRef(props.submitOnReady === true);
@@ -353,7 +359,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           </button>
         )}
         <GuestBoxComposer
-          copy={copy}
+          copy={placeholder ? { ...copy, inputHint: placeholder } : copy}
           inputRef={input}
           onFocus={sheet.show}
           onLand={sheet.land}
