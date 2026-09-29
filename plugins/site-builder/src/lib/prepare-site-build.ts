@@ -83,6 +83,10 @@ export async function prepareSiteBuild(
     diagnostics.push(diagnostic);
   }
 
+  const staticAssets = {
+    ...collectRouteAssets(options.routes, { getViewTemplate }),
+    ...options.buildOptions.staticAssets,
+  };
   const limit = pLimit(4);
   const settledRouteResults = await Promise.allSettled(
     options.routes.map((route) =>
@@ -93,6 +97,7 @@ export async function prepareSiteBuild(
           siteTitle: options.siteMetadata.title,
           publishedOnly,
           getViewTemplate,
+          staticAssets,
           pipelineContext: options.pipelineContext,
           imageBuildService: options.imageBuildService,
           siteUrl: options.siteMetadata.url,
@@ -118,10 +123,6 @@ export async function prepareSiteBuild(
     options.pipelineContext.profileService,
     options.pipelineContext.routeRegistry,
   );
-  const staticAssets = {
-    ...collectRouteAssets(options.routes, { getViewTemplate }),
-    ...options.buildOptions.staticAssets,
-  };
   const publicAssetPaths = new Set(Object.keys(publicAssets));
   for (const staticAssetPath of Object.keys(staticAssets)) {
     const path = staticAssetPath.startsWith("/")
@@ -165,6 +166,7 @@ interface PrepareRouteOptions {
   siteTitle: string;
   publishedOnly: boolean;
   getViewTemplate(name: string): SiteViewTemplate | undefined;
+  staticAssets: Record<string, string>;
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup;
   siteUrl: string | undefined;
@@ -202,9 +204,11 @@ async function prepareRoute(
           options.getViewTemplate(section.template)?.fullscreen === true,
       ),
       sections,
-      headScripts: collectRouteScripts(options.route, {
-        getViewTemplate: options.getViewTemplate,
-      }),
+      headScripts: collectRouteScripts(
+        options.route,
+        { getViewTemplate: options.getViewTemplate },
+        options.staticAssets,
+      ),
     },
     diagnostics,
   };

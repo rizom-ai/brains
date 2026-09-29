@@ -107,6 +107,12 @@ export async function prepareRendererTestContext(
 export function createRendererTestContext(
   options: CreateRendererTestContextOptions,
 ): BuildContext {
+  const staticAssets = {
+    ...collectRouteAssets(options.routes, {
+      getViewTemplate: options.getViewTemplate,
+    }),
+    ...options.staticAssets,
+  };
   const preparedRoutes = options.routes.map((route) => ({
     id: route.id,
     path: route.path,
@@ -135,9 +141,11 @@ export function createRendererTestContext(
       );
       return [{ id: section.id, template: section.template, data }];
     }),
-    headScripts: collectRouteScripts(route, {
-      getViewTemplate: options.getViewTemplate,
-    }),
+    headScripts: collectRouteScripts(
+      route,
+      { getViewTemplate: options.getViewTemplate },
+      staticAssets,
+    ),
   }));
   const viewTemplates = Object.fromEntries(
     preparedRoutes
@@ -161,12 +169,7 @@ export function createRendererTestContext(
       routes: preparedRoutes,
       ...(options.themeCSS !== undefined && { themeCSS: options.themeCSS }),
       images: options.images ?? {},
-      staticAssets: {
-        ...collectRouteAssets(options.routes, {
-          getViewTemplate: options.getViewTemplate,
-        }),
-        ...options.staticAssets,
-      },
+      staticAssets,
       publicAssets: options.publicAssets ?? {},
       globalHeadScripts: options.headScripts ?? [],
     },

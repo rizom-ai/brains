@@ -8,6 +8,22 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Build-owned route script fingerprints
+
+Approved main `d5dc5f55a8` merges route and site static assets before rendering
+route scripts. Owned script URLs carry a 12-hex content fingerprint; deduplication
+and declared defer/module attributes remain intact. Empty owned assets are hashed,
+inherited object properties are ignored, and undeclared/external URLs are unchanged.
+No new public authoring contract or runtime authority is added.
+
+Native route-script and build-pipeline tests verify fingerprints, including site
+overrides and renderer output. Public schema-first `defineSection` does not expose
+`runtimeScripts`; an attempted packed probe confirmed that boundary and was
+withdrawn rather than expanding the SDK. Existing packed consumers still rebuild
+supported preview content through the running app; they do not prove native
+script fingerprint behavior or deployed CDN cache propagation. Exact completed
+commit/tree/check evidence is recorded on PR301. Core and Site lanes remain separate.
+
 ## Mobile Ask reopening integration scope
 
 Approved main `1afbee4cd3` locks the page at its pre-focus touch/pointer position,

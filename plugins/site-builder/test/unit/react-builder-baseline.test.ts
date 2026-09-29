@@ -340,7 +340,7 @@ describe("ReactBuilder behavioral baseline", () => {
         ),
         analytics: home.includes('<script id="analytics"></script>'),
         globalHead: home.includes('<script id="global-head"></script>'),
-        routeScriptCount: count(home, 'src="/scripts/page.js"'),
+        routeScriptCount: count(home, 'src="/scripts/page.js?v='),
       },
       writing: {
         authoredTitle: writing.includes("<title>Authored Head</title>"),
@@ -351,7 +351,7 @@ describe("ReactBuilder behavioral baseline", () => {
           '<link rel="canonical" href="/canonical-writing">',
         ),
         injectedPageData: writing.includes("Writing Route | Essays"),
-        routeScriptCount: count(writing, 'src="/scripts/page.js"'),
+        routeScriptCount: count(writing, 'src="/scripts/page.js?v='),
       },
       canvas: {
         fullscreenContent: canvas.includes("<div>Fullscreen output</div>"),
