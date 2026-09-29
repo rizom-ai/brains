@@ -26,8 +26,8 @@ type ScopedReads = Pick<
  * A read view of an entity service for people who may see only part of a
  * brain — a production site build, a visitor. Listings, counts, lookups and
  * search all apply the scope; the configured values win over a caller's, so
- * code handed the view cannot widen it. A listing that filters on status keeps
- * its own status filter instead of the publish gate, which would conflict.
+ * code handed the view cannot widen it. Explicit status filters intersect the
+ * publish gate; a conflicting filter returns no records rather than bypassing it.
  */
 export function scopeEntityReads<T extends ScopedReads>(
   base: T,
@@ -42,11 +42,10 @@ export function scopeEntityReads<T extends ScopedReads>(
     visibilityScope ? { ...filter, visibilityScope } : filter;
 
   const scopedListOptions = (options: ListOptions | undefined): ListOptions => {
-    const hasStatusFilter = options?.filter?.metadata?.["status"] !== undefined;
     const filter = scopedFilter(options?.filter);
     return {
       ...options,
-      ...(publishedOnly && !hasStatusFilter && { publishedOnly: true }),
+      ...(publishedOnly && { publishedOnly: true }),
       ...(filter && { filter }),
     };
   };
