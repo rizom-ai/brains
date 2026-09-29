@@ -1,0 +1,105 @@
+/*
+  The styling pass as overrides on the live yeehaa.io preview. The mock's
+  "Proposed" screenshots are the live page with this stylesheet and
+  proposal.js injected; the build moves each rule into its owner
+  (guest-box.css, homepage-atlas-styles.ts, the site header and footer).
+*/
+
+/* The name once: the bar's wordmark says whose page this is. */
+html body .atlas__byline { display: none; }
+html body [data-ask-styled] .guest-message > h2 {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+html body [data-ask-styled] .brain-box-header-actions button[aria-expanded] { display: none; }
+
+/* One rule between the conversation and the composer; turns are parted above each new question. */
+html body [data-ask-styled] .guest-message { border-bottom: 0; }
+html body [data-ask-styled] .guest-messages > .guest-user:not(:first-child) { border-top: 1px solid var(--ask-rule-soft); }
+
+/* One send button: muted while there is nothing to send. */
+html body [data-ask-styled] .send:disabled,
+html body .atlas__composer:has(textarea:placeholder-shown) .atlas__send {
+  opacity: 1; background: var(--color-bg-subtle); color: var(--color-text-light); cursor: default;
+}
+
+/* One rhythm for an answer: list items space like paragraphs. */
+html body [data-ask-styled] .web-chat-markdown-response ul { list-style: none; padding: 0; }
+html body [data-ask-styled] .web-chat-markdown-response li { padding: 0; margin: 0 0 .75em; }
+/* An answer's own headings stay at text size. */
+html body [data-ask-styled] .web-chat-markdown-response :is(h1, h2, h3, h4) { margin: 1em 0 .4em; font-size: 1em; font-weight: 600; line-height: 1.4; }
+
+/* Sources as a list in the map's shapes, the type at the right. */
+html body [data-ask-styled] .brain-box-sources { display: block; margin: 16px 0 0; border-top: 1px solid var(--ask-rule-soft); }
+html body [data-ask-styled] .brain-box-sources li {
+  display: flex; align-items: baseline; gap: 10px; padding: 9px 0;
+  border: 0; border-bottom: 1px solid var(--ask-rule-soft); border-radius: 0; background: none; font-size: 14px;
+}
+html body [data-ask-styled] .brain-box-sources li::before {
+  content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); translate: 0 -1px;
+}
+html body [data-ask-styled] .brain-box-sources li[data-ask-source^="presentation:"]::before { border-radius: 1px; rotate: 45deg; scale: .85; }
+html body [data-ask-styled] .brain-box-sources li[data-ask-source^="project:"]::before { border-radius: 1.5px; }
+html body [data-ask-styled] .brain-box-sources li::after { margin-left: auto; padding-left: 12px; font-size: 12.5px; color: var(--color-text-light); }
+html body [data-ask-styled] .brain-box-sources li[data-ask-source^="post:"]::after { content: "Essay"; }
+html body [data-ask-styled] .brain-box-sources li[data-ask-source^="presentation:"]::after { content: "Talk"; }
+html body [data-ask-styled] .brain-box-sources li[data-ask-source^="project:"]::after { content: "Project"; }
+html body [data-ask-styled] .brain-box-sources li:last-child { border-bottom: 0; }
+html body [data-ask-styled] .brain-box-sources a { color: var(--color-heading); font-weight: 500; }
+/* Social posts fold into the piece they are about; drafts and bare topics never reach a guest (both server-side). */
+html body [data-ask-styled] .brain-box-sources li:is([data-ask-source^="social-post:"], [data-ask-source^="topic:"], [data-proposal-draft]) { display: none; }
+
+/* A lit piece: its shape in orange with one thin ring. */
+html body .atlas__mark[data-cited] .atlas__glyph { box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 3px var(--color-accent); }
+
+/* The way to the rest of an answer takes the note's line under the composer. */
+html body [data-ask-styled] .brain-box-bottom { display: flex; flex-direction: column; }
+html body [data-ask-styled] .brain-box-latest {
+  order: 2; position: static; display: block; width: auto; height: auto; margin: 6px auto 0; padding: 0;
+  border: 0; border-radius: 0; background: none; box-shadow: none; font-size: 12.5px; color: var(--color-accent);
+}
+html body [data-ask-styled] .brain-box-latest::after { content: " Rest of the answer"; }
+html body [data-ask-styled] .brain-box-bottom:has(.brain-box-latest) .brain-box-hint { display: none; }
+
+/* Header and footer: plain words, no spaced capitals. */
+html body header .nav-link { font-family: var(--font-body); font-size: .95rem; letter-spacing: 0; text-transform: none; }
+html body footer .font-mono.uppercase { font-family: var(--font-body); font-size: .8rem; letter-spacing: 0; text-transform: none; }
+
+@media (max-width: 47.99rem) {
+  /* Smaller type on a phone. */
+  html body .atlas h1 { font-size: clamp(2.1rem, 9.5vw, 2.6rem); }
+  html body .atlas__prose { font-size: 1rem; }
+  html body .atlas__door h2 { font-size: 1.2rem; }
+  html body .atlas__ask textarea { font-size: 1rem; }
+  html body [data-ask-styled] .guest-message :is(p, li) { font-size: 15px; }
+
+  /* The starting questions as a list, the same on the page and in the sheet. */
+  html body .atlas__topics { gap: 0; }
+  html body .atlas__topics a { margin: 0; background: none; padding: .7rem 0; border-radius: 0; border-bottom: 1px solid var(--color-border); font-size: 1rem; }
+  html body .atlas__topics li:first-child a { border-top: 1px solid var(--color-border); }
+
+  /* The sheet opens with the map at the top, where every later state has it,
+     and its starting questions are the page's list, not pills. */
+  html body [data-ask-styled] .is-sheet .brain-box-scroll.is-welcome { justify-content: flex-start; }
+  html body [data-ask-styled] .is-sheet .hints { display: block; margin: 14px 0 0; }
+  html body [data-ask-styled] .is-sheet .hints button {
+    display: block; width: 100%; padding: .7rem 0; border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0;
+    background: none; text-align: left; font: italic 1rem/1.35 var(--font-heading); color: var(--color-heading);
+  }
+  html body [data-ask-styled] .is-sheet .hints button:first-child { border-top: 1px solid var(--color-border); }
+  html body [data-ask-styled] .is-sheet .hints button:last-child { border-bottom: 0; }
+
+  /* The strip keeps the lit pieces in its middle, even at the map's edge; at
+     full height the map still fills its place (the lower bound is 0 there). */
+  html body .atlas__ask [data-ask-dock] .atlas__field {
+    top: clamp(
+      calc(var(--atlas-window) - var(--atlas-field-height)),
+      calc(var(--atlas-field-height) - var(--atlas-window) / 2 - var(--atlas-field-height) * var(--atlas-strip-y, calc(var(--atlas-fill, 1) * 50)) / 100),
+      calc(var(--atlas-field-height) - var(--atlas-window))
+    );
+  }
+  /* Text passes under a fade, not a cut edge. */
+  html body .atlas__ask [data-ask-dock]::after {
+    content: ""; display: block; position: relative; z-index: 5; height: 18px; margin-bottom: -18px;
+    background: linear-gradient(var(--color-bg), transparent); pointer-events: none;
+  }
+}
