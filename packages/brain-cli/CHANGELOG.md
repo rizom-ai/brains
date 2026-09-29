@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- [#431](https://github.com/rizom-ai/brains/pull/431) [`c5af76a`](https://github.com/rizom-ai/brains/commit/c5af76a051bde7ddcdba5e13525023f1a482ba23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the page behind the Ask conversation is held where it was when the visitor's finger landed on the box, not where Safari had already scrolled to reveal it, so closing the conversation returns to that place.
+
+- [#432](https://github.com/rizom-ai/brains/pull/432) [`5949cb4`](https://github.com/rizom-ai/brains/commit/5949cb4caf89a1168b45d8fb243a5f2a0f4a7240) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Opening the phone conversation again from the page holds the page still exactly as the first opening does: where the finger landed, at once, before Safari moves anything for the keyboard.
+
 ## 0.2.0-alpha.446
 
 ### Patch Changes

@@ -424,6 +424,8 @@
     "core--json-native-section-content",
     "core--json-type-parity-guard",
     "core--json-types-single-declaration",
+    "core--lock-before-tap",
+    "core--lock-on-reopen",
     "core--mcp-client-metadata-documents",
     "core--mcp-drop-phantom-express-deps",
     "core--mcp-protocol-registration",
