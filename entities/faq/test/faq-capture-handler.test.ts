@@ -15,6 +15,7 @@ import {
   FaqCaptureHandler,
   FaqPlugin,
   faqAdapter,
+  faqMetadata,
   faqSchema,
   type FaqClassification,
   type FaqEntity,
@@ -300,5 +301,45 @@ describe("FaqCaptureHandler", () => {
     expect(prompts).toHaveLength(1);
     const [faq] = await capturedFaqs();
     expect(faq?.metadata.asked).toBe(2);
+  });
+
+  it("keeps a merge that lands while this one is writing", async () => {
+    await seedMatch("restricted", 0.08);
+    const service = context.entityService;
+    const update = service.updateEntity.bind(service);
+    let interleaved = false;
+    service.updateEntity = async (request): ReturnType<typeof update> => {
+      if (!interleaved) {
+        interleaved = true;
+        // Another capture job merges its reply into the same FAQ first.
+        const [current] = await capturedFaqs();
+        if (!current) throw new Error("Expected the seeded FAQ");
+        const parsed = faqAdapter.parseFaqContent(current.content);
+        const frontmatter = {
+          ...parsed.frontmatter,
+          mergedMessageIds: ["other"],
+        };
+        await update({
+          entity: {
+            ...current,
+            content: faqAdapter.createFaqContent(frontmatter, parsed.answer),
+            metadata: faqMetadata(frontmatter),
+          },
+        });
+      }
+      return update(request);
+    };
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toEqual({
+      captured: true,
+      entityId: "faq-old",
+      merged: true,
+    });
+    const [faq] = await capturedFaqs();
+    const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
+    expect(parsed.frontmatter.mergedMessageIds).toEqual(["other", "m4"]);
+    expect(faq?.metadata.asked).toBe(3);
   });
 });

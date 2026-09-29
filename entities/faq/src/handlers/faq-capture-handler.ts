@@ -28,6 +28,9 @@ const RECENT_MESSAGE_LIMIT = 50;
  */
 const SAME_QUESTION_DISTANCE = 0.2;
 
+/** Writes a merge tries before failing the job so the queue retries it. */
+const MERGE_ATTEMPTS = 3;
+
 export const faqCaptureJobSchema: z.ZodObject<{
   conversationId: z.ZodString;
   messageId: z.ZodString;
@@ -178,8 +181,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
     );
 
     const match = await this.findSameQuestion(content, visibility);
-    if (match) {
-      await this.merge(match, data.messageId);
+    if (match && (await this.merge(match, data.messageId))) {
       return { captured: true, entityId: match.id, merged: true };
     }
 
@@ -231,18 +233,45 @@ export class FaqCaptureHandler extends BaseJobHandler<
     );
   }
 
-  private async merge(faq: FaqEntity, messageId: string): Promise<void> {
+  /**
+   * Records `messageId` on `faq`, writing only over the version that was read.
+   * A concurrent merge makes the write stale; the FAQ is re-read and the merge
+   * reapplied. False when the FAQ disappeared, so the caller creates one.
+   */
+  private async merge(
+    faq: FaqEntity,
+    messageId: string,
+    attemptsLeft: number = MERGE_ATTEMPTS,
+  ): Promise<boolean> {
     const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
+    if (frontmatter.mergedMessageIds.includes(messageId)) return true;
+
     const merged: FaqFrontmatter = {
       ...frontmatter,
       mergedMessageIds: [...frontmatter.mergedMessageIds, messageId],
     };
-    await this.deps.entityService.updateEntity({
+    const result = await this.deps.entityService.updateEntity({
       entity: {
         ...faq,
         content: faqAdapter.createFaqContent(merged, answer),
         metadata: faqMetadata(merged),
       },
+      options: { expectedContentHash: faq.contentHash },
     });
+    if (result.skipReason !== "content-conflict") return true;
+    if (attemptsLeft <= 1) {
+      throw new Error(`FAQ ${faq.id} kept changing during merge`);
+    }
+
+    const current = await this.deps.entityService.getEntity(
+      {
+        entityType: "faq",
+        id: faq.id,
+        visibilityScope: internalFullScope("faq merge retry"),
+      },
+      faqSchema,
+    );
+    if (!current) return false;
+    return this.merge(current, messageId, attemptsLeft - 1);
   }
 }
