@@ -14,6 +14,7 @@ import {
 import {
   FaqCaptureHandler,
   FaqPlugin,
+  capturedReplyStore,
   faqAdapter,
   faqMetadata,
   faqSchema,
@@ -23,6 +24,7 @@ import {
 } from "../src";
 
 const CONVERSATION_ID = "conv-1";
+const SLUG = "how-do-i-publish-a-draft-post";
 
 interface DistanceResult {
   entityId: string;
@@ -76,6 +78,7 @@ describe("FaqCaptureHandler", () => {
   ): FaqCaptureHandler {
     return new FaqCaptureHandler(createSilentLogger(), {
       entityService: context.entityService,
+      replies: capturedReplyStore(context.runtimeState),
       sameQuestionDistance,
       searchWithDistances: async (request): Promise<DistanceResult[]> => {
         searches.push(request.query);
@@ -134,35 +137,35 @@ describe("FaqCaptureHandler", () => {
     );
   }
 
+  async function seed(
+    id: string,
+    visibility: ContentVisibility,
+    question = "How can I publish a draft?",
+  ): Promise<FaqEntity> {
+    const frontmatter = { question, status: "draft" as const, asked: 1 };
+    await context.entityService.createEntity({
+      entity: {
+        id,
+        entityType: "faq",
+        content: faqAdapter.createFaqContent(
+          frontmatter,
+          "Choose Publish in Studio.",
+        ),
+        visibility,
+        metadata: faqMetadata(frontmatter),
+      },
+    });
+    const faq = (await capturedFaqs()).find((entity) => entity.id === id);
+    if (!faq) throw new Error("Expected the seeded FAQ");
+    return faq;
+  }
+
   /** Stores an earlier FAQ at `distance` from the incoming exchange. */
   async function seedMatch(
     visibility: ContentVisibility,
     distance: number,
   ): Promise<void> {
-    await context.entityService.createEntity({
-      entity: {
-        id: "faq-old",
-        entityType: "faq",
-        content: faqAdapter.createFaqContent(
-          {
-            question: "How can I publish a draft?",
-            status: "draft",
-            sourceConversationId: "conv-0",
-            sourceMessageId: "old",
-            mergedMessageIds: [],
-          },
-          "Choose Publish in Studio.",
-        ),
-        visibility,
-        metadata: {
-          question: "How can I publish a draft?",
-          status: "draft",
-          asked: 1,
-        },
-      },
-    });
-    const [existing] = await capturedFaqs();
-    if (!existing) throw new Error("Expected the seeded FAQ");
+    const existing = await seed("faq-old", visibility);
     distances = [
       { entityId: "note-1", entityType: "note", distance: 0.01 },
       { entityId: existing.id, entityType: "faq", distance },
@@ -192,25 +195,17 @@ describe("FaqCaptureHandler", () => {
     it(`captures a ${level} turn as a ${visibility} draft`, async () => {
       const result = await capture(createHandler(), level);
 
-      expect(result).toEqual({
-        captured: true,
-        entityId: "how-do-i-publish-a-draft-post-m4",
-        merged: false,
-      });
+      expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
       const [faq] = await capturedFaqs();
       expect(faq?.visibility).toBe(visibility);
-      expect(faq?.metadata).toEqual({
+      const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
+      expect(parsed.frontmatter).toEqual({
         question: "How do I publish a draft post?",
         status: "draft",
         asked: 1,
       });
-      const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
       expect(parsed.answer).toBe("Open the post in Studio and choose Publish.");
-      expect(parsed.frontmatter).toMatchObject({
-        sourceConversationId: CONVERSATION_ID,
-        sourceMessageId: "m4",
-        mergedMessageIds: [],
-      });
+      expect(faq?.content).not.toContain("m4");
     });
   }
 
@@ -260,18 +255,43 @@ describe("FaqCaptureHandler", () => {
     expect(await capturedFaqs()).toHaveLength(1);
   });
 
+  it("releases the reply when capture fails, so the retry counts it", async () => {
+    const service = context.entityService;
+    const create = service.createEntity.bind(service);
+    let failed = false;
+    service.createEntity = async (request): ReturnType<typeof create> => {
+      if (!failed) {
+        failed = true;
+        throw new Error("database unavailable");
+      }
+      return create(request);
+    };
+    const handler = createHandler();
+    const failure = await capture(handler, "admin").then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    const result = await capture(handler, "admin");
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
+  });
+
+  it("names a second FAQ with a taken question slug -2", async () => {
+    await seed(SLUG, "public", "How do I publish a draft post?");
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: `${SLUG}-2`, merged: false });
+  });
+
   it("measures the new FAQ's markdown, the form stored FAQs are embedded in", async () => {
     await capture(createHandler(), "trusted");
 
     expect(searches).toEqual([
       faqAdapter.createFaqContent(
-        {
-          question: "How do I publish a draft post?",
-          status: "draft",
-          sourceConversationId: CONVERSATION_ID,
-          sourceMessageId: "m4",
-          mergedMessageIds: [],
-        },
+        { question: "How do I publish a draft post?", status: "draft" },
         "Open the post in Studio and choose Publish.",
       ),
     ]);
@@ -291,26 +311,23 @@ describe("FaqCaptureHandler", () => {
     expect(faqs).toHaveLength(1);
     expect(faqs[0]?.metadata.asked).toBe(2);
     const parsed = faqAdapter.parseFaqContent(faqs[0]?.content ?? "");
-    expect(parsed.frontmatter.mergedMessageIds).toEqual(["m4"]);
     expect(parsed.answer).toBe("Choose Publish in Studio.");
     expect(parsed.alternatives).toEqual([
-      {
-        messageId: "m4",
-        answer: "Open the post in Studio and choose Publish.",
-      },
+      { answer: "Open the post in Studio and choose Publish." },
     ]);
   });
 
-  it("records no candidate when the merging answer matches the FAQ's", async () => {
+  it("adds no alternative when the merging answer matches the FAQ's", async () => {
     await seedMatch("shared", 0.08);
     classification = { ...accepted, answer: "Choose Publish in Studio." };
 
     await capture(createHandler(), "trusted");
 
     const [faq] = await capturedFaqs();
-    const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
-    expect(parsed.frontmatter.mergedMessageIds).toEqual(["m4"]);
-    expect(parsed.alternatives).toEqual([]);
+    expect(faq?.metadata.asked).toBe(2);
+    expect(faqAdapter.parseFaqContent(faq?.content ?? "").alternatives).toEqual(
+      [],
+    );
   });
 
   for (const [existing, level] of [
@@ -322,11 +339,7 @@ describe("FaqCaptureHandler", () => {
 
       const result = await capture(createHandler(), level);
 
-      expect(result).toEqual({
-        captured: true,
-        entityId: "how-do-i-publish-a-draft-post-m4",
-        merged: false,
-      });
+      expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
       expect(await capturedFaqs()).toHaveLength(2);
     });
   }
@@ -344,10 +357,7 @@ describe("FaqCaptureHandler", () => {
 
     const result = await capture(createHandler(), "admin");
 
-    expect(result).toMatchObject({
-      entityId: "how-do-i-publish-a-draft-post-m4",
-      merged: false,
-    });
+    expect(result).toMatchObject({ entityId: SLUG, merged: false });
   });
 
   it("merges each answer once", async () => {
@@ -375,14 +385,13 @@ describe("FaqCaptureHandler", () => {
         const [current] = await capturedFaqs();
         if (!current) throw new Error("Expected the seeded FAQ");
         const parsed = faqAdapter.parseFaqContent(current.content);
-        const frontmatter = {
-          ...parsed.frontmatter,
-          mergedMessageIds: ["other"],
-        };
+        const frontmatter = { ...parsed.frontmatter, asked: 2 };
         await update({
           entity: {
             ...current,
-            content: faqAdapter.createFaqContent(frontmatter, parsed.answer),
+            content: faqAdapter.createFaqContent(frontmatter, parsed.answer, [
+              { answer: "Another answer." },
+            ]),
             metadata: faqMetadata(frontmatter),
           },
         });
@@ -398,9 +407,13 @@ describe("FaqCaptureHandler", () => {
       merged: true,
     });
     const [faq] = await capturedFaqs();
-    const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
-    expect(parsed.frontmatter.mergedMessageIds).toEqual(["other", "m4"]);
     expect(faq?.metadata.asked).toBe(3);
+    expect(faqAdapter.parseFaqContent(faq?.content ?? "").alternatives).toEqual(
+      [
+        { answer: "Another answer." },
+        { answer: "Open the post in Studio and choose Publish." },
+      ],
+    );
   });
 
   it("finds a reply that newer messages pushed far back", async () => {
@@ -416,15 +429,12 @@ describe("FaqCaptureHandler", () => {
 
     const result = await capture(createHandler(long), "admin", "m20", 20);
 
-    expect(result).toMatchObject({
-      captured: true,
-      entityId: "how-do-i-publish-a-draft-post-m20",
-    });
+    expect(result).toMatchObject({ captured: true, entityId: SLUG });
     expect(prompts[0]).toContain("how do I publish a draft post?");
     expect(fetches).toEqual([{ range: { start: 1, end: 30 } }]);
   });
 
-  it("falls back to a generic prefix for a question with no latin letters", async () => {
+  it("falls back to 'faq' for a question with no latin letters", async () => {
     classification = {
       reusable: true,
       question: "如何发布草稿？",
@@ -433,7 +443,7 @@ describe("FaqCaptureHandler", () => {
 
     const result = await capture(createHandler(), "admin");
 
-    expect(result).toMatchObject({ entityId: "faq-m4" });
+    expect(result).toMatchObject({ entityId: "faq" });
   });
 
   it("keeps a close look-alike separate when the check says the questions differ", async () => {
@@ -442,10 +452,7 @@ describe("FaqCaptureHandler", () => {
 
     const result = await capture(createHandler(), "admin");
 
-    expect(result).toMatchObject({
-      entityId: "how-do-i-publish-a-draft-post-m4",
-      merged: false,
-    });
+    expect(result).toMatchObject({ entityId: SLUG, merged: false });
     expect(checks).toHaveLength(1);
     expect(checks[0]).toContain("How can I publish a draft?");
     expect(checks[0]).toContain("How do I publish a draft post?");

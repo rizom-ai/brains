@@ -38,11 +38,7 @@ describe("FAQ review workspace", () => {
     const frontmatter: FaqFrontmatter = {
       question: `Question ${id}?`,
       status: "draft",
-      sourceConversationId: "conv-1",
-      sourceMessageId: `msg-${id}`,
-      mergedMessageIds: alternatives.map(
-        (alternative) => alternative.messageId,
-      ),
+      asked: 1 + alternatives.length,
     };
     await context.entityService.createEntity({
       entity: {
@@ -104,11 +100,9 @@ describe("FAQ review workspace", () => {
     });
     await registerFaqReviewWorkspace(context);
 
-    await seed("shared-faq", "shared", [
-      { messageId: "msg-alt", answer: "A clearer answer." },
-    ]);
+    await seed("shared-faq", "shared", [{ answer: "A clearer answer." }]);
     await seed("restricted-faq", "restricted", [
-      { messageId: "msg-secret", answer: "Restricted alternative." },
+      { answer: "Restricted alternative." },
     ]);
     await seed("settled-faq", "shared", []);
   });
@@ -124,7 +118,7 @@ describe("FAQ review workspace", () => {
   });
 
   it("uses a chosen alternative as the answer and clears the list", async () => {
-    await act("use-answer", { entityId: "shared-faq", messageId: "msg-alt" });
+    await act("use-answer", { entityId: "shared-faq", alternative: 1 });
 
     expect(await read("shared-faq")).toEqual({
       answer: "A clearer answer.",
@@ -144,15 +138,13 @@ describe("FAQ review workspace", () => {
   it("changes nothing on a FAQ the caller cannot see", async () => {
     await act("use-answer", {
       entityId: "restricted-faq",
-      messageId: "msg-secret",
+      alternative: 1,
     });
     await act("keep-answer", { entityId: "restricted-faq" });
 
     expect(await read("restricted-faq")).toEqual({
       answer: "Answer restricted-faq.",
-      alternatives: [
-        { messageId: "msg-secret", answer: "Restricted alternative." },
-      ],
+      alternatives: [{ answer: "Restricted alternative." }],
     });
   });
 });

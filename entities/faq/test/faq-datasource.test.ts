@@ -20,14 +20,12 @@ describe("FaqDataSource", () => {
     id: string,
     status: FaqStatus,
     visibility: ContentVisibility,
-    mergedMessageIds: string[],
+    asked: number,
   ): Promise<void> {
     const frontmatter: FaqFrontmatter = {
       question: `Question ${id}?`,
       status,
-      sourceConversationId: "conv-1",
-      sourceMessageId: id,
-      mergedMessageIds,
+      asked,
     };
     await context.entityService.createEntity({
       entity: {
@@ -46,10 +44,10 @@ describe("FaqDataSource", () => {
     });
     await harness.installPlugin(new FaqPlugin());
     context = harness.getEntityContext("faq");
-    await seed("once", "published", "public", []);
-    await seed("thrice", "published", "public", ["m1", "m2"]);
-    await seed("draft", "draft", "public", ["m3"]);
-    await seed("private", "published", "restricted", ["m4", "m5", "m6"]);
+    await seed("once", "published", "public", 1);
+    await seed("thrice", "published", "public", 3);
+    await seed("draft", "draft", "public", 2);
+    await seed("private", "published", "restricted", 4);
   });
 
   function fetch(publishedOnly: boolean): Promise<unknown> {
@@ -100,12 +98,10 @@ describe("FaqDataSource", () => {
           {
             question: "Question with alternatives?",
             status: "published",
-            sourceConversationId: "conv-1",
-            sourceMessageId: "src",
-            mergedMessageIds: ["alt"],
+            asked: 9,
           },
           "The chosen answer.",
-          [{ messageId: "alt", answer: "An unreviewed alternative." }],
+          [{ answer: "An unreviewed alternative." }],
         ),
         visibility: "public",
         metadata: {

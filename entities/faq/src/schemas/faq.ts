@@ -13,40 +13,34 @@ export const faqStatusSchema: z.ZodEnum<{
 
 export type FaqStatus = z.output<typeof faqStatusSchema>;
 
-type FaqAlternativeSchema = z.ZodObject<{
-  messageId: z.ZodString;
-  answer: z.ZodString;
-}>;
+type FaqAlternativeSchema = z.ZodObject<{ answer: z.ZodString }>;
 
 /**
- * A merged reply's own answer, kept in the body under "Alternative answers"
- * for the owner to choose from. Content, so markdown, never frontmatter.
+ * Another answer a repeated question received, kept in the body under
+ * "Alternative answers" for the owner to choose from.
  */
 export const faqAlternativeSchema: FaqAlternativeSchema = z.object({
-  messageId: z.string(),
   answer: z.string(),
 });
 
 export type FaqAlternative = z.output<typeof faqAlternativeSchema>;
 
 /**
- * FAQ frontmatter schema. The body holds the answer. `mergedMessageIds`
- * lists later replies that asked the same question at the same visibility.
+ * FAQ frontmatter: only what a reader needs. The body holds the answer and
+ * any alternatives; which chat replies were counted is plugin state, not
+ * part of the document.
  */
 type FaqFrontmatterSchema = z.ZodObject<{
   question: z.ZodString;
   status: typeof faqStatusSchema;
-  sourceConversationId: z.ZodString;
-  sourceMessageId: z.ZodString;
-  mergedMessageIds: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  asked: z.ZodDefault<z.ZodNumber>;
 }>;
 
 export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
   question: z.string(),
   status: faqStatusSchema,
-  sourceConversationId: z.string(),
-  sourceMessageId: z.string(),
-  mergedMessageIds: z.array(z.string()).default([]),
+  /** How many chat replies asked this question. */
+  asked: z.number().int().min(1).default(1),
 });
 
 export type FaqFrontmatter = z.output<typeof faqFrontmatterSchema>;
@@ -58,7 +52,6 @@ type FaqMetadataSchema = z.ZodObject<{
   asked: z.ZodNumber;
 }>;
 
-/** `asked` counts the source reply plus every merged reply. */
 export const faqMetadataSchema: FaqMetadataSchema = z.object({
   question: z.string(),
   status: faqStatusSchema,

@@ -16,6 +16,7 @@ import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import type { FaqFrontmatter } from "../schemas/faq";
 import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
+import type { CapturedReplyStore } from "../lib/captured-replies";
 
 /** Messages before the reply searched for the question it answers. */
 const QUESTION_LOOKBACK = 20;
@@ -77,9 +78,10 @@ export type FaqCaptureResult =
     };
 
 export interface FaqCaptureDeps extends FaqStoreDeps {
+  replies: CapturedReplyStore;
   entityService: Pick<
     EntityPluginContext["entityService"],
-    "listEntities" | "getEntity" | "createEntity" | "updateEntity"
+    "getEntity" | "createEntity" | "updateEntity"
   >;
   conversations: Pick<IConversationsNamespace, "getMessages">;
   ai: Pick<EntityPluginContext["ai"], "generateObject">;
@@ -89,13 +91,12 @@ export interface FaqCaptureDeps extends FaqStoreDeps {
 const ID_SLUG_LENGTH = 60;
 
 /**
- * A readable, unique FAQ id: the question's slug, then the source reply's id.
- * The reply id keeps the same question at two visibilities apart; a question
- * with no latin letters falls back to "faq".
+ * A FAQ's readable id: the question's slug, or "faq" for a question with no
+ * latin letters. A taken slug gets a -2, -3, … suffix when the FAQ is created.
  */
-export function faqEntityId(question: string, messageId: string): string {
+export function faqSlug(question: string): string {
   const slug = slugify(question).slice(0, ID_SLUG_LENGTH).replace(/-+$/, "");
-  return `${slug || "faq"}-${slugify(messageId)}`;
+  return slug || "faq";
 }
 
 function buildClassificationPrompt(question: string, answer: string): string {
@@ -162,10 +163,22 @@ export class FaqCaptureHandler extends BaseJobHandler<
     _jobId: string,
     _progressReporter: ProgressReporter,
   ): Promise<FaqCaptureResult> {
-    if (await this.isCaptured(data.messageId)) {
-      return { captured: false, reason: "already-captured" };
-    }
+    // Claim the reply first, so a retried or repeated job never classifies
+    // or counts it twice. A failure releases the claim for the retry.
+    const claimed = await this.deps.replies.setIfNotExists(data.messageId, {
+      claimedAt: new Date().toISOString(),
+    });
+    if (!claimed) return { captured: false, reason: "already-captured" };
 
+    try {
+      return await this.capture(data);
+    } catch (error) {
+      await this.deps.replies.delete(data.messageId);
+      throw error;
+    }
+  }
+
+  private async capture(data: FaqCaptureJobData): Promise<FaqCaptureResult> {
     const messages = await this.deps.conversations.getMessages(
       data.conversationId,
       {
@@ -197,9 +210,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
     const frontmatter: FaqFrontmatter = {
       question: classification.question,
       status: "draft",
-      sourceConversationId: data.conversationId,
-      sourceMessageId: data.messageId,
-      mergedMessageIds: [],
+      asked: 1,
     };
     const content = faqAdapter.createFaqContent(
       frontmatter,
@@ -210,16 +221,14 @@ export class FaqCaptureHandler extends BaseJobHandler<
     const merged =
       match &&
       (await mergeIntoFaq(this.deps, match, {
-        messageIds: [data.messageId],
-        alternatives: [
-          { messageId: data.messageId, answer: classification.answer },
-        ],
+        asks: 1,
+        alternatives: [{ answer: classification.answer }],
       }));
     if (match && merged) {
       return { captured: true, entityId: match.id, merged: true };
     }
 
-    const entityId = faqEntityId(classification.question, data.messageId);
+    const entityId = await this.freeId(faqSlug(classification.question));
     await this.deps.entityService.createEntity({
       entity: {
         id: entityId,
@@ -232,18 +241,14 @@ export class FaqCaptureHandler extends BaseJobHandler<
     return { captured: true, entityId, merged: false };
   }
 
-  /** Whether a FAQ already records this reply as its source or a merge. */
-  private async isCaptured(messageId: string): Promise<boolean> {
-    const existing = await this.deps.entityService.listEntities({
+  /** `slug`, or `slug-2`, `slug-3`, … when a FAQ of any visibility has it. */
+  private async freeId(slug: string, suffix = 1): Promise<string> {
+    const id = suffix === 1 ? slug : `${slug}-${suffix}`;
+    const taken = await this.deps.entityService.getEntity({
       entityType: "faq",
-      options: {
-        limit: 1,
-        filter: {
-          contentContains: messageId,
-          visibilityScope: internalFullScope("faq capture idempotency"),
-        },
-      },
+      id,
+      visibilityScope: internalFullScope("faq id allocation"),
     });
-    return existing.length > 0;
+    return taken ? this.freeId(slug, suffix + 1) : id;
   }
 }

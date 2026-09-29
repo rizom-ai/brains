@@ -13,15 +13,15 @@ import {
 const ALTERNATIVES_HEADING = "## Alternative answers";
 const ALTERNATIVES_HEADING_LINE = /^## Alternative answers[ \t]*$/m;
 
-/** One alternative's heading; the capture is the reply id. */
-const ALTERNATIVE_HEADING_LINE = /^### From reply (\S+)[ \t]*$/m;
+/** Any heading of an alternative section; owners may rename them. */
+const ALTERNATIVE_HEADING_LINE = /^### .*$/m;
 
 /** The query-friendly metadata a FAQ's frontmatter implies. */
 export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
   return {
     question: frontmatter.question,
     status: frontmatter.status,
-    asked: 1 + frontmatter.mergedMessageIds.length,
+    asked: frontmatter.asked,
   };
 }
 
@@ -32,9 +32,9 @@ function faqBody(answer: string, alternatives: FaqAlternative[]): string {
     answer.trim(),
     "",
     ALTERNATIVES_HEADING,
-    ...alternatives.flatMap((alternative) => [
+    ...alternatives.flatMap((alternative, index) => [
       "",
-      `### From reply ${alternative.messageId}`,
+      `### Alternative ${index + 1}`,
       "",
       alternative.answer.trim(),
     ]),
@@ -49,15 +49,12 @@ function parseFaqBody(body: string): {
   const [answer = "", section] = body.split(ALTERNATIVES_HEADING_LINE);
   if (section === undefined) return { answer: answer.trim(), alternatives: [] };
 
-  // split with a capture group yields [preamble, id, text, id, text, ...]
-  const parts = section.split(ALTERNATIVE_HEADING_LINE);
-  const alternatives = Array.from(
-    { length: Math.floor((parts.length - 1) / 2) },
-    (_, index) => ({
-      messageId: parts[1 + index * 2] ?? "",
-      answer: (parts[2 + index * 2] ?? "").trim(),
-    }),
-  ).filter((alternative) => alternative.answer.length > 0);
+  // The text before the first heading is not an alternative.
+  const alternatives = section
+    .split(ALTERNATIVE_HEADING_LINE)
+    .slice(1)
+    .map((text) => ({ answer: text.trim() }))
+    .filter((alternative) => alternative.answer.length > 0);
   return { answer: answer.trim(), alternatives };
 }
 
@@ -89,14 +86,14 @@ export class FaqAdapter extends BaseEntityAdapter<
 
   /**
    * The answer is the body above "## Alternative answers"; each
-   * "### From reply <id>" section below it is one alternative.
+   * "###" section below it is one alternative.
    */
   public parseFaqContent(content: string): {
     frontmatter: FaqFrontmatter;
     answer: string;
     alternatives: FaqAlternative[];
   } {
-    // Parse through the schema to apply defaults (mergedMessageIds)
+    // Parse through the schema to apply defaults (asked)
     const raw = this.parseFrontMatter(content, faqFrontmatterSchema);
     return {
       frontmatter: faqFrontmatterSchema.parse(raw),

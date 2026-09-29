@@ -6,7 +6,7 @@ export {
   classifyExchange,
   faqCaptureJobSchema,
   faqClassificationSchema,
-  faqEntityId,
+  faqSlug,
 } from "./handlers/faq-capture-handler";
 export type {
   FaqCaptureDeps,
@@ -55,3 +55,5 @@ export {
 } from "./lib/faq-store";
 export type { FaqStoreDeps } from "./lib/faq-store";
 export { registerFaqReviewWorkspace } from "./lib/faq-review-workspace";
+export { capturedReplyStore } from "./lib/captured-replies";
+export type { CapturedReply, CapturedReplyStore } from "./lib/captured-replies";

@@ -23,6 +23,7 @@ import {
 } from "./handlers/faq-reconcile-handler";
 import { FaqDataSource } from "./datasources/faq-datasource";
 import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
+import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
 import { registerFaqReviewWorkspace } from "./lib/faq-review-workspace";
 import { faqSchema, type FaqEntity } from "./schemas/faq";
@@ -104,6 +105,7 @@ export class FaqPlugin extends EntityPlugin<
       "faq-capture",
       new FaqCaptureHandler(this.logger.child("FaqCaptureHandler"), {
         entityService: context.entityService,
+        replies: capturedReplyStore(context.runtimeState),
         searchWithDistances: context.entityService.searchWithDistances.bind(
           context.entityService,
         ),

@@ -19,16 +19,14 @@ const sameQuestionInputSchema = z.object({
 const EVAL_STORED_ID = "eval-stored-faq";
 
 /** The markdown a captured FAQ is stored and embedded as. */
-function faqMarkdown(
-  exchange: z.output<typeof exchangeSchema>,
-  sourceMessageId: string,
-): { frontmatter: FaqFrontmatter; content: string } {
+function faqMarkdown(exchange: z.output<typeof exchangeSchema>): {
+  frontmatter: FaqFrontmatter;
+  content: string;
+} {
   const frontmatter: FaqFrontmatter = {
     question: exchange.question,
     status: "draft",
-    sourceConversationId: "eval-conversation",
-    sourceMessageId,
-    mergedMessageIds: [],
+    asked: 1,
   };
   return {
     frontmatter,
@@ -68,7 +66,7 @@ export function registerFaqEvalHandlers(params: {
     const { stored, incoming } = sameQuestionInputSchema.parse(input);
     await clearFaqs(context);
 
-    const seeded = faqMarkdown(stored, "eval-stored-reply");
+    const seeded = faqMarkdown(stored);
     await context.entityService.createEntity({
       entity: {
         id: EVAL_STORED_ID,
@@ -80,7 +78,7 @@ export function registerFaqEvalHandlers(params: {
     });
     await waitForEmbeddingsToDrain(context.jobs);
 
-    const query = faqMarkdown(incoming, "eval-incoming-reply").content;
+    const query = faqMarkdown(incoming).content;
     const distances = await context.entityService.searchWithDistances({
       query,
     });

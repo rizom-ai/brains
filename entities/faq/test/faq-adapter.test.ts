@@ -4,43 +4,38 @@ import { faqAdapter } from "../src";
 const frontmatter = {
   question: "How do I publish a draft?",
   status: "draft" as const,
-  sourceConversationId: "conv-1",
-  sourceMessageId: "msg-2",
-  mergedMessageIds: ["msg-9"],
+  asked: 2,
 };
 
 describe("FaqAdapter", () => {
-  it("round-trips the question in frontmatter and the answer as body", () => {
+  it("keeps only what a reader needs in frontmatter, the answer as body", () => {
     const markdown = faqAdapter.createFaqContent(
       frontmatter,
       "Open it in Studio and choose Publish.",
     );
 
+    expect(markdown.split("---")[1]?.trim()).toBe(
+      ["question: How do I publish a draft?", "status: draft", "asked: 2"].join(
+        "\n",
+      ),
+    );
     const parsed = faqAdapter.parseFaqContent(markdown);
     expect(parsed.frontmatter).toEqual(frontmatter);
     expect(parsed.answer).toBe("Open it in Studio and choose Publish.");
     expect(parsed.alternatives).toEqual([]);
-    expect(markdown).not.toContain("Alternative answers");
-
     expect(faqAdapter.fromMarkdown(markdown)).toMatchObject({
       entityType: "faq",
-      metadata: {
-        question: "How do I publish a draft?",
-        status: "draft",
-        asked: 2,
-      },
+      metadata: frontmatter,
     });
   });
 
-  it("keeps alternative answers as markdown in the body, apart from the answer", () => {
+  it("numbers alternative answers as markdown sections below the answer", () => {
     const markdown = faqAdapter.createFaqContent(
       frontmatter,
       "Open it in Studio and choose **Publish**.",
       [
-        {
-          messageId: "msg-9",
-          answer: "Set the status to published.\n\nThen save.",
-        },
+        { answer: "Set the status to published.\n\nThen save." },
+        { answer: "Use the Publish button." },
       ],
     );
 
@@ -50,54 +45,52 @@ describe("FaqAdapter", () => {
         "",
         "## Alternative answers",
         "",
-        "### From reply msg-9",
+        "### Alternative 1",
         "",
         "Set the status to published.",
         "",
         "Then save.",
+        "",
+        "### Alternative 2",
+        "",
+        "Use the Publish button.",
       ].join("\n"),
     );
-    expect(markdown.split("---")[1]).not.toContain("Set the status");
 
     const parsed = faqAdapter.parseFaqContent(markdown);
     expect(parsed.answer).toBe("Open it in Studio and choose **Publish**.");
     expect(parsed.alternatives).toEqual([
-      {
-        messageId: "msg-9",
-        answer: "Set the status to published.\n\nThen save.",
-      },
+      { answer: "Set the status to published.\n\nThen save." },
+      { answer: "Use the Publish button." },
     ]);
   });
 
-  it("reads alternatives the owner edited in the editor", () => {
+  it("reads alternatives the owner edited, whatever their headings say", () => {
     const markdown = [
       "---",
       "question: What is a brain?",
       "status: draft",
-      "sourceConversationId: conv-1",
-      "sourceMessageId: msg-2",
       "---",
       "A personal knowledge service.",
       "",
       "## Alternative answers",
       "",
-      "### From reply msg-3",
-      "",
-      "A place your knowledge lives.",
-      "",
-      "### From reply msg-4",
+      "### Shorter",
       "",
       "Your notes, served.",
+      "",
+      "### Alternative 7",
+      "",
+      "A place your knowledge lives.",
       "",
     ].join("\n");
 
     const parsed = faqAdapter.parseFaqContent(markdown);
-    expect(parsed.frontmatter.mergedMessageIds).toEqual([]);
+    expect(parsed.frontmatter.asked).toBe(1);
     expect(parsed.answer).toBe("A personal knowledge service.");
     expect(parsed.alternatives).toEqual([
-      { messageId: "msg-3", answer: "A place your knowledge lives." },
-      { messageId: "msg-4", answer: "Your notes, served." },
+      { answer: "Your notes, served." },
+      { answer: "A place your knowledge lives." },
     ]);
-    expect(faqAdapter.fromMarkdown(markdown).metadata?.asked).toBe(1);
   });
 });

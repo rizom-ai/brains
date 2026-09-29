@@ -24,7 +24,8 @@ const useAnswerAction = defineWorkspaceAction({
   permission: "trusted",
   input: z.object({
     entityId: z.string().min(1).max(500),
-    messageId: z.string().min(1).max(200),
+    /** 1-based position among the FAQ's alternatives. */
+    alternative: z.number().int().min(1),
   }),
   output: successSchema,
 });
@@ -94,13 +95,10 @@ const reviewWorkspace = defineStudioWorkspace({
                 link: { catalog: faqEntities, entityType: "faq", id: faq.id },
                 actionsLabel: "Answer options",
                 actions: [
-                  ...faq.alternatives.map((alternative, index) => ({
+                  ...faq.alternatives.map((_alternative, index) => ({
                     action: useAnswerAction,
                     label: `Use alternative ${index + 1}`,
-                    input: {
-                      entityId: faq.id,
-                      messageId: alternative.messageId,
-                    },
+                    input: { entityId: faq.id, alternative: index + 1 },
                   })),
                   { action: keepAnswerAction, input: { entityId: faq.id } },
                 ],
@@ -149,13 +147,13 @@ async function loadReview(
 
 /**
  * Settle a FAQ's answer: the chosen alternative, or the current answer when
- * `messageId` is absent. Clears the alternatives. Reads at the caller's
+ * `alternative` is absent. Clears the alternatives. Reads at the caller's
  * visibility and writes only over the version it read.
  */
 async function settleAnswer(
   context: EntityPluginContext,
   visibilityScope: ContentVisibility,
-  input: { entityId: string; messageId?: string },
+  input: { entityId: string; alternative?: number },
 ): Promise<{ success: true }> {
   const faq: FaqEntity | null = await context.entityService.getEntity(
     { entityType: "faq", id: input.entityId, visibilityScope },
@@ -166,10 +164,8 @@ async function settleAnswer(
   const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
     faq.content,
   );
-  const chosen = input.messageId
-    ? alternatives.find(
-        (alternative) => alternative.messageId === input.messageId,
-      )?.answer
+  const chosen = input.alternative
+    ? alternatives[input.alternative - 1]?.answer
     : answer;
   if (chosen === undefined) throw new Error("Alternative answer not found");
 

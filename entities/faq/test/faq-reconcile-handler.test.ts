@@ -60,15 +60,13 @@ describe("FaqReconcileHandler", () => {
       created: string;
       status?: FaqStatus;
       visibility?: ContentVisibility;
-      mergedMessageIds?: string[];
+      asked?: number;
     },
   ): Promise<void> {
     const frontmatter: FaqFrontmatter = {
       question: `Question ${id}?`,
       status: options.status ?? "draft",
-      sourceConversationId: "conv-1",
-      sourceMessageId: `msg-${id}`,
-      mergedMessageIds: options.mergedMessageIds ?? [],
+      asked: options.asked ?? 1,
     };
     await context.entityService.createEntity({
       entity: {
@@ -114,7 +112,7 @@ describe("FaqReconcileHandler", () => {
     await seed("older", { created: "2026-09-01T00:00:00.000Z" });
     await seed("newer", {
       created: "2026-09-02T00:00:00.000Z",
-      mergedMessageIds: ["msg-extra"],
+      asked: 2,
     });
     near("newer", "older");
 
@@ -124,15 +122,9 @@ describe("FaqReconcileHandler", () => {
     const remaining = await faqs();
     expect(remaining.map((faq) => faq.id)).toEqual(["older"]);
     const parsed = faqAdapter.parseFaqContent(remaining[0]?.content ?? "");
-    expect(parsed.frontmatter.mergedMessageIds).toEqual([
-      "msg-newer",
-      "msg-extra",
-    ]);
     expect(parsed.answer).toBe("Answer older.");
     expect(remaining[0]?.metadata.asked).toBe(3);
-    expect(parsed.alternatives).toEqual([
-      { messageId: "msg-newer", answer: "Answer newer." },
-    ]);
+    expect(parsed.alternatives).toEqual([{ answer: "Answer newer." }]);
   });
 
   it("keeps the older FAQ; the newer one folds itself", async () => {
