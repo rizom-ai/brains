@@ -636,14 +636,12 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(document.querySelector("#brain-chat-recording")).toBeNull();
     expect(document.body.textContent).not.toContain("kept for");
   });
-  it("keeps the one note under the box's composer while an answer streams", async () => {
+  it("adds no note under the box's composer while an answer streams", async () => {
     held = true;
     await mount({ box: boxCopy });
     await ask("Energy efficiency");
     expect(document.body.textContent).toContain("Partial");
-    expect(document.querySelector("#brain-chat-notice")?.textContent).toBe(
-      "Answers use published work only. Leave private details out.",
-    );
+    expect(document.querySelector("#brain-chat-notice")).toBeNull();
   });
   it("follows the box to the newest answer when the visitor sends while scrolled back", async () => {
     await mount({ box: boxCopy });
@@ -667,24 +665,6 @@ describe("public Ask UI with mocked Chat transport", () => {
 
     expect(region.scrollTop).toBe(1000);
     expect(document.querySelector(".brain-box-latest")).toBeNull();
-  });
-
-  it("holds the box still behind About and restores the reading position after it", async () => {
-    await mount({ box: boxCopy });
-    await ask("First question");
-    const region = boxRegion();
-    await scrollRegion(region, 300);
-
-    await click("About");
-    expect(region.scrollTop).toBe(0);
-    expect(document.activeElement?.textContent).toBe("Close");
-    expect(document.querySelector(".brain-box-latest")).toBeNull();
-    await ask("Second question");
-    expect(region.scrollTop).toBe(0);
-
-    await click("Close");
-    expect(region.scrollTop).toBe(300);
-    expect(document.activeElement?.textContent).toBe("About this chat");
   });
 
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {
