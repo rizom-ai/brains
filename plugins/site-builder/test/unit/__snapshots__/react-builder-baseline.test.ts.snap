@@ -541,7 +541,7 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
                 ],
                 [
                   "src",
-                  "/scripts/page.js",
+                  "/scripts/page.js?v=f58dd4302296",
                 ],
               ],
               "children": [],
@@ -2036,7 +2036,7 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
                 ],
                 [
                   "src",
-                  "/scripts/page.js",
+                  "/scripts/page.js?v=f58dd4302296",
                 ],
               ],
               "children": [],
@@ -2795,7 +2795,7 @@ exports[`ReactBuilder behavioral baseline characterizes representative routes, m
                 ],
                 [
                   "src",
-                  "/scripts/page.js",
+                  "/scripts/page.js?v=f58dd4302296",
                 ],
               ],
               "children": [],
