@@ -59,7 +59,7 @@ function toCitation(
 }
 
 /**
- * A visitor's answer's sources: the public pages the site shows whose
+ * A visitor's answer's sources: the published public pages the site shows whose
  * embeddings sit closest to the answer, however the answer found its way
  * to them. Only pages scoring near the closest one count.
  */
@@ -73,6 +73,7 @@ export function createGuestAnswerSources(
         limit: SEARCH_LIMIT,
         minScore: MIN_SCORE,
         visibilityScope: permissionToVisibilityScope("public"),
+        publishedOnly: true,
       },
     });
     const shown = results.filter((result) =>

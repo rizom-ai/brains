@@ -291,6 +291,7 @@ export class EntityService implements IEntityService {
         this.entitySerializer,
         this.logger,
         embeddingsEnabled,
+        () => this.declaredPublishGates(),
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -770,6 +771,9 @@ export class EntityService implements IEntityService {
       id,
       visibilityScope,
       request,
+      request.publishedOnly
+        ? { publishedStatuses: this.publishedStatusesFor(entityType) }
+        : undefined,
     );
     if (!entityData) {
       return null;
@@ -908,6 +912,15 @@ export class EntityService implements IEntityService {
    * "published" means belongs to the entity type — queries consult this
    * instead of the shell hardcoding every plugin's lifecycle vocabulary.
    */
+  private declaredPublishGates(): Record<string, string[]> {
+    return Object.fromEntries(
+      this.entityRegistry.getAllEntityTypes().flatMap((entityType) => {
+        const statuses = this.publishedStatusesFor(entityType);
+        return statuses ? [[entityType, statuses]] : [];
+      }),
+    );
+  }
+
   private publishedStatusesFor(entityType: string): string[] | undefined {
     if (!this.entityRegistry.hasEntityType(entityType)) {
       return undefined;

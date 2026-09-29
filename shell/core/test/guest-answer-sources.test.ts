@@ -80,6 +80,8 @@ describe("a visitor's answer's sources", () => {
     const request = search.mock.calls[0]?.[0];
     expect(request?.query).toBe("Storage is not memory.");
     expect(request?.options?.visibilityScope).toBe("public");
+    // A visitor is pointed only at published work, never at a draft.
+    expect(request?.options?.publishedOnly).toBe(true);
   });
 
   it("carry the page's title and address on the site", async () => {

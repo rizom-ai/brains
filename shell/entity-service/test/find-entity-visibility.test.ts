@@ -96,6 +96,30 @@ describe("findEntityByIdentifier scope propagation", () => {
     }
   });
 
+  it("carries publishedOnly to the direct lookup and every fallback", async () => {
+    const captured = createCapturedService();
+    await findEntityByIdentifier(
+      captured.service,
+      "doc",
+      "missing",
+      undefined,
+      "public",
+      { publishedOnly: true },
+    );
+    expect(captured.getEntityCalls).toEqual([
+      {
+        entityType: "doc",
+        id: "missing",
+        visibilityScope: "public",
+        publishedOnly: true,
+      },
+    ]);
+    expect(captured.listEntitiesCalls).toHaveLength(4);
+    for (const request of captured.listEntitiesCalls) {
+      expect(request.options).toMatchObject({ publishedOnly: true });
+    }
+  });
+
   it("starts no fallback after cancellation during a slow direct read", async () => {
     const captured = createCapturedService();
     const controller = new AbortController();

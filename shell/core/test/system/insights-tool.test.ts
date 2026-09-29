@@ -5,9 +5,11 @@ import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
 
+// The brain's owner, who sees work in progress; public callers are below.
 const toolContext: ToolContext = {
   interfaceType: "mcp",
   actor: { kind: "user", userId: "test" },
+  userPermissionLevel: "admin",
 };
 
 function findTool(tools: Tool[], name: string): Tool {
@@ -272,8 +274,9 @@ describe("system_insights tool", () => {
       ]);
     });
 
-    it("hides non-public counts from a public caller", async () => {
-      // Only the 3 public posts; shared + restricted are invisible.
+    it("hides non-public counts and drafts from a public caller", async () => {
+      // Only the 2 published public posts; the draft, shared and restricted
+      // posts are invisible.
       expect(
         expectSuccessData(
           await tool.handler(
@@ -282,9 +285,21 @@ describe("system_insights tool", () => {
           ),
         ),
       ).toMatchObject({
-        entityCounts: { post: 3 },
-        totalEntities: 6,
+        entityCounts: { post: 2, note: 2, link: 1 },
+        totalEntities: 5,
+        contentHealth: { drafts: 0, published: 2 },
       });
+    });
+
+    it("lists no drafts to a public caller", async () => {
+      expect(
+        expectSuccessData(
+          await tool.handler(
+            { type: "content-health" },
+            { ...toolContext, userPermissionLevel: "public" },
+          ),
+        ),
+      ).toMatchObject({ drafts: [] });
     });
 
     it("includes shared but not restricted counts for a trusted caller", async () => {
