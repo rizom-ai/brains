@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.451
+
+### Patch Changes
+
+- [#437](https://github.com/rizom-ai/brains/pull/437) [`9c69413`](https://github.com/rizom-ai/brains/commit/9c694130035731efe61b97c2c5e3b9e76bbb735b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site runtime scripts that the build serves itself now load from a content-fingerprinted src (`/scripts/homepage-atlas.js?v=…`). A release that changes a script reaches visitors on their next page load instead of after the four-hour browser and CDN cache runs out.
+
 ## 0.2.0-alpha.450
 
 ### Patch Changes

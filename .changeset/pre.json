@@ -517,6 +517,7 @@
     "core--runtime-bun14-image-rebuild",
     "core--runtime-health-recovery",
     "core--scope-pristine-save-guard",
+    "core--script-fingerprint",
     "core--section-template-default-unwrap",
     "core--serialized-status-store",
     "core--shared-fleet-image-contract",
