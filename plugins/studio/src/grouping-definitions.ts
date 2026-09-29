@@ -1,5 +1,6 @@
 import {
   internalFullScope,
+  isGroupingContributor,
   type BaseEntity,
   type ServicePluginContext,
 } from "@brains/plugins";
@@ -17,12 +18,9 @@ export function isGroupingContributorType(
   context: ServicePluginContext,
   type: string,
 ): boolean {
-  const adapter = context.entities.getAdapter(type);
-  return (
-    type !== GROUPING_DEFINITIONS_TYPE &&
-    !!adapter?.frontmatterSchema &&
-    !adapter.isSingleton &&
-    context.entityService.getEntityTypeConfig(type).binaryStorage !== "asset"
+  return isGroupingContributor(
+    context.entities.getAdapter(type),
+    context.entityService.getEntityTypeConfig(type),
   );
 }
 
@@ -35,6 +33,7 @@ export function registerGroupingDefinitions(
     groupingDefinitionsEntitySchema,
     groupingDefinitionsAdapter,
     {
+      classification: "system",
       embeddable: false,
       projectionSource: false,
       actionPolicy: {

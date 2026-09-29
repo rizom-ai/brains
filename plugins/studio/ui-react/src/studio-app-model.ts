@@ -234,7 +234,7 @@ export function deriveStudioAppModel(
       : null;
   const editorHead: StudioPageHeadModel = {
     kicker: entitySchema.isSingleton
-      ? `${studioArea(entityType, null)} / singleton`
+      ? `${studioArea(activeType ?? null, null)} / singleton`
       : collectionLabel,
     access: studioAccessRequirement("trusted"),
     title: systemDesign?.title ?? heading ?? "Editor",

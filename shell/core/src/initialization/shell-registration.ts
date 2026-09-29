@@ -75,7 +75,11 @@ export function registerBrainCharacterSupport(
     SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
     characterAdapter.schema,
     characterAdapter,
-    { projectionSource: false, projectionSourceRole: "excluded" },
+    {
+      classification: "system",
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    },
   );
   logger.debug("Brain character entity support registered");
 }
@@ -89,7 +93,7 @@ export function registerAnchorProfileSupport(
     SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
     profileAdapter.schema,
     profileAdapter,
-    { projectionSourceRole: "canonical" },
+    { classification: "system", projectionSourceRole: "canonical" },
   );
   logger.debug("Anchor profile entity support registered");
 }

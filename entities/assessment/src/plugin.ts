@@ -156,6 +156,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
+      classification: "system",
       projectionSource: false,
       projectionSourceRole: "excluded",
     };

@@ -7,6 +7,7 @@ import { deriveStudioAppModel } from "./studio-app-model";
 function typeInfo(overrides: Partial<EntityTypeInfo> = {}): EntityTypeInfo {
   return {
     entityType: "note",
+    classification: "content",
     label: "Notes",
     isSingleton: false,
     hasBody: true,

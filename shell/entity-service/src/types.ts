@@ -1,3 +1,4 @@
+import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type { PreparedAsset } from "@brains/assets";
 import type {
@@ -602,6 +603,8 @@ export type ProjectionSourceRole =
  * Configuration for entity type registration
  */
 export interface EntityTypeConfig {
+  /** Plugin-owned semantic role, defaulting to content. System types cannot contribute to groupings. */
+  classification?: EntityTypeClassification;
   /** Score multiplier for search results (default: 1.0) */
   weight?: number;
   /** Whether to generate embeddings for this entity type (default: true).

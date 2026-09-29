@@ -356,7 +356,11 @@ export class StudioPlugin extends ServicePlugin<
         parseEntityDisplay(this.getContext().entityDisplay),
       workspaceRegistry: this.workspaceRegistry,
       getGroupingDefinitions: () =>
-        this.definitionSource?.getSnapshot() ?? { groupings: {}, issues: [] },
+        this.definitionSource?.getSnapshot() ?? {
+          groupings: {},
+          issues: [],
+          excludedTypes: [],
+        },
       recordAuditEvent: async (event) => {
         const authService = getActiveAuthService();
         if (authService) await authService.recordAuditEvent(event);

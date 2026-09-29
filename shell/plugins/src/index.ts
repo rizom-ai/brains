@@ -2,6 +2,12 @@
 // Plugin Framework Core
 // ============================================================================
 
+export {
+  entityTypeClassificationSchema,
+  isGroupingContributor,
+  type EntityTypeClassification,
+} from "@brains/entity-service";
+
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export {

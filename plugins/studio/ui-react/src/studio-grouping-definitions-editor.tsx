@@ -49,6 +49,7 @@ export function StudioGroupingDefinitionsEditor(props: {
   value: unknown;
   savedKeys: readonly string[];
   contributorTypes: readonly { entityType: string; label: string }[];
+  systemTypes: readonly string[];
   readOnly: boolean;
   usage?: Readonly<Record<string, GroupingDefinitionUsage>> | undefined;
   issues?: readonly GroupingDefinitionIssue[] | undefined;
@@ -211,6 +212,9 @@ export function StudioGroupingDefinitionsEditor(props: {
                   (type: unknown): type is string => typeof type === "string",
                 )
               : [];
+            const visibleExclusions = excludedTypes.filter(
+              (type) => !props.systemTypes.includes(type),
+            );
             const multiple = entry?.["multiple"];
             const closed =
               entry !== undefined && Object.hasOwn(entry, "values");
@@ -358,16 +362,17 @@ export function StudioGroupingDefinitionsEditor(props: {
                     <details {...stylex.props(s.exclusions)}>
                       <summary {...stylex.props(f.label, s.exclusionsSummary)}>
                         Exclude types
-                        {excludedTypes.length > 0
-                          ? ` (${excludedTypes.length})`
+                        {visibleExclusions.length > 0
+                          ? ` (${visibleExclusions.length})`
                           : ""}
                       </summary>
                       <p {...stylex.props(f.listHelp, s.help)}>
-                        Applies to all content types unless excluded.
+                        Content types participate unless excluded. System types
+                        never participate.
                       </p>
                       {props.readOnly ? (
                         <span {...stylex.props(s.readOnly)}>
-                          {excludedTypes
+                          {visibleExclusions
                             .map(
                               (type) =>
                                 props.contributorTypes.find(
@@ -383,7 +388,7 @@ export function StudioGroupingDefinitionsEditor(props: {
                           </legend>
                           {[
                             ...props.contributorTypes,
-                            ...excludedTypes
+                            ...visibleExclusions
                               .filter((type) => !eligibleTypes.has(type))
                               .map((type) => ({
                                 entityType: type,

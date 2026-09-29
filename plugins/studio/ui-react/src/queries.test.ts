@@ -96,6 +96,7 @@ function entitiesResponse(entities: EntitySummary[]): Response {
 function entityType(entityType: string): EntityTypeInfo {
   return {
     entityType,
+    classification: "content",
     label: entityType === "post" ? "Posts" : "Notes",
     isSingleton: false,
     hasBody: true,

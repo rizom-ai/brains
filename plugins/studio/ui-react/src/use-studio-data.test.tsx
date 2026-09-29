@@ -17,6 +17,7 @@ import { studioTypeHierarchy } from "../../src/config";
 
 const noteType: EntityTypeInfo = {
   entityType: "note",
+  classification: "content",
   label: "Notes",
   isSingleton: false,
   hasBody: true,

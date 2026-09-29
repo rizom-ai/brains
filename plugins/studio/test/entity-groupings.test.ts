@@ -56,6 +56,7 @@ function fixture(role: "trusted" | "public" | null = "trusted"): {
       getContext: () => context,
       getEntityDisplay: () => undefined,
       getGroupingDefinitions: () => ({
+        excludedTypes: [],
         groupings: {
           clients: { label: "Clients", types: grouping.types, multiple: true },
         },

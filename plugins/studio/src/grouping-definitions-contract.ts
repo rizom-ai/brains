@@ -73,5 +73,7 @@ export interface GroupingDefinitionIssue {
   message: string;
 }
 export interface GroupingDefinitionsSnapshot extends GroupingDefinitionsFrontmatter {
+  /** Authored names, including invalid sections awaiting explicit repair. */
+  excludedTypes: string[];
   issues: GroupingDefinitionIssue[];
 }

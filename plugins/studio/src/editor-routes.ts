@@ -7,6 +7,7 @@ import {
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import {
   canWriteVisibility,
+  entityTypeClassificationSchema,
   permissionToVisibilityScope,
 } from "@brains/plugins";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
@@ -638,6 +639,9 @@ async function handleListTypes(
       const adapter = context.entities.getAdapter(entityType);
       types.push({
         entityType,
+        classification: entityTypeClassificationSchema.parse(
+          context.entityService.getEntityTypeConfig(entityType).classification,
+        ),
         label: entityTypeLabels(entityType, entityDisplay?.[entityType])
           .pluralLabel,
         isSingleton: adapter?.isSingleton === true,
@@ -836,6 +840,13 @@ async function handleGetSchema(
       : [...domainFields, visibilityField];
 
   const contributorTypes: Array<{ entityType: string; label: string }> = [];
+  // Preserve authored exclusions, but never render registered system types as
+  // selectable "unavailable" choices. Only echo names already in this document.
+  const systemTypes = (definitions?.excludedTypes ?? []).filter(
+    (type) =>
+      context.entityService.getEntityTypeConfig(type).classification ===
+      "system",
+  );
   if (entityType === GROUPING_DEFINITIONS_TYPE) {
     const display = options.getEntityDisplay();
     for (const type of context.entityService.getEntityTypes()) {
@@ -854,6 +865,7 @@ async function handleGetSchema(
     ...(entityType === GROUPING_DEFINITIONS_TYPE && {
       groupingDefinitions: {
         contributorTypes,
+        systemTypes,
         issues: definitions?.issues ?? [],
       },
     }),
