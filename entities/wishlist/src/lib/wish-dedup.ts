@@ -30,7 +30,7 @@ export async function isSameWish(
   const { object } = await ai.generateObject(
     [
       SAME_WISH_CHECK,
-      "Answer yes only when delivering one would fulfil the other.",
+      "Answer yes when both ask for the same capability, even if wording, timing or detail differ (weekly vs every Monday, calendar sync vs Google Calendar integration).",
       "Opposite or different capabilities are different wishes, even when worded almost alike: send emails vs stop sending emails, add vs remove.",
       "",
       "New wish:",
