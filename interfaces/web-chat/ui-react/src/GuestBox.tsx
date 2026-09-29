@@ -376,6 +376,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           copy={copy}
           inputRef={input}
           onFocus={sheet.show}
+          onLand={sheet.land}
           {...(owner
             ? { answeredNote: `Answers come from what ${owner} has published.` }
             : {})}

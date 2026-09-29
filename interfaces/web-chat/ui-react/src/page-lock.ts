@@ -10,10 +10,11 @@ import { ASK_PAGE_LOCK_ATTRIBUTE } from "@brains/contracts";
  */
 const PINNED = ["position", "top", "left", "right"] as const;
 
-export function lockPage(): void {
+/** At the given scroll position, or where the page is now. */
+export function lockPage(at: number | null = null): void {
   const root = document.documentElement;
   if (root.hasAttribute(ASK_PAGE_LOCK_ATTRIBUTE)) return;
-  const y = Math.round(window.scrollY);
+  const y = Math.round(at ?? window.scrollY);
   root.setAttribute(ASK_PAGE_LOCK_ATTRIBUTE, String(y));
   const body = document.body.style;
   body.position = "fixed";
