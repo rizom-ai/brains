@@ -224,6 +224,32 @@ describe("shared Ask box boot", () => {
     expect(window.scrollY).toBe(300);
   });
 
+  it("holds the page where it was when the finger landed, before the browser scrolled to the field", () => {
+    window.happyDOM.setViewport({ width: 390, height: 844 });
+    boot();
+    window.scrollTo(0, 0);
+    input().dispatchEvent(new window.Event("touchstart", { bubbles: true }));
+    // Safari scrolls the tapped field into view before it takes focus.
+    window.scrollTo(0, 392);
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    expect(
+      window.document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE),
+    ).toBe("0");
+  });
+
+  it("hides the page behind the sheet from the first tap, and shows it again if chat cannot load", async () => {
+    window.happyDOM.setViewport({ width: 390, height: 844 });
+    boot();
+    const box = element(`[${ASK_BOX_ATTRIBUTE}]`);
+    input().dispatchEvent(new window.FocusEvent("focus"));
+    // No rise runs in tests, so the sheet covers the page at once.
+    expect(window.document.body.style.visibility).toBe("hidden");
+    expect(box.style.visibility).toBe("visible");
+    await settled();
+    expect(window.document.body.style.visibility).toBe("");
+    expect(box.style.visibility).toBe("");
+  });
+
   it("keeps the box in the page on a wide screen", () => {
     window.happyDOM.setViewport({ width: 1280, height: 900 });
     boot();

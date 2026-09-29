@@ -1,5 +1,69 @@
 # @brains/core
 
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.450
+  - @brains/image@0.2.0-alpha.450
+  - @brains/operation-context@0.2.0-alpha.450
+  - @brains/site-composition@0.2.0-alpha.450
+  - @brains/utils@0.2.0-alpha.450
+  - @brains/plugins@0.2.0-alpha.450
+  - @brains/recurring-checks@0.2.0-alpha.450
+  - @brains/runtime-state@0.2.0-alpha.450
+  - @brains/scheduler@0.2.0-alpha.450
+  - @brains/templates@0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.449
+  - @brains/image@0.2.0-alpha.449
+  - @brains/operation-context@0.2.0-alpha.449
+  - @brains/site-composition@0.2.0-alpha.449
+  - @brains/utils@0.2.0-alpha.449
+  - @brains/plugins@0.2.0-alpha.449
+  - @brains/recurring-checks@0.2.0-alpha.449
+  - @brains/runtime-state@0.2.0-alpha.449
+  - @brains/scheduler@0.2.0-alpha.449
+  - @brains/templates@0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.448
+  - @brains/image@0.2.0-alpha.448
+  - @brains/operation-context@0.2.0-alpha.448
+  - @brains/site-composition@0.2.0-alpha.448
+  - @brains/utils@0.2.0-alpha.448
+  - @brains/plugins@0.2.0-alpha.448
+  - @brains/recurring-checks@0.2.0-alpha.448
+  - @brains/runtime-state@0.2.0-alpha.448
+  - @brains/scheduler@0.2.0-alpha.448
+  - @brains/templates@0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.447
+  - @brains/image@0.2.0-alpha.447
+  - @brains/operation-context@0.2.0-alpha.447
+  - @brains/site-composition@0.2.0-alpha.447
+  - @brains/utils@0.2.0-alpha.447
+  - @brains/plugins@0.2.0-alpha.447
+  - @brains/recurring-checks@0.2.0-alpha.447
+  - @brains/runtime-state@0.2.0-alpha.447
+  - @brains/scheduler@0.2.0-alpha.447
+  - @brains/templates@0.2.0-alpha.447
+
 ## 0.2.0-alpha.446
 
 ### Patch Changes

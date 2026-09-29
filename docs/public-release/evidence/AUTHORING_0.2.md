@@ -8,6 +8,20 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Mobile Ask reopening integration scope
+
+Approved main `1afbee4cd3` locks the page at its pre-focus touch/pointer position,
+retains that position across reopening, covers the background after sheet rise,
+and expands a tapped atlas strip before opening a small map mark. Late rise
+completion is fenced while closing so it cannot hide the background again.
+Native DOM tests cover the closing race alongside incoming reopening and cover
+behavior; these do not constitute physical Safari/browser acceptance.
+
+Public UI identity remains `@rizom/brain-ui` (alpha.450), with unchanged curated
+authoring exports, atomic asset-build ownership, authorization and independent
+Core/Site lanes. Exact completed commit/tree/check evidence is recorded on PR301.
+No spending, grounding, registry, provider or deployment acceptance is implied.
+
 ## Entity classification integration scope
 
 Approved main `47207af475` and separately approved classification declarations

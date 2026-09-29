@@ -1,5 +1,53 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.450
+  - @brains/contracts@0.2.0-alpha.450
+  - @brains/image@0.2.0-alpha.450
+  - @brains/utils@0.2.0-alpha.450
+  - @brains/entity-service@0.2.0-alpha.450
+  - @brains/plugins@0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.449
+  - @brains/contracts@0.2.0-alpha.449
+  - @brains/image@0.2.0-alpha.449
+  - @brains/utils@0.2.0-alpha.449
+  - @brains/entity-service@0.2.0-alpha.449
+  - @brains/plugins@0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.448
+  - @brains/contracts@0.2.0-alpha.448
+  - @brains/image@0.2.0-alpha.448
+  - @brains/utils@0.2.0-alpha.448
+  - @brains/entity-service@0.2.0-alpha.448
+  - @brains/plugins@0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.447
+  - @brains/contracts@0.2.0-alpha.447
+  - @brains/image@0.2.0-alpha.447
+  - @brains/utils@0.2.0-alpha.447
+  - @brains/entity-service@0.2.0-alpha.447
+  - @brains/plugins@0.2.0-alpha.447
+
 ## 0.2.0-alpha.446
 
 ### Patch Changes

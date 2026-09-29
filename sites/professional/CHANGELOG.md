@@ -1,5 +1,81 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.450
+  - @brains/decks@0.2.0-alpha.450
+  - @brains/site-info@0.2.0-alpha.450
+  - @brains/topics@0.2.0-alpha.450
+  - @brains/profile@0.2.0-alpha.450
+  - @brains/content-formatters@0.2.0-alpha.450
+  - @brains/contracts@0.2.0-alpha.450
+  - @brains/site-composition@0.2.0-alpha.450
+  - @brains/site-engine@0.2.0-alpha.450
+  - @brains/ui-library@0.2.0-alpha.450
+  - @brains/utils@0.2.0-alpha.450
+  - @brains/plugins@0.2.0-alpha.450
+  - @brains/templates@0.2.0-alpha.450
+
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.449
+  - @brains/decks@0.2.0-alpha.449
+  - @brains/site-info@0.2.0-alpha.449
+  - @brains/topics@0.2.0-alpha.449
+  - @brains/profile@0.2.0-alpha.449
+  - @brains/content-formatters@0.2.0-alpha.449
+  - @brains/contracts@0.2.0-alpha.449
+  - @brains/site-composition@0.2.0-alpha.449
+  - @brains/site-engine@0.2.0-alpha.449
+  - @brains/ui-library@0.2.0-alpha.449
+  - @brains/utils@0.2.0-alpha.449
+  - @brains/plugins@0.2.0-alpha.449
+  - @brains/templates@0.2.0-alpha.449
+
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.448
+  - @brains/decks@0.2.0-alpha.448
+  - @brains/site-info@0.2.0-alpha.448
+  - @brains/topics@0.2.0-alpha.448
+  - @brains/profile@0.2.0-alpha.448
+  - @brains/content-formatters@0.2.0-alpha.448
+  - @brains/contracts@0.2.0-alpha.448
+  - @brains/site-composition@0.2.0-alpha.448
+  - @brains/site-engine@0.2.0-alpha.448
+  - @brains/ui-library@0.2.0-alpha.448
+  - @brains/utils@0.2.0-alpha.448
+  - @brains/plugins@0.2.0-alpha.448
+  - @brains/templates@0.2.0-alpha.448
+
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.447
+  - @brains/decks@0.2.0-alpha.447
+  - @brains/site-info@0.2.0-alpha.447
+  - @brains/topics@0.2.0-alpha.447
+  - @brains/profile@0.2.0-alpha.447
+  - @brains/content-formatters@0.2.0-alpha.447
+  - @brains/contracts@0.2.0-alpha.447
+  - @brains/site-composition@0.2.0-alpha.447
+  - @brains/site-engine@0.2.0-alpha.447
+  - @brains/ui-library@0.2.0-alpha.447
+  - @brains/utils@0.2.0-alpha.447
+  - @brains/plugins@0.2.0-alpha.447
+  - @brains/templates@0.2.0-alpha.447
+
 ## 0.2.0-alpha.446
 
 ### Patch Changes

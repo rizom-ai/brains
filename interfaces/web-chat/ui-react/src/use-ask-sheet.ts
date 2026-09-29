@@ -14,7 +14,13 @@ import {
   ASK_SHEET_HISTORY_KEY,
   ASK_SHEET_MEDIA,
 } from "@brains/contracts";
-import { lockPage, pageScroll, unlockPage } from "./page-lock";
+import {
+  coverPage,
+  lockPage,
+  pageScroll,
+  uncoverPage,
+  unlockPage,
+} from "./page-lock";
 
 /** A visual viewport this much shorter than the window has a keyboard in it. */
 const KEYBOARD_SHARE = 0.8;
@@ -25,6 +31,8 @@ export interface AskSheet {
   open: boolean;
   show: () => void;
   close: () => void;
+  /** A finger or pointer landed on the composer: where the page is now. */
+  land: () => void;
 }
 
 /**
@@ -44,6 +52,12 @@ export function useAskSheet(
   const [closing, setClosing] = useState(false);
   // Back closes the conversation: opening adds the history entry it pops.
   const entered = useRef(false);
+  // Where the page was when a finger landed on the composer: Safari scrolls
+  // a tapped field into view before it takes focus.
+  const landed = useRef<number | null>(null);
+  const land = useCallback((): void => {
+    landed.current = window.scrollY;
+  }, []);
   const host = (): HTMLElement | null =>
     root.current?.closest<HTMLElement>(`[${ASK_BOX_ATTRIBUTE}]`) ?? null;
 
@@ -64,6 +78,9 @@ export function useAskSheet(
 
   const show = useCallback((): void => {
     if (!window.matchMedia(ASK_SHEET_MEDIA).matches) return;
+    // At once, as the boot does, before the keyboard moves anything.
+    lockPage(landed.current);
+    landed.current = null;
     setClosing(false);
     setOpen(true);
   }, []);
@@ -87,6 +104,8 @@ export function useAskSheet(
     };
     if (!element) return settle();
     element.setAttribute(ASK_CLOSING_ATTRIBUTE, "");
+    // The page shows again as the sheet starts to fall away from it.
+    uncoverPage(element);
     const animation = window.getComputedStyle(element).animationName;
     if (!animation || animation === "none") return settle();
     element.addEventListener("animationend", settle, { once: true });
@@ -106,6 +125,17 @@ export function useAskSheet(
     }
     element.setAttribute(ASK_SHEET_ATTRIBUTE, "");
     lockPage();
+    // Once the sheet has risen over the page, the page goes out of sight; a
+    // sheet the boot opened may have risen already.
+    let live = true;
+    const cover = (): void => {
+      if (live && !element.hasAttribute(ASK_CLOSING_ATTRIBUTE))
+        coverPage(element);
+    };
+    const rising = "getAnimations" in element ? element.getAnimations() : [];
+    if (rising.length === 0) cover();
+    else
+      void Promise.all(rising.map((rise) => rise.finished)).then(cover, cover);
     if (!entered.current) {
       entered.current = true;
       // Where the page was, so a reload with the sheet open returns there.
@@ -151,6 +181,8 @@ export function useAskSheet(
       document.removeEventListener("focusout", fit);
       window.removeEventListener("popstate", back);
       document.removeEventListener("keydown", escape);
+      live = false;
+      uncoverPage(element);
       unlockPage();
       element.removeAttribute(ASK_SHEET_ATTRIBUTE);
       element.removeAttribute(ASK_CLOSING_ATTRIBUTE);
@@ -160,5 +192,5 @@ export function useAskSheet(
     };
   }, [open, close]);
 
-  return { narrow, open, show, close };
+  return { narrow, open, show, close, land };
 }

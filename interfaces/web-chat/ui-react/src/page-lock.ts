@@ -10,10 +10,11 @@ import { ASK_PAGE_LOCK_ATTRIBUTE } from "@brains/contracts";
  */
 const PINNED = ["position", "top", "left", "right"] as const;
 
-export function lockPage(): void {
+/** At the given scroll position, or where the page is now. */
+export function lockPage(at: number | null = null): void {
   const root = document.documentElement;
   if (root.hasAttribute(ASK_PAGE_LOCK_ATTRIBUTE)) return;
-  const y = Math.round(window.scrollY);
+  const y = Math.round(at ?? window.scrollY);
   root.setAttribute(ASK_PAGE_LOCK_ATTRIBUTE, String(y));
   const body = document.body.style;
   body.position = "fixed";
@@ -35,4 +36,19 @@ export function unlockPage(): void {
 export function pageScroll(): number {
   const held = document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE);
   return held === null ? Math.round(window.scrollY) : Number(held) || 0;
+}
+
+/**
+ * Takes everything on the page but the open sheet out of sight, so nothing
+ * of it can show through wherever the sheet briefly fails to cover the
+ * screen (as Safari's keyboard and bars resize it). The sheet stays visible.
+ */
+export function coverPage(sheet: HTMLElement): void {
+  document.body.style.visibility = "hidden";
+  sheet.style.visibility = "visible";
+}
+
+export function uncoverPage(sheet: HTMLElement): void {
+  document.body.style.removeProperty("visibility");
+  sheet.style.removeProperty("visibility");
 }

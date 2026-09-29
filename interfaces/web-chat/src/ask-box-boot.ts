@@ -1,5 +1,6 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_CLOSING_ATTRIBUTE,
   ASK_PAGE_LOCK_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
@@ -65,10 +66,10 @@ export function askBoxBootScript(version: string): string {
   // The page holds still behind the sheet from the first tap (the box's
   // page-lock does the same once mounted, and releases it on close).
   var LOCK = ${JSON.stringify(ASK_PAGE_LOCK_ATTRIBUTE)};
-  function lockPage() {
+  function lockPage(at) {
     var root = document.documentElement;
     if (root.hasAttribute(LOCK)) return;
-    var y = Math.round(window.scrollY);
+    var y = Math.round(at === null ? window.scrollY : at);
     root.setAttribute(LOCK, String(y));
     document.body.style.position = "fixed";
     document.body.style.top = -y + "px";
@@ -121,6 +122,23 @@ export function askBoxBootScript(version: string): string {
     var loading = false;
     var mounted = false;
     var sendRequested = false;
+    // Where the page was when the finger landed: Safari scrolls a tapped field
+    // into view before it takes focus, and the page should stay where it was.
+    var landed = null;
+    function land() { landed = window.scrollY; }
+    input.addEventListener("touchstart", land, { passive: true });
+    input.addEventListener("mousedown", land);
+    // Once the sheet has risen over the page, the page goes out of sight (as
+    // the box's page-lock does once mounted, and undoes on close).
+    function cover() {
+      if (!host.hasAttribute("${ASK_SHEET_ATTRIBUTE}") || host.hasAttribute("${ASK_CLOSING_ATTRIBUTE}")) return;
+      document.body.style.visibility = "hidden";
+      host.style.visibility = "visible";
+    }
+    function uncover() {
+      document.body.style.removeProperty("visibility");
+      host.style.removeProperty("visibility");
+    }
     async function open() {
       if (loading || mounted) return;
       loading = true;
@@ -132,7 +150,11 @@ export function askBoxBootScript(version: string): string {
           (viewport ? viewport.height : window.innerHeight) + "px"
         );
         host.setAttribute("${ASK_SHEET_ATTRIBUTE}", "");
-        lockPage();
+        lockPage(landed);
+        landed = null;
+        var rising = host.getAnimations ? host.getAnimations() : [];
+        if (rising.length === 0) cover();
+        else Promise.all(rising.map(function (rise) { return rise.finished; })).then(cover, cover);
       }
       try {
         // Served by the Brain, not bundled inside the site package.
@@ -142,6 +164,7 @@ export function askBoxBootScript(version: string): string {
       } catch {
         // The status line tells the visitor; the draft stays and nothing was sent.
         host.removeAttribute("${ASK_SHEET_ATTRIBUTE}");
+        uncover();
         unlockPage();
         sendRequested = false;
         input.readOnly = false;

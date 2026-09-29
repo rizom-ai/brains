@@ -1,5 +1,31 @@
 # @rizom/brain
 
+## 0.2.0-alpha.450
+
+### Patch Changes
+
+- [#436](https://github.com/rizom-ai/brains/pull/436) [`db31d1f`](https://github.com/rizom-ai/brains/commit/db31d1f8c7c1211ae667c99b5a2966b0a88cd755) Thanks [@yeehaa123](https://github.com/yeehaa123)! - In the phone conversation, a tap on the map's strip brings the whole map back to the top, rather than opening a mark too small to aim at; at full height, taps work on the marks as before.
+
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- [#435](https://github.com/rizom-ai/brains/pull/435) [`1c4c0cb`](https://github.com/rizom-ai/brains/commit/1c4c0cbd7ba417f9cd73cd399d8539063b50f5eb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The first opening of the phone conversation hides the page behind it too, from the moment the sheet has risen, not only once the conversation has loaded (which can take a second or more).
+
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- [#433](https://github.com/rizom-ai/brains/pull/433) [`2c0c48b`](https://github.com/rizom-ai/brains/commit/2c0c48bf16807acd11917ff24a866fe41b9328e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - While the phone conversation is open, the rest of the page is out of sight: once the sheet has risen over it the page is hidden, and it shows again as the sheet starts to fall away. Nothing of the homepage or footer can show through wherever Safari's keyboard and bars briefly leave the sheet short of the screen.
+
+## 0.2.0-alpha.447
+
+### Patch Changes
+
+- [#431](https://github.com/rizom-ai/brains/pull/431) [`c5af76a`](https://github.com/rizom-ai/brains/commit/c5af76a051bde7ddcdba5e13525023f1a482ba23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the page behind the Ask conversation is held where it was when the visitor's finger landed on the box, not where Safari had already scrolled to reveal it, so closing the conversation returns to that place.
+
+- [#432](https://github.com/rizom-ai/brains/pull/432) [`5949cb4`](https://github.com/rizom-ai/brains/commit/5949cb4caf89a1168b45d8fb243a5f2a0f4a7240) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Opening the phone conversation again from the page holds the page still exactly as the first opening does: where the finger landed, at once, before Safari moves anything for the keyboard.
+
 ## 0.2.0-alpha.446
 
 ### Patch Changes

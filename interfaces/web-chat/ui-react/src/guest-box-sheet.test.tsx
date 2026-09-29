@@ -134,6 +134,14 @@ function pageLocked(): boolean {
   );
 }
 
+/** Whether everything on the page but the open sheet is out of sight. */
+function pageHidden(): boolean {
+  return (
+    document.body.style.visibility === "hidden" &&
+    host.style.visibility === "visible"
+  );
+}
+
 async function focusComposer(): Promise<void> {
   await act(async (): Promise<void> => {
     composer().blur();
@@ -191,6 +199,23 @@ describe("the Ask box on a phone", () => {
       expect(window.scrollY).toBe(300);
     });
 
+    it("opened again from the page, holds it where the finger landed, at once", async () => {
+      await render();
+      await click("Close conversation");
+      window.scrollTo(0, 0);
+      await act(async (): Promise<void> => {
+        composer().dispatchEvent(new Event("touchstart", { bubbles: true }));
+        // Safari scrolls the tapped field into view before it takes focus.
+        window.scrollTo(0, 392);
+        composer().focus();
+      });
+      expect(
+        document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE),
+      ).toBe("0");
+      await click("Close conversation");
+      expect(window.scrollY).toBe(0);
+    });
+
     it("marks its history entry with where the page was, for a reload to return to", async () => {
       window.scrollTo(0, 300);
       await render();
@@ -237,6 +262,67 @@ describe("the Ask box on a phone", () => {
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
     });
 
+    it("hides the rest of the page once it covers it, so nothing of it can show through", async () => {
+      await render();
+      expect(pageHidden()).toBe(true);
+      await click("Close conversation");
+      expect(pageHidden()).toBe(false);
+      expect(document.body.style.visibility).toBe("");
+    });
+
+    it("waits for its rise to end before hiding the page it rises over", async () => {
+      await act(async (): Promise<void> => root.unmount());
+      root = createRoot(host);
+      const rise = Promise.withResolvers<void>();
+      Object.assign(host, {
+        getAnimations: (): Array<{ finished: Promise<void> }> => [
+          { finished: rise.promise },
+        ],
+      });
+      await render();
+      expect(pageHidden()).toBe(false);
+      await act(async (): Promise<void> => {
+        rise.resolve();
+        await rise.promise;
+      });
+      expect(pageHidden()).toBe(true);
+    });
+
+    it("does not cover the page again when a late rise finishes during close", async () => {
+      const rise = Promise.withResolvers<void>();
+      Object.assign(host, {
+        getAnimations: (): Array<{ finished: Promise<void> }> => [
+          { finished: rise.promise },
+        ],
+      });
+      await render();
+      const computed = window.getComputedStyle;
+      Object.assign(window, {
+        getComputedStyle: (
+          element: Element,
+        ): Pick<CSSStyleDeclaration, "animationName"> =>
+          element === host
+            ? { animationName: "brain-ask-fall" }
+            : computed(element),
+      });
+      try {
+        await click("Close conversation");
+        expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(true);
+        await act(async (): Promise<void> => {
+          rise.resolve();
+          await rise.promise;
+        });
+        expect(pageHidden()).toBe(false);
+        expect(document.body.style.visibility).toBe("");
+        await act(async (): Promise<void> => {
+          host.dispatchEvent(new Event("animationend"));
+        });
+        expect(pageLocked()).toBe(false);
+      } finally {
+        Object.assign(window, { getComputedStyle: computed });
+      }
+    });
+
     it("falls away before it closes when its stylesheet animates it", async () => {
       await render();
       const computed = window.getComputedStyle;
@@ -252,6 +338,8 @@ describe("the Ask box on a phone", () => {
       await click("Close conversation");
       expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(true);
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+      // The page shows again as the sheet starts to fall away from it.
+      expect(pageHidden()).toBe(false);
       await act(async (): Promise<void> => {
         host.dispatchEvent(new Event("animationend"));
       });
