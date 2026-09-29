@@ -13,7 +13,7 @@ export interface NearestEntityDeps<T extends BaseEntity> {
   getEntity(request: GetEntityRequest): Promise<T | null>;
 }
 
-export interface NearestEntityQuery {
+export interface NearestEntityQuery<T extends BaseEntity = BaseEntity> {
   /** Text in the form the stored entities were embedded from (their markdown). */
   query: string;
   entityType: string;
@@ -23,6 +23,12 @@ export interface NearestEntityQuery {
   visibility: ContentVisibility;
   /** Entities never to return, such as the one being compared. */
   excludeIds?: string[];
+  /**
+   * Second opinion on a candidate within the distance, closest first. Embedding
+   * distance barely registers opposite meaning ("publish" vs "unpublish"), so
+   * callers that merge on a match confirm it; the first accepted one wins.
+   */
+  confirm?: (candidate: T) => Promise<boolean>;
 }
 
 /**
@@ -32,7 +38,7 @@ export interface NearestEntityQuery {
  */
 export async function findNearestEntity<T extends BaseEntity>(
   deps: NearestEntityDeps<T>,
-  request: NearestEntityQuery,
+  request: NearestEntityQuery<T>,
 ): Promise<T | undefined> {
   const distances = await deps.searchWithDistances({ query: request.query });
   const candidates: Array<T | null> = await Promise.all(
@@ -52,9 +58,17 @@ export async function findNearestEntity<T extends BaseEntity>(
       ),
   );
   // The scope also admits less visible entities; a match needs an exact one.
-  return (
-    candidates.find(
-      (candidate) => candidate?.visibility === request.visibility,
-    ) ?? undefined
+  const sameVisibility = candidates.filter(
+    (candidate): candidate is NonNullable<typeof candidate> =>
+      candidate?.visibility === request.visibility,
   );
+  const confirm = request.confirm;
+  if (!confirm) return sameVisibility[0];
+
+  const firstConfirmed = async (index: number): Promise<T | undefined> => {
+    const candidate = sameVisibility[index];
+    if (!candidate) return undefined;
+    return (await confirm(candidate)) ? candidate : firstConfirmed(index + 1);
+  };
+  return firstConfirmed(0);
 }

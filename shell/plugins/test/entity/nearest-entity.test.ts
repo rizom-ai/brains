@@ -119,4 +119,56 @@ describe("findNearestEntity", () => {
 
     expect(match?.id).toBe("other");
   });
+
+  it("returns the closest candidate the confirm check accepts", async () => {
+    const service = deps(
+      [
+        { entityId: "look-alike", entityType: "faq", distance: 0.05 },
+        { entityId: "same", entityType: "faq", distance: 0.1 },
+        { entityId: "also-same", entityType: "faq", distance: 0.15 },
+      ],
+      [
+        entity("look-alike", "public"),
+        entity("same", "public"),
+        entity("also-same", "public"),
+      ],
+    );
+    const checked: string[] = [];
+
+    const match = await findNearestEntity(service, {
+      query: "markdown",
+      entityType: "faq",
+      maxDistance: 0.2,
+      visibility: "public",
+      confirm: async (candidate): Promise<boolean> => {
+        checked.push(candidate.id);
+        return candidate.id !== "look-alike";
+      },
+    });
+
+    expect(match?.id).toBe("same");
+    expect(checked).toEqual(["look-alike", "same"]);
+  });
+
+  it("never asks the confirm check about another visibility", async () => {
+    const service = deps(
+      [{ entityId: "public", entityType: "faq", distance: 0.05 }],
+      [entity("public", "public")],
+    );
+    const checked: string[] = [];
+
+    const match = await findNearestEntity(service, {
+      query: "markdown",
+      entityType: "faq",
+      maxDistance: 0.2,
+      visibility: "shared",
+      confirm: async (candidate): Promise<boolean> => {
+        checked.push(candidate.id);
+        return true;
+      },
+    });
+
+    expect(match).toBeUndefined();
+    expect(checked).toEqual([]);
+  });
 });
