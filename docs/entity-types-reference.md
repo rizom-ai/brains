@@ -50,6 +50,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `newsletter`                         | `@brains/newsletter`                 | `publishing` | Newsletter drafts, schedules, and send records.            |
 | `doc`                                | `@brains/doc`                        | `team`       | Team documentation pages.                                  |
 | `summary`, `decision`, `action-item` | `@brains/conversation-memory`        | `team`       | Team memory projections and first-class decisions/actions. |
+| `faq`                                | `@brains/faq`                        | `chat`       | Draft FAQs captured from chats at the turn's visibility.   |
 
 The table describes built-in defaults. `add` and `remove` can adjust individual members; removing a member also removes its attached config and policy contributions.
 
