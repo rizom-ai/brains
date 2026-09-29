@@ -16,6 +16,8 @@ export function GuestBoxComposer(props: {
   hasMessages: boolean;
   onSubmit: () => void;
   onFocus?: () => void;
+  /** A finger or pointer landed on the field, before it takes focus. */
+  onLand?: () => void;
   /** Said under the composer once there is an answer. */
   answeredNote?: string;
 }): ReactElement {
@@ -48,6 +50,8 @@ export function GuestBoxComposer(props: {
           placeholder={welcome ? copy.inputHint : "Ask a follow-up…"}
           onInput={(event): void => props.setDraft(event.currentTarget.value)}
           onFocus={props.onFocus}
+          onTouchStart={props.onLand}
+          onMouseDown={props.onLand}
           onKeyDown={(event): void => {
             if (
               event.key === "Enter" &&

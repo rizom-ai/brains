@@ -191,6 +191,23 @@ describe("the Ask box on a phone", () => {
       expect(window.scrollY).toBe(300);
     });
 
+    it("opened again from the page, holds it where the finger landed, at once", async () => {
+      await render();
+      await click("Close conversation");
+      window.scrollTo(0, 0);
+      await act(async (): Promise<void> => {
+        composer().dispatchEvent(new Event("touchstart", { bubbles: true }));
+        // Safari scrolls the tapped field into view before it takes focus.
+        window.scrollTo(0, 392);
+        composer().focus();
+      });
+      expect(
+        document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE),
+      ).toBe("0");
+      await click("Close conversation");
+      expect(window.scrollY).toBe(0);
+    });
+
     it("marks its history entry with where the page was, for a reload to return to", async () => {
       window.scrollTo(0, 300);
       await render();
