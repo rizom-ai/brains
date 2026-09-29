@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- [#435](https://github.com/rizom-ai/brains/pull/435) [`1c4c0cb`](https://github.com/rizom-ai/brains/commit/1c4c0cbd7ba417f9cd73cd399d8539063b50f5eb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The first opening of the phone conversation hides the page behind it too, from the moment the sheet has risen, not only once the conversation has loaded (which can take a second or more).
+
 ## 0.2.0-alpha.448
 
 ### Patch Changes

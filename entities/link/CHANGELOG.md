@@ -1,5 +1,18 @@
 # @brains/link
 
+## 0.2.0-alpha.449
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.449
+  - @brains/content-formatters@0.2.0-alpha.449
+  - @brains/contracts@0.2.0-alpha.449
+  - @brains/ui-library@0.2.0-alpha.449
+  - @brains/utils@0.2.0-alpha.449
+  - @brains/plugins@0.2.0-alpha.449
+  - @brains/templates@0.2.0-alpha.449
+
 ## 0.2.0-alpha.448
 
 ### Patch Changes
