@@ -46,6 +46,7 @@ export {
   professionalProfileViewSchema,
   profileFrontmatterExtension,
   validateProfileContent,
+  validateProfileEntity,
   type ProfileValidationSelection,
   type PublicProfileViewSchema,
   type ProfessionalProfileViewSchema,

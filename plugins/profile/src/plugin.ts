@@ -5,7 +5,7 @@ import packageJson from "../package.json";
 import {
   BUILT_IN_PROFILE_KINDS,
   profileBaseFrontmatterExtension,
-  validateProfileContent,
+  validateProfileEntity,
 } from "./schemas";
 import {
   buildStarterCharacterBrief,
@@ -168,7 +168,7 @@ export class ProfilePlugin extends ServicePlugin<
     context.entities.registerPersistValidator(
       "anchor-profile",
       async (entity: BaseEntity): Promise<void> => {
-        validateProfileContent(
+        validateProfileEntity(
           entity.content,
           selection && definition
             ? { category: selection.category, fields: definition.fields }
