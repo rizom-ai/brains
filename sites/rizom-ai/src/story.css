@@ -2,7 +2,12 @@
    the reading thread down the left edge. Tokens come from the theme. */
 
 /* ---- The page shape ------------------------------------------------------ */
+/* The opening's words keep a measure; the opening drawing takes the room right of them. */
 .story {
+  --words: min(34rem, 44vw);
+  --words-gap: clamp(1.5rem, 3vw, 3rem);
+  /* The page frame can be narrower than the viewport: measure against it. */
+  container-type: inline-size;
   position: relative;
   display: grid;
   grid-template-columns: 1fr;
@@ -38,10 +43,18 @@
 }
 .chapter:first-child {
   min-height: calc(100svh - var(--bar-height, 4.6rem));
-  max-width: 40rem;
+  max-width: var(--words);
 }
+/* A chapter's eyebrow is the site's label: mono, small, tracked, in the room's accent. */
 .chapter .eyebrow {
-  margin: 0 0 1.1rem;
+  margin: 0 0 1.4rem;
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-accent);
 }
 .chapter h1,
 .chapter h2 {
@@ -55,7 +68,13 @@
   text-wrap: balance;
   letter-spacing: -0.012em;
 }
+/* A room's title keeps to three or four lines; the homepage's short title reads larger. */
 .chapter h1 {
+  font-size: clamp(2.6rem, 4vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+.chapter--opening h1 {
   font-size: clamp(3rem, 5.8vw, 5.8rem);
   line-height: 0.98;
   letter-spacing: -0.022em;
@@ -390,7 +409,13 @@
 .o-box {
   position: relative;
   flex: none;
-  width: min(calc(100svh - var(--bar-height, 4.6rem) - 2rem), 64vw);
+  width: min(
+    calc(100svh - var(--bar-height, 4.6rem) - 2rem),
+    calc(
+      100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
+        var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
+    )
+  );
   aspect-ratio: 1;
   transition: width 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
 }
@@ -738,7 +763,6 @@
    (and outrank the first chapter's wider measure). */
 .chapter.chapter--opening {
   position: static;
-  max-width: min(34rem, 44vw);
 }
 .chapter em {
   font-style: italic;
@@ -748,10 +772,8 @@
 .net-layer {
   position: absolute;
   top: 0;
-  left: calc(
-    clamp(1rem, 5vw, 5rem) + min(34rem, 44vw) + clamp(1.5rem, 3vw, 3rem)
-  );
-  right: calc(clamp(1rem, 6vw, 7rem) - max(0px, (100vw - 80rem) / 2));
+  left: calc(clamp(1rem, 5vw, 5rem) + var(--words) + var(--words-gap));
+  right: calc(clamp(1rem, 6vw, 7rem) - max(0px, (100cqi - 80rem) / 2));
   height: calc(100svh - var(--bar-height, 4.6rem));
   display: grid;
   place-items: center;
@@ -1169,8 +1191,10 @@
   .net-layer > * {
     width: min(100%, 42svh);
   }
+  .story {
+    --words: 34rem;
+  }
   .chapter.chapter--opening {
-    max-width: 34rem;
     min-height: auto;
     justify-content: flex-start;
     padding-top: 1.5rem;
