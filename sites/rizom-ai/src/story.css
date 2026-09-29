@@ -731,8 +731,11 @@
 }
 
 /* ---- The homepage opening: the live network ---------------------------------- */
-.chapter--opening {
+/* The opening's words keep a measure that leaves the network its own room
+   (and outrank the first chapter's wider measure). */
+.chapter.chapter--opening {
   position: static;
+  max-width: min(34rem, 44vw);
 }
 .chapter em {
   font-style: italic;
@@ -749,19 +752,22 @@
   text-decoration: none;
 }
 /* Where the figure stands: right-aligned to the page, not the chapters column. */
+/* The network fills the room right of the opening's words, centred in it. */
 .net-layer {
   position: absolute;
   top: 0;
+  left: calc(
+    clamp(1rem, 5vw, 5rem) + min(34rem, 44vw) + clamp(1.5rem, 3vw, 3rem)
+  );
   right: calc(clamp(1rem, 6vw, 7rem) - max(0px, (100vw - 80rem) / 2));
   height: calc(100svh - var(--bar-height, 4.6rem));
-  width: min(calc(100svh - var(--bar-height, 4.6rem) - 2rem), 64vw);
   display: grid;
   place-items: center;
   pointer-events: none;
 }
 .net-layer > * {
   grid-area: 1 / 1;
-  width: 100%;
+  width: min(100%, calc(100svh - var(--bar-height, 4.6rem) - 2rem));
   aspect-ratio: 1;
 }
 .net-svg {
@@ -1170,6 +1176,12 @@
   }
   .net-layer > * {
     width: min(100%, 42svh);
+  }
+  .chapter.chapter--opening {
+    max-width: 34rem;
+    min-height: auto;
+    justify-content: flex-start;
+    padding-top: 1.5rem;
   }
   .living-org[data-stage="0"] {
     background: none;
