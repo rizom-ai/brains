@@ -58,8 +58,13 @@ td.up{color:var(--accent)}
   <p class="lede">Every picture is the live preview in WebKit. "Now" is the page as it is today. "Proposed" is the same page with the proposal's stylesheet and a few lines of script injected (<code>yeehaa-ask-styling-pass/proposal.css</code> and <code>proposal.js</code>). The fonts and the map are the real ones. Answers differ between pictures because each is a fresh question.</p>
   <p class="lede">One thing the injected script can only stand in for: the draft essay is hidden from the sources list here, but the answer text still mentions it. The real fix keeps drafts out of guest answers altogether.</p>
 
-  <h2 class="part">Type sizes on a phone</h2>
-  <p class="lede">Nothing gets bigger except the sources, which move from 12px pills to 14px rows you can tap. Everything else stays the same size or gets smaller.</p>
+  <h2 class="part">Space and type on a phone</h2>
+  <p class="lede">The top bar and the sheet's title row give back 80px between them. Nothing gets bigger except the sources, which move from 12px pills to 14px rows you can tap. Everything else stays the same size or gets smaller.</p>
+  <table>
+    <tr><th>Space</th><th>Now</th><th>Proposed</th></tr>
+    <tr><td>Top bar</td><td class="num">83px</td><td class="num">53px</td></tr>
+    <tr><td>"Ask Yeehaa" title row in the sheet</td><td class="num">52px</td><td class="num">none; ✕ floats over the map's corner</td></tr>
+  </table>
   <table>
     <tr><th>Text</th><th>Now</th><th>Proposed</th></tr>
     <tr><td>Headline</td><td class="num">44.9px</td><td class="num">37px</td></tr>
@@ -134,6 +139,7 @@ td.up{color:var(--accent)}
     <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-home.jpg" alt="Phone homepage today"></div></figure>
     <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-home.jpg" alt="Phone homepage proposed"></div></figure>
     <div class="notes"><h3>Homepage</h3><ul>
+      <li><b>A slimmer top bar:</b> 53px instead of 83px, with a smaller menu button. The wordmark keeps its size.</li>
       <li><b>The name once</b>, as on desktop.</li>
       <li><b>A smaller headline and intro</b> (44.9 to 37px, 17.6 to 16px), so the ask box shows on the first screen.</li>
     </ul></div>
@@ -151,6 +157,7 @@ td.up{color:var(--accent)}
     <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-open.jpg" alt="Phone sheet opening today"></div></figure>
     <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-open.jpg" alt="Phone sheet opening proposed"></div></figure>
     <div class="notes"><h3>The sheet opens</h3><ul>
+      <li><b>No title row.</b> "Ask Yeehaa" takes 52px that the map and the answer can use; the sheet is already clearly the conversation. The ✕ floats over the map's top corner, and Back, Escape and swiping down close the sheet as before. Screen readers still hear the title.</li>
       <li><b>The map starts where it stays.</b> Today it sits at the bottom of the sheet and jumps to the top when the question is sent. It now opens at the top, where every later state has it.</li>
       <li><b>The starting questions are the same list as on the page</b>, instead of pills.</li>
       <li><b>One note, the same in every state:</b> "Answers use published work only. Leave private details out." Today it changes after the first question and names Yeehaa.</li>
@@ -170,6 +177,7 @@ td.up{color:var(--accent)}
     <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/now-answered.jpg" alt="Phone answer today"></div></figure>
     <figure class="new"><figcaption>Proposed</figcaption><div class="phone"><img src="yeehaa-ask-styling-pass/new-answered.jpg" alt="Phone answer proposed"></div></figure>
     <div class="notes"><h3>The answer arrives</h3><ul>
+      <li><b>52px more for the answer</b>, from the title row that is gone.</li>
       <li><b>Answer text at 15px</b>, and the model's own headings at text size.</li>
       <li><b>"↓ Rest of the answer" under the composer</b>, where the note was; the round ↓ over the text goes.</li>
       <li><b>Lit pieces with one thin ring.</b></li>

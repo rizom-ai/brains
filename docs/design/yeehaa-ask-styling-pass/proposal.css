@@ -65,6 +65,21 @@ html body header .nav-link { font-family: var(--font-body); font-size: .95rem; l
 html body footer .font-mono.uppercase { font-family: var(--font-body); font-size: .8rem; letter-spacing: 0; text-transform: none; }
 
 @media (max-width: 47.99rem) {
+  /* A slimmer bar: 55px instead of 83px. */
+  html body header.sticky { padding-top: .6rem; padding-bottom: .6rem; }
+  html body #mobile-menu-button { padding: .35rem; }
+  html body #mobile-menu-button svg { width: 1.25rem; height: 1.25rem; }
+
+  /* No title row in the sheet: the map starts at its top edge and the close
+     button floats over the map's corner. The title stays for screen readers. */
+  html body [data-ask-styled] .brain-box-sheet-head {
+    position: absolute; z-index: 20; top: 10px; right: 10px; height: auto; margin: 0; padding: 0; border: 0; background: none;
+  }
+  html body [data-ask-styled] .brain-box-sheet-title {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  html body [data-ask-styled] .brain-box-close { background: var(--color-bg); box-shadow: 0 2px 10px rgb(0 0 0 / .1); }
+
   /* Smaller type on a phone. */
   html body .atlas h1 { font-size: clamp(2.1rem, 9.5vw, 2.6rem); }
   html body .atlas__prose { font-size: 1rem; }
