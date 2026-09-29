@@ -64,12 +64,10 @@ const rows = ["01", "02", "03"].map((no) => ({
 }));
 
 describe("the homepage story", () => {
-  test("keeps its section ids and drops what other pages already say", () => {
+  test("keeps the section ids it routes, and none that other pages tell", () => {
     expect(Object.keys(livingMemorySections.sections)).toEqual([
-      "problem",
       "science",
       "turn",
-      "system",
       "growth",
       "arc",
       "doors",
@@ -85,7 +83,8 @@ describe("the homepage story", () => {
     ]);
     expect(route?.path).toBe("/");
     expect(site.routes.some((route) => route.path === "/network")).toBe(false);
-    expect(Object.keys(templates)).toContain("problem");
+    expect(Object.keys(templates)).not.toContain("problem");
+    expect(Object.keys(templates)).not.toContain("system");
   });
 
   test("the science is a chapter with its three dimensions", () => {

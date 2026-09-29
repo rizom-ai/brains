@@ -13,8 +13,6 @@ import { emphasize } from "./story/emphasis";
  * template (see ./opening). Each section is authored from one zod schema;
  * copy is content-driven, stored as markdown in
  * rizom-content/site-content/living-memory, and the section ids stay stable.
- * The problem and the system keep their templates for their content files,
- * though the homepage no longer routes them: /work and /brain tell them.
  */
 
 const lead = {
@@ -34,31 +32,6 @@ function Copy({ paragraphs }: { paragraphs: string[] }): JSX.Element {
         </p>
       ))}
     </>
-  );
-}
-
-/* ============ the problem (unrouted; /work tells it) ============ */
-
-const problemSchema = z.object({
-  cap: z.string(),
-  items: z.array(z.object({ title: z.string(), text: z.string() })).length(3),
-});
-function ProblemSection({
-  cap,
-  items,
-}: z.infer<typeof problemSchema>): JSX.Element {
-  return (
-    <section id="problem" className="chapter">
-      <p className="eyebrow">{cap}</p>
-      <dl className="parts">
-        {items.map((item) => (
-          <div key={item.title}>
-            <dt>{item.title}</dt>
-            <dd>{item.text}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
   );
 }
 
@@ -118,47 +91,6 @@ function TurnSection({
         {quote} <em>{emphasis}</em>
       </h2>
       <Copy paragraphs={body} />
-    </section>
-  );
-}
-
-/* ============ the system (unrouted; /brain tells it) ============ */
-
-const systemSchema = z.object({
-  ...lead,
-  availability: z.string(),
-  comparison: z.object({
-    beforeLabel: z.string(),
-    beforeTitle: z.string(),
-    afterLabel: z.string(),
-    afterTitle: z.string(),
-    rows: z.array(z.object({ before: z.string(), after: z.string() })).min(1),
-  }),
-});
-function SystemSection({
-  cap,
-  claim,
-  body,
-  availability,
-  comparison,
-}: z.infer<typeof systemSchema>): JSX.Element {
-  return (
-    <section id="system" className="chapter">
-      <p className="eyebrow">
-        {cap} <span className="status">{availability}</span>
-      </p>
-      <h2>{emphasize(claim)}</h2>
-      <Copy paragraphs={body} />
-      <dl className="parts">
-        {comparison.rows.map((row) => (
-          <div key={row.before}>
-            <dt>{row.after}</dt>
-            <dd>
-              {comparison.beforeTitle}: {row.before}
-            </dd>
-          </div>
-        ))}
-      </dl>
     </section>
   );
 }
@@ -295,11 +227,6 @@ function DoorsSection({
 export const livingMemorySections: SiteSectionGroup = sectionGroup(
   "living-memory",
   {
-    problem: defineSection(problemSchema, ProblemSection, {
-      title: "Problem",
-      description:
-        "Three consequences of disconnected knowledge (told on /work)",
-    }),
     science: defineSection(scienceSchema, ScienceSection, {
       title: "Science",
       description: "Transactive memory and its three dimensions",
@@ -307,10 +234,6 @@ export const livingMemorySections: SiteSectionGroup = sectionGroup(
     turn: defineSection(turnSchema, TurnSection, {
       title: "Turn",
       description: "The shift to hybrid teams",
-    }),
-    system: defineSection(systemSchema, SystemSection, {
-      title: "System",
-      description: "Documentation compared with living memory (told on /brain)",
     }),
     growth: defineSection(growthSchema, GrowthSection, {
       title: "Growth",

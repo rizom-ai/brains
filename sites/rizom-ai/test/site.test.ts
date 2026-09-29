@@ -20,7 +20,6 @@ describe("@rizom/site-rizom-ai", () => {
         ? [site.sections]
         : [];
     expect(sections.map((group) => group.namespace)).toEqual([
-      "home",
       "living-memory",
       "brain",
       "public-ask",

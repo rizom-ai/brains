@@ -1,6 +1,5 @@
 import { createRizomSite, type SitePackage } from "./rizom";
 import { AiLayout } from "./layout";
-import { homeSections } from "./home";
 import { livingMemorySections } from "./living-memory";
 import { brainSections } from "./brain";
 import { openingTemplate } from "./opening";
@@ -23,10 +22,9 @@ export const rizomAiSite: SitePackage = createRizomSite({
     templates: { opening: openingTemplate, writing: writingTemplate },
     dataSourceFactories: [openingDataSource, writingDataSource],
   },
-  // Every page is authored schema-first (see ./home, ./brain, ./work,
-  // ./foundation).
+  // Every page is authored schema-first (see ./living-memory, ./brain,
+  // ./work, ./foundation).
   sections: [
-    homeSections,
     livingMemorySections,
     brainSections,
     publicAskSections,
