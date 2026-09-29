@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.446
+
+### Patch Changes
+
+- [#426](https://github.com/rizom-ai/brains/pull/426) [`f58e0fc`](https://github.com/rizom-ai/brains/commit/f58e0fcf0bc58f6d88184a8efe1a10fec74d90a4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add plugin-owned `content`/`system` entity-type classification, defaulting to content and available through public `defineEntity` authoring. Mark prompts, skills, playbooks, assessments, agents, identity and site configuration, and grouping definitions as system types.
+
+  Use one registry-enforced grouping eligibility rule for runtime declarations and Studio discovery. System types never contribute fields or membership counts and never appear as exclusion choices. Studio navigation consumes registration metadata, including custom system types, rather than inferring classification from type names.
+
+  Keep authored Markdown and exact memberships unchanged. Previously saved system exclusions remain in source but are not presented as selectable or unavailable options. Other unavailable exclusions remain visible and removable.
+
+- [#429](https://github.com/rizom-ai/brains/pull/429) [`03341b3`](https://github.com/rizom-ai/brains/commit/03341b348d06aa11e216d043a499cacb2f0a8fe7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones, the page behind the Ask conversation now holds still in Safari too: it is pinned at its scroll position from the first tap (Safari scrolled a page whose root only hid its overflow, both to reveal the focused field and under a swipe), so the homepage and footer cannot move into view behind the conversation, and closing returns the page to where it was.
+
 ## 0.2.0-alpha.445
 
 ### Patch Changes
