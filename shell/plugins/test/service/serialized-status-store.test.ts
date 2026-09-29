@@ -37,7 +37,12 @@ interface MemoryNamespace {
   peek: (key: string) => unknown;
 }
 
-function createMemoryNamespace(): MemoryNamespace {
+function createMemoryNamespace(
+  hooks: {
+    beforeRead?: () => void | Promise<void>;
+    beforeWrite?: () => void | Promise<void>;
+  } = {},
+): MemoryNamespace {
   const records = new Map<string, unknown>();
   let reads = 0;
   let writes = 0;
@@ -48,6 +53,7 @@ function createMemoryNamespace(): MemoryNamespace {
     ): IRuntimeStateStore<T, TInput> => ({
       get: async (key): Promise<T | null> => {
         reads += 1;
+        await hooks.beforeRead?.();
         const record = records.get(`${options.namespace}:${key}`);
         return record === undefined ? null : options.schema.parse(record);
       },
@@ -55,6 +61,7 @@ function createMemoryNamespace(): MemoryNamespace {
         records.has(`${options.namespace}:${key}`),
       set: async (key, value): Promise<void> => {
         writes += 1;
+        await hooks.beforeWrite?.();
         records.set(
           `${options.namespace}:${key}`,
           prepareRuntimeStateValue(options.schema, value),
@@ -206,7 +213,8 @@ describe("SerializedStatusStore", () => {
     const memory = createMemoryNamespace();
     const store = createStore(memory);
 
-    const failure = store.mutate(() => {
+    const failure = store.mutate((state) => {
+      state.notes.push("must not commit");
       throw new Error("mutation boom");
     });
     const recovery = store.mutate((state) => {
@@ -222,7 +230,8 @@ describe("SerializedStatusStore", () => {
     await recovery;
 
     expect(caught).toBeInstanceOf(Error);
-    expect((await store.snapshot()).total).toBe(3);
+    expect(await store.snapshot()).toEqual({ total: 3, notes: [] });
+    expect(memory.peek("current")).toEqual({ total: 3, notes: [] });
   });
 
   it("rejects a mutation that leaves the state invalid, without persisting it", async () => {
@@ -244,6 +253,122 @@ describe("SerializedStatusStore", () => {
 
     expect(caught).toBeDefined();
     expect(memory.peek("current")).toEqual({ total: 1, notes: [] });
+    expect(await store.snapshot()).toEqual({ total: 1, notes: [] });
+    await store.mutate((state) => {
+      state.total += 1;
+    });
+    expect(await store.snapshot()).toEqual({ total: 2, notes: [] });
+    expect(memory.peek("current")).toEqual({ total: 2, notes: [] });
+  });
+
+  it("keeps the committed cache after a write fails and permits recovery", async () => {
+    const original = new Error("write failed");
+    let fail = false;
+    const memory = createMemoryNamespace({
+      beforeWrite: () => {
+        if (fail) throw original;
+      },
+    });
+    const store = createStore(memory);
+    await store.mutate((state) => {
+      state.total = 1;
+    });
+    fail = true;
+    const failure = await store
+      .mutate((state) => {
+        state.total = 99;
+        state.notes.push("failed write");
+      })
+      .catch((error: unknown) => error);
+    expect(failure).toBe(original);
+    expect(await store.snapshot()).toEqual({ total: 1, notes: [] });
+    expect(memory.peek("current")).toEqual({ total: 1, notes: [] });
+    fail = false;
+    await store.mutate((state) => {
+      state.total += 1;
+    });
+    expect(await store.snapshot()).toEqual({ total: 2, notes: [] });
+    expect(memory.peek("current")).toEqual({ total: 2, notes: [] });
+  });
+
+  it("detaches retained drafts and returned values before asynchronous persistence", async () => {
+    const gate = deferred();
+    const memory = createMemoryNamespace({ beforeWrite: () => gate.promise });
+    const store = createStore(memory);
+    let retained: Counter | undefined;
+    const write = store.mutate((state) => {
+      retained = state;
+      state.total = 1;
+      return state.notes;
+    });
+    await waitUntil(() => memory.writes() === 1, "write to start");
+    if (!retained) throw new Error("No mutation draft captured");
+    retained.total = 99;
+    gate.resolve();
+    const returned = await write;
+    returned.push("outside mutation");
+    expect(await store.snapshot()).toEqual({ total: 1, notes: [] });
+    await store.mutate((state) => {
+      state.total += 1;
+    });
+    expect(memory.peek("current")).toEqual({ total: 2, notes: [] });
+  });
+
+  it("coalesces failed initial reads and retries without memoizing rejection", async () => {
+    const original = new Error("read failed");
+    const gate = deferred();
+    let fail = true;
+    const memory = createMemoryNamespace({
+      beforeRead: async () => {
+        if (fail) {
+          await gate.promise;
+          throw original;
+        }
+      },
+    });
+    memory.seed("current", { total: 7, notes: [] });
+    const store = createStore(memory);
+    const failed = Promise.allSettled([store.snapshot(), store.snapshot()]);
+    await waitUntil(() => memory.reads() === 1, "read to start");
+    gate.resolve();
+    expect(await failed).toEqual([
+      { status: "rejected", reason: original },
+      { status: "rejected", reason: original },
+    ]);
+    expect(memory.reads()).toBe(1);
+    fail = false;
+    expect(await Promise.all([store.snapshot(), store.snapshot()])).toEqual([
+      { total: 7, notes: [] },
+      { total: 7, notes: [] },
+    ]);
+    await store.mutate((state) => {
+      state.total += 1;
+    });
+    expect(await store.snapshot()).toEqual({ total: 8, notes: [] });
+    expect(memory.peek("current")).toEqual({ total: 8, notes: [] });
+    expect(memory.reads()).toBe(2);
+  });
+
+  it("retries mutation after an unreadable initial record is repaired", async () => {
+    const memory = createMemoryNamespace();
+    memory.seed("current", { total: -1, notes: [] });
+    const store = createStore(memory);
+    let calls = 0;
+    const mutation = (state: Counter): void => {
+      calls += 1;
+      state.total += 1;
+    };
+    const failure = await store
+      .mutate(mutation)
+      .catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(z.ZodError);
+    expect(calls).toBe(0);
+    memory.seed("current", { total: 4, notes: [] });
+    await store.mutate(mutation);
+    expect(calls).toBe(1);
+    expect(await store.snapshot()).toEqual({ total: 5, notes: [] });
+    expect(memory.peek("current")).toEqual({ total: 5, notes: [] });
+    expect(memory.reads()).toBe(2);
   });
 
   it("settles pending writes before returning a snapshot", async () => {
