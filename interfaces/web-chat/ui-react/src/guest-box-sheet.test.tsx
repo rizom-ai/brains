@@ -134,6 +134,14 @@ function pageLocked(): boolean {
   );
 }
 
+/** Whether everything on the page but the open sheet is out of sight. */
+function pageHidden(): boolean {
+  return (
+    document.body.style.visibility === "hidden" &&
+    host.style.visibility === "visible"
+  );
+}
+
 async function focusComposer(): Promise<void> {
   await act(async (): Promise<void> => {
     composer().blur();
@@ -254,6 +262,32 @@ describe("the Ask box on a phone", () => {
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
     });
 
+    it("hides the rest of the page once it covers it, so nothing of it can show through", async () => {
+      await render();
+      expect(pageHidden()).toBe(true);
+      await click("Close conversation");
+      expect(pageHidden()).toBe(false);
+      expect(document.body.style.visibility).toBe("");
+    });
+
+    it("waits for its rise to end before hiding the page it rises over", async () => {
+      await act(async (): Promise<void> => root.unmount());
+      root = createRoot(host);
+      const rise = Promise.withResolvers<void>();
+      Object.assign(host, {
+        getAnimations: (): Array<{ finished: Promise<void> }> => [
+          { finished: rise.promise },
+        ],
+      });
+      await render();
+      expect(pageHidden()).toBe(false);
+      await act(async (): Promise<void> => {
+        rise.resolve();
+        await rise.promise;
+      });
+      expect(pageHidden()).toBe(true);
+    });
+
     it("falls away before it closes when its stylesheet animates it", async () => {
       await render();
       const computed = window.getComputedStyle;
@@ -269,6 +303,8 @@ describe("the Ask box on a phone", () => {
       await click("Close conversation");
       expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(true);
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+      // The page shows again as the sheet starts to fall away from it.
+      expect(pageHidden()).toBe(false);
       await act(async (): Promise<void> => {
         host.dispatchEvent(new Event("animationend"));
       });
