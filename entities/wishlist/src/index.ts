@@ -87,6 +87,7 @@ import {
 import { WishAdapter, wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
+import { registerWishlistEvalHandlers } from "./lib/eval-handlers";
 import packageJson from "../package.json";
 
 const wishEntityType = "wish";
@@ -163,6 +164,11 @@ export class WishlistPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    registerWishlistEvalHandlers({
+      context,
+      sameWishDistance: this.config.sameWishDistance,
+    });
+
     // Dashboard widget
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await registerBuiltInDashboardWidget({

@@ -113,6 +113,19 @@ function buildClassificationPrompt(question: string, answer: string): string {
   ].join("\n");
 }
 
+/** One structured AI call: is the exchange reusable, and its standalone form. */
+export async function classifyExchange(
+  ai: Pick<EntityPluginContext["ai"], "generateObject">,
+  question: string,
+  answer: string,
+): Promise<FaqClassification> {
+  const { object } = await ai.generateObject(
+    buildClassificationPrompt(question, answer),
+    faqClassificationSchema,
+  );
+  return object;
+}
+
 /** The user message the reply at `answerIndex` responds to. */
 function findQuestion(
   messages: Message[],
@@ -170,9 +183,10 @@ export class FaqCaptureHandler extends BaseJobHandler<
     const question = findQuestion(messages, answerIndex);
     if (!question) return { captured: false, reason: "no-question" };
 
-    const { object: classification } = await this.deps.ai.generateObject(
-      buildClassificationPrompt(question.content, answer.content),
-      faqClassificationSchema,
+    const classification = await classifyExchange(
+      this.deps.ai,
+      question.content,
+      answer.content,
     );
     if (!classification.reusable) {
       return { captured: false, reason: "not-reusable" };

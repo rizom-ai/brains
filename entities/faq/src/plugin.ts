@@ -23,6 +23,7 @@ import {
 } from "./handlers/faq-reconcile-handler";
 import { FaqDataSource } from "./datasources/faq-datasource";
 import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
+import { registerFaqEvalHandlers } from "./lib/eval-handlers";
 import { faqSchema, type FaqEntity } from "./schemas/faq";
 import { getTemplates } from "./templates/faq-section";
 import packageJson from "../package.json";
@@ -114,6 +115,11 @@ export class FaqPlugin extends EntityPlugin<
         sameQuestionDistance: this.config.sameQuestionDistance,
       }),
     );
+
+    registerFaqEvalHandlers({
+      context,
+      sameQuestionDistance: this.config.sameQuestionDistance,
+    });
 
     if (!this.config.enabled) return;
 

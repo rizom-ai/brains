@@ -151,3 +151,25 @@ describe("FaqPlugin reconciliation", () => {
     ).toEqual([{ entityId: "faq-1" }]);
   });
 });
+
+describe("FaqPlugin evals", () => {
+  it("registers the classifyExchange and sameQuestion eval handlers", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    const registrations: string[] = [];
+    harness.getMockShell().registerEvalHandler = (
+      pluginId,
+      handlerId,
+    ): void => {
+      registrations.push(`${pluginId}:${handlerId}`);
+    };
+
+    await harness.installPlugin(new FaqPlugin());
+
+    expect(registrations.sort()).toEqual([
+      "faq:classifyExchange",
+      "faq:sameQuestion",
+    ]);
+  });
+});

@@ -3,6 +3,7 @@ export type { FaqConfig, FaqConfigInput } from "./plugin";
 export { FaqAdapter, faqAdapter, faqMetadata } from "./adapters/faq-adapter";
 export {
   FaqCaptureHandler,
+  classifyExchange,
   faqCaptureJobSchema,
   faqClassificationSchema,
   faqEntityId,
