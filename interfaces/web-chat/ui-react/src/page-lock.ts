@@ -37,3 +37,18 @@ export function pageScroll(): number {
   const held = document.documentElement.getAttribute(ASK_PAGE_LOCK_ATTRIBUTE);
   return held === null ? Math.round(window.scrollY) : Number(held) || 0;
 }
+
+/**
+ * Takes everything on the page but the open sheet out of sight, so nothing
+ * of it can show through wherever the sheet briefly fails to cover the
+ * screen (as Safari's keyboard and bars resize it). The sheet stays visible.
+ */
+export function coverPage(sheet: HTMLElement): void {
+  document.body.style.visibility = "hidden";
+  sheet.style.visibility = "visible";
+}
+
+export function uncoverPage(sheet: HTMLElement): void {
+  document.body.style.removeProperty("visibility");
+  sheet.style.removeProperty("visibility");
+}
