@@ -43,7 +43,13 @@ describe("FaqPlugin", () => {
     expect(harness.getCapabilities().tools).toHaveLength(0);
   });
 
-  it("queues a capture for an assistant reply with its permission level", async () => {
+  it("queues a capture for an assistant reply with its permission level and position", async () => {
+    const shell = harness.getMockShell();
+    const conversations = shell.getConversationService();
+    shell.getConversationService = (): typeof conversations => ({
+      ...conversations,
+      countMessages: async (): Promise<number> => 7,
+    });
     await addMessage("assistant", { userPermissionLevel: "trusted" });
 
     expect(await queuedCaptures()).toEqual([
@@ -51,6 +57,7 @@ describe("FaqPlugin", () => {
         conversationId: "conv-1",
         messageId: "m2",
         userPermissionLevel: "trusted",
+        position: 7,
       },
     ]);
   });

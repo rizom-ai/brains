@@ -139,10 +139,15 @@ export class FaqPlugin extends EntityPlugin<
         const reply = assistantReplySchema.safeParse(message.payload);
         if (!reply.success) return { success: true };
 
+        // The reply is the newest message now, so the count is its position.
+        const position = await context.conversations.countMessages(
+          reply.data.conversationId,
+        );
         const data: FaqCaptureJobData = {
           conversationId: reply.data.conversationId,
           messageId: reply.data.messageId,
           userPermissionLevel: reply.data.metadata.userPermissionLevel,
+          position,
         };
         await context.jobs.enqueue({ type: "faq-capture", data });
         return { success: true };

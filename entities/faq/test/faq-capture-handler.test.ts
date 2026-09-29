@@ -62,6 +62,9 @@ describe("FaqCaptureHandler", () => {
   let prompts: string[];
   let classification: FaqClassification;
   let searches: string[];
+  let fetches: Array<
+    { limit?: number; range?: { start: number; end: number } } | undefined
+  >;
   let distances: DistanceResult[];
 
   function createHandler(
@@ -75,7 +78,15 @@ describe("FaqCaptureHandler", () => {
         searches.push(request.query);
         return distances;
       },
-      conversations: { getMessages: async () => messages },
+      conversations: {
+        // Honours range and limit the way the conversation store does.
+        getMessages: async (_id, options): Promise<Message[]> => {
+          fetches.push(options);
+          const range = options?.range;
+          if (range) return messages.slice(range.start - 1, range.end);
+          return options?.limit ? messages.slice(-options.limit) : messages;
+        },
+      },
       ai: {
         generateObject: async <T>(
           prompt: string,
@@ -92,9 +103,15 @@ describe("FaqCaptureHandler", () => {
     handler: FaqCaptureHandler,
     userPermissionLevel: UserPermissionLevel,
     messageId = "m4",
+    position = 4,
   ): ReturnType<FaqCaptureHandler["process"]> {
     return handler.process(
-      { conversationId: CONVERSATION_ID, messageId, userPermissionLevel },
+      {
+        conversationId: CONVERSATION_ID,
+        messageId,
+        userPermissionLevel,
+        position,
+      },
       "job-1",
       createMockProgressReporter(),
     );
@@ -154,6 +171,7 @@ describe("FaqCaptureHandler", () => {
     prompts = [];
     classification = accepted;
     searches = [];
+    fetches = [];
     distances = [];
   });
 
@@ -353,5 +371,23 @@ describe("FaqCaptureHandler", () => {
     const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
     expect(parsed.frontmatter.mergedMessageIds).toEqual(["other", "m4"]);
     expect(faq?.metadata.asked).toBe(3);
+  });
+
+  it("finds a reply that newer messages pushed far back", async () => {
+    const long = Array.from({ length: 80 }, (_, index) =>
+      message(
+        `m${index + 1}`,
+        index % 2 === 0 ? "user" : "assistant",
+        index === 18
+          ? "how do I publish a draft post?"
+          : `message ${index + 1}`,
+      ),
+    );
+
+    const result = await capture(createHandler(long), "admin", "m20", 20);
+
+    expect(result).toMatchObject({ captured: true, entityId: "faq-m20" });
+    expect(prompts[0]).toContain("how do I publish a draft post?");
+    expect(fetches).toEqual([{ range: { start: 1, end: 30 } }]);
   });
 });

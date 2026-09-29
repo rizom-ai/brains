@@ -16,17 +16,26 @@ import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import type { FaqFrontmatter } from "../schemas/faq";
 import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
 
-/** How far back from the newest message a reply is looked up. */
-const RECENT_MESSAGE_LIMIT = 50;
+/** Messages before the reply searched for the question it answers. */
+const QUESTION_LOOKBACK = 20;
+
+/**
+ * Messages after the recorded position still searched for the reply: another
+ * message can land between the reply being stored and its position counted.
+ */
+const ARRIVAL_SLACK = 10;
 
 export const faqCaptureJobSchema: z.ZodObject<{
   conversationId: z.ZodString;
   messageId: z.ZodString;
   userPermissionLevel: typeof UserPermissionLevelSchema;
+  position: z.ZodNumber;
 }> = z.object({
   conversationId: z.string(),
   messageId: z.string(),
   userPermissionLevel: UserPermissionLevelSchema,
+  /** The reply's 1-based position in its conversation when it was stored. */
+  position: z.number().int().nonnegative(),
 });
 
 export type FaqCaptureJobData = z.output<typeof faqCaptureJobSchema>;
@@ -135,7 +144,12 @@ export class FaqCaptureHandler extends BaseJobHandler<
 
     const messages = await this.deps.conversations.getMessages(
       data.conversationId,
-      { limit: RECENT_MESSAGE_LIMIT },
+      {
+        range: {
+          start: Math.max(1, data.position - QUESTION_LOOKBACK),
+          end: data.position + ARRIVAL_SLACK,
+        },
+      },
     );
     const answerIndex = messages.findIndex(
       (message) => message.id === data.messageId,
