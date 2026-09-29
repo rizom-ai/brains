@@ -9,6 +9,7 @@ import {
   type SiteImageMap,
 } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
+import { sha256Hex } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
 import { promises as fs } from "fs";
@@ -161,7 +162,9 @@ describe("prepareSiteBuild", () => {
         {
           id: "home",
           fullscreen: true,
-          headScripts: ['<script src="/scripts/hero.js" defer></script>'],
+          headScripts: [
+            `<script src="/scripts/hero.js?v=${sha256Hex("site override").slice(0, 12)}" defer></script>`,
+          ],
           sections: [
             {
               id: "hero",
