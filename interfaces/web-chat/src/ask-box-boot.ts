@@ -127,6 +127,17 @@ export function askBoxBootScript(version: string): string {
     function land() { landed = window.scrollY; }
     input.addEventListener("touchstart", land, { passive: true });
     input.addEventListener("mousedown", land);
+    // Once the sheet has risen over the page, the page goes out of sight (as
+    // the box's page-lock does once mounted, and undoes on close).
+    function cover() {
+      if (!host.hasAttribute("${ASK_SHEET_ATTRIBUTE}")) return;
+      document.body.style.visibility = "hidden";
+      host.style.visibility = "visible";
+    }
+    function uncover() {
+      document.body.style.removeProperty("visibility");
+      host.style.removeProperty("visibility");
+    }
     async function open() {
       if (loading || mounted) return;
       loading = true;
@@ -140,6 +151,9 @@ export function askBoxBootScript(version: string): string {
         host.setAttribute("${ASK_SHEET_ATTRIBUTE}", "");
         lockPage(landed);
         landed = null;
+        var rising = host.getAnimations ? host.getAnimations() : [];
+        if (rising.length === 0) cover();
+        else Promise.all(rising.map(function (rise) { return rise.finished; })).then(cover, cover);
       }
       try {
         // Served by the Brain, not bundled inside the site package.
@@ -149,6 +163,7 @@ export function askBoxBootScript(version: string): string {
       } catch {
         // The status line tells the visitor; the draft stays and nothing was sent.
         host.removeAttribute("${ASK_SHEET_ATTRIBUTE}");
+        uncover();
         unlockPage();
         sendRequested = false;
         input.readOnly = false;
