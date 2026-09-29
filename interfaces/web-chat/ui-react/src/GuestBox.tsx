@@ -196,7 +196,8 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           <span className="brain-box-sheet-title">
             {owner ? `Ask ${owner}` : "Conversation"}
           </span>
-          {actions}
+          {/* Full screen, the header is its title and a way out; the note
+              under the composer says what a visitor needs to know. */}
           <button
             className="brain-box-close"
             type="button"

@@ -1,5 +1,6 @@
 import {
   permissionToVisibilityScope,
+  isGroupingContributor,
   queryGroupingCatalogSchema,
   queryGroupingMembersSchema,
   queryGroupingUsageSchema,
@@ -125,9 +126,10 @@ export function createOperatorGroupings(
       type.length <= 100 &&
       type !== registry.getGroupingSourceType() &&
       registry.hasEntityType(type) &&
-      !!registry.getAdapter(type).frontmatterSchema &&
-      !registry.getAdapter(type).isSingleton &&
-      entities.getEntityTypeConfig(type).binaryStorage === undefined,
+      isGroupingContributor(
+        registry.getAdapter(type),
+        entities.getEntityTypeConfig(type),
+      ),
     definitions: (caller: InterfaceCaller): Promise<EntityGrouping[]> =>
       operatorRead(async () => {
         assertRouteCaller(caller, shell.getAuthRegistry());

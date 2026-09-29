@@ -45,10 +45,12 @@ function Fixture({
   source = initial,
   readOnly = false,
   savedKeys = ["clients"],
+  systemTypes = [],
 }: {
   source?: unknown;
   readOnly?: boolean;
   savedKeys?: string[];
+  systemTypes?: string[];
 }): ReactElement {
   const [draft, setDraft] = useState(source);
   const [state, setState] = useState<GroupingDefinitionEditorState>({
@@ -62,6 +64,7 @@ function Fixture({
       value={draft}
       savedKeys={savedKeys}
       readOnly={readOnly}
+      systemTypes={systemTypes}
       contributorTypes={[
         { entityType: "note", label: "Notes" },
         { entityType: "post", label: "Posts" },
@@ -242,6 +245,29 @@ test("unavailable exclusions remain visible and removable rather than being sile
   expect(value).toMatchObject(initial);
   expect(status.issues).toEqual([]);
 });
+test("system exclusions never become unavailable options and unrelated edits preserve their source", async () => {
+  const source = {
+    clients: {
+      ...initial.clients,
+      excludeTypes: ["custom-machine", "missing"],
+    },
+  };
+  await act(async () =>
+    root.render(<Fixture source={source} systemTypes={["custom-machine"]} />),
+  );
+  expect(document.body.textContent).not.toContain("custom-machine");
+  expect(element<HTMLElement>("summary").textContent).toBe("Exclude types (1)");
+  const missing = element<HTMLInputElement>(
+    'input[aria-label="Exclude missing (unavailable)"]',
+  );
+  await act(async () => missing.click());
+  expect(value).toEqual({
+    clients: { ...initial.clients, excludeTypes: ["custom-machine"] },
+  });
+  expect(element<HTMLElement>("summary").textContent).toBe("Exclude types");
+  expect(status.issues).toEqual([]);
+});
+
 test("trusted readers see definitions and usage but no editing controls", async () => {
   await act(async () => root.render(<Fixture readOnly />));
   expect(

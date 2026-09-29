@@ -32,6 +32,7 @@ export const groupingDefinitions: EntityDefinition<
   typeof metadataSchema
 > = defineEntity({
   type: GROUPING_DEFINITIONS_TYPE,
+  classification: "system",
   purpose:
     "Admin-authored grouping names, participating types, cardinality and optional allowed values.",
   metadata: metadataSchema,

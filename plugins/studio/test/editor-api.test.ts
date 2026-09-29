@@ -1039,6 +1039,7 @@ describe("studio editor api", () => {
     const post = payload.types.find((t) => t.entityType === "post");
     expect(post).toEqual({
       entityType: "post",
+      classification: "content",
       label: "Posts",
       isSingleton: false,
       hasBody: true,

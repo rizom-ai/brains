@@ -104,3 +104,12 @@ export const ASK_CLOSING_ATTRIBUTE = "data-ask-closing";
  * answer opens below it.
  */
 export const ASK_DOCK_ATTRIBUTE = "data-ask-dock";
+
+/**
+ * Set on the document's root element while an open sheet holds the page
+ * still, to the page's scroll position. The page is pinned in place there
+ * (Safari scrolls a page whose root only hides its overflow) and goes back
+ * to that position when the sheet closes. Whoever opens the sheet first,
+ * the boot or the box, sets it; the box clears it on close.
+ */
+export const ASK_PAGE_LOCK_ATTRIBUTE = "data-ask-locked";

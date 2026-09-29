@@ -14,6 +14,7 @@ import {
   ASK_SHEET_HISTORY_KEY,
   ASK_SHEET_MEDIA,
 } from "@brains/contracts";
+import { lockPage, pageScroll, unlockPage } from "./page-lock";
 
 /** A visual viewport this much shorter than the window has a keyboard in it. */
 const KEYBOARD_SHARE = 0.8;
@@ -104,14 +105,12 @@ export function useAskSheet(
       return;
     }
     element.setAttribute(ASK_SHEET_ATTRIBUTE, "");
-    const page = document.documentElement;
-    const scroll = page.style.overflow;
-    page.style.overflow = "hidden";
+    lockPage();
     if (!entered.current) {
       entered.current = true;
       // Where the page was, so a reload with the sheet open returns there.
       window.history.pushState(
-        { [ASK_SHEET_HISTORY_KEY]: { y: Math.round(window.scrollY) } },
+        { [ASK_SHEET_HISTORY_KEY]: { y: pageScroll() } },
         "",
       );
     }
@@ -152,7 +151,7 @@ export function useAskSheet(
       document.removeEventListener("focusout", fit);
       window.removeEventListener("popstate", back);
       document.removeEventListener("keydown", escape);
-      page.style.overflow = scroll;
+      unlockPage();
       element.removeAttribute(ASK_SHEET_ATTRIBUTE);
       element.removeAttribute(ASK_CLOSING_ATTRIBUTE);
       element.style.removeProperty("--ask-viewport-height");

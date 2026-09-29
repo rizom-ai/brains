@@ -1,5 +1,56 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.446
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.446
+  - @brains/atproto-contracts@0.2.0-alpha.446
+  - @brains/content-formatters@0.2.0-alpha.446
+  - @brains/contracts@0.2.0-alpha.446
+  - @brains/http-signatures@0.2.0-alpha.446
+  - @brains/ui-library@0.2.0-alpha.446
+  - @brains/utils@0.2.0-alpha.446
+  - @brains/auth-service@0.2.0-alpha.446
+  - @brains/mcp-service@0.2.0-alpha.446
+  - @brains/plugins@0.2.0-alpha.446
+  - @brains/templates@0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.445
+  - @brains/atproto-contracts@0.2.0-alpha.445
+  - @brains/content-formatters@0.2.0-alpha.445
+  - @brains/contracts@0.2.0-alpha.445
+  - @brains/http-signatures@0.2.0-alpha.445
+  - @brains/ui-library@0.2.0-alpha.445
+  - @brains/utils@0.2.0-alpha.445
+  - @brains/auth-service@0.2.0-alpha.445
+  - @brains/mcp-service@0.2.0-alpha.445
+  - @brains/plugins@0.2.0-alpha.445
+  - @brains/templates@0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.444
+  - @brains/atproto-contracts@0.2.0-alpha.444
+  - @brains/content-formatters@0.2.0-alpha.444
+  - @brains/contracts@0.2.0-alpha.444
+  - @brains/http-signatures@0.2.0-alpha.444
+  - @brains/ui-library@0.2.0-alpha.444
+  - @brains/utils@0.2.0-alpha.444
+  - @brains/auth-service@0.2.0-alpha.444
+  - @brains/mcp-service@0.2.0-alpha.444
+  - @brains/plugins@0.2.0-alpha.444
+  - @brains/templates@0.2.0-alpha.444
+
 ## 0.2.0-alpha.443
 
 ### Patch Changes

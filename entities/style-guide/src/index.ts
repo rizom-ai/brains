@@ -58,6 +58,7 @@ export const styleGuide: EntityDefinition<
   typeof styleGuideFrontmatterSchema
 > = defineEntity({
   type: "style-guide",
+  classification: "system",
   purpose:
     "Singleton messaging, voice, and visual guidance for generated artifacts.",
   metadata: styleGuideFrontmatterSchema,

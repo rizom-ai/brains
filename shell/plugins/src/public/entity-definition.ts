@@ -4,6 +4,10 @@ import type { AnyDashboardWidgetDefinition } from "../operator/operator-definiti
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
+import {
+  entityTypeClassificationSchema,
+  type EntityTypeClassification,
+} from "@brains/entity-service";
 import { assertCanonicalEntityMetadata } from "../entity/entity-schema";
 import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
@@ -63,6 +67,7 @@ export function defineEntity<
 >(definition: {
   readonly type: TType;
   readonly purpose: string;
+  readonly classification?: EntityTypeClassification;
   readonly metadata: TMetadataSchema;
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly singleton?: boolean | undefined;
@@ -123,6 +128,9 @@ export function defineEntity<
   return Object.freeze({
     kind: "rizom-entity",
     ...definition,
+    classification: entityTypeClassificationSchema.parse(
+      definition.classification,
+    ),
   });
 }
 

@@ -538,6 +538,7 @@ async function handleListTypes(
       if (!capabilities) continue;
       types.push({
         entityType,
+        classification: runtime.shapes.classification(entityType),
         label: entityTypeLabels(entityType, entityDisplay?.[entityType])
           .pluralLabel,
         isSingleton: runtime.shapes.isSingleton(entityType),
@@ -735,6 +736,11 @@ async function handleGetSchema(
       : [...domainFields, visibilityField];
 
   const contributorTypes: Array<{ entityType: string; label: string }> = [];
+  // Preserve authored exclusions, but never render registered system types as
+  // selectable "unavailable" choices. Only echo names already in this document.
+  const systemTypes = definitions.excludedTypes.filter(
+    (type) => runtime.shapes.classification(type) === "system",
+  );
   if (entityType === GROUPING_DEFINITIONS_TYPE) {
     for (const type of runtime.entities.getEntityTypes()) {
       if (
@@ -749,7 +755,11 @@ async function handleGetSchema(
   }
   return jsonResponse({
     ...(entityType === GROUPING_DEFINITIONS_TYPE && {
-      groupingDefinitions: { contributorTypes, issues: definitions.issues },
+      groupingDefinitions: {
+        contributorTypes,
+        systemTypes,
+        issues: definitions.issues,
+      },
     }),
     entityType,
     format: raw ? "raw" : "frontmatter",

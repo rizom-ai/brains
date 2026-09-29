@@ -190,7 +190,7 @@ export function studioService(
         logger,
       }): StudioState => {
         const groupingSource: { snapshot: GroupingDefinitionsSnapshot } = {
-          snapshot: { groupings: {}, issues: [] },
+          snapshot: { groupings: {}, issues: [], excludedTypes: [] },
         };
         const runtime: StudioRuntime = {
           groupingDefinitions: () => structuredClone(groupingSource.snapshot),

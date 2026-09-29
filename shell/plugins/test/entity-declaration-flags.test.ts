@@ -57,7 +57,7 @@ it("validates and detaches declaration flags without pinning omitted defaults", 
         label: "Areas",
         types: ["flagged"],
       }),
-    ).toThrow("Grouping requires a registered frontmatter entity type");
+    ).toThrow("Grouping requires an eligible content entity type");
     expect(plugins({})).toHaveLength(1);
   } finally {
     await harness.reset();

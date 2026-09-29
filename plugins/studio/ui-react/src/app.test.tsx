@@ -412,6 +412,7 @@ describe("TypeSwitcher", () => {
   const types: EntityTypeInfo[] = [
     {
       entityType: "post",
+      classification: "content",
       label: "Posts",
       isSingleton: false,
       hasBody: true,
@@ -421,6 +422,7 @@ describe("TypeSwitcher", () => {
     },
     {
       entityType: "site-info",
+      classification: "system",
       label: "Site Info",
       isSingleton: true,
       hasBody: false,
@@ -600,6 +602,7 @@ describe("TypeSwitcher", () => {
     const machinery: EntityTypeInfo[] = [
       {
         entityType: "prompt",
+        classification: "system",
         label: "Prompts",
         isSingleton: false,
         hasBody: true,
@@ -609,6 +612,7 @@ describe("TypeSwitcher", () => {
       },
       {
         entityType: "agent",
+        classification: "system",
         label: "Agents",
         isSingleton: false,
         hasBody: false,
@@ -618,6 +622,7 @@ describe("TypeSwitcher", () => {
       },
       {
         entityType: "brain-character",
+        classification: "system",
         label: "Brain Characters",
         isSingleton: true,
         hasBody: true,
@@ -627,6 +632,7 @@ describe("TypeSwitcher", () => {
       },
       {
         entityType: "style-guide",
+        classification: "system",
         label: "Style Guide",
         isSingleton: true,
         hasBody: true,
@@ -694,6 +700,7 @@ function renderCapabilityView(
   };
   const type: EntityTypeInfo = {
     entityType,
+    classification: "content",
     label: entityType === "site-content" ? "Site content" : "Posts",
     isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,

@@ -38,7 +38,11 @@ test("shutdown fences an in-flight source read and future refreshes", async () =
   );
   expect(reads).toBe(1);
   expect(replacements).toBe(0);
-  expect(source.getSnapshot()).toEqual({ groupings: {}, issues: [] });
+  expect(source.getSnapshot()).toEqual({
+    groupings: {},
+    issues: [],
+    excludedTypes: [],
+  });
 });
 
 test("runtime bounds decoded policies and rejects retired type allowlists", () => {

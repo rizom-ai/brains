@@ -3,6 +3,7 @@ import { definedFields } from "@brains/utils/strip-undefined";
 import type { EntityTypeConfig } from "./types";
 
 const entityTypeConfigSchema = z.object({
+  classification: z.enum(["content", "system"]).optional(),
   weight: z.number().optional(),
   embeddable: z.boolean().optional(),
   fullTextSearchable: z.boolean().optional(),

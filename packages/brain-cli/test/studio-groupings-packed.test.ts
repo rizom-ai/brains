@@ -1,4 +1,5 @@
 import { expect, test as bunTest } from "bun:test";
+import { createClient } from "@libsql/client";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -37,6 +38,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
     );
     const env = {
       ...process.env,
+      DATABASE_URL: `file:${join(consumer, "packed-entities.db")}`,
       AI_API_KEY: "packed-grouping-check",
       GIT_SYNC_TOKEN: "packed-grouping-check",
       BRAIN_SKIP_LOCAL_REEXEC: "1",
@@ -189,6 +191,40 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
     });
     expect(closedDefinitions).toContain("multiple: false");
     expect(closedDefinitions).toContain("values:");
+    const systemCreated = await tool(
+      "system_create",
+      {
+        entityType: "prompt",
+        title: "Packed Instructions",
+        source: {
+          kind: "text",
+          content:
+            '---\ntitle: Packed Instructions\ntarget: note:test\nclients: [" Ka21, exact ", " Ka21, exact ", Stray]\n---\n\nInstructions.',
+        },
+      },
+      true,
+    );
+    expect(systemCreated).toContain("packed-instructions");
+    const systemSaved = await tool("system_get", {
+      entityType: "prompt",
+      id: "packed-instructions",
+    });
+    expect(systemSaved).toContain("Instructions.");
+    // system_get returns the codec's typed body; inspect durable source bytes
+    // separately rather than requiring raw frontmatter in that typed view.
+    const database = createClient({ url: env.DATABASE_URL });
+    try {
+      const rows = await database.execute(
+        "SELECT content FROM entities WHERE id = 'packed-instructions'",
+      );
+      const source = rows.rows[0]?.["content"];
+      if (typeof source !== "string")
+        throw new Error("Missing stored prompt source");
+      expect(source.match(/ Ka21, exact /g)).toHaveLength(2);
+      expect(source).toContain("Stray");
+    } finally {
+      database.close();
+    }
     const refused = startCommand(
       [
         "bun",

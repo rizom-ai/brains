@@ -258,6 +258,7 @@
         "EncodedEntityMarkdown",
         "EntityDefinition",
         "EntityDefinitionConfig",
+        "EntityTypeClassification",
         "EntityMarkdownCodec",
         "EntityMarkdownDocument",
         "EntityOf",

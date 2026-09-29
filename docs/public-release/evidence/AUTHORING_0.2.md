@@ -8,6 +8,28 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Entity classification integration scope
+
+Approved main `47207af475` and separately approved classification declarations
+add plugin-owned `content | system` metadata, defaulting to content. The public
+SDK exports `EntityTypeClassification`; Studio reads classification through
+`ServiceEntityShapes.classification`, never a native registry. Validation occurs
+before registration and config copying remains detached without evaluating
+undeclared getters. Classification is independent of authorization, embeddings
+and projection policy.
+
+System types are excluded from groupings alongside singleton, opaque and all
+binary representations. Built-ins remain declarative. SDK-owned grouping source
+snapshots retain authored exclusions from malformed sections for repair; Studio
+hides system choices without rewriting authored source. Native application tests
+cover a real Prompt transitioning from content to system, preserving source and
+export state. Packed type canaries cover accepted and rejected declarations.
+
+Mobile page-lock/sheet behavior and public UI alpha.446 remain within existing
+ownership and independent release lanes. Bootstrap-secret planning docs authorize
+no secret access. Exact completed tree/check evidence is recorded on PR301;
+DOM tests do not establish physical-browser/provider or deployment acceptance.
+
 ## Verbatim creation and projection job scope integration
 
 Approved main `eaa3701f6d` adds stored user-message creation with unique literal

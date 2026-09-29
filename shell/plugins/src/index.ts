@@ -1,5 +1,10 @@
 // ============================================================================
 // Plugin Framework Core
+export {
+  entityTypeClassificationSchema,
+  isGroupingContributor,
+  type EntityTypeClassification,
+} from "@brains/entity-service";
 export type {
   AnyStudioWorkspaceDefinition,
   BoundStudioWorkspace,

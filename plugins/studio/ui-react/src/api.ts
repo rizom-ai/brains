@@ -111,6 +111,8 @@ export interface FieldDescriptor {
 export interface TypeSchema {
   groupingDefinitions?: {
     contributorTypes: Array<{ entityType: string; label: string }>;
+    /** Authored exclusions whose registered types are system-owned; not options. */
+    systemTypes: string[];
     issues: GroupingDefinitionIssue[];
   };
   entityType: string;

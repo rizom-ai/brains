@@ -1,4 +1,5 @@
 /** Declarative public entity authoring surface. */
+export type { EntityTypeClassification } from "@brains/entity-service";
 // Structured destination and folder reads. Named consumer: Studio.
 export {
   encodeEntityIdPath,

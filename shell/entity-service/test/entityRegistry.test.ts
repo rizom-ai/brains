@@ -388,6 +388,7 @@ This note has frontmatter metadata.`;
       read.weight = 20;
       read.publish?.publishStatuses.splice(0);
       expect(fresh.getEntityTypeConfig("note")).toEqual({
+        classification: "content",
         weight: 2,
         publish: { publishStatuses: ["published"] },
       });
@@ -411,7 +412,10 @@ This note has frontmatter metadata.`;
         },
       };
       fresh.registerEntityType("note", noteSchema, adapter, source);
-      expect(fresh.getEntityTypeConfig("note")).toEqual({ weight: 2 });
+      expect(fresh.getEntityTypeConfig("note")).toEqual({
+        classification: "content",
+        weight: 2,
+      });
     });
 
     test("preserves every declared configuration field in detached reads", () => {
@@ -426,7 +430,10 @@ This note has frontmatter metadata.`;
         publish: { publishStatuses: [] },
       };
       fresh.registerEntityType("note", noteSchema, adapter, config);
-      expect(fresh.getEntityTypeConfig("note")).toEqual(config);
+      expect(fresh.getEntityTypeConfig("note")).toEqual({
+        ...config,
+        classification: "content",
+      });
       expect(fresh.getEntityTypeConfig("note").publish).not.toBe(
         config.publish,
       );

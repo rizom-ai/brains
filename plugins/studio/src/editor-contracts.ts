@@ -1,5 +1,8 @@
 import type { ActorRef } from "@brains/contracts";
-import type { ContentVisibility } from "@brains/sdk/entities";
+import type {
+  ContentVisibility,
+  EntityTypeClassification,
+} from "@brains/sdk/entities";
 import type {
   AppendAuthAuditEventInput,
   InterfaceCaller,
@@ -40,6 +43,7 @@ export type StudioAuditRecorder =
 /** One entity type in Studio's type list. */
 export interface StudioEntityTypeInfo {
   entityType: string;
+  classification: EntityTypeClassification;
   label: string;
   isSingleton: boolean;
   hasBody: boolean;

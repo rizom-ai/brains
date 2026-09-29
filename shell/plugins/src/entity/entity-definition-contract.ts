@@ -65,6 +65,7 @@ import type {
   RuntimeUploadRecord,
 } from "../service/upload-registry";
 import type { z } from "@brains/utils/zod";
+import type { EntityTypeClassification } from "@brains/entity-service";
 
 export type {
   EntityOf,
@@ -201,6 +202,7 @@ export interface EntityDefinition<
   readonly kind: "rizom-entity";
   readonly type: TType;
   readonly purpose: string;
+  readonly classification: EntityTypeClassification;
   readonly metadata: TMetadataSchema;
   /**
    * Normalise stored metadata before the schema sees it.

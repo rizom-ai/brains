@@ -20,6 +20,7 @@ export const skill: EntityDefinition<
   typeof skillMetadataSchema
 > = defineEntity({
   type: SKILL_ENTITY_TYPE,
+  classification: "system",
   purpose: "A capability advertised by a remote agent.",
   metadata: skillMetadataSchema,
   markdown: directoryMarkdown((frontmatter) =>

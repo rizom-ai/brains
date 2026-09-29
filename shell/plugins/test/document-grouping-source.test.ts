@@ -55,7 +55,11 @@ describe("definition source snapshots", () => {
     contributors = ["post"];
     await source.ensureCurrent();
     expect(replacements[2]).toEqual([]);
-    expect(source.getSnapshot()).toEqual({ groupings, issues: [] });
+    expect(source.getSnapshot()).toEqual({
+      groupings,
+      issues: [],
+      excludedTypes: ["post"],
+    });
   });
   test("reuses a content revision, publishes removals and cannot be changed through a returned snapshot", async () => {
     let content: string | undefined = document({ areas });

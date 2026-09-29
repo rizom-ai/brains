@@ -18,6 +18,7 @@ import { swotWidget } from "./widgets/swot";
 export const swot: EntityDefinition<"swot", typeof swotMetadataSchema> =
   defineEntity({
     type: "swot",
+    classification: "system",
     purpose:
       "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
     metadata: swotMetadataSchema,

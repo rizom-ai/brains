@@ -1,5 +1,6 @@
 import {
   copyEntityTypeConfig,
+  entityTypeClassificationSchema,
   type BaseEntity,
   type CreateInterceptor,
   type EntityAdapter,
@@ -19,7 +20,12 @@ export function createMockEntityRegistry(
 
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
-      const registeredConfig = copyEntityTypeConfig(config ?? {});
+      const registeredConfig = {
+        ...copyEntityTypeConfig(config ?? {}),
+        classification: entityTypeClassificationSchema.parse(
+          config?.classification,
+        ),
+      };
       store.registry.registerEntityType(
         type,
         _schema,

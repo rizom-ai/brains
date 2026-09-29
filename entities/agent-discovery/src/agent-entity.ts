@@ -45,6 +45,7 @@ export const agent: EntityDefinition<
   typeof agentMetadataSchema
 > = defineEntity({
   type: AGENT_ENTITY_TYPE,
+  classification: "system",
   purpose: "A saved remote peer-brain contact in the local agent directory.",
   metadata: agentMetadataSchema,
   markdown: directoryMarkdown((raw) => {

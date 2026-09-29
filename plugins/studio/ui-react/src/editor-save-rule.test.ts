@@ -96,7 +96,11 @@ describe("isEditorSaveBlocked", () => {
       selectedEntityType: GROUPING_DEFINITIONS_TYPE,
       entitySchema: {
         ...schema,
-        groupingDefinitions: { contributorTypes: [], issues: [] },
+        groupingDefinitions: {
+          contributorTypes: [],
+          systemTypes: [],
+          issues: [],
+        },
       },
     });
     expect(isEditorSaveBlocked(editing(), loaded, false)).toBe(true);

@@ -1,6 +1,10 @@
 import { z } from "@brains/utils/zod";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
-import { internalFullScope, type BaseEntity } from "@brains/entity-service";
+import {
+  internalFullScope,
+  isGroupingContributor,
+  type BaseEntity,
+} from "@brains/entity-service";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { ServicePluginContext } from "./context";
 import { GroupingDefinitionSource } from "../internal/document-grouping-source";
@@ -50,10 +54,10 @@ export function registerDeclaredGroupings(
     const adapter = context.entities.getAdapter(type);
     return (
       type !== entityType &&
-      !!adapter?.frontmatterSchema &&
-      !adapter.isSingleton &&
-      context.entityService.getEntityTypeConfig(type).binaryStorage ===
-        undefined
+      isGroupingContributor(
+        adapter,
+        context.entityService.getEntityTypeConfig(type),
+      )
     );
   };
   const source = new GroupingDefinitionSource({

@@ -1,5 +1,41 @@
 # @brains/a2a
 
+## 0.2.0-alpha.446
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.446
+  - @brains/http-signatures@0.2.0-alpha.446
+  - @brains/utils@0.2.0-alpha.446
+  - @brains/auth-service@0.2.0-alpha.446
+  - @brains/plugins@0.2.0-alpha.446
+  - @brains/templates@0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.445
+  - @brains/http-signatures@0.2.0-alpha.445
+  - @brains/utils@0.2.0-alpha.445
+  - @brains/auth-service@0.2.0-alpha.445
+  - @brains/plugins@0.2.0-alpha.445
+  - @brains/templates@0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.444
+  - @brains/http-signatures@0.2.0-alpha.444
+  - @brains/utils@0.2.0-alpha.444
+  - @brains/auth-service@0.2.0-alpha.444
+  - @brains/plugins@0.2.0-alpha.444
+  - @brains/templates@0.2.0-alpha.444
+
 ## 0.2.0-alpha.443
 
 ### Patch Changes

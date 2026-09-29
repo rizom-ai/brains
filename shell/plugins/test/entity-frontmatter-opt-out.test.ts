@@ -89,7 +89,7 @@ test("frontmatter opt-out is representation-owned, preserves opaque bytes and do
         label: "Areas",
         types: [opaque.type],
       }),
-    ).toThrow("frontmatter entity type");
+    ).toThrow("eligible content entity type");
     expect(
       Object.keys(
         registry.getEffectiveFrontmatterSchema(inferred.type)?.shape ?? {},

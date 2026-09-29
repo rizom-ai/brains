@@ -1,5 +1,47 @@
 # @brains/studio
 
+## 0.2.0-alpha.446
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.446
+  - @brains/console-theme@0.2.0-alpha.446
+  - @brains/contracts@0.2.0-alpha.446
+  - @brains/operator-view-react@0.2.0-alpha.446
+  - @brains/utils@0.2.0-alpha.446
+  - @brains/auth-service@0.2.0-alpha.446
+  - @brains/entity-service@0.2.0-alpha.446
+  - @brains/plugins@0.2.0-alpha.446
+
+## 0.2.0-alpha.445
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.445
+  - @brains/console-theme@0.2.0-alpha.445
+  - @brains/contracts@0.2.0-alpha.445
+  - @brains/operator-view-react@0.2.0-alpha.445
+  - @brains/utils@0.2.0-alpha.445
+  - @brains/auth-service@0.2.0-alpha.445
+  - @brains/entity-service@0.2.0-alpha.445
+  - @brains/plugins@0.2.0-alpha.445
+
+## 0.2.0-alpha.444
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.444
+  - @brains/console-theme@0.2.0-alpha.444
+  - @brains/contracts@0.2.0-alpha.444
+  - @brains/operator-view-react@0.2.0-alpha.444
+  - @brains/utils@0.2.0-alpha.444
+  - @brains/auth-service@0.2.0-alpha.444
+  - @brains/entity-service@0.2.0-alpha.444
+  - @brains/plugins@0.2.0-alpha.444
+
 ## 0.2.0-alpha.443
 
 ### Patch Changes

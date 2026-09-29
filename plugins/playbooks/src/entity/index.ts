@@ -24,6 +24,7 @@ export const playbookEntity: EntityDefinition<
   typeof playbookMetadataSchema
 > = defineEntity({
   type: "playbook",
+  classification: "system",
   purpose:
     "A guided multi-step workflow the assistant runs together with the user.",
   metadata: playbookMetadataSchema,

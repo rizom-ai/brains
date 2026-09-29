@@ -1929,6 +1929,9 @@ function parseJobData(data: string): unknown {
  */
 function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
   return {
+    classification: (entityType) =>
+      context.entityService.getEntityTypeConfig(entityType).classification ??
+      "content",
     displayTitle: (entity): string | undefined => {
       const adapter = context.entities.getAdapter(entity.entityType);
       const title =

@@ -224,7 +224,10 @@ describe("EntityPlugin", () => {
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
-      ).toEqual({ projectionSourceRole: "supporting" });
+      ).toEqual({
+        classification: "content",
+        projectionSourceRole: "supporting",
+      });
     });
 
     it("normalizes an excluded role to the fail-closed source policy", async () => {
@@ -234,6 +237,7 @@ describe("EntityPlugin", () => {
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("wave-item"),
       ).toEqual({
+        classification: "content",
         projectionSource: false,
         projectionSourceRole: "excluded",
       });

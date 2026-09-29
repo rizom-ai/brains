@@ -57,6 +57,7 @@ const promptMetadata: PromptMetadataSchema = z.object({
 export const prompt: EntityDefinition<"prompt", PromptMetadataSchema> =
   defineEntity({
     type: "prompt",
+    classification: "system",
     purpose: "A reusable prompt or instruction template.",
     metadata: promptMetadata,
     markdown: {

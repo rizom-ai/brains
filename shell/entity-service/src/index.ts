@@ -1,4 +1,9 @@
 export {
+  entityTypeClassificationSchema,
+  type EntityTypeClassification,
+} from "./entity-type-classification";
+export { isGroupingContributor } from "./grouping-eligibility";
+export {
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
   MAX_ASSET_BYTES,

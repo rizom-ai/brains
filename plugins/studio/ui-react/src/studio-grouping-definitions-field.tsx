@@ -127,6 +127,7 @@ export function StudioGroupingDefinitionsField(props: {
         value={value}
         savedKeys={savedKeys}
         contributorTypes={schema.contributorTypes}
+        systemTypes={schema.systemTypes}
         readOnly={props.readOnly}
         usage={usage}
         issues={storedIssues}

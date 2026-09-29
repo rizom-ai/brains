@@ -36,6 +36,7 @@ const retiredAllowlist: GroupingDefinition = {
 };
 void retiredAllowlist;
 const initial: GroupingDefinitionsSnapshot = {
+  excludedTypes: [],
   groupings: { areas: definition },
   issues: [],
 };

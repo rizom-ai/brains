@@ -569,10 +569,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const entityConfig = definition.config;
     // Asset-backed persistence remains runtime-internal, not an author capability.
     z.literal("data-url").optional().parse(entityConfig?.binaryStorage);
-    this.entityTypeConfig =
-      entityConfig === undefined
-        ? undefined
-        : copyEntityTypeConfig(entityConfig);
+    this.entityTypeConfig = copyEntityTypeConfig({
+      ...copyEntityTypeConfig(entityConfig ?? {}),
+      classification: definition.classification,
+    });
     this.seed = definition.seed;
     this.validatePersist = definition.validatePersist;
     this.templates = definition.templates;

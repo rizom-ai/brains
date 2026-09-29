@@ -40,6 +40,7 @@ export const siteInfo: EntityDefinition<
   typeof siteInfoBodySchema
 > = defineEntity({
   type: SITE_INFO_TYPE,
+  classification: "system",
   purpose: "Singleton configuration describing the published site.",
   metadata: siteInfoBodySchema,
   config: {

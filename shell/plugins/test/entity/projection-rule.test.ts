@@ -105,13 +105,18 @@ describe("ProjectionRule", () => {
           expect(Object.isFrozen(context.spaces)).toBe(true);
           const read = context.entities.getEntityTypeConfig("policy-target");
           expect(read).toEqual({
+            classification: "content",
             weight: 2,
             publish: { publishStatuses: ["published"] },
           });
           read.weight = 20;
           read.publish?.publishStatuses.pop();
           expect(context.entities.getEntityTypeConfig("policy-target")).toEqual(
-            { weight: 2, publish: { publishStatuses: ["published"] } },
+            {
+              classification: "content",
+              weight: 2,
+              publish: { publishStatuses: ["published"] },
+            },
           );
           return {};
         },

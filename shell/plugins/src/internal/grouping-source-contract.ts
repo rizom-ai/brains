@@ -36,6 +36,8 @@ export const groupingDefinitionSchema: z.ZodObject<
 });
 export type GroupingDefinition = z.output<typeof groupingDefinitionSchema>;
 export interface GroupingDefinitionsSnapshot {
+  /** Authored exclusion names, including sections awaiting repair. */
+  excludedTypes: string[];
   groupings: Record<string, GroupingDefinition>;
   issues: Array<{ path: Array<string | number>; message: string }>;
 }

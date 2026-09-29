@@ -90,6 +90,8 @@ export interface ServiceSeedDefinition {
  * Named consumer: @brains/obsidian-vault.
  */
 export interface ServiceEntityShapes {
+  /** Detached registration classification. Named consumer: Studio. No access grant. */
+  classification(entityType: string): "content" | "system";
   /** Adapter-derived title, without handing the caller the mutable adapter. Named consumer: Studio. */
   displayTitle(entity: BaseEntity): string | undefined;
   frontmatterSchema(entityType: string): z.ZodObject<z.ZodRawShape> | undefined;

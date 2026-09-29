@@ -42,6 +42,7 @@ const capabilities: StudioTypeCapabilities = {
 
 const noteType: EntityTypeInfo = {
   entityType: "note",
+  classification: "content",
   label: "Notes",
   isSingleton: false,
   hasBody: true,
