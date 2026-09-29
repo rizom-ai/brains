@@ -352,6 +352,15 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       var target = event.target;
       if (!target || !target.closest || !sheetOpen()) return;
       var scroller = conversation();
+      // Scrolled up into a strip, the map is too small to aim at: a tap on it
+      // brings the whole map back, as a tap on an app's top bar does.
+      if (scroller && scroller.scrollTop > 4 && lent && lent.contains(target)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        close();
+        glide(scroller, 0);
+        return;
+      }
       var source = target.closest("[${ASK_SOURCE_ATTRIBUTE}]");
       var piece = source ? mark(source.getAttribute("${ASK_SOURCE_ATTRIBUTE}")) : null;
       if (piece && piece.querySelector("a")) {

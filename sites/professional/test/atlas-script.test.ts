@@ -378,6 +378,19 @@ describe("atlas and its chat", () => {
       expect(map.style.getPropertyValue("--atlas-sheet-scroll")).toBe("120px");
     });
 
+    it("brings the whole map back when its strip is tapped, rather than opening a mark too small to aim at", () => {
+      setup({ touch: true, chat: "live" });
+      conversation();
+      sheet();
+      region().scrollTop = 300;
+      expect(tap("#first")).toBe(false);
+      expect(region().scrollTop).toBe(0);
+      expect(openMarks()).toEqual([]);
+      // At full height, a tap is a tap on the mark.
+      expect(tap("#first")).toBe(false);
+      expect(openMarks()).toEqual(["first"]);
+    });
+
     it("takes a tapped source to its piece: back to the full map, the piece pulsing with its card open", () => {
       setup({ touch: true, chat: "live" });
       conversation();
