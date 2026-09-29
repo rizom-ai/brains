@@ -2,7 +2,12 @@ import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { findNearestEntity, internalFullScope } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
-import { faqSchema, type FaqEntity, type FaqFrontmatter } from "../schemas/faq";
+import {
+  faqSchema,
+  type FaqCandidateAnswer,
+  type FaqEntity,
+  type FaqFrontmatter,
+} from "../schemas/faq";
 
 /**
  * Default cosine distance between FAQ markdowns within which they may ask the
@@ -90,15 +95,16 @@ export function findSameFaq(
 }
 
 /**
- * Records `messageIds` on `faq`, writing only over the version that was read.
- * A concurrent merge makes the write stale; the FAQ is re-read and the merge
- * reapplied. Ids the FAQ already records are not added again. False when the
- * FAQ disappeared, so the caller falls back.
+ * Records the replies in `merge` on `faq`, writing only over the version that
+ * was read. A concurrent merge makes the write stale; the FAQ is re-read and
+ * the merge reapplied. Replies the FAQ already records are not added again.
+ * The FAQ keeps its answer; a newly added reply's different answer becomes a
+ * candidate for the owner. False when the FAQ disappeared.
  */
 export async function mergeIntoFaq(
   deps: FaqStoreDeps,
   faq: FaqEntity,
-  messageIds: string[],
+  merge: { messageIds: string[]; candidates?: FaqCandidateAnswer[] },
   attemptsLeft: number = MERGE_ATTEMPTS,
 ): Promise<boolean> {
   const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
@@ -106,12 +112,19 @@ export async function mergeIntoFaq(
     frontmatter.sourceMessageId,
     ...frontmatter.mergedMessageIds,
   ];
-  const added = messageIds.filter((id) => !recorded.includes(id));
+  const added = merge.messageIds.filter((id) => !recorded.includes(id));
   if (added.length === 0) return true;
 
+  const known = [answer, ...frontmatter.candidateAnswers.map((c) => c.answer)];
+  const candidates = (merge.candidates ?? []).filter(
+    (candidate) =>
+      added.includes(candidate.messageId) &&
+      !known.some((text) => text.trim() === candidate.answer.trim()),
+  );
   const merged: FaqFrontmatter = {
     ...frontmatter,
     mergedMessageIds: [...frontmatter.mergedMessageIds, ...added],
+    candidateAnswers: [...frontmatter.candidateAnswers, ...candidates],
   };
   const result = await deps.entityService.updateEntity({
     entity: {
@@ -135,5 +148,5 @@ export async function mergeIntoFaq(
     faqSchema,
   );
   if (!current) return false;
-  return mergeIntoFaq(deps, current, messageIds, attemptsLeft - 1);
+  return mergeIntoFaq(deps, current, merge, attemptsLeft - 1);
 }

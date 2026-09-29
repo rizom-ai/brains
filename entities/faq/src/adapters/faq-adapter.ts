@@ -4,6 +4,7 @@ import {
   faqSchema,
   type FaqEntity,
   type FaqFrontmatter,
+  type FaqFrontmatterInput,
   type FaqMetadata,
 } from "../schemas/faq";
 
@@ -31,8 +32,11 @@ export class FaqAdapter extends BaseEntityAdapter<
     });
   }
 
-  public createFaqContent(frontmatter: FaqFrontmatter, answer: string): string {
-    return this.buildMarkdown(answer, frontmatter);
+  public createFaqContent(
+    frontmatter: FaqFrontmatterInput,
+    answer: string,
+  ): string {
+    return this.buildMarkdown(answer, faqFrontmatterSchema.parse(frontmatter));
   }
 
   public parseFaqContent(content: string): {

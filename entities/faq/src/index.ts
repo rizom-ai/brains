@@ -19,10 +19,13 @@ export {
   faqMetadataSchema,
   faqSchema,
   faqStatusSchema,
+  faqCandidateAnswerSchema,
 } from "./schemas/faq";
 export type {
+  FaqCandidateAnswer,
   FaqEntity,
   FaqFrontmatter,
+  FaqFrontmatterInput,
   FaqMetadata,
   FaqStatus,
 } from "./schemas/faq";
@@ -51,3 +54,4 @@ export {
   mergeIntoFaq,
 } from "./lib/faq-store";
 export type { FaqStoreDeps } from "./lib/faq-store";
+export { registerFaqReviewWorkspace } from "./lib/faq-review-workspace";

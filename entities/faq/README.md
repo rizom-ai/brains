@@ -26,7 +26,11 @@ The answer could only draw on content visible at that level, so the FAQ is never
 
 ## Entity
 
-Frontmatter holds `question`, `status` (`draft` | `published`), `sourceConversationId`, `sourceMessageId`, and `mergedMessageIds`. The body is the answer. Metadata carries `question`, `status`, and `asked` (one plus the merged count).
+Frontmatter holds `question`, `status` (`draft` | `published`), `sourceConversationId`, `sourceMessageId`, `mergedMessageIds`, and `candidateAnswers`. The body is the answer. Metadata carries `question`, `status`, and `asked` (one plus the merged count).
+
+## Reviewing alternative answers
+
+A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is kept in `candidateAnswers` (reconciliation carries a folded duplicate's answer the same way). Studio's **FAQ review** workspace lists every FAQ with alternatives that the reviewer may see, with the current answer and each alternative. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either clears the alternatives. Both read the FAQ at the reviewer's visibility and write only over the version they read.
 
 ## Publishing and sites
 

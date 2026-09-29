@@ -10,6 +10,7 @@ describe("FaqAdapter", () => {
         sourceConversationId: "conv-1",
         sourceMessageId: "msg-2",
         mergedMessageIds: ["msg-9"],
+        candidateAnswers: [{ messageId: "msg-9", answer: "Use Publish." }],
       },
       "Open it in Studio and choose Publish.",
     );
@@ -21,6 +22,7 @@ describe("FaqAdapter", () => {
       sourceConversationId: "conv-1",
       sourceMessageId: "msg-2",
       mergedMessageIds: ["msg-9"],
+      candidateAnswers: [{ messageId: "msg-9", answer: "Use Publish." }],
     });
     expect(parsed.answer).toBe("Open it in Studio and choose Publish.");
 
@@ -47,6 +49,9 @@ describe("FaqAdapter", () => {
 
     expect(
       faqAdapter.parseFaqContent(markdown).frontmatter.mergedMessageIds,
+    ).toEqual([]);
+    expect(
+      faqAdapter.parseFaqContent(markdown).frontmatter.candidateAnswers,
     ).toEqual([]);
     expect(faqAdapter.fromMarkdown(markdown).metadata?.asked).toBe(1);
   });

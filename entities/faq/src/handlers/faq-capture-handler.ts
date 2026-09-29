@@ -200,6 +200,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
       sourceConversationId: data.conversationId,
       sourceMessageId: data.messageId,
       mergedMessageIds: [],
+      candidateAnswers: [],
     };
     const content = faqAdapter.createFaqContent(
       frontmatter,
@@ -207,7 +208,15 @@ export class FaqCaptureHandler extends BaseJobHandler<
     );
 
     const match = await findSameFaq(this.deps, { content, visibility });
-    if (match && (await mergeIntoFaq(this.deps, match, [data.messageId]))) {
+    const merged =
+      match &&
+      (await mergeIntoFaq(this.deps, match, {
+        messageIds: [data.messageId],
+        candidates: [
+          { messageId: data.messageId, answer: classification.answer },
+        ],
+      }));
+    if (match && merged) {
       return { captured: true, entityId: match.id, merged: true };
     }
 

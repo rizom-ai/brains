@@ -28,6 +28,7 @@ describe("FaqDataSource", () => {
       sourceConversationId: "conv-1",
       sourceMessageId: id,
       mergedMessageIds,
+      candidateAnswers: [],
     };
     await context.entityService.createEntity({
       entity: {

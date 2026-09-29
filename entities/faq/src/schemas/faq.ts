@@ -13,9 +13,23 @@ export const faqStatusSchema: z.ZodEnum<{
 
 export type FaqStatus = z.output<typeof faqStatusSchema>;
 
+type FaqCandidateAnswerSchema = z.ZodObject<{
+  messageId: z.ZodString;
+  answer: z.ZodString;
+}>;
+
+/** A merged reply's own answer, kept for the owner to choose from. */
+export const faqCandidateAnswerSchema: FaqCandidateAnswerSchema = z.object({
+  messageId: z.string(),
+  answer: z.string(),
+});
+
+export type FaqCandidateAnswer = z.output<typeof faqCandidateAnswerSchema>;
+
 /**
  * FAQ frontmatter schema. The body holds the answer. `mergedMessageIds`
- * lists later replies that asked the same question at the same visibility.
+ * lists later replies that asked the same question at the same visibility;
+ * `candidateAnswers` keeps their answers where they differ from the body.
  */
 type FaqFrontmatterSchema = z.ZodObject<{
   question: z.ZodString;
@@ -23,6 +37,7 @@ type FaqFrontmatterSchema = z.ZodObject<{
   sourceConversationId: z.ZodString;
   sourceMessageId: z.ZodString;
   mergedMessageIds: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  candidateAnswers: z.ZodDefault<z.ZodArray<FaqCandidateAnswerSchema>>;
 }>;
 
 export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
@@ -31,9 +46,11 @@ export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
   sourceConversationId: z.string(),
   sourceMessageId: z.string(),
   mergedMessageIds: z.array(z.string()).default([]),
+  candidateAnswers: z.array(faqCandidateAnswerSchema).default([]),
 });
 
 export type FaqFrontmatter = z.output<typeof faqFrontmatterSchema>;
+export type FaqFrontmatterInput = z.input<typeof faqFrontmatterSchema>;
 
 type FaqMetadataSchema = z.ZodObject<{
   question: z.ZodString;

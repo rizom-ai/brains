@@ -293,6 +293,24 @@ describe("FaqCaptureHandler", () => {
     const parsed = faqAdapter.parseFaqContent(faqs[0]?.content ?? "");
     expect(parsed.frontmatter.mergedMessageIds).toEqual(["m4"]);
     expect(parsed.answer).toBe("Choose Publish in Studio.");
+    expect(parsed.frontmatter.candidateAnswers).toEqual([
+      {
+        messageId: "m4",
+        answer: "Open the post in Studio and choose Publish.",
+      },
+    ]);
+  });
+
+  it("records no candidate when the merging answer matches the FAQ's", async () => {
+    await seedMatch("shared", 0.08);
+    classification = { ...accepted, answer: "Choose Publish in Studio." };
+
+    await capture(createHandler(), "trusted");
+
+    const [faq] = await capturedFaqs();
+    const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
+    expect(parsed.frontmatter.mergedMessageIds).toEqual(["m4"]);
+    expect(parsed.frontmatter.candidateAnswers).toEqual([]);
   });
 
   for (const [existing, level] of [
