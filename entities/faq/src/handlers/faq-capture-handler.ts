@@ -11,6 +11,7 @@ import {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import type { FaqFrontmatter } from "../schemas/faq";
@@ -84,8 +85,17 @@ export interface FaqCaptureDeps extends FaqStoreDeps {
   ai: Pick<EntityPluginContext["ai"], "generateObject">;
 }
 
-export function faqEntityId(messageId: string): string {
-  return `faq-${messageId}`;
+/** Longest question slug kept in an id, so ids stay readable. */
+const ID_SLUG_LENGTH = 60;
+
+/**
+ * A readable, unique FAQ id: the question's slug, then the source reply's id.
+ * The reply id keeps the same question at two visibilities apart; a question
+ * with no latin letters falls back to "faq".
+ */
+export function faqEntityId(question: string, messageId: string): string {
+  const slug = slugify(question).slice(0, ID_SLUG_LENGTH).replace(/-+$/, "");
+  return `${slug || "faq"}-${slugify(messageId)}`;
 }
 
 function buildClassificationPrompt(question: string, answer: string): string {
@@ -186,7 +196,7 @@ export class FaqCaptureHandler extends BaseJobHandler<
       return { captured: true, entityId: match.id, merged: true };
     }
 
-    const entityId = faqEntityId(data.messageId);
+    const entityId = faqEntityId(classification.question, data.messageId);
     await this.deps.entityService.createEntity({
       entity: {
         id: entityId,

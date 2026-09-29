@@ -185,7 +185,7 @@ describe("FaqCaptureHandler", () => {
 
       expect(result).toEqual({
         captured: true,
-        entityId: "faq-m4",
+        entityId: "how-do-i-publish-a-draft-post-m4",
         merged: false,
       });
       const [faq] = await capturedFaqs();
@@ -297,7 +297,7 @@ describe("FaqCaptureHandler", () => {
 
       expect(result).toEqual({
         captured: true,
-        entityId: "faq-m4",
+        entityId: "how-do-i-publish-a-draft-post-m4",
         merged: false,
       });
       expect(await capturedFaqs()).toHaveLength(2);
@@ -317,7 +317,10 @@ describe("FaqCaptureHandler", () => {
 
     const result = await capture(createHandler(), "admin");
 
-    expect(result).toMatchObject({ entityId: "faq-m4", merged: false });
+    expect(result).toMatchObject({
+      entityId: "how-do-i-publish-a-draft-post-m4",
+      merged: false,
+    });
   });
 
   it("merges each answer once", async () => {
@@ -386,8 +389,23 @@ describe("FaqCaptureHandler", () => {
 
     const result = await capture(createHandler(long), "admin", "m20", 20);
 
-    expect(result).toMatchObject({ captured: true, entityId: "faq-m20" });
+    expect(result).toMatchObject({
+      captured: true,
+      entityId: "how-do-i-publish-a-draft-post-m20",
+    });
     expect(prompts[0]).toContain("how do I publish a draft post?");
     expect(fetches).toEqual([{ range: { start: 1, end: 30 } }]);
+  });
+
+  it("falls back to a generic prefix for a question with no latin letters", async () => {
+    classification = {
+      reusable: true,
+      question: "如何发布草稿？",
+      answer: "在 Studio 中选择发布。",
+    };
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: "faq-m4" });
   });
 });
