@@ -5,7 +5,7 @@ import {
   type SearchResult,
 } from "@brains/entity-service";
 
-/** Candidates searched; most are types the site does not show. */
+/** Candidates searched; many are types the site does not cite. */
 const SEARCH_LIMIT = 20;
 /** The embedding search's own floor for a relevant match. */
 const MIN_SCORE = 0.5;
@@ -15,8 +15,8 @@ const MAX_SOURCES = 5;
 
 export interface GuestAnswerSourcesDeps {
   entityService: Pick<IEntityService, "search">;
-  /** Whether the site shows this type at its own address. */
-  hasRoute: (entityType: string) => boolean;
+  /** Whether the site offers this type to visitors as a source. */
+  isCitable: (entityType: string) => boolean;
   /** The site path of an entity of this type. */
   urlFor: (entityType: string, slug: string) => string;
   /** The domain the site is published at; without it, sources carry no address. */
@@ -59,9 +59,9 @@ function toCitation(
 }
 
 /**
- * A visitor's answer's sources: the published public pages the site shows whose
- * embeddings sit closest to the answer, however the answer found its way
- * to them. Only pages scoring near the closest one count.
+ * A visitor's answer's sources: the published pieces of work the site cites
+ * whose embeddings sit closest to the answer, however the answer found its
+ * way to them. Only pieces scoring near the closest one count.
  */
 export function createGuestAnswerSources(
   deps: GuestAnswerSourcesDeps,
@@ -76,11 +76,11 @@ export function createGuestAnswerSources(
         publishedOnly: true,
       },
     });
-    const shown = results.filter((result) =>
-      deps.hasRoute(result.entity.entityType),
+    const citable = results.filter((result) =>
+      deps.isCitable(result.entity.entityType),
     );
-    const closest = Math.max(...shown.map((result) => result.score));
-    return shown
+    const closest = Math.max(...citable.map((result) => result.score));
+    return citable
       .filter((result) => result.score >= closest - SCORE_BAND)
       .slice(0, MAX_SOURCES)
       .map((result) => toCitation(result, deps));

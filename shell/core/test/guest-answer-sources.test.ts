@@ -53,12 +53,13 @@ function sources(
     void request;
     return results;
   });
-  const routed = new Set(["post", "deck", "project", "topic", "series"]);
+  // What yeehaa.io marks citable: its essays, presentations and projects.
+  const citable = new Set(["post", "deck", "project"]);
   return {
     search,
     find: createGuestAnswerSources({
       entityService: { search },
-      hasRoute: (entityType) => routed.has(entityType),
+      isCitable: (entityType) => citable.has(entityType),
       urlFor: (entityType, slug) => `/${entityType}s/${slug}`,
       siteBaseUrl: site.baseUrl,
     }),
@@ -66,13 +67,14 @@ function sources(
 }
 
 describe("a visitor's answer's sources", () => {
-  it("are the public pages the site shows closest to the answer", async () => {
+  it("are the pieces of work the site cites closest to the answer", async () => {
+    // The note, social post and topic are close too, but are not pieces the
+    // site offers as sources.
     const { find, search } = sources();
     const cited = await find({ answer: "Storage is not memory." });
     expect(cited.map((source) => source.id)).toEqual([
       "post:hiding",
       "post:heroics",
-      "topic:institutional-memory",
       "post:cracks",
       "post:colleague",
     ]);
@@ -130,7 +132,7 @@ describe("a visitor's answer's sources", () => {
     expect(cited.map((source) => source.id)).toEqual(["post:close"]);
   });
 
-  it("are none when nothing the site shows is close", async () => {
+  it("are none when nothing the site cites is close", async () => {
     const { find } = sources([result("note", "private-ish", 0.9)]);
     expect(await find({ answer: "Storage is not memory." })).toEqual([]);
   });

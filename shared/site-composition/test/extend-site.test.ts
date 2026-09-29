@@ -35,3 +35,33 @@ describe("extendSite headScripts", () => {
     ]);
   });
 });
+
+describe("extendSite entityDisplay", () => {
+  test("an override refines a type's display and keeps what it leaves out", () => {
+    // A brain relabelling its essays must not drop the base site's other
+    // settings for them, such as the essays being what an answer cites.
+    const base: SitePackage<unknown> = {
+      ...makeBase(),
+      entityDisplay: {
+        post: { label: "Post", citable: true, paginate: true },
+        topic: { label: "Topic" },
+      },
+    };
+    const site = extendSite(base, {
+      entityDisplay: {
+        post: { label: "Essay", navigation: { priority: 10 } },
+        link: { label: "Link" },
+      },
+    });
+    expect(site.entityDisplay).toEqual({
+      post: {
+        label: "Essay",
+        citable: true,
+        paginate: true,
+        navigation: { priority: 10 },
+      },
+      topic: { label: "Topic" },
+      link: { label: "Link" },
+    });
+  });
+});
