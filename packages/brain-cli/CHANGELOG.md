@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.448
+
+### Patch Changes
+
+- [#433](https://github.com/rizom-ai/brains/pull/433) [`2c0c48b`](https://github.com/rizom-ai/brains/commit/2c0c48bf16807acd11917ff24a866fe41b9328e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - While the phone conversation is open, the rest of the page is out of sight: once the sheet has risen over it the page is hidden, and it shows again as the sheet starts to fall away. Nothing of the homepage or footer can show through wherever Safari's keyboard and bars briefly leave the sheet short of the screen.
+
 ## 0.2.0-alpha.447
 
 ### Patch Changes

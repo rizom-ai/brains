@@ -308,6 +308,7 @@
     "core--contact-site-theme",
     "core--context-extends-published-surface",
     "core--contracts-channel-ownership",
+    "core--cover-page",
     "core--cross-process-durable-work",
     "core--dashboard-authored-ask",
     "core--dashboard-knowledge-atlas",
