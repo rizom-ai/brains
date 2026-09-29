@@ -4,7 +4,7 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { WishAdapter } from "../adapters/wish-adapter";
 import { wishPrioritySchema, wishSchema } from "../schemas/wish";
-import { findExistingWish } from "../lib/wish-dedup";
+import { SAME_WISH_DISTANCE, findExistingWish } from "../lib/wish-dedup";
 
 export interface WishCreateData {
   title?: string;
@@ -44,16 +44,28 @@ export class WishCreateHandler {
   ): Promise<WishCreateResult> {
     const title = data.title ?? data.prompt ?? "Untitled wish";
     const description = data.content ?? data.prompt ?? "";
+    // options.priority arrives as an unchecked string from the tool call.
+    const parsedPriority = wishPrioritySchema.safeParse(data.options?.priority);
+    const priority = parsedPriority.success ? parsedPriority.data : "medium";
+    const content = this.adapter.createWishContent(
+      {
+        title,
+        status: "new",
+        priority,
+        requested: 1,
+      },
+      description,
+    );
 
     const existing = await findExistingWish(
       {
-        search: (request) =>
-          this.context.entityService.search(request, wishSchema),
+        searchWithDistances: (request) =>
+          this.context.entityService.searchWithDistances(request),
         getEntity: (request) =>
           this.context.entityService.getEntity(request, wishSchema),
-        similarityThreshold: 0.85,
+        maxDistance: SAME_WISH_DISTANCE,
       },
-      { title, description },
+      { title, content },
     );
 
     if (existing) {
@@ -87,18 +99,6 @@ export class WishCreateHandler {
     }
 
     const slug = slugify(title);
-    // options.priority arrives as an unchecked string from the tool call.
-    const parsedPriority = wishPrioritySchema.safeParse(data.options?.priority);
-    const priority = parsedPriority.success ? parsedPriority.data : "medium";
-    const content = this.adapter.createWishContent(
-      {
-        title,
-        status: "new",
-        priority,
-        requested: 1,
-      },
-      description,
-    );
 
     await this.context.entityService.createEntity({
       entity: {

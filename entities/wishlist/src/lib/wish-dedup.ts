@@ -1,41 +1,36 @@
+import { findNearestEntity, type NearestEntityDeps } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import type { WishEntity } from "../schemas/wish";
 
-export interface WishSearchDeps {
-  search: (request: {
-    query: string;
-    options?: { types?: string[]; limit?: number };
-  }) => Promise<Array<{ entity: WishEntity; score: number; excerpt: string }>>;
-  getEntity: (request: {
-    entityType: string;
-    id: string;
-  }) => Promise<WishEntity | null>;
-  similarityThreshold: number;
+/**
+ * Cosine distance between wish markdowns within which they ask for the same
+ * thing. Measured rewordings of one wish sit at 0.19–0.22, a related but
+ * different wish at 0.36, unrelated wishes beyond 0.4.
+ */
+export const SAME_WISH_DISTANCE = 0.28;
+
+export interface WishSearchDeps extends NearestEntityDeps<WishEntity> {
+  maxDistance: number;
 }
 
 /**
- * Find an existing wish that matches the given title + description,
- * using semantic search with slug-based fallback.
+ * Find an existing wish that asks for what the new wish's markdown asks for,
+ * by embedding distance, falling back to an exact slug match.
  */
 export async function findExistingWish(
   deps: WishSearchDeps,
-  input: { title: string; description: string },
+  input: { title: string; content: string },
 ): Promise<WishEntity | null> {
-  const query = `${input.title}: ${input.description}`;
-  const results = await deps.search({
-    query,
-    options: { types: ["wish"], limit: 1 },
+  const nearest = await findNearestEntity(deps, {
+    query: input.content,
+    entityType: "wish",
+    maxDistance: deps.maxDistance,
+    visibility: "public",
   });
+  if (nearest) return nearest;
 
-  const topResult = results[0];
-  if (topResult && topResult.score >= deps.similarityThreshold) {
-    return topResult.entity;
-  }
-
-  // Fall back to exact slug match
-  const slug = slugify(input.title);
   return deps.getEntity({
     entityType: "wish",
-    id: slug,
+    id: slugify(input.title),
   });
 }
