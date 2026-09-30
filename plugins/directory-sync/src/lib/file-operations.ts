@@ -1,4 +1,5 @@
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import { createHash } from "node:crypto";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -20,7 +21,15 @@ import {
   resolveEntityPlacement,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
-import { mkdir, readFile, unlink, writeFile, stat, utimes } from "fs/promises";
+import {
+  mkdir,
+  open,
+  readFile,
+  unlink,
+  writeFile,
+  stat,
+  utimes,
+} from "fs/promises";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import {
@@ -44,7 +53,7 @@ export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   EntityServiceClient,
-  "serializeEntity" | "hasEntityType"
+  "serializeEntity" | "hasEntityType" | "openAsset"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -227,7 +236,21 @@ export class FileOperations {
       );
     }
 
-    if (isImage || isDocument) {
+    const assetRef = assetRefSchema.safeParse(entity.content);
+    if (assetRef.success) {
+      // Stored assets stream to the file; an identical file is left alone.
+      if (await fileHasDigest(filePath, getAssetDigest(assetRef.data))) {
+        return;
+      }
+      await this.ensureEntityDirectory(filePath);
+      await writeChunks(
+        filePath,
+        await this.entityService.openAsset(assetRef.data),
+      );
+      if (isDocument) {
+        await this.writeDocumentSidecar(entity, filePath);
+      }
+    } else if (isImage || isDocument) {
       const dataUrlPattern = isImage
         ? /^data:image\/[a-z+]+;base64,(.+)$/i
         : /^data:application\/pdf;base64,(.+)$/i;
@@ -445,5 +468,28 @@ export class FileOperations {
 
   async fileExists(filePath: string): Promise<boolean> {
     return pathExists(filePath);
+  }
+}
+
+/** Whether a file exists and its SHA-256 matches, hashed as a stream. */
+async function fileHasDigest(
+  filePath: string,
+  digest: string,
+): Promise<boolean> {
+  if (!(await pathExists(filePath))) return false;
+  const hash = createHash("sha256");
+  for await (const chunk of Bun.file(filePath).stream()) hash.update(chunk);
+  return hash.digest("hex") === digest;
+}
+
+async function writeChunks(
+  filePath: string,
+  chunks: AsyncIterable<Uint8Array>,
+): Promise<void> {
+  const handle = await open(filePath, "w");
+  try {
+    for await (const chunk of chunks) await handle.write(chunk);
+  } finally {
+    await handle.close();
   }
 }

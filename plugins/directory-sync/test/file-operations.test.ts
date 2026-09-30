@@ -1,5 +1,8 @@
 import { computeAssetDigest, createAssetRef } from "@brains/plugins";
-import { createTestEntity } from "@brains/entity-service/test";
+import {
+  createMockAssetStore,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
 import {
@@ -28,15 +31,18 @@ describe("FileOperations", () => {
   let fileOps: FileOperations;
   let testDir: string;
   let mockEntityService: FileOperationsEntityService;
+  let assetStore: ReturnType<typeof createMockAssetStore>;
 
   beforeEach(() => {
     // Create a unique test directory
     testDir = mkdtempSync(join(tmpdir(), "test-file-ops-"));
 
+    assetStore = createMockAssetStore();
     mockEntityService = {
       serializeEntity: (entity: BaseEntity): string =>
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
+      openAsset: assetStore.openAsset,
     };
 
     fileOps = new FileOperations(testDir, mockEntityService);
@@ -322,6 +328,7 @@ describe("FileOperations", () => {
         const selectiveService: FileOperationsEntityService = {
           serializeEntity: () => "",
           hasEntityType: (type: string) => ["post", "link"].includes(type),
+          openAsset: assetStore.openAsset,
         };
         const selectiveFileOps = new FileOperations(testDir, selectiveService);
 
@@ -345,6 +352,43 @@ describe("FileOperations", () => {
   });
 
   describe("Image File Support", () => {
+    it("writes an asset-backed image from its stored chunks", async () => {
+      const asset = await assetStore.stageAsset(TINY_PNG_BYTES);
+      const entity = createTestEntity("image", {
+        id: "robot",
+        content: asset.ref,
+        metadata: { format: "png", mediaType: "image/png" },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      expect(
+        readFileSync(join(testDir, "image", "robot.png")).equals(
+          TINY_PNG_BYTES,
+        ),
+      ).toBe(true);
+    });
+
+    it("leaves an asset-backed image file untouched when its bytes match", async () => {
+      const asset = await assetStore.stageAsset(TINY_PNG_BYTES);
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const filePath = join(testDir, "image", "robot.png");
+      writeFileSync(filePath, TINY_PNG_BYTES);
+      const backdated = new Date(Date.now() - 60_000);
+      utimesSync(filePath, backdated, backdated);
+      const mtimeBefore = statSync(filePath).mtime.getTime();
+
+      await fileOps.writeEntity(
+        createTestEntity("image", {
+          id: "robot",
+          content: asset.ref,
+          metadata: { format: "png", mediaType: "image/png" },
+        }),
+      );
+
+      expect(statSync(filePath).mtime.getTime()).toBe(mtimeBefore);
+    });
+
     it("should read image files from image/ directory as base64 data URLs", async () => {
       // Create image file in image/ directory
       mkdirSync(join(testDir, "image"), { recursive: true });

@@ -1,5 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
+import type {
+  BaseEntity,
+  BinaryContentMode,
+  ContentVisibility,
+} from "@brains/plugins";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ExportResult } from "../types";
@@ -19,6 +23,7 @@ export interface ExportPipelineDeps {
       options?: {
         limit?: number;
         filter?: { visibilityScope?: ContentVisibility };
+        binaryContent?: BinaryContentMode;
       };
     }): Promise<BaseEntity[]>;
     deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
@@ -52,6 +57,8 @@ export async function exportEntities(
       entityType: entityType,
       options: {
         limit: 1000,
+        // Paths and writes need references, never materialized bytes.
+        binaryContent: "reference",
         filter: {
           visibilityScope: internalFullScope(
             "directory sync exports entities across all visibility tiers",
