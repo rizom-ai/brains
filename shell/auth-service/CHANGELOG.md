@@ -1,5 +1,20 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize auth initialization, lazy startup, invitation recovery startup, and shutdown in admission order. Settle both signing-key loads before rollback, release partially acquired resources on failure, continue cleanup after supervisor errors, and recreate database-bound account settings after restart.
+
+- [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish first-Anchor setup tokens only after persistence succeeds. Serialize token lookup, rotation, consumption, and clearing so concurrent requests cannot expose unpersisted tokens or let pending creation undo setup-state clearing.
+
+- Updated dependencies [[`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/plugins@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/notifications@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+  - @brains/db@0.2.0-alpha.461
+
 ## 0.2.0-alpha.460
 
 ### Patch Changes

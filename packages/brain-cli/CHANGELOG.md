@@ -1,5 +1,28 @@
 # @rizom/brain
 
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize auth initialization, lazy startup, invitation recovery startup, and shutdown in admission order. Settle both signing-key loads before rollback, release partially acquired resources on failure, continue cleanup after supervisor errors, and recreate database-bound account settings after restart.
+
+- [`059f85e`](https://github.com/rizom-ai/brains/commit/059f85e35bfd32a76caad601d87f45dc74e82403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate and propagate causal provenance for collected messages through the same operation scope as sent messages, including nested dispatch and caller-context restoration.
+
+- [`23f916d`](https://github.com/rizom-ai/brains/commit/23f916d1dcb42d4d4511a6167ebfbd41eabc37d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wait for every recurring-check cleanup task before reporting service-stop or plugin-unregistration failures. Preserve a single cleanup error and aggregate multiple failures instead of letting the first failed schedule bypass sibling drains.
+
+- [`815edf3`](https://github.com/rizom-ai/brains/commit/815edf384e2acec98043b510c5b93568e2991cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain admitted recurring-check callbacks and alert deliveries after Effect interruption, before plugin or service teardown completes. Do not record cancelled checks as successful after their final alert delivery.
+
+- [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish first-Anchor setup tokens only after persistence succeeds. Serialize token lookup, rotation, consumption, and clearing so concurrent requests cannot expose unpersisted tokens or let pending creation undo setup-state clearing.
+
+- [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell registration, acknowledgement barriers, and resource teardown:
+
+  - Reject duplicate MCP capabilities without overwriting their owners, and propagate registration failures for plugin rollback.
+  - Retain failed message collection acknowledgements so successful subscribers cannot hide a failed projection-wave completion effect.
+  - Reject scoped plugin acquisition before registry mutation and keep attachment release handles bound to their own registrations.
+  - Drain admitted durable progress polling before runtime teardown; progress monitor stop is now terminal and Promise-based.
+  - Clear runtime-state prefixes atomically without parsing stale values, preserving literal wildcard, Unicode, and embedded-NUL matching.
+  - Separate operator runtime contracts, schemas, action normalization, block normalization, and diagnostics into private responsibility-owned modules without changing rendered output.
+
 ## 0.2.0-alpha.460
 
 ### Patch Changes

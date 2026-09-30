@@ -1,5 +1,30 @@
 # @brains/core
 
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell registration, acknowledgement barriers, and resource teardown:
+
+  - Reject duplicate MCP capabilities without overwriting their owners, and propagate registration failures for plugin rollback.
+  - Retain failed message collection acknowledgements so successful subscribers cannot hide a failed projection-wave completion effect.
+  - Reject scoped plugin acquisition before registry mutation and keep attachment release handles bound to their own registrations.
+  - Drain admitted durable progress polling before runtime teardown; progress monitor stop is now terminal and Promise-based.
+  - Clear runtime-state prefixes atomically without parsing stale values, preserving literal wildcard, Unicode, and embedded-NUL matching.
+  - Separate operator runtime contracts, schemas, action normalization, block normalization, and diagnostics into private responsibility-owned modules without changing rendered output.
+
+- Updated dependencies [[`23f916d`](https://github.com/rizom-ai/brains/commit/23f916d1dcb42d4d4511a6167ebfbd41eabc37d2), [`815edf3`](https://github.com/rizom-ai/brains/commit/815edf384e2acec98043b510c5b93568e2991cfe), [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/recurring-checks@0.2.0-alpha.461
+  - @brains/plugins@0.2.0-alpha.461
+  - @brains/runtime-state@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/image@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+  - @brains/site-composition@0.2.0-alpha.461
+  - @brains/scheduler@0.2.0-alpha.461
+  - @brains/templates@0.2.0-alpha.461
+  - @brains/operation-context@0.2.0-alpha.461
+
 ## 0.2.0-alpha.460
 
 ### Patch Changes

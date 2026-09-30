@@ -1,5 +1,19 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`23f916d`](https://github.com/rizom-ai/brains/commit/23f916d1dcb42d4d4511a6167ebfbd41eabc37d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wait for every recurring-check cleanup task before reporting service-stop or plugin-unregistration failures. Preserve a single cleanup error and aggregate multiple failures instead of letting the first failed schedule bypass sibling drains.
+
+- [`815edf3`](https://github.com/rizom-ai/brains/commit/815edf384e2acec98043b510c5b93568e2991cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain admitted recurring-check callbacks and alert deliveries after Effect interruption, before plugin or service teardown completes. Do not record cancelled checks as successful after their final alert delivery.
+
+- Updated dependencies [[`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/job-queue@0.2.0-alpha.461
+  - @brains/runtime-state@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/scheduler@0.2.0-alpha.461
+
 ## 0.2.0-alpha.460
 
 ### Patch Changes
