@@ -300,8 +300,8 @@ export class AuthService {
     return this.runtime.getAccountSettingsStore();
   }
 
-  async hasPasskeyCredentials(): Promise<boolean> {
-    return this.runtime.passkeyService.hasCredentials();
+  hasPasskeyCredentials(): Promise<boolean> {
+    return this.runtime.hasPasskeyCredentials();
   }
 
   async revokePasskey(
@@ -314,18 +314,12 @@ export class AuthService {
       .revokePasskey(credentialId, context);
   }
 
-  async getJwks(): Promise<JwksResponse> {
-    const [oauthKey, a2aKey] = await Promise.all([
-      this.runtime.keyStore.getPublicJwk(),
-      this.runtime.a2aKeyStore.getPublicJwk(),
-    ]);
-    return {
-      keys: [oauthKey, a2aKey],
-    };
+  getJwks(): Promise<JwksResponse> {
+    return this.runtime.getJwks();
   }
 
   async getA2ASigningKey(): Promise<A2ASigningKey> {
-    const privateJwk = await this.runtime.a2aKeyStore.getPrivateJwk();
+    const privateJwk = await this.runtime.getA2APrivateJwk();
     return {
       privateJwk,
       keyId: absoluteUrl(
