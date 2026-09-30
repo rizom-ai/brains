@@ -371,6 +371,83 @@ describe("RecurringCheckService", () => {
     expect(stopSettled).toBe(true);
   });
 
+  it.each(["stop", "unregisterPlugin"] as const)(
+    "%s drains sibling schedules before reporting a cleanup failure",
+    async (method) => {
+      const failed = new Error("Schedule shutdown failed");
+      const entered = deferred();
+      const release = deferred();
+      let stopCalls = 0;
+      const scheduler: SchedulerBackend = {
+        scheduleCron: (): ScheduledJob => ({
+          stop: (): Promise<void> => {
+            stopCalls += 1;
+            if (stopCalls === 1) return Promise.reject(failed);
+            entered.resolve();
+            return release.promise;
+          },
+        }),
+        scheduleInterval: (): never => {
+          throw new Error("Unexpected interval schedule");
+        },
+        validateCron: (): void => {},
+      };
+      const { service } = createService({ scheduler });
+      for (const id of ["first", "second"]) {
+        service
+          .namespace("agent")
+          .register({ id, cadence: "daily", run: async () => ({}) });
+      }
+      await service.start();
+      let settled = false;
+      const closing = (
+        method === "stop" ? service.stop() : service.unregisterPlugin("agent")
+      ).catch((error: unknown) => {
+        settled = true;
+        return error;
+      });
+      try {
+        await entered.promise;
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+      }
+      expect(await closing).toBe(failed);
+      expect(stopCalls).toBe(2);
+    },
+  );
+
+  it("reports every schedule shutdown failure after the barrier settles", async () => {
+    const failures = [
+      new Error("First schedule failed"),
+      new Error("Second schedule failed"),
+    ];
+    let stopCalls = 0;
+    const scheduler: SchedulerBackend = {
+      scheduleCron: (): ScheduledJob => ({
+        stop: (): Promise<void> => Promise.reject(failures[stopCalls++]),
+      }),
+      scheduleInterval: (): never => {
+        throw new Error("Unexpected interval schedule");
+      },
+      validateCron: (): void => {},
+    };
+    const { service } = createService({ scheduler });
+    for (const id of ["first", "second"]) {
+      service
+        .namespace("agent")
+        .register({ id, cadence: "daily", run: async () => ({}) });
+    }
+    await service.start();
+    const error = await service.stop().catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(AggregateError);
+    if (!(error instanceof AggregateError))
+      throw new Error("Expected aggregate failure");
+    expect(error.errors).toEqual(failures);
+    expect(stopCalls).toBe(2);
+  });
+
   it("aborts an active check when the service stops", async () => {
     const { service } = createService();
     let observedSignal: AbortSignal | undefined;

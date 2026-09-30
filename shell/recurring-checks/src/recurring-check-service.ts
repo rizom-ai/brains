@@ -239,7 +239,7 @@ export class RecurringCheckService {
 
   async unregisterPlugin(pluginId: string): Promise<void> {
     const registered = [...(this.pluginChecks.get(pluginId) ?? [])];
-    await Promise.all(
+    await this.drainCleanupTasks(
       registered.map((check) =>
         this.releaseRegisteredCheck(
           check,
@@ -275,7 +275,7 @@ export class RecurringCheckService {
     const registered = [...this.pluginChecks.values()].flatMap((checks) => [
       ...checks,
     ]);
-    await Promise.all(
+    await this.drainCleanupTasks(
       registered.map(
         (check) =>
           check.releasePromise ?? this.settleRegisteredCheck(check, stopError),
@@ -428,11 +428,19 @@ export class RecurringCheckService {
     }
     tasks.push(...registered.catchUpTasks);
 
+    await this.drainCleanupTasks(tasks);
+  }
+
+  private async drainCleanupTasks(tasks: Promise<unknown>[]): Promise<void> {
     const results = await Promise.allSettled(tasks);
-    const failure = results.find(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    );
-    if (failure) throw failure.reason;
+    const errors: unknown[] = [];
+    for (const result of results) {
+      if (result.status === "rejected") errors.push(result.reason);
+    }
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) {
+      throw new AggregateError(errors, "Recurring check cleanup failed");
+    }
   }
 
   private schedule(registered: RegisteredCheck): void {
