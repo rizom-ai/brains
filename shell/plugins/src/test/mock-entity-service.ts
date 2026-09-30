@@ -16,13 +16,20 @@ import {
   type UpsertEntityRequest,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
-import { searchFixtureEntities } from "./entity-search";
+import {
+  isFixtureEntityPublished,
+  searchFixtureEntities,
+} from "./entity-search";
 import type { MockEntityStore } from "./mock-entity-store";
 
 /** Stateful, materialized entity reads and writes over the registry's shared store. */
 export function createMockEntityService(
   store: MockEntityStore,
 ): IEntityService {
+  const publishedStatusesFor = (type: string): string[] | undefined =>
+    store.adapters.get(type)?.publishedStatuses;
+  const isPublished = (entity: BaseEntity): boolean =>
+    isFixtureEntityPublished(entity, publishedStatusesFor(entity.entityType));
   // --- Entity Service (stateful) ---
   // Overloaded like the real service: without a schema reads return the
   // stored BaseEntity view; with one they parse, so T is proven not asserted.
@@ -37,8 +44,10 @@ export function createMockEntityService(
     request: GetEntityRequest,
     schema?: EntitySchema<BaseEntity>,
   ): Promise<BaseEntity | null> {
+    request.signal?.throwIfAborted();
     const entity = store.entities.get(request.id);
     if (entity?.entityType !== request.entityType) return null;
+    if (request.publishedOnly && !isPublished(entity)) return null;
     const visible =
       request.visibilityScope === undefined ||
       getVisibleContentVisibilities(request.visibilityScope).includes(
@@ -114,7 +123,7 @@ export function createMockEntityService(
         entity.content.toLowerCase().includes(contentContains),
       );
     if (request.options?.publishedOnly) {
-      results = results.filter((e) => e.metadata["status"] === "published");
+      results = results.filter(isPublished);
     }
     if (request.options?.filter?.metadata) {
       const filterEntries = Object.entries(request.options.filter.metadata);
@@ -161,6 +170,7 @@ export function createMockEntityService(
     const results = searchFixtureEntities(
       [...store.entities.values()],
       request,
+      publishedStatusesFor,
     );
     return schema
       ? results.map((result) => ({

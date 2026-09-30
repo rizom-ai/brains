@@ -92,6 +92,13 @@ export interface EntityDisplayEntry {
   paginate?: boolean | undefined;
   /** Items per page (default: 10). */
   pageSize?: number | undefined;
+  /**
+   * A piece of work a visitor's answer may cite as a source. False always
+   * excludes a type. If any type is true, only true entries are candidates;
+   * otherwise entries with pages are candidates unless explicitly false.
+   * This selects citations, not access permissions.
+   */
+  citable?: boolean | undefined;
   navigation?:
     | {
         show?: boolean | undefined;
@@ -449,6 +456,7 @@ const entityDisplaySchema: Strict<{
   layout: z.ZodOptional<z.ZodString>;
   paginate: z.ZodOptional<z.ZodBoolean>;
   pageSize: z.ZodOptional<z.ZodNumber>;
+  citable: z.ZodOptional<z.ZodBoolean>;
   navigation: z.ZodOptional<
     Strict<{
       show: z.ZodOptional<z.ZodBoolean>;
@@ -464,6 +472,7 @@ const entityDisplaySchema: Strict<{
   layout: z.string().min(1).optional(),
   paginate: z.boolean().optional(),
   pageSize: z.number().int().positive().optional(),
+  citable: z.boolean().optional(),
   navigation: z
     .strictObject({
       show: z.boolean().optional(),

@@ -126,6 +126,20 @@ describe("public authoring Phase 4 packed site contract", () => {
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(consumerFixture, consumerDirectory, tarballs);
+      await runCommand(
+        [
+          "bun",
+          "-e",
+          `import assert from "node:assert/strict";
+          import site from "@fixture/reading-site";
+          import { defineSite } from "@rizom/site";
+          assert.equal(site.entityDisplay.bookmark.citable, true);
+          assert.equal(site.entityDisplay["reading-digest"].citable, false);
+          const excluded = defineSite({ ...site, entityDisplay: { bookmark: { label: "Bookmark", citable: false } } });
+          assert.equal(excluded.entityDisplay.bookmark.citable, false);`,
+        ],
+        consumerDirectory,
+      );
 
       const generatedSourceDirectory = join(consumerDirectory, "generated");
       await runCommand(

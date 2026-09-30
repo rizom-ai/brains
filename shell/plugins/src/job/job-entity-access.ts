@@ -115,12 +115,14 @@ export function createJobEntityAccess(
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility | undefined;
+    publishedOnly?: boolean | undefined;
   }): Promise<BaseEntity | null>;
   async function getEntityScoped<T extends BaseEntity>(
     request: {
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility | undefined;
+      publishedOnly?: boolean | undefined;
     },
     schema: EntitySchema<T>,
   ): Promise<T | null>;
@@ -129,10 +131,12 @@ export function createJobEntityAccess(
       entityType,
       id,
       visibilityScope: requested,
+      publishedOnly,
     }: {
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility | undefined;
+      publishedOnly?: boolean | undefined;
     },
     schema?: EntitySchema<T>,
   ): Promise<BaseEntity | T | null> {
@@ -140,6 +144,7 @@ export function createJobEntityAccess(
       entityType,
       id,
       ...(requested !== undefined ? { visibilityScope: requested } : {}),
+      ...(publishedOnly !== undefined ? { publishedOnly } : {}),
     });
     return schema
       ? entityService.getEntity(request, schema)

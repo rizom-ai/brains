@@ -184,9 +184,14 @@ export interface EntityReads {
   getEntity(request: {
     entityType: string;
     id: string;
+    publishedOnly?: boolean | undefined;
   }): Promise<BaseEntity | null>;
   getEntity<T extends BaseEntity>(
-    request: { entityType: string; id: string },
+    request: {
+      entityType: string;
+      id: string;
+      publishedOnly?: boolean | undefined;
+    },
     schema: EntitySchema<T>,
   ): Promise<T | null>;
 }
@@ -325,13 +330,22 @@ function entityQueryReader(entityService: {
   async function getEntity(request: {
     entityType: string;
     id: string;
+    publishedOnly?: boolean | undefined;
   }): Promise<BaseEntity | null>;
   async function getEntity<T extends BaseEntity>(
-    request: { entityType: string; id: string },
+    request: {
+      entityType: string;
+      id: string;
+      publishedOnly?: boolean | undefined;
+    },
     schema: EntitySchema<T>,
   ): Promise<T | null>;
   async function getEntity<T extends BaseEntity>(
-    request: { entityType: string; id: string },
+    request: {
+      entityType: string;
+      id: string;
+      publishedOnly?: boolean | undefined;
+    },
     schema?: EntitySchema<T>,
   ): Promise<BaseEntity | T | null> {
     return schema

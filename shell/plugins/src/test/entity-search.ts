@@ -5,6 +5,23 @@ import {
   type SearchResult,
 } from "@brains/entity-service";
 
+/** Mirrors the SQL publication gate, including adapter-specific lifecycles. */
+export function isFixtureEntityPublished(
+  entity: BaseEntity,
+  publishedStatuses?: readonly string[],
+): boolean {
+  const status = entity.metadata["status"];
+  if (publishedStatuses?.length) {
+    return typeof status === "string" && publishedStatuses.includes(status);
+  }
+  return (
+    status === undefined ||
+    status === null ||
+    status === "published" ||
+    status === "active"
+  );
+}
+
 /**
  * Deterministic fixture search, not a simulation of FTS or vector ranking.
  * Every whitespace-separated term must occur in the id, title, or body.
@@ -13,6 +30,8 @@ import {
 export function searchFixtureEntities(
   entities: readonly BaseEntity[],
   { query, options = {} }: EntitySearchRequest,
+  publishedStatusesFor: (type: string) => readonly string[] | undefined = () =>
+    undefined,
 ): SearchResult[] {
   options.signal?.throwIfAborted();
   const terms = query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
@@ -25,6 +44,11 @@ export function searchFixtureEntities(
     if (options.types?.length && !options.types.includes(entity.entityType))
       return [];
     if (options.excludeTypes?.includes(entity.entityType)) return [];
+    if (
+      options.publishedOnly &&
+      !isFixtureEntityPublished(entity, publishedStatusesFor(entity.entityType))
+    )
+      return [];
     if (
       !options.includeUngenerated &&
       ["generating", "failed"].includes(String(entity.metadata["status"]))

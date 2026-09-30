@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.452
+
+### Patch Changes
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`8df97bf`](https://github.com/rizom-ai/brains/commit/8df97bf413df6bc4d5d0d20e06366b2720a591c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer lists only the pieces of work a site marks `citable` in its entity display: on the professional site, essays, presentations and projects — the pieces that light up on the homepage atlas. Topics, series, links and social posts no longer appear as sources next to the essays they point at. A site that marks no type keeps citing any type it has pages for. A site override that relabels a type now keeps the base site's other display settings for it instead of replacing the whole entry.
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`8d401d0`](https://github.com/rizom-ai/brains/commit/8d401d0d1388223963de9765303a964dcd298bb8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box reads as one conversation. There are no "You" and owner labels over each turn (screen readers still hear who speaks), one rule parts the turns, and an answer's lists and headings keep the text's rhythm and size. Sources are a list of rows instead of pills. The note under the composer is the same in every state, "Answers use published work only. Leave private details out.", with "About this chat" beside it in place of the About link above the conversation. The waiting line names the work, not the person. "↓ Rest of the answer" takes the note's line while there is more to read, instead of a round button over the text, and text fades out toward the composer instead of being cut. The send button is quiet until there is something to send. On a phone the open sheet has no title row: its close button floats over the top corner, the starting questions are a list, and answers read at 15px. `ASK_SHEET_HEADER_HEIGHT` is removed from the Ask box contract.
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`57bb96e`](https://github.com/rizom-ai/brains/commit/57bb96e61b54f676a04c2c467124da739ef6ef18) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional site's atlas homepage says the owner's name once: the byline over the headline is gone, and with it the ask-content `attribution` field. The ask box asks "Ask about my work…" before and after it mounts (a host sets the box's first placeholder with `ASK_PLACEHOLDER_ATTRIBUTE`). An answer's sources take their mark's shape and are named as the map's legend names their kind. A lit piece is its shape in the accent with one thin ring. The send button is quiet until there is something to send. On phones, the type is smaller, the starting questions are a list between hairlines, the map strip keeps lit pieces near its edge in view, and text passes under a short fade below the strip.
+
+- [#438](https://github.com/rizom-ai/brains/pull/438) [`0d57efc`](https://github.com/rizom-ai/brains/commit/0d57efc8e96dd0dd2978ff4c06369c1218675a1b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - People reading a brain publicly — site visitors asking in the Ask box, public chat users — only reach published work. Search, lookups by id, slug or title, listings, insights and an answer's sources all leave drafts out, using each entity type's own published statuses. Before, a visitor's answer could quote and link an unpublished draft, and the insights tool listed draft titles. A production site build's search now applies the same gate as its listings.
+
 ## 0.2.0-alpha.451
 
 ### Patch Changes

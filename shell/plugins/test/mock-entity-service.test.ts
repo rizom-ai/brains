@@ -51,6 +51,73 @@ function noteInput(content: string): EntityInput<BaseEntity> {
   return { entityType: "note", content, metadata: {} };
 }
 
+describe("mock publication gates", () => {
+  for (const publishedStatuses of [undefined, ["approved"]]) {
+    it(`matches get, list, count and paginated search for ${publishedStatuses ? "custom" : "default"} statuses`, async () => {
+      const store = createMockEntityStore();
+      store.adapters.set(
+        "note",
+        noteAdapter({ ...(publishedStatuses ? { publishedStatuses } : {}) }),
+      );
+      const statuses = [
+        "draft",
+        "published",
+        "active",
+        "approved",
+        undefined,
+        null,
+      ];
+      for (const [index, status] of statuses.entries()) {
+        store.entities.set(
+          String(index),
+          noteEntity({ id: String(index), metadata: { status } }),
+        );
+      }
+      const service = createMockEntityService(store);
+      const expected = publishedStatuses ? ["3"] : ["1", "2", "4", "5"];
+      const request = { entityType: "note", options: { publishedOnly: true } };
+      expect(
+        (await service.listEntities(request)).map((entity) => entity.id).sort(),
+      ).toEqual(expected);
+      expect(await service.countEntities(request)).toBe(expected.length);
+      expect(
+        (
+          await service.search({
+            query: "Note",
+            options: { publishedOnly: true, offset: 0, limit: 1 },
+          })
+        ).map((result) => result.entity.id),
+      ).toEqual(expected.slice(0, 1));
+      for (const id of store.entities.keys()) {
+        expect(
+          (
+            await service.getEntity({
+              entityType: "note",
+              id,
+              publishedOnly: true,
+            })
+          )?.id ?? null,
+        ).toBe(expected.includes(id) ? id : null);
+      }
+      expect(
+        await service.countEntities({
+          entityType: "note",
+          options: {
+            publishedOnly: true,
+            filter: { metadata: { status: "draft" } },
+          },
+        }),
+      ).toBe(0);
+      expect(
+        await service.countEntities({
+          entityType: "note",
+          options: { publishedOnly: false },
+        }),
+      ).toBe(statuses.length);
+    });
+  }
+});
+
 describe("createMockEntityStore", () => {
   it("materializes verbatim when no adapter is registered", () => {
     const store = createMockEntityStore();

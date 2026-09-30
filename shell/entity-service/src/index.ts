@@ -242,6 +242,8 @@ export {
 
 export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
+export { scopeEntityReads } from "./scoped-entity-reads";
+export type { EntityReadScope } from "./scoped-entity-reads";
 export { scopedDerivedId } from "./scoped-derived-id";
 export {
   getPublishBoundaryState,
@@ -301,4 +303,4 @@ export type {
   EntityEditRequest,
   EntityEditServices,
 } from "./apply-entity-edit";
-export type { ResolvedEntity } from "./find-entity";
+export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";

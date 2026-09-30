@@ -3,6 +3,7 @@ import "./interface-workspace-smoke";
 import "./caller-authority-smoke";
 import "./declaration-ownership-smoke";
 import "./status-recovery-smoke";
+import "./published-readers-smoke";
 import accountSettingsInterface from "@fixture/mailbox-connection";
 import readingEntities from "@fixture/reading-entities";
 import readingInsights, {

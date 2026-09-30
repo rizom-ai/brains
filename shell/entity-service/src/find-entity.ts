@@ -25,12 +25,18 @@ export interface EntityLookupReads {
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
 }
 
+/** How an identifier lookup reads: cancellation, and whether only published work counts. */
+export interface EntityLookupOptions extends EntityReadOptions {
+  publishedOnly?: boolean;
+}
+
 /**
  * Find an entity by trying ID, slug, then title lookups.
  *
  * Propagates the visibility scope to every lookup path so the slug/title
  * fallbacks cannot leak entities the caller is not allowed to see.
- * Defaults to "public" when no scope is provided.
+ * Defaults to "public" when no scope is provided. `publishedOnly` holds on
+ * every path too, so a draft is not reachable by its slug or title either.
  */
 export async function findEntityByIdentifier(
   entityService: EntityLookupReads,
@@ -38,10 +44,11 @@ export async function findEntityByIdentifier(
   identifier: string,
   logger?: Logger,
   visibilityScope: ContentVisibility = "public",
-  options: EntityReadOptions = {},
+  options: EntityLookupOptions = {},
 ): Promise<BaseEntity | null> {
-  const readOptions: EntityReadOptions = {
+  const readOptions: EntityLookupOptions = {
     ...(options.signal && { signal: options.signal }),
+    ...(options.publishedOnly && { publishedOnly: true }),
   };
   try {
     readOptions.signal?.throwIfAborted();
@@ -127,7 +134,7 @@ export async function resolveEntityOrError(
   logger?: Logger,
   label = "Entity",
   visibilityScope: ContentVisibility = "public",
-  readOptions: EntityReadOptions = {},
+  readOptions: EntityLookupOptions = {},
 ): Promise<ResolvedEntity> {
   const entity = await findEntityByIdentifier(
     entityService,

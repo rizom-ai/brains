@@ -8,6 +8,30 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Citation and publication-reader integration scope
+
+Approved main `9aa4fc85fac1b3d0dbab84b7722382a3c54a0750` includes PR439's
+citation opt-out and publication-filter corrections plus Site release metadata.
+Separately approved contracts are `entityDisplay.citable` and `publishedOnly`
+on single-entity/search requests. Explicit citation false always excludes;
+publication gates intersect status filters rather than being bypassed by them.
+Neither flag grants authority or proves answer grounding.
+
+Curated SDK adapters preserve publication flags, schema-bearing overloads and
+caller visibility. The native runtime scoped proxy forwards schemas and preserves
+narrower requested visibility; other native methods remain pass-through and the
+proxy is not exported as an author capability. Stateful test doubles mirror
+per-adapter/default publication eligibility before search pagination. Real SQLite
+and packed consumers cover the respective persistence and authoring surfaces.
+Existing stored-source, cancellation, installed ownership and status-store recovery
+regressions remain. Public UI identity stays `@rizom/brain-ui` (alpha.452), with
+atomic builds, independent Core/Site lanes and retired packages still removed.
+
+Exact completed commit/tree/check evidence is recorded on PR301. Native DOM and
+packed app-managed preview tests do not establish physical-browser/provider,
+registry, release or deployment acceptance. No such additional actions are
+authorized by this integration.
+
 ## Build-owned route script fingerprints
 
 Approved main `d5dc5f55a8` merges route and site static assets before rendering

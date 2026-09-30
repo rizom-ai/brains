@@ -214,6 +214,20 @@ Blog and Note respectively. Internal `binaryStorage: "asset"` is not an author
 capability. Binary types remain ineligible for groupings; this is separate from
 `markdown.frontmatter: false`, which controls representation parsing.
 
+Dynamic `getEntity` requests (both schema-less and schema-bearing) and search
+options accept `publishedOnly?: boolean`. This narrows existing visibility-bound
+reads to each type's declared published statuses; without a nonempty declaration,
+`published`, `active`, or a missing/null status qualify. It grants no extra read
+or write authority. Native published-only site/visitor views intersect explicit
+status filters for lists and counts; incompatible filters return no records.
+Schemas, cancellation, caller visibility and stored-source fidelity remain intact.
+Data-source reads and existing raw/mirror snapshot reads using the same request
+also honor publication selection; snapshot revision and source bytes are unchanged.
+The definition-typed `get(definition, id)` signature is unchanged; use `getEntity`
+for explicit publication selection. The native scoped-service proxy is not a
+public author capability. Fixture search applies the same publication eligibility
+before pagination but does not simulate SQL or vector ranking.
+
 An entity may declare `validatePersist({ content, visibility })` to enforce a persistence invariant even when installed without a service. The callback receives a frozen, detached view; throwing rejects the write. Contact uses this to require restricted visibility and validate private Markdown without exposing submitted details in errors. Registered Markdown parsers strip the system-owned visibility envelope before domain validation and return sanitized coded failures rather than raw YAML errors containing source buffers.
 
 Owned service setup/ready entity access accepts `create(entity, { conditionalWrite: { expectedRevision: null }, signal, beforeWrite })` for atomic create-if-absent and `update(entity, { expectedContentHash, signal })` for conditional updates. Ownership is checked first; these options grant no foreign writes, attribution overrides, or revision-based replacement. Service entity declarations and their top-level identities are snapshotted when defined, so later mutation of caller-owned declaration objects or arrays cannot change installation or write authority. The before-write guard receives a detached, outer-frozen snapshot and cannot patch the canonical write. They are not additional options on definition-typed callback entity access.
@@ -705,6 +719,11 @@ summary and replay arguments; it is not a failure. Package installation rolls
 back all newly installed children on failure, without resetting earlier packages.
 
 ## `@rizom/site`
+
+`entityDisplay[type].citable?: boolean` selects answer-source candidates, not
+permissions or proof of grounding. Explicit `false` always excludes a type. If
+any entry is `true`, only true entries qualify; otherwise configured page-bearing
+entries qualify unless explicitly false. Opting out does not remove a page.
 
 Definitions and schema vocabulary:
 

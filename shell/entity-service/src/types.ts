@@ -599,6 +599,8 @@ export interface SearchOptions extends EntityReadOptions {
   visibilityScope?: ContentVisibility | undefined;
   /** Include queued/failed generation stubs in search results (default: false) */
   includeUngenerated?: boolean;
+  /** Only entities their type counts as published, as for published-only listings (default: false) */
+  publishedOnly?: boolean;
   /** Minimum relevance score to return. Omit for no score cutoff. */
   minScore?: number;
 }
@@ -664,6 +666,8 @@ export interface GetEntityRequest extends EntityReadOptions {
    * with elevated access must opt up explicitly.
    */
   visibilityScope?: ContentVisibility | undefined;
+  /** Only an entity its type counts as published, as for published-only listings. */
+  publishedOnly?: boolean | undefined;
 }
 
 export const getEntitiesRequestSchema: z.ZodObject<{

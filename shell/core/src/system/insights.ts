@@ -1,3 +1,4 @@
+import { scopeEntityReads } from "@brains/entity-service";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -57,7 +58,16 @@ export class InsightsRegistry implements IInsightsRegistry {
         `Unknown insight type: ${type}. Available: ${this.getTypes().join(", ")}`,
       );
     }
-    return handler(entityService, visibilityScope);
+    // A public caller is a site's visitor: every insight, a plugin's too,
+    // reads their view, where drafts are not there to count or list.
+    const reads =
+      visibilityScope === "public"
+        ? scopeEntityReads(entityService, {
+            publishedOnly: true,
+            visibilityScope,
+          })
+        : entityService;
+    return handler(reads, visibilityScope);
   }
 }
 

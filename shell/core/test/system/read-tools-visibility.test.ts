@@ -397,3 +397,69 @@ describe("read tools enforce caller visibility scope", () => {
     });
   });
 });
+
+// A public reader is a site's visitor: drafts are not theirs to read, whatever
+// their visibility. Trusted and admin callers still see work in progress.
+describe("read tools give public callers published work only", () => {
+  const contexts: Array<[ToolContext["userPermissionLevel"], boolean]> = [
+    ["public", true],
+    [undefined, true],
+    ["trusted", false],
+    ["admin", false],
+  ];
+
+  function servicesWithADoc(): ReturnType<typeof createMockSystemServices> {
+    const services = createMockSystemServices();
+    services.addEntities([makeEntity("doc-public", "public")]);
+    return services;
+  }
+
+  function toolNamed(
+    services: ReturnType<typeof createMockSystemServices>,
+    name: string,
+  ): Tool {
+    const tool = createSystemTools(services).find((t) => t.name === name);
+    if (!tool) throw new Error(`${name} not found`);
+    return tool;
+  }
+
+  for (const [level, publishedOnly] of contexts) {
+    const who = level ?? "unset";
+
+    it(`system_search for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
+      const services = servicesWithADoc();
+      const search = spyOn(services.entityService, "search");
+      await toolNamed(services, "system_search").handler(
+        { query: "body", scope: { kind: "all" } },
+        baseContext(level),
+      );
+      expect(search.mock.calls[0]?.[0].options?.publishedOnly).toBe(
+        publishedOnly ? true : undefined,
+      );
+    });
+
+    it(`system_list for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
+      const services = servicesWithADoc();
+      const list = spyOn(services.entityService, "listEntities");
+      await toolNamed(services, "system_list").handler(
+        { entityType: "doc" },
+        baseContext(level),
+      );
+      expect(list.mock.calls[0]?.[0].options?.publishedOnly).toBe(
+        publishedOnly ? true : undefined,
+      );
+    });
+
+    it(`system_get for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
+      const services = servicesWithADoc();
+      const get = spyOn(services.entityService, "getEntity");
+      await toolNamed(services, "system_get").handler(
+        { entityType: "doc", id: "doc-public" },
+        baseContext(level),
+      );
+      expect(get.mock.calls[0]?.[0].publishedOnly).toBe(
+        publishedOnly ? true : undefined,
+      );
+    });
+  }
+});

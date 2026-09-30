@@ -91,7 +91,6 @@ describe("Ask content entity", () => {
       topicsHeading: "Where would you start?",
       contactLabel: "Let’s talk",
       contactNote: "A private note. No account needed.",
-      attribution: "Written, not generated",
       mapCaption: "Everything published here, placed by topic",
     };
     const source = generateMarkdownWithFrontmatter("Welcome copy.", page);

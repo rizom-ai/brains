@@ -125,12 +125,14 @@ export interface JobEntityAccess {
      * none and writes a second one beside it.
      */
     visibilityScope?: ContentVisibility | undefined;
+    publishedOnly?: boolean | undefined;
   }): Promise<BaseEntity | null>;
   getEntity<T extends BaseEntity>(
     request: {
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility | undefined;
+      publishedOnly?: boolean | undefined;
     },
     schema: EntitySchema<T>,
   ): Promise<T | null>;

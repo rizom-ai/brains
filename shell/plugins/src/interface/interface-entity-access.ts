@@ -55,12 +55,14 @@ export function createInterfaceEntityAccess(
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility | undefined;
+    publishedOnly?: boolean | undefined;
   }): Promise<BaseEntity | null>;
   async function getEntity<T extends BaseEntity>(
     request: {
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility | undefined;
+      publishedOnly?: boolean | undefined;
     },
     schema: EntitySchema<T>,
   ): Promise<T | null>;
@@ -69,6 +71,7 @@ export function createInterfaceEntityAccess(
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility | undefined;
+      publishedOnly?: boolean | undefined;
     },
     schema?: EntitySchema<T>,
   ): Promise<BaseEntity | T | null> {
@@ -78,6 +81,9 @@ export function createInterfaceEntityAccess(
       ...(request.visibilityScope === undefined
         ? {}
         : { visibilityScope: request.visibilityScope }),
+      ...(request.publishedOnly === undefined
+        ? {}
+        : { publishedOnly: request.publishedOnly }),
     };
     return schema
       ? entityService.getEntity(scoped, schema)

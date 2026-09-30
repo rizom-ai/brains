@@ -61,12 +61,16 @@
 ) {
   color: var(--ask-accent);
 }
+/* Text scrolling toward the composer fades out instead of stopping at a
+   cut; the padding lets the last line clear the fade. */
 :where([data-ask-styled] .brain-box-scroll) {
   max-height: min(55vh, 520px);
+  padding-bottom: 24px;
   overflow-y: auto;
   overflow-wrap: anywhere;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
 }
 :where([data-ask-styled] .brain-box-welcome) {
   padding: 12px 0;
@@ -138,6 +142,8 @@
 }
 :where([data-ask-styled] .brain-box-bottom) {
   position: relative;
+  display: flex;
+  flex-direction: column;
   border-top: 1px solid var(--ask-rule);
   margin-top: 18px;
   padding-top: 14px;
@@ -145,24 +151,39 @@
 :where([data-ask-styled] .brain-box-bottom form) {
   margin: 0;
 }
-/* Away from the newest text: a round button above the composer's corner. */
+/* The note under the composer, and what the chat is about beside it. */
+:where([data-ask-styled] .brain-box-note) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-top: 8px;
+}
+:where([data-ask-styled] .brain-box-note .brain-box-hint) {
+  margin: 0;
+}
+:where([data-ask-styled] .brain-box-note .brain-box-quiet) {
+  font-size: 12px;
+}
+/* The rest of a long answer takes the note's line, never a place on the
+   text; the note comes back at the end, and an over-limit warning stays. */
 :where([data-ask-styled] .brain-box-latest) {
-  position: absolute;
-  z-index: 1;
-  top: -48px;
-  right: 0;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
+  align-self: center;
+  margin: 8px 0 0;
   padding: 0;
-  border: 1px solid var(--ask-rule);
-  border-radius: 50%;
-  background: var(--ask-bg);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--ask-text) 12%, transparent);
+  border: 0;
+  background: none;
   color: var(--ask-accent);
-  font-size: 15px;
+  font-size: 12.5px;
   cursor: pointer;
+}
+:where(
+  [data-ask-styled]
+    .brain-box-bottom:has(.brain-box-latest)
+    .brain-box-note:not(:has(.invalid))
+) {
+  display: none;
 }
 /* Where an answer will appear while it is being written. */
 :where([data-ask-styled] .brain-box-waiting) {
@@ -233,22 +254,56 @@
   color: var(--ask-on-accent);
   cursor: pointer;
 }
+/* Nothing to send yet: the same button, quiet, rather than a faded accent. */
+:where([data-ask-styled] .send:disabled) {
+  opacity: 1;
+  background: color-mix(in srgb, var(--ask-text) 8%, var(--ask-bg));
+  color: var(--ask-muted);
+}
 :where([data-ask-styled] .brain-box-earlier > summary) {
   color: var(--ask-muted);
   font-size: 12px;
   cursor: pointer;
 }
+/* One rule parts the turns: above each question after the first. The rule
+   above the composer ends the conversation. */
 :where([data-ask-styled] .guest-message) {
   padding: 16px 0;
-  border-bottom: 1px solid var(--ask-rule-soft);
   overflow-wrap: anywhere;
 }
+:where([data-ask-styled] .guest-messages > .guest-user:not(:first-child)) {
+  border-top: 1px solid var(--ask-rule-soft);
+}
+/* Who speaks is for screen readers: a question and its answer read as a
+   conversation without a label over each turn. */
 :where([data-ask-styled] .guest-message > h2) {
-  margin: 0 0 8px;
-  font: 500 10px var(--ask-label);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ask-muted);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* One rhythm in an answer: listed pieces space like paragraphs, and the
+   answer's own headings stay at text size. */
+:where([data-ask-styled] .guest-assistant .web-chat-markdown-response ul) {
+  padding: 0;
+  list-style: none;
+}
+:where([data-ask-styled] .guest-assistant .web-chat-markdown-response li) {
+  margin: 0 0 0.75em;
+  padding: 0;
+}
+:where(
+  [data-ask-styled]
+    .guest-assistant
+    .web-chat-markdown-response
+    :is(h1, h2, h3, h4)
+) {
+  margin: 1em 0 0.4em;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.4;
 }
 :where([data-ask-styled] .guest-message p) {
   max-width: 64ch;
@@ -268,25 +323,40 @@
 :where([data-ask-styled] .brain-box-dock) {
   margin: 0 -16px;
 }
-/* An answer's sources: links to what it drew on. */
+/* An answer's sources: a list of what it drew on, each a row a finger can
+   hit. A host may mark each row by its source (ASK_SOURCE_ATTRIBUTE). */
 :where([data-ask-styled] .brain-box-sources) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 12px 0 0;
+  margin: 16px 0 0;
   padding: 0;
+  border-top: 1px solid var(--ask-rule-soft);
   list-style: none;
 }
 :where([data-ask-styled] .brain-box-sources li) {
-  padding: 4px 10px;
-  border: 1px solid var(--ask-rule);
-  border-radius: 99px;
-  background: var(--ask-wash);
-  font-size: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--ask-rule-soft);
+  font-size: 14px;
+}
+:where([data-ask-styled] .brain-box-sources li:last-child) {
+  border-bottom: 0;
+}
+:where([data-ask-styled] .brain-box-source-mark) {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ask-accent);
+  translate: 0 -1px;
 }
 :where([data-ask-styled] .brain-box-sources a) {
-  color: var(--ask-accent);
+  color: inherit;
+  font-weight: 500;
   text-decoration: none;
+}
+:where([data-ask-styled] .brain-box-sources a:hover) {
+  color: var(--ask-accent);
 }
 :where([data-ask-styled] .web-chat-sources-card) {
   margin-top: 14px;
@@ -345,8 +415,8 @@
 /*
  * On a narrow screen the engaged box opens full screen (ASK_SHEET_MEDIA and
  * ASK_SHEET_ATTRIBUTE in the ask-box contract). It fits the visual viewport,
- * so the composer rides on the keyboard. Its header is ASK_SHEET_HEADER_HEIGHT
- * tall; a host docks content below it and reserves its height with
+ * so the composer rides on the keyboard. It has no title row; a host docks
+ * content at the top of the conversation and reserves its height with
  * --ask-sheet-inset, which the conversation scrolls beneath.
  */
 @media (max-width: 47.99rem) {
@@ -372,27 +442,19 @@
     animation: brain-ask-fall 0.26s cubic-bezier(0.4, 0, 1, 1) forwards;
   }
   :where([data-ask-styled] .brain-guest-box.is-sheet) {
+    position: relative;
     display: flex;
     flex: 1;
     flex-direction: column;
     min-height: 0;
   }
+  /* No title row: the way out floats over the conversation's top corner, so
+     what a host docks there starts at the top of the screen. */
   :where([data-ask-styled] .brain-box-sheet-head) {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 14px;
-    height: 3.25rem;
-    margin: 0 -16px;
-    padding: 0 12px 0 16px;
-    border-bottom: 1px solid var(--ask-rule-soft);
-  }
-  :where([data-ask-styled] .brain-box-sheet-title) {
-    flex: 1;
-    font: 600 16px var(--ask-display);
-  }
-  :where([data-ask-styled] .brain-box-sheet-head .brain-box-header-actions) {
-    margin: 0;
+    position: absolute;
+    z-index: 20;
+    top: 10px;
+    right: -6px;
   }
   :where([data-ask-styled] .brain-box-close) {
     flex: none;
@@ -400,7 +462,8 @@
     height: 36px;
     border: 1px solid var(--ask-rule);
     border-radius: 50%;
-    background: transparent;
+    background: var(--ask-bg);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--ask-text) 10%, transparent);
     font-size: 15px;
     cursor: pointer;
   }
@@ -415,11 +478,46 @@
     scroll-padding-top: var(--ask-sheet-inset, 0px);
     overflow-y: auto;
   }
-  /* An empty conversation opens with its welcome just above the composer. */
+  /* An empty conversation opens with its welcome just above the composer,
+     or, under what a host docks at the top, just below that, where the
+     conversation will continue. */
   :where([data-ask-styled] .is-sheet .brain-box-scroll.is-welcome) {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+  }
+  :where(
+    [data-ask-styled]
+      .is-sheet
+      .brain-box-scroll.is-welcome:has(> .brain-box-dock:not(:empty))
+  ) {
+    justify-content: flex-start;
+  }
+  /* Full screen, the starting questions are a list to tap, not chips. */
+  :where([data-ask-styled] .is-sheet .hints) {
+    display: block;
+    margin: 14px 0 0;
+  }
+  :where([data-ask-styled] .is-sheet .hints button) {
+    display: block;
+    width: 100%;
+    padding: 0.7rem 0;
+    border: 0;
+    border-bottom: 1px solid var(--ask-rule-soft);
+    border-radius: 0;
+    background: none;
+    text-align: left;
+    font: italic 16px/1.35 var(--ask-display);
+  }
+  :where([data-ask-styled] .is-sheet .hints button:first-child) {
+    border-top: 1px solid var(--ask-rule-soft);
+  }
+  :where([data-ask-styled] .is-sheet .hints button:last-child) {
+    border-bottom: 0;
+  }
+  /* Phone text sizes: an answer reads at 15px. */
+  :where([data-ask-styled] .is-sheet .guest-message :is(p, li)) {
+    font-size: 15px;
   }
   :where([data-ask-styled] .is-sheet .brain-box-bottom) {
     flex: none;
