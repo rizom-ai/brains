@@ -1,6 +1,6 @@
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
-import type { PreparedAsset } from "@brains/assets";
+import type { StagedAsset } from "@brains/assets";
 import type {
   EntityGrouping,
   EntityGroupingCatalog,
@@ -716,8 +716,8 @@ export interface CountEntitiesRequest {
 
 export interface CreateEntityRequest<T extends BaseEntity> {
   entity: EntityInput<T>;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   options?: CreateEntityOptions | undefined;
 }
 
@@ -728,8 +728,8 @@ export interface CreateEntityFromMarkdownRequest {
 
 export interface UpdateEntityRequest<T extends BaseEntity> {
   entity: T;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   options?: UpdateEntityOptions | undefined;
 }
 
@@ -742,8 +742,8 @@ export interface DeleteEntityRequest {
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   /** Conditional upserts never fall through from a raced create to update. */
   options?:
     | (EntityJobOptions & { conditionalWrite?: EntityWriteCondition })

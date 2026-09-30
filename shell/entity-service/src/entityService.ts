@@ -1,4 +1,11 @@
-import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import type {
+  AssetRef,
+  AssetSource,
+  AssetStat,
+  AssetVerification,
+  StageAssetOptions,
+  StagedAsset,
+} from "@brains/assets";
 import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
@@ -185,7 +192,12 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
-    this.assetRepository = new SqliteAssetRepository(this.db);
+    // Staging writes queue behind entity transactions instead of contending
+    // with them for SQLite's write lock.
+    this.assetRepository = new SqliteAssetRepository(this.db, {
+      runWrite: <TResult>(write: () => Promise<TResult>): Promise<TResult> =>
+        this.projectionStore.runSqliteWrite(write),
+    });
     this.entityExportStore = new EntityExportStore(
       this.db,
       options.projectionNow ?? Date.now,
@@ -414,6 +426,13 @@ export class EntityService implements IEntityService {
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),
     );
+
+    // Orphaned uploads are harmless until swept — failure is non-fatal.
+    try {
+      await this.assetRepository.sweepOrphanUploads();
+    } catch (error) {
+      this.logger.warn("Failed to sweep orphaned asset uploads", error);
+    }
   }
 
   // ── Projection coordination ───────────────────────────────────────
@@ -518,11 +537,13 @@ export class EntityService implements IEntityService {
   public async createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.createEntity(request);
-    await this.afterGroupingSourceMutation(request.entity.entityType);
-    return result;
+    return this.withStagedAsset(request.stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result = await this.entityMutations.createEntity(request);
+      await this.afterGroupingSourceMutation(request.entity.entityType);
+      return result;
+    });
   }
 
   public async createEntityFromMarkdown(
@@ -556,11 +577,13 @@ export class EntityService implements IEntityService {
   public async updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.updateEntity(request);
-    await this.afterGroupingSourceMutation(request.entity.entityType);
-    return result;
+    return this.withStagedAsset(request.stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result = await this.entityMutations.updateEntity(request);
+      await this.afterGroupingSourceMutation(request.entity.entityType);
+      return result;
+    });
   }
 
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
@@ -575,11 +598,33 @@ export class EntityService implements IEntityService {
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.upsertEntity(request);
-    await this.afterGroupingSourceMutation(request.entity.entityType);
-    return result;
+    return this.withStagedAsset(request.stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result = await this.entityMutations.upsertEntity(request);
+      await this.afterGroupingSourceMutation(request.entity.entityType);
+      return result;
+    });
+  }
+
+  /**
+   * A staged handle serves one public mutation, which may try create and then
+   * update. Afterwards its upload is discarded unless that mutation published it.
+   */
+  private async withStagedAsset<TResult>(
+    stagedAsset: StagedAsset | undefined,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    if (!stagedAsset) return mutation();
+    this.assetRepository.claim(stagedAsset);
+    try {
+      return await mutation();
+    } finally {
+      // The sweeper reclaims an upload that cannot be discarded now.
+      await this.assetRepository.release(stagedAsset).catch((error) => {
+        this.logger.warn("Failed to discard unpublished asset upload", error);
+      });
+    }
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
@@ -690,6 +735,24 @@ export class EntityService implements IEntityService {
   ): Promise<EntityWriteSnapshot | null> {
     await this.initialize();
     return this.entityQueries.getEntityWriteSnapshot(request);
+  }
+
+  /**
+   * Durably stage bytes for one later create, update or upsert, which
+   * publishes them with the entity reference. Unused uploads are discarded.
+   */
+  public async stageAsset(
+    source: AssetSource,
+    options?: StageAssetOptions,
+  ): Promise<StagedAsset> {
+    await this.initialize();
+    return this.assetRepository.stage(source, options);
+  }
+
+  /** Stream a published asset's chunks in order. */
+  public async openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>> {
+    await this.initialize();
+    return this.assetRepository.openRead(ref);
   }
 
   public async readAsset(ref: AssetRef): Promise<Uint8Array> {
