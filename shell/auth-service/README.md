@@ -22,6 +22,14 @@ Deployments must persist the configured auth storage directory across container 
 
 Legacy JSON/JWK auth files are optional manual backups only. `AuthService` never reads or imports them. Generated Drizzle migrations are the only supported database history; unsupported pre-Drizzle development databases fail closed.
 
+## Lifecycle and request ownership
+
+`AuthService` owns complete Promise-based facade calls, including HTTP body parsing and endpoint work. Independent calls remain concurrent. Matching `close()` callers join one barrier, which drains admitted calls and their nested auth operations before stopping supervisors and closing the database. Request failures remain visible to their callers and do not bypass sibling drains. Admitted recovery and maintenance callbacks share the same owner, while new scheduled ticks are skipped once close is requested.
+
+Calls submitted after a close barrier wait for it to settle, then use the existing restartable runtime lifecycle. Detached continuations cannot reuse a completed request's admission. Calling `close()` from inside an active auth operation rejects rather than deadlocking that operation; initiate shutdown from its external owner.
+
+Synchronous metadata access does not admit work. The account-settings backend is a borrowed binding: its registry owner must unbind and drain consumers before closing the service.
+
 ## OAuth client registration
 
 The authorization server advertises Client ID Metadata Document (CIMD) support. HTTPS URL client IDs are resolved on authorization, validated against the document's exact `client_id` and `redirect_uris`, cached according to HTTP cache headers, and persisted for code and token exchange. Document fetches reject local/private destinations, validate redirects, time out, and enforce the 5 KiB response limit. CIMD currently supports public clients using `token_endpoint_auth_method: "none"`.
@@ -65,4 +73,5 @@ See the [CLI reference](../../packages/brain-cli/docs/cli-reference.md) for flag
 - [`user-management-service.ts`](./src/user-management-service.ts) — role/status and Admin/Anchor invariants
 - [`invitation-service.ts`](./src/invitation-service.ts) — invitation transactions and lifecycle
 - [`auth-request-router.ts`](./src/auth-request-router.ts) — OAuth, WebAuthn, setup, Admin, and Account route dispatch
+- [`auth-operation-scope.ts`](./src/auth-operation-scope.ts) — concurrent facade-operation ownership and shutdown admission barriers
 - [`test/`](./test/) — database, clean-cutover, authorization, endpoint, invitation, and recovery coverage
