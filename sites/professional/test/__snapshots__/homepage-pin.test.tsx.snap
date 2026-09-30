@@ -161,7 +161,7 @@ exports[`professional homepage pin renders the atlas homepage 1`] = `
 .atlas__ask:not([data-ask-sheet]) .brain-box-scroll { max-height: none; overflow: visible; }
 .atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
 .atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
-.atlas__ask .brain-box-note { justify-content: flex-start; margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; text-align: left; }
 .atlas__ask .brain-box-latest { align-self: flex-start; margin: .55rem 0 0 1.1rem; }
 .atlas__composer, .atlas__ask .prompt-row {
   display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
@@ -242,7 +242,8 @@ exports[`professional homepage pin renders the atlas homepage 1`] = `
   .atlas__topics a { font-size: 1rem; }
   .atlas__composer textarea, .atlas__ask .prompt-row textarea { font-size: 1rem; }
   .atlas__ask[data-ask-sheet] .brain-box-welcome .chat-notice { font-size: 15px; }
-  .atlas__ask[data-ask-sheet] .brain-box-note, .atlas__ask[data-ask-sheet] .brain-box-latest { justify-content: center; align-self: center; margin: .5rem 0 0; }
+  .atlas__ask[data-ask-sheet] .brain-box-hint { margin: .5rem 0 0; text-align: center; }
+  .atlas__ask[data-ask-sheet] .brain-box-latest { align-self: center; margin: .5rem 0 0; }
   /* Text passes under a short fade below the strip, not a cut edge. */
   .atlas__ask [data-ask-dock]:has(.atlas__map)::after {
     content: ""; position: relative; z-index: 5; display: block; height: 18px; margin-bottom: -18px;
@@ -470,7 +471,7 @@ exports[`professional homepage pin renders the atlas homepage with the Ask box d
 .atlas__ask:not([data-ask-sheet]) .brain-box-scroll { max-height: none; overflow: visible; }
 .atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
 .atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
-.atlas__ask .brain-box-note { justify-content: flex-start; margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; text-align: left; }
 .atlas__ask .brain-box-latest { align-self: flex-start; margin: .55rem 0 0 1.1rem; }
 .atlas__composer, .atlas__ask .prompt-row {
   display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
@@ -551,7 +552,8 @@ exports[`professional homepage pin renders the atlas homepage with the Ask box d
   .atlas__topics a { font-size: 1rem; }
   .atlas__composer textarea, .atlas__ask .prompt-row textarea { font-size: 1rem; }
   .atlas__ask[data-ask-sheet] .brain-box-welcome .chat-notice { font-size: 15px; }
-  .atlas__ask[data-ask-sheet] .brain-box-note, .atlas__ask[data-ask-sheet] .brain-box-latest { justify-content: center; align-self: center; margin: .5rem 0 0; }
+  .atlas__ask[data-ask-sheet] .brain-box-hint { margin: .5rem 0 0; text-align: center; }
+  .atlas__ask[data-ask-sheet] .brain-box-latest { align-self: center; margin: .5rem 0 0; }
   /* Text passes under a short fade below the strip, not a cut edge. */
   .atlas__ask [data-ask-dock]:has(.atlas__map)::after {
     content: ""; position: relative; z-index: 5; display: block; height: 18px; margin-bottom: -18px;
@@ -779,7 +781,7 @@ exports[`professional homepage pin renders the opening without a map 1`] = `
 .atlas__ask:not([data-ask-sheet]) .brain-box-scroll { max-height: none; overflow: visible; }
 .atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
 .atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
-.atlas__ask .brain-box-note { justify-content: flex-start; margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; text-align: left; }
 .atlas__ask .brain-box-latest { align-self: flex-start; margin: .55rem 0 0 1.1rem; }
 .atlas__composer, .atlas__ask .prompt-row {
   display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
@@ -860,7 +862,8 @@ exports[`professional homepage pin renders the opening without a map 1`] = `
   .atlas__topics a { font-size: 1rem; }
   .atlas__composer textarea, .atlas__ask .prompt-row textarea { font-size: 1rem; }
   .atlas__ask[data-ask-sheet] .brain-box-welcome .chat-notice { font-size: 15px; }
-  .atlas__ask[data-ask-sheet] .brain-box-note, .atlas__ask[data-ask-sheet] .brain-box-latest { justify-content: center; align-self: center; margin: .5rem 0 0; }
+  .atlas__ask[data-ask-sheet] .brain-box-hint { margin: .5rem 0 0; text-align: center; }
+  .atlas__ask[data-ask-sheet] .brain-box-latest { align-self: center; margin: .5rem 0 0; }
   /* Text passes under a short fade below the strip, not a cut edge. */
   .atlas__ask [data-ask-dock]:has(.atlas__map)::after {
     content: ""; position: relative; z-index: 5; display: block; height: 18px; margin-bottom: -18px;

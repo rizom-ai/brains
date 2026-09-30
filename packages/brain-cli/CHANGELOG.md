@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.453
+
+### Patch Changes
+
+- [#439](https://github.com/rizom-ai/brains/pull/439) [`3d40351`](https://github.com/rizom-ai/brains/commit/3d40351fa5b05ab04d1e7a196a3287a4fda5bf57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Honor explicit citable:false exclusions even when no entity type opts into citations. Keep published-only list and count views bounded when callers supply lifecycle-status filters or publishedOnly:false: intersect those filters with the publication gate instead of exposing drafts. Preserve unbounded preview behavior and custom per-type published statuses.
+
 ## 0.2.0-alpha.452
 
 ### Patch Changes

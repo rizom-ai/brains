@@ -12,7 +12,7 @@ describe("EntityUrlGenerator.isCitable", () => {
       post: { label: "Essay", citable: true },
       deck: { label: "Presentation", citable: true },
       topic: { label: "Topic" },
-      "social-post": { label: "Social Post" },
+      "social-post": { label: "Social Post", citable: false },
     });
     expect(
       ["post", "deck", "topic", "social-post", "note"].filter((type) =>
@@ -27,6 +27,30 @@ describe("EntityUrlGenerator.isCitable", () => {
     expect(
       ["post", "topic", "note"].filter((type) => urls.isCitable(type)),
     ).toEqual(["post", "topic"]);
+  });
+
+  it("excludes an explicit false even when no type opts in", () => {
+    const urls = EntityUrlGenerator.getInstance();
+    urls.configure({
+      post: { label: "Post", citable: false },
+      topic: { label: "Topic" },
+    });
+    expect(urls.isCitable("post")).toBe(false);
+    expect(urls.isCitable("topic")).toBe(true);
+    expect(urls.isCitable("note")).toBe(false);
+    // Citation selection does not remove the page or become access control.
+    expect(urls.hasRoute("post")).toBe(true);
+  });
+
+  it("can exclude every configured type", () => {
+    const urls = EntityUrlGenerator.getInstance();
+    urls.configure({
+      post: { label: "Post", citable: false },
+      topic: { label: "Topic", citable: false },
+    });
+    expect(["post", "topic"].filter((type) => urls.isCitable(type))).toEqual(
+      [],
+    );
   });
 
   it("is nothing before a site is configured", () => {

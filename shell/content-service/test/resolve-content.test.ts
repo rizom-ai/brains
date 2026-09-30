@@ -498,10 +498,9 @@ describe("ContentService.resolveContent", () => {
       });
     });
 
-    it("should NOT add publishedOnly when datasource already filters on status (avoids conflict)", async () => {
-      // Regression test: When a datasource filters on status (e.g., status='queued'),
-      // adding publishedOnly would create conflicting WHERE clauses:
-      // status='published' AND status='queued' - which returns nothing!
+    it("keeps the publication floor when a datasource filters on queued status", async () => {
+      // A published-only build must not expose queued content. Conflicting
+      // predicates deliberately yield no records rather than bypassing the gate.
       const mockTemplate: Template = {
         name: "queue-test",
         description: "Queue test template",
@@ -541,21 +540,19 @@ describe("ContentService.resolveContent", () => {
         publishedOnly: true, // Production mode
       });
 
-      // Should NOT add publishedOnly since datasource already filters on status
       expect(listEntitiesSpy).toHaveBeenCalledWith({
         entityType: "social-post",
         options: {
           filter: { metadata: { status: "queued" } },
           limit: 1,
-          // Note: publishedOnly should NOT be present here
+          publishedOnly: true,
         },
       });
-      // Explicitly verify publishedOnly was NOT added
       const request = expectDefined(
         listEntitiesSpy.mock.calls[0]?.[0],
         "listEntities() request",
       );
-      expect(request.options).not.toHaveProperty("publishedOnly");
+      expect(request.options).toHaveProperty("publishedOnly", true);
     });
 
     it("should add publishedOnly when datasource filters on non-status metadata", async () => {
@@ -652,7 +649,7 @@ describe("ContentService.resolveContent", () => {
       });
     });
 
-    it("should NOT add publishedOnly to countEntities when status filter present", async () => {
+    it("keeps the publication floor when a datasource counts draft status", async () => {
       const mockTemplate: Template = {
         name: "count-status-test",
         description: "Count with status filter test template",
@@ -691,18 +688,18 @@ describe("ContentService.resolveContent", () => {
         publishedOnly: true,
       });
 
-      // Should NOT add publishedOnly since status filter already present
       expect(countEntitiesSpy).toHaveBeenCalledWith({
         entityType: "newsletter",
         options: {
           filter: { metadata: { status: "draft" } },
+          publishedOnly: true,
         },
       });
       const request = expectDefined(
         countEntitiesSpy.mock.calls[0]?.[0],
         "countEntities() request",
       );
-      expect(request.options).not.toHaveProperty("publishedOnly");
+      expect(request.options).toHaveProperty("publishedOnly", true);
     });
 
     it("should forward getEntity calls through scoped entityService", async () => {

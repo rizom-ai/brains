@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.237
+
+### Patch Changes
+
+- [#439](https://github.com/rizom-ai/brains/pull/439) [`3d40351`](https://github.com/rizom-ai/brains/commit/3d40351fa5b05ab04d1e7a196a3287a4fda5bf57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clarify and test entityDisplay.citable semantics: false always excludes a type from answer citations; any true entries form an explicit selection, otherwise page-bearing entries remain candidates unless excluded. Citation selection does not remove routes or grant access permissions.
+
 ## 0.2.0-alpha.236
 
 ### Patch Changes
