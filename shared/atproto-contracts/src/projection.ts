@@ -57,7 +57,10 @@ export interface AtprotoPdsClientLike {
  * ServicePluginContext (which satisfies this interface structurally).
  */
 export interface AtprotoProjectionContext {
-  entityService: Pick<IEntityService, "getEntity" | "updateEntity">;
+  entityService: Pick<
+    IEntityService,
+    "getEntity" | "updateEntity" | "openAsset"
+  >;
 }
 
 export interface AtprotoProjectionBuildInput {

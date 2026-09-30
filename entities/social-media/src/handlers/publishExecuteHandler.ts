@@ -6,14 +6,19 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type {
+  ArtifactAssetReader,
   AttachmentResolveRequest,
+  BinaryContentMode,
   MessageSender,
   BaseEntity,
   EntitySchema,
   EntityPluginContext,
   ToolContext,
 } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  readArtifactContent,
+} from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import {
@@ -37,10 +42,11 @@ export type ResolveAttachmentFn = (
   request: AttachmentResolveRequest,
 ) => Promise<PublishMediaData | undefined>;
 
-export interface PublishExecuteEntityService {
+export interface PublishExecuteEntityService extends ArtifactAssetReader {
   getEntity(request: {
     entityType: string;
     id: string;
+    binaryContent?: BinaryContentMode;
   }): Promise<BaseEntity | null>;
   getEntity<T extends BaseEntity>(
     request: { entityType: string; id: string },
@@ -400,6 +406,7 @@ export class PublishExecuteHandler {
       const image = await this.entityService.getEntity({
         entityType: "image",
         id: imageId,
+        binaryContent: "reference",
       });
 
       if (!image) {
@@ -407,20 +414,19 @@ export class PublishExecuteHandler {
         return undefined;
       }
 
-      // Image content is stored as data URL: data:image/png;base64,...
-      const dataUrl = image.content;
-      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-
-      if (!match?.[1] || !match[2]) {
-        this.logger.warn("Invalid image data URL format", { imageId });
+      const content = await readArtifactContent(
+        this.entityService,
+        "image",
+        image,
+      );
+      if (content?.status !== "ready") {
+        this.logger.warn("Cover image has no readable image bytes", {
+          imageId,
+        });
         return undefined;
       }
 
-      const mimeType = match[1];
-      const base64Data = match[2];
-      const data = Buffer.from(base64Data, "base64");
-
-      return { data, mimeType };
+      return { data: Buffer.from(content.data), mimeType: content.mimeType };
     } catch (error) {
       // The cover image is an optional attachment, and the post reads without
       // it. Same call as the document above.

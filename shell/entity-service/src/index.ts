@@ -25,7 +25,10 @@ export {
   type StageAssetOptions,
   type StagedAsset,
 } from "@brains/assets";
-export { EntityService } from "./entityService";
+export {
+  EntityService,
+  type LegacyBinaryMaterialization,
+} from "./entityService";
 export {
   decodeEntityIdPath,
   encodeEntityIdPath,

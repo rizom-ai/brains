@@ -9,10 +9,16 @@ import type { BaseEntity } from "@brains/plugins";
 import type { SocialPost } from "../../src/schemas/social-post";
 import { createMockLogger, createMockMessageSender } from "@brains/test-utils";
 import { getErrorMessage } from "@brains/utils/error";
+import { createMockAssetStore } from "@brains/entity-service/test";
 
 class TestEntityService implements PublishExecuteEntityService {
-  public readonly getEntityCalls: Array<{ entityType: string; id: string }> =
-    [];
+  public readonly getEntityCalls: Array<{
+    entityType: string;
+    id: string;
+    binaryContent?: string;
+  }> = [];
+  public readonly assets = createMockAssetStore();
+  public readonly openAsset = this.assets.openAsset;
   private getEntityHandler: (request: {
     entityType: string;
     id: string;
@@ -430,6 +436,38 @@ describe("PublishExecuteHandler", () => {
           mimeType: "image/png",
         }),
       );
+    });
+
+    it("publishes a staged cover image read from its stored chunks", async () => {
+      const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
+      const asset = await entityService.assets.stageAsset(bytes);
+      entityService.setGetEntityHandler(async (request) => {
+        if (request.entityType === "social-post") return samplePostWithImage;
+        if (request.entityType === "image" && request.id === "image-123") {
+          return {
+            ...sampleImage,
+            content: asset.ref,
+            metadata: {
+              ...sampleImage.metadata,
+              mediaType: "image/png",
+              sizeBytes: bytes.byteLength,
+            },
+          };
+        }
+        return null;
+      });
+
+      await handler.handle({ entityType: "social-post", entityId: "post-2" });
+
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is a post with an image.",
+        expect.any(Object),
+        { data: bytes, mimeType: "image/png" },
+      );
+      expect(
+        entityService.getEntityCalls.find((call) => call.entityType === "image")
+          ?.binaryContent,
+      ).toBe("reference");
     });
 
     it("should fetch and pass document data when documents are present", async () => {

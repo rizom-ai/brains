@@ -537,6 +537,34 @@ describe("SQLite durable assets", () => {
       );
     });
 
+    test("counts legacy materializations by method and entity type", async () => {
+      await createAssetEntity("counted", { mediaType: "image/png" });
+      await ctx.entityService.createEntity({
+        entity: createTestEntity("test", {
+          id: "inline-counted",
+          content: "data:image/png;base64,AAAA",
+        }),
+      });
+
+      await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "counted",
+      });
+      await ctx.entityService.getEntity({ entityType: "test", id: "counted" });
+      await ctx.entityService.listEntities({ entityType: "test" });
+      await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "counted",
+        binaryContent: "reference",
+      });
+
+      // Reference reads and inline rows never count; only asset loads do.
+      expect(ctx.entityService.getLegacyBinaryMaterializations()).toEqual([
+        { method: "getEntityRaw", entityType: "test", count: 2 },
+        { method: "listEntities", entityType: "test", count: 1 },
+      ]);
+    });
+
     test("leaves legacy inline content unchanged in both modes", async () => {
       const inline = "data:image/png;base64,AAAA";
       await ctx.entityService.createEntity({

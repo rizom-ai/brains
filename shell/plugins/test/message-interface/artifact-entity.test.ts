@@ -1,7 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
+import { createMockAssetStore } from "@brains/entity-service/test";
 import {
   getArtifactEntityFilename,
   parseArtifactDataUrl,
+  readArtifactContent,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
 } from "../../src/message-interface/artifact-entity";
@@ -91,5 +93,74 @@ describe("artifact entity helpers", () => {
     expect(
       getArtifactEntityFilename(undefined, "robot-1", "image", "image/svg+xml"),
     ).toBe("robot-1.svg");
+  });
+
+  describe("readArtifactContent", () => {
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "base64");
+
+    async function stagedImage(): Promise<{
+      reader: ReturnType<typeof createMockAssetStore>;
+      entity: { content: string; metadata: Record<string, unknown> };
+    }> {
+      const reader = createMockAssetStore();
+      const asset = await reader.stageAsset(png);
+      return {
+        reader,
+        entity: {
+          content: asset.ref,
+          metadata: { mediaType: "image/png", sizeBytes: png.byteLength },
+        },
+      };
+    }
+
+    it("reads an asset-backed artifact from its stored chunks", async () => {
+      const { reader, entity } = await stagedImage();
+
+      const content = await readArtifactContent(reader, "image", entity);
+
+      expect(content?.status).toBe("ready");
+      if (content?.status !== "ready") return;
+      expect(content.mimeType).toBe("image/png");
+      expect(Buffer.from(content.data)).toEqual(png);
+    });
+
+    it("reads an inline data URL artifact", async () => {
+      const content = await readArtifactContent(
+        createMockAssetStore(),
+        "image",
+        {
+          content: `data:image/png;base64,${png.toString("base64")}`,
+          metadata: {},
+        },
+      );
+
+      expect(content).toMatchObject({ status: "ready", mimeType: "image/png" });
+    });
+
+    it("refuses an oversized asset from its recorded size without loading it", async () => {
+      const { reader, entity } = await stagedImage();
+      const openAsset = mock(reader.openAsset);
+
+      const content = await readArtifactContent(
+        { openAsset },
+        "image",
+        entity,
+        png.byteLength - 1,
+      );
+
+      expect(content).toEqual({
+        status: "oversized",
+        sizeBytes: png.byteLength,
+      });
+      expect(openAsset).not.toHaveBeenCalled();
+    });
+
+    it("refuses an asset whose media type does not match the artifact type", async () => {
+      const { reader, entity } = await stagedImage();
+
+      expect(
+        await readArtifactContent(reader, "document", entity),
+      ).toBeUndefined();
+    });
   });
 });

@@ -1,5 +1,8 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  readArtifactContent,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
@@ -140,16 +143,18 @@ async function fetchPublishImageData(
   const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
+    binaryContent: "reference",
   });
-  if (!image?.content) return undefined;
+  if (!image) return undefined;
 
-  const parsed = parseBase64DataUrl(image.content);
-  if (!parsed?.mimeType.startsWith("image/")) return undefined;
+  const content = await readArtifactContent(
+    context.entityService,
+    "image",
+    image,
+  );
+  if (content?.status !== "ready") return undefined;
 
-  return {
-    data: parsed.data,
-    mimeType: parsed.mimeType,
-  };
+  return { data: Buffer.from(content.data), mimeType: content.mimeType };
 }
 
 async function fetchPublishDocumentData(

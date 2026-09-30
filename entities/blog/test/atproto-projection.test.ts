@@ -110,6 +110,69 @@ describe("blog ATProto projection", () => {
     });
   });
 
+  it("reads a staged cover image for the record from its stored chunks", async () => {
+    const projection = createBlogAtprotoProjection();
+    const entity = createMockPost(
+      "post-1",
+      "Distributed Brains",
+      "distributed-brains",
+      "published",
+      { publishedAt: "2026-05-28T12:00:00.000Z" },
+    );
+    const postWithCover = {
+      ...entity,
+      content: generateMarkdownWithFrontmatter(
+        "# Distributed Brains\n\nContent for Distributed Brains",
+        {
+          title: "Distributed Brains",
+          slug: "distributed-brains",
+          status: "published" as const,
+          publishedAt: "2026-05-28T12:00:00.000Z",
+          excerpt: "Excerpt for Distributed Brains",
+          author: "Test Author",
+          coverImageId: "image-1",
+        },
+      ),
+    };
+    const shell = createMockShell();
+    const asset = await shell
+      .getEntityService()
+      .stageAsset(Buffer.from("hello"));
+    shell.addEntities([
+      postWithCover,
+      {
+        id: "image-1",
+        entityType: "image",
+        content: asset.ref,
+        created: "2026-05-28T10:00:00.000Z",
+        updated: "2026-05-28T10:00:00.000Z",
+        visibility: "public" as const,
+        contentHash: "image-hash",
+        metadata: {
+          alt: "Cover alt",
+          width: 1200,
+          height: 630,
+          mediaType: "image/png",
+          sizeBytes: 5,
+        },
+      },
+    ]);
+
+    const record = await projection.buildRecord({
+      entity: postWithCover,
+      context: createServicePluginContext(shell, "blog"),
+      config: {},
+      dryRun: true,
+    });
+
+    expect(record.coverImage?.blob).toEqual({
+      $type: "blob",
+      ref: { $link: "dry-run" },
+      mimeType: "image/png",
+      size: 5,
+    });
+  });
+
   it("stores the custom ATProto post URI in blog frontmatter after publish", async () => {
     const projection = createBlogAtprotoProjection();
     const entity = createMockPost(

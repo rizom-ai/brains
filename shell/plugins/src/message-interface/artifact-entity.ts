@@ -1,3 +1,4 @@
+import { assetRefSchema, type AssetRef } from "@brains/entity-service";
 import type { AttachmentCard } from "../contracts/agent";
 
 export type ArtifactEntityType = "document" | "image";
@@ -11,6 +12,20 @@ export interface ParsedArtifactDataUrl {
   mimeType: string;
   data: ArrayBuffer;
 }
+
+/** The asset surface needed to read an artifact's stored bytes. */
+export interface ArtifactAssetReader {
+  openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
+}
+
+export type ArtifactContent =
+  | ({ status: "ready" } & ParsedArtifactDataUrl)
+  | { status: "oversized"; sizeBytes: number };
+
+const ARTIFACT_MEDIA_TYPES: Record<ArtifactEntityType, RegExp> = {
+  document: /^application\/pdf$/i,
+  image: /^image\/[a-z0-9.+-]+$/i,
+};
 
 export function resolveArtifactEntityRefFromCard(
   card: Pick<AttachmentCard, "attachment">,
@@ -57,12 +72,7 @@ export function parseArtifactDataUrl(
   entityType: ArtifactEntityType,
   content: string,
 ): ParsedArtifactDataUrl | undefined {
-  const parsed = parseBase64DataUrl(
-    content,
-    entityType === "document"
-      ? /^application\/pdf$/i
-      : /^image\/[a-z0-9.+-]+$/i,
-  );
+  const parsed = parseBase64DataUrl(content, ARTIFACT_MEDIA_TYPES[entityType]);
   if (!parsed) return undefined;
   if (
     entityType === "document" &&
@@ -71,6 +81,58 @@ export function parseArtifactDataUrl(
     return undefined;
   }
   return parsed;
+}
+
+/**
+ * An artifact's bytes, whether stored inline as a data URL or as an asset.
+ * An asset over `maxBytes` is refused from its recorded size before any
+ * bytes are loaded. Undefined when the content is not a deliverable artifact.
+ */
+export async function readArtifactContent(
+  reader: ArtifactAssetReader,
+  entityType: ArtifactEntityType,
+  entity: { content: unknown; metadata?: Record<string, unknown> | null },
+  maxBytes?: number,
+): Promise<ArtifactContent | undefined> {
+  if (typeof entity.content !== "string") return undefined;
+  const ref = assetRefSchema.safeParse(entity.content);
+  if (!ref.success) {
+    const parsed = parseArtifactDataUrl(entityType, entity.content);
+    if (!parsed) return undefined;
+    if (maxBytes !== undefined && parsed.data.byteLength > maxBytes) {
+      return { status: "oversized", sizeBytes: parsed.data.byteLength };
+    }
+    return { status: "ready", ...parsed };
+  }
+
+  const mimeType = entity.metadata?.["mediaType"];
+  if (
+    typeof mimeType !== "string" ||
+    !ARTIFACT_MEDIA_TYPES[entityType].test(mimeType)
+  ) {
+    return undefined;
+  }
+  const recordedSize = entity.metadata?.["sizeBytes"];
+  if (
+    maxBytes !== undefined &&
+    typeof recordedSize === "number" &&
+    recordedSize > maxBytes
+  ) {
+    return { status: "oversized", sizeBytes: recordedSize };
+  }
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of await reader.openAsset(ref.data)) {
+    chunks.push(chunk);
+  }
+  const data = Buffer.concat(chunks);
+  if (maxBytes !== undefined && data.byteLength > maxBytes) {
+    return { status: "oversized", sizeBytes: data.byteLength };
+  }
+  return {
+    status: "ready",
+    mimeType,
+    data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+  };
 }
 
 export function getArtifactEntityFilename(

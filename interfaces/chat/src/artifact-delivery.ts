@@ -1,7 +1,7 @@
 import {
   canReceiveNativeArtifactFile,
   getArtifactEntityFilename,
-  parseArtifactDataUrl,
+  readArtifactContent,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
   type InterfacePluginContext,
@@ -92,9 +92,15 @@ export class ArtifactDeliveryResolver {
     const access = await resolveMessageArtifactAccess({
       entityRef,
       userLevel,
-      getEntity: (ref) => context.entityService.getEntity(ref),
+      // Access checks read references; bytes load only for delivery.
+      getEntity: (ref) =>
+        context.entityService.getEntity({ ...ref, binaryContent: "reference" }),
       getVisibleEntity: (ref, visibilityScope) =>
-        context.entityService.getEntity({ ...ref, visibilityScope }),
+        context.entityService.getEntity({
+          ...ref,
+          visibilityScope,
+          binaryContent: "reference",
+        }),
     });
     if (access.status === "denied") return { denied: true };
     if (access.status !== "visible") return {};
@@ -106,15 +112,19 @@ export class ArtifactDeliveryResolver {
     ) {
       return {};
     }
-    if (typeof entity.content !== "string") return {};
     if (!canReceiveNativeArtifactFile(userLevel)) return {};
 
-    const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);
+    const parsed = await readArtifactContent(
+      context.entityService,
+      entityRef.entityType,
+      entity,
+      CHAT_NATIVE_ARTIFACT_MAX_BYTES,
+    );
     if (!parsed) return {};
-    if (parsed.data.byteLength > CHAT_NATIVE_ARTIFACT_MAX_BYTES) {
+    if (parsed.status === "oversized") {
       this.deps.logger.debug("Skipping oversized chat artifact upload", {
         cardId: card.id,
-        sizeBytes: parsed.data.byteLength,
+        sizeBytes: parsed.sizeBytes,
       });
       return {};
     }

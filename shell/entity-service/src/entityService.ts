@@ -93,6 +93,14 @@ import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
+type LegacyMaterializationMethod = "getEntityRaw" | "listEntities";
+
+export interface LegacyBinaryMaterialization {
+  method: LegacyMaterializationMethod;
+  entityType: string;
+  count: number;
+}
+
 /**
  * Options for creating an EntityService instance
  */
@@ -147,6 +155,11 @@ export class EntityService implements IEntityService {
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
+  /** Legacy data-URL materializations by method and entity type. */
+  private readonly legacyMaterializations = new Map<
+    string,
+    LegacyBinaryMaterialization
+  >();
 
   /**
    * Close the underlying database connections.
@@ -772,6 +785,33 @@ export class EntityService implements IEntityService {
     return this.assetRepository.verify(ref);
   }
 
+  /**
+   * Readers still relying on legacy data-URL materialization. Removing the
+   * compatibility mode requires this to stay empty through the migration soak.
+   */
+  public getLegacyBinaryMaterializations(): LegacyBinaryMaterialization[] {
+    return [...this.legacyMaterializations.values()].map((entry) => ({
+      ...entry,
+    }));
+  }
+
+  private recordLegacyMaterialization(
+    method: LegacyMaterializationMethod,
+    entityType: string,
+  ): void {
+    const key = `${method}:${entityType}`;
+    const count = (this.legacyMaterializations.get(key)?.count ?? 0) + 1;
+    this.legacyMaterializations.set(key, { method, entityType, count });
+    // First use, then every hundredth, so a steady legacy reader stays visible.
+    if (count === 1 || count % 100 === 0) {
+      this.logger.info("Legacy binary content materialized", {
+        method,
+        entityType,
+        count,
+      });
+    }
+  }
+
   public async getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
   public async getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
@@ -847,7 +887,11 @@ export class EntityService implements IEntityService {
     const converted = await this.entitySerializer.convertToEntity(entityData);
     const entity =
       converted &&
-      (await this.materializeBinaryContent(converted, request.binaryContent));
+      (await this.materializeBinaryContent(
+        converted,
+        "getEntityRaw",
+        request.binaryContent,
+      ));
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }
@@ -859,6 +903,7 @@ export class EntityService implements IEntityService {
    */
   private async materializeBinaryContent(
     entity: BaseEntity,
+    method: LegacyMaterializationMethod,
     mode: BinaryContentMode = "legacy-data-url",
   ): Promise<BaseEntity> {
     if (mode === "reference") return entity;
@@ -871,6 +916,7 @@ export class EntityService implements IEntityService {
     const ref = assetRefSchema.safeParse(entity.content);
     if (!ref.success) return entity;
     const bytes = await this.assetRepository.read(ref.data);
+    this.recordLegacyMaterialization(method, entity.entityType);
     const mediaType =
       typeof entity.metadata["mediaType"] === "string"
         ? entity.metadata["mediaType"]
@@ -904,7 +950,11 @@ export class EntityService implements IEntityService {
     const entities = await rows.reduce<Promise<BaseEntity[]>>(
       async (previous, row) => [
         ...(await previous),
-        await this.materializeBinaryContent(row, options?.binaryContent),
+        await this.materializeBinaryContent(
+          row,
+          "listEntities",
+          options?.binaryContent,
+        ),
       ],
       Promise.resolve([]),
     );
