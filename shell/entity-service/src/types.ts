@@ -742,7 +742,11 @@ export interface DeleteEntityRequest {
   entityType: string;
   id: string;
   options?:
-    Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> | undefined;
+    | (Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> & {
+        /** Delete only while the stored entity still has this content hash; false otherwise. */
+        expectedContentHash?: string | undefined;
+      })
+    | undefined;
 }
 
 export interface UpsertEntityRequest<T extends BaseEntity> {

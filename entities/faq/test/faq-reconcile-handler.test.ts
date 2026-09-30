@@ -9,6 +9,7 @@ import {
 import {
   FaqPlugin,
   FaqReconcileHandler,
+  type FaqReconcileDeps,
   faqAdapter,
   faqMetadata,
   faqSchema,
@@ -28,9 +29,11 @@ describe("FaqReconcileHandler", () => {
   let distances: DistanceResult[];
   let sameVerdict: boolean;
 
-  function handler(): FaqReconcileHandler {
+  function handler(
+    entityService: FaqReconcileDeps["entityService"] = context.entityService,
+  ): FaqReconcileHandler {
     return new FaqReconcileHandler(createSilentLogger(), {
-      entityService: context.entityService,
+      entityService,
       sameQuestionDistance: 0.2,
       searchWithDistances: async (): Promise<DistanceResult[]> => distances,
       ai: {
@@ -46,8 +49,9 @@ describe("FaqReconcileHandler", () => {
 
   function reconcile(
     entityId: string,
+    entityService?: FaqReconcileDeps["entityService"],
   ): ReturnType<FaqReconcileHandler["process"]> {
-    return handler().process(
+    return handler(entityService).process(
       { entityId },
       "job-1",
       createMockProgressReporter(),
@@ -186,6 +190,87 @@ describe("FaqReconcileHandler", () => {
 
   it("does nothing for a FAQ that no longer exists", async () => {
     expect(await reconcile("gone")).toEqual({ outcome: "gone" });
+  });
+
+  it("folds nothing when the duplicate changed after it was read", async () => {
+    await seed("older", { created: "2026-09-01T00:00:00.000Z" });
+    await seed("newer", { created: "2026-09-02T00:00:00.000Z" });
+    near("newer", "older");
+    // A capture counts another asking on the duplicate after reconcile read
+    // it, just before reconcile removes it.
+    const askedMeanwhile: FaqReconcileDeps["entityService"] = {
+      ...context.entityService,
+      deleteEntity: async (request) => {
+        const current = await context.entityService.getEntity(
+          { entityType: "faq", id: request.id, visibilityScope: "restricted" },
+          faqSchema,
+        );
+        if (current) {
+          const frontmatter: FaqFrontmatter = {
+            question: current.metadata.question,
+            status: current.metadata.status,
+            asked: current.metadata.asked + 1,
+          };
+          await context.entityService.updateEntity({
+            entity: {
+              ...current,
+              content: faqAdapter.createFaqContent(
+                frontmatter,
+                `Answer ${request.id}.`,
+              ),
+              metadata: faqMetadata(frontmatter),
+            },
+          });
+        }
+        return context.entityService.deleteEntity(request);
+      },
+    };
+
+    expect(await reconcile("newer", askedMeanwhile)).toEqual({
+      outcome: "changed",
+    });
+    const remaining = await faqs();
+    expect(
+      remaining
+        .map((faq) => [faq.id, faq.metadata.asked])
+        .sort(([left], [right]) => String(left).localeCompare(String(right))),
+    ).toEqual([
+      ["newer", 2],
+      ["older", 1],
+    ]);
+  });
+
+  it("restores the duplicate when the FAQ it folds into disappears", async () => {
+    await seed("older", { created: "2026-09-01T00:00:00.000Z" });
+    await seed("newer", { created: "2026-09-02T00:00:00.000Z", asked: 2 });
+    near("newer", "older");
+    const vanishingTarget: FaqReconcileDeps["entityService"] = {
+      ...context.entityService,
+      updateEntity: async (request) => {
+        if (request.entity.id === "older") {
+          await context.entityService.deleteEntity({
+            entityType: "faq",
+            id: "older",
+          });
+          throw new Error("Entity not found: faq:older");
+        }
+        return context.entityService.updateEntity(request);
+      },
+    };
+
+    const failure = await reconcile("newer", vanishingTarget).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(Error);
+    const remaining = await faqs();
+    expect(remaining.map((faq) => faq.id)).toEqual(["newer"]);
+    expect(remaining[0]?.metadata.asked).toBe(2);
+    expect(remaining[0]?.created).toBe("2026-09-02T00:00:00.000Z");
+    expect(faqAdapter.parseFaqContent(remaining[0]?.content ?? "").answer).toBe(
+      "Answer newer.",
+    );
   });
 
   it("keeps both when the check says they ask different questions", async () => {

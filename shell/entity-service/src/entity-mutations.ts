@@ -658,36 +658,67 @@ export class EntityMutations {
     }
 
     if (!priorData) return false;
+    const expectedContentHash = options?.expectedContentHash;
+    if (
+      expectedContentHash !== undefined &&
+      priorData.contentHash !== expectedContentHash
+    ) {
+      return false;
+    }
 
     // Embeddings live in another database and are recoverable by backfill; the
     // entity row, FTS row, and scheduler journal share one atomic transaction.
     await this.embeddingIndex.deleteEmbedding(entityType, id);
-    await this.projectionStore.withDirtyInput(
-      {
-        sourceType: entityType,
-        sourceId: id,
-        revision: `deleted:${entityRevision({
-          contentHash: priorData.contentHash,
-          metadata: priorData.metadata,
-          visibility: priorData.visibility,
-        })}`,
-        operation: "delete",
-        markedAt: this.projectionNow(),
-      },
-      async (transaction) => {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-        );
-        await transaction
-          .delete(entities)
-          .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
-        await this.persistEntityExport(
-          transaction,
-          { entityType, entityId: id, operation: "delete" },
-          options?.persistenceOrigin,
-        );
-      },
-    );
+    try {
+      await this.projectionStore.withDirtyInput(
+        {
+          sourceType: entityType,
+          sourceId: id,
+          revision: `deleted:${entityRevision({
+            contentHash: priorData.contentHash,
+            metadata: priorData.metadata,
+            visibility: priorData.visibility,
+          })}`,
+          operation: "delete",
+          markedAt: this.projectionNow(),
+        },
+        async (transaction) => {
+          const deleteResult = await transaction
+            .delete(entities)
+            .where(
+              and(
+                eq(entities.entityType, entityType),
+                eq(entities.id, id),
+                expectedContentHash !== undefined
+                  ? eq(entities.contentHash, expectedContentHash)
+                  : undefined,
+              ),
+            );
+          if (
+            expectedContentHash !== undefined &&
+            Number(deleteResult.rowsAffected) === 0
+          ) {
+            throw new StaleEntityUpdateError();
+          }
+          await transaction.run(
+            sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
+          );
+          await this.persistEntityExport(
+            transaction,
+            { entityType, entityId: id, operation: "delete" },
+            options?.persistenceOrigin,
+          );
+        },
+      );
+    } catch (error) {
+      if (!(error instanceof StaleEntityUpdateError)) throw error;
+      // Changed between the check and the write: nothing was deleted. Its
+      // embedding comes back through backfill.
+      this.logger.debug(
+        `Skipping concurrently stale delete for ${entityType}:${id}`,
+      );
+      return false;
+    }
     await this.notifyProjectionScheduler();
 
     await this.emitEntityEvent(

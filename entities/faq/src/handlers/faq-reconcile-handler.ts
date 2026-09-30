@@ -14,12 +14,12 @@ export type FaqReconcileJobData = z.output<typeof faqReconcileJobSchema>;
 
 export type FaqReconcileResult =
   | { outcome: "folded"; into: string }
-  | { outcome: "kept" | "unique" | "published" | "gone" };
+  | { outcome: "kept" | "unique" | "published" | "gone" | "changed" };
 
 export interface FaqReconcileDeps extends FaqStoreDeps {
   entityService: Pick<
     EntityPluginContext["entityService"],
-    "getEntity" | "updateEntity" | "deleteEntity"
+    "getEntity" | "createEntity" | "updateEntity" | "deleteEntity"
   >;
 }
 
@@ -77,19 +77,42 @@ export class FaqReconcileHandler extends BaseJobHandler<
     if (!same) return { outcome: "unique" };
     if (!foldsInto(faq, same)) return { outcome: "kept" };
 
+    // Remove the version that was read, and only that: an asking counted on
+    // it meanwhile changed it, and that change brings its own reconcile.
+    const removed = await this.deps.entityService.deleteEntity({
+      entityType: "faq",
+      id: faq.id,
+      options: { expectedContentHash: faq.contentHash },
+    });
+    if (!removed) return { outcome: "changed" };
+
     const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
       faq.content,
     );
     const moved = await mergeIntoFaq(this.deps, same, {
       asks: frontmatter.asked,
       alternatives: [{ answer }, ...alternatives],
+    }).catch(async (error: unknown) => {
+      await this.restore(faq);
+      throw error;
     });
-    if (!moved) return { outcome: "unique" };
+    if (moved) return { outcome: "folded", into: same.id };
 
-    await this.deps.entityService.deleteEntity({
-      entityType: "faq",
-      id: faq.id,
+    await this.restore(faq);
+    return { outcome: "unique" };
+  }
+
+  /** Put back a removed FAQ whose fold did not land. */
+  private async restore(faq: FaqEntity): Promise<void> {
+    await this.deps.entityService.createEntity({
+      entity: {
+        id: faq.id,
+        entityType: "faq",
+        content: faq.content,
+        visibility: faq.visibility,
+        created: faq.created,
+        metadata: faq.metadata,
+      },
     });
-    return { outcome: "folded", into: same.id };
   }
 }
