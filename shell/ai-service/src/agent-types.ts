@@ -1,3 +1,4 @@
+import type { EmbeddingUsageMeter } from "./embedding-usage-meter";
 import {
   actorRefSchema,
   type AgentContextItem,
@@ -188,6 +189,11 @@ export interface AgentConfig {
   guestAnswerSources?: (request: {
     answer: string;
   }) => Promise<SourceCitation[]>;
+  /**
+   * Optional meter the embedding provider reports to. A guest turn is
+   * measured, and the embeddings it made join its settlement.
+   */
+  embeddingUsage?: EmbeddingUsageMeter;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
 }
