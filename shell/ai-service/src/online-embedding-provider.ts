@@ -6,12 +6,17 @@ import type {
   EmbeddingResult,
   BatchEmbeddingResult,
 } from "@brains/entity-service";
+import type { EmbeddingUsageRecorder } from "./embedding-usage-meter";
 
 export interface OnlineEmbeddingConfig {
   apiKey: string;
   model?: string;
   dimensions?: number;
   logger: Logger;
+  /** Told what each call used, so a guest turn is charged for its embeddings. */
+  usage?: EmbeddingUsageRecorder;
+  /** The HTTP client to reach OpenAI with; the platform's by default. */
+  fetch?: typeof fetch;
 }
 
 const DEFAULT_MODEL = "text-embedding-3-small";
@@ -26,6 +31,7 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
   public readonly dimensions: number;
   private readonly openai: ReturnType<typeof createOpenAI>;
   private readonly logger: Logger;
+  private readonly usage: EmbeddingUsageRecorder | undefined;
 
   public static createFresh(
     config: OnlineEmbeddingConfig,
@@ -41,8 +47,12 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     this.model = config.model ?? DEFAULT_MODEL;
     this.dimensions = config.dimensions ?? DEFAULT_DIMENSIONS;
     this.logger = config.logger.child("OnlineEmbeddingProvider");
+    this.usage = config.usage;
 
-    this.openai = createOpenAI({ apiKey: config.apiKey });
+    this.openai = createOpenAI({
+      apiKey: config.apiKey,
+      ...(config.fetch ? { fetch: config.fetch } : {}),
+    });
   }
 
   async generateEmbedding(
@@ -61,6 +71,7 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       },
     });
 
+    this.usage?.record(this.model, usage.tokens);
     return {
       embedding: new Float32Array(embedding),
       usage: { tokens: usage.tokens },
@@ -87,6 +98,7 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       },
     });
 
+    this.usage?.record(this.model, usage.tokens);
     return {
       embeddings: embeddings.map((e) => new Float32Array(e)),
       usage: { tokens: usage.tokens },

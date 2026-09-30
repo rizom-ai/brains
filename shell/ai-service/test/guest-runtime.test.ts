@@ -13,6 +13,8 @@ import type {
 } from "@brains/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
+import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
+import { openAiEmbeddingPricingRevision } from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
 import type { AgentConversationStore } from "../src/turn-processor";
@@ -492,6 +494,49 @@ describe("guest runtime boundary", () => {
       guestContext,
     );
     expect(response.guestSettlement).toEqual(guestSettlement);
+  });
+
+  it("adds the embeddings a guest turn made, in its searches and in finding its sources, to its settlement", async () => {
+    const embeddingUsage = EmbeddingUsageMeter.createFresh();
+    const guestAnswerSources = mock(async () => {
+      // Finding the answer's sources embeds the answer.
+      embeddingUsage.record("text-embedding-3-small", 40);
+      return [];
+    });
+    const h = harness(conversation, [], { guestAnswerSources, embeddingUsage });
+    h.generate.mockImplementation(async () => {
+      // The model's own search embeds its query.
+      embeddingUsage.record("text-embedding-3-small", 10);
+      return {
+        text: "Public answer",
+        steps: [],
+        usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+        guestSettlement: {
+          usage: {
+            modelCalls: 1,
+            inputTokens: 10,
+            cachedInputTokens: 3,
+            outputTokens: 4,
+            reasoningTokens: 1,
+            embeddingTokens: 0,
+          },
+          cost: { state: "known", microUsd: 9, pricing: "test-revision" },
+        },
+      };
+    });
+    // Embeddings outside the turn are not its cost.
+    embeddingUsage.record("text-embedding-3-small", 1_000);
+    const response = await h.service.chat(
+      "What is public?",
+      conversation.id,
+      guestContext,
+    );
+    expect(response.guestSettlement?.usage.embeddingTokens).toBe(50);
+    expect(response.guestSettlement?.cost).toEqual({
+      state: "known",
+      microUsd: 10,
+      pricing: `test-revision+${openAiEmbeddingPricingRevision}`,
+    });
   });
 
   it("keeps operator and guest agent caches separate and invalidates both", async () => {

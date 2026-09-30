@@ -8,6 +8,7 @@
  * and stays a thin orchestration façade.
  */
 
+import { withEmbeddingUsage } from "./openai-guest-pricing";
 import type { AgentContextItem } from "@brains/contracts";
 import {
   guestInterfaceType,
@@ -95,6 +96,7 @@ export interface TurnProcessorDeps {
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
   guestAnswerSources: AgentConfig["guestAnswerSources"];
+  embeddingUsage: AgentConfig["embeddingUsage"];
 }
 
 /** A turn that passed admission: who is asking, and under which limits. */
@@ -137,13 +139,26 @@ export class TurnProcessor {
     this.logAvailableTools(turn);
     await this.recordQuestion(turn, prepared);
 
-    const result = await this.deps.getAgent(input.interfaceType).generate({
-      messages: prepared.messages,
-      options: this.callOptions(turn, prepared),
-      ...(signal ? { abortSignal: signal } : {}),
-    });
-    signal?.throwIfAborted();
-    return this.recordResponse(turn, prepared, result);
+    const answer = async (): Promise<AgentResponse> => {
+      const result = await this.deps.getAgent(input.interfaceType).generate({
+        messages: prepared.messages,
+        options: this.callOptions(turn, prepared),
+        ...(signal ? { abortSignal: signal } : {}),
+      });
+      signal?.throwIfAborted();
+      return this.recordResponse(turn, prepared, result);
+    };
+    const meter = this.deps.embeddingUsage;
+    if (!turn.guest || !meter) return answer();
+    // A visitor's answer is charged for its embeddings too: its searches and
+    // the search that found its sources.
+    const { value: response, usage } = await meter.measure(answer);
+    return response.guestSettlement
+      ? {
+          ...response,
+          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+        }
+      : response;
   }
 
   /**
