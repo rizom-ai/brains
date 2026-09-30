@@ -1,5 +1,8 @@
 import { z } from "@brains/utils/zod";
-import { guestExecutionPolicySchema } from "@brains/contracts/chat";
+import {
+  guestExecutionPolicySchema,
+  guestScreeningSchema,
+} from "@brains/contracts/chat";
 import {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
@@ -95,6 +98,7 @@ export type ChatAttachment = z.output<typeof ChatAttachmentSchema>;
 
 type ChatContextSchema = z.ZodObject<{
   guestExecution: z.ZodOptional<typeof guestExecutionPolicySchema>;
+  guestScreening: z.ZodOptional<typeof guestScreeningSchema>;
   userPermissionLevel: z.ZodOptional<
     z.ZodEnum<{ admin: "admin"; trusted: "trusted"; public: "public" }>
   >;
@@ -109,6 +113,7 @@ type ChatContextSchema = z.ZodObject<{
 
 export const ChatContextSchema: ChatContextSchema = z.object({
   guestExecution: guestExecutionPolicySchema.optional(),
+  guestScreening: guestScreeningSchema.optional(),
   userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
   isAnchor: z.boolean().optional(),
   interfaceType: z.string().optional(),

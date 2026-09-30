@@ -7,7 +7,6 @@ topics:
 topicsHeading: Where would you start?
 contactLabel: Talk to the team
 contactNote: We read every message ourselves.
-attribution: In our own words
 mapCaption: Closer to the centre, closer to our work
 ---
 
