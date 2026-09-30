@@ -296,12 +296,15 @@ export class RecurringCheckService {
     const runSignal = signal
       ? AbortSignal.any([controller.signal, signal])
       : controller.signal;
-    const run = this.executeRegisteredCheck(registered, runSignal);
     const activeCheck: ActiveCheck = {
       controller,
       settled: Promise.resolve(),
     };
     registered.activeCheck = activeCheck;
+    // Publish complete ownership before invoking any injected adapter.
+    const run = Promise.resolve().then(() =>
+      this.executeRegisteredCheck(registered, runSignal),
+    );
     const clearActiveCheck = (): void => {
       if (registered.activeCheck === activeCheck) {
         delete registered.activeCheck;
@@ -316,35 +319,41 @@ export class RecurringCheckService {
     runSignal: AbortSignal,
   ): Promise<boolean> {
     const checkId = registered.definition.id;
+    let admitted: Promise<void> | undefined;
+    const performCheck = async (effectSignal: AbortSignal): Promise<void> => {
+      const checkSignal = AbortSignal.any([runSignal, effectSignal]);
+      const deliverAlerts = registered.definition.deliverAlerts !== false;
+      if (deliverAlerts) {
+        await this.flushPendingAlerts(checkId);
+      } else {
+        await this.suppressPendingAlerts(checkId);
+      }
+      checkSignal.throwIfAborted();
+      const rawResult = await registered.definition.run({
+        signal: checkSignal,
+      });
+      checkSignal.throwIfAborted();
+      const result = recurringCheckResultSchema.parse(rawResult);
+      for (const alert of result.alerts ?? []) {
+        checkSignal.throwIfAborted();
+        await this.recordAlert(checkId, alert, {
+          deliver: deliverAlerts,
+          includeInInbox:
+            alert.includeInInbox ??
+            registered.definition.includeInInbox !== false,
+        });
+      }
+      checkSignal.throwIfAborted();
+      await this.state.set(this.lastSuccessKey(checkId), {
+        kind: "last-success",
+        checkId,
+        at: this.currentTime().toISOString(),
+      });
+    };
     const execution = Effect.tryPromise({
-      try: async (effectSignal) => {
-        const checkSignal = AbortSignal.any([runSignal, effectSignal]);
-        const deliverAlerts = registered.definition.deliverAlerts !== false;
-        if (deliverAlerts) {
-          await this.flushPendingAlerts(checkId);
-        } else {
-          await this.suppressPendingAlerts(checkId);
-        }
-        checkSignal.throwIfAborted();
-        const rawResult = await registered.definition.run({
-          signal: checkSignal,
-        });
-        checkSignal.throwIfAborted();
-        const result = recurringCheckResultSchema.parse(rawResult);
-        for (const alert of result.alerts ?? []) {
-          checkSignal.throwIfAborted();
-          await this.recordAlert(checkId, alert, {
-            deliver: deliverAlerts,
-            includeInInbox:
-              alert.includeInInbox ??
-              registered.definition.includeInInbox !== false,
-          });
-        }
-        await this.state.set(this.lastSuccessKey(checkId), {
-          kind: "last-success",
-          checkId,
-          at: this.currentTime().toISOString(),
-        });
+      try: (effectSignal) => {
+        admitted = performCheck(effectSignal);
+        return admitted;
       },
       catch: (error) => error,
     });
@@ -352,6 +361,9 @@ export class RecurringCheckService {
     const exit = await Effect.runPromiseExit(execution, {
       signal: runSignal,
     });
+    // Effect interruption cannot cancel an uncooperative Promise. Drain the
+    // admitted work before releasing its owner; the Exit retains its failure.
+    if (admitted) await Promise.allSettled([admitted]);
     if (Exit.isSuccess(exit)) return true;
     if (runSignal.aborted) throw runSignal.reason;
     throw Cause.squash(exit.cause);
