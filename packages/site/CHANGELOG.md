@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.238
+
+### Patch Changes
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`170627a`](https://github.com/rizom-ai/brains/commit/170627a74751e592f1818776a8209aa2ef2b21f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Exports `entityDisplaySchema`, the one definition of a site's entity display settings; `EntityDisplayEntry` is derived from it.
+
 ## 0.2.0-alpha.237
 
 ### Patch Changes
