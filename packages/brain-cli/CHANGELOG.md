@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- [#448](https://github.com/rizom-ai/brains/pull/448) [`f7bbbe2`](https://github.com/rizom-ai/brains/commit/f7bbbe23090da7e9851a03ac3cd36df17653b036) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer is charged for its embeddings: the searches its tools ran and the search that found its sources. The embedding provider reports each call to a usage meter, each guest turn is measured, and its settlement counts the tokens and prices them at text-embedding-3-small's published rate ($0.02 per 1M tokens). An embedding model without pricing leaves the turn's cost unknown, so it is charged at the turn's maximum. Before, every guest answer recorded 0 embedding tokens.
+
 ## 0.2.0-alpha.457
 
 ### Patch Changes
