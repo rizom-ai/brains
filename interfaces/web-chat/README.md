@@ -86,7 +86,8 @@ Each guest question is screened before it is answered: one call on the guest
 model judges it against the `topics` as the site's scope. A question that is
 off topic, abusive, an injection attempt or harmful gets the optional
 `refusal` line instead of an answer, or a neutral line when the site wrote
-none.
+none. The Studio guest chat monitor counts screened-out questions by
+category, and answers given unscreened because the judgment failed.
 
 The guest bootstrap response delivers this bounded presentation after the
 existing admission checks. Privacy, provider, retention and expiry information

@@ -198,10 +198,15 @@ export class GuestHttpHandlers {
 
   /** The owner's record and its bounds, for the Studio monitor; absent while guest access is off. */
   get usageRecord():
-    | { record: GuestUsageRecord; bounds: EnabledGuestPolicy["usageRecord"] }
+    | {
+        record: GuestUsageRecord;
+        bounds: EnabledGuestPolicy["usageRecord"];
+        /** The record's clock, so its readers count days as it does. */
+        now: () => number;
+      }
     | undefined {
     return this.usage && this.policy.enabled
-      ? { record: this.usage, bounds: this.policy.usageRecord }
+      ? { record: this.usage, bounds: this.policy.usageRecord, now: this.now }
       : undefined;
   }
 
@@ -561,6 +566,7 @@ export class GuestHttpHandlers {
                 usageId,
                 hasAnswer ? "completed" : "failed",
                 response.guestSettlement,
+                response.guestScreening,
               ))
             )
               throw new Error("Guest settlement unavailable");

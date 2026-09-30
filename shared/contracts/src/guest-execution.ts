@@ -111,6 +111,15 @@ export type GuestScreeningCategory = z.output<
   typeof guestScreeningCategorySchema
 >;
 
+/** The categories that refuse a question. */
+export const guestRefusalCategorySchema: z.ZodEnum<{
+  "off-topic": "off-topic";
+  abusive: "abusive";
+  injection: "injection";
+  harmful: "harmful";
+}> = guestScreeningCategorySchema.exclude(["in-scope"]);
+export type GuestRefusalCategory = z.output<typeof guestRefusalCategorySchema>;
+
 /**
  * What screening did with a guest turn: answered after an in-scope judgment,
  * refused with the category it was judged, or answered unscreened because
@@ -121,12 +130,7 @@ export const guestScreeningOutcomeSchema: z.ZodDiscriminatedUnion<
     Strict<{ outcome: z.ZodLiteral<"answered"> }>,
     Strict<{
       outcome: z.ZodLiteral<"refused">;
-      category: z.ZodEnum<{
-        "off-topic": "off-topic";
-        abusive: "abusive";
-        injection: "injection";
-        harmful: "harmful";
-      }>;
+      category: typeof guestRefusalCategorySchema;
     }>,
     Strict<{ outcome: z.ZodLiteral<"unscreened"> }>,
   ],
@@ -135,7 +139,7 @@ export const guestScreeningOutcomeSchema: z.ZodDiscriminatedUnion<
   z.strictObject({ outcome: z.literal("answered") }),
   z.strictObject({
     outcome: z.literal("refused"),
-    category: guestScreeningCategorySchema.exclude(["in-scope"]),
+    category: guestRefusalCategorySchema,
   }),
   z.strictObject({ outcome: z.literal("unscreened") }),
 ]);

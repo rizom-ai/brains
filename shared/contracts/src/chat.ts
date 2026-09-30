@@ -5,6 +5,7 @@ import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 export {
   guestExecutionLimitsSchema,
   guestExecutionPolicySchema,
+  guestRefusalCategorySchema,
   guestScreeningCategorySchema,
   guestScreeningOutcomeSchema,
   guestScreeningSchema,
@@ -12,6 +13,7 @@ export {
   guestTurnSettlementSchema,
   guestTurnUsageSchema,
   type GuestExecutionPolicy,
+  type GuestRefusalCategory,
   type GuestScreening,
   type GuestScreeningCategory,
   type GuestScreeningOutcome,
