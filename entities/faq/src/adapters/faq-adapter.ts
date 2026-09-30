@@ -14,7 +14,44 @@ const ALTERNATIVES_HEADING = "## Alternative answers";
 const ALTERNATIVES_HEADING_LINE = /^## Alternative answers[ \t]*$/m;
 
 /** Any heading of an alternative section; owners may rename them. */
-const ALTERNATIVE_HEADING_LINE = /^### .*$/m;
+const ALTERNATIVE_HEADING = /^### /;
+
+/** A heading an alternative's own text may not use: it would open a section. */
+const SECTION_LEVEL_HEADING = /^#{1,3}(?=\s)/;
+
+const CODE_FENCE = /^\s*(```|~~~)/;
+
+/** Each line of `markdown`, and whether it sits in a fenced code block. */
+function markdownLines(
+  markdown: string,
+): Array<{ line: string; inCode: boolean }> {
+  return markdown.split("\n").reduce<{
+    inCode: boolean;
+    lines: Array<{ line: string; inCode: boolean }>;
+  }>(
+    (state, line) => {
+      const fence = CODE_FENCE.test(line);
+      state.lines.push({ line, inCode: state.inCode || fence });
+      return {
+        inCode: fence ? !state.inCode : state.inCode,
+        lines: state.lines,
+      };
+    },
+    { inCode: false, lines: [] },
+  ).lines;
+}
+
+/**
+ * Nest an alternative's own headings below its "###" section, so they stay
+ * part of it; code blocks are left as written.
+ */
+function nestHeadings(text: string): string {
+  return markdownLines(text)
+    .map(({ line, inCode }) =>
+      inCode ? line : line.replace(SECTION_LEVEL_HEADING, "####"),
+    )
+    .join("\n");
+}
 
 /** The query-friendly metadata a FAQ's frontmatter implies. */
 export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
@@ -36,7 +73,7 @@ function faqBody(answer: string, alternatives: FaqAlternative[]): string {
       "",
       `### Alternative ${index + 1}`,
       "",
-      alternative.answer.trim(),
+      nestHeadings(alternative.answer.trim()),
     ]),
   ].join("\n");
 }
@@ -49,11 +86,15 @@ function parseFaqBody(body: string): {
   const [answer = "", section] = body.split(ALTERNATIVES_HEADING_LINE);
   if (section === undefined) return { answer: answer.trim(), alternatives: [] };
 
-  // The text before the first heading is not an alternative.
-  const alternatives = section
-    .split(ALTERNATIVE_HEADING_LINE)
-    .slice(1)
-    .map((text) => ({ answer: text.trim() }))
+  // Each "###" heading outside code opens an alternative; the text before the
+  // first one is not an alternative.
+  const alternatives = markdownLines(section)
+    .reduce<string[][]>((sections, { line, inCode }) => {
+      if (!inCode && ALTERNATIVE_HEADING.test(line)) sections.push([]);
+      else sections.at(-1)?.push(line);
+      return sections;
+    }, [])
+    .map((lines) => ({ answer: lines.join("\n").trim() }))
     .filter((alternative) => alternative.answer.length > 0);
   return { answer: answer.trim(), alternatives };
 }

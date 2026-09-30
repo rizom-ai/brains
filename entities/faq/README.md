@@ -30,7 +30,7 @@ Frontmatter holds only `question`, `status` (`draft` | `published`), and `asked`
 
 ## Reviewing alternative answers
 
-A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is appended to the body under `## Alternative answers` (reconciliation carries a folded duplicate's answer the same way), where the owner can read and edit it in Studio's editor like any other markdown. Studio's **FAQ review** workspace lists every FAQ with alternatives that the reviewer may see, with the current answer and each alternative. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either removes the alternatives from the body. Both read the FAQ at the reviewer's visibility and write only over the version they read.
+A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is appended to the body under `## Alternative answers` as its own `###` section, with its own headings nested one level below (reconciliation carries a folded duplicate's answer the same way), where the owner can read and edit it in Studio's editor like any other markdown. Studio's **FAQ review** workspace lists every FAQ with alternatives that the reviewer may see, with the current answer and each alternative. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either removes the alternatives from the body. Both read the FAQ at the reviewer's visibility and write only over the version they read.
 
 ## Publishing and sites
 

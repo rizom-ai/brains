@@ -93,4 +93,31 @@ describe("FaqAdapter", () => {
       { answer: "A place your knowledge lives." },
     ]);
   });
+
+  it("keeps an alternative's own headings inside that alternative", () => {
+    const markdown = faqAdapter.createFaqContent(frontmatter, "Publish it.", [
+      {
+        answer:
+          "Two steps.\n\n### Step 1\n\nOpen Studio.\n\n## Step 2\n\nPublish.",
+      },
+      { answer: "Choose Publish." },
+    ]);
+
+    const parsed = faqAdapter.parseFaqContent(markdown);
+    expect(parsed.alternatives).toHaveLength(2);
+    expect(parsed.alternatives[0]?.answer).toContain("Step 1");
+    expect(parsed.alternatives[0]?.answer).toContain("Publish.");
+    expect(parsed.alternatives[1]).toEqual({ answer: "Choose Publish." });
+  });
+
+  it("leaves heading-like lines in code blocks alone", () => {
+    const code = "```sh\n# install\n### not a heading\nbun add brain\n```";
+    const markdown = faqAdapter.createFaqContent(frontmatter, "Install it.", [
+      { answer: `Run:\n\n${code}` },
+    ]);
+
+    expect(faqAdapter.parseFaqContent(markdown).alternatives).toEqual([
+      { answer: `Run:\n\n${code}` },
+    ]);
+  });
 });
