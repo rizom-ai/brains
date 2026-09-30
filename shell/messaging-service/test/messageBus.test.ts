@@ -725,6 +725,61 @@ describe("MessageBus", () => {
       ]);
     });
 
+    it("retains throwing and rejecting subscribers alongside successful acknowledgements", async () => {
+      const finish = deferred();
+      messageBus.subscribe("test.collect.failures", (): never => {
+        throw new Error("Synchronous failure");
+      });
+      messageBus.subscribe("test.collect.failures", async () => {
+        await finish.promise;
+        return { success: true, data: "acknowledged" };
+      });
+      messageBus.subscribe(
+        "test.collect.failures",
+        async (): Promise<never> => {
+          throw new Error("Asynchronous failure");
+        },
+      );
+      const collection = messageBus.collect({
+        type: "test.collect.failures",
+        payload: {},
+        sender: "sender",
+      });
+      finish.resolve();
+      expect(await collection).toEqual([
+        {
+          success: false,
+          error:
+            "Message handler failed for message type: test.collect.failures",
+        },
+        { success: true, data: "acknowledged" },
+        {
+          success: false,
+          error:
+            "Message handler failed for message type: test.collect.failures",
+        },
+      ]);
+    });
+
+    it("retains invalid subscriber responses as failed acknowledgements", async () => {
+      // @ts-expect-error Plugin responses are also checked at runtime.
+      messageBus.subscribe("test.collect.invalid", () => ({ invalid: true }));
+      messageBus.subscribe("test.collect.invalid", () => ({ success: true }));
+      const responses = await messageBus.collect({
+        type: "test.collect.invalid",
+        payload: {},
+        sender: "sender",
+      });
+      expect(responses).toEqual([
+        {
+          success: false,
+          error:
+            "Message handler failed for message type: test.collect.invalid",
+        },
+        { success: true, data: undefined },
+      ]);
+    });
+
     it("returns an empty list when no handlers match", async () => {
       expect(
         await messageBus.collect({
