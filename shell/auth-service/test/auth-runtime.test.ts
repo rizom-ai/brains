@@ -466,6 +466,135 @@ describe("AuthRuntime lifecycle", () => {
     expect(await runtime.getUserStore().getBrainAnchor()).toBeDefined();
   });
 
+  it("does not publish setup URLs before token persistence succeeds", async () => {
+    const runtime = await createRuntime();
+    const store = runtime.setupFlow["setupStateStore"];
+    const entered = deferred();
+    const release = deferred();
+    const save = store.saveSetupToken.bind(store);
+    const saveSpy = spyOn(store, "saveSetupToken").mockImplementation(
+      async (token): Promise<void> => {
+        entered.resolve();
+        await release.promise;
+        await save(token);
+      },
+    );
+    const initialization = runtime.initialize();
+    await entered.promise;
+    try {
+      expect(runtime.getSetupUrl()).toBeUndefined();
+      expect(runtime.setupFlow.getValidSetupToken()).toBeUndefined();
+    } finally {
+      release.resolve();
+      await initialization;
+      saveSpy.mockRestore();
+    }
+    expect(runtime.getSetupUrl()).toBeDefined();
+  });
+
+  it("does not reuse an unpersisted setup token after startup rollback", async () => {
+    const runtime = await createRuntime();
+    const store = runtime.setupFlow["setupStateStore"];
+    const failure = new Error("Setup token persistence failed");
+    const saveSpy = spyOn(store, "saveSetupToken").mockRejectedValue(failure);
+    try {
+      expect(await runtime.initialize().catch((error: unknown) => error)).toBe(
+        failure,
+      );
+      expect(runtime.getSetupUrl()).toBeUndefined();
+    } finally {
+      saveSpy.mockRestore();
+    }
+    await runtime.initialize();
+    const url = runtime.getSetupUrl();
+    if (!url) throw new Error("Missing setup URL after retry");
+    expect(
+      await runtime.setupFlow.resolveSetupToken(new Request(url)),
+    ).toMatchObject({
+      targetUserId: null,
+      deliveryClaimId: null,
+    });
+  });
+
+  it("serializes concurrent setup-token requests through successful persistence", async () => {
+    const runtime = await createRuntime();
+    const store = runtime.setupFlow["setupStateStore"];
+    const entered = deferred();
+    const release = deferred();
+    const save = store.saveSetupToken.bind(store);
+    const saveSpy = spyOn(store, "saveSetupToken").mockImplementation(
+      async (token): Promise<void> => {
+        entered.resolve();
+        await release.promise;
+        await save(token);
+      },
+    );
+    const initialization = runtime.initialize();
+    await entered.promise;
+    let concurrentSettled = false;
+    const concurrent = runtime.setupFlow.ensureSetupToken().then((token) => {
+      concurrentSettled = true;
+      return token;
+    });
+    const required = runtime.setupFlow.getPasskeySetupRequired(
+      "https://brain.example.com",
+      { rotateHidden: true },
+    );
+    try {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(concurrentSettled).toBe(false);
+      release.resolve();
+      await initialization;
+      expect(await concurrent).toEqual(runtime.setupFlow.getValidSetupToken());
+      expect(await required).toMatchObject({ setupUrl: runtime.getSetupUrl() });
+      expect(saveSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      release.resolve();
+      await Promise.allSettled([initialization, concurrent, required]);
+      saveSpy.mockRestore();
+    }
+  });
+
+  it.each(["clearSetupState", "consumeSetupToken"] as const)(
+    "does not let pending token creation overtake %s",
+    async (method) => {
+      const runtime = await createRuntime();
+      const store = runtime.setupFlow["setupStateStore"];
+      const entered = deferred<string>();
+      const release = deferred();
+      const save = store.saveSetupToken.bind(store);
+      const saveSpy = spyOn(store, "saveSetupToken").mockImplementation(
+        async (token): Promise<void> => {
+          entered.resolve(token.token);
+          await release.promise;
+          await save(token);
+        },
+      );
+      const initialization = runtime.initialize();
+      const token = await entered.promise;
+      let cleared = false;
+      const clearing = (
+        method === "clearSetupState"
+          ? runtime.setupFlow.clearSetupState()
+          : runtime.setupFlow.consumeSetupToken(token)
+      ).then(() => {
+        cleared = true;
+      });
+      try {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(cleared).toBe(false);
+      } finally {
+        release.resolve();
+        await Promise.all([initialization, clearing]);
+        saveSpy.mockRestore();
+      }
+      expect(runtime.getSetupUrl()).toBeUndefined();
+      expect(
+        await store.hasActiveSetupToken(Math.floor(Date.now() / 1000)),
+      ).toBe(false);
+    },
+  );
+
   it("recreates database-bound account settings after restart", async () => {
     const runtime = await createRuntime({
       accountSettingsEncryptionKey: "test-account-settings-encryption-key-0001",
