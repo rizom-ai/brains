@@ -80,6 +80,9 @@ export class FaqPlugin extends EntityPlugin<
     return {
       projectionSource: false,
       projectionSourceRole: "excluded",
+      // FAQs restate the brain's own answers; as search sources they would
+      // feed unreviewed answers back into new ones.
+      includeInBroadSearch: false,
       publish: { publishStatuses: ["published"] },
     };
   }

@@ -76,6 +76,17 @@ describe("FaqPlugin", () => {
 });
 
 describe("FaqPlugin site surface", () => {
+  it("keeps FAQs out of broad searches, so answers never cite them as sources", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("faq"),
+    ).toMatchObject({ includeInBroadSearch: false });
+  });
+
   it("makes publishing a FAQ a publish action", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
