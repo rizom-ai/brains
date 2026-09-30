@@ -163,8 +163,15 @@ describe("public agent contracts", () => {
           requestTimeoutSeconds: 1,
         },
       },
+      guestScreening: {
+        topics: ["Memory institutions"],
+        refusal: "I only talk about my work.",
+      },
     });
     expect(guestContext.guestExecution?.maxCostMicroUsd).toBe(100);
+    expect(guestContext.guestScreening?.topics).toEqual([
+      "Memory institutions",
+    ]);
     await agent.chat(
       "Public question",
       "guest-conversation",

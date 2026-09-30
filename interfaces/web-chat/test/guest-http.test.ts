@@ -76,6 +76,8 @@ interface Fixture {
   /** The guest chat monitor Studio registered, if any. */
   monitor: () => StudioWorkspaceRegistration | undefined;
   notes: () => Promise<Array<{ content: string; visibility: string }>>;
+  /** Publishes the site's authored Ask copy. */
+  askContent: (content: string) => Promise<void>;
   /** The operator's operational health checks. */
   health: () => ReturnType<
     ReturnType<
@@ -125,6 +127,20 @@ async function setup(
       ).list(1000),
     health: () =>
       harness.getMockShell().getOperationalHealthRegistry().getChecks(),
+    askContent: async (content): Promise<void> => {
+      await harness
+        .getMockShell()
+        .getEntityService()
+        .createEntity({
+          entity: {
+            id: "ask-content",
+            entityType: "ask-content",
+            content,
+            metadata: {},
+            visibility: "public",
+          },
+        });
+    },
     monitor: (): StudioWorkspaceRegistration | undefined =>
       workspaces.find((workspace) => workspace.id.endsWith(":guest-chat")),
     notes: async (): Promise<Array<{ content: string; visibility: string }>> =>
@@ -1236,6 +1252,28 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     ).toBe(400);
     expect(state.conversations.size).toBe(0);
     expect(state.calls).toHaveLength(0);
+  });
+
+  it("screens a question against the site's topics, in its own refusal words", async () => {
+    const state = await setup();
+    await state.askContent(
+      "---\ntopics:\n  - Memory institutions\nrefusal: I only talk about my work.\n---\nWelcome.",
+    );
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message()));
+    expect(state.calls[0]?.[2]?.guestScreening).toEqual({
+      topics: ["Memory institutions"],
+      refusal: "I only talk about my work.",
+    });
+  });
+
+  it("screens a question without topics or refusal words when the site wrote none", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message()));
+    expect(state.calls[0]?.[2]?.guestScreening).toEqual({ topics: [] });
   });
 
   it("reports provider failures without private details and settles them, so the visitor can ask again", async () => {

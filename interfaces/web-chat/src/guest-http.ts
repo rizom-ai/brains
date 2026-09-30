@@ -525,6 +525,9 @@ export class GuestHttpHandlers {
           // Keep observing work after delivery stops: the model call settles
           // the answer when it returns, answered or not.
           const work = Promise.resolve().then(async () => {
+            // The site's topics bound what the question is screened against,
+            // and its refusal line is what a screened-out visitor reads.
+            const content = await this.presentation?.();
             signal.throwIfAborted();
             const response = await this.services.agent
               .chat(
@@ -535,6 +538,10 @@ export class GuestHttpHandlers {
                   userPermissionLevel: "public",
                   isAnchor: false,
                   guestExecution: lease.execution,
+                  guestScreening: {
+                    topics: content?.topics ?? [],
+                    ...(content?.refusal ? { refusal: content.refusal } : {}),
+                  },
                 },
                 signal,
               )

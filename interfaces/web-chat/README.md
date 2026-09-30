@@ -82,6 +82,12 @@ and editable topic buttons. Store it at `ask-content/ask-content.md` in the
 content directory, with `visibility: public`. Missing, private or malformed
 content produces no welcome or topics. It is not a system prompt or policy.
 
+Each guest question is screened before it is answered: one call on the guest
+model judges it against the `topics` as the site's scope. A question that is
+off topic, abusive, an injection attempt or harmful gets the optional
+`refusal` line instead of an answer, or a neutral line when the site wrote
+none.
+
 The guest bootstrap response delivers this bounded presentation after the
 existing admission checks. Privacy, provider, retention and expiry information
 still come from runtime policy. No host page supplies fallback chat copy.
