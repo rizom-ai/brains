@@ -8,8 +8,16 @@ export type {
   ContactDeliveryPolicy,
   ContactDeliveryDependencies,
 } from "./delivery";
-export { contactPluginConfigSchema } from "./config";
-export type { ContactPluginConfig, ContactIntakeConfig } from "./config";
+export {
+  CONTACT_INTAKE_DEFAULTS,
+  contactPluginConfigSchema,
+  resolveIntakePolicy,
+} from "./config";
+export type {
+  ContactPluginConfig,
+  ContactIntakeOverrides,
+  ContactIntakePolicy,
+} from "./config";
 export type { ContactHttpOptions, ContactHttpPolicy } from "./http";
 export { ContactIntake } from "./intake";
 export type {
