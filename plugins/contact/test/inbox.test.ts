@@ -16,7 +16,7 @@ async function fixture(): Promise<{
   harness: ReturnType<typeof createPluginHarness>;
   context: ReturnType<typeof createServicePluginContext>;
 }> {
-  const harness = createPluginHarness();
+  const harness = createPluginHarness({ domain: "brain.test" });
   await harness.installPlugin(new ContactRequestPlugin());
   const entityService = harness.getEntityService();
   const content = contactRequestAdapter.createContent(
@@ -48,7 +48,7 @@ async function fixture(): Promise<{
 }
 
 describe("contact inbox", () => {
-  it("registers a pull-based inbox source without exposing routes or tools", async () => {
+  it("registers a pull-based inbox source, with the form's routes and no tools", async () => {
     const { harness } = await fixture();
     const plugin = new ContactPlugin();
     const capabilities = await harness.installPlugin(plugin);
@@ -57,7 +57,11 @@ describe("contact inbox", () => {
       harness.getMockShell().getInboxRegistry().getSource("contact-requests"),
     ).toBeDefined();
     expect(capabilities.tools).toEqual([]);
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(plugin.getWebRoutes().map((route) => route.path)).toEqual([
+      "/contact",
+      "/contact",
+      "/contact/thanks",
+    ]);
     expect(plugin.getApiRoutes()).toEqual([]);
   });
 

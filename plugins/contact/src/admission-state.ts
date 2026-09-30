@@ -15,20 +15,35 @@ export interface ContactAdmissionPolicy {
 
 const limit = z.number().int().min(1).max(1000);
 const seconds = z.number().int().min(1).max(86400);
-export const contactAdmissionPolicySchema: z.ZodType<ContactAdmissionPolicy> = z
-  .strictObject({
-    windowSeconds: seconds,
-    globalRequests: limit,
-    networkRequests: limit,
-    globalForms: limit,
-    networkForms: limit,
-    globalSubmissions: limit,
-    networkSubmissions: limit,
-    tokenTtlSeconds: seconds,
-    receiptTtlSeconds: seconds,
-    maxEntries: limit,
-  })
-  .refine(
+/** The policy's fields and bounds; the schema adds the relation between them. */
+export const contactAdmissionPolicyShape: z.ZodObject<
+  {
+    windowSeconds: z.ZodNumber;
+    globalRequests: z.ZodNumber;
+    networkRequests: z.ZodNumber;
+    globalForms: z.ZodNumber;
+    networkForms: z.ZodNumber;
+    globalSubmissions: z.ZodNumber;
+    networkSubmissions: z.ZodNumber;
+    tokenTtlSeconds: z.ZodNumber;
+    receiptTtlSeconds: z.ZodNumber;
+    maxEntries: z.ZodNumber;
+  },
+  z.core.$strict
+> = z.strictObject({
+  windowSeconds: seconds,
+  globalRequests: limit,
+  networkRequests: limit,
+  globalForms: limit,
+  networkForms: limit,
+  globalSubmissions: limit,
+  networkSubmissions: limit,
+  tokenTtlSeconds: seconds,
+  receiptTtlSeconds: seconds,
+  maxEntries: limit,
+});
+export const contactAdmissionPolicySchema: z.ZodType<ContactAdmissionPolicy> =
+  contactAdmissionPolicyShape.refine(
     (value) =>
       value.networkRequests <= value.globalRequests &&
       value.networkForms <= value.globalForms &&
