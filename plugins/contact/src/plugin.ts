@@ -29,7 +29,12 @@ import { CONTACT_SLOT } from "./http-page";
 import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactRequestSchema } from "./entity/schema";
-import { contactPluginConfigSchema, type ContactPluginConfig } from "./config";
+import {
+  contactPluginConfigSchema,
+  resolveIntakePolicy,
+  type ContactIntakePolicy,
+  type ContactPluginConfig,
+} from "./config";
 
 const notificationJobSchema = z.strictObject({
   id: z.string().regex(/^contact-[a-f0-9]{64}$/),
@@ -47,9 +52,9 @@ const siteThemeSchema = z.looseObject({
   themeMode: z.enum(["light", "dark"]).optional(),
 });
 
-/** Default-off public intake. Runtime policy is explicit; readiness requires
- * recovery and the actual Studio Inbox destination, not a successful email send.
- */
+/** Public intake on the plugin's own policy, on the origin the brain serves.
+ * Readiness requires recovery and the actual Studio Inbox destination, not a
+ * successful email send. */
 /** The slot the site's contact page leaves for the form. */
 function ContactSlot(): ReactElement {
   return createElement("div", { [SITE_SLOT_ATTRIBUTE]: CONTACT_SLOT });
@@ -86,6 +91,7 @@ function contactSitePage(
 export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   readonly dependencies: string[];
   private http: ContactHttpHandlers | undefined;
+  private policy: ContactIntakePolicy | undefined;
   private intake: ContactIntake | undefined;
   private slots: ContactStorageSlots | undefined;
   private readonly stop = new AbortController();
@@ -98,9 +104,12 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
 
   constructor(config: ContactPluginConfig = {}) {
     super("contact", packageJson, config, contactPluginConfigSchema);
-    this.dependencies = this.config.intake
-      ? ["contact-request", "notifications", "studio", "unified-inbox"]
-      : ["contact-request"];
+    this.dependencies = [
+      "contact-request",
+      "notifications",
+      "studio",
+      "unified-inbox",
+    ];
   }
 
   protected override async onRegister(
@@ -108,18 +117,27 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   ): Promise<void> {
     if (!context.executionOnly)
       context.inbox.registerSource(new ContactInboxSource(context));
-    const config = this.config.intake;
+    // The intake serves the brain's own origin: its local site URL while the
+    // brain prefers local URLs (a development run), else its domain.
+    const origin =
+      (context.preferLocalUrls ? context.localSiteUrl : context.siteUrl) ??
+      context.localSiteUrl ??
+      context.siteUrl;
+    if (!origin) throw new Error("Contact intake needs the brain's site URL");
+    const config = resolveIntakePolicy(this.config, origin);
+    this.policy = config;
     // The site's own contact page: its layout around an empty slot the form
     // fills per request. Registered in every process, as site builds run in a
     // separate worker.
-    if (config) context.templates.register({ page: contactPageTemplate });
-    if (!config) return;
+    context.templates.register({ page: contactPageTemplate });
     const delivery = new ContactDelivery({
       entities: context.entityService,
       state: context.runtimeState,
       storage: config.storage,
       policy: config.delivery,
       send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
+        const inbox = this.inboxUrl(context);
+        if (!inbox) return { sent: false, failure: "no-inbox" };
         const result = await context.messaging.send<
           SendNotificationInput,
           SendNotificationResult
@@ -127,7 +145,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
           type: NOTIFICATIONS_SEND,
           payload: {
             title: "New contact request",
-            body: `A contact request is saved in your authenticated Inbox.\n\n${config.inboxUrl}`,
+            body: `A contact request is saved in your authenticated Inbox.\n\n${inbox}`,
             sensitivity: "secret",
             idempotencyKey,
           },
@@ -192,10 +210,8 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     });
     this.http = new ContactHttpHandlers(admission, this.intake, config.http, {
       themeCSS: context.themeCSS,
-      // Preview reachability serves the deployment's own preview host too.
-      previewOrigin: config.preview
-        ? previewOriginFor(config.http.origin, context.previewUrl)
-        : undefined,
+      // The deployment's own preview host is served beside the origin.
+      previewOrigin: previewOriginFor(config.http.origin, context.previewUrl),
       owner: (): string => context.identity.getProfile().name,
       defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
     });
@@ -237,7 +253,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   override getWebRoutes(): WebRouteDefinition[] {
     const http = this.http;
     if (!http) return [];
-    return http.routes(this.config.intake?.preview).map((route) => ({
+    return http.routes(true).map((route) => ({
       ...route,
       handler: async (request, transport): Promise<Response> => {
         if (!this.readyState || !(await this.maintenanceFresh()))
@@ -262,26 +278,31 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         ],
       },
     });
-    const config = this.config.intake;
-    const destinationMounted =
-      config &&
-      context.plugins.has("unified-inbox") &&
-      context.webRoutes
-        .getRoutes()
-        .some(
-          (route) =>
-            route.pluginId === "studio" &&
-            (route.definition.method ?? "GET") === "GET" &&
-            route.definition.match === "prefix" &&
-            route.fullPath.endsWith("/workspaces") &&
-            config.inboxUrl ===
-              `${config.http.origin}${route.fullPath}/unified-inbox%3Ainbox`,
-        );
-    if (!destinationMounted) throw new Error("Contact Inbox unavailable");
+    if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
+      throw new Error("Contact Inbox unavailable");
     await this.readSiteTheme(context);
     await this.maintain(this.stop.signal);
     this.stop.signal.throwIfAborted();
     this.readyState = true;
+  }
+
+  /** Where the alerts point: the unified-inbox workspace under Studio's
+   * mounted workspaces route, on the intake's origin. Nothing while Studio
+   * mounts no such route. */
+  private inboxUrl(context: ServicePluginContext): string | undefined {
+    const origin = this.policy?.http.origin;
+    const workspaces = context.webRoutes
+      .getRoutes()
+      .find(
+        (route) =>
+          route.pluginId === "studio" &&
+          (route.definition.method ?? "GET") === "GET" &&
+          route.definition.match === "prefix" &&
+          route.fullPath.endsWith("/workspaces"),
+      );
+    return origin && workspaces
+      ? `${origin}${workspaces.fullPath}/unified-inbox%3Ainbox`
+      : undefined;
   }
 
   /** The form opens in the site's own theme when a link names none. */

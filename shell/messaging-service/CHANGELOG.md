@@ -1,5 +1,45 @@
 # @brains/messaging-service
 
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.460
+  - @brains/operation-context@0.2.0-alpha.460
+  - @brains/utils@0.2.0-alpha.460
+  - @brains/templates@0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.459
+  - @brains/operation-context@0.2.0-alpha.459
+  - @brains/utils@0.2.0-alpha.459
+  - @brains/templates@0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.458
+  - @brains/operation-context@0.2.0-alpha.458
+  - @brains/utils@0.2.0-alpha.458
+  - @brains/templates@0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.457
+  - @brains/operation-context@0.2.0-alpha.457
+  - @brains/utils@0.2.0-alpha.457
+  - @brains/templates@0.2.0-alpha.457
+
 ## 0.2.0-alpha.456
 
 ### Patch Changes

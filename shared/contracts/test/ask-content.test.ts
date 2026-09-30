@@ -31,4 +31,12 @@ describe("authored Ask presentation", () => {
     ).toThrow();
     expect(() => parseAskContent("x".repeat(4001))).toThrow();
   });
+  test("carries the site's own refusal line, bounded", () => {
+    expect(
+      parseAskContent("---\nrefusal: I only talk about my work.\n---"),
+    ).toEqual({ refusal: "I only talk about my work." });
+    expect(() =>
+      askContentSchema.parse({ refusal: "x".repeat(501) }),
+    ).toThrow();
+  });
 });

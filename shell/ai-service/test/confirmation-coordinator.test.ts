@@ -33,6 +33,7 @@ function machineContext(
     source: null,
     attachments: [],
     guestExecution: undefined,
+    guestScreening: undefined,
     signal: undefined,
     response: null,
     pendingConfirmations: [],

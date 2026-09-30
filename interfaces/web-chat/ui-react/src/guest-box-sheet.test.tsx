@@ -343,6 +343,38 @@ describe("the Ask box on a phone", () => {
       expect(host.hasAttribute(ASK_KEYBOARD_ATTRIBUTE)).toBe(false);
     });
 
+    it("fills the screen again once the keyboard closes, even when Safari reports no resize after it, and follows the keyboard when it comes back", async () => {
+      await render();
+      await focusComposer();
+      await act(async (): Promise<void> => {
+        viewport.height = 420;
+        viewport.offsetTop = 180;
+        viewport.dispatchEvent(new dom.Event("resize"));
+      });
+      expect(host.style.getPropertyValue("--ask-viewport-height")).toBe(
+        "420px",
+      );
+      expect(host.style.getPropertyValue("--ask-viewport-top")).toBe("180px");
+      // Closing the keyboard blurs the field while Safari still reports the
+      // keyboard's height, and no resize follows once it has gone.
+      await act(async (): Promise<void> => {
+        composer().blur();
+      });
+      expect(host.style.getPropertyValue("--ask-viewport-height")).toBe("");
+      expect(host.style.getPropertyValue("--ask-viewport-top")).toBe("");
+      expect(host.hasAttribute(ASK_KEYBOARD_ATTRIBUTE)).toBe(false);
+      // A tap on the composer brings the keyboard back, and the sheet fits it.
+      await focusComposer();
+      await act(async (): Promise<void> => {
+        viewport.dispatchEvent(new dom.Event("resize"));
+      });
+      expect(host.style.getPropertyValue("--ask-viewport-height")).toBe(
+        "420px",
+      );
+      expect(host.hasAttribute(ASK_KEYBOARD_ATTRIBUTE)).toBe(true);
+      expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+    });
+
     it("closes the keyboard on send, so the answer gets the screen", async () => {
       const onSend = mock(() => undefined);
       await render({ draft: "What is public?", onSend });

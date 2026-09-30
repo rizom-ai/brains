@@ -1,10 +1,9 @@
 # @brains/contact
 
-Unreleased, default-off contact intake. The package is available in the canonical
-catalog for explicit addition but belongs to no default bundle. `contactPlugin()`
-composes the private entity and service; without explicit `intake` configuration
-it mounts **no HTTP routes**. There are no public tools. No deployment has enabled
-this capability.
+A contact form for a brain's site. The package is available in the canonical
+catalog for explicit addition but belongs to no default bundle: a brain that adds
+`contact` gets the form on its own policy, with no configuration. `contactPlugin()`
+composes the private entity and service. There are no public tools.
 
 ## Implemented
 
@@ -19,8 +18,8 @@ this capability.
   updates; hiding an expired record is **not** deletion or retention enforcement.
 - `ContactAdmission` gates requests before body reads and reserves forms/submissions
   using one runtime-state CAS ledger. Every process must share that database.
-  Policies have no defaults: fixed-window global and network request, issuance and
-  submission limits, token/receipt lifetimes and an entry cap are all explicit.
+  The policy: fixed-window global and network request, issuance and submission
+  limits, token/receipt lifetimes and an entry cap, each with a default.
 - Network buckets use host-owned socket addresses, grouped by IPv4 /24 or IPv6
   /64; mapped IPv4 addresses share the IPv4 bucket. Behind a proxy, these are the
   proxy's networks, not inferred visitor addresses. Forwarding headers and cookies
@@ -65,14 +64,22 @@ or browser-preview acceptance have been performed.
 
 ## Runtime configuration and delivery
 
-`ContactPluginConfig.intake` requires every field explicitly: `http`, `admission`,
-`storage`, `delivery`, `inboxUrl`, and `preview`. There is no implicit enabled
-policy. Schema exports describe all bounds. Intake depends on `notifications`,
-`studio` and `unified-inbox`; configure the notification recipient and transport
-through their existing plugins, never through the visitor's fields.
+The intake runs on the plugin's own policy (`CONTACT_INTAKE_DEFAULTS`): an hour's
+window of modest request, form and submission limits, half-hour form tokens, notes
+kept for a day, and a few alert attempts. `ContactPluginConfig.intake` takes only
+the values an owner wants different, in `http`, `admission`, `storage` and
+`delivery`; each is held to the bounds the schema exports describe. Intake depends
+on `notifications`, `studio` and `unified-inbox`; configure the notification
+recipient and transport through their existing plugins, never through the
+visitor's fields.
 
-- `inboxUrl` must be the same-origin Studio Inbox workspace URL, verified against
-  the mounted Studio workspace route at readiness (including custom Studio paths).
+- The origin is the brain's own: its local site URL while the brain prefers local
+  URLs, else its domain. A brain without either refuses to register the plugin.
+  For an HTTPS origin the TLS-terminating proxy's protocol is believed. The
+  deployment's preview host is served beside the origin.
+- The alert's Inbox link is the unified-inbox workspace under Studio's mounted
+  workspaces route (including custom Studio paths), on that origin; readiness
+  requires that route to be mounted.
 - Startup recovery must succeed before requests are admitted. Failed maintenance,
   clock regression or maintenance older than 26 hours closes intake. Operational
   health exposes only aggregate counts, pending/failed notification state and the

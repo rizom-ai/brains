@@ -1,5 +1,65 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.460
+  - @brains/site-info@0.2.0-alpha.460
+  - @brains/profile@0.2.0-alpha.460
+  - @brains/site-composition@0.2.0-alpha.460
+  - @brains/site-engine@0.2.0-alpha.460
+  - @brains/ui-library@0.2.0-alpha.460
+  - @brains/utils@0.2.0-alpha.460
+  - @brains/plugins@0.2.0-alpha.460
+  - @brains/templates@0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.459
+  - @brains/site-info@0.2.0-alpha.459
+  - @brains/profile@0.2.0-alpha.459
+  - @brains/site-composition@0.2.0-alpha.459
+  - @brains/site-engine@0.2.0-alpha.459
+  - @brains/ui-library@0.2.0-alpha.459
+  - @brains/utils@0.2.0-alpha.459
+  - @brains/plugins@0.2.0-alpha.459
+  - @brains/templates@0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.458
+  - @brains/site-info@0.2.0-alpha.458
+  - @brains/profile@0.2.0-alpha.458
+  - @brains/site-composition@0.2.0-alpha.458
+  - @brains/site-engine@0.2.0-alpha.458
+  - @brains/ui-library@0.2.0-alpha.458
+  - @brains/utils@0.2.0-alpha.458
+  - @brains/plugins@0.2.0-alpha.458
+  - @brains/templates@0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.457
+  - @brains/site-info@0.2.0-alpha.457
+  - @brains/profile@0.2.0-alpha.457
+  - @brains/site-composition@0.2.0-alpha.457
+  - @brains/site-engine@0.2.0-alpha.457
+  - @brains/ui-library@0.2.0-alpha.457
+  - @brains/utils@0.2.0-alpha.457
+  - @brains/plugins@0.2.0-alpha.457
+  - @brains/templates@0.2.0-alpha.457
+
 ## 0.2.0-alpha.456
 
 ### Patch Changes

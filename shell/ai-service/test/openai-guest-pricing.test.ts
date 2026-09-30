@@ -2,8 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { LanguageModelUsage } from "ai";
 import {
   guestTurnSettlement,
+  openAiEmbeddingPricingRevision,
   openAiGuestPricingRevision,
   priceOpenAiGuestTurn,
+  withEmbeddingUsage,
 } from "../src/openai-guest-pricing";
 
 function stepUsage(
@@ -160,5 +162,60 @@ describe("guest turn settlement from the agent's steps", () => {
     expect(
       guestTurnSettlement([{ usage: stepUsage(10, 0, 1) }], undefined).cost,
     ).toEqual({ state: "unknown", reason: "unsupported-pricing" });
+  });
+});
+
+describe("a guest turn's embeddings in its settlement", () => {
+  const settled = guestTurnSettlement(
+    [{ usage: stepUsage(10_000, 4_000, 300, 100) }],
+    priceOpenAiGuestTurn,
+  );
+
+  it("counts the tokens and adds them at text-embedding-3-small's rate", () => {
+    const withEmbeddings = withEmbeddingUsage(settled, [
+      { model: "text-embedding-3-small", tokens: 30_000 },
+      { model: "text-embedding-3-small", tokens: 20_000 },
+    ]);
+    expect(withEmbeddings.usage.embeddingTokens).toBe(50_000);
+    // $0.02 per 1M tokens: 50,000 tokens are 1,000 micro-dollars.
+    expect(withEmbeddings.cost).toEqual({
+      state: "known",
+      microUsd:
+        settled.cost.state === "known" ? settled.cost.microUsd + 1_000 : -1,
+      pricing: `${openAiGuestPricingRevision}+${openAiEmbeddingPricingRevision}`,
+    });
+  });
+
+  it("rounds a fraction of a micro-dollar up, never down", () => {
+    const withEmbeddings = withEmbeddingUsage(settled, [
+      { model: "text-embedding-3-small", tokens: 3 },
+    ]);
+    expect(withEmbeddings.cost).toMatchObject({
+      microUsd: settled.cost.state === "known" ? settled.cost.microUsd + 1 : -1,
+    });
+  });
+
+  it("leaves cost unknown for an embedding model without pricing, still counting its tokens", () => {
+    const withEmbeddings = withEmbeddingUsage(settled, [
+      { model: "text-embedding-3-large", tokens: 100 },
+    ]);
+    expect(withEmbeddings.usage.embeddingTokens).toBe(100);
+    expect(withEmbeddings.cost).toEqual({
+      state: "unknown",
+      reason: "unsupported-pricing",
+    });
+  });
+
+  it("keeps an unknown cost unknown", () => {
+    const unknown = guestTurnSettlement([{}], priceOpenAiGuestTurn);
+    expect(
+      withEmbeddingUsage(unknown, [
+        { model: "text-embedding-3-small", tokens: 10 },
+      ]).cost,
+    ).toEqual(unknown.cost);
+  });
+
+  it("changes nothing for a turn that embedded nothing", () => {
+    expect(withEmbeddingUsage(settled, [])).toEqual(settled);
   });
 });

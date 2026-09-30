@@ -9,16 +9,24 @@ export interface ContactStoragePolicy {
   maxRecords: number;
   maxBytes: number;
 }
+export const contactStoragePolicyShape: z.ZodObject<
+  {
+    retentionSeconds: z.ZodNumber;
+    maxRecords: z.ZodNumber;
+    maxBytes: z.ZodNumber;
+  },
+  z.core.$strict
+> = z.strictObject({
+  retentionSeconds: z
+    .number()
+    .int()
+    .min(86400)
+    .max(90 * 86400),
+  maxRecords: z.number().int().min(1).max(1000),
+  maxBytes: z.number().int().min(1024).max(32_000_000),
+});
 export const contactStoragePolicySchema: z.ZodType<ContactStoragePolicy> =
-  z.strictObject({
-    retentionSeconds: z
-      .number()
-      .int()
-      .min(86400)
-      .max(90 * 86400),
-    maxRecords: z.number().int().min(1).max(1000),
-    maxBytes: z.number().int().min(1024).max(32_000_000),
-  });
+  contactStoragePolicyShape;
 export type ContactDeliveryStatus = "pending" | "sent" | "failed";
 interface DeliveryState {
   attempts: number;

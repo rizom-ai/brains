@@ -10,7 +10,10 @@ import type {
   StateSchema,
 } from "xstate";
 import { actorRefKey } from "@brains/contracts";
-import type { GuestExecutionPolicy } from "@brains/contracts/chat";
+import type {
+  GuestExecutionPolicy,
+  GuestScreening,
+} from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
@@ -39,6 +42,7 @@ export type RuntimePendingConfirmation = PendingConfirmation & {
  */
 export interface AgentMachineContext {
   guestExecution: GuestExecutionPolicy | undefined;
+  guestScreening: GuestScreening | undefined;
   conversationId: string;
   message: string;
   interfaceType: string;
@@ -63,6 +67,7 @@ export type AgentMachineEvent =
   | {
       type: "RECEIVE_MESSAGE";
       guestExecution?: GuestExecutionPolicy;
+      guestScreening?: GuestScreening;
       message: string;
       conversationId: string;
       interfaceType: string;
@@ -105,6 +110,7 @@ export type AgentMachineEvent =
  */
 export interface ProcessMessageInput {
   guestExecution?: GuestExecutionPolicy | undefined;
+  guestScreening?: GuestScreening | undefined;
   conversationId: string;
   message: string;
   interfaceType: string;
@@ -274,6 +280,7 @@ export const agentMachine: AgentMachine = setup({
   initial: "idle",
   context: {
     guestExecution: undefined,
+    guestScreening: undefined,
     conversationId: "",
     message: "",
     interfaceType: "agent",
@@ -307,6 +314,7 @@ export const agentMachine: AgentMachine = setup({
             source: event.source,
             attachments: event.attachments,
             guestExecution: event.guestExecution,
+            guestScreening: event.guestScreening,
             signal: event.signal,
             response: null,
             pendingConfirmations: [],
@@ -332,6 +340,7 @@ export const agentMachine: AgentMachine = setup({
           source: context.source,
           attachments: context.attachments,
           guestExecution: context.guestExecution,
+          guestScreening: context.guestScreening,
           signal: context.signal,
         }),
         onDone: [
