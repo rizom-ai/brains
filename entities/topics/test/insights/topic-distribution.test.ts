@@ -42,6 +42,7 @@ function makeTopicEntity(
 function makeNote(
   id: string,
   visibility: ContentVisibility = "public",
+  status = "published",
 ): BaseEntity {
   return {
     id,
@@ -49,7 +50,7 @@ function makeNote(
     content: `Body of ${id}.`,
     contentHash: `hash-${id}`,
     visibility,
-    metadata: {},
+    metadata: { status },
     created: "2026-01-01T00:00:00.000Z",
     updated: "2026-01-01T00:00:00.000Z",
   };
@@ -152,6 +153,27 @@ describe("topic-distribution insight", () => {
     expect(unextracted.sourceEntities).toBe(2);
     expect(unextracted.hint).toContain("not been extracted yet");
     expect(unextracted.hint).toContain("system_search");
+  });
+
+  it("counts no drafts for a public caller, as search does not", async () => {
+    const shell = topicShell([
+      makeTopicEntity("private-topic", "Private Topic", "restricted"),
+      makeNote("public-draft", "public", "draft"),
+    ]);
+
+    const publicResult = await createTopicDistributionInsight(options)(
+      shell.getEntityService(),
+      "public",
+    );
+    expect(publicResult).toEqual({ topics: [] });
+
+    const sharedResult = await createTopicDistributionInsight(options)(
+      shell.getEntityService(),
+      "shared",
+    );
+    expect(
+      unextractedSchema.parse(sharedResult["unextracted"]).sourceEntities,
+    ).toBe(1);
   });
 
   it("says extraction is off when automatic extraction is disabled", async () => {

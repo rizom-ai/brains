@@ -51,7 +51,11 @@ export function createTopicDistributionInsight(
         .map((entityType) =>
           entityService.countEntities({
             entityType,
-            options: { filter: { visibilityScope } },
+            options: {
+              filter: { visibilityScope },
+              // What search can return: a public reader gets no drafts.
+              ...(visibilityScope === "public" && { publishedOnly: true }),
+            },
           }),
         ),
     );
