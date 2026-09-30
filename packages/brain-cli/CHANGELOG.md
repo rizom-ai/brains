@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`e1bd16e`](https://github.com/rizom-ai/brains/commit/e1bd16ecaa0be303c5b3392b6eb03377402e35d5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's question is screened before the guest model answers it. One call on the guest model classifies the question, from the question, the visitor's two before it and the site's public topics, as in scope, off topic, abusive, an injection attempt or harmful. A question outside scope gets the site's refusal line, or a neutral one, without running the answer or finding sources for it; its cost is the screening call alone. A screening call that fails lets the answer through and marks the turn unscreened. The turn's response carries the outcome, and the screening call's usage counts toward the turn's settlement.
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`8c92284`](https://github.com/rizom-ai/brains/commit/8c92284d48f22a3a9c7e490f17958a21684f0f55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guest usage record keeps a screened-out question as `refused`, with its category, and marks an answer given because screening failed as `unscreened`. The Studio guest chat monitor counts screened-out questions today and this month, by category, shows the category on recent questions, and counts unscreened answers. Its today and this month now follow the record's clock rather than the host's.
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`8fcfa2f`](https://github.com/rizom-ai/brains/commit/8fcfa2f51da01d03cf3bb8fe3457e7e9a2ec0459) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web Chat screens each guest question against the site's `ask-content` topics, and `ask-content` gains an optional `refusal` line: what a visitor reads when their question is off topic, abusive, an injection attempt or harmful. Without it, the visitor reads a neutral line. The team recipe's `ask-content` no longer carries the removed `attribution` field.
+
 ## 0.2.0-alpha.458
 
 ### Patch Changes
