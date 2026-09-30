@@ -1000,7 +1000,10 @@ export class EntityService implements IEntityService {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     await this.initialize();
-    return this.entitySearch.searchWithDistances(request.query);
+    return this.entitySearch.searchWithDistances(request.query, {
+      types: request.types,
+      maxDistance: request.maxDistance,
+    });
   }
 
   public async projectSemanticSpace(

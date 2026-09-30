@@ -766,6 +766,10 @@ export interface EntitySearchRequest {
 
 export interface SearchWithDistancesRequest {
   query: string;
+  /** Only these entity types; empty or omitted includes all types. */
+  types?: string[] | undefined;
+  /** Only results at most this cosine distance from the query. */
+  maxDistance?: number | undefined;
 }
 
 export interface SemanticEntityReference {

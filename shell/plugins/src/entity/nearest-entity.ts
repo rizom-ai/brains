@@ -2,14 +2,13 @@ import type {
   BaseEntity,
   ContentVisibility,
   GetEntityRequest,
+  SearchWithDistancesRequest,
 } from "@brains/entity-service";
 
 export interface NearestEntityDeps<T extends BaseEntity> {
-  searchWithDistances(request: {
-    query: string;
-  }): Promise<
-    Array<{ entityId: string; entityType: string; distance: number }>
-  >;
+  searchWithDistances(
+    request: SearchWithDistancesRequest,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
   getEntity(request: GetEntityRequest): Promise<T | null>;
 }
 
@@ -40,7 +39,12 @@ export async function findNearestEntity<T extends BaseEntity>(
   deps: NearestEntityDeps<T>,
   request: NearestEntityQuery<T>,
 ): Promise<T | undefined> {
-  const distances = await deps.searchWithDistances({ query: request.query });
+  const distances = await deps.searchWithDistances({
+    query: request.query,
+    types: [request.entityType],
+    maxDistance: request.maxDistance,
+  });
+  // The index narrows by type and distance; checked again so any deps holds.
   const candidates: Array<T | null> = await Promise.all(
     distances
       .filter(

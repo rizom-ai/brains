@@ -19,13 +19,19 @@ function entity(id: string, visibility: ContentVisibility): BaseEntity {
 function deps(
   distances: Array<{ entityId: string; entityType: string; distance: number }>,
   entities: BaseEntity[],
-): NearestEntityDeps<BaseEntity> & { queries: string[] } {
+): NearestEntityDeps<BaseEntity> & {
+  requests: Parameters<
+    NearestEntityDeps<BaseEntity>["searchWithDistances"]
+  >[0][];
+} {
   const order: ContentVisibility[] = ["public", "shared", "restricted"];
-  const queries: string[] = [];
+  const requests: Parameters<
+    NearestEntityDeps<BaseEntity>["searchWithDistances"]
+  >[0][] = [];
   return {
-    queries,
-    searchWithDistances: async ({ query }): Promise<typeof distances> => {
-      queries.push(query);
+    requests,
+    searchWithDistances: async (request): Promise<typeof distances> => {
+      requests.push(request);
       return distances;
     },
     getEntity: async ({ id, visibilityScope }): Promise<BaseEntity | null> => {
@@ -57,7 +63,9 @@ describe("findNearestEntity", () => {
     });
 
     expect(match?.id).toBe("near");
-    expect(service.queries).toEqual(["markdown"]);
+    expect(service.requests).toEqual([
+      { query: "markdown", types: ["faq"], maxDistance: 0.2 },
+    ]);
   });
 
   it("ignores entities beyond the distance", async () => {
