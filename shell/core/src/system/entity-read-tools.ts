@@ -3,7 +3,6 @@ import { createTool } from "@brains/mcp-service";
 import {
   permissionToVisibilityScope,
   resolveEntityOrError,
-  type SearchOptions,
 } from "@brains/entity-service";
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
@@ -18,9 +17,6 @@ const publishedOnlyFor = (
 ): { publishedOnly?: true } =>
   visibilityScope === "public" ? { publishedOnly: true } : {};
 
-/** Weaker candidates looked up when nothing reaches the score threshold. */
-const WEAKER_MATCH_LIMIT = 5;
-
 interface BelowThreshold {
   minScore: number;
   weakerMatches: number;
@@ -33,26 +29,19 @@ interface BelowThreshold {
  * or abstract questions match content only weakly. When weaker candidates
  * exist, say so, so the model searches again instead of concluding absence.
  */
-async function describeWeakerMatches(
-  entityService: SystemServices["entityService"],
-  request: {
-    query: string;
-    options: Omit<SearchOptions, "minScore" | "limit">;
-    minScore: number;
-  },
-): Promise<BelowThreshold | undefined> {
-  const weaker = await entityService.search({
-    query: request.query,
-    options: { ...request.options, limit: WEAKER_MATCH_LIMIT },
-  });
-  if (weaker.length === 0) return undefined;
+function describeWeakerMatches(
+  candidates: readonly { score: number }[],
+  minScore: number,
+): BelowThreshold | undefined {
+  if (candidates.length === 0) return undefined;
   const bestScore =
-    Math.round(Math.max(...weaker.map((result) => result.score)) * 100) / 100;
+    Math.round(Math.max(...candidates.map((result) => result.score)) * 100) /
+    100;
   return {
-    minScore: request.minScore,
-    weakerMatches: weaker.length,
+    minScore,
+    weakerMatches: candidates.length,
     bestScore,
-    hint: `No result reached minScore ${request.minScore}, but ${weaker.length} weaker match${weaker.length === 1 ? "" : "es"} exist (best score ${bestScore}). Broad or abstract questions match content weakly: search again with a lower minScore, such as 0.3, before concluding that nothing relevant exists.`,
+    hint: `No result reached minScore ${minScore}, but ${candidates.length} weaker match${candidates.length === 1 ? "" : "es"} exist (best score ${bestScore}). Broad or abstract questions match content weakly: search again with a lower minScore, such as 0.3, before concluding that nothing relevant exists.`,
   };
 }
 
@@ -71,31 +60,29 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           context.userPermissionLevel,
         );
         const minScore = input.minScore ?? DEFAULT_SYSTEM_SEARCH_MIN_SCORE;
-        const scopeOptions = {
-          ...(input.scope.kind === "type" && {
-            types: [input.scope.entityType],
-          }),
-          ...(input.includeUngenerated !== undefined && {
-            includeUngenerated: input.includeUngenerated,
-          }),
-          visibilityScope,
-          ...publishedOnlyFor(visibilityScope),
-        };
-        const results = await entityService.search({
+        // Ranked by score before the limit applies, so filtering the top
+        // candidates by minScore equals a thresholded search, and the
+        // candidates below it cost no second query.
+        const candidates = await entityService.search({
           query: input.query,
           options: {
-            ...scopeOptions,
             limit: input.limit ?? services.searchLimit,
-            minScore,
+            ...(input.scope.kind === "type" && {
+              types: [input.scope.entityType],
+            }),
+            ...(input.includeUngenerated !== undefined && {
+              includeUngenerated: input.includeUngenerated,
+            }),
+            visibilityScope,
+            ...publishedOnlyFor(visibilityScope),
           },
         });
+        const results = candidates.filter(
+          (candidate) => candidate.score >= minScore,
+        );
         const belowThreshold =
-          results.length === 0 && minScore > 0
-            ? await describeWeakerMatches(entityService, {
-                query: input.query,
-                options: scopeOptions,
-                minScore,
-              })
+          results.length === 0
+            ? describeWeakerMatches(candidates, minScore)
             : undefined;
         return {
           success: true,
