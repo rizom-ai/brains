@@ -2,45 +2,35 @@ import type { RouteDefinitionInput } from "@rizom/site";
 
 /**
  * The consolidated Rizom site routes. The home page composes the living-memory
- * content namespace; the layout owns navigation (the
- * two-tier faces strip), so routes stay out of the entity nav.
+ * content namespace; the layout owns navigation (the one bar), so routes stay out of the entity nav.
  */
 export const aiRoutes: RouteDefinitionInput[] = [
   {
-    // The Living Memory position, told with the site's own chrome and its two
-    // live maps. The hero is the proximity map — the network as it actually
-    // stands, not a drawing of one — carrying this page's copy through the
-    // content overlay. After the system and its brain → practice → network
-    // sequence, the knowledge map provides working proof from this brain's
-    // live memory. Copy for every section belongs to the separate content repo
-    // under site-content/living-memory/. Keep that content identity stable;
-    // this is the homepage, with no duplicate route or redirect.
+    // The homepage, told as a story: the opening is the live network under the
+    // authored words with the Ask box, then the science, the shift, the
+    // organism, where this goes and the two ways in. The problem, the system
+    // and the proof are told on /work, /brain and by the opening itself. Copy
+    // for every section belongs to the separate content repo under
+    // site-content/living-memory/; keep that content identity stable.
     id: "living-memory",
     path: "/",
     title: "Rizom",
     description:
-      "Living memory for hybrid human–AI teams — memory that works, from one team to an economy",
+      "Distributed living memory for hybrid human–AI teams: brains each team owns, connected from one team to an economy.",
     layout: "default",
     navigation: { show: false },
     sections: [
-      {
-        id: "hero",
-        template: "agent-discovery:proximity-map",
-        dataQuery: {},
-      },
-      { id: "problem", template: "living-memory:problem" },
+      { id: "hero", template: "rizom:opening", dataQuery: {} },
       { id: "science", template: "living-memory:science" },
       { id: "turn", template: "living-memory:turn" },
-      { id: "system", template: "living-memory:system" },
       { id: "growth", template: "living-memory:growth" },
-      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ],
   },
   {
-    // Product landing page. Preserve durable section IDs while changing the
-    // composition; /ask integration is separate and the hero is a placeholder.
+    // The Brain room, told as a story beside its drawing. The section ids
+    // are content identity; the order follows the drawing's stages.
     id: "brain",
     path: "/brain",
     title: "Rizom Brain",
@@ -51,8 +41,8 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "hero", template: "brain:hero" },
       { id: "capture", template: "brain:capture" },
       { id: "ask", template: "brain:ask" },
-      { id: "connect", template: "brain-network:connect", dataQuery: {} },
       { id: "run", template: "brain:run" },
+      { id: "connect", template: "brain:connect" },
       { id: "your-data", template: "brain:your-data" },
       { id: "quickstart", template: "brain:quickstart" },
     ],
@@ -79,37 +69,8 @@ export const aiRoutes: RouteDefinitionInput[] = [
     description: "Everything published, in one index",
     layout: "default",
     navigation: { show: false },
-    sections: [
-      {
-        id: "essays",
-        template: "blog:post-list",
-        dataQuery: { entityType: "post", query: { limit: 100 } },
-      },
-      {
-        id: "talks",
-        template: "decks:deck-list",
-        dataQuery: { entityType: "deck", query: { limit: 100 } },
-      },
-    ],
-  },
-  {
-    // The Rizom agent directory, rendered by agent-discovery's list template.
-    id: "network",
-    path: "/network",
-    title: "Network — Rizom",
-    description: "The Rizom agent directory",
-    layout: "default",
-    navigation: { show: false },
-    sections: [
-      {
-        id: "directory",
-        template: "agent-discovery:agent-list",
-        dataQuery: {
-          entityType: "agent",
-          query: { status: "approved", limit: 100 },
-        },
-      },
-    ],
+    // The archive: essays and presentations on one thread, newest first.
+    sections: [{ id: "archive", template: "rizom:writing", dataQuery: {} }],
   },
   {
     id: "work",

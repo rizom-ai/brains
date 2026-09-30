@@ -1,6 +1,7 @@
 import type { SemanticSpaceNeighbor } from "@brains/plugins";
 import type {
   ProximityMapCluster,
+  ProximityMapData,
   ProximityMapNode,
 } from "./proximity-map-schema";
 
@@ -9,6 +10,44 @@ const ZERO_COORDINATE_EPSILON = 1e-12;
 
 export function normalizeCosineDistance(distance: number): number {
   return Math.max(0, Math.min(1, distance));
+}
+
+/**
+ * The distance the map is scaled to: the farthest charted agent, the
+ * projection's own range, or a floor so a tight network still spreads out.
+ */
+export function proximityMaxDistance(
+  data: Pick<ProximityMapData, "distanceRange" | "nodes" | "sightings">,
+): number {
+  return Math.max(
+    data.distanceRange.max,
+    ...data.nodes.map((node) => node.distance),
+    ...data.sightings.map((sighting) => sighting.distance),
+    0.1,
+  );
+}
+
+/** How far out an agent sits, from the centre (0) to the outer ring (1). */
+export function proximityReach(distance: number, maxDistance: number): number {
+  return Math.min(1, Math.max(0, distance / maxDistance));
+}
+
+/**
+ * An agent's place on a disc around the brain: its bearing is the angle,
+ * counterclockwise from east with north up, and its reach the radius.
+ */
+export function proximityPoint(
+  distance: number,
+  bearing: number,
+  maxDistance: number,
+  disc: { x: number; y: number; radius: number },
+): { x: number; y: number } {
+  const radians = (bearing * Math.PI) / 180;
+  const radius = proximityReach(distance, maxDistance) * disc.radius;
+  return {
+    x: disc.x + Math.cos(radians) * radius,
+    y: disc.y - Math.sin(radians) * radius,
+  };
 }
 
 export function bearingFromCoordinates(
@@ -98,26 +137,36 @@ export function buildProximityClusters(
     });
 }
 
+/**
+ * The tag most members share, each member counted once; ties go to the
+ * alphabetically first tag. Null when no member carries a tag.
+ */
+export function mostCommonTag(
+  tagsPerMember: ReadonlyArray<readonly string[]>,
+): string | null {
+  const counts = tagsPerMember
+    .flatMap((tags) => Array.from(new Set(tags)))
+    .reduce(
+      (tally, tag) => tally.set(tag, (tally.get(tag) ?? 0) + 1),
+      new Map<string, number>(),
+    );
+
+  return (
+    Array.from(counts.entries()).sort((left, right) => {
+      const countDifference = right[1] - left[1];
+      return countDifference !== 0
+        ? countDifference
+        : left[0].localeCompare(right[0]);
+    })[0]?.[0] ?? null
+  );
+}
+
 function deriveClusterLabel(
   memberIds: string[],
   nodesById: Map<string, ProximityMapNode>,
 ): string {
-  const counts = new Map<string, number>();
-  for (const id of memberIds) {
-    const node = nodesById.get(id);
-    for (const tag of new Set(node?.tags ?? [])) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-    }
-  }
-
-  const topTag = Array.from(counts.entries()).sort((left, right) => {
-    const countDifference = right[1] - left[1];
-    return countDifference !== 0
-      ? countDifference
-      : left[0].localeCompare(right[0]);
-  })[0]?.[0];
-
-  return topTag
-    ? `${topTag} · ${memberIds.length}`
-    : `unknown · ${memberIds.length}`;
+  const topTag = mostCommonTag(
+    memberIds.map((id) => nodesById.get(id)?.tags ?? []),
+  );
+  return `${topTag ?? "unknown"} · ${memberIds.length}`;
 }

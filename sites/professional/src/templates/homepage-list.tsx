@@ -1,7 +1,9 @@
 import type { JSX, ReactNode } from "react";
-import type { HomepageOpeningContent } from "../schemas/homepage-opening";
-import { HomepageAtlas } from "./homepage-atlas";
-import type { HomepageAtlasData } from "../schemas/homepage-atlas";
+import {
+  HomepageAtlas,
+  type HomepageAtlasData,
+  type HomepageOpeningContent,
+} from "@brains/site-atlas";
 import type { ProfessionalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";

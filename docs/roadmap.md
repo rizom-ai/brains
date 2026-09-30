@@ -91,6 +91,7 @@ The substrate exists: scoped conversation memory, first-pass attribution, config
 Plans:
 
 - [team-posture-capabilities.md](./plans/team-posture-capabilities.md) — parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&A, and digest.
+- [organization-site.md](./plans/organization-site.md) — a reusable team and organization site whose homepage puts the agent radar the console and rizom.ai draw inside the professional atlas frame, under the authored opening, Ask box and contact door.
 
 ### 3. Trust and identity
 
@@ -144,6 +145,7 @@ Plans:
 - [cross-brain-entity-sharing.md](./plans/cross-brain-entity-sharing.md) — proposed one-directional entity sharing between brains: visibility picks the transport, A2A carries `shared`, ATProto signals `public`.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — in-flight opportunity capture, ranking, focus, and state suggestions.
 - [lead-management.md](./plans/lead-management.md) — inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.
+- [rizom-ai-story-site.md](./plans/rizom-ai-story-site.md) — rizom.ai as one story: the live network and Ask on the homepage, one drawing language across Brain, Work and Foundation, Writing as an archive, one bar and a reading thread; Network and About dropped.
 
 ### 7. Keep the framework sustainable
 

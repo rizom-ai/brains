@@ -1,5 +1,6 @@
 import {
   anchorProfileBodySchema,
+  EntityValidationError,
   parseMarkdownWithFrontmatter,
   type ProfileCategory,
   type ProfileKindDefinition,
@@ -262,4 +263,20 @@ export function validateProfileContent(
     .extend(selectedFields)
     .strict()
     .parse(metadata);
+}
+
+/**
+ * A stored profile's content check: content that fails it is invalid in
+ * itself, so directory sync quarantines the file rather than retrying it and
+ * leaving the placeholder to be written over it.
+ */
+export function validateProfileEntity(
+  content: string,
+  selection?: ProfileValidationSelection,
+): void {
+  try {
+    validateProfileContent(content, selection);
+  } catch (error) {
+    throw new EntityValidationError("anchor-profile", error);
+  }
 }

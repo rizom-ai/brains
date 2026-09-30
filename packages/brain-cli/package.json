@@ -85,6 +85,7 @@
     "@brains/site-content": "workspace:*",
     "@brains/site-default": "workspace:*",
     "@brains/site-info": "workspace:*",
+    "@brains/site-organization": "workspace:*",
     "@brains/site-personal": "workspace:*",
     "@brains/site-professional": "workspace:*",
     "@brains/social-media": "workspace:*",

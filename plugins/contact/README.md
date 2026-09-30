@@ -55,8 +55,9 @@ this capability.
   releasing capacity only after confirmed deletion. It reports unresolved writes
   and enqueue failures without personal details. The plugin runs it at startup
   and through shell-owned daily recurring checks, with shutdown cancellation and
-  draining. Physical deletion can lag expiry until the next successful pass;
-  downtime and backups are disclosed separately on the form.
+  draining. Physical deletion can lag expiry until the next successful pass.
+  The form states only the configured retention period; it makes no claims
+  about deletion timing or backups the owner has not set.
 
 The form and opt-in professional homepage have a theme-based first visual pass,
 but neither is approved from a running-app preview. No hosted calls, site rebuilds

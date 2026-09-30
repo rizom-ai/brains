@@ -30,7 +30,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./proximity-map": "./src/proximity-map.ts"
+    "./proximity-map": "./src/proximity-map.ts",
+    "./proximity-map-data": "./src/proximity-map-data.ts"
   },
   "private": true,
   "scripts": {

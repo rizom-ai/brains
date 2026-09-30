@@ -819,7 +819,13 @@ export type {
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";
-export { jsonResponse, jsonError, SitePageResponse } from "./types/web-routes";
+export {
+  jsonResponse,
+  jsonError,
+  SitePageResponse,
+  SITE_SLOT_ATTRIBUTE,
+  type SitePageSlot,
+} from "./types/web-routes";
 export {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
@@ -932,6 +938,14 @@ export {
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
+export {
+  agentBodySchema,
+  agentBodySkillSchema,
+  formatAgentBody,
+  parseAgentBody,
+  type AgentBody,
+  type AgentBodySkill,
+} from "./a2a/agent-body";
 export type { IPublicSkillsNamespace, PublicSkill } from "./a2a/public-skills";
 
 // ============================================================================

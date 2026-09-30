@@ -88,6 +88,17 @@
 + web-chat|handler|GET|/api/chat/messages|exact|true
 + web-chat|handler|GET|/api/chat/sessions|exact|true
 + web-chat|handler|GET|/api/chat/uploads|exact|true
++ web-chat|handler|GET|/ask/assets/ask.css|exact|true
++ web-chat|handler|GET|/ask/assets/ask.js|exact|true
++ web-chat|handler|GET|/ask/assets/boot.js|exact|true
++ web-chat|handler|GET|/ask/assets/box.js|exact|true
++ web-chat|handler|GET|/ask/assets/dashboard.css|exact|true
++ web-chat|handler|GET|/ask/assets/dashboard.js|exact|true
++ web-chat|handler|GET|/ask/assets/guest.css|exact|true
++ web-chat|handler|GET|/ask/assets/guest.js|exact|true
++ web-chat|handler|GET|/ask/assets/page.css|exact|true
++ web-chat|handler|GET|/ask/assets/version|exact|true
++ web-chat|handler|GET|/ask/authenticated|exact|true
 + web-chat|handler|GET|/ask|exact|true
 + web-chat|handler|POST|/api/agent/chat/confirm|exact|true
 + web-chat|handler|POST|/api/agent/chat|exact|true

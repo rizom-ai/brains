@@ -1,5 +1,8 @@
+import { createElement, type ReactElement } from "react";
 import {
+  createTemplate,
   ServicePlugin,
+  SITE_SLOT_ATTRIBUTE,
   type IRuntimeStateStore,
   type ServicePluginContext,
   type WebRouteDefinition,
@@ -7,6 +10,7 @@ import {
 } from "@brains/plugins";
 import {
   NOTIFICATIONS_SEND,
+  SITE_BUILDER_CHANNELS,
   notificationFailureCode,
   type SendNotificationInput,
   type SendNotificationResult,
@@ -20,7 +24,8 @@ import packageJson from "../package.json";
 import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake, type ContactMaintenanceReport } from "./intake";
-import { ContactHttpHandlers } from "./http";
+import { ContactHttpHandlers, previewOriginFor } from "./http";
+import { CONTACT_SLOT } from "./http-page";
 import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactRequestSchema } from "./entity/schema";
@@ -45,6 +50,39 @@ const siteThemeSchema = z.looseObject({
 /** Default-off public intake. Runtime policy is explicit; readiness requires
  * recovery and the actual Studio Inbox destination, not a successful email send.
  */
+/** The slot the site's contact page leaves for the form. */
+function ContactSlot(): ReactElement {
+  return createElement("div", { [SITE_SLOT_ATTRIBUTE]: CONTACT_SLOT });
+}
+
+const contactPageTemplate = createTemplate({
+  name: "page",
+  description: "The site's contact page: its layout around the form's slot",
+  schema: z.object({}),
+  requiredPermission: "public",
+  layout: { component: ContactSlot },
+});
+
+function contactSitePage(
+  id: string,
+  path: string,
+  title: string,
+): {
+  id: string;
+  path: string;
+  title: string;
+  sections: { id: string; template: string; content: Record<string, never> }[];
+  navigation: { show: false };
+} {
+  return {
+    id,
+    path,
+    title,
+    sections: [{ id: "form", template: "contact:page", content: {} }],
+    navigation: { show: false },
+  };
+}
+
 export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   readonly dependencies: string[];
   private http: ContactHttpHandlers | undefined;
@@ -71,6 +109,10 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     if (!context.executionOnly)
       context.inbox.registerSource(new ContactInboxSource(context));
     const config = this.config.intake;
+    // The site's own contact page: its layout around an empty slot the form
+    // fills per request. Registered in every process, as site builds run in a
+    // separate worker.
+    if (config) context.templates.register({ page: contactPageTemplate });
     if (!config) return;
     const delivery = new ContactDelivery({
       entities: context.entityService,
@@ -151,7 +193,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     this.http = new ContactHttpHandlers(admission, this.intake, config.http, {
       themeCSS: context.themeCSS,
       // Preview reachability serves the deployment's own preview host too.
-      previewOrigin: config.preview ? context.previewUrl : undefined,
+      previewOrigin: config.preview
+        ? previewOriginFor(config.http.origin, context.previewUrl)
+        : undefined,
       owner: (): string => context.identity.getProfile().name,
       defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
     });
@@ -208,6 +252,16 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   ): Promise<void> {
     // A separate worker never serves the form, so it is never ready to.
     if (context.executionOnly || !this.intake) return;
+    await context.messaging.send({
+      type: SITE_BUILDER_CHANNELS.routeRegister,
+      payload: {
+        pluginId: this.id,
+        routes: [
+          contactSitePage("contact", "/contact", "Contact"),
+          contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
+        ],
+      },
+    });
     const config = this.config.intake;
     const destinationMounted =
       config &&

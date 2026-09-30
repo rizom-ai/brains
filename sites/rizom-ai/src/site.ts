@@ -1,9 +1,11 @@
 import { createRizomSite, type SitePackage } from "./rizom";
 import { AiLayout } from "./layout";
-import { homeSections } from "./home";
 import { livingMemorySections } from "./living-memory";
 import { brainSections } from "./brain";
-import { brainNetworkTemplate } from "./brain-network";
+import { openingTemplate } from "./opening";
+import { openingDataSource } from "./opening-datasource";
+import { writingTemplate } from "./writing";
+import { writingDataSource } from "./writing-datasource";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
@@ -11,28 +13,28 @@ import { publicAskSections } from "./public-ask";
 
 export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
-  // The rev-5 design draws its own motifs (mycelium rail, growth diagram).
-  // The theme's room accents key off data-room, set by the layout.
+  // The story pages draw their own organisms (see ./story). The theme's
+  // room accents key off data-room, set by the layout.
   layout: AiLayout,
   routes: aiRoutes,
   runtime: {
-    contentNamespace: "brain-network",
-    templates: { connect: brainNetworkTemplate },
+    contentNamespace: "rizom",
+    templates: { opening: openingTemplate, writing: writingTemplate },
+    dataSourceFactories: [openingDataSource, writingDataSource],
   },
-  // Every page is authored schema-first (see ./home, ./brain, ./work,
-  // ./foundation).
+  // Every page is authored schema-first (see ./living-memory, ./brain,
+  // ./work, ./foundation).
   sections: [
-    homeSections,
     livingMemorySections,
     brainSections,
     publicAskSections,
     workSections,
     foundationSections,
   ],
-  // The org-level indexes (/writing, /network) are hand-written routes that
-  // compose the plugins' own list templates; entityDisplay just supplies the
-  // labels + detail-page paths. Navigation is hidden — the layout's faces
-  // strip owns the nav, so the auto-generated per-type indexes stay unlinked.
+  // The archive (/writing) reads the plugins' lists through its own
+  // datasource (see ./writing-datasource); entityDisplay supplies the labels
+  // and detail-page paths the site builder links each piece by. Navigation is hidden — the layout's bar owns the nav, so the
+  // auto-generated per-type indexes stay unlinked.
   entityDisplay: {
     post: { label: "Essay", navigation: { show: false } },
     deck: { label: "Talk", navigation: { show: false } },

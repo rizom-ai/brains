@@ -9,7 +9,9 @@
       const text = [...waiting.childNodes].find((node) => node.nodeType === 3);
       if (text && text.textContent !== WAITING) text.textContent = WAITING;
     }
-    for (const hint of document.querySelectorAll(".brain-box-hint:not(.invalid)")) {
+    for (const hint of document.querySelectorAll(
+      ".brain-box-hint:not(.invalid)",
+    )) {
       if (hint.textContent !== NOTE) hint.textContent = NOTE;
     }
     for (const box of document.querySelectorAll(".atlas__ask textarea")) {
@@ -17,11 +19,16 @@
     }
     for (const source of document.querySelectorAll(".brain-box-sources li")) {
       const href = source.querySelector("a")?.getAttribute("href") ?? "";
-      if (DRAFTS.some((slug) => href.endsWith("/" + slug))) source.dataset.proposalDraft = "";
+      if (DRAFTS.some((slug) => href.endsWith("/" + slug)))
+        source.dataset.proposalDraft = "";
     }
   };
   document.addEventListener("DOMContentLoaded", () => {
     apply();
-    new MutationObserver(apply).observe(document.body, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(apply).observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
   });
 })();

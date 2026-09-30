@@ -652,6 +652,53 @@ describe("ServerManager (in-process)", () => {
     expect(await (await get()).text()).toBe("standalone");
   });
 
+  it("fills a route's markup into the slot of its built site page", async () => {
+    const slotted = (html: string, status = 200): SitePageResponse =>
+      new SitePageResponse(`standalone ${html}`, {
+        status,
+        headers: { "Cache-Control": "no-store" },
+        slot: { name: "contact", html },
+      });
+    let response: Response = slotted("<form>one</form>");
+    const m = setup({
+      getRoutes: () => [
+        handlerRoute("contact", "/contact", () => response),
+        handlerRoute("contact", "/contact", () => response, { method: "POST" }),
+      ],
+    });
+    const page = join(testDir, "dist", "production", "contact", "index.html");
+    mkdirSync(join(testDir, "dist", "production", "contact"));
+    writeFileSync(
+      page,
+      '<header>site</header><main><div data-site-slot="contact"></div></main>',
+    );
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Missing server URL");
+
+    const got = await fetch(`${url}/contact`);
+    expect(await got.text()).toBe(
+      "<header>site</header><main><form>one</form></main>",
+    );
+    expect(got.headers.get("Cache-Control")).toBe("no-store");
+    expect(got.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+
+    // A refused send keeps its status and still wears the site.
+    response = slotted("<p>denied</p>", 403);
+    const denied = await fetch(`${url}/contact`, { method: "POST", body: "x" });
+    expect(denied.status).toBe(403);
+    expect(await denied.text()).toBe(
+      "<header>site</header><main><p>denied</p></main>",
+    );
+
+    // Without the slot in the built page, the route's own page stands.
+    writeFileSync(page, "<main>no slot here</main>");
+    response = slotted("<form>two</form>");
+    expect(await (await fetch(`${url}/contact`)).text()).toBe(
+      "standalone <form>two</form>",
+    );
+  });
+
   it("should serve plugin-contributed web routes when configured", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-studio-test-"));
     const prodDir = join(testDir, "dist", "production");

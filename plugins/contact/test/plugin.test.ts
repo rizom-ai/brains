@@ -1,5 +1,7 @@
 import { describe, expect, it, mock, spyOn, setSystemTime } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { renderToStaticMarkup } from "react-dom/server";
 import type {
   ChannelDeliveryInput,
   ServicePluginContext,
@@ -440,5 +442,51 @@ describe("contact runtime", () => {
         .catch((error: unknown) => error),
     ).toBeInstanceOf(Error);
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("the contact page in the site", () => {
+  it("gives the site a /contact page with a slot for the form, and its thanks page", async () => {
+    const f = await setup();
+    const registered: unknown[] = [];
+    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+      registered.push(message.payload);
+      return { success: true };
+    });
+    await f.plugin.ready();
+    const component = f.h.getTemplates().get("contact:page")?.layout?.component;
+    if (!component) throw new Error("Missing contact:page template");
+    expect(renderToStaticMarkup(component({}))).toBe(
+      '<div data-site-slot="contact"></div>',
+    );
+    const page = (id: string, path: string, title: string): unknown => ({
+      id,
+      path,
+      title,
+      sections: [{ id: "form", template: "contact:page", content: {} }],
+      navigation: { show: false },
+    });
+    expect(registered).toEqual([
+      {
+        pluginId: "contact",
+        routes: [
+          page("contact", "/contact", "Contact"),
+          page("contact-thanks", "/contact/thanks", "Note saved"),
+        ],
+      },
+    ]);
+  });
+
+  it("adds no page to a site without the form configured", async () => {
+    const h = createPluginHarness({ domain: "brain.test" });
+    const registered: unknown[] = [];
+    h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+      registered.push(message.payload);
+      return { success: true };
+    });
+    const plugin = new ContactPlugin();
+    await plugin.register(h.getMockShell());
+    await plugin.ready();
+    expect(registered).toEqual([]);
   });
 });

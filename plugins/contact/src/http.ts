@@ -1,17 +1,19 @@
-import type {
-  WebRouteDefinition,
-  WebRouteTransportContext,
+import {
+  SitePageResponse,
+  type WebRouteDefinition,
+  type WebRouteTransportContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { escapeHtml } from "@brains/utils/string-utils";
 import type { ContactAdmission, ContactDenialReason } from "./admission";
 import type { ContactIntake } from "./intake";
 import { contactSubmissionSchema } from "./entity/schema";
 import { ContactHttpError, readContactForm } from "./http-body";
 import { isPrivatePeer } from "./network";
 import {
+  CONTACT_SLOT,
   contactForm,
   contactPage,
+  contactRefused,
   contactThanks,
   contactUnavailable,
   type ContactDraft,
@@ -26,6 +28,13 @@ export interface ContactHttpPolicy {
    * its X-Forwarded-Proto: https. Only the protocol; never a visitor address. */
   trustForwardedProto?: boolean | undefined;
 }
+/** Loopback names: the addresses, localhost and its subdomains (RFC 6761). */
+function isLoopback(hostname: string): boolean {
+  return (
+    ["localhost", "127.0.0.1", "[::1]"].includes(hostname) ||
+    hostname.endsWith(".localhost")
+  );
+}
 const originSchema: z.ZodString = z
   .string()
   .url()
@@ -34,10 +43,26 @@ const originSchema: z.ZodString = z
     return (
       value === url.origin &&
       (url.protocol === "https:" ||
-        (url.protocol === "http:" &&
-          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
+        (url.protocol === "http:" && isLoopback(url.hostname)))
     );
   }, "An exact HTTPS origin or loopback HTTP origin is required");
+
+/**
+ * The preview host a deployment serves beside its origin: its domain's
+ * preview host, or locally the `preview.` host the webserver treats as
+ * preview (`http://localhost:8080` beside `http://preview.localhost:8080`).
+ */
+export function previewOriginFor(
+  origin: string,
+  deploymentPreview: string | undefined,
+): string | undefined {
+  if (deploymentPreview) return deploymentPreview;
+  const url = new URL(origin);
+  if (url.protocol !== "http:" || url.hostname !== "localhost")
+    return undefined;
+  url.hostname = "preview.localhost";
+  return url.origin;
+}
 export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
   z.strictObject({
     origin: originSchema,
@@ -74,9 +99,25 @@ const headers = {
   // preserves the origin check while still suppressing cross-site referrers.
   "Referrer-Policy": "same-origin",
   "X-Content-Type-Options": "nosniff",
+  // The page is the site's own contact page with the form in it, so the
+  // site's styles, fonts and scripts load; the form still posts only here and
+  // the page cannot be framed.
   "Content-Security-Policy":
-    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' https: data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
 };
+
+/** A contact page: the section fills the site's own page, or stands in the fallback page. */
+function page(
+  section: string,
+  presentation: ContactPresentation,
+  status = 200,
+): SitePageResponse {
+  return new SitePageResponse(contactPage(section, presentation), {
+    status,
+    headers,
+    slot: { name: CONTACT_SLOT, html: section },
+  });
+}
 function denial(reason: ContactDenialReason): ContactHttpError {
   switch (reason) {
     case "invalid-network":
@@ -189,10 +230,7 @@ export class ContactHttpHandlers {
   }
 
   unavailable(request: Request): Response {
-    return new Response(contactUnavailable(this.presentation(request)), {
-      status: 503,
-      headers,
-    });
+    return page(contactUnavailable(), this.presentation(request), 503);
   }
 
   async handle(
@@ -230,13 +268,13 @@ export class ContactHttpHandlers {
       if (gate.kind === "denied") throw denial(gate.reason);
       request.signal.throwIfAborted();
       if (url.pathname === "/contact/thanks")
-        return new Response(contactThanks(presentation), { headers });
+        return page(contactThanks(presentation), presentation);
       if (request.method === "GET") {
         const form = await this.admission.issue(transport?.remoteAddress);
         if (form.kind === "denied") throw denial(form.reason);
-        return new Response(
+        return page(
           contactForm(form.token, topicDraft(url), undefined, presentation),
-          { headers },
+          presentation,
         );
       }
       if (
@@ -283,13 +321,10 @@ export class ContactHttpHandlers {
     } catch (error) {
       const failure =
         error instanceof ContactHttpError ? error : denial("unavailable");
-      const html = token
+      const section = token
         ? contactForm(token, draft, failure.message, presentation)
-        : contactPage(
-            `<h1>Contact unavailable</h1><p class="notice" role="alert">${escapeHtml(failure.message)}</p><p><a href="/contact${presentation.theme ? `?theme=${presentation.theme}` : ""}">Open a new form</a></p>`,
-            presentation,
-          );
-      return new Response(html, { status: failure.status, headers });
+        : contactRefused(failure.message, presentation);
+      return page(section, presentation, failure.status);
     }
   }
 }

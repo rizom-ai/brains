@@ -8,6 +8,7 @@ import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
+import { EntityValidationError } from "../src/errors";
 
 describe("EntityRegistry persist validators", () => {
   let ctx: EntityServiceTestContext;
@@ -20,6 +21,34 @@ describe("EntityRegistry persist validators", () => {
 
   afterEach(async () => {
     await ctx.cleanup();
+  });
+
+  test("keeps a validator's finding that the content itself is invalid, and treats any other refusal as policy", async () => {
+    ctx.entityRegistry.registerPersistValidator("note", async (entity) => {
+      if (entity.content.includes("unknown key"))
+        throw new EntityValidationError("note", new Error("Unrecognized key"));
+      throw Object.assign(new Error("refused"), {
+        issues: [{ message: "refused by a live policy" }],
+      });
+    });
+    const create = (content: string): Promise<unknown> =>
+      ctx.entityService
+        .createEntity({
+          entity: createNoteInput({ title: "Note", content, tags: [] }),
+        })
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+    // Sync quarantines a schema-phase failure and retries a persist-phase one.
+    expect(await create("an unknown key")).toMatchObject({
+      name: "EntityValidationError",
+      phase: "schema",
+    });
+    expect(await create("fine content")).toMatchObject({
+      name: "EntityValidationError",
+      phase: "persist",
+    });
   });
 
   test("createEntity invokes the registered validator and rejects on throw", async () => {

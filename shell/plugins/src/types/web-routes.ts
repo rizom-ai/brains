@@ -34,13 +34,37 @@ export interface WebRouteDefinition {
   handler: WebRouteHandler;
 }
 
+/** The element in a generated site page that a route fills: `<div data-site-slot="name"></div>`. */
+export const SITE_SLOT_ATTRIBUTE = "data-site-slot";
+
+/** A route's markup for the slot of the same name in its generated site page. */
+export interface SitePageSlot {
+  name: string;
+  html: string;
+}
+
 /**
  * An admitted public page whose presentation belongs to the installed site.
  * The host may use its generated page at the same path; this response is the
  * fallback for apps without that site page. Denials and redirects never delegate.
  * APIs and authenticated pages use ordinary Responses, not this opt-in.
+ *
+ * With a slot, the route renders per request inside the site's page: the host
+ * fills the page's slot with the markup, whatever the method or status, and
+ * falls back to this response where the page or its slot is missing.
  */
-export class SitePageResponse extends Response {}
+export class SitePageResponse extends Response {
+  public readonly slot: SitePageSlot | undefined;
+
+  constructor(
+    body?: BodyInit | null,
+    init: ResponseInit & { slot?: SitePageSlot } = {},
+  ) {
+    const { slot, ...responseInit } = init;
+    super(body, responseInit);
+    this.slot = slot;
+  }
+}
 
 export interface JsonResponseInit {
   status?: number;

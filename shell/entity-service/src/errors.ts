@@ -36,6 +36,17 @@ export class EntityValidationError extends Error {
   }
 }
 
+// Read by shape, as a validator's error can come from another class copy.
+const schemaPhaseErrorSchema = z.object({
+  name: z.literal("EntityValidationError"),
+  phase: z.literal("schema"),
+});
+
+/** A validation error that finds the content itself invalid, not a live policy refusing it. */
+export function isSchemaPhaseValidationError(error: unknown): boolean {
+  return schemaPhaseErrorSchema.safeParse(error).success;
+}
+
 export function hasValidationIssues(error: unknown): boolean {
   return validationIssuesErrorSchema.safeParse(error).success;
 }

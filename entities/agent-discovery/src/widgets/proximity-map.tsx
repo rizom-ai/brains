@@ -9,6 +9,11 @@ import {
   type ProximityMapData,
   type ProximityMapNode,
 } from "../lib/proximity-map-schema";
+import {
+  proximityMaxDistance,
+  proximityPoint,
+  proximityReach,
+} from "../lib/proximity-map";
 export { proximityMapScript } from "./proximity-map-script";
 export { proximityMapWidgetStyles };
 
@@ -49,7 +54,7 @@ function mulberry32(seed: number): () => number {
 }
 
 function radiusForDistance(distance: number, maxDistance: number): number {
-  return Math.min(1, Math.max(0, distance / maxDistance)) * MAX_RADIUS;
+  return proximityReach(distance, maxDistance) * MAX_RADIUS;
 }
 
 function strataForDistanceRange(maxDistance: number): number[] {
@@ -61,13 +66,10 @@ function strataForDistanceRange(maxDistance: number): number[] {
   return strata;
 }
 
+const DISC = { x: CENTER_X, y: CENTER_Y, radius: MAX_RADIUS };
+
 function polar(distance: number, bearing: number, maxDistance: number): Point {
-  const radians = (bearing * Math.PI) / 180;
-  const radius = radiusForDistance(distance, maxDistance);
-  return {
-    x: CENTER_X + Math.cos(radians) * radius,
-    y: CENTER_Y - Math.sin(radians) * radius,
-  };
+  return proximityPoint(distance, bearing, maxDistance, DISC);
 }
 
 function curveForNode(
@@ -356,11 +358,7 @@ export function ProximityMap({
   const mistId = `proximity-mist-${surface}`;
   const blurRef = `url(#${blurId})`;
 
-  const maxNodeDistance = Math.max(
-    ...data.nodes.map((node) => node.distance),
-    ...data.sightings.map((sighting) => sighting.distance),
-  );
-  const maxDistance = Math.max(data.distanceRange.max, maxNodeDistance, 0.1);
+  const maxDistance = proximityMaxDistance(data);
   const strata = strataForDistanceRange(maxDistance);
   const layouts = buildNodeLayouts(data.nodes, maxDistance);
   const positions = new Map(layouts.map(({ node, point }) => [node.id, point]));
