@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.456
+
+### Patch Changes
+
+- [#443](https://github.com/rizom-ai/brains/pull/443) [`cf06121`](https://github.com/rizom-ai/brains/commit/cf061218d627c52e00a9e4ce7c0698922ee5c08c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - While the phone Ask sheet covers the page, no blur on the page behind it paints. Safari kept drawing a hidden frosted header's blur, so a text-less bar sometimes showed at the top of the open sheet. The cover now switches blur off everywhere but the sheet, and restores it when the sheet closes. The Ask box contract gains `ASK_COVER_ATTRIBUTE` and `ASK_COVER_STYLE`.
+
 ## 0.2.0-alpha.455
 
 ### Patch Changes

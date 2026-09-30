@@ -249,6 +249,7 @@
     "core--ask-box-styling-pass",
     "core--ask-browser-contract",
     "core--ask-content-loader",
+    "core--ask-cover-no-backdrop",
     "core--ask-page-bundle",
     "core--ask-sheet-look",
     "core--atlas-chat",
