@@ -144,7 +144,17 @@ export function useAskSheet(
       );
     }
     const viewport = window.visualViewport;
+    // The sheet follows the visible area only while the composer has focus,
+    // which is when a keyboard can take part of the screen. Unfocused it
+    // fills the screen: Safari blurs the field while it still reports the
+    // keyboard's height, and may report nothing once the keyboard has gone.
     const fit = (): void => {
+      if (document.activeElement !== input.current) {
+        element.style.removeProperty("--ask-viewport-height");
+        element.style.removeProperty("--ask-viewport-top");
+        element.removeAttribute(ASK_KEYBOARD_ATTRIBUTE);
+        return;
+      }
       const height = viewport?.height ?? window.innerHeight;
       element.style.setProperty("--ask-viewport-height", `${height}px`);
       element.style.setProperty(
@@ -153,8 +163,7 @@ export function useAskSheet(
       );
       element.toggleAttribute(
         ASK_KEYBOARD_ATTRIBUTE,
-        document.activeElement === input.current &&
-          height < window.innerHeight * KEYBOARD_SHARE,
+        height < window.innerHeight * KEYBOARD_SHARE,
       );
     };
     const back = (): void => {
