@@ -401,6 +401,9 @@ export class AgentService implements IAgentService {
           source: context?.source ?? null,
           attachments: context?.attachments ?? [],
           ...(guestExecution ? { guestExecution } : {}),
+          ...(guestExecution && context?.guestScreening
+            ? { guestScreening: context.guestScreening }
+            : {}),
           signal: operationSignal,
         });
 

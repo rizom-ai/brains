@@ -388,6 +388,9 @@ export class TurnProcessor {
       hasAccessibleUploads:
         hasCurrentUploadAttachments || prepared.uploadRefs.length > 0,
       guestExecution: turn.guestExecution,
+      ...(turn.guest && turn.input.guestScreening
+        ? { guestScreening: turn.input.guestScreening }
+        : {}),
       userPermissionLevel,
       isAnchor,
       conversationId,
@@ -432,9 +435,11 @@ export class TurnProcessor {
     const { toolResults, pendingConfirmations, totalToolCalls } = extracted;
     if (guest && pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
-    const cards = guest
-      ? await this.withGuestAnswerSources(extracted.cards, result.text)
-      : extracted.cards;
+    // A refusal is not an answer, so it has no sources to find.
+    const cards =
+      guest && result.guestScreening?.outcome !== "refused"
+        ? await this.withGuestAnswerSources(extracted.cards, result.text)
+        : extracted.cards;
     const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
@@ -493,6 +498,9 @@ export class TurnProcessor {
       usage: toTokenUsage(result.usage),
       ...(guest && result.guestSettlement
         ? { guestSettlement: result.guestSettlement }
+        : {}),
+      ...(guest && result.guestScreening
+        ? { guestScreening: result.guestScreening }
         : {}),
       ...(pendingConfirmations.length > 0 ? { pendingConfirmations } : {}),
     };

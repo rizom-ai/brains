@@ -539,6 +539,76 @@ describe("guest runtime boundary", () => {
     });
   });
 
+  describe("screens a visitor's question", () => {
+    const guestScreening = {
+      topics: ["essays on memory"],
+      refusal: "I only talk about my essays.",
+    };
+
+    it("with the site's topics and refusal", async () => {
+      const h = harness();
+      await h.service.chat("What is memory?", conversation.id, {
+        ...guestContext,
+        guestScreening,
+      });
+      expect(h.generate.mock.calls[0]?.[0].options.guestScreening).toEqual(
+        guestScreening,
+      );
+    });
+
+    it("and carries a refusal out without finding sources for it", async () => {
+      const guestAnswerSources = mock(async () => []);
+      const h = harness(conversation, [], { guestAnswerSources });
+      h.generate.mockResolvedValue({
+        text: guestScreening.refusal,
+        steps: [],
+        usage: { inputTokens: 5, outputTokens: 1, totalTokens: 6 },
+        guestScreening: { outcome: "refused", category: "off-topic" },
+      });
+      const response = await h.service.chat(
+        "Write my homework",
+        conversation.id,
+        { ...guestContext, guestScreening },
+      );
+      expect(response.text).toBe(guestScreening.refusal);
+      expect(response.guestScreening).toEqual({
+        outcome: "refused",
+        category: "off-topic",
+      });
+      expect(response.cards).toBeUndefined();
+      expect(guestAnswerSources).not.toHaveBeenCalled();
+    });
+
+    it("and carries an answered outcome with the answer", async () => {
+      const h = harness();
+      h.generate.mockResolvedValue({
+        text: "Public answer",
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        guestScreening: { outcome: "answered" },
+      });
+      const response = await h.service.chat(
+        "What is memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(response.guestScreening).toEqual({ outcome: "answered" });
+    });
+
+    it("never for the owner", async () => {
+      const h = harness(null);
+      await h.service.chat("What is memory?", "operator-conversation", {
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+        guestScreening,
+      });
+      expect(
+        h.generate.mock.calls[0]?.[0].options.guestScreening,
+      ).toBeUndefined();
+    });
+  });
+
   it("keeps operator and guest agent caches separate and invalidates both", async () => {
     const h = harness();
     h.conversations.getConversation.mockImplementation(async (id) =>
