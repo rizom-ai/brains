@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- [#452](https://github.com/rizom-ai/brains/pull/452) [`7a51f32`](https://github.com/rizom-ai/brains/commit/7a51f32b9264e81a9083e4b62cb9aba05e19ca34) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form runs on its own policy the moment a brain adds the `contact` plugin: its origin is the brain's site URL (the local one in a development run), the deployment's preview host is served beside it, and the alert's Inbox link is derived from Studio's mounted workspaces route. Configuration is only for a value the owner wants different — a longer retention, tighter limits — and each override is held to the policy's bounds. Behind a TLS-terminating proxy, which is how an HTTPS origin is served, the proxy's protocol is believed.
+
 ## 0.2.0-alpha.459
 
 ### Patch Changes

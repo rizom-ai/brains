@@ -314,6 +314,7 @@
     "core--console-strip-single-implementation",
     "core--console-surfaces-out-of-theme",
     "core--contact-behind-proxy",
+    "core--contact-convention-over-configuration",
     "core--contact-failed-alert-done",
     "core--contact-form-no-invented-policy",
     "core--contact-in-site-page",
