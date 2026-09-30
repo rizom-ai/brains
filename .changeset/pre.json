@@ -127,7 +127,9 @@
     "@brains/assets": "0.2.0-alpha.336",
     "@brains/app-ui-react": "0.2.0-alpha.347",
     "@brains/ask-content": "0.2.0-alpha.388",
-    "@brains/contact": "0.2.0-alpha.400"
+    "@brains/contact": "0.2.0-alpha.400",
+    "@brains/site-atlas": "0.2.0-alpha.418",
+    "@brains/site-organization": "0.2.0-alpha.418"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -799,7 +801,15 @@
     "site--react-authoring-runtime",
     "site--relicense-agpl-apache-split",
     "site--reuse-homepage-map-styles",
+    "site--rizom-ai-buttons-ask-prompt",
+    "site--rizom-ai-drop-old-home",
     "site--rizom-ai-drop-privacy-panel-styles",
+    "site--rizom-ai-icon-no-quiz",
+    "site--rizom-ai-room-typography",
+    "site--rizom-ai-story-home",
+    "site--rizom-ai-story-rooms",
+    "site--rizom-ai-story-shell",
+    "site--rizom-ai-writing-archive",
     "site--rizom-btn-shared-defaults",
     "site--rizom-homepage-rail",
     "site--shared-ask-box-boot",
