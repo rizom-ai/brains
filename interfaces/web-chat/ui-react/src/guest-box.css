@@ -113,19 +113,13 @@
   gap: 12px;
   margin-top: 12px;
 }
-:where(
-  [data-ask-styled] .brain-box-notice,
-  [data-ask-styled] .brain-box-privacy
-) {
+:where([data-ask-styled] .brain-box-notice) {
   margin: 14px 0;
   padding: 14px 18px;
   border-left: 2px solid var(--ask-accent);
   background: var(--ask-wash);
 }
-:where(
-  [data-ask-styled] .brain-box-notice h3,
-  [data-ask-styled] .brain-box-privacy h3
-) {
+:where([data-ask-styled] .brain-box-notice h3) {
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 600;
@@ -151,23 +145,12 @@
 :where([data-ask-styled] .brain-box-bottom form) {
   margin: 0;
 }
-/* The note under the composer, and what the chat is about beside it. */
-:where([data-ask-styled] .brain-box-note) {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: baseline;
-  gap: 2px 12px;
-  margin-top: 8px;
+/* An over-limit warning is the only text under the composer. */
+:where([data-ask-styled] .brain-box-bottom .brain-box-hint) {
+  margin: 8px 0 0;
+  text-align: center;
 }
-:where([data-ask-styled] .brain-box-note .brain-box-hint) {
-  margin: 0;
-}
-:where([data-ask-styled] .brain-box-note .brain-box-quiet) {
-  font-size: 12px;
-}
-/* The rest of a long answer takes the note's line, never a place on the
-   text; the note comes back at the end, and an over-limit warning stays. */
+/* The rest of a long answer is offered under the composer, never on the text. */
 :where([data-ask-styled] .brain-box-latest) {
   align-self: center;
   margin: 8px 0 0;
@@ -177,13 +160,6 @@
   color: var(--ask-accent);
   font-size: 12.5px;
   cursor: pointer;
-}
-:where(
-  [data-ask-styled]
-    .brain-box-bottom:has(.brain-box-latest)
-    .brain-box-note:not(:has(.invalid))
-) {
-  display: none;
 }
 /* Where an answer will appear while it is being written. */
 :where([data-ask-styled] .brain-box-waiting) {
