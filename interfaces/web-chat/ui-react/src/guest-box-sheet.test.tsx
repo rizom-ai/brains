@@ -5,6 +5,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { EventTarget as HappyEventTarget, Window } from "happy-dom";
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_COVER_ATTRIBUTE,
+  ASK_COVER_STYLE,
   ASK_CLOSING_ATTRIBUTE,
   ASK_DOCK_ATTRIBUTE,
   ASK_KEYBOARD_ATTRIBUTE,
@@ -135,12 +137,19 @@ function pageLocked(): boolean {
   );
 }
 
-/** Whether everything on the page but the open sheet is out of sight. */
+/**
+ * Whether everything on the page but the open sheet is out of sight,
+ * including a blur Safari would still paint for a hidden element.
+ */
 function pageHidden(): boolean {
-  return (
+  const covered =
+    document.querySelector(`style[${ASK_COVER_ATTRIBUTE}]`)?.textContent ===
+    ASK_COVER_STYLE;
+  const hidden =
     document.body.style.visibility === "hidden" &&
-    host.style.visibility === "visible"
-  );
+    host.style.visibility === "visible";
+  if (covered !== hidden) throw new Error("Page half covered");
+  return hidden;
 }
 
 async function focusComposer(): Promise<void> {
