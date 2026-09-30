@@ -7,7 +7,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { computeAssetDigest, createAssetRef } from "@brains/plugins";
-import { IMAGE_ASSET_MAX_BYTES } from "../src/lib/upload-promotion";
+import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;

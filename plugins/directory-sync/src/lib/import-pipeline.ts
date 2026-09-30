@@ -1,3 +1,4 @@
+import type { ImportLimits } from "./directory-options";
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
 import type { DirectoryImportPlan } from "../types/jobs";
 import { captureImportPlan } from "./import-plan";
@@ -24,13 +25,12 @@ import {
   recordSkippedImport,
 } from "./import-result";
 
-export interface ImportPipelineDeps {
+export interface ImportPipelineDeps extends ImportLimits {
   entityService: EntityServiceClient;
   logger: Logger;
   fileOperations: FileOperations;
   quarantine: Quarantine;
   imageJobQueue: ImageJobQueueDeps;
-  maxImportFileBytes: number;
   entityTypes?: string[] | undefined;
 }
 
@@ -93,9 +93,13 @@ async function importFile(
       );
       return;
     }
+    // Asset-backed types store raw bytes, so they carry their own limit.
+    const assetBacked =
+      deps.entityService.getEntityTypeConfig(admission.entityType)
+        .binaryStorage === "asset";
     const rawEntity = await deps.fileOperations.readEntity(
       filePath,
-      deps.maxImportFileBytes,
+      assetBacked ? deps.maxAssetImportBytes : deps.maxImportFileBytes,
     );
 
     if (

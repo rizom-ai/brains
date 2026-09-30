@@ -32,6 +32,7 @@ const baseConfig: DirectorySyncConfig = {
   syncInterval: 2,
   commitDebounce: 5000,
   maxImportFileBytes: 5 * 1024 * 1024,
+  maxAssetImportBytes: 25 * 1024 * 1024,
 };
 
 describe("setupInitialSync with git", () => {

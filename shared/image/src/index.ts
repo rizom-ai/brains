@@ -16,6 +16,7 @@ export {
 export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
 export type {
   CreateAssetImageInput,
+  ImageDescription,
   CreateImageInput,
 } from "./adapters/image-adapter";
 
@@ -48,3 +49,12 @@ export {
   fetchImageAsBase64,
 } from "./lib/image-utils";
 export type { ParsedDataUrl } from "./lib/image-utils";
+
+// Staging image bytes as assets
+export {
+  IMAGE_ASSET_MAX_BYTES,
+  stageImageEntity,
+  type ImageAssetStager,
+  type ImageBytesSource,
+  type StagedImageEntity,
+} from "./lib/stage-image";

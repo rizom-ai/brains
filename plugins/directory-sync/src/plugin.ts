@@ -595,6 +595,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         entityTypes: this.config.entityTypes,
         deleteOnFileRemoval: this.config.deleteOnFileRemoval,
         maxImportFileBytes: this.config.maxImportFileBytes,
+        maxAssetImportBytes: this.config.maxAssetImportBytes,
         entityService: context.entityService,
         logger: context.logger,
       },

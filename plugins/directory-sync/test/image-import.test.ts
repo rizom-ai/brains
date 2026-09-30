@@ -6,7 +6,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
-import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
+import { TINY_PDF_BYTES, TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "./fixtures";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
 
 describe("Image Import - Regression Tests", () => {
   let dirSync: DirectorySync;
@@ -276,6 +277,94 @@ describe("Image Import - Regression Tests", () => {
         id: "carousel",
       });
       expect(capturedContent).toMatch(/^data:application\/pdf;base64,/);
+    });
+  });
+
+  describe("asset-backed image types", () => {
+    beforeEach(() => {
+      spyOn(mockEntityService, "getEntityTypeConfig").mockImplementation(
+        (type: string) => (type === "image" ? { binaryStorage: "asset" } : {}),
+      );
+    });
+
+    function captureUpserts(): Array<{
+      entity: Partial<BaseEntity>;
+      stagedAsset?: unknown;
+    }> {
+      const requests: Array<{
+        entity: Partial<BaseEntity>;
+        stagedAsset?: unknown;
+      }> = [];
+      spyOn(mockEntityService, "upsertEntity").mockImplementation(
+        async (request: {
+          entity: Partial<BaseEntity>;
+          stagedAsset?: unknown;
+        }) => {
+          requests.push(request);
+          return {
+            entityId: request.entity.id ?? "test-id",
+            jobId: "test-job",
+            created: true,
+            skipped: false,
+          };
+        },
+      );
+      return requests;
+    }
+
+    it("stages imported image files and upserts their reference", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+
+      const result = await dirSync.importEntities();
+
+      const ref = createAssetRef(computeAssetDigest(TINY_PNG_BYTES));
+      expect(result.imported).toBe(1);
+      expect(upserts[0]?.entity.content).toBe(ref);
+      expect(upserts[0]?.entity.metadata).toMatchObject({
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+      });
+      expect(upserts[0]?.stagedAsset).toMatchObject({ ref });
+    });
+
+    it("stages text-form image files whose data URL ends in a newline", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(
+        join(testDir, "image", "hero-banner.md"),
+        `${TINY_PNG_DATA_URL}\n`,
+      );
+      const upserts = captureUpserts();
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(1);
+      expect(upserts[0]?.entity.content).toBe(
+        createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+      );
+    });
+
+    it("applies the asset import limit instead of the ordinary limit", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      const limited = (maxAssetImportBytes: number): DirectorySync =>
+        new DirectorySync({
+          syncPath: testDir,
+          entityService: mockEntityService,
+          logger: createSilentLogger("test"),
+          maxImportFileBytes: 10,
+          maxAssetImportBytes,
+        });
+
+      const admitted = await limited(1024).importEntities();
+      const refused = await limited(10).importEntities();
+
+      expect(admitted.imported).toBe(1);
+      expect(refused.imported).toBe(0);
+      expect(refused.skipped).toBe(1);
+      expect(upserts).toHaveLength(1);
     });
   });
 });

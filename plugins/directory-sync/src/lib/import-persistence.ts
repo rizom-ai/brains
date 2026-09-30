@@ -2,8 +2,9 @@ import type {
   BaseEntity,
   ContentVisibility,
   EntityServiceClient,
+  StagedAsset,
 } from "@brains/plugins";
-import { EntityWriteConflictError } from "@brains/plugins";
+import { base64AssetSource, EntityWriteConflictError } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
@@ -13,7 +14,11 @@ import { resolveInSyncPath } from "./path-utils";
 import { recordImportIssue } from "./import-result";
 
 export interface ImportPersistenceDeps {
-  entityService: Pick<EntityServiceClient, "serializeEntity" | "upsertEntity">;
+  entityService: Pick<
+    EntityServiceClient,
+    "serializeEntity" | "upsertEntity" | "getEntityTypeConfig" | "stageAsset"
+  >;
+  maxAssetImportBytes: number;
   logger: Logger;
   quarantine: {
     isValidationError(error: unknown): boolean;
@@ -95,7 +100,7 @@ export async function persistImportEntity(
         },
       );
     }
-    const entity: BaseEntity = {
+    const inline: BaseEntity = {
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
@@ -106,6 +111,7 @@ export async function persistImportEntity(
       updated: rawEntity.updated.toISOString(),
       contentHash: "",
     };
+    const { entity, stagedAsset } = await stageAssetContent(deps, inline);
     // Store canonical hash so auto-sync writes don't trigger a re-import:
     // after auto-sync writes serializeEntity(entity) to disk, the file hash
     // matches this hash and shouldUpdateEntity returns false.
@@ -126,6 +132,7 @@ export async function persistImportEntity(
     };
     const upsertResult = await deps.entityService.upsertEntity({
       entity,
+      ...(stagedAsset && { stagedAsset }),
       options,
     });
     result.imported++;
@@ -176,4 +183,43 @@ export async function persistImportEntity(
       },
     );
   }
+}
+
+const DATA_URL_PREFIX = /^data:([^;,]+);base64,/;
+
+/**
+ * Asset-backed types store the file's bytes as a staged asset and keep only
+ * the reference, with the facts a reader needs without loading bytes.
+ */
+async function stageAssetContent(
+  deps: ImportPersistenceDeps,
+  entity: BaseEntity,
+): Promise<{ entity: BaseEntity; stagedAsset?: StagedAsset }> {
+  if (
+    deps.entityService.getEntityTypeConfig(entity.entityType).binaryStorage !==
+    "asset"
+  ) {
+    return { entity };
+  }
+  const prefix = DATA_URL_PREFIX.exec(entity.content);
+  if (!prefix?.[1]) return { entity };
+  // Text-form image files may wrap or end their payload with whitespace,
+  // which inline storage decoded leniently.
+  const base64 = entity.content.slice(prefix[0].length).replace(/\s/g, "");
+  const stagedAsset = await deps.entityService.stageAsset(
+    base64AssetSource(base64),
+    { maxBytes: deps.maxAssetImportBytes },
+  );
+  return {
+    stagedAsset,
+    entity: {
+      ...entity,
+      content: stagedAsset.ref,
+      metadata: {
+        ...entity.metadata,
+        mediaType: prefix[1],
+        sizeBytes: stagedAsset.sizeBytes,
+      },
+    },
+  };
 }

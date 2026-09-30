@@ -51,6 +51,7 @@ function setup(existing: BaseEntity | null = null): {
       markAsRecoveredIfNeeded: mock(async (): Promise<void> => {}),
     },
     imageJobQueue: { syncPath: "/tmp/sync" },
+    maxAssetImportBytes: 25 * 1024 * 1024,
   };
   const snapshot = existing
     ? { entity: existing, revision: "observed-revision" }

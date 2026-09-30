@@ -36,7 +36,7 @@ function requireImageFormat(mediaSubtype: string): ImageFormat {
 }
 
 /** Descriptive fields shared by inline and asset-backed image creation. */
-interface ImageDescription {
+export interface ImageDescription {
   title: string;
   alt?: string;
   status?: ImageIngestionStatus;
