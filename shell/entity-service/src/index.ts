@@ -187,6 +187,7 @@ export type {
   EntitySearchRequest,
   SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
+  BinaryContentMode,
   EntityService as IEntityService,
   ReadOnlyEntityService,
   EntityServiceClient,

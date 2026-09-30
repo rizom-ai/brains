@@ -1,3 +1,4 @@
+import { assetRefSchema } from "@brains/assets";
 import type {
   AssetRef,
   AssetSource,
@@ -41,6 +42,7 @@ import type {
   EmbeddingBackfillResult,
   IndexReadinessOptions,
   IndexReadinessStatus,
+  BinaryContentMode,
   EntityService as IEntityService,
   EntityEventBus,
   GetEntityRequest,
@@ -842,9 +844,41 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const converted = await this.entitySerializer.convertToEntity(entityData);
+    const entity =
+      converted &&
+      (await this.materializeBinaryContent(converted, request.binaryContent));
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
+  }
+
+  /**
+   * Compatibility for readers that still expect inline binary content: an
+   * asset reference becomes the data URL it replaced. Reference mode, and
+   * content that is not a reference, pass through untouched.
+   */
+  private async materializeBinaryContent(
+    entity: BaseEntity,
+    mode: BinaryContentMode = "legacy-data-url",
+  ): Promise<BaseEntity> {
+    if (mode === "reference") return entity;
+    if (
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage !== "asset"
+    ) {
+      return entity;
+    }
+    const ref = assetRefSchema.safeParse(entity.content);
+    if (!ref.success) return entity;
+    const bytes = await this.assetRepository.read(ref.data);
+    const mediaType =
+      typeof entity.metadata["mediaType"] === "string"
+        ? entity.metadata["mediaType"]
+        : "application/octet-stream";
+    return {
+      ...entity,
+      content: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
+    };
   }
 
   public async listEntities(
@@ -861,10 +895,18 @@ export class EntityService implements IEntityService {
     request.options?.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, options } = request;
-    const entities = await this.entityQueries.listEntities(
+    const rows = await this.entityQueries.listEntities(
       entityType,
       options,
       this.publishedStatusesFor(entityType),
+    );
+    // One asset at a time: legacy materialization holds each asset in memory.
+    const entities = await rows.reduce<Promise<BaseEntity[]>>(
+      async (previous, row) => [
+        ...(await previous),
+        await this.materializeBinaryContent(row, options?.binaryContent),
+      ],
+      Promise.resolve([]),
     );
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }

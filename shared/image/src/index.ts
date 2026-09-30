@@ -14,7 +14,10 @@ export {
 
 // Image entity adapter
 export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
-export type { CreateImageInput } from "./adapters/image-adapter";
+export type {
+  CreateAssetImageInput,
+  CreateImageInput,
+} from "./adapters/image-adapter";
 
 // Image resolver utilities
 export {
@@ -37,6 +40,9 @@ export {
   createDataUrl,
   detectImageFormat,
   detectImageDimensions,
+  detectImageDimensionsFromBytes,
+  detectImageFormatFromBytes,
+  imageMediaType,
   isValidDataUrl,
   isHttpUrl,
   fetchImageAsBase64,

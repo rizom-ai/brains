@@ -268,6 +268,21 @@
       "removalPrerequisite": "Verify every completed image stores a valid asset reference and legacy materialization telemetry remains at zero through the migration soak.",
       "rollbackDependency": "The transitional release must read and update pre-migration image rows while the pre-cutover database remains the rollback source.",
       "targetRelease": "post-image-migration-soak"
+    },
+    {
+      "id": "binary-content-legacy-read-mode",
+      "paths": [
+        "shell/entity-service/src/entityService.ts",
+        "shell/entity-service/src/types.ts"
+      ],
+      "symbol": "binaryContent legacy-data-url read mode",
+      "owner": "@brains/entity-service",
+      "class": "runtime-compatibility",
+      "behavior": "Entity reads default to materializing asset references as the data URLs inline storage returned, so readers not yet on reference mode keep working.",
+      "currentConsumers": "Image readers not yet on reference mode: site builder, media and OG composition, social publishing, chat and message-interface delivery, Studio preview, directory-sync export and entity-reference expansion.",
+      "removalPrerequisite": "Move every reader to reference mode or explicit asset reads, then observe zero legacy materializations through the image migration soak.",
+      "rollbackDependency": "The pre-cutover release reads inline data URLs only; the transitional release keeps materializing until the rollback window closes.",
+      "targetRelease": "post-image-migration-soak"
     }
   ],
   "exemptions": [

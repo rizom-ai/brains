@@ -496,6 +496,21 @@ export {
 } from "./service/base-entity-datasource";
 export { paginationInfoSchema } from "@brains/entity-service";
 
+// Durable binary assets
+export {
+  assetRefSchema,
+  base64AssetSource,
+  computeAssetDigest,
+  createAssetRef,
+  getAssetDigest,
+  parseAssetRef,
+  type AssetRef,
+  type AssetSource,
+  type BinaryContentMode,
+  type StageAssetOptions,
+  type StagedAsset,
+} from "@brains/entity-service";
+
 // ============================================================================
 // Job System & Generation
 // ============================================================================

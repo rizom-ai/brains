@@ -1,4 +1,9 @@
-import type { EntityAdapter, EntitySchema } from "@brains/entity-service";
+import {
+  assetRefSchema,
+  type AssetRef,
+  type EntityAdapter,
+  type EntitySchema,
+} from "@brains/entity-service";
 import {
   imageSchema,
   type Image,
@@ -9,7 +14,10 @@ import {
 import {
   parseDataUrl,
   detectImageDimensions,
+  detectImageDimensionsFromBytes,
   detectImageFormat,
+  detectImageFormatFromBytes,
+  imageMediaType,
   toImageFormat,
 } from "../lib/image-utils";
 
@@ -27,11 +35,8 @@ function requireImageFormat(mediaSubtype: string): ImageFormat {
   return format;
 }
 
-/**
- * Input for creating an image entity
- */
-export interface CreateImageInput {
-  dataUrl: string;
+/** Descriptive fields shared by inline and asset-backed image creation. */
+interface ImageDescription {
   title: string;
   alt?: string;
   status?: ImageIngestionStatus;
@@ -43,6 +48,40 @@ export interface CreateImageInput {
   sourceMediaType?: string;
   attachmentType?: string;
   dedupKey?: string;
+}
+
+/**
+ * Input for creating an image entity
+ */
+export interface CreateImageInput extends ImageDescription {
+  dataUrl: string;
+}
+
+/** Input for an image whose bytes were staged as an asset. */
+export interface CreateAssetImageInput extends ImageDescription {
+  asset: { ref: AssetRef; sizeBytes: number };
+  /** The staged bytes; only their headers are read. */
+  bytes: Uint8Array;
+}
+
+function describedMetadata(
+  input: ImageDescription,
+): Omit<ImageMetadata, "format" | "width" | "height"> {
+  return {
+    title: input.title,
+    alt: input.alt ?? input.title,
+    ...(input.status && { status: input.status }),
+    ...(input.sourceUrl && { sourceUrl: input.sourceUrl }),
+    ...(input.sourceEntityType && {
+      sourceEntityType: input.sourceEntityType,
+    }),
+    ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
+    ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
+    ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
+    ...(input.sourceMediaType && { sourceMediaType: input.sourceMediaType }),
+    ...(input.attachmentType && { attachmentType: input.attachmentType }),
+    ...(input.dedupKey && { dedupKey: input.dedupKey }),
+  };
 }
 
 /**
@@ -64,6 +103,10 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 
   public fromMarkdown(content: string): Partial<Image> {
+    // Asset-backed rows carry their binary facts in stored metadata.
+    if (assetRefSchema.safeParse(content).success) {
+      return { entityType: "image", content };
+    }
     const { format, base64 } = parseDataUrl(content);
     const dimensions = detectImageDimensions(base64);
 
@@ -104,35 +147,53 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public createImageEntity(
     input: CreateImageInput,
   ): Pick<Image, "entityType" | "content" | "metadata"> {
-    const { dataUrl, title, alt } = input;
+    const { dataUrl } = input;
     const { format, base64 } = parseDataUrl(dataUrl);
     const dimensions = detectImageDimensions(base64);
 
     const detectedFormat = detectImageFormat(base64);
     const finalFormat = detectedFormat ?? requireImageFormat(format);
 
+    const { title, alt, ...described } = describedMetadata(input);
     return {
       entityType: "image",
       content: dataUrl,
       metadata: {
         title,
-        alt: alt ?? title,
+        alt,
         format: finalFormat,
         width: dimensions?.width ?? 0,
         height: dimensions?.height ?? 0,
-        ...(input.status && { status: input.status }),
-        ...(input.sourceUrl && { sourceUrl: input.sourceUrl }),
-        ...(input.sourceEntityType && {
-          sourceEntityType: input.sourceEntityType,
-        }),
-        ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
-        ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
-        ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
-        ...(input.sourceMediaType && {
-          sourceMediaType: input.sourceMediaType,
-        }),
-        ...(input.attachmentType && { attachmentType: input.attachmentType }),
-        ...(input.dedupKey && { dedupKey: input.dedupKey }),
+        ...described,
+      },
+    };
+  }
+
+  /**
+   * Create image entity data for staged bytes. Format, media type and
+   * dimensions come from the bytes; only supported raster formats qualify.
+   */
+  public createAssetImageEntity(
+    input: CreateAssetImageInput,
+  ): Pick<Image, "entityType" | "content" | "metadata"> {
+    const format = detectImageFormatFromBytes(input.bytes);
+    if (!format) {
+      throw new Error("Unsupported image format: not a PNG, JPEG, GIF or WebP");
+    }
+    const dimensions = detectImageDimensionsFromBytes(input.bytes);
+    const { title, alt, ...described } = describedMetadata(input);
+    return {
+      entityType: "image",
+      content: input.asset.ref,
+      metadata: {
+        title,
+        alt,
+        format,
+        mediaType: imageMediaType(format),
+        sizeBytes: input.asset.sizeBytes,
+        width: dimensions?.width ?? 0,
+        height: dimensions?.height ?? 0,
+        ...described,
       },
     };
   }

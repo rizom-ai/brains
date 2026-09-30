@@ -26,9 +26,11 @@ export function getUploadImageIdentity(input: {
   return { id, title };
 }
 
-export function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
-}
+/**
+ * Largest image stored as a new asset. Staging keeps event-loop stalls
+ * independent of size; this bounds consumers that still need whole buffers.
+ */
+export const IMAGE_ASSET_MAX_BYTES: number = 25 * 1024 * 1024;
 
 function getUploadTitle(title: string | undefined, filename: string): string {
   const trimmed = title?.trim();

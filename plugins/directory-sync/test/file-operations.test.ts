@@ -1,3 +1,4 @@
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
@@ -15,6 +16,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
 import type { FileOperationsEntityService } from "../src/lib/file-operations";
+import type { RawEntity } from "../src/types";
 import {
   TINY_PDF_BYTES,
   TINY_PDF_DATA_URL,
@@ -789,6 +791,38 @@ describe("FileOperations", () => {
 
       const actualBytes = readFileSync(filePath);
       expect(actualBytes.equals(TINY_PNG_BYTES)).toBe(true);
+    });
+  });
+
+  describe("shouldUpdateEntity with asset-backed images", () => {
+    const rawImage = (content: string): RawEntity => ({
+      entityType: "image",
+      id: "robot",
+      content,
+      created: new Date(0),
+      updated: new Date(0),
+    });
+
+    it("skips a file whose bytes match the stored asset", () => {
+      const existing = createTestEntity("image", {
+        id: "robot",
+        content: createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+      });
+
+      expect(
+        fileOps.shouldUpdateEntity(existing, rawImage(TINY_PNG_DATA_URL)),
+      ).toBe(false);
+    });
+
+    it("updates when the file's bytes differ from the stored asset", () => {
+      const existing = createTestEntity("image", {
+        id: "robot",
+        content: createAssetRef(computeAssetDigest(Buffer.from("other"))),
+      });
+
+      expect(
+        fileOps.shouldUpdateEntity(existing, rawImage(TINY_PNG_DATA_URL)),
+      ).toBe(true);
     });
   });
 });

@@ -11,9 +11,9 @@ import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
 import { imageAdapter } from "@brains/image";
 import {
+  IMAGE_ASSET_MAX_BYTES,
   getUploadImageIdentity,
   isSupportedImageMediaType,
-  toDataUrl,
   webChatUploadsScope,
 } from "../lib/upload-promotion";
 
@@ -84,9 +84,14 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
         message: "Saving uploaded image",
       });
 
+      const stagedAsset = await this.context.entityService.stageAsset(
+        upload.content,
+        { maxBytes: IMAGE_ASSET_MAX_BYTES },
+      );
       const now = new Date().toISOString();
-      const imageEntity = imageAdapter.createImageEntity({
-        dataUrl: toDataUrl(upload.record.mediaType, upload.content),
+      const imageEntity = imageAdapter.createAssetImageEntity({
+        asset: stagedAsset,
+        bytes: upload.content,
         title: identity.title,
         status: "draft",
         sourceUploadId: data.uploadId,
@@ -102,6 +107,7 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
           created: now,
           updated: now,
         },
+        stagedAsset,
       });
 
       await this.reportProgress(progressReporter, {

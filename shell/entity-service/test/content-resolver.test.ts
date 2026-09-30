@@ -136,6 +136,7 @@ Some text
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
         queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
+        openAsset: createMockEntityService().openAsset,
         queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
         queryGroupingMembers: createMockEntityService().queryGroupingMembers,
         queryGroupingUsage: createMockEntityService().queryGroupingUsage,

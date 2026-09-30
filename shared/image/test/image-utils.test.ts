@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import {
   parseDataUrl,
   createDataUrl,
+  detectImageDimensionsFromBytes,
   detectImageFormat,
+  detectImageFormatFromBytes,
+  imageMediaType,
   isValidDataUrl,
   toImageFormat,
 } from "../src/lib/image-utils";
@@ -107,6 +110,56 @@ describe("detectImageFormat", () => {
   it("should return null for unknown format", () => {
     const format = detectImageFormat("YWJjZGVm"); // "abcdef" in base64
     expect(format).toBeNull();
+  });
+});
+
+describe("detectImageFormatFromBytes", () => {
+  const withMagic = (...magic: number[]): Uint8Array =>
+    Uint8Array.from([...magic, ...new Array<number>(16).fill(0)]);
+
+  it("detects the supported raster formats from their signatures", () => {
+    expect(detectImageFormatFromBytes(withMagic(0x89, 0x50, 0x4e, 0x47))).toBe(
+      "png",
+    );
+    expect(detectImageFormatFromBytes(withMagic(0xff, 0xd8, 0xff))).toBe("jpg");
+    expect(detectImageFormatFromBytes(withMagic(0x47, 0x49, 0x46, 0x38))).toBe(
+      "gif",
+    );
+    const webp = Buffer.concat([
+      Buffer.from("RIFF"),
+      Buffer.alloc(4),
+      Buffer.from("WEBPVP8 "),
+    ]);
+    expect(detectImageFormatFromBytes(webp)).toBe("webp");
+  });
+
+  it("returns null for anything else, including RIFF containers that are not WebP", () => {
+    expect(detectImageFormatFromBytes(Buffer.from("<svg></svg>"))).toBeNull();
+    const wave = Buffer.concat([
+      Buffer.from("RIFF"),
+      Buffer.alloc(4),
+      Buffer.from("WAVEfmt "),
+    ]);
+    expect(detectImageFormatFromBytes(wave)).toBeNull();
+  });
+});
+
+describe("detectImageDimensionsFromBytes", () => {
+  it("reads PNG dimensions from the header", () => {
+    expect(
+      detectImageDimensionsFromBytes(Buffer.from(TINY_PNG_BASE64, "base64")),
+    ).toEqual({ width: 1, height: 1 });
+  });
+});
+
+describe("imageMediaType", () => {
+  it("maps formats to their media types", () => {
+    expect(imageMediaType("png")).toBe("image/png");
+    expect(imageMediaType("jpg")).toBe("image/jpeg");
+    expect(imageMediaType("jpeg")).toBe("image/jpeg");
+    expect(imageMediaType("webp")).toBe("image/webp");
+    expect(imageMediaType("gif")).toBe("image/gif");
+    expect(imageMediaType("svg")).toBe("image/svg+xml");
   });
 });
 

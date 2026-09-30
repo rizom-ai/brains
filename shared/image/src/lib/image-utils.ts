@@ -111,13 +111,51 @@ export async function fetchImageAsBase64(url: string): Promise<string> {
 }
 
 /**
+ * Detect a supported raster format from its leading signature bytes.
+ * SVG and other formats return null.
+ */
+export function detectImageFormatFromBytes(
+  bytes: Uint8Array,
+): ImageFormat | null {
+  const startsWith = (...magic: number[]): boolean =>
+    magic.every((value, index) => bytes[index] === value);
+  const ascii = (start: number, end: number): string =>
+    Buffer.from(bytes.subarray(start, end)).toString("latin1");
+  if (startsWith(0x89, 0x50, 0x4e, 0x47)) return "png";
+  if (startsWith(0xff, 0xd8, 0xff)) return "jpg";
+  if (startsWith(0x47, 0x49, 0x46, 0x38)) return "gif";
+  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "webp";
+  return null;
+}
+
+/** The media type a stored image of this format is served as. */
+export function imageMediaType(format: ImageFormat): string {
+  switch (format) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "svg":
+      return "image/svg+xml";
+    default:
+      return `image/${format}`;
+  }
+}
+
+/**
  * Get image dimensions from base64 data
  * Parses image headers to extract width/height without full decode
  */
 export function detectImageDimensions(
   base64: string,
 ): { width: number; height: number } | null {
-  const buffer = Buffer.from(base64, "base64");
+  return detectImageDimensionsFromBytes(Buffer.from(base64, "base64"));
+}
+
+/** Read width/height from image headers without decoding pixels. */
+export function detectImageDimensionsFromBytes(
+  bytes: Uint8Array,
+): { width: number; height: number } | null {
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
   // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
   if (

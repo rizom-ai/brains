@@ -11,6 +11,7 @@ import {
   type UpdateEntityRequest,
   type UpsertEntityRequest,
 } from "@brains/entity-service";
+import { createMockAssetStore } from "@brains/entity-service/test";
 import { computeContentHash } from "@brains/utils/hash";
 import type { MockEntityStore } from "./mock-entity-store";
 
@@ -148,6 +149,7 @@ export function createMockEntityService(
     return schema ? results.map((entity) => schema.parse(entity)) : results;
   }
 
+  const assetStore = createMockAssetStore();
   const service: IEntityService = {
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
@@ -264,6 +266,8 @@ export function createMockEntityService(
       );
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
+    stageAsset: assetStore.stageAsset,
+    openAsset: assetStore.openAsset,
     deleteEntity: async (request: {
       entityType: string;
       id: string;

@@ -210,7 +210,9 @@ export class ImagePlugin extends EntityPlugin<
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
       embeddable: false,
-      binaryStorage: "data-url",
+      // Bytes live in asset rows; the stored reference is not searchable text.
+      binaryStorage: "asset",
+      fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
     };

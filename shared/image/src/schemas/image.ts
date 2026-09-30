@@ -32,6 +32,8 @@ type ImageMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   alt: z.ZodOptional<z.ZodString>;
   format: typeof imageFormatSchema;
+  mediaType: z.ZodOptional<z.ZodString>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
   width: z.ZodNumber;
   height: z.ZodNumber;
   status: z.ZodOptional<typeof imageIngestionStatusSchema>;
@@ -51,6 +53,10 @@ export const imageMetadataSchema: ImageMetadataSchema = z.object({
   title: z.string().optional(),
   alt: z.string().optional(),
   format: imageFormatSchema,
+  /** Set for asset-backed images; the type the bytes are served as. */
+  mediaType: z.string().optional(),
+  /** Set for asset-backed images; the stored byte count. */
+  sizeBytes: z.number().int().nonnegative().optional(),
   width: z.number(),
   height: z.number(),
   status: imageIngestionStatusSchema.optional(),

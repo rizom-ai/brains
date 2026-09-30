@@ -109,7 +109,10 @@ describe("SQLite durable assets", () => {
       }),
     );
 
-    const listed = await ctx.entityService.listEntities({ entityType: "test" });
+    const listed = await ctx.entityService.listEntities({
+      entityType: "test",
+      options: { binaryContent: "reference" },
+    });
     expect(listed).toHaveLength(1);
     expect(listed[0]?.content).toBe(asset.ref);
 
@@ -464,5 +467,94 @@ describe("SQLite durable assets", () => {
     } finally {
       backup.close();
     }
+  });
+  describe("binary content read modes", () => {
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+
+    async function createAssetEntity(
+      id: string,
+      metadata: Record<string, unknown>,
+    ): Promise<StagedAsset> {
+      const asset = await ctx.entityService.stageAsset(bytes);
+      await ctx.entityService.createEntity({
+        entity: createTestEntity("test", { id, content: asset.ref, metadata }),
+        stagedAsset: asset,
+      });
+      return asset;
+    }
+
+    test("materializes asset-backed content as a data URL by default", async () => {
+      await createAssetEntity("legacy-reader", { mediaType: "image/png" });
+      const dataUrl = `data:image/png;base64,${bytes.toString("base64")}`;
+
+      const raw = await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "legacy-reader",
+      });
+      const resolved = await ctx.entityService.getEntity({
+        entityType: "test",
+        id: "legacy-reader",
+      });
+      const listed = await ctx.entityService.listEntities({
+        entityType: "test",
+      });
+
+      expect(raw?.content).toBe(dataUrl);
+      expect(resolved?.content).toBe(dataUrl);
+      expect(listed.map((entity) => entity.content)).toEqual([dataUrl]);
+    });
+
+    test("returns the stored reference in reference mode", async () => {
+      const asset = await createAssetEntity("reference-reader", {
+        mediaType: "image/png",
+      });
+
+      const raw = await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "reference-reader",
+        binaryContent: "reference",
+      });
+      const resolved = await ctx.entityService.getEntity({
+        entityType: "test",
+        id: "reference-reader",
+        binaryContent: "reference",
+      });
+
+      expect(raw?.content).toBe(asset.ref);
+      expect(resolved?.content).toBe(asset.ref);
+    });
+
+    test("materializes bytes without a recorded media type as octet-stream", async () => {
+      await createAssetEntity("untyped", {});
+
+      const raw = await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "untyped",
+      });
+
+      expect(raw?.content).toBe(
+        `data:application/octet-stream;base64,${bytes.toString("base64")}`,
+      );
+    });
+
+    test("leaves legacy inline content unchanged in both modes", async () => {
+      const inline = "data:image/png;base64,AAAA";
+      await ctx.entityService.createEntity({
+        entity: createTestEntity("test", { id: "inline", content: inline }),
+      });
+
+      const legacy = await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "inline",
+      });
+      const reference = await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "inline",
+        binaryContent: "reference",
+      });
+
+      expect(legacy?.content).toBe(inline);
+      expect(reference?.content).toBe(inline);
+    });
   });
 });

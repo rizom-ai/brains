@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createAssetRef } from "@brains/entity-service";
 import { imageAdapter } from "../src/adapters/image-adapter";
 import type { Image } from "../src/schemas/image";
 
@@ -55,6 +56,14 @@ describe("ImageAdapter", () => {
       expect(result.metadata?.height).toBe(1);
     });
 
+    it("accepts an asset reference without parsing bytes", () => {
+      const ref = createAssetRef("c".repeat(64));
+      expect(imageAdapter.fromMarkdown(ref)).toEqual({
+        entityType: "image",
+        content: ref,
+      });
+    });
+
     it("should not set title or alt from binary content", () => {
       const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
       expect(result.metadata?.title).toBeUndefined();
@@ -97,6 +106,56 @@ describe("ImageAdapter", () => {
       });
 
       expect(result.metadata.alt).toBe("My Image");
+    });
+  });
+
+  describe("createAssetImageEntity", () => {
+    const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
+    const asset = {
+      ref: createAssetRef("d".repeat(64)),
+      sizeBytes: bytes.byteLength,
+    };
+
+    it("derives binary metadata from the bytes and stores the reference", () => {
+      const result = imageAdapter.createAssetImageEntity({
+        asset,
+        bytes,
+        title: "Uploaded",
+        status: "draft",
+        attachmentType: "uploaded",
+      });
+
+      expect(result).toEqual({
+        entityType: "image",
+        content: asset.ref,
+        metadata: {
+          title: "Uploaded",
+          alt: "Uploaded",
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1,
+          height: 1,
+          status: "draft",
+          attachmentType: "uploaded",
+        },
+      });
+      expect(
+        imageAdapter.schema.safeParse({
+          ...mockImageEntity,
+          ...result,
+        }).success,
+      ).toBe(true);
+    });
+
+    it("rejects bytes that are not a supported raster image", () => {
+      expect(() =>
+        imageAdapter.createAssetImageEntity({
+          asset,
+          bytes: Buffer.from("<svg></svg>"),
+          title: "Vector",
+        }),
+      ).toThrow("Unsupported image format");
     });
   });
 });

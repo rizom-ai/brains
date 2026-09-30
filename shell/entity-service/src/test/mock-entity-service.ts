@@ -1,6 +1,7 @@
 import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
 import { createTestEntity } from "./fixtures";
+import { createMockAssetStore } from "./mock-asset-store";
 import type {
   BaseEntity,
   EntityMutationResult,
@@ -132,6 +133,7 @@ export function createMockEntityService(
     Promise.resolve(returns.search ?? []),
   );
 
+  const assetStore = createMockAssetStore();
   const service: IEntityService = {
     getEntityWriteSnapshot: mock(
       async () => returns.getEntityWriteSnapshot ?? null,
@@ -179,6 +181,8 @@ export function createMockEntityService(
       return mutationResult(returns.updateEntity);
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
+    stageAsset: mock(assetStore.stageAsset),
+    openAsset: mock(assetStore.openAsset),
     upsertEntity: mock(() =>
       Promise.resolve({ ...mutationResult(undefined), created: false }),
     ),
