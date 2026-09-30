@@ -1,5 +1,7 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_COVER_ATTRIBUTE,
+  ASK_COVER_STYLE,
   ASK_PAGE_LOCK_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
@@ -133,10 +135,17 @@ export function askBoxBootScript(version: string): string {
       if (!host.hasAttribute("${ASK_SHEET_ATTRIBUTE}")) return;
       document.body.style.visibility = "hidden";
       host.style.visibility = "visible";
+      if (document.querySelector("style[${ASK_COVER_ATTRIBUTE}]")) return;
+      var style = document.createElement("style");
+      style.setAttribute("${ASK_COVER_ATTRIBUTE}", "");
+      style.textContent = ${JSON.stringify(ASK_COVER_STYLE)};
+      document.head.append(style);
     }
     function uncover() {
       document.body.style.removeProperty("visibility");
       host.style.removeProperty("visibility");
+      var style = document.querySelector("style[${ASK_COVER_ATTRIBUTE}]");
+      if (style) style.remove();
     }
     async function open() {
       if (loading || mounted) return;

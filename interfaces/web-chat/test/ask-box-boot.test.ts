@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window, type HTMLElement as HappyDOMHTMLElement } from "happy-dom";
 import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import {
+  ASK_COVER_ATTRIBUTE,
+  ASK_COVER_STYLE,
   ASK_BOX_ATTRIBUTE,
   ASK_READY_ATTRIBUTE,
   ASK_PAGE_LOCK_ATTRIBUTE,
@@ -245,9 +247,16 @@ describe("shared Ask box boot", () => {
     // No rise runs in tests, so the sheet covers the page at once.
     expect(window.document.body.style.visibility).toBe("hidden");
     expect(box.style.visibility).toBe("visible");
+    // Hidden is not enough for a frosted header: Safari still paints its
+    // blur. The cover switches blur off everywhere but the sheet.
+    const cover = (): string | undefined =>
+      window.document.querySelector(`style[${ASK_COVER_ATTRIBUTE}]`)
+        ?.textContent ?? undefined;
+    expect(cover()).toBe(ASK_COVER_STYLE);
     await settled();
     expect(window.document.body.style.visibility).toBe("");
     expect(box.style.visibility).toBe("");
+    expect(cover()).toBeUndefined();
   });
 
   it("keeps the box in the page on a wide screen", () => {

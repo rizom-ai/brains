@@ -1,4 +1,8 @@
-import { ASK_PAGE_LOCK_ATTRIBUTE } from "@brains/contracts";
+import {
+  ASK_COVER_ATTRIBUTE,
+  ASK_COVER_STYLE,
+  ASK_PAGE_LOCK_ATTRIBUTE,
+} from "@brains/contracts";
 
 /**
  * Holds the page still behind an open sheet (ASK_PAGE_LOCK_ATTRIBUTE in the
@@ -46,9 +50,15 @@ export function pageScroll(): number {
 export function coverPage(sheet: HTMLElement): void {
   document.body.style.visibility = "hidden";
   sheet.style.visibility = "visible";
+  if (document.querySelector(`style[${ASK_COVER_ATTRIBUTE}]`)) return;
+  const style = document.createElement("style");
+  style.setAttribute(ASK_COVER_ATTRIBUTE, "");
+  style.textContent = ASK_COVER_STYLE;
+  document.head.append(style);
 }
 
 export function uncoverPage(sheet: HTMLElement): void {
   document.body.style.removeProperty("visibility");
   sheet.style.removeProperty("visibility");
+  document.querySelector(`style[${ASK_COVER_ATTRIBUTE}]`)?.remove();
 }
