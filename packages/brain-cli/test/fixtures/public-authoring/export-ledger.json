@@ -478,7 +478,10 @@
         "siteDefinitionSchema",
         "z"
       ],
-      "advanced-with-consumer": ["siteDefinitionOverridesSchema"],
+      "advanced-with-consumer": [
+        "entityDisplaySchema",
+        "siteDefinitionOverridesSchema"
+      ],
       "internal/removable": [
         "RizomBrandSuffix",
         "RizomFooterTagline",
