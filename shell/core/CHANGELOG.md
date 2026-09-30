@@ -1,5 +1,37 @@
 # @brains/core
 
+## 0.2.0-alpha.454
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.454
+  - @brains/image@0.2.0-alpha.454
+  - @brains/operation-context@0.2.0-alpha.454
+  - @brains/site-composition@0.2.0-alpha.454
+  - @brains/utils@0.2.0-alpha.454
+  - @brains/plugins@0.2.0-alpha.454
+  - @brains/recurring-checks@0.2.0-alpha.454
+  - @brains/runtime-state@0.2.0-alpha.454
+  - @brains/scheduler@0.2.0-alpha.454
+  - @brains/templates@0.2.0-alpha.454
+
+## 0.2.0-alpha.453
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.453
+  - @brains/image@0.2.0-alpha.453
+  - @brains/operation-context@0.2.0-alpha.453
+  - @brains/site-composition@0.2.0-alpha.453
+  - @brains/utils@0.2.0-alpha.453
+  - @brains/plugins@0.2.0-alpha.453
+  - @brains/recurring-checks@0.2.0-alpha.453
+  - @brains/runtime-state@0.2.0-alpha.453
+  - @brains/scheduler@0.2.0-alpha.453
+  - @brains/templates@0.2.0-alpha.453
+
 ## 0.2.0-alpha.452
 
 ### Patch Changes

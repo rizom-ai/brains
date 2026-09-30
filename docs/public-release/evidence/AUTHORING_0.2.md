@@ -8,6 +8,25 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Site Builder citation handoff integration
+
+Approved main `20506f12a67d90101176e03cdb8498aea2bf75ee` and the separately
+approved advanced `entityDisplaySchema` export close the Site Builder handoff
+gap: its duplicate schema stripped `citable` even though Site validation and the
+source selector individually preserved it. The builder now consumes the canonical
+strict entry schema; `EntityDisplayEntry` derives from its output.
+
+Installed-builder regressions exercise config parsing, declarative setup and the
+shared runtime citation selector across positive selection, fallback and all-false
+cases. All three fail with the old builder schema and pass with the shared schema.
+Packed Site consumers check the exported schema, false preservation, invalid/unknown
+field rejection and their existing running-app preview rebuild. This proves the
+metadata handoff, not answer grounding, physical-browser or paid-provider behavior.
+
+Ask composer cleanup and release metadata retain public UI identity at alpha.454,
+independent lanes and prior SDK corrections. PR301 records exact commit/tree/check
+evidence; no registry, release or deployment acceptance is implied.
+
 ## Citation and publication-reader integration scope
 
 Approved main `9aa4fc85fac1b3d0dbab84b7722382a3c54a0750` includes PR439's

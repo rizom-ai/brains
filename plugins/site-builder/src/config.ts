@@ -1,7 +1,7 @@
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
-  NavigationSlots,
+  entityDisplaySchema,
   RouteDefinitionSchema,
   siteMetadataSchema,
   type EntityDisplayEntry,
@@ -19,23 +19,6 @@ import {
 export type { EntityDisplayEntry };
 export type EntityDisplayMap = Record<string, EntityDisplayEntry>;
 
-type EntityDisplayEntrySchema = z.ZodObject<{
-  label: z.ZodString;
-  pluralName: z.ZodOptional<z.ZodString>;
-  layout: z.ZodOptional<z.ZodString>;
-  paginate: z.ZodOptional<z.ZodBoolean>;
-  pageSize: z.ZodOptional<z.ZodNumber>;
-  navigation: z.ZodOptional<
-    z.ZodObject<{
-      show: z.ZodOptional<z.ZodBoolean>;
-      slot: z.ZodOptional<
-        z.ZodEnum<{ primary: "primary"; secondary: "secondary" }>
-      >;
-      priority: z.ZodOptional<z.ZodNumber>;
-    }>
-  >;
-}>;
-
 type SiteBuilderConfigSchema = z.ZodObject<{
   previewOutputDir: z.ZodDefault<z.ZodString>;
   productionOutputDir: z.ZodDefault<z.ZodString>;
@@ -52,7 +35,7 @@ type SiteBuilderConfigSchema = z.ZodObject<{
   autoRebuild: z.ZodDefault<z.ZodBoolean>;
   rebuildDebounce: z.ZodDefault<z.ZodNumber>;
   entityDisplay: z.ZodOptional<
-    z.ZodRecord<z.ZodString, EntityDisplayEntrySchema>
+    z.ZodRecord<z.ZodString, typeof entityDisplaySchema>
   >;
   staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
 }>;
@@ -119,48 +102,7 @@ export const siteBuilderConfigSchema: SiteBuilderConfigSchema = z.object({
     )
     .default(5000),
   entityDisplay: z
-    .record(
-      z.string(),
-      z.object({
-        label: z
-          .string()
-          .describe("Display label for entity type (e.g., 'Essay')"),
-        pluralName: z
-          .string()
-          .optional()
-          .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
-        layout: z
-          .string()
-          .optional()
-          .describe(
-            "Layout name for this entity type's generated routes (defaults to 'default')",
-          ),
-        paginate: z
-          .boolean()
-          .optional()
-          .describe("Enable pagination for list pages"),
-        pageSize: z
-          .number()
-          .optional()
-          .describe("Items per page (default: 10)"),
-        navigation: z
-          .object({
-            show: z.boolean().optional().describe("Show in navigation"),
-            slot: z
-              .enum(NavigationSlots)
-              .optional()
-              .describe("Navigation slot (primary or secondary)"),
-            priority: z
-              .number()
-              .min(0)
-              .max(100)
-              .optional()
-              .describe("Navigation priority (0-100)"),
-          })
-          .optional()
-          .describe("Navigation settings for this entity type"),
-      }),
-    )
+    .record(z.string(), entityDisplaySchema)
     .optional()
     .describe(
       "Display metadata per entity type — label, plural name, layout, pagination, navigation slot. Consulted when auto-generating routes for active entity plugins.",

@@ -14,7 +14,6 @@ import type {
   GuestChatSessionResponse,
 } from "@brains/contracts/chat";
 import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
-import { GuestBoxAbout } from "./GuestBoxAbout";
 import { GuestBoxComposer } from "./GuestBoxComposer";
 import { GuestBoxFreshConfirmation, GuestBoxNotice } from "./GuestBoxNotice";
 import type { GuestBoxCopy, GuestBoxState } from "./guest-box-types";
@@ -66,17 +65,14 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const freshButton = useRef<HTMLButtonElement>(null);
-  const aboutButton = useRef<HTMLButtonElement>(null);
-  const lastAboutTop = useRef(0);
   const [header, setHeader] = useState<Element | null>(null);
-  const [about, setAbout] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
   // A fresh token whenever anything that changes the region's height does.
   const contentKey = useMemo(
     () => ({}),
     [messages, earlier, state, busy, confirmFresh, props.actionNotice],
   );
-  const tail = useFollowTail({ resetKey: null, contentKey, paused: about });
+  const tail = useFollowTail({ resetKey: null, contentKey });
   // An answer is being written; after a while the visitor may stop waiting.
   const waiting = busy && (state === "sending" || state === "working");
   const [patient, setPatient] = useState(false);
@@ -149,24 +145,12 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     if (confirmFresh && region) region.scrollTop = region.scrollHeight;
   }, [confirmFresh]);
 
-  // About takes the top of the region; closing it returns the reader to
-  // where they were.
-  useLayoutEffect(() => {
-    const region = tail.ref.current;
-    if (region) region.scrollTop = about ? 0 : lastAboutTop.current;
-  }, [about]);
-
   const maximum = session?.messageCharacters ?? 4000;
   const over = draft.length - maximum;
   const welcome =
     messages.length === 0 &&
     earlier.length === 0 &&
     (state === "ready" || state === "connecting");
-
-  function toggleAbout(): void {
-    if (!about) lastAboutTop.current = tail.ref.current?.scrollTop ?? 0;
-    setAbout(!about);
-  }
 
   function submit(): void {
     if (!props.canSend || busy || over > 0 || !draft.trim()) return;
@@ -217,7 +201,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
       {placeActions()}
       <div
         ref={tail.ref}
-        className={`brain-box-scroll${welcome && !about ? " is-welcome" : ""}`}
+        className={`brain-box-scroll${welcome ? " is-welcome" : ""}`}
         role="region"
         aria-label="Conversation and chat information"
         tabIndex={0}
@@ -226,15 +210,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         {/* A host may lend what it docks at the top of the conversation here;
             it is theirs, and React never renders into it. */}
         <div className="brain-box-dock" {...{ [ASK_DOCK_ATTRIBUTE]: "" }} />
-        {about && (
-          <GuestBoxAbout
-            session={session}
-            onClose={(): void => {
-              toggleAbout();
-              aboutButton.current?.focus({ preventScroll: true });
-            }}
-          />
-        )}
         {welcome && (copy.title || copy.notice || copy.topics.length > 0) && (
           <div className="brain-box-welcome">
             {copy.title && (
@@ -363,17 +338,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           inputRef={input}
           onFocus={sheet.show}
           onLand={sheet.land}
-          noteAction={
-            <button
-              ref={aboutButton}
-              className="brain-box-quiet"
-              type="button"
-              aria-expanded={about}
-              onClick={toggleAbout}
-            >
-              About this chat
-            </button>
-          }
           draft={draft}
           setDraft={props.setDraft}
           over={over}
@@ -384,7 +348,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         />
         {/* The rest of a long answer is offered where the note was, never
             over the text; the note comes back at the end. */}
-        {tail.awayFromLatest && !about && !compact && (
+        {tail.awayFromLatest && !compact && (
           <button
             className="brain-box-latest"
             type="button"

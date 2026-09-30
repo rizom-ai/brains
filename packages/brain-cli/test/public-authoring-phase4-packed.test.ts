@@ -1,5 +1,5 @@
 import { describe, expect, it as bunIt } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
@@ -132,7 +132,10 @@ describe("public authoring Phase 4 packed site contract", () => {
           "-e",
           `import assert from "node:assert/strict";
           import site from "@fixture/reading-site";
-          import { defineSite } from "@rizom/site";
+          import { defineSite, entityDisplaySchema } from "@rizom/site";
+          assert.deepEqual(entityDisplaySchema.parse({ label: "Excluded", citable: false }), { label: "Excluded", citable: false });
+          assert.throws(() => entityDisplaySchema.parse({ label: "Invalid", citable: "false" }));
+          assert.throws(() => entityDisplaySchema.parse({ label: "Typo", citabel: false }));
           assert.equal(site.entityDisplay.bookmark.citable, true);
           assert.equal(site.entityDisplay["reading-digest"].citable, false);
           const excluded = defineSite({ ...site, entityDisplay: { bookmark: { label: "Bookmark", citable: false } } });
@@ -170,6 +173,13 @@ describe("public authoring Phase 4 packed site contract", () => {
         generatedSourceDirectory,
         generatedConsumerDirectory,
         tarballs,
+      );
+      // Advanced export probe stays outside the stable-only golden package.
+      await writeFile(
+        join(generatedConsumerDirectory, "src/entity-display-canary.ts"),
+        `import { entityDisplaySchema, type EntityDisplayEntry } from "@rizom/site";
+         export const parsed: EntityDisplayEntry = entityDisplaySchema.parse({ label: "Excluded", citable: false });
+         export const citable: boolean | undefined = parsed.citable;`,
       );
       await runCommand(
         ["bun", "x", "tsc", "--noEmit"],

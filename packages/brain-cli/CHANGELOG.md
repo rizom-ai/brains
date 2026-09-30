@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.454
+
+### Patch Changes
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`467f476`](https://github.com/rizom-ai/brains/commit/467f476a1c089ae0f46b8e65938f87675f489c37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask box says nothing under its composer: the note and "About this chat" are gone, and only an over-limit warning appears there, while the draft is too long.
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`170627a`](https://github.com/rizom-ai/brains/commit/170627a74751e592f1818776a8209aa2ef2b21f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site-builder takes a site's entity display settings through the site contract's own schema instead of a copy that dropped what it did not list. A site's `citable` choices now reach the answers: on the professional site a visitor's sources are its essays, presentations and projects, not topics or social posts. An unknown entity display key now fails at startup instead of being dropped.
+
+## 0.2.0-alpha.453
+
+### Patch Changes
+
+- [#439](https://github.com/rizom-ai/brains/pull/439) [`3d40351`](https://github.com/rizom-ai/brains/commit/3d40351fa5b05ab04d1e7a196a3287a4fda5bf57) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Honor explicit citable:false exclusions even when no entity type opts into citations. Keep published-only list and count views bounded when callers supply lifecycle-status filters or publishedOnly:false: intersect those filters with the publication gate instead of exposing drafts. Preserve unbounded preview behavior and custom per-type published statuses.
+
 ## 0.2.0-alpha.452
 
 ### Patch Changes

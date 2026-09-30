@@ -725,6 +725,12 @@ permissions or proof of grounding. Explicit `false` always excludes a type. If
 any entry is `true`, only true entries qualify; otherwise configured page-bearing
 entries qualify unless explicitly false. Opting out does not remove a page.
 
+The advanced `entityDisplaySchema` export validates one entry, and
+`EntityDisplayEntry` is derived from its output. Site Builder consumes this same
+strict schema rather than a duplicate that can drop fields such as `citable`.
+Unknown keys and malformed field values are rejected. The schema is metadata
+validation, not an authorization capability; Core and Site remain separate lanes.
+
 Definitions and schema vocabulary:
 
 - `defineSection`

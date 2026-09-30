@@ -82,32 +82,6 @@ export const NavigationSlots: readonly NavigationSlot[] = [
   "secondary",
 ];
 
-/** Display and behavior metadata for an entity type. */
-export interface EntityDisplayEntry {
-  label: string;
-  pluralName?: string | undefined;
-  /** Layout name for this entity type's generated routes (defaults to "default"). */
-  layout?: string | undefined;
-  /** Enable pagination for list pages. */
-  paginate?: boolean | undefined;
-  /** Items per page (default: 10). */
-  pageSize?: number | undefined;
-  /**
-   * A piece of work a visitor's answer may cite as a source. False always
-   * excludes a type. If any type is true, only true entries are candidates;
-   * otherwise entries with pages are candidates unless explicitly false.
-   * This selects citations, not access permissions.
-   */
-  citable?: boolean | undefined;
-  navigation?:
-    | {
-        show?: boolean | undefined;
-        slot?: NavigationSlot | undefined;
-        priority?: number | undefined;
-      }
-    | undefined;
-}
-
 export interface SectionDefinitionInput {
   id: string;
   template: string;
@@ -450,7 +424,11 @@ const routeInputSchema: Strict<{
   navigation: navigationInputSchema.optional(),
 });
 
-const entityDisplaySchema: Strict<{
+/**
+ * Display and behavior metadata for an entity type, as a site declares it.
+ * The one definition: the site-builder takes it as it is.
+ */
+export const entityDisplaySchema: Strict<{
   label: z.ZodString;
   pluralName: z.ZodOptional<z.ZodString>;
   layout: z.ZodOptional<z.ZodString>;
@@ -469,9 +447,18 @@ const entityDisplaySchema: Strict<{
 }> = z.strictObject({
   label: z.string().min(1),
   pluralName: z.string().min(1).optional(),
+  /** Layout name for this entity type's generated routes (defaults to "default"). */
   layout: z.string().min(1).optional(),
+  /** Enable pagination for list pages. */
   paginate: z.boolean().optional(),
+  /** Items per page (default: 10). */
   pageSize: z.number().int().positive().optional(),
+  /**
+   * A piece of work a visitor's answer may cite as a source. False always
+   * excludes a type. If any type is true, only true entries are candidates;
+   * otherwise entries with pages are candidates unless explicitly false.
+   * This selects citations, not access permissions.
+   */
   citable: z.boolean().optional(),
   navigation: z
     .strictObject({
@@ -481,6 +468,8 @@ const entityDisplaySchema: Strict<{
     })
     .optional(),
 });
+/** Display and behavior metadata for an entity type. */
+export type EntityDisplayEntry = z.output<typeof entityDisplaySchema>;
 
 const sectionDefinitionSchema: Strict<{
   schema: z.ZodCustom<z.ZodType<JsonObject>, z.ZodType<JsonObject>>;

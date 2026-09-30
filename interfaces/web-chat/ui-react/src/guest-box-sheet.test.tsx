@@ -451,9 +451,6 @@ describe("the Ask box on a phone", () => {
       );
       expect(host.querySelector(".web-chat-sources-card")).toBe(null);
       expect(host.textContent).not.toContain("Answer received");
-      expect(host.querySelector("#brain-chat-notice")?.textContent).toBe(
-        "Answers use published work only. Leave private details out.",
-      );
     });
 
     it("asks for the first question in the site's words, and for a follow-up after", async () => {
@@ -516,21 +513,13 @@ describe("the Ask box on a phone", () => {
       expect(head?.querySelector("button[aria-expanded]")).toBe(null);
     });
 
-    it("says the same note under the composer before and after an answer, with what the chat is about beside it", async () => {
+    it("says nothing under the composer, before or after an answer", async () => {
       await render();
-      const note = (): string | undefined =>
-        host.querySelector("#brain-chat-notice")?.textContent;
-      expect(note()).toBe(
-        "Answers use published work only. Leave private details out.",
-      );
+      expect(host.querySelector("#brain-chat-notice")).toBe(null);
       await render({ messages: answer, state: "complete" });
-      expect(note()).toBe(
-        "Answers use published work only. Leave private details out.",
-      );
-      const about = host.querySelector(
-        ".brain-box-bottom button[aria-expanded]",
-      );
-      expect(about?.textContent).toBe("About this chat");
+      expect(host.querySelector("#brain-chat-notice")).toBe(null);
+      expect(host.querySelector("button[aria-expanded]")).toBe(null);
+      expect(host.textContent).not.toContain("About");
     });
 
     it("leaves out the link to the full chat, since it already fills the screen", async () => {
@@ -550,15 +539,10 @@ describe("the Ask box on a phone", () => {
       expect(host.textContent).not.toContain("Continue conversation");
     });
 
-    it("offers what the chat is about beside the note, not above the conversation", async () => {
+    it("adds nothing around the conversation but the way to the full chat", async () => {
       await render({ messages: answer, state: "complete" });
-      expect(
-        host.querySelector(".brain-box-bottom button[aria-expanded]")
-          ?.textContent,
-      ).toBe("About this chat");
-      expect(
-        host.querySelector(".brain-box-header-actions button[aria-expanded]"),
-      ).toBe(null);
+      expect(host.querySelector("#brain-chat-notice")).toBe(null);
+      expect(host.textContent).not.toContain("About");
     });
 
     it("links to the full chat from the page", async () => {

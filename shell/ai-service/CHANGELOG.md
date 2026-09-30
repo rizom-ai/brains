@@ -1,5 +1,33 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.454
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.454
+  - @brains/utils@0.2.0-alpha.454
+  - @brains/conversation-service@0.2.0-alpha.454
+  - @brains/entity-service@0.2.0-alpha.454
+  - @brains/identity-service@0.2.0-alpha.454
+  - @brains/mcp-service@0.2.0-alpha.454
+  - @brains/messaging-service@0.2.0-alpha.454
+  - @brains/templates@0.2.0-alpha.454
+
+## 0.2.0-alpha.453
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.453
+  - @brains/utils@0.2.0-alpha.453
+  - @brains/conversation-service@0.2.0-alpha.453
+  - @brains/entity-service@0.2.0-alpha.453
+  - @brains/identity-service@0.2.0-alpha.453
+  - @brains/mcp-service@0.2.0-alpha.453
+  - @brains/messaging-service@0.2.0-alpha.453
+  - @brains/templates@0.2.0-alpha.453
+
 ## 0.2.0-alpha.452
 
 ### Patch Changes
