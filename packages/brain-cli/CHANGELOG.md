@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- [#444](https://github.com/rizom-ai/brains/pull/444) [`166d77e`](https://github.com/rizom-ai/brains/commit/166d77ea46aa8e601fa2974712307708f23a2aba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Closing the keyboard in the phone Ask sheet fills the screen again, with the composer at the bottom where a tap brings the keyboard back. The sheet follows the visible area only while its composer has focus: Safari blurs the field while it still reports the keyboard's height, and may report nothing once the keyboard has gone, which left the sheet at half height.
+
 ## 0.2.0-alpha.456
 
 ### Patch Changes

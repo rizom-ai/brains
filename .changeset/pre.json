@@ -251,6 +251,7 @@
     "core--ask-content-loader",
     "core--ask-cover-no-backdrop",
     "core--ask-page-bundle",
+    "core--ask-sheet-keyboard-close",
     "core--ask-sheet-look",
     "core--atlas-chat",
     "core--atlas-door-topics",
