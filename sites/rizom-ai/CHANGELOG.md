@@ -1,5 +1,14 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.258
+
+### Patch Changes
+
+- [#440](https://github.com/rizom-ai/brains/pull/440) [`467f476`](https://github.com/rizom-ai/brains/commit/467f476a1c089ae0f46b8e65938f87675f489c37) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drops the styles for the Ask box's About panel, which the box no longer has.
+
+- Updated dependencies [[`170627a`](https://github.com/rizom-ai/brains/commit/170627a74751e592f1818776a8209aa2ef2b21f6)]:
+  - @rizom/site@0.2.0-alpha.238
+
 ## 0.2.0-alpha.257
 
 ### Patch Changes
