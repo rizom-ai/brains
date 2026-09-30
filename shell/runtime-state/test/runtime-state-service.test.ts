@@ -229,6 +229,56 @@ describe("RuntimeStateService", () => {
     service.close();
   });
 
+  it.each(["literal%_/", "nul\u0000/", "文字/"])(
+    "clears stale values with a literal prefix %j independently of the current schema",
+    async (prefix) => {
+      const service = RuntimeStateService.createFresh({ url: dbUrl });
+      const original = service.scoped({
+        namespace: "cleanup",
+        schema: z.unknown(),
+      });
+      const upgraded = service.scoped({
+        namespace: "cleanup",
+        schema: z.string(),
+      });
+      const other = service.scoped({
+        namespace: "other-cleanup",
+        schema: z.unknown(),
+      });
+      try {
+        await original.set(`${prefix}one`, 123);
+        await original.set(`${prefix}two`, { stale: true });
+        await original.set("other/key", "keep");
+        await other.set(`${prefix}one`, 123);
+        expect(await upgraded.clear({ keyPrefix: prefix })).toBe(2);
+        expect(await original.has(`${prefix}one`)).toBe(false);
+        expect(await original.has(`${prefix}two`)).toBe(false);
+        expect(await original.get("other/key")).toBe("keep");
+        expect(await other.has(`${prefix}one`)).toBe(true);
+        expect(await upgraded.clear({ keyPrefix: prefix })).toBe(0);
+      } finally {
+        service.close();
+      }
+    },
+  );
+
+  it("validates cleanup prefixes before deleting and treats an empty prefix as the whole namespace", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    const store = service.scoped({
+      namespace: "cleanup-bounds",
+      schema: z.number(),
+    });
+    try {
+      await store.set("keep", 123);
+      await expectPromiseToReject(store.clear({ keyPrefix: "x".repeat(513) }));
+      expect(await store.get("keep")).toBe(123);
+      expect(await store.clear({ keyPrefix: "" })).toBe(1);
+      expect(await store.has("keep")).toBe(false);
+    } finally {
+      service.close();
+    }
+  });
+
   it("validates values with the provided Zod schema on write and read", async () => {
     const service = RuntimeStateService.createFresh({ url: dbUrl });
     const store = service.scoped({
