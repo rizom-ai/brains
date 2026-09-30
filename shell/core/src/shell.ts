@@ -549,27 +549,13 @@ export class Shell implements IShell {
 
   public registerTools(pluginId: string, tools: Tool[]): void {
     for (const tool of tools) {
-      try {
-        this.services.mcpService.registerTool(pluginId, tool);
-      } catch (error) {
-        this.services.logger.error(
-          `Failed to register tool ${tool.name} from ${pluginId}:`,
-          error,
-        );
-      }
+      this.services.mcpService.registerTool(pluginId, tool);
     }
   }
 
   public registerResources(pluginId: string, resources: Resource[]): void {
     for (const resource of resources) {
-      try {
-        this.services.mcpService.registerResource(pluginId, resource);
-      } catch (error) {
-        this.services.logger.error(
-          `Failed to register resource ${resource.name} from ${pluginId}:`,
-          error,
-        );
-      }
+      this.services.mcpService.registerResource(pluginId, resource);
     }
   }
 
