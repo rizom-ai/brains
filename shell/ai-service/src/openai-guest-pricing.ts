@@ -3,6 +3,7 @@ import type {
   GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import type { LanguageModelUsage } from "ai";
+import type { EmbeddingUsage } from "./embedding-usage-meter";
 
 /** What the provider reported for each model call of a guest turn. */
 export interface GuestProviderUsage {
@@ -113,5 +114,52 @@ export function guestTurnSettlement(
       : pricing
         ? pricing({ calls })
         : { state: "unknown", reason: "unsupported-pricing" },
+  };
+}
+
+/**
+ * Published text-embedding-3-small rate, read on 2026-09-30 from
+ * https://developers.openai.com/api/docs/models/text-embedding-3-small:
+ * $0.02 per 1M tokens.
+ */
+export const openAiEmbeddingPricingRevision =
+  "openai-text-embedding-3-small-2026-09-30";
+
+/** Hundredths of a micro-dollar per token, by embedding model. */
+const embeddingRates: Readonly<Record<string, number>> = {
+  "text-embedding-3-small": 2,
+};
+
+/**
+ * A guest turn's settlement with the embeddings it made: its searches and the
+ * search that found its sources. Their tokens always count; their cost joins
+ * a known cost at the model's rate, and an unpriced model leaves it unknown.
+ */
+export function withEmbeddingUsage(
+  settlement: GuestTurnSettlement,
+  embeddings: readonly EmbeddingUsage[],
+): GuestTurnSettlement {
+  if (embeddings.length === 0) return settlement;
+  const tokens = embeddings.reduce((sum, call) => sum + call.tokens, 0);
+  const usage = {
+    ...settlement.usage,
+    embeddingTokens: settlement.usage.embeddingTokens + tokens,
+  };
+  if (settlement.cost.state === "unknown")
+    return { usage, cost: settlement.cost };
+  const centis = embeddings.map((call) => {
+    const rate = embeddingRates[call.model];
+    return rate === undefined ? undefined : call.tokens * rate;
+  });
+  if (centis.includes(undefined))
+    return { usage, cost: { state: "unknown", reason: "unsupported-pricing" } };
+  const centi = centis.reduce<number>((sum, part) => sum + (part ?? 0), 0);
+  return {
+    usage,
+    cost: {
+      state: "known",
+      microUsd: settlement.cost.microUsd + Math.ceil(centi / 100),
+      pricing: `${settlement.cost.pricing}+${openAiEmbeddingPricingRevision}`,
+    },
   };
 }

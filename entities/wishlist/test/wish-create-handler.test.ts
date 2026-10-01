@@ -129,4 +129,40 @@ describe("WishCreateHandler", () => {
     expect(wish?.metadata["requested"]).toBe(1);
     expect(wish?.metadata["slug"]).toBe("make-lasagna");
   });
+
+  it("counts a reworded wish within the configured distance", async () => {
+    await handler.process(
+      { title: "Water my plants", content: "User wants plants watered" },
+      "job-a",
+      noopProgress,
+    );
+    context.ai.generateObject = async <T>(
+      _prompt: string,
+      schema: { parse(value: unknown): T },
+    ): Promise<{ object: T }> => ({ object: schema.parse({ same: true }) });
+    context.entityService.searchWithDistances = async (): Promise<
+      Array<{ entityId: string; entityType: string; distance: number }>
+    > => [{ entityId: "water-my-plants", entityType: "wish", distance: 0.35 }];
+
+    const strict = await handler.process(
+      { title: "Garden watering", content: "User wants the garden watered" },
+      "job-b",
+      noopProgress,
+    );
+    const loose = await new WishCreateHandler(
+      createSilentLogger(),
+      context,
+      0.4,
+    ).process(
+      { title: "Houseplant care", content: "User wants houseplants watered" },
+      "job-c",
+      noopProgress,
+    );
+
+    expect(strict).toMatchObject({
+      existed: false,
+      entityId: "garden-watering",
+    });
+    expect(loose).toMatchObject({ existed: true, entityId: "water-my-plants" });
+  });
 });

@@ -19,6 +19,7 @@ Interfaces are user-facing transports, including:
 - Use `MessageInterfacePlugin` for conversational transports.
 - Track conversations for any message-based interface.
 - Use daemon lifecycle hooks carefully.
+- Register a message interface's channels and senders in `registerChannels()`, not `onRegister()`. The worker runs only that hook, so background jobs can send on the channel; it must not connect, listen or subscribe.
 - Check permissions before sensitive actions.
 
 ## Do not

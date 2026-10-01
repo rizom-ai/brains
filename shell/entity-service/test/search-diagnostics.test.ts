@@ -4,7 +4,13 @@ import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
-import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
+import {
+  createNoteInput,
+  minimalTestAdapter,
+  minimalTestSchema,
+  noteAdapter,
+  noteSchema,
+} from "./helpers/test-schemas";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 describe("search diagnostics", () => {
@@ -99,5 +105,81 @@ describe("search diagnostics", () => {
       query: "anything",
     });
     expect(results).toHaveLength(0);
+  });
+
+  describe("filters", () => {
+    const near = new Float32Array(MOCK_DIMENSIONS).fill(0.1);
+    // Orthogonal to the mock query embedding: cosine distance 1.
+    const far = new Float32Array(MOCK_DIMENSIONS).map((_, index) =>
+      index < MOCK_DIMENSIONS / 2 ? 0.1 : -0.1,
+    );
+    let nearNoteId: string;
+
+    beforeEach(async () => {
+      await ctx.cleanup();
+      ctx = await setupEntityService([
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+        },
+        { name: "note", schema: noteSchema, adapter: noteAdapter },
+      ]);
+      for (const [id, embedding] of [
+        ["near-test", near],
+        ["far-test", far],
+      ] as const) {
+        const entity = createTestEntity("test", { id, content: id });
+        await ctx.entityService.createEntity({ entity });
+        await ctx.entityService.storeEmbedding({
+          entityId: id,
+          entityType: "test",
+          embedding,
+          contentHash: entity.contentHash,
+        });
+      }
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: createNoteInput({
+          title: "Near note",
+          content: "Body",
+          tags: [],
+        }),
+      });
+      const note = await ctx.entityService.getEntity(
+        { entityType: "note", id: entityId },
+        noteSchema,
+      );
+      if (!note) throw new Error("Note should exist");
+      nearNoteId = note.id;
+      await ctx.entityService.storeEmbedding({
+        entityId: note.id,
+        entityType: "note",
+        embedding: near,
+        contentHash: note.contentHash,
+      });
+    });
+
+    test("keeps only the requested types", async () => {
+      const results = await ctx.entityService.searchWithDistances({
+        query: "anything",
+        types: ["test"],
+      });
+
+      expect(results.map((result) => result.entityId).sort()).toEqual([
+        "far-test",
+        "near-test",
+      ]);
+    });
+
+    test("keeps only results within maxDistance", async () => {
+      const results = await ctx.entityService.searchWithDistances({
+        query: "anything",
+        maxDistance: 0.5,
+      });
+
+      expect(results.map((result) => result.entityId).sort()).toEqual(
+        [nearNoteId, "near-test"].sort(),
+      );
+    });
   });
 });

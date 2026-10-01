@@ -629,6 +629,11 @@ export interface EntityTypeConfig {
   /** Whether to index serialized content in full-text search (default: true).
    *  Set to false for binary entity types. Mutations remove stale FTS rows. */
   fullTextSearchable?: boolean;
+  /** Whether a search that names no entity types includes this type (default: true).
+   *  Set to false for entities derived from the brain's own answers, so they are
+   *  not retrieved as sources; a search naming the type still finds them, and
+   *  raw-distance search is unaffected. */
+  includeInBroadSearch?: boolean;
   /** Binary storage policy. Absence means text content. */
   binaryStorage?: "data-url" | "asset";
   /** Default system_list order, applied by the entity service before pagination. */
@@ -751,7 +756,11 @@ export interface DeleteEntityRequest {
   entityType: string;
   id: string;
   options?:
-    Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> | undefined;
+    | (Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> & {
+        /** Delete only while the stored entity still has this content hash; false otherwise. */
+        expectedContentHash?: string | undefined;
+      })
+    | undefined;
 }
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
@@ -771,6 +780,10 @@ export interface EntitySearchRequest {
 
 export interface SearchWithDistancesRequest {
   query: string;
+  /** Only these entity types; empty or omitted includes all types. */
+  types?: string[] | undefined;
+  /** Only results at most this cosine distance from the query. */
+  maxDistance?: number | undefined;
 }
 
 export interface SemanticEntityReference {

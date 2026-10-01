@@ -164,9 +164,9 @@ export interface IJobProgressMonitor {
   start(): void;
 
   /**
-   * Stop the progress monitor
+   * Terminally stop the progress monitor and drain admitted polling work.
    */
-  stop(): void;
+  stop(): Promise<void>;
 
   /**
    * Create a ProgressReporter for a specific job

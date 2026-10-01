@@ -1,0 +1,20 @@
+id: faq-classify-drops-asker-identity
+name: The rewrite leaves out who asked
+description: A site visitor introduces themselves; the reusable question keeps what they asked and drops their name, organisation and address.
+type: plugin
+tags: [faq, classify, visitor]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: Hi, I'm Maria from Acme (maria@acme.example). What do you offer organisations that want to keep what they know?
+  answer: A Knowledge Audit, which maps what an organisation knows and where it gets lost, followed by a brain that keeps it.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: true
+    - path: question
+      matches: "^(?![\\s\\S]*([Mm]aria|[Aa]cme|@))[\\s\\S]+$"
+    - path: answer
+      matches: "[Kk]nowledge [Aa]udit"

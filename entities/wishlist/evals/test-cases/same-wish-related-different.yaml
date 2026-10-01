@@ -1,0 +1,20 @@
+id: wishlist-same-wish-related-different
+name: A related but different wish stays separate
+description: Sending emails and a weekly email digest are different requests.
+type: plugin
+tags: [wishlist, dedup]
+plugin: wishlist
+handler: sameWish
+
+input:
+  stored:
+    title: Send emails
+    description: User wants the brain to send emails on their behalf.
+  incoming:
+    title: Email digest
+    description: User wants a weekly email summary of new notes.
+
+expectedOutput:
+  validateEach:
+    - path: sameWish
+      equals: false

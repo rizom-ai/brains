@@ -283,6 +283,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     await registerGuestMonitor(context, {
       record: usage.record,
       bounds: usage.bounds,
+      now: usage.now,
       control: this.guestControl?.policy ? this.guestControl : undefined,
       configuredOpen: (): boolean =>
         this.guestPolicy.enabled && context.agent.guestReady === true,
