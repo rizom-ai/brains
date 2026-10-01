@@ -8317,6 +8317,11 @@
 @keyframes source-pulse { 0%, 100% { background: transparent } 30% { background: rgb(from var(--color-accent) r g b / .28) } }
 .answer__sources b { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--color-accent); font-weight: 500; }
 .answer__sources i { font-style: normal; }
+/* The piece in its owner's words, under the source it belongs to. */
+.answer__sources q { display: none; grid-column: 1 / -1; margin: 0 .5rem .5rem calc(5.5rem + .55rem + .5rem); padding: .1rem 0 .1rem .8rem; border-left: 1px solid var(--color-accent); font-family: var(--font-display); font-style: italic; font-size: 1rem; line-height: 1.5; color: var(--color-text); font-variation-settings: "SOFT" 70, "opsz" 24; quotes: "“" "”"; }
+.answer__sources q::before { content: open-quote; } .answer__sources q::after { content: close-quote; }
+.answer__sources li.is-hot q, .answer__sources li.is-open q { display: block; animation: reply-in .35s ease; }
+@media (max-width: 60rem) { .answer__sources q { margin-left: .5rem; } }
 /* the drawing listens */
 .net-layer .net-reply { opacity: 0; }
 .net-layer .net-thread, .net-layer .net-mark, .net-layer .net-lantern, .net-layer .net-corona { transition: opacity .6s ease, stroke-opacity .6s ease; }
@@ -8407,53 +8412,53 @@
   var prompts = ["What changes when a brain is yours?", "How do independent brains work together?", "Where would I start with my own material?"];
   var answers = {
     "What changes when a brain is yours?": {
-      rizom: { piece: "What a brain is", kind: "page", href: "/brain" },
+      rizom: { piece: "What a brain is", kind: "page", href: "/brain", excerpt: "A brain is memory that stays with the people who made it: kept in files you can read, answering in your words." },
       replies: [],
       text: ["A brain is memory that stays with the people who made it. It is kept in your own place, in files you can read, and it answers for you in your words.", "What changes is who holds it. Not a vendor, not a tool that forgets when a subscription ends: the team that did the work keeps what it learned, and decides what to share."],
       by: "Rizom"
     },
     "How do independent brains work together?": {
-      rizom: { piece: "Distributed Living Memory", kind: "page", href: "/" },
+      rizom: { piece: "Distributed Living Memory", kind: "page", href: "/", excerpt: "Memory kept in brains each team owns, connected from one team to an economy." },
       replies: [
-        { name: "Jo", piece: "Handoffs between teams", kind: "note", sentence: "<a data-brain=\"Jo\">Jo’s brain</a> keeps the handoffs his team runs between projects: what is written down before someone leaves a task, and what is not." },
-        { name: "Becca", piece: "Onboarding a collaborator", kind: "playbook", sentence: "<a data-brain=\"Becca\">Becca’s</a> holds the playbook her team follows when a new collaborator arrives, and the questions newcomers ask first." },
-        { name: "Mindinn", piece: "Who knows what", kind: "field manual", sentence: "<a data-brain=\"Mindinn\">Mindinn’s</a> maps who knows what across their field, which is the question you are asking at the scale of one team." }
+        { name: "Jo", piece: "Handoffs between teams", kind: "note", excerpt: "Before anyone leaves a task we write three things down: what is done, what is open, and who to ask. The third one is the one nobody writes.", sentence: "<a data-brain=\"Jo\">Jo’s brain</a> keeps the handoffs his team runs between projects: what is written down before someone leaves a task, and what is not." },
+        { name: "Becca", piece: "Onboarding a collaborator", kind: "playbook", excerpt: "Day one is reading, not meetings. The questions people ask in their first week are the ones we answer in the playbook by the second.", sentence: "<a data-brain=\"Becca\">Becca’s</a> holds the playbook her team follows when a new collaborator arrives, and the questions newcomers ask first." },
+        { name: "Mindinn", piece: "Who knows what", kind: "field manual", excerpt: "We keep a map of who knows what across the field, because the question is never what is known, it is who to ask.", sentence: "<a data-brain=\"Mindinn\">Mindinn’s</a> maps who knows what across their field, which is the question you are asking at the scale of one team." }
       ],
       text: ["Each brain keeps its own memory and answers for its owner. When you ask here, Rizom searches what the connected brains have published, and cites it by brain. Three of them had something.", "@replies", "What you read is their memory, cited, not a summary made up here. Every answer says whose memory it came from."],
       by: "Rizom, with Jo, Becca and Mindinn"
     },
     "Where would I start with my own material?": {
-      rizom: { piece: "Get started", kind: "docs", href: "/brain" },
+      rizom: { piece: "Get started", kind: "docs", href: "/brain", excerpt: "Point the brain at a folder of what you already have. It reads, it asks nothing of you yet." },
       replies: [
-        { name: "Yeehaa", piece: "Scale without a centre", kind: "essay", sentence: "<a data-brain=\"Yeehaa\">Yeehaa’s brain</a> starts from the material that already exists: the notes, the talks, the things written once and never found again." },
-        { name: "Sam", piece: "First week with a brain", kind: "note", sentence: "<a data-brain=\"Sam\">Sam’s</a> keeps a note from the first week: what went in first, and what turned out to matter." }
+        { name: "Yeehaa", piece: "Scale without a centre", kind: "essay", excerpt: "Start from what exists. The notes, the talks, the thing written once and never found again: that is the material, and it is already yours.", sentence: "<a data-brain=\"Yeehaa\">Yeehaa’s brain</a> starts from the material that already exists: the notes, the talks, the things written once and never found again." },
+        { name: "Sam", piece: "First week with a brain", kind: "note", excerpt: "I fed it the folder I was embarrassed about. That turned out to be the one that mattered.", sentence: "<a data-brain=\"Sam\">Sam’s</a> keeps a note from the first week: what went in first, and what turned out to matter." }
       ],
       text: ["Start with what you already have. A brain is seeded from existing material and grows from the work; nothing has to be written for it first.", "@replies"],
       by: "Rizom, with Yeehaa and Sam"
     },
     "Who owns what a brain remembers?": {
-      rizom: { piece: "What a brain is", kind: "page", href: "/brain" },
-      replies: [ { name: "Natalie", piece: "Ownership of working notes", kind: "note", sentence: "<a data-brain=\"Natalie\">Natalie’s brain</a> keeps her team’s rule for it: the notes belong to the people who wrote them, and the team keeps a copy of what it decided together." } ],
+      rizom: { piece: "What a brain is", kind: "page", href: "/brain", excerpt: "A brain is memory that stays with the people who made it: kept in files you can read, answering in your words." },
+      replies: [ { name: "Natalie", piece: "Ownership of working notes", kind: "note", excerpt: "The notes belong to whoever wrote them. The team keeps a copy of what we decided together, and nothing else.", sentence: "<a data-brain=\"Natalie\">Natalie’s brain</a> keeps her team’s rule for it: the notes belong to the people who wrote them, and the team keeps a copy of what it decided together." } ],
       text: ["The people who made it. A brain lives in files its owner can read, move and delete; nothing is held by Rizom.", "@replies"],
       by: "Rizom, with Natalie"
     },
     "Is what I tell a brain used to train a model?": {
-      rizom: { piece: "What a brain is", kind: "page", href: "/brain" },
-      replies: [ { name: "Jo", piece: "What leaves the building", kind: "note", sentence: "<a data-brain=\"Jo\">Jo’s brain</a> keeps the list his team made of what never leaves the building; the model sees a question and the pieces it needs, and keeps nothing." } ],
+      rizom: { piece: "What a brain is", kind: "page", href: "/brain", excerpt: "A brain is memory that stays with the people who made it: kept in files you can read, answering in your words." },
+      replies: [ { name: "Jo", piece: "What leaves the building", kind: "note", excerpt: "The model sees the question and the pieces it needs for that answer. It keeps nothing, and we checked.", sentence: "<a data-brain=\"Jo\">Jo’s brain</a> keeps the list his team made of what never leaves the building; the model sees a question and the pieces it needs, and keeps nothing." } ],
       text: ["No. A brain calls a model to answer; the model is given what it needs for that answer and nothing is kept from it.", "@replies"],
       by: "Rizom, with Jo"
     },
     "Can I run a brain on my own machine?": {
-      rizom: { piece: "Get started", kind: "docs", href: "/brain" },
-      replies: [ { name: "Yeehaa", piece: "Scale without a centre", kind: "essay", sentence: "<a data-brain=\"Yeehaa\">Yeehaa’s brain</a> has run on a laptop since the first week; the essay on it is where the idea of a network of small brains started." } ],
+      rizom: { piece: "Get started", kind: "docs", href: "/brain", excerpt: "Point the brain at a folder of what you already have. It reads, it asks nothing of you yet." },
+      replies: [ { name: "Yeehaa", piece: "Scale without a centre", kind: "essay", excerpt: "Start from what exists. The notes, the talks, the thing written once and never found again: that is the material, and it is already yours.", excerpt: "It has run on a laptop since the first week. A network of small brains needs no centre, and that was the point.", sentence: "<a data-brain=\"Yeehaa\">Yeehaa’s brain</a> has run on a laptop since the first week; the essay on it is where the idea of a network of small brains started." } ],
       text: ["Yes. A brain is a program and a folder of files; it runs where you put it, and the hosted one is the same program.", "@replies"],
       by: "Rizom, with Yeehaa"
     },
     "Can a brain answer for a whole team?": {
-      rizom: { piece: "The Knowledge Audit", kind: "page", href: "/work" },
+      rizom: { piece: "The Knowledge Audit", kind: "page", href: "/work", excerpt: "In a week we map what your team knows, who holds it, and what leaves when they do." },
       replies: [
-        { name: "Rizom Core Team", piece: "How we run the team brain", kind: "note", sentence: "<a data-brain=\"Rizom Core Team\">The core team’s brain</a> answers for the team: what was decided, where things stand, who to ask." },
-        { name: "Becca", piece: "Onboarding a collaborator", kind: "playbook", sentence: "<a data-brain=\"Becca\">Becca’s</a> shows it from the other side: a newcomer asks the team brain first, and a person second." }
+        { name: "Rizom Core Team", piece: "How we run the team brain", kind: "note", excerpt: "The team brain answers for the team: what was decided, where things stand, who to ask. People answer the rest.", sentence: "<a data-brain=\"Rizom Core Team\">The core team’s brain</a> answers for the team: what was decided, where things stand, who to ask." },
+        { name: "Becca", piece: "Onboarding a collaborator", kind: "playbook", excerpt: "Day one is reading, not meetings. The questions people ask in their first week are the ones we answer in the playbook by the second.", excerpt: "A newcomer asks the team brain first and a person second. It saves the person for the questions that need one.", sentence: "<a data-brain=\"Becca\">Becca’s</a> shows it from the other side: a newcomer asks the team brain first, and a person second." }
       ],
       text: ["Yes: a team brain holds what the team knows together, and answers in the team’s name.", "@replies"],
       by: "Rizom, with the core team and Becca"
@@ -8543,11 +8548,11 @@
   }
   function sources(a) {
     var list = answer.querySelector(".answer__sources");
-    var all = [{ name: "Rizom", piece: a.rizom.piece, kind: a.rizom.kind, href: a.rizom.href }].concat(a.replies.map(function (r) { return { name: r.name, piece: r.piece, kind: r.kind, href: hrefFor(r.name) }; }));
+    var all = [{ name: "Rizom", piece: a.rizom.piece, kind: a.rizom.kind, href: a.rizom.href, excerpt: a.rizom.excerpt }].concat(a.replies.map(function (r) { return { name: r.name, piece: r.piece, kind: r.kind, href: hrefFor(r.name), excerpt: r.excerpt }; }));
     all.forEach(function (s, n) {
       var li = document.createElement("li"); li.setAttribute("data-brain", s.name); li.style.animationDelay = (n * 120) + "ms";
-      li.innerHTML = "<a href=\"" + s.href + "\"><b>" + s.name + "</b><i>" + s.piece + " · " + s.kind + "</i></a>";
-      bindPointing(li, s.name); list.append(li);
+      li.innerHTML = "<a href=\"" + s.href + "\"><b>" + s.name + "</b><i>" + s.piece + " · " + s.kind + "</i></a><q>" + s.excerpt + "</q>";
+      bindPointing(li, s.name); li.querySelector("a").addEventListener("click", function (e) { e.preventDefault(); li.classList.toggle("is-open"); drawLeads(); }); list.append(li);
     });
     later(drawLeads, 450);
   }
@@ -8602,10 +8607,10 @@
     body.querySelectorAll("a[data-brain]").forEach(function (x) { x.setAttribute("href", hrefFor(x.getAttribute("data-brain"))); bindPointing(x, x.getAttribute("data-brain")); });
     d.querySelector(".answer__by").textContent = a.by;
     var list = d.querySelector(".answer__sources");
-    [{ name: "Rizom", piece: a.rizom.piece, kind: a.rizom.kind, href: a.rizom.href }].concat(a.replies.map(function (r) { return { name: r.name, piece: r.piece, kind: r.kind, href: hrefFor(r.name) }; })).forEach(function (src) {
+    [{ name: "Rizom", piece: a.rizom.piece, kind: a.rizom.kind, href: a.rizom.href, excerpt: a.rizom.excerpt }].concat(a.replies.map(function (r) { return { name: r.name, piece: r.piece, kind: r.kind, href: hrefFor(r.name), excerpt: r.excerpt }; })).forEach(function (src) {
       var li = document.createElement("li"); li.setAttribute("data-brain", src.name);
-      li.innerHTML = "<a href=\"" + src.href + "\"><b>" + src.name + "</b><i>" + src.piece + " · " + src.kind + "</i></a>";
-      bindPointing(li, src.name); list.append(li);
+      li.innerHTML = "<a href=\"" + src.href + "\"><b>" + src.name + "</b><i>" + src.piece + " · " + src.kind + "</i></a><q>" + src.excerpt + "</q>";
+      bindPointing(li, src.name); li.querySelector("a").addEventListener("click", function (e) { e.preventDefault(); li.classList.toggle("is-open"); drawLeads(); }); list.append(li);
     });
     d.addEventListener("toggle", function () {
       if (!d.open) { if (!askedList.querySelector("details[open]")) { layer.classList.add("is-fading"); later(function () { lightsOff(); }, 600); } return; }
