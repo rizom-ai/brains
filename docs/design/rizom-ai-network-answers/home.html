@@ -8320,7 +8320,7 @@
 /* The piece in its owner's words, under the source it belongs to. */
 .answer__sources q { display: none; grid-column: 1 / -1; margin: 0 .5rem .5rem calc(5.5rem + .55rem + .5rem); padding: .1rem 0 .1rem .8rem; border-left: 1px solid var(--color-accent); font-family: var(--font-display); font-style: italic; font-size: 1rem; line-height: 1.5; color: var(--color-text); font-variation-settings: "SOFT" 70, "opsz" 24; quotes: "“" "”"; }
 .answer__sources q::before { content: open-quote; } .answer__sources q::after { content: close-quote; }
-.answer__sources li.is-hot q, .answer__sources li.is-open q { display: block; animation: reply-in .35s ease; }
+.answer__sources li:hover q, .answer__sources li:focus-within q, .answer__sources li.is-open q { display: block; animation: reply-in .35s ease; }
 @media (max-width: 60rem) { .answer__sources q { margin-left: .5rem; } }
 /* the drawing listens */
 .net-layer .net-reply { opacity: 0; }
