@@ -9,6 +9,7 @@ import {
   faqAdapter,
   faqMetadata,
   faqSectionSchema,
+  loadPublicFaqs,
   type FaqFrontmatter,
   type FaqStatus,
 } from "../src";
@@ -119,5 +120,34 @@ describe("FaqDataSource", () => {
       answer: "The chosen answer.",
     });
     expect(JSON.stringify(section)).not.toContain("unreviewed alternative");
+  });
+
+  // A site shows the most asked FAQs beside its other content.
+  it("loads the most asked public FAQs for a site, up to a limit", async () => {
+    const preview = await loadPublicFaqs(
+      { entityService: context.entityService, publishedOnly: false },
+      2,
+      createSilentLogger(),
+    );
+    expect(preview.map((faq) => faq.id)).toEqual(["thrice", "draft"]);
+    const production = await loadPublicFaqs(
+      { entityService: context.entityService, publishedOnly: true },
+      6,
+      createSilentLogger(),
+    );
+    expect(production.map((faq) => faq.id)).toEqual(["thrice", "once"]);
+  });
+
+  it("loads none where the brain does not capture FAQs", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-none-${randomUUID()}`,
+    });
+    expect(
+      await loadPublicFaqs(
+        { entityService: harness.getEntityService(), publishedOnly: true },
+        6,
+        createSilentLogger(),
+      ),
+    ).toEqual([]);
   });
 });

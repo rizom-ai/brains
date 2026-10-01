@@ -7,6 +7,13 @@
  */
 export { HomepageAtlas, type SuppliedMap } from "./templates/homepage-atlas";
 export { AskBoxHost } from "./templates/ask-box-host";
+export { HomepageFaqs } from "./templates/homepage-faqs";
+export { homepageFaqsStyles } from "./templates/homepage-faqs-styles";
+export {
+  homepageFaqSchema,
+  homepageFaqsSchema,
+  type HomepageFaq,
+} from "./schemas/homepage-faqs";
 export { homepageAtlasStyles } from "./templates/homepage-atlas-styles";
 export { sampleGrid, traceContours, type ContourGrid } from "./lib/contours";
 export {

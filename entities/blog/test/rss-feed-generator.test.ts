@@ -160,6 +160,37 @@ describe("RSS Feed Generator", () => {
       );
     });
 
+    test("should link to the site's route for each post when provided", () => {
+      const routedPosts = samplePosts.map((post) => ({
+        ...post,
+        url: `/essays/${post.metadata.slug}`,
+      }));
+      const xml = generateRSSFeed(routedPosts, defaultFeedConfig);
+
+      expect(xml).toContain(
+        "<link>https://example.com/essays/first-post</link>",
+      );
+      expect(xml).toContain(
+        '<guid isPermaLink="true">https://example.com/essays/second-post</guid>',
+      );
+      expect(xml).not.toContain("/posts/");
+    });
+
+    test("should not double the slash when the site link ends with one", () => {
+      const routedPosts = samplePosts.map((post) => ({
+        ...post,
+        url: `/essays/${post.metadata.slug}`,
+      }));
+      const xml = generateRSSFeed(routedPosts, {
+        ...defaultFeedConfig,
+        link: "https://example.com/",
+      });
+
+      expect(xml).toContain(
+        "<link>https://example.com/essays/first-post</link>",
+      );
+    });
+
     test("should include guid with isPermaLink=true", () => {
       const xml = generateFeed();
 

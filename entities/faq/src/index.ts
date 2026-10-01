@@ -34,6 +34,7 @@ export {
   FaqDataSource,
   faqItemSchema,
   faqSectionSchema,
+  loadPublicFaqs,
 } from "./datasources/faq-datasource";
 export type { FaqItem, FaqSectionData } from "./datasources/faq-datasource";
 export { FaqSection } from "./templates/faq-section";

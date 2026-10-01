@@ -87,14 +87,17 @@ export type GuestTurnSettlement = z.output<typeof guestTurnSettlementSchema>;
 
 /**
  * What a guest turn screens a visitor's question against, passed in by the
- * box's host beside its execution limits: the site's public topics as its
- * scope, and the refusal a screened-out visitor reads, in the site's words.
+ * box's host beside its execution limits: the brain's public topics and the
+ * owner's introduction as the site's scope, and the refusal a screened-out
+ * visitor reads, in the site's words.
  */
 export const guestScreeningSchema: Strict<{
   topics: z.ZodArray<z.ZodString>;
+  introduction: z.ZodOptional<z.ZodString>;
   refusal: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
   topics: z.array(z.string().trim().min(1).max(500)).max(20),
+  introduction: z.string().trim().min(1).max(4000).optional(),
   refusal: z.string().trim().min(1).max(500).optional(),
 });
 export type GuestScreening = z.output<typeof guestScreeningSchema>;

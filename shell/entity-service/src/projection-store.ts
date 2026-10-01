@@ -286,27 +286,37 @@ export class ProjectionStore {
     input: MarkProjectionDirtyInput,
     mutation: (transaction: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
-    const parsed = dirtyInputSchema.parse(input);
+    return this.withDirtyInputs([input], mutation);
+  }
+
+  /** Commit all dirty inputs with their mutation in one batch-owned transaction. */
+  public withDirtyInputs<TResult>(
+    inputs: readonly MarkProjectionDirtyInput[],
+    mutation: (transaction: EntityTransaction) => Promise<TResult>,
+  ): Promise<TResult> {
+    const parsedInputs = z.array(dirtyInputSchema).min(1).parse(inputs);
     return this.batches.runMutationTransaction(
       async (transaction, recordGeneration) => {
         const result = await mutation(transaction);
-        await transaction
-          .delete(projectionEntityOwners)
-          .where(
-            and(
-              eq(projectionEntityOwners.entityType, parsed.sourceType),
-              eq(projectionEntityOwners.entityId, parsed.sourceId),
-            ),
-          );
-        const rows = await transaction
-          .insert(projectionDirtyInputs)
-          .values(parsed)
-          .returning({ generation: projectionDirtyInputs.generation });
-        const generation = rows[0]?.generation;
-        if (generation === undefined) {
-          throw new Error("Failed to persist projection dirty input");
+        for (const parsed of parsedInputs) {
+          await transaction
+            .delete(projectionEntityOwners)
+            .where(
+              and(
+                eq(projectionEntityOwners.entityType, parsed.sourceType),
+                eq(projectionEntityOwners.entityId, parsed.sourceId),
+              ),
+            );
+          const rows = await transaction
+            .insert(projectionDirtyInputs)
+            .values(parsed)
+            .returning({ generation: projectionDirtyInputs.generation });
+          const generation = rows[0]?.generation;
+          if (generation === undefined) {
+            throw new Error("Failed to persist projection dirty input");
+          }
+          await recordGeneration(generation);
         }
-        await recordGeneration(generation);
         return result;
       },
     );
