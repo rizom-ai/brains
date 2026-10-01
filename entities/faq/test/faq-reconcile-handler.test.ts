@@ -200,9 +200,13 @@ describe("FaqReconcileHandler", () => {
     // it, just before reconcile removes it.
     const askedMeanwhile: FaqReconcileDeps["entityService"] = {
       ...context.entityService,
-      deleteEntity: async (request) => {
+      foldEntity: async (request) => {
         const current = await context.entityService.getEntity(
-          { entityType: "faq", id: request.id, visibilityScope: "restricted" },
+          {
+            entityType: "faq",
+            id: request.source.id,
+            visibilityScope: "restricted",
+          },
           faqSchema,
         );
         if (current) {
@@ -216,13 +220,13 @@ describe("FaqReconcileHandler", () => {
               ...current,
               content: faqAdapter.createFaqContent(
                 frontmatter,
-                `Answer ${request.id}.`,
+                `Answer ${request.source.id}.`,
               ),
               metadata: faqMetadata(frontmatter),
             },
           });
         }
-        return context.entityService.deleteEntity(request);
+        return context.entityService.foldEntity(request);
       },
     };
 
@@ -240,30 +244,24 @@ describe("FaqReconcileHandler", () => {
     ]);
   });
 
-  it("restores the duplicate when the FAQ it folds into disappears", async () => {
+  it("preserves the duplicate when the FAQ it folds into disappears", async () => {
     await seed("older", { created: "2026-09-01T00:00:00.000Z" });
     await seed("newer", { created: "2026-09-02T00:00:00.000Z", asked: 2 });
     near("newer", "older");
     const vanishingTarget: FaqReconcileDeps["entityService"] = {
       ...context.entityService,
-      updateEntity: async (request) => {
-        if (request.entity.id === "older") {
-          await context.entityService.deleteEntity({
-            entityType: "faq",
-            id: "older",
-          });
-          throw new Error("Entity not found: faq:older");
-        }
-        return context.entityService.updateEntity(request);
+      foldEntity: async (request) => {
+        await context.entityService.deleteEntity({
+          entityType: "faq",
+          id: "older",
+        });
+        return context.entityService.foldEntity(request);
       },
     };
 
-    const failure = await reconcile("newer", vanishingTarget).then(
-      () => undefined,
-      (error: unknown) => error,
-    );
-
-    expect(failure).toBeInstanceOf(Error);
+    expect(await reconcile("newer", vanishingTarget)).toEqual({
+      outcome: "changed",
+    });
     const remaining = await faqs();
     expect(remaining.map((faq) => faq.id)).toEqual(["newer"]);
     expect(remaining[0]?.metadata.asked).toBe(2);

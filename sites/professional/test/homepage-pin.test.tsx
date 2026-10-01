@@ -108,6 +108,7 @@ const page: HomepageListData = {
     contactLabel: "Write to me",
     contactNote: "I read these myself.",
     mapCaption: "My published work, by topic",
+    faqHeading: null,
   },
 };
 

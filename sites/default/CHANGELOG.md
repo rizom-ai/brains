@@ -1,5 +1,47 @@
 # @brains/site-default
 
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.466
+
 ## 0.2.0-alpha.465
 
 ### Patch Changes

@@ -1,5 +1,59 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/job-queue@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/job-queue@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/job-queue@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/job-queue@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/job-queue@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/job-queue@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+
 ## 0.2.0-alpha.465
 
 ### Patch Changes

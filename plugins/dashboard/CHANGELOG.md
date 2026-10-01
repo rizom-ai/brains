@@ -1,5 +1,83 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.471
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/operator-view-react@0.2.0-alpha.471
+  - @brains/ui-library@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/auth-service@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.470
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/operator-view-react@0.2.0-alpha.470
+  - @brains/ui-library@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/auth-service@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.469
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/operator-view-react@0.2.0-alpha.469
+  - @brains/ui-library@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/auth-service@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.468
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/operator-view-react@0.2.0-alpha.468
+  - @brains/ui-library@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/auth-service@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.467
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/operator-view-react@0.2.0-alpha.467
+  - @brains/ui-library@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/auth-service@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.466
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/operator-view-react@0.2.0-alpha.466
+  - @brains/ui-library@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/auth-service@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+
 ## 0.2.0-alpha.465
 
 ### Patch Changes
