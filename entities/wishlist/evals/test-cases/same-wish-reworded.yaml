@@ -1,0 +1,20 @@
+id: wishlist-same-wish-reworded
+name: A reworded wish is the same wish
+description: Two phrasings of one unmet request fall within the same-wish distance.
+type: plugin
+tags: [wishlist, dedup]
+plugin: wishlist
+handler: sameWish
+
+input:
+  stored:
+    title: Water my plants every morning
+    description: User wants the brain to water their plants every morning.
+  incoming:
+    title: Water houseplants each day
+    description: User asked whether the assistant could take care of watering their houseplants daily.
+
+expectedOutput:
+  validateEach:
+    - path: sameWish
+      equals: true

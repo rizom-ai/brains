@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { SHELL_CHANNELS } from "@brains/contracts";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import { waitForEmbeddingsToDrain } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
@@ -211,19 +211,6 @@ async function clearTopics(context: EntityPluginContext): Promise<void> {
   );
 }
 
-/**
- * Wait until the embedding queue is empty so seeded topics are searchable
- * before an eval invokes a handler that depends on vector search.
- */
-async function waitForEmbeddingsToDrain(
-  context: EntityPluginContext,
-): Promise<void> {
-  const active = await context.jobs.getActiveJobs([SHELL_CHANNELS.embedding]);
-  if (active.length === 0) return;
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return waitForEmbeddingsToDrain(context);
-}
-
 export function registerTopicEvalHandlers(params: {
   context: EntityPluginContext;
   logger: Logger;
@@ -270,7 +257,7 @@ export function registerTopicEvalHandlers(params: {
         const created = await topicService.createTopic(topic);
         if (created) seededA.push(created);
       }
-      await waitForEmbeddingsToDrain(context);
+      await waitForEmbeddingsToDrain(context.jobs);
 
       const mergeCandidates = (
         await Promise.all(
@@ -326,7 +313,7 @@ export function registerTopicEvalHandlers(params: {
         if (created) seeded.push(created);
       }
 
-      await waitForEmbeddingsToDrain(context);
+      await waitForEmbeddingsToDrain(context.jobs);
 
       const candidate = await topicService.findMergeCandidate({
         incoming: {
@@ -359,7 +346,7 @@ export function registerTopicEvalHandlers(params: {
         });
       }
 
-      await waitForEmbeddingsToDrain(context);
+      await waitForEmbeddingsToDrain(context.jobs);
 
       const sourceEntity = createEntityFromInput(
         {
@@ -441,7 +428,7 @@ export function registerTopicEvalHandlers(params: {
         });
       }
 
-      await waitForEmbeddingsToDrain(context);
+      await waitForEmbeddingsToDrain(context.jobs);
 
       const result = await reconcileTopics({
         context,

@@ -1,0 +1,20 @@
+id: wishlist-same-wish-near-miss
+name: Sending emails and stopping them are different wishes
+description: Near-identical wording with opposite requests must not merge.
+type: plugin
+tags: [wishlist, dedup]
+plugin: wishlist
+handler: sameWish
+
+input:
+  stored:
+    title: Send emails
+    description: User wants the brain to send emails on their behalf.
+  incoming:
+    title: Stop sending emails
+    description: User wants the brain to stop sending emails on their behalf.
+
+expectedOutput:
+  validateEach:
+    - path: sameWish
+      equals: false

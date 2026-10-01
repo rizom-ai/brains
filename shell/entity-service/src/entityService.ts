@@ -1015,7 +1015,7 @@ export class EntityService implements IEntityService {
     await this.initialize();
     const results = await this.entitySearch.search(
       request.query,
-      request.options,
+      this.withBroadSearchExclusions(request.options),
     );
     request.options?.signal?.throwIfAborted();
     return schema
@@ -1024,6 +1024,28 @@ export class EntityService implements IEntityService {
           entity: schema.parse(result.entity),
         }))
       : results;
+  }
+
+  /**
+   * A search naming no types leaves out types that opted out of broad search;
+   * a search naming types is taken as asked.
+   */
+  private withBroadSearchExclusions(
+    options: SearchOptions | undefined,
+  ): SearchOptions | undefined {
+    if (options?.types && options.types.length > 0) return options;
+    const optedOut = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          this.entityRegistry.getEntityTypeConfig(type).includeInBroadSearch ===
+          false,
+      );
+    if (optedOut.length === 0) return options;
+    return {
+      ...options,
+      excludeTypes: [...(options?.excludeTypes ?? []), ...optedOut],
+    };
   }
 
   public async searchEntities(
@@ -1041,7 +1063,10 @@ export class EntityService implements IEntityService {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     await this.initialize();
-    return this.entitySearch.searchWithDistances(request.query);
+    return this.entitySearch.searchWithDistances(request.query, {
+      types: request.types,
+      maxDistance: request.maxDistance,
+    });
   }
 
   public async projectSemanticSpace(

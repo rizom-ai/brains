@@ -134,21 +134,17 @@ export class MCPService implements IMCPService {
    * Register a tool with the MCP server
    */
   public registerTool(pluginId: string, tool: Tool): void {
+    if (this.registeredTools.has(tool.name)) {
+      throw new Error(`Tool ${tool.name} is already registered`);
+    }
     const validatedTool = wrapToolWithResponseValidation(
       pluginId,
       tool,
       this.logger,
     );
 
-    // Always store in the internal registry. The agent reads from here via
-    // listToolsForPermissionLevel() which filters per-call. Without this,
-    // setPermissionLevel("public") called by an interface before system tools
-    // are registered would silently drop Admin tools from the registry.
-    this.registeredTools.set(validatedTool.name, {
-      pluginId,
-      tool: validatedTool,
-    });
-
+    // Commit ownership only after protocol registration succeeds. Hidden tools
+    // still enter the registry so permission changes can expose them later.
     // Only expose on the MCP protocol server if transport permission allows.
     if (
       canExposeToolOnProtocol(
@@ -165,6 +161,10 @@ export class MCPService implements IMCPService {
       );
     }
 
+    this.registeredTools.set(validatedTool.name, {
+      pluginId,
+      tool: validatedTool,
+    });
     this.logger.debug(`Registered tool ${validatedTool.name} from ${pluginId}`);
   }
 
@@ -172,14 +172,16 @@ export class MCPService implements IMCPService {
    * Register a resource with the MCP server
    */
   public registerResource(pluginId: string, resource: Resource): void {
-    // Always store in internal registry (same pattern as registerTool).
-    this.registeredResources.set(resource.uri, { pluginId, resource });
+    if (this.registeredResources.has(resource.uri)) {
+      throw new Error(`Resource ${resource.uri} is already registered`);
+    }
 
     // Only expose on MCP protocol server if transport permission allows.
     if (canExposeResource(this.permissionLevel)) {
       registerResourceOnServer(this.mcpServer, resource);
     }
 
+    this.registeredResources.set(resource.uri, { pluginId, resource });
     this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
   }
 
@@ -195,12 +197,21 @@ export class MCPService implements IMCPService {
     pluginId: string,
     template: ResourceTemplate<K>,
   ): void {
-    this.registeredTemplates.push({ pluginId, template });
+    if (
+      this.registeredTemplates.some(
+        (entry) => entry.template.name === template.name,
+      )
+    ) {
+      throw new Error(
+        `Resource template ${template.name} is already registered`,
+      );
+    }
 
     if (canExposeResourceTemplate(this.permissionLevel)) {
       registerResourceTemplateOnServer(this.mcpServer, template);
     }
 
+    this.registeredTemplates.push({ pluginId, template });
     this.logger.debug(
       `Registered resource template ${template.uriTemplate} from ${pluginId}`,
     );
@@ -215,12 +226,17 @@ export class MCPService implements IMCPService {
    * prompt if the current permission allows it.
    */
   public registerPrompt(pluginId: string, prompt: Prompt): void {
-    this.registeredPrompts.push({ pluginId, prompt });
+    if (
+      this.registeredPrompts.some((entry) => entry.prompt.name === prompt.name)
+    ) {
+      throw new Error(`Prompt ${prompt.name} is already registered`);
+    }
 
     if (canExposePrompt(this.permissionLevel, prompt)) {
       registerPromptOnServer(this.mcpServer, prompt);
     }
 
+    this.registeredPrompts.push({ pluginId, prompt });
     this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
   }
 

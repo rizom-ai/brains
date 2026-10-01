@@ -87,6 +87,7 @@ import {
 import { WishAdapter, wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
+import { registerWishlistEvalHandlers } from "./lib/eval-handlers";
 import packageJson from "../package.json";
 
 const wishEntityType = "wish";
@@ -124,7 +125,11 @@ export class WishlistPlugin extends EntityPlugin<
       };
     }
 
-    const result = await new WishCreateHandler(this.logger, context).process(
+    const result = await new WishCreateHandler(
+      this.logger,
+      context,
+      this.config.sameWishDistance,
+    ).process(
       {
         ...(input.title ? { title: input.title } : {}),
         ...(input.prompt ? { prompt: input.prompt } : {}),
@@ -159,6 +164,11 @@ export class WishlistPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    registerWishlistEvalHandlers({
+      context,
+      sameWishDistance: this.config.sameWishDistance,
+    });
+
     // Dashboard widget
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await registerBuiltInDashboardWidget({
@@ -190,7 +200,11 @@ export class WishlistPlugin extends EntityPlugin<
     });
 
     // Custom create handler with semantic dedup
-    const handler = new WishCreateHandler(this.logger, context);
+    const handler = new WishCreateHandler(
+      this.logger,
+      context,
+      this.config.sameWishDistance,
+    );
     context.jobs.registerHandler("wish:create", {
       process: handler.process.bind(handler),
       validateAndParse: (data: unknown) => data,

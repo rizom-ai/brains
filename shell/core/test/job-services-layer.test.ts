@@ -33,7 +33,7 @@ class TrackingProgressMonitor implements IJobProgressMonitor {
 
   public start(): void {}
 
-  public stop(): void {
+  public async stop(): Promise<void> {
     this.order.push("progress");
     if (this.failure !== undefined) throw this.failure;
   }

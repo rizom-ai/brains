@@ -43,6 +43,7 @@ const expectedCatalogIds = [
   "stock-photo",
   "atproto",
   "conversation-memory",
+  "faq",
   "docs",
   "obsidian-vault",
   "email-workflows",

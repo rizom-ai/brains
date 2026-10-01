@@ -1,0 +1,22 @@
+id: faq-classify-keeps-answer-facts
+name: The rewrite keeps the answer's facts
+description: The standalone answer keeps every topic from the original and stays reusable.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: what topics do you mostly write about?
+  answer: Mostly decision governance, documentation integrity and green software engineering.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: true
+    - path: answer
+      matches: "[Dd]ecision governance"
+    - path: answer
+      matches: "[Dd]ocumentation integrity"
+    - path: answer
+      matches: "[Gg]reen software"

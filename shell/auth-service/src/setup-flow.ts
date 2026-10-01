@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { SerialQueue } from "@brains/utils/serial-queue";
 import type { PasskeyService } from "./passkey-service";
 import {
   setupTokenId,
@@ -48,6 +49,7 @@ export class SetupFlow {
   private readonly setupTokenTtlSeconds: number;
   private readonly resolveSessionUserId:
     ((request: Request) => Promise<string | undefined>) | undefined;
+  private readonly setupOperations = new SerialQueue();
   private setupToken: SetupTokenState | undefined;
 
   constructor(options: SetupFlowOptions) {
@@ -58,7 +60,13 @@ export class SetupFlow {
     this.resolveSessionUserId = options.resolveSessionUserId;
   }
 
-  async ensureSetupToken(): Promise<SetupTokenState | undefined> {
+  ensureSetupToken(): Promise<SetupTokenState | undefined> {
+    return this.setupOperations.run(() => this.ensureSetupTokenInternal());
+  }
+
+  private async ensureSetupTokenInternal(): Promise<
+    SetupTokenState | undefined
+  > {
     const currentSetupToken = this.getValidSetupToken();
     if (currentSetupToken) return currentSetupToken;
 
@@ -80,12 +88,13 @@ export class SetupFlow {
   }
 
   private async createSetupToken(): Promise<SetupTokenState> {
-    this.setupToken = {
+    const setupToken = {
       token: `setup_${randomUUID()}`,
       expiresAt: Math.floor(Date.now() / 1000) + this.setupTokenTtlSeconds,
     };
-    await this.setupStateStore.saveSetupToken(this.setupToken);
-    return this.setupToken;
+    await this.setupStateStore.saveSetupToken(setupToken);
+    this.setupToken = setupToken;
+    return setupToken;
   }
 
   getValidSetupToken(): SetupTokenState | undefined {
@@ -125,17 +134,21 @@ export class SetupFlow {
   }
 
   /** Consume the supplied setup token once registration completes. */
-  async consumeSetupToken(token: string): Promise<void> {
-    if (this.setupToken?.token === token) {
-      this.setupToken = undefined;
-    }
-    await this.setupStateStore.consumeSetupToken(token);
+  consumeSetupToken(token: string): Promise<void> {
+    return this.setupOperations.run(async () => {
+      if (this.setupToken?.token === token) {
+        this.setupToken = undefined;
+      }
+      await this.setupStateStore.consumeSetupToken(token);
+    });
   }
 
   /** Clear first-Anchor setup state after initial bootstrap completes. */
-  async clearSetupState(): Promise<void> {
-    this.setupToken = undefined;
-    await this.setupStateStore.clearSetupState();
+  clearSetupState(): Promise<void> {
+    return this.setupOperations.run(async () => {
+      this.setupToken = undefined;
+      await this.setupStateStore.clearSetupState();
+    });
   }
 
   getSetupUrl(issuer: string): string | undefined {
@@ -147,28 +160,30 @@ export class SetupFlow {
     );
   }
 
-  async getPasskeySetupRequired(
+  getPasskeySetupRequired(
     issuer: string,
     options: { rotateHidden?: boolean } = {},
   ): Promise<PasskeySetupRequired | undefined> {
-    if (await this.passkeyService.hasCredentials()) return undefined;
-    let setupToken = this.getValidSetupToken();
-    if (!setupToken && options.rotateHidden) {
-      const now = Math.floor(Date.now() / 1000);
-      if (await this.setupStateStore.hasActiveSetupDelivery(now)) {
-        return undefined;
+    return this.setupOperations.run(async () => {
+      if (await this.passkeyService.hasCredentials()) return undefined;
+      let setupToken = this.getValidSetupToken();
+      if (!setupToken && options.rotateHidden) {
+        const now = Math.floor(Date.now() / 1000);
+        if (await this.setupStateStore.hasActiveSetupDelivery(now)) {
+          return undefined;
+        }
+        setupToken = await this.createSetupToken();
       }
-      setupToken = await this.createSetupToken();
-    }
-    if (!setupToken) return undefined;
-    return {
-      setupUrl: absoluteUrl(
-        issuer,
-        `/setup?token=${encodeURIComponent(setupToken.token)}`,
-      ),
-      expiresAt: setupToken.expiresAt,
-      setupTokenId: setupTokenId(setupToken.token),
-    };
+      if (!setupToken) return undefined;
+      return {
+        setupUrl: absoluteUrl(
+          issuer,
+          `/setup?token=${encodeURIComponent(setupToken.token)}`,
+        ),
+        expiresAt: setupToken.expiresAt,
+        setupTokenId: setupTokenId(setupToken.token),
+      };
+    });
   }
 
   async createUserPasskeySetup(

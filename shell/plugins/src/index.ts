@@ -15,6 +15,13 @@ export {
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
+export { findNearestEntity } from "./entity/nearest-entity";
+export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
+export type { EmbeddingDrainOptions } from "./entity/embedding-drain";
+export type {
+  NearestEntityDeps,
+  NearestEntityQuery,
+} from "./entity/nearest-entity";
 export {
   reconcileEntities,
   type ReconcileEntitiesOptions,
@@ -629,6 +636,7 @@ export type {
   IConversationService,
 } from "@brains/conversation-service";
 export {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,

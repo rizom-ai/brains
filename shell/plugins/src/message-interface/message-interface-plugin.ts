@@ -355,12 +355,42 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
-   * Lifecycle hook - sets up progress subscription
+   * Registers the channels this interface owns and their senders. It runs
+   * first in every registration, and it is all the worker runs, so a
+   * background job can send on the channel: it must not connect, listen or
+   * subscribe.
+   */
+  protected registerChannels(
+    _context: MessageInterfacePluginContext,
+  ): void | Promise<void> {
+    // Interfaces that own no channel register none.
+  }
+
+  /**
+   * Worker registration: this interface's channels and senders, and nothing
+   * else of it — no daemon, routes, message handlers or lifecycle hooks.
+   */
+  public async registerChannelsForExecution(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
+    const context = this.createContext(shell, {
+      ...registrationContext,
+      executionOnly: true,
+    });
+    this.context = context;
+    await this.registerChannels(context);
+  }
+
+  /**
+   * Lifecycle hook - registers the interface's channels, then sets up
+   * progress subscription
    */
   protected override async onRegister(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    await this.registerChannels(context);
 
     // Setup progress event subscription
     setupProgressHandler(context, {

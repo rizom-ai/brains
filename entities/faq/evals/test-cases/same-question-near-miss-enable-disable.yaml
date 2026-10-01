@@ -1,0 +1,20 @@
+id: faq-same-question-near-miss-enable-disable
+name: Enable and disable are different questions
+description: Near-identical wording with opposite actions must not merge.
+type: plugin
+tags: [faq, dedup]
+plugin: faq
+handler: sameQuestion
+
+input:
+  stored:
+    question: How do I enable guest chat on my site?
+    answer: Open Studio's Guest chat workspace, set a monthly budget and switch guest chat on.
+  incoming:
+    question: How do I disable guest chat on my site?
+    answer: Open Studio's Guest chat workspace and switch guest chat off; new questions are refused at once.
+
+expectedOutput:
+  validateEach:
+    - path: sameQuestion
+      equals: false
