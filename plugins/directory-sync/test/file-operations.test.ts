@@ -485,6 +485,35 @@ describe("FileOperations", () => {
       expect(existsSync(join(testDir, "image", "photo.png"))).toBe(false);
     });
 
+    it("writes the decoded bytes of a data URL that ends in a newline", async () => {
+      const entity = createTestEntity("image", {
+        id: "text-form",
+        content: `${TINY_PNG_DATA_URL}\n`,
+        metadata: { format: "png" },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      expect(
+        readFileSync(join(testDir, "image", "text-form.png")).equals(
+          TINY_PNG_BYTES,
+        ),
+      ).toBe(true);
+    });
+
+    it("refuses to write content that is not a base64 data URL", async () => {
+      const entity = createTestEntity("image", {
+        id: "not-a-data-url",
+        content: "# not an image",
+        metadata: { format: "png" },
+      });
+
+      expect(fileOps.writeEntity(entity)).rejects.toThrow("data URL");
+      expect(existsSync(join(testDir, "image", "not-a-data-url.png"))).toBe(
+        false,
+      );
+    });
+
     it("should roundtrip image entities correctly", async () => {
       const entity = createTestEntity("image", {
         id: "roundtrip-test",

@@ -277,13 +277,19 @@ export class FileOperations {
         await this.writeDocumentSidecar(entity, filePath);
       }
     } else if (isImage || isDocument) {
+      // Text-form files leave a trailing newline, and payloads may wrap.
       const dataUrlPattern = isImage
-        ? /^data:image\/[a-z+]+;base64,(.+)$/i
-        : /^data:application\/pdf;base64,(.+)$/i;
-      const match = entity.content.match(dataUrlPattern);
-      const contentToWrite = match?.[1]
-        ? Buffer.from(match[1], "base64")
-        : Buffer.from(entity.content, "base64");
+        ? /^data:image\/[a-z0-9.+-]+;base64,([\s\S]+)$/i
+        : /^data:application\/pdf;base64,([\s\S]+)$/i;
+      const payload = dataUrlPattern.exec(entity.content.trim())?.[1];
+      // Never decode anything else as base64: that silently drops the
+      // non-base64 characters and writes garbage the next import keeps.
+      if (!payload) {
+        throw new Error(
+          `Refusing to export ${entity.entityType}:${entity.id}: content is not a base64 data URL`,
+        );
+      }
+      const contentToWrite = Buffer.from(payload.replace(/\s/g, ""), "base64");
 
       let binaryUnchanged = false;
       if (await pathExists(filePath)) {
