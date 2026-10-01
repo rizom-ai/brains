@@ -17,6 +17,34 @@ const publishedOnlyFor = (
 ): { publishedOnly?: true } =>
   visibilityScope === "public" ? { publishedOnly: true } : {};
 
+interface BelowThreshold {
+  minScore: number;
+  weakerMatches: number;
+  bestScore: number;
+  hint: string;
+}
+
+/**
+ * An empty result above `minScore` is not evidence that nothing exists: broad
+ * or abstract questions match content only weakly. When weaker candidates
+ * exist, say so, so the model searches again instead of concluding absence.
+ */
+function describeWeakerMatches(
+  candidates: readonly { score: number }[],
+  minScore: number,
+): BelowThreshold | undefined {
+  if (candidates.length === 0) return undefined;
+  const bestScore =
+    Math.round(Math.max(...candidates.map((result) => result.score)) * 100) /
+    100;
+  return {
+    minScore,
+    weakerMatches: candidates.length,
+    bestScore,
+    hint: `No result reached minScore ${minScore}, but ${candidates.length} weaker match${candidates.length === 1 ? "" : "es"} exist (best score ${bestScore}). Broad or abstract questions match content weakly: search again with a lower minScore, such as 0.3, before concluding that nothing relevant exists.`,
+  };
+}
+
 export function createEntityReadTools(services: SystemServices): Tool[] {
   const { entityService, logger } = services;
 
@@ -24,33 +52,42 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "search",
-      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. Search results include each matched entity's content. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
+      "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. An empty result with belowThreshold means weaker matches exist: search again with a lower minScore before concluding that nothing relevant exists. Search results include each matched entity's content. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
       async (input, context) => {
         assertGuestReader(context);
         const visibilityScope = permissionToVisibilityScope(
           context.userPermissionLevel,
         );
+        const minScore = input.minScore ?? DEFAULT_SYSTEM_SEARCH_MIN_SCORE;
+        // Ranked by score before the limit applies, so filtering the top
+        // candidates by minScore equals a thresholded search, and the
+        // candidates below it cost no second query.
+        const candidates = await entityService.search({
+          query: input.query,
+          options: {
+            limit: input.limit ?? services.searchLimit,
+            ...(input.scope.kind === "type" && {
+              types: [input.scope.entityType],
+            }),
+            ...(input.includeUngenerated !== undefined && {
+              includeUngenerated: input.includeUngenerated,
+            }),
+            visibilityScope,
+            ...publishedOnlyFor(visibilityScope),
+          },
+        });
+        const results = candidates.filter(
+          (candidate) => candidate.score >= minScore,
+        );
+        const belowThreshold =
+          results.length === 0
+            ? describeWeakerMatches(candidates, minScore)
+            : undefined;
         return {
           success: true,
           data: {
-            results: (
-              await entityService.search({
-                query: input.query,
-                options: {
-                  limit: input.limit ?? services.searchLimit,
-                  ...(input.scope.kind === "type" && {
-                    types: [input.scope.entityType],
-                  }),
-                  minScore: input.minScore ?? DEFAULT_SYSTEM_SEARCH_MIN_SCORE,
-                  ...(input.includeUngenerated !== undefined && {
-                    includeUngenerated: input.includeUngenerated,
-                  }),
-                  visibilityScope,
-                  ...publishedOnlyFor(visibilityScope),
-                },
-              })
-            ).map((r) => {
+            results: results.map((r) => {
               const entity = sanitizeEntity(r.entity, services.entityRegistry);
               return {
                 ...r,
@@ -58,6 +95,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                 ...(entity !== r.entity ? { excerpt: entity.content } : {}),
               };
             }),
+            ...(belowThreshold && { belowThreshold }),
           },
         };
       },

@@ -14,24 +14,20 @@ import {
   SITE_METADATA_UPDATED_CHANNEL,
 } from "@brains/site-composition";
 import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
-import {
-  contactPluginConfigSchema,
-  type ContactPluginConfig,
-} from "../src/config";
+import type { ContactPluginConfig } from "../src/config";
 import { admissionPolicy, input, peer } from "./intake-fixture";
 
 type RecurringCheckDefinition = Parameters<
   ServicePluginContext["recurringChecks"]["register"]
 >[0];
+// The brain's domain gives the intake its origin; the tests tighten the
+// policy's limits to the fixture's small ones.
 const origin = "https://brain.test";
+const inboxUrl = `${origin}/studio/workspaces/unified-inbox%3Ainbox`;
 const config: ContactPluginConfig = {
   intake: {
-    http: { origin, maxBodyBytes: 20000, readTimeoutMs: 10000 },
     admission: admissionPolicy,
-    storage: { retentionSeconds: 86400, maxRecords: 10, maxBytes: 100000 },
-    delivery: { maxAttempts: 3, retryWindowSeconds: 3600 },
-    inboxUrl: `${origin}/studio/workspaces/unified-inbox%3Ainbox`,
-    preview: true,
+    storage: { maxRecords: 10, maxBytes: 100000 },
   },
 };
 type Harness = ReturnType<typeof createPluginHarness>;
@@ -40,18 +36,20 @@ type Harness = ReturnType<typeof createPluginHarness>;
 async function setup(
   executionOnly = false,
   sharesStateWith?: Harness,
+  brain: Parameters<typeof createPluginHarness>[0] = { domain: "brain.test" },
 ): Promise<{
   h: Harness;
   shell: ReturnType<Harness["getMockShell"]>;
   checks: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
+  /** The site pages the plugin declared while registering. */
+  pages: unknown[];
   /** What the owner's email transport answers; switch to fail an alert. */
   transport: { status: "sent" | "failed" };
   plugin: ContactPlugin;
   handlers: Map<string, JobHandler>;
 }> {
-  // The deployment domain gives the runtime its site and preview URLs.
-  const h = createPluginHarness({ domain: "brain.test" });
+  const h = createPluginHarness(brain);
   const shell = h.getMockShell();
   if (sharesStateWith)
     spyOn(shell, "getRuntimeState").mockReturnValue(
@@ -86,6 +84,11 @@ async function setup(
       },
     },
   ]);
+  const pages: unknown[] = [];
+  h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+    pages.push(message.payload);
+    return { success: true };
+  });
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
@@ -111,7 +114,7 @@ async function setup(
     defaultRecipient: { type: "email", address: "owner@example.com" },
   }).register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
-  return { h, shell, checks, sent, transport, plugin, handlers };
+  return { h, shell, checks, sent, pages, transport, plugin, handlers };
 }
 async function submit(plugin: ContactPlugin): Promise<Response> {
   const get = plugin
@@ -139,9 +142,41 @@ async function submit(plugin: ContactPlugin): Promise<Response> {
 }
 
 describe("contact runtime", () => {
-  it("is default-off and requires complete explicit policy", () => {
+  it("serves nothing before it registers, and needs no configuration once it has", async () => {
     expect(new ContactPlugin().getWebRoutes()).toEqual([]);
-    expect(() => contactPluginConfigSchema.parse({ intake: {} })).toThrow();
+    const h = createPluginHarness({ domain: "brain.test" });
+    const plugin = new ContactPlugin();
+    await plugin.register(h.getMockShell());
+    expect(
+      plugin.getWebRoutes().map((route) => `${route.method} ${route.path}`),
+    ).toEqual(["GET /contact", "POST /contact", "GET /contact/thanks"]);
+    await plugin.shutdown();
+  });
+  it("takes the brain's local site URL while the brain prefers local URLs", async () => {
+    const f = await setup(false, undefined, {
+      localSiteUrl: "http://localhost:8080",
+      preferLocalUrls: true,
+    });
+    await f.plugin.ready();
+    const get = f.plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/contact" && route.method === "GET");
+    const status = async (url: string): Promise<number | undefined> =>
+      (await get?.handler(new Request(url), { remoteAddress: "127.0.0.1" }))
+        ?.status;
+    expect(await status("http://localhost:8080/contact")).toBe(200);
+    // And the webserver's local preview host beside it.
+    expect(await status("http://preview.localhost:8080/contact")).toBe(200);
+    expect(await status("https://brain.test/contact")).toBe(403);
+    await f.plugin.shutdown();
+  });
+  it("refuses to register on a brain that has no site URL", async () => {
+    const h = createPluginHarness({});
+    expect(
+      await new ContactPlugin()
+        .register(h.getMockShell())
+        .catch((error: unknown) => error),
+    ).toEqual(new Error("Contact intake needs the brain's site URL"));
   });
   it("gates startup, saves/enqueues without sending inline, then executes a private generic notification", async () => {
     const f = await setup();
@@ -177,7 +212,7 @@ describe("contact runtime", () => {
       {
         recipient: "owner@example.com",
         subject: "New contact request",
-        text: `A contact request is saved in your authenticated Inbox.\n\n${config.intake?.inboxUrl}`,
+        text: `A contact request is saved in your authenticated Inbox.\n\n${inboxUrl}`,
         sensitivity: "secret",
         idempotencyKey: expect.stringMatching(/^contact-notification:contact-/),
       },
@@ -236,7 +271,7 @@ describe("contact runtime", () => {
     await f.plugin.shutdown();
   });
 
-  it("serves the deployment's preview host when preview is on", async () => {
+  it("serves the deployment's preview host beside its origin", async () => {
     const f = await setup();
     await f.plugin.ready();
     const get = f.plugin
@@ -318,7 +353,20 @@ describe("contact runtime", () => {
 
   it("in a separate worker, declares the form for site builds and runs maintenance, but never serves", async () => {
     const f = await setup(true);
-    await f.plugin.ready();
+    // The site builds in this worker, which never runs the ready phase, so
+    // the pages are declared while registering.
+    expect(f.pages).toEqual([
+      {
+        pluginId: "contact",
+        routes: [
+          expect.objectContaining({ id: "contact", path: "/contact" }),
+          expect.objectContaining({
+            id: "contact-thanks",
+            path: "/contact/thanks",
+          }),
+        ],
+      },
+    ]);
     const routes = f.plugin.getWebRoutes();
     expect(routes.map((route) => `${route.method} ${route.path}`)).toEqual([
       "GET /contact",
@@ -448,11 +496,7 @@ describe("contact runtime", () => {
 describe("the contact page in the site", () => {
   it("gives the site a /contact page with a slot for the form, and its thanks page", async () => {
     const f = await setup();
-    const registered: unknown[] = [];
-    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
-      registered.push(message.payload);
-      return { success: true };
-    });
+    const registered = f.pages;
     await f.plugin.ready();
     const component = f.h.getTemplates().get("contact:page")?.layout?.component;
     if (!component) throw new Error("Missing contact:page template");
@@ -475,18 +519,5 @@ describe("the contact page in the site", () => {
         ],
       },
     ]);
-  });
-
-  it("adds no page to a site without the form configured", async () => {
-    const h = createPluginHarness({ domain: "brain.test" });
-    const registered: unknown[] = [];
-    h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
-      registered.push(message.payload);
-      return { success: true };
-    });
-    const plugin = new ContactPlugin();
-    await plugin.register(h.getMockShell());
-    await plugin.ready();
-    expect(registered).toEqual([]);
   });
 });

@@ -1,5 +1,86 @@
 # @rizom/brain
 
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- [#462](https://github.com/rizom-ai/brains/pull/462) [`aa4fd04`](https://github.com/rizom-ai/brains/commit/aa4fd046bc0b4103168ac49f5d3ea0927c29172c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ capture now includes site visitors' questions. A reply to a visitor becomes a public draft FAQ for the owner to review, merges with the same question asked before, and counts toward how often it was asked; a visitor's own messages and refusals create nothing. The conversation service tells plugins about visitor messages on a new `conversation:guestMessageAdded` event that carries only where the message is, never its text, so no other plugin hears visitor conversations. The capture rewrite leaves out who asked and does not follow instructions inside the exchange.
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- [#460](https://github.com/rizom-ai/brains/pull/460) [`033af2d`](https://github.com/rizom-ai/brains/commit/033af2d1305aed4677ec7bb781e6b183ec957c0e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form's default limits fit a proxied deployment: every visitor arrives from the proxy's network, so the network limits now equal the global ones and requests and forms take their bound's maximum. Before, a hundred page views an hour from behind the CDN refused every visitor for the rest of the hour.
+
+- [#461](https://github.com/rizom-ai/brains/pull/461) [`3e69c19`](https://github.com/rizom-ai/brains/commit/3e69c196335b7897a12425f4157bebcef536e6b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact plugin declares the site's `/contact` and `/contact/thanks` pages while it registers, with `site-builder` as a dependency so the builder is listening. A deployment builds its site in a worker process that registers plugins but never runs their ready phase, so pages declared at readiness never reached it and the built site had no contact page.
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- [#459](https://github.com/rizom-ai/brains/pull/459) [`7543016`](https://github.com/rizom-ai/brains/commit/75430166391b8b1bf8d6d7bc0650e57ac2f821b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact alerts and other background jobs can send email again. The queue worker runs no interfaces, so it had no Email sender and every alert failed as `transport-missing`. Message interfaces now register their channels and senders in a `registerChannels()` step that the worker also runs, without the interface's daemons, routes or subscriptions. Declarative message interfaces' `setup` runs there too, so `deliver` has its state; `setup` must build clients without connecting or listening.
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- [#458](https://github.com/rizom-ai/brains/pull/458) [`f5e4f68`](https://github.com/rizom-ai/brains/commit/f5e4f685db85e0c4d57fdbf836b3f0be04c40ce1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact plugin declares the site's `/contact` and `/contact/thanks` pages in every process. A deployment builds its site in a separate worker, which was never told about them, so the built site had no contact page and the form fell back to its own page.
+
+- [#434](https://github.com/rizom-ai/brains/pull/434) [`516d79c`](https://github.com/rizom-ai/brains/commit/516d79c8bd355dcf683bc94c6757c70e2439930f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the FAQ plugin to the chat bundle: reusable question-and-answer pairs from chats are captured as draft `faq` entities at the visibility of the turn that answered them, and a repeated question counts against the existing FAQ of the same visibility. Published public FAQs are available to sites as the `faq-section` template, which each site places itself. Differing answers from repeated questions are kept as alternatives, which the owner settles in the new FAQ review workspace in Studio. FAQs are left out of the agent's broad searches (new `includeInBroadSearch` entity type option), so answers never cite unreviewed FAQ drafts as sources. Guest conversations are never captured. Capture can be switched off with `plugins.faq.enabled: false`, same-question matches are shortlisted by a configurable distance (`sameQuestionDistance`) and confirmed by a short AI check so opposite questions never merge, and duplicate FAQs captured moments apart are folded together once they are embedded. `deleteEntity` takes an `expectedContentHash` option: it deletes only while the stored entity still has that hash and returns false otherwise. `searchWithDistances` takes optional `types` and `maxDistance` filters, applied in the query, so a lookup for one close match no longer returns every embedded entity.
+
+- [#445](https://github.com/rizom-ai/brains/pull/445) [`762f3f9`](https://github.com/rizom-ai/brains/commit/762f3f973847ee64fa3d1f3511a5e124e220abaa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_search` no longer returns a bare empty list when matches exist below `minScore`. It adds a `belowThreshold` block with the number of weaker matches the caller may see, the best score and a hint to search again with a lower `minScore`. Broad questions such as "What do you mostly write about?" match content weakly and used to fall under the default threshold, which led the agent to answer that no saved writing existed.
+
+- [#457](https://github.com/rizom-ai/brains/pull/457) [`b34d7d2`](https://github.com/rizom-ai/brains/commit/b34d7d294b40110a7bff7c87d218024ccb2b41ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topic extraction and topic reconciliation ask the embedding index only for topics when they look for a topic to merge with, and reconciliation only for topics within its merge distance. Before, each lookup returned the distance to every embedded entity in the brain.
+
+- [#446](https://github.com/rizom-ai/brains/pull/446) [`83fbb6a`](https://github.com/rizom-ai/brains/commit/83fbb6a1254d60573161aef9bebe927c0d9d922f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `topic-distribution` insight no longer returns a bare empty list when no topics exist yet but there is content to extract them from. It adds `unextracted` with the number of visible source entities and a hint to answer from `system_search`. Topics are extracted in the background, so right after content arrives the empty list read as "nothing written", and the agent told the owner there was not enough content.
+
+- [#434](https://github.com/rizom-ai/brains/pull/434) [`516d79c`](https://github.com/rizom-ai/brains/commit/516d79c8bd355dcf683bc94c6757c70e2439930f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wishlist deduplication now recognises a reworded wish by embedding distance and counts it against the existing wish. Previously only a wish whose title slug repeated exactly was merged. Reworded wishes within the configurable `sameWishDistance` (default 0.3) are shortlisted and confirmed by a short AI check, so opposite requests such as "send emails" and "stop sending emails" stay separate.
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize auth initialization, lazy startup, invitation recovery startup, and shutdown in admission order. Settle both signing-key loads before rollback, release partially acquired resources on failure, continue cleanup after supervisor errors, and recreate database-bound account settings after restart.
+
+- [`059f85e`](https://github.com/rizom-ai/brains/commit/059f85e35bfd32a76caad601d87f45dc74e82403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate and propagate causal provenance for collected messages through the same operation scope as sent messages, including nested dispatch and caller-context restoration.
+
+- [`23f916d`](https://github.com/rizom-ai/brains/commit/23f916d1dcb42d4d4511a6167ebfbd41eabc37d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wait for every recurring-check cleanup task before reporting service-stop or plugin-unregistration failures. Preserve a single cleanup error and aggregate multiple failures instead of letting the first failed schedule bypass sibling drains.
+
+- [`815edf3`](https://github.com/rizom-ai/brains/commit/815edf384e2acec98043b510c5b93568e2991cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain admitted recurring-check callbacks and alert deliveries after Effect interruption, before plugin or service teardown completes. Do not record cancelled checks as successful after their final alert delivery.
+
+- [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish first-Anchor setup tokens only after persistence succeeds. Serialize token lookup, rotation, consumption, and clearing so concurrent requests cannot expose unpersisted tokens or let pending creation undo setup-state clearing.
+
+- [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell registration, acknowledgement barriers, and resource teardown:
+
+  - Reject duplicate MCP capabilities without overwriting their owners, and propagate registration failures for plugin rollback.
+  - Retain failed message collection acknowledgements so successful subscribers cannot hide a failed projection-wave completion effect.
+  - Reject scoped plugin acquisition before registry mutation and keep attachment release handles bound to their own registrations.
+  - Drain admitted durable progress polling before runtime teardown; progress monitor stop is now terminal and Promise-based.
+  - Clear runtime-state prefixes atomically without parsing stale values, preserving literal wildcard, Unicode, and embedded-NUL matching.
+  - Separate operator runtime contracts, schemas, action normalization, block normalization, and diagnostics into private responsibility-owned modules without changing rendered output.
+
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- [#452](https://github.com/rizom-ai/brains/pull/452) [`7a51f32`](https://github.com/rizom-ai/brains/commit/7a51f32b9264e81a9083e4b62cb9aba05e19ca34) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form runs on its own policy the moment a brain adds the `contact` plugin: its origin is the brain's site URL (the local one in a development run), the deployment's preview host is served beside it, and the alert's Inbox link is derived from Studio's mounted workspaces route. Configuration is only for a value the owner wants different — a longer retention, tighter limits — and each override is held to the policy's bounds. Behind a TLS-terminating proxy, which is how an HTTPS origin is served, the proxy's protocol is believed.
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`e1bd16e`](https://github.com/rizom-ai/brains/commit/e1bd16ecaa0be303c5b3392b6eb03377402e35d5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's question is screened before the guest model answers it. One call on the guest model classifies the question, from the question, the visitor's two before it and the site's public topics, as in scope, off topic, abusive, an injection attempt or harmful. A question outside scope gets the site's refusal line, or a neutral one, without running the answer or finding sources for it; its cost is the screening call alone. A screening call that fails lets the answer through and marks the turn unscreened. The turn's response carries the outcome, and the screening call's usage counts toward the turn's settlement.
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`8c92284`](https://github.com/rizom-ai/brains/commit/8c92284d48f22a3a9c7e490f17958a21684f0f55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guest usage record keeps a screened-out question as `refused`, with its category, and marks an answer given because screening failed as `unscreened`. The Studio guest chat monitor counts screened-out questions today and this month, by category, shows the category on recent questions, and counts unscreened answers. Its today and this month now follow the record's clock rather than the host's.
+
+- [#453](https://github.com/rizom-ai/brains/pull/453) [`8fcfa2f`](https://github.com/rizom-ai/brains/commit/8fcfa2f51da01d03cf3bb8fe3457e7e9a2ec0459) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web Chat screens each guest question against the site's `ask-content` topics, and `ask-content` gains an optional `refusal` line: what a visitor reads when their question is off topic, abusive, an injection attempt or harmful. Without it, the visitor reads a neutral line. The team recipe's `ask-content` no longer carries the removed `attribution` field.
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- [#448](https://github.com/rizom-ai/brains/pull/448) [`f7bbbe2`](https://github.com/rizom-ai/brains/commit/f7bbbe23090da7e9851a03ac3cd36df17653b036) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer is charged for its embeddings: the searches its tools ran and the search that found its sources. The embedding provider reports each call to a usage meter, each guest turn is measured, and its settlement counts the tokens and prices them at text-embedding-3-small's published rate ($0.02 per 1M tokens). An embedding model without pricing leaves the turn's cost unknown, so it is charged at the turn's maximum. Before, every guest answer recorded 0 embedding tokens.
+
 ## 0.2.0-alpha.457
 
 ### Patch Changes

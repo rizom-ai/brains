@@ -31,11 +31,14 @@ plugins:
     seedContent: false
 `;
 
-function createFullPresetApp(dataDir: string): App {
+function createFullPresetApp(
+  dataDir: string,
+  presetYaml: string = fullPresetYaml,
+): App {
   const config = resolve(
     canonicalBrain,
     { AI_API_KEY: "test-key" },
-    parseInstanceOverrides(fullPresetYaml),
+    parseInstanceOverrides(presetYaml),
   );
   return App.create({
     ...config,
@@ -124,5 +127,57 @@ describe("canonical durable job execution boundary", () => {
         .filter((pluginId) => configuredInterfaces.has(pluginId)),
     ).toEqual([]);
     // Two full-preset boots do not fit bun's 5s default on a two-CPU runner.
+  }, 30_000);
+
+  // Contact alerts and other background jobs send from the worker, which
+  // runs no interfaces: it still needs every channel's sender.
+  it("gives the worker every channel and sender the web process has", async () => {
+    const presetYaml = `${fullPresetYaml}  email:
+    apiKey: re_test
+    from: Brain <brain@example.com>
+`;
+    const webDirectory = await mkdtemp(join(tmpdir(), "brain-web-channels-"));
+    const workerDirectory = await mkdtemp(
+      join(tmpdir(), "brain-worker-channels-"),
+    );
+    directories.push(webDirectory, workerDirectory);
+
+    const webApp = createFullPresetApp(webDirectory, presetYaml);
+    apps.push(webApp);
+    await webApp.migrate();
+    await webApp.initialize(
+      { mode: "register-only" },
+      { migrationsCompleted: true, processRole: "web" },
+    );
+    const workerApp = createFullPresetApp(workerDirectory, presetYaml);
+    apps.push(workerApp);
+    await workerApp.migrate();
+    await workerApp.initialize(undefined, {
+      migrationsCompleted: true,
+      processRole: "worker",
+    });
+
+    const web = webApp.getShell().getChannelRegistry();
+    const worker = workerApp.getShell().getChannelRegistry();
+    const types = web.listDescriptors().map(({ type }) => type);
+    expect(types).toContain("email");
+    expect(worker.listDescriptors().map(({ type }) => type)).toEqual(types);
+    const senders = async (
+      registry: typeof web,
+    ): Promise<Array<[string, boolean]>> =>
+      Promise.all(
+        types.flatMap((type) => {
+          const provider = registry.getDeliveryProvider(type);
+          return provider
+            ? [
+                provider
+                  .isAvailable()
+                  .then((available): [string, boolean] => [type, available]),
+              ]
+            : [];
+        }),
+      );
+    expect(await senders(worker)).toEqual(await senders(web));
+    expect(await senders(worker)).toContainEqual(["email", true]);
   }, 30_000);
 });

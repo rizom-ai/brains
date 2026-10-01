@@ -19,13 +19,16 @@ import { registerConfigRoutes } from "./route-helpers";
  * Subscribe to all route-related messages on the message bus.
  * This wires up register, unregister, list, and get handlers for routes.
  */
+// Subscribed in every process: the site builds in the worker, which takes no
+// ordinary subscriptions, and its registry has to hear the pages plugins
+// declare.
 export function setupRouteHandlers(
   context: Pick<ServicePluginContext, "messaging">,
   routeRegistry: RouteRegistry,
   logger: Logger,
 ): void {
   // Register handler for route registration
-  context.messaging.subscribe(
+  context.messaging.subscribeExecution(
     SITE_BUILDER_CHANNELS.routeRegister,
     async (message) => {
       try {
@@ -41,7 +44,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for unregistering routes
-  context.messaging.subscribe(
+  context.messaging.subscribeExecution(
     SITE_BUILDER_CHANNELS.routeUnregister,
     async (message) => {
       try {
@@ -65,7 +68,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for listing routes
-  context.messaging.subscribe<unknown, ListRoutesResponse>(
+  context.messaging.subscribeExecution<unknown, ListRoutesResponse>(
     SITE_BUILDER_CHANNELS.routeList,
     async (message) => {
       try {
@@ -82,7 +85,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for getting specific route
-  context.messaging.subscribe<unknown, GetRouteResponse>(
+  context.messaging.subscribeExecution<unknown, GetRouteResponse>(
     SITE_BUILDER_CHANNELS.routeGet,
     async (message) => {
       try {
@@ -97,7 +100,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for site-content plugin to discover all routes
-  context.messaging.subscribe<unknown, RouteDefinition[]>(
+  context.messaging.subscribeExecution<unknown, RouteDefinition[]>(
     SITE_BUILDER_CHANNELS.routesList,
     async () => {
       return { success: true, data: routeRegistry.list() };

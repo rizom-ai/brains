@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
+import { getErrorMessage } from "@brains/utils/error";
 import type { IShell } from "../interfaces";
 import { EventEmitter } from "events";
 import type { Plugin, PluginRegistrationContext } from "../interfaces";
@@ -160,6 +161,32 @@ export class PluginManager implements IPluginManager {
     this.logger.debug(
       `Initialized ${result.initialized.size} of ${this.plugins.size} plugins`,
     );
+  }
+
+  /**
+   * The worker runs no interfaces, yet its background jobs send on their
+   * channels: register each interface's channels and senders, and nothing
+   * else of it. One that fails is logged and left out, like a failed plugin;
+   * a send on its channel then fails as having no transport.
+   */
+  public async registerInterfaceChannels(
+    plugins: Plugin[],
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
+    const shell = this.shell;
+    if (!shell)
+      throw new Error(
+        "Cannot register interface channels: Shell not set. Call setShell() first.",
+      );
+    for (const plugin of plugins) {
+      try {
+        await plugin.registerChannelsForExecution?.(shell, registrationContext);
+      } catch (error) {
+        this.logger.error(
+          `Channel registration failed for interface ${plugin.id}: ${getErrorMessage(error)}`,
+        );
+      }
+    }
   }
 
   /**

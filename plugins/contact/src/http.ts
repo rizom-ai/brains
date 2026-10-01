@@ -63,13 +63,22 @@ export function previewOriginFor(
   url.hostname = "preview.localhost";
   return url.origin;
 }
+export const contactHttpPolicyShape: z.ZodObject<
+  {
+    origin: z.ZodString;
+    maxBodyBytes: z.ZodNumber;
+    readTimeoutMs: z.ZodNumber;
+    trustForwardedProto: z.ZodOptional<z.ZodBoolean>;
+  },
+  z.core.$strict
+> = z.strictObject({
+  origin: originSchema,
+  maxBodyBytes: z.number().int().min(256).max(65536),
+  readTimeoutMs: z.number().int().min(100).max(30000),
+  trustForwardedProto: z.boolean().optional(),
+});
 export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
-  z.strictObject({
-    origin: originSchema,
-    maxBodyBytes: z.number().int().min(256).max(65536),
-    readTimeoutMs: z.number().int().min(100).max(30000),
-    trustForwardedProto: z.boolean().optional(),
-  });
+  contactHttpPolicyShape;
 export interface ContactHttpOptions {
   themeCSS?: string | undefined;
   /** The deployment's preview origin, served alongside the policy origin. */

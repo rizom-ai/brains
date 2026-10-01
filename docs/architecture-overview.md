@@ -27,7 +27,9 @@ canonical definition + explicit brain.yaml bundles = running brain
 The published Brain remains one Bun package, bundle, image, and container. Its
 entrypoint owns two children from that same bundle: a web process for
 interfaces, ingress, daemons, scheduling, and enqueue validation, and a worker
-process for durable queue execution. The parent runs migrations once, admits
+process for durable queue execution. The worker runs no interfaces; it
+registers only each message interface's channels and senders, so queued work
+can still send on them. The parent runs migrations once, admits
 the worker only after the web process reports runtime readiness, and respawns a
 failed worker under a bounded rolling budget without taking web serving down.
 After worker readiness, a five-second IPC heartbeat lets the parent kill and
@@ -155,6 +157,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/site-info`           | `site-info`                          | Site metadata                                       |
 | `entities/social-media`        | `social-post`                        | Social publishing content                           |
 | `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
+| `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
 | `entities/topics`              | `topic`                              | Derived topic/tag entities                          |
 | `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
 | `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |

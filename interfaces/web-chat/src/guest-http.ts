@@ -198,10 +198,15 @@ export class GuestHttpHandlers {
 
   /** The owner's record and its bounds, for the Studio monitor; absent while guest access is off. */
   get usageRecord():
-    | { record: GuestUsageRecord; bounds: EnabledGuestPolicy["usageRecord"] }
+    | {
+        record: GuestUsageRecord;
+        bounds: EnabledGuestPolicy["usageRecord"];
+        /** The record's clock, so its readers count days as it does. */
+        now: () => number;
+      }
     | undefined {
     return this.usage && this.policy.enabled
-      ? { record: this.usage, bounds: this.policy.usageRecord }
+      ? { record: this.usage, bounds: this.policy.usageRecord, now: this.now }
       : undefined;
   }
 
@@ -525,6 +530,9 @@ export class GuestHttpHandlers {
           // Keep observing work after delivery stops: the model call settles
           // the answer when it returns, answered or not.
           const work = Promise.resolve().then(async () => {
+            // The site's topics bound what the question is screened against,
+            // and its refusal line is what a screened-out visitor reads.
+            const content = await this.presentation?.();
             signal.throwIfAborted();
             const response = await this.services.agent
               .chat(
@@ -535,6 +543,10 @@ export class GuestHttpHandlers {
                   userPermissionLevel: "public",
                   isAnchor: false,
                   guestExecution: lease.execution,
+                  guestScreening: {
+                    topics: content?.topics ?? [],
+                    ...(content?.refusal ? { refusal: content.refusal } : {}),
+                  },
                 },
                 signal,
               )
@@ -554,6 +566,7 @@ export class GuestHttpHandlers {
                 usageId,
                 hasAnswer ? "completed" : "failed",
                 response.guestSettlement,
+                response.guestScreening,
               ))
             )
               throw new Error("Guest settlement unavailable");

@@ -1,3 +1,4 @@
+import type { EmbeddingUsageMeter } from "./embedding-usage-meter";
 import {
   actorRefSchema,
   type AgentContextItem,
@@ -37,6 +38,9 @@ import type { LanguageModelUsage, ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
 import {
   guestExecutionPolicySchema,
+  guestScreeningSchema,
+  type GuestScreening,
+  type GuestScreeningOutcome,
   type GuestTurnSettlement,
   type GuestExecutionPolicy,
 } from "@brains/contracts/chat";
@@ -64,6 +68,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
   hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
   guestExecution: z.ZodOptional<typeof guestExecutionPolicySchema>;
+  guestScreening: z.ZodOptional<typeof guestScreeningSchema>;
 }> = z.object({
   userPermissionLevel: z.enum(["admin", "trusted", "public"]),
   isAnchor: z.boolean().optional(),
@@ -79,6 +84,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateTransform: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
   guestExecution: guestExecutionPolicySchema.optional(),
+  guestScreening: guestScreeningSchema.optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -124,6 +130,8 @@ export interface BrainAgentResult {
   };
   /** A guest turn's reported usage and settled cost; never set for owners. */
   guestSettlement?: GuestTurnSettlement;
+  /** What screening did with a guest turn's question; never set for owners. */
+  guestScreening?: GuestScreeningOutcome;
 }
 
 /**
@@ -188,6 +196,11 @@ export interface AgentConfig {
   guestAnswerSources?: (request: {
     answer: string;
   }) => Promise<SourceCitation[]>;
+  /**
+   * Optional meter the embedding provider reports to. A guest turn is
+   * measured, and the embeddings it made join its settlement.
+   */
+  embeddingUsage?: EmbeddingUsageMeter;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
 }
@@ -224,6 +237,8 @@ export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 export interface ChatContext {
   /** Server-owned limits bound to the already-reserved guest execution. */
   guestExecution?: GuestExecutionPolicy;
+  /** The site's scope and refusal copy a guest question is screened against. */
+  guestScreening?: GuestScreening;
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   /** Whether the authenticated caller is the brain's configured Anchor. */
   isAnchor?: boolean;

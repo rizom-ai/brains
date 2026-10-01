@@ -211,6 +211,12 @@ export interface MessageInterfaceDefinitionInput<
   readonly config: TConfigSchema;
   readonly accountSettings?: TAccountSettings | undefined;
   readonly channel: MessageChannelDefinition<TRecipientSchema>;
+  /**
+   * Prepares the state the interface's other functions receive. It also runs
+   * in the queue worker, so `deliver` can send from background jobs there:
+   * build clients, but leave connecting and listening to `listen` and
+   * `daemons`.
+   */
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
