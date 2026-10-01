@@ -71,7 +71,9 @@ content directory, with `visibility: public`. Missing, private or malformed
 content produces no welcome or topics. It is not a system prompt or policy.
 
 Each guest question is screened before it is answered: one call on the guest
-model judges it against the `topics` as the site's scope. A question that is
+model judges it against the site's scope: the brain's public topic titles,
+which the topics plugin answers on `topics:public-titles`, and the
+`ask-content` introduction. A question that is
 off topic, abusive, an injection attempt or harmful gets the optional
 `refusal` line instead of an answer, or a neutral line when the site wrote
 none. The Studio guest chat monitor counts screened-out questions by

@@ -39,7 +39,7 @@ A merge keeps the FAQ's answer. When the merging reply's rewritten answer differ
 
 The plugin registers the `faq:entities` datasource and the `faq-section` template. The template is deliberately not named `faq-list`, so the site builder derives no `/faqs` route or navigation entry from it; a site shows FAQs only by placing `faq-section` in one of its route sections. The datasource returns FAQs with visibility exactly `public`, most asked first, and forwards the build's `publishedOnly`, so production builds show only published FAQs and a shared or restricted FAQ never reaches a site.
 
-`loadPublicFaqs(context, limit, logger)` returns the same FAQs for a site that shows them beside its other content, and none on a brain without the plugin. The professional site's atlas homepage uses it: the six most asked appear in a band under the atlas, under the owner's `faqHeading` from `ask-content` (or no heading), one answer open at a time; on a wide screen the open answer reads beside the questions. A preview build shows drafts there too, like any draft content.
+`loadPublicFaqs(context, limit, logger)` returns the same FAQs for a site that shows them beside its other content, and none on a brain without the plugin. The professional site's atlas homepage uses it: the six most asked appear in a band under the atlas, under the owner's `faqHeading` from `ask-content` (or no heading), every question closed until tapped and one answer open at a time. A preview build shows drafts there too, like any draft content.
 
 ## Configuration
 

@@ -135,57 +135,19 @@ afterEach(() => {
   restoreGlobals();
 });
 
-/**
- * Opens one FAQ as a browser does for exclusive details: the chosen one opens
- * and the open one closes, and only then do their toggle events fire.
- */
-function openFaq(id: string): void {
-  const all = Array.from(
-    window.document.querySelectorAll("details[name=faqs]"),
-  );
-  const changed = all.filter(
-    (details) => details.hasAttribute("open") !== (details.id === id),
-  );
-  // Chosen first, so the page never sees a moment with none open.
-  changed.sort((a, b) => Number(b.id === id) - Number(a.id === id));
-  for (const details of changed)
-    if (details.id === id) details.setAttribute("open", "");
-    else details.removeAttribute("open");
-  for (const details of changed)
-    details.dispatchEvent(new window.Event("toggle"));
-}
-
-function reader(): string | undefined {
-  return window.document.querySelector("[data-atlas-faqs-reader]")?.innerHTML;
-}
-
 describe("published FAQs under the atlas", () => {
-  it("reads the open answer beside the questions on a wide screen", () => {
+  // They are plain disclosures: closed until tapped, on every screen.
+  it("leaves them as plain disclosures on a wide screen", () => {
     setup({ touch: false });
     const band = window.document.querySelector("[data-atlas-faqs]");
-    expect(band?.hasAttribute("data-split")).toBe(true);
-    expect(reader()).toContain("First <strong>answer</strong>.");
-    openFaq("faq-two");
-    expect(reader()).toContain("Second answer.");
-  });
-
-  it("keeps one answer open while they read side by side", () => {
-    setup({ touch: false });
+    expect(band?.hasAttribute("data-split")).toBe(false);
+    expect(
+      window.document.querySelector("[data-atlas-faqs-reader]"),
+    ).toBeNull();
     const first = window.document.querySelector("#faq-one");
     first?.removeAttribute("open");
     first?.dispatchEvent(new window.Event("toggle"));
-    expect(first?.hasAttribute("open")).toBe(true);
-    expect(reader()).toContain("First <strong>answer</strong>.");
-  });
-
-  it("leaves the questions stacked on a narrow screen", () => {
-    setup({ touch: true, narrow: true });
-    expect(
-      window.document
-        .querySelector("[data-atlas-faqs]")
-        ?.hasAttribute("data-split"),
-    ).toBe(false);
-    expect(reader()).toBeUndefined();
+    expect(first?.hasAttribute("open")).toBe(false);
   });
 });
 

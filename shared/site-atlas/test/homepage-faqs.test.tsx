@@ -16,8 +16,8 @@ const faqs = homepageFaqsSchema.parse([
   },
 ]);
 
-// The owner's published FAQs under the atlas, most asked first: one answer
-// open at a time, readable without any script.
+// The owner's published FAQs under the atlas, most asked first: every
+// question closed until tapped, one open at a time, readable without script.
 describe("HomepageFaqs", () => {
   it("renders nothing while no FAQ is published", () => {
     expect(
@@ -25,15 +25,14 @@ describe("HomepageFaqs", () => {
     ).toBe("");
   });
 
-  it("opens the most asked question, one at a time", () => {
+  it("starts with every question closed, one open at a time", () => {
     const html = renderToStaticMarkup(
       <HomepageFaqs heading="Asked before" faqs={faqs} />,
     );
     const details = [...html.matchAll(/<details[^>]*>/g)].map(([tag]) => tag);
     expect(details).toHaveLength(2);
     expect(details.every((tag) => tag.includes('name="faqs"'))).toBe(true);
-    expect(details[0]).toContain("open");
-    expect(details[1]).not.toContain("open");
+    expect(details.some((tag) => tag.includes("open"))).toBe(false);
     expect(html.indexOf("ecosystem architecture")).toBeLessThan(
       html.indexOf("Knowledge Audit"),
     );

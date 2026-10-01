@@ -8,6 +8,11 @@ import {
   type ProjectionRule,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import {
+  TOPIC_TITLES_MESSAGE,
+  type TopicTitlesResponse,
+} from "@brains/contracts";
+import { getTopicTitle } from "./lib/topic-presenter";
 import { z } from "@brains/utils/zod";
 import {
   topicsPluginConfigSchema,
@@ -93,6 +98,25 @@ export class TopicsPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // What the brain's public work is about, for other plugins: for example
+    // the site's subjects when a visitor's question is screened.
+    context.messaging.subscribe<unknown, TopicTitlesResponse>(
+      TOPIC_TITLES_MESSAGE,
+      async () => {
+        const topics = await context.entityService.listEntities(
+          {
+            entityType: TOPIC_ENTITY_TYPE,
+            options: { filter: { visibilityScope: "public" } },
+          },
+          topicEntitySchema,
+        );
+        const titles = topics
+          .map((topic) => getTopicTitle(topic))
+          .sort((a, b) => a.localeCompare(b))
+          .slice(0, 20);
+        return { success: true, data: { titles } };
+      },
+    );
     // Insights
     context.insights.register(
       "topic-distribution",
