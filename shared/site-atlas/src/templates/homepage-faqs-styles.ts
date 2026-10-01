@@ -48,7 +48,9 @@ export const homepageFaqsStyles: string = String.raw`
 }
 .faqs[data-split] .faqs__index { position: sticky; top: 6.5rem; }
 .faqs[data-split] .faqs__answer { display: none; }
-.faqs__reader { max-width: 62ch; padding-top: 2.6rem; }
+.faqs__reader { max-width: 62ch; padding-top: .45rem; }
+/* With a heading, the answer starts level with the first question below it. */
+.faqs__index:has(> h2) + .faqs__reader { padding-top: 3.05rem; }
 .faqs__reader:empty { display: none; }
 
 @media (max-width: 47.99rem) {
