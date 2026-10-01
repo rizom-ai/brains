@@ -292,6 +292,10 @@ export {
 } from "./offline/binary-asset-verification";
 export {
   OfflineBinaryMigrator,
+  type AssetRestoreInput,
+  type AssetRestoreOutcome,
+  type AssetRowInput,
+  type AssetRowOutcome,
   type InlineRowMigrationInput,
   type InlineRowMigrationOutcome,
 } from "./offline/binary-asset-migration";

@@ -141,4 +141,78 @@ describe("OfflineBinaryMigrator", () => {
     });
     expect(await count("SELECT COUNT(*) FROM asset_uploads")).toBe(1);
   });
+
+  it("restores the asset behind a reference whose header is gone", async () => {
+    await insertImage("cover");
+    await migrator.migrateRow("image", input("cover"));
+    await connection.client.execute("DELETE FROM asset_chunks");
+    await connection.client.execute("DELETE FROM assets");
+    await connection.client.execute("DELETE FROM asset_uploads");
+
+    const outcome = await migrator.restoreAsset("image", {
+      id: "cover",
+      ref,
+      bytes: PNG,
+      expectedSize: PNG.byteLength,
+    });
+
+    expect(outcome).toEqual({ outcome: "restored" });
+    expect(await count("SELECT COUNT(*) FROM assets")).toBe(1);
+    expect((await row("cover"))["content"]).toBe(ref);
+  });
+
+  it("never restores bytes behind a different reference", async () => {
+    await insertImage("cover", createAssetRef("c".repeat(64)));
+
+    const outcome = await migrator.restoreAsset("image", {
+      id: "cover",
+      ref,
+      bytes: PNG,
+      expectedSize: PNG.byteLength,
+    });
+
+    expect(outcome).toEqual({ outcome: "changed" });
+    expect(await count("SELECT COUNT(*) FROM assets")).toBe(0);
+    expect(await count("SELECT COUNT(*) FROM asset_uploads")).toBe(0);
+  });
+
+  it("creates a missing row together with its asset", async () => {
+    const outcome = await migrator.createRow("image", {
+      id: "fresh",
+      bytes: PNG,
+      expectedSize: PNG.byteLength,
+      metadata: facts,
+      created: 5,
+      updated: 6,
+    });
+
+    expect(outcome).toEqual({
+      outcome: "created",
+      ref,
+      contentHash: computeContentHash(ref),
+    });
+    const created = await row("fresh");
+    expect(created["content"]).toBe(ref);
+    expect(created["visibility"]).toBe("public");
+    expect(created["created"]).toBe(5);
+    expect(JSON.parse(String(created["metadata"]))).toEqual(facts);
+    expect(await count("SELECT COUNT(*) FROM assets")).toBe(1);
+  });
+
+  it("never replaces a row that appeared meanwhile", async () => {
+    await insertImage("fresh");
+
+    const outcome = await migrator.createRow("image", {
+      id: "fresh",
+      bytes: PNG,
+      expectedSize: PNG.byteLength,
+      metadata: facts,
+      created: 5,
+      updated: 6,
+    });
+
+    expect(outcome).toEqual({ outcome: "changed" });
+    expect((await row("fresh"))["content"]).toBe(inline);
+    expect(await count("SELECT COUNT(*) FROM asset_uploads")).toBe(0);
+  });
 });

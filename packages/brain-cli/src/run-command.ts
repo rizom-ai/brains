@@ -363,6 +363,37 @@ const assetsVerify: BrainCommand = defineCommand({
   },
 });
 
+const assetsReconcile: BrainCommand = defineCommand({
+  name: "assets:reconcile",
+  usage: "[--from <dir>] [--dry-run] [--database <path>]",
+  description:
+    "Restore image rows and assets from brain-data (offline, app stopped)",
+  flags: {
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    from: {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Synced content directory (default: brain-data)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Report what would be restored without writing",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsReconcile } = await import("./commands/assets-reconcile");
+    return runAssetsReconcile(dir, {
+      database: getStringFlag(flags, "database"),
+      from: getStringFlag(flags, "from"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+    });
+  },
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json] [--yes]",
@@ -492,6 +523,7 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   configMigrate,
   assetsMigrate,
   assetsVerify,
+  assetsReconcile,
   toolCommand,
   helpCommand,
   versionCommand,

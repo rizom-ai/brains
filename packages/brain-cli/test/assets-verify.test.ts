@@ -109,4 +109,24 @@ describe("assets:verify", () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain("cover: mirrored file differs");
   });
+
+  it("matches a mirror when any of an image's files holds the stored bytes", async () => {
+    const { path, brainData } = await migrated([
+      ["cover", dataUrl("png", PNG)],
+    ]);
+    await writeFile(join(brainData, "image", "cover.png"), "not an image");
+    await writeFile(
+      join(brainData, "image", "cover.md"),
+      `${dataUrl("png", PNG)}\n`,
+    );
+
+    const result = await runAssetsVerify(
+      "/",
+      { database: path, brainData },
+      stopped,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("1 mirrored file(s) match");
+  });
 });

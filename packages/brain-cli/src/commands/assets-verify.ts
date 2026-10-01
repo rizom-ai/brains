@@ -1,15 +1,12 @@
-import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { IMAGE_EXTENSIONS } from "@brains/directory-sync";
 import {
-  base64AssetSource,
   getAssetDigest,
   openOfflineEntityDatabase,
   verifyAssetBackedRows,
   type AssetRowCheck,
 } from "@brains/entity-service";
-import { inlineImagePayload } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
+import { listImageFiles, readImageFile } from "../lib/brain-data-images";
 import type { CommandResult } from "../lib/command-result";
 import {
   defaultOfflineDatabaseDeps,
@@ -107,35 +104,18 @@ async function checkMirrors(
   brainData: string,
   rows: AssetRowCheck[],
 ): Promise<MirrorCheck[]> {
+  const files = await listImageFiles(join(brainData, "image"));
   return Promise.all(
     rows.map(async ({ id, ref }): Promise<MirrorCheck> => {
-      const digest = await mirroredDigest(join(brainData, "image"), id);
-      if (digest === undefined) return { id, status: "absent" };
+      const paths = files.get(id);
+      if (!paths) return { id, status: "absent" };
+      const digests = await Promise.all(
+        paths.map(async (path) => (await readImageFile(id, path))?.digest),
+      );
       return {
         id,
-        status: digest === getAssetDigest(ref) ? "match" : "differs",
+        status: digests.includes(getAssetDigest(ref)) ? "match" : "differs",
       };
     }),
   );
-}
-
-async function mirroredDigest(
-  directory: string,
-  id: string,
-): Promise<string | undefined> {
-  for (const extension of [...IMAGE_EXTENSIONS, ".md"]) {
-    const file = Bun.file(join(directory, `${id}${extension}`));
-    if (!(await file.exists())) continue;
-    const hash = createHash("sha256");
-    if (extension === ".md") {
-      const payload = inlineImagePayload(await file.text());
-      for (const chunk of payload ? base64AssetSource(payload) : []) {
-        hash.update(chunk);
-      }
-    } else {
-      for await (const chunk of file.stream()) hash.update(chunk);
-    }
-    return hash.digest("hex");
-  }
-  return undefined;
 }
