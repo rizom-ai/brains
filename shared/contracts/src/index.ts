@@ -240,6 +240,11 @@ export {
   type SendNotificationResult,
 } from "./notification";
 export {
+  TOPIC_TITLES_MESSAGE,
+  topicTitlesResponseSchema,
+  type TopicTitlesResponse,
+} from "./topic-titles";
+export {
   NOTE_CAPTURE_MESSAGE,
   noteCaptureRequestSchema,
   noteCaptureResponseSchema,

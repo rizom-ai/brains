@@ -25,8 +25,8 @@ export const ASK_BOX_SCRIPT_PATH = "/ask/assets/box.js";
 
 /**
  * Where Web Chat records, in shared runtime state, whether this deployment
- * serves the box boot publicly and on preview: a configured guest policy
- * everywhere, managed guest chat on preview once the owner has activated it.
+ * serves the box boot publicly and on preview: on both, for a configured guest
+ * policy or once the owner has switched guest chat on.
  * Site builds may run in a separate worker, where interfaces are not
  * registered and Web Chat's routes are absent; they read this record instead.
  * The serving process writes it on every start and activation change.
