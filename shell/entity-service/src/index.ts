@@ -57,6 +57,7 @@ export {
   type EntityWriteCondition,
 } from "./entity-write-contracts";
 export type { EntityWriteSnapshot } from "./types";
+export { entityRevision } from "./entity-revision";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
@@ -171,6 +172,7 @@ export type {
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,
   UpdateEntityRequest,
+  FoldEntityRequest,
   UpsertEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,

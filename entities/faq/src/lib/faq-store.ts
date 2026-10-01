@@ -1,5 +1,5 @@
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import { findNearestEntity, internalFullScope } from "@brains/plugins";
+import { findNearestEntity } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
 import {
@@ -99,7 +99,8 @@ export function findSameFaq(
  * that was read. A concurrent merge makes the write stale; the FAQ is re-read
  * and the merge reapplied. The FAQ keeps its answer; merged answers that
  * differ from it and from its alternatives join the alternatives in the body.
- * False when the FAQ disappeared.
+ * False when the FAQ disappeared or its visibility/question no longer matches
+ * the snapshot that admitted this merge. A fresh hash grants no wider scope.
  */
 export async function mergeIntoFaq(
   deps: FaqStoreDeps,
@@ -107,6 +108,35 @@ export async function mergeIntoFaq(
   merge: { asks: number; alternatives?: FaqAlternative[] },
   attemptsLeft: number = MERGE_ATTEMPTS,
 ): Promise<boolean> {
+  const { frontmatter } = faqAdapter.parseFaqContent(faq.content);
+  const visibility = faq.visibility;
+  const result = await deps.entityService.updateEntity({
+    entity: prepareFaqMerge(faq, merge),
+    options: { expectedContentHash: faq.contentHash },
+  });
+  if (result.skipReason !== "content-conflict") return true;
+  if (attemptsLeft <= 1) {
+    throw new Error(`FAQ ${faq.id} kept changing during merge`);
+  }
+
+  const current = await deps.entityService.getEntity(
+    { entityType: "faq", id: faq.id, visibilityScope: visibility },
+    faqSchema,
+  );
+  if (
+    current?.visibility !== visibility ||
+    faqAdapter.parseFaqContent(current.content).frontmatter.question !==
+      frontmatter.question
+  )
+    return false;
+  return mergeIntoFaq(deps, current, merge, attemptsLeft - 1);
+}
+
+/** Prepare once; the caller chooses a single-entity CAS or atomic pair write. */
+export function prepareFaqMerge(
+  faq: FaqEntity,
+  merge: { asks: number; alternatives?: FaqAlternative[] },
+): FaqEntity {
   const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
     faq.content,
   );
@@ -122,30 +152,12 @@ export async function mergeIntoFaq(
     ...frontmatter,
     asked: frontmatter.asked + merge.asks,
   };
-  const result = await deps.entityService.updateEntity({
-    entity: {
-      ...faq,
-      content: faqAdapter.createFaqContent(merged, answer, [
-        ...alternatives,
-        ...newAlternatives,
-      ]),
-      metadata: faqMetadata(merged),
-    },
-    options: { expectedContentHash: faq.contentHash },
-  });
-  if (result.skipReason !== "content-conflict") return true;
-  if (attemptsLeft <= 1) {
-    throw new Error(`FAQ ${faq.id} kept changing during merge`);
-  }
-
-  const current = await deps.entityService.getEntity(
-    {
-      entityType: "faq",
-      id: faq.id,
-      visibilityScope: internalFullScope("faq merge retry"),
-    },
-    faqSchema,
-  );
-  if (!current) return false;
-  return mergeIntoFaq(deps, current, merge, attemptsLeft - 1);
+  return {
+    ...faq,
+    content: faqAdapter.createFaqContent(merged, answer, [
+      ...alternatives,
+      ...newAlternatives,
+    ]),
+    metadata: faqMetadata(merged),
+  };
 }

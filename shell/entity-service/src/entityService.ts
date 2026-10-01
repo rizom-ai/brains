@@ -45,6 +45,7 @@ import type {
   EntityGroupingMembers,
   CountEntitiesRequest,
   DeleteEntityRequest,
+  FoldEntityRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
   ProjectSemanticSpaceRequest,
@@ -559,6 +560,16 @@ export class EntityService implements IEntityService {
     await this.initialize();
     await this.entityRegistry.ensureGroupingsCurrent();
     const result = await this.entityMutations.updateEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
+  }
+
+  public async foldEntity(
+    request: FoldEntityRequest,
+  ): Promise<EntityMutationResult> {
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.foldEntity(request);
     await this.afterGroupingSourceMutation(request.entity.entityType);
     return result;
   }

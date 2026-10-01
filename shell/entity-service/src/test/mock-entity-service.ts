@@ -23,6 +23,7 @@ export interface MockEntityServiceReturns {
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
+  foldEntity?: EntityMutationResult;
   listEntities?: BaseEntity[];
   queryEntityHierarchy?: EntityHierarchyPage;
   queryGroupingCatalog?: EntityGroupingCatalog;
@@ -179,6 +180,10 @@ export function createMockEntityService(
       return mutationResult(returns.updateEntity);
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
+    foldEntity: mock(async (request) => {
+      await request.options?.beforeWrite?.(request.entity);
+      return mutationResult(returns.foldEntity);
+    }),
     upsertEntity: mock(() =>
       Promise.resolve({ ...mutationResult(undefined), created: false }),
     ),
