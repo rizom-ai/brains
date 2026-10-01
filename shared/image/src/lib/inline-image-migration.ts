@@ -34,14 +34,12 @@ export function classifyInlineImage(
   content: string,
   maxBytes: number = IMAGE_ASSET_MAX_BYTES,
 ): InlineImageVerdict {
-  const match = INLINE_DATA_URL.exec(content.trim());
-  if (!match?.[1] || match[2] === undefined) {
-    return { status: "blocked", reason: "malformed" };
-  }
-  if (match[1].toLowerCase().startsWith("svg")) {
+  const parsed = parseInlineImage(content);
+  if (!parsed) return { status: "blocked", reason: "malformed" };
+  if (parsed.subtype.startsWith("svg")) {
     return { status: "blocked", reason: "svg" };
   }
-  const payload = match[2].replace(/\s/g, "");
+  const { payload } = parsed;
   if (DOUBLE_ENCODED_PAYLOAD.test(payload)) {
     return { status: "blocked", reason: "double-encoded" };
   }
@@ -68,5 +66,21 @@ export function classifyInlineImage(
     digest: computeAssetDigest(bytes),
     sizeBytes: bytes.byteLength,
     ...described,
+  };
+}
+
+/** An inline image's base64 payload without whitespace, if it is a data URL. */
+export function inlineImagePayload(content: string): string | undefined {
+  return parseInlineImage(content)?.payload;
+}
+
+function parseInlineImage(
+  content: string,
+): { subtype: string; payload: string } | undefined {
+  const match = INLINE_DATA_URL.exec(content.trim());
+  if (!match?.[1] || match[2] === undefined) return undefined;
+  return {
+    subtype: match[1].toLowerCase(),
+    payload: match[2].replace(/\s/g, ""),
   };
 }

@@ -1,7 +1,11 @@
 import type { Client } from "@libsql/client";
+import type { SqliteConnection } from "@brains/db";
 import { ASSET_REF_PREFIX } from "@brains/assets";
 import { z } from "@brains/utils/zod";
 import { createEntityDatabase } from "../db";
+
+/** A local entity database opened for offline maintenance. */
+export type OfflineEntityConnection = SqliteConnection;
 
 /** The statement surface an offline reader needs; nothing here writes. */
 export type OfflineReader = Pick<Client, "execute">;
@@ -69,10 +73,12 @@ export async function readBinaryAssetInventory(
 
 /**
  * Open a local entity database for offline maintenance, while the app is
- * stopped. Close it when done.
+ * stopped. Close its client when done.
  */
-export function openOfflineEntityDatabase(path: string): Client {
-  return createEntityDatabase({ url: `file:${path}` }).client;
+export function openOfflineEntityDatabase(
+  path: string,
+): OfflineEntityConnection {
+  return createEntityDatabase({ url: `file:${path}` });
 }
 
 /** The type's full-text rows; a database that never started has no index. */

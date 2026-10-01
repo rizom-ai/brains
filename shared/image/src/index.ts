@@ -70,6 +70,7 @@ export {
 } from "./lib/image-bytes";
 export {
   classifyInlineImage,
+  inlineImagePayload,
   type InlineImageBlocker,
   type InlineImageVerdict,
 } from "./lib/inline-image-migration";

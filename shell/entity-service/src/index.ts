@@ -282,5 +282,11 @@ export {
   readInlineBinaryRow,
   type BinaryAssetInventory,
   type InlineBinaryRow,
+  type OfflineEntityConnection,
   type OfflineReader,
 } from "./offline/binary-asset-inventory";
+export {
+  OfflineBinaryMigrator,
+  type InlineRowMigrationInput,
+  type InlineRowMigrationOutcome,
+} from "./offline/binary-asset-migration";

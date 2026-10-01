@@ -1,20 +1,28 @@
-import { stat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { readFile, rename, stat, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { resolveStandardPaths } from "@brains/app";
 import { openOfflineEntityDatabase } from "@brains/entity-service";
+import { migrateEntities } from "@brains/entity-service/migrate";
 import type { InlineImageBlocker } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import type { CommandResult } from "../lib/command-result";
 import { findDatabaseHolders } from "../lib/database-holders";
 import {
   planImageAssetMigration,
   type ImageAssetMigrationPlan,
 } from "../lib/binary-asset-migration-plan";
+import {
+  runImageAssetMigration,
+  type MigrationManifestEntry,
+} from "../lib/binary-asset-migration-run";
 
 export interface AssetsMigrateOptions {
   /** Entity database path or `file:` URL; defaults to the app's data dir. */
   database?: string | undefined;
   dryRun?: boolean | undefined;
+  /** Where each run is recorded; defaults beside the database. */
+  manifest?: string | undefined;
 }
 
 export interface AssetsMigrateDeps {
@@ -38,7 +46,8 @@ const BLOCKER_HINTS: Record<InlineImageBlocker, string> = {
 /**
  * Move inline images into durable assets, offline: the app must be stopped
  * and the entity database local. A dry-run decodes every inline image
- * without writing and fails while any row would be blocked.
+ * without writing and fails while any row would be blocked; a migration
+ * refuses to start while any is, and records every run in a manifest.
  */
 export async function runAssetsMigrate(
   cwd: string,
@@ -72,30 +81,84 @@ export async function runAssetsMigrate(
     };
   }
   if (!options.dryRun) {
-    return {
-      success: false,
-      message:
-        "Only a preview is available in this release: run with --dry-run.",
-    };
+    // What starting the transitional release would do first: bring the
+    // schema forward, so the staged asset tables exist. A dry-run never writes.
+    try {
+      await migrateEntities({ url: `file:${path}` });
+    } catch (error) {
+      return {
+        success: false,
+        message: `Schema migration failed: ${getErrorMessage(error)}`,
+      };
+    }
   }
-
-  const client = openOfflineEntityDatabase(path);
+  const connection = openOfflineEntityDatabase(path);
   try {
-    const plan = await planImageAssetMigration(client, {
+    const plan = await planImageAssetMigration(connection.client, {
       databaseBytes: size,
     });
+    if (options.dryRun || plan.blocked.length > 0) {
+      return {
+        success: Boolean(options.dryRun) && plan.blocked.length === 0,
+        message: renderPlan(path, plan),
+      };
+    }
+    const startedAt = new Date().toISOString();
+    const entries = await runImageAssetMigration(connection);
+    const manifestPath = options.manifest
+      ? resolveDatabasePath(cwd, options.manifest)
+      : join(dirname(path), "binary-asset-migration.json");
+    await appendManifestRun(manifestPath, {
+      database: path,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      entries,
+    });
+    const count = (outcome: MigrationManifestEntry["outcome"]): number =>
+      entries.filter((entry) => entry.outcome === outcome).length;
+    const unfinished = count("changed") + count("blocked");
     return {
-      success: plan.blocked.length === 0,
-      message: renderPlan(path, plan),
+      success: unfinished === 0,
+      message: [
+        `Migrated ${count("migrated")} image(s); ${count("changed")} changed during the run; ${count("blocked")} blocked.`,
+        `Manifest: ${manifestPath}`,
+        unfinished === 0
+          ? "Next: verify, then VACUUM once acceptance passes."
+          : "Rerun the dry-run before migrating again.",
+      ].join("\n"),
     };
   } catch (error) {
     return {
       success: false,
-      message: `Dry-run failed: ${getErrorMessage(error)}`,
+      message: `${options.dryRun ? "Dry-run" : "Migration"} failed: ${getErrorMessage(error)}`,
     };
   } finally {
-    client.close();
+    connection.client.close();
   }
+}
+
+const manifestFileSchema = z.object({ runs: z.array(z.unknown()) });
+
+/** Append one run, replacing the file whole so a crash never truncates it. */
+async function appendManifestRun(
+  path: string,
+  run: {
+    database: string;
+    startedAt: string;
+    finishedAt: string;
+    entries: MigrationManifestEntry[];
+  },
+): Promise<void> {
+  const existing = await readFile(path, "utf8").then(
+    (text) => manifestFileSchema.parse(JSON.parse(text)).runs,
+    () => [],
+  );
+  const next = `${path}.tmp`;
+  await writeFile(
+    next,
+    `${JSON.stringify({ runs: [...existing, run] }, null, 2)}\n`,
+  );
+  await rename(next, path);
 }
 
 function resolveDatabasePath(cwd: string, database: string): string {

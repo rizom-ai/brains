@@ -308,9 +308,8 @@ const configMigrate: BrainCommand = defineCommand({
 
 const assetsMigrate: BrainCommand = defineCommand({
   name: "assets:migrate",
-  usage: "--dry-run [--database <path>]",
-  description:
-    "Plan moving inline images into durable assets (offline, app stopped)",
+  usage: "[--dry-run] [--database <path>] [--manifest <path>]",
+  description: "Move inline images into durable assets (offline, app stopped)",
   flags: {
     database: {
       type: "string",
@@ -321,12 +320,19 @@ const assetsMigrate: BrainCommand = defineCommand({
       type: "boolean",
       description: "Decode every inline image and report without writing",
     },
+    manifest: {
+      type: "string",
+      placeholder: "<path>",
+      description:
+        "Run record to append to (default: binary-asset-migration.json beside the database)",
+    },
   },
   run: async ({ flags }, dir): Promise<CommandResult> => {
     const { runAssetsMigrate } = await import("./commands/assets-migrate");
     return runAssetsMigrate(dir, {
       database: getStringFlag(flags, "database"),
       dryRun: getBooleanFlag(flags, "dry-run"),
+      manifest: getStringFlag(flags, "manifest"),
     });
   },
 });

@@ -60,6 +60,9 @@ export async function planImageAssetMigration(
   const ready: Array<{ digest: string; sizeBytes: number; inline: number }> =
     [];
   for (const id of inventory.inlineIds) {
+    // Each row decodes up to the write cap; collecting before the next keeps
+    // peak memory flat however many images the database holds.
+    Bun.gc(true);
     const row = await readInlineBinaryRow(reader, "image", id);
     if (!row) continue;
     const verdict = classifyInlineImage(row.content);
