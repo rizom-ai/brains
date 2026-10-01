@@ -31,6 +31,14 @@ describe("authored Ask presentation", () => {
     ).toThrow();
     expect(() => parseAskContent("x".repeat(4001))).toThrow();
   });
+  test("carries the heading over published FAQs, bounded", () => {
+    expect(parseAskContent("---\nfaqHeading: Asked before\n---")).toEqual({
+      faqHeading: "Asked before",
+    });
+    expect(() =>
+      askContentSchema.parse({ faqHeading: "x".repeat(121) }),
+    ).toThrow();
+  });
   test("carries the site's own refusal line, bounded", () => {
     expect(
       parseAskContent("---\nrefusal: I only talk about my work.\n---"),

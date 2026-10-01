@@ -91,6 +91,27 @@ describe("authored opening", () => {
     expect(html).not.toContain("/guest");
     expect(html).not.toContain("<textarea");
   });
+  it("carries the owner's heading over published FAQs, or none", async () => {
+    const authored = context(
+      entity("public", "---\nfaqHeading: Asked before\n---\nAn opening."),
+    );
+    const opening = homepageOpeningSchema.parse(
+      await loadHomepageOpening(
+        { entityService: authored.entityService, publishedOnly: true },
+        authored,
+      ),
+    );
+    expect(opening?.faqHeading).toBe("Asked before");
+    const unwritten = context();
+    expect(
+      homepageOpeningSchema.parse(
+        await loadHomepageOpening(
+          { entityService: unwritten.entityService, publishedOnly: true },
+          unwritten,
+        ),
+      )?.faqHeading,
+    ).toBeNull();
+  });
   it("omits missing/private/invalid/empty copy without a profile-derived replacement", async () => {
     for (const record of [
       null,
