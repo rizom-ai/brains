@@ -161,7 +161,12 @@ async function processEntityImport(
     snapshot,
   );
   if (result.imported > imported)
-    queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
+    queueImportImageConversions(
+      deps.imageJobQueue,
+      rawEntity,
+      filePath,
+      deps.entityService.getEntityTypeConfig(rawEntity.entityType),
+    );
 }
 
 function canSkipBeforeDeserialization(
