@@ -23,6 +23,7 @@ export const homepageOpeningSchema: z.ZodDefault<
       contactLabel: AuthoredCopy;
       contactNote: AuthoredCopy;
       mapCaption: AuthoredCopy;
+      faqHeading: AuthoredCopy;
       contactUrl: z.ZodDefault<z.ZodNullable<z.ZodURL>>;
     }>
   >
@@ -35,6 +36,7 @@ export const homepageOpeningSchema: z.ZodDefault<
     contactLabel: authoredCopy(copy.contactLabel),
     contactNote: authoredCopy(copy.contactNote),
     mapCaption: authoredCopy(copy.mapCaption),
+    faqHeading: authoredCopy(copy.faqHeading),
     /** The contact form the door leads to; without one, the page has no door. */
     contactUrl: z
       .url({ protocol: /^https?$/ })

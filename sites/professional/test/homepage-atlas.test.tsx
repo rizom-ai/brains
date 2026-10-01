@@ -7,7 +7,10 @@ import {
   type HomepageListData,
 } from "../src/templates/homepage-list";
 import { professionalProfileSchema } from "../src/schemas";
-import type { HomepageAtlasData } from "@brains/site-atlas";
+import type {
+  HomepageAtlasData,
+  HomepageOpeningContent,
+} from "@brains/site-atlas";
 
 function entity(
   entityType: string,
@@ -215,10 +218,42 @@ const page: HomepageListData = {
     contactLabel: "Write to me",
     contactNote: "I read these myself.",
     mapCaption: "My published work, by topic",
+    faqHeading: null,
   },
 };
 
+const opening: HomepageOpeningContent = page.opening ?? {
+  title: null,
+  introduction: null,
+  topics: [],
+  topicsHeading: null,
+  contactLabel: null,
+  contactNote: null,
+  mapCaption: null,
+  faqHeading: null,
+  contactUrl: null,
+};
+
 describe("atlas homepage", () => {
+  it("places the owner's published FAQs under the atlas, in their words", () => {
+    const html = renderToStaticMarkup(
+      <HomepageListLayout
+        {...page}
+        opening={{ ...opening, faqHeading: "Asked before" }}
+        atlas={atlas}
+        faqs={[{ id: "q", question: "What is it?", answer: "**This**." }]}
+      />,
+    );
+    expect(html.indexOf('data-atlas=""')).toBeLessThan(
+      html.indexOf("data-atlas-faqs"),
+    );
+    expect(html).toContain("<h2>Asked before</h2>");
+    expect(html).toContain("<summary>What is it?</summary>");
+    expect(
+      renderToStaticMarkup(<HomepageListLayout {...page} atlas={atlas} />),
+    ).not.toContain("data-atlas-faqs");
+  });
+
   it("replaces the hero and the lists with the atlas when the opening loads", () => {
     const html = renderToStaticMarkup(
       <HomepageListLayout {...page} atlas={atlas} />,

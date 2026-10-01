@@ -82,6 +82,7 @@ describe("opening from the anchor profile", () => {
       contactLabel: null,
       contactNote: null,
       mapCaption: null,
+      faqHeading: null,
       contactUrl: null,
     });
   });
@@ -200,6 +201,7 @@ describe("organization homepage conversation", () => {
     contactLabel: "Talk to the team",
     contactNote: null,
     mapCaption: null,
+    faqHeading: null,
     contactUrl: "http://localhost:8080/contact",
   };
 
@@ -250,6 +252,7 @@ describe("organization homepage caption", () => {
         opening={{
           ...openingFromProfile(profile),
           mapCaption: "Who we work with",
+          faqHeading: null,
         }}
         map={radar}
         askBox={false}
