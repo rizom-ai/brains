@@ -1,5 +1,71 @@
 # @brains/document-plugin
 
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/document@0.2.0-alpha.471
+  - @brains/media-renderer@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/document@0.2.0-alpha.470
+  - @brains/media-renderer@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/document@0.2.0-alpha.469
+  - @brains/media-renderer@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/document@0.2.0-alpha.468
+  - @brains/media-renderer@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/document@0.2.0-alpha.467
+  - @brains/media-renderer@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/document@0.2.0-alpha.466
+  - @brains/media-renderer@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+
 ## 0.2.0-alpha.465
 
 ### Patch Changes

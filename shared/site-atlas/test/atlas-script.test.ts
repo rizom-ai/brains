@@ -21,8 +21,11 @@ function setup(options: {
   touch: boolean;
   still?: boolean;
   chat?: "live" | "off";
+  narrow?: boolean;
 }): void {
   media["(hover: none)"] = options.touch;
+  if (options.narrow !== undefined)
+    media["(max-width: 60rem)"] = options.narrow;
   media["(prefers-reduced-motion: reduce)"] = options.still ?? false;
   window.document.body.innerHTML = `
     <section data-atlas>
@@ -39,7 +42,13 @@ function setup(options: {
         </ul>
       </div></div>
     </section>
-    <p id="outside">Elsewhere</p>`;
+    <p id="outside">Elsewhere</p>
+    <section data-atlas-faqs>
+      <div class="faqs__inner"><div class="faqs__index">
+        <details id="faq-one" name="faqs" open><summary>First question?</summary><div class="faqs__answer"><p>First <strong>answer</strong>.</p></div></details>
+        <details id="faq-two" name="faqs"><summary>Second question?</summary><div class="faqs__answer"><p>Second answer.</p></div></details>
+      </div></div>
+    </section>`;
   // Marks sit 40px apart on a phone-sized map; each is a 26px hit target.
   window.document
     .querySelectorAll("[data-atlas-mark]")
@@ -86,6 +95,8 @@ function openMarks(): string[] {
 }
 
 beforeEach(() => {
+  // Each test starts on a wide, hovering screen unless it says otherwise.
+  for (const query of Object.keys(media)) delete media[query];
   window = new Window({ url: "https://yeehaa.test/" });
   observed = [];
   watchers = [];
@@ -122,6 +133,22 @@ beforeEach(() => {
 afterEach(() => {
   window.close();
   restoreGlobals();
+});
+
+describe("published FAQs under the atlas", () => {
+  // They are plain disclosures: closed until tapped, on every screen.
+  it("leaves them as plain disclosures on a wide screen", () => {
+    setup({ touch: false });
+    const band = window.document.querySelector("[data-atlas-faqs]");
+    expect(band?.hasAttribute("data-split")).toBe(false);
+    expect(
+      window.document.querySelector("[data-atlas-faqs-reader]"),
+    ).toBeNull();
+    const first = window.document.querySelector("#faq-one");
+    first?.removeAttribute("open");
+    first?.dispatchEvent(new window.Event("toggle"));
+    expect(first?.hasAttribute("open")).toBe(false);
+  });
 });
 
 describe("atlas on touch screens", () => {

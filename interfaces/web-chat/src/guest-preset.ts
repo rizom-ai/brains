@@ -31,10 +31,14 @@ const localPresetSchema: z.ZodObject<
  * and its owner's budget is the ceiling: these counts only stop floods, sized
  * well above what one site's visitors ask.
  */
-export function createDefaultGuestPolicy(origin: string): GuestPolicy {
+export function createDefaultGuestPolicy(
+  origin: string,
+  previewOrigin?: string,
+): GuestPolicy {
   return guestPolicySchema.parse({
     enabled: true,
     origin,
+    ...(previewOrigin ? { previewOrigin } : {}),
     issuance: {
       requestsPerMinute: 30,
       requestsPerDay: 1000,

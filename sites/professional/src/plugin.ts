@@ -9,11 +9,16 @@ import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
   homepageAtlasSchema,
+  homepageFaqsSchema,
   homepageChatAvailable,
   homepageOpeningSchema,
   loadHomepageOpening,
 } from "@brains/site-atlas";
 import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { loadPublicFaqs } from "@brains/faq";
+
+/** The most asked published FAQs the homepage shows under the atlas. */
+const HOMEPAGE_FAQ_LIMIT = 6;
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
@@ -108,6 +113,8 @@ export class ProfessionalSitePlugin extends ServicePlugin<
               }),
             chatAvailable: (buildContext): Promise<boolean> =>
               homepageChatAvailable(buildContext, context),
+            loadFaqs: (buildContext): ReturnType<typeof loadPublicFaqs> =>
+              loadPublicFaqs(buildContext, HOMEPAGE_FAQ_LIMIT, context.logger),
           }
         : {},
     );
@@ -125,6 +132,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       opening: homepageOpeningSchema,
       atlas: homepageAtlasSchema,
       askBox: z.boolean().default(false),
+      faqs: homepageFaqsSchema,
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),

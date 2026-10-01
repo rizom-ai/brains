@@ -752,6 +752,20 @@ export interface UpdateEntityRequest<T extends BaseEntity> {
   options?: UpdateEntityOptions | undefined;
 }
 
+/** Native-only atomic same-type, same-visibility update and removal.
+ * Both revisions must come from admitted write snapshots. The source is
+ * removed only when the destination and both journals commit with it.
+ */
+export interface FoldEntityRequest<T extends BaseEntity = BaseEntity> {
+  source: { entityType: string; id: string; expectedRevision: string };
+  targetRevision: string;
+  entity: T;
+  options?: Omit<
+    UpdateEntityOptions,
+    "conditionalWrite" | "expectedContentHash"
+  >;
+}
+
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
@@ -1194,6 +1208,7 @@ export interface EntityServiceClient extends ICoreEntityService {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
+  foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
   upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
