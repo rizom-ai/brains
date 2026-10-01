@@ -62,8 +62,12 @@ async function selectSeriesInput(
     .sort();
   const members = (
     await Promise.all(
+      // Membership lives in metadata; never load binary content.
       entityTypes.map(async (entityType) =>
-        context.entities.listEntities({ entityType }),
+        context.entities.listEntities({
+          entityType,
+          options: { binaryContent: "reference" },
+        }),
       ),
     )
   )

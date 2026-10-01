@@ -116,7 +116,6 @@ export {
   readArtifactContent,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
-  type ArtifactAssetReader,
   type ArtifactContent,
   type ArtifactEntityRef,
   type ArtifactEntityType,

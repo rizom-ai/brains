@@ -1,4 +1,8 @@
-import { assetRefSchema, type AssetRef } from "@brains/entity-service";
+import {
+  assetRefSchema,
+  readAssetBytes,
+  type AssetOpener,
+} from "@brains/entity-service";
 import type { AttachmentCard } from "../contracts/agent";
 
 export type ArtifactEntityType = "document" | "image";
@@ -11,11 +15,6 @@ export interface ArtifactEntityRef {
 export interface ParsedArtifactDataUrl {
   mimeType: string;
   data: ArrayBuffer;
-}
-
-/** The asset surface needed to read an artifact's stored bytes. */
-export interface ArtifactAssetReader {
-  openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
 }
 
 export type ArtifactContent =
@@ -89,7 +88,7 @@ export function parseArtifactDataUrl(
  * bytes are loaded. Undefined when the content is not a deliverable artifact.
  */
 export async function readArtifactContent(
-  reader: ArtifactAssetReader,
+  reader: AssetOpener,
   entityType: ArtifactEntityType,
   entity: { content: unknown; metadata?: Record<string, unknown> | null },
   maxBytes?: number,
@@ -120,11 +119,7 @@ export async function readArtifactContent(
   ) {
     return { status: "oversized", sizeBytes: recordedSize };
   }
-  const chunks: Uint8Array[] = [];
-  for await (const chunk of await reader.openAsset(ref.data)) {
-    chunks.push(chunk);
-  }
-  const data = Buffer.concat(chunks);
+  const data = await readAssetBytes(reader, ref.data);
   if (maxBytes !== undefined && data.byteLength > maxBytes) {
     return { status: "oversized", sizeBytes: data.byteLength };
   }

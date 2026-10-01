@@ -16,6 +16,8 @@ export {
   createAssetRef,
   getAssetDigest,
   parseAssetRef,
+  readAssetBytes,
+  type AssetOpener,
   type AssetReader,
   type AssetRecord,
   type AssetRef,

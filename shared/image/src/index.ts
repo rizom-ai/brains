@@ -58,3 +58,11 @@ export {
   type ImageBytesSource,
   type StagedImageEntity,
 } from "./lib/stage-image";
+
+// Reading stored image bytes in either storage form
+export {
+  imageDataUrl,
+  readImageBytes,
+  type ImageBytes,
+  type StoredImage,
+} from "./lib/image-bytes";

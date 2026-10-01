@@ -185,6 +185,8 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           options: {
             limit: input.limit ?? 20,
             filter,
+            // Tool output masks binary content, so never load it.
+            binaryContent: "reference",
             ...publishedOnlyFor(visibilityScope),
             ...(defaultSort ? { sortFields: defaultSort } : {}),
           },

@@ -7,6 +7,7 @@ import type {
   EntitySchema,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
+import { readArtifactContent } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import { renderOgImagePng, type ScreenshotPng } from "./og-image";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
@@ -92,9 +93,18 @@ export function createMediaContentHelpers(
       const image = await context.entityService.getEntity({
         entityType: "image",
         id: imageId,
+        binaryContent: "reference",
       });
-      return image?.content.startsWith("data:image/")
-        ? image.content
+      if (!image) return undefined;
+      if (image.content.startsWith("data:image/")) return image.content;
+      // Composition inlines the image; an asset is encoded here explicitly.
+      const read = await readArtifactContent(
+        context.entityService,
+        "image",
+        image,
+      );
+      return read?.status === "ready"
+        ? `data:${read.mimeType};base64,${Buffer.from(read.data).toString("base64")}`
         : undefined;
     },
   };

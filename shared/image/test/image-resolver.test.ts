@@ -53,6 +53,25 @@ describe("resolveImage", () => {
     expect(result?.height).toBe(1);
   });
 
+  it("renders an asset-backed image as a data URL built from its bytes", async () => {
+    const shell = createMockShell();
+    const service = shell.getEntityService();
+    const asset = await service.stageAsset(
+      Buffer.from(TINY_PNG_BASE64, "base64"),
+    );
+    shell.addEntities([
+      {
+        ...mockImageEntity,
+        content: asset.ref,
+        metadata: { ...mockImageEntity.metadata, mediaType: "image/png" },
+      },
+    ]);
+
+    const result = await resolveImage("hero-image", service);
+
+    expect(result?.url).toBe(TINY_PNG_DATA_URL);
+  });
+
   it("should return undefined for non-existent image", async () => {
     const result = await resolveImage("non-existent", imageService());
 

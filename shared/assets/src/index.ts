@@ -54,6 +54,23 @@ export interface AssetReader {
   verify(ref: AssetRef): Promise<AssetVerification>;
 }
 
+/** The asset surface needed to stream an asset's stored chunks. */
+export interface AssetOpener {
+  openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
+}
+
+/** An asset's full bytes, read explicitly from its stored chunks. */
+export async function readAssetBytes(
+  opener: AssetOpener,
+  ref: AssetRef,
+): Promise<Buffer<ArrayBuffer>> {
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of await opener.openAsset(ref)) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 export const assetRefSchema: z.ZodCustom<AssetRef, AssetRef> =
   z.custom<AssetRef>(
     (value) => typeof value === "string" && ASSET_REF_PATTERN.test(value),

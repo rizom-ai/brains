@@ -6,7 +6,7 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type {
-  ArtifactAssetReader,
+  AssetOpener,
   AttachmentResolveRequest,
   BinaryContentMode,
   MessageSender,
@@ -42,7 +42,7 @@ export type ResolveAttachmentFn = (
   request: AttachmentResolveRequest,
 ) => Promise<PublishMediaData | undefined>;
 
-export interface PublishExecuteEntityService extends ArtifactAssetReader {
+export interface PublishExecuteEntityService extends AssetOpener {
   getEntity(request: {
     entityType: string;
     id: string;

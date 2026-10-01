@@ -90,6 +90,7 @@ import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
+import { inlineAssetContent } from "./lib/asset-data-url";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
@@ -913,17 +914,15 @@ export class EntityService implements IEntityService {
     ) {
       return entity;
     }
-    const ref = assetRefSchema.safeParse(entity.content);
-    if (!ref.success) return entity;
-    const bytes = await this.assetRepository.read(ref.data);
+    if (!assetRefSchema.safeParse(entity.content).success) return entity;
     this.recordLegacyMaterialization(method, entity.entityType);
-    const mediaType =
-      typeof entity.metadata["mediaType"] === "string"
-        ? entity.metadata["mediaType"]
-        : "application/octet-stream";
     return {
       ...entity,
-      content: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
+      content: await inlineAssetContent(
+        { openAsset: (ref) => this.assetRepository.openRead(ref) },
+        entity.content,
+        entity.metadata,
+      ),
     };
   }
 
