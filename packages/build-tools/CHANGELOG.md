@@ -1,5 +1,7 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.472
+
 ## 0.2.0-alpha.471
 
 ## 0.2.0-alpha.470

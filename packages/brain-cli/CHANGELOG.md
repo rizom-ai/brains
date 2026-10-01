@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- [#475](https://github.com/rizom-ai/brains/pull/475) [`3e113f0`](https://github.com/rizom-ai/brains/commit/3e113f003bdb075d12d20f13c8d3d8c526561146) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQs that need the owner now come to the Inbox instead of a separate FAQ review workspace. A captured question appears as a new item with its drafted answer, to **Publish** or **Decline**; a published FAQ that a repeated question answered differently appears with its current answer and each alternative, to **Use alternative N** or **Keep current answer**. The FAQ review workspace is removed.
+
 ## 0.2.0-alpha.471
 
 ### Patch Changes

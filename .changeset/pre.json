@@ -393,6 +393,7 @@
     "core--faq-band-alignment",
     "core--faq-capture",
     "core--faq-closed-screening-scope",
+    "core--faq-inbox",
     "core--faq-retry-eligibility",
     "core--faq-visitor-capture",
     "core--fenced-job-attempts",
