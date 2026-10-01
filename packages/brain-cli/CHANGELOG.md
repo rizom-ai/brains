@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- [#468](https://github.com/rizom-ai/brains/pull/468) [`b9fe336`](https://github.com/rizom-ai/brains/commit/b9fe33614a0e9a05f978899337d24c3b581bea05) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a wide screen, the open FAQ answer under the atlas starts level with the first question, whether or not the owner wrote a heading over them.
+
 ## 0.2.0-alpha.467
 
 ### Patch Changes

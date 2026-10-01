@@ -390,6 +390,7 @@
     "core--entity-profile-update-probe",
     "core--entity-type-classification",
     "core--export-raw-entity-source",
+    "core--faq-band-alignment",
     "core--faq-capture",
     "core--faq-visitor-capture",
     "core--fenced-job-attempts",
