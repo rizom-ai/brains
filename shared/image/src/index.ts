@@ -68,3 +68,8 @@ export {
   type ImageBytes,
   type StoredImage,
 } from "./lib/image-bytes";
+export {
+  classifyInlineImage,
+  type InlineImageBlocker,
+  type InlineImageVerdict,
+} from "./lib/inline-image-migration";

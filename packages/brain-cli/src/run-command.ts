@@ -306,6 +306,31 @@ const configMigrate: BrainCommand = defineCommand({
   },
 });
 
+const assetsMigrate: BrainCommand = defineCommand({
+  name: "assets:migrate",
+  usage: "--dry-run [--database <path>]",
+  description:
+    "Plan moving inline images into durable assets (offline, app stopped)",
+  flags: {
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Decode every inline image and report without writing",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsMigrate } = await import("./commands/assets-migrate");
+    return runAssetsMigrate(dir, {
+      database: getStringFlag(flags, "database"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+    });
+  },
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json] [--yes]",
@@ -433,6 +458,7 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   authResetPasskeys,
   authReinitializeAccess,
   configMigrate,
+  assetsMigrate,
   toolCommand,
   helpCommand,
   versionCommand,
