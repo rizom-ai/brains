@@ -31,11 +31,11 @@ Frontmatter holds only `question`, `status` (`draft` | `published`), and `asked`
 
 ## Reviewing alternative answers
 
-A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is appended to the body under `## Alternative answers` as its own `###` section, with its own headings nested one level below (reconciliation carries a folded duplicate's answer the same way), where the owner can read and edit it in Studio's editor like any other markdown. Studio's **FAQ review** workspace lists every FAQ with alternatives that the reviewer may see, with the current answer and each alternative. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either removes the alternatives from the body. Both read the FAQ at the reviewer's visibility and write only over the version they read.
+A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is appended to the body under `## Alternative answers` as its own `###` section, with its own headings nested one level below (reconciliation carries a folded duplicate's answer the same way), where the owner can read and edit it in Studio's editor like any other markdown. Such a FAQ appears in the owner's Inbox, with the current answer and each alternative in its detail. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either removes the alternatives from the body and writes only over the version it read.
 
 ## Publishing and sites
 
-`published` is a publish status, so moving a draft there requires the `publish` entity action; deleting a draft declines it.
+Every draft, whatever its visibility, appears in the owner's Inbox with its drafted answer: **Publish** moves it to `published`, a publish status that requires the `publish` entity action; **Decline** deletes it. Both act only on the version they read.
 
 The plugin registers the `faq:entities` datasource and the `faq-section` template. The template is deliberately not named `faq-list`, so the site builder derives no `/faqs` route or navigation entry from it; a site shows FAQs only by placing `faq-section` in one of its route sections. The datasource returns FAQs with visibility exactly `public`, most asked first, and forwards the build's `publishedOnly`, so production builds show only published FAQs and a shared or restricted FAQ never reaches a site.
 
