@@ -27,7 +27,6 @@ export async function homepageChatAvailable(
         schema: askBoxAvailabilitySchema,
       })
       .get(ASK_BOX_STATE_KEY);
-    // Managed guest chat reaches preview only, while the owner has it switched on.
     return record !== null && (preview ? record.preview : record.public);
   } catch {
     // An unreadable record cannot show that Web Chat serves the box; keep the door only.

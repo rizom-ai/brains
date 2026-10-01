@@ -1,5 +1,45 @@
 # @rizom/brain
 
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- [#474](https://github.com/rizom-ai/brains/pull/474) [`a54ab05`](https://github.com/rizom-ai/brains/commit/a54ab05f3e5f789cbe5f2803b6453c848ee70540) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Published FAQs under the atlas homepage start closed: a "+" marks each question, tapping one opens its answer beneath it, one at a time, the same on every screen; the side-by-side reader is gone. Visitor questions are now screened against what the brain's public work is about: the titles of its public topics, which the topics plugin answers on a new `topics:public-titles` channel, and the owner's `ask-content` introduction. The page's starter questions no longer double as the site's scope, so a site can drop them.
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- [#466](https://github.com/rizom-ai/brains/pull/466) [`2e17b92`](https://github.com/rizom-ai/brains/commit/2e17b929f9df55d02ac34cafbdf028c771f4a6af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep FAQ merge retries within the initially selected visibility and question. Concurrent changes to either stop the merge without rewriting the edited FAQ; same-question, same-visibility merges still retry with storage CAS.
+
+  Fold duplicate FAQs through a native-only atomic destination update and source removal, checking both full revisions and committing FTS and projection/export journals together. Failed writes preserve both records; retries after a committed fold do not restore the source or count its askings twice. This does not add a public authoring SDK capability.
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- [`6cd10dc`](https://github.com/rizom-ai/brains/commit/6cd10dca14b6cdcbac184045359aaa0ea0258a00) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serve owner-switched guest chat on the site itself as well as its preview. One Studio switch, monthly budget and set of limits cover both hosts; each host accepts guest requests only from its own pages, and the Ask box is served on both while guest chat is switched on. An authorization stored under the former preview-only origin authorizes nothing: switch guest chat on again in Studio after upgrading.
+
+- [#469](https://github.com/rizom-ai/brains/pull/469) [`674a5af`](https://github.com/rizom-ai/brains/commit/674a5afa237babe39adb02093168ec75792e15f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The RSS feed now links each post to where the site actually publishes it, so a site that calls its posts "Essays" links to `/essays/<slug>` instead of a missing `/posts/<slug>` page.
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- [#468](https://github.com/rizom-ai/brains/pull/468) [`b9fe336`](https://github.com/rizom-ai/brains/commit/b9fe33614a0e9a05f978899337d24c3b581bea05) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a wide screen, the open FAQ answer under the atlas starts level with the first question, whether or not the owner wrote a heading over them.
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- [#464](https://github.com/rizom-ai/brains/pull/464) [`8af0ca0`](https://github.com/rizom-ai/brains/commit/8af0ca0e94ac335c9aeb88c1d58c5f305ae6c456) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional site's atlas homepage shows the owner's published FAQs in a band under the atlas: the six most asked, under the owner's optional `faqHeading` from `ask-content` (unwritten, there is no heading). One answer is open at a time and every answer reads without a script; on a wide screen the atlas script shows the open answer beside the questions. Nothing renders until a FAQ is published; a preview build shows drafts too, like any draft content. `@brains/faq` exports `loadPublicFaqs` for sites that show FAQs beside their other content.
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- [#463](https://github.com/rizom-ai/brains/pull/463) [`fa9c090`](https://github.com/rizom-ai/brains/commit/fa9c090c26e3534b5be0592e657c41974abb80f3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder's route registry hears the pages plugins declare in the worker process too. The site builds in the worker, which takes no ordinary message subscriptions, so pages registered through the site builder's channel — the contact form's — were missing from every built site while the serving process listed them.
+
 ## 0.2.0-alpha.465
 
 ### Patch Changes
