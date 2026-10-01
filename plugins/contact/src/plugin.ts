@@ -266,8 +266,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    // A separate worker never serves the form, so it is never ready to.
-    if (context.executionOnly || !this.intake) return;
+    if (!this.intake) return;
+    // The site's contact pages, declared in every process: the site builds in
+    // a separate worker, which has to know them too.
     await context.messaging.send({
       type: SITE_BUILDER_CHANNELS.routeRegister,
       payload: {
@@ -278,6 +279,8 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         ],
       },
     });
+    // A separate worker never serves the form, so it is never ready to.
+    if (context.executionOnly) return;
     if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
       throw new Error("Contact Inbox unavailable");
     await this.readSiteTheme(context);

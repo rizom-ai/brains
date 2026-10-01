@@ -346,7 +346,25 @@ describe("contact runtime", () => {
 
   it("in a separate worker, declares the form for site builds and runs maintenance, but never serves", async () => {
     const f = await setup(true);
+    // The site builds in this worker, so it is told the site's contact pages.
+    const registered: unknown[] = [];
+    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+      registered.push(message.payload);
+      return { success: true };
+    });
     await f.plugin.ready();
+    expect(registered).toEqual([
+      {
+        pluginId: "contact",
+        routes: [
+          expect.objectContaining({ id: "contact", path: "/contact" }),
+          expect.objectContaining({
+            id: "contact-thanks",
+            path: "/contact/thanks",
+          }),
+        ],
+      },
+    ]);
     const routes = f.plugin.getWebRoutes();
     expect(routes.map((route) => `${route.method} ${route.path}`)).toEqual([
       "GET /contact",
