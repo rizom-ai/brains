@@ -33,9 +33,13 @@
     band.innerHTML = `<div class="faq-band__inner"><div><h2>Asked before</h2><ul class="faq-band__questions">${FAQS.map(
       (faq, i) =>
         `<li class="${i === 0 ? "open" : ""}"><button aria-expanded="${i === 0}" data-i="${i}">${faq.q}</button><div class="faq-band__answer-in">${faq.a}</div></li>`,
-    ).join("")}</ul></div><div class="faq-band__answer">${FAQS[0].a}</div></div>`;
+    ).join(
+      "",
+    )}</ul></div><div class="faq-band__answer">${FAQS[0].a}</div></div>`;
     atlas.after(band);
-    const left = atlas.querySelector(".atlas__talk h1")?.getBoundingClientRect().left ?? 144;
+    const left =
+      atlas.querySelector(".atlas__talk h1")?.getBoundingClientRect().left ??
+      144;
     if (window.innerWidth >= 768)
       band.querySelector(".faq-band__inner").style.marginLeft = `${left}px`;
     band.addEventListener("click", (event) => {
@@ -44,7 +48,10 @@
       const i = Number(button.dataset.i);
       band.querySelectorAll(".faq-band__questions > li").forEach((li, j) => {
         li.classList.toggle("open", j === i && !li.classList.contains("open"));
-        li.querySelector("button").setAttribute("aria-expanded", String(li.classList.contains("open")));
+        li.querySelector("button").setAttribute(
+          "aria-expanded",
+          String(li.classList.contains("open")),
+        );
       });
       band.querySelector(".faq-band__answer").innerHTML = FAQS[i].a;
     });
