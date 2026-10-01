@@ -104,6 +104,7 @@ const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
 const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
+  previewOrigin: z.ZodOptional<z.ZodString>;
   budgeted: z.ZodOptional<z.ZodLiteral<true>>;
   issuance: typeof guestIssuanceLimitsSchema;
   limits: typeof limitsSchema;
@@ -123,6 +124,14 @@ const enabledPolicySchema: Strict<{
       isGuestOrigin,
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
+  /** The site's preview, served under the same switch, budget and limits. */
+  previewOrigin: z
+    .string()
+    .refine(
+      (value) => isGuestOrigin(value) && value.startsWith("https://"),
+      "Guest preview origin must be canonical HTTPS",
+    )
+    .optional(),
   /** The owner authorizes it with a monthly budget; admission needs that authorization. */
   budgeted: z.literal(true).optional(),
   issuance: guestIssuanceLimitsSchema,
@@ -150,20 +159,32 @@ export type GuestPolicy = z.output<typeof guestPolicySchema>;
 export type EnabledGuestPolicy = Extract<GuestPolicy, { enabled: true }>;
 
 /** Deployment TLS terminates at the HTTPS proxy. For bounded guest access,
- * accept its backend HTTP scheme only for the exact configured HTTPS host.
+ * accept its backend HTTP scheme only for an exact configured HTTPS host.
  * Never infer the public host or protocol from Forwarded/X-Forwarded-* claims.
  * Loopback policies retain exact-origin and socket-peer checks.
+ * Returns the configured origin the request arrived on, if any.
  */
+export function guestRequestOrigin(
+  request: Request,
+  policy: EnabledGuestPolicy,
+): string | undefined {
+  const url = new URL(request.url);
+  const origins = [policy.origin, policy.previewOrigin].filter(
+    (origin): origin is string => origin !== undefined,
+  );
+  return origins.find(
+    (origin) =>
+      url.origin === origin ||
+      (policy.budgeted === true &&
+        new URL(origin).protocol === "https:" &&
+        url.protocol === "http:" &&
+        url.host === new URL(origin).host),
+  );
+}
+
 export function matchesGuestOrigin(
   request: Request,
   policy: EnabledGuestPolicy,
 ): boolean {
-  const url = new URL(request.url);
-  if (url.origin === policy.origin) return true;
-  return Boolean(
-    policy.budgeted &&
-    new URL(policy.origin).protocol === "https:" &&
-    url.protocol === "http:" &&
-    url.host === new URL(policy.origin).host,
-  );
+  return guestRequestOrigin(request, policy) !== undefined;
 }

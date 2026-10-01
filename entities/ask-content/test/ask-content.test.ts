@@ -32,6 +32,7 @@ describe("Ask content entity", () => {
       contactNote: "A private note. No account needed.",
       mapCaption: "Everything published here, placed by topic",
       refusal: "I only talk about my work.",
+      faqHeading: "Asked before",
     };
     const markdown = askContentAdapter.createContent(page, "Welcome copy.");
     expect(askContentAdapter.parseContent(markdown)).toEqual({

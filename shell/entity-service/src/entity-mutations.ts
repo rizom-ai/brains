@@ -18,6 +18,7 @@ import type {
   DeleteEntityRequest,
   CreateEntityRequest,
   UpdateEntityRequest,
+  FoldEntityRequest,
   UpsertEntityRequest,
   EntityRegistry,
   EntityMutationAdmission,
@@ -31,6 +32,7 @@ import type {
 } from "./entity-export-store";
 import type { IJobQueueService } from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
+import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
@@ -84,6 +86,16 @@ function isUniqueConstraintError(error: unknown): boolean {
 }
 
 class StaleEntityUpdateError extends Error {}
+
+const foldSourceSchema = z.strictObject({
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+  expectedRevision: z.string().min(1),
+});
+interface FoldRemoval {
+  condition: EntityWritePrecondition;
+  prior: BaseEntity;
+}
 
 export interface EntityMutationDeps {
   db: EntityDB;
@@ -340,8 +352,63 @@ export class EntityMutations {
   /**
    * Update an existing entity (returns immediately, embedding generated in background)
    */
-  public async updateEntity<T extends BaseEntity>(
+  public updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
+  ): Promise<EntityMutationResult> {
+    return this.writeUpdatedEntity(request);
+  }
+
+  public async foldEntity(
+    request: FoldEntityRequest,
+  ): Promise<EntityMutationResult> {
+    // Capture the admitted pair before any asynchronous policy/serialization work.
+    const source = foldSourceSchema.parse(request.source);
+    const targetRevision = z.string().min(1).parse(request.targetRevision);
+    const entity = structuredClone(request.entity);
+    const options = { ...request.options };
+    if (source.entityType !== entity.entityType || source.id === entity.id) {
+      throw new Error("A fold requires two distinct entities of the same type");
+    }
+    options.signal?.throwIfAborted();
+    const priorData = await this.entityQueries.getEntityData(
+      source.entityType,
+      source.id,
+      "restricted",
+    );
+    if (!priorData || entityRevision(priorData) !== source.expectedRevision) {
+      throw new EntityWriteConflictError(source.entityType, source.id);
+    }
+    const prior = await this.entitySerializer.convertToEntity(priorData);
+    if (prior?.visibility !== entity.visibility) {
+      throw new Error("A fold cannot cross visibility scopes");
+    }
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "delete",
+      entityType: source.entityType,
+      entityId: source.id,
+    });
+    return this.writeUpdatedEntity(
+      {
+        entity,
+        options: {
+          ...options,
+          conditionalWrite: { expectedRevision: targetRevision },
+        },
+      },
+      {
+        condition: {
+          entityType: source.entityType,
+          entityId: source.id,
+          expectedRevision: source.expectedRevision,
+        },
+        prior,
+      },
+    );
+  }
+
+  private async writeUpdatedEntity<T extends BaseEntity>(
+    request: UpdateEntityRequest<T>,
+    fold?: FoldRemoval,
   ): Promise<EntityMutationResult> {
     const { entity, options, stagedAsset } = request;
     options?.signal?.throwIfAborted();
@@ -436,6 +503,16 @@ export class EntityMutations {
       };
     }
 
+    if (
+      fold &&
+      (validatedEntity.visibility !== fold.prior.visibility ||
+        existingEntity.visibility !== fold.prior.visibility)
+    ) {
+      throw new EntityWriteConflictError(
+        validatedEntity.entityType,
+        validatedEntity.id,
+      );
+    }
     const stagedUpload = this.resolveStagedUpload(
       validatedEntity.entityType,
       validatedEntity.content,
@@ -503,19 +580,38 @@ export class EntityMutations {
     });
 
     try {
-      await this.projectionStore.withDirtyInput(
-        {
-          sourceType: validatedEntity.entityType,
-          sourceId: validatedEntity.id,
-          revision: entityRevision({
-            contentHash,
-            metadata,
-            visibility: validatedEntity.visibility,
-          }),
-          operation: "upsert",
-          markedAt: this.projectionNow(),
-        },
+      await this.projectionStore.withDirtyInputs(
+        [
+          {
+            sourceType: validatedEntity.entityType,
+            sourceId: validatedEntity.id,
+            revision: entityRevision({
+              contentHash,
+              metadata,
+              visibility: validatedEntity.visibility,
+            }),
+            operation: "upsert",
+            markedAt: this.projectionNow(),
+          },
+          ...(fold
+            ? [
+                {
+                  sourceType: fold.condition.entityType,
+                  sourceId: fold.condition.entityId,
+                  revision: `deleted:${fold.condition.expectedRevision}`,
+                  operation: "delete" as const,
+                  markedAt: this.projectionNow(),
+                },
+              ]
+            : []),
+        ],
         async (transaction) => {
+          if (fold)
+            await assertEntityWriteCondition(
+              transaction,
+              fold.condition,
+              fold.prior,
+            );
           if (precondition)
             await assertEntityWriteCondition(
               transaction,
@@ -567,6 +663,30 @@ export class EntityMutations {
               );
             throw new StaleEntityUpdateError();
           }
+          if (fold) {
+            await transaction
+              .delete(entities)
+              .where(
+                and(
+                  eq(entities.entityType, fold.prior.entityType),
+                  eq(entities.id, fold.prior.id),
+                ),
+              );
+            await this.deleteFtsIndex(
+              transaction,
+              fold.prior.id,
+              fold.prior.entityType,
+            );
+            await this.persistEntityExport(
+              transaction,
+              {
+                entityType: fold.prior.entityType,
+                entityId: fold.prior.id,
+                operation: "delete",
+              },
+              options?.persistenceOrigin,
+            );
+          }
           await this.syncFtsIndex(
             transaction,
             validatedEntity.id,
@@ -596,8 +716,24 @@ export class EntityMutations {
         skipReason: "content-conflict",
       };
     }
+    // Recoverable cross-database/index and notification work starts only after
+    // the entity pair, FTS and both durable journals have committed.
+    if (fold)
+      await this.embeddingIndex.deleteEmbedding(
+        fold.prior.entityType,
+        fold.prior.id,
+      );
     await this.notifyProjectionScheduler();
 
+    if (fold)
+      await this.emitEntityEvent(
+        ENTITY_CHANNELS.deleted,
+        fold.prior.entityType,
+        fold.prior.id,
+        fold.prior,
+        undefined,
+        options?.eventContext,
+      );
     this.logger.debug(
       `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
     );

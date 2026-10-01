@@ -19,45 +19,33 @@ re-exported from `@rizom/brain`.
 
 ## Audience boundary
 
-The current release remains fail-closed:
-
 - Studio Chat is limited to Trusted and Admin actors;
-- when guest policy does not apply, `/ask` redirects to Studio Chat (or returns `404` without Studio);
-- active Public and unauthenticated callers have no Chat access.
+- anonymous visitors chat only through guest Ask, and only while the owner has it switched on;
+- when guest policy does not apply, `/ask` redirects to Studio Chat (or returns `404` without Studio).
 
-The intended future split is Studio for authenticated actors, with a separately
-restricted Public policy, and standalone Web Chat for explicitly enabled
-anonymous guests. Neither `public: true` nor preview route reachability grants
-guest access. It must remain disabled until guest identity, capability,
-rate, abuse, spend, retention, consent, deletion, and kill-switch policies are
-accepted and enforced server-side.
+## Owner-switched guest chat
 
-## Bounded preview authorization
+With guest configuration omitted, the runtime derives its origins from deployment
+context: the site itself and, when it has its own host, its preview. One switch,
+one monthly budget and one set of limits cover both. Guest chat stays off until
+the owner switches it on in Studio with a monthly budget. Existing `guest: false`
+blocks this; `guest: local-test` remains a separate loopback-only test convention.
 
-With guest configuration omitted, the runtime derives the preview origin from
-deployment context and reuses shared guest bounds. It stays off until an
-administrator explicitly authorizes access. Existing `guest: false` blocks this
-activation; `guest: local-test` remains a separate loopback-only test convention.
+On the authenticated site origin, `GET /api/chat/guest/access` reports the
+switch, budget and this month's charges without invoking a model. `POST` accepts
+only `{"enabled":true}` or `{"enabled":false}`, requires an Admin browser session
+and a same-origin JSON request, and cannot override the origins, limits or
+accounting. Switching on reuses the budget last set in Studio.
 
-On the authenticated primary origin, `GET /api/chat/guest/access` reports the
-proposed allowance and current usage without granting access or invoking a model.
-`POST` accepts only `{"enabled":true}` or `{"enabled":false}`, requires an Admin
-browser session and same-origin JSON request, and cannot override the origin,
-limits or accounting. This is an operator HTTP action, not an Ops/YAML setting.
+Each answer is charged what it measurably cost, or a fixed cap when that cannot
+be measured; the budget starts over on the 1st (UTC). Background generation and
+indexing are accounted separately.
 
-The current shared bounds authorize at most **two messages and $4 total** across
-all visitors and time. Authorization and lifetime reservations are durable in the
-existing CAS ledger. Failures, cleanup, retries, restart and disable/re-enable do
-not refund or replenish them. An exhausted allowance cannot be renewed through
-this action. Background generation/indexing is accounted separately.
-
-Only declared guest routes and their presentation assets are served on preview.
-Management and other APIs stay excluded there; primary-host guest requests remain
-denied. Owned history and deletion remain available after exhaustion. Guest
-credentials are HttpOnly cookies; optional conversation locators use sessionStorage,
-not transcript storage. Closing a tab can lose its locators; this is not automatic
-credential or locator recovery. Production guest access requires separate work
-and approval.
+Only declared guest routes and their presentation assets are served; each host
+accepts guest requests only from its own pages. Management and other APIs stay
+excluded on preview. Guest credentials are HttpOnly cookies; optional
+conversation locators use sessionStorage, not transcript storage. Closing a tab
+can lose its locators; this is not automatic credential or locator recovery.
 
 ## Public page composition
 
@@ -83,7 +71,9 @@ content directory, with `visibility: public`. Missing, private or malformed
 content produces no welcome or topics. It is not a system prompt or policy.
 
 Each guest question is screened before it is answered: one call on the guest
-model judges it against the `topics` as the site's scope. A question that is
+model judges it against the site's scope: the brain's public topic titles,
+which the topics plugin answers on `topics:public-titles`, and the
+`ask-content` introduction. A question that is
 off topic, abusive, an injection attempt or harmful gets the optional
 `refusal` line instead of an answer, or a neutral line when the site wrote
 none. The Studio guest chat monitor counts screened-out questions by
