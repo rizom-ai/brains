@@ -286,6 +286,11 @@ export {
   type OfflineReader,
 } from "./offline/binary-asset-inventory";
 export {
+  verifyAssetBackedRows,
+  type AssetBackedVerification,
+  type AssetRowCheck,
+} from "./offline/binary-asset-verification";
+export {
   OfflineBinaryMigrator,
   type InlineRowMigrationInput,
   type InlineRowMigrationOutcome,

@@ -337,6 +337,32 @@ const assetsMigrate: BrainCommand = defineCommand({
   },
 });
 
+const assetsVerify: BrainCommand = defineCommand({
+  name: "assets:verify",
+  usage: "[--database <path>] [--brain-data <dir>]",
+  description:
+    "Check migrated images resolve to intact assets (offline, app stopped)",
+  flags: {
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    "brain-data": {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Synced content directory whose image files to compare",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsVerify } = await import("./commands/assets-verify");
+    return runAssetsVerify(dir, {
+      database: getStringFlag(flags, "database"),
+      brainData: getStringFlag(flags, "brain-data"),
+    });
+  },
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json] [--yes]",
@@ -465,6 +491,7 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   authReinitializeAccess,
   configMigrate,
   assetsMigrate,
+  assetsVerify,
   toolCommand,
   helpCommand,
   versionCommand,

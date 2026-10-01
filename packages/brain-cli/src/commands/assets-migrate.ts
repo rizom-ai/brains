@@ -1,13 +1,17 @@
-import { readFile, rename, stat, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
-import { resolveStandardPaths } from "@brains/app";
+import { readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { openOfflineEntityDatabase } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import type { InlineImageBlocker } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { CommandResult } from "../lib/command-result";
-import { findDatabaseHolders } from "../lib/database-holders";
+import {
+  defaultOfflineDatabaseDeps,
+  resolveLocalPath,
+  resolveOfflineDatabase,
+  type OfflineDatabaseDeps,
+} from "../lib/offline-database";
 import {
   planImageAssetMigration,
   type ImageAssetMigrationPlan,
@@ -24,12 +28,6 @@ export interface AssetsMigrateOptions {
   /** Where each run is recorded; defaults beside the database. */
   manifest?: string | undefined;
 }
-
-export interface AssetsMigrateDeps {
-  findHolders(databasePath: string): Promise<number[] | undefined>;
-}
-
-const REMOTE_URL = /^(?:libsql|wss?|https?):/i;
 
 /** How an operator resolves each kind of blocked image. */
 const BLOCKER_HINTS: Record<InlineImageBlocker, string> = {
@@ -52,34 +50,12 @@ const BLOCKER_HINTS: Record<InlineImageBlocker, string> = {
 export async function runAssetsMigrate(
   cwd: string,
   options: AssetsMigrateOptions,
-  deps: AssetsMigrateDeps = { findHolders: findDatabaseHolders },
+  deps: OfflineDatabaseDeps = defaultOfflineDatabaseDeps,
 ): Promise<CommandResult> {
-  const database =
-    options.database ?? `${resolveStandardPaths().dataDir}/brain.db`;
-  if (REMOTE_URL.test(database)) {
-    return {
-      success: false,
-      message: `Refusing ${database}: binary asset migration runs only against a local database file.`,
-    };
-  }
-  const path = resolveDatabasePath(cwd, database);
-  const size = await databaseBytes(path);
-  if (size === undefined) {
-    return { success: false, message: `No entity database at ${path}.` };
-  }
-  const holders = await deps.findHolders(path);
-  if (holders === undefined) {
-    return {
-      success: false,
-      message: `Refusing to migrate: cannot confirm that no process holds ${path} open on this platform. Stop the app and run this where /proc or lsof is available.`,
-    };
-  }
-  if (holders.length > 0) {
-    return {
-      success: false,
-      message: `Refusing to migrate: process(es) ${holders.join(", ")} hold ${path} open. Stop the app first.`,
-    };
-  }
+  const database = await resolveOfflineDatabase(cwd, options.database, deps);
+  if (!("path" in database)) return database;
+  const { path } = database;
+  const size = database.bytes;
   if (!options.dryRun) {
     // What starting the transitional release would do first: bring the
     // schema forward, so the staged asset tables exist. A dry-run never writes.
@@ -106,7 +82,7 @@ export async function runAssetsMigrate(
     const startedAt = new Date().toISOString();
     const entries = await runImageAssetMigration(connection);
     const manifestPath = options.manifest
-      ? resolveDatabasePath(cwd, options.manifest)
+      ? resolveLocalPath(cwd, options.manifest)
       : join(dirname(path), "binary-asset-migration.json");
     await appendManifestRun(manifestPath, {
       database: path,
@@ -159,22 +135,6 @@ async function appendManifestRun(
     `${JSON.stringify({ runs: [...existing, run] }, null, 2)}\n`,
   );
   await rename(next, path);
-}
-
-function resolveDatabasePath(cwd: string, database: string): string {
-  const path = database.startsWith("file:")
-    ? database.slice("file:".length)
-    : database;
-  return isAbsolute(path) ? path : resolve(cwd, path);
-}
-
-/** The database file plus its WAL, or undefined when there is no database. */
-async function databaseBytes(path: string): Promise<number | undefined> {
-  const [file, wal] = await Promise.all([
-    stat(path).catch(() => undefined),
-    stat(`${path}-wal`).catch(() => undefined),
-  ]);
-  return file?.isFile() ? file.size + (wal?.size ?? 0) : undefined;
 }
 
 function renderPlan(path: string, plan: ImageAssetMigrationPlan): string {
