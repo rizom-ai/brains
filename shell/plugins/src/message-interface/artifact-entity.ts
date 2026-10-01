@@ -4,6 +4,7 @@ import {
   type AssetOpener,
 } from "@brains/entity-service";
 import type { AttachmentCard } from "../contracts/agent";
+import { formatContentDispositionHeader } from "./content-disposition";
 
 export type ArtifactEntityType = "document" | "image";
 
@@ -15,6 +16,12 @@ export interface ArtifactEntityRef {
 export interface ParsedArtifactDataUrl {
   mimeType: string;
   data: ArrayBuffer;
+}
+
+/** The stored fields of an artifact entity, read in reference mode. */
+export interface StoredArtifact {
+  content: unknown;
+  metadata?: Record<string, unknown> | null;
 }
 
 export type ArtifactContent =
@@ -90,7 +97,7 @@ export function parseArtifactDataUrl(
 export async function readArtifactContent(
   reader: AssetOpener,
   entityType: ArtifactEntityType,
-  entity: { content: unknown; metadata?: Record<string, unknown> | null },
+  entity: StoredArtifact,
   maxBytes?: number,
 ): Promise<ArtifactContent | undefined> {
   if (typeof entity.content !== "string") return undefined;
@@ -104,13 +111,8 @@ export async function readArtifactContent(
     return { status: "ready", ...parsed };
   }
 
-  const mimeType = entity.metadata?.["mediaType"];
-  if (
-    typeof mimeType !== "string" ||
-    !ARTIFACT_MEDIA_TYPES[entityType].test(mimeType)
-  ) {
-    return undefined;
-  }
+  const mimeType = assetMediaType(entityType, entity);
+  if (!mimeType) return undefined;
   const recordedSize = entity.metadata?.["sizeBytes"];
   if (
     maxBytes !== undefined &&
@@ -130,6 +132,58 @@ export async function readArtifactContent(
   };
 }
 
+/**
+ * The HTTP response carrying an artifact's bytes. Stored asset chunks stream
+ * as they are read; an inline data URL is decoded. Undefined when the content
+ * is not this artifact type.
+ */
+export async function createArtifactResponse(
+  reader: AssetOpener,
+  input: {
+    entityType: ArtifactEntityType;
+    id: string;
+    entity: StoredArtifact;
+    disposition: "inline" | "attachment";
+  },
+): Promise<Response | undefined> {
+  const { entityType, id, entity } = input;
+  if (typeof entity.content !== "string") return undefined;
+  const headers = (mediaType: string, sizeBytes: unknown): Headers => {
+    const result = new Headers({
+      "Content-Type": mediaType,
+      "Content-Disposition": formatContentDispositionHeader({
+        disposition: input.disposition,
+        filename: getArtifactEntityFilename(
+          entity.metadata,
+          id,
+          entityType,
+          mediaType,
+        ),
+      }),
+    });
+    if (typeof sizeBytes === "number") {
+      result.set("Content-Length", String(sizeBytes));
+    }
+    return result;
+  };
+
+  const ref = assetRefSchema.safeParse(entity.content);
+  if (!ref.success) {
+    const parsed = parseArtifactDataUrl(entityType, entity.content);
+    return (
+      parsed &&
+      new Response(parsed.data, {
+        headers: headers(parsed.mimeType, parsed.data.byteLength),
+      })
+    );
+  }
+  const mediaType = assetMediaType(entityType, entity);
+  if (!mediaType) return undefined;
+  return new Response(streamChunks(await reader.openAsset(ref.data)), {
+    headers: headers(mediaType, entity.metadata?.["sizeBytes"]),
+  });
+}
+
 export function getArtifactEntityFilename(
   metadata: Record<string, unknown> | null | undefined,
   entityId: string,
@@ -147,6 +201,35 @@ export function getArtifactEntityFilename(
 
   const extension = mediaType.split("/")[1]?.split("+")[0] ?? "png";
   return `${entityId}.${extension}`;
+}
+
+/** The recorded media type of an asset-backed artifact, if it fits the type. */
+function assetMediaType(
+  entityType: ArtifactEntityType,
+  entity: StoredArtifact,
+): string | undefined {
+  const mediaType = entity.metadata?.["mediaType"];
+  return typeof mediaType === "string" &&
+    ARTIFACT_MEDIA_TYPES[entityType].test(mediaType)
+    ? mediaType
+    : undefined;
+}
+
+/** Stream stored chunks without holding the whole asset in memory. */
+function streamChunks(
+  chunks: AsyncIterable<Uint8Array>,
+): ReadableStream<Uint8Array> {
+  const iterator = chunks[Symbol.asyncIterator]();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller): Promise<void> {
+      const next = await iterator.next();
+      if (next.done) controller.close();
+      else controller.enqueue(next.value);
+    },
+    async cancel(): Promise<void> {
+      await iterator.return?.();
+    },
+  });
 }
 
 function parseBase64DataUrl(

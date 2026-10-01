@@ -1,12 +1,35 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createMockAssetStore } from "@brains/entity-service/test";
 import {
+  createArtifactResponse,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   readArtifactContent,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
 } from "../../src/message-interface/artifact-entity";
+
+const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "base64");
+
+async function stagedImage(): Promise<{
+  reader: ReturnType<typeof createMockAssetStore>;
+  entity: { content: string; metadata: Record<string, unknown> };
+}> {
+  const reader = createMockAssetStore();
+  const asset = await reader.stageAsset(png);
+  return {
+    reader,
+    entity: {
+      content: asset.ref,
+      metadata: { mediaType: "image/png", sizeBytes: png.byteLength },
+    },
+  };
+}
+
+async function body(response: Response | undefined): Promise<Buffer> {
+  if (!response) throw new Error("Missing response");
+  return Buffer.from(await response.arrayBuffer());
+}
 
 describe("artifact entity helpers", () => {
   it("resolves artifact entity refs from attachment card source metadata", () => {
@@ -96,23 +119,6 @@ describe("artifact entity helpers", () => {
   });
 
   describe("readArtifactContent", () => {
-    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "base64");
-
-    async function stagedImage(): Promise<{
-      reader: ReturnType<typeof createMockAssetStore>;
-      entity: { content: string; metadata: Record<string, unknown> };
-    }> {
-      const reader = createMockAssetStore();
-      const asset = await reader.stageAsset(png);
-      return {
-        reader,
-        entity: {
-          content: asset.ref,
-          metadata: { mediaType: "image/png", sizeBytes: png.byteLength },
-        },
-      };
-    }
-
     it("reads an asset-backed artifact from its stored chunks", async () => {
       const { reader, entity } = await stagedImage();
 
@@ -161,6 +167,75 @@ describe("artifact entity helpers", () => {
       expect(
         await readArtifactContent(reader, "document", entity),
       ).toBeUndefined();
+    });
+  });
+
+  describe("createArtifactResponse", () => {
+    it("streams an asset-backed artifact with its media type and size", async () => {
+      const { reader, entity } = await stagedImage();
+
+      const response = await createArtifactResponse(reader, {
+        entityType: "image",
+        id: "robot-1",
+        entity,
+        disposition: "inline",
+      });
+
+      expect(response?.headers.get("Content-Type")).toBe("image/png");
+      expect(response?.headers.get("Content-Length")).toBe(
+        String(png.byteLength),
+      );
+      expect(response?.headers.get("Content-Disposition")).toStartWith(
+        "inline",
+      );
+      expect(await body(response)).toEqual(png);
+    });
+
+    it("serves an inline data URL artifact as bytes", async () => {
+      const response = await createArtifactResponse(createMockAssetStore(), {
+        entityType: "image",
+        id: "robot-1",
+        entity: {
+          content: `data:image/png;base64,${png.toString("base64")}`,
+          metadata: {},
+        },
+        disposition: "attachment",
+      });
+
+      expect(response?.headers.get("Content-Type")).toBe("image/png");
+      expect(response?.headers.get("Content-Disposition")).toStartWith(
+        "attachment",
+      );
+      expect(await body(response)).toEqual(png);
+    });
+
+    it("refuses content that is not this artifact type", async () => {
+      const { reader, entity } = await stagedImage();
+      const openAsset = mock(reader.openAsset);
+
+      expect(
+        await createArtifactResponse(
+          { openAsset },
+          {
+            entityType: "document",
+            id: "deck-1",
+            entity,
+            disposition: "inline",
+          },
+        ),
+      ).toBeUndefined();
+      expect(
+        await createArtifactResponse(
+          { openAsset },
+          {
+            entityType: "image",
+            id: "robot-1",
+            entity: { content: "# not an image", metadata: {} },
+            disposition: "inline",
+          },
+        ),
+      ).toBeUndefined();
+      expect(openAsset).not.toHaveBeenCalled();
     });
   });
 });

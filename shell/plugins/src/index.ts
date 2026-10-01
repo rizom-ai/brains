@@ -719,6 +719,8 @@ export {
   getConfirmationResultTitle,
   parseArtifactDataUrl,
   readArtifactContent,
+  createArtifactResponse,
+  type StoredArtifact,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
   formatConfirmationResult,

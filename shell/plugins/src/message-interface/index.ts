@@ -114,6 +114,8 @@ export {
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   readArtifactContent,
+  createArtifactResponse,
+  type StoredArtifact,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
   type ArtifactContent,
