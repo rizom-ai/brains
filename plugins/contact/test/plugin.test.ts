@@ -42,6 +42,8 @@ async function setup(
   shell: ReturnType<Harness["getMockShell"]>;
   checks: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
+  /** The site pages the plugin declared while registering. */
+  pages: unknown[];
   /** What the owner's email transport answers; switch to fail an alert. */
   transport: { status: "sent" | "failed" };
   plugin: ContactPlugin;
@@ -82,6 +84,11 @@ async function setup(
       },
     },
   ]);
+  const pages: unknown[] = [];
+  h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+    pages.push(message.payload);
+    return { success: true };
+  });
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
@@ -107,7 +114,7 @@ async function setup(
     defaultRecipient: { type: "email", address: "owner@example.com" },
   }).register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
-  return { h, shell, checks, sent, transport, plugin, handlers };
+  return { h, shell, checks, sent, pages, transport, plugin, handlers };
 }
 async function submit(plugin: ContactPlugin): Promise<Response> {
   const get = plugin
@@ -346,14 +353,9 @@ describe("contact runtime", () => {
 
   it("in a separate worker, declares the form for site builds and runs maintenance, but never serves", async () => {
     const f = await setup(true);
-    // The site builds in this worker, so it is told the site's contact pages.
-    const registered: unknown[] = [];
-    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
-      registered.push(message.payload);
-      return { success: true };
-    });
-    await f.plugin.ready();
-    expect(registered).toEqual([
+    // The site builds in this worker, which never runs the ready phase, so
+    // the pages are declared while registering.
+    expect(f.pages).toEqual([
       {
         pluginId: "contact",
         routes: [
@@ -494,11 +496,7 @@ describe("contact runtime", () => {
 describe("the contact page in the site", () => {
   it("gives the site a /contact page with a slot for the form, and its thanks page", async () => {
     const f = await setup();
-    const registered: unknown[] = [];
-    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
-      registered.push(message.payload);
-      return { success: true };
-    });
+    const registered = f.pages;
     await f.plugin.ready();
     const component = f.h.getTemplates().get("contact:page")?.layout?.component;
     if (!component) throw new Error("Missing contact:page template");

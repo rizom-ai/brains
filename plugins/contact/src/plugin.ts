@@ -104,9 +104,12 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
 
   constructor(config: ContactPluginConfig = {}) {
     super("contact", packageJson, config, contactPluginConfigSchema);
+    // site-builder registers first, so it is listening when the site's
+    // contact pages are declared below.
     this.dependencies = [
       "contact-request",
       "notifications",
+      "site-builder",
       "studio",
       "unified-inbox",
     ];
@@ -126,10 +129,20 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     if (!origin) throw new Error("Contact intake needs the brain's site URL");
     const config = resolveIntakePolicy(this.config, origin);
     this.policy = config;
-    // The site's own contact page: its layout around an empty slot the form
-    // fills per request. Registered in every process, as site builds run in a
-    // separate worker.
+    // The site's own contact pages: its layout around an empty slot the form
+    // fills per request. Declared in every process, as the site builds in a
+    // separate worker, which registers plugins but never runs their ready phase.
     context.templates.register({ page: contactPageTemplate });
+    await context.messaging.send({
+      type: SITE_BUILDER_CHANNELS.routeRegister,
+      payload: {
+        pluginId: this.id,
+        routes: [
+          contactSitePage("contact", "/contact", "Contact"),
+          contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
+        ],
+      },
+    });
     const delivery = new ContactDelivery({
       entities: context.entityService,
       state: context.runtimeState,
@@ -266,21 +279,8 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (!this.intake) return;
-    // The site's contact pages, declared in every process: the site builds in
-    // a separate worker, which has to know them too.
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.routeRegister,
-      payload: {
-        pluginId: this.id,
-        routes: [
-          contactSitePage("contact", "/contact", "Contact"),
-          contactSitePage("contact-thanks", "/contact/thanks", "Note saved"),
-        ],
-      },
-    });
     // A separate worker never serves the form, so it is never ready to.
-    if (context.executionOnly) return;
+    if (context.executionOnly || !this.intake) return;
     if (!context.plugins.has("unified-inbox") || !this.inboxUrl(context))
       throw new Error("Contact Inbox unavailable");
     await this.readSiteTheme(context);
