@@ -1,5 +1,7 @@
 import {
   getVisibleContentVisibilities,
+  entityRevision,
+  EntityWriteConflictError,
   normalizeContentVisibility,
   type BaseEntity,
   type CreateEntityRequest,
@@ -264,6 +266,61 @@ export function createMockEntityService(
       );
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
+    foldEntity: async (request): Promise<EntityMutationResult> => {
+      const { source, entity } = structuredClone({
+        source: request.source,
+        entity: request.entity,
+      });
+      const targetRevision = request.targetRevision;
+      if (source.entityType !== entity.entityType || source.id === entity.id)
+        throw new Error("Invalid fold pair");
+      const current = (): void => {
+        const from = store.entities.get(source.id);
+        const into = store.entities.get(entity.id);
+        if (
+          from?.entityType !== source.entityType ||
+          entityRevision(from) !== source.expectedRevision
+        )
+          throw new EntityWriteConflictError(source.entityType, source.id);
+        if (
+          into?.entityType !== entity.entityType ||
+          entityRevision(into) !== targetRevision
+        )
+          throw new EntityWriteConflictError(entity.entityType, entity.id);
+        if (
+          from.visibility !== entity.visibility ||
+          into.visibility !== entity.visibility
+        )
+          throw new Error("A fold cannot cross visibility scopes");
+      };
+      current();
+      const { content, metadata } = store.serialize(entity);
+      const prepared = {
+        ...entity,
+        content,
+        metadata,
+        contentHash: computeContentHash(content),
+      };
+      await request.options?.beforeWrite?.(prepared);
+      request.options?.signal?.throwIfAborted();
+      current();
+      // No awaits between mutations: the double models one atomic pair.
+      store.entities.set(entity.id, prepared);
+      store.entities.delete(source.id);
+      store.markExportIntent(
+        entity.entityType,
+        entity.id,
+        "upsert",
+        request.options?.persistenceOrigin,
+      );
+      store.markExportIntent(
+        source.entityType,
+        source.id,
+        "delete",
+        request.options?.persistenceOrigin,
+      );
+      return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
+    },
     deleteEntity: async (request: {
       entityType: string;
       id: string;
@@ -373,7 +430,9 @@ export function createMockEntityService(
       request,
     ): ReturnType<IEntityService["getEntityWriteSnapshot"]> => {
       const entity = await getEntityFake(request);
-      return entity ? { entity, revision: "mock-revision" } : null;
+      return entity
+        ? { entity: structuredClone(entity), revision: entityRevision(entity) }
+        : null;
     },
 
     // Embeddings and projections are not modelled: the fake has no vectors, so

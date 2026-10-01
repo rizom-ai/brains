@@ -360,6 +360,7 @@ describe("guest question screening (real SDK, mocked provider)", () => {
     ...options,
     guestScreening: {
       topics: ["New Institutions", "Institutional memory"],
+      introduction: "I work on how institutions hold what they know.",
       refusal: "I only talk about this site's work. Ask about that instead.",
     },
   };
@@ -447,7 +448,7 @@ describe("guest question screening (real SDK, mocked provider)", () => {
     expect(result.guestScreening).toEqual({ outcome: "unscreened" });
   });
 
-  it("judges only the question, the two before it and the public topics, as material", async () => {
+  it("judges only the question, the two before it, the public topics and the introduction, as material", async () => {
     const model = sequence([verdict("in-scope"), answer("Public answer")]);
     await createAgent(model, []).generate({
       messages: [
@@ -468,6 +469,7 @@ describe("guest question screening (real SDK, mocked provider)", () => {
     expect(judgment).not.toContain("FIRST visitor question");
     expect(judgment).not.toContain("reply");
     expect(judgment).toContain("Institutional memory");
+    expect(judgment).toContain("how institutions hold what they know");
     expect(judgment).not.toContain("Owner instructions");
   });
 

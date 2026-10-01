@@ -89,3 +89,21 @@ export class FaqDataSource extends BaseEntityDataSource<
     return outputSchema.parse(this.buildListResult(list.items));
   }
 }
+
+/**
+ * The most asked public FAQs a site shows beside its other content, under the
+ * build's publish rule; none where the brain does not capture FAQs.
+ */
+export async function loadPublicFaqs(
+  context: BaseDataSourceContext,
+  limit: number,
+  logger: Logger,
+): Promise<FaqItem[]> {
+  if (!context.entityService.hasEntityType("faq")) return [];
+  const section = await new FaqDataSource(logger).fetch(
+    { query: { limit } },
+    faqSectionSchema,
+    context,
+  );
+  return section.faqs;
+}
