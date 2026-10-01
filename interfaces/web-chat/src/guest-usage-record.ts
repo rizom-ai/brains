@@ -5,8 +5,10 @@ import type {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
+  guestRefusalCategorySchema,
   guestTurnCostSchema,
   guestTurnUsageSchema,
+  type GuestScreeningOutcome,
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import { attempt, retry } from "./cas-retry";
@@ -59,8 +61,9 @@ export const guestUsageStateSchema: z.ZodEnum<{
   pending: "pending";
   unresolved: "unresolved";
   completed: "completed";
+  refused: "refused";
   failed: "failed";
-}> = z.enum(["pending", "unresolved", "completed", "failed"]);
+}> = z.enum(["pending", "unresolved", "completed", "refused", "failed"]);
 
 export const guestUsageEventSchema: z.ZodObject<
   {
@@ -72,6 +75,8 @@ export const guestUsageEventSchema: z.ZodObject<
     visitor: z.ZodOptional<z.ZodString>;
     reservedMicroUsd: z.ZodOptional<z.ZodNumber>;
     settledAt: z.ZodOptional<z.ZodNumber>;
+    refusedAs: z.ZodOptional<typeof guestRefusalCategorySchema>;
+    unscreened: z.ZodOptional<z.ZodLiteral<true>>;
     usage: z.ZodOptional<typeof guestTurnUsageSchema>;
     cost: z.ZodOptional<typeof guestTurnCostSchema>;
     question: z.ZodOptional<z.ZodString>;
@@ -85,12 +90,17 @@ export const guestUsageEventSchema: z.ZodObject<
   retainUntil: millis,
   /**
    * pending: capacity held, admission not granted yet. unresolved: admitted,
-   * no outcome known. Work that stops without one stays unresolved.
+   * no outcome known. Work that stops without one stays unresolved. refused:
+   * screened out, and answered with the refusal instead.
    */
   state: guestUsageStateSchema,
   visitor: digestSchema.optional(),
   reservedMicroUsd: z.number().int().nonnegative().optional(),
   settledAt: millis.optional(),
+  /** Why screening refused the question. */
+  refusedAs: guestRefusalCategorySchema.optional(),
+  /** Answered without screening, because the judgment failed. */
+  unscreened: z.literal(true).optional(),
   /** What the provider reported for the turn, when it reported it. */
   usage: guestTurnUsageSchema.optional(),
   /** Known from reported usage at a pinned revision, or explicitly unknown. */
@@ -465,13 +475,21 @@ export class GuestUsageRecord {
 
   /**
    * Records the outcome once; later or concurrent settlements keep the first.
-   * A turn that reported no usage has an unknown cost, never a zero one.
+   * A turn that reported no usage has an unknown cost, never a zero one. A
+   * completed turn's screening says whether it was refused or went unscreened.
    */
   async settle(
     id: string,
     outcome: "completed" | "failed",
     settlement: GuestTurnSettlement | undefined,
+    screening?: GuestScreeningOutcome,
   ): Promise<boolean> {
+    const refused =
+      outcome === "completed" && screening?.outcome === "refused"
+        ? screening.category
+        : undefined;
+    const unscreened =
+      outcome === "completed" && screening?.outcome === "unscreened";
     try {
       const events = this.events();
       return await attempt(
@@ -482,8 +500,10 @@ export class GuestUsageRecord {
           if (current.state !== "unresolved") return true;
           return (await events.compareAndSet(id, current, {
             ...current,
-            state: outcome,
+            state: refused ? "refused" : outcome,
             settledAt: this.now(),
+            ...(refused ? { refusedAs: refused } : {}),
+            ...(unscreened ? { unscreened: true } : {}),
             ...(settlement ? { usage: settlement.usage } : {}),
             cost: settlement?.cost ?? {
               state: "unknown",

@@ -55,7 +55,10 @@ describe("reconcileTopics", () => {
         created: "2026-01-02T00:00:00Z",
       }),
     ]);
-    spyOn(context.entityService, "searchWithDistances").mockResolvedValue([
+    const distanceSearch = spyOn(
+      context.entityService,
+      "searchWithDistances",
+    ).mockResolvedValue([
       {
         entityId: "human-agent-collaboration",
         entityType: "topic",
@@ -80,6 +83,9 @@ describe("reconcileTopics", () => {
     });
 
     expect(result).toMatchObject({ merged: 1, distinct: 0, scannedPairs: 1 });
+    expect(distanceSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ types: ["topic"], maxDistance: 0.35 }),
+    );
     expect(result.deletedIds).toEqual(["human-agent-collaboration"]);
     const remaining = await context.entityService.listEntities(
       {

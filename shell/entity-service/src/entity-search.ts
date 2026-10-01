@@ -503,12 +503,17 @@ export class EntitySearch {
   }
 
   /**
-   * Return all embedded entities with their raw cosine distance to the query.
-   * No threshold filter — used for diagnostics and threshold tuning.
-   * Results sorted by distance ascending (closest first).
+   * Return embedded entities with their raw cosine distance to the query,
+   * sorted closest first. Without filters every embedded entity is returned,
+   * for diagnostics and threshold tuning; `types` and `maxDistance` narrow it
+   * in the query for callers that look for one close match.
    */
   public async searchWithDistances(
     query: string,
+    filters: {
+      readonly types?: string[] | undefined;
+      readonly maxDistance?: number | undefined;
+    } = {},
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
@@ -532,6 +537,16 @@ export class EntitySearch {
       .innerJoin(
         sql`emb.embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .where(
+        and(
+          filters.types && filters.types.length > 0
+            ? inArray(entities.entityType, filters.types)
+            : undefined,
+          filters.maxDistance !== undefined
+            ? sql`${distanceExpr} <= ${filters.maxDistance}`
+            : undefined,
+        ),
       )
       .orderBy(sql`${distanceExpr} ASC`);
 

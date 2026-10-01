@@ -1,6 +1,9 @@
 import { stripUndefinedDeep } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
-import { guestTurnSettlementSchema } from "./guest-execution";
+import {
+  guestScreeningOutcomeSchema,
+  guestTurnSettlementSchema,
+} from "./guest-execution";
 
 type PendingConfirmationSchema = z.ZodObject<{
   id: z.ZodString;
@@ -300,6 +303,7 @@ type AgentResponseSchema = z.ZodObject<{
   pendingConfirmations: z.ZodOptional<z.ZodArray<PendingConfirmationSchema>>;
   usage: AgentResponseUsageSchema;
   guestSettlement: z.ZodOptional<typeof guestTurnSettlementSchema>;
+  guestScreening: z.ZodOptional<typeof guestScreeningOutcomeSchema>;
 }>;
 
 export const AgentResponseSchema: AgentResponseSchema = z.object({
@@ -316,6 +320,8 @@ export const AgentResponseSchema: AgentResponseSchema = z.object({
   }),
   /** A guest turn's provider usage and settled cost; never set for owners. */
   guestSettlement: guestTurnSettlementSchema.optional(),
+  /** What screening did with a guest turn's question; never set for owners. */
+  guestScreening: guestScreeningOutcomeSchema.optional(),
 });
 
 export type AgentResponse = z.output<typeof AgentResponseSchema>;

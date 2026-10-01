@@ -17,6 +17,7 @@ import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { contactPlugin } from "@brains/contact";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
+import { faqPlugin } from "@brains/faq";
 import { dashboardPlugin } from "@brains/dashboard";
 import { decksPlugin } from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
@@ -159,6 +160,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
 
     ["conversation-memory", conversationMemoryPlugin, undefined],
+    ["faq", faqPlugin, undefined],
     ["docs", docsPlugin, undefined],
 
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],

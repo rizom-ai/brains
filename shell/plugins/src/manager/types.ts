@@ -10,6 +10,11 @@ export interface PluginManager {
 
   initializePlugins(context?: PluginRegistrationContext): Promise<void>;
 
+  registerInterfaceChannels(
+    plugins: Plugin[],
+    context?: PluginRegistrationContext,
+  ): Promise<void>;
+
   finalizePluginRegistrations(): Promise<void>;
 
   getProjectionGraphSnapshot(): ProjectionGraph;

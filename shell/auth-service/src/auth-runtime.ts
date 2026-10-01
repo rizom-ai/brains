@@ -51,7 +51,7 @@ import {
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS, SetupFlow } from "./setup-flow";
 import { RuntimeSetupStateStore } from "./setup-state-store";
 import { TargetedSetupService } from "./targeted-setup-service";
-import type { JwksResponse } from "./types";
+import type { A2APrivateJwk, JwksResponse } from "./types";
 import { AuthUserManagementService } from "./user-management-service";
 import { AuthUserStore } from "./user-store";
 import { WebAuthnEndpoints } from "./webauthn-endpoints";
@@ -131,6 +131,7 @@ export class AuthRuntime {
     InvitationDeliverySupervisor | undefined;
   private interfacePrincipalStore: InterfacePrincipalStore | undefined;
   private auditStore: AuthAuditStore | undefined;
+  private lifecycleTail: Promise<void> = Promise.resolve();
   private initialization: Promise<void> | undefined;
   private firstAdminInitialization: Promise<AuthUser> | undefined;
   private closePromise: Promise<void> | undefined;
@@ -245,13 +246,9 @@ export class AuthRuntime {
   }
 
   async initialize(): Promise<void> {
-    if (this.closePromise) {
-      await this.closePromise;
-      this.closePromise = undefined;
-    }
     if (this.initialization) return this.initialization;
 
-    const initialization = this.initializeInternal();
+    const initialization = this.startLifecycle(() => this.initializeInternal());
     this.initialization = initialization;
     try {
       await initialization;
@@ -264,11 +261,54 @@ export class AuthRuntime {
   }
 
   close(): Promise<void> {
-    this.closePromise ??= this.closeInternal();
+    if (!this.closePromise) {
+      // Invalidate at admission, not during teardown: a later initialization
+      // belongs to the next lifecycle and must keep its own cached promise.
+      this.initialization = undefined;
+      this.closePromise = this.enqueueLifecycle(() => this.closeInternal());
+    }
     return this.closePromise;
   }
 
-  async ensureStarted(): Promise<void> {
+  ensureStarted(): Promise<void> {
+    return this.startLifecycle(() => this.ensureStartedInternal());
+  }
+
+  private enqueueLifecycle<T>(task: () => Promise<T>): Promise<T> {
+    const pending = this.lifecycleTail.then(task);
+    this.lifecycleTail = pending
+      .then(() => undefined)
+      .catch(() => {
+        // The caller owns the failure; keep the queue open for cleanup and retry.
+      });
+    return pending;
+  }
+
+  private startLifecycle<T>(task: () => Promise<T>): Promise<T> {
+    this.closePromise = undefined;
+    const initialization = this.initialization;
+    return this.enqueueLifecycle(async () => {
+      try {
+        return await task();
+      } catch (error) {
+        if (this.initialization === initialization) {
+          this.initialization = undefined;
+        }
+        try {
+          await this.closeInternal();
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [error, cleanupError],
+            "Auth startup and rollback failed",
+            { cause: cleanupError },
+          );
+        }
+        throw error;
+      }
+    });
+  }
+
+  private async ensureStartedInternal(): Promise<void> {
     if (this.userStore) return;
 
     await this.runtimeDatabase.start();
@@ -421,9 +461,11 @@ export class AuthRuntime {
     return required(this.invitationService);
   }
 
-  async startInvitationDeliveryRecovery(): Promise<void> {
-    await this.ensureStarted();
-    await this.invitationDeliverySupervisor?.start();
+  startInvitationDeliveryRecovery(): Promise<void> {
+    return this.startLifecycle(async () => {
+      await this.ensureStartedInternal();
+      await this.invitationDeliverySupervisor?.start();
+    });
   }
 
   getInterfacePrincipalStore(): InterfacePrincipalStore {
@@ -444,19 +486,40 @@ export class AuthRuntime {
   }
 
   hasPasskeyCredentials(): Promise<boolean> {
-    return this.passkeyService.hasCredentials();
+    return this.startLifecycle(async () => {
+      await this.ensureStartedInternal();
+      return this.passkeyService.hasCredentials();
+    });
   }
 
   getSetupUrl(issuer: string = this.issuer): string | undefined {
     return this.setupFlow.getSetupUrl(issuer);
   }
 
-  async getJwks(): Promise<JwksResponse> {
-    const [oauthKey, a2aKey] = await Promise.all([
-      this.keyStore.getPublicJwk(),
-      this.a2aKeyStore.getPublicJwk(),
+  getJwks(): Promise<JwksResponse> {
+    return this.startLifecycle(async () => {
+      await this.loadSigningKeys();
+      const [oauthKey, a2aKey] = await Promise.all([
+        this.keyStore.getPublicJwk(),
+        this.a2aKeyStore.getPublicJwk(),
+      ]);
+      return { keys: [oauthKey, a2aKey] };
+    });
+  }
+
+  getA2APrivateJwk(): Promise<A2APrivateJwk> {
+    return this.startLifecycle(() => this.a2aKeyStore.getPrivateJwk());
+  }
+
+  private async loadSigningKeys(): Promise<void> {
+    const keyResults = await Promise.allSettled([
+      this.keyStore.getPrivateJwk(),
+      this.a2aKeyStore.getPrivateJwk(),
     ]);
-    return { keys: [oauthKey, a2aKey] };
+    // A failed sibling must not leave key work running past rollback.
+    for (const result of keyResults) {
+      if (result.status === "rejected") throw result.reason;
+    }
   }
 
   private getUserManagementService(): AuthUserManagementService {
@@ -464,18 +527,15 @@ export class AuthRuntime {
   }
 
   private async initializeInternal(): Promise<void> {
-    await this.ensureStarted();
+    await this.ensureStartedInternal();
     if (this.autoStartInvitationDeliveryRecovery) {
-      await this.startInvitationDeliveryRecovery();
+      await this.invitationDeliverySupervisor?.start();
     }
     await this.projectConfiguredBrainAnchor();
-    await Promise.all([
-      this.keyStore.getPrivateJwk(),
-      this.a2aKeyStore.getPrivateJwk(),
-    ]);
+    await this.loadSigningKeys();
     this.logger?.debug("Auth service signing keys loaded");
 
-    if (!(await this.hasPasskeyCredentials())) {
+    if (!(await this.passkeyService.hasCredentials())) {
       await this.setupFlow.ensureSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {
@@ -492,9 +552,20 @@ export class AuthRuntime {
   }
 
   private async closeInternal(): Promise<void> {
-    await this.oauthEndpoints.stopClientMaintenance();
-    await this.invitationDeliverySupervisor?.close();
+    const errors: unknown[] = [];
+    for (const close of [
+      (): Promise<void> => this.oauthEndpoints.stopClientMaintenance(),
+      (): Promise<void> =>
+        this.invitationDeliverySupervisor?.close() ?? Promise.resolve(),
+    ]) {
+      try {
+        await close();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
     this.invitationDeliverySupervisor = undefined;
+    this.accountSettingsStore = undefined;
     this.userStore = undefined;
     this.identityReconciliationService = undefined;
     this.passkeySetupCoordinator = undefined;
@@ -505,9 +576,16 @@ export class AuthRuntime {
     this.invitationService = undefined;
     this.interfacePrincipalStore = undefined;
     this.auditStore = undefined;
-    this.initialization = undefined;
     this.firstAdminInitialization = undefined;
-    await this.runtimeDatabase.stop();
+    try {
+      await this.runtimeDatabase.stop();
+    } catch (error) {
+      errors.push(error);
+    }
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) {
+      throw new AggregateError(errors, "Auth runtime shutdown failed");
+    }
   }
 
   private profileDisplayName(

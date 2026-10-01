@@ -32,6 +32,30 @@ export function assertGuestPermission(
   }
 }
 
+/**
+ * A guest turn carries no operator context, actor or creation rights; checked
+ * before any provider request, the screening judgment included.
+ */
+export function assertGuestCallOptions(
+  options: Pick<
+    BrainCallOptions,
+    | "interfaceType"
+    | "actor"
+    | "agentContextInstructions"
+    | "enableCreateUpload"
+    | "enableCreateTransform"
+  >,
+): void {
+  if (
+    options.interfaceType === guestInterfaceType &&
+    (options.actor ||
+      options.agentContextInstructions ||
+      options.enableCreateUpload ||
+      options.enableCreateTransform)
+  )
+    throw new Error("Guest execution denied");
+}
+
 export function requireGuestExecutionPolicy(
   context: Pick<BrainCallOptions, "interfaceType" | "guestExecution">,
 ): GuestExecutionPolicy | undefined {

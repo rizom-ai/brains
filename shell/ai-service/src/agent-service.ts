@@ -165,6 +165,7 @@ export class AgentService implements IAgentService {
       agentContextProvider: config.agentContextProvider,
       uploadAttachmentResolver: config.uploadAttachmentResolver,
       guestAnswerSources: config.guestAnswerSources,
+      embeddingUsage: config.embeddingUsage,
     });
     this.conversationActors = new ConversationActorRegistry({
       createActor: (): ConversationActor => {
@@ -400,6 +401,9 @@ export class AgentService implements IAgentService {
           source: context?.source ?? null,
           attachments: context?.attachments ?? [],
           ...(guestExecution ? { guestExecution } : {}),
+          ...(guestExecution && context?.guestScreening
+            ? { guestScreening: context.guestScreening }
+            : {}),
           signal: operationSignal,
         });
 

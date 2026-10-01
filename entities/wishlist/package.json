@@ -1,7 +1,7 @@
 {
   "name": "@brains/wishlist",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.457",
+  "version": "0.2.0-alpha.465",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "dependencies": {
     "@brains/plugins": "workspace:*",
@@ -21,6 +21,7 @@
   },
   "private": true,
   "scripts": {
+    "eval": "cd evals && bun run brain-eval",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",

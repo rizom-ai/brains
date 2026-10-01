@@ -328,7 +328,7 @@ describe("brain config migration preview", () => {
           ),
           "obsidian-vault",
         ],
-        added: ["conversation-memory", "studio", "unified-inbox"],
+        added: ["conversation-memory", "faq", "studio", "unified-inbox"],
         removed: ["account", "assessment", "cms", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
@@ -339,7 +339,7 @@ describe("brain config migration preview", () => {
           ...(preset === "core" ? [] : legacySiteMembers),
           ...legacyTeamMembers,
         ],
-        added: ["studio", "unified-inbox"],
+        added: ["faq", "studio", "unified-inbox"],
         removed: [
           "account",
           "assessment",

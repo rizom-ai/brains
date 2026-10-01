@@ -106,7 +106,9 @@ export async function initializeConfiguredPlugins(options: {
 }): Promise<void> {
   const { plugins, pluginManager, logger, initOptions } = options;
 
-  const configuredPlugins = initOptions?.registrationContext?.executionOnly
+  // The worker runs no interfaces; it gets only their channels and senders.
+  const executionOnly = initOptions?.registrationContext?.executionOnly;
+  const configuredPlugins = executionOnly
     ? plugins.filter((plugin) => plugin.type !== "interface")
     : plugins;
   logger.debug(`Found ${configuredPlugins.length} plugins to register`);
@@ -117,6 +119,11 @@ export async function initializeConfiguredPlugins(options: {
   }
 
   await pluginManager.initializePlugins(initOptions?.registrationContext);
+  if (executionOnly)
+    await pluginManager.registerInterfaceChannels(
+      plugins.filter((plugin) => plugin.type === "interface"),
+      initOptions.registrationContext,
+    );
 
   if (!initOptions?.registerOnly) {
     for (const { id, error } of pluginManager.getFailedPlugins()) {

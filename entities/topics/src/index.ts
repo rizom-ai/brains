@@ -96,7 +96,11 @@ export class TopicsPlugin extends EntityPlugin<
     // Insights
     context.insights.register(
       "topic-distribution",
-      createTopicDistributionInsight(),
+      createTopicDistributionInsight({
+        isSourceType: (type, entityService) =>
+          this.shouldProcessEntityType(type, entityService),
+        autoExtraction: this.config.enableAutoExtraction,
+      }),
     );
 
     // Dashboard widgets: the topic list and the knowledge map

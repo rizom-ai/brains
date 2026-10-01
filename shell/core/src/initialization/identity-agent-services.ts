@@ -5,6 +5,7 @@ import {
   createBrainAgentFactory,
   priceOpenAiGuestTurn,
   type ChatAttachment,
+  type EmbeddingUsageMeter,
   type ChatAttachmentSource,
   type IAgentService,
   type IAIService,
@@ -50,6 +51,8 @@ export interface IdentityAndAgentServiceOptions {
   config: ShellConfig;
   entityService: IEntityService;
   embeddingService: IEmbeddingService;
+  /** Where the embedding provider reports usage; guest turns are measured. */
+  embeddingUsage?: EmbeddingUsageMeter;
   entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
@@ -243,6 +246,9 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      ...(options.embeddingUsage
+        ? { embeddingUsage: options.embeddingUsage }
+        : {}),
       // Lexical retrieval does not need a semantic index to be built.
       ...(config.embedding.enabled
         ? {
