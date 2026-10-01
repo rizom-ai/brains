@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rizom — the network answers (mockup)</title>
-<!-- Mockup for docs/plans/rizom-ai-network-answers.md: the live homepage's shell, opening and drawing (rizom.ai, 2026-10-01) with the Ask box in place of the door, and a scripted answer that the connected brains give. The answer's text and the pieces cited are placeholders. -->
+<!-- Mockup for docs/plans/rizom-ai-network-answers.md: the live homepage's shell, opening and drawing (rizom.ai, 2026-10-01) with the Ask box in place of the door, and scripted answers drawn from the connected brains' published pieces. Three suggested questions give three cases: Rizom alone, two brains, three brains. The answer text and the pieces cited are placeholders. -->
 <style>@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap");
@@ -8294,47 +8294,57 @@
 .answer { margin-top: 1.25rem; max-width: var(--words); font-family: var(--font-sans); }
 .answer__question { margin: 0 0 .75rem; font-family: var(--font-display); font-size: 1.15rem; color: var(--color-text); font-variation-settings: "SOFT" 70, "opsz" 24; }
 .answer__question::before { content: "You"; display: block; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: .25rem; }
-.answer__status { display: flex; align-items: center; gap: .55rem; margin: 0 0 .75rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-muted); }
+.answer__status { display: flex; align-items: center; gap: .55rem; margin: 0 0 .75rem; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-muted); min-height: 1.2em; }
 .answer__dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--color-accent); animation: answer-dot 1.1s ease-in-out infinite; }
 .answer.is-done .answer__dot { animation: none; opacity: .55; }
 @keyframes answer-dot { 0%, 100% { transform: scale(.6); opacity: .5 } 50% { transform: scale(1); opacity: 1 } }
-.answer__replies { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: .45rem; }
-.answer__replies li { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; padding: .3rem .6rem; border: 1px solid var(--color-accent); border-radius: 999px; color: var(--color-text); opacity: 0; transform: translateY(4px); animation: reply-in .5s ease forwards; }
+.answer__replies { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: .45rem; min-height: 0; }
+.answer__replies:empty { margin: 0; }
+.answer__replies li { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; padding: .3rem .6rem; border: 1px solid var(--color-accent); border-radius: 999px; color: var(--color-text); opacity: 0; transform: translateY(4px); animation: reply-in .5s ease forwards; cursor: default; }
 .answer__replies li::before { content: ""; display: inline-block; width: .45rem; height: .45rem; border-radius: 50%; background: var(--color-accent); margin-right: .45rem; vertical-align: 1px; }
+.answer__replies li.is-hot { background: rgb(from var(--color-accent) r g b / .14); }
 @keyframes reply-in { to { opacity: 1; transform: none } }
 .answer__body { font-size: 1.02rem; line-height: 1.6; color: var(--color-text); }
 .answer__body p { margin: 0 0 .7rem; }
-.answer__body b[data-brain] { font-weight: 500; color: var(--color-accent); border-bottom: 1px dotted var(--color-accent); cursor: default; }
+.answer__body a[data-brain] { color: var(--color-accent); text-decoration: none; border-bottom: 1px dotted var(--color-accent); }
+.answer__body a[data-brain].is-hot, .answer__body a[data-brain]:focus-visible { background: rgb(from var(--color-accent) r g b / .14); outline: none; }
 .answer__by { margin: .25rem 0 .9rem; font-family: var(--font-mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--color-text-muted); }
-.answer__sources { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
-.answer__sources li { display: grid; grid-template-columns: auto 1fr; gap: .55rem; align-items: baseline; font-size: .9rem; color: var(--color-text-muted); padding: .35rem .5rem; border-radius: .4rem; opacity: 0; animation: reply-in .5s ease forwards; }
-.answer__sources li:hover, .answer__sources li.is-hot { background: var(--color-bg-subtle, rgba(255,255,255,.04)); color: var(--color-text); }
+.answer__sources { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.answer__sources li { opacity: 0; animation: reply-in .5s ease forwards; }
+.answer__sources a { display: grid; grid-template-columns: 5.5rem 1fr; gap: .55rem; align-items: baseline; font-size: .9rem; color: var(--color-text-muted); padding: .35rem .5rem; border-radius: .4rem; text-decoration: none; transition: background .25s ease, color .25s ease; }
+.answer__sources a:hover, .answer__sources a:focus-visible, .answer__sources li.is-hot a { background: rgb(from var(--color-accent) r g b / .1); color: var(--color-text); outline: none; }
+.answer__sources li.is-pulse a { animation: source-pulse 1.2s ease 1; }
+@keyframes source-pulse { 0%, 100% { background: transparent } 30% { background: rgb(from var(--color-accent) r g b / .28) } }
 .answer__sources b { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--color-accent); font-weight: 500; }
 .answer__sources i { font-style: normal; }
 /* the drawing listens */
 .net-layer .net-reply { opacity: 0; }
-.net-layer.is-asking .net-pulse { animation: net-ask 1.2s ease-out 1; }
-@keyframes net-ask { 0% { transform: scale(.2); opacity: .9 } 100% { transform: scale(1); opacity: 0 } }
-.net-layer .net-thread { transition: opacity .6s ease, stroke .6s ease; }
+.net-layer .net-thread, .net-layer .net-mark, .net-layer .net-lantern, .net-layer .net-corona { transition: opacity .6s ease, stroke-opacity .6s ease; }
+.net-layer.is-asking .net-pulse { display: block; animation: net-pulse 1.4s linear 1; }
 .net-layer.is-asking .net-thread { stroke-dasharray: 2 3; animation: thread-out 1.1s linear 1; }
 @keyframes thread-out { from { stroke-dashoffset: 30 } to { stroke-dashoffset: 0 } }
-.net-layer.has-replies .net-thread:not(.is-lit), .net-layer.has-replies .net-mark:not(.is-lit) { opacity: .28; }
-.net-layer .net-thread.is-lit { stroke: var(--color-accent); stroke-dasharray: 2 3; animation: thread-in 1s linear 1; }
+.net-layer.has-replies .net-thread:not(.is-lit) { stroke-opacity: .12; }
+.net-layer.has-replies .net-mark:not(.is-lit) { opacity: .25; }
+.net-layer .net-thread.is-lit { stroke-opacity: .9; stroke-dasharray: 2 3; animation: thread-in 1s linear 1; }
+.net-layer .net-thread.is-hot { stroke-opacity: 1; stroke-width: 1.6; }
 @keyframes thread-in { from { stroke-dashoffset: -30 } to { stroke-dashoffset: 0 } }
 .net-layer .net-reply.is-lit { opacity: 1; }
-/* A replying brain echoes and sparks with the drawing's own keyframes, twice. */
-.net-layer .net-reply.is-lit .net-echo { animation: net-echo 2.4s linear 2; }
-.net-layer .net-reply.is-lit .net-spark { animation: net-spark 2.4s linear 2; }
+.net-layer .net-reply.is-lit .net-echo { display: block; animation: net-echo 2.4s linear 2; }
+.net-layer .net-reply.is-lit .net-spark { display: block; animation: net-spark 2.4s linear 2; }
 .net-layer .net-mark.is-lit i, .net-layer .net-mark.is-hot i { background: #fff3cf; box-shadow: 0 0 0 3px var(--color-bg), 0 0 10px 3px var(--color-accent); }
 .net-layer .net-mark.is-hot i { box-shadow: 0 0 0 3px var(--color-bg), 0 0 16px 5px var(--color-accent); }
-.net-layer .net-mark { transition: opacity .6s ease; }
-/* leads from a source to its brain */
+.net-layer.has-replies:not(.is-rizom) .net-lantern { opacity: .55; filter: none; }
+.net-layer.is-rizom .net-lantern { filter: drop-shadow(0 0 12px var(--color-accent)) drop-shadow(0 0 4px #fff3cf); }
+.net-layer.is-rizom-hot .net-lantern { filter: drop-shadow(0 0 20px var(--color-accent)) drop-shadow(0 0 6px #fff3cf); }
+.net-layer.is-fading .net-mark, .net-layer.is-fading .net-thread, .net-layer.is-fading .net-reply { opacity: 0 !important; }
+/* leads from a source to its brain (desktop) */
 .leads { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
-.leads path { fill: none; stroke: var(--color-accent); stroke-width: 1; stroke-dasharray: 2 4; opacity: .55; stroke-dashoffset: 0; animation: lead-flow 2.4s linear infinite; }
+.leads path { fill: none; stroke: var(--color-accent); stroke-width: 1; stroke-dasharray: 2 4; opacity: .5; animation: lead-flow 2.4s linear infinite; }
 .leads path.is-hot { opacity: 1; stroke-width: 1.5; }
 @keyframes lead-flow { to { stroke-dashoffset: -24 } }
 @media (max-width: 60rem) { .leads { display: none; } .answer { margin-top: 1rem; } }
-.mock-note { position: fixed; right: 1rem; top: 5.4rem; z-index: 50; max-width: 14rem; text-align: right; font-family: var(--font-mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-muted); background: var(--color-bg); border: 1px solid var(--color-border); padding: .45rem .7rem; border-radius: .4rem; }
+@media (prefers-reduced-motion: reduce) { .net-layer.is-asking .net-thread, .net-layer .net-thread.is-lit, .net-layer .net-reply.is-lit .net-echo, .net-layer .net-reply.is-lit .net-spark, .net-layer.is-asking .net-pulse, .leads path, .answer__dot { animation: none !important; } .net-layer .net-reply.is-lit .net-echo, .net-layer .net-reply.is-lit .net-spark { display: none; } }
+.mock-note { position: fixed; right: 1rem; top: 5.4rem; z-index: 50; max-width: 15rem; text-align: right; font-family: var(--font-mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-muted); background: var(--color-bg); border: 1px solid var(--color-border); padding: .45rem .7rem; border-radius: .4rem; line-height: 1.5; }
 </style>
 </head>
 <body class="h-full font-sans">
@@ -8351,14 +8361,10 @@
       <button type="button" class="opening__send" aria-label="Send question"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"></path></svg></button>
     </div>
   </div>
-  <ul class="ask__topics" aria-label="Suggested questions">
-    <li><button type="button" data-atlas-fill="What changes when a brain is yours?">What changes when a brain is yours?</button></li>
-    <li><button type="button" data-atlas-fill="How do independent brains work together?">How do independent brains work together?</button></li>
-    <li><button type="button" data-atlas-fill="Where would I start with my own material?">Where would I start with my own material?</button></li>
-  </ul>
+  <ul class="ask__topics" aria-label="Suggested questions"><li><button type="button" data-atlas-fill="What changes when a brain is yours?">What changes when a brain is yours?</button></li><li><button type="button" data-atlas-fill="How do independent brains work together?">How do independent brains work together?</button></li><li><button type="button" data-atlas-fill="Where would I start with my own material?">Where would I start with my own material?</button></li></ul>
   <section class="answer" aria-live="polite" hidden>
     <p class="answer__question"></p>
-    <p class="answer__status"><span class="answer__dot"></span><span class="answer__status-text">Asking the network…</span></p>
+    <p class="answer__status"><span class="answer__dot"></span><span class="answer__status-text"></span></p>
     <ul class="answer__replies" aria-label="Brains that answered"></ul>
     <div class="answer__body"></div>
     <p class="answer__by"></p>
@@ -8369,110 +8375,169 @@
 </main>
 <footer class="site-footer footer-grid relative z-[1] grid gap-10 border-t border-theme px-4 pt-11 pb-[38px] sm:grid-cols-2 sm:px-6 md:px-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20"><div class="footer-brand"><a href="/" class="wordmark font-display text-[30px] font-semibold tracking-[-0.01em] [font-variation-settings:&#x27;SOFT&#x27;_100]"><span class="text-theme">rizom</span><span class="text-accent">.</span></a><p class="mt-2.5 max-w-[26ch] font-body text-[13.5px] text-theme-light">Build the agent that represents you.</p></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">The brain</div><a href="/brain#quickstart" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Get started</a><a href="https://docs.rizom.ai" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Documentation ↗</a><a href="https://github.com/rizom-ai" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">GitHub ↗</a></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">The practice</div><a href="/work#audit" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">The Knowledge Audit</a><a href="/contact" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Contact</a></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">The foundation</div><a href="/foundation" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Manifesto</a><a href="/writing" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Writing</a><a href="/foundation#events" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Events</a><a href="/foundation#support" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Support</a></div><div class="footer-base col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light"><span>© 2026 Rizom</span></div></footer>
 </div></div></div>
-<p class="mock-note">Mockup · the network answers · click a question to replay</p>
+<p class="mock-note">Mockup · the network answers<br>Three questions, three cases: Rizom alone, two brains, three. Hover or focus a source, a name, a dot.</p>
 <script>
 (function () {
-  var question = "How do independent brains work together?";
-  var replies = [
-    { name: "Jo", piece: "Handoffs between teams", kind: "note", sentence: "<b data-brain=\"Niels\">Jo’s brain</b> keeps the handoffs his team runs between projects: what is written down before someone leaves a task, and what is not." },
-    { name: "Becca", piece: "Onboarding a collaborator", kind: "playbook", sentence: "<b data-brain=\"Becca\">Becca’s</b> holds the playbook her team follows when a new collaborator arrives, and the questions newcomers ask first." },
-    { name: "Mindinn", piece: "Who knows what", kind: "field manual", sentence: "<b data-brain=\"Mindinn\">Mindinn’s</b> maps who knows what across their field, which is the question you are asking at the scale of one team." }
-  ];
-  var intro = "Each brain keeps its own memory and answers for its owner. When you ask here, Rizom puts the question to the brains it is connected to, and each decides what it shares. Three of them answered.";
-  var outro = "What you read is their memory, cited, not a summary made up here. The network answers, and every answer says who spoke.";
+  var answers = {
+    "What changes when a brain is yours?": {
+      rizom: { piece: "What a brain is", kind: "page", href: "/brain" },
+      replies: [],
+      text: ["A brain is memory that stays with the people who made it. It is kept in your own place, in files you can read, and it answers for you in your words.", "What changes is who holds it. Not a vendor, not a tool that forgets when a subscription ends: the team that did the work keeps what it learned, and decides what to share."],
+      by: "Rizom"
+    },
+    "How do independent brains work together?": {
+      rizom: { piece: "Distributed Living Memory", kind: "page", href: "/" },
+      replies: [
+        { name: "Jo", piece: "Handoffs between teams", kind: "note", sentence: "<a data-brain=\"Jo\">Jo’s brain</a> keeps the handoffs his team runs between projects: what is written down before someone leaves a task, and what is not." },
+        { name: "Becca", piece: "Onboarding a collaborator", kind: "playbook", sentence: "<a data-brain=\"Becca\">Becca’s</a> holds the playbook her team follows when a new collaborator arrives, and the questions newcomers ask first." },
+        { name: "Mindinn", piece: "Who knows what", kind: "field manual", sentence: "<a data-brain=\"Mindinn\">Mindinn’s</a> maps who knows what across their field, which is the question you are asking at the scale of one team." }
+      ],
+      text: ["Each brain keeps its own memory and answers for its owner. When you ask here, Rizom searches what the connected brains have published, and cites it by brain. Three of them had something.", "@replies", "What you read is their memory, cited, not a summary made up here. Every answer says whose memory it came from."],
+      by: "Rizom, with Jo, Becca and Mindinn"
+    },
+    "Where would I start with my own material?": {
+      rizom: { piece: "Get started", kind: "docs", href: "/brain" },
+      replies: [
+        { name: "Yeehaa", piece: "Scale without a centre", kind: "essay", sentence: "<a data-brain=\"Yeehaa\">Yeehaa’s brain</a> starts from the material that already exists: the notes, the talks, the things written once and never found again." },
+        { name: "Sam", piece: "First week with a brain", kind: "note", sentence: "<a data-brain=\"Sam\">Sam’s</a> keeps a note from the first week: what went in first, and what turned out to matter." }
+      ],
+      text: ["Start with what you already have. A brain is seeded from existing material and grows from the work; nothing has to be written for it first.", "@replies"],
+      by: "Rizom, with Yeehaa and Sam"
+    }
+  };
   var layer = document.querySelector(".net-layer");
   var answer = document.querySelector(".answer");
   var box = document.querySelector(".opening__ask textarea");
+  var status = answer.querySelector(".answer__status-text");
   var marks = Array.prototype.slice.call(document.querySelectorAll(".net-mark"));
   var threads = Array.prototype.slice.call(document.querySelectorAll(".net-thread"));
-  var replyGroups = Array.prototype.slice.call(document.querySelectorAll(".net-reply"));
+  var groups = Array.prototype.slice.call(document.querySelectorAll(".net-reply"));
+  var narrow = window.matchMedia("(max-width: 60rem)");
   var leads = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   leads.setAttribute("class", "leads"); leads.setAttribute("aria-hidden", "true"); document.body.append(leads);
-  function nameOf(m) { var a = m.getAttribute("aria-label") || (m.querySelector("[aria-label]") || {}).getAttribute && m.querySelector("[aria-label]").getAttribute("aria-label") || m.textContent || ""; return a.trim(); }
+  var timers = [];
+  // On desktop the drawing stays beside the conversation while it grows, as
+  // the strip does on a phone: pinned where it sits when the answer opens.
+  var pinned = false;
+  function pin() {
+    if (pinned || narrow.matches) return;
+    var r = layer.getBoundingClientRect();
+    layer.style.position = "fixed"; layer.style.left = r.left + "px"; layer.style.top = r.top + "px"; layer.style.width = r.width + "px"; layer.style.height = r.height + "px"; layer.style.zIndex = "2";
+    pinned = true;
+  }
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function nameOf(m) { var a = m.querySelector("[aria-label]"); return (a ? a.getAttribute("aria-label") : m.textContent || "").trim(); }
   function markFor(name) { return marks.find(function (m) { return nameOf(m).indexOf(name) === 0; }); }
-  function indexOf(mark) { return marks.indexOf(mark); }
+  function hrefFor(name) { var m = markFor(name); var a = m && m.querySelector("a[href]"); return a ? a.getAttribute("href") : "#"; }
   function drawLeads() {
     while (leads.firstChild) leads.removeChild(leads.firstChild);
-    answer.querySelectorAll(".answer__sources li").forEach(function (li) {
-      var mark = markFor(li.getAttribute("data-brain")); if (!mark) return;
-      var a = li.getBoundingClientRect(), b = mark.getBoundingClientRect();
-      var x1 = a.right + 6, y1 = a.top + a.height / 2, x2 = b.left + b.width / 2, y2 = b.top + b.height / 2;
-      var cx = x1 + (x2 - x1) * 0.45;
+    if (narrow.matches) return;
+    answer.querySelectorAll(".answer__sources li[data-brain]").forEach(function (li) {
+      var name = li.getAttribute("data-brain"); var mark = markFor(name);
+      var a = li.getBoundingClientRect(), b;
+      if (mark) b = mark.getBoundingClientRect(); else if (name === "Rizom") b = document.querySelector(".net-lantern").getBoundingClientRect(); else return;
+      var x1 = a.right + 6, y1 = a.top + a.height / 2, x2 = b.left + b.width / 2, y2 = b.top + b.height / 2, cx = x1 + (x2 - x1) * 0.45;
       var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
       p.setAttribute("d", "M" + x1 + " " + y1 + " C" + cx + " " + y1 + ", " + cx + " " + y2 + ", " + x2 + " " + y2);
-      p.setAttribute("data-brain", li.getAttribute("data-brain"));
-      if (li.classList.contains("is-hot")) p.classList.add("is-hot");
+      p.setAttribute("data-brain", name); if (li.classList.contains("is-hot")) p.classList.add("is-hot");
       leads.append(p);
     });
   }
   function hot(name, on) {
-    answer.querySelectorAll("[data-brain]").forEach(function (el) { if (el.getAttribute("data-brain") === name) el.classList.toggle("is-hot", on); });
-    var mark = markFor(name); if (mark) mark.classList.toggle("is-hot", on);
-    leads.querySelectorAll("path").forEach(function (p) { if (p.getAttribute("data-brain") === name) p.classList.toggle("is-hot", on); });
+    document.querySelectorAll("[data-brain]").forEach(function (el) { if (el.getAttribute("data-brain") === name) el.classList.toggle("is-hot", on); });
+    var mark = markFor(name); if (mark) { mark.classList.toggle("is-hot", on); var t = threads[marks.indexOf(mark)]; if (t) t.classList.toggle("is-hot", on); }
+    if (name === "Rizom") layer.classList.toggle("is-rizom-hot", on);
+  }
+  function bindPointing(el, name) {
+    el.addEventListener("mouseenter", function () { hot(name, true); });
+    el.addEventListener("mouseleave", function () { hot(name, false); });
+    el.addEventListener("focus", function () { hot(name, true); }, true);
+    el.addEventListener("blur", function () { hot(name, false); }, true);
   }
   function reset() {
-    layer.classList.remove("is-asking", "has-replies");
+    timers.forEach(clearTimeout); timers = [];
+    layer.classList.remove("is-asking", "has-replies", "is-rizom", "is-rizom-hot", "is-fading");
     marks.forEach(function (m) { m.classList.remove("is-lit", "is-hot"); });
-    threads.forEach(function (t) { t.classList.remove("is-lit"); });
-    replyGroups.forEach(function (g) { g.classList.remove("is-lit"); });
+    threads.forEach(function (t) { t.classList.remove("is-lit", "is-hot"); });
+    groups.forEach(function (g) { g.classList.remove("is-lit"); });
     answer.hidden = true; answer.classList.remove("is-done");
-    answer.querySelector(".answer__replies").innerHTML = "";
-    answer.querySelector(".answer__sources").innerHTML = "";
-    answer.querySelector(".answer__body").innerHTML = "";
-    answer.querySelector(".answer__by").textContent = "";
+    ["replies", "sources", "body"].forEach(function (k) { answer.querySelector(".answer__" + k).innerHTML = ""; });
+    answer.querySelector(".answer__by").textContent = ""; status.textContent = "";
     while (leads.firstChild) leads.removeChild(leads.firstChild);
   }
   function type(el, html, done) {
     var tmp = document.createElement("div"); tmp.innerHTML = html; var text = tmp.textContent; var i = 0;
-    var tick = setInterval(function () { i += 3; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(tick); el.innerHTML = html; done && done(); } }, 16);
+    var tick = setInterval(function () { i += 3; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(tick); el.innerHTML = html; el.querySelectorAll("a[data-brain]").forEach(function (a) { a.setAttribute("href", hrefFor(a.getAttribute("data-brain"))); bindPointing(a, a.getAttribute("data-brain")); }); done && done(); } }, 16);
+    timers.push(tick);
+  }
+  function stream(paragraphs, replies, done) {
+    var body = answer.querySelector(".answer__body");
+    var queue = paragraphs.map(function (p) { return p === "@replies" ? replies.map(function (r) { return r.sentence; }).join(" ") : p; }).filter(Boolean);
+    (function next() { var html = queue.shift(); if (html === undefined) return done(); var p = document.createElement("p"); body.append(p); type(p, html, next); })();
+  }
+  function light(r, n) {
+    var mark = markFor(r.name); if (!mark) return;
+    var k = marks.indexOf(mark);
+    mark.classList.add("is-lit"); if (threads[k]) threads[k].classList.add("is-lit"); if (groups[k]) groups[k].classList.add("is-lit");
+    var chip = document.createElement("li"); chip.textContent = r.name; chip.setAttribute("data-brain", r.name); chip.tabIndex = 0; bindPointing(chip, r.name);
+    answer.querySelector(".answer__replies").append(chip);
+  }
+  function sources(a) {
+    var list = answer.querySelector(".answer__sources");
+    var all = [{ name: "Rizom", piece: a.rizom.piece, kind: a.rizom.kind, href: a.rizom.href }].concat(a.replies.map(function (r) { return { name: r.name, piece: r.piece, kind: r.kind, href: hrefFor(r.name) }; }));
+    all.forEach(function (s, n) {
+      var li = document.createElement("li"); li.setAttribute("data-brain", s.name); li.style.animationDelay = (n * 120) + "ms";
+      li.innerHTML = "<a href=\"" + s.href + "\"><b>" + s.name + "</b><i>" + s.piece + " · " + s.kind + "</i></a>";
+      bindPointing(li, s.name); list.append(li);
+    });
+    later(drawLeads, 450);
   }
   function play(q) {
-    reset();
-    box.value = q; box.style.height = "auto"; box.style.height = box.scrollHeight + "px";
-    answer.hidden = false;
-    answer.querySelector(".answer__question").textContent = q;
-    answer.querySelector(".answer__status-text").textContent = "Asking the network…";
-    layer.classList.add("is-asking");
+    var a = answers[q] || answers[Object.keys(answers)[1]];
+    var fading = layer.classList.contains("has-replies") || layer.classList.contains("is-rizom");
+    if (fading) layer.classList.add("is-fading");
     setTimeout(function () {
-      layer.classList.remove("is-asking"); layer.classList.add("has-replies");
-      answer.querySelector(".answer__status-text").textContent = "Three brains answered";
-      replies.forEach(function (r, n) {
-        setTimeout(function () {
-          var mark = markFor(r.name); if (mark) { mark.classList.add("is-lit"); var k = indexOf(mark); if (threads[k]) threads[k].classList.add("is-lit"); if (replyGroups[k]) replyGroups[k].classList.add("is-lit"); }
-          var chip = document.createElement("li"); chip.textContent = r.name; chip.setAttribute("data-brain", r.name); answer.querySelector(".answer__replies").append(chip);
-        }, 450 * n);
-      });
-      setTimeout(function () {
-        var body = answer.querySelector(".answer__body");
-        var p1 = document.createElement("p"); body.append(p1);
-        type(p1, intro, function () {
-          var p2 = document.createElement("p"); body.append(p2);
-          type(p2, replies.map(function (r) { return r.sentence; }).join(" "), function () {
-            var p3 = document.createElement("p"); body.append(p3);
-            type(p3, outro, function () {
-              answer.classList.add("is-done");
-              answer.querySelector(".answer__by").textContent = "Rizom, with Jo, Becca and Mindinn";
-              replies.forEach(function (r, n) {
-                var li = document.createElement("li"); li.setAttribute("data-brain", r.name); li.style.animationDelay = (n * 120) + "ms";
-                li.innerHTML = "<b>" + r.name + "</b><i>" + r.piece + " · " + r.kind + "</i>";
-                li.addEventListener("mouseenter", function () { hot(r.name, true); });
-                li.addEventListener("mouseleave", function () { hot(r.name, false); });
-                answer.querySelector(".answer__sources").append(li);
-              });
-              setTimeout(drawLeads, 450);
-              answer.querySelectorAll("b[data-brain]").forEach(function (b) { b.addEventListener("mouseenter", function () { hot(b.getAttribute("data-brain"), true); }); b.addEventListener("mouseleave", function () { hot(b.getAttribute("data-brain"), false); }); });
-            });
+      reset();
+      box.value = q; box.style.height = "auto"; box.style.height = box.scrollHeight + "px";
+      answer.hidden = false; pin();
+      answer.querySelector(".answer__question").textContent = q;
+      status.textContent = "Asking…";
+      layer.classList.add("is-asking");
+      // 1. asked: the center pulses, every thread runs outward.
+      later(function () {
+        layer.classList.remove("is-asking");
+        // 2. sources known before the text finishes: brains light in arrival order.
+        layer.classList.add("has-replies"); if (a.rizom) layer.classList.add("is-rizom");
+        status.textContent = a.replies.length ? (["One brain answered", "Two brains answered", "Three brains answered"][a.replies.length - 1] || a.replies.length + " brains answered") : "Rizom answered";
+        a.replies.forEach(function (r, n) { later(function () { light(r, n); }, 400 * n); });
+        // 3. the answer reads while the chips arrive.
+        later(function () {
+          stream(a.text, a.replies, function () {
+            answer.classList.add("is-done");
+            answer.querySelector(".answer__by").textContent = a.by;
+            sources(a);
           });
-        });
-      }, 1500);
-    }, 1300);
+        }, 300);
+      }, 1200);
+    }, fading ? 600 : 0);
   }
-  marks.forEach(function (m) { m.addEventListener("click", function (e) { e.preventDefault(); }); m.addEventListener("mouseenter", function () { hot(nameOf(m).split(" ")[0], true); }); m.addEventListener("mouseleave", function () { hot(nameOf(m).split(" ")[0], false); }); });
+  marks.forEach(function (m) {
+    var name = nameOf(m).split(" ")[0];
+    bindPointing(m, name);
+    m.addEventListener("click", function (e) {
+      e.preventDefault();
+      // On a phone a tap on a lit dot brings its source line into view.
+      var li = answer.querySelector(".answer__sources li[data-brain=\"" + name + "\"]");
+      if (li) { li.scrollIntoView({ behavior: "smooth", block: "center" }); li.classList.remove("is-pulse"); void li.offsetWidth; li.classList.add("is-pulse"); }
+    });
+  });
+  document.querySelector(".net-lantern").addEventListener("mouseenter", function () { hot("Rizom", true); });
+  document.querySelector(".net-lantern").addEventListener("mouseleave", function () { hot("Rizom", false); });
   document.querySelectorAll(".ask__topics button").forEach(function (b) { b.addEventListener("click", function () { play(b.getAttribute("data-atlas-fill")); }); });
-  document.querySelector(".opening__send").addEventListener("click", function () { play(box.value || question); });
-  box.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); play(box.value || question); } });
+  document.querySelector(".opening__send").addEventListener("click", function () { play(box.value || Object.keys(answers)[1]); });
+  box.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); play(box.value || Object.keys(answers)[1]); } });
   window.addEventListener("resize", drawLeads); window.addEventListener("scroll", drawLeads, { passive: true });
-  setTimeout(function () { play(question); }, 900);
+  setTimeout(function () { play(Object.keys(answers)[1]); }, 900);
 })();
 </script>
 </body>
