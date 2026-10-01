@@ -629,6 +629,7 @@
     "core--widget-card-and-rizom-ui-reuse",
     "core--wishlist-distance-dedup",
     "core--worker-heartbeat-supervision",
+    "core--worker-interface-channels",
     "core-preset-eval-release",
     "current-main-alpha-release",
     "dashboard-light-surface-tokens",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- [#459](https://github.com/rizom-ai/brains/pull/459) [`7543016`](https://github.com/rizom-ai/brains/commit/75430166391b8b1bf8d6d7bc0650e57ac2f821b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact alerts and other background jobs can send email again. The queue worker runs no interfaces, so it had no Email sender and every alert failed as `transport-missing`. Message interfaces now register their channels and senders in a `registerChannels()` step that the worker also runs, without the interface's daemons, routes or subscriptions. Declarative message interfaces' `setup` runs there too, so `deliver` has its state; `setup` must build clients without connecting or listening.
+
 ## 0.2.0-alpha.462
 
 ### Patch Changes
