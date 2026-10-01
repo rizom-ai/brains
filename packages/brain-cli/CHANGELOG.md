@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- [#460](https://github.com/rizom-ai/brains/pull/460) [`033af2d`](https://github.com/rizom-ai/brains/commit/033af2d1305aed4677ec7bb781e6b183ec957c0e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form's default limits fit a proxied deployment: every visitor arrives from the proxy's network, so the network limits now equal the global ones and requests and forms take their bound's maximum. Before, a hundred page views an hour from behind the CDN refused every visitor for the rest of the hour.
+
+- [#461](https://github.com/rizom-ai/brains/pull/461) [`3e69c19`](https://github.com/rizom-ai/brains/commit/3e69c196335b7897a12425f4157bebcef536e6b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact plugin declares the site's `/contact` and `/contact/thanks` pages while it registers, with `site-builder` as a dependency so the builder is listening. A deployment builds its site in a worker process that registers plugins but never runs their ready phase, so pages declared at readiness never reached it and the built site had no contact page.
+
 ## 0.2.0-alpha.463
 
 ### Patch Changes
