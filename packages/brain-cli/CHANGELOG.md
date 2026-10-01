@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- [`6cd10dc`](https://github.com/rizom-ai/brains/commit/6cd10dca14b6cdcbac184045359aaa0ea0258a00) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serve owner-switched guest chat on the site itself as well as its preview. One Studio switch, monthly budget and set of limits cover both hosts; each host accepts guest requests only from its own pages, and the Ask box is served on both while guest chat is switched on. An authorization stored under the former preview-only origin authorizes nothing: switch guest chat on again in Studio after upgrading.
+
+- [#469](https://github.com/rizom-ai/brains/pull/469) [`674a5af`](https://github.com/rizom-ai/brains/commit/674a5afa237babe39adb02093168ec75792e15f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The RSS feed now links each post to where the site actually publishes it, so a site that calls its posts "Essays" links to `/essays/<slug>` instead of a missing `/posts/<slug>` page.
+
 ## 0.2.0-alpha.468
 
 ### Patch Changes
