@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { EMAIL_SOURCE_READ } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockLogger } from "@brains/test-utils";
 
@@ -297,6 +298,53 @@ describe("EmailInterface", () => {
         "IMAP_POLL_INTERVAL_MS",
       ]),
     );
+  });
+
+  // Contact alerts and other background jobs send from the worker, which
+  // runs no listeners: it gets the Email channel and its sender, and nothing
+  // of the mailbox.
+  it("registers only its channel and sender in the worker", async () => {
+    const fetchImpl = mock(
+      async (_input: string | URL | Request) =>
+        new Response(JSON.stringify({ id: "resend_worker" }), { status: 200 }),
+    );
+    const imapClientFactory = mock((): InboundEmailClient => {
+      throw new Error("The worker must not open the mailbox");
+    });
+    const harness = createPluginHarness<EmailInterface>();
+    const email = new EmailInterface(
+      {
+        transport: "resend",
+        apiKey: "resend-key",
+        from: "Rover <setup@example.com>",
+        imap: imapConfig,
+      },
+      { fetchImpl, imapClientFactory },
+    );
+
+    await email.registerChannelsForExecution(harness.getMockShell(), {
+      executionOnly: true,
+    });
+    // The shell finalizes its registries once every plugin has registered.
+    const channels = harness.getMockShell().getChannelRegistry();
+    channels.finalize();
+    expect(channels.getDescriptor("email")?.displayName).toBe("Email");
+    expect(
+      await channels.getDeliveryProvider("email")?.send({
+        recipient: "owner@example.com",
+        subject: "A note arrived",
+        text: "Someone wrote to you.",
+        idempotencyKey: "contact-alert-1",
+        sensitivity: "normal",
+      }),
+    ).toEqual({ status: "sent", providerDeliveryId: "resend_worker" });
+    expect(
+      harness.getMockShell().getDaemonRegistry().getByPlugin("email"),
+    ).toHaveLength(0);
+    expect(
+      harness.getMockShell().getMessageBus().getHandlerCount(EMAIL_SOURCE_READ),
+    ).toBe(0);
+    expect(imapClientFactory).not.toHaveBeenCalled();
   });
 
   it("sends through the registered delivery provider", async () => {
