@@ -115,6 +115,9 @@ describe("TopicService", () => {
 
       expect(candidate?.topic.id).toBe("messaging-validation");
       expect(candidate?.score).toBe(0.8);
+      expect(entityService.searchWithDistances).toHaveBeenCalledWith(
+        expect.objectContaining({ types: ["topic"] }),
+      );
     });
 
     it("does not merge lexical near matches when semantic distance is too high", async () => {

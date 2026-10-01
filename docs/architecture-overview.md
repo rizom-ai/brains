@@ -155,6 +155,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/site-info`           | `site-info`                          | Site metadata                                       |
 | `entities/social-media`        | `social-post`                        | Social publishing content                           |
 | `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
+| `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
 | `entities/topics`              | `topic`                              | Derived topic/tag entities                          |
 | `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
 | `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |

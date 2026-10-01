@@ -267,8 +267,18 @@ export function createMockEntityService(
     deleteEntity: async (request: {
       entityType: string;
       id: string;
-      options?: { persistenceOrigin?: "ordinary" | "directory-sync" };
+      options?: {
+        persistenceOrigin?: "ordinary" | "directory-sync";
+        expectedContentHash?: string | undefined;
+      };
     }): Promise<boolean> => {
+      const expectedContentHash = request.options?.expectedContentHash;
+      if (
+        expectedContentHash !== undefined &&
+        store.entities.get(request.id)?.contentHash !== expectedContentHash
+      ) {
+        return false;
+      }
       store.entities.delete(request.id);
       store.markExportIntent(
         request.entityType,

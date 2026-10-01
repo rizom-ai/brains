@@ -15,6 +15,13 @@ export {
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
+export { findNearestEntity } from "./entity/nearest-entity";
+export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
+export type { EmbeddingDrainOptions } from "./entity/embedding-drain";
+export type {
+  NearestEntityDeps,
+  NearestEntityQuery,
+} from "./entity/nearest-entity";
 export {
   reconcileEntities,
   type ReconcileEntitiesOptions,
