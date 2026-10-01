@@ -489,3 +489,161 @@ db.close(false);
     );
   }, 20_000);
 });
+
+describe("predeploy asset verification", () => {
+  const PNG = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  const digest = new Bun.CryptoHasher("sha256").update(PNG).digest("hex");
+
+  async function contentCheckout(root: string): Promise<string> {
+    const contentDir = join(root, "content");
+    const remoteDir = join(root, "remote.git");
+    await Bun.$`mkdir -p ${contentDir}`.quiet();
+    await git(contentDir, ["init", "-b", "main"]);
+    await git(contentDir, ["config", "user.name", "Backup Test"]);
+    await git(contentDir, ["config", "user.email", "backup@example.com"]);
+    await writeFile(join(contentDir, "tracked.txt"), "base\n");
+    await git(contentDir, ["add", "tracked.txt"]);
+    await git(contentDir, ["commit", "-m", "base"]);
+    await git(root, ["init", "--bare", remoteDir]);
+    await git(contentDir, ["remote", "add", "origin", remoteDir]);
+    await git(contentDir, ["push", "--set-upstream", "origin", "main"]);
+    return contentDir;
+  }
+
+  /** A brain.db with one image referencing one staged, published asset. */
+  function brainDatabase(
+    path: string,
+    options: { assets?: boolean; corrupt?: boolean; orphan?: boolean } = {},
+  ): void {
+    const database = new Database(path, { create: true });
+    database.run(
+      "CREATE TABLE entities (id TEXT NOT NULL, entityType TEXT NOT NULL, content TEXT NOT NULL)",
+    );
+    if (options.assets === false) {
+      database.run(
+        "INSERT INTO entities VALUES ('cover', 'image', 'data:image/png;base64,AAAA')",
+      );
+      database.close(false);
+      return;
+    }
+    database.run(
+      "CREATE TABLE asset_uploads (upload_id TEXT PRIMARY KEY NOT NULL, created INTEGER NOT NULL)",
+    );
+    database.run(
+      "CREATE TABLE asset_chunks (upload_id TEXT NOT NULL, ordinal INTEGER NOT NULL, bytes BLOB NOT NULL, PRIMARY KEY (upload_id, ordinal))",
+    );
+    database.run(
+      "CREATE TABLE assets (digest TEXT PRIMARY KEY NOT NULL, upload_id TEXT NOT NULL UNIQUE, size_bytes INTEGER NOT NULL, chunk_count INTEGER NOT NULL, created INTEGER NOT NULL)",
+    );
+    database.run("INSERT INTO asset_uploads VALUES ('upload-1', 1)");
+    database.run("INSERT INTO asset_chunks VALUES ('upload-1', 0, ?)", [
+      options.corrupt ? Buffer.alloc(PNG.byteLength) : PNG,
+    ]);
+    database.run("INSERT INTO assets VALUES (?, 'upload-1', ?, 1, 1)", [
+      digest,
+      PNG.byteLength,
+    ]);
+    if (options.orphan) {
+      database.run("INSERT INTO asset_uploads VALUES ('orphan', 1)");
+    }
+    database.run("INSERT INTO entities VALUES ('cover', 'image', ?)", [
+      `asset://sha256/${digest}`,
+    ]);
+    database.run("INSERT INTO entities VALUES ('cover-copy', 'image', ?)", [
+      `asset://sha256/${digest}`,
+    ]);
+    database.close(false);
+  }
+
+  async function capture(
+    options: Parameters<typeof brainDatabase>[1] = {},
+  ): Promise<{ backupDir: string; error?: unknown }> {
+    const root = await mkdtemp(join(tmpdir(), "predeploy-assets-"));
+    temporaryDirectories.push(root);
+    const backupDir = join(root, "backup");
+    await Bun.$`mkdir -p ${backupDir}`.quiet();
+    const source = join(root, "brain.db");
+    brainDatabase(source, options);
+    try {
+      await capturePredeployBackup({
+        backupDir,
+        contentRoot: await contentCheckout(root),
+        databases: [
+          {
+            source,
+            name: "brain.db",
+            method: "vacuum",
+            quickCheck: "bun",
+            logicalVector: false,
+            assets: true,
+          },
+        ],
+        metadata: {
+          snapshotId: "predeploy-test-assets",
+          targetHandle: "test",
+          host: "test-host",
+          startedAt: new Date().toISOString(),
+          sourceVersion: "source",
+          targetVersion: "target",
+          toolVersion: "test",
+          containerId: "container",
+          imageId: "image",
+          imageDigest: "digest",
+        },
+      });
+      return { backupDir };
+    } catch (error) {
+      return { backupDir, error };
+    }
+  }
+
+  const assetReportSchema = z.object({
+    references: z.number(),
+    assets: z.number(),
+    totalBytes: z.number(),
+    orphanUploads: z.number(),
+    digests: z.array(z.string()),
+  });
+
+  it("records the verified asset inventory of the snapshot", async () => {
+    const { backupDir, error } = await capture({ orphan: true });
+
+    expect(error).toBeUndefined();
+    const report = assetReportSchema.parse(
+      JSON.parse(
+        await readFile(join(backupDir, "brain.db.asset-verify.json"), "utf8"),
+      ),
+    );
+    expect(report).toEqual({
+      references: 2,
+      assets: 1,
+      totalBytes: PNG.byteLength,
+      orphanUploads: 1,
+      digests: [digest],
+    });
+  });
+
+  it("blocks the backup when a referenced asset's bytes do not match", async () => {
+    const { backupDir, error } = await capture({ corrupt: true });
+
+    expect(String(error)).toContain("asset verification failed");
+    expect(await Bun.file(join(backupDir, "manifest.json")).exists()).toBe(
+      false,
+    );
+  });
+
+  it("passes a database from before staged asset storage", async () => {
+    const { backupDir, error } = await capture({ assets: false });
+
+    expect(error).toBeUndefined();
+    const report = assetReportSchema.parse(
+      JSON.parse(
+        await readFile(join(backupDir, "brain.db.asset-verify.json"), "utf8"),
+      ),
+    );
+    expect(report.references).toBe(0);
+  });
+});

@@ -40,6 +40,20 @@ export interface PredeployDatabaseSource {
   method: DatabaseCaptureMethod;
   quickCheck: QuickCheckDriver;
   logicalVector: boolean;
+  /** Verify the image assets the snapshot's entities reference. */
+  assets?: boolean | undefined;
+}
+
+/** The asset inventory a verified snapshot holds. */
+interface AssetSnapshotReport {
+  /** Entity rows referencing an asset. */
+  references: number;
+  /** Distinct referenced assets, each re-hashed from its chunks. */
+  assets: number;
+  totalBytes: number;
+  /** Staged uploads no asset publishes; harmless, reported only. */
+  orphanUploads: number;
+  digests: string[];
 }
 
 export interface PredeployBackupMetadata {
@@ -92,6 +106,7 @@ interface DatabaseCaptureRecord extends Omit<
   sha256: string;
   quickCheckDriver: QuickCheckDriver;
   quickCheck: string;
+  assetVerification?: Omit<AssetSnapshotReport, "digests">;
 }
 
 interface GitCaptureRecord {
@@ -236,6 +251,98 @@ function vectorDigestDatabase(database: Database): {
   return { counts, sha256: hasher.digest("hex") };
 }
 
+const ASSET_REF_PREFIX = "asset://sha256/";
+
+/**
+ * Check every asset the snapshot's entities reference: a published header
+ * whose chunks run contiguously, add up to its size and hash to its digest.
+ * Any failure blocks the backup. A database from before staged asset
+ * storage references none.
+ */
+function verifySnapshotAssets(path: string, name: string): AssetSnapshotReport {
+  const database = new Database(path, { readonly: true });
+  try {
+    const tables = new Set(
+      database
+        .query("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .all()
+        .filter(isPlainRecord)
+        .map((row) => String(row["name"])),
+    );
+    if (!tables.has("asset_chunks")) {
+      return {
+        references: 0,
+        assets: 0,
+        totalBytes: 0,
+        orphanUploads: 0,
+        digests: [],
+      };
+    }
+    const fail = (detail: string): never => {
+      throw new Error(`${name}: asset verification failed: ${detail}`);
+    };
+    const referenced = database
+      .query(
+        "SELECT content, COUNT(*) AS count FROM entities WHERE content LIKE ? GROUP BY content ORDER BY content",
+      )
+      .all(`${ASSET_REF_PREFIX}%`)
+      .filter(isPlainRecord)
+      .map((row) => ({
+        digest: String(row["content"]).slice(ASSET_REF_PREFIX.length),
+        count: Number(row["count"]),
+      }));
+    const header = database.query(
+      "SELECT upload_id, size_bytes, chunk_count FROM assets WHERE digest = ?",
+    );
+    const chunks = database.query(
+      "SELECT ordinal, bytes FROM asset_chunks WHERE upload_id = ? ORDER BY ordinal",
+    );
+    const sizes = referenced.map(({ digest }) => {
+      const row = header.get(digest);
+      if (!isPlainRecord(row)) return fail(`${digest} has no published asset`);
+      const sizeBytes = Number(row["size_bytes"]);
+      const chunkCount = Number(row["chunk_count"]);
+      const hasher = new Bun.CryptoHasher("sha256");
+      const read = { chunks: 0, bytes: 0 };
+      for (const chunk of chunks.iterate(String(row["upload_id"]))) {
+        if (!isPlainRecord(chunk) || Number(chunk["ordinal"]) !== read.chunks) {
+          return fail(`${digest} is missing chunk ${read.chunks}`);
+        }
+        const bytes = chunk["bytes"];
+        if (!(bytes instanceof Uint8Array)) {
+          return fail(`${digest} chunk ${read.chunks} is not binary`);
+        }
+        hasher.update(bytes);
+        read.chunks += 1;
+        read.bytes += bytes.byteLength;
+      }
+      if (read.chunks !== chunkCount || read.bytes !== sizeBytes) {
+        return fail(
+          `${digest} holds ${read.chunks} chunks and ${read.bytes} bytes; expected ${chunkCount} and ${sizeBytes}`,
+        );
+      }
+      if (hasher.digest("hex") !== digest) {
+        return fail(`${digest} chunks hash to a different digest`);
+      }
+      return sizeBytes;
+    });
+    const orphans = database
+      .query(
+        "SELECT COUNT(*) AS count FROM asset_uploads WHERE upload_id NOT IN (SELECT upload_id FROM assets)",
+      )
+      .get();
+    return {
+      references: referenced.reduce((sum, { count }) => sum + count, 0),
+      assets: referenced.length,
+      totalBytes: sizes.reduce((sum, size) => sum + size, 0),
+      orphanUploads: isPlainRecord(orphans) ? Number(orphans["count"]) : 0,
+      digests: referenced.map(({ digest }) => digest),
+    };
+  } finally {
+    database.close(false);
+  }
+}
+
 function vectorDigest(path: string): {
   counts: Record<string, number>;
   sha256: string;
@@ -303,6 +410,16 @@ async function captureDatabases(
       );
     }
 
+    const assetReport = source.assets
+      ? verifySnapshotAssets(destination, source.name)
+      : undefined;
+    if (assetReport) {
+      await Bun.write(
+        `${config.backupDir}/${source.name}.asset-verify.json`,
+        `${JSON.stringify(assetReport, null, 2)}\n`,
+      );
+    }
+
     const file = Bun.file(destination);
     const { quickCheck: quickCheckDriver, ...sourceMetadata } = source;
     captures.push({
@@ -315,6 +432,14 @@ async function captureDatabases(
       sha256: await sha256(destination),
       quickCheckDriver,
       quickCheck: check,
+      ...(assetReport && {
+        assetVerification: {
+          references: assetReport.references,
+          assets: assetReport.assets,
+          totalBytes: assetReport.totalBytes,
+          orphanUploads: assetReport.orphanUploads,
+        },
+      }),
     });
   }
 
@@ -511,6 +636,7 @@ function captureConfigFromEnvironment(): PredeployCaptureConfig {
         method: "vacuum",
         quickCheck: "bun",
         logicalVector: false,
+        assets: true,
       },
       {
         source: "/data/brain-jobs.db",
