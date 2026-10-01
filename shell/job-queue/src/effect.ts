@@ -198,7 +198,7 @@ function releaseJobQueueRuntime(
       }),
     );
     const progressExit = yield* Effect.exit(
-      Effect.try({
+      Effect.tryPromise({
         try: () => jobProgressMonitor.stop(),
         catch: (error) => error,
       }),

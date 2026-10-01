@@ -714,7 +714,7 @@
     --strip: 1;
     grid-area: auto;
     grid-row: 1;
-    height: 42svh;
+    height: var(--strip-h);
     z-index: 2;
     justify-content: center;
     padding: 0;
@@ -731,7 +731,7 @@
   .chapter {
     min-height: 64svh;
     padding: 2.5rem 0;
-    scroll-margin-top: calc(var(--bar-height, 4.6rem) + 42svh);
+    scroll-margin-top: calc(var(--bar-height, 4.6rem) + var(--strip-h));
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1182,22 +1182,32 @@
     top: var(--bar-height, 4.6rem);
     left: 0;
     right: 0;
-    height: 42svh;
+    height: var(--strip-h);
     width: auto;
     z-index: 1;
     background: linear-gradient(var(--color-bg) 82%, transparent);
     transition: opacity 0.6s ease;
   }
   .net-layer > * {
-    width: min(100%, 42svh);
+    width: min(100%, var(--strip-h));
   }
+  /* About a third of the screen for the strip, and the opening's type at
+     phone sizes, so the box lands on the first screen under the title. */
   .story {
     --words: 34rem;
+    --strip-h: 34svh;
   }
   .chapter.chapter--opening {
     min-height: auto;
     justify-content: flex-start;
-    padding-top: 1.5rem;
+    padding-top: 1rem;
+  }
+  .chapter--opening h1 {
+    font-size: clamp(2.3rem, 9.5vw, 3.6rem);
+  }
+  .chapter--opening .lede {
+    font-size: 1.05rem;
+    margin-top: 1rem;
   }
   .living-org[data-stage="0"] {
     background: none;

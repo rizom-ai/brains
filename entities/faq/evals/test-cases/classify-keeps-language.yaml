@@ -1,0 +1,18 @@
+id: faq-classify-keeps-language
+name: A Dutch exchange stays Dutch
+description: A reusable Dutch question is accepted and rewritten in Dutch.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: hoe publiceer ik een concept?
+  answer: Open het concept in Studio, zet de status op gepubliceerd en sla op.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: true
+    - path: question
+      matches: "[Pp]ubliceer|[Pp]ubliceren"

@@ -122,6 +122,48 @@ describe("guest usage record", () => {
     expect(event?.usage).toBeUndefined();
   });
 
+  it("records a screened-out question as refused, with why", async () => {
+    const usage = record();
+    const id = request("conversation-a");
+    await usage.open(id);
+    await usage.admit(id, { visitorId: visitor, reservedMicroUsd: 2_000_000 });
+    await usage.settle(id, "completed", undefined, {
+      outcome: "refused",
+      category: "injection",
+    });
+    const [event] = await usage.list(10);
+    expect(event).toMatchObject({ state: "refused", refusedAs: "injection" });
+    expect(event?.unscreened).toBeUndefined();
+  });
+
+  it("marks an answer given without screening, and only that", async () => {
+    const usage = record();
+    const screened = request("conversation-a");
+    const unscreened = request("conversation-b");
+    for (const id of [screened, unscreened]) {
+      await usage.open(id);
+      await usage.admit(id, {
+        visitorId: visitor,
+        reservedMicroUsd: 2_000_000,
+      });
+    }
+    await usage.settle(screened, "completed", undefined, {
+      outcome: "answered",
+    });
+    await usage.settle(unscreened, "completed", undefined, {
+      outcome: "unscreened",
+    });
+    const events = await usage.list(10);
+    const find = (id: string): (typeof events)[number] | undefined =>
+      events.find((event) => event.id === id);
+    expect(find(screened)).toMatchObject({ state: "completed" });
+    expect(find(screened)?.unscreened).toBeUndefined();
+    expect(find(unscreened)).toMatchObject({
+      state: "completed",
+      unscreened: true,
+    });
+  });
+
   it("keeps an admitted question within the policy's bytes, cut on a character boundary", async () => {
     const usage = record(createMemoryRuntimeStateNamespace(), {
       ...bounds,

@@ -1,0 +1,16 @@
+id: faq-classify-rejects-conversation-specific
+name: A question about this conversation is rejected
+description: An answer that only makes sense inside one conversation is not a FAQ.
+type: plugin
+tags: [faq, classify]
+plugin: faq
+handler: classifyExchange
+
+input:
+  question: what did I ask you a minute ago?
+  answer: You asked how to publish a draft post.
+
+expectedOutput:
+  validateEach:
+    - path: reusable
+      equals: false

@@ -153,12 +153,12 @@ These reduce drag or preserve future options; they are not product bets and do n
 
 Active cleanup and infrastructure plans:
 
-- [durable-binary-assets.md](./plans/durable-binary-assets.md) — move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.
+- [durable-binary-assets.md](./plans/durable-binary-assets.md) — move image bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, then validate a production cutover.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
 - [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
-- [turso-database-engine.md](./plans/turso-database-engine.md) — active `0.3` Turso-only runtime/migration work; off-thread integration, production recovery, and fleet soak remain open while `0.2` stays on libSQL.
+- [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 
 Research probes (parked):
 

@@ -11,6 +11,10 @@ import {
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "@brains/contracts";
+import {
+  guestRefusalCategorySchema,
+  type GuestRefusalCategory,
+} from "@brains/contracts/chat";
 import type { GuestAccessControl } from "./guest-access-control";
 import type { GuestUsageBounds } from "./guest-policy";
 import {
@@ -32,6 +36,10 @@ const periodSchema = z.object({
   unknownCost: count,
   unresolved: count,
   unresolvedReservedMicroUsd: count,
+  /** Screened out, by why. */
+  refused: z.partialRecord(guestRefusalCategorySchema, count),
+  /** Answered because screening failed. */
+  unscreened: count,
 });
 type Period = z.output<typeof periodSchema>;
 
@@ -55,6 +63,7 @@ const monitorDataSchema = z.object({
         id: z.string(),
         openedAt: count,
         state: guestUsageStateSchema,
+        refusedAs: guestRefusalCategorySchema.optional(),
         question: z.string().optional(),
         cost: z.string(),
       }),
@@ -138,8 +147,25 @@ const outcomeLabels: Record<GuestUsageEvent["state"], string> = {
   pending: "Not admitted",
   unresolved: "Unresolved",
   completed: "Answered",
+  refused: "Screened out",
   failed: "Failed",
 };
+
+const refusalLabels: Record<GuestRefusalCategory, string> = {
+  "off-topic": "Off topic",
+  abusive: "Abusive",
+  injection: "Tried to change its instructions",
+  harmful: "Harmful",
+};
+
+function outcome(event: MonitorData["recent"][number]): string {
+  if (!event.refusedAs) return outcomeLabels[event.state];
+  const why = refusalLabels[event.refusedAs];
+  return `${outcomeLabels.refused}: ${why.charAt(0).toLowerCase()}${why.slice(1)}`;
+}
+
+const total = (counts: Period["refused"]): number =>
+  Object.values(counts).reduce((sum, value) => sum + value, 0);
 
 function money(microUsd: number): string {
   return `$${(microUsd / 1_000_000).toFixed(4)}`;
@@ -193,6 +219,14 @@ function period(events: GuestUsageEvent[], since: number): Period {
       (sum, event) => sum + (event.reservedMicroUsd ?? 0),
       0,
     ),
+    refused: admitted.reduce<Period["refused"]>(
+      (tally, event) =>
+        event.refusedAs
+          ? { ...tally, [event.refusedAs]: (tally[event.refusedAs] ?? 0) + 1 }
+          : tally,
+      {},
+    ),
+    unscreened: admitted.filter((event) => event.unscreened).length,
   };
 }
 
@@ -240,6 +274,17 @@ const guestMonitor = defineStudioWorkspace({
               value: month.unresolved,
               caption: `${money(month.unresolvedReservedMicroUsd)} reserved, outcome not known`,
               tone: month.unresolved > 0 ? "warn" : "neutral",
+            },
+            {
+              label: "Screened out today",
+              value: total(data.today.refused),
+              caption: `${total(month.refused)} this month, answered with the refusal`,
+            },
+            {
+              label: "Unscreened",
+              value: month.unscreened,
+              caption: "This month, answered because screening failed",
+              tone: month.unscreened > 0 ? "warn" : "neutral",
             },
           ],
         },
@@ -327,7 +372,7 @@ const guestMonitor = defineStudioWorkspace({
             cells: {
               when: new Date(event.openedAt).toISOString(),
               question: event.question ?? "Not recorded",
-              outcome: outcomeLabels[event.state],
+              outcome: outcome(event),
               cost: event.cost,
             },
             ...(data.canSaveQuestions && event.question
@@ -341,6 +386,26 @@ const guestMonitor = defineStudioWorkspace({
                 }
               : {}),
           })),
+        },
+        {
+          type: "table",
+          id: "guest-screening",
+          empty: "No questions screened out.",
+          columns: [
+            { key: "reason", label: "Screened out because" },
+            { key: "today", label: "Today" },
+            { key: "month", label: "This month" },
+          ],
+          rows: guestRefusalCategorySchema.options
+            .filter((category) => (month.refused[category] ?? 0) > 0)
+            .map((category) => ({
+              id: category,
+              cells: {
+                reason: refusalLabels[category],
+                today: data.today.refused[category] ?? 0,
+                month: month.refused[category] ?? 0,
+              },
+            })),
         },
         {
           type: "table",
@@ -396,6 +461,8 @@ const guestMonitor = defineStudioWorkspace({
 export interface GuestMonitorDeps {
   record: GuestUsageRecord;
   bounds: GuestUsageBounds;
+  /** The record's clock: today and this month are its days, not the host's. */
+  now: () => number;
   /** Present when the door is switched at runtime rather than configured. */
   control: GuestAccessControl | undefined;
   /** Whether configured guest chat is open when there is no switch. */
@@ -409,7 +476,7 @@ async function load(
   context: InterfacePluginContext,
 ): Promise<MonitorData> {
   const { record, bounds, control } = deps;
-  const now = new Date();
+  const now = new Date(deps.now());
   const today = Date.UTC(
     now.getUTCFullYear(),
     now.getUTCMonth(),
@@ -462,6 +529,7 @@ async function load(
         id: event.id,
         openedAt: event.openedAt,
         state: event.state,
+        ...(event.refusedAs ? { refusedAs: event.refusedAs } : {}),
         ...(event.question
           ? {
               question:
