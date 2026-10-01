@@ -520,7 +520,7 @@ describe("ConversationService", () => {
   });
 
   describe("database readiness", () => {
-    it("applies the busy timeout so concurrent writers wait instead of failing", async () => {
+    it("disables native busy waiting so an in-process lock holder can continue", async () => {
       const owned = ConversationService.createFreshFromConfig(
         logger,
         messageBus,
@@ -532,7 +532,7 @@ describe("ConversationService", () => {
 
         const ownedClient = owned.getDatabaseClient();
         const busyTimeout = await ownedClient.execute("PRAGMA busy_timeout");
-        expect(busyTimeout.rows[0]?.["timeout"]).toBe(5000);
+        expect(busyTimeout.rows[0]?.["timeout"]).toBe(0);
       } finally {
         owned.close();
       }

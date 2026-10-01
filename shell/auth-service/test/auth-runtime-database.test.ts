@@ -98,6 +98,22 @@ describe("AuthRuntimeDatabase", () => {
 
     expect(
       authRuntimeConnectionPragmas("file:/srv/auth/auth.db", true),
+    ).toEqual(["PRAGMA foreign_keys = ON", "PRAGMA busy_timeout = 0"]);
+  });
+
+  it("fails fast on local contention before WAL setup without changing remote or replica journaling", () => {
+    expect(
+      authRuntimeConnectionPragmas("file:/srv/auth/auth.db", false),
+    ).toEqual([
+      "PRAGMA foreign_keys = ON",
+      "PRAGMA busy_timeout = 0",
+      "PRAGMA journal_mode = WAL",
+    ]);
+    expect(
+      authRuntimeConnectionPragmas(
+        "libsql://private-auth.example.turso.io",
+        false,
+      ),
     ).toEqual(["PRAGMA foreign_keys = ON"]);
   });
 
