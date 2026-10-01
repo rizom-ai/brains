@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- [#464](https://github.com/rizom-ai/brains/pull/464) [`8af0ca0`](https://github.com/rizom-ai/brains/commit/8af0ca0e94ac335c9aeb88c1d58c5f305ae6c456) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional site's atlas homepage shows the owner's published FAQs in a band under the atlas: the six most asked, under the owner's optional `faqHeading` from `ask-content` (unwritten, there is no heading). One answer is open at a time and every answer reads without a script; on a wide screen the atlas script shows the open answer beside the questions. Nothing renders until a FAQ is published; a preview build shows drafts too, like any draft content. `@brains/faq` exports `loadPublicFaqs` for sites that show FAQs beside their other content.
+
 ## 0.2.0-alpha.466
 
 ### Patch Changes

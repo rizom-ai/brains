@@ -434,6 +434,7 @@
     "core--health-watchdog-container-scope",
     "core--health-watchdog-deployment-smoke",
     "core--homepage-atlas",
+    "core--homepage-published-faqs",
     "core--http-route-registry",
     "core--icons-that-exist",
     "core--identity-singleton-shared-core",
