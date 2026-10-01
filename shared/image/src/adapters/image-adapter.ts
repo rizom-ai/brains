@@ -13,11 +13,9 @@ import {
 } from "../schemas/image";
 import {
   parseDataUrl,
+  describeImageBytes,
   detectImageDimensions,
-  detectImageDimensionsFromBytes,
   detectImageFormat,
-  detectImageFormatFromBytes,
-  imageMediaType,
   toImageFormat,
 } from "../lib/image-utils";
 
@@ -176,11 +174,10 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public createAssetImageEntity(
     input: CreateAssetImageInput,
   ): Pick<Image, "entityType" | "content" | "metadata"> {
-    const format = detectImageFormatFromBytes(input.bytes);
-    if (!format) {
+    const bytes = describeImageBytes(input.bytes);
+    if (!bytes) {
       throw new Error("Unsupported image format: not a PNG, JPEG, GIF or WebP");
     }
-    const dimensions = detectImageDimensionsFromBytes(input.bytes);
     const { title, alt, ...described } = describedMetadata(input);
     return {
       entityType: "image",
@@ -188,11 +185,8 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
       metadata: {
         title,
         alt,
-        format,
-        mediaType: imageMediaType(format),
+        ...bytes,
         sizeBytes: input.asset.sizeBytes,
-        width: dimensions?.width ?? 0,
-        height: dimensions?.height ?? 0,
         ...described,
       },
     };

@@ -72,6 +72,8 @@ export async function persistImportEntity(
   filePath: string,
   result: ImportResult,
   snapshot: Awaited<ReturnType<EntityServiceClient["getEntityWriteSnapshot"]>>,
+  /** Bytes already staged from the file; otherwise inline content is staged here. */
+  staged?: StagedAsset,
 ): Promise<void> {
   try {
     const existing = snapshot?.entity ?? null;
@@ -111,7 +113,9 @@ export async function persistImportEntity(
       updated: rawEntity.updated.toISOString(),
       contentHash: "",
     };
-    const { entity, stagedAsset } = await stageAssetContent(deps, inline);
+    const { entity, stagedAsset } = staged
+      ? { entity: inline, stagedAsset: staged }
+      : await stageAssetContent(deps, inline);
     // Store canonical hash so auto-sync writes don't trigger a re-import:
     // after auto-sync writes serializeEntity(entity) to disk, the file hash
     // matches this hash and shouldUpdateEntity returns false.

@@ -39,6 +39,8 @@ export {
   parseDataUrl,
   tryParseDataUrl,
   createDataUrl,
+  describeImageBytes,
+  IMAGE_HEADER_BYTES,
   detectImageFormat,
   detectImageDimensions,
   detectImageDimensionsFromBytes,
@@ -48,7 +50,7 @@ export {
   isHttpUrl,
   fetchImageAsBase64,
 } from "./lib/image-utils";
-export type { ParsedDataUrl } from "./lib/image-utils";
+export type { ImageByteDescription, ParsedDataUrl } from "./lib/image-utils";
 
 // Staging image bytes as assets
 export {

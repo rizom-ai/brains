@@ -345,6 +345,80 @@ describe("Image Import - Regression Tests", () => {
       );
     });
 
+    it("describes binary image files from their header bytes", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+
+      await dirSync.importEntities();
+
+      expect(upserts[0]?.entity.metadata).toEqual({
+        format: "png",
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+        width: 1,
+        height: 1,
+      });
+    });
+
+    it("stages binary image files from a file stream", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      await dirSync.importEntities();
+
+      const source = stage.mock.calls[0]?.[0];
+      expect(source).toBeDefined();
+      expect(source instanceof Uint8Array).toBe(false);
+      expect(Symbol.asyncIterator in Object(source)).toBe(true);
+    });
+
+    it("skips an image file whose bytes match the stored asset without staging", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+      const stored: BaseEntity = {
+        id: "robot",
+        entityType: "image",
+        content: createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+        contentHash: "stored",
+        metadata: {},
+        visibility: "public",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
+      };
+      mockEntityService.getEntityWriteSnapshot = async (): Promise<{
+        entity: BaseEntity;
+        revision: string;
+      }> => ({ entity: stored, revision: "stored" });
+
+      const result = await dirSync.importEntities();
+
+      expect(result.skipped).toBe(1);
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+    });
+
+    it("reports a file that is not a supported image and leaves it in place", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const path = join(testDir, "image", "broken.png");
+      writeFileSync(path, "not an image");
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(0);
+      expect(result.skipped).toBe(1);
+      expect(result.issues?.[0]?.path).toBe("image/broken.png");
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+      expect(existsSync(path)).toBe(true);
+    });
+
     it("applies the asset import limit instead of the ordinary limit", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);

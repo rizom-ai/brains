@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   parseDataUrl,
   createDataUrl,
+  describeImageBytes,
   detectImageDimensionsFromBytes,
   detectImageFormat,
   detectImageFormatFromBytes,
@@ -149,6 +150,21 @@ describe("detectImageDimensionsFromBytes", () => {
     expect(
       detectImageDimensionsFromBytes(Buffer.from(TINY_PNG_BASE64, "base64")),
     ).toEqual({ width: 1, height: 1 });
+  });
+});
+
+describe("describeImageBytes", () => {
+  it("reads format, media type and dimensions from header bytes", () => {
+    expect(describeImageBytes(Buffer.from(TINY_PNG_BASE64, "base64"))).toEqual({
+      format: "png",
+      mediaType: "image/png",
+      width: 1,
+      height: 1,
+    });
+  });
+
+  it("refuses bytes that are not a supported raster image", () => {
+    expect(describeImageBytes(Buffer.from("not an image"))).toBeUndefined();
   });
 });
 

@@ -15,6 +15,8 @@ import {
 import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
+import { importImageFile } from "./image-file-import";
+import { isImageFile } from "./image-file-utils";
 import { persistImportEntity } from "./import-persistence";
 import { OversizedFileError } from "./oversized-file-error";
 import {
@@ -97,6 +99,10 @@ async function importFile(
     const assetBacked =
       deps.entityService.getEntityTypeConfig(admission.entityType)
         .binaryStorage === "asset";
+    if (assetBacked && isImageFile(filePath)) {
+      await importImageFile(deps, filePath, admission, snapshot, result);
+      return;
+    }
     const rawEntity = await deps.fileOperations.readEntity(
       filePath,
       assetBacked ? deps.maxAssetImportBytes : deps.maxImportFileBytes,

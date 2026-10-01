@@ -142,6 +142,38 @@ export function imageMediaType(format: ImageFormat): string {
 }
 
 /**
+ * Header bytes read to describe an image: enough for a JPEG frame header
+ * behind typical EXIF segments.
+ */
+export const IMAGE_HEADER_BYTES: number = 256 * 1024;
+
+/** A raster image's binary facts, read from its header bytes. */
+export interface ImageByteDescription {
+  format: ImageFormat;
+  mediaType: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Describe a supported raster image from its header bytes. Undefined when the
+ * bytes are not a PNG, JPEG, GIF or WebP.
+ */
+export function describeImageBytes(
+  header: Uint8Array,
+): ImageByteDescription | undefined {
+  const format = detectImageFormatFromBytes(header);
+  if (!format) return undefined;
+  const dimensions = detectImageDimensionsFromBytes(header);
+  return {
+    format,
+    mediaType: imageMediaType(format),
+    width: dimensions?.width ?? 0,
+    height: dimensions?.height ?? 0,
+  };
+}
+
+/**
  * Get image dimensions from base64 data
  * Parses image headers to extract width/height without full decode
  */

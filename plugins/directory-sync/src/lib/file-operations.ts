@@ -38,6 +38,16 @@ import {
   getAssetDigest,
 } from "@brains/plugins";
 import type { RawEntity, DirectorySyncStatus } from "../types";
+
+/** An entity file's identity, size and timestamps. */
+export interface EntityFileStat {
+  fullPath: string;
+  entityType: string;
+  id: string;
+  sizeBytes: number;
+  created: Date;
+  updated: Date;
+}
 import {
   ensureDirectoryStructure as ensureSyncDirectoryStructure,
   gatherFileStatus as gatherSyncFileStatus,
@@ -95,7 +105,11 @@ export class FileOperations {
     };
   }
 
-  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
+  /** An entity file's identity, size and timestamps, without reading it. */
+  async statEntityFile(
+    filePath: string,
+    maxBytes?: number,
+  ): Promise<EntityFileStat> {
     const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
@@ -104,11 +118,20 @@ export class FileOperations {
     }
 
     const { entityType, id } = this.parseEntityFromPath(filePath);
+    return {
+      fullPath,
+      entityType,
+      id,
+      sizeBytes: stats.size,
+      // Fallback to mtime if birthtime is invalid (zero epoch)
+      created: stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime,
+      updated: stats.mtime,
+    };
+  }
 
-    // Fallback to mtime if birthtime is invalid (zero epoch)
-    const created =
-      stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
-    const updated = stats.mtime;
+  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
+    const { fullPath, entityType, id, created, updated } =
+      await this.statEntityFile(filePath, maxBytes);
 
     let content: string;
     let metadata: Record<string, unknown> | undefined;
@@ -239,7 +262,10 @@ export class FileOperations {
     const assetRef = assetRefSchema.safeParse(entity.content);
     if (assetRef.success) {
       // Stored assets stream to the file; an identical file is left alone.
-      if (await fileHasDigest(filePath, getAssetDigest(assetRef.data))) {
+      if (
+        (await pathExists(filePath)) &&
+        (await fileDigest(filePath)) === getAssetDigest(assetRef.data)
+      ) {
         return;
       }
       await this.ensureEntityDirectory(filePath);
@@ -471,15 +497,11 @@ export class FileOperations {
   }
 }
 
-/** Whether a file exists and its SHA-256 matches, hashed as a stream. */
-async function fileHasDigest(
-  filePath: string,
-  digest: string,
-): Promise<boolean> {
-  if (!(await pathExists(filePath))) return false;
+/** A file's SHA-256, hashed as a stream so its size never stalls a read. */
+export async function fileDigest(filePath: string): Promise<string> {
   const hash = createHash("sha256");
   for await (const chunk of Bun.file(filePath).stream()) hash.update(chunk);
-  return hash.digest("hex") === digest;
+  return hash.digest("hex");
 }
 
 async function writeChunks(

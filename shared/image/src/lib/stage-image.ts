@@ -6,7 +6,11 @@ import {
 } from "@brains/entity-service";
 import { imageAdapter, type ImageDescription } from "../adapters/image-adapter";
 import type { Image } from "../schemas/image";
-import { detectImageFormatFromBytes, parseDataUrl } from "./image-utils";
+import {
+  detectImageFormatFromBytes,
+  IMAGE_HEADER_BYTES,
+  parseDataUrl,
+} from "./image-utils";
 
 /**
  * Largest image stored as a new asset. Staging keeps event-loop stalls
@@ -14,11 +18,8 @@ import { detectImageFormatFromBytes, parseDataUrl } from "./image-utils";
  */
 export const IMAGE_ASSET_MAX_BYTES: number = 25 * 1024 * 1024;
 
-/**
- * Base64 characters decoded up front to read image headers: 256 KiB of bytes,
- * enough for a JPEG frame header behind typical EXIF segments.
- */
-const HEADER_BASE64_CHARS = 349_528;
+/** Base64 characters decoded up front to read an image's header bytes. */
+const HEADER_BASE64_CHARS = Math.ceil(IMAGE_HEADER_BYTES / 3) * 4;
 
 /** The staging half of the entity service. */
 export interface ImageAssetStager {
