@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- [#462](https://github.com/rizom-ai/brains/pull/462) [`aa4fd04`](https://github.com/rizom-ai/brains/commit/aa4fd046bc0b4103168ac49f5d3ea0927c29172c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ capture now includes site visitors' questions. A reply to a visitor becomes a public draft FAQ for the owner to review, merges with the same question asked before, and counts toward how often it was asked; a visitor's own messages and refusals create nothing. The conversation service tells plugins about visitor messages on a new `conversation:guestMessageAdded` event that carries only where the message is, never its text, so no other plugin hears visitor conversations. The capture rewrite leaves out who asked and does not follow instructions inside the exchange.
+
 ## 0.2.0-alpha.464
 
 ### Patch Changes

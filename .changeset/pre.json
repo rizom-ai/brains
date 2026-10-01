@@ -391,6 +391,7 @@
     "core--entity-type-classification",
     "core--export-raw-entity-source",
     "core--faq-capture",
+    "core--faq-visitor-capture",
     "core--fenced-job-attempts",
     "core--fix-professional-profile-view-schema",
     "core--fleet-image-promotion",
