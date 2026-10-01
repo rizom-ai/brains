@@ -35,17 +35,9 @@ function isSqliteWriteConflict(error: unknown): boolean {
   return false;
 }
 
-export function retrySqliteWrite<TResult>(
+export async function retrySqliteWrite<TResult>(
   write: () => Promise<TResult>,
   options: SqliteWriteRetryOptions = {},
-): Promise<TResult> {
-  return retrySqliteWriteWhile(write, options, () => true);
-}
-
-async function retrySqliteWriteWhile<TResult>(
-  write: () => Promise<TResult>,
-  options: SqliteWriteRetryOptions,
-  canRetry: () => boolean,
 ): Promise<TResult> {
   const retryBudgetMs = options.retryBudgetMs ?? WRITE_RETRY_BUDGET_MS;
   const now = options.now ?? Date.now;
@@ -61,7 +53,7 @@ async function retrySqliteWriteWhile<TResult>(
     try {
       return await write();
     } catch (error) {
-      if (!canRetry() || !isSqliteWriteConflict(error)) throw error;
+      if (!isSqliteWriteConflict(error)) throw error;
       const backoff = Math.min(
         WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
         WRITE_RETRY_MAX_DELAY_MS,
@@ -87,20 +79,9 @@ export class ProjectionTransactionRunner {
   public run<TResult>(
     transaction: (database: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
-    return this.queue.run(() => {
-      let callbackStarted = false;
-      return retrySqliteWriteWhile(
-        () =>
-          this.db.transaction((database) => {
-            // Drizzle acquires BEGIN IMMEDIATE before invoking this callback.
-            // Once entered, neither callback nor commit errors may replay it.
-            callbackStarted = true;
-            return transaction(database);
-          }),
-        {},
-        () => !callbackStarted,
-      );
-    });
+    // The shared client retries refused BEGINs within one acquisition budget.
+    // Retrying here would add a second budget and risk replaying admitted work.
+    return this.queue.run(() => this.db.transaction(transaction));
   }
 
   public runSqliteWrite<TResult>(

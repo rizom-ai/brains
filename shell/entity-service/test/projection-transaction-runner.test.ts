@@ -66,7 +66,8 @@ describe("ProjectionTransactionRunner contention", () => {
         if ("error" in result) throw result.error;
         expect(result.value).toBe("committed");
         expect(calls).toBe(1);
-        expect(attempts).toBeGreaterThan(1);
+        // One Drizzle acquisition; its shared client owns the BEGIN retries.
+        expect(attempts).toBe(1);
         expect(
           (
             await contender.client.execute("SELECT id FROM probe ORDER BY id")

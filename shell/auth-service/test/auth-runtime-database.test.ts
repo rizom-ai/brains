@@ -3,6 +3,8 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "@libsql/client";
+import { sql } from "drizzle-orm";
+import { setTimeout as sleep } from "node:timers/promises";
 import {
   AuthRuntimeDatabase,
   authRuntimeConnectionPragmas,
@@ -133,6 +135,40 @@ describe("AuthRuntimeDatabase", () => {
         expect(dbStats.mode & 0o777).toBe(0o600);
       }
     } finally {
+      await database.stop();
+    }
+  });
+
+  it("retries local transaction acquisition before entering auth callbacks", async () => {
+    const storageDir = await tempStorageDir();
+    const database = new AuthRuntimeDatabase({ storageDir });
+    await database.start();
+    const holder = createClient({ url: database.url, timeout: 0 });
+    const held = await holder.transaction("write");
+    let callbacks = 0;
+    try {
+      const pending = database.db
+        .transaction(async () => {
+          callbacks++;
+          return "admitted";
+        })
+        .then(
+          (value) => ({ value }),
+          (error: unknown) => ({ error }),
+        );
+      await sleep(25);
+      expect(callbacks).toBe(0);
+      await held.commit();
+      const outcome = await pending;
+      if ("error" in outcome) throw outcome.error;
+      expect(outcome.value).toBe("admitted");
+      expect(callbacks).toBe(1);
+      await database.db.transaction(async (tx) => {
+        await tx.run(sql`SELECT 1`);
+      });
+    } finally {
+      held.close();
+      holder.close();
       await database.stop();
     }
   });

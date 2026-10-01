@@ -1,5 +1,8 @@
-import { describe, expect, it } from "bun:test";
-import { createClient } from "@libsql/client";
+import { describe, expect, it, spyOn } from "bun:test";
+import * as libsql from "@libsql/client";
+import { createClient, LibsqlError } from "@libsql/client";
+import { sql } from "drizzle-orm";
+import { setTimeout as sleep } from "node:timers/promises";
 import { rejects } from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -94,15 +97,22 @@ describe("createSqliteClient", () => {
   it("resets only a refused acquisition connection, not an admitted transaction", async () => {
     await withConnections(async (connection) => {
       const held = await connection.client.transaction("write");
+      let pending: Promise<{ value: libsql.Transaction } | { error: unknown }>;
       try {
         await held.execute("INSERT INTO probe VALUES (1)");
-        await rejects(connection.client.transaction("write"), /SQLITE_BUSY/);
+        pending = connection.client.transaction("write").then(
+          (value) => ({ value }),
+          (error: unknown) => ({ error }),
+        );
+        await sleep(25);
         await held.execute("INSERT INTO probe VALUES (2)");
         await held.commit();
       } finally {
         held.close();
       }
-      const next = await connection.client.transaction("write");
+      const outcome = await pending;
+      if ("error" in outcome) throw outcome.error;
+      const next = outcome.value;
       try {
         await next.execute("INSERT INTO probe VALUES (3)");
         await next.commit();
@@ -115,6 +125,277 @@ describe("createSqliteClient", () => {
         ).rows.map((row) => row["id"]),
       ).toEqual([1, 2, 3]);
     });
+  });
+});
+
+describe("shared transaction acquisition", () => {
+  it("retries ordinary Drizzle transactions before entering their callback", async () => {
+    await withConnections(async (holder, contender) => {
+      const held = await holder.client.transaction("write");
+      let callbacks = 0;
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        const pending = contender.db
+          .transaction(async (tx) => {
+            callbacks++;
+            await tx.run(sql`INSERT INTO probe VALUES (2)`);
+            return "committed";
+          })
+          .then(
+            (value) => ({ value }),
+            (error: unknown) => ({ error }),
+          );
+        await sleep(25);
+        expect(callbacks).toBe(0);
+        await held.commit();
+        const outcome = await pending;
+        if ("error" in outcome) throw outcome.error;
+        expect(outcome.value).toBe("committed");
+        expect(callbacks).toBe(1);
+        expect(
+          (
+            await contender.client.execute("SELECT id FROM probe ORDER BY id")
+          ).rows.map((row) => row["id"]),
+        ).toEqual([1, 2]);
+      } finally {
+        held.close();
+      }
+    });
+  });
+
+  it("retries acquisition held by another process and joins that process's exit", async () => {
+    await withConnections(async (_holder, contender) => {
+      let resolveHeld: (() => void) | undefined;
+      const held = new Promise<void>((resolve) => {
+        resolveHeld = resolve;
+      });
+      const child = Bun.spawn(
+        [
+          process.execPath,
+          new URL("./fixtures/sqlite-lock-holder.ts", import.meta.url).pathname,
+          contender.url,
+        ],
+        {
+          stdout: "ignore",
+          stderr: "pipe",
+          ipc: (message: unknown): void => {
+            if (message === "held") resolveHeld?.();
+          },
+        },
+      );
+      const stderr = new Response(child.stderr).text();
+      let callbacks = 0;
+      try {
+        await Promise.race([
+          held,
+          child.exited.then(async (code) => {
+            throw new Error(
+              `Lock holder exited before readiness (${code}): ${await stderr}`,
+            );
+          }),
+        ]);
+        const pending = contender.db
+          .transaction(async (tx) => {
+            callbacks++;
+            await tx.run(sql`INSERT INTO probe VALUES (2)`);
+            return "committed";
+          })
+          .then(
+            (value) => ({ value }),
+            (error: unknown) => ({ error }),
+          );
+        await sleep(25);
+        expect(callbacks).toBe(0);
+        child.send("release");
+        expect(await child.exited).toBe(0);
+        const outcome = await pending;
+        if ("error" in outcome) throw outcome.error;
+        expect(outcome.value).toBe("committed");
+        expect(callbacks).toBe(1);
+        expect(
+          (
+            await contender.client.execute("SELECT id FROM probe ORDER BY id")
+          ).rows.map((row) => row["id"]),
+        ).toEqual([1, 2]);
+      } finally {
+        if (child.exitCode === null) child.kill("SIGTERM");
+        await child.exited;
+        await stderr;
+      }
+    });
+  });
+
+  it("does not reopen a client closed during acquisition backoff", async () => {
+    await withConnections(async (holder, contender) => {
+      const held = await holder.client.transaction("write");
+      const reconnect = spyOn(contender.client, "reconnect");
+      try {
+        const pending = contender.client.transaction("write").then(
+          (value) => ({ value }),
+          (error: unknown) => ({ error }),
+        );
+        await sleep(10);
+        const resets = reconnect.mock.calls.length;
+        expect(resets).toBeGreaterThan(0);
+        contender.client.close();
+        await held.commit();
+        const outcome = await pending;
+        expect("error" in outcome).toBe(true);
+        if (!("error" in outcome)) {
+          outcome.value.close();
+          throw new Error("Closed client admitted a transaction");
+        }
+        expect(outcome.error).toBeInstanceOf(LibsqlError);
+        expect(contender.client.closed).toBe(true);
+        expect(reconnect.mock.calls.length).toBe(resets);
+        await rejects(contender.client.transaction("write"), /CLIENT_CLOSED/);
+      } finally {
+        held.close();
+        reconnect.mockRestore();
+      }
+    });
+  });
+
+  it("does not replay a callback that fails with a native contention code", async () => {
+    await withConnections(async (connection) => {
+      const refusal = new LibsqlError("callback conflict", "SQLITE_BUSY");
+      const reconnect = spyOn(connection.client, "reconnect");
+      let callbacks = 0;
+      try {
+        await rejects(
+          connection.db.transaction(async (tx) => {
+            callbacks++;
+            await tx.run(sql`INSERT INTO probe VALUES (1)`);
+            throw refusal;
+          }),
+          (error) => error === refusal,
+        );
+        expect(callbacks).toBe(1);
+        expect(reconnect).not.toHaveBeenCalled();
+        expect(
+          (await connection.client.execute("SELECT count(*) AS n FROM probe"))
+            .rows[0]?.["n"],
+        ).toBe(0);
+      } finally {
+        reconnect.mockRestore();
+      }
+    });
+  });
+
+  it("does not replay a refused commit or reconnect its admitted transaction", async () => {
+    await withConnections(async (connection) => {
+      const begin = connection.client.transaction.bind(connection.client);
+      const refusal = new LibsqlError("commit conflict", "SQLITE_BUSY");
+      const reconnect = spyOn(connection.client, "reconnect");
+      let acquisitions = 0;
+      let callbacks = 0;
+      let commits = 0;
+      connection.client.transaction = async (
+        mode?: libsql.TransactionMode,
+      ): Promise<libsql.Transaction> => {
+        acquisitions++;
+        const transaction = await begin(mode);
+        transaction.commit = async (): Promise<void> => {
+          commits++;
+          throw refusal;
+        };
+        return transaction;
+      };
+      try {
+        await rejects(
+          connection.db.transaction(async (tx) => {
+            callbacks++;
+            await tx.run(sql`INSERT INTO probe VALUES (1)`);
+          }),
+          (error) => error === refusal,
+        );
+        expect(acquisitions).toBe(1);
+        expect(callbacks).toBe(1);
+        expect(commits).toBe(1);
+        expect(reconnect).not.toHaveBeenCalled();
+        expect(
+          (await connection.client.execute("SELECT count(*) AS n FROM probe"))
+            .rows[0]?.["n"],
+        ).toBe(0);
+      } finally {
+        reconnect.mockRestore();
+      }
+    });
+  });
+
+  it("exhausts the acquisition budget without replacing the refusal", async () => {
+    const native = createClient({ url: "file::memory:" });
+    const refusal = new LibsqlError("refused begin", "SQLITE_BUSY");
+    const begin = spyOn(native, "transaction").mockRejectedValue(refusal);
+    const reconnect = spyOn(native, "reconnect");
+    const factory = spyOn(libsql, "createClient").mockReturnValue(native);
+    const clock = spyOn(Date, "now")
+      .mockReturnValueOnce(0)
+      .mockReturnValue(2_000);
+    try {
+      const client = createSqliteClient({ url: "file::memory:" });
+      await rejects(client.transaction("write"), (error) => error === refusal);
+      expect(begin).toHaveBeenCalledTimes(1);
+      expect(reconnect).toHaveBeenCalledTimes(1);
+    } finally {
+      clock.mockRestore();
+      factory.mockRestore();
+      begin.mockRestore();
+      reconnect.mockRestore();
+      native.close();
+    }
+  });
+
+  it("does not retry or reset a non-contention acquisition refusal", async () => {
+    const native = createClient({ url: "file::memory:" });
+    const refusal = new LibsqlError("read-only", "SQLITE_READONLY");
+    const begin = spyOn(native, "transaction").mockRejectedValue(refusal);
+    const reconnect = spyOn(native, "reconnect");
+    const factory = spyOn(libsql, "createClient").mockReturnValue(native);
+    try {
+      const client = createSqliteClient({ url: "file::memory:" });
+      await rejects(client.transaction("write"), (error) => error === refusal);
+      expect(begin).toHaveBeenCalledTimes(1);
+      expect(reconnect).not.toHaveBeenCalled();
+    } finally {
+      factory.mockRestore();
+      begin.mockRestore();
+      reconnect.mockRestore();
+      native.close();
+    }
+  });
+
+  it("leaves embedded-replica acquisition and reconnect ownership with the SDK", async () => {
+    // Stub the replication primary, not the safety policy: a file URL with
+    // syncUrl is a replica and must not be treated as an ordinary local file.
+    const native = createClient({ url: "file::memory:" });
+    const refusal = new LibsqlError(
+      "replica acquisition refused",
+      "SQLITE_BUSY",
+    );
+    const begin = spyOn(native, "transaction").mockRejectedValue(refusal);
+    const originalBegin = native.transaction;
+    const reconnect = spyOn(native, "reconnect");
+    const factory = spyOn(libsql, "createClient").mockReturnValue(native);
+    const config = {
+      url: "file:/unused-replica.db",
+      syncUrl: "libsql://test-primary.invalid",
+      authToken: "test-only",
+      syncInterval: 60_000,
+    };
+    try {
+      const client = createSqliteClient(config);
+      await rejects(client.transaction("write"), (error) => error === refusal);
+      expect(client.transaction).toBe(originalBegin);
+      expect(begin).toHaveBeenCalledTimes(1);
+      expect(reconnect).not.toHaveBeenCalled();
+      expect(factory).toHaveBeenCalledWith({ ...config, timeout: 0 });
+    } finally {
+      factory.mockRestore();
+      begin.mockRestore();
+      reconnect.mockRestore();
+      native.close();
+    }
   });
 });
 
@@ -207,15 +488,29 @@ describe("applySqlitePragmas", () => {
   it("can commit after repeated refused BEGINs without retaining active native statements", async () => {
     await withConnections(async (holder, contender) => {
       const held = await holder.client.transaction("write");
+      const reconnect = spyOn(contender.client, "reconnect");
+      const pending = contender.client.transaction("write").then(
+        (value) => ({ value }),
+        (error: unknown) => ({ error }),
+      );
+      const deadline = Date.now() + 1_000;
+      const waitForRefusals = async (): Promise<void> => {
+        if (reconnect.mock.calls.length >= 3 || Date.now() >= deadline) return;
+        await sleep(5);
+        return waitForRefusals();
+      };
       try {
         await held.execute("INSERT INTO probe VALUES (1)");
-        for (let attempt = 0; attempt < 3; attempt++)
-          await rejects(contender.client.transaction("write"), /SQLITE_BUSY/);
+        await waitForRefusals();
+        expect(reconnect.mock.calls.length).toBeGreaterThanOrEqual(3);
         await held.commit();
       } finally {
         held.close();
+        reconnect.mockRestore();
       }
-      const transaction = await contender.client.transaction("write");
+      const outcome = await pending;
+      if ("error" in outcome) throw outcome.error;
+      const transaction = outcome.value;
       try {
         await transaction.execute("INSERT INTO probe VALUES (2)");
         await transaction.commit();

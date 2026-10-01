@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
@@ -78,6 +79,38 @@ describe("ConversationService", () => {
         },
       },
     };
+
+    it("retries guest-message transaction acquisition without duplicating the transcript", async () => {
+      await client.execute("PRAGMA journal_mode = WAL");
+      await service.startConversation(guestRequest);
+      const held = await client.transaction("write");
+      const reconnect = spyOn(client, "reconnect");
+      try {
+        const pending = service
+          .addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "user",
+            content: "contention test",
+          })
+          .then(
+            () => ({ completed: true }),
+            (error: unknown) => ({ error }),
+          );
+        await sleep(25);
+        await held.commit();
+        const outcome = await pending;
+        if ("error" in outcome) throw outcome.error;
+        expect(outcome.completed).toBe(true);
+        expect(reconnect.mock.calls.length).toBeGreaterThan(0);
+        expect(await service.countMessages(guestRequest.sessionId)).toBe(1);
+        expect(await service.getMessages(guestRequest.sessionId)).toHaveLength(
+          1,
+        );
+      } finally {
+        held.close();
+        reconnect.mockRestore();
+      }
+    });
 
     it("keeps guest transcripts out of broadcasts, summaries and routine logs", async () => {
       const send = spyOn(messageBus, "send");
