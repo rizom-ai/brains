@@ -494,6 +494,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect((await browser.client.openGuestSession()).canSend).toBe(false);
     expect((await control(true)).status).toBe(200);
     expect((await post(browser, message("Third", id))).status).toBe(429);
+    // The site itself serves guest chat under the same switch and budget.
     expect(
       (
         await browser.fetch(`https://brain.test${base}/session`, {
@@ -504,7 +505,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
           },
         })
       ).status,
-    ).toBe(403);
+    ).toBe(200);
     expect(state.calls).toHaveLength(2);
     expect(await browser.client.deleteSession(id)).toEqual({ deleted: true });
   });

@@ -258,19 +258,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   /**
-   * Where the Ask box is offered: a configured guest policy everywhere;
-   * managed guest chat only on preview, while the owner has it switched on.
+   * Where the Ask box is offered: on the site and its preview, whether guest
+   * chat is configured or the owner has it switched on.
    * Written at startup, before the guest profile is ready, so it follows the
    * switch; the box itself says when chat cannot answer yet.
    */
   private async recordAskBoxAvailability(): Promise<void> {
-    const configured = this.guestPolicy.enabled;
-    const activated =
-      this.guestControl?.policy !== undefined &&
-      (await this.guestControl.isSwitchedOn());
+    const served =
+      this.guestPolicy.enabled ||
+      (this.guestControl?.policy !== undefined &&
+        (await this.guestControl.isSwitchedOn()));
     await this.askBoxAvailability?.set(ASK_BOX_STATE_KEY, {
-      public: configured,
-      preview: configured || activated,
+      public: served,
+      preview: served,
     });
   }
 

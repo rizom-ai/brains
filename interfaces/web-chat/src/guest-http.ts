@@ -62,7 +62,7 @@ function refusal(status: number): GuestUsageDenialReason {
 
 import {
   guestPolicySchema,
-  matchesGuestOrigin,
+  guestRequestOrigin,
   type GuestPolicy,
   type EnabledGuestPolicy,
 } from "./guest-policy";
@@ -264,11 +264,12 @@ export class GuestHttpHandlers {
           if (localOnly && !isLoopbackPeer(transport?.remoteAddress))
             throw new GuestHttpError(403, "Guest request denied");
           const origin = request.headers.get("origin");
+          const served = guestRequestOrigin(request, this.policy);
           if (
-            !matchesGuestOrigin(request, this.policy) ||
-            (origin !== null && origin !== this.policy.origin) ||
+            served === undefined ||
+            (origin !== null && origin !== served) ||
             request.headers.get("sec-fetch-site") === "cross-site" ||
-            (method !== "GET" && origin !== this.policy.origin)
+            (method !== "GET" && origin !== served)
           )
             throw new GuestHttpError(403, "Guest request denied");
           if (

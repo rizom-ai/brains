@@ -202,15 +202,15 @@ describe("Ask box availability for site builds in any process", () => {
     expect(await f.askBox()).toEqual({ public: false, preview: false });
   });
 
-  it("records the box served on preview once activated, and not after deactivation", async () => {
+  it("records the box served on the site and its preview once activated, and not after deactivation", async () => {
     const f = await fixture();
     await f.budget(10);
-    expect(await f.askBox()).toEqual({ public: false, preview: true });
+    expect(await f.askBox()).toEqual({ public: true, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect(await f.askBox()).toEqual({ public: false, preview: false });
   });
 
-  it("keeps the box on preview across a restart that begins before the guest profile is ready", async () => {
+  it("keeps the box served across a restart that begins before the guest profile is ready", async () => {
     const running = await fixture();
     await running.budget(10);
     // A deploy restarts the app; the search index is not ready at registration yet.
@@ -218,7 +218,7 @@ describe("Ask box availability for site builds in any process", () => {
       profileAvailable: false,
       state: running.state,
     });
-    expect(await restarted.askBox()).toEqual({ public: false, preview: true });
+    expect(await restarted.askBox()).toEqual({ public: true, preview: true });
   });
 
   it("records a configured guest policy as served everywhere", async () => {
@@ -238,21 +238,24 @@ describe("admin guest activation using deployment conventions", () => {
     it(`keeps managed guest Ask separate from the operator redirect (studio=${studio})`, async () => {
       const f = await fixture("admin", "rizom.ai", { studio });
       await f.budget(10);
-      for (const path of ["/ask", "/ask/authenticated"]) {
-        const response = await f.send(path);
-        expect(response.status).toBe(studio ? 303 : 404);
-        expect(response.headers.get("Location")).toBe(studio ? "/chat" : null);
-        expect(response.headers.get("Cache-Control")).toBe("no-store");
+      const operator = await f.send("/ask/authenticated");
+      expect(operator.status).toBe(studio ? 303 : 404);
+      expect(operator.headers.get("Location")).toBe(studio ? "/chat" : null);
+      expect(operator.headers.get("Cache-Control")).toBe("no-store");
+      // Guest Ask stays a guest surface on the site and its preview, even for the owner.
+      for (const origin of ["https://rizom.ai", "https://preview.rizom.ai"]) {
+        const guest = await f.send("/ask", undefined, {}, origin);
+        expect(guest).toBeInstanceOf(SitePageResponse);
+        expect(guest.status).toBe(200);
+        expect(await guest.text()).toContain("/ask/assets/ask.js");
       }
-      const guest = await f.send(
+      const elsewhere = await f.send(
         "/ask",
         undefined,
         {},
-        "https://preview.rizom.ai",
+        "https://other.test",
       );
-      expect(guest).toBeInstanceOf(SitePageResponse);
-      expect(guest.status).toBe(200);
-      expect(await guest.text()).toContain("/ask/assets/ask.js");
+      expect(elsewhere).not.toBeInstanceOf(SitePageResponse);
       expect(f.calls()).toBe(0);
     });
 
@@ -309,20 +312,20 @@ describe("admin guest activation using deployment conventions", () => {
     expect(
       await f.send("/ask", undefined, {}, "https://preview.rizom.ai"),
     ).toBeInstanceOf(SitePageResponse);
-    expect(await f.send("/ask")).not.toBeInstanceOf(SitePageResponse);
+    expect(await f.send("/ask")).toBeInstanceOf(SitePageResponse);
     const visitor = await fixture("public");
     expect((await visitor.send("/ask/assets/page.css")).status).toBe(404);
     expect(f.calls()).toBe(0);
   });
 
-  it("derives the preview origin and shared limits without activating or allocating on read", async () => {
+  it("derives the site origin and shared limits without activating or allocating on read", async () => {
     const f = await fixture();
     const response = await f.send(access);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       authorized: false,
       enabled: false,
-      origin: "https://preview.rizom.ai",
+      origin: "https://rizom.ai",
       budgetMicroUsd: 0,
       chargedMicroUsd: 0,
       answerCapMicroUsd: 50_000,
@@ -373,14 +376,14 @@ describe("admin guest activation using deployment conventions", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       enabled: true,
-      origin: "https://preview.rizom.ai",
+      origin: "https://rizom.ai",
     });
     const records = await f.ledger.list({ limit: 10 });
     expect(records).toHaveLength(1);
     expect(records[0]?.value).toMatchObject({
       enabled: true,
       budget: {
-        origin: "https://preview.rizom.ai",
+        origin: "https://rizom.ai",
         monthlyMicroUsd: 10_000_000,
       },
     });
@@ -474,7 +477,7 @@ describe("admin guest activation using deployment conventions", () => {
       expect(await f.ledger.get(record.key)).toMatchObject({
         month,
         budget: {
-          origin: "https://preview.rizom.ai",
+          origin: "https://rizom.ai",
           monthlyMicroUsd: 1_000_000,
         },
       });
@@ -486,7 +489,7 @@ describe("admin guest activation using deployment conventions", () => {
   it("does not accept hostname, budget or reset overrides through activation", async () => {
     const f = await fixture();
     for (const extra of [
-      { origin: "https://rizom.ai" },
+      { origin: "https://attacker.test" },
       { allowance: { requests: 99, usd: 100 } },
       { monthlyUsd: 100 },
       { reset: true },
@@ -508,7 +511,27 @@ describe("admin guest activation using deployment conventions", () => {
     },
   );
 
-  it("fails closed when the deployment has no preview origin", async () => {
+  it("opens guest sessions on the site and its preview with one switch", async () => {
+    const f = await fixture();
+    const session = (host: string, origin: string): Promise<Response> =>
+      f.send("/api/chat/guest/session", {}, { Origin: origin }, host);
+    const site = "https://rizom.ai";
+    const preview = "https://preview.rizom.ai";
+    // Closed until the owner switches guest chat on.
+    expect((await session(site, site)).status).toBe(503);
+    await f.budget(10);
+    expect((await session(site, site)).status).toBe(200);
+    expect((await session(preview, preview)).status).toBe(200);
+    // Each host only accepts requests from its own pages.
+    expect((await session(site, preview)).status).toBe(403);
+    expect((await session(preview, site)).status).toBe(403);
+    expect(
+      (await session("https://other.test", "https://other.test")).status,
+    ).toBe(403);
+    expect(f.calls()).toBe(0);
+  });
+
+  it("fails closed when the deployment has no site origin", async () => {
     const f = await fixture("admin", null);
     expect((await f.send(access, { enabled: true })).status).toBe(503);
     expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);

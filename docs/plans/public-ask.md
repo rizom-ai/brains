@@ -173,7 +173,7 @@ Goal: the owner can see what the endpoint is doing and stop it, in one place.
 
 Goal: a composer on a public production page actually answers.
 
-Current state, verified against `origin/main`: the guest policy derives its origin from the deployment's preview URL and disables itself when that origin equals the production site URL, and the only authored configuration shape is the local test preset. Preview is a verification step, not a destination.
+Done (2026-10-01): the owner-switched guest policy serves the site's own origin and, when the site has its own preview host, that preview too, under one switch, one monthly budget and one set of limits. Each host accepts guest requests only from its own pages; the Ask box is recorded as served on both while the owner has guest chat switched on. Until then every guest request on either host is refused. An authorization stored under the former preview-only origin authorizes nothing; the owner switches on again in Studio.
 
 - **Owner-set monthly budget (decided 2026-09-27).** Guest chat is limited by money the owner sets, not by counts of sessions or questions:
   - The owner sets a monthly budget in US dollars in Studio's Guest chat workspace. Switching on is a prepared confirmation that states the budget; changing it is switching on again with a new amount. The budget covers one UTC calendar month and starts over on the first.
