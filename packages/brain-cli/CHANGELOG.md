@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- [#466](https://github.com/rizom-ai/brains/pull/466) [`2e17b92`](https://github.com/rizom-ai/brains/commit/2e17b929f9df55d02ac34cafbdf028c771f4a6af) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep FAQ merge retries within the initially selected visibility and question. Concurrent changes to either stop the merge without rewriting the edited FAQ; same-question, same-visibility merges still retry with storage CAS.
+
+  Fold duplicate FAQs through a native-only atomic destination update and source removal, checking both full revisions and committing FTS and projection/export journals together. Failed writes preserve both records; retries after a committed fold do not restore the source or count its askings twice. This does not add a public authoring SDK capability.
+
 ## 0.2.0-alpha.469
 
 ### Patch Changes
