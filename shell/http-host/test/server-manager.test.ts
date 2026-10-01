@@ -16,6 +16,7 @@ import type {
 } from "@brains/plugins/internal/http-routes";
 import { createMockMessageBus } from "@brains/plugins/test";
 import { SitePageResponse } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   ServerManager,
   type ServerManagerOptions,
@@ -650,6 +651,129 @@ describe("ServerManager (in-process)", () => {
     response = new SitePageResponse("standalone");
     rmSync(join(testDir, "dist", "preview", "ask"), { recursive: true });
     expect(await (await get()).text()).toBe("standalone");
+  });
+
+  it("fills a route's markup into the slot of its built site page", async () => {
+    let ResponseType = SitePageResponse;
+    const slotted = (html: string, status = 200): SitePageResponse =>
+      new ResponseType(`standalone ${html}`, {
+        status,
+        headers: {
+          "Cache-Control": "no-store",
+          "Content-Security-Policy": "script-src 'none'",
+          "Set-Cookie": "contact=nonce; HttpOnly; SameSite=Strict",
+        },
+        slot: { name: "contact", html },
+      });
+    let response: Response = slotted("<form>one</form>");
+    let deniedCalls = 0;
+    const m = setup({
+      preview: true,
+      getRoutes: () => [
+        handlerRoute("contact", "/contact", () => response, { preview: true }),
+        handlerRoute("contact", "/contact", () => response, {
+          method: "POST",
+          preview: true,
+        }),
+        handlerRoute(
+          "contact",
+          "/denied",
+          () => {
+            deniedCalls += 1;
+            return response;
+          },
+          { admission: "deny", preview: true },
+        ),
+      ],
+    });
+    const bundle = await Bun.build({
+      entrypoints: [
+        join(import.meta.dir, "../../plugins/src/types/web-routes.ts"),
+      ],
+      outdir: join(testDir, "isolated-sdk"),
+      target: "bun",
+    });
+    expect(bundle.success).toBe(true);
+    const output = bundle.outputs[0];
+    if (!output) throw new Error("Missing independent SDK bundle");
+    ResponseType = z
+      .object({
+        SitePageResponse: z.custom<typeof SitePageResponse>(
+          (value) => typeof value === "function",
+        ),
+      })
+      .parse(await import(output.path)).SitePageResponse;
+    response = slotted("<form>one $& $1</form>");
+    expect(response).not.toBeInstanceOf(SitePageResponse);
+    response.headers.set("Content-Length", "9999");
+    response.headers.set("Content-Encoding", "gzip");
+    response.headers.set("ETag", '"stale"');
+    const page = join(testDir, "dist", "production", "contact", "index.html");
+    mkdirSync(join(testDir, "dist", "production", "contact"));
+    writeFileSync(
+      page,
+      '<header>site</header><main><div data-site-slot="contact"></div></main>',
+    );
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Missing server URL");
+
+    const got = await fetch(`${url}/contact`);
+    expect(await got.text()).toBe(
+      "<header>site</header><main><form>one $& $1</form></main>",
+    );
+    expect(got.headers.get("Cache-Control")).toBe("no-store");
+    expect(got.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(got.headers.get("Content-Encoding")).toBeNull();
+    expect(got.headers.get("ETag")).toBeNull();
+    expect(got.headers.get("Content-Length")).not.toBe("9999");
+    expect(got.headers.get("Content-Security-Policy")).toBe(
+      "script-src 'none'",
+    );
+    expect(got.headers.get("Set-Cookie")).toContain("contact=nonce");
+    const previewDirectory = join(testDir, "dist", "preview", "contact");
+    mkdirSync(previewDirectory);
+    writeFileSync(
+      join(previewDirectory, "index.html"),
+      '<main>preview<div data-site-slot="contact"></div></main>',
+    );
+    const preview = await fetch(`${url}/contact`, {
+      headers: { host: "preview.example.com" },
+    });
+    expect(await preview.text()).toBe(
+      "<main>preview<form>one $& $1</form></main>",
+    );
+    expect(preview.headers.get("Cache-Control")).toBe("no-store");
+    expect((await fetch(`${url}/denied`)).status).toBe(401);
+    expect(
+      (
+        await fetch(`${url}/denied`, {
+          headers: { host: "preview.example.com" },
+        })
+      ).status,
+    ).toBe(401);
+    expect(deniedCalls).toBe(0);
+
+    // A refused send keeps its status and still wears the site.
+    response = slotted("<p>denied</p>", 403);
+    const denied = await fetch(`${url}/contact`, { method: "POST", body: "x" });
+    expect(denied.status).toBe(403);
+    expect(await denied.text()).toBe(
+      "<header>site</header><main><p>denied</p></main>",
+    );
+
+    // Without the slot in the built page, the route's own page stands.
+    writeFileSync(page, "<main>no slot here</main>");
+    response = slotted("<form>two</form>");
+    expect(await (await fetch(`${url}/contact`)).text()).toBe(
+      "standalone <form>two</form>",
+    );
+    rmSync(page);
+    response = slotted("<form>missing page</form>", 422);
+    const fallback = await fetch(`${url}/contact`, { method: "POST" });
+    expect(fallback.status).toBe(422);
+    expect(fallback.headers.get("Cache-Control")).toBe("no-store");
+    expect(await fallback.text()).toBe("standalone <form>missing page</form>");
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {

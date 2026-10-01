@@ -789,6 +789,8 @@
         "AnyInterfaceRouteDefinition",
         "InterfaceDaemonDefinition",
         "SitePageResponse",
+        "SitePageSlot",
+        "SITE_SLOT_ATTRIBUTE",
         "AnyServiceToolDefinition",
         "ApprovalOutcome",
         "ApprovalResolution",

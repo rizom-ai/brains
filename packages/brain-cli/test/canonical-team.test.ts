@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import defaultSite from "@brains/site-default";
+import organizationSite from "@brains/site-organization";
 import {
   parseInstanceOverrides,
   registerConventionalSiteTheme,
@@ -18,7 +18,7 @@ const fixtureDirectory = join(import.meta.dir, "fixtures", "canonical-team");
 const fixtureOverrides = parseInstanceOverrides(
   readFileSync(join(fixtureDirectory, "brain.yaml"), "utf8"),
 );
-registerPackage("@brains/site-default", defaultSite);
+registerPackage("@brains/site-organization", organizationSite);
 registerPackage("@brains/theme-rizom", rizomTheme);
 const effectiveFixtureOverrides = await registerConventionalSiteTheme(
   fixtureDirectory,
@@ -123,8 +123,9 @@ describe("canonical team bundle", () => {
     ]) {
       expect(ids).toContain(id);
     }
-    // Topics is a declarative service package now, so its config rides the
-    // scoped service plugin rather than the bare capability id.
+    expect(ids).toContain("@brains/site-organization:organization-site");
+    expect(ids).not.toContain("professional-site");
+    // Topics remains an installed, qualified declarative service.
     expect(pluginConfig(resolved, "@brains/topics:topics")).toMatchObject({
       extractableStatuses: ["published", "draft"],
     });

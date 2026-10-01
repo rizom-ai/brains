@@ -1,5 +1,5 @@
 import { escapeHtml } from "@brains/utils/string-utils";
-import { essentialHeadTags } from "./essential-head";
+import { essentialHeadTags, type EssentialHeadPaths } from "./essential-head";
 
 /**
  * Generates the HTML shell for the page
@@ -12,10 +12,11 @@ export function createHTMLShell(
   themeMode?: "light" | "dark",
   analyticsScript?: string,
   headScripts?: string[],
+  headPaths?: EssentialHeadPaths,
 ): string {
   // Default head content if none provided
   const defaultHead = `
-    ${essentialHeadTags().join("\n    ")}
+    ${essentialHeadTags(headPaths).join("\n    ")}
     <title>${escapeHtml(defaultTitle ?? "Site")}</title>`;
 
   const themeAttr = ` data-theme="${themeMode ?? "dark"}"`;

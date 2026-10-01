@@ -1,14 +1,15 @@
 {
   "name": "@brains/contact",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.454",
+  "version": "0.2.0-alpha.456",
   "description": "Private contact intake for a Brain's public pages",
   "dependencies": {
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "react": "^19.2.7"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
@@ -17,8 +18,10 @@
     "@brains/runtime-state": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
+    "react-dom": "^19.2.7",
     "typescript": "^7.0.2"
   },
   "exports": {

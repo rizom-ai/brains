@@ -1,3 +1,5 @@
+import { createElement, type ReactElement } from "react";
+import { SITE_SLOT_ATTRIBUTE } from "@brains/sdk/interfaces";
 import {
   defineServicePlugin,
   defineJob,
@@ -6,9 +8,12 @@ import {
   verbatim,
   z,
   type ServicePackageDefinition,
+  type ServicePublisher,
+  type ServiceTemplateDefinition,
 } from "@brains/sdk/services";
 import {
   NOTIFICATIONS_SEND,
+  SITE_BUILDER_CHANNELS,
   notificationFailureCode,
   sendNotificationSchema,
   sendNotificationResultSchema,
@@ -22,7 +27,8 @@ import {
 import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake } from "./intake";
-import { ContactHttpHandlers } from "./http";
+import { ContactHttpHandlers, previewOriginFor } from "./http";
+import { CONTACT_SLOT } from "./http-page";
 import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactPluginConfigSchema } from "./config";
@@ -35,6 +41,29 @@ const contactRoutes = [
   { path: "/contact", method: "POST" },
   { path: "/contact/thanks", method: "GET" },
 ] as const;
+
+function ContactSlot(): ReactElement {
+  return createElement("div", { [SITE_SLOT_ATTRIBUTE]: CONTACT_SLOT });
+}
+
+async function registerSitePages(messaging: ServicePublisher): Promise<void> {
+  await messaging.publish({
+    topic: SITE_BUILDER_CHANNELS.routeRegister,
+    data: {
+      pluginId: "@brains/contact:contact",
+      routes: [
+        { id: "contact", path: "/contact", title: "Contact" },
+        { id: "contact-thanks", path: "/contact/thanks", title: "Note saved" },
+      ].map((route) => ({
+        ...route,
+        sections: [
+          { id: "form", template: "@brains/contact:contact:page", content: {} },
+        ],
+        navigation: { show: false },
+      })),
+    },
+  });
+}
 
 // Select only presentation data; malformed/missing metadata cannot grant access.
 const siteThemeSchema = z.object({
@@ -158,7 +187,9 @@ export function contactService(): ServicePackageDefinition<
           intake,
           new ContactHttpHandlers(admission, intake, intakeConfig.http, {
             themeCSS,
-            previewOrigin: intakeConfig.preview ? previewUrl : undefined,
+            previewOrigin: intakeConfig.preview
+              ? previewOriginFor(intakeConfig.http.origin, previewUrl)
+              : undefined,
             owner: (): string => identity.getProfile().name,
             defaultTheme: (): "light" | "dark" | undefined =>
               presentation.theme,
@@ -185,6 +216,20 @@ export function contactService(): ServicePackageDefinition<
       },
     },
     {
+      templates: ({
+        config,
+      }): Record<string, ServiceTemplateDefinition<z.ZodType>> =>
+        config.intake
+          ? {
+              page: {
+                schema: z.strictObject({}),
+                permission: "public",
+                description:
+                  "The site's contact page around a per-request form slot",
+                render: ContactSlot,
+              },
+            }
+          : {},
       jobs: ({ state }) => {
         const { notify, delivery } = state;
         return notify
@@ -214,6 +259,12 @@ export function contactService(): ServicePackageDefinition<
         const intake = config.intake;
         return intake
           ? [
+              defineSubscription({
+                execution: "all-roles",
+                topic: SITE_BUILDER_CHANNELS.routesCollect,
+                payload: z.strictObject({}),
+                handle: ({ messaging }) => registerSitePages(messaging),
+              }),
               defineSubscription({
                 topic: SITE_METADATA_UPDATED_CHANNEL,
                 payload: z.unknown(),
@@ -263,6 +314,7 @@ export function contactService(): ServicePackageDefinition<
       },
       ready: async ({ state, messaging }) => {
         if (!state.runtime) return;
+        await registerSitePages(messaging);
         const destination = await messaging.request(inboxWorkspaceRequest, {});
         try {
           const response = await messaging.request(siteThemeRequest, {});

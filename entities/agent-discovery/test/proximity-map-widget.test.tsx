@@ -265,3 +265,12 @@ describe("proximityMapScript", () => {
     expect(proximityMapScript).toContain("offsetHeight");
   });
 });
+
+describe("ProximityMap placement pin", () => {
+  test("draws every agent where the map has always placed it", () => {
+    expect(render(<ProximityMap data={data} />)).toMatchSnapshot();
+    expect(
+      render(<ProximityMap data={data} surface="site" />),
+    ).toMatchSnapshot();
+  });
+});

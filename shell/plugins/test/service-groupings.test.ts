@@ -1,6 +1,7 @@
 import { issueRouteCaller } from "../src/internal/route-caller-authority";
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
+import { EntityValidationError } from "@brains/entity-service";
 import { createPluginHarness } from "../src/test/harness";
 import {
   defineEntity,
@@ -125,7 +126,12 @@ describe("bounded declarative groupings", () => {
           },
         })
         .catch((error: unknown) => error);
-      expect(refused).toBeInstanceOf(z.ZodError);
+      expect(refused).toBeInstanceOf(EntityValidationError);
+      expect(refused).toMatchObject({
+        entityType: vocabulary.type,
+        phase: "schema",
+        originalError: expect.any(z.ZodError),
+      });
       await service.createEntity({
         entity: {
           entityType: vocabulary.type,
@@ -261,7 +267,12 @@ describe("bounded declarative groupings", () => {
       const refused = await service
         .createEntity({ entity: input })
         .catch((error: unknown) => error);
-      expect(refused).toBeInstanceOf(z.ZodError);
+      expect(refused).toBeInstanceOf(EntityValidationError);
+      expect(refused).toMatchObject({
+        entityType: note.type,
+        phase: "persist",
+        originalError: expect.any(z.ZodError),
+      });
       expect(
         await service.getEntity({ entityType: note.type, id: "n" }),
       ).toBeNull();
@@ -277,7 +288,12 @@ describe("bounded declarative groupings", () => {
       const deniedUpsert = await service
         .upsertEntity({ entity: { ...stored, content: input.content } })
         .catch((error: unknown) => error);
-      expect(deniedUpsert).toBeInstanceOf(z.ZodError);
+      expect(deniedUpsert).toBeInstanceOf(EntityValidationError);
+      expect(deniedUpsert).toMatchObject({
+        entityType: note.type,
+        phase: "persist",
+        originalError: expect.any(z.ZodError),
+      });
       await service.updateEntity({
         entity: { ...stored, content: "---\nlabels: [Allowed]\n---\nChanged" },
       });
@@ -318,7 +334,12 @@ describe("bounded declarative groupings", () => {
           },
         })
         .catch((error: unknown) => error);
-      expect(stale).toBeInstanceOf(z.ZodError);
+      expect(stale).toBeInstanceOf(EntityValidationError);
+      expect(stale).toMatchObject({
+        entityType: note.type,
+        phase: "persist",
+        originalError: expect.any(z.ZodError),
+      });
       await service.createEntity({ entity: { ...input, id: "new" } });
     } finally {
       await h.reset();

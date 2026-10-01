@@ -103,6 +103,15 @@ export const ASK_SHEET_HISTORY_KEY = "askSheet";
 export const ASK_CLOSING_ATTRIBUTE = "data-ask-closing";
 
 /**
+ * While an open sheet covers the page, the page is hidden, and a style
+ * element carrying ASK_COVER_ATTRIBUTE holds ASK_COVER_STYLE: hidden is not
+ * enough for a blurred element such as a frosted sticky header, whose blur
+ * Safari still paints, so blur is switched off everywhere but the sheet.
+ */
+export const ASK_COVER_ATTRIBUTE = "data-ask-cover";
+export const ASK_COVER_STYLE: string = `body *:not([${ASK_SHEET_ATTRIBUTE}], [${ASK_SHEET_ATTRIBUTE}] *) { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }`;
+
+/**
  * Rendered by the box, empty, as the first item of its conversation's
  * scroll. A host may put its own element there while the box is open full
  * screen (such as a map under the header) and take it back when it closes;

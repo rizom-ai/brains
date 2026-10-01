@@ -15,6 +15,9 @@
 + @brains/atproto-registry:atproto-registry|handler|GET|/atproto/lexicons/index.json|exact|true
 + @brains/atproto:atproto|handler|GET|/.well-known/did.json|exact|true
 + @brains/atproto:atproto|handler|GET|/anchor/did.json|exact|true
++ @brains/contact:contact|handler|GET|/contact/thanks|exact|true
++ @brains/contact:contact|handler|GET|/contact|exact|true
++ @brains/contact:contact|handler|POST|/contact|exact|true
 + @brains/dashboard:dashboard|handler|GET|/api/console/jump|exact|true
 + @brains/dashboard:dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].css|exact|true
 + @brains/dashboard:dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].js|exact|true
@@ -63,6 +66,17 @@
 + @brains/web-chat:web-chat|handler|GET|/api/chat/messages|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/sessions|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/uploads|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/ask.css|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/ask.js|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/boot.js|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/box.js|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/dashboard.css|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/dashboard.js|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/guest.css|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/guest.js|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/page.css|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/assets/version|exact|true
++ @brains/web-chat:web-chat|handler|GET|/ask/authenticated|exact|true
 + @brains/web-chat:web-chat|handler|GET|/ask|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/agent/chat/confirm|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/agent/chat|exact|true

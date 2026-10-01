@@ -649,7 +649,19 @@ Interfaces and message interfaces can declare `studioWorkspaces` and `health` fr
 Interfaces can publish two durable public presentation flags with `availability.set({ public, preview })`. The runtime binds writes to the installed package and declaration; writers cannot choose another owner, namespace or key. Services and site-build workers use read-only `interfaceAvailability.get({ packageName, declarationId })`, which returns a detached frozen value or `null` for missing, malformed or unreadable data. The frozen capabilities expose only `set` or `get`, respectively. Named consumer: Web Chat's Ask-box placement in worker site builds. These flags are presentation hints—not authorization, admission, budget or live-readiness evidence. Private runtime-state namespaces remain inaccessible. Advanced types: `InterfaceAvailability` and `InterfaceAvailabilityWriter` in `/interfaces`; `InterfaceAvailability`, `InterfaceAvailabilityOwner` and `InterfaceAvailabilityReader` in `/services`.
 
 `SitePageResponse` is an advanced host-themed HTML response marker, supported by
-Web Chat's preview page. It adds no routing or authorization authority.
+Web Chat's preview page and Contact. Without a slot, only an admitted GET/200 can
+use its generated site page. With `slot: { name, html }`, an admitted handler can
+fill the exact empty `<div data-site-slot="name"></div>` marker in its generated
+page, including POST/error responses. `SitePageSlot` and `SITE_SLOT_ATTRIBUTE`
+are advanced `/interfaces` exports. Slot names are validated; metadata is copied
+and frozen. HTML is trusted handler output, not sanitized user input: escape any
+user text before constructing it. Missing pages/markers retain the original body.
+The host recognizes independently bundled SDK responses, preserves status and
+route headers (including CSP, cookies and no-store), and removes stale length,
+encoding and ETag headers when replacing the body. Authors must set appropriate
+cache and security headers; the marker grants no routing or authorization authority.
+Contact keeps private drafts/tokens script-free, allows only same-origin/inline
+styles and same-origin/data fonts/images, and retains no-store responses.
 
 Routes may declare `preview: true` for preview-host reachability; this never bypasses
 session, origin, authorization, or admission checks. Interface setup exposes the
@@ -666,6 +678,15 @@ without a success frame or provider-error disclosure.
 Route handlers receive optional, detached, frozen `transport` socket metadata from the HTTP host. `transport.remoteAddress` is never inferred from Host, Origin, or forwarding headers; absence must fail closed wherever a peer restriction is required. The instance's `http.hostname` selects the listener's bind address.
 
 Runtime-state `compareAndSet(key, expected, input)` compares a parsed read snapshot and persists validated JSON wire input, like `set`. A mismatch returns `false`; an invalid replacement rejects. The SQL update checks the exact stored snapshot atomically, including across connections. Use a persisted revision to distinguish ABA changes; non-deterministic read transformations cannot provide a stable expected snapshot.
+
+General `defineDataSource` callbacks receive `fetch(query, entities, context)`.
+The third argument is a validated, detached, frozen object containing optional
+`publishedOnly` metadata; omitted remains omitted. It describes presentation
+context (for example, preview Ask/Contact placement), not permission or a mutable
+read-policy control. The supplied entity reader retains its existing scope even
+if a caller requests wider reads. No raw service, registry or write access is
+exposed. Named consumer: Organization's declarative homepage. Existing two-argument
+callbacks can simply ignore the additional argument.
 
 ## `@rizom/brain/testing`
 

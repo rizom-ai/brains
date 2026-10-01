@@ -31,6 +31,30 @@ to force an import through. Conflicts surface as sanitized `SdkError` code
 `conflict`; a deleted target is not recreated by a conditional update. No raw
 registry or entity-service capability is added.
 
+## Source validation, agent kinds and site rendering
+
+Advanced mirror upserts report schema-invalid source as sanitized `invalid_input`,
+so Directory Sync can quarantine the original file. Live persist-policy refusals
+remain retryable `handler_failed`; conditional conflicts remain skipped `conflict`.
+Do not inspect native errors or depend on private validation details.
+
+Agent-directory imports explicitly migrate YAML values `professional` to `person`
+and `collective` to `organization`. Quoted/commented scalars and CRLF input are
+supported; other kinds remain invalid. Unknown frontmatter values and the authored
+body survive the existing markdown codec; YAML formatting is re-encoded, not
+byte-preserved. This is a one-way stored-agent migration, not a general legacy API
+or profile-kind alias.
+
+Remove `renderVersion` from `Template`/`ViewTemplate` declarations. The builder owns
+process renderer identity and rebuilds after restart. This does not promise live
+renderer mutation detection, cross-worker skip stability or CDN propagation.
+
+`SitePageResponse` optionally accepts a validated `{ name, html }` slot for an
+admitted handler's generated page, including POST/error responses. Keep escaped
+user content and private cache/CSP headers on the handler response. Contact pages
+remain script-free even when framed by the site; Ask/site scripts on that page
+must not be relied on. Missing generated pages/markers use the original response.
+
 ## Operator Chat and discovery
 
 Studio now owns the operator Chat UI, navigation and Inbox discussion handoff.

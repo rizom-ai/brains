@@ -3,6 +3,7 @@ import {
   getVisibleContentVisibilities,
   EntityWriteConflictError,
   normalizeContentVisibility,
+  validatePersist,
   type BaseEntity,
   type CreateEntityRequest,
   type EntityMutationResult,
@@ -208,11 +209,10 @@ export function createMockEntityService(
       };
       store.types.add(entity.entityType);
       const { source, ...materialized } = store.materialize(entity);
-      await store.persistValidators.get(entity.entityType)?.(
+      await validatePersist(
+        store.registry,
         { ...entity, metadata: materialized.metadata },
-        {
-          operation: "create",
-        },
+        "create",
       );
       request.options?.signal?.throwIfAborted();
       await request.options?.beforeWrite?.({
@@ -286,12 +286,7 @@ export function createMockEntityService(
       );
       const { source, content, metadata, contentHash } =
         store.materialize(entity);
-      await store.persistValidators.get(entity.entityType)?.(
-        { ...entity, metadata },
-        {
-          operation: "update",
-        },
-      );
+      await validatePersist(store.registry, { ...entity, metadata }, "update");
       request.options?.signal?.throwIfAborted();
       await request.options?.beforeWrite?.({
         ...entity,
@@ -401,9 +396,10 @@ export function createMockEntityService(
       const id = entity.id || `entity-${Date.now()}`;
       const exists = store.entities.has(id);
       const { source, ...materialized } = store.materialize({ ...entity, id });
-      await store.persistValidators.get(entity.entityType)?.(
+      await validatePersist(
+        store.registry,
         { ...entity, id, metadata: materialized.metadata },
-        { operation: exists ? "update" : "create" },
+        exists ? "update" : "create",
       );
       await assertGroupingsCurrent();
       const condition = request.options?.conditionalWrite;

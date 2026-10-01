@@ -1,5 +1,7 @@
 import { describe, expect, it, jest } from "bun:test";
+import { SitePageResponse } from "@brains/plugins";
 import { ContactHttpHandlers } from "../src";
+import { previewOriginFor } from "../src/http";
 import { intakeFixture, input, peer } from "./intake-fixture";
 
 const origin = "https://brain.test";
@@ -475,5 +477,107 @@ describe("contact HTTP on the preview host", () => {
       (await page(await withPreview(), new Request(`${preview}/contact`)))
         .status,
     ).toBe(403);
+  });
+});
+
+describe("the preview origin a deployment serves", () => {
+  it("is the deployment's own preview host when it has a domain", () => {
+    expect(
+      previewOriginFor("https://rizom.ai", "https://preview.rizom.ai"),
+    ).toBe("https://preview.rizom.ai");
+  });
+
+  it("is the local preview host beside a local origin, as the webserver serves it", () => {
+    expect(previewOriginFor("http://localhost:8080", undefined)).toBe(
+      "http://preview.localhost:8080",
+    );
+  });
+
+  it("is none for a public origin without a domain, or a bare loopback address", () => {
+    expect(previewOriginFor("https://rizom.ai", undefined)).toBeUndefined();
+    expect(
+      previewOriginFor("http://127.0.0.1:8080", undefined),
+    ).toBeUndefined();
+  });
+
+  it("serves and saves on the local preview host", async () => {
+    const local = "http://localhost:8080";
+    const localPreview = previewOriginFor(local, undefined);
+    const f = await intakeFixture();
+    const handlers = new ContactHttpHandlers(
+      f.admission,
+      f.intake,
+      { origin: local, maxBodyBytes: 65536, readTimeoutMs: 10000 },
+      localPreview ? { previewOrigin: localPreview } : {},
+    );
+    // Plain HTTP is served only to a loopback socket, as a local browser is.
+    const form_ = await page(
+      handlers,
+      new Request("http://preview.localhost:8080/contact"),
+      "127.0.0.1",
+    );
+    expect(form_.status).toBe(200);
+    if (!form_.token) throw new Error("Missing form token");
+    const saved = await handlers.handle(
+      new Request("http://preview.localhost:8080/contact", {
+        method: "POST",
+        body: form(form_.token),
+        headers: {
+          origin: "http://preview.localhost:8080",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+      }),
+      { remoteAddress: "127.0.0.1" },
+    );
+    expect(saved.status).toBe(303);
+  });
+});
+
+describe("the contact page inside the site's own page", () => {
+  async function handlers(): Promise<ContactHttpHandlers> {
+    const f = await intakeFixture();
+    return new ContactHttpHandlers(f.admission, f.intake, {
+      origin,
+      maxBodyBytes: 65536,
+      readTimeoutMs: 10000,
+    });
+  }
+
+  it("offers the form for the site page's slot, with the token of its own page", async () => {
+    const response = await (
+      await handlers()
+    ).handle(new Request(`${origin}/contact`), { remoteAddress: peer });
+    expect(response).toBeInstanceOf(SitePageResponse);
+    const slot =
+      response instanceof SitePageResponse ? response.slot : undefined;
+    expect(slot?.name).toBe("contact");
+    const own = await response.text();
+    expect(own.startsWith("<!doctype html>")).toBe(true);
+    const token = /name="token" value="([a-f0-9]{64})"/.exec(own)?.[1];
+    if (!token) throw new Error("Missing form token");
+    expect(slot?.html).toContain(`name="token" value="${token}"`);
+    expect(slot?.html.startsWith('<div class="contact">')).toBe(true);
+    expect(slot?.html).not.toContain("<html");
+  });
+
+  it("allows local presentation assets but blocks scripts and remote assets around private form data", async () => {
+    const response = await (
+      await handlers()
+    ).handle(new Request(`${origin}/contact`), { remoteAddress: peer });
+    const policy = response.headers.get("Content-Security-Policy") ?? "";
+    for (const directive of [
+      "default-src 'none'",
+      "script-src 'none'",
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:",
+      "img-src 'self' data:",
+      "form-action 'self'",
+      "base-uri 'none'",
+      "frame-ancestors 'none'",
+    ])
+      expect(policy).toContain(directive);
+    expect(policy).not.toContain("https:");
+    expect(policy).not.toContain("script-src 'self'");
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
   });
 });

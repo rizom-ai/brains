@@ -57,8 +57,13 @@ this capability.
   and through a declared daily recurring check, with shutdown cancellation and
   draining. Separate workers execute the same check; an owned shared-state
   timestamp/failure flag supplies the web process's freshness gate. There is no
-  second process-local maintenance timer. Physical deletion can lag expiry until the next successful pass;
-  downtime and backups are disclosed separately on the form.
+  second process-local maintenance timer. Physical deletion can lag expiry until
+  the next successful pass. The form states only the configured retention period;
+  it makes no claims about deletion timing or backups the owner has not set.
+- Per-request form markup can fill a generated site page's named slot, retaining
+  admission, status and no-store headers. Contact's CSP blocks all scripts and
+  remote assets, even in a site layout; local styles, fonts and images are allowed.
+  The slot template and bounded route contributions are available to worker builds.
 
 The form and opt-in professional homepage have a theme-based first visual pass,
 but neither is approved from a running-app preview. No hosted calls, site rebuilds

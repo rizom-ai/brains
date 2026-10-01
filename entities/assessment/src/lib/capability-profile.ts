@@ -9,7 +9,7 @@ import {
   parseMarkdown,
   skillDataSchema,
 } from "@brains/sdk/entities";
-import { StructuredContentFormatter } from "@brains/sdk/entities";
+import { parseAgentBody, type AgentBody } from "@brains/plugins";
 import { z } from "@brains/sdk/entities";
 
 export interface CapabilityProfileSkill {
@@ -52,12 +52,6 @@ export function normalizeTags(raw: string[]): string[] {
   return normalized;
 }
 
-const capabilityAgentSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-
 const capabilityAgentFrontmatterSchema = z.object({
   name: z.string(),
   kind: anchorProfileKindSchema,
@@ -72,72 +66,6 @@ const capabilityAgentFrontmatterSchema = z.object({
 type CapabilityAgentFrontmatter = z.infer<
   typeof capabilityAgentFrontmatterSchema
 >;
-type CapabilityAgentSkill = z.infer<typeof capabilityAgentSkillSchema>;
-
-const capabilityAgentBodySchema = z.object({
-  about: z.string(),
-  skills: z.array(capabilityAgentSkillSchema),
-  notes: z.string(),
-});
-
-type CapabilityAgentBody = z.infer<typeof capabilityAgentBodySchema>;
-
-function formatSkills(value: unknown): string {
-  // Parsed rather than asserted: the value arrives from stored body JSON, and
-  // a skill list written under an older shape must not reach the formatter.
-  const parsed = z.array(capabilityAgentSkillSchema).safeParse(value);
-  if (!parsed.success || parsed.data.length === 0) return "";
-  const skills = parsed.data;
-
-  return skills
-    .map((skill) => {
-      const tags = skill.tags.length > 0 ? ` [${skill.tags.join(", ")}]` : "";
-      return `- ${skill.name}: ${skill.description}${tags}`;
-    })
-    .join("\n");
-}
-
-function parseSkills(text: string): CapabilityAgentSkill[] {
-  if (!text.trim()) return [];
-
-  const skills: CapabilityAgentSkill[] = [];
-  for (const line of text.split("\n")) {
-    const match = line.match(/^- (.+?): (.+?)(?:\s+\[(.+?)\])?$/);
-    if (!match) continue;
-
-    const name = match[1] ?? "";
-    const description = match[2] ?? "";
-    const tagsStr = match[3];
-    const tags = tagsStr
-      ? tagsStr
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-      : [];
-
-    skills.push({ name, description, tags });
-  }
-  return skills;
-}
-
-const agentBodyFormatter = new StructuredContentFormatter<CapabilityAgentBody>(
-  capabilityAgentBodySchema,
-  {
-    title: "Agent",
-    mappings: [
-      { key: "about", label: "About", type: "string" },
-      {
-        key: "skills",
-        label: "Skills",
-        type: "custom",
-        formatter: formatSkills,
-        parser: parseSkills,
-      },
-      { key: "notes", label: "Notes", type: "string" },
-    ],
-  },
-);
-
 /**
  * Read an agent entity the way its own package writes one.
  *
@@ -147,7 +75,7 @@ const agentBodyFormatter = new StructuredContentFormatter<CapabilityAgentBody>(
  */
 function parseAgentEntity(entity: BaseEntity): {
   frontmatter: CapabilityAgentFrontmatter;
-  body: CapabilityAgentBody;
+  body: AgentBody;
 } | null {
   const parsed = parseMarkdown(entity.content);
   const frontmatterResult = capabilityAgentFrontmatterSchema.safeParse(
@@ -155,18 +83,10 @@ function parseAgentEntity(entity: BaseEntity): {
   );
   if (!frontmatterResult.success) return null;
 
-  const empty = { about: "", skills: [], notes: "" };
-  if (!parsed.content.trim()) {
-    return { frontmatter: frontmatterResult.data, body: empty };
-  }
-  try {
-    return {
-      frontmatter: frontmatterResult.data,
-      body: agentBodyFormatter.parse(parsed.content),
-    };
-  } catch {
-    return { frontmatter: frontmatterResult.data, body: empty };
-  }
+  return {
+    frontmatter: frontmatterResult.data,
+    body: parseAgentBody(parsed.content),
+  };
 }
 
 function asProfileSkill(skill: SkillData): CapabilityProfileSkill {

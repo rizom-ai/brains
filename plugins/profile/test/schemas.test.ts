@@ -11,6 +11,7 @@ import {
   teamProfileFields,
   teamProfileSchema,
   validateProfileContent,
+  validateProfileEntity,
 } from "../src";
 
 describe("profile variants", () => {
@@ -117,5 +118,29 @@ describe("profile variants", () => {
     );
 
     expect(profile.story).toBe("Long biography");
+  });
+});
+
+describe("a stored profile whose content is invalid", () => {
+  test("is refused as invalid content, so sync quarantines the file instead of overwriting it", () => {
+    const refusal = ((): unknown => {
+      try {
+        validateProfileEntity("---\nkind: collective\nname: Rizom\n---\n");
+        return undefined;
+      } catch (error) {
+        return error;
+      }
+    })();
+    expect(refusal).toMatchObject({
+      name: "SdkError",
+      code: "invalid_input",
+    });
+    expect(JSON.parse(JSON.stringify(refusal))).toEqual({
+      code: "invalid_input",
+      message: "Invalid input",
+    });
+    expect(() =>
+      validateProfileEntity("---\nname: Rizom\n---\n"),
+    ).not.toThrow();
   });
 });

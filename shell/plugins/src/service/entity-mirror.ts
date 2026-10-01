@@ -1,6 +1,7 @@
 import {
   createEntityBulkCoordination,
   EntityWriteConflictError,
+  isSchemaPhaseValidationError,
   type AcknowledgeEntityExportsRequest,
   type BaseEntity,
   type BulkMutationInput,
@@ -161,7 +162,9 @@ export function createEntityMirror(
           error,
           error instanceof EntityWriteConflictError
             ? "conflict"
-            : "handler_failed",
+            : isSchemaPhaseValidationError(error)
+              ? "invalid_input"
+              : "handler_failed",
         );
       }
     },

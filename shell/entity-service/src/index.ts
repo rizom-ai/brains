@@ -3,6 +3,7 @@ export {
   type EntityTypeClassification,
 } from "./entity-type-classification";
 export { isGroupingContributor } from "./grouping-eligibility";
+export { validatePersist } from "./entity-mutations";
 export {
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
@@ -122,6 +123,7 @@ export {
   EntityValidationError,
   hasValidationIssues,
   isEntityValidationError,
+  isSchemaPhaseValidationError,
   toEntityValidationError,
 } from "./errors";
 

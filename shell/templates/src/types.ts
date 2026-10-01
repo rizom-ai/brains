@@ -193,7 +193,6 @@ export const TemplateSchema: z.ZodObject<{
     trusted: "trusted";
     public: "public";
   }>;
-  renderVersion: z.ZodOptional<z.ZodString>;
   formatter: z.ZodOptional<z.ZodUnknown>;
   overlayFormatter: z.ZodOptional<z.ZodUnknown>;
   layout: z.ZodOptional<
@@ -210,8 +209,6 @@ export const TemplateSchema: z.ZodObject<{
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   useKnowledgeContext: z.boolean().optional(),
   requiredPermission: z.enum(["admin", "trusted", "public"]),
-  /** Stable author-owned version for output-affecting renderer behavior. */
-  renderVersion: z.string().min(1).optional(),
   formatter: z.unknown().optional(), // ContentFormatter instance
   overlayFormatter: z.unknown().optional(), // ContentFormatter for authored overlay
   layout: z

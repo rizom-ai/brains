@@ -2,7 +2,7 @@ import { describe, expect, it, mock, spyOn } from "bun:test";
 import type { ContactFormDiscovery } from "@brains/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import { loadHomepageOpening } from "../src/datasources/homepage-opening";
+import { loadHomepageOpening, homepageOpeningSchema } from "@brains/site-atlas";
 import {
   HomepageListLayout,
   type HomepageListData,
@@ -10,7 +10,6 @@ import {
 import { professionalSiteConfigSchema } from "../src/config";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { professionalProfileSchema } from "../src/schemas";
-import { homepageOpeningSchema } from "../src/schemas/homepage-opening";
 
 const origin = "https://brain.test";
 const content =
@@ -214,7 +213,7 @@ describe("contact-first homepage", () => {
     expect(result?.contactUrl).toBe("https://preview.brain.test/contact");
   });
 
-  it("omits the opening when the form is not reachable where the build is served", async () => {
+  it("keeps authored copy but omits the door when the form is not reachable", async () => {
     const runtime = context();
     // A form that does not serve preview cannot back a preview door.
     advertise(runtime, { routes: formRoutes(false) });
@@ -223,14 +222,14 @@ describe("contact-first homepage", () => {
         { entityService: runtime.entityService, publishedOnly: false },
         runtime,
       ),
-    ).toBeNull();
+    ).toMatchObject({ contactUrl: null });
     advertise(runtime, { routes: [] });
     expect(
       await loadHomepageOpening(
         { entityService: runtime.entityService },
         runtime,
       ),
-    ).toBeNull();
+    ).toMatchObject({ contactUrl: null });
   });
 
   it.each([
@@ -245,7 +244,7 @@ describe("contact-first homepage", () => {
         { entityService: runtime.entityService },
         runtime,
       ),
-    ).toBeNull();
+    ).toMatchObject({ contactUrl: null });
   });
   it("renders where a separate worker builds the site, which advertises no endpoints", async () => {
     const runtime = context();

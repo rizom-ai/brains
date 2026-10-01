@@ -59,7 +59,6 @@ export function getTemplates(): Record<string, Template> {
     "doc-list": createTemplate<z.output<typeof docListSchema>, DocListProps>({
       name: "doc-list",
       description: "Documentation index template",
-      renderVersion: "latest-update-v1",
       schema: docListSchema,
       dataSourceId: "entities",
       requiredPermission: "public",

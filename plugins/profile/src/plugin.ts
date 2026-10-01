@@ -10,7 +10,7 @@ import {
 import {
   BUILT_IN_PROFILE_KINDS,
   profileBaseFrontmatterExtension,
-  validateProfileContent,
+  validateProfileEntity,
 } from "./schemas";
 import {
   buildStarterCharacterBrief,
@@ -120,7 +120,7 @@ const profilePackage: ServicePackageDefinition<typeof profileConfigSchema> =
           {
             entityType: "anchor-profile",
             validate: (entity): void => {
-              validateProfileContent(
+              validateProfileEntity(
                 entity.content,
                 selection && definition
                   ? { category: selection.category, fields: definition.fields }

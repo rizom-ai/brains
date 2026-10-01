@@ -94,6 +94,8 @@ export const PLUGIN_CHANNELS = {
 export const SITE_BUILDER_CHANNELS = {
   routesList: "site-builder:routes:list",
   routeRegister: "plugin:site-builder:route:register",
+  /** Replay installed page contributions before preparing a build, including workers. */
+  routesCollect: "plugin:site-builder:routes:collect",
   routeUnregister: "plugin:site-builder:route:unregister",
   routeList: "plugin:site-builder:route:list",
   routeGet: "plugin:site-builder:route:get",

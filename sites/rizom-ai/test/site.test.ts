@@ -1,17 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import site from "../src";
-import { brainCaptureAssets } from "../src/brain-assets";
+import { rizomRuntimeStaticAssets } from "../src/rizom/runtime/plugin";
 
 describe("@rizom/site-rizom-ai", () => {
-  test("registers Studio captures without retired network snapshots", () => {
-    expect(Object.keys(brainCaptureAssets).sort()).toEqual([
-      "/images/brain/chat-desktop-dark.svg",
-      "/images/brain/chat-desktop-light.svg",
-      "/images/brain/chat-mobile-dark.svg",
-      "/images/brain/chat-mobile-light.svg",
-    ]);
-  });
-
   test("exports a Rizom site definition for the AI site", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
@@ -19,7 +10,6 @@ describe("@rizom/site-rizom-ai", () => {
       "brain",
       "public-ask",
       "writing",
-      "network",
       "work",
       "foundation",
     ]);
@@ -31,7 +21,6 @@ describe("@rizom/site-rizom-ai", () => {
         ? [site.sections]
         : [];
     expect(sections.map((group) => group.namespace)).toEqual([
-      "home",
       "living-memory",
       "brain",
       "public-ask",
@@ -43,14 +32,15 @@ describe("@rizom/site-rizom-ai", () => {
   test("exposes the Brain landing page with stable content IDs", () => {
     const brain = site.routes.find((route) => route.id === "brain");
     expect(brain?.path).toBe("/brain");
-    // Answers, capabilities, collective work, ownership and starting points.
-    // The closing CTA is folded into Quickstart; old closing content is retained unrouted.
+    // Told as a story beside its drawing: answers, capabilities, you, team
+    // and network, the collective, ownership and starting points. The old
+    // closing content is retained unrouted.
     expect(brain?.sections?.map((s) => s.id)).toEqual([
       "hero",
       "capture",
       "ask",
-      "connect",
       "run",
+      "connect",
       "your-data",
       "quickstart",
     ]);
@@ -58,8 +48,8 @@ describe("@rizom/site-rizom-ai", () => {
       "brain:hero",
       "brain:capture",
       "brain:ask",
-      "brain-network:connect",
       "brain:run",
+      "brain:connect",
       "brain:your-data",
       "brain:quickstart",
     ]);
@@ -88,17 +78,14 @@ describe("@rizom/site-rizom-ai", () => {
     ]);
   });
 
-  test("writing + network compose the plugins' own list templates", () => {
+  test("writing is one archive over the essays and presentations; the network page is gone", () => {
     const byId = (id: string): (typeof site.routes)[number] | undefined =>
       site.routes.find((route) => route.id === id);
 
-    expect(byId("writing")?.sections?.map((s) => s.template)).toEqual([
-      "blog:post-list",
-      "decks:deck-list",
+    expect(byId("writing")?.sections).toEqual([
+      { id: "archive", template: "rizom:writing", dataQuery: {} },
     ]);
-    expect(byId("network")?.sections?.[0]?.template).toBe(
-      "@brains/agent-discovery:agent:agent-list",
-    );
+    expect(byId("network")).toBeUndefined();
   });
 
   test("labels entity-backed lists via entityDisplay", () => {
@@ -120,37 +107,22 @@ describe("@rizom/site-rizom-ai", () => {
     expect(head).not.toContain("canvas");
   });
 
-  test("opens the home page on the live agent proximity map", () => {
+  test("opens the home page on the story, its live network first", () => {
     const route = site.routes[0];
-    const sectionIds = route?.sections?.map((section) => section.id);
-
-    // Keep the approved composition and its existing content identities.
-    expect(sectionIds).toEqual([
+    // The opening keeps the hero's content identity; the rest of the story
+    // keeps its section ids. The problem, the system and the proof are told
+    // on /work, /brain and by the opening itself.
+    expect(route?.sections?.map((section) => section.id)).toEqual([
       "hero",
-      "problem",
       "science",
       "turn",
-      "system",
       "growth",
-      "proof",
       "arc",
       "doors",
     ]);
-
-    // The opener is the agent-discovery datasource section; a dataQuery routes
-    // it through the datasource (live map data) while its authored copy is
-    // merged over via the content overlay. The knowledge map works the same
-    // way through the topics plugin.
-    const network = route?.sections?.[0];
-    expect(network?.template).toBe(
-      "@brains/agent-discovery:agent:proximity-map",
-    );
-    expect(network?.dataQuery).toBeDefined();
-    const knowledge = route?.sections?.find(
-      (section) => section.id === "proof",
-    );
-    expect(knowledge?.template).toBe("@brains/knowledge-map:map");
-    expect(knowledge?.dataQuery).toBeDefined();
+    const opening = route?.sections?.[0];
+    expect(opening?.template).toBe("rizom:opening");
+    expect(opening?.dataQuery).toBeDefined();
   });
 
   test("home body sections reference their content namespaces by string", () => {
@@ -159,15 +131,21 @@ describe("@rizom/site-rizom-ai", () => {
     );
 
     expect(templates).toEqual([
-      "@brains/agent-discovery:agent:proximity-map",
-      "living-memory:problem",
+      "rizom:opening",
       "living-memory:science",
       "living-memory:turn",
-      "living-memory:system",
       "living-memory:growth",
-      "@brains/knowledge-map:map",
       "living-memory:arc",
       "living-memory:doors",
     ]);
+  });
+});
+
+describe("the site's icon", () => {
+  test("is the lantern, brass on night, served where every page's head points", () => {
+    const icon = rizomRuntimeStaticAssets["/favicon.svg"];
+    expect(icon).toStartWith("<svg");
+    expect(icon).toContain('fill="#14132b"');
+    expect(icon).toContain("#d4af37");
   });
 });

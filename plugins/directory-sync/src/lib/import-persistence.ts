@@ -149,7 +149,12 @@ export async function persistImportEntity(
       );
       return;
     }
-    if (deps.quarantine.isValidationError(error)) {
+    // The curated mirror strips native errors and private source details.
+    // Its schema-phase refusal is invalid_input; live policy remains retryable.
+    if (
+      (failure.success && failure.data.code === "invalid_input") ||
+      deps.quarantine.isValidationError(error)
+    ) {
       await deps.quarantine.quarantineInvalidFile(
         filePath,
         error,

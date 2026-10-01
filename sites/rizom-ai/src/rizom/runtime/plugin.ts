@@ -7,10 +7,14 @@ import type {
   RizomSiteShell,
 } from "../contracts";
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
-import brainStyles from "../../brain.css" with { type: "text" };
-import { brainCaptureAssets } from "../../brain-assets";
-import livingMemoryStyles from "../../living-memory.css" with { type: "text" };
-import livingMemoryMapStyles from "../../living-memory-maps.css" with { type: "text" };
+import storyStyles from "../../story.css" with { type: "text" };
+import writingStyles from "../../writing.css" with { type: "text" };
+import favicon from "../../favicon.svg" with { type: "text" };
+import { brainOrganism } from "../../story/brain-organism";
+import { foundationOrganism } from "../../story/foundation-organism";
+import { livingOrganism } from "../../story/living-organism";
+import { workOrganism } from "../../story/work-organism";
+import { storyRuntimeScript } from "../../story/runtime";
 
 export type { RizomRuntimeConfig } from "../contracts";
 
@@ -31,7 +35,7 @@ function parseRuntimeConfig(
 }
 
 export function buildRizomHeadScript(): string {
-  return `<script src="/boot.js" defer></script>`;
+  return `<script src="/boot.js" defer></script><script src="/story.js" defer></script>`;
 }
 
 export const RIZOM_ATPROTO_LEXICON_BASE_PATH = "/atproto/lexicons";
@@ -50,12 +54,18 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,
-  ...brainCaptureAssets,
+  // The site's icon: the lantern the drawings use for a brain.
+  "/favicon.svg": favicon,
   "/boot.js": bootScript,
-  "/styles/brain.css": brainStyles,
-  // An emitted asset makes CSS edits part of the site build fingerprint.
-  // Only /living-memory links this route-scoped stylesheet.
-  "/styles/living-memory.css": livingMemoryStyles + livingMemoryMapStyles,
+  "/story.js": storyRuntimeScript,
+  // The story pages: the page shape, the drawings and the reading thread.
+  "/styles/story.css":
+    storyStyles +
+    livingOrganism.css() +
+    brainOrganism.css() +
+    workOrganism.css() +
+    foundationOrganism.css(),
+  "/styles/writing.css": writingStyles,
 };
 
 export class RizomRuntimePlugin {

@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
+import {
+  baseEntitySchema,
+  EntityValidationError,
+  type BaseEntity,
+} from "@brains/entity-service";
 import {
   defineServicePlugin,
   infrastructure,
@@ -267,6 +271,45 @@ describe("the records as a mirror keeps them", () => {
       write.mockRestore();
     }
   });
+
+  it.each(["schema", "persist"] as const)(
+    "retains only sanitized %s-phase failure classification",
+    async (phase) => {
+      const mirror = await install();
+      const write = spyOn(
+        harness.getEntityService(),
+        "upsertEntity",
+      ).mockRejectedValue(
+        new EntityValidationError(
+          "note",
+          new Error("PRIVATE_SOURCE_MARKER"),
+          phase,
+        ),
+      );
+      try {
+        const error = await mirror
+          .upsertEntity({
+            entity: {
+              id: "refused",
+              entityType: "note",
+              content: "Body",
+              metadata: {},
+              visibility: "public",
+              contentHash: "hash",
+              created: "2026-07-01T00:00:00.000Z",
+              updated: "2026-07-01T00:00:00.000Z",
+            },
+          })
+          .catch((failure: unknown) => failure);
+        expect(error).toMatchObject({
+          code: phase === "schema" ? "invalid_input" : "handler_failed",
+        });
+        expect(JSON.stringify(error)).not.toContain("PRIVATE_SOURCE_MARKER");
+      } finally {
+        write.mockRestore();
+      }
+    },
+  );
 
   it("serialises through the type's own adapter, both ways", async () => {
     const mirror = await install();

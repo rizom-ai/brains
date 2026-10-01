@@ -3,6 +3,7 @@ import { computeContentHash } from "@brains/utils/hash";
 import {
   copyEntityTypeConfig,
   EntityRegistry,
+  toEntityValidationError,
   type BaseEntity,
   type EntityAdapter,
   type EntityExportIntent,
@@ -86,30 +87,34 @@ export function createMockEntityStore(): MockEntityStore {
     exportKey,
 
     materialize: (entity): ReturnType<MockEntityStore["materialize"]> => {
-      const adapter = adapters.get(entity.entityType);
-      // Name-only fixture types have no adapter to reconstruct their body.
-      if (typeof adapter?.toMarkdown !== "function") {
+      try {
+        const adapter = adapters.get(entity.entityType);
+        // Name-only fixture types have no adapter to reconstruct their body.
+        if (typeof adapter?.toMarkdown !== "function") {
+          return {
+            source: entity.content,
+            content: entity.content,
+            metadata: entity.metadata,
+            contentHash: computeContentHash(entity.content),
+          };
+        }
+        const normalized = registry.hasEntityType(entity.entityType)
+          ? registry.validateEntity(entity.entityType, entity)
+          : adapter.schema.parse(entity);
+        const markdown = adapter.toMarkdown(normalized);
+        const decoded =
+          typeof adapter.fromMarkdown === "function"
+            ? adapter.fromMarkdown(markdown)
+            : {};
         return {
-          source: entity.content,
-          content: entity.content,
-          metadata: entity.metadata,
-          contentHash: computeContentHash(entity.content),
+          source: markdown,
+          content: decoded.content ?? markdown,
+          metadata: adapter.extractMetadata(normalized),
+          contentHash: computeContentHash(markdown),
         };
+      } catch (error) {
+        throw toEntityValidationError(entity.entityType, error) ?? error;
       }
-      const normalized = registry.hasEntityType(entity.entityType)
-        ? registry.validateEntity(entity.entityType, entity)
-        : adapter.schema.parse(entity);
-      const markdown = adapter.toMarkdown(normalized);
-      const decoded =
-        typeof adapter.fromMarkdown === "function"
-          ? adapter.fromMarkdown(markdown)
-          : {};
-      return {
-        source: markdown,
-        content: decoded.content ?? markdown,
-        metadata: adapter.extractMetadata(normalized),
-        contentHash: computeContentHash(markdown),
-      };
     },
 
     markExportIntent: (

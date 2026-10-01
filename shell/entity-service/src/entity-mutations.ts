@@ -46,7 +46,10 @@ import {
   type EntityWritePrecondition,
 } from "./entity-write-state";
 import { entityRevision, stableJson } from "./entity-revision";
-import { toEntityValidationError } from "./errors";
+import {
+  isSchemaPhaseValidationError,
+  toEntityValidationError,
+} from "./errors";
 
 /** Shared by ordinary mutations and atomic projection upserts. */
 export async function validatePersist(
@@ -59,6 +62,10 @@ export async function validatePersist(
       operation,
     });
   } catch (error) {
+    // A validator that finds the content itself invalid says so with a
+    // schema-phase error, which sync quarantines; any other refusal is a live
+    // policy, which sync retries.
+    if (isSchemaPhaseValidationError(error)) throw error;
     throw toEntityValidationError(entity.entityType, error, "persist") ?? error;
   }
 }

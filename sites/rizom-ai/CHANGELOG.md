@@ -1,5 +1,25 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.259
+
+### Patch Changes
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`3bd0a1c`](https://github.com/rizom-ai/brains/commit/3bd0a1cc9deab7582349128b3e808a8841ce901c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The story pages' buttons ("Book an audit" on Work and the homepage door) keep their own width instead of stretching across the chapter column, and the homepage's Ask box prompts in its field with the shared Ask note's title.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`dc021d0`](https://github.com/rizom-ai/brains/commit/dc021d03f832c9ec259099f98b5306757bf8b4ac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The previous homepage's leftovers are gone: the unrouted `home` section group and its growth diagram, the `homeSections` export, the homepage's unrouted problem and system sections, and the shared presentational pieces only they used. The story homepage, Brain, Work, Foundation and Writing are unchanged.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`e1edce0`](https://github.com/rizom-ai/brains/commit/e1edce0f707f656530717ab5cc65f2305d34988e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai has an icon, the brass lantern its drawings use for a brain, and its footer no longer links to a Team Type quiz that does not exist; the Work drawing's last label no longer asks which type is yours.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`4ba3a91`](https://github.com/rizom-ai/brains/commit/4ba3a91460daadf8c3eecd5614d50d02554cd2f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The story pages' headings settle: chapter eyebrows are the site's mono label in the room's accent, the rooms' titles keep to three or four lines while the homepage title stays larger, and every story page's opening keeps a measured column of words with its drawing in the room to their right, measured against the page frame so it holds from phones to wide screens.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`d468310`](https://github.com/rizom-ai/brains/commit/d46831011f1aa959e434213b55cdeb0e01083044) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The rizom.ai homepage is told as one story: it opens on the live network, drawn from the agent-discovery proximity map with each brain named as page text, with the guest Ask box docked when Web Chat serves it and the door otherwise; the science, the shift, the organism, where this goes and the two ways in follow as chapters beside one drawing that grows from a team to an economy. `/network` is gone; the Brain page's network keeps its own template. The hero's authored copy is unchanged and spliced over the data, so the section's content file still applies.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`beb628f`](https://github.com/rizom-ai/brains/commit/beb628fab871457873bf6784e5b4ce0b68ed2e05) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Brain and Work rooms of rizom.ai are told as stories beside one drawing each: the Brain grows from a lantern through the files that gather into it, the places you talk to it, you, your team and the network, the collective and what stays yours; Work takes a team from AI outside it, through the same work done three times, the Knowledge Audit and the teams this sounds like, to a mapped team and the three types of team. The Work chapter that tells the audit carries the bar's `#audit` anchor and a booking door when the content gives one; anchored chapters land below the bar, and below the drawing's strip on narrow screens. The Brain page loses its chat box, screenshot captures and network template, and the retired room stylesheets and the old homepage's stylesheets are gone. Every section keeps its id and its content file.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`67232ed`](https://github.com/rizom-ai/brains/commit/67232edf4da46b26e21ddc248748e5ebf5f971c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai gets one bar (Brain, Work, Foundation, Writing, the theme toggle and "Book an audit") in place of the room strip and masthead, a footer that names the Knowledge Audit and drops the Network link, and the story page shape: chapters beside one drawing that changes stage as the chapter under the reading line changes, with the reading thread on the live rail's root filling as a visitor reads. Foundation is the first page told this way; its section ids and content are unchanged.
+
+- [#441](https://github.com/rizom-ai/brains/pull/441) [`a85837b`](https://github.com/rizom-ai/brains/commit/a85837bd1a8d9889796a5ef4b4cc4ffdb4dfb370) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's Writing page is an archive on one thread: every essay and presentation, newest first, essays as lanterns with their excerpt and presentations as plain nodes, beside the heading with a filter (everything, essays, presentations) that needs no script. The site reads the blog's and the decks' lists through their own datasources, so drafts stay out of production as before and each piece keeps its link.
+
 ## 0.2.0-alpha.258
 
 ### Patch Changes

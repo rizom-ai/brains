@@ -1,10 +1,14 @@
 import type {
-  EntityQueryReader,
+  EntitySchema,
   EntitySemanticReader,
   SemanticSpacePoint,
 } from "@brains/sdk/entities";
 import { parseAgentEntity } from "./agent-content";
-import type { AgentFrontmatter, AgentSkill } from "../schemas/agent";
+import type {
+  AgentEntity,
+  AgentFrontmatter,
+  AgentSkill,
+} from "../schemas/agent";
 import { agentEntitySchema } from "../schemas/agent";
 import { AGENT_ENTITY_TYPE } from "./constants";
 import {
@@ -34,7 +38,12 @@ export const PROXIMITY_NEIGHBOR_DISTANCE = 0.25;
 export const SIGHTING_GERMINATION_DISTANCE = 0.5;
 
 export interface ProximityMapDataContext {
-  entities: Pick<EntityQueryReader, "listEntities">;
+  entities: {
+    listEntities(
+      request: { entityType: string },
+      schema: EntitySchema<AgentEntity>,
+    ): Promise<AgentEntity[]>;
+  };
   semantic: EntitySemanticReader;
 }
 

@@ -1,5 +1,6 @@
 import {
   anchorProfileBodySchema,
+  SdkError,
   type ProfileCategory,
   type ProfileKindDefinition,
 } from "@brains/sdk/services";
@@ -262,4 +263,22 @@ export function validateProfileContent(
     .extend(selectedFields)
     .strict()
     .parse(metadata);
+}
+
+/**
+ * A stored profile's content check: content that fails it is invalid in
+ * itself, so directory sync quarantines the file rather than retrying it and
+ * leaving the placeholder to be written over it.
+ */
+export function validateProfileEntity(
+  content: string,
+  selection?: ProfileValidationSelection,
+): void {
+  try {
+    validateProfileContent(content, selection);
+  } catch (error) {
+    // Explicit source-invalid classification through the existing public SDK;
+    // a live persist-policy refusal remains a different, retryable failure.
+    throw new SdkError("invalid_input", { cause: error });
+  }
 }

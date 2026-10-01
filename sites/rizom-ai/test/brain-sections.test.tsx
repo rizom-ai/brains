@@ -1,10 +1,4 @@
 /** @jsxImportSource react */
-import {
-  ASK_BOX_ATTRIBUTE,
-  ASK_BOX_SCRIPT_PATH,
-  ASK_SEND_ATTRIBUTE,
-  ASK_STATUS_ATTRIBUTE,
-} from "@brains/contracts";
 import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import type { ComponentType } from "react";
@@ -12,7 +6,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { z } from "@rizom/site";
 import { sectionGroupToTemplates } from "@brains/site-composition";
 import { brainSections } from "../src/brain";
-import { rizomRuntimeStaticAssets } from "../src/rizom/runtime/plugin";
 
 const componentSchema = z.custom<ComponentType<Record<string, unknown>>>(
   (value) => typeof value === "function",
@@ -20,11 +13,15 @@ const componentSchema = z.custom<ComponentType<Record<string, unknown>>>(
 const propsSchema = z.record(z.string(), z.unknown());
 const templates = sectionGroupToTemplates(brainSections);
 const lead = {
-  cap: "A caption",
-  headline: "A *useful agent*.",
-  body: ["Authored copy."],
+  cap: "01 · Answers",
+  headline: "Ask it *what you know.*",
+  body: ["Authored copy.", "A second paragraph."],
 };
-const cta = { label: "Explore", href: "#answers" };
+const cta = { label: "Start a brain ↓", href: "#quickstart" };
+const aside = {
+  text: "Something particular to you is a plugin.",
+  links: [{ label: "Plugin authoring ↗", href: "https://example.com" }],
+};
 function render(id: string, data: unknown): string {
   const section = brainSections.sections[id];
   if (!section) throw new Error(id);
@@ -36,106 +33,152 @@ function render(id: string, data: unknown): string {
   );
 }
 
-describe("Brain product landing page", () => {
-  test("the existing chat box starts non-sending and loads only its enhancement script", () => {
+describe("the Brain page, told as a story", () => {
+  test("keeps its section ids", () => {
+    expect(Object.keys(brainSections.sections)).toEqual([
+      "hero",
+      "capture",
+      "ask",
+      "run",
+      "connect",
+      "your-data",
+      "quickstart",
+    ]);
+  });
+
+  test("the opening is a chapter with the headline, the lede and two doors, without a chat box", () => {
     const html = render("hero", {
       ...lead,
-      provenance: "Available now",
+      cap: "The tools",
+      headline: "Build the agent that *represents you.*",
+      provenance: "· available now",
       primaryCta: cta,
-      secondaryCta: cta,
-      chat: {
-        title: "Ask Rizom",
-        inputHint: "A question",
-        notice: "Public chat is coming soon.",
-        topicsLabel: "Topics",
-        topics: ["Governance"],
-      },
+      secondaryCta: { label: "See what it can do", href: "#answers" },
+      chat: { title: "Ask Rizom anything." },
       navigation: [cta, cta, cta, cta],
     });
-    expect(html).toContain('id="brain-chat"');
-    expect(html).toContain('disabled=""');
-    expect(html).not.toContain("Public chat is coming soon.");
-    expect(html).not.toContain("Governance");
-    expect(html).toContain('aria-label="Your question"');
-    expect(html).not.toContain("<form");
-    // The hero is a host for the shared Web Chat box, not a site-owned boot.
-    expect(html).toContain(`${ASK_BOX_ATTRIBUTE}=""`);
-    expect(html).toContain(`${ASK_SEND_ATTRIBUTE}=""`);
-    expect(html).toContain(`${ASK_STATUS_ATTRIBUTE}=""`);
-    expect(html).toContain(`src="${ASK_BOX_SCRIPT_PATH}"`);
-    expect(html).not.toContain("/brain-chat.js");
-    expect(html).not.toContain("data-chat-topic");
-    expect(html).not.toContain("data-ask-panel");
-    expect(html).not.toContain("/ask/assets/guest.js");
-    expect(html).not.toContain("/api/chat");
-    expect(html).not.toContain("hero-note");
-    expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain('class="heading-emphasis"');
+    expect(html).toMatch(/^<section id="brain-hero" class="chapter">/);
+    expect(html).toContain('<p class="eyebrow">The tools</p>');
+    expect(html).toContain(
+      "<h1>Build the agent that <em>represents you.</em></h1>",
+    );
+    expect(html).toContain('<p class="lede">Authored copy.</p>');
+    expect(html).toContain("<p>A second paragraph.</p>");
+    expect(html).toContain(
+      '<p class="doors-in"><a href="#quickstart">Start a brain ↓</a><a href="#answers">See what it can do</a></p>',
+    );
+    expect(html).not.toContain("data-ask-box");
+    expect(html).not.toContain("<textarea");
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("chapter-nav");
+    expect(html).not.toContain("Ask Rizom anything.");
   });
-  test("code indentation and optional lines survive canonical Markdown", () => {
+
+  test("answers, capabilities and the collective are chapters with their aside", () => {
+    for (const [id, anchor] of [
+      ["capture", "answers"],
+      ["ask", "capabilities"],
+      ["connect", "collective"],
+    ]) {
+      const html = render(id ?? "", { ...lead, aside });
+      expect(html).toMatch(
+        new RegExp(`^<section id="${anchor}" class="chapter">`),
+      );
+      expect(html).toContain('<p class="eyebrow">01 · Answers</p>');
+      expect(html).toContain("<h2>Ask it <em>what you know.</em></h2>");
+      expect(html).toContain(
+        '<p class="aside">Something particular to you is a plugin. <a href="https://example.com">Plugin authoring ↗</a></p>',
+      );
+      expect(html).not.toContain("<img");
+      expect(html).not.toContain("<pre");
+    }
+  });
+
+  test("you, team and network are the chapter's parts with their status", () => {
+    const html = render("run", {
+      label: "You, team, network",
+      items: [
+        {
+          title: "You",
+          tag: "Available now",
+          text: "A brain for your own practice.",
+        },
+        {
+          title: "Team",
+          tag: "The team bundle",
+          text: "A brain owned by a team.",
+        },
+        {
+          title: "Network",
+          tag: "Emerging",
+          text: "Independently owned brains.",
+        },
+      ],
+    });
+    expect(html).toMatch(
+      /^<section id="run" class="chapter" data-title="You, team, network">/,
+    );
+    expect(html).toContain('<dl class="parts">');
+    expect(html).toContain(
+      '<dt>You <span class="status">Available now</span></dt><dd>A brain for your own practice.</dd>',
+    );
+    expect(html).not.toContain("<h2");
+  });
+
+  test("stays yours lists its three parts", () => {
+    const html = render("your-data", {
+      ...lead,
+      items: [1, 2, 3].map((n) => ({ title: `Part ${n}`, text: `Text ${n}` })),
+    });
+    expect(html).toMatch(/^<section id="yours" class="chapter">/);
+    expect(html).toContain("<dt>Part 1</dt><dd>Text 1</dd>");
+  });
+
+  test("quick start keeps the terminal, its indentation and optional lines, and opens two doors", () => {
     const data = {
       ...lead,
-      aside: { text: "Extend it.", links: [] },
       code: {
-        title: "brain.yaml",
-        note: "Excerpt",
+        title: "terminal",
+        note: "@rizom/brain",
         lines: [
-          { text: "bundles:", indent: 0, kind: "code" },
+          { text: "# install", indent: 0, kind: "comment" },
+          { text: "$ bun add -g @rizom/brain", indent: 0, kind: "code" },
           { text: "- core", indent: 2, kind: "code" },
           { text: "# - automation", indent: 2, kind: "optional" },
         ],
       },
+      options: [
+        {
+          cap: "Run it yourself",
+          title: "Read the setup guide.",
+          text: "Configuration and deployment.",
+          cta: { label: "Open the docs ↗", href: "https://docs.rizom.ai/" },
+        },
+        {
+          cap: "Start with a session",
+          title: "Map what your team knows first.",
+          text: "Before deciding how a brain should fit.",
+          cta: { label: "Book a knowledge session ↗", href: "/work" },
+        },
+      ],
     };
-    const formatter = templates["ask"]?.formatter;
+    const formatter = templates["quickstart"]?.formatter;
     if (!formatter) throw new Error("Missing formatter");
     expect(formatter.parse(formatter.format(data))).toEqual(data);
-    const html = render("ask", data);
+    const html = render("quickstart", data);
+    expect(html).toMatch(/^<section id="quickstart" class="chapter">/);
+    expect(html).toContain('<pre class="code" aria-label="terminal">');
+    expect(html).toContain("<i># install</i>");
+    expect(html).toContain("<b>$</b> bun add -g @rizom/brain");
     expect(html).toContain("  - core");
-    expect(html).toContain("  # - automation");
-    expect(html).not.toContain("<button");
+    expect(html).toContain("<i>  # - automation</i>");
+    expect(html).toContain('<div class="doors">');
+    expect(html).toContain('<a class="door" href="https://docs.rizom.ai/">');
+    expect(html).toContain('<a class="door door--work" href="/work">');
+    expect(html).toContain('<span class="door__go">Open the docs ↗</span>');
   });
-  test("screenshots expose matching full-size variants and honest captions", () => {
-    const html = render("capture", {
-      ...lead,
-      aside: { text: "Check sources.", links: [] },
-      capture: {
-        kind: "chat",
-        alt: "Illustrative Studio conversation",
-        caption: "Example data, not a recorded agent run.",
-        openLabel: "Open capture",
-      },
-    });
-    for (const theme of ["dark", "light"])
-      for (const size of ["desktop", "mobile"]) {
-        const path = `/images/brain/chat-${size}-${theme}.svg`;
-        expect(html).toContain(`href="${path}"`);
-        expect(html).toContain(`src="${path}"`);
-        expect(rizomRuntimeStaticAssets[path]).toContain(
-          "data:image/png;base64,",
-        );
-      }
-    expect(html).toContain("Example data, not a recorded agent run.");
-    expect(html).toContain('rel="noopener"');
-  });
-  test("a capture without a caption renders no caption element", () => {
-    const data = {
-      ...lead,
-      aside: { text: "Product knowledge.", links: [] },
-      capture: {
-        kind: "chat",
-        alt: "Studio conversation",
-        openLabel: "Open capture",
-      },
-    };
-    expect(render("capture", data)).not.toContain("<figcaption");
-    const formatter = templates["capture"]?.formatter;
-    if (!formatter) throw new Error("Capture formatter missing");
-    expect(formatter.parse(formatter.format(data))).toEqual({
-      ...data,
-      capture: { ...data.capture, caption: "" },
-    });
-  });
-  test("authored values remain escaped and CSS is fingerprinted and scoped", () => {
+
+  test("authored values remain escaped", () => {
     const html = render("run", {
       label: "Ownership",
       items: [1, 2, 3].map((index) => ({
@@ -146,8 +189,5 @@ describe("Brain product landing page", () => {
     });
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("<script>");
-    expect(rizomRuntimeStaticAssets["/styles/brain.css"]).toContain(
-      "@scope (.brain-page)",
-    );
   });
 });

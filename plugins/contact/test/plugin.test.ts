@@ -6,7 +6,10 @@ import {
   inboxWorkspaceRequest,
   contactFormDiscoveryRequest,
   NOTIFICATIONS_SEND,
+  SITE_BUILDER_CHANNELS,
 } from "@brains/contracts";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
 import { instantiate } from "./helpers";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import {
@@ -709,5 +712,79 @@ describe("contact runtime", () => {
         .catch((error: unknown) => error),
     ).toBeInstanceOf(Error);
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("the contact page in the site", () => {
+  it("gives the site a /contact page with a slot for the form, and its thanks page", async () => {
+    const f = await setup();
+    const registered: unknown[] = [];
+    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+      registered.push(message.payload);
+      return { success: true };
+    });
+    await f.plugin.ready();
+    const component = f.h.getTemplates().get("@brains/contact:contact:page")
+      ?.layout?.component;
+    if (!component) throw new Error("Missing contact page template");
+    expect(renderToStaticMarkup(createElement(component, {}))).toBe(
+      '<div data-site-slot="contact"></div>',
+    );
+    const page = (id: string, path: string, title: string): unknown => ({
+      id,
+      path,
+      title,
+      sections: [
+        { id: "form", template: "@brains/contact:contact:page", content: {} },
+      ],
+      navigation: { show: false },
+    });
+    expect(registered).toEqual([
+      {
+        pluginId: "@brains/contact:contact",
+        routes: [
+          page("contact", "/contact", "Contact"),
+          page("contact-thanks", "/contact/thanks", "Note saved"),
+        ],
+      },
+    ]);
+  });
+
+  it("replays page contributions in a worker without web readiness", async () => {
+    const f = await setup(true);
+    const registered: unknown[] = [];
+    f.h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+      registered.push(message.payload);
+      return { success: true };
+    });
+    await f.h.sendMessage(SITE_BUILDER_CHANNELS.routesCollect, {});
+    expect(registered).toEqual([
+      expect.objectContaining({
+        pluginId: "@brains/contact:contact",
+        routes: expect.arrayContaining([
+          expect.objectContaining({ path: "/contact" }),
+        ]),
+      }),
+    ]);
+    expect(f.plugin.getWebRoutes()).toEqual([]);
+    expect(
+      f.h.getTemplates().get("@brains/contact:contact:page"),
+    ).toBeDefined();
+    await f.plugin.shutdown();
+  });
+
+  it("adds no page to a site without the form configured", async () => {
+    const h = createPluginHarness({ domain: "brain.test" });
+    const registered: unknown[] = [];
+    h.subscribe(SITE_BUILDER_CHANNELS.routeRegister, async (message) => {
+      registered.push(message.payload);
+      return { success: true };
+    });
+    const { entity, service: plugin } = instantiate({});
+    await entity.register(h.getMockShell());
+    await plugin.register(h.getMockShell());
+    await plugin.finalizeRegistration();
+    await plugin.ready();
+    expect(registered).toEqual([]);
   });
 });

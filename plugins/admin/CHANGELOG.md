@@ -1,5 +1,23 @@
 # @brains/admin
 
+## 0.2.0-alpha.456
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.456
+  - @brains/auth-service@0.2.0-alpha.456
+  - @brains/plugins@0.2.0-alpha.456
+
+## 0.2.0-alpha.455
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.455
+  - @brains/auth-service@0.2.0-alpha.455
+  - @brains/plugins@0.2.0-alpha.455
+
 ## 0.2.0-alpha.454
 
 ### Patch Changes

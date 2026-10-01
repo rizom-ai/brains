@@ -5,15 +5,15 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { homepageOpeningSchema } from "./schemas/homepage-opening";
-import { loadHomepageOpening } from "./datasources/homepage-opening";
-import { loadHomepageAtlas } from "./datasources/homepage-atlas";
-import { homepageChatAvailable } from "./datasources/homepage-chat";
 import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
-} from "./templates/homepage-atlas-script";
-import { homepageAtlasSchema } from "./schemas/homepage-atlas";
+  homepageAtlasSchema,
+  homepageChatAvailable,
+  homepageOpeningSchema,
+  loadHomepageOpening,
+} from "@brains/site-atlas";
+import { loadHomepageAtlas } from "./datasources/homepage-atlas";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";

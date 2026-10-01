@@ -18,8 +18,11 @@ function markdown(): Extract<
 }
 
 /** What the runtime derives from a stored file. */
-function decode(content: string): { metadata: Partial<AgentMetadata> } {
-  const { frontmatter } = parseMarkdown(content);
+function decode(source: string): {
+  content?: string;
+  metadata: Partial<AgentMetadata>;
+} {
+  const { frontmatter, content } = parseMarkdown(source);
   return markdown().decode({ content, frontmatter });
 }
 
@@ -212,6 +215,41 @@ discoveredAt: "2026-03-31T00:00:00.000Z"
       expect(parsed.notes).toBe("");
     });
 
+    const frontmatter = `---
+name: Partial
+brainName: Partial Brain
+url: https://partial.io
+status: discovered
+discoveredAt: "2026-03-31T00:00:00.000Z"
+---`;
+    const about = "## About\n\nField researcher.";
+    const skills =
+      "## Skills\n\n- Field Notes: Keep field notes [research, writing]";
+    const notes = "## Notes\n\nMet at the summit.";
+
+    it.each([
+      ["Notes", [about, skills]],
+      ["About", [skills, notes]],
+      ["Skills", [about, notes]],
+    ])("keeps the sections it has when %s is missing", (_missing, sections) => {
+      const parsed = parseAgentContent([frontmatter, ...sections].join("\n\n"));
+      const has = (section: string): boolean => sections.includes(section);
+
+      expect(parsed.about).toBe(has(about) ? "Field researcher." : "");
+      expect(parsed.skills).toEqual(
+        has(skills)
+          ? [
+              {
+                name: "Field Notes",
+                description: "Keep field notes",
+                tags: ["research", "writing"],
+              },
+            ]
+          : [],
+      );
+      expect(parsed.notes).toBe(has(notes) ? "Met at the summit." : "");
+    });
+
     it("should handle skills with no tags", () => {
       const content = `---
 name: Test
@@ -275,6 +313,73 @@ Test agent.
       expect(metadata.name).toBe("Yeehaa");
       expect(metadata.status).toBe("discovered");
       expect(metadata.slug).toBe("yeehaa-io");
+    });
+  });
+
+  describe("agents saved before the kinds were renamed", () => {
+    // Until 22 July 2026 an agent's kind named its brain, not its anchor.
+    const saved = (kind: string): string =>
+      [
+        "---",
+        "name: Brain",
+        `kind: ${kind}`,
+        "brainName: Brain",
+        "url: 'https://karim.rizom.ai/a2a'",
+        "status: discovered",
+        "discoveredAt: '2026-07-15T15:38:08.033Z'",
+        "---",
+        "# Agent",
+        "",
+        "## About",
+        "Brain is Karim's Knowledge assistant.",
+        "",
+      ].join("\n");
+
+    it("reads a professional brain as a person, and keeps that in its content", () => {
+      const partial = decode(saved("professional"));
+      expect(partial.metadata.name).toBe("Brain");
+      expect(partial.content).toContain("kind: person\n");
+      expect(partial.content).not.toContain("professional");
+      expect(partial.content).toContain(
+        "Brain is Karim's Knowledge assistant.",
+      );
+    });
+
+    it("reads a collective as an organization", () => {
+      expect(decode(saved("collective")).content).toContain(
+        "kind: organization\n",
+      );
+    });
+
+    it.each([
+      "professional # saved kind",
+      "'professional' # saved kind",
+      '"professional" # saved kind',
+    ])(
+      "migrates YAML scalar %s without losing authored fields or the body",
+      (kind) => {
+        const source = saved(kind).replace(
+          "status: discovered",
+          "custom: keep-me\nstatus: discovered",
+        );
+        const partial = decode(source);
+        expect(partial.content).toContain("kind: person");
+        expect(partial.content).toContain("custom: keep-me");
+        expect(partial.content).toContain(
+          "Brain is Karim's Knowledge assistant.",
+        );
+        expect(partial.metadata.status).toBe("discovered");
+      },
+    );
+
+    it("migrates CRLF input", () => {
+      expect(
+        decode(saved("collective").replaceAll("\n", "\r\n")).content,
+      ).toContain("kind: organization");
+    });
+
+    it("still refuses a kind it has never known", () => {
+      expect(() => decode(saved("guild"))).toThrow();
     });
   });
 

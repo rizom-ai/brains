@@ -6,6 +6,7 @@ import {
 } from "@brains/sdk/entities";
 import { slugifyUrl } from "@brains/utils/string-utils";
 import { directoryMarkdown } from "./lib/directory-markdown";
+import { normalizeAgentFrontmatter } from "./lib/agent-content";
 import {
   agentFrontmatterSchema,
   agentMetadataSchema,
@@ -33,6 +34,14 @@ const generationInput = z.object({
   status: agentStatusSchema.optional(),
 });
 
+const agentMarkdown = directoryMarkdown((raw) => {
+  const frontmatter = agentFrontmatterSchema.parse(raw);
+  return agentMetadataSchema.parse({
+    ...frontmatter,
+    slug: slugifyUrl(frontmatter.url),
+  });
+});
+
 /**
  * A saved remote peer-brain contact in the local agent directory.
  *
@@ -48,15 +57,14 @@ export const agent: EntityDefinition<
   classification: "system",
   purpose: "A saved remote peer-brain contact in the local agent directory.",
   metadata: agentMetadataSchema,
-  markdown: directoryMarkdown((raw) => {
-    const frontmatter = agentFrontmatterSchema.parse(raw);
-    // The slug is derived rather than stored: it is a function of the url,
-    // and two records of one agent must resolve to one route.
-    return agentMetadataSchema.parse({
-      ...frontmatter,
-      slug: slugifyUrl(frontmatter.url),
-    });
-  }),
+  markdown: {
+    ...agentMarkdown,
+    decode: (input) =>
+      agentMarkdown.decode({
+        ...input,
+        frontmatter: normalizeAgentFrontmatter(input.frontmatter),
+      }),
+  },
   // Approval is the directory's publish gate: production site builds emit
   // detail routes only for approved agents.
   config: {

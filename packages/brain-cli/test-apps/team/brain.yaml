@@ -22,5 +22,5 @@ plugins:
       repo: rizom-ai/canonical-team-test-content
       gitUrl: file:///tmp/canonical-team-test-content.git
 site:
-  package: "@brains/site-default"
+  package: "@brains/site-organization"
   theme: "@brains/theme-rizom"

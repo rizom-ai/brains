@@ -13,6 +13,7 @@ import type {
   SortField,
 } from "@brains/entity-service";
 import type { LoggerContract } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import {
   BaseEntityDataSource,
   type BaseQuery,
@@ -115,7 +116,11 @@ export interface FetchDataSourceInput {
   readonly id: string;
   readonly name: string;
   readonly description: string;
-  fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
+  fetch(
+    query: unknown,
+    entities: EntityQueryReader,
+    context: { readonly publishedOnly?: boolean | undefined },
+  ): Promise<unknown>;
 }
 
 function buildEntityDataSource<
@@ -222,7 +227,8 @@ export interface DataSourceDefinition {
   readonly id: string;
   readonly name: string;
   readonly description: string;
-  fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
+  /** Frozen presentation metadata; never grants or widens reader authority. */
+  fetch: FetchDataSourceInput["fetch"];
 }
 
 /**
@@ -370,6 +376,10 @@ export type FetchingDataSource = DataSource & {
   fetch: NonNullable<DataSource["fetch"]>;
 };
 
+const dataSourceReadContextSchema = z.object({
+  publishedOnly: z.boolean().optional(),
+});
+
 export function createDeclarativeDataSource(
   definition: DataSourceDefinition,
   scopedId: string,
@@ -384,7 +394,15 @@ export function createDeclarativeDataSource(
       context: BaseDataSourceContext,
     ): Promise<T> {
       const entities = entityQueryReader(context.entityService);
-      return outputSchema.parse(await definition.fetch(query, entities));
+      const publishedOnly = context.publishedOnly;
+      const readContext = Object.freeze(
+        dataSourceReadContextSchema.parse(
+          publishedOnly === undefined ? {} : { publishedOnly },
+        ),
+      );
+      return outputSchema.parse(
+        await definition.fetch(query, entities, readContext),
+      );
     },
   };
 }

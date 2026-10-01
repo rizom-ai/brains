@@ -1,10 +1,13 @@
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdown,
-  z,
   type AnchorProfileKind,
 } from "@brains/sdk/entities";
-import { StructuredContentFormatter } from "@brains/content-formatters";
+import {
+  formatAgentBody,
+  parseAgentBody,
+  type AgentBody,
+} from "@brains/plugins";
 import {
   agentFrontmatterSchema,
   agentStatusSchema,
@@ -12,50 +15,16 @@ import {
   type AgentSkill,
   type AgentStatus,
 } from "../schemas/agent";
-import {
-  formatAgentSkills,
-  parseAgentSkills,
-} from "../lib/agent-skill-markdown";
 
-const agentBodySkillSchema: z.ZodObject<{
-  name: z.ZodString;
-  description: z.ZodString;
-  tags: z.ZodArray<z.ZodString>;
-}> = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-
-const agentBodySchema: z.ZodObject<{
-  about: z.ZodString;
-  skills: z.ZodArray<typeof agentBodySkillSchema>;
-  notes: z.ZodString;
-}> = z.object({
-  about: z.string(),
-  skills: z.array(agentBodySkillSchema),
-  notes: z.string(),
-});
-
-type AgentBody = z.output<typeof agentBodySchema>;
-
-const bodyFormatter = new StructuredContentFormatter<AgentBody>(
-  agentBodySchema,
-  {
-    title: "Agent",
-    mappings: [
-      { key: "about", label: "About", type: "string" },
-      {
-        key: "skills",
-        label: "Skills",
-        type: "custom",
-        formatter: formatAgentSkills,
-        parser: parseAgentSkills,
-      },
-      { key: "notes", label: "Notes", type: "string" },
-    ],
-  },
-);
+/** One-way migration of the two historical kinds, after YAML parsing. */
+export function normalizeAgentFrontmatter(
+  frontmatter: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const kind = frontmatter["kind"];
+  if (kind === "professional") return { ...frontmatter, kind: "person" };
+  if (kind === "collective") return { ...frontmatter, kind: "organization" };
+  return frontmatter;
+}
 
 export interface CreateAgentContentInput {
   name: string;
@@ -125,7 +94,7 @@ export function createAgentContent(input: CreateAgentContentInput): string {
   };
 
   return generateMarkdownWithFrontmatter(
-    bodyFormatter.format({
+    formatAgentBody({
       about: input.about,
       skills: input.skills,
       notes: input.notes,
@@ -140,13 +109,7 @@ export function createAgentContent(input: CreateAgentContentInput): string {
  * the directory should show it.
  */
 export function parseAgentContent(content: string): AgentBody {
-  const body = parseMarkdown(content).content;
-  if (!body.trim()) return { about: "", skills: [], notes: "" };
-  try {
-    return bodyFormatter.parse(body);
-  } catch {
-    return { about: "", skills: [], notes: "" };
-  }
+  return parseAgentBody(parseMarkdown(content).content);
 }
 
 export function parseAgentEntity(entity: { content: string }): {
@@ -155,7 +118,7 @@ export function parseAgentEntity(entity: { content: string }): {
 } {
   return {
     frontmatter: agentFrontmatterSchema.parse(
-      parseMarkdown(entity.content).frontmatter,
+      normalizeAgentFrontmatter(parseMarkdown(entity.content).frontmatter),
     ),
     body: parseAgentContent(entity.content),
   };

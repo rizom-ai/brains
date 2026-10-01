@@ -18,6 +18,7 @@ add:
   - email
   - notifications
   - obsidian-vault
+  - contact
 
 # Local test app: Admin tools (build-site etc.) available over MCP
 # http transport.
@@ -33,6 +34,39 @@ site:
 plugins:
   mcp:
     mode: debug
+  # The homepage's guest Ask box, on the local-test preset only.
+  web-chat:
+    guest:
+      preset: local-test
+      origin: http://localhost:8080
+  # Local acceptance of the contact form behind rizom.ai's "Book an audit":
+  # loopback origin and test-only limits and retention, not a production policy.
+  contact:
+    intake:
+      http:
+        origin: http://localhost:8080
+        maxBodyBytes: 20000
+        readTimeoutMs: 10000
+      admission:
+        windowSeconds: 3600
+        globalRequests: 300
+        networkRequests: 100
+        globalForms: 60
+        networkForms: 30
+        globalSubmissions: 20
+        networkSubmissions: 10
+        tokenTtlSeconds: 1800
+        receiptTtlSeconds: 600
+        maxEntries: 500
+      storage:
+        retentionSeconds: 86400
+        maxRecords: 50
+        maxBytes: 500000
+      delivery:
+        maxAttempts: 3
+        retryWindowSeconds: 3600
+      inboxUrl: http://localhost:8080/studio/workspaces/unified-inbox%3Ainbox
+      preview: true
   directory-sync:
     seedContentPath: /home/yeehaa/Documents/rizom-content
     autoSync: true

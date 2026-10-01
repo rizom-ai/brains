@@ -303,8 +303,11 @@ function readEntityMarkdown<T>(
 
 function entityAdapter(
   definition: AnyEntityDefinition,
+  statuses: readonly string[] | undefined,
 ): EntityAdapter<EntityOf<EntityDefinitionShape>, Record<string, unknown>> {
   const schema = entitySchema(definition);
+  const publishedStatuses = statuses === undefined ? undefined : [...statuses];
+  if (publishedStatuses) Object.freeze(publishedStatuses);
   if (definition.markdown?.reconstruct && !definition.validatePersist) {
     throw new Error(
       "Repairable Markdown requires an entity persistence validator",
@@ -314,6 +317,7 @@ function entityAdapter(
     entityType: definition.type,
     purpose: definition.purpose,
     schema,
+    ...(publishedStatuses === undefined ? {} : { publishedStatuses }),
     ...(definition.markdown?.frontmatter === false
       ? {}
       : {
@@ -563,7 +567,6 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.scope = scope;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
-    this.adapter = entityAdapter(definition);
     // Undefined when undeclared, so the runtime keeps its own defaults
     // rather than this surface pinning them.
     const entityConfig = definition.config;
@@ -573,6 +576,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ...copyEntityTypeConfig(entityConfig ?? {}),
       classification: definition.classification,
     });
+    this.adapter = entityAdapter(
+      definition,
+      this.entityTypeConfig.publish?.publishStatuses,
+    );
     this.seed = definition.seed;
     this.validatePersist = definition.validatePersist;
     this.templates = definition.templates;

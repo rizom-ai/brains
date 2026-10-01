@@ -5,8 +5,9 @@ export type {
   BoundStudioWorkspace,
   AnyStudioWorkspaceDefinition,
 } from "@brains/plugins";
-// Host-rendered pages inherit the site's theme. Named consumer: Web Chat's preview guest page.
-export { SitePageResponse } from "@brains/plugins";
+// Host-themed pages. Named consumers: Web Chat preview and Contact's private form slot.
+export { SitePageResponse, SITE_SLOT_ATTRIBUTE } from "@brains/plugins";
+export type { SitePageSlot } from "@brains/plugins";
 export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
 export type {
   SdkErrorCode,

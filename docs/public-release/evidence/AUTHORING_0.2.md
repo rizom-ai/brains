@@ -8,6 +8,43 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Slotted pages and import-classification integration scope
+
+Approved snapshot `f3a1d7879d6a0eb7f598b60bcb141e44bf5f6b5b` adds shared atlas/
+organization presentation, slotted site responses and process-owned renderer
+identity. The SDK port keeps declarative composition, qualified worker-safe
+Contact discovery, public `@rizom/brain-ui` identity at alpha.456, and independent
+Core/Site lanes. No native agent parser helpers or runtime factories are added to
+the public authoring surface. Contact retains script-free, no-store private pages.
+
+Organization's installed declarative source is exercised with real SQLite records
+under production/preview publication and public visibility scopes, plus a deliberately
+overinclusive deterministic projection. Shared/restricted, archived and second-order
+agents do not become public cards. This found and corrected a declaration-to-adapter
+handoff that omitted configured publish statuses. Metadata is detached at installation.
+The approved third data-source callback argument carries frozen `publishedOnly`
+metadata only; native mutation attempts cannot widen the reader. Projection/provider
+behavior is not attested by the deterministic projection fixture.
+
+Profile source validation explicitly uses the existing public `SdkError` with
+`invalid_input`; it does not import private runtime errors. Native adapter schema
+failures retain their sanitized schema/persist distinction at the mirror boundary.
+
+The packed site consumer also switches to Organization with its agents dependency,
+disables AI skill derivation, requests a preview rebuild through the running app's
+remote command surface, and checks atlas markup and the deferred content-hashed
+site asset. This is local packed-runtime evidence, not browser/provider acceptance.
+
+The real SQLite profile-import regression runs through Directory Sync and the SDK
+mirror: invalid original files are quarantined intact, sanitized logs omit source
+text, stored placeholders remain unchanged, and live-policy refusals can retry.
+The pre-fix mirror fails this regression. This is persistence/import evidence, not
+an entire fresh-boot overwrite reproduction. Native HTTP tests exercise isolated
+SDK branding, production/preview slot substitution, admission, status, headers,
+literal replacement and missing-page/marker fallback. Physical-browser, provider,
+registry, release and deployment acceptance are not implied. Final packed and
+exact-tree check results belong to the completed PR301 integration record.
+
 ## Site Builder citation handoff integration
 
 Approved main `20506f12a67d90101176e03cdb8498aea2bf75ee` and the separately

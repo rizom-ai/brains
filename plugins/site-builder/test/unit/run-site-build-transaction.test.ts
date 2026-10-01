@@ -192,6 +192,54 @@ describe("runSiteBuild transactional output", () => {
     ).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("renders again after a restart, which may bring new renderer code", async () => {
+    let renderCount = 0;
+    const factory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => {
+        renderCount += 1;
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: {
+        title: "Upgraded Site",
+        description: "Upgrade fixture",
+      },
+      siteUrl: "https://upgrade.example",
+      layouts: { default: TestLayout },
+    };
+    const buildIn = (
+      rendererIdentity: string,
+    ): ReturnType<typeof runSiteBuild> =>
+      runSiteBuild({
+        buildOptions,
+        progress: undefined,
+        pipelineContext: createPipelineContext(),
+        staticSiteBuilderFactory: factory,
+        signal: new AbortController().signal,
+        rendererIdentity,
+      });
+
+    const beforeUpgrade = await buildIn("process-before-upgrade");
+    const afterUpgrade = await buildIn("process-after-upgrade");
+
+    expect(beforeUpgrade.success).toBe(true);
+    expect(afterUpgrade.success).toBe(true);
+    expect(afterUpgrade.skipped).not.toBe(true);
+    expect(renderCount).toBe(2);
+  });
+
   it("treats the bounded output commit section as non-interruptible", async () => {
     const controller = new AbortController();
     const lifecycle = createTestSiteBuildOutputLifecycle();

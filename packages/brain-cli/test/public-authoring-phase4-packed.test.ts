@@ -250,6 +250,67 @@ describe("public authoring Phase 4 packed site contract", () => {
       runtime = undefined;
       expect(shutdown).not.toContain("missed its worker heartbeat");
       expect(shutdown).not.toContain("api.openai.com");
+
+      // Exercise the built-in declarative Organization composition in the same
+      // isolated packed app, with an explicit rebuild on the running worker.
+      const configPath = join(consumerDirectory, "brain.yaml");
+      const config = await readFile(configPath, "utf8");
+      if (!config.includes('package: "@fixture/reading-site"'))
+        throw new Error("Missing fixture site selection");
+      await writeFile(
+        configPath,
+        config
+          .replace(
+            'package: "@fixture/reading-site"',
+            'package: "@brains/site-organization"',
+          )
+          .replace("add: [mcp]", "add: [mcp, agents]")
+          .replace(
+            "plugins:\n",
+            "plugins:\n  agents:\n    enableSkillDerivation: false\n",
+          ),
+      );
+      runtime = startRuntime(consumerDirectory);
+      await runtime.waitForOutput("Brain worker runtime ready", 60_000);
+      const organizationBuilds = buildSettlementCount(runtime);
+      await runCommand(
+        [
+          "bun",
+          "run",
+          "brain",
+          "build-site",
+          "--environment",
+          "preview",
+          "--remote",
+          "http://127.0.0.1:8085",
+          "--token",
+          remoteToken,
+        ],
+        consumerDirectory,
+        { env: runtimeEnv, timeoutMs: 90_000 },
+      );
+      await waitForAdditionalBuildSettlement(runtime, organizationBuilds);
+      const organizationHtml = await waitForBuiltFile(
+        join(outputDirectory, "index.html"),
+        'data-atlas=""',
+        runtime,
+      );
+      expect(organizationHtml).not.toContain("Read with intention");
+      const atlasScript = /\/scripts\/homepage-atlas\.[a-f0-9]{12}\.js/u.exec(
+        organizationHtml,
+      )?.[0];
+      expect(atlasScript).toBeDefined();
+      if (!atlasScript)
+        throw new Error("Missing site-owned deferred atlas script");
+      expect(organizationHtml).toContain(
+        `<script src="${atlasScript}" defer></script>`,
+      );
+      expect(
+        await readFile(join(outputDirectory, atlasScript.slice(1)), "utf8"),
+      ).toContain("data-atlas");
+      const organizationShutdown = await stopRuntime(runtime);
+      runtime = undefined;
+      expect(organizationShutdown).not.toContain("api.openai.com");
     } finally {
       if (runtime) await stopRuntime(runtime);
       await rm(temporaryDirectory, { recursive: true, force: true });

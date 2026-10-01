@@ -9,7 +9,7 @@ import {
   type AtlasItem,
   type AtlasZone,
   type HomepageAtlasData,
-} from "../schemas/homepage-atlas";
+} from "@brains/site-atlas";
 
 /** The projection plus the build's scoped entity reads; nothing else. */
 export interface AtlasSource {

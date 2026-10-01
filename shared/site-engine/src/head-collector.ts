@@ -1,6 +1,6 @@
 import type { HeadProps, HeadCollectorInterface } from "@rizom/brain-ui";
 import { escapeHtml } from "@brains/utils/string-utils";
-import { essentialHeadTags } from "./essential-head";
+import { essentialHeadTags, type EssentialHeadPaths } from "./essential-head";
 
 /**
  * Simple head collector for SSR
@@ -9,9 +9,11 @@ import { essentialHeadTags } from "./essential-head";
 export class HeadCollector implements HeadCollectorInterface {
   private headProps: HeadProps | null = null;
   private defaultTitle: string;
+  private readonly paths: EssentialHeadPaths;
 
-  constructor(defaultTitle: string) {
+  constructor(defaultTitle: string, paths: EssentialHeadPaths = {}) {
     this.defaultTitle = defaultTitle;
+    this.paths = paths;
   }
 
   setHeadProps(props: HeadProps): void {
@@ -32,7 +34,7 @@ export class HeadCollector implements HeadCollectorInterface {
    */
   generateHeadHTML(): string {
     const tags: string[] = [
-      ...essentialHeadTags(),
+      ...essentialHeadTags(this.paths),
       '<meta http-equiv="X-UA-Compatible" content="IE=edge">',
     ];
 

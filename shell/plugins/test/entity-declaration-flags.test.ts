@@ -28,6 +28,7 @@ it("validates and detaches declaration flags without pinning omitted defaults", 
   const config: EntityDefinitionConfig = {
     binaryStorage: "data-url",
     markdownImport: false,
+    publish: { publishStatuses: ["approved"] },
     defaultSort: [
       { field: "publishedAt", direction: "desc", nullsFirst: true },
     ],
@@ -36,6 +37,7 @@ it("validates and detaches declaration flags without pinning omitted defaults", 
   const sort = config.defaultSort?.[0];
   if (!sort) throw new Error("Missing sort fixture");
   sort.field = "changed-by-author";
+  config.publish?.publishStatuses.push("draft");
   try {
     for (const plugin of installed) await harness.installPlugin(plugin);
     expect(
@@ -47,6 +49,11 @@ it("validates and detaches declaration flags without pinning omitted defaults", 
         { field: "publishedAt", direction: "desc", nullsFirst: true },
       ],
     });
+    const statuses = harness
+      .getEntityRegistry()
+      .getAdapter("flagged").publishedStatuses;
+    expect(statuses).toEqual(["approved"]);
+    expect(Object.isFrozen(statuses)).toBe(true);
     expect(
       createOperatorGroupings(harness.getMockShell()).canContribute("flagged"),
     ).toBe(false);

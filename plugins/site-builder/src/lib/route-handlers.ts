@@ -23,6 +23,7 @@ export function routeSubscriptions(
 ): AnySubscriptionDefinition[] {
   return [
     defineSubscription({
+      execution: "all-roles",
       topic: SITE_BUILDER_CHANNELS.routeRegister,
       payload: RegisterRoutesPayloadSchema,
       handle: ({ payload }) => {
