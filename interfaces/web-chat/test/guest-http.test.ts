@@ -14,6 +14,7 @@ import {
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import {
+  TOPIC_TITLES_MESSAGE,
   NOTE_CAPTURE_MESSAGE,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
@@ -102,6 +103,8 @@ async function setup(
     usageRecord?: GuestUsageBounds;
     /** Whether the brain has the note type a question can be saved as. */
     notes?: boolean;
+    /** The brain's public topic titles, as its topics plugin answers. */
+    topics?: string[];
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
@@ -255,6 +258,16 @@ async function setup(
     );
   // Stands in for the note plugin: it answers captures and owns the note type.
   const captured: NoteCaptureRequest[] = [];
+  // Stands in for the topics plugin: it answers with its public topic titles.
+  const topics = options.topics;
+  if (topics)
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe(TOPIC_TITLES_MESSAGE, () => ({
+        success: true,
+        data: { titles: topics },
+      }));
   if (options.notes) {
     harness
       .getMockShell()
@@ -1260,21 +1273,25 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(state.calls).toHaveLength(0);
   });
 
-  it("screens a question against the site's topics, in its own refusal words", async () => {
-    const state = await setup();
+  it("screens a question against the brain's topics and the owner's introduction, in its own refusal words", async () => {
+    const state = await setup({
+      topics: ["Ecosystem Architecture", "Trust Networks"],
+    });
+    // The page's starter questions are not the site's subjects.
     await state.askContent(
-      "---\ntopics:\n  - Memory institutions\nrefusal: I only talk about my work.\n---\nWelcome.",
+      "---\ntopics:\n  - A starter question\nrefusal: I only talk about my work.\n---\nI work on how institutions hold what they know.",
     );
     const browser = state.browser();
     await browser.client.openGuestSession();
     await events(await browser.client.streamMessages(message()));
     expect(state.calls[0]?.[2]?.guestScreening).toEqual({
-      topics: ["Memory institutions"],
+      topics: ["Ecosystem Architecture", "Trust Networks"],
+      introduction: "I work on how institutions hold what they know.",
       refusal: "I only talk about my work.",
     });
   });
 
-  it("screens a question without topics or refusal words when the site wrote none", async () => {
+  it("screens a question without subjects or refusal words where there are none", async () => {
     const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();

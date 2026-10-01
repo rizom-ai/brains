@@ -943,49 +943,6 @@ exports[`professional homepage pin ships the atlas script with the opted-in home
   "staticAssets": {
     "/scripts/homepage-atlas.js": 
 "(function () {
-  document.querySelectorAll("[data-atlas-faqs]").forEach(function (band) {
-    var index = band.querySelector(".faqs__index");
-    if (!index) return;
-    var stacked = window.matchMedia
-      ? window.matchMedia("(max-width: 60rem)")
-      : { matches: true, addEventListener: function () {} };
-    var reader = null;
-    function show() {
-      if (!reader) return;
-      var open = band.querySelector("details[open] .faqs__answer");
-      reader.innerHTML = open ? open.innerHTML : "";
-    }
-    function layout() {
-      if (stacked.matches) {
-        band.removeAttribute("data-split");
-        if (reader) reader.remove();
-        reader = null;
-        return;
-      }
-      band.setAttribute("data-split", "");
-      if (!reader) {
-        reader = document.createElement("div");
-        reader.className = "faqs__reader";
-        reader.setAttribute("data-atlas-faqs-reader", "");
-        reader.setAttribute("aria-live", "polite");
-        index.parentNode.appendChild(reader);
-      }
-      show();
-    }
-    band.querySelectorAll("details").forEach(function (details) {
-      details.addEventListener("toggle", function () {
-        // Side by side, an answer always shows: closing the open one keeps it open.
-        if (reader && !details.hasAttribute("open") && !band.querySelector("details[open]")) {
-          details.setAttribute("open", "");
-          return;
-        }
-        show();
-      });
-    });
-    if (stacked.addEventListener) stacked.addEventListener("change", layout);
-    layout();
-  });
-
   var roots = document.querySelectorAll("[data-atlas]");
   if (!roots.length) return;
 
