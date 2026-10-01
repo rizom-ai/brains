@@ -570,6 +570,7 @@
     "core--site-manifest-path-single-constant",
     "core--site-metadata-single-schema",
     "core--site-render-after-restart",
+    "core--site-routes-reach-the-worker",
     "core--site-template-render-version",
     "core--sqlite-asset-foundation",
     "core--standalone-ask-design",

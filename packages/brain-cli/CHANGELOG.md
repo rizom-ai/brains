@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- [#463](https://github.com/rizom-ai/brains/pull/463) [`fa9c090`](https://github.com/rizom-ai/brains/commit/fa9c090c26e3534b5be0592e657c41974abb80f3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder's route registry hears the pages plugins declare in the worker process too. The site builds in the worker, which takes no ordinary message subscriptions, so pages registered through the site builder's channel — the contact form's — were missing from every built site while the serving process listed them.
+
 ## 0.2.0-alpha.465
 
 ### Patch Changes
