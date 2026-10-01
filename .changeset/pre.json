@@ -392,6 +392,7 @@
     "core--export-raw-entity-source",
     "core--faq-band-alignment",
     "core--faq-capture",
+    "core--faq-closed-screening-scope",
     "core--faq-retry-eligibility",
     "core--faq-visitor-capture",
     "core--fenced-job-attempts",
