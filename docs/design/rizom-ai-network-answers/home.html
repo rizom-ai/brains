@@ -8348,7 +8348,7 @@
 .ask__topics .asked__count { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .08em; color: var(--color-text-muted); }
 .asked .asked__list { max-width: var(--words); margin-top: 1.5rem; border-top: 1px solid var(--color-border); }
 .asked details { border-bottom: 1px solid var(--color-border); }
-.asked summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: baseline; padding: .9rem 0; font-family: var(--font-display); font-style: italic; font-size: 1.2rem; line-height: 1.3; color: var(--color-text); font-variation-settings: "SOFT" 70, "opsz" 24; }
+.asked summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: baseline; padding: .9rem 0; font-family: var(--font-display); font-style: italic; font-size: 1.2rem; line-height: 1.3; color: var(--color-text); font-variation-settings: "SOFT" 70, "opsz" 24; }
 .asked summary::-webkit-details-marker { display: none; }
 .asked summary .asked__count { font-family: var(--font-mono); font-style: normal; font-size: .66rem; letter-spacing: .08em; color: var(--color-text-muted); }
 .asked summary::after { content: "+"; font-family: var(--font-mono); font-style: normal; color: var(--color-accent); }
@@ -8373,7 +8373,7 @@
       <button type="button" class="opening__send" aria-label="Send question"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"></path></svg></button>
     </div>
   </div>
-  <ul class="ask__topics" aria-label="Asked before"></ul>
+  <ul class="ask__topics" aria-label="Suggested questions"></ul>
   <section class="answer" aria-live="polite" hidden>
     <p class="answer__question"></p>
     <p class="answer__status"><span class="answer__dot"></span><span class="answer__status-text"></span></p>
@@ -8393,16 +8393,18 @@
 </main>
 <footer class="site-footer footer-grid relative z-[1] grid gap-10 border-t border-theme px-4 pt-11 pb-[38px] sm:grid-cols-2 sm:px-6 md:px-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20"><div class="footer-brand"><a href="/" class="wordmark font-display text-[30px] font-semibold tracking-[-0.01em] [font-variation-settings:&#x27;SOFT&#x27;_100]"><span class="text-theme">rizom</span><span class="text-accent">.</span></a><p class="mt-2.5 max-w-[26ch] font-body text-[13.5px] text-theme-light">Build the agent that represents you.</p></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">The brain</div><a href="/brain#quickstart" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Get started</a><a href="https://docs.rizom.ai" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Documentation ↗</a><a href="https://github.com/rizom-ai" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">GitHub ↗</a></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">The practice</div><a href="/work#audit" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">The Knowledge Audit</a><a href="/contact" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Contact</a></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">The foundation</div><a href="/foundation" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Manifesto</a><a href="/writing" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Writing</a><a href="/foundation#events" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Events</a><a href="/foundation#support" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Support</a></div><div class="footer-base col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light"><span>© 2026 Rizom</span></div></footer>
 </div></div></div>
-<p class="mock-note">Mockup · the network answers<br>The suggestions are questions asked before: they play at once. Type your own for the live sequence. Open a question in “Asked before” below. Hover or focus a source, a name, a dot.</p>
+<p class="mock-note">Mockup · the network answers<br>The suggestions are the owner’s openers and run the live sequence. “Asked before” below holds what visitors asked; typing one of those plays its kept answer at once. Hover or focus a source, a name, a dot.</p>
 <script>
 (function () {
+  // Visitors' questions the owner kept, most asked first; the count sorts them and is never shown.
   var faqs = [
-    { asked: 23, question: "How do independent brains work together?", key: "together" },
-    { asked: 17, question: "What changes when a brain is yours?", key: "yours" },
-    { asked: 11, question: "Where would I start with my own material?", key: "start" },
-    { asked: 9, question: "Who owns what a brain remembers?", key: "owns" },
-    { asked: 6, question: "Can a brain answer for a whole team?", key: "team" }
+    { asked: 23, question: "Who owns what a brain remembers?" },
+    { asked: 17, question: "Can a brain answer for a whole team?" },
+    { asked: 11, question: "Is what I tell a brain used to train a model?" },
+    { asked: 6, question: "Can I run a brain on my own machine?" }
   ];
+  // The owner's openers under the box, from the Ask note.
+  var prompts = ["What changes when a brain is yours?", "How do independent brains work together?", "Where would I start with my own material?"];
   var answers = {
     "What changes when a brain is yours?": {
       rizom: { piece: "What a brain is", kind: "page", href: "/brain" },
@@ -8434,6 +8436,18 @@
       replies: [ { name: "Natalie", piece: "Ownership of working notes", kind: "note", sentence: "<a data-brain=\"Natalie\">Natalie’s brain</a> keeps her team’s rule for it: the notes belong to the people who wrote them, and the team keeps a copy of what it decided together." } ],
       text: ["The people who made it. A brain lives in files its owner can read, move and delete; nothing is held by Rizom.", "@replies"],
       by: "Rizom, with Natalie"
+    },
+    "Is what I tell a brain used to train a model?": {
+      rizom: { piece: "What a brain is", kind: "page", href: "/brain" },
+      replies: [ { name: "Jo", piece: "What leaves the building", kind: "note", sentence: "<a data-brain=\"Jo\">Jo’s brain</a> keeps the list his team made of what never leaves the building; the model sees a question and the pieces it needs, and keeps nothing." } ],
+      text: ["No. A brain calls a model to answer; the model is given what it needs for that answer and nothing is kept from it.", "@replies"],
+      by: "Rizom, with Jo"
+    },
+    "Can I run a brain on my own machine?": {
+      rizom: { piece: "Get started", kind: "docs", href: "/brain" },
+      replies: [ { name: "Yeehaa", piece: "Scale without a centre", kind: "essay", sentence: "<a data-brain=\"Yeehaa\">Yeehaa’s brain</a> has run on a laptop since the first week; the essay on it is where the idea of a network of small brains started." } ],
+      text: ["Yes. A brain is a program and a folder of files; it runs where you put it, and the hosted one is the same program.", "@replies"],
+      by: "Rizom, with Yeehaa"
     },
     "Can a brain answer for a whole team?": {
       rizom: { piece: "The Knowledge Audit", kind: "page", href: "/work" },
@@ -8538,9 +8552,9 @@
     later(drawLeads, 450);
   }
   var topicsList = document.querySelector(".ask__topics");
-  faqs.slice(0, 3).forEach(function (f) {
+  prompts.forEach(function (p) {
     var li = document.createElement("li");
-    li.innerHTML = "<button type=\"button\" data-atlas-fill=\"" + f.question + "\">" + f.question + "</button><span class=\"asked__count\">· " + f.asked + "</span>";
+    li.innerHTML = "<button type=\"button\" data-atlas-fill=\"" + p + "\">" + p + "</button>";
     topicsList.append(li);
   });
   function faqFor(q) { return faqs.find(function (f) { return f.question === q; }); }
@@ -8560,7 +8574,7 @@
       // 1. asked: the center pulses, every thread runs outward.
       later(function () {
         layer.classList.remove("is-asking");
-        if (faq) status.textContent = "Asked before · " + faq.asked + " times";
+        if (faq) status.textContent = "Asked before";
         // 2. sources known before the text finishes: brains light in arrival order.
         layer.classList.add("has-replies"); if (a.rizom) layer.classList.add("is-rizom");
         if (!faq) status.textContent = a.replies.length ? (["One brain answered", "Two brains answered", "Three brains answered"][a.replies.length - 1] || a.replies.length + " brains answered") : "Rizom answered";
@@ -8582,7 +8596,7 @@
   faqs.forEach(function (f) {
     var a = answers[f.question]; if (!a) return;
     var d = document.createElement("details"); d.setAttribute("name", "faqs");
-    d.innerHTML = "<summary><span>" + f.question + "</span><span class=\"asked__count\">asked " + f.asked + " times</span></summary><div class=\"answer\"><div class=\"answer__body\"></div><p class=\"answer__by\"></p><ul class=\"answer__sources\" aria-label=\"Sources\"></ul></div>";
+    d.innerHTML = "<summary><span>" + f.question + "</span></summary><div class=\"answer\"><div class=\"answer__body\"></div><p class=\"answer__by\"></p><ul class=\"answer__sources\" aria-label=\"Sources\"></ul></div>";
     var body = d.querySelector(".answer__body");
     body.innerHTML = a.text.map(function (p) { return "<p>" + (p === "@replies" ? a.replies.map(function (r) { return r.sentence; }).join(" ") : p) + "</p>"; }).join("");
     body.querySelectorAll("a[data-brain]").forEach(function (x) { x.setAttribute("href", hrefFor(x.getAttribute("data-brain"))); bindPointing(x, x.getAttribute("data-brain")); });
