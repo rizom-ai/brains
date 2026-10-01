@@ -15,6 +15,7 @@ import {
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { MockEntityStore } from "./mock-entity-store";
+import { createMockReceiptMethods } from "./mock-entity-receipts";
 
 /**
  * A stateful EntityService double over a shared store.
@@ -151,6 +152,7 @@ export function createMockEntityService(
   }
 
   const service: IEntityService = {
+    ...createMockReceiptMethods(store),
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
     ): Promise<EntityMutationResult> => {
