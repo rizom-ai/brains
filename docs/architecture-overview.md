@@ -27,7 +27,9 @@ canonical definition + explicit brain.yaml bundles = running brain
 The published Brain remains one Bun package, bundle, image, and container. Its
 entrypoint owns two children from that same bundle: a web process for
 interfaces, ingress, daemons, scheduling, and enqueue validation, and a worker
-process for durable queue execution. The parent runs migrations once, admits
+process for durable queue execution. The worker runs no interfaces; it
+registers only each message interface's channels and senders, so queued work
+can still send on them. The parent runs migrations once, admits
 the worker only after the web process reports runtime readiness, and respawns a
 failed worker under a bounded rolling budget without taking web serving down.
 After worker readiness, a five-second IPC heartbeat lets the parent kill and

@@ -268,6 +268,15 @@ export class EmailInterface extends MessageInterfacePlugin<
         }),
       );
     }
+  }
+
+  /**
+   * The Email channel and its Resend sender. Registered in the worker too, so
+   * contact alerts and other background jobs can send email.
+   */
+  protected override registerChannels(
+    context: MessageInterfacePluginContext,
+  ): void {
     context.channels.registerDescriptor({
       type: "email",
       displayName: "Email",
