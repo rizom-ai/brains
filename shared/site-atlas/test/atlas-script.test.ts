@@ -21,8 +21,11 @@ function setup(options: {
   touch: boolean;
   still?: boolean;
   chat?: "live" | "off";
+  narrow?: boolean;
 }): void {
   media["(hover: none)"] = options.touch;
+  if (options.narrow !== undefined)
+    media["(max-width: 60rem)"] = options.narrow;
   media["(prefers-reduced-motion: reduce)"] = options.still ?? false;
   window.document.body.innerHTML = `
     <section data-atlas>
@@ -39,7 +42,13 @@ function setup(options: {
         </ul>
       </div></div>
     </section>
-    <p id="outside">Elsewhere</p>`;
+    <p id="outside">Elsewhere</p>
+    <section data-atlas-faqs>
+      <div class="faqs__inner"><div class="faqs__index">
+        <details id="faq-one" name="faqs" open><summary>First question?</summary><div class="faqs__answer"><p>First <strong>answer</strong>.</p></div></details>
+        <details id="faq-two" name="faqs"><summary>Second question?</summary><div class="faqs__answer"><p>Second answer.</p></div></details>
+      </div></div>
+    </section>`;
   // Marks sit 40px apart on a phone-sized map; each is a 26px hit target.
   window.document
     .querySelectorAll("[data-atlas-mark]")
@@ -86,6 +95,8 @@ function openMarks(): string[] {
 }
 
 beforeEach(() => {
+  // Each test starts on a wide, hovering screen unless it says otherwise.
+  for (const query of Object.keys(media)) delete media[query];
   window = new Window({ url: "https://yeehaa.test/" });
   observed = [];
   watchers = [];
@@ -122,6 +133,60 @@ beforeEach(() => {
 afterEach(() => {
   window.close();
   restoreGlobals();
+});
+
+/**
+ * Opens one FAQ as a browser does for exclusive details: the chosen one opens
+ * and the open one closes, and only then do their toggle events fire.
+ */
+function openFaq(id: string): void {
+  const all = Array.from(
+    window.document.querySelectorAll("details[name=faqs]"),
+  );
+  const changed = all.filter(
+    (details) => details.hasAttribute("open") !== (details.id === id),
+  );
+  // Chosen first, so the page never sees a moment with none open.
+  changed.sort((a, b) => Number(b.id === id) - Number(a.id === id));
+  for (const details of changed)
+    if (details.id === id) details.setAttribute("open", "");
+    else details.removeAttribute("open");
+  for (const details of changed)
+    details.dispatchEvent(new window.Event("toggle"));
+}
+
+function reader(): string | undefined {
+  return window.document.querySelector("[data-atlas-faqs-reader]")?.innerHTML;
+}
+
+describe("published FAQs under the atlas", () => {
+  it("reads the open answer beside the questions on a wide screen", () => {
+    setup({ touch: false });
+    const band = window.document.querySelector("[data-atlas-faqs]");
+    expect(band?.hasAttribute("data-split")).toBe(true);
+    expect(reader()).toContain("First <strong>answer</strong>.");
+    openFaq("faq-two");
+    expect(reader()).toContain("Second answer.");
+  });
+
+  it("keeps one answer open while they read side by side", () => {
+    setup({ touch: false });
+    const first = window.document.querySelector("#faq-one");
+    first?.removeAttribute("open");
+    first?.dispatchEvent(new window.Event("toggle"));
+    expect(first?.hasAttribute("open")).toBe(true);
+    expect(reader()).toContain("First <strong>answer</strong>.");
+  });
+
+  it("leaves the questions stacked on a narrow screen", () => {
+    setup({ touch: true, narrow: true });
+    expect(
+      window.document
+        .querySelector("[data-atlas-faqs]")
+        ?.hasAttribute("data-split"),
+    ).toBe(false);
+    expect(reader()).toBeUndefined();
+  });
 });
 
 describe("atlas on touch screens", () => {

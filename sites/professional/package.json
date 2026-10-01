@@ -7,6 +7,7 @@
     "@brains/blog": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/decks": "workspace:*",
+    "@brains/faq": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/site-atlas": "workspace:*",
