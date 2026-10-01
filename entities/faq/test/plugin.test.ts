@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { CONVERSATION_MESSAGE_ADDED_CHANNEL } from "@brains/plugins";
+import {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { FaqPlugin } from "../src";
 
@@ -73,6 +76,32 @@ describe("FaqPlugin", () => {
 
     expect(await queuedCaptures()).toEqual([]);
   });
+
+  // Visitors ask the questions a public FAQ answers. Their replies become
+  // public drafts the owner reviews; their own messages are never captured.
+  it("queues a public capture for a reply to a site visitor", async () => {
+    await harness.sendMessage(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL, {
+      conversationId: "guest-1",
+      messageId: "g2",
+      role: "assistant",
+      position: 4,
+    });
+    await harness.sendMessage(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL, {
+      conversationId: "guest-1",
+      messageId: "g1",
+      role: "user",
+      position: 3,
+    });
+
+    expect(await queuedCaptures()).toEqual([
+      {
+        conversationId: "guest-1",
+        messageId: "g2",
+        userPermissionLevel: "public",
+        position: 4,
+      },
+    ]);
+  });
 });
 
 describe("FaqPlugin site surface", () => {
@@ -125,6 +154,26 @@ describe("FaqPlugin disabled", () => {
       content: "text",
       metadata: { userPermissionLevel: "admin" },
       timestamp: new Date().toISOString(),
+    });
+
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getActiveJobs();
+    expect(jobs.filter((job) => job.type.endsWith("faq-capture"))).toEqual([]);
+  });
+
+  it("queues nothing for a site visitor's reply when capture is disabled", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    await harness.installPlugin(new FaqPlugin({ enabled: false }));
+
+    await harness.sendMessage(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL, {
+      conversationId: "guest-1",
+      messageId: "g2",
+      role: "assistant",
+      position: 4,
     });
 
     const jobs = await harness

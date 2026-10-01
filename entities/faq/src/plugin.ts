@@ -6,6 +6,7 @@ import type {
   Template,
 } from "@brains/plugins";
 import {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   EntityPlugin,
   UserPermissionLevelSchema,
@@ -53,6 +54,14 @@ const assistantReplySchema = z.object({
   messageId: z.string(),
   role: z.literal("assistant"),
   metadata: z.object({ userPermissionLevel: UserPermissionLevelSchema }),
+});
+
+/** A reply to a site visitor: where it is, never what it says. */
+const guestReplySchema = z.object({
+  conversationId: z.string(),
+  messageId: z.string(),
+  role: z.literal("assistant"),
+  position: z.number().int().positive(),
 });
 
 /** The part of an embedding-ready event reconciliation needs. */
@@ -167,6 +176,24 @@ export class FaqPlugin extends EntityPlugin<
           messageId: reply.data.messageId,
           userPermissionLevel: reply.data.metadata.userPermissionLevel,
           position,
+        };
+        await context.jobs.enqueue({ type: "faq-capture", data });
+        return { success: true };
+      },
+    );
+
+    // A site visitor's reply answered a public turn, so its FAQ is a public
+    // draft the owner reviews before anything is published.
+    context.messaging.subscribe(
+      CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+      async (message) => {
+        const reply = guestReplySchema.safeParse(message.payload);
+        if (!reply.success) return { success: true };
+        const data: FaqCaptureJobData = {
+          conversationId: reply.data.conversationId,
+          messageId: reply.data.messageId,
+          userPermissionLevel: "public",
+          position: reply.data.position,
         };
         await context.jobs.enqueue({ type: "faq-capture", data });
         return { success: true };

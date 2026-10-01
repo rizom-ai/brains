@@ -636,6 +636,7 @@ export type {
   IConversationService,
 } from "@brains/conversation-service";
 export {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,
