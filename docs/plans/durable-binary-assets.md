@@ -19,6 +19,9 @@ Independent fixes on `main`: #478 (site preparation yields between sections), #4
 (body-image discovery, the `926533fda4` port) and #480 (entity lookups return stored
 content, so writers never persist resolved image bytes).
 
+This plan is a stable `0.2.0` release gate. Images and PDFs reach their completion
+criteria, including bridge removal, before the final alpha is nominated.
+
 No instance has migrated. Next is Phase 6, the rehearsal on a copy of `yeehaa.io`. This
 plan is the single source for asset storage and proceeds independently of
 [turso-salvage.md](./turso-salvage.md).
@@ -216,7 +219,7 @@ every entity reference, rollback retention, directory-sync recovery and backup r
 
 ### Compatibility window
 
-Entity get/list gain a `binaryContent` mode. For one release, an omitted mode means
+Entity get/list gain a `binaryContent` mode. Until bridge removal, which lands before stable `0.2.0`, an omitted mode means
 `"legacy-data-url"`, which materializes today's data URLs for legacy callers. New
 internal callers pass `"reference"`, which returns the stored reference and never loads
 bytes. Telemetry counts legacy materializations per caller surface without logging
@@ -320,9 +323,10 @@ Each phase is one PR, tests first.
 
 5. **Migration tooling:** `brain assets:migrate [--dry-run]`, `brain assets:verify` and
    `brain assets:reconcile`, plus asset verification in the pre-deploy backup.
-6. **Rehearsal and production cutover.**
-7. **Soak and bridge removal.**
-8. **PDF follow-up**, after images soak without open defects.
+6. **Rehearsal and production cutover** on a `0.2` alpha. `yeehaa.io` runs migrated
+   storage before final-alpha nomination.
+7. **Soak and bridge removal**, before stable `0.2.0`.
+8. **PDFs**, after images soak without open defects, before stable `0.2.0`.
 
 ### Migration (Phase 5)
 
