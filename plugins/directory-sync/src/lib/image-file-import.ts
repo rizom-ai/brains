@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { basename, dirname, extname, join } from "node:path";
 import {
   describeImageBytes,
   IMAGE_HEADER_BYTES,
@@ -12,6 +13,7 @@ import {
 } from "@brains/plugins";
 import type { ImportResult, RawEntity } from "../types";
 import { fileDigest, type FileOperations } from "./file-operations";
+import { IMAGE_EXTENSIONS } from "./image-file-utils";
 import {
   persistImportEntity,
   type ImportPersistenceDeps,
@@ -47,12 +49,23 @@ export async function importImageFile(
     throw new Error("Directory import destination changed after admission");
 
   const storedDigest = storedImageDigest(snapshot?.entity.content);
-  if (
-    storedDigest !== undefined &&
-    storedDigest === (await fileDigest(file.fullPath))
-  ) {
-    recordSkippedImport(result);
-    return;
+  if (storedDigest !== undefined) {
+    if (storedDigest === (await fileDigest(file.fullPath))) {
+      recordSkippedImport(result);
+      return;
+    }
+    // Export writes one file per image; a sibling holding the stored bytes
+    // makes this one a stale copy, which must not replace the image.
+    const holder = await siblingHolding(file.fullPath, storedDigest);
+    if (holder) {
+      recordSkippedImport(result);
+      recordImportIssue(
+        result,
+        filePath,
+        `Skipped: ${basename(holder)} holds the stored image; ${basename(file.fullPath)} is a stale copy.`,
+      );
+      return;
+    }
   }
 
   const described = describeImageBytes(
@@ -114,4 +127,21 @@ function storedImageDigest(content: string | undefined): string | undefined {
     return undefined;
   }
   return hash.digest("hex");
+}
+
+/** Another image file of the same id whose bytes have this digest. */
+async function siblingHolding(
+  fullPath: string,
+  digest: string,
+): Promise<string | undefined> {
+  const stem = join(dirname(fullPath), basename(fullPath, extname(fullPath)));
+  const siblings = IMAGE_EXTENSIONS.map(
+    (extension) => `${stem}${extension}`,
+  ).filter((path) => path !== fullPath);
+  const digests = await Promise.all(
+    siblings.map(async (path) =>
+      (await Bun.file(path).exists()) ? fileDigest(path) : undefined,
+    ),
+  );
+  return siblings.find((_, index) => digests[index] === digest);
 }
