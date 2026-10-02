@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
+import { answeredBy } from "@brains/contracts";
 import { createTemplate, type Template } from "@brains/templates";
 import { MarkdownContent } from "@brains/ui-library";
 import { z } from "@rizom/site";
@@ -60,17 +61,6 @@ type AskedSource = z.output<typeof askedSourceSchema>;
 
 const OWNER = "Rizom";
 
-/** "Rizom, with Becca and Jo": the brains an answer drew on, after the one answering. */
-export function answeredBy(brains: readonly string[]): string {
-  const names = brains.filter((name, i) => brains.indexOf(name) === i);
-  if (names.length === 0) return OWNER;
-  const list =
-    names.length === 1
-      ? names[0]
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return `${OWNER}, with ${list}`;
-}
-
 /** What the drawing needs of a kept source: its key, title and brain. */
 function forDrawing(sources: AskedSource[]): string {
   return JSON.stringify(
@@ -96,7 +86,9 @@ function Sources({ sources }: { sources: AskedSource[] }): JSX.Element | null {
   );
   return (
     <>
-      {brains.length > 0 && <p className="asked__by">{answeredBy(brains)}</p>}
+      {brains.length > 0 && (
+        <p className="asked__by">{answeredBy(OWNER, brains)}</p>
+      )}
       <ul className="asked__sources" aria-label="Sources">
         {sources.map((source) => (
           <li

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { askSourcesDetailSchema, chatSourceCitationSchema } from "../src/chat";
 import { SourceCitationSchema } from "../src/agent-response";
+import { answeredBy } from "../src/ask-box";
 
 // A source may come from another brain's published memory. The citation and
 // the host event carry that brain, so a page can show whose memory answered.
@@ -56,5 +57,15 @@ describe("a source's brain", () => {
         sources: [{ id: "x", title: "x", brain: { name: "B", url: "nope" } }],
       }),
     ).toThrow();
+  });
+});
+
+describe("who answered", () => {
+  it("names the owner, then each brain once, in arrival order", () => {
+    expect(answeredBy("Rizom", [])).toBe("Rizom");
+    expect(answeredBy("Rizom", ["Becca"])).toBe("Rizom, with Becca");
+    expect(answeredBy("Rizom", ["Jo", "Becca", "Jo", "Sam"])).toBe(
+      "Rizom, with Jo, Becca and Sam",
+    );
   });
 });

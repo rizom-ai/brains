@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { ReactElement } from "react";
 import { Streamdown } from "streamdown";
-import { ASK_SOURCE_ATTRIBUTE } from "@brains/contracts";
+import { ASK_SOURCE_ATTRIBUTE, answeredBy } from "@brains/contracts";
 import {
   getGuestSourceCards,
   type ChatCard,
@@ -57,17 +57,6 @@ export function GuestMarkdown({
       {children}
     </Streamdown>
   );
-}
-
-/** "Rizom, with Becca and Jo": the brains an answer drew on, after the one answering. */
-export function answeredBy(owner: string, brains: readonly string[]): string {
-  const names = brains.filter((name, i) => brains.indexOf(name) === i);
-  if (names.length === 0) return owner;
-  const list =
-    names.length === 1
-      ? names[0]
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return `${owner}, with ${list}`;
 }
 
 /** An answer's sources as links to what it drew on, each marked for its host

@@ -28,6 +28,7 @@ export {
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
   askBoxAvailabilitySchema,
+  answeredBy,
   askSourcesDetailSchema,
   sourceBrainSchema,
   type AskBoxAvailability,
