@@ -380,3 +380,187 @@ describe("the Asked-before chapter lights the network", () => {
     expect(story?.classList.contains("is-asked")).toBe(false);
   });
 });
+
+describe("the drawing belongs to the page while an answer is open", () => {
+  const brains = ["becca.rizom.ai", "jo.rizom.ai"];
+  const media: Record<string, boolean> = {};
+  let watchers: Array<() => void> = [];
+  const mutate = (): void => watchers.forEach((notify) => notify());
+  let scrolledTo: number[] = [];
+  function rect(
+    left: number,
+    top: number,
+    width: number,
+    height: number,
+  ): DOMRect {
+    return {
+      left,
+      top,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height,
+      x: left,
+      y: top,
+      toJSON: () => ({}),
+    };
+  }
+  function opening(options: { narrow: boolean }): void {
+    media["(max-width: 60rem)"] = options.narrow;
+    watchers = [];
+    scrolledTo = [];
+    window.document.body.innerHTML = `
+      <div class="story">
+        <div class="chapters">
+          <section class="chapter chapter--opening" id="hero">
+            <div class="ask"><div class="opening__ask" data-ask-box="">
+              <div class="brain-box-scroll">
+                <div class="brain-box-dock" data-ask-dock=""></div>
+                <ul class="brain-box-sources">
+                  <li data-ask-source="network-piece:becca/post/handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
+                  <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
+                </ul>
+              </div>
+            </div></div>
+            <svg class="net-leads" data-net-leads="" aria-hidden="true"></svg>
+            <div class="net-layer">
+              <svg class="net-svg">
+                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+              </svg>
+              <ul class="net-marks">
+                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+              </ul>
+            </div>
+          </section>
+        </div>
+        <figure class="figure" data-stage="0" data-stages="7"></figure>
+      </div>`;
+    const hero = window.document.querySelector("#hero");
+    Object.assign(hero ?? {}, {
+      getBoundingClientRect: () => rect(0, 0, 1440, 900),
+    });
+    window.document.querySelectorAll("[data-ask-source]").forEach((row, i) => {
+      Object.assign(row, {
+        getBoundingClientRect: () => rect(80, 400 + i * 40, 300, 24),
+      });
+    });
+    window.document.querySelectorAll(".net-mark").forEach((mark, i) => {
+      Object.assign(mark, {
+        getBoundingClientRect: () => rect(900 + i * 100, 200, 26, 26),
+      });
+    });
+    const scroller = window.document.querySelector(".brain-box-scroll");
+    if (!scroller) throw new Error("fixture");
+    Object.assign(scroller, {
+      getBoundingClientRect: () => rect(60, 100, 360, 600),
+      scrollTo: (options: { top: number }) => {
+        scrolledTo.push(options.top);
+      },
+    });
+    // The conversation's measurements are read-only on the element itself.
+    Object.defineProperty(scroller, "clientHeight", { value: 600 });
+    Object.defineProperty(scroller, "scrollTop", { value: 0, writable: true });
+    class Watcher {
+      constructor(callback: () => void) {
+        watchers.push(callback);
+      }
+      observe(): void {}
+    }
+    restoreGlobals = installGlobals({
+      window,
+      document: window.document,
+      innerHeight: 900,
+      scrollY: 0,
+      addEventListener: window.addEventListener.bind(window),
+      getComputedStyle: window.getComputedStyle.bind(window),
+      CustomEvent: window.CustomEvent,
+      matchMedia: (query: string) => ({
+        matches: media[query] ?? false,
+        addEventListener: (): void => undefined,
+      }),
+      MutationObserver: Watcher,
+      requestAnimationFrame: (fn: () => void): number => {
+        fn();
+        return 1;
+      },
+    });
+    new Function(storyRuntimeScript)();
+  }
+  function answer(
+    sources: Array<{ id: string; brain?: { name: string; url?: string } }>,
+  ): void {
+    window.document.querySelector("[data-ask-box]")?.dispatchEvent(
+      new window.CustomEvent("ask:sources", {
+        bubbles: true,
+        detail: { sources: sources.map((s) => ({ title: s.id, ...s })) },
+      }),
+    );
+  }
+  const leads = (): Array<[string | null, string | null]> =>
+    Array.from(
+      window.document.querySelectorAll("[data-net-leads] path"),
+      (path) => [path.getAttribute("data-lead"), path.getAttribute("d")],
+    );
+  const becca = {
+    id: "network-piece:becca/post/handoffs",
+    brain: { name: "Becca", url: "https://becca.rizom.ai" },
+  };
+
+  test("on desktop, a dotted lead runs from each listed source to its brain", () => {
+    opening({ narrow: false });
+    answer([becca, { id: "post:what-a-brain-is" }]);
+    // From just right of Becca's row to just short of her dot; Rizom's own
+    // piece has no dot to lead to.
+    expect(leads()).toEqual([
+      [
+        "network-piece:becca/post/handoffs",
+        "M386 412 C645 412 645 213 904 213",
+      ],
+    ]);
+    answer([]);
+    expect(leads()).toEqual([]);
+  });
+
+  test("draws no leads on a phone, where the drawing sits above the words", () => {
+    opening({ narrow: true });
+    answer([becca]);
+    expect(leads()).toEqual([]);
+  });
+
+  test("on a phone the drawing joins the open conversation, and comes back when it closes", () => {
+    opening({ narrow: true });
+    const host = window.document.querySelector("[data-ask-box]");
+    host?.setAttribute("data-ask-sheet", "");
+    mutate();
+    const dock = window.document.querySelector("[data-ask-dock]");
+    expect(dock?.querySelector(".net-layer")).not.toBe(null);
+    expect(window.document.querySelector("#hero > .net-slot")).not.toBe(null);
+    host?.removeAttribute("data-ask-sheet");
+    mutate();
+    expect(dock?.querySelector(".net-layer")).toBe(null);
+    expect(window.document.querySelector("#hero > .net-layer")).not.toBe(null);
+    expect(window.document.querySelector(".net-slot")).toBe(null);
+  });
+
+  test("in the open conversation, a tap on a lit dot brings its source into view", () => {
+    opening({ narrow: true });
+    const host = window.document.querySelector("[data-ask-box]");
+    host?.setAttribute("data-ask-sheet", "");
+    mutate();
+    answer([becca]);
+    const dot = window.document.querySelector(
+      '.net-mark[data-brain="becca.rizom.ai"] a',
+    );
+    const followed = dot?.dispatchEvent(
+      new window.MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+    expect(followed).toBe(false);
+    // The row's middle to the conversation's middle: 412 - 100 - 300 + 12.
+    expect(scrolledTo).toEqual([12]);
+    expect(
+      window.document
+        .querySelector('[data-ask-source="network-piece:becca/post/handoffs"]')
+        ?.hasAttribute("data-ask-flash"),
+    ).toBe(true);
+  });
+});

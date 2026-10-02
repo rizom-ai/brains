@@ -1414,6 +1414,69 @@
   opacity: 0;
   transition: opacity 0.6s ease;
 }
+/* The drawing belongs to the page while an answer is open. On desktop a
+   dotted lead runs from each listed source to its brain (drawn by the
+   runtime); on a phone the opening's drawing joins the open conversation as
+   the first item of its scroll, a slot holding its place meanwhile, and a
+   tapped dot flashes its source. */
+.net-leads {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.net-leads path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 6;
+  opacity: 0.85;
+}
+.opening__ask [data-ask-source][data-ask-flash] {
+  animation: ask-flash 1.5s ease-out;
+}
+@keyframes ask-flash {
+  0%,
+  40% {
+    background: rgb(from var(--color-accent) r g b / 0.14);
+  }
+  100% {
+    background: transparent;
+  }
+}
+@media (max-width: 60rem) {
+  .net-leads {
+    display: none;
+  }
+  .net-slot {
+    height: var(--strip-h);
+  }
+  .opening__ask[data-ask-sheet] [data-ask-dock]:has(.net-layer) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .opening__ask[data-ask-sheet] [data-ask-dock] .net-layer {
+    position: relative;
+    inset: auto;
+    width: auto;
+    height: var(--strip-h);
+    opacity: 1;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .net-leads {
+    display: none;
+  }
+  .opening__ask [data-ask-source][data-ask-flash] {
+    animation: none;
+  }
+}
 /* The chapter's drawing is the network at rest: no pulse travels it and no
    brain blinks on its own; only the open question's brains answer. */
 .asked .net-pulse,

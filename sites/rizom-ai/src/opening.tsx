@@ -190,6 +190,9 @@ export function Opening(data: OpeningData): JSX.Element {
         )
       )}
       <NetworkLayer {...placeNetwork(data)} />
+      {data.askBox && (
+        <svg className="net-leads" data-net-leads="" aria-hidden="true" />
+      )}
     </section>
   );
 }
