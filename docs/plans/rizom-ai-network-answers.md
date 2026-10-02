@@ -4,7 +4,7 @@
 
 Planned on `work/network-answers`, 2026-10-01. The mockup in [`docs/design/rizom-ai-network-answers/home.html`](../design/rizom-ai-network-answers/home.html) is the visual contract: the live homepage's shell, opening and drawing with the Ask box in place of the door, and the answer sequence drawn from the connected brains' published pieces. Its answer copy and excerpts are placeholders; the brains are the live directory's.
 
-Slices 1 to 5 are built and stacked: #482 (the page listens), #484 (one connected brain, indexed), #485 (the network), #486 (records name their page), #492 (asked before, with the lights). Slices 2 and 3 were verified on the rizom-ai test app against Yeehaa's live repository: 32 pieces indexed on the worker's start-up run, the DID learned from the brain's home, the pieces returned by scoped and broad search with brain, origin and excerpt.
+All six slices are built and stacked: #482 (the page listens), #484 (one connected brain, indexed), #485 (the network), #486 (records name their page), #492 (asked before, with the lights), #493 (desktop beside, phone above). Slices 2 and 3 were verified on the rizom-ai test app against Yeehaa's live repository: 32 pieces indexed on the worker's start-up run, the DID learned from the brain's home, the pieces returned by scoped and broad search with brain, origin and excerpt. Slice 5 was verified there in headless Chromium at 1440 and 390 wide with two seeded published FAQs: the chapter after "Where this goes", the open question lighting Yeehaa in both drawings, "Rizom, with Yeehaa" and the excerpt under it, the organism stepped aside. The test app now composes the faq plugin, as production's chat bundle does.
 
 ## Goal
 
