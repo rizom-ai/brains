@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { sourceBrainSchema } from "./ask-box";
 import { askContentSchema } from "./ask-content";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
@@ -205,7 +206,7 @@ const chatAttachmentCardSchema: Loose<{
   attachment: chatAttachmentCardDataSchema,
 });
 
-const chatSourceCitationSchema: Loose<{
+export const chatSourceCitationSchema: Loose<{
   id: z.ZodString;
   title: z.ZodOptional<z.ZodString>;
   source: z.ZodString;
@@ -214,6 +215,7 @@ const chatSourceCitationSchema: Loose<{
   entityId: z.ZodOptional<z.ZodString>;
   excerpt: z.ZodOptional<z.ZodString>;
   provenance: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  brain: z.ZodOptional<typeof sourceBrainSchema>;
 }> = z.looseObject({
   id: chatIdSchema,
   title: z.string().max(4_096).optional(),
@@ -223,6 +225,7 @@ const chatSourceCitationSchema: Loose<{
   entityId: chatIdSchema.optional(),
   excerpt: z.string().max(20_000).optional(),
   provenance: z.record(z.string(), z.unknown()).optional(),
+  brain: sourceBrainSchema.optional(),
 });
 
 const chatSourcesCardSchema: Loose<{
@@ -305,6 +308,25 @@ export type ChatCard = z.output<typeof chatCardSchema>;
 
 /** Presentation projection, not authorization: callers must use guest-scoped
  * runtime results or owned guest history. Never pass arbitrary operator cards. */
+/** An https address of bounded length without credentials, or nothing: an
+ * untrusted URL must not turn a citation into navigation authority. */
+function vettedCitationUrl(value: string | undefined): string | undefined {
+  if (!value || value.length > 512) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    // Not a URL at all: the citation gets no address rather than a bad one.
+    return undefined;
+  }
+  return parsed.protocol === "https:" &&
+    !parsed.username &&
+    !parsed.password &&
+    parsed.href.length <= 512
+    ? parsed.href
+    : undefined;
+}
+
 export function getGuestSourceCards(
   value: unknown,
 ): Extract<ChatCard, { kind: "sources" }>[] {
@@ -326,21 +348,9 @@ export function getGuestSourceCards(
       )
         continue;
       seen.add(source.id);
-      let url: string | undefined;
-      if (source.url && source.url.length <= 512) {
-        try {
-          const parsedUrl = new URL(source.url);
-          if (
-            parsedUrl.protocol === "https:" &&
-            !parsedUrl.username &&
-            !parsedUrl.password &&
-            parsedUrl.href.length <= 512
-          )
-            url = parsedUrl.href;
-        } catch {
-          // An untrusted URL must not turn a citation into navigation authority.
-        }
-      }
+      const url = vettedCitationUrl(source.url);
+      // The brain the source came from keeps its name and a vetted address.
+      const brainUrl = vettedCitationUrl(source.brain?.url);
       sources.push({
         id: source.id,
         source: source.entityType,
@@ -349,6 +359,14 @@ export function getGuestSourceCards(
         title: (source.title ?? source.entityId).slice(0, 160),
         ...(source.excerpt ? { excerpt: source.excerpt.slice(0, 280) } : {}),
         ...(url ? { url } : {}),
+        ...(source.brain
+          ? {
+              brain: {
+                name: source.brain.name.slice(0, 120),
+                ...(brainUrl ? { url: brainUrl } : {}),
+              },
+            }
+          : {}),
       });
     }
   }

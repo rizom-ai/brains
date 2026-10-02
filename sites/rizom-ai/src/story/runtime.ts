@@ -107,10 +107,84 @@ export const storyRuntimeScript: string = `(function () {
     addEventListener("resize", function () { placeRail(); read(); });
     addEventListener("load", function () { placeRail(); read(); });
   }
+  // The homepage's drawing listens to the Ask box: an answer's sources name
+  // the brains whose published memory they came from (the box's ask:sources
+  // event), and those brains light while the rest dim. A source without a
+  // brain is this brain's own and lights the center. Pointing works both
+  // ways: a listed source lights its brain, a brain flags its listed sources.
+  function listen() {
+    var layer = document.querySelector(".net-layer");
+    if (!layer) return;
+    var marks = Array.prototype.slice.call(layer.querySelectorAll(".net-mark[data-brain]"));
+    var threads = Array.prototype.slice.call(layer.querySelectorAll(".net-thread[data-brain]"));
+    var replies = Array.prototype.slice.call(layer.querySelectorAll(".net-reply[data-brain]"));
+    var names = Array.prototype.slice.call(layer.querySelectorAll(".net-name[data-brain]"));
+    var sourceBrain = {};
+    function brainOf(source) {
+      var brain = source && source.brain;
+      if (!brain) return "";
+      var host = "";
+      if (brain.url) { try { host = new URL(brain.url).host; } catch (e) { host = ""; } }
+      var byHost = host && marks.filter(function (m) { return m.getAttribute("data-brain") === host; })[0];
+      if (byHost) return host;
+      var name = String(brain.name || "").toLowerCase();
+      var byName = marks.filter(function (m) {
+        var a = m.querySelector("[aria-label]");
+        return (a ? a.getAttribute("aria-label") : "").toLowerCase() === name;
+      })[0];
+      return byName ? byName.getAttribute("data-brain") : "";
+    }
+    function light(id, on) {
+      [marks, threads, replies, names].forEach(function (list) {
+        list.forEach(function (el) { if (el.getAttribute("data-brain") === id) el.classList.toggle("is-lit", on); });
+      });
+    }
+    function hot(id, on) {
+      marks.concat(threads).forEach(function (el) { if (el.getAttribute("data-brain") === id) el.classList.toggle("is-hot", on); });
+    }
+    document.addEventListener("ask:sources", function (event) {
+      var detail = event.detail || {};
+      var sources = Array.isArray(detail.sources) ? detail.sources : [];
+      var lit = {};
+      var rizom = false;
+      sourceBrain = {};
+      sources.forEach(function (source) {
+        var id = brainOf(source);
+        if (id) { lit[id] = true; sourceBrain[source.id] = id; } else rizom = true;
+      });
+      marks.forEach(function (m) { light(m.getAttribute("data-brain"), !!lit[m.getAttribute("data-brain")]); });
+      layer.classList.toggle("has-replies", Object.keys(lit).length > 0);
+      layer.classList.toggle("is-rizom", rizom && sources.length > 0);
+    });
+    function listed(target) {
+      var row = target && target.closest ? target.closest("[data-ask-source]") : null;
+      return row ? row : null;
+    }
+    function point(event, on) {
+      var row = listed(event.target);
+      if (row) { var id = sourceBrain[row.getAttribute("data-ask-source")]; if (id) hot(id, on); return; }
+      var mark = event.target && event.target.closest ? event.target.closest(".net-mark[data-brain]") : null;
+      if (!mark) return;
+      var brain = mark.getAttribute("data-brain");
+      hot(brain, on);
+      Object.keys(sourceBrain).forEach(function (key) {
+        if (sourceBrain[key] !== brain) return;
+        Array.prototype.forEach.call(document.querySelectorAll("[data-ask-source]"), function (row) {
+          if (row.getAttribute("data-ask-source") !== key) return;
+          if (on) row.setAttribute("data-ask-hot", ""); else row.removeAttribute("data-ask-hot");
+        });
+      });
+    }
+    document.addEventListener("mouseover", function (e) { point(e, true); });
+    document.addEventListener("mouseout", function (e) { point(e, false); });
+    document.addEventListener("focusin", function (e) { point(e, true); });
+    document.addEventListener("focusout", function (e) { point(e, false); });
+  }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", function () { init(); listen(); });
   } else {
     init();
+    listen();
   }
 })();
 `;

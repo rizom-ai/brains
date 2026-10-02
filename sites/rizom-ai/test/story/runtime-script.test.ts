@@ -113,3 +113,156 @@ describe("the shipped story script", () => {
     expect(reading()).toEqual({ stage: "1", current: "c1" });
   });
 });
+
+// The homepage's drawing listens to the Ask box: an answer's sources name the
+// brains whose published memory they came from, and those brains light.
+describe("the opening listens to the network's answer", () => {
+  const brains = ["becca.rizom.ai", "jo.rizom.ai", "sam.rizom.ai"];
+  function opening(): void {
+    window.document.body.innerHTML = `
+      <div class="story">
+        <div class="chapters">
+          <section class="chapter chapter--opening" id="hero">
+            <div class="ask"><div data-ask-box="">
+              <ul class="brain-box-sources">
+                <li data-ask-source="network-piece:becca/post/handoffs"><a href="#">Handoffs</a></li>
+                <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
+              </ul>
+            </div></div>
+            <div class="net-layer">
+              <svg class="net-svg">
+                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+                ${brains.map((b) => `<g class="net-reply" data-brain="${b}"></g>`).join("")}
+                <circle class="net-lantern"></circle>
+              </svg>
+              <ul class="net-marks">
+                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+              </ul>
+              <ol class="net-names">
+                ${brains.map((b) => `<li class="net-name" data-brain="${b}">${b.split(".")[0]}</li>`).join("")}
+              </ol>
+            </div>
+          </section>
+        </div>
+        <figure class="figure" data-stage="0" data-stages="6"></figure>
+      </div>`;
+    restoreGlobals = installGlobals({
+      window,
+      document: window.document,
+      innerHeight: 900,
+      scrollY: 0,
+      addEventListener: window.addEventListener.bind(window),
+      getComputedStyle: window.getComputedStyle.bind(window),
+    });
+    new Function(storyRuntimeScript)();
+  }
+  function answer(
+    sources: Array<{ id: string; brain?: { name: string; url?: string } }>,
+  ): void {
+    window.document.querySelector("[data-ask-box]")?.dispatchEvent(
+      new window.CustomEvent("ask:sources", {
+        bubbles: true,
+        detail: { sources: sources.map((s) => ({ title: s.id, ...s })) },
+      }),
+    );
+  }
+  const lit = (): string[] =>
+    Array.from(window.document.querySelectorAll(".net-mark.is-lit")).map(
+      (m) => m.getAttribute("data-brain") ?? "",
+    );
+  const layer = (): DOMTokenList => {
+    const layer = window.document.querySelector(".net-layer");
+    if (!layer) throw new Error("Missing drawing");
+    return layer.classList;
+  };
+
+  test("lights the brains an answer's sources came from, and dims the rest", () => {
+    opening();
+    answer([
+      {
+        id: "network-piece:becca/post/handoffs",
+        brain: { name: "Becca", url: "https://becca.rizom.ai" },
+      },
+      {
+        id: "network-piece:jo/note/x",
+        brain: { name: "Jo", url: "https://jo.rizom.ai/" },
+      },
+    ]);
+    expect(lit()).toEqual(["becca.rizom.ai", "jo.rizom.ai"]);
+    expect(layer().contains("has-replies")).toBe(true);
+    expect(layer().contains("is-rizom")).toBe(false);
+    expect(
+      window.document
+        .querySelector('.net-thread[data-brain="becca.rizom.ai"]')
+        ?.classList.contains("is-lit"),
+    ).toBe(true);
+    expect(
+      window.document
+        .querySelector('.net-reply[data-brain="sam.rizom.ai"]')
+        ?.classList.contains("is-lit"),
+    ).toBe(false);
+    expect(
+      window.document
+        .querySelector('.net-name[data-brain="jo.rizom.ai"]')
+        ?.classList.contains("is-lit"),
+    ).toBe(true);
+  });
+
+  test("lights the center for Rizom's own pieces, by name when a brain has no address", () => {
+    opening();
+    answer([
+      { id: "post:what-a-brain-is" },
+      { id: "network-piece:sam/note/y", brain: { name: "sam" } },
+    ]);
+    expect(layer().contains("is-rizom")).toBe(true);
+    expect(lit()).toEqual(["sam.rizom.ai"]);
+  });
+
+  test("lets go for an answer without sources, and relights for the next", () => {
+    opening();
+    answer([
+      {
+        id: "network-piece:becca/post/handoffs",
+        brain: { name: "Becca", url: "https://becca.rizom.ai" },
+      },
+    ]);
+    answer([]);
+    expect(lit()).toEqual([]);
+    expect(layer().contains("has-replies")).toBe(false);
+    answer([
+      {
+        id: "network-piece:jo/note/x",
+        brain: { name: "Jo", url: "https://jo.rizom.ai" },
+      },
+    ]);
+    expect(lit()).toEqual(["jo.rizom.ai"]);
+  });
+
+  test("points both ways: a listed source lights its brain, a brain flags its source", () => {
+    opening();
+    answer([
+      {
+        id: "network-piece:becca/post/handoffs",
+        brain: { name: "Becca", url: "https://becca.rizom.ai" },
+      },
+    ]);
+    const row = window.document.querySelector(
+      '[data-ask-source="network-piece:becca/post/handoffs"]',
+    );
+    if (!row) throw new Error("Missing source row");
+    row.dispatchEvent(new window.Event("mouseover", { bubbles: true }));
+    expect(
+      window.document
+        .querySelector('.net-mark[data-brain="becca.rizom.ai"]')
+        ?.classList.contains("is-hot"),
+    ).toBe(true);
+    row.dispatchEvent(new window.Event("mouseout", { bubbles: true }));
+    expect(window.document.querySelector(".net-mark.is-hot")).toBeNull();
+    const mark = window.document.querySelector(
+      '.net-mark[data-brain="becca.rizom.ai"] a',
+    );
+    if (!mark) throw new Error("Missing mark");
+    mark.dispatchEvent(new window.Event("mouseover", { bubbles: true }));
+    expect(row.hasAttribute("data-ask-hot")).toBe(true);
+  });
+});

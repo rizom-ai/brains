@@ -75,6 +75,7 @@ function NetworkLayer({
           <line
             key={`thread-${brain.id}`}
             className="net-thread"
+            data-brain={brain.id}
             x1="50"
             y1="50"
             x2={brain.x}
@@ -83,7 +84,11 @@ function NetworkLayer({
         ))}
         <circle className="net-pulse" cx="50" cy="50" r="46" />
         {brains.map((brain) => (
-          <g key={`reply-${brain.id}`} className="net-reply">
+          <g
+            key={`reply-${brain.id}`}
+            className="net-reply"
+            data-brain={brain.id}
+          >
             <circle
               className="net-echo"
               cx={brain.x}
@@ -119,6 +124,7 @@ function NetworkLayer({
           <li
             key={brain.id}
             className="net-mark"
+            data-brain={brain.id}
             style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
           >
             <a href={`/agents/${brain.id}`} aria-label={brain.name}>
@@ -132,6 +138,7 @@ function NetworkLayer({
           <li
             key={brain.id}
             className={`net-name net-name--${brain.side}`}
+            data-brain={brain.id}
             style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
           >
             {brain.name}
