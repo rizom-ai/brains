@@ -8,7 +8,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
   {
     // The homepage, told as a story: the opening is the live network under the
     // authored words with the Ask box, then the science, the shift, the
-    // organism, where this goes and the two ways in. The problem, the system
+    // organism, where this goes, what was asked before and the two ways in. The problem, the system
     // and the proof are told on /work, /brain and by the opening itself. Copy
     // for every section belongs to the separate content repo under
     // site-content/living-memory/; keep that content identity stable.
@@ -25,6 +25,9 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "turn", template: "living-memory:turn" },
       { id: "growth", template: "living-memory:growth" },
       { id: "arc", template: "living-memory:arc" },
+      // What visitors asked before, answered and kept by the owner, read
+      // live from the published FAQs (see ./asked-datasource).
+      { id: "asked", template: "rizom:asked", dataQuery: {} },
       { id: "doors", template: "living-memory:doors" },
     ],
   },

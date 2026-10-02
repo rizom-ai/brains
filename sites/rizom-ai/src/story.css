@@ -1274,7 +1274,158 @@
   .story:has(.figure:not([data-stage="0"])) .net-layer {
     opacity: 0;
   }
+  .asked .net-layer {
+    top: var(--bar-height, 4.6rem);
+    translate: none;
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+  .story.is-asked .asked .net-layer {
+    opacity: 1;
+    z-index: 3;
+  }
 }
+
+/* Asked before: the visitors' questions the owner kept, one open at a time,
+   beside the live network drawn again for the chapter. The organism steps
+   aside while the chapter is read; the open question lights the brains its
+   answer drew on. Counts sort the list and are never shown. */
+.asked {
+  position: relative;
+}
+.asked .asked__list {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+.asked details {
+  border-bottom: 1px solid var(--color-border);
+}
+.asked summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.9rem 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--color-text);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.asked summary::-webkit-details-marker {
+  display: none;
+}
+.asked summary::after {
+  content: "+";
+  font-family: var(--font-label);
+  font-style: normal;
+  color: var(--color-accent);
+}
+.asked details[open] summary::after {
+  content: "–";
+}
+.asked summary:hover,
+.asked summary:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+.asked .asked__answer {
+  margin: 0 0 1.25rem;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.asked .asked__answer p {
+  margin: 0 0 0.8rem;
+}
+.asked .asked__by {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.asked .asked__sources {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+.asked .asked__sources li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.7rem;
+  row-gap: 0.25rem;
+  align-items: baseline;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+  transition: color 0.3s ease;
+}
+.asked .asked__sources li:last-child {
+  border-bottom: 0;
+}
+.asked .asked__mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  translate: 0 -1px;
+  transition: box-shadow 0.3s ease;
+}
+.asked .asked__sources li[data-ask-hot] .asked__mark {
+  box-shadow: 0 0 0 4px rgb(from var(--color-accent) r g b / 0.25);
+}
+.asked .asked__piece {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  align-items: baseline;
+}
+.asked .asked__piece b {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+.asked .asked__piece a {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid rgb(from var(--color-accent) r g b / 0.45);
+}
+.asked .asked__piece a:hover {
+  color: var(--color-accent);
+}
+.asked .asked__sources q {
+  grid-column: 2;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  quotes: "“" "”";
+}
+/* The chapter's drawing stands where the organism stood, beside the words,
+   and the organism steps aside while the chapter is read. */
+.asked .net-layer {
+  top: 50%;
+  translate: 0 -50%;
+  left: calc(100% + var(--words-gap));
+  right: auto;
+  width: min(
+    calc(100svh - var(--bar-height, 4.6rem) - 2rem),
+    calc(100cqi - var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem))
+  );
+}
+.story.is-asked .figure {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .net-kin,
   .net-corona,

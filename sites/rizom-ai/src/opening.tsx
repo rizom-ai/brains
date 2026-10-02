@@ -45,7 +45,7 @@ const PULSE_TRAVEL = 4.55;
 const replyDelay = (reach: number, after = 0): string =>
   `${(reach * PULSE_TRAVEL + after).toFixed(2)}s`;
 
-function NetworkLayer({
+export function NetworkLayer({
   brains,
   kin,
 }: ReturnType<typeof placeNetwork>): JSX.Element | null {

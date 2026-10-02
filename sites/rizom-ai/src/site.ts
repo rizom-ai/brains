@@ -4,6 +4,8 @@ import { livingMemorySections } from "./living-memory";
 import { brainSections } from "./brain";
 import { openingTemplate } from "./opening";
 import { openingDataSource } from "./opening-datasource";
+import { askedTemplate } from "./asked";
+import { askedDataSource } from "./asked-datasource";
 import { writingTemplate } from "./writing";
 import { writingDataSource } from "./writing-datasource";
 import { workSections } from "./work";
@@ -19,8 +21,16 @@ export const rizomAiSite: SitePackage = createRizomSite({
   routes: aiRoutes,
   runtime: {
     contentNamespace: "rizom",
-    templates: { opening: openingTemplate, writing: writingTemplate },
-    dataSourceFactories: [openingDataSource, writingDataSource],
+    templates: {
+      opening: openingTemplate,
+      writing: writingTemplate,
+      asked: askedTemplate,
+    },
+    dataSourceFactories: [
+      openingDataSource,
+      writingDataSource,
+      askedDataSource,
+    ],
   },
   // Every page is authored schema-first (see ./living-memory, ./brain,
   // ./work, ./foundation).

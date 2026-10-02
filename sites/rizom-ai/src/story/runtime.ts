@@ -89,6 +89,8 @@ export const storyRuntimeScript: string = `(function () {
       var stage = currentChapter(tops, line, stageCount);
       if (figure) figure.dataset.stage = String(stage);
       chapters.forEach(function (chapter, i) { chapter.classList.toggle("is-current", i === current); });
+      // A chapter that lights the network keeps the live drawing in view while it is read.
+      story.classList.toggle("is-asked", !!(chapters[current] && chapters[current].hasAttribute("data-lights-network")));
       if (!rail) return;
       var max = document.documentElement.scrollHeight - innerHeight;
       var progress = max > 0 ? Math.min(1, scrollY / max) : 0;
@@ -113,12 +115,17 @@ export const storyRuntimeScript: string = `(function () {
   // brain is this brain's own and lights the center. Pointing works both
   // ways: a listed source lights its brain, a brain flags its listed sources.
   function listen() {
-    var layer = document.querySelector(".net-layer");
-    if (!layer) return;
-    var marks = Array.prototype.slice.call(layer.querySelectorAll(".net-mark[data-brain]"));
-    var threads = Array.prototype.slice.call(layer.querySelectorAll(".net-thread[data-brain]"));
-    var replies = Array.prototype.slice.call(layer.querySelectorAll(".net-reply[data-brain]"));
-    var names = Array.prototype.slice.call(layer.querySelectorAll(".net-name[data-brain]"));
+    // The opening draws the network, and a chapter may draw it again beside
+    // its own words: every drawing answers the same events.
+    var layers = Array.prototype.slice.call(document.querySelectorAll(".net-layer"));
+    if (!layers.length) return;
+    function all(selector) {
+      return layers.reduce(function (found, layer) { return found.concat(Array.prototype.slice.call(layer.querySelectorAll(selector))); }, []);
+    }
+    var marks = all(".net-mark[data-brain]");
+    var threads = all(".net-thread[data-brain]");
+    var replies = all(".net-reply[data-brain]");
+    var names = all(".net-name[data-brain]");
     var sourceBrain = {};
     function brainOf(source) {
       var brain = source && source.brain;
@@ -153,8 +160,10 @@ export const storyRuntimeScript: string = `(function () {
         if (id) { lit[id] = true; sourceBrain[source.id] = id; } else rizom = true;
       });
       marks.forEach(function (m) { light(m.getAttribute("data-brain"), !!lit[m.getAttribute("data-brain")]); });
-      layer.classList.toggle("has-replies", Object.keys(lit).length > 0);
-      layer.classList.toggle("is-rizom", rizom && sources.length > 0);
+      layers.forEach(function (layer) {
+        layer.classList.toggle("has-replies", Object.keys(lit).length > 0);
+        layer.classList.toggle("is-rizom", rizom && sources.length > 0);
+      });
     });
     function listed(target) {
       var row = target && target.closest ? target.closest("[data-ask-source]") : null;
@@ -175,6 +184,18 @@ export const storyRuntimeScript: string = `(function () {
         });
       });
     }
+    // "Asked before": an open question's kept sources light the drawing the
+    // way a fresh answer's do; with no question open, the drawing rests.
+    function askedSources() {
+      var open = document.querySelector("details[data-ask-answer][open]");
+      if (!open) return [];
+      try { var kept = JSON.parse(open.getAttribute("data-ask-answer") || "[]"); return Array.isArray(kept) ? kept : []; } catch (e) { return []; }
+    }
+    document.addEventListener("toggle", function (event) {
+      var target = event.target;
+      if (!target || !target.hasAttribute || !target.hasAttribute("data-ask-answer")) return;
+      document.dispatchEvent(new CustomEvent("ask:sources", { detail: { sources: askedSources() } }));
+    }, true);
     document.addEventListener("mouseover", function (e) { point(e, true); });
     document.addEventListener("mouseout", function (e) { point(e, false); });
     document.addEventListener("focusin", function (e) { point(e, true); });

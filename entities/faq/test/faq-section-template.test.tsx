@@ -13,6 +13,7 @@ describe("FaqSection", () => {
             question: "How do I publish a draft?",
             answer: "Choose **Publish** in Studio.",
             asked: 3,
+            sources: [],
           },
         ]}
       />,

@@ -266,3 +266,117 @@ describe("the opening listens to the network's answer", () => {
     expect(row.hasAttribute("data-ask-hot")).toBe(true);
   });
 });
+
+describe("the Asked-before chapter lights the network", () => {
+  const brains = ["becca.rizom.ai", "jo.rizom.ai"];
+  const kept = JSON.stringify([
+    {
+      id: "network-piece:plc-peer--post--3kabc",
+      title: "Handoffs",
+      brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+    },
+  ]);
+  function home(): void {
+    window.document.body.innerHTML = `
+      <div class="story">
+        <div class="chapters">
+          <section class="chapter chapter--opening" id="hero">
+            <div class="net-layer">
+              <svg class="net-svg">
+                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+              </svg>
+              <ul class="net-marks">
+                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+              </ul>
+            </div>
+          </section>
+          <section class="chapter" id="arc"><p class="eyebrow">Arc</p></section>
+          <section class="chapter asked" id="asked" data-lights-network="">
+            <p class="eyebrow">Asked before</p>
+            <div class="net-layer net-layer--asked">
+              <ul class="net-marks">
+                ${brains.map((b) => `<li class="net-mark" data-brain="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+              </ul>
+            </div>
+            <div class="asked__list">
+              <details name="asked" data-ask-answer='${kept}'>
+                <summary>How do brains hand work over?</summary>
+                <ul class="asked__sources">
+                  <li data-ask-source="network-piece:plc-peer--post--3kabc" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
+                </ul>
+              </details>
+              <details name="asked" data-ask-answer="[]">
+                <summary>What is a brain?</summary>
+              </details>
+            </div>
+          </section>
+          <section class="chapter" id="doors"><p class="eyebrow">Doors</p></section>
+        </div>
+        <figure class="figure" data-stage="0" data-stages="7"></figure>
+      </div>`;
+    window.document.querySelectorAll(".chapter").forEach((chapter, i) => {
+      Object.assign(chapter, {
+        getBoundingClientRect: () => ({ top: tops[i] ?? 0 }),
+      });
+    });
+    restoreGlobals = installGlobals({
+      window,
+      document: window.document,
+      innerHeight: 900,
+      scrollY: 0,
+      addEventListener: window.addEventListener.bind(window),
+      getComputedStyle: window.getComputedStyle.bind(window),
+      CustomEvent: window.CustomEvent,
+    });
+    new Function(storyRuntimeScript)();
+  }
+  function open(index: number, value = true): void {
+    const details = window.document.querySelectorAll(
+      "details[data-ask-answer]",
+    );
+    const target = details[index];
+    if (!target) throw new Error("No such question");
+    // The browser flips the attribute and fires toggle on the element.
+    if (value) target.setAttribute("open", "");
+    else target.removeAttribute("open");
+    target.dispatchEvent(new window.Event("toggle"));
+  }
+  const lit = (): string[] =>
+    Array.from(window.document.querySelectorAll(".net-mark.is-lit")).map(
+      (m) => m.getAttribute("data-brain") ?? "",
+    );
+  const layer = (): DOMTokenList | undefined =>
+    window.document.querySelector(".net-layer")?.classList;
+
+  test("opening a question lights the brains its answer drew on, in every drawing, and closing lets go", () => {
+    home();
+    open(0);
+    // The opening's drawing and the chapter's own both answer.
+    expect(lit()).toEqual(["becca.rizom.ai", "becca.rizom.ai"]);
+    expect(layer()?.contains("has-replies")).toBe(true);
+    expect(
+      window.document
+        .querySelector(".net-layer--asked")
+        ?.classList.contains("has-replies"),
+    ).toBe(true);
+    open(0, false);
+    expect(lit()).toEqual([]);
+    expect(layer()?.contains("has-replies")).toBe(false);
+  });
+
+  test("a question whose answer kept no network source leaves the drawing at rest", () => {
+    home();
+    open(1);
+    expect(lit()).toEqual([]);
+    expect(layer()?.contains("has-replies")).toBe(false);
+  });
+
+  test("keeps the live network in view while the chapter is under the reading line", () => {
+    home();
+    const story = window.document.querySelector(".story");
+    scrollTo([-2000, -1200, -100, 600]);
+    expect(story?.classList.contains("is-asked")).toBe(true);
+    scrollTo([-3000, -2200, -1100, -100]);
+    expect(story?.classList.contains("is-asked")).toBe(false);
+  });
+});
