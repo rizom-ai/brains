@@ -4,6 +4,7 @@ import {
   CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/plugins";
+import { GUEST_ASKED_BEFORE_CHANNEL } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import { FaqPlugin } from "../src";
 
@@ -40,6 +41,19 @@ describe("FaqPlugin", () => {
       .filter((job) => job.type.endsWith("faq-capture"))
       .map((job) => JSON.parse(job.data));
   }
+
+  it("answers the shell's asked-before question, with nothing when no FAQ asks it", async () => {
+    const response = await harness.sendMessage(GUEST_ASKED_BEFORE_CHANNEL, {
+      question: "How does Rizom keep memory?",
+    });
+    expect(response).toEqual({});
+    // A question that is not one is no answer either, never an error.
+    const blank: unknown = await harness.sendMessage(
+      GUEST_ASKED_BEFORE_CHANNEL,
+      { question: "" },
+    );
+    expect(blank).toEqual({});
+  });
 
   it("registers the faq entity type without tools", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("faq");

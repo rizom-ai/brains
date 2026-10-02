@@ -36,6 +36,7 @@ import type {
   ChatAttachment,
   ChatContext,
   StructuredChatCard,
+  AskedBeforeAnswer,
 } from "./agent-types";
 import {
   emptyUsage,
@@ -96,6 +97,7 @@ export interface TurnProcessorDeps {
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
   guestAnswerSources: AgentConfig["guestAnswerSources"];
+  guestAskedBefore: AgentConfig["guestAskedBefore"];
   embeddingUsage: AgentConfig["embeddingUsage"];
 }
 
@@ -138,6 +140,8 @@ export class TurnProcessor {
     const prepared = await this.prepareModelTurn(turn, signal);
     this.logAvailableTools(turn);
     await this.recordQuestion(turn, prepared);
+    const askedBefore = await this.findAskedBefore(turn, prepared);
+    if (askedBefore) return this.recordAskedBefore(turn, askedBefore);
 
     const answer = async (): Promise<AgentResponse> => {
       const result = await this.deps.getAgent(input.interfaceType).generate({
@@ -403,6 +407,55 @@ export class TurnProcessor {
         ? { agentContextInstructions: prepared.agentContextInstructions }
         : {}),
     });
+  }
+
+  /** A visitor's question a published FAQ already answers, when one does. */
+  private async findAskedBefore(
+    turn: AdmittedTurn,
+    prepared: PreparedTurn,
+  ): Promise<AskedBeforeAnswer | undefined> {
+    const find = this.deps.guestAskedBefore;
+    if (!turn.guest || !find) return undefined;
+    try {
+      return await find({ question: prepared.effectiveMessage });
+    } catch (error) {
+      // The model answers as it would have.
+      this.deps.logger.warn("Asked-before check unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  /** The FAQ's answer stands as the turn's reply, with the sources it kept. */
+  private async recordAskedBefore(
+    turn: AdmittedTurn,
+    hit: AskedBeforeAnswer,
+  ): Promise<AgentResponse> {
+    const { conversationId, channelId, channelName, userPermissionLevel } =
+      turn.input;
+    const cards = withAnswerSources([], hit.sources);
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content: hit.answer,
+      ...(await this.messageMetadata({
+        actor: null,
+        source: this.buildAssistantSource(channelId, channelName),
+        userPermissionLevel,
+        cards,
+        entityMemoryRefs: [],
+        agentContactCandidates: [],
+        guest: true,
+      })),
+    });
+    return {
+      text: hit.answer,
+      toolResults: [],
+      ...(cards.length > 0 ? { cards } : {}),
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      askedBefore: { faqId: hit.faqId },
+    };
   }
 
   /** A visitor's sources are the public pages closest to the answer, when found. */

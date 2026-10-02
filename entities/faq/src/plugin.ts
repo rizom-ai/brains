@@ -11,7 +11,11 @@ import {
   EntityPlugin,
   UserPermissionLevelSchema,
 } from "@brains/plugins";
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import {
+  ENTITY_CHANNELS,
+  GUEST_ASKED_BEFORE_CHANNEL,
+  askedBeforeRequestSchema,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, type FaqAdapter } from "./adapters/faq-adapter";
 import {
@@ -23,7 +27,8 @@ import {
   type FaqReconcileJobData,
 } from "./handlers/faq-reconcile-handler";
 import { FaqDataSource } from "./datasources/faq-datasource";
-import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
+import { SAME_QUESTION_DISTANCE, type FaqStoreDeps } from "./lib/faq-store";
+import { answerAskedBefore } from "./lib/asked-before";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
 import { FaqInboxSource } from "./lib/faq-inbox-source";
@@ -139,6 +144,29 @@ export class FaqPlugin extends EntityPlugin<
       sameQuestionDistance: this.config.sameQuestionDistance,
     });
 
+    // A visitor's question a published FAQ already answers is answered from
+    // it before the model is asked; the web process answers the shell here.
+    if (!context.executionOnly) {
+      const askedBeforeDeps: FaqStoreDeps = {
+        entityService: context.entityService,
+        searchWithDistances: context.entityService.searchWithDistances.bind(
+          context.entityService,
+        ),
+        sameQuestionDistance: this.config.sameQuestionDistance,
+        ai: context.ai,
+      };
+      context.messaging.subscribe(
+        GUEST_ASKED_BEFORE_CHANNEL,
+        async (message) => {
+          const request = askedBeforeRequestSchema.safeParse(message.payload);
+          if (!request.success) return { success: true, data: {} };
+          return {
+            success: true,
+            data: await answerAskedBefore(askedBeforeDeps, request.data),
+          };
+        },
+      );
+    }
     if (!this.config.enabled) return;
 
     // A FAQ becomes findable by meaning once its embedding exists; that is

@@ -308,7 +308,17 @@ type AgentResponseSchema = z.ZodObject<{
   usage: AgentResponseUsageSchema;
   guestSettlement: z.ZodOptional<typeof guestTurnSettlementSchema>;
   guestScreening: z.ZodOptional<typeof guestScreeningOutcomeSchema>;
+  askedBefore: z.ZodOptional<AskedBeforeSchema>;
 }>;
+
+type AskedBeforeSchema = z.ZodObject<{ faqId: z.ZodString }>;
+
+/** A published FAQ answered the turn in the model's place. */
+export const askedBeforeSchema: AskedBeforeSchema = z.object({
+  faqId: z.string().min(1),
+});
+
+export type AskedBefore = z.output<typeof askedBeforeSchema>;
 
 export const AgentResponseSchema: AgentResponseSchema = z.object({
   text: z.string(),
@@ -326,6 +336,8 @@ export const AgentResponseSchema: AgentResponseSchema = z.object({
   guestSettlement: guestTurnSettlementSchema.optional(),
   /** What screening did with a guest turn's question; never set for owners. */
   guestScreening: guestScreeningOutcomeSchema.optional(),
+  /** Set when a published FAQ answered a visitor's question before the model. */
+  askedBefore: askedBeforeSchema.optional(),
 });
 
 export type AgentResponse = z.output<typeof AgentResponseSchema>;

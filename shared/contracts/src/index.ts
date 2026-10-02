@@ -64,6 +64,8 @@ export {
   type AttachmentCardSource,
   type AttachmentCardData,
   type AttachmentCard,
+  askedBeforeSchema,
+  type AskedBefore,
   type SourceCitation,
   type SourcesCard,
   type PromptChatAction,
@@ -74,6 +76,16 @@ export {
   type PendingConfirmation,
   type ToolResultData,
 } from "./agent-response";
+export {
+  GUEST_ASKED_BEFORE_CHANNEL,
+  askedBeforeRequestSchema,
+  askedBeforeHitSchema,
+  askedBeforeResponseSchema,
+  firstAskedBeforeHit,
+  type AskedBeforeRequest,
+  type AskedBeforeHit,
+  type AskedBeforeResponse,
+} from "./asked-before";
 export {
   AGENT_CONTEXT_REQUEST_CHANNEL,
   agentContextPermissionLevelSchema,
