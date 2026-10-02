@@ -36,6 +36,7 @@ export interface AssetsReconcileOptions {
 /** What reconciling one image did, or would do. */
 type Outcome =
   | "in sync"
+  | "awaiting its bytes, left alone"
   | "created"
   | "restored asset"
   | "restored from file"
@@ -58,6 +59,7 @@ const rowSchema = z.object({
   id: z.string(),
   content: z.string(),
   contentHash: z.string(),
+  status: z.string().nullable(),
 });
 type ImageRow = z.output<typeof rowSchema>;
 const digestSchema = z.object({ digest: z.string() });
@@ -88,7 +90,7 @@ export async function runAssetsReconcile(
     const rows = new Map(
       (
         await connection.client.execute(
-          "SELECT id, content, contentHash FROM entities WHERE entityType = 'image'",
+          "SELECT id, content, contentHash, json_extract(metadata, '$.status') AS status FROM entities WHERE entityType = 'image'",
         )
       ).rows.map((raw) => {
         const row = rowSchema.parse(raw);
@@ -115,7 +117,7 @@ export async function runAssetsReconcile(
         continue;
       }
       const row = rows.get(id);
-      const action = decide(row?.content, file, stored);
+      const action = decide(row, file, stored);
       record(
         options.dryRun || !isWrite(action)
           ? action
@@ -167,11 +169,16 @@ export async function runAssetsReconcile(
 
 /** What a file and its row call for; never a change to another reference. */
 function decide(
-  content: string | undefined,
+  row: ImageRow | undefined,
   file: ImageFile,
   stored: Set<string>,
 ): Outcome {
-  if (content === undefined) return "created";
+  if (row === undefined) return "created";
+  // Its bytes are still being produced; a file is no newer than that.
+  if (row.status === "pending" || row.status === "failed") {
+    return "awaiting its bytes, left alone";
+  }
+  const { content } = row;
   const ref = createAssetRef(file.digest);
   if (content === ref) {
     return stored.has(file.digest) ? "in sync" : "restored asset";

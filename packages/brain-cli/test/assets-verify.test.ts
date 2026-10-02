@@ -129,4 +129,21 @@ describe("assets:verify", () => {
     expect(result.success).toBe(true);
     expect(result.message).toContain("1 mirrored file(s) match");
   });
+
+  it("fails while an image awaiting its bytes still holds the old placeholder", async () => {
+    const path = await fixture([["failed", dataUrl("png", PNG)]]);
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      await client.execute(
+        "UPDATE entities SET metadata = json_object('status', 'failed') WHERE id = 'failed'",
+      );
+    } finally {
+      client.close();
+    }
+
+    const result = await runAssetsVerify("/", { database: path }, stopped);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("1 old placeholder(s) left");
+  });
 });

@@ -32,6 +32,10 @@ export interface ImageAssetMigrationPlan {
   ready: number;
   blocked: BlockedImage[];
   alreadyMigrated: number;
+  /** Pending or failed images: no bytes yet, so nothing to migrate. */
+  awaitingRows: number;
+  /** Awaiting images still holding the old 1x1 placeholder, to clear. */
+  placeholdersToClear: number;
   /** Distinct images among the ready rows. */
   uniqueDigests: number;
   /** Ready rows whose bytes another ready row also carries. */
@@ -93,6 +97,8 @@ export async function planImageAssetMigration(
     ready: ready.length,
     blocked: blocked.sort((a, b) => a.id.localeCompare(b.id)),
     alreadyMigrated: inventory.referenceCount,
+    awaitingRows: inventory.awaitingIds.length,
+    placeholdersToClear: inventory.placeholderIds.length,
     uniqueDigests: distinct.size,
     duplicateRows: ready.length - distinct.size,
     alreadyStoredDigests: stored.length,

@@ -215,4 +215,42 @@ describe("OfflineBinaryMigrator", () => {
     expect((await row("fresh"))["content"]).toBe(inline);
     expect(await count("SELECT COUNT(*) FROM asset_uploads")).toBe(0);
   });
+
+  it("clears the placeholder an image awaiting its bytes still holds", async () => {
+    await insertImage("pending");
+    await connection.client.execute(
+      "UPDATE entities SET metadata = json_set(metadata, '$.status', 'pending', '$.height', 1) WHERE id = 'pending'",
+    );
+
+    const outcome = await migrator.clearPlaceholder("image", {
+      id: "pending",
+      expectedContentHash: "hash-pending",
+    });
+
+    expect(outcome).toEqual({ outcome: "cleared" });
+    const cleared = await row("pending");
+    expect(cleared["content"]).toBe("");
+    expect(cleared["contentHash"]).toBe(computeContentHash(""));
+    expect(JSON.parse(String(cleared["metadata"]))).toEqual({
+      title: "Title pending",
+      status: "pending",
+    });
+    expect(
+      await count(
+        "SELECT COUNT(*) FROM entity_fts WHERE entity_id = 'pending'",
+      ),
+    ).toBe(0);
+  });
+
+  it("leaves a placeholder alone once its row changed", async () => {
+    await insertImage("pending");
+
+    const outcome = await migrator.clearPlaceholder("image", {
+      id: "pending",
+      expectedContentHash: "hash-other",
+    });
+
+    expect(outcome).toEqual({ outcome: "changed" });
+    expect((await row("pending"))["content"]).toBe(inline);
+  });
 });

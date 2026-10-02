@@ -9,6 +9,7 @@ import {
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { runAssetsMigrate } from "../src/commands/assets-migrate";
+import { runAssetsVerify } from "../src/commands/assets-verify";
 import {
   dataUrl,
   fixture,
@@ -291,5 +292,65 @@ describe("assets:migrate", () => {
     expect(preview.success).toBe(true);
     expect(result.success).toBe(true);
     expect(result.message).toContain("Migrated 1 image(s)");
+  });
+
+  it("migrates around images awaiting their bytes and clears an old placeholder", async () => {
+    const path = await fixture([
+      ["cover", dataUrl("png", PNG)],
+      ["pending", ""],
+      // A failed image written while pending images held a 1x1 placeholder.
+      ["failed", dataUrl("png", PNG)],
+    ]);
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      await client.execute(
+        "UPDATE entities SET metadata = json_object('status', 'pending') WHERE id = 'pending'",
+      );
+      await client.execute(
+        "UPDATE entities SET metadata = json_object('status', 'failed', 'format', 'png', 'width', 1, 'height', 1) WHERE id = 'failed'",
+      );
+    } finally {
+      client.close();
+    }
+    const manifest = join(dirname(path), "manifest.json");
+
+    const dryRun = await runAssetsMigrate(
+      "/",
+      { database: path, dryRun: true },
+      stopped,
+    );
+    expect(dryRun.success).toBe(true);
+    expect(dryRun.message).toContain("1 inline image(s): 1 ready, 0 blocked");
+    expect(dryRun.message).toContain(
+      "2 image(s) awaiting their bytes; 1 old placeholder to clear.",
+    );
+
+    const migration = await runAssetsMigrate(
+      "/",
+      { database: path, manifest },
+      stopped,
+    );
+    expect(migration.success).toBe(true);
+    const entries = manifestSchema.parse(
+      JSON.parse(await readFile(manifest, "utf8")),
+    ).runs[0]?.entries;
+    expect(entries).toContainEqual(
+      expect.objectContaining({ id: "failed", outcome: "cleared" }),
+    );
+    const after = openOfflineEntityDatabase(path).client;
+    try {
+      const failed = await after.execute(
+        "SELECT content, metadata FROM entities WHERE id = 'failed'",
+      );
+      expect(failed.rows[0]?.["content"]).toBe("");
+      expect(JSON.parse(String(failed.rows[0]?.["metadata"]))).toEqual({
+        status: "failed",
+      });
+    } finally {
+      after.close();
+    }
+
+    const verify = await runAssetsVerify("/", { database: path }, stopped);
+    expect(verify.success).toBe(true);
   });
 });

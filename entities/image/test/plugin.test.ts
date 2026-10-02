@@ -186,6 +186,10 @@ describe("ImagePlugin", () => {
       sourceMediaType: "image/png",
       attachmentType: "uploaded",
     });
+    // Until promotion, the image has no bytes and no invented description.
+    expect(entity?.content).toBe("");
+    expect(entity?.metadata).not.toHaveProperty("format");
+    expect(entity?.metadata).not.toHaveProperty("width");
     expect(entity?.visibility).toBe("shared");
 
     await runQueuedUploadPromotion();
@@ -278,6 +282,7 @@ describe("ImagePlugin", () => {
       status: "failed",
       processingError: expect.stringContaining("Upload not found"),
     });
+    expect(entity?.content).toBe("");
   });
 
   it("fails promotion of an upload above the image asset limit", async () => {

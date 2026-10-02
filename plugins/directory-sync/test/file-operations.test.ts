@@ -369,6 +369,18 @@ describe("FileOperations", () => {
       ).toBe(true);
     });
 
+    it("writes no file for an image whose bytes do not exist yet", async () => {
+      await fileOps.writeEntity(
+        createTestEntity("image", {
+          id: "pending",
+          content: "",
+          metadata: { status: "pending" },
+        }),
+      );
+
+      expect(existsSync(join(testDir, "image"))).toBe(false);
+    });
+
     it("leaves an asset-backed image file untouched when its bytes match", async () => {
       const asset = await assetStore.stageAsset(TINY_PNG_BYTES);
       mkdirSync(join(testDir, "image"), { recursive: true });

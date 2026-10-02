@@ -101,8 +101,9 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 
   public fromMarkdown(content: string): Partial<Image> {
-    // Asset-backed rows carry their binary facts in stored metadata.
-    if (assetRefSchema.safeParse(content).success) {
+    // Asset-backed rows carry their binary facts in stored metadata, and a
+    // pending or failed image has no bytes to read them from.
+    if (content === "" || assetRefSchema.safeParse(content).success) {
       return { entityType: "image", content };
     }
     const { format, base64 } = parseDataUrl(content);
@@ -136,6 +137,20 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
 
   public getBodyTemplate(): string {
     return "";
+  }
+
+  /**
+   * Create image entity data for an image whose bytes do not exist yet: no
+   * payload, and no format or dimensions until they do.
+   */
+  public createPendingImageEntity(
+    input: ImageDescription & { status: "pending" | "failed" },
+  ): Pick<Image, "entityType" | "content" | "metadata"> {
+    return {
+      entityType: "image",
+      content: "",
+      metadata: describedMetadata(input),
+    };
   }
 
   /**

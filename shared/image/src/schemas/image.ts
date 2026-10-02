@@ -31,11 +31,11 @@ export type ImageIngestionStatus = z.output<typeof imageIngestionStatusSchema>;
 type ImageMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   alt: z.ZodOptional<z.ZodString>;
-  format: typeof imageFormatSchema;
+  format: z.ZodOptional<typeof imageFormatSchema>;
   mediaType: z.ZodOptional<z.ZodString>;
   sizeBytes: z.ZodOptional<z.ZodNumber>;
-  width: z.ZodNumber;
-  height: z.ZodNumber;
+  width: z.ZodOptional<z.ZodNumber>;
+  height: z.ZodOptional<z.ZodNumber>;
   status: z.ZodOptional<typeof imageIngestionStatusSchema>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
@@ -49,28 +49,45 @@ type ImageMetadataSchema = z.ZodObject<{
   dedupKey: z.ZodOptional<z.ZodString>;
 }>;
 
-export const imageMetadataSchema: ImageMetadataSchema = z.object({
-  title: z.string().optional(),
-  alt: z.string().optional(),
-  format: imageFormatSchema,
-  /** Set for asset-backed images; the type the bytes are served as. */
-  mediaType: z.string().optional(),
-  /** Set for asset-backed images; the stored byte count. */
-  sizeBytes: z.number().int().nonnegative().optional(),
-  width: z.number(),
-  height: z.number(),
-  status: imageIngestionStatusSchema.optional(),
-  processingJobId: z.string().optional(),
-  processingError: z.string().optional(),
-  sourceUrl: z.url().optional(),
-  sourceEntityType: z.string().optional(),
-  sourceEntityId: z.string().optional(),
-  sourceUploadId: z.string().optional(),
-  sourceFilename: z.string().optional(),
-  sourceMediaType: z.string().optional(),
-  attachmentType: z.string().optional(),
-  dedupKey: z.string().optional(),
-});
+/**
+ * A pending or failed image has no bytes yet, so it carries no format or
+ * dimensions; every other image is described by its bytes.
+ */
+export const imageMetadataSchema: ImageMetadataSchema = z
+  .object({
+    title: z.string().optional(),
+    alt: z.string().optional(),
+    format: imageFormatSchema.optional(),
+    /** Set for asset-backed images; the type the bytes are served as. */
+    mediaType: z.string().optional(),
+    /** Set for asset-backed images; the stored byte count. */
+    sizeBytes: z.number().int().nonnegative().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    status: imageIngestionStatusSchema.optional(),
+    processingJobId: z.string().optional(),
+    processingError: z.string().optional(),
+    sourceUrl: z.url().optional(),
+    sourceEntityType: z.string().optional(),
+    sourceEntityId: z.string().optional(),
+    sourceUploadId: z.string().optional(),
+    sourceFilename: z.string().optional(),
+    sourceMediaType: z.string().optional(),
+    attachmentType: z.string().optional(),
+    dedupKey: z.string().optional(),
+  })
+  .superRefine((metadata, ctx) => {
+    if (metadata.status === "pending" || metadata.status === "failed") return;
+    for (const field of ["format", "width", "height"] as const) {
+      if (metadata[field] === undefined) {
+        ctx.addIssue({
+          code: "custom",
+          path: [field],
+          message: `A completed image needs its ${field}`,
+        });
+      }
+    }
+  });
 
 export type ImageMetadata = z.output<typeof imageMetadataSchema>;
 

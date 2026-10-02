@@ -72,6 +72,21 @@ describe("resolveImage", () => {
     expect(result?.url).toBe(TINY_PNG_DATA_URL);
   });
 
+  it("resolves nothing for an image whose bytes do not exist yet", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      {
+        ...mockImageEntity,
+        content: "",
+        metadata: { title: "Hero Image", alt: "Hero", status: "pending" },
+      },
+    ]);
+
+    expect(
+      await resolveImage("hero-image", shell.getEntityService()),
+    ).toBeUndefined();
+  });
+
   it("should return undefined for non-existent image", async () => {
     const result = await resolveImage("non-existent", imageService());
 

@@ -26,24 +26,28 @@ describe("binary asset inventory", () => {
       id: string,
       entityType: string,
       content: string,
+      metadata: Record<string, unknown> = {},
     ): typeof entities.$inferInsert => ({
       id,
       entityType,
       content,
       contentHash: `hash-${id}`,
-      metadata: {},
+      metadata,
       visibility: "public",
       created: 1,
       updated: 2,
     });
-    await connection.db
-      .insert(entities)
-      .values([
-        row("b-inline", "image", "data:image/png;base64,AAAA"),
-        row("a-inline", "image", "data:image/png;base64,BBBB"),
-        row("migrated", "image", createAssetRef(storedDigest)),
-        row("note-1", "note", "# Note"),
-      ]);
+    await connection.db.insert(entities).values([
+      row("b-inline", "image", "data:image/png;base64,AAAA"),
+      row("a-inline", "image", "data:image/png;base64,BBBB"),
+      row("migrated", "image", createAssetRef(storedDigest)),
+      row("pending", "image", "", { status: "pending" }),
+      // Written before pending images stopped carrying a 1x1 placeholder.
+      row("legacy-failed", "image", "data:image/png;base64,CCCC", {
+        status: "failed",
+      }),
+      row("note-1", "note", "# Note"),
+    ]);
     await connection.client.execute(
       "INSERT INTO entity_fts (entity_id, entity_type, content) VALUES ('a-inline', 'image', 'data'), ('note-1', 'note', 'Note')",
     );
@@ -72,6 +76,8 @@ describe("binary asset inventory", () => {
 
     expect(inventory).toEqual({
       inlineIds: ["a-inline", "b-inline"],
+      awaitingIds: ["legacy-failed", "pending"],
+      placeholderIds: ["legacy-failed"],
       referenceCount: 1,
       ftsRows: 1,
       storedDigests: new Set([storedDigest]),

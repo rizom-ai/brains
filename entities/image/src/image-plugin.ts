@@ -37,9 +37,6 @@ import {
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 
-const PENDING_IMAGE_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
 type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
 function createAttributionJobOptions(
@@ -556,8 +553,7 @@ export class ImagePlugin extends EntityPlugin<
     executionContext?: CreateExecutionContext,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const entityData = imageAdapter.createImageEntity({
-      dataUrl: PENDING_IMAGE_DATA_URL,
+    const entityData = imageAdapter.createPendingImageEntity({
       title: input.title,
       alt: input.alt,
       status: "pending",

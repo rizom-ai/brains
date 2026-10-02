@@ -147,6 +147,11 @@ function renderPlan(path: string, plan: ImageAssetMigrationPlan): string {
       (image) =>
         `  blocked ${image.id}: ${image.reason}${image.sizeBytes === undefined ? "" : ` (${mib(image.sizeBytes)})`}`,
     ),
+    ...(plan.awaitingRows > 0
+      ? [
+          `${plan.awaitingRows} image(s) awaiting their bytes; ${plan.placeholdersToClear} old placeholder${plan.placeholdersToClear === 1 ? "" : "s"} to clear.`,
+        ]
+      : []),
     `Ready images: ${plan.uniqueDigests} distinct, ${plan.duplicateRows} duplicate row(s), ${plan.alreadyStoredDigests} already stored.`,
     `New asset bytes: ${mib(plan.bytesToStore)}; inline content removed: ${mib(plan.inlineBytesFreed)}.`,
     `Full-text rows to remove: ${plan.ftsRows}. Content hashes that change: ${plan.contentHashChanges}.`,

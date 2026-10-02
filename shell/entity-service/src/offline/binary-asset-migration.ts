@@ -50,6 +50,18 @@ export type InlineRowMigrationOutcome =
 export type AssetRestoreOutcome =
   { outcome: "restored" } | { outcome: "changed" };
 
+/** A row awaiting its bytes, as its plan read it. */
+export interface PlaceholderClearInput {
+  id: string;
+  expectedContentHash: string;
+}
+
+export type PlaceholderClearOutcome =
+  { outcome: "cleared" } | { outcome: "changed" };
+
+/** Facts only bytes give; a row without bytes carries none of them. */
+const BYTE_FACTS = ["format", "width", "height", "mediaType", "sizeBytes"];
+
 export type AssetRowOutcome =
   | { outcome: "created"; ref: AssetRef; contentHash: string }
   | { outcome: "changed" };
@@ -155,6 +167,47 @@ export class OfflineBinaryMigrator {
         updated: input.updated,
       });
       return { outcome: "created", ref: staged.ref, contentHash } as const;
+    });
+  }
+
+  /**
+   * Empty a pending or failed row that still holds the old 1x1 placeholder:
+   * it has no bytes to migrate, so it keeps none and claims no byte facts.
+   */
+  public async clearPlaceholder(
+    entityType: string,
+    input: PlaceholderClearInput,
+  ): Promise<PlaceholderClearOutcome> {
+    const hasFts = await this.hasFtsTable();
+    return this.db.transaction(async (transaction) => {
+      const [current] = await transaction
+        .select({
+          contentHash: entities.contentHash,
+          metadata: entities.metadata,
+        })
+        .from(entities)
+        .where(this.row(entityType, input.id));
+      if (current?.contentHash !== input.expectedContentHash) {
+        return { outcome: "changed" } as const;
+      }
+      await transaction
+        .update(entities)
+        .set({
+          content: "",
+          contentHash: computeContentHash(""),
+          metadata: Object.fromEntries(
+            Object.entries(current.metadata).filter(
+              ([key]) => !BYTE_FACTS.includes(key),
+            ),
+          ),
+        })
+        .where(this.row(entityType, input.id));
+      if (hasFts) {
+        await transaction.run(
+          sql`DELETE FROM entity_fts WHERE entity_id = ${input.id} AND entity_type = ${entityType}`,
+        );
+      }
+      return { outcome: "cleared" } as const;
     });
   }
 

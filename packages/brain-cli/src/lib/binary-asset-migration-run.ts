@@ -20,6 +20,7 @@ export type MigrationManifestEntry =
       sizeBytes: number;
     }
   | { id: string; outcome: "changed"; oldContentHash: string }
+  | { id: string; outcome: "cleared"; oldContentHash: string }
   | {
       id: string;
       outcome: "blocked";
@@ -83,8 +84,31 @@ export async function runImageAssetMigration(
         : { id, outcome: "changed", oldContentHash: row.contentHash },
     );
   }
+  // Pending or failed images have no bytes to migrate; one still holding
+  // the old 1x1 placeholder keeps nothing instead.
+  for (const id of inventory.placeholderIds) {
+    const oldContentHash = await readContentHash(connection, id);
+    if (oldContentHash === undefined) continue;
+    const result = await migrator.clearPlaceholder("image", {
+      id,
+      expectedContentHash: oldContentHash,
+    });
+    entries.push({ id, outcome: result.outcome, oldContentHash });
+  }
   await optimizeFullText(connection);
   return entries;
+}
+
+async function readContentHash(
+  connection: OfflineEntityConnection,
+  id: string,
+): Promise<string | undefined> {
+  const result = await connection.client.execute({
+    sql: "SELECT contentHash FROM entities WHERE entityType = 'image' AND id = ?",
+    args: [id],
+  });
+  const value = result.rows[0]?.["contentHash"];
+  return typeof value === "string" ? value : undefined;
 }
 
 /** Fold the deleted full-text rows away, when the index exists. */

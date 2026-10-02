@@ -298,4 +298,6 @@ export {
   type AssetRowOutcome,
   type InlineRowMigrationInput,
   type InlineRowMigrationOutcome,
+  type PlaceholderClearInput,
+  type PlaceholderClearOutcome,
 } from "./offline/binary-asset-migration";

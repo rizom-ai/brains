@@ -30,6 +30,10 @@ export async function resolveImage(
     return undefined;
   }
 
+  // A pending or failed image has no bytes, so nothing to render yet.
+  const { width, height } = image.metadata;
+  if (width === undefined || height === undefined) return undefined;
+
   // Inline rendering needs a data URL; an asset is encoded here explicitly.
   const url = await imageDataUrl(entityService, image);
   if (!url) return undefined;
@@ -38,8 +42,8 @@ export async function resolveImage(
     url,
     alt: image.metadata.alt ?? "",
     title: image.metadata.title ?? "",
-    width: image.metadata.width,
-    height: image.metadata.height,
+    width,
+    height,
   };
 }
 

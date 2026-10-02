@@ -234,6 +234,10 @@ export class FileOperations {
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
+    // A pending or failed binary has no bytes to mirror yet. Its current file,
+    // if any, stays until the bytes it is waiting for replace it.
+    if ((isImage || isDocument) && entity.content === "") return;
+
     // The durable outbox keeps only the latest mutation per (type, id).
     // Image extensions are content-derived, so converge that stable namespace
     // by removing every obsolete representation before writing the latest one.

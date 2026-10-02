@@ -215,4 +215,29 @@ describe("assets:reconcile", () => {
     expect(result.message).toContain("ignored unreadable file(s): cover.png");
     expect(await content(path, "cover")).toBe(pngRef);
   });
+
+  it("leaves an image awaiting its bytes alone, even with a file beside it", async () => {
+    const { path, from } = await withFiles(
+      [["cover", ""]],
+      [["cover.png", PNG]],
+    );
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      await client.execute(
+        "UPDATE entities SET metadata = json_object('status', 'pending') WHERE id = 'cover'",
+      );
+    } finally {
+      client.close();
+    }
+
+    const result = await runAssetsReconcile(
+      "/",
+      { database: path, from },
+      stopped,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("awaiting its bytes, left alone: cover");
+    expect(await content(path, "cover")).toBe("");
+  });
 });

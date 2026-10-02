@@ -158,4 +158,61 @@ describe("ImageAdapter", () => {
       ).toThrow("Unsupported image format");
     });
   });
+
+  describe("pending and failed images", () => {
+    const base = {
+      id: "img-pending",
+      entityType: "image" as const,
+      visibility: "public" as const,
+      contentHash: "hash",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+    };
+
+    it("creates a pending image with no payload and no invented dimensions", () => {
+      const pending = imageAdapter.createPendingImageEntity({
+        title: "Cover",
+        alt: "Cover",
+        status: "pending",
+        attachmentType: "uploaded",
+      });
+
+      expect(pending.content).toBe("");
+      expect(pending.metadata).toEqual({
+        title: "Cover",
+        alt: "Cover",
+        status: "pending",
+        attachmentType: "uploaded",
+      });
+    });
+
+    it("accepts pending and failed images without format or dimensions", () => {
+      for (const status of ["pending", "failed"] as const) {
+        expect(
+          imageAdapter.schema.safeParse({
+            ...base,
+            content: "",
+            metadata: { status },
+          }).success,
+        ).toBe(true);
+      }
+    });
+
+    it("still requires format and dimensions of a completed image", () => {
+      const ref = createAssetRef("a".repeat(64));
+      for (const metadata of [{}, { status: "draft" as const }]) {
+        expect(
+          imageAdapter.schema.safeParse({ ...base, content: ref, metadata })
+            .success,
+        ).toBe(false);
+      }
+    });
+
+    it("reads an image with no payload back without parsing bytes", () => {
+      expect(imageAdapter.fromMarkdown("")).toEqual({
+        entityType: "image",
+        content: "",
+      });
+    });
+  });
 });

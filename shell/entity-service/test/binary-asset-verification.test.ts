@@ -60,6 +60,7 @@ describe("verifyAssetBackedRows", () => {
         { id: "cover-copy", ref, status: "valid" },
       ],
       inlineRows: 0,
+      placeholderRows: 0,
       ftsRows: 0,
     });
   });

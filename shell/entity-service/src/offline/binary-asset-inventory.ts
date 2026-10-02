@@ -12,8 +12,12 @@ export type OfflineReader = Pick<Client, "execute">;
 
 /** What an asset-backed type still stores inline, and what it already holds. */
 export interface BinaryAssetInventory {
-  /** Rows whose content is anything but an asset reference, by id. */
+  /** Completed rows whose content is anything but an asset reference, by id. */
   inlineIds: string[];
+  /** Pending or failed rows: their bytes do not exist yet. */
+  awaitingIds: string[];
+  /** Awaiting rows still holding a payload: the old pending placeholder. */
+  placeholderIds: string[];
   /** Rows already holding an asset reference. */
   referenceCount: number;
   /** Full-text rows the type still has; asset-backed types keep none. */
@@ -37,7 +41,12 @@ export type InlineBinaryRow = z.output<typeof inlineRowSchema>;
 
 const idRowSchema = z.object({ id: z.string() });
 const countRowSchema = z.object({ count: z.number() });
+const awaitingRowSchema = z.object({ id: z.string(), placeholder: z.number() });
 const digestRowSchema = z.object({ digest: z.string() });
+
+/** Rows whose bytes do not exist yet, by their recorded ingestion status. */
+const AWAITING_STATUS_SQL =
+  "COALESCE(json_extract(metadata, '$.status'), '') IN ('pending', 'failed')";
 
 /**
  * Inventory an asset-backed type offline: the inline rows still to migrate,
@@ -49,10 +58,14 @@ export async function readBinaryAssetInventory(
   entityType: string,
 ): Promise<BinaryAssetInventory> {
   const referencePattern = `${ASSET_REF_PREFIX}%`;
-  const [inline, references, ftsRows, digests] = await Promise.all([
+  const [inline, awaiting, references, ftsRows, digests] = await Promise.all([
     reader.execute({
-      sql: "SELECT id FROM entities WHERE entityType = ? AND content NOT LIKE ? ORDER BY id",
+      sql: `SELECT id FROM entities WHERE entityType = ? AND content NOT LIKE ? AND NOT ${AWAITING_STATUS_SQL} ORDER BY id`,
       args: [entityType, referencePattern],
+    }),
+    reader.execute({
+      sql: `SELECT id, content <> '' AS placeholder FROM entities WHERE entityType = ? AND ${AWAITING_STATUS_SQL} ORDER BY id`,
+      args: [entityType],
     }),
     reader.execute({
       sql: "SELECT COUNT(*) AS count FROM entities WHERE entityType = ? AND content LIKE ?",
@@ -61,8 +74,13 @@ export async function readBinaryAssetInventory(
     countFtsRows(reader, entityType),
     reader.execute("SELECT digest FROM assets"),
   ]);
+  const awaitingRows = awaiting.rows.map((row) => awaitingRowSchema.parse(row));
   return {
     inlineIds: inline.rows.map((row) => idRowSchema.parse(row).id),
+    awaitingIds: awaitingRows.map((row) => row.id),
+    placeholderIds: awaitingRows
+      .filter((row) => row.placeholder === 1)
+      .map((row) => row.id),
     referenceCount: countRowSchema.parse(references.rows[0]).count,
     ftsRows,
     storedDigests: new Set(
@@ -104,7 +122,7 @@ export async function readInlineBinaryRow(
   id: string,
 ): Promise<InlineBinaryRow | null> {
   const result = await reader.execute({
-    sql: "SELECT id, content, contentHash FROM entities WHERE entityType = ? AND id = ? AND content NOT LIKE ?",
+    sql: `SELECT id, content, contentHash FROM entities WHERE entityType = ? AND id = ? AND content NOT LIKE ? AND NOT ${AWAITING_STATUS_SQL}`,
     args: [entityType, id, `${ASSET_REF_PREFIX}%`],
   });
   const row = result.rows[0];

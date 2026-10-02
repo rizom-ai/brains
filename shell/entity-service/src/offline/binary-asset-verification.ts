@@ -28,6 +28,8 @@ export interface AssetBackedVerification {
   rows: AssetRowCheck[];
   /** Rows still storing inline content. */
   inlineRows: number;
+  /** Rows awaiting their bytes that still hold the old 1x1 placeholder. */
+  placeholderRows: number;
   /** Full-text rows the type still has; asset-backed types keep none. */
   ftsRows: number;
 }
@@ -71,6 +73,7 @@ export async function verifyAssetBackedRows(
   return {
     rows,
     inlineRows: inventory.inlineIds.length,
+    placeholderRows: inventory.placeholderIds.length,
     ftsRows: inventory.ftsRows,
   };
 }

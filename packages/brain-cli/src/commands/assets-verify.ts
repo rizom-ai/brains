@@ -54,6 +54,7 @@ export async function runAssetsVerify(
     const success =
       broken.length === 0 &&
       verification.inlineRows === 0 &&
+      verification.placeholderRows === 0 &&
       verification.ftsRows === 0 &&
       (differs?.length ?? 0) === 0;
     return {
@@ -68,6 +69,11 @@ export async function runAssetsVerify(
         ...(verification.inlineRows > 0
           ? [
               `${verification.inlineRows} inline image(s) left: migrate them first.`,
+            ]
+          : []),
+        ...(verification.placeholderRows > 0
+          ? [
+              `${verification.placeholderRows} old placeholder(s) left on images awaiting their bytes: migrate to clear them.`,
             ]
           : []),
         ...(verification.ftsRows > 0
