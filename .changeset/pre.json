@@ -391,6 +391,7 @@
     "core--entity-type-classification",
     "core--export-raw-entity-source",
     "core--faq-band-alignment",
+    "core--faq-capture-recovery",
     "core--faq-capture",
     "core--faq-closed-screening-scope",
     "core--faq-inbox",

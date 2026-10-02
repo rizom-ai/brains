@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- [#481](https://github.com/rizom-ai/brains/pull/481) [`7a44bf1`](https://github.com/rizom-ai/brains/commit/7a44bf14a42322dcc5e6f3f69e40aa6b67524535) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make new FAQ captures restart-safe with native mutation receipts committed atomically alongside their FAQ writes. Preserve existing ambiguous claims without automatically replaying them, and prevent repeated attempts from incrementing asked counts or recreating deleted FAQs. Classification may still repeat; no public authoring capability is added.
+
 ## 0.2.0-alpha.472
 
 ### Patch Changes
