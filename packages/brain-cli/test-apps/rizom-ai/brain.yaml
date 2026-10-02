@@ -19,6 +19,8 @@ add:
   - notifications
   - obsidian-vault
   - contact
+  # The FAQs behind "Asked before" on the homepage, as production's chat bundle carries them.
+  - faq
 
 # Local test app: Admin tools (build-site etc.) available over MCP
 # http transport.
