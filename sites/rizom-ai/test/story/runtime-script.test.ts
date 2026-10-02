@@ -435,8 +435,13 @@ describe("the drawing belongs to the page while an answer is open", () => {
         </div>
         <figure class="figure" data-stage="0" data-stages="7"></figure>
       </div>`;
+    // The lead layer spans the chapters column; its own box is the frame.
     const hero = window.document.querySelector("#hero");
     Object.assign(hero ?? {}, {
+      getBoundingClientRect: () => rect(40, 20, 544, 900),
+    });
+    const leadLayer = window.document.querySelector("[data-net-leads]");
+    Object.assign(leadLayer ?? {}, {
       getBoundingClientRect: () => rect(0, 0, 1440, 900),
     });
     window.document.querySelectorAll("[data-ask-source]").forEach((row, i) => {

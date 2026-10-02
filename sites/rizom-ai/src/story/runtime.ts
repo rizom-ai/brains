@@ -218,7 +218,8 @@ export const storyRuntimeScript: string = `(function () {
       if (!leadsLayer) return;
       while (leadsLayer.firstChild) leadsLayer.removeChild(leadsLayer.firstChild);
       if (narrow.matches || !askHost) return;
-      var frame = (leadsLayer.parentElement || document.body).getBoundingClientRect();
+      // The layer's own box is the frame: coordinates are its, whatever positions it.
+      var frame = leadsLayer.getBoundingClientRect();
       leadsLayer.setAttribute("viewBox", "0 0 " + frame.width + " " + frame.height);
       Object.keys(sourceBrain).forEach(function (key) {
         var mark = homeMarks.filter(function (m) { return m.getAttribute("data-brain") === sourceBrain[key]; })[0];
