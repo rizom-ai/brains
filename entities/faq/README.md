@@ -35,7 +35,7 @@ The answer could only draw on content visible at that level, so the FAQ is never
 
 ## Entity
 
-Frontmatter holds only `question`, `status` (`draft` | `published`), and `asked` (how many chat replies asked it). The body is markdown: the answer, then any alternative answers under `## Alternative answers`, one `### Alternative N` section each. The answer is only the text above that heading, so sites never show alternatives. Internal completion receipts track decided replies; they are never part of the FAQ document.
+Frontmatter holds only `question`, `status` (`draft` | `published`), `asked` (how many chat replies asked it), and an optional `rank` the owner sets to place it on a site (1 first). The body is markdown: the answer, then any alternative answers under `## Alternative answers`, one `### Alternative N` section each. The answer is only the text above that heading, so sites never show alternatives. Internal completion receipts track decided replies; they are never part of the FAQ document.
 
 ## Reviewing alternative answers
 
@@ -45,9 +45,9 @@ A merge keeps the FAQ's answer. When the merging reply's rewritten answer differ
 
 Every draft, whatever its visibility, appears in the owner's Inbox with its drafted answer: **Publish** moves it to `published`, a publish status that requires the `publish` entity action; **Decline** deletes it. Both act only on the version they read.
 
-The plugin registers the `faq:entities` datasource and the `faq-section` template. The template is deliberately not named `faq-list`, so the site builder derives no `/faqs` route or navigation entry from it; a site shows FAQs only by placing `faq-section` in one of its route sections. The datasource returns FAQs with visibility exactly `public`, most asked first, and forwards the build's `publishedOnly`, so production builds show only published FAQs and a shared or restricted FAQ never reaches a site.
+The plugin registers the `faq:entities` datasource and the `faq-section` template. The template is deliberately not named `faq-list`, so the site builder derives no `/faqs` route or navigation entry from it; a site shows FAQs only by placing `faq-section` in one of its route sections. The datasource returns FAQs with visibility exactly `public`: ranked ones in rank order, then the rest most asked first, newest first on a tie, and forwards the build's `publishedOnly`, so production builds show only published FAQs and a shared or restricted FAQ never reaches a site.
 
-`loadPublicFaqs(context, limit, logger)` returns the same FAQs for a site that shows them beside its other content, and none on a brain without the plugin. The professional site's atlas homepage uses it: the six most asked appear in a band under the atlas, under the owner's `faqHeading` from `ask-content` (or no heading), every question closed until tapped and one answer open at a time. A preview build shows drafts there too, like any draft content.
+`loadPublicFaqs(context, limit, logger)` returns the same FAQs for a site that shows them beside its other content, and none on a brain without the plugin. The professional site's atlas homepage uses it: the first six appear in a band under the atlas, under the owner's `faqHeading` from `ask-content` (or no heading), every question closed until tapped and one answer open at a time. A preview build shows drafts there too, like any draft content.
 
 ## Configuration
 
