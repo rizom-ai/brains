@@ -1,17 +1,26 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-09-30
+Last updated: 2026-10-02
 
 ## Status
 
-The SQLite asset foundation is on `main` (`a7396a4a88`, released): `@brains/assets`
-contracts, a single-BLOB `assets` table (migration 0010), `SqliteAssetRepository`, the
-`fullTextSearchable` and `binaryStorage` entity-type settings, and atomic
-asset/entity tests. No entity type uses `binaryStorage: "asset"`; images and documents
-remain `data-url`. No instance has migrated.
+In progress. Phases 1–5 are open as one stacked PR chain on `main`:
 
-Next is Phase 1: replace the single-BLOB storage with staged chunk storage. This plan is
-the single source for asset storage and proceeds independently of
+| Phase | PRs                                                                      |
+| ----- | ------------------------------------------------------------------------ |
+| 1     | #447 staged chunk storage                                                |
+| 2     | #450 image upload walking skeleton                                       |
+| 3     | #451 remaining writers                                                   |
+| 4     | #455 delivery and publishing, #456 export, #465 render, #467 Studio      |
+| —     | #470 streamed directory-sync import                                      |
+| 5     | #476 `assets:migrate`, `assets:verify`, `assets:reconcile`, backup check |
+
+Independent fixes on `main`: #478 (site preparation yields between sections), #479
+(body-image discovery, the `926533fda4` port) and #480 (entity lookups return stored
+content, so writers never persist resolved image bytes).
+
+No instance has migrated. Next is Phase 6, the rehearsal on a copy of `yeehaa.io`. This
+plan is the single source for asset storage and proceeds independently of
 [turso-salvage.md](./turso-salvage.md).
 
 ## Decision
@@ -227,14 +236,23 @@ Import:
 4. Report oversized, malformed or inconsistent files visibly, leaving the source file in
    place.
 
-Staging replaces the temporary spool file.
+Staging replaces the temporary spool file. When an image has several files (for example a
+binary file next to a text-form `.md` data URL), the first that holds a supported image
+is used and unreadable ones are reported.
 
 Export streams the chunks to the file and keeps IDs, filenames, extensions and timestamps
 stable when the bytes are unchanged.
 
-`brain assets reconcile --entity-type image --from brain-data [--dry-run]` restores
-absent assets and matching entities transactionally. It reports mismatches and never
-silently changes an established reference.
+`brain assets:reconcile [--from brain-data] [--dry-run]` restores absent assets and
+matching entities transactionally:
+
+- a file with no row becomes a row with its asset;
+- a reference whose asset is gone gets its bytes back from the file;
+- an inline row whose stored bytes are lost (`malformed` or `double-encoded`) is
+  restored from its file;
+- a healthy inline row is left to the migration;
+- a reference that disagrees with its file is reported and never changed, and a
+  reference with neither asset nor file fails the run.
 
 ## Backup and restore
 
@@ -248,7 +266,8 @@ verification:
 4. Record asset count, total bytes and a digest inventory in the manifest.
 5. Report orphan uploads without failing the backup.
 
-Any failure in steps 1–3 blocks deployment. Restore replaces `brain.db` with the matching
+Any failure in steps 1–3 blocks deployment. The pre-deploy backup script performs steps
+2–5 on the `brain.db` snapshot and writes the inventory beside it. Restore replaces `brain.db` with the matching
 release; no reconciliation step is needed.
 
 ## Phases
@@ -297,10 +316,10 @@ Each phase is one PR, tests first.
    - directory-sync export;
    - entity-reference expansion.
 
-   Add legacy-materialization telemetry. The site-builder fix `926533fda4` lands here.
+   Add legacy-materialization telemetry. The site-builder fix `926533fda4` is ported to `main` as #479.
 
-5. **Migration tooling:** `brain migrate binary-assets` (dry-run, migrate, verify) and
-   `brain assets reconcile`.
+5. **Migration tooling:** `brain assets:migrate [--dry-run]`, `brain assets:verify` and
+   `brain assets:reconcile`, plus asset verification in the pre-deploy backup.
 6. **Rehearsal and production cutover.**
 7. **Soak and bridge removal.**
 8. **PDF follow-up**, after images soak without open defects.
@@ -312,11 +331,15 @@ It refuses remote URLs and live writers.
 
 - **Dry-run:**
   - parse and decode every legacy row without writing or logging content;
-  - block SVG, malformed and unsupported rows;
+  - block SVG, malformed, unsupported, oversized and double-encoded rows. A
+    double-encoded row stores a data URL whose payload is itself base64 of a data URL;
+    `main`'s export wrote such files from text-form images, and the next import stored
+    them. Reconcile repairs these rows from a clean file;
   - report unique and duplicate bytes, rows above the write cap, expected growth, FTS
     rows, content-hash changes and the peak disk needed for backup, migration and vacuum.
 - **Before production:** reconcile the known `yeehaa.io` divergence of four
-  database-only and eight sync-only payloads.
+  database-only and eight sync-only payloads. Reconcile creates the sync-only rows;
+  database-only rows are migrated and written to `brain-data` by the next export.
 - **Per entity:**
   - stage from the decoded data URL;
   - publish together with the entity update to the reference, binary metadata and new
@@ -325,7 +348,10 @@ It refuses remote URLs and live writers.
   - preserve ID, visibility, provenance and timestamps.
 
   Per-chunk commits keep the WAL bounded. A crash leaves a mixed legacy/reference
-  database, which the transitional release supports. Reruns skip completed rows.
+  database, which the transitional release supports. Reruns skip completed rows. The
+  command first applies pending entity migrations, as the transitional release's first
+  start would, and collects garbage between rows: 91 images (about 420 MiB) migrate in
+  10 s at 547 MiB peak memory.
 
 - **Afterwards:** run FTS5 `optimize`, then offline `VACUUM` once acceptance passes.
 - **Verify:**
@@ -336,7 +362,11 @@ It refuses remote URLs and live writers.
   - reimporting unchanged files changes no hash.
 
   The manifest records IDs, old and new content hashes, digest, media type, size and
-  outcome, never bytes.
+  outcome, never bytes. It defaults to `binary-asset-migration.json` beside the database,
+  and each run is appended.
+
+Every command requires a local database no process holds open, detected from open file
+handles (`/proc`, else `lsof`); none takes a lock.
 
 ### Cutover and rollback (Phase 6)
 
@@ -380,7 +410,8 @@ release, restart and verify. Never attempt in-place reverse conversion.
 9. Missing or corrupt assets fail visibly.
 10. Normal reads, lists and events never include bytes.
 11. The max event-loop gap stays ≤ 25 ms during asset writes and reads up to the
-    contract ceiling.
+    contract ceiling. Gaps of about 50 ms from embedding and AI work are outside this
+    criterion.
 
 ## Validation
 
