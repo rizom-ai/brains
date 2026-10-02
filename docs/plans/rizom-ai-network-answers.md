@@ -4,7 +4,7 @@
 
 Planned on `work/network-answers`, 2026-10-01. The mockup in [`docs/design/rizom-ai-network-answers/home.html`](../design/rizom-ai-network-answers/home.html) is the visual contract: the live homepage's shell, opening and drawing with the Ask box in place of the door, and the answer sequence drawn from the connected brains' published pieces. Its answer copy and excerpts are placeholders; the brains are the live directory's.
 
-Slices 1 to 3 are built and stacked: #482 (the page listens), #484 (one connected brain, indexed), #485 (the network). Slice 2 was verified on the rizom-ai test app against Yeehaa's live repository: 32 pieces indexed on the worker's start-up run, returned by scoped and broad search with brain, origin and excerpt.
+Slices 1 to 5 are built and stacked: #482 (the page listens), #484 (one connected brain, indexed), #485 (the network), #486 (records name their page), #492 (asked before, with the lights). Slices 2 and 3 were verified on the rizom-ai test app against Yeehaa's live repository: 32 pieces indexed on the worker's start-up run, the DID learned from the brain's home, the pieces returned by scoped and broad search with brain, origin and excerpt.
 
 ## Goal
 
@@ -33,8 +33,9 @@ Here the vocabulary is brains. A visitor's question is answered by Rizom from wh
 - **A piece is sent to its page, else to its brain's home.** The origin is the record's `canonicalUrl`; without one it is the site the brain's endpoint belongs to, never the endpoint. The brain names its page in the record (slice 4), so an answer's rows deep-link once the brains republish.
 - **The answer is Rizom's; the words are theirs.** The model composes one answer across the pieces; every source carries the brain, the origin link and an excerpt — the record's opening lines — so the composition and the words behind it are both on the page.
 - **The brain rides on the source event.** `ask:sources` gains an optional `brain` per source (`{ did, name, url }`); the professional site ignores it, the rizom.ai opening lights by it.
-- **An asked-before question answers before the model.** Guest Ask matches the question against published FAQs with the same-question matching the capture already uses; a hit returns the FAQ's answer and its stored sources and counts another ask.
-- **"Asked before" is the chapter after "Where this goes",** before "Two ways in": the reader has seen the argument and has their own doubts before being asked to choose a door. Its drawing stage is the network at rest, lit by the open question. Counts sort the section and are never shown; the suggestions under the box stay the owner's openers from the Ask note.
+- **An asked-before question answers before the model.** Guest Ask puts the question to the faq plugin over a shell channel; the plugin matches it against published public FAQs with the same-question matching the capture already uses (embedding distance, then the one confirming check); a hit returns the FAQ's answer and its stored sources, counts another ask, and the box says "Asked before". Drafts never answer.
+- **A withdrawn source is the owner's call.** When a cited piece leaves the index, the published FAQs that cited it are marked for review and reach the Inbox with what left; the owner keeps the answer or takes it down. Nothing is unpublished for them.
+- **"Asked before" is the chapter after "Where this goes",** before "Two ways in": the reader has seen the argument and has their own doubts before being asked to choose a door. The chapter draws the live network again beside its questions, the organism steps aside while it is read, and the open question lights the brains its answer drew on in every drawing. Counts sort the section and are never shown; the suggestions under the box stay the owner's openers from the Ask note.
 - **No lights without a cited piece.** A spark means a published piece from that brain was cited; the attribution line says what happened — Rizom answered, with their memory.
 
 ## Slices
