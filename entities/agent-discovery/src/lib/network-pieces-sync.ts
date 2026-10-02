@@ -95,6 +95,14 @@ function rkeyOf(uri: string): string {
   return uri.split("/").pop() ?? uri;
 }
 
+/**
+ * A brain's home: the directory holds its A2A endpoint, and a reader is sent
+ * to the site that endpoint belongs to, never to the endpoint itself.
+ */
+function homeOf(agent: AgentEntity): string {
+  return new URL(agent.metadata.url).origin;
+}
+
 /** The piece a record becomes, in its brain's words. */
 function pieceOf(
   agent: AgentEntity,
@@ -110,10 +118,10 @@ function pieceOf(
   const text = [value.summary, value.description, value.body]
     .filter((part): part is string => Boolean(part?.trim()))
     .join("\n\n");
+  const home = homeOf(agent);
+  // A record names its page when its brain projected one; otherwise the home.
   const origin =
-    value.canonicalUrl ??
-    (kind === "link" ? value.url : undefined) ??
-    agent.metadata.url;
+    value.canonicalUrl ?? (kind === "link" ? value.url : undefined) ?? home;
   const excerpt = (value.summary ?? value.description ?? value.body ?? "")
     .replace(/\s+/g, " ")
     .trim()
@@ -136,7 +144,7 @@ function pieceOf(
       brain: {
         did: repoDid,
         name: agent.metadata.name,
-        url: agent.metadata.url,
+        url: home,
       },
       origin,
       collection,

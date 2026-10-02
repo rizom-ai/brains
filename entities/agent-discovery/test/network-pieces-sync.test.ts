@@ -20,7 +20,12 @@ type RecurringCheck = Parameters<
 const PLC = {
   service: [{ id: "#atproto_pds", serviceEndpoint: "https://pds.test/" }],
 };
-const post = (rkey: string, cid: string, title: string): unknown => ({
+const post = (
+  rkey: string,
+  cid: string,
+  title: string,
+  { addressed = true }: { addressed?: boolean } = {},
+): unknown => ({
   uri: `at://did:plc:peer/ai.rizom.brain.post/${rkey}`,
   cid,
   value: {
@@ -28,7 +33,9 @@ const post = (rkey: string, cid: string, title: string): unknown => ({
     title,
     summary: `${title}, in short.`,
     body: `${title}: the long form, in Becca's words.`,
-    canonicalUrl: `https://becca.rizom.ai/essays/${rkey}`,
+    ...(addressed
+      ? { canonicalUrl: `https://becca.rizom.ai/essays/${rkey}` }
+      : {}),
     createdAt: "2026-09-30T09:00:00.000Z",
   },
 });
@@ -101,7 +108,7 @@ async function brain(
           name: agent.id === "becca.rizom.ai" ? "Becca" : agent.id,
           kind: "person",
           brainName: agent.id,
-          url: `https://${agent.id}`,
+          url: `https://${agent.id}/a2a`,
           status: agent.status,
           discoveredAt: "2026-09-01T00:00:00.000Z",
           slug: agent.id,
@@ -203,6 +210,21 @@ describe("indexing the network's published pieces", () => {
     expect((await b.pieces()).map((p) => p.id)).toEqual([
       "plc-peer--post--3kabc",
     ]);
+  });
+
+  it("sends a piece without a page address to its brain's home, never its endpoint", async () => {
+    const { fetchFn } = repository({
+      "ai.rizom.brain.post": [
+        post("3kbare", "bafy9", "No address", { addressed: false }),
+      ],
+    });
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    const [piece] = await b.pieces();
+    expect(piece?.metadata.origin).toBe("https://becca.rizom.ai");
+    expect(piece?.metadata.brain.url).toBe("https://becca.rizom.ai");
   });
 
   it("keeps the last index when a brain's repository cannot be reached", async () => {
