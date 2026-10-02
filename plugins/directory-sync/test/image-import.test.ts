@@ -449,6 +449,31 @@ describe("Image Import - Regression Tests", () => {
       );
     });
 
+    it("skips a stale sibling file when another file of the image holds the stored bytes", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      // A different, valid image: a one-pixel GIF.
+      writeFileSync(
+        join(testDir, "image", "robot.gif"),
+        Buffer.from(
+          "R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=",
+          "base64",
+        ),
+      );
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+      storeImage(TINY_PNG_DATA_URL);
+
+      const result = await dirSync.importEntities();
+
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+      expect(result.skipped).toBe(2);
+      expect(JSON.stringify(result)).toContain(
+        "robot.png holds the stored image",
+      );
+    });
+
     it("reports a file that is not a supported image and leaves it in place", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       const path = join(testDir, "image", "broken.png");
