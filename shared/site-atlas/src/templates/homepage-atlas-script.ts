@@ -13,6 +13,8 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *
  * - Touch screens have no hover, so the first tap on a mark opens its title
  *   card and the second follows the link. Tapping elsewhere or Escape closes.
+ * - The legend's "Latest" opens the latest piece's card: while hovered or
+ *   focused, and on a touch screen at the first tap, the second following it.
  *   Marks crowd on a phone and their hit targets overlap, so a tap in the map
  *   resolves to the nearest mark within a fingertip, not the one on top.
  * - With guest chat docked, a topic fills the chat draft instead of opening
@@ -447,8 +449,32 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       followLeads(Date.now() + TURN);
     });
 
+    var latestKey = root.querySelector("[data-atlas-latest]");
+    var latestMark = latestKey
+      ? root.querySelector('[data-atlas-key="' + latestKey.getAttribute("data-atlas-latest") + '"]')
+      : null;
+    function openLatest() {
+      if (!latestMark || open === latestMark) return;
+      close();
+      open = latestMark;
+      latestMark.setAttribute("data-open", "");
+    }
+    if (latestKey && latestMark) {
+      latestKey.addEventListener("mouseenter", openLatest);
+      latestKey.addEventListener("focus", openLatest);
+      latestKey.addEventListener("mouseleave", close);
+      latestKey.addEventListener("blur", close);
+    }
+
     root.addEventListener("click", function (event) {
       var target = event.target;
+      // A first tap on "Latest" opens the latest piece's card; the next follows the link.
+      if (latestMark && touch.matches && target && target.closest && target.closest("[data-atlas-latest]")) {
+        if (open === latestMark) return;
+        event.preventDefault();
+        openLatest();
+        return;
+      }
       var fill = target && target.closest ? target.closest("[data-atlas-fill]") : null;
       if (fill) {
         var draft = liveDraft();

@@ -40,7 +40,9 @@ function setup(options: {
           <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
           <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
-      </div></div>
+      </div>
+      <p class="atlas__legend"><a id="latest" class="atlas__key--latest" href="/essays/second" data-atlas-latest="post:second" aria-label="Latest: Second">Latest</a></p>
+      </div>
     </section>
     <p id="outside">Elsewhere</p>
     <section data-atlas-faqs>
@@ -152,6 +154,13 @@ describe("published FAQs under the atlas", () => {
 });
 
 describe("atlas on touch screens", () => {
+  it("opens the latest piece's card from the legend's Latest, then follows it", () => {
+    setup({ touch: true });
+    expect(tap("#latest")).toBe(false);
+    expect(openMarks()).toEqual(["second"]);
+    expect(tap("#latest")).toBe(true);
+  });
+
   it("shows a mark's title on the first tap and follows it on the second", () => {
     setup({ touch: true });
     expect(tap("#first")).toBe(false);
@@ -244,6 +253,22 @@ describe("atlas with a mouse", () => {
     setup({ touch: false });
     expect(tap("#first")).toBe(true);
     expect(openMarks()).toEqual([]);
+  });
+
+  it("shows the latest piece's card while the legend's Latest is hovered or focused", () => {
+    setup({ touch: false });
+    const latest = window.document.querySelector("#latest");
+    if (!latest) throw new Error("missing #latest");
+    for (const [on, off] of [
+      ["mouseenter", "mouseleave"],
+      ["focus", "blur"],
+    ] as const) {
+      latest.dispatchEvent(new window.Event(on));
+      expect(openMarks()).toEqual(["second"]);
+      latest.dispatchEvent(new window.Event(off));
+      expect(openMarks()).toEqual([]);
+    }
+    expect(tap("#latest")).toBe(true);
   });
 });
 

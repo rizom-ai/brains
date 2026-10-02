@@ -115,6 +115,13 @@ describe("homepage atlas data", () => {
     }
   });
 
+  it("marks the most recently published piece as the latest, and only it", async () => {
+    const atlas = await loadHomepageAtlas(source());
+    expect(
+      atlas?.items.filter((item) => item.latest).map((item) => item.id),
+    ).toEqual(["hiding"]);
+  });
+
   it("keeps a territory only while it holds a shown item", async () => {
     const atlas = await loadHomepageAtlas(source());
     expect(atlas?.zones.map((zone) => zone.name)).toEqual(["New institutions"]);
@@ -162,6 +169,7 @@ const atlas: HomepageAtlasData = {
       zoneId: "institutions",
       url: "/essays/hiding-in-plain-sight",
       typeLabel: "Essay",
+      latest: false,
     },
     {
       id: "lefthoek",
@@ -175,6 +183,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/lefthoek",
       typeLabel: "Project",
+      latest: false,
     },
     {
       id: "offcourse",
@@ -188,6 +197,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/offcourse",
       typeLabel: "Project",
+      latest: false,
     },
   ],
 };
