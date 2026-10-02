@@ -523,6 +523,11 @@ describe("guest runtime boundary", () => {
       const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
       expect(stored).toContain("network-piece:plc-peer--post--3kabc");
       expect(stored).toContain("Becca");
+      // History knows a FAQ answered, as the live box does.
+      const [, reply] = h.conversations.addMessage.mock.calls;
+      expect(reply?.[0].metadata).toMatchObject({
+        askedBefore: { faqId: "how-does-rizom-keep-memory" },
+      });
     });
     it("goes to the model when no FAQ asks it, or the check fails", async () => {
       const h = harness(conversation, [], {

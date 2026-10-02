@@ -626,6 +626,43 @@ describe("sources from other brains", () => {
       host.querySelector(".brain-box-sources")?.getAttribute("aria-label"),
     ).toBe("Sources, Rizom, with Becca and Jo");
   });
+  it("says the question was asked before, and still whose memory it drew on", async () => {
+    const [question, reply] = networkAnswer;
+    if (!question || !reply) throw new Error("fixture");
+    await render({
+      messages: [
+        question,
+        { ...reply, askedBefore: { faqId: "how-do-brains-work-together" } },
+      ],
+      state: "complete",
+    });
+    expect(host.querySelector(".brain-box-asked-before")?.textContent).toBe(
+      "Asked before",
+    );
+    expect(host.querySelector(".brain-box-answered-by")?.textContent).toBe(
+      "Rizom, with Becca and Jo",
+    );
+  });
+
+  it("says asked before even when the FAQ kept no sources", async () => {
+    await render({
+      messages: [
+        { id: "q", role: "user", content: "What is a brain?" },
+        {
+          id: "a",
+          role: "assistant",
+          content: "A memory that answers.",
+          askedBefore: { faqId: "what-is-a-brain" },
+        },
+      ],
+      state: "complete",
+    });
+    expect(host.querySelector(".brain-box-asked-before")?.textContent).toBe(
+      "Asked before",
+    );
+    expect(host.querySelector(".brain-box-answered-by")).toBe(null);
+  });
+
   it("says only who answered when every source is this brain's own", async () => {
     await render({ messages: answer, state: "complete" });
     expect(host.querySelector(".brain-box-answered-by")).toBe(null);

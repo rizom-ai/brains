@@ -4,6 +4,7 @@ import {
   askedBeforeResponseSchema,
   firstAskedBeforeHit,
 } from "../src/asked-before";
+import { chatHistoryMessageSchema, chatProtocolEventSchema } from "../src/chat";
 
 // A visitor's question is put to the FAQs before the model; a hit carries the
 // FAQ's answer and the sources it kept, and a malformed answer is no answer.
@@ -37,6 +38,30 @@ describe("a question asked before", () => {
         hit: { faqId: "x", answer: "An answer." },
       }).hit?.sources,
     ).toEqual([]);
+  });
+
+  it("reaches the box as its own event, naming the FAQ", () => {
+    expect(
+      chatProtocolEventSchema.parse({
+        type: "data-asked-before",
+        id: "asked-before",
+        data: { faqId: "how-does-rizom-keep-memory" },
+      }),
+    ).toMatchObject({ data: { faqId: "how-does-rizom-keep-memory" } });
+    expect(() =>
+      chatProtocolEventSchema.parse({ type: "data-asked-before", data: {} }),
+    ).toThrow();
+  });
+
+  it("stays on the reply in the conversation's history", () => {
+    expect(
+      chatHistoryMessageSchema.parse({
+        id: "a",
+        role: "assistant",
+        content: "In the brains of the people who hold it.",
+        askedBefore: { faqId: "how-does-rizom-keep-memory" },
+      }).askedBefore,
+    ).toEqual({ faqId: "how-does-rizom-keep-memory" });
   });
 
   it("takes the first well-formed hit and ignores the rest", () => {

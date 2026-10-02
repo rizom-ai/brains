@@ -9,7 +9,7 @@
  */
 
 import { withEmbeddingUsage } from "./openai-guest-pricing";
-import type { AgentContextItem } from "@brains/contracts";
+import type { AgentContextItem, AskedBefore } from "@brains/contracts";
 import {
   guestInterfaceType,
   getGuestSourceCards,
@@ -447,6 +447,7 @@ export class TurnProcessor {
         entityMemoryRefs: [],
         agentContactCandidates: [],
         guest: true,
+        askedBefore: { faqId: hit.faqId },
       })),
     });
     return {
@@ -811,6 +812,8 @@ export class TurnProcessor {
     agentContactCandidates?: AgentContactCandidate[];
     actorAlreadyEnriched?: boolean;
     guest?: boolean;
+    /** The FAQ that gave a visitor's reply in the model's place. */
+    askedBefore?: AskedBefore;
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
     if (params.guest) {
       const cards = getGuestSourceCards(params.cards);
@@ -818,6 +821,7 @@ export class TurnProcessor {
         metadata: {
           userPermissionLevel: "public",
           ...(cards.length ? { cards } : {}),
+          ...(params.askedBefore ? { askedBefore: params.askedBefore } : {}),
         },
       };
     }

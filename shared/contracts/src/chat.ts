@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
 import { sourceBrainSchema } from "./ask-box";
+import { askedBeforeSchema } from "./agent-response";
 import { askContentSchema } from "./ask-content";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
@@ -614,12 +615,15 @@ export const chatHistoryMessageSchema: Loose<{
   content: z.ZodString;
   attachments: z.ZodOptional<z.ZodArray<typeof chatHistoryAttachmentSchema>>;
   cards: z.ZodOptional<z.ZodArray<typeof chatCardSchema>>;
+  askedBefore: z.ZodOptional<typeof askedBeforeSchema>;
 }> = z.looseObject({
   id: chatIdSchema,
   role: z.enum(["user", "assistant"]),
   content: z.string().max(1_000_000),
   attachments: z.array(chatHistoryAttachmentSchema).max(100).optional(),
   cards: z.array(chatCardSchema).max(100).optional(),
+  /** A published FAQ gave this reply in the model's place. */
+  askedBefore: askedBeforeSchema.optional(),
 });
 
 export type ChatHistoryMessage = z.output<typeof chatHistoryMessageSchema>;
@@ -1000,6 +1004,12 @@ export const chatProtocolEventSchema: z.ZodDiscriminatedUnion<
       transient: z.ZodOptional<z.ZodBoolean>;
     }>,
     Loose<{
+      type: z.ZodLiteral<"data-asked-before">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof askedBeforeSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
       type: z.ZodLiteral<"data-attachment">;
       id: z.ZodOptional<z.ZodString>;
       data: typeof chatAttachmentCardSchema;
@@ -1147,6 +1157,13 @@ export const chatProtocolEventSchema: z.ZodDiscriminatedUnion<
     type: z.literal("data-sources"),
     id: chatIdSchema.optional(),
     data: chatSourcesCardSchema,
+    transient: z.boolean().optional(),
+  }),
+  // A published FAQ answered the visitor's question in the model's place.
+  z.looseObject({
+    type: z.literal("data-asked-before"),
+    id: chatIdSchema.optional(),
+    data: askedBeforeSchema,
     transient: z.boolean().optional(),
   }),
   z.looseObject({

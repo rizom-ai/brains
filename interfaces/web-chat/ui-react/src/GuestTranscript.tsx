@@ -139,6 +139,9 @@ export function GuestTranscript({
           ) : (
             <GuestMarkdown>{message.content}</GuestMarkdown>
           )}
+          {message.role === "assistant" && message.askedBefore && (
+            <p className="brain-box-asked-before">Asked before</p>
+          )}
           {message.role === "assistant" &&
             getGuestSourceCards(message.cards).map((card) =>
               sourceLinks ? (
