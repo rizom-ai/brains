@@ -149,3 +149,16 @@ describe("the site's icon", () => {
     expect(icon).toContain("#d4af37");
   });
 });
+
+describe("what a visitor's answer may cite", () => {
+  test("names the network's pieces beside the site's own, all opted in", () => {
+    expect(site.entityDisplay["network-piece"]).toMatchObject({
+      label: "From the network",
+      citable: true,
+      navigation: { show: false },
+    });
+    for (const type of ["post", "deck", "agent"]) {
+      expect(site.entityDisplay[type]?.citable).toBe(true);
+    }
+  });
+});

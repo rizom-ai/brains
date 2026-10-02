@@ -345,7 +345,7 @@ function getRepoDidFromCardUri(uri: string): string | null {
   return match?.[1] ?? null;
 }
 
-async function resolvePdsEndpoint(
+export async function resolvePdsEndpoint(
   repoDid: string,
   fetchFn: AtprotoCardFetch,
   signal?: AbortSignal,

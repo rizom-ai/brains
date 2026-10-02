@@ -1,5 +1,6 @@
 import { stripUndefinedDeep } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
+import { sourceBrainSchema } from "./ask-box";
 import {
   guestScreeningOutcomeSchema,
   guestTurnSettlementSchema,
@@ -142,6 +143,7 @@ type SourceCitationSchema = z.ZodObject<{
   entityId: z.ZodOptional<z.ZodString>;
   excerpt: z.ZodOptional<z.ZodString>;
   provenance: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  brain: z.ZodOptional<typeof sourceBrainSchema>;
 }>;
 
 export const SourceCitationSchema: SourceCitationSchema = z.object({
@@ -153,6 +155,8 @@ export const SourceCitationSchema: SourceCitationSchema = z.object({
   entityId: z.string().min(1).optional(),
   excerpt: z.string().min(1).optional(),
   provenance: z.record(z.string(), z.unknown()).optional(),
+  /** The brain whose published piece this is, when it is not this brain's own. */
+  brain: sourceBrainSchema.optional(),
 });
 
 export type SourceCitation = z.output<typeof SourceCitationSchema>;
