@@ -563,6 +563,8 @@ export interface SortField {
   direction: "asc" | "desc";
   /** Sort NULL values before non-NULL values (default: false / SQLite default) */
   nullsFirst?: boolean;
+  /** Sort NULL values after non-NULL values, whatever the direction */
+  nullsLast?: boolean;
 }
 
 /**
