@@ -2,7 +2,9 @@
 
 ## Status
 
-Planned on `work/network-answers`, 2026-10-01. The mockup in [`docs/design/rizom-ai-network-answers/home.html`](../design/rizom-ai-network-answers/home.html) is the visual contract: the live homepage's shell, opening and drawing with the Ask box in place of the door, and the answer sequence drawn from the connected brains' published pieces. Its answer copy and excerpts are placeholders; the brains are the live directory's. Nothing in it is built.
+Planned on `work/network-answers`, 2026-10-01. The mockup in [`docs/design/rizom-ai-network-answers/home.html`](../design/rizom-ai-network-answers/home.html) is the visual contract: the live homepage's shell, opening and drawing with the Ask box in place of the door, and the answer sequence drawn from the connected brains' published pieces. Its answer copy and excerpts are placeholders; the brains are the live directory's.
+
+Slices 1 to 3 are built and stacked: #482 (the page listens), #484 (one connected brain, indexed), #485 (the network). Slice 2 was verified on the rizom-ai test app against Yeehaa's live repository: 32 pieces indexed on the worker's start-up run, returned by scoped and broad search with brain, origin and excerpt.
 
 ## Goal
 
@@ -12,8 +14,9 @@ Here the vocabulary is brains. A visitor's question is answered by Rizom from wh
 
 ## Baseline
 
-- Every brain has an ATProto DID and a repository. The atproto plugin mirrors each public entity of a projected type to a record there on every update (post, deck, project, note, link, series, topic, social post; the brain card always), when the brain has publishing credentials, which the fleet provisions. Nothing restricted or private is mirrored. rizom.ai is the lexicon authority.
-- The connected brains' cards reach Rizom through the agent directory (`entities/agent-discovery`), which carries each brain's DID and URL and feeds the homepage drawing (`sites/rizom-ai/src/story/network.ts`).
+- A brain with publishing credentials has an ATProto DID and a repository, and the atproto plugin mirrors each public entity of a projected type to a record there on every update (post, deck, project, note, link, series, topic, social post; the brain card always). Nothing restricted or private is mirrored. rizom.ai is the lexicon authority. On 2026-10-02 only yeehaa.io of the nine connected brains resolves an ATProto handle; the `*.rizom.ai` brains have no identity until the fleet provisions one.
+- Only the post lexicon has a `canonicalUrl`, and no live record carries one: a record does not say where its page is.
+- The connected brains' cards reach Rizom through the agent directory (`entities/agent-discovery`), which carries each brain's A2A endpoint as its URL and feeds the homepage drawing (`sites/rizom-ai/src/story/network.ts`). A brain discovered by its card has no repository DID in the directory; the DID arrives only through the brain-card firehose.
 - Guest Ask answers from Rizom's entities; the sources are the citable types' results within a score band (`shell/core/src/initialization/guest-answer-sources.ts`). When no type opts in, every type with pages is citable. The box emits `ask:sources` with `{ id, title }` per source (`shared/contracts/src/ask-box.ts`, `interfaces/web-chat/ui-react/src/guest-box.tsx`).
 - The atlas kit (`shared/site-atlas`) already lights marks from `ask:sources`, draws leads, and docks the map into the phone conversation (`homepage-atlas-script.ts`). The rizom.ai opening hosts the box through the kit's `AskBoxHost` and draws the network itself.
 - FAQs (`entities/faq`) capture a visitor's question and the reply as a public draft, fold repeats by embedding distance and count them, reach the owner in Studio and the Inbox, and publish. The kit renders published FAQs as "Asked before": a closed `details` accordion, one open at a time, most asked first, no script.
@@ -26,6 +29,8 @@ Here the vocabulary is brains. A visitor's question is answered by Rizom from wh
 - **Consent is publication.** A brain is in the network's answers exactly when its owner has published pieces to its repository; withdrawing a piece withdraws it from Rizom's answers at the next sync. No further switch.
 - **One entity type, `network-piece`,** with the kind as a field. Stored as Rizom's own types, another brain's work would get rizom.ai routes, a place in Studio and the writing archive, and be re-published under Rizom's DID, none of it switchable per entity. A `network-piece` is public, embeddable, searchable and citable, and nothing else: no site route, `projectionSource: false`, read-only in Studio; its citation URL points to the origin brain.
 - **The sync lives in `agent-discovery`,** which owns the directory and its cadence; the piece sits beside the agent.
+- **A brain's repository is learned from its home.** An approved agent without a DID is asked at `https://<home>/.well-known/atproto-did` once per sync and the DID is kept on the agent; the directory does not wait for the firehose.
+- **A piece is sent to its page, else to its brain's home.** The origin is the record's `canonicalUrl`; without one it is the site the brain's endpoint belongs to, never the endpoint. The brain names its page in the record (slice 4), so an answer's rows deep-link once the brains republish.
 - **The answer is Rizom's; the words are theirs.** The model composes one answer across the pieces; every source carries the brain, the origin link and an excerpt — the record's opening lines — so the composition and the words behind it are both on the page.
 - **The brain rides on the source event.** `ask:sources` gains an optional `brain` per source (`{ did, name, url }`); the professional site ignores it, the rizom.ai opening lights by it.
 - **An asked-before question answers before the model.** Guest Ask matches the question against published FAQs with the same-question matching the capture already uses; a hit returns the FAQ's answer and its stored sources and counts another ask.
@@ -54,13 +59,19 @@ Every connected brain with a DID is indexed on the directory's cadence; consulta
 
 Tests: a directory of several brains indexes all and only the published pieces; a question whose pieces come from two brains lights two.
 
-### 4. Asked before, with the lights
+### 4. Records name their page
+
+Every projected record carries the entity's page address as `canonicalUrl`: the lexicons other than post gain the optional field, the atproto plugin hands each projection the page URL it already knows for the site, and each projection writes it. A brain's next publish of a piece gives it an address; the index picks it up by cid and the citation deep-links.
+
+Tests: each lexicon accepts and omits `canonicalUrl`; each projection writes the page URL it is handed and nothing when there is none; the plugin hands the URL only for entities with a page.
+
+### 5. Asked before, with the lights
 
 A FAQ stores its sources (brain, piece, excerpt, origin) at capture. Guest Ask checks a question against published FAQs before the model; a hit answers from the FAQ, counts the ask, and emits the same sources event, with the status "Asked before". The "Asked before" chapter joins the rizom.ai story after "Where this goes", from the kit's FAQ template with the chapter's own styling; opening a question lights its brains in the drawing and shows its attribution, rows and excerpts. A FAQ whose cited piece has left the index goes to the Inbox for review.
 
 Tests: the FAQ schema carries sources; a matched question answers without the model and counts; the chapter renders published FAQs most asked first with no counts; the script lights the drawing for an open question and lets go on close.
 
-### 5. Desktop beside, phone above
+### 6. Desktop beside, phone above
 
 The drawing belongs to the page while an answer is open: beside the conversation on desktop with a dotted lead from each row to its brain, and the strip above the conversation on a phone, where a tap on a lit dot brings its row into view. Both lifted from the atlas kit's script. Reduced motion keeps the lit states and drops the sparks, echoes and leads.
 
