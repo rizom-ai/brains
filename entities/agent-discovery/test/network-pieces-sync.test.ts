@@ -227,6 +227,28 @@ describe("indexing the network's published pieces", () => {
     expect(piece?.metadata.brain.url).toBe("https://becca.rizom.ai");
   });
 
+  it("excerpts a record's opening lines as plain words, not markdown", async () => {
+    const note = {
+      uri: "at://did:plc:peer/ai.rizom.brain.note/cv",
+      cid: "bafyn",
+      value: {
+        $type: "ai.rizom.brain.note",
+        title: "Jan Hein Hoogstad",
+        body: "# Jan Hein Hoogstad\n\n**Writer**, developer and [architect](https://x.test).\n\n## Work\n\n- Rizom",
+        createdAt: "2026-09-30T09:00:00.000Z",
+      },
+    };
+    const { fetchFn } = repository({ "ai.rizom.brain.note": [note] });
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    const [piece] = await b.pieces();
+    expect(piece?.metadata.excerpt).toBe(
+      "Writer, developer and architect. Work Rizom",
+    );
+  });
+
   it("keeps the last index when a brain's repository cannot be reached", async () => {
     const { fetchFn, outage } = repository({
       "ai.rizom.brain.post": [post("3kabc", "bafy1", "Handoffs")],

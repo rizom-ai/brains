@@ -1,6 +1,7 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
+import { stripMarkdown } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
 import { networkPieceId } from "../adapters/network-piece-adapter";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
@@ -103,6 +104,24 @@ function homeOf(agent: AgentEntity): string {
   return new URL(agent.metadata.url).origin;
 }
 
+/**
+ * The opening lines in plain words: markdown stripped line by line so
+ * blocks keep a space between them, whitespace folded, and a body that
+ * opens by repeating its own title starts after it.
+ */
+function excerptOf(title: string, text: string): string {
+  const words = text
+    .split(/\r?\n/)
+    .map((line) => stripMarkdown(line).trim())
+    .filter((line) => line.length > 0)
+    .join(" ")
+    .replace(/\s+/g, " ");
+  const opening = words.startsWith(title)
+    ? words.slice(title.length).trim()
+    : words;
+  return opening.slice(0, EXCERPT);
+}
+
 /** The piece a record becomes, in its brain's words. */
 function pieceOf(
   agent: AgentEntity,
@@ -122,10 +141,10 @@ function pieceOf(
   // A record names its page when its brain projected one; otherwise the home.
   const origin =
     value.canonicalUrl ?? (kind === "link" ? value.url : undefined) ?? home;
-  const excerpt = (value.summary ?? value.description ?? value.body ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, EXCERPT);
+  const excerpt = excerptOf(
+    title,
+    value.summary ?? value.description ?? value.body ?? "",
+  );
   const recordedAt =
     value.publishedAt ?? value.updatedAt ?? value.createdAt ?? now;
   const content = `# ${title}\n\n${text}`.trimEnd();
