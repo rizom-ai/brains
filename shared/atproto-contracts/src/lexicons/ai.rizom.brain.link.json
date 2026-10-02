@@ -10,22 +10,57 @@
         "type": "object",
         "required": ["title", "url", "createdAt"],
         "properties": {
-          "title": { "type": "string", "maxLength": 500 },
-          "url": { "type": "string", "format": "uri" },
-          "description": { "type": "string", "maxLength": 2000 },
-          "summary": { "type": "string", "maxLength": 100000 },
-          "domain": { "type": "string" },
-          "capturedAt": { "type": "string", "format": "datetime" },
+          "title": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "domain": {
+            "type": "string"
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "datetime"
+          },
           "source": {
             "type": "ref",
             "ref": "#source"
           },
-          "brainDid": { "type": "string" },
-          "anchorDid": { "type": "string" },
-          "sourceEntityType": { "type": "string" },
-          "sourceEntityId": { "type": "string" },
-          "createdAt": { "type": "string", "format": "datetime" },
-          "updatedAt": { "type": "string", "format": "datetime" }
+          "canonicalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "brainDid": {
+            "type": "string"
+          },
+          "anchorDid": {
+            "type": "string"
+          },
+          "sourceEntityType": {
+            "type": "string"
+          },
+          "sourceEntityId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
         }
       }
     },
@@ -34,8 +69,12 @@
       "description": "Attribution for where this link was captured.",
       "required": ["ref", "label"],
       "properties": {
-        "ref": { "type": "string" },
-        "label": { "type": "string" }
+        "ref": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
       }
     }
   }
