@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { createMockShell } from "@brains/plugins/test";
+import { NetworkPiecePlugin } from "../src/plugins/network-piece-plugin";
 import {
   NetworkPieceAdapter,
   networkPieceId,
@@ -62,5 +64,24 @@ describe("the network piece adapter", () => {
 
   it("is published, so a visitor's answer may cite it", () => {
     expect(adapter.publishedStatuses).toEqual(["published"]);
+  });
+});
+
+describe("a network piece in this brain", () => {
+  it("is another brain's work: read, searched and cited here, never written by hand or republished", async () => {
+    const shell = createMockShell();
+    await new NetworkPiecePlugin().register(shell);
+    const config = shell
+      .getEntityRegistry()
+      .getEntityTypeConfig("network-piece");
+    expect(config.actionPolicy).toEqual({
+      create: "never",
+      update: "never",
+      delete: "never",
+      extract: "never",
+      publish: "never",
+    });
+    expect(config.projectionSource).toBe(false);
+    expect(config.embeddable).toBe(true);
   });
 });

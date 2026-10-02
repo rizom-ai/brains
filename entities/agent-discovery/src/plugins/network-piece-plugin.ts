@@ -44,7 +44,7 @@ export class NetworkPiecePlugin extends EntityPlugin<
   readonly schema: typeof networkPieceSchema = networkPieceSchema;
   readonly adapter: NetworkPieceAdapter = networkPieceAdapter;
   readonly dependencies: string[] = [AGENT_DISCOVERY_PLUGIN_ID];
-  private readonly fetchFn: AtprotoCardFetch | undefined;
+  private readonly fetchFn: AtprotoCardFetch;
 
   constructor(
     config: NetworkPiecePluginConfig = {},
@@ -81,6 +81,14 @@ export class NetworkPiecePlugin extends EntityPlugin<
       projectionSource: false,
       projectionSourceRole: "excluded",
       publish: { publishStatuses: ["published"] },
+      // The index writes it; no one edits, deletes or republishes it by hand.
+      actionPolicy: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
     };
   }
 
@@ -93,7 +101,7 @@ export class NetworkPiecePlugin extends EntityPlugin<
       deliverAlerts: false,
       includeInInbox: false,
       run: async ({ signal }) => {
-        await syncNetworkPieces(context, this.fetchFn ?? fetch, signal);
+        await syncNetworkPieces(context, this.fetchFn, signal);
         return {};
       },
     });
