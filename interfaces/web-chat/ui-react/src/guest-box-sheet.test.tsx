@@ -557,3 +557,80 @@ describe("the Ask box on a phone", () => {
     });
   });
 });
+
+describe("sources from other brains", () => {
+  const networkAnswer: ChatHistoryMessage[] = [
+    { id: "q", role: "user", content: "How do brains work together?" },
+    {
+      id: "a",
+      role: "assistant",
+      content: "Each keeps its own memory.",
+      cards: [
+        {
+          kind: "sources",
+          id: "sources:tool-results",
+          title: "Retrieved sources",
+          sources: [
+            {
+              id: "post:what-a-brain-is",
+              source: "post",
+              entityType: "post",
+              entityId: "what-a-brain-is",
+              title: "What a brain is",
+              url: "https://brain.test/brain",
+            },
+            {
+              id: "network-piece:becca/post/handoffs",
+              source: "network-piece",
+              entityType: "network-piece",
+              entityId: "becca/post/handoffs",
+              title: "Handoffs between teams",
+              url: "https://becca.rizom.ai/essays/handoffs",
+              brain: { name: "Becca", url: "https://becca.rizom.ai" },
+            },
+            {
+              id: "network-piece:jo/note/x",
+              source: "network-piece",
+              entityType: "network-piece",
+              entityId: "jo/note/x",
+              title: "Who to ask",
+              brain: { name: "Jo" },
+            },
+          ],
+        },
+      ],
+    },
+  ];
+  beforeEach(() => {
+    setup(390, true);
+    host.setAttribute(ASK_NAME_ATTRIBUTE, "Rizom");
+  });
+  it("names each source's brain and says who answered", async () => {
+    await render({ messages: networkAnswer, state: "complete" });
+    expect(host.querySelector(".brain-box-answered-by")?.textContent).toBe(
+      "Rizom, with Becca and Jo",
+    );
+    const row = host.querySelector(
+      `[${ASK_SOURCE_ATTRIBUTE}="network-piece:becca/post/handoffs"]`,
+    );
+    expect(row?.getAttribute("data-ask-brain")).toBe("Becca");
+    expect(row?.querySelector(".brain-box-source-brain")?.textContent).toBe(
+      "Becca",
+    );
+    expect(
+      host
+        .querySelector(`[${ASK_SOURCE_ATTRIBUTE}="post:what-a-brain-is"]`)
+        ?.hasAttribute("data-ask-brain"),
+    ).toBe(false);
+    expect(
+      host.querySelector(".brain-box-sources")?.getAttribute("aria-label"),
+    ).toBe("Sources, Rizom, with Becca and Jo");
+  });
+  it("says only who answered when every source is this brain's own", async () => {
+    await render({ messages: answer, state: "complete" });
+    expect(host.querySelector(".brain-box-answered-by")).toBe(null);
+    expect(
+      host.querySelector(".brain-box-sources")?.getAttribute("aria-label"),
+    ).toBe("Sources");
+  });
+});

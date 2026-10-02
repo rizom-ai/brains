@@ -926,6 +926,65 @@
   padding: 0;
   position: relative;
 }
+/* The network answers: a brain whose published memory an answer drew on
+   lights with the drawing's own echo and spark; the rest dim; the center
+   stays lit when Rizom's own pieces are cited. The story runtime sets the
+   classes from the Ask box's ask:sources event. */
+.net-layer .net-thread,
+.net-layer .net-mark,
+.net-layer .net-lantern {
+  transition:
+    opacity 0.6s ease,
+    stroke-opacity 0.6s ease;
+}
+.net-layer.has-replies .net-thread:not(.is-lit) {
+  stroke-opacity: 0.12;
+}
+.net-layer.has-replies .net-mark:not(.is-lit),
+.net-layer.has-replies .net-name:not(.is-lit) {
+  opacity: 0.3;
+}
+.net-layer .net-thread.is-lit {
+  stroke-opacity: 0.9;
+}
+.net-layer .net-thread.is-hot {
+  stroke-opacity: 1;
+  stroke-width: 1.6;
+}
+.net-layer .net-reply.is-lit .net-echo {
+  animation: net-echo 2.4s linear 2;
+}
+.net-layer .net-reply.is-lit .net-spark {
+  animation: net-spark 2.4s linear 2;
+}
+.net-layer .net-mark.is-lit i,
+.net-layer .net-mark.is-hot i {
+  background: #fff3cf;
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 10px 3px var(--color-accent);
+}
+.net-layer .net-mark.is-hot i {
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 16px 5px var(--color-accent);
+}
+.net-layer.has-replies:not(.is-rizom) .net-lantern {
+  opacity: 0.55;
+  filter: none;
+}
+.net-layer.is-rizom .net-lantern {
+  filter: drop-shadow(0 0 12px var(--color-accent)) drop-shadow(0 0 4px #fff3cf);
+}
+[data-ask-source][data-ask-hot] {
+  background: rgb(from var(--color-accent) r g b / 0.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .net-layer .net-reply.is-lit .net-echo,
+  .net-layer .net-reply.is-lit .net-spark {
+    animation: none;
+  }
+}
 .net-mark {
   position: absolute;
   transform: translate(-50%, -50%);
