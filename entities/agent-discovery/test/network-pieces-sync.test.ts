@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createMockShell } from "@brains/plugins/test";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { NetworkPiecePlugin } from "../src/plugins/network-piece-plugin";
@@ -20,11 +20,17 @@ type RecurringCheck = Parameters<
 const PLC = {
   service: [{ id: "#atproto_pds", serviceEndpoint: "https://pds.test/" }],
 };
+/** Where every host of the fake network resolves; a public address unless a test says otherwise. */
+let resolvedAddress = "93.184.216.34";
+
 const post = (
   rkey: string,
   cid: string,
   title: string,
-  { addressed = true }: { addressed?: boolean } = {},
+  {
+    addressed = true,
+    value = {},
+  }: { addressed?: boolean; value?: Record<string, unknown> } = {},
 ): unknown => ({
   uri: `at://did:plc:peer/ai.rizom.brain.post/${rkey}`,
   cid,
@@ -37,12 +43,14 @@ const post = (
       ? { canonicalUrl: `https://becca.rizom.ai/essays/${rkey}` }
       : {}),
     createdAt: "2026-09-30T09:00:00.000Z",
+    ...value,
   },
 });
 
 function repository(
   records: Record<string, unknown[]>,
   homes: Record<string, string> = {},
+  misbehaviour: { endless?: boolean } = {},
 ): {
   fetchFn: AtprotoCardFetch;
   calls: string[];
@@ -70,7 +78,11 @@ function repository(
       const page = all.slice(index, index + 1);
       return Response.json({
         records: page,
-        ...(index + 1 < all.length ? { cursor: String(index + 1) } : {}),
+        ...(misbehaviour.endless
+          ? { cursor: String(index) }
+          : index + 1 < all.length
+            ? { cursor: String(index + 1) }
+            : {}),
       });
     }
     return new Response("not found", { status: 404 });
@@ -102,7 +114,13 @@ async function brain(
     },
   });
   await new AgentDiscoveryPlugin().register(shell);
-  await new NetworkPiecePlugin({}, { fetchFn }).register(shell);
+  await new NetworkPiecePlugin(
+    {},
+    {
+      fetchFn,
+      resolveHostname: async (): Promise<string[]> => [resolvedAddress],
+    },
+  ).register(shell);
   const entities = shell.getEntityService();
   for (const agent of agents) {
     await entities.createEntity({
@@ -148,6 +166,10 @@ async function brain(
 }
 
 describe("indexing the network's published pieces", () => {
+  beforeEach(() => {
+    resolvedAddress = "93.184.216.34";
+  });
+
   it("keeps an approved brain's published records as pieces, cited to the brain", async () => {
     const { fetchFn, calls } = repository({
       "ai.rizom.brain.post": [
@@ -320,6 +342,66 @@ describe("indexing the network's published pieces", () => {
       ["plc-peer--note--field", "Becca"],
       ["plc-peer--post--3kabc", "Becca"],
     ]);
+  });
+
+  it("sends a piece to its page only over https; anything else goes to the brain's home", async () => {
+    const odd = post("3kodd", "bafyo", "Odd address", {
+      value: { canonicalUrl: "javascript:alert(1)" },
+    });
+    const plain = post("3kplain", "bafyp", "Plain address", {
+      value: { canonicalUrl: "http://becca.rizom.ai/essays/plain" },
+    });
+    const { fetchFn } = repository({ "ai.rizom.brain.post": [odd, plain] });
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    expect((await b.pieces()).map((p) => p.metadata.origin)).toEqual([
+      "https://becca.rizom.ai",
+      "https://becca.rizom.ai",
+    ]);
+  });
+
+  it("stops reading a repository whose cursor never ends, and keeps its last index", async () => {
+    const { fetchFn, calls } = repository(
+      { "ai.rizom.brain.post": [post("3kabc", "bafy1", "Handoffs")] },
+      {},
+      { endless: true },
+    );
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    expect(await b.pieces()).toEqual([]);
+    expect(
+      calls.filter((c) => c.includes("collection=ai.rizom.brain.post")).length,
+    ).toBeLessThanOrEqual(51);
+  });
+
+  it("keeps a record's body within bounds", async () => {
+    const long = post("3klong", "bafyl", "Long", {
+      value: { body: "word ".repeat(20_000) },
+    });
+    const { fetchFn } = repository({ "ai.rizom.brain.post": [long] });
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    const [piece] = await b.pieces();
+    // The body bounded, plus the piece's own frontmatter.
+    expect(piece?.content.length ?? 0).toBeLessThanOrEqual(25_000);
+  });
+
+  it("refuses a home or repository on a non-public address", async () => {
+    resolvedAddress = "10.0.0.8";
+    const { fetchFn } = repository({
+      "ai.rizom.brain.post": [post("3kabc", "bafy1", "Handoffs")],
+    });
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    expect(await b.pieces()).toEqual([]);
   });
 
   it("keeps the last index when a brain's repository cannot be reached", async () => {

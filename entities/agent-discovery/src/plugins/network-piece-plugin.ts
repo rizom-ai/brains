@@ -10,6 +10,10 @@ import {
 import { AGENT_DISCOVERY_PLUGIN_ID } from "../lib/constants";
 import type { AtprotoCardFetch } from "../lib/atproto-card-events";
 import { syncNetworkPieces } from "../lib/network-pieces-sync";
+import {
+  createSafePublicFetch,
+  type ResolveHostname,
+} from "@brains/utils/safe-public-fetch";
 import packageJson from "../../package.json";
 
 export const NETWORK_PIECES_PLUGIN_ID = "network-pieces";
@@ -44,7 +48,10 @@ export class NetworkPiecePlugin extends EntityPlugin<
 
   constructor(
     config: NetworkPiecePluginConfig = {},
-    deps: { fetchFn?: AtprotoCardFetch | undefined } = {},
+    deps: {
+      fetchFn?: AtprotoCardFetch | undefined;
+      resolveHostname?: ResolveHostname | undefined;
+    } = {},
   ) {
     super(
       NETWORK_PIECES_PLUGIN_ID,
@@ -52,7 +59,15 @@ export class NetworkPiecePlugin extends EntityPlugin<
       config,
       networkPiecePluginConfigSchema,
     );
-    this.fetchFn = deps.fetchFn;
+    // Homes and repositories are public reads of addresses other owners
+    // chose: resolved to public addresses only, bounded in time and size.
+    this.fetchFn = createSafePublicFetch({
+      ...(deps.fetchFn && { fetchFn: deps.fetchFn }),
+      ...(deps.resolveHostname && { resolveHostname: deps.resolveHostname }),
+      timeoutMs: 15_000,
+      maxResponseBytes: 8 * 1024 * 1024,
+      maxRedirects: 3,
+    });
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {

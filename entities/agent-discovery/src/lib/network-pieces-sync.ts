@@ -28,7 +28,11 @@ import {
  */
 
 const PAGE = 100;
+/** Pages read per collection before a repository is judged to misbehave. */
+const MAX_PAGES = 50;
 const EXCERPT = 240;
+/** A record's body kept as the piece's content: enough to search and cite by. */
+const CONTENT = 24_000;
 const DID = /^did:(?:plc|web):[A-Za-z0-9._:%-]+$/;
 
 const listedRecordSchema = z.object({
@@ -73,7 +77,12 @@ async function listCollection(
   const page = async (
     cursor: string | undefined,
     sofar: ListedRecord[],
+    pages: number,
   ): Promise<ListedRecord[]> => {
+    if (pages >= MAX_PAGES)
+      throw new Error(
+        `listRecords ${collection} did not end in ${MAX_PAGES} pages`,
+      );
     const url = new URL(`${pdsEndpoint}/xrpc/com.atproto.repo.listRecords`);
     url.searchParams.set("repo", repo);
     url.searchParams.set("collection", collection);
@@ -87,10 +96,21 @@ async function listCollection(
     const listed = listRecordsSchema.parse(await response.json());
     const all = sofar.concat(listed.records);
     return listed.cursor && listed.records.length > 0
-      ? page(listed.cursor, all)
+      ? page(listed.cursor, all, pages + 1)
       : all;
   };
-  return page(undefined, []);
+  return page(undefined, [], 0);
+}
+
+/** A page address a reader may be sent to: https, and nothing else. */
+function httpsOnly(value: string | undefined): string | undefined {
+  if (!value || value.length > 2_048) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function rkeyOf(uri: string): string {
@@ -141,14 +161,16 @@ function pieceOf(
   const home = homeOf(agent);
   // A record names its page when its brain projected one; otherwise the home.
   const origin =
-    value.canonicalUrl ?? (kind === "link" ? value.url : undefined) ?? home;
+    httpsOnly(value.canonicalUrl) ??
+    (kind === "link" ? httpsOnly(value.url) : undefined) ??
+    home;
   const excerpt = excerptOf(
     title,
     value.summary ?? value.description ?? value.body ?? "",
   );
   const recordedAt =
     value.publishedAt ?? value.updatedAt ?? value.createdAt ?? now;
-  const content = `# ${title}\n\n${text}`.trimEnd();
+  const content = `# ${title}\n\n${text.slice(0, CONTENT)}`.trimEnd();
   return networkPieceSchema.parse({
     id: networkPieceId(repoDid, collection, rkeyOf(record.uri)),
     entityType: NETWORK_PIECE_ENTITY_TYPE,
