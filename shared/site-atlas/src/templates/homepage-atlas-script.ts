@@ -459,11 +459,18 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       open = latestMark;
       latestMark.setAttribute("data-open", "");
     }
+    // A touch browser emulates hover and focus before a tap's click; there the tap alone opens it.
+    function previewLatest() {
+      if (!touch.matches) openLatest();
+    }
+    function endPreview() {
+      if (!touch.matches && open === latestMark) close();
+    }
     if (latestKey && latestMark) {
-      latestKey.addEventListener("mouseenter", openLatest);
-      latestKey.addEventListener("focus", openLatest);
-      latestKey.addEventListener("mouseleave", close);
-      latestKey.addEventListener("blur", close);
+      latestKey.addEventListener("mouseenter", previewLatest);
+      latestKey.addEventListener("focus", previewLatest);
+      latestKey.addEventListener("mouseleave", endPreview);
+      latestKey.addEventListener("blur", endPreview);
     }
 
     root.addEventListener("click", function (event) {

@@ -154,6 +154,17 @@ describe("published FAQs under the atlas", () => {
 });
 
 describe("atlas on touch screens", () => {
+  it("opens the latest piece's card on the first tap even with the tap's emulated hover and focus", () => {
+    setup({ touch: true });
+    const latest = window.document.querySelector("#latest");
+    if (!latest) throw new Error("missing #latest");
+    // A touch browser fires these before the tap's click.
+    latest.dispatchEvent(new window.Event("mouseenter"));
+    latest.dispatchEvent(new window.Event("focus"));
+    expect(tap("#latest")).toBe(false);
+    expect(openMarks()).toEqual(["second"]);
+  });
+
   it("opens the latest piece's card from the legend's Latest, then follows it", () => {
     setup({ touch: true });
     expect(tap("#latest")).toBe(false);
