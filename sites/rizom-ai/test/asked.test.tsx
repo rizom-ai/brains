@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { Asked, askedSchema } from "../src/asked";
+import { Asked, askedSchema, askedTemplate } from "../src/asked";
 
 // "Asked before": visitors' questions the owner kept, most asked first, each
 // opening on its answer, who answered, and the sources in their owners' words.
@@ -131,6 +131,36 @@ describe("the Asked-before chapter", () => {
       document.querySelectorAll("#asked .net-layer .net-mark[data-brain]"),
     ).map((mark) => mark.getAttribute("data-brain"));
     expect(marks.sort()).toEqual(["becca.rizom.ai", "jo.rizom.ai"]);
+  });
+
+  test("speaks the owner's authored words when the content gives them, its own otherwise", () => {
+    const own = render();
+    expect(own.querySelector("#asked h2")?.textContent).toBe(
+      "What people ask the network",
+    );
+    const authored = new Window().document;
+    authored.body.innerHTML = renderToStaticMarkup(
+      <Asked
+        {...askedSchema.parse({
+          ...map,
+          faqs,
+          cap: "Asked here",
+          claim: "What the network gets asked",
+          body: "Open one and see who answered.",
+        })}
+      />,
+    );
+    expect(authored.querySelector("#asked .eyebrow")?.textContent).toBe(
+      "Asked here",
+    );
+    expect(authored.querySelector("#asked h2")?.textContent).toBe(
+      "What the network gets asked",
+    );
+    expect(authored.querySelector("#asked h2 + p")?.textContent).toBe(
+      "Open one and see who answered.",
+    );
+    // The words are authored as a content section, like every chapter's.
+    expect(askedTemplate.overlayFormatter).toBeDefined();
   });
 
   test("renders nothing until the owner has published a question", () => {

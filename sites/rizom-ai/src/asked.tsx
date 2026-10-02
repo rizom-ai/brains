@@ -2,6 +2,7 @@
 import type { JSX } from "react";
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
 import { answeredBy } from "@brains/contracts";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { createTemplate, type Template } from "@brains/templates";
 import { MarkdownContent } from "@brains/ui-library";
 import { z } from "@rizom/site";
@@ -49,12 +50,38 @@ export const askedFaqSchema: z.ZodObject<{
   sources: z.array(askedSourceSchema),
 });
 
+/** The chapter's own words, authored as a content section like every chapter's. */
+type AskedCopySchema = z.ZodObject<{
+  cap: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  claim: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  body: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}>;
+
+export const askedCopySchema: AskedCopySchema = z.object({
+  /** The eyebrow. */
+  cap: z.string().nullable().default(null),
+  /** The heading. */
+  claim: z.string().nullable().default(null),
+  /** The line under the heading. */
+  body: z.string().nullable().default(null),
+});
+
+const DEFAULT_COPY = {
+  cap: "Asked before",
+  claim: "What people ask the network",
+  body: "Questions visitors put to Rizom, answered from the connected brains and kept by the owner. Open one: the brains that answered light up.",
+};
+
 /** The published FAQs over the live network, which the chapter draws beside them. */
 export const askedSchema: z.ZodObject<
-  (typeof proximityMapDataSchema)["shape"] & {
-    faqs: z.ZodArray<typeof askedFaqSchema>;
-  }
-> = proximityMapDataSchema.extend({ faqs: z.array(askedFaqSchema) });
+  (typeof proximityMapDataSchema)["shape"] &
+    AskedCopySchema["shape"] & {
+      faqs: z.ZodArray<typeof askedFaqSchema>;
+    }
+> = proximityMapDataSchema.extend({
+  ...askedCopySchema.shape,
+  faqs: z.array(askedFaqSchema),
+});
 
 export type AskedData = z.output<typeof askedSchema>;
 type AskedSource = z.output<typeof askedSourceSchema>;
@@ -125,12 +152,9 @@ export function Asked(data: AskedData): JSX.Element {
       data-title="Asked before"
       data-lights-network=""
     >
-      <p className="eyebrow">Asked before</p>
-      <h2>What people ask the network</h2>
-      <p>
-        Questions visitors put to Rizom, answered from the connected brains and
-        kept by the owner. Open one: the brains that answered light up.
-      </p>
+      <p className="eyebrow">{data.cap ?? DEFAULT_COPY.cap}</p>
+      <h2>{data.claim ?? DEFAULT_COPY.claim}</h2>
+      <p>{data.body ?? DEFAULT_COPY.body}</p>
       <NetworkLayer {...placeNetwork(data)} />
       <div className="asked__list">
         {faqs.map((faq) => (
@@ -151,12 +175,24 @@ export function Asked(data: AskedData): JSX.Element {
   );
 }
 
+// The chapter's words, edited as an ordinary markdown section and spliced
+// over the live FAQs by the content overlay.
+const askedCopyFormatter = new StructuredContentFormatter(askedCopySchema, {
+  title: "Asked before",
+  mappings: [
+    { key: "cap", label: "Cap", type: "string" },
+    { key: "claim", label: "Claim", type: "string" },
+    { key: "body", label: "Body", type: "string" },
+  ],
+});
+
 export const askedTemplate: Template = createTemplate({
   name: "asked",
   description:
     "Asked before: the visitors' questions the owner kept, with their answers and sources",
   schema: askedSchema,
   dataSourceId: "rizom:asked",
+  overlayFormatter: askedCopyFormatter,
   requiredPermission: "public",
   layout: { component: Asked },
 });
