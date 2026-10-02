@@ -14,7 +14,10 @@ import type {
 import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
-import { openAiEmbeddingPricingRevision } from "../src/openai-guest-pricing";
+import {
+  openAiEmbeddingPricingRevision,
+  openAiGuestPricingRevision,
+} from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
 import type { AgentConversationStore } from "../src/turn-processor";
@@ -508,6 +511,24 @@ describe("guest runtime boundary", () => {
         question: "How does Rizom keep memory?",
       });
       expect(h.generate).not.toHaveBeenCalled();
+      // Nothing was prepared for a model that was never asked.
+      expect(h.agentContextProvider).not.toHaveBeenCalled();
+      // The turn cost nothing but its own check, and says so.
+      expect(response.guestSettlement).toEqual({
+        usage: {
+          modelCalls: 0,
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          embeddingTokens: 0,
+        },
+        cost: {
+          state: "known",
+          microUsd: 0,
+          pricing: openAiGuestPricingRevision,
+        },
+      });
       expect(response.text).toBe(askedBefore.answer);
       expect(response.askedBefore).toEqual({
         faqId: "how-does-rizom-keep-memory",
@@ -529,6 +550,26 @@ describe("guest runtime boundary", () => {
         askedBefore: { faqId: "how-does-rizom-keep-memory" },
       });
     });
+    it("charges the check's own embedding to the turn", async () => {
+      const embeddingUsage = EmbeddingUsageMeter.createFresh();
+      const guestAskedBefore = mock(async () => {
+        // Finding the FAQ embeds the question.
+        embeddingUsage.record("text-embedding-3-small", 12);
+        return askedBefore;
+      });
+      const h = harness(conversation, [], { guestAskedBefore, embeddingUsage });
+      const response = await h.service.chat(
+        "How does Rizom keep memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(response.guestSettlement?.usage.embeddingTokens).toBe(12);
+      expect(response.guestSettlement?.cost).toMatchObject({
+        state: "known",
+        pricing: `${openAiGuestPricingRevision}+${openAiEmbeddingPricingRevision}`,
+      });
+    });
+
     it("goes to the model when no FAQ asks it, or the check fails", async () => {
       const h = harness(conversation, [], {
         guestAskedBefore: mock(async () => undefined),

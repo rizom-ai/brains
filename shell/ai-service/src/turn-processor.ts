@@ -8,7 +8,11 @@
  * and stays a thin orchestration façade.
  */
 
-import { withEmbeddingUsage } from "./openai-guest-pricing";
+import type { EmbeddingUsage } from "./embedding-usage-meter";
+import {
+  openAiGuestPricingRevision,
+  withEmbeddingUsage,
+} from "./openai-guest-pricing";
 import type { AgentContextItem, AskedBefore } from "@brains/contracts";
 import {
   guestInterfaceType,
@@ -137,11 +141,32 @@ export class TurnProcessor {
     if (input.message.trim().length === 0 && input.attachments.length > 0)
       return this.answerAttachmentsOnly(turn);
 
+    const meter = this.deps.embeddingUsage;
+    // A visitor's question a published FAQ already answers is answered before
+    // anything is prepared for a model that will not be asked; the check's
+    // own embedding is the turn's whole cost.
+    if (turn.guest) {
+      const check = (): Promise<AskedBeforeAnswer | undefined> =>
+        this.findAskedBefore(turn, input.message);
+      const found = meter
+        ? await meter.measure(check)
+        : { value: await check(), usage: [] };
+      if (found.value)
+        return this.recordAskedBefore(
+          turn,
+          input.message,
+          found.value,
+          found.usage,
+        );
+    }
+
     const prepared = await this.prepareModelTurn(turn, signal);
     this.logAvailableTools(turn);
-    await this.recordQuestion(turn, prepared);
-    const askedBefore = await this.findAskedBefore(turn, prepared);
-    if (askedBefore) return this.recordAskedBefore(turn, askedBefore);
+    await this.recordQuestion(
+      turn,
+      prepared.effectiveMessage,
+      prepared.effectiveAttachments,
+    );
 
     const answer = async (): Promise<AgentResponse> => {
       const result = await this.deps.getAgent(input.interfaceType).generate({
@@ -152,7 +177,6 @@ export class TurnProcessor {
       signal?.throwIfAborted();
       return this.recordResponse(turn, prepared, result);
     };
-    const meter = this.deps.embeddingUsage;
     if (!turn.guest || !meter) return answer();
     // A visitor's answer is charged for its embeddings too: its searches and
     // the search that found its sources.
@@ -355,18 +379,19 @@ export class TurnProcessor {
 
   private async recordQuestion(
     turn: AdmittedTurn,
-    prepared: PreparedTurn,
+    message: string,
+    attachments: ChatAttachment[],
   ): Promise<void> {
     const { conversationId, source, userPermissionLevel } = turn.input;
     await this.deps.conversationService.addMessage({
       conversationId,
       role: "user",
-      content: prepared.effectiveMessage,
+      content: message,
       ...(await this.messageMetadata({
         actor: turn.attributedActor,
         source,
         userPermissionLevel,
-        attachments: prepared.effectiveAttachments,
+        attachments,
         actorAlreadyEnriched: true,
         guest: turn.guest,
       })),
@@ -412,12 +437,12 @@ export class TurnProcessor {
   /** A visitor's question a published FAQ already answers, when one does. */
   private async findAskedBefore(
     turn: AdmittedTurn,
-    prepared: PreparedTurn,
+    question: string,
   ): Promise<AskedBeforeAnswer | undefined> {
     const find = this.deps.guestAskedBefore;
-    if (!turn.guest || !find) return undefined;
+    if (!turn.guest || !find || question.trim().length === 0) return undefined;
     try {
-      return await find({ question: prepared.effectiveMessage });
+      return await find({ question });
     } catch (error) {
       // The model answers as it would have.
       this.deps.logger.warn("Asked-before check unavailable", {
@@ -430,10 +455,13 @@ export class TurnProcessor {
   /** The FAQ's answer stands as the turn's reply, with the sources it kept. */
   private async recordAskedBefore(
     turn: AdmittedTurn,
+    question: string,
     hit: AskedBeforeAnswer,
+    embeddings: readonly EmbeddingUsage[],
   ): Promise<AgentResponse> {
     const { conversationId, channelId, channelName, userPermissionLevel } =
       turn.input;
+    await this.recordQuestion(turn, question, []);
     const cards = withAnswerSources([], hit.sources);
     await this.deps.conversationService.addMessage({
       conversationId,
@@ -455,6 +483,25 @@ export class TurnProcessor {
       toolResults: [],
       ...(cards.length > 0 ? { cards } : {}),
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      // No model call: a known cost of nothing, plus the check's embedding.
+      guestSettlement: withEmbeddingUsage(
+        {
+          usage: {
+            modelCalls: 0,
+            inputTokens: 0,
+            cachedInputTokens: 0,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            embeddingTokens: 0,
+          },
+          cost: {
+            state: "known",
+            microUsd: 0,
+            pricing: openAiGuestPricingRevision,
+          },
+        },
+        embeddings,
+      ),
       askedBefore: { faqId: hit.faqId },
     };
   }
