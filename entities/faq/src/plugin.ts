@@ -29,6 +29,7 @@ import {
 import { FaqDataSource } from "./datasources/faq-datasource";
 import { SAME_QUESTION_DISTANCE, type FaqStoreDeps } from "./lib/faq-store";
 import { answerAskedBefore } from "./lib/asked-before";
+import { reviewFaqsCiting } from "./lib/stale-sources";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
 import { FaqInboxSource } from "./lib/faq-inbox-source";
@@ -167,6 +168,26 @@ export class FaqPlugin extends EntityPlugin<
         },
       );
     }
+    // A piece from another brain left the index: the FAQs that cited it go
+    // to the owner for review. The index is kept by a job, so the deletion
+    // is heard where jobs run.
+    const withdrawnSchema = z.object({
+      entityType: z.string(),
+      entityId: z.string().min(1),
+    });
+    context.messaging.subscribeExecution(
+      ENTITY_CHANNELS.deleted,
+      async (message) => {
+        const deleted = withdrawnSchema.safeParse(message.payload);
+        if (deleted.success && deleted.data.entityType === "network-piece") {
+          await reviewFaqsCiting(
+            context.entityService,
+            `network-piece:${deleted.data.entityId}`,
+          );
+        }
+        return { success: true };
+      },
+    );
     if (!this.config.enabled) return;
 
     // A FAQ becomes findable by meaning once its embedding exists; that is
