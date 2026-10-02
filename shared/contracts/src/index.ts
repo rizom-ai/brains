@@ -29,8 +29,10 @@ export {
   ASK_STYLED_ATTRIBUTE,
   askBoxAvailabilitySchema,
   askSourcesDetailSchema,
+  sourceBrainSchema,
   type AskBoxAvailability,
   type AskSourcesDetail,
+  type SourceBrain,
 } from "./ask-box";
 export {
   AGENT_ACTION_REQUEST_CHANNEL,
