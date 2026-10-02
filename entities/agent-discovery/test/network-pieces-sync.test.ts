@@ -3,7 +3,7 @@ import { createMockShell } from "@brains/plugins/test";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { NetworkPiecePlugin } from "../src/plugins/network-piece-plugin";
 import { networkPieceSchema } from "../src/schemas/network-piece";
-import { agentEntitySchema } from "../src/schemas/agent";
+import { agentEntitySchema, type AgentEntity } from "../src/schemas/agent";
 import type { AtprotoCardFetch } from "../src/lib/atproto-card-events";
 
 // Rizom indexes the connected brains' published pieces from their ATProto
@@ -40,7 +40,10 @@ const post = (
   },
 });
 
-function repository(records: Record<string, unknown[]>): {
+function repository(
+  records: Record<string, unknown[]>,
+  homes: Record<string, string> = {},
+): {
   fetchFn: AtprotoCardFetch;
   calls: string[];
   outage: { down: boolean };
@@ -51,6 +54,12 @@ function repository(records: Record<string, unknown[]>): {
     const url = new URL(String(input));
     calls.push(url.href);
     if (outage.down) return new Response("gone", { status: 503 });
+    if (url.pathname === "/.well-known/atproto-did") {
+      const did = homes[url.hostname];
+      return did
+        ? new Response(did, { headers: { "content-type": "text/plain" } })
+        : new Response("not found", { status: 404 });
+    }
     if (url.hostname === "plc.directory") return Response.json(PLC);
     if (url.pathname.endsWith("/xrpc/com.atproto.repo.listRecords")) {
       const collection = url.searchParams.get("collection") ?? "";
@@ -80,6 +89,7 @@ async function brain(
   shell: ReturnType<typeof createMockShell>;
   check: RecurringCheck;
   pieces: () => Promise<ReturnType<typeof networkPieceSchema.parse>[]>;
+  agent: (id: string) => Promise<AgentEntity | null>;
 }> {
   const shell = createMockShell();
   const checks: RecurringCheck[] = [];
@@ -132,6 +142,8 @@ async function brain(
           networkPieceSchema,
         )
       ).sort((a, b) => a.id.localeCompare(b.id)),
+    agent: async (id: string) =>
+      entities.getEntity({ entityType: "agent", id }, agentEntitySchema),
   };
 }
 
@@ -247,6 +259,67 @@ describe("indexing the network's published pieces", () => {
     expect(piece?.metadata.excerpt).toBe(
       "Writer, developer and architect. Work Rizom",
     );
+  });
+
+  it("learns an approved brain's repository from its home when the directory has none", async () => {
+    const { fetchFn, calls } = repository(
+      { "ai.rizom.brain.post": [post("3kabc", "bafy1", "Handoffs")] },
+      { "becca.rizom.ai": "did:plc:peer" },
+    );
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved" },
+      { id: "silent.rizom.ai", status: "approved" },
+      { id: "quiet.rizom.ai", status: "discovered" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    expect((await b.pieces()).map((p) => p.id)).toEqual([
+      "plc-peer--post--3kabc",
+    ]);
+    // The directory keeps what it learned; a home without a DID is left alone.
+    expect((await b.agent("becca.rizom.ai"))?.metadata.repoDid).toBe(
+      "did:plc:peer",
+    );
+    expect(
+      (await b.agent("silent.rizom.ai"))?.metadata.repoDid,
+    ).toBeUndefined();
+    // Only approved brains are asked, each at its home.
+    expect(
+      calls.filter((c) => c.endsWith("/.well-known/atproto-did")).sort(),
+    ).toEqual([
+      "https://becca.rizom.ai/.well-known/atproto-did",
+      "https://silent.rizom.ai/.well-known/atproto-did",
+    ]);
+  });
+
+  it("indexes every connected brain, each piece to its own", async () => {
+    const jo = {
+      uri: "at://did:plc:jo/ai.rizom.brain.note/field",
+      cid: "bafyjo",
+      value: {
+        $type: "ai.rizom.brain.note",
+        title: "Field notes",
+        body: "What the field taught us.",
+        createdAt: "2026-09-30T09:00:00.000Z",
+      },
+    };
+    const { fetchFn } = repository({
+      "ai.rizom.brain.post": [post("3kabc", "bafy1", "Handoffs")],
+      "ai.rizom.brain.note": [jo],
+    });
+    const b = await brain(fetchFn, [
+      { id: "becca.rizom.ai", status: "approved", repoDid: "did:plc:peer" },
+      { id: "jo.rizom.ai", status: "approved", repoDid: "did:plc:jo" },
+    ]);
+    await b.check.run({ signal: new AbortController().signal });
+    const pieces = await b.pieces();
+    // The fake repository answers every DID with the same records, so each
+    // brain's pieces are keyed to it and cited to it.
+    expect(pieces.map((p) => [p.id, p.metadata.brain.name])).toEqual([
+      ["plc-jo--note--field", "jo.rizom.ai"],
+      ["plc-jo--post--3kabc", "jo.rizom.ai"],
+      ["plc-peer--note--field", "Becca"],
+      ["plc-peer--post--3kabc", "Becca"],
+    ]);
   });
 
   it("keeps the last index when a brain's repository cannot be reached", async () => {

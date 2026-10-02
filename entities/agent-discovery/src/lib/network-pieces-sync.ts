@@ -29,6 +29,7 @@ import {
 
 const PAGE = 100;
 const EXCERPT = 240;
+const DID = /^did:(?:plc|web):[A-Za-z0-9._:%-]+$/;
 
 const listedRecordSchema = z.object({
   uri: z.string(),
@@ -175,6 +176,29 @@ function pieceOf(
   });
 }
 
+/**
+ * A brain discovered by its card has a home but may not yet have a repository
+ * in the directory. Its home names its DID at the well-known address; once
+ * learned, the directory keeps it.
+ */
+async function learnRepoDid(
+  context: EntityPluginContext,
+  fetchFn: AtprotoCardFetch,
+  agent: AgentEntity,
+  signal: AbortSignal,
+): Promise<string | undefined> {
+  const response = await fetchFn(`${homeOf(agent)}/.well-known/atproto-did`, {
+    signal,
+  });
+  if (!response.ok) return undefined;
+  const did = (await response.text()).trim();
+  if (!DID.test(did)) return undefined;
+  await context.entityService.updateEntity({
+    entity: { ...agent, metadata: { ...agent.metadata, repoDid: did } },
+  });
+  return did;
+}
+
 export async function syncNetworkPieces(
   context: EntityPluginContext,
   fetchFn: AtprotoCardFetch,
@@ -189,15 +213,13 @@ export async function syncNetworkPieces(
     unchanged: 0,
     unreachable: [],
   };
-  const agents = (
-    await context.entityService.listEntities(
-      {
-        entityType: "agent",
-        options: { limit: 500, filter: { metadata: { status: "approved" } } },
-      },
-      agentEntitySchema,
-    )
-  ).filter((agent) => Boolean(agent.metadata.repoDid));
+  const agents = await context.entityService.listEntities(
+    {
+      entityType: "agent",
+      options: { limit: 500, filter: { metadata: { status: "approved" } } },
+    },
+    agentEntitySchema,
+  );
   const kept = await context.entityService.listEntities(
     { entityType: NETWORK_PIECE_ENTITY_TYPE, options: { limit: 10_000 } },
     networkPieceSchema,
@@ -206,11 +228,13 @@ export async function syncNetworkPieces(
 
   for (const agent of agents) {
     signal.throwIfAborted();
-    const repoDid = agent.metadata.repoDid;
-    if (!repoDid) continue;
-    report.brains += 1;
     const seen = new Set<string>();
     try {
+      const repoDid =
+        agent.metadata.repoDid ??
+        (await learnRepoDid(context, fetchFn, agent, signal));
+      if (!repoDid) continue;
+      report.brains += 1;
       const pdsEndpoint = await resolvePdsEndpoint(repoDid, fetchFn, signal);
       for (const kind of networkPieceKindSchema.options) {
         const collection = NETWORK_PIECE_COLLECTIONS[kind];
@@ -238,6 +262,17 @@ export async function syncNetworkPieces(
           }
         }
       }
+      // Withdrawn from the repository: withdrawn from the answers.
+      for (const piece of kept) {
+        if (piece.metadata.brain.did !== repoDid || seen.has(piece.id)) {
+          continue;
+        }
+        await context.entityService.deleteEntity({
+          entityType: NETWORK_PIECE_ENTITY_TYPE,
+          id: piece.id,
+        });
+        report.deleted += 1;
+      }
     } catch (error) {
       // The repository answered badly or not at all: this brain's pieces stay
       // as they were, and the next sync tries again.
@@ -246,16 +281,6 @@ export async function syncNetworkPieces(
         error: getErrorMessage(error),
       });
       report.unreachable.push(agent.id);
-      continue;
-    }
-    // Withdrawn from the repository: withdrawn from the answers.
-    for (const piece of kept) {
-      if (piece.metadata.brain.did !== repoDid || seen.has(piece.id)) continue;
-      await context.entityService.deleteEntity({
-        entityType: NETWORK_PIECE_ENTITY_TYPE,
-        id: piece.id,
-      });
-      report.deleted += 1;
     }
   }
   return report;
