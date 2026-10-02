@@ -402,6 +402,53 @@ describe("Image Import - Regression Tests", () => {
       expect(stage).not.toHaveBeenCalled();
     });
 
+    function storeImage(content: string): void {
+      const stored: BaseEntity = {
+        id: "robot",
+        entityType: "image",
+        content,
+        contentHash: "stored",
+        metadata: {},
+        visibility: "public",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
+      };
+      mockEntityService.getEntityWriteSnapshot = async (): Promise<{
+        entity: BaseEntity;
+        revision: string;
+      }> => ({ entity: stored, revision: "stored" });
+    }
+
+    it("leaves an inline image whose bytes match the file for the offline migration", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+      storeImage(TINY_PNG_DATA_URL);
+
+      const result = await dirSync.importEntities();
+
+      expect(result.skipped).toBe(1);
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+    });
+
+    it("imports a file whose bytes differ from the stored inline image", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+      const upserts = captureUpserts();
+      storeImage(
+        `data:image/png;base64,${Buffer.from("other").toString("base64")}`,
+      );
+
+      const result = await dirSync.importEntities();
+
+      expect(result.imported).toBe(1);
+      expect(upserts[0]?.entity.content).toBe(
+        createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+      );
+    });
+
     it("reports a file that is not a supported image and leaves it in place", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       const path = join(testDir, "image", "broken.png");

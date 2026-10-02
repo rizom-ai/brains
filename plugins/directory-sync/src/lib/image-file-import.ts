@@ -1,6 +1,12 @@
-import { describeImageBytes, IMAGE_HEADER_BYTES } from "@brains/image";
+import { createHash } from "node:crypto";
+import {
+  describeImageBytes,
+  IMAGE_HEADER_BYTES,
+  tryParseDataUrl,
+} from "@brains/image";
 import {
   assetRefSchema,
+  base64AssetSource,
   getAssetDigest,
   type EntityServiceClient,
 } from "@brains/plugins";
@@ -40,10 +46,10 @@ export async function importImageFile(
   if (file.entityType !== admission.entityType || file.id !== admission.id)
     throw new Error("Directory import destination changed after admission");
 
-  const stored = assetRefSchema.safeParse(snapshot?.entity.content);
+  const storedDigest = storedImageDigest(snapshot?.entity.content);
   if (
-    stored.success &&
-    getAssetDigest(stored.data) === (await fileDigest(file.fullPath))
+    storedDigest !== undefined &&
+    storedDigest === (await fileDigest(file.fullPath))
   ) {
     recordSkippedImport(result);
     return;
@@ -87,4 +93,25 @@ export async function importImageFile(
     snapshot,
     stagedAsset,
   );
+}
+
+/**
+ * The digest of the bytes a row stores: its asset reference's, or for a row
+ * not yet migrated, its inline data URL's decoded bytes. Matching an inline
+ * row leaves it inline for the offline migration instead of rewriting it on
+ * import. Undefined when the row stores neither.
+ */
+function storedImageDigest(content: string | undefined): string | undefined {
+  const ref = assetRefSchema.safeParse(content);
+  if (ref.success) return getAssetDigest(ref.data);
+  const inline = content === undefined ? undefined : tryParseDataUrl(content);
+  if (!inline) return undefined;
+  const hash = createHash("sha256");
+  try {
+    for (const slice of base64AssetSource(inline.base64)) hash.update(slice);
+  } catch {
+    // A malformed inline payload stores no bytes this file could match.
+    return undefined;
+  }
+  return hash.digest("hex");
 }
