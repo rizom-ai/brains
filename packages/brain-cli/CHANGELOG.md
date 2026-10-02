@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`673f737`](https://github.com/rizom-ai/brains/commit/673f73756990cdd82b5e4bc48b242c2ccce07681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ answers on the atlas homepage are set in the FAQ band's own type, one size below the question, instead of blog-post prose sizes that made paragraphs larger than the question on phones.
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`0f327b4`](https://github.com/rizom-ai/brains/commit/0f327b42a64aac7ce1a9d0bea61431b87b3005f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An owner can rank FAQs: an optional `rank` in a FAQ's frontmatter puts it first on a site, in rank order; unranked FAQs follow, most asked first and newest first on a tie. Entity listings can sort NULLs last with `nullsLast`.
+
 ## 0.2.0-alpha.473
 
 ### Patch Changes

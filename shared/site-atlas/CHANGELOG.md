@@ -1,5 +1,17 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/site-composition@0.2.0-alpha.474
+  - @brains/site-engine@0.2.0-alpha.474
+  - @brains/ui-library@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/plugins@0.2.0-alpha.474
+
 ## 0.2.0-alpha.473
 
 ### Patch Changes
