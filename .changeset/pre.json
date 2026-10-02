@@ -258,6 +258,7 @@
     "core--atlas-door-topics",
     "core--atlas-grid-edge",
     "core--atlas-latest-mark",
+    "core--atlas-latest-touch",
     "core--atlas-name-halo",
     "core--atlas-names-by-size",
     "core--atlas-names-phone",

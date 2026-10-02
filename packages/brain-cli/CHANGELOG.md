@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- [#490](https://github.com/rizom-ai/brains/pull/490) [`d3d8e82`](https://github.com/rizom-ai/brains/commit/d3d8e8299d7262666a2e0f4f4ac90d730f32100f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a touch screen, the first tap on the atlas legend's "Latest" opens the latest piece's card instead of following its link.
+
 ## 0.2.0-alpha.475
 
 ### Patch Changes
