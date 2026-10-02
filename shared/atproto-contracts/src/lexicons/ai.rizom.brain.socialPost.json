@@ -10,61 +10,22 @@
         "type": "object",
         "required": ["title", "platform", "body", "createdAt"],
         "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 300
-          },
-          "platform": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string",
-            "maxLength": 100000
-          },
-          "format": {
-            "type": "string",
-            "knownValues": ["text/markdown"]
-          },
-          "status": {
-            "type": "string"
-          },
-          "publishedAt": {
-            "type": "string",
-            "format": "datetime"
-          },
-          "platformPostId": {
-            "type": "string"
-          },
-          "sourceLocalEntityType": {
-            "type": "string"
-          },
-          "sourceLocalEntityId": {
-            "type": "string"
-          },
-          "canonicalUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "brainDid": {
-            "type": "string"
-          },
-          "anchorDid": {
-            "type": "string"
-          },
-          "sourceEntityType": {
-            "type": "string"
-          },
-          "sourceEntityId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "datetime"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "datetime"
-          }
+          "title": { "type": "string", "maxLength": 300 },
+          "platform": { "type": "string" },
+          "body": { "type": "string", "maxLength": 100000 },
+          "format": { "type": "string", "knownValues": ["text/markdown"] },
+          "status": { "type": "string" },
+          "publishedAt": { "type": "string", "format": "datetime" },
+          "platformPostId": { "type": "string" },
+          "sourceLocalEntityType": { "type": "string" },
+          "sourceLocalEntityId": { "type": "string" },
+          "canonicalUrl": { "type": "string", "format": "uri" },
+          "brainDid": { "type": "string" },
+          "anchorDid": { "type": "string" },
+          "sourceEntityType": { "type": "string" },
+          "sourceEntityId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "updatedAt": { "type": "string", "format": "datetime" }
         }
       }
     }
