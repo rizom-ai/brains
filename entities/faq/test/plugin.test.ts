@@ -55,6 +55,18 @@ describe("FaqPlugin", () => {
     expect(blank).toEqual({});
   });
 
+  it("leaves the shell's asked-before question unanswered while FAQs are off", async () => {
+    const off = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-off-${randomUUID()}`,
+    });
+    await off.installPlugin(new FaqPlugin({ enabled: false }));
+    const response: unknown = await off.sendMessage(
+      GUEST_ASKED_BEFORE_CHANNEL,
+      { question: "How does Rizom keep memory?" },
+    );
+    expect(response).toBeUndefined();
+  });
+
   it("registers the faq entity type without tools", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("faq");
     expect(harness.getCapabilities().tools).toHaveLength(0);

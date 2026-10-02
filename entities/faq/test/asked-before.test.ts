@@ -61,12 +61,14 @@ describe("answering a question asked before", () => {
     id: string,
     status: "draft" | "published",
     visibility: ContentVisibility = "public",
+    review?: "source-withdrawn",
   ): Promise<void> {
     const frontmatter = {
       question: "How does Rizom keep memory?",
       status,
       asked: 3,
       sources,
+      ...(review ? { review } : {}),
     };
     await context.entityService.createEntity({
       entity: {
@@ -138,6 +140,15 @@ describe("answering a question asked before", () => {
     );
     expect(checks).toHaveLength(0);
     expect(await asked("draft-faq")).toBe(3);
+  });
+
+  it("leaves a FAQ awaiting the owner's review to the model, and asks nothing about it", async () => {
+    await seed("under-review", "published", "public", "source-withdrawn");
+    expect(await answerAskedBefore(deps(), { question: "memory?" })).toEqual(
+      {},
+    );
+    expect(checks).toHaveLength(0);
+    expect(await asked("under-review")).toBe(3);
   });
 
   it("answers nothing when the nearest FAQ asks a different question", async () => {

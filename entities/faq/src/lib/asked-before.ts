@@ -29,7 +29,8 @@ function citationOf(source: FaqSource): SourceCitation {
  * A visitor's question a published public FAQ already answers. The nearest
  * published FAQ within the same-question distance is confirmed with the one
  * check the capture uses; a hit answers with the FAQ's own answer and the
- * sources it kept, and counts as one more asking. Drafts never answer.
+ * sources it kept, and counts as one more asking. Drafts never answer, nor
+ * does a FAQ awaiting the owner's review: the model answers meanwhile.
  */
 export async function answerAskedBefore(
   deps: FaqStoreDeps,
@@ -48,7 +49,8 @@ export async function answerAskedBefore(
       visibility: "public",
       confirm: async (candidate) =>
         candidate.metadata.status === "published" &&
-        isSameQuestion(deps.ai, request.question, candidate.content),
+        !faqAdapter.parseFaqContent(candidate.content).frontmatter.review &&
+        (await isSameQuestion(deps.ai, request.question, candidate.content)),
     },
   );
   if (!faq) return {};
