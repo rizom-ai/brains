@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- [#487](https://github.com/rizom-ai/brains/pull/487) [`d823d75`](https://github.com/rizom-ai/brains/commit/d823d7572fb84bd745772062bebf59ce50de4479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage rings the most recently published piece and names it "Latest" in the legend, which opens its card; marks keep clear of the legend along the map's foot.
+
 ## 0.2.0-alpha.474
 
 ### Patch Changes
