@@ -164,6 +164,15 @@ export async function createArtifactResponse(
     if (typeof sizeBytes === "number") {
       result.set("Content-Length", String(sizeBytes));
     }
+    result.set("X-Content-Type-Options", "nosniff");
+    // An SVG opened directly is a document on this origin: sandbox it so its
+    // scripts never run with the viewer's session. <img> embedding is unaffected.
+    if (/^image\/svg\+xml$/i.test(mediaType)) {
+      result.set(
+        "Content-Security-Policy",
+        "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      );
+    }
     return result;
   };
 

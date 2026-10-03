@@ -237,5 +237,40 @@ describe("artifact entity helpers", () => {
       ).toBeUndefined();
       expect(openAsset).not.toHaveBeenCalled();
     });
+
+    it("never lets a served SVG run script on the serving origin", async () => {
+      const { reader } = await stagedImage();
+      const svg = `data:image/svg+xml;base64,${Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+      ).toString("base64")}`;
+
+      const response = await createArtifactResponse(reader, {
+        entityType: "image",
+        id: "evil",
+        entity: { content: svg, metadata: {} },
+        disposition: "inline",
+      });
+
+      expect(response?.headers.get("X-Content-Type-Options")).toBe("nosniff");
+      expect(response?.headers.get("Content-Security-Policy")).toContain(
+        "sandbox",
+      );
+      expect(response?.headers.get("Content-Security-Policy")).toContain(
+        "default-src 'none'",
+      );
+    });
+
+    it("marks every artifact response nosniff", async () => {
+      const { reader, entity } = await stagedImage();
+
+      const response = await createArtifactResponse(reader, {
+        entityType: "image",
+        id: "robot-1",
+        entity,
+        disposition: "inline",
+      });
+
+      expect(response?.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    });
   });
 });
