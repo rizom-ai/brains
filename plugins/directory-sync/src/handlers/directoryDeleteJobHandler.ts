@@ -123,6 +123,29 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
   ): Promise<DeleteResult> {
     this.logger.info("Processing entity deletion for removed file", deletion);
 
+    // An entity can have several files, such as an image left beside an
+    // older format. Removing one must not delete what another still holds;
+    // importing the survivor makes it the entity's content.
+    const remaining = await this.remainingFiles(deletion);
+    if (remaining.length > 0) {
+      this.logger.info("Kept entity another of its files still holds", {
+        ...deletion,
+        remaining,
+      });
+      await this.directorySync.importEntities(remaining);
+      await progressReporter.report({
+        progress,
+        total,
+        message: `Kept ${deletion.entityType}:${deletion.entityId}`,
+      });
+      this.directorySync.completePendingDelete(
+        deletion.entityType,
+        deletion.entityId,
+        deletion.filePath,
+      );
+      return { deleted: false, ...deletion };
+    }
+
     try {
       const deleted = await this.context.entityService.deleteEntity({
         entityType: deletion.entityType,
@@ -159,5 +182,17 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
       this.logger.error("Failed to delete entity", { ...deletion, error });
       throw error;
     }
+  }
+
+  private async remainingFiles(
+    deletion: DirectoryDeleteTarget,
+  ): Promise<string[]> {
+    const candidates = this.directorySync.fileOps
+      .getEntityDeletePaths(deletion.entityType, deletion.entityId)
+      .filter((path) => path !== deletion.filePath);
+    const present = await Promise.all(
+      candidates.map((path) => this.directorySync.fileOps.fileExists(path)),
+    );
+    return candidates.filter((_, index) => present[index]);
   }
 }
