@@ -784,6 +784,35 @@
   width: min(100%, calc(100svh - var(--bar-height, 4.6rem) - 2rem));
   aspect-ratio: 1;
 }
+/* On a wide screen the opening's drawing keeps its place beside the words
+   while the opening is read, an answer included, and leaves with the opening;
+   it fades once the reading has moved the figure on, as on a phone. In flow
+   with no height, so the words do not move; its width is the room right of
+   the words, as the absolute layer's was. */
+@media not all and (max-width: 60rem) {
+  :where(.chapter--opening) > .net-layer {
+    position: sticky;
+    order: -1;
+    top: calc(
+      var(--bar-height, 4.6rem) + (100svh - var(--bar-height, 4.6rem)) / 2
+    );
+    height: 0;
+    margin-left: calc(var(--words) + var(--words-gap));
+    width: calc(
+      100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
+        var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
+    );
+    transition: opacity 0.6s ease;
+  }
+  :where(.chapter--opening) > .net-layer > * {
+    translate: 0 -50%;
+  }
+  .story:has(.figure:not([data-stage="0"]))
+    :where(.chapter--opening)
+    > .net-layer {
+    opacity: 0;
+  }
+}
 .net-svg {
   overflow: visible;
 }
@@ -1158,6 +1187,14 @@
   --ask-display: var(--font-display);
   --ask-muted: var(--color-text-light);
 }
+/* The page is the one scroller beside the drawing: the conversation grows in
+   the opening instead of scrolling inside a band under the lede. */
+.opening__ask:not([data-ask-sheet]) .brain-box-scroll {
+  max-height: none;
+  overflow: visible;
+  mask-image: none;
+  padding-bottom: 0;
+}
 .ask__topics {
   list-style: none;
   margin: 1rem 0 0;
@@ -1422,12 +1459,13 @@
    the first item of its scroll, a slot holding its place meanwhile, and a
    tapped dot flashes its source. */
 .net-leads {
-  position: absolute;
+  /* Leads join words to the drawing across the page, so the viewport is
+     their frame; the runtime draws them in viewport coordinates. */
+  position: fixed;
   inset: 0;
   z-index: 2;
-  width: 100%;
-  height: 100%;
-  /* The chapter is the words' width; a lead runs past it to the drawing. */
+  width: 100vw;
+  height: 100vh;
   overflow: visible;
   pointer-events: none;
 }

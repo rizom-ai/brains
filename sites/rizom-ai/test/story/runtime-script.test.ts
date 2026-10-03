@@ -435,14 +435,15 @@ describe("the drawing belongs to the page while an answer is open", () => {
         </div>
         <figure class="figure" data-stage="0" data-stages="7"></figure>
       </div>`;
-    // The lead layer spans the chapters column; its own box is the frame.
+    // The viewport is the frame for leads; the layer's own box, like the
+    // chapter's, grows with the words and says nothing about where they are.
     const hero = window.document.querySelector("#hero");
     Object.assign(hero ?? {}, {
-      getBoundingClientRect: () => rect(40, 20, 544, 900),
+      getBoundingClientRect: () => rect(40, 20, 544, 2600),
     });
     const leadLayer = window.document.querySelector("[data-net-leads]");
     Object.assign(leadLayer ?? {}, {
-      getBoundingClientRect: () => rect(0, 0, 1440, 900),
+      getBoundingClientRect: () => rect(40, -300, 544, 2600),
     });
     window.document.querySelectorAll("[data-ask-source]").forEach((row, i) => {
       Object.assign(row, {
@@ -474,6 +475,7 @@ describe("the drawing belongs to the page while an answer is open", () => {
     restoreGlobals = installGlobals({
       window,
       document: window.document,
+      innerWidth: 1440,
       innerHeight: 900,
       scrollY: 0,
       addEventListener: window.addEventListener.bind(window),
@@ -514,8 +516,13 @@ describe("the drawing belongs to the page while an answer is open", () => {
   test("on desktop, a dotted lead runs from each listed source to its brain", () => {
     opening({ narrow: false });
     answer([becca, { id: "post:what-a-brain-is" }]);
-    // From just right of Becca's row to just short of her dot; Rizom's own
-    // piece has no dot to lead to.
+    // From just right of Becca's row to just short of her dot, in viewport
+    // coordinates; Rizom's own piece has no dot to lead to.
+    expect(
+      window.document
+        .querySelector("[data-net-leads]")
+        ?.getAttribute("viewBox"),
+    ).toBe("0 0 1440 900");
     expect(leads()).toEqual([
       [
         "network-piece:becca/post/handoffs",
@@ -523,6 +530,52 @@ describe("the drawing belongs to the page while an answer is open", () => {
       ],
     ]);
     answer([]);
+    expect(leads()).toEqual([]);
+  });
+
+  test("draws no lead to a source scrolled out of its conversation", () => {
+    opening({ narrow: false });
+    const scroller = window.document.querySelector(".brain-box-scroll");
+    if (!(scroller instanceof window.HTMLElement)) throw new Error("fixture");
+    scroller.style.overflowY = "auto";
+    // Becca's row sits below the conversation's visible 100–700 band.
+    const row = window.document.querySelector(
+      `[data-ask-source="${becca.id}"]`,
+    );
+    Object.assign(row ?? {}, {
+      getBoundingClientRect: () => rect(80, 760, 300, 24),
+    });
+    answer([becca]);
+    expect(leads()).toEqual([]);
+    scroller.style.overflowY = "visible";
+    answer([becca]);
+    expect(leads()).toEqual([
+      [
+        "network-piece:becca/post/handoffs",
+        "M386 772 C645 772 645 213 904 213",
+      ],
+    ]);
+  });
+
+  test("draws no lead to a source or a dot outside the viewport", () => {
+    opening({ narrow: false });
+    const row = window.document.querySelector(
+      `[data-ask-source="${becca.id}"]`,
+    );
+    Object.assign(row ?? {}, {
+      getBoundingClientRect: () => rect(80, -40, 300, 24),
+    });
+    answer([becca]);
+    expect(leads()).toEqual([]);
+    Object.assign(row ?? {}, {
+      getBoundingClientRect: () => rect(80, 400, 300, 24),
+    });
+    window.document.querySelectorAll(".net-mark").forEach((mark, i) => {
+      Object.assign(mark, {
+        getBoundingClientRect: () => rect(900 + i * 100, 920, 26, 26),
+      });
+    });
+    answer([becca]);
     expect(leads()).toEqual([]);
   });
 
