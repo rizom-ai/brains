@@ -4,7 +4,7 @@ import { agentDiscovery, agentDiscoveryCompositeConfigSchema } from "../src";
 describe("agent-discovery composite", () => {
   test("returns the agent, agent tools, and skill plugins", () => {
     const plugins = agentDiscovery();
-    expect(plugins).toHaveLength(3);
+    expect(plugins).toHaveLength(4);
     const ids = plugins.map((p) => p.id);
     expect(ids).toContain("agent-discovery");
     expect(ids).toContain("agent");
@@ -13,7 +13,12 @@ describe("agent-discovery composite", () => {
 
   test("includes entity plugins plus the agent service tool plugin", () => {
     const plugins = agentDiscovery();
-    expect(plugins.map((p) => p.type)).toEqual(["entity", "service", "entity"]);
+    expect(plugins.map((p) => p.type)).toEqual([
+      "entity",
+      "service",
+      "entity",
+      "entity",
+    ]);
   });
 
   test("keeps AI-backed skill derivation enabled by default", () => {
@@ -37,7 +42,7 @@ describe("agent-discovery composite", () => {
 
   test("works when called with no arguments", () => {
     const plugins = agentDiscovery();
-    expect(plugins).toHaveLength(3);
+    expect(plugins).toHaveLength(4);
   });
 
   test("returns fresh instances on each call", () => {

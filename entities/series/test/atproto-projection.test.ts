@@ -56,6 +56,26 @@ describe("series ATProto projection", () => {
     });
   });
 
+  it("names its page when the site gives the series one, and nothing otherwise", async () => {
+    const projection = createSeriesAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("series");
+    const placed = await projection.buildRecord({
+      entity: series,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/seriess/series-1",
+    });
+    expect(placed.canonicalUrl).toBe(
+      "https://brain.example.com/seriess/series-1",
+    );
+    const unplaced = await projection.buildRecord({
+      entity: series,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the series projection when the series plugin registers", async () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-series-atproto",

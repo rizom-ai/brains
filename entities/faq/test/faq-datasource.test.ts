@@ -70,18 +70,21 @@ describe("FaqDataSource", () => {
           question: "Question thrice?",
           answer: "Answer **thrice**.",
           asked: 3,
+          sources: [],
         },
         {
           id: "draft",
           question: "Question draft?",
           answer: "Answer **draft**.",
           asked: 2,
+          sources: [],
         },
         {
           id: "once",
           question: "Question once?",
           answer: "Answer **once**.",
           asked: 1,
+          sources: [],
         },
       ],
     });
@@ -152,6 +155,44 @@ describe("FaqDataSource", () => {
       answer: "The chosen answer.",
     });
     expect(JSON.stringify(section)).not.toContain("unreviewed alternative");
+  });
+
+  it("carries the sources a FAQ kept, so a page can show whose memory answered", async () => {
+    const frontmatter: FaqFrontmatter = {
+      question: "How does Rizom keep memory?",
+      status: "published",
+      asked: 5,
+      sources: [
+        {
+          id: "network-piece:plc-peer--post--3kabc",
+          title: "Handoffs between teams",
+          url: "https://becca.rizom.ai/essays/handoffs",
+          excerpt: "Before anyone leaves a task we write three things down.",
+          brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+        },
+      ],
+    };
+    await context.entityService.createEntity({
+      entity: {
+        id: "sourced",
+        entityType: "faq",
+        content: faqAdapter.createFaqContent(frontmatter, "In their brains."),
+        visibility: "public",
+        metadata: faqMetadata(frontmatter),
+      },
+    });
+    const section = faqSectionSchema.parse(await fetch(true));
+    const sourced = section.faqs.find((faq) => faq.id === "sourced");
+    expect(sourced?.sources).toEqual([
+      {
+        id: "network-piece:plc-peer--post--3kabc",
+        title: "Handoffs between teams",
+        url: "https://becca.rizom.ai/essays/handoffs",
+        excerpt: "Before anyone leaves a task we write three things down.",
+        brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+      },
+    ]);
+    expect(section.faqs.find((faq) => faq.id === "once")?.sources).toEqual([]);
   });
 
   // A site shows the first FAQs beside its other content.

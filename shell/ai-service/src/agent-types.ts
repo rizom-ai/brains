@@ -197,12 +197,28 @@ export interface AgentConfig {
     answer: string;
   }) => Promise<SourceCitation[]>;
   /**
+   * Optional finder of a published FAQ that already answers a visitor's
+   * question. A hit answers the turn in the model's place, with the FAQ's
+   * stored sources. Guest turns only; without it, or when it fails, the
+   * turn goes to the model.
+   */
+  guestAskedBefore?: (request: {
+    question: string;
+  }) => Promise<AskedBeforeAnswer | undefined>;
+  /**
    * Optional meter the embedding provider reports to. A guest turn is
    * measured, and the embeddings it made join its settlement.
    */
   embeddingUsage?: EmbeddingUsageMeter;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
+}
+
+/** A published FAQ's answer to a question asked before, with what it drew on. */
+export interface AskedBeforeAnswer {
+  faqId: string;
+  answer: string;
+  sources: SourceCitation[];
 }
 
 /**
