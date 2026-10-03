@@ -142,6 +142,31 @@
   margin-top: 18px;
   padding-top: 14px;
 }
+/* A box that mounts with nothing to show above its composer takes no more
+   room than the composer its host showed before it: no padding or fade under
+   an empty welcome area, and no gap or divider above the composer, until a
+   welcome, an answer or a notice arrives. The phone sheet lays itself out. */
+:where(
+  [data-ask-styled]
+    .brain-box-scroll.is-welcome:not(
+      :has(.brain-box-welcome, .guest-message, .chat-notice)
+    )
+) {
+  padding-bottom: 0;
+  mask-image: none;
+}
+:where(
+  [data-ask-styled]
+    .brain-guest-box:not(.is-sheet)
+    > .brain-box-scroll.is-welcome:not(
+      :has(.brain-box-welcome, .guest-message, .chat-notice)
+    )
+    ~ .brain-box-bottom
+) {
+  margin-top: 0;
+  padding-top: 0;
+  border-top-width: 0;
+}
 :where([data-ask-styled] .brain-box-bottom form) {
   margin: 0;
 }
