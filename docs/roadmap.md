@@ -1,14 +1,14 @@
 # brains roadmap
 
-Last updated: 2026-09-21
+Last updated: 2026-10-02
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
 ## Current status
 
-`brains` is late in the `v0.2.0` alpha cycle. The latest published core release is `@rizom/brain@0.2.0-alpha.373`. The canonical one-brain runtime, capability-bundle contract, React renderer, multi-user identity boundary, independent site/theme release lanes, native Studio Chat, and the main Studio UX consolidation have shipped. Changesets remains in prerelease mode and no final alpha has been nominated.
+`brains` is late in the `v0.2.0` alpha cycle. The latest published core release is `@rizom/brain@0.2.0-alpha.474`. The canonical one-brain runtime, capability-bundle contract, React renderer, multi-user identity boundary, independent site/theme release lanes, native Studio Chat, and the main Studio UX consolidation have shipped. Changesets remains in prerelease mode and no final alpha has been nominated.
 
-The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
+The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, land durable binary asset storage and migrate `yeehaa.io` to it, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
 
 Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, budget or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
 
@@ -28,7 +28,7 @@ What exists today:
 
 `v0.2.0` is a packaging and compatibility milestone. The structural migrations that previously gated it are complete. A release candidate is ready when:
 
-- the intended stable source, including the public authoring boundary, is merged and published as one exact final alpha;
+- the intended stable source, including the public authoring boundary and durable binary asset storage for images and PDFs, is merged and published as one exact final alpha;
 - all eight external authoring fixtures pass declaration, package-boundary, packed-runtime, and exact-registry checks against that alpha and its compatible Site SDK;
 - the credentialed live authoring harness and the personal/team eval suites complete with recorded, secret-safe evidence and zero accepted failures;
 - the `public` / `shared` / `restricted` visibility contract and documented authoring exports receive final compatibility sign-off;
@@ -44,6 +44,7 @@ An existing worktree does not automatically outrank release work.
 | Priority | Outcome                              | Current execution                                                                                                                                                                               |
 | -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                            |
+| **P0**   | Durable binary assets                | Land the staged asset stack (#447–#476), migrate `yeehaa.io`, soak, remove the legacy bridge, then move PDFs. Gates stable `v0.2.0` so its persisted format is final.                           |
 | **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                                  |
 | **P1**   | Make Public Ask observable           | Record guest requests, denials and settled spend durably, then surface them in an admin Studio workspace with a reachable kill switch. Keep production guest admission off on every deployment. |
 | **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio hierarchy shipped separately in PR #267 (Brain 0.2.0-alpha.388).         |
@@ -139,6 +140,7 @@ Site and theme packages already publish independently with standard peer metadat
 Plans:
 
 - [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 release gate**, including integration of the completed declarative-boundary/DX branch, final-alpha evidence, release authorization, stable publication, and baseline freezing.
+- [durable-binary-assets.md](./plans/durable-binary-assets.md) — **P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut `yeehaa.io` over, soak, and remove the legacy bridge before stable `0.2.0`.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official package dependencies and prove an official package through public-only imports.
 - [atproto-integration.md](./plans/atproto-integration.md) — finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.
 - [trustflow-federation-integration.md](./plans/trustflow-federation-integration.md) — proposed asset-catalogue federation, gated on a real external catalogue endpoint.
@@ -153,7 +155,6 @@ These reduce drag or preserve future options; they are not product bets and do n
 
 Active cleanup and infrastructure plans:
 
-- [durable-binary-assets.md](./plans/durable-binary-assets.md) — move image bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, then validate a production cutover.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
