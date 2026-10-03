@@ -1,5 +1,18 @@
 # @brains/content-service
 
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies [[`1644ce8`](https://github.com/rizom-ai/brains/commit/1644ce84f4d7eafae91bf289f38a93c9893607de)]:
+  - @brains/ai-service@0.2.0-alpha.481
+  - @brains/content-formatters@0.2.0-alpha.481
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+  - @brains/entity-service@0.2.0-alpha.481
+  - @brains/job-queue@0.2.0-alpha.481
+  - @brains/templates@0.2.0-alpha.481
+
 ## 0.2.0-alpha.480
 
 ### Patch Changes
