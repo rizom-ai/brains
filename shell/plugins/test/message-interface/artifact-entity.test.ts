@@ -161,6 +161,32 @@ describe("artifact entity helpers", () => {
       expect(openAsset).not.toHaveBeenCalled();
     });
 
+    it("derives a missing media type from the stored format, as image reads do", async () => {
+      const { reader, entity } = await stagedImage();
+
+      const image = await readArtifactContent(reader, "image", {
+        content: entity.content,
+        metadata: { format: "jpg", sizeBytes: png.byteLength },
+      });
+      const document = await readArtifactContent(reader, "document", {
+        content: entity.content,
+        metadata: { sizeBytes: png.byteLength },
+      });
+      const response = await createArtifactResponse(reader, {
+        entityType: "image",
+        id: "robot-1",
+        entity: { content: entity.content, metadata: { format: "webp" } },
+        disposition: "inline",
+      });
+
+      expect(image).toMatchObject({ status: "ready", mimeType: "image/jpeg" });
+      expect(document).toMatchObject({
+        status: "ready",
+        mimeType: "application/pdf",
+      });
+      expect(response?.headers.get("Content-Type")).toBe("image/webp");
+    });
+
     it("refuses an asset whose media type does not match the artifact type", async () => {
       const { reader, entity } = await stagedImage();
 

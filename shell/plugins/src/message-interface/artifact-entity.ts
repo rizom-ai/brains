@@ -212,14 +212,25 @@ export function getArtifactEntityFilename(
   return `${entityId}.${extension}`;
 }
 
-/** The recorded media type of an asset-backed artifact, if it fits the type. */
+/**
+ * The media type of an asset-backed artifact, if it fits the type: the
+ * recorded one, else what its stored format implies, as image reads do.
+ */
 function assetMediaType(
   entityType: ArtifactEntityType,
   entity: StoredArtifact,
 ): string | undefined {
-  const mediaType = entity.metadata?.["mediaType"];
-  return typeof mediaType === "string" &&
-    ARTIFACT_MEDIA_TYPES[entityType].test(mediaType)
+  const recorded = entity.metadata?.["mediaType"];
+  const format = entity.metadata?.["format"];
+  const mediaType =
+    typeof recorded === "string"
+      ? recorded
+      : entityType === "document"
+        ? "application/pdf"
+        : typeof format === "string"
+          ? `image/${format === "jpg" ? "jpeg" : format}`
+          : undefined;
+  return mediaType && ARTIFACT_MEDIA_TYPES[entityType].test(mediaType)
     ? mediaType
     : undefined;
 }
