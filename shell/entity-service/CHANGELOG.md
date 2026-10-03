@@ -1,5 +1,21 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`aa0b1a6`](https://github.com/rizom-ai/brains/commit/aa0b1a65c0da59cbbbc597d6ed4b4e10153f1f8b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop creating the unused libSQL vector index and drop it idempotently when existing embedding databases initialize. Keep embedding rows, primary-key constraints and cosine-distance search unchanged; remove the obsolete index-creation helper.
+
+- [#471](https://github.com/rizom-ai/brains/pull/471) [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Disable native SQLite busy waiting on application-thread connections, including local auth replicas. Retry refused BEGIN acquisition asynchronously for non-replica local clients within a two-second budget, covering auth, conversation and entity transactions without replaying callbacks or commits. Reset only refused local BEGIN connections so libSQL's retained failed statements cannot poison a later commit. Embedded replicas retain SDK-owned transaction acquisition and reconnect behavior. Route formerly unguarded export acknowledgements and projection-rule scheduling writes through BEGIN-only transaction retries, avoiding libSQL's retained stale snapshots after refused implicit writes. Preserve foreign keys, FULL synchronization, automatic checkpoints and replica configuration.
+
+- Updated dependencies [[`e1f56b3`](https://github.com/rizom-ai/brains/commit/e1f56b35ff11affce5dee81584121147e3889125), [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/job-queue@0.2.0-alpha.477
+  - @brains/db@0.2.0-alpha.477
+  - @brains/assets@0.2.0-alpha.477
+  - @brains/content-formatters@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
 ## 0.2.0-alpha.476
 
 ### Patch Changes

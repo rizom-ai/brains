@@ -25,7 +25,6 @@ import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
   migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
   dbUrlToPath,
   type EmbeddingDB,
@@ -445,7 +444,6 @@ export class EntityService implements IEntityService {
     // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
     await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
-    await ensureEmbeddingIndexes(this.embeddingDbClient);
     await attachEmbeddingDatabase(
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),

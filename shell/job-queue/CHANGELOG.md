@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#473](https://github.com/rizom-ai/brains/pull/473) [`e1f56b3`](https://github.com/rizom-ai/brains/commit/e1f56b35ff11affce5dee81584121147e3889125) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate durable runtime-update page sizes before querying SQLite: require an integer from zero to 1,000 and return zero-sized pages without database I/O. Preserve the existing 1,000-row service default, indexed tuple seek, SQL LIMIT and timestamp/ID cursor ordering. Invalid sizes now reject instead of allowing negative SQLite limits to read the entire queue.
+
+- Updated dependencies [[`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/db@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/operation-context@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+  - @brains/mcp-service@0.2.0-alpha.477
+
 ## 0.2.0-alpha.476
 
 ### Patch Changes

@@ -490,6 +490,103 @@ db.close(false);
   }, 20_000);
 });
 
+describe("predeploy embeddings capture", () => {
+  async function contentCheckout(root: string): Promise<string> {
+    const contentDir = join(root, "content");
+    const remoteDir = join(root, "remote.git");
+    await Bun.$`mkdir -p ${contentDir}`.quiet();
+    await git(contentDir, ["init", "-b", "main"]);
+    await git(contentDir, ["config", "user.name", "Backup Test"]);
+    await git(contentDir, ["config", "user.email", "backup@example.com"]);
+    await writeFile(join(contentDir, "tracked.txt"), "base\n");
+    await git(contentDir, ["add", "tracked.txt"]);
+    await git(contentDir, ["commit", "-m", "base"]);
+    await git(root, ["init", "--bare", remoteDir]);
+    await git(contentDir, ["remote", "add", "origin", remoteDir]);
+    await git(contentDir, ["push", "--set-upstream", "origin", "main"]);
+    return contentDir;
+  }
+
+  async function embeddingsDatabase(
+    path: string,
+    index: "present" | "dropped" | "never",
+  ): Promise<void> {
+    const { createClient } = await import("@libsql/client");
+    const client = createClient({ url: `file:${path}` });
+    try {
+      await client.execute(
+        "CREATE TABLE embeddings (entity_id TEXT NOT NULL, entity_type TEXT NOT NULL, embedding F32_BLOB(3) NOT NULL, PRIMARY KEY(entity_id, entity_type))",
+      );
+      if (index !== "never")
+        await client.execute(
+          "CREATE INDEX embeddings_embedding_idx ON embeddings(libsql_vector_idx(embedding))",
+        );
+      await client.execute(
+        "INSERT INTO embeddings VALUES ('note-1', 'note', vector('[1, 2, 3]'))",
+      );
+      if (index === "dropped")
+        await client.execute("DROP INDEX IF EXISTS embeddings_embedding_idx");
+    } finally {
+      client.close();
+    }
+  }
+
+  for (const index of ["present", "dropped", "never"] as const) {
+    it(`verifies an embeddings database whose vector index is ${index}`, async () => {
+      const root = await mkdtemp(join(tmpdir(), `predeploy-embeddings-`));
+      temporaryDirectories.push(root);
+      const backupDir = join(root, "backup");
+      await Bun.$`mkdir -p ${backupDir}`.quiet();
+      const source = join(root, "embeddings.db");
+      await embeddingsDatabase(source, index);
+
+      await capturePredeployBackup({
+        backupDir,
+        contentRoot: await contentCheckout(root),
+        databases: [
+          {
+            source,
+            name: "embeddings.db",
+            method: "serialize",
+            quickCheck: "libsql",
+            logicalVector: true,
+          },
+        ],
+        metadata: {
+          snapshotId: `predeploy-test-embeddings-${index}`,
+          targetHandle: "test",
+          host: "test-host",
+          startedAt: new Date().toISOString(),
+          sourceVersion: "source",
+          targetVersion: "target",
+          toolVersion: "test",
+          containerId: "container",
+          imageId: "image",
+          imageDigest: "digest",
+        },
+      });
+
+      // Count through libSQL as the app does: plain SQLite answers COUNT(*)
+      // from the vector index's empty b-tree while that index exists.
+      const { createClient } = await import("@libsql/client");
+      const snapshot = createClient({
+        url: `file:${join(backupDir, "embeddings.db")}`,
+      });
+      const countRow = z
+        .looseObject({ count: z.number() })
+        .parse(
+          (await snapshot.execute("SELECT COUNT(*) AS count FROM embeddings"))
+            .rows[0],
+        );
+      snapshot.close();
+      expect(countRow.count).toBe(1);
+      expect(await Bun.file(join(backupDir, "manifest.json")).exists()).toBe(
+        true,
+      );
+    });
+  }
+});
+
 describe("predeploy asset verification", () => {
   const PNG = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",

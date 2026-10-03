@@ -1,5 +1,15 @@
 # @brains/chat
 
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- Updated dependencies [[`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/auth-service@0.2.0-alpha.477
+  - @brains/plugins@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
 ## 0.2.0-alpha.476
 
 ### Patch Changes

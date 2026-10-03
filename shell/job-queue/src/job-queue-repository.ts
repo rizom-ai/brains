@@ -16,6 +16,7 @@ import {
 import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { JOB_STATUS } from "./schemas";
@@ -96,6 +97,13 @@ export interface JobQueueWriteTransactionClient {
 const WRITE_RETRY_BUDGET_MS = 2_000;
 const WRITE_RETRY_BASE_DELAY_MS = 5;
 const WRITE_RETRY_MAX_DELAY_MS = 40;
+
+// Match the service's existing default; negative SQLite LIMITs are unbounded.
+const runtimeUpdatePageLimitSchema: z.ZodNumber = z
+  .number()
+  .int()
+  .min(0)
+  .max(1_000);
 
 // Local libSQL begins a write transaction synchronously and can block the event
 // loop on busy_timeout when two clients in one process share a file. This turn
@@ -916,6 +924,9 @@ export class JobQueueRepository {
     cursor: JobRuntimeUpdateCursor,
     limit: number,
   ): Promise<JobRuntimeUpdate[]> {
+    const pageLimit = runtimeUpdatePageLimitSchema.parse(limit);
+    if (pageLimit === 0) return [];
+
     const rows = await this.db
       .select()
       .from(jobQueue)
@@ -923,7 +934,7 @@ export class JobQueueRepository {
         sql`(${jobQueue.runtimeUpdatedAt}, ${jobQueue.id}) > (${cursor.updatedAt}, ${cursor.jobId})`,
       )
       .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id))
-      .limit(limit);
+      .limit(pageLimit);
 
     return rows.map((job) => ({
       job,
