@@ -79,10 +79,6 @@ export {
   ProjectionBatchFencedError,
   type ProjectionBatchDiagnostics,
 } from "./projection-batch-coordinator";
-export {
-  retrySqliteWrite,
-  type SqliteWriteRetryOptions,
-} from "./projection-transaction-runner";
 
 export interface MarkProjectionDirtyInput {
   sourceType: string;

@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- [#499](https://github.com/rizom-ai/brains/pull/499) [`45aa372`](https://github.com/rizom-ai/brains/commit/45aa3720eafc0829adbb33ccbbcf7a7f1eaee0da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest Ask box that mounts with nothing to show above its composer no longer takes more room than the composer its host showed before it: the empty welcome area loses its padding and fade, and the composer keeps no gap or divider above it, until a welcome, an answer or a notice arrives. On rizom.ai the composer used to drop a row the moment it was focused.
+
+## 0.2.0-alpha.480
+
 ## 0.2.0-alpha.479
 
 ### Patch Changes

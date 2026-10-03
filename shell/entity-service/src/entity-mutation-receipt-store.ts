@@ -1,10 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { EntityDB } from "./db";
 import { entityMutationReceipts } from "./schema/entity-mutation-receipts";
-import {
-  retrySqliteWrite,
-  type EntityTransaction,
-} from "./projection-transaction-runner";
+import type { EntityTransaction } from "./projection-transaction-runner";
 import {
   EntityMutationAlreadyAppliedError,
   entityMutationReceiptKeySchema,
@@ -63,16 +60,14 @@ export class EntityMutationReceiptStore {
     input: EntityMutationReceiptKey,
   ): Promise<EntityMutationReceipt> {
     const key = entityMutationReceiptKeySchema.parse(input);
-    await retrySqliteWrite(() =>
-      this.db
-        .insert(entityMutationReceipts)
-        .values({
-          ...key,
-          result: { operation: "none" },
-          recordedAt: Date.now(),
-        })
-        .onConflictDoNothing(),
-    );
+    await this.db
+      .insert(entityMutationReceipts)
+      .values({
+        ...key,
+        result: { operation: "none" },
+        recordedAt: Date.now(),
+      })
+      .onConflictDoNothing();
     const result = await this.get(key);
     if (!result) throw new Error("Missing committed entity mutation receipt");
     return result;

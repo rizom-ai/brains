@@ -20,7 +20,6 @@ import {
 } from "@brains/assets";
 import { and, eq, lt, notExists, sql } from "drizzle-orm";
 import type { EntityDB } from "./db";
-import { retrySqliteWrite } from "./projection-transaction-runner";
 import { assetChunks, assetUploads, assets } from "./schema/assets";
 
 export type AssetTransaction = Parameters<
@@ -99,7 +98,10 @@ export class SqliteAssetRepository implements AssetReader {
     this.db = db;
     this.maxBytes = options.maxBytes ?? MAX_ASSET_BYTES;
     this.now = options.now ?? Date.now;
-    this.runWrite = options.runWrite ?? retrySqliteWrite;
+    // The shared client retries a refused write; a second budget here would stack.
+    this.runWrite =
+      options.runWrite ??
+      (<TResult>(write: () => Promise<TResult>): Promise<TResult> => write());
     this.orphanAgeMs = options.orphanAgeMs ?? ORPHAN_AGE_MS;
   }
 

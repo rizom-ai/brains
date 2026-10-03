@@ -696,7 +696,8 @@ describe("system_update tool", () => {
 
         expect(result).toEqual({
           success: false,
-          error: "Provide either 'content' or 'fields', not both",
+          error:
+            "Provide only one of 'fields', 'content', 'edits', or 'source'.",
         });
         expect(services.getLastUpdateRequest()).toBeUndefined();
         expect(services.getEntities().get(original.id)).toEqual(original);
@@ -1735,6 +1736,84 @@ describe("system_update tool", () => {
     expect(services.getLastUpdateRequest()?.entity.metadata).not.toHaveProperty(
       "publishedAt",
     );
+  });
+
+  it("keeps the stored frontmatter when replacement content is body-only", async () => {
+    useMetadataBackedAdapter();
+    expect(
+      await execConfirmed({
+        entityType: "metadata-backed-test",
+        id: "metadata-backed-1",
+        content: "New body.\n",
+      }),
+    ).toMatchObject({ success: true });
+    const updated = services.getLastUpdateRequest()?.entity;
+    expect(updated?.content).toBe(
+      "---\ntitle: Original title\npublishedAt: '2026-03-01T00:00:00.000Z'\n---\nNew body.\n",
+    );
+    expect(updated?.metadata).toEqual({
+      title: "Original title",
+      publishedAt: "2026-03-01T00:00:00.000Z",
+    });
+  });
+
+  it("keeps restricted visibility frontmatter on a body-only note replacement", async () => {
+    const note = expectDefined(
+      services.getEntities().get("woodchuck-note"),
+      "note",
+    );
+    services.addEntities([
+      {
+        ...note,
+        content: "---\nvisibility: restricted\n---\nOld body.",
+        visibility: "restricted",
+      },
+    ]);
+    expect(
+      await execConfirmed({
+        entityType: "base",
+        id: note.id,
+        content: "Replacement body.",
+      }),
+    ).toMatchObject({ success: true });
+    const updated = services.getLastUpdateRequest()?.entity;
+    expect(updated?.content).toBe(
+      "---\nvisibility: restricted\n---\nReplacement body.",
+    );
+    expect(updated?.visibility).toBe("restricted");
+  });
+
+  it("rejects body-only replacement content for a type without a body", async () => {
+    const adapter = new SourceOwnedTestAdapter();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(adapter.entityType, adapter.schema, adapter);
+    services.entityRegistry = registry;
+    services.addEntities([
+      {
+        id: "source-owned",
+        entityType: adapter.entityType,
+        content: "---\ntitle: Original\n---\n",
+        contentHash: "hash-source-owned",
+        visibility: "public",
+        metadata: {},
+        created: "2026-09-25T10:00:00.000Z",
+        updated: "2026-09-25T10:00:00.000Z",
+      },
+    ]);
+    tools = createSystemTools(services);
+
+    expect(
+      await exec({
+        entityType: adapter.entityType,
+        id: "source-owned",
+        content: "title: Changed",
+      }),
+    ).toEqual({
+      success: false,
+      error:
+        "source-owned-test has no body. Replace its full markdown, including frontmatter.",
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
   });
 
   it("preserves curated metadata when its source has not changed", async () => {
