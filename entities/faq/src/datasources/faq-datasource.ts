@@ -70,7 +70,8 @@ export const faqSectionSchema: z.ZodObject<{
 export type FaqSectionData = z.output<typeof faqSectionSchema>;
 
 /**
- * Supplies the FAQ section with public FAQs, most asked first. A FAQ drawn
+ * Supplies the FAQ section with public FAQs: the owner's ranked ones in rank
+ * order, then the rest most asked first, newest first on a tie. A FAQ drawn
  * from shared or restricted content never reaches a site, whatever the
  * build's visibility scope; drafts stay out of published-only builds.
  */
@@ -87,8 +88,9 @@ export class FaqDataSource extends BaseEntityDataSource<
     entityType: "faq",
     entitySchema: faqSchema,
     defaultSort: [
-      { field: "asked" as const, direction: "desc" as const },
-      { field: "question" as const, direction: "asc" as const },
+      { field: "rank", direction: "asc", nullsLast: true },
+      { field: "asked", direction: "desc" },
+      { field: "created", direction: "desc" },
     ],
     defaultLimit: 100,
     lookupField: "id",
@@ -128,8 +130,9 @@ export class FaqDataSource extends BaseEntityDataSource<
 }
 
 /**
- * The most asked public FAQs a site shows beside its other content, under the
- * build's publish rule; none where the brain does not capture FAQs.
+ * The first public FAQs in the section's order, for a site that shows them
+ * beside its other content, under the build's publish rule; none where the
+ * brain does not capture FAQs.
  */
 export async function loadPublicFaqs(
   context: BaseDataSourceContext,

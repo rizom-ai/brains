@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- [#490](https://github.com/rizom-ai/brains/pull/490) [`d3d8e82`](https://github.com/rizom-ai/brains/commit/d3d8e8299d7262666a2e0f4f4ac90d730f32100f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a touch screen, the first tap on the atlas legend's "Latest" opens the latest piece's card instead of following its link.
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- [#487](https://github.com/rizom-ai/brains/pull/487) [`d823d75`](https://github.com/rizom-ai/brains/commit/d823d7572fb84bd745772062bebf59ce50de4479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage rings the most recently published piece and names it "Latest" in the legend, which opens its card; marks keep clear of the legend along the map's foot.
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`673f737`](https://github.com/rizom-ai/brains/commit/673f73756990cdd82b5e4bc48b242c2ccce07681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ answers on the atlas homepage are set in the FAQ band's own type, one size below the question, instead of blog-post prose sizes that made paragraphs larger than the question on phones.
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`0f327b4`](https://github.com/rizom-ai/brains/commit/0f327b42a64aac7ce1a9d0bea61431b87b3005f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An owner can rank FAQs: an optional `rank` in a FAQ's frontmatter puts it first on a site, in rank order; unranked FAQs follow, most asked first and newest first on a tie. Entity listings can sort NULLs last with `nullsLast`.
+
 ## 0.2.0-alpha.473
 
 ### Patch Changes

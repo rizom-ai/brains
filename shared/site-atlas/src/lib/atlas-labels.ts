@@ -1,4 +1,4 @@
-import { atlasPosition, zoneSpread } from "./atlas-terrain";
+import { atlasLeft, atlasTop, zoneSpread } from "./atlas-terrain";
 
 /**
  * Territory label placement in the map's percentage space. Labels are
@@ -38,9 +38,9 @@ interface LabelBox {
 }
 
 function overlapsMark(box: LabelBox, mark: LabelMark): boolean {
-  const markY = atlasPosition(mark.y);
+  const markY = atlasTop(mark.y);
   return (
-    Math.abs(atlasPosition(mark.x) - box.x) <= box.halfWidth &&
+    Math.abs(atlasLeft(mark.x) - box.x) <= box.halfWidth &&
     markY >= box.bottom - LABEL_HEIGHT - 1 &&
     markY <= box.bottom + CLEARANCE
   );
@@ -74,15 +74,15 @@ export function layoutZoneLabels(
   }>(
     ({ placed, tops }, zone) => {
       const own = marks.filter((mark) => mark.zoneId === zone.id);
-      const ys = own.map((mark) => atlasPosition(mark.y));
-      const centre = atlasPosition(zone.y);
+      const ys = own.map((mark) => atlasTop(mark.y));
+      const centre = atlasTop(zone.y);
       const spread = zoneSpread(zone.members) * 0.6;
       const above = Math.min(centre - spread, ...ys) - GAP;
       const below = Math.max(centre + spread, ...ys) + GAP + LABEL_HEIGHT;
       const halfWidth = (zone.name.length * CHAR_WIDTH) / 2 + 1;
       // A territory near the edge keeps its whole name inside the map.
       const x = Math.min(
-        Math.max(atlasPosition(zone.x), halfWidth),
+        Math.max(atlasLeft(zone.x), halfWidth),
         100 - halfWidth,
       );
       const box = (bottom: number): LabelBox => ({ x, halfWidth, bottom });

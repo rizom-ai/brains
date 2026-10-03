@@ -67,6 +67,7 @@ type FaqFrontmatterSchema = z.ZodObject<{
   asked: z.ZodDefault<z.ZodNumber>;
   sources: z.ZodOptional<z.ZodArray<FaqSourceSchema>>;
   review: z.ZodOptional<typeof faqReviewSchema>;
+  rank: z.ZodOptional<z.ZodNumber>;
 }>;
 
 export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
@@ -78,6 +79,8 @@ export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
   sources: z.array(faqSourceSchema).optional(),
   /** Set when a cited piece left the network; cleared by the owner's review. */
   review: faqReviewSchema.optional(),
+  /** The owner's place for it on a site, 1 first; unranked FAQs follow. */
+  rank: z.number().int().min(1).optional(),
 });
 
 export type FaqFrontmatter = z.output<typeof faqFrontmatterSchema>;
@@ -87,12 +90,14 @@ type FaqMetadataSchema = z.ZodObject<{
   question: z.ZodString;
   status: typeof faqStatusSchema;
   asked: z.ZodNumber;
+  rank: z.ZodOptional<z.ZodNumber>;
 }>;
 
 export const faqMetadataSchema: FaqMetadataSchema = z.object({
   question: z.string(),
   status: faqStatusSchema,
   asked: z.number().int(),
+  rank: z.number().int().optional(),
 });
 
 export type FaqMetadata = z.output<typeof faqMetadataSchema>;
