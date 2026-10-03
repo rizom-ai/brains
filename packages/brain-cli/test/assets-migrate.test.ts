@@ -235,6 +235,43 @@ describe("assets:migrate", () => {
     });
   });
 
+  it("records the rows a failing run committed, and its error, in the manifest", async () => {
+    const path = await fixture([["cover", dataUrl("png", PNG)]]);
+    const manifestPath = join(dirname(path), "manifest.json");
+
+    const result = await runAssetsMigrate(
+      "/",
+      { database: path, manifest: manifestPath },
+      stopped,
+      async (_connection, entries) => {
+        entries.push({
+          id: "cover",
+          outcome: "changed",
+          oldContentHash: "hash-cover",
+        });
+        throw new Error("disk full");
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("disk full");
+    expect(result.message).toContain(manifestPath);
+    const run = z
+      .object({
+        runs: z.array(
+          z.object({
+            entries: z.array(z.record(z.string(), z.unknown())),
+            error: z.string(),
+          }),
+        ),
+      })
+      .parse(JSON.parse(await readFile(manifestPath, "utf8"))).runs[0];
+    expect(run?.entries).toEqual([
+      { id: "cover", outcome: "changed", oldContentHash: "hash-cover" },
+    ]);
+    expect(run?.error).toContain("disk full");
+  });
+
   it("skips completed rows on a rerun and appends the run", async () => {
     const path = await fixture([["cover", dataUrl("png", PNG)]]);
     const manifestPath = join(dirname(path), "manifest.json");

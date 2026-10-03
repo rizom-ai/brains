@@ -1,6 +1,9 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { openOfflineEntityDatabase } from "@brains/entity-service";
+import {
+  openOfflineEntityDatabase,
+  type OfflineEntityConnection,
+} from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import type { InlineImageBlocker } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
@@ -51,6 +54,10 @@ export async function runAssetsMigrate(
   cwd: string,
   options: AssetsMigrateOptions,
   deps: OfflineDatabaseDeps = defaultOfflineDatabaseDeps,
+  migrate: (
+    connection: OfflineEntityConnection,
+    entries: MigrationManifestEntry[],
+  ) => Promise<unknown> = runImageAssetMigration,
 ): Promise<CommandResult> {
   const database = await resolveOfflineDatabase(cwd, options.database, deps);
   if (!("path" in database)) return database;
@@ -80,16 +87,33 @@ export async function runAssetsMigrate(
       };
     }
     const startedAt = new Date().toISOString();
-    const entries = await runImageAssetMigration(connection);
     const manifestPath = options.manifest
       ? resolveLocalPath(cwd, options.manifest)
       : join(dirname(path), "binary-asset-migration.json");
+    // Rows commit one at a time, so a run that throws has still changed some:
+    // the manifest records them, and the error, either way.
+    const entries: MigrationManifestEntry[] = [];
+    const failure = await migrate(connection, entries).then(
+      () => undefined,
+      (error: unknown) => getErrorMessage(error),
+    );
     await appendManifestRun(manifestPath, {
       database: path,
       startedAt,
       finishedAt: new Date().toISOString(),
       entries,
+      ...(failure !== undefined && { error: failure }),
     });
+    if (failure !== undefined) {
+      return {
+        success: false,
+        message: [
+          `Migration failed after ${entries.length} row(s) were recorded: ${failure}`,
+          `Manifest: ${manifestPath}`,
+          "Rerun the dry-run before migrating again.",
+        ].join("\n"),
+      };
+    }
     const count = (outcome: MigrationManifestEntry["outcome"]): number =>
       entries.filter((entry) => entry.outcome === outcome).length;
     const unfinished = count("changed") + count("blocked");
@@ -123,6 +147,7 @@ async function appendManifestRun(
     startedAt: string;
     finishedAt: string;
     entries: MigrationManifestEntry[];
+    error?: string;
   },
 ): Promise<void> {
   const existing = await readFile(path, "utf8").then(

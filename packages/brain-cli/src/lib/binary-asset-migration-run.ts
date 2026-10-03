@@ -35,10 +35,13 @@ export type MigrationManifestEntry =
 /**
  * Migrate every inline image, one row at a time: each is decoded, staged in
  * committed chunks and published with its row in one transaction. Rows
- * already migrated are no longer inline, so a rerun skips them.
+ * already migrated are no longer inline, so a rerun skips them. Each
+ * finished row is appended to `entries` as it commits, so a run that throws
+ * still leaves the record of what it changed.
  */
 export async function runImageAssetMigration(
   connection: OfflineEntityConnection,
+  entries: MigrationManifestEntry[] = [],
 ): Promise<MigrationManifestEntry[]> {
   const migrator = new OfflineBinaryMigrator(connection);
   const inventory = await readBinaryAssetInventory(
@@ -46,7 +49,6 @@ export async function runImageAssetMigration(
     "image",
     LEGACY_PENDING_IMAGE_PLACEHOLDER,
   );
-  const entries: MigrationManifestEntry[] = [];
   for (const id of inventory.inlineIds) {
     // Each row decodes up to the write cap; collecting before the next keeps
     // peak memory flat however many images the database holds.
