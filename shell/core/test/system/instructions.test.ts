@@ -97,6 +97,16 @@ describe("system instructions", () => {
     );
   });
 
+  it("routes large user-supplied rewrites through a verbatim source", () => {
+    const instructions = createSystemInstructions(createMockSystemServices());
+    expect(instructions).toContain(
+      'when the user supplies the replacement text, use `source: { kind: "user-message", startAfter, endBefore }`',
+    );
+    expect(instructions).toContain(
+      "Text without frontmatter replaces the body and keeps the stored frontmatter",
+    );
+  });
+
   it("tells agents to create pending confirmations by calling mutating tools", () => {
     const services = createMockSystemServices();
     const instructions = createSystemInstructions(services);
