@@ -4,13 +4,13 @@ import {
   openOfflineEntityDatabase,
   type OfflineEntityConnection,
 } from "@brains/entity-service";
-import { migrateEntities } from "@brains/entity-service/migrate";
 import type { InlineImageBlocker } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { CommandResult } from "../lib/command-result";
 import {
   defaultOfflineDatabaseDeps,
+  migrateOfflineSchema,
   resolveLocalPath,
   resolveOfflineDatabase,
   type OfflineDatabaseDeps,
@@ -63,17 +63,10 @@ export async function runAssetsMigrate(
   if (!("path" in database)) return database;
   const { path } = database;
   const size = database.bytes;
+  // A dry-run never writes, so it leaves the schema as it is.
   if (!options.dryRun) {
-    // What starting the transitional release would do first: bring the
-    // schema forward, so the staged asset tables exist. A dry-run never writes.
-    try {
-      await migrateEntities({ url: `file:${path}` });
-    } catch (error) {
-      return {
-        success: false,
-        message: `Schema migration failed: ${getErrorMessage(error)}`,
-      };
-    }
+    const failed = await migrateOfflineSchema(path);
+    if (failed) return failed;
   }
   const connection = openOfflineEntityDatabase(path);
   try {

@@ -61,6 +61,20 @@ async function dropAssets(path: string): Promise<void> {
 }
 
 describe("assets:reconcile", () => {
+  it("reports a database whose schema cannot be brought forward instead of throwing", async () => {
+    const path = join(dirname(await fixture([])), "corrupt.db");
+    await writeFile(path, Buffer.alloc(8192, 0x41));
+
+    const result = await runAssetsReconcile(
+      "/",
+      { database: path, from: dirname(path) },
+      stopped,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Schema migration failed");
+  });
+
   it("creates rows for image files the database lacks, binary or text-form", async () => {
     const { path, from } = await withFiles(
       [],

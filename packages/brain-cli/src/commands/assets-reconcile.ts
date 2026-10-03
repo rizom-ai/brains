@@ -8,7 +8,6 @@ import {
   parseAssetRef,
   type OfflineEntityConnection,
 } from "@brains/entity-service";
-import { migrateEntities } from "@brains/entity-service/migrate";
 import { classifyInlineImage, type ImageByteDescription } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -20,6 +19,7 @@ import {
 import type { CommandResult } from "../lib/command-result";
 import {
   defaultOfflineDatabaseDeps,
+  migrateOfflineSchema,
   resolveLocalPath,
   resolveOfflineDatabase,
   type OfflineDatabaseDeps,
@@ -79,7 +79,8 @@ export async function runAssetsReconcile(
   if (!("path" in database)) return database;
   if (!options.dryRun) {
     // The staged asset tables must exist before anything is restored.
-    await migrateEntities({ url: `file:${database.path}` });
+    const failed = await migrateOfflineSchema(database.path);
+    if (failed) return failed;
   }
   const directory = join(
     resolveLocalPath(cwd, options.from ?? "brain-data"),

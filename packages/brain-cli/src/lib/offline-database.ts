@@ -1,6 +1,8 @@
 import { stat } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { resolveStandardPaths } from "@brains/app";
+import { migrateEntities } from "@brains/entity-service/migrate";
+import { getErrorMessage } from "@brains/utils/error";
 import type { CommandResult } from "./command-result";
 import { findDatabaseHolders } from "./database-holders";
 
@@ -74,4 +76,23 @@ async function databaseBytes(path: string): Promise<number | undefined> {
     stat(`${path}-wal`).catch(() => undefined),
   ]);
   return file?.isFile() ? file.size + (wal?.size ?? 0) : undefined;
+}
+
+/**
+ * Bring a stopped app's entity schema forward, as the transitional
+ * release's first start would, so the staged asset tables exist. Undefined
+ * once done; otherwise the failed command result.
+ */
+export async function migrateOfflineSchema(
+  path: string,
+): Promise<CommandResult | undefined> {
+  try {
+    await migrateEntities({ url: `file:${path}` });
+    return undefined;
+  } catch (error) {
+    return {
+      success: false,
+      message: `Schema migration failed: ${getErrorMessage(error)}`,
+    };
+  }
 }
