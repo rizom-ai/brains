@@ -39,6 +39,7 @@ const atlas: HomepageAtlasData = {
       zoneId: "institutions",
       url: "/essays/hiding-in-plain-sight",
       typeLabel: "Essay",
+      latest: false,
     },
     {
       id: "living",
@@ -52,6 +53,7 @@ const atlas: HomepageAtlasData = {
       zoneId: "institutions",
       url: "/presentations/organizations-as-living-systems",
       typeLabel: "Presentation",
+      latest: false,
     },
     {
       id: "lefthoek",
@@ -65,6 +67,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/lefthoek",
       typeLabel: "Project",
+      latest: false,
     },
     {
       id: "offcourse",
@@ -78,6 +81,7 @@ const atlas: HomepageAtlasData = {
       zoneId: "memory",
       url: null,
       typeLabel: null,
+      latest: false,
     },
   ],
 };

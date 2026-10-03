@@ -98,6 +98,18 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__legend i { display: inline-block; width: 7px; height: 7px; background: var(--color-text-muted); border-radius: 50%; }
 .atlas__legend .atlas__key--deck i { border-radius: 1px; transform: rotate(45deg); }
 .atlas__legend .atlas__key--project i { border-radius: 1.5px; }
+/* The latest piece: one accent ring around its mark, drawn once; the legend's
+   "Latest" names the ring and opens the piece's card. */
+.atlas__mark--latest > a { position: relative; }
+.atlas__mark--latest > a::after {
+  content: ""; position: absolute; inset: -.2rem; border-radius: 50%;
+  border: 1.5px solid var(--color-accent); pointer-events: none;
+  animation: atlas-latest 1.4s cubic-bezier(.3, .7, .2, 1) .6s both;
+}
+@keyframes atlas-latest { from { opacity: 0; transform: scale(.35); } }
+.atlas__legend .atlas__key--latest { display: inline-flex; align-items: center; gap: .35rem; color: inherit; text-decoration: none; }
+.atlas__legend .atlas__key--latest i { width: 9px; height: 9px; background: none; box-shadow: inset 0 0 0 1.5px var(--color-accent); }
+.atlas__legend .atlas__key--latest:is(:hover, :focus-visible) { color: var(--color-accent); }
 
 .atlas__talk {
   position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
@@ -305,5 +317,6 @@ export const homepageAtlasStyles: string = String.raw`
   .atlas__contour { animation: none; }
   .atlas__mark[data-atlas-pulse] .atlas__glyph, .atlas__ask [data-ask-source][data-atlas-flash] { animation: none; }
   .atlas__glyph, .atlas__tip, .atlas__field, .atlas__mark > :first-child { transition: none; }
+  .atlas__mark--latest > a::after { animation: none; }
 }
 `;

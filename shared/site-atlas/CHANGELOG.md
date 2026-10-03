@@ -1,5 +1,65 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/site-composition@0.2.0-alpha.476
+  - @brains/site-engine@0.2.0-alpha.476
+  - @brains/ui-library@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/plugins@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/site-composition@0.2.0-alpha.475
+  - @brains/site-engine@0.2.0-alpha.475
+  - @brains/ui-library@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/plugins@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/site-composition@0.2.0-alpha.474
+  - @brains/site-engine@0.2.0-alpha.474
+  - @brains/ui-library@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/plugins@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/site-composition@0.2.0-alpha.473
+  - @brains/site-engine@0.2.0-alpha.473
+  - @brains/ui-library@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/plugins@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/site-composition@0.2.0-alpha.472
+  - @brains/site-engine@0.2.0-alpha.472
+  - @brains/ui-library@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/plugins@0.2.0-alpha.472
+
 ## 0.2.0-alpha.471
 
 ### Patch Changes

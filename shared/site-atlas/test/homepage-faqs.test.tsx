@@ -16,7 +16,7 @@ const faqs = homepageFaqsSchema.parse([
   },
 ]);
 
-// The owner's published FAQs under the atlas, most asked first: every
+// The owner's published FAQs under the atlas, in the order given: every
 // question closed until tapped, one open at a time, readable without script.
 describe("HomepageFaqs", () => {
   it("renders nothing while no FAQ is published", () => {
@@ -42,6 +42,14 @@ describe("HomepageFaqs", () => {
     expect(html).toContain("<strong>living systems</strong>");
     expect(html).toContain("<ol>");
     expect(html).toContain("data-atlas-faqs");
+  });
+
+  it("sets answers in the band's own type, not a blog post's", () => {
+    const html = renderToStaticMarkup(
+      <HomepageFaqs heading="Asked before" faqs={faqs} />,
+    );
+    expect(html).toContain('<div class="faqs__answer"><p>Designing');
+    expect(html).not.toContain("prose");
   });
 
   it("names the band in the owner's words, or not at all", () => {
