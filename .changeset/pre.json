@@ -657,6 +657,7 @@
     "core--unified-inbox-surfaces",
     "core--universal-operator-semantics",
     "core--update-input-and-confirmation-diff",
+    "core--update-verbatim-source",
     "core--verbatim-user-message-create",
     "core--verified-predeploy-backups",
     "core--versioned-ask-assets",
