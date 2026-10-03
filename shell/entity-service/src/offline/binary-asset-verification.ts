@@ -45,15 +45,18 @@ const recordedSizeSchema = z.object({ sizeBytes: z.number() }).partial();
  * Check every asset-backed row offline: its reference resolves to one
  * published header whose streamed chunks match the digest and size, and the
  * row's recorded size agrees. Each distinct asset is read once.
+ * `placeholder` is the type's old pending payload, counted as left to clear.
  */
 export async function verifyAssetBackedRows(
   connection: OfflineEntityConnection,
   entityType: string,
+  placeholder?: string,
 ): Promise<AssetBackedVerification> {
   const repository = new SqliteAssetRepository(connection.db);
   const inventory = await readBinaryAssetInventory(
     connection.client,
     entityType,
+    placeholder,
   );
   const result = await connection.client.execute({
     sql: "SELECT id, content, metadata FROM entities WHERE entityType = ? AND content LIKE ? ORDER BY id",

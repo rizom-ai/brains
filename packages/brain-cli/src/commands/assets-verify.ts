@@ -5,6 +5,7 @@ import {
   verifyAssetBackedRows,
   type AssetRowCheck,
 } from "@brains/entity-service";
+import { LEGACY_PENDING_IMAGE_PLACEHOLDER } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { listImageFiles, readImageFile } from "../lib/brain-data-images";
 import type { CommandResult } from "../lib/command-result";
@@ -41,7 +42,11 @@ export async function runAssetsVerify(
   if (!("path" in database)) return database;
   const connection = openOfflineEntityDatabase(database.path);
   try {
-    const verification = await verifyAssetBackedRows(connection, "image");
+    const verification = await verifyAssetBackedRows(
+      connection,
+      "image",
+      LEGACY_PENDING_IMAGE_PLACEHOLDER,
+    );
     const mirrors = options.brainData
       ? await checkMirrors(
           resolveLocalPath(cwd, options.brainData),

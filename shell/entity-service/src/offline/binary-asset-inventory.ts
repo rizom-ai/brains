@@ -14,9 +14,9 @@ export type OfflineReader = Pick<Client, "execute">;
 export interface BinaryAssetInventory {
   /** Completed rows whose content is anything but an asset reference, by id. */
   inlineIds: string[];
-  /** Pending or failed rows: their bytes do not exist yet. */
+  /** Pending or failed rows without bytes: empty, or the old placeholder. */
   awaitingIds: string[];
-  /** Awaiting rows still holding a payload: the old pending placeholder. */
+  /** Awaiting rows still holding the old pending placeholder. */
   placeholderIds: string[];
   /** Rows already holding an asset reference. */
   referenceCount: number;
@@ -48,24 +48,48 @@ const digestRowSchema = z.object({ digest: z.string() });
 const AWAITING_STATUS_SQL =
   "COALESCE(json_extract(metadata, '$.status'), '') IN ('pending', 'failed')";
 
+/** Content without surrounding whitespace; SQLite's bare trim() keeps newlines. */
+const TRIMMED = "trim(content, char(32, 9, 10, 13))";
+
+/**
+ * Awaiting rows that hold no bytes: empty, or exactly the old pending
+ * placeholder (alone, or behind a stored visibility header). An awaiting row
+ * with any other content keeps real bytes and migrates like an inline row.
+ */
+function bytelessAwaiting(placeholder: string | undefined): {
+  sql: string;
+  args: string[];
+} {
+  if (placeholder === undefined) {
+    return { sql: `(${AWAITING_STATUS_SQL} AND content = '')`, args: [] };
+  }
+  return {
+    sql: `(${AWAITING_STATUS_SQL} AND (content = '' OR ${TRIMMED} = ? OR (content LIKE '---%' AND substr(${TRIMMED}, -length(?)) = ?)))`,
+    args: [placeholder, placeholder, placeholder],
+  };
+}
+
 /**
  * Inventory an asset-backed type offline: the inline rows still to migrate,
  * the rows already migrated, the full-text rows to remove and the digests
  * already stored. Only ids are listed, so payloads load one row at a time.
+ * `placeholder` is the type's old pending payload, which holds no real bytes.
  */
 export async function readBinaryAssetInventory(
   reader: OfflineReader,
   entityType: string,
+  placeholder?: string,
 ): Promise<BinaryAssetInventory> {
   const referencePattern = `${ASSET_REF_PREFIX}%`;
+  const byteless = bytelessAwaiting(placeholder);
   const [inline, awaiting, references, ftsRows, digests] = await Promise.all([
     reader.execute({
-      sql: `SELECT id FROM entities WHERE entityType = ? AND content NOT LIKE ? AND NOT ${AWAITING_STATUS_SQL} ORDER BY id`,
-      args: [entityType, referencePattern],
+      sql: `SELECT id FROM entities WHERE entityType = ? AND content NOT LIKE ? AND NOT ${byteless.sql} ORDER BY id`,
+      args: [entityType, referencePattern, ...byteless.args],
     }),
     reader.execute({
-      sql: `SELECT id, content <> '' AS placeholder FROM entities WHERE entityType = ? AND ${AWAITING_STATUS_SQL} ORDER BY id`,
-      args: [entityType],
+      sql: `SELECT id, content <> '' AS placeholder FROM entities WHERE entityType = ? AND ${byteless.sql} ORDER BY id`,
+      args: [entityType, ...byteless.args],
     }),
     reader.execute({
       sql: "SELECT COUNT(*) AS count FROM entities WHERE entityType = ? AND content LIKE ?",
@@ -120,10 +144,12 @@ export async function readInlineBinaryRow(
   reader: OfflineReader,
   entityType: string,
   id: string,
+  placeholder?: string,
 ): Promise<InlineBinaryRow | null> {
+  const byteless = bytelessAwaiting(placeholder);
   const result = await reader.execute({
-    sql: `SELECT id, content, contentHash FROM entities WHERE entityType = ? AND id = ? AND content NOT LIKE ? AND NOT ${AWAITING_STATUS_SQL}`,
-    args: [entityType, id, `${ASSET_REF_PREFIX}%`],
+    sql: `SELECT id, content, contentHash FROM entities WHERE entityType = ? AND id = ? AND content NOT LIKE ? AND NOT ${byteless.sql}`,
+    args: [entityType, id, `${ASSET_REF_PREFIX}%`, ...byteless.args],
   });
   const row = result.rows[0];
   return row ? inlineRowSchema.parse(row) : null;

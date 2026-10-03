@@ -13,6 +13,7 @@ import {
 } from "./helpers/test-entity-db";
 
 const storedDigest = "a".repeat(64);
+const placeholder = "data:image/png;base64,PLACEHOLDER";
 
 describe("binary asset inventory", () => {
   let database: TestEntityDatabase;
@@ -43,7 +44,15 @@ describe("binary asset inventory", () => {
       row("migrated", "image", createAssetRef(storedDigest)),
       row("pending", "image", "", { status: "pending" }),
       // Written before pending images stopped carrying a 1x1 placeholder.
-      row("legacy-failed", "image", "data:image/png;base64,CCCC", {
+      row("legacy-failed", "image", placeholder, { status: "failed" }),
+      row(
+        "legacy-private-pending",
+        "image",
+        `---\nvisibility: restricted\n---\n\n${placeholder}\n`,
+        { status: "pending" },
+      ),
+      // A regeneration that failed over an existing image keeps its bytes.
+      row("failed-with-bytes", "image", "data:image/png;base64,CCCC", {
         status: "failed",
       }),
       row("note-1", "note", "# Note"),
@@ -72,12 +81,13 @@ describe("binary asset inventory", () => {
     const inventory = await readBinaryAssetInventory(
       connection.client,
       "image",
+      placeholder,
     );
 
     expect(inventory).toEqual({
-      inlineIds: ["a-inline", "b-inline"],
-      awaitingIds: ["legacy-failed", "pending"],
-      placeholderIds: ["legacy-failed"],
+      inlineIds: ["a-inline", "b-inline", "failed-with-bytes"],
+      awaitingIds: ["legacy-failed", "legacy-private-pending", "pending"],
+      placeholderIds: ["legacy-failed", "legacy-private-pending"],
       referenceCount: 1,
       ftsRows: 1,
       storedDigests: new Set([storedDigest]),
@@ -94,6 +104,22 @@ describe("binary asset inventory", () => {
     });
     expect(
       await readInlineBinaryRow(connection.client, "image", "migrated"),
+    ).toBeNull();
+    expect(
+      await readInlineBinaryRow(
+        connection.client,
+        "image",
+        "failed-with-bytes",
+        placeholder,
+      ),
+    ).toMatchObject({ id: "failed-with-bytes" });
+    expect(
+      await readInlineBinaryRow(
+        connection.client,
+        "image",
+        "legacy-failed",
+        placeholder,
+      ),
     ).toBeNull();
   });
 

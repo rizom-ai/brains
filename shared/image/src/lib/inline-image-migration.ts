@@ -16,6 +16,13 @@ export type InlineImageVerdict =
   | { status: "blocked"; reason: Exclude<InlineImageBlocker, "oversized"> }
   | { status: "blocked"; reason: "oversized"; sizeBytes: number };
 
+/**
+ * What pending images stored before they stopped carrying a 1x1 placeholder.
+ * A pending or failed row holding exactly this has no real bytes.
+ */
+export const LEGACY_PENDING_IMAGE_PLACEHOLDER =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 /** Payloads may be wrapped or padded with whitespace, as files were. */
 const INLINE_DATA_URL = /^data:image\/([a-z0-9.+-]+);base64,([\s\S]*)$/i;
 

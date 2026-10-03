@@ -3,7 +3,11 @@ import {
   readInlineBinaryRow,
   type OfflineReader,
 } from "@brains/entity-service";
-import { classifyInlineImage, type InlineImageBlocker } from "@brains/image";
+import {
+  classifyInlineImage,
+  LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  type InlineImageBlocker,
+} from "@brains/image";
 
 /** One inline image that cannot become an asset as it is. */
 export interface BlockedImage {
@@ -59,7 +63,11 @@ export async function planImageAssetMigration(
   reader: OfflineReader,
   options: { databaseBytes: number },
 ): Promise<ImageAssetMigrationPlan> {
-  const inventory = await readBinaryAssetInventory(reader, "image");
+  const inventory = await readBinaryAssetInventory(
+    reader,
+    "image",
+    LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  );
   const blocked: BlockedImage[] = [];
   const ready: Array<{ digest: string; sizeBytes: number; inline: number }> =
     [];
@@ -67,7 +75,12 @@ export async function planImageAssetMigration(
     // Each row decodes up to the write cap; collecting before the next keeps
     // peak memory flat however many images the database holds.
     Bun.gc(true);
-    const row = await readInlineBinaryRow(reader, "image", id);
+    const row = await readInlineBinaryRow(
+      reader,
+      "image",
+      id,
+      LEGACY_PENDING_IMAGE_PLACEHOLDER,
+    );
     if (!row) continue;
     const verdict = classifyInlineImage(row.content);
     if (verdict.status === "ready") {

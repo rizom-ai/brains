@@ -74,6 +74,7 @@ export {
 export {
   classifyInlineImage,
   inlineImagePayload,
+  LEGACY_PENDING_IMAGE_PLACEHOLDER,
   type InlineImageBlocker,
   type InlineImageVerdict,
 } from "./lib/inline-image-migration";

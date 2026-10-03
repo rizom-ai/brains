@@ -5,7 +5,11 @@ import {
   readInlineBinaryRow,
   type OfflineEntityConnection,
 } from "@brains/entity-service";
-import { classifyInlineImage, inlineImagePayload } from "@brains/image";
+import {
+  classifyInlineImage,
+  inlineImagePayload,
+  LEGACY_PENDING_IMAGE_PLACEHOLDER,
+} from "@brains/image";
 import type { InlineImageBlocker } from "@brains/image";
 
 /** What happened to one inline image; never its bytes. */
@@ -37,13 +41,22 @@ export async function runImageAssetMigration(
   connection: OfflineEntityConnection,
 ): Promise<MigrationManifestEntry[]> {
   const migrator = new OfflineBinaryMigrator(connection);
-  const inventory = await readBinaryAssetInventory(connection.client, "image");
+  const inventory = await readBinaryAssetInventory(
+    connection.client,
+    "image",
+    LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  );
   const entries: MigrationManifestEntry[] = [];
   for (const id of inventory.inlineIds) {
     // Each row decodes up to the write cap; collecting before the next keeps
     // peak memory flat however many images the database holds.
     Bun.gc(true);
-    const row = await readInlineBinaryRow(connection.client, "image", id);
+    const row = await readInlineBinaryRow(
+      connection.client,
+      "image",
+      id,
+      LEGACY_PENDING_IMAGE_PLACEHOLDER,
+    );
     if (!row) continue;
     const verdict = classifyInlineImage(row.content);
     const payload = inlineImagePayload(row.content);

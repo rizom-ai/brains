@@ -300,6 +300,8 @@ describe("assets:migrate", () => {
       ["pending", ""],
       // A failed image written while pending images held a 1x1 placeholder.
       ["failed", dataUrl("png", PNG)],
+      // A regeneration that failed over an existing image keeps its bytes.
+      ["failed-real", dataUrl("gif", GIF)],
     ]);
     const client = openOfflineEntityDatabase(path).client;
     try {
@@ -308,6 +310,9 @@ describe("assets:migrate", () => {
       );
       await client.execute(
         "UPDATE entities SET metadata = json_object('status', 'failed', 'format', 'png', 'width', 1, 'height', 1) WHERE id = 'failed'",
+      );
+      await client.execute(
+        "UPDATE entities SET metadata = json_object('status', 'failed') WHERE id = 'failed-real'",
       );
     } finally {
       client.close();
@@ -320,7 +325,7 @@ describe("assets:migrate", () => {
       stopped,
     );
     expect(dryRun.success).toBe(true);
-    expect(dryRun.message).toContain("1 inline image(s): 1 ready, 0 blocked");
+    expect(dryRun.message).toContain("2 inline image(s): 2 ready, 0 blocked");
     expect(dryRun.message).toContain(
       "2 image(s) awaiting their bytes; 1 old placeholder to clear.",
     );
@@ -336,6 +341,9 @@ describe("assets:migrate", () => {
     ).runs[0]?.entries;
     expect(entries).toContainEqual(
       expect.objectContaining({ id: "failed", outcome: "cleared" }),
+    );
+    expect(entries).toContainEqual(
+      expect.objectContaining({ id: "failed-real", outcome: "migrated" }),
     );
     const after = openOfflineEntityDatabase(path).client;
     try {
