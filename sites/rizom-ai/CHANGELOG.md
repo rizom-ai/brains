@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.262
+
+### Patch Changes
+
+- [#503](https://github.com/rizom-ai/brains/pull/503) [`cbcb741`](https://github.com/rizom-ai/brains/commit/cbcb7418446cdda8c80135c8d02c398ec949cb84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a wide screen an answer grows in rizom.ai's opening instead of scrolling inside a band, the drawing keeps its place beside the words while the opening is read, and the leads from an answer's sources to their brains are drawn in the viewport, only between a row and a dot that are both in view.
+
 ## 0.2.0-alpha.261
 
 ### Minor Changes
