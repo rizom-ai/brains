@@ -20,11 +20,16 @@ async function withConnections(
     holder: SqliteConnection,
     contender: SqliteConnection,
   ) => Promise<void>,
+  contenderOptions: { contentionRetryBudgetMs?: number } = {},
 ): Promise<void> {
   const dir = await mkdtemp(join(tmpdir(), "sqlite-fail-fast-"));
   const url = `file:${join(dir, "db.sqlite")}`;
   const holder = createSqliteDatabase({ url, schema: {} });
-  const contender = createSqliteDatabase({ url, schema: {} });
+  const contender = createSqliteDatabase({
+    url,
+    schema: {},
+    ...contenderOptions,
+  });
   try {
     await applySqlitePragmas(holder.client, url);
     await applySqlitePragmas(contender.client, url);
@@ -186,6 +191,273 @@ describe("applySqlitePragmas under contention", () => {
       holder.close();
       await rm(dir, { recursive: true, force: true });
     }
+  }, 10_000);
+});
+
+describe("local client contention contract", () => {
+  // Every way a local client can need a write lock waits out a briefly held
+  // one asynchronously; nothing may reach SQLite around that policy.
+  const RETRIED = ["execute", "batch", "migrate", "transaction"] as const;
+  // A script runs without a transaction, so a refusal partway through could
+  // leave it half applied; the rest take no lock.
+  const NOT_RETRIED = ["executeMultiple", "sync", "close", "reconnect"];
+
+  function clientMethods(client: object): string[] {
+    const own = Object.keys(client).filter(
+      (key) => typeof Reflect.get(client, key) === "function",
+    );
+    const inherited = Object.getOwnPropertyNames(
+      Object.getPrototypeOf(client),
+    ).filter(
+      (key) =>
+        key !== "constructor" && typeof Reflect.get(client, key) === "function",
+    );
+    return [...new Set([...own, ...inherited])].sort();
+  }
+
+  it("classifies every method of a local client", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sqlite-contract-"));
+    const client = createSqliteClient({
+      url: `file:${join(dir, "db.sqlite")}`,
+    });
+    try {
+      expect(clientMethods(client)).toEqual(
+        [...RETRIED, ...NOT_RETRIED].sort(),
+      );
+    } finally {
+      client.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  const writes: Record<
+    (typeof RETRIED)[number],
+    (contender: SqliteConnection) => Promise<unknown>
+  > = {
+    execute: (contender) =>
+      contender.client.execute("INSERT INTO probe VALUES (2)"),
+    batch: (contender) =>
+      contender.client.batch(["INSERT INTO probe VALUES (2)"], "write"),
+    migrate: (contender) =>
+      contender.client.migrate([
+        { sql: "INSERT INTO probe VALUES (2)", args: [] },
+      ]),
+    transaction: async (contender) => {
+      const tx = await contender.client.transaction("write");
+      try {
+        await tx.execute("INSERT INTO probe VALUES (2)");
+        await tx.commit();
+      } finally {
+        tx.close();
+      }
+    },
+  };
+
+  for (const method of RETRIED) {
+    it(`${method} waits out a briefly held write lock and applies once`, async () => {
+      await withConnections(async (holder, contender) => {
+        const held = await holder.client.transaction("write");
+        try {
+          await held.execute("INSERT INTO probe VALUES (1)");
+          const pending = writes[method](contender).then(
+            () => ({ ok: true as const }),
+            (error: unknown) => ({ ok: false as const, error }),
+          );
+          await sleep(50);
+          await held.commit();
+          const outcome = await pending;
+          if (!outcome.ok) throw outcome.error;
+        } finally {
+          held.close();
+        }
+        expect(
+          (
+            await contender.client.execute("SELECT id FROM probe ORDER BY id")
+          ).rows.map((row) => row["id"]),
+        ).toEqual([1, 2]);
+      });
+    });
+  }
+
+  it("waits out a held lock for a standalone drizzle upsert", async () => {
+    await withConnections(async (holder, contender) => {
+      const held = await holder.client.transaction("write");
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        // The shape of the embedding write that failed in production.
+        const pending = contender.db
+          .run(
+            sql`INSERT INTO probe VALUES (2) ON CONFLICT (id) DO UPDATE SET id = excluded.id`,
+          )
+          .then(
+            () => ({ ok: true as const }),
+            (error: unknown) => ({ ok: false as const, error }),
+          );
+        await sleep(50);
+        await held.commit();
+        expect(await pending).toEqual({ ok: true });
+      } finally {
+        held.close();
+      }
+      expect(
+        (
+          await contender.client.execute("SELECT id FROM probe ORDER BY id")
+        ).rows.map((row) => row["id"]),
+      ).toEqual([1, 2]);
+    });
+  });
+
+  it("does not retry a statement inside an open transaction", async () => {
+    await withConnections(async (holder, contender) => {
+      await holder.client.execute("INSERT INTO probe VALUES (1)");
+      const reader = await contender.client.transaction("read");
+      try {
+        await reader.execute("SELECT id FROM probe");
+        const held = await holder.client.transaction("write");
+        try {
+          await held.execute("INSERT INTO probe VALUES (2)");
+          const started = Date.now();
+          await rejects(
+            reader.execute("INSERT INTO probe VALUES (3)"),
+            (error: unknown) =>
+              error instanceof LibsqlError &&
+              /^SQLITE_(BUSY|LOCKED|READONLY)/u.test(error.code),
+          );
+          expect(Date.now() - started).toBeLessThan(500);
+        } finally {
+          held.close();
+        }
+      } finally {
+        reader.close();
+      }
+    });
+  });
+
+  it("waits out a lock another process holds for a standalone write", async () => {
+    // Production shape: the web and worker processes write the same files.
+    await withConnections(async (_holder, contender) => {
+      let resolveHeld: (() => void) | undefined;
+      const held = new Promise<void>((resolve) => {
+        resolveHeld = resolve;
+      });
+      const child = Bun.spawn(
+        [
+          process.execPath,
+          new URL("./fixtures/sqlite-lock-holder.ts", import.meta.url).pathname,
+          contender.url,
+        ],
+        {
+          stdout: "ignore",
+          stderr: "pipe",
+          ipc: (message: unknown): void => {
+            if (message === "held") resolveHeld?.();
+          },
+        },
+      );
+      const stderr = new Response(child.stderr).text();
+      try {
+        await Promise.race([
+          held,
+          child.exited.then(async (code) => {
+            throw new Error(
+              `Lock holder exited before readiness (${code}): ${await stderr}`,
+            );
+          }),
+        ]);
+        const pending = contender.db
+          .run(
+            sql`INSERT INTO probe VALUES (2) ON CONFLICT (id) DO UPDATE SET id = excluded.id`,
+          )
+          .then(
+            () => ({ ok: true as const }),
+            (error: unknown) => ({ ok: false as const, error }),
+          );
+        await sleep(25);
+        child.send("release");
+        expect(await child.exited).toBe(0);
+        const outcome = await pending;
+        if (!outcome.ok) throw outcome.error;
+        expect(
+          (
+            await contender.client.execute("SELECT id FROM probe ORDER BY id")
+          ).rows.map((row) => row["id"]),
+        ).toEqual([1, 2]);
+      } finally {
+        if (child.exitCode === null) child.kill("SIGTERM");
+        await child.exited;
+        await stderr;
+      }
+    });
+  });
+
+  it("waits as long as the native busy timeout it replaced", async () => {
+    // Before writes waited asynchronously, SQLite itself waited up to 5 s.
+    await withConnections(async (holder, contender) => {
+      const held = await holder.client.transaction("write");
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        const pending = contender.client
+          .execute("INSERT INTO probe VALUES (2)")
+          .then(
+            () => ({ ok: true as const }),
+            (error: unknown) => ({ ok: false as const, error }),
+          );
+        await sleep(2_500);
+        await held.commit();
+        const outcome = await pending;
+        if (!outcome.ok) throw outcome.error;
+      } finally {
+        held.close();
+      }
+    });
+  }, 10_000);
+
+  for (const method of RETRIED) {
+    it(`${method} refuses at once for an owner without a budget, and recovers`, async () => {
+      await withConnections(
+        async (holder, contender) => {
+          const held = await holder.client.transaction("write");
+          try {
+            await held.execute("INSERT INTO probe VALUES (1)");
+            const started = Date.now();
+            await rejects(
+              writes[method](contender),
+              (error: unknown) =>
+                error instanceof LibsqlError &&
+                /^SQLITE_(BUSY|LOCKED)$/u.test(error.code),
+            );
+            expect(Date.now() - started).toBeLessThan(500);
+            await held.commit();
+          } finally {
+            held.close();
+          }
+          await writes[method](contender);
+          expect(
+            (
+              await contender.client.execute("SELECT id FROM probe ORDER BY id")
+            ).rows.map((row) => row["id"]),
+          ).toEqual([1, 2]);
+        },
+        { contentionRetryBudgetMs: 0 },
+      );
+    });
+  }
+
+  it("still reports a standalone write refused past the retry budget", async () => {
+    await withConnections(async (holder, contender) => {
+      const held = await holder.client.transaction("write");
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        await rejects(
+          contender.client.execute("INSERT INTO probe VALUES (2)"),
+          (error: unknown) =>
+            error instanceof LibsqlError &&
+            /^SQLITE_(BUSY|LOCKED)$/u.test(error.code),
+        );
+      } finally {
+        held.close();
+      }
+    });
   }, 10_000);
 });
 
@@ -392,7 +664,7 @@ describe("shared transaction acquisition", () => {
     const factory = spyOn(libsql, "createClient").mockReturnValue(native);
     const clock = spyOn(Date, "now")
       .mockReturnValueOnce(0)
-      .mockReturnValue(2_000);
+      .mockReturnValue(5_000);
     try {
       const client = createSqliteClient({ url: "file::memory:" });
       await rejects(client.transaction("write"), (error) => error === refusal);
@@ -523,23 +795,29 @@ describe("applySqlitePragmas", () => {
     ]);
   });
 
-  it("fails contending writes promptly while the in-process holder can continue", async () => {
+  it("waits out a contending write without blocking the in-process holder", async () => {
     await withConnections(async (holder, contender) => {
       const transaction = await holder.client.transaction("write");
       try {
         await transaction.execute("INSERT INTO probe VALUES (1)");
+        let landed = false;
+        const pending = contender.client
+          .execute("INSERT INTO probe VALUES (2)")
+          .then(() => {
+            landed = true;
+          });
+        // A native busy wait would hold this thread until it gave up; the
+        // holder must be able to carry on while the write waits its turn.
         const started = performance.now();
-        await rejects(
-          contender.client.execute("INSERT INTO probe VALUES (2)"),
-          /SQLITE_BUSY/,
-        );
+        await transaction.execute("INSERT INTO probe VALUES (3)");
         expect(performance.now() - started).toBeLessThan(100);
+        expect(landed).toBe(false);
         await transaction.commit();
-        await contender.client.execute("INSERT INTO probe VALUES (2)");
+        await pending;
         expect(
           (await contender.client.execute("SELECT count(*) AS n FROM probe"))
             .rows[0]?.["n"],
-        ).toBe(2);
+        ).toBe(3);
       } finally {
         transaction.close();
       }

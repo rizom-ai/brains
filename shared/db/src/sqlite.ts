@@ -3,6 +3,9 @@ import {
   LibsqlError,
   type Client,
   type Config,
+  type InArgs,
+  type InStatement,
+  type ResultSet,
   type TransactionMode,
   type Transaction,
 } from "@libsql/client";
@@ -26,6 +29,17 @@ export interface CreateSqliteDatabaseOptions {
   authToken?: string | undefined;
   /** Environment variable consulted when no explicit token is given. */
   authTokenEnv?: string | undefined;
+  /** See {@link SqliteClientOptions.contentionRetryBudgetMs}. */
+  contentionRetryBudgetMs?: number | undefined;
+}
+
+export interface SqliteClientOptions {
+  /**
+   * How long a local client keeps retrying a refused write; defaults to the
+   * native busy timeout it replaced. 0 surfaces the first refusal, for an
+   * owner that runs its own bounded retry and must be its only one.
+   */
+  contentionRetryBudgetMs?: number | undefined;
 }
 
 export interface SqliteConnection {
@@ -46,7 +60,8 @@ export function resolveAuthToken(options: {
   return process.env[options.authTokenEnv];
 }
 
-const ACQUISITION_RETRY_BUDGET_MS = 2_000;
+// As long as the native busy timeout this replaced, so no write gives up sooner.
+const CONTENTION_RETRY_BUDGET_MS = 5_000;
 const ACQUISITION_RETRY_BASE_DELAY_MS = 5;
 const ACQUISITION_RETRY_MAX_DELAY_MS = 40;
 
@@ -68,9 +83,11 @@ async function retryContention<T>(
     isClosed: () => boolean;
     /** Runs after every refusal, before the budget is checked. */
     afterRefusal?: () => Promise<void>;
+    budgetMs?: number | undefined;
   },
 ): Promise<T> {
-  const deadline = Date.now() + ACQUISITION_RETRY_BUDGET_MS;
+  const deadline =
+    Date.now() + (options.budgetMs ?? CONTENTION_RETRY_BUDGET_MS);
   const attemptRun = async (attempt: number): Promise<T> => {
     if (options.isClosed())
       throw new LibsqlError("The client is closed", "CLIENT_CLOSED");
@@ -93,8 +110,19 @@ async function retryContention<T>(
   return attemptRun(1);
 }
 
-/** Retry definitely refused local BEGINs, never transaction bodies or commits. */
-export function createSqliteClient(config: Config): Client {
+/**
+ * A local client that never waits on a lock natively: busy waiting blocks the
+ * application thread. Every entry point that can need a write lock instead
+ * retries a refusal asynchronously under one policy: single statements
+ * (`execute`), batches and migrations, which a refusal leaves unapplied, and
+ * transaction acquisition. Statements inside an open transaction and
+ * multi-statement scripts are never retried; a refusal there can follow
+ * applied work.
+ */
+export function createSqliteClient(
+  config: Config,
+  options: SqliteClientOptions = {},
+): Client {
   const client = createClient({
     ...config,
     ...(config.url.startsWith("file:") ? { timeout: 0 } : {}),
@@ -105,17 +133,49 @@ export function createSqliteClient(config: Config): Client {
   if (config.url.startsWith("file:") && config.syncUrl === undefined) {
     const begin = client.transaction.bind(client);
     const isClosed = (): boolean => client.closed;
+    const budgetMs = options.contentionRetryBudgetMs;
+    const rawExecute = client.execute.bind(client);
+    const rawBatch = client.batch.bind(client);
+    const rawMigrate = client.migrate.bind(client);
+    // libSQL 0.17 retains a refused BEGIN statement until native cleanup, and
+    // the connection then refuses every later commit. Batches, migrations and
+    // transactions each begin one, so a refusal reopens the connection, even
+    // when the budget is exhausted. Existing transaction objects own their
+    // connections and remain untouched. The SDK declares void, but its local
+    // reconnect returns a Promise.
+    const reopening = {
+      isClosed,
+      budgetMs,
+      afterRefusal: async (): Promise<void> => {
+        await Promise.resolve(client.reconnect());
+      },
+    };
+    // A standalone statement, a batch and a migration each run atomically,
+    // so a refused one applied nothing and is safe to run again.
+    function execute(stmt: InStatement): Promise<ResultSet>;
+    function execute(sql: string, args?: InArgs): Promise<ResultSet>;
+    function execute(
+      stmtOrSql: InStatement | string,
+      args?: InArgs,
+    ): Promise<ResultSet> {
+      return retryContention(
+        () =>
+          typeof stmtOrSql === "string"
+            ? rawExecute(stmtOrSql, args)
+            : rawExecute(stmtOrSql),
+        { isClosed, budgetMs },
+      );
+    }
+    client.execute = execute;
+    client.batch = (
+      stmts: Parameters<Client["batch"]>[0],
+      mode?: TransactionMode,
+    ): Promise<ResultSet[]> =>
+      retryContention(() => rawBatch(stmts, mode), reopening);
+    client.migrate = (stmts: InStatement[]): Promise<ResultSet[]> =>
+      retryContention(() => rawMigrate(stmts), reopening);
     client.transaction = (mode?: TransactionMode): Promise<Transaction> =>
-      retryContention(() => begin(mode), {
-        isClosed,
-        // libSQL 0.17 retains a refused BEGIN statement until native cleanup.
-        // No transaction was acquired; existing transaction objects remain
-        // untouched. Reopen before retrying, even when the budget is exhausted.
-        // The SDK declares void, but its local reconnect returns a Promise.
-        afterRefusal: async () => {
-          await Promise.resolve(client.reconnect());
-        },
-      });
+      retryContention(() => begin(mode), reopening);
   }
   return client;
 }
@@ -132,9 +192,12 @@ export function createSqliteDatabase(
   const { url, schema } = options;
   const authToken = resolveAuthToken(options);
 
+  const clientOptions = {
+    contentionRetryBudgetMs: options.contentionRetryBudgetMs,
+  };
   const client = authToken
-    ? createSqliteClient({ url, authToken })
-    : createSqliteClient({ url });
+    ? createSqliteClient({ url, authToken }, clientOptions)
+    : createSqliteClient({ url }, clientOptions);
 
   return { db: drizzle(client, { schema }), client, url };
 }
