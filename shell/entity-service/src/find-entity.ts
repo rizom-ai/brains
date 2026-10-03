@@ -1,7 +1,7 @@
 import type {
   BaseEntity,
   ContentVisibility,
-  GetEntityRequest,
+  GetEntityRawRequest,
   EntityReadOptions,
   ListEntitiesRequest,
 } from "./types";
@@ -21,7 +21,11 @@ export type ResolvedEntity =
  * still satisfies this by construction.
  */
 export interface EntityLookupReads {
-  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  /**
+   * Stored content, never resolved: callers set a field and write the entity
+   * back, and a resolved read would persist inlined image bytes.
+   */
+  getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
 }
 
@@ -52,7 +56,7 @@ export async function findEntityByIdentifier(
   };
   try {
     readOptions.signal?.throwIfAborted();
-    const byId = await entityService.getEntity({
+    const byId = await entityService.getEntityRaw({
       entityType,
       id: identifier,
       visibilityScope,
