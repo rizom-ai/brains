@@ -214,13 +214,26 @@ export const storyRuntimeScript: string = `(function () {
       });
       return rows.length ? rows[rows.length - 1] : null;
     }
+    // A point is in view when no scrolling ancestor hides it and it is on screen.
+    function inView(element, middle) {
+      if (middle < 0 || middle > innerHeight) return false;
+      var parent = element.parentElement;
+      while (parent && parent !== document.body) {
+        var overflow = getComputedStyle(parent).overflowY;
+        if (overflow === "auto" || overflow === "scroll") {
+          var area = parent.getBoundingClientRect();
+          if (middle < area.top || middle > area.bottom) return false;
+        }
+        parent = parent.parentElement;
+      }
+      return true;
+    }
     function drawLeads() {
       if (!leadsLayer) return;
       while (leadsLayer.firstChild) leadsLayer.removeChild(leadsLayer.firstChild);
       if (narrow.matches || !askHost) return;
-      // The layer's own box is the frame: coordinates are its, whatever positions it.
-      var frame = leadsLayer.getBoundingClientRect();
-      leadsLayer.setAttribute("viewBox", "0 0 " + frame.width + " " + frame.height);
+      // The layer is fixed to the viewport, so viewport coordinates are its own.
+      leadsLayer.setAttribute("viewBox", "0 0 " + innerWidth + " " + innerHeight);
       Object.keys(sourceBrain).forEach(function (key) {
         var mark = homeMarks.filter(function (m) { return m.getAttribute("data-brain") === sourceBrain[key]; })[0];
         var row = listedRow(askHost, key);
@@ -228,11 +241,12 @@ export const storyRuntimeScript: string = `(function () {
         var from = row.getBoundingClientRect();
         if (!from.height) return;
         var to = mark.getBoundingClientRect();
-        var x1 = from.right + GAP - frame.left;
-        var y1 = from.top + from.height / 2 - frame.top;
-        var toward = to.left + to.width / 2 - frame.left;
+        var y1 = from.top + from.height / 2;
+        var y2 = to.top + to.height / 2;
+        if (!inView(row, y1) || !inView(mark, y2)) return;
+        var x1 = from.right + GAP;
+        var toward = to.left + to.width / 2;
         var x2 = toward > x1 ? toward - GLYPH : toward + GLYPH;
-        var y2 = to.top + to.height / 2 - frame.top;
         var bend = Math.max(40, Math.abs(x2 - x1) / 2);
         var lead = document.createElementNS(SVG, "path");
         lead.setAttribute("data-lead", key);
