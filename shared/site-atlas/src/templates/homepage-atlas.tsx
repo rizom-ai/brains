@@ -2,7 +2,7 @@ import type { CSSProperties, JSX, ReactNode } from "react";
 import { MarkdownContent, renderHighlightedText } from "@brains/ui-library";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
-import { atlasPosition, buildAtlasTerrain } from "../lib/atlas-terrain";
+import { atlasLeft, atlasTop, buildAtlasTerrain } from "../lib/atlas-terrain";
 import { layoutZoneLabels, type LabelPlacement } from "../lib/atlas-labels";
 import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
 import { AskBoxHost } from "./ask-box-host";
@@ -32,7 +32,7 @@ function edgeClass(x: number, top: number): string {
 
 /**
  * How far down the field marks and names reach (0.5–1), with room for their
- * rings. Phones start the text there instead of under the empty rest of the
+ * rings and the latest piece's ring above the legend. Phones start the text there instead of under the empty rest of the
  * map; the whole section carries it so the map and the text both see it.
  */
 function atlasFill(
@@ -40,11 +40,11 @@ function atlasFill(
   labels: Record<string, LabelPlacement>,
 ): CSSProperties & Record<`--${string}`, string> {
   const reach = Math.max(
-    ...atlas.items.map((item) => atlasPosition(item.y)),
+    ...atlas.items.map((item) => atlasTop(item.y)),
     ...Object.values(labels).map((label) => label.bottom),
   );
   return {
-    "--atlas-fill": Math.min(1, Math.max(0.5, (reach + 6) / 100)).toFixed(3),
+    "--atlas-fill": Math.min(1, Math.max(0.5, (reach + 8) / 100)).toFixed(3),
   };
 }
 
@@ -75,6 +75,7 @@ function AtlasMap({
     )?.typeLabel;
     return label ? [{ kind, label }] : [];
   });
+  const latest = atlas.items.find((item) => item.latest && item.url);
 
   return (
     <div
@@ -116,7 +117,7 @@ function AtlasMap({
             data-atlas-zone=""
             aria-hidden="true"
             style={{
-              left: `${labels[zone.id]?.left ?? atlasPosition(zone.x)}%`,
+              left: `${labels[zone.id]?.left ?? atlasLeft(zone.x)}%`,
               top: `${labels[zone.id]?.bottom ?? 7}%`,
             }}
           >
@@ -135,10 +136,10 @@ function AtlasMap({
                 {...(item.typeLabel
                   ? { "data-atlas-type": item.typeLabel }
                   : {})}
-                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x, atlasPosition(item.y))}`}
+                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x, atlasTop(item.y))}${item === latest ? " atlas__mark--latest" : ""}`}
                 style={{
-                  left: `${atlasPosition(item.x)}%`,
-                  top: `${atlasPosition(item.y)}%`,
+                  left: `${atlasLeft(item.x)}%`,
+                  top: `${atlasTop(item.y)}%`,
                 }}
               >
                 {item.url ? (
@@ -177,6 +178,18 @@ function AtlasMap({
             {label}
           </span>
         ))}
+        {latest?.url && (
+          // The atlas script opens the piece's card from here; without it, the link leads to the piece.
+          <a
+            className="atlas__key--latest"
+            href={latest.url}
+            data-atlas-latest={`${latest.entityType}:${latest.id}`}
+            aria-label={`Latest: ${latest.title}`}
+          >
+            <i aria-hidden="true" />
+            Latest
+          </a>
+        )}
       </p>
     </div>
   );

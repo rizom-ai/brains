@@ -26,7 +26,7 @@ import { FaqDataSource } from "./datasources/faq-datasource";
 import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
-import { registerFaqReviewWorkspace } from "./lib/faq-review-workspace";
+import { FaqInboxSource } from "./lib/faq-inbox-source";
 import { faqSchema, type FaqEntity } from "./schemas/faq";
 import { getTemplates } from "./templates/faq-section";
 import packageJson from "../package.json";
@@ -104,15 +104,11 @@ export class FaqPlugin extends EntityPlugin<
     return [new FaqDataSource(this.logger.child("FaqDataSource"))];
   }
 
-  protected override async onReady(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    await registerFaqReviewWorkspace(context);
-  }
-
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    if (!context.executionOnly)
+      context.inbox.registerSource(new FaqInboxSource(context));
     context.jobs.registerHandler(
       "faq-capture",
       new FaqCaptureHandler(this.logger.child("FaqCaptureHandler"), {
