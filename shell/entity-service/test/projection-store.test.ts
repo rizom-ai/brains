@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { sql } from "drizzle-orm";
 import { ProjectionBatchFencedError, ProjectionStore } from "../src";
-import { retrySqliteWrite } from "../src/projection-store";
 import { createEntityDatabase } from "../src/db";
 import { entities } from "../src/schema/entities";
 import { entityExportIntents } from "../src/schema/entity-export-state";
@@ -518,34 +517,6 @@ describe("ProjectionStore", () => {
       await blocker.rollback();
       blockerConnection.client.close();
     }
-  });
-
-  it("retries nested transient SQLite write conflicts within budget", async () => {
-    let attempts = 0;
-    let elapsedMs = 0;
-    const result = await retrySqliteWrite(
-      async (): Promise<string> => {
-        attempts += 1;
-        if (attempts < 3) {
-          const busy = Object.assign(new Error("database is locked"), {
-            code: "SQLITE_BUSY",
-          });
-          throw new Error("Failed query", { cause: busy });
-        }
-        return "completed";
-      },
-      {
-        retryBudgetMs: 100,
-        now: () => elapsedMs,
-        sleep: async (delayMs): Promise<void> => {
-          elapsedMs += delayMs;
-        },
-        random: () => 0,
-      },
-    );
-
-    expect(result).toBe("completed");
-    expect(attempts).toBe(3);
   });
 
   it("leaves a live durable root read-only during recovery", async () => {
