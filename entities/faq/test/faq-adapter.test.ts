@@ -29,6 +29,15 @@ describe("FaqAdapter", () => {
     });
   });
 
+  it("keeps the owner's rank in frontmatter and metadata", () => {
+    const ranked = { ...frontmatter, rank: 2 };
+    const markdown = faqAdapter.createFaqContent(ranked, "Choose Publish.");
+
+    expect(markdown).toContain("rank: 2");
+    expect(faqAdapter.parseFaqContent(markdown).frontmatter).toEqual(ranked);
+    expect(faqAdapter.fromMarkdown(markdown).metadata).toEqual(ranked);
+  });
+
   it("numbers alternative answers as markdown sections below the answer", () => {
     const markdown = faqAdapter.createFaqContent(
       frontmatter,

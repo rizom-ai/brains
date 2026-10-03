@@ -1,5 +1,12 @@
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
+import { EntityMutationReceiptStore } from "./entity-mutation-receipt-store";
+import {
+  EntityMutationAlreadyAppliedError,
+  type EntityMutationReceipt,
+  type EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+import { snapshotEntityMutation } from "./entity-mutation-request";
 import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   AssetTransaction,
@@ -19,6 +26,7 @@ import type {
   CreateEntityRequest,
   UpdateEntityRequest,
   FoldEntityRequest,
+  ApplyEntityMutationOnceRequest,
   UpsertEntityRequest,
   EntityRegistry,
   EntityMutationAdmission,
@@ -121,6 +129,7 @@ export interface EntityMutationDeps {
  */
 export class EntityMutations {
   private db: EntityDB;
+  private readonly mutationReceipts: EntityMutationReceiptStore;
   private entityRegistry: EntityRegistry;
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
@@ -136,6 +145,7 @@ export class EntityMutations {
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
+    this.mutationReceipts = new EntityMutationReceiptStore(deps.db);
     this.entityRegistry = deps.entityRegistry;
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
@@ -173,8 +183,55 @@ export class EntityMutations {
   /**
    * Create a new entity (returns immediately, embedding generated in background)
    */
-  public async createEntity<T extends BaseEntity>(
+  public getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null> {
+    return this.mutationReceipts.get(key);
+  }
+
+  public async applyEntityMutationOnce(
+    input: ApplyEntityMutationOnceRequest,
+  ): Promise<{ receipt: EntityMutationReceipt; applied: boolean }> {
+    const mutation = snapshotEntityMutation(input);
+    const key = mutation.receipt;
+    const prior = await this.mutationReceipts.get(key);
+    if (prior) return { receipt: prior, applied: false };
+    if (mutation.operation === "none")
+      return {
+        receipt: await this.mutationReceipts.completeWithoutWrite(key),
+        applied: false,
+      };
+    try {
+      const result =
+        mutation.operation === "create"
+          ? await this.writeCreatedEntity(mutation.request, key)
+          : await this.writeUpdatedEntity(mutation.request, undefined, key);
+      if (result.skipReason === "content-conflict") {
+        throw new EntityWriteConflictError(
+          mutation.request.entity.entityType,
+          result.entityId,
+        );
+      }
+      const receipt = await this.mutationReceipts.get(key);
+      if (!receipt)
+        throw new Error("Missing committed entity mutation receipt");
+      return { receipt, applied: true };
+    } catch (error) {
+      if (error instanceof EntityMutationAlreadyAppliedError)
+        return { receipt: error.receipt, applied: false };
+      throw error;
+    }
+  }
+
+  public createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
+  ): Promise<EntityMutationResult> {
+    return this.writeCreatedEntity(request);
+  }
+
+  private async writeCreatedEntity<T extends BaseEntity>(
+    request: CreateEntityRequest<T>,
+    receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
     const { entity, options, stagedAsset } = request;
     options?.signal?.throwIfAborted();
@@ -268,6 +325,8 @@ export class EntityMutations {
         markedAt: this.projectionNow(),
       },
       async (transaction) => {
+        if (receipt)
+          await this.mutationReceipts.assertVacant(transaction, receipt);
         if (precondition)
           await assertEntityWriteCondition(
             transaction,
@@ -316,6 +375,12 @@ export class EntityMutations {
           },
           options?.persistenceOrigin,
         );
+        if (receipt)
+          await this.mutationReceipts.record(transaction, receipt, {
+            operation: "create",
+            entityType: validatedEntity.entityType,
+            entityId: finalId,
+          });
       },
     );
     await this.notifyProjectionScheduler();
@@ -409,6 +474,7 @@ export class EntityMutations {
   private async writeUpdatedEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
     fold?: FoldRemoval,
+    receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
     const { entity, options, stagedAsset } = request;
     options?.signal?.throwIfAborted();
@@ -522,6 +588,7 @@ export class EntityMutations {
 
     if (
       !precondition &&
+      !receipt &&
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -606,6 +673,8 @@ export class EntityMutations {
             : []),
         ],
         async (transaction) => {
+          if (receipt)
+            await this.mutationReceipts.assertVacant(transaction, receipt);
           if (fold)
             await assertEntityWriteCondition(
               transaction,
@@ -702,6 +771,12 @@ export class EntityMutations {
             },
             options?.persistenceOrigin,
           );
+          if (receipt)
+            await this.mutationReceipts.record(transaction, receipt, {
+              operation: "update",
+              entityType: validatedEntity.entityType,
+              entityId: validatedEntity.id,
+            });
         },
       );
     } catch (error) {

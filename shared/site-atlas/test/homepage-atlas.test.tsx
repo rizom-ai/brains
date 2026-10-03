@@ -4,6 +4,7 @@ import { HomepageAtlas } from "../src/templates/homepage-atlas";
 import type { HomepageAtlasData } from "../src/schemas/homepage-atlas";
 import type { HomepageOpeningContent } from "../src/schemas/homepage-opening";
 import { homepageAtlasStyles } from "../src/templates/homepage-atlas-styles";
+import { atlasTop } from "../src/lib/atlas-terrain";
 
 const atlas: HomepageAtlasData = {
   zones: [
@@ -28,6 +29,7 @@ const atlas: HomepageAtlasData = {
       zoneId: "institutions",
       url: "/essays/hiding-in-plain-sight",
       typeLabel: "Essay",
+      latest: false,
     },
     {
       id: "lefthoek",
@@ -41,6 +43,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/lefthoek",
       typeLabel: "Project",
+      latest: false,
     },
     {
       id: "offcourse",
@@ -54,6 +57,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/offcourse",
       typeLabel: "Project",
+      latest: false,
     },
   ],
 };
@@ -152,6 +156,52 @@ describe("homepage atlas", () => {
   });
 });
 
+describe("the latest piece", () => {
+  const [hiding, ...rest] = atlas.items;
+  if (!hiding) throw new Error("fixture needs an item");
+  const withLatest: HomepageAtlasData = {
+    ...atlas,
+    items: [{ ...hiding, latest: true }, ...rest],
+  };
+
+  /** The page's markup without its stylesheet, which names every class. */
+  const markup = (data: HomepageAtlasData): string =>
+    renderToStaticMarkup(<HomepageAtlas {...page} atlas={data} />).replace(
+      /<style>[\s\S]*?<\/style>/g,
+      "",
+    );
+
+  it("rings the latest piece's mark and names it in the legend as Latest, linking to it", () => {
+    const html = markup(withLatest);
+    expect(html).toContain(
+      'class="atlas__mark atlas__mark--post atlas__mark--latest"',
+    );
+    expect(html.match(/atlas__mark--latest/g)).toHaveLength(1);
+    const key = /<a class="atlas__key--latest"[^>]*>.*?<\/a>/.exec(html)?.[0];
+    expect(key).toContain('href="/essays/hiding-in-plain-sight"');
+    expect(key).toContain('data-atlas-latest="post:hiding"');
+    // The ring alone says nothing to a screen reader; the link names the piece.
+    expect(key).toContain('aria-label="Latest: Hiding in Plain Sight"');
+    expect(key).toContain(">Latest</a>");
+  });
+
+  it("shows no Latest key while no piece is the latest", () => {
+    const html = markup(atlas);
+    expect(html).not.toContain("atlas__key--latest");
+    expect(html).not.toContain("atlas__mark--latest");
+  });
+
+  it("draws the ring once, and holds it still for reduced motion", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__mark--latest > a::after \{[^}]*animation: atlas-latest [^}]*both/,
+    );
+    const still = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (prefers-reduced-motion: reduce)"),
+    );
+    expect(still).toContain(".atlas__mark--latest > a::after");
+  });
+});
+
 describe("living atlas", () => {
   const html = (): string =>
     renderToStaticMarkup(<HomepageAtlas {...page} atlas={atlas} />);
@@ -226,9 +276,10 @@ describe("living atlas", () => {
   it("records where the map's content ends, for phones to start the text there", () => {
     const fill = (markup: string): number =>
       Number(/--atlas-fill:([\d.]+)/.exec(markup)?.[1]);
-    const lowest = Math.max(...atlas.items.map((item) => 6 + item.y * 88));
+    const lowest = Math.max(...atlas.items.map((item) => atlasTop(item.y)));
     const measured = fill(html());
-    expect(measured).toBeGreaterThanOrEqual(lowest / 100);
+    // Room below the lowest mark for its ring before the phone's legend.
+    expect(measured).toBeGreaterThanOrEqual((lowest + 8) / 100);
     expect(measured).toBeLessThan(1);
     const [item] = atlas.items;
     if (!item) throw new Error("fixture needs an item");
@@ -238,7 +289,7 @@ describe("living atlas", () => {
         atlas={{ ...atlas, items: [{ ...item, y: 1 }] }}
       />,
     );
-    expect(fill(atBottom)).toBe(1);
+    expect(fill(atBottom)).toBeCloseTo((atlasTop(1) + 8) / 100);
   });
 
   it("keeps the chat box out of sight until Web Chat's boot makes it live", () => {

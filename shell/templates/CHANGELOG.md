@@ -1,5 +1,50 @@
 # @brains/templates
 
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.476
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.475
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.474
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.473
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.472
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+
 ## 0.2.0-alpha.471
 
 ### Patch Changes

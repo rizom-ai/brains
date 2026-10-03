@@ -1,14 +1,26 @@
 import type { JSX } from "react";
-import { MarkdownContent } from "@brains/ui-library";
+import { useMarkdownToHtml } from "@brains/ui-library";
 import type { HomepageFaq } from "../schemas/homepage-faqs";
 import { homepageFaqsStyles } from "./homepage-faqs-styles";
 
 /**
- * The owner's published FAQs under the atlas, most asked first: questions
- * visitors put to the brain, answered and approved by the owner. Every
+ * The owner's published FAQs under the atlas, ranked ones first, then the
+ * most asked: questions visitors put to the brain, answered and approved by
+ * the owner. Every
  * question is closed until tapped and one answer is open at a time, without
  * a script. The heading is the owner's own, or there is none.
  */
+/** The band's own answer type: a blog post's prose sizes would set it larger than the question. */
+function FaqAnswer({ markdown }: { markdown: string }): JSX.Element {
+  const toHtml = useMarkdownToHtml();
+  return (
+    <div
+      className="faqs__answer"
+      dangerouslySetInnerHTML={{ __html: toHtml(markdown) }}
+    />
+  );
+}
+
 export function HomepageFaqs({
   heading,
   faqs,
@@ -26,7 +38,7 @@ export function HomepageFaqs({
           {faqs.map((faq) => (
             <details key={faq.id} name="faqs">
               <summary>{faq.question}</summary>
-              <MarkdownContent markdown={faq.answer} className="faqs__answer" />
+              <FaqAnswer markdown={faq.answer} />
             </details>
           ))}
         </div>
