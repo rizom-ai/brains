@@ -981,16 +981,20 @@ export class EntityService implements IEntityService {
       options,
       this.publishedStatusesFor(entityType),
     );
-    // One asset at a time: legacy materialization holds each asset in memory.
+    // Legacy materialization decodes one asset at a time, but every data URL
+    // stays in the result: listing asset-backed types wants reference mode.
     const entities = await rows.reduce<Promise<BaseEntity[]>>(
-      async (previous, row) => [
-        ...(await previous),
-        await this.materializeBinaryContent(
-          row,
-          "listEntities",
-          options?.binaryContent,
-        ),
-      ],
+      async (previous, row) => {
+        const listed = await previous;
+        listed.push(
+          await this.materializeBinaryContent(
+            row,
+            "listEntities",
+            options?.binaryContent,
+          ),
+        );
+        return listed;
+      },
       Promise.resolve([]),
     );
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
