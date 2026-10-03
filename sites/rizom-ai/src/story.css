@@ -800,11 +800,13 @@
   stroke-opacity: 0.4;
   vector-effect: non-scaling-stroke;
 }
+/* A constellation: brains whose work has drifted close, joined by a dashed
+   thread that reads at a glance and still sits under the spokes. */
 .net-kin {
   stroke: var(--color-accent);
-  stroke-width: 1;
-  stroke-opacity: 0.35;
-  stroke-dasharray: 2 3;
+  stroke-width: 1.6;
+  stroke-opacity: 0.9;
+  stroke-dasharray: 3 3;
   vector-effect: non-scaling-stroke;
   animation: net-kin 9s linear infinite;
 }
