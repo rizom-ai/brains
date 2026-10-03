@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#471](https://github.com/rizom-ai/brains/pull/471) [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Disable native SQLite busy waiting on application-thread connections, including local auth replicas. Retry refused BEGIN acquisition asynchronously for non-replica local clients within a two-second budget, covering auth, conversation and entity transactions without replaying callbacks or commits. Reset only refused local BEGIN connections so libSQL's retained failed statements cannot poison a later commit. Embedded replicas retain SDK-owned transaction acquisition and reconnect behavior. Route formerly unguarded export acknowledgements and projection-rule scheduling writes through BEGIN-only transaction retries, avoiding libSQL's retained stale snapshots after refused implicit writes. Preserve foreign keys, FULL synchronization, automatic checkpoints and replica configuration.
+
+- Updated dependencies [[`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/db@0.2.0-alpha.477
+  - @brains/plugins@0.2.0-alpha.477
+  - @brains/notifications@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
 ## 0.2.0-alpha.476
 
 ### Patch Changes
