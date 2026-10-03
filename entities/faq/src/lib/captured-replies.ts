@@ -12,9 +12,9 @@ export type CapturedReply = z.output<typeof capturedReplySchema>;
 export type CapturedReplyStore = IRuntimeStateStore<CapturedReply>;
 
 /**
- * Which chat replies a capture has already handled, keyed by message id.
- * Plugin state, not FAQ content: it only stops a retried or repeated job
- * from classifying or counting the same reply twice.
+ * Legacy reply claims, keyed by message id. A timestamp cannot establish
+ * whether FAQ persistence finished. Preserve existing entries without replay;
+ * new captures use entity-database mutation receipts instead of writing here.
  */
 export function capturedReplyStore(
   runtimeState: IRuntimeStateNamespace,
