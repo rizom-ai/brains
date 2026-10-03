@@ -24,9 +24,14 @@ export interface AtlasContour {
   d: string;
 }
 
-/** Unit coordinates sit inside a margin so no mark touches the map's edge. */
+/**
+ * Unit coordinates sit inside a margin so no mark touches the map's edge; the
+ * foot keeps a wider one, where the legend runs along the map.
+ */
 const INSET = 6;
+const FOOT = 12;
 const SPAN = 100 - 2 * INSET;
+const SPAN_DOWN = 100 - INSET - FOOT;
 const GRID = 64;
 const FIRST_LEVEL = 0.07;
 const LEVEL_STEP = 0.075;
@@ -34,8 +39,16 @@ const MAX_LEVELS = 22;
 const ITEM_SPREAD = 1.8;
 const ITEM_WEIGHT = 0.2;
 
-export function atlasPosition(value: number): number {
-  return INSET + Math.min(1, Math.max(0, value)) * SPAN;
+const unit = (value: number): number => Math.min(1, Math.max(0, value));
+
+/** A unit x as a percentage across the map. */
+export function atlasLeft(x: number): number {
+  return INSET + unit(x) * SPAN;
+}
+
+/** A unit y as a percentage down the map, clear of the legend at its foot. */
+export function atlasTop(y: number): number {
+  return INSET + unit(y) * SPAN_DOWN;
 }
 
 /** A territory's spread in viewBox units: fuller territories rise wider. */
@@ -55,14 +68,14 @@ const TERRAIN_GRID: ContourGrid = {
 function sampleField(input: AtlasTerrainInput): number[] {
   const bumps = [
     ...input.zones.map((zone) => ({
-      x: atlasPosition(zone.x),
-      y: atlasPosition(zone.y),
+      x: atlasLeft(zone.x),
+      y: atlasTop(zone.y),
       spread: zoneSpread(zone.members),
       weight: 0.75 + 0.1 * Math.min(zone.members, 5),
     })),
     ...input.items.map((item) => ({
-      x: atlasPosition(item.x),
-      y: atlasPosition(item.y),
+      x: atlasLeft(item.x),
+      y: atlasTop(item.y),
       spread: ITEM_SPREAD,
       weight: ITEM_WEIGHT,
     })),

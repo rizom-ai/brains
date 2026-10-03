@@ -6,6 +6,7 @@ import {
 } from "@brains/db";
 import { assets } from "../schema/assets";
 import { entities } from "../schema/entities";
+import { entityMutationReceipts } from "../schema/entity-mutation-receipts";
 import { entityExportIntents } from "../schema/entity-export-state";
 import {
   projectionDirtyInputs,
@@ -35,6 +36,7 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
       assets,
       entities,
       entityExportIntents,
+      entityMutationReceipts,
       projectionDirtyInputs,
       projectionEntityOwners,
       projectionWaves,

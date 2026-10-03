@@ -12,7 +12,7 @@ export const homepageFaqSchema: z.ZodObject<{
   answer: z.string(),
 });
 
-/** Most asked first; empty until the owner publishes one. */
+/** The owner's ranked FAQs, then the most asked; empty until one is published. */
 export const homepageFaqsSchema: z.ZodDefault<
   z.ZodArray<typeof homepageFaqSchema>
 > = z.array(homepageFaqSchema).default([]);
