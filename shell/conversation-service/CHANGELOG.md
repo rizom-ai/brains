@@ -1,5 +1,15 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies [[`48e2464`](https://github.com/rizom-ai/brains/commit/48e2464c5531d6b9b9ee9e3b69b44f1c5df5805c)]:
+  - @brains/db@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+  - @brains/messaging-service@0.2.0-alpha.479
+
 ## 0.2.0-alpha.478
 
 ### Patch Changes

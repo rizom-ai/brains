@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`c5d4d2f`](https://github.com/rizom-ai/brains/commit/c5d4d2fd949357353b4e4f42186a0d105fe5c6a1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain start` boots in the instance directory even when launched from elsewhere with `INIT_CWD`, as the dev start scripts do. The supervising process ran migrations against `./data` relative to where it was launched while its web and worker processes opened the instance's own `data/`, so a fresh instance failed to start (`Unable to open connection to local database ./data/runtime-state.db`) and an existing one ran on unmigrated stores.
+
 ## 0.2.0-alpha.478
 
 ### Patch Changes

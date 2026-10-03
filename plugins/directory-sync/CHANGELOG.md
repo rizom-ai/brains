@@ -1,5 +1,21 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`10c2f55`](https://github.com/rizom-ai/brains/commit/10c2f55eeae34ef03c74a309cd1c803af705aa30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync no longer re-imports a file that parses to exactly what is stored. A file not in canonical form, such as a note without a final newline, hashed differently from the stored row on every sync, so it was written again each time: its `updated` time moved to the file's modification time and an embedding job was queued, with no content change. On a copy of yeehaa.io this touched ten notes on every start.
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`6dc14d2`](https://github.com/rizom-ai/brains/commit/6dc14d262ea428140baec221e4ec7ed0b6e14c0c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Removing one file of an entity no longer deletes the entity while another of its files remains, such as an image's `.png` beside a leftover `.jpg`. The entity is kept and the remaining file is imported, so it becomes the entity's content. Before, deleting the leftover file from the content repository deleted the image itself on the next pull.
+
+- Updated dependencies [[`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a), [`9072132`](https://github.com/rizom-ai/brains/commit/9072132dd1bac2e39c19d1274b29252abf9adf63)]:
+  - @brains/entity-service@0.2.0-alpha.479
+  - @brains/image@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/content-formatters@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
 ## 0.2.0-alpha.478
 
 ### Patch Changes
