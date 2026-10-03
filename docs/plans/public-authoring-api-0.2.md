@@ -1,6 +1,6 @@
 # Plan: Public authoring API compatibility for `v0.2.0`
 
-Last updated: 2026-09-13
+Last updated: 2026-10-02
 
 ## Status
 
@@ -8,7 +8,7 @@ Last updated: 2026-09-13
 
 The alpha authoring foundation, external fixtures, declaration checks, packed harnesses, exact-registry harness, and site-first stable release orchestration are implemented. The final declarative boundary/DX correction is complete on `work/plugin-api-boundaries` through `26b3b57c9a`, but it is not merged into `main`, published as a candidate, or accepted as stable evidence.
 
-The latest published core alpha, `@rizom/brain@0.2.0-alpha.373`, predates that integration and is therefore not the final candidate. Historical evidence against Brain `alpha.313` and Site `alpha.233` proves the harness, not the current release.
+The latest published core alpha, `@rizom/brain@0.2.0-alpha.474`, predates that integration and is therefore not the final candidate. Historical evidence against Brain `alpha.313` and Site `alpha.233` proves the harness, not the current release.
 
 This plan now owns only the remaining nomination, publication, and compatibility-freeze work. The accepted contract is documented in:
 
@@ -41,6 +41,8 @@ For the `0.2.x` line, removals, renamed required fields, narrowed author inputs,
 
 ### 1. Integrate the intended stable source
 
+- Land durable binary asset storage for images and PDFs on `main`, through bridge removal ([durable-binary-assets.md](./durable-binary-assets.md)), so the persisted format is final at `0.2.0`. Then merge the latest main into `work/plugin-api-boundaries` again.
+- Update `AUTHORING_API_0.2.md` on #301: once images and PDFs use asset storage, `binaryStorage: "data-url"` no longer names Image/PDF as its consumers.
 - Review and merge `work/plugin-api-boundaries` without reintroducing superseded alpha aliases, overloads, constructors, or dual authoring paths.
 - Reconcile every branch selected for the candidate at the declarative boundary; Public Ask and Studio are already integrated on the authoring branch, while generic content generation is included only if separately approved to land before nomination.
 - Require clean generated declarations, export-ledger agreement, architecture checks, and no private workspace types in published output.
@@ -75,7 +77,7 @@ Mocked providers prove mechanics but do not satisfy the live gate. Earlier succe
 
 - Deploy the nominated alpha to approved canaries with coherent config/image/package pins.
 - Require operational health, app-managed site rebuild evidence, and zero second-pass generated drift.
-- Complete the approved soak and validate `yeehaa.io` on the same candidate.
+- Complete the approved soak and validate `yeehaa.io` on the same candidate, running its migrated asset storage.
 - Roll back code/config together if a gate fails.
 
 **Exit:** deployment evidence certifies the candidate rather than an older alpha or persisted predeploy output.

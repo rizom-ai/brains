@@ -112,6 +112,16 @@ export const livingOrganism: Organism = organism({
         economy.map((p, i) => [`E${i + 1}`, at(p, i % 3 === 0 ? 6 : 4)]),
       ),
     },
+    // Asked before: the economy stays, at rest; the live network beside the
+    // chapter lights from the open question (see ./runtime).
+    {
+      ...Object.fromEntries(
+        Object.entries(one).map(([k, v]) => [k, shrink(v)]),
+      ),
+      ...Object.fromEntries(
+        economy.map((p, i) => [`E${i + 1}`, at(p, i % 3 === 0 ? 6 : 4)]),
+      ),
+    },
     // Two ways in: back to one lantern.
     { L: [C, C, 13, 1] },
   ],

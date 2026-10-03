@@ -10,6 +10,7 @@ import { linkSchema } from "./schemas/link";
 export async function buildLinkAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainLinkRecord> {
   const link = linkSchema.parse(entity);
   const { frontmatter, summary } = linkAdapter.parseLinkContent(link.content);
@@ -25,6 +26,7 @@ export async function buildLinkAtprotoRecord({
     source: frontmatter.source,
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "link",
     sourceEntityId: link.id,
     createdAt: link.created,

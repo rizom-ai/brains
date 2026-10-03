@@ -97,6 +97,7 @@ export async function buildBlogAtprotoPostRecord({
   client,
   topics,
   dryRun = false,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainPostRecord> {
   if (entity.entityType !== "post") {
     throw new Error(`Expected entityType post, got ${entity.entityType}`);
@@ -117,7 +118,10 @@ export async function buildBlogAtprotoPostRecord({
     format: "text/markdown",
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(frontmatter.canonicalUrl && { canonicalUrl: frontmatter.canonicalUrl }),
+    // An essay first published elsewhere keeps that address; otherwise its page here.
+    ...((frontmatter.canonicalUrl ?? pageUrl) && {
+      canonicalUrl: frontmatter.canonicalUrl ?? pageUrl,
+    }),
     ...(topics && topics.length > 0 && { topics }),
     ...(coverImage && { coverImage }),
     ...(frontmatter.seriesName && { series: frontmatter.seriesName }),

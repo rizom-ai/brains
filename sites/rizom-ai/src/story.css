@@ -800,11 +800,13 @@
   stroke-opacity: 0.4;
   vector-effect: non-scaling-stroke;
 }
+/* A constellation: brains whose work has drifted close, joined by a dashed
+   thread that reads at a glance and still sits under the spokes. */
 .net-kin {
   stroke: var(--color-accent);
-  stroke-width: 1;
-  stroke-opacity: 0.35;
-  stroke-dasharray: 2 3;
+  stroke-width: 1.6;
+  stroke-opacity: 0.9;
+  stroke-dasharray: 3 3;
   vector-effect: non-scaling-stroke;
   animation: net-kin 9s linear infinite;
 }
@@ -925,6 +927,65 @@
   margin: 0;
   padding: 0;
   position: relative;
+}
+/* The network answers: a brain whose published memory an answer drew on
+   lights with the drawing's own echo and spark; the rest dim; the center
+   stays lit when Rizom's own pieces are cited. The story runtime sets the
+   classes from the Ask box's ask:sources event. */
+.net-layer .net-thread,
+.net-layer .net-mark,
+.net-layer .net-lantern {
+  transition:
+    opacity 0.6s ease,
+    stroke-opacity 0.6s ease;
+}
+.net-layer.has-replies .net-thread:not(.is-lit) {
+  stroke-opacity: 0.12;
+}
+.net-layer.has-replies .net-mark:not(.is-lit),
+.net-layer.has-replies .net-name:not(.is-lit) {
+  opacity: 0.3;
+}
+.net-layer .net-thread.is-lit {
+  stroke-opacity: 0.9;
+}
+.net-layer .net-thread.is-hot {
+  stroke-opacity: 1;
+  stroke-width: 1.6;
+}
+.net-layer .net-reply.is-lit .net-echo {
+  animation: net-echo 2.4s linear 2;
+}
+.net-layer .net-reply.is-lit .net-spark {
+  animation: net-spark 2.4s linear 2;
+}
+.net-layer .net-mark.is-lit i,
+.net-layer .net-mark.is-hot i {
+  background: #fff3cf;
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 10px 3px var(--color-accent);
+}
+.net-layer .net-mark.is-hot i {
+  box-shadow:
+    0 0 0 3px var(--color-bg),
+    0 0 16px 5px var(--color-accent);
+}
+.net-layer.has-replies:not(.is-rizom) .net-lantern {
+  opacity: 0.55;
+  filter: none;
+}
+.net-layer.is-rizom .net-lantern {
+  filter: drop-shadow(0 0 12px var(--color-accent)) drop-shadow(0 0 4px #fff3cf);
+}
+[data-ask-source][data-ask-hot] {
+  background: rgb(from var(--color-accent) r g b / 0.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .net-layer .net-reply.is-lit .net-echo,
+  .net-layer .net-reply.is-lit .net-spark {
+    animation: none;
+  }
 }
 .net-mark {
   position: absolute;
@@ -1216,6 +1277,235 @@
     opacity: 0;
   }
 }
+
+/* Asked before: the visitors' questions the owner kept, one open at a time,
+   beside the live network drawn again for the chapter. The organism steps
+   aside while the chapter is read; the open question lights the brains its
+   answer drew on. Counts sort the list and are never shown. */
+.asked {
+  position: relative;
+}
+.asked .asked__list {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+.asked details {
+  border-bottom: 1px solid var(--color-border);
+}
+.asked summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.9rem 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: var(--color-text);
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 24;
+}
+.asked summary::-webkit-details-marker {
+  display: none;
+}
+.asked summary::after {
+  content: "+";
+  font-family: var(--font-label);
+  font-style: normal;
+  color: var(--color-accent);
+}
+.asked details[open] summary::after {
+  content: "–";
+}
+.asked summary:hover,
+.asked summary:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+.asked .asked__answer {
+  margin: 0 0 1.25rem;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.asked .asked__answer p {
+  margin: 0 0 0.8rem;
+}
+.asked .asked__by {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.asked .asked__sources {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+.asked .asked__sources li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.7rem;
+  row-gap: 0.25rem;
+  align-items: baseline;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+  transition: color 0.3s ease;
+}
+.asked .asked__sources li:last-child {
+  border-bottom: 0;
+}
+.asked .asked__mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  translate: 0 -1px;
+  transition: box-shadow 0.3s ease;
+}
+.asked .asked__sources li[data-ask-hot] .asked__mark {
+  box-shadow: 0 0 0 4px rgb(from var(--color-accent) r g b / 0.25);
+}
+.asked .asked__piece {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  align-items: baseline;
+}
+.asked .asked__piece b {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+.asked .asked__piece a {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid rgb(from var(--color-accent) r g b / 0.45);
+}
+.asked .asked__piece a:hover {
+  color: var(--color-accent);
+}
+.asked .asked__sources q {
+  grid-column: 2;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  quotes: "“" "”";
+}
+/* The chapter's drawing stands where the organism stood, beside the words,
+   and the organism steps aside while the chapter is read. */
+.asked .net-layer {
+  top: 50%;
+  translate: 0 -50%;
+  left: calc(100% + var(--words-gap));
+  right: auto;
+  width: min(
+    calc(100svh - var(--bar-height, 4.6rem) - 2rem),
+    calc(100cqi - var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem))
+  );
+}
+.story.is-asked .figure {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+/* The drawing belongs to the page while an answer is open. On desktop a
+   dotted lead runs from each listed source to its brain (drawn by the
+   runtime); on a phone the opening's drawing joins the open conversation as
+   the first item of its scroll, a slot holding its place meanwhile, and a
+   tapped dot flashes its source. */
+.net-leads {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  /* The chapter is the words' width; a lead runs past it to the drawing. */
+  overflow: visible;
+  pointer-events: none;
+}
+.net-leads path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 6;
+  opacity: 0.85;
+}
+.opening__ask [data-ask-source][data-ask-flash] {
+  animation: ask-flash 1.5s ease-out;
+}
+@keyframes ask-flash {
+  0%,
+  40% {
+    background: rgb(from var(--color-accent) r g b / 0.14);
+  }
+  100% {
+    background: transparent;
+  }
+}
+@media (max-width: 60rem) {
+  .net-leads {
+    display: none;
+  }
+  .net-slot {
+    height: var(--strip-h);
+  }
+  .opening__ask[data-ask-sheet] [data-ask-dock]:has(.net-layer) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .opening__ask[data-ask-sheet] [data-ask-dock] .net-layer {
+    position: relative;
+    inset: auto;
+    width: auto;
+    height: var(--strip-h);
+    opacity: 1;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .net-leads {
+    display: none;
+  }
+  .opening__ask [data-ask-source][data-ask-flash] {
+    animation: none;
+  }
+}
+/* The chapter's drawing is the network at rest: no pulse travels it and no
+   brain blinks on its own; only the open question's brains answer. */
+.asked .net-pulse,
+.asked .net-reply:not(.is-lit) .net-echo,
+.asked .net-reply:not(.is-lit) .net-spark {
+  display: none;
+}
+.asked .net-mark i {
+  animation: none;
+}
+@media (max-width: 60rem) {
+  /* On a phone the chapter's drawing takes the strip while the chapter is read. */
+  .asked .net-layer {
+    top: var(--bar-height, 4.6rem);
+    translate: none;
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+  .story.is-asked .asked .net-layer {
+    opacity: 1;
+    z-index: 3;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .net-kin,
   .net-corona,

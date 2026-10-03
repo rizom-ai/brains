@@ -1,5 +1,21 @@
 # @brains/db
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#497](https://github.com/rizom-ai/brains/pull/497) [`48e2464`](https://github.com/rizom-ai/brains/commit/48e2464c5531d6b9b9ee9e3b69b44f1c5df5805c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Opening a local SQLite database retries its connection pragmas when another connection briefly holds a lock, instead of failing at once. Since connections stopped waiting on locks, entering WAL mode, which needs an exclusive lock, failed immediately whenever another process was mid-write or closing the same file, so a start-up or migration racing another process could fail. Refused pragmas now retry asynchronously with the same budget and backoff as a refused transaction begin.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

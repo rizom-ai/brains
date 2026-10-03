@@ -14,6 +14,7 @@ describe("EventHandler", () => {
     mockJobQueueCallback = mock().mockResolvedValue("job-123");
 
     mockFileOperations = {
+      getEntityDeletePaths: mock().mockReturnValue([]),
       parseEntityFromPath: mock().mockReturnValue({
         entityType: "topic",
         id: "technology:ai",

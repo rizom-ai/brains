@@ -1,5 +1,23 @@
 # @brains/image
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`9072132`](https://github.com/rizom-ai/brains/commit/9072132dd1bac2e39c19d1274b29252abf9adf63) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds prepare the images a page's Markdown body references, not only cover and OG images, so `![alt](entity://image/id)` and reference-style images (full, collapsed and shortcut) render as optimized site images. Before, a body image had no prepared entry and the renderer left its `entity://` source unresolved. Discovery is structural: images in code, raw HTML, ordinary links and unused definitions are ignored, and the durable Markdown is never rewritten. `mapMarkdownImageUrls` in `@brains/image` maps image destinations, reference-style ones included.
+
+- Updated dependencies [[`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a)]:
+  - @brains/entity-service@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/entity-service@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

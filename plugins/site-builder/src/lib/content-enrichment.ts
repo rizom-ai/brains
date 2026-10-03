@@ -2,6 +2,7 @@ import {
   extractCoverImageId,
   extractOgImageId,
   imageDataUrl,
+  mapMarkdownImageUrls,
 } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { getErrorMessage } from "@brains/utils/error";
@@ -248,7 +249,10 @@ async function resolveCoverImage(
 }
 
 /**
- * Scan all entities for coverImageId references to pre-resolve before rendering.
+ * Discover rendered Markdown images (inline and reference-style) and
+ * cover/OG references to prepare before rendering, without loading image
+ * entities. Images in code and ordinary links are not rendered, so not
+ * prepared.
  */
 export async function collectAllImageIds(
   entityService: ServiceEntityService,
@@ -273,6 +277,13 @@ export async function collectAllImageIds(
         const ogImageId = extractOgImageId(entity);
         if (ogImageId) {
           imageIds.add(ogImageId);
+        }
+        if (entity.content.includes("entity://image/")) {
+          mapMarkdownImageUrls(entity.content, (url) => {
+            const match = /^entity:\/\/image\/(.+)$/.exec(url);
+            if (match?.[1]) imageIds.add(match[1]);
+            return url;
+          });
         }
       }
     }

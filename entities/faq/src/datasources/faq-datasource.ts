@@ -7,15 +7,49 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { faqAdapter } from "../adapters/faq-adapter";
-import { faqSchema, type FaqEntity } from "../schemas/faq";
+import { faqSchema, type FaqEntity, type FaqSource } from "../schemas/faq";
 
 export const FAQ_DATASOURCE_ID = "faq:entities" as const;
+
+type FaqItemSourceSchema = z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  url: z.ZodNullable<z.ZodString>;
+  excerpt: z.ZodNullable<z.ZodString>;
+  brain: z.ZodNullable<
+    z.ZodObject<{ name: z.ZodString; url: z.ZodNullable<z.ZodString> }>
+  >;
+}>;
+
+/** A kept source as a page receives it: every field present, absent as null. */
+export const faqItemSourceSchema: FaqItemSourceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  url: z.string().nullable(),
+  excerpt: z.string().nullable(),
+  brain: z.object({ name: z.string(), url: z.string().nullable() }).nullable(),
+});
+
+export type FaqItemSource = z.output<typeof faqItemSourceSchema>;
+
+function itemSource(source: FaqSource): FaqItemSource {
+  return {
+    id: source.id,
+    title: source.title,
+    url: source.url ?? null,
+    excerpt: source.excerpt ?? null,
+    brain: source.brain
+      ? { name: source.brain.name, url: source.brain.url ?? null }
+      : null,
+  };
+}
 
 type FaqItemSchema = z.ZodObject<{
   id: z.ZodString;
   question: z.ZodString;
   answer: z.ZodString;
   asked: z.ZodNumber;
+  sources: z.ZodArray<FaqItemSourceSchema>;
 }>;
 
 export const faqItemSchema: FaqItemSchema = z.object({
@@ -23,6 +57,8 @@ export const faqItemSchema: FaqItemSchema = z.object({
   question: z.string(),
   answer: z.string(),
   asked: z.number().int(),
+  /** What the answer drew on when it was first given; a page may show them. */
+  sources: z.array(faqItemSourceSchema),
 });
 
 export type FaqItem = z.output<typeof faqItemSchema>;
@@ -65,12 +101,13 @@ export class FaqDataSource extends BaseEntityDataSource<
   }
 
   protected transformEntity(entity: FaqEntity): FaqItem {
-    const { answer } = faqAdapter.parseFaqContent(entity.content);
+    const { answer, frontmatter } = faqAdapter.parseFaqContent(entity.content);
     return {
       id: entity.id,
       question: entity.metadata.question,
       answer,
       asked: entity.metadata.asked,
+      sources: (frontmatter.sources ?? []).map(itemSource),
     };
   }
 

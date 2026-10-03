@@ -1,5 +1,29 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/auth-service@0.2.0-alpha.479
+  - @brains/app-ui-react@0.2.0-alpha.479
+  - @brains/console-theme@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.478
+  - @brains/console-theme@0.2.0-alpha.478
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/auth-service@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

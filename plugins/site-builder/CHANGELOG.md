@@ -1,5 +1,37 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`9072132`](https://github.com/rizom-ai/brains/commit/9072132dd1bac2e39c19d1274b29252abf9adf63) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds prepare the images a page's Markdown body references, not only cover and OG images, so `![alt](entity://image/id)` and reference-style images (full, collapsed and shortcut) render as optimized site images. Before, a body image had no prepared entry and the renderer left its `entity://` source unresolved. Discovery is structural: images in code, raw HTML, ordinary links and unused definitions are ignored, and the durable Markdown is never rewritten. `mapMarkdownImageUrls` in `@brains/image` maps image destinations, reference-style ones included.
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`56f1e1b`](https://github.com/rizom-ai/brains/commit/56f1e1bd481d5de4eaeee534071b0aea3a113070) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site CSS is generated from what the build emits and nothing else. Tailwind's automatic source detection scanned the whole instance directory, so content, stores and other files leaked stray utility classes into every site, and the stylesheet changed with whatever happened to be lying there. The base stylesheet now disables automatic detection and scans the built pages and runtime scripts, and styles are compiled after the scripts are written, so classes that only a script toggles are still generated.
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`c665c97`](https://github.com/rizom-ai/brains/commit/c665c9719c16cf1b64bf62ecd4a6c631f8ea4e05) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds give the event loop a turn between sections while preparing content. Local libSQL answers queries synchronously, so resolving every section ran as one unbroken chain and held up requests for the whole preparation; on the publishing app, the rebuild check after a content change blocked for 167 ms, and now for at most about 33 ms.
+
+- Updated dependencies [[`9072132`](https://github.com/rizom-ai/brains/commit/9072132dd1bac2e39c19d1274b29252abf9adf63)]:
+  - @brains/image@0.2.0-alpha.479
+  - @brains/site-engine@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/ui-library@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/site-composition@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/image@0.2.0-alpha.478
+  - @brains/site-composition@0.2.0-alpha.478
+  - @brains/site-engine@0.2.0-alpha.478
+  - @brains/ui-library@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

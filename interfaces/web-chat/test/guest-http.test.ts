@@ -72,6 +72,8 @@ interface Fixture {
   /** How the runtime screened the turn's question, if it said. */
   screening: GuestScreeningOutcome | undefined;
   sourceCards: Extract<ChatCard, { kind: "sources" }>[];
+  /** The FAQ that answered in the model's place, if one did. */
+  askedBefore: { faqId: string } | undefined;
   readMessages: (() => Promise<void>) | undefined;
   browser: () => Browser;
   /** The owner's usage record, as a Studio reader would see it. */
@@ -120,6 +122,7 @@ async function setup(
     calls: [],
     readMessages: undefined,
     sourceCards: [],
+    askedBefore: undefined,
     reply: async (): Promise<string> => "Mock public-source answer",
     settlement: undefined,
     screening: undefined,
@@ -219,7 +222,12 @@ async function setup(
           timestamp: new Date(state.now).toISOString(),
           metadata:
             role === "assistant"
-              ? JSON.stringify({ cards: state.sourceCards })
+              ? JSON.stringify({
+                  cards: state.sourceCards,
+                  ...(state.askedBefore
+                    ? { askedBefore: state.askedBefore }
+                    : {}),
+                })
               : null,
         });
         state.messages.set(id, rows);
@@ -233,6 +241,7 @@ async function setup(
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
         ...(state.settlement ? { guestSettlement: state.settlement } : {}),
         ...(state.screening ? { guestScreening: state.screening } : {}),
+        ...(state.askedBefore ? { askedBefore: state.askedBefore } : {}),
       };
     },
     confirmPendingAction: async (): Promise<never> => {
@@ -835,6 +844,21 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     }
     expect(state.calls).toHaveLength(0);
   });
+  it("tells the box when a FAQ answered, after the sources and before the text", async () => {
+    const state = await setup();
+    state.askedBefore = { faqId: "how-does-rizom-keep-memory" };
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const response = await browser.client.streamMessages(message("Question"));
+    const received = await events(response);
+    const asked = received.find((event) => event.type === "data-asked-before");
+    if (asked?.type !== "data-asked-before") throw new Error("Missing event");
+    expect(asked.data).toEqual({ faqId: "how-does-rizom-keep-memory" });
+    expect(
+      received.findIndex((event) => event.type === "data-asked-before"),
+    ).toBeLessThan(received.findIndex((event) => event.type === "text-start"));
+  });
+
   it("delivers the same bounded sources in SSE and owned history, without provenance", async () => {
     const state = await setup();
     state.sourceCards = [

@@ -1,5 +1,33 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ai-service@0.2.0-alpha.479
+  - @brains/app@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/content-formatters@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+  - @brains/mcp-service@0.2.0-alpha.479
+  - @brains/templates@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.478
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/ai-service@0.2.0-alpha.478
+  - @brains/app@0.2.0-alpha.478
+  - @brains/mcp-service@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+  - @brains/templates@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

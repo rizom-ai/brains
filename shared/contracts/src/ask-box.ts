@@ -46,13 +46,50 @@ export type AskBoxAvailability = z.output<typeof askBoxAvailabilitySchema>;
  * Each source the mounted box lists carries ASK_SOURCE_ATTRIBUTE with the
  * same key, so a host can point at it.
  */
+/** The brain whose published memory a source came from: its name, and its address when it has one. */
+export const sourceBrainSchema: z.ZodObject<{
+  name: z.ZodString;
+  url: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  name: z.string().trim().min(1).max(200),
+  url: z.string().url().optional(),
+});
+export type SourceBrain = z.output<typeof sourceBrainSchema>;
+
+/**
+ * "Rizom, with Becca and Jo": who answered, then the brains whose published
+ * memory the answer drew on, each once, in arrival order.
+ */
+export function answeredBy(owner: string, brains: readonly string[]): string {
+  const names = brains.filter((name, i) => brains.indexOf(name) === i);
+  if (names.length === 0) return owner;
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `${owner}, with ${list}`;
+}
+
 export const ASK_SOURCES_EVENT = "ask:sources";
 export const ASK_SOURCE_ATTRIBUTE = "data-ask-source";
 
 export const askSourcesDetailSchema: z.ZodObject<{
-  sources: z.ZodArray<z.ZodObject<{ id: z.ZodString; title: z.ZodString }>>;
+  sources: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      title: z.ZodString;
+      brain: z.ZodOptional<typeof sourceBrainSchema>;
+    }>
+  >;
 }> = z.object({
-  sources: z.array(z.object({ id: z.string(), title: z.string() })),
+  sources: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      // The brain whose published memory the source came from, when not this brain's own.
+      brain: sourceBrainSchema.optional(),
+    }),
+  ),
 });
 export type AskSourcesDetail = z.output<typeof askSourcesDetailSchema>;
 

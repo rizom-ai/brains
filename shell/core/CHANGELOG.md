@@ -1,5 +1,39 @@
 # @brains/core
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity lookups by id, slug or title return stored content. The id lookup used a read that resolves `entity://image/...` references into data URLs, and its callers write the entity back: setting a generated or rendered image on a post, or a `system_update`, replaced an inline image reference in the post body with its bytes, in the database and in the synced Markdown file, and embedding then failed on the oversized body. `system_get` and `system_generate` now see a body's image references rather than its inlined bytes.
+
+- Updated dependencies [[`9072132`](https://github.com/rizom-ai/brains/commit/9072132dd1bac2e39c19d1274b29252abf9adf63)]:
+  - @brains/image@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/runtime-state@0.2.0-alpha.479
+  - @brains/recurring-checks@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/operation-context@0.2.0-alpha.479
+  - @brains/site-composition@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+  - @brains/scheduler@0.2.0-alpha.479
+  - @brains/templates@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/image@0.2.0-alpha.478
+  - @brains/operation-context@0.2.0-alpha.478
+  - @brains/site-composition@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+  - @brains/recurring-checks@0.2.0-alpha.478
+  - @brains/runtime-state@0.2.0-alpha.478
+  - @brains/scheduler@0.2.0-alpha.478
+  - @brains/templates@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`c5d4d2f`](https://github.com/rizom-ai/brains/commit/c5d4d2fd949357353b4e4f42186a0d105fe5c6a1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain start` boots in the instance directory even when launched from elsewhere with `INIT_CWD`, as the dev start scripts do. The supervising process ran migrations against `./data` relative to where it was launched while its web and worker processes opened the instance's own `data/`, so a fresh instance failed to start (`Unable to open connection to local database ./data/runtime-state.db`) and an existing one ran on unmigrated stores.
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`760a0bb`](https://github.com/rizom-ai/brains/commit/760a0bb09722929829ebb8db17fd30fc19026a23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An answer's source can name the brain whose published memory it came from. The citation and the Ask box's `ask:sources` event carry it, and the box's source rows show the brain and who answered — "Rizom, with Becca and Jo" — so a host page can show whose memory answered.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`934ebe5`](https://github.com/rizom-ai/brains/commit/934ebe5cc8707c8a0c2569c57dcc560aea198776) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A question asked before is answered before the model. A FAQ captured from a visitor's reply keeps the sources the answer drew on; a visitor's question is first put to the published FAQs over a new shell channel, and a hit answers the turn from the FAQ, with its kept sources, counting one more asking and calling no model. The box says "Asked before" above such an answer, in the live reply and in history, while still naming the brains whose memory it drew on. The FAQ datasource carries each FAQ's sources for pages to show.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`afeef92`](https://github.com/rizom-ai/brains/commit/afeef92134464dd8af977005564674bc359ea1cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The network index learns a connected brain's ATProto repository from its home when the directory holds none: an approved agent without a repository DID is asked at its well-known address once per sync, the DID is kept on the agent, and its published pieces are indexed from then on. Every connected brain with a repository is indexed, each piece keyed and cited to its own.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`eecbdea`](https://github.com/rizom-ai/brains/commit/eecbdea7dc0467b0df76f0c9ecb2a6e4265c284e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain keeps the connected brains' published pieces as `network-piece` entities: for every approved agent with an ATProto repository, each projected collection is read on the directory's daily cadence and kept keyed by brain and record — created, left alone when unchanged, deleted when withdrawn, kept when the repository cannot be reached. The pieces are public, searchable and citable to their brain, never this brain's site pages and never re-published. A visitor's answer cites such a piece at its origin, naming the brain.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`4d887da`](https://github.com/rizom-ai/brains/commit/4d887da17558420fbe2580f0cdd918215b2e6245) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every projected ATProto record names its page: the atproto plugin hands each projection the entity's page on this brain's site, when the site gives the type one, and the projection writes it as `canonicalUrl` (an essay first published elsewhere keeps that address). The deck, project, note, link, series, topic and social-post lexicons declare the optional field. A brain that keeps another's records can now send a reader to the piece itself.
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes

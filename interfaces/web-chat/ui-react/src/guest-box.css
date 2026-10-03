@@ -334,6 +334,23 @@
 :where([data-ask-styled] .brain-box-sources a:hover) {
   color: var(--ask-accent);
 }
+/* Who answered: the brain, with the brains whose memory it drew on; and
+   whether the question was asked before and the owner's kept answer stands. */
+:where([data-ask-styled] .brain-box-answered-by) {
+  font-size: 13px;
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .brain-box-source-brain) {
+  flex: none;
+  font-weight: 600;
+}
+:where([data-ask-styled] .brain-box-asked-before) {
+  margin: 14px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ask-accent);
+}
 :where([data-ask-styled] .web-chat-sources-card) {
   margin-top: 14px;
   padding-top: 10px;

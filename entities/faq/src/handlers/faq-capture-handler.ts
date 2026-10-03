@@ -13,9 +13,10 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
+import { getGuestSourceCards } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
-import type { FaqFrontmatter } from "../schemas/faq";
+import type { FaqFrontmatter, FaqSource } from "../schemas/faq";
 import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
 import type { CapturedReplyStore } from "../lib/captured-replies";
 
@@ -133,6 +134,20 @@ export async function classifyExchange(
   return object;
 }
 
+/** The sources the reply's own cards name, in the form a page may show. */
+export function replySources(reply: Message): FaqSource[] {
+  return getGuestSourceCards(reply.metadata["cards"]).flatMap((card) =>
+    card.sources.map((source) => ({
+      id: source.id,
+      // A vetted card always titles its sources; the key stands in otherwise.
+      title: source.title ?? source.id,
+      ...(source.url ? { url: source.url } : {}),
+      ...(source.excerpt ? { excerpt: source.excerpt } : {}),
+      ...(source.brain ? { brain: source.brain } : {}),
+    })),
+  );
+}
+
 /** The user message the reply at `answerIndex` responds to. */
 function findQuestion(
   messages: Message[],
@@ -233,10 +248,12 @@ export class FaqCaptureHandler extends BaseJobHandler<
     }
 
     const visibility = permissionToVisibilityScope(data.userPermissionLevel);
+    const sources = replySources(answer);
     const frontmatter: FaqFrontmatter = {
       question: classification.question,
       status: "draft",
       asked: 1,
+      ...(sources.length > 0 ? { sources } : {}),
     };
     const content = faqAdapter.createFaqContent(
       frontmatter,

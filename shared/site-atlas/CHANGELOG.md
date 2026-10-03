@@ -1,5 +1,29 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-engine@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/ui-library@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/site-composition@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/site-composition@0.2.0-alpha.478
+  - @brains/site-engine@0.2.0-alpha.478
+  - @brains/ui-library@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+
 ## 0.2.0-alpha.477
 
 ### Patch Changes
