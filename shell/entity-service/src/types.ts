@@ -1216,6 +1216,8 @@ export interface EntityServiceClient extends ICoreEntityService {
     source: AssetSource,
     options?: StageAssetOptions,
   ): Promise<StagedAsset>;
+  /** Discard a staged upload no mutation will publish; a published asset stays. */
+  discardStagedAsset(asset: StagedAsset): Promise<void>;
   // Mutations
   createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,

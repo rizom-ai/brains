@@ -272,6 +272,7 @@ export function createMockEntityService(
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
     stageAsset: assetStore.stageAsset,
+    discardStagedAsset: assetStore.discardStagedAsset,
     openAsset: assetStore.openAsset,
     foldEntity: async (request): Promise<EntityMutationResult> => {
       const { source, entity } = structuredClone({

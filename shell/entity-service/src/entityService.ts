@@ -801,6 +801,12 @@ export class EntityService implements IEntityService {
     return this.assetRepository.stage(source, options);
   }
 
+  /** Discard a staged upload no mutation will publish; a published asset stays. */
+  public async discardStagedAsset(asset: StagedAsset): Promise<void> {
+    await this.initialize();
+    await this.assetRepository.release(asset);
+  }
+
   /** Stream a published asset's chunks in order. */
   public async openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>> {
     await this.initialize();

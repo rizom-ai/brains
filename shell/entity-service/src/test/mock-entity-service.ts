@@ -194,6 +194,7 @@ export function createMockEntityService(
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     stageAsset: mock(assetStore.stageAsset),
+    discardStagedAsset: mock(assetStore.discardStagedAsset),
     openAsset: mock(assetStore.openAsset),
     foldEntity: mock(async (request) => {
       await request.options?.beforeWrite?.(request.entity);

@@ -16,6 +16,7 @@ export interface MockAssetStore {
     source: AssetSource,
     options?: StageAssetOptions,
   ): Promise<StagedAsset>;
+  discardStagedAsset(asset: StagedAsset): Promise<void>;
   openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
 }
 
@@ -49,6 +50,8 @@ export function createMockAssetStore(): MockAssetStore {
       assets.set(ref, bytes);
       return Object.freeze({ ref, digest, sizeBytes: bytes.byteLength });
     },
+    // Staged bytes live under their digest, shared with any published copy.
+    async discardStagedAsset(): Promise<void> {},
     async openAsset(ref): Promise<AsyncIterable<Uint8Array>> {
       const bytes = assets.get(ref);
       if (!bytes) throw new Error(`Asset not found: ${ref}`);

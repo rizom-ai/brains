@@ -16,7 +16,11 @@ import { recordImportIssue, recordSkippedImport } from "./import-result";
 export interface ImportPersistenceDeps {
   entityService: Pick<
     EntityServiceClient,
-    "serializeEntity" | "upsertEntity" | "getEntityTypeConfig" | "stageAsset"
+    | "serializeEntity"
+    | "upsertEntity"
+    | "getEntityTypeConfig"
+    | "stageAsset"
+    | "discardStagedAsset"
   >;
   maxAssetImportBytes: number;
   logger: Logger;
@@ -75,6 +79,8 @@ export async function persistImportEntity(
   /** Bytes already staged from the file; otherwise inline content is staged here. */
   staged?: StagedAsset,
 ): Promise<void> {
+  // Staged bytes no upsert takes are discarded on every other way out.
+  let unpublished = staged;
   try {
     const existing = snapshot?.entity ?? null;
 
@@ -116,6 +122,7 @@ export async function persistImportEntity(
     const { entity, stagedAsset } = staged
       ? { entity: inline, stagedAsset: staged }
       : await stageAssetContent(deps, inline);
+    unpublished = stagedAsset;
     // Store canonical hash so auto-sync writes don't trigger a re-import:
     // after auto-sync writes serializeEntity(entity) to disk, the file hash
     // matches this hash and shouldUpdateEntity returns false.
@@ -147,6 +154,8 @@ export async function persistImportEntity(
       persistenceOrigin: "directory-sync" as const,
       conditionalWrite: { expectedRevision: snapshot?.revision ?? null },
     };
+    // The upsert publishes the staged bytes or discards them itself.
+    unpublished = undefined;
     const upsertResult = await deps.entityService.upsertEntity({
       entity,
       ...(stagedAsset && { stagedAsset }),
@@ -199,6 +208,13 @@ export async function persistImportEntity(
         error: getErrorMessage(error),
       },
     );
+  } finally {
+    if (unpublished) {
+      // Best effort: the startup sweep reclaims an upload this misses.
+      await deps.entityService
+        .discardStagedAsset(unpublished)
+        .catch(() => undefined);
+    }
   }
 }
 
