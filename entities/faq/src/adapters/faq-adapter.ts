@@ -59,6 +59,7 @@ export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
     question: frontmatter.question,
     status: frontmatter.status,
     asked: frontmatter.asked,
+    ...(frontmatter.rank !== undefined && { rank: frontmatter.rank }),
   };
 }
 

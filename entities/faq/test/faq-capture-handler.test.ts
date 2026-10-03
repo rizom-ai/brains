@@ -255,11 +255,13 @@ describe("FaqCaptureHandler", () => {
     expect(await capturedFaqs()).toHaveLength(1);
   });
 
-  it("releases the reply when capture fails, so the retry counts it", async () => {
+  it("does not consume the reply when capture fails, so the retry counts it", async () => {
     const service = context.entityService;
-    const create = service.createEntity.bind(service);
+    const create = service.applyEntityMutationOnce.bind(service);
     let failed = false;
-    service.createEntity = async (request): ReturnType<typeof create> => {
+    service.applyEntityMutationOnce = async (
+      request,
+    ): ReturnType<typeof create> => {
       if (!failed) {
         failed = true;
         throw new Error("database unavailable");
@@ -377,8 +379,11 @@ describe("FaqCaptureHandler", () => {
     await seedMatch("restricted", 0.08);
     const service = context.entityService;
     const update = service.updateEntity.bind(service);
+    const apply = service.applyEntityMutationOnce.bind(service);
     let interleaved = false;
-    service.updateEntity = async (request): ReturnType<typeof update> => {
+    service.applyEntityMutationOnce = async (
+      request,
+    ): ReturnType<typeof apply> => {
       if (!interleaved) {
         interleaved = true;
         // Another capture job merges its reply into the same FAQ first.
@@ -396,7 +401,7 @@ describe("FaqCaptureHandler", () => {
           },
         });
       }
-      return update(request);
+      return apply(request);
     };
 
     const result = await capture(createHandler(), "admin");

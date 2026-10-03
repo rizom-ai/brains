@@ -434,4 +434,23 @@ describe("listEntities sortFields with nullsFirst", () => {
       "published-2", // publishedAt 2025-01-01
     ]);
   });
+
+  test("should sort publishedAt asc with nullsLast (NULLs last)", async () => {
+    const result = await ctx.entityService.listEntities({
+      entityType: "post",
+      options: {
+        sortFields: [
+          { field: "publishedAt", direction: "asc", nullsLast: true },
+          { field: "created", direction: "desc" },
+        ],
+      },
+    });
+
+    expect(result.map((r) => r.id)).toEqual([
+      "published-2", // publishedAt 2025-01-01
+      "published-1", // publishedAt 2025-01-03
+      "draft-2", // NULL publishedAt, newest draft
+      "draft-1", // NULL publishedAt
+    ]);
+  });
 });
