@@ -8,11 +8,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
+import { stageImageEntity } from "@brains/image";
 import { coverImageConversionJobSchema } from "../types";
 import type { CoverImageConversionJobData } from "../types";
 
@@ -143,6 +139,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         options: {
           filter: { metadata: { sourceUrl } },
           limit: 1,
+          binaryContent: "reference",
         },
       });
 
@@ -182,36 +179,27 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           message: "Creating image entity",
         });
 
-        // Extract format and dimensions
-        const { base64 } = parseDataUrl(dataUrl);
-        const format = detectImageFormat(base64);
-        const dimensions = detectImageDimensions(base64);
-
-        if (!format || !dimensions) {
-          const errorMessage = "Could not detect image format or dimensions";
-          this.logger.error(errorMessage, { sourceUrl });
-          return JobResult.failure(new Error(errorMessage));
-        }
-
-        // Step 5: Create image entity
+        // Step 5: Stage the fetched bytes and create the image entity
         imageId = `${postSlug}-cover`;
         const imageTitle = `Cover image for ${postTitle}`;
-        const imageAlt = customAlt ?? imageTitle;
+        let staged: Awaited<ReturnType<typeof stageImageEntity>>;
+        try {
+          staged = await stageImageEntity(
+            this.context.entityService,
+            { dataUrl },
+            { title: imageTitle, alt: customAlt ?? imageTitle, sourceUrl },
+          );
+        } catch (error) {
+          this.logger.error("Fetched image cannot be stored", {
+            sourceUrl,
+            error: getErrorMessage(error),
+          });
+          return JobResult.failure(error);
+        }
 
         await this.context.entityService.createEntity({
-          entity: {
-            id: imageId,
-            entityType: "image",
-            content: dataUrl,
-            metadata: {
-              title: imageTitle,
-              alt: imageAlt,
-              format,
-              width: dimensions.width,
-              height: dimensions.height,
-              sourceUrl,
-            },
-          },
+          entity: { id: imageId, ...staged.entity },
+          stagedAsset: staged.stagedAsset,
         });
 
         this.logger.debug("Created image entity", { imageId, sourceUrl });

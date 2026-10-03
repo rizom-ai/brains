@@ -214,7 +214,12 @@ async function getAllEntities(
   for (const type of types) {
     const entities = await entityService.listEntities({
       entityType: type,
-      options: { limit: 1000, filter: { visibilityScope } },
+      // Insights read metadata only; never load binary content.
+      options: {
+        limit: 1000,
+        filter: { visibilityScope },
+        binaryContent: "reference",
+      },
     });
     all.push(...entities);
   }

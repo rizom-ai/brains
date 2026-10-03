@@ -7,6 +7,11 @@ import {
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity, GetEntityRequest } from "@brains/plugins";
 import { SourceImageRenderJobHandler } from "../../src/handlers/source-image-render-handler";
+import {
+  computeAssetDigest,
+  createAssetRef,
+  type ListEntitiesRequest,
+} from "@brains/plugins";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -20,6 +25,7 @@ function createProgressReporter(): ProgressReporter {
 
 describe("SourceImageRenderJobHandler", () => {
   it("creates an image entity from a source attachment and sets ogImageId", async () => {
+    const listRequests: ListEntitiesRequest[] = [];
     const target = {
       id: "post-1",
       entityType: "post",
@@ -42,8 +48,10 @@ describe("SourceImageRenderJobHandler", () => {
           filename: "post-og.png",
         }),
       },
-      listEntitiesImpl: async (request) =>
-        request.entityType === "post" ? [target] : [],
+      listEntitiesImpl: async (request) => {
+        listRequests.push(request);
+        return request.entityType === "post" ? [target] : [];
+      },
     });
 
     const handler = new SourceImageRenderJobHandler(
@@ -59,6 +67,7 @@ describe("SourceImageRenderJobHandler", () => {
         targetEntityType: "post",
         targetEntityId: "post-1",
         targetImageField: "ogImageId",
+        dedupKey: "post-1:og-image",
       },
       "job-1",
       createProgressReporter(),
@@ -69,11 +78,18 @@ describe("SourceImageRenderJobHandler", () => {
       imageId: "og-post-post-1",
       reused: false,
     });
+    const ref = createAssetRef(computeAssetDigest(TINY_PNG));
+    // Deduplication inspects references; it never loads image bytes.
+    expect(
+      listRequests.find((request) => request.entityType === "image")?.options
+        ?.binaryContent,
+    ).toBe("reference");
     expect(context.entityService.createEntity).toHaveBeenCalledWith({
+      stagedAsset: expect.objectContaining({ ref }),
       entity: expect.objectContaining({
         id: "og-post-post-1",
         entityType: "image",
-        content: expect.stringContaining("data:image/png;base64,"),
+        content: ref,
         metadata: expect.objectContaining({
           attachmentType: "og-image",
           sourceEntityType: "post",

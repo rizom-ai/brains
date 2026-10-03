@@ -2139,3 +2139,83 @@ describe("studio editor sync status", () => {
     expect(payload.git).toBeNull();
   });
 });
+
+describe("studio image previews", () => {
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  );
+
+  async function previewShell(
+    content: (shell: MockShell) => Promise<string>,
+    metadata: Record<string, unknown> = {},
+  ): Promise<{ route: WebRouteDefinition; cookie: string }> {
+    const shell = createEditorTestShell();
+    shell.getEntityRegistry().registerEntityType(
+      "image",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "image",
+        frontmatterSchema: z.object({}),
+        hasBody: false,
+      }),
+    );
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "cover",
+        entityType: "image",
+        content: await content(shell),
+        metadata,
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const plugin = await registerPlugin(shell);
+    return {
+      route: findRoute(plugin, "/studio/api/images"),
+      cookie: await createSessionCookie(shell),
+    };
+  }
+
+  it("streams an asset-backed image with its media type", async () => {
+    const { route, cookie } = await previewShell(
+      async (shell) => (await shell.getEntityService().stageAsset(png)).ref,
+      { mediaType: "image/png", sizeBytes: png.byteLength },
+    );
+
+    const response = await route.handler(
+      apiRequest("/studio/api/images?id=cover", { cookie }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/png");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
+  });
+
+  it("serves a legacy inline image as bytes", async () => {
+    const { route, cookie } = await previewShell(
+      async () => `data:image/png;base64,${png.toString("base64")}`,
+    );
+
+    const response = await route.handler(
+      apiRequest("/studio/api/images?id=cover", { cookie }),
+    );
+
+    expect(response.headers.get("Content-Type")).toBe("image/png");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
+  });
+
+  it("refuses content that is not an image", async () => {
+    const { route, cookie } = await previewShell(
+      async () => "javascript:alert(1)",
+    );
+
+    const response = await route.handler(
+      apiRequest("/studio/api/images?id=cover", { cookie }),
+    );
+
+    expect(response.status).toBe(404);
+  });
+});

@@ -1,10 +1,6 @@
 import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
+import { stageImageEntity } from "@brains/image";
 
 /** Function to fetch an image URL and return base64 data URL */
 export type ImageFetcher = (url: string) => Promise<string>;
@@ -34,6 +30,7 @@ export async function getOrCreateImageEntity(
     options: {
       filter: { metadata: { sourceUrl } },
       limit: 1,
+      binaryContent: "reference",
     },
   });
 
@@ -46,29 +43,15 @@ export async function getOrCreateImageEntity(
   }
 
   const dataUrl = await fetcher(sourceUrl);
-
-  const { base64 } = parseDataUrl(dataUrl);
-  const format = detectImageFormat(base64);
-  const dimensions = detectImageDimensions(base64);
-
-  if (!format || !dimensions) {
-    throw new Error("Could not detect image format or dimensions");
-  }
+  const { entity, stagedAsset } = await stageImageEntity(
+    entityService,
+    { dataUrl },
+    { title: params.title, alt: params.alt, sourceUrl },
+  );
 
   const result = await entityService.createEntity({
-    entity: {
-      id: params.id,
-      entityType: "image",
-      content: dataUrl,
-      metadata: {
-        title: params.title,
-        alt: params.alt,
-        format,
-        width: dimensions.width,
-        height: dimensions.height,
-        sourceUrl,
-      },
-    },
+    entity: { id: params.id, ...entity },
+    stagedAsset,
   });
 
   logger.debug("Created image entity from URL", {

@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { afterEach, beforeEach, expect, test } from "bun:test";
+import { afterEach, beforeEach, expect, spyOn, test } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Window } from "happy-dom";
@@ -11,7 +11,7 @@ import { StudioMarkdown } from "./studio-markdown";
 let window: Window;
 let restore: RestoreGlobals;
 let root: Root;
-const dataUrl = "data:image/png;base64,cHJldmlldy1maXh0dXJl";
+const pngBytes = Buffer.from("preview-fixture");
 beforeEach(() => {
   window = new Window();
   restore = installDomGlobals(window);
@@ -23,8 +23,15 @@ afterEach(async () => {
   window.close();
   restore();
 });
-function imageResponse(body = dataUrl): Response {
-  return Response.json({ source: body });
+function imageResponse(
+  body: BodyInit = pngBytes,
+  type = "image/png",
+): Response {
+  return new Response(body, { headers: { "Content-Type": type } });
+}
+
+function previewSource(): string | null | undefined {
+  return document.querySelector("img")?.getAttribute("src");
 }
 async function render(api: StudioApi, source: string): Promise<void> {
   await act(async () =>
@@ -60,14 +67,11 @@ test("preview resolves an opaque image reference through its injected mount", as
   });
   const source = "![Body](entity://image/ref%2Fopaque)";
   await render(api, source);
-  await settle(
-    () => document.querySelector("img")?.getAttribute("src") === dataUrl,
-  );
+  await settle(() => previewSource()?.startsWith("blob:") === true);
   expect(calls).toHaveLength(1);
   const url = new URL(calls[0] ?? "", "https://studio.test");
   expect(url.pathname).toBe("/authoring/api/images");
   expect(url.searchParams.get("id")).toBe("ref%2Fopaque");
-  expect(document.querySelector("img")?.getAttribute("src")).toBe(dataUrl);
   expect(document.querySelector("img")?.alt).toBe("Body");
 });
 
@@ -93,10 +97,7 @@ test("a changed API/session never displays or completes the previous session's i
     fetch: async (): Promise<Response> => imageResponse(),
   });
   await render(allowed, "![Private](entity://image/reference)");
-  await settle(
-    () => document.querySelector("img")?.getAttribute("src") === dataUrl,
-  );
-  expect(document.querySelector("img")?.getAttribute("src")).toBe(dataUrl);
+  await settle(() => previewSource()?.startsWith("blob:") === true);
   await render(pending, "![Private](entity://image/reference)");
   expect(document.querySelector("img")).toBeNull();
   expect(finish).toBeDefined();
@@ -118,7 +119,7 @@ test("non-image content is not used as a preview URL and unsafe links remain blo
     basePath: "/authoring",
     fetch: async (): Promise<Response> => {
       calls++;
-      return imageResponse("javascript:alert(1)");
+      return imageResponse("alert(1)", "text/javascript");
     },
   });
   await render(
@@ -155,4 +156,20 @@ test("image references in code examples remain literal and trigger no reads", as
     "studio-entity-image.invalid",
   );
   expect(calls).toBe(0);
+});
+
+test("a preview's object URL is released when it is no longer shown", async () => {
+  const revoke = spyOn(URL, "revokeObjectURL");
+  const api = new StudioApi({
+    basePath: "/authoring",
+    fetch: async (): Promise<Response> => imageResponse(),
+  });
+  await render(api, "![Cover](entity://image/cover)");
+  await settle(() => previewSource()?.startsWith("blob:") === true);
+  const shown = previewSource();
+
+  await render(api, "No image any more.");
+
+  expect(revoke).toHaveBeenCalledWith(shown);
+  revoke.mockRestore();
 });

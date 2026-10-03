@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "../lib/oversized-file-error";
 
 /**
@@ -60,6 +61,7 @@ export const directorySyncConfigSchema: z.ZodObject<{
   syncInterval: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
   commitDebounce: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
   maxImportFileBytes: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  maxAssetImportBytes: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
   git: z.ZodOptional<typeof directorySyncGitConfigSchema>;
 }> = z.object({
   syncPath: z
@@ -141,6 +143,13 @@ export const directorySyncConfigSchema: z.ZodObject<{
     .optional()
     .describe("Maximum bytes for text and inline base64 binary imports")
     .default(DEFAULT_MAX_IMPORT_FILE_BYTES),
+  maxAssetImportBytes: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Maximum bytes for files of asset-backed binary entity types")
+    .default(IMAGE_ASSET_MAX_BYTES),
 
   git: directorySyncGitConfigSchema.optional(),
 });

@@ -11,6 +11,7 @@ import {
   seriesFrontmatterSchema,
   createSeriesBodyFormatter,
 } from "../schemas/series";
+import { listSeriesCandidates } from "../lib/series-members";
 
 const seriesGenerationJobSchema: z.ZodObject<{
   prompt: z.ZodOptional<z.ZodString>;
@@ -134,27 +135,16 @@ export class SeriesGenerationHandler implements JobHandler<
   }
 
   private async gatherMemberSummaries(seriesName: string): Promise<string[]> {
-    const summaries: string[] = [];
-    const types = this.context.entityService.getEntityTypes();
-
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await this.context.entityService.listEntities({
-        entityType: type,
-        options: {
-          filter: { metadata: { seriesName } },
-          // Deliberate cap: these summaries feed an AI prompt, so bound the
-          // context size rather than walk every member of a huge series.
-          limit: 100,
-        },
-      });
-      for (const entity of entities) {
-        const parsed = memberSummarySchema.safeParse(entity.metadata);
-        const { title, excerpt } = parsed.success ? parsed.data : {};
-        summaries.push(`- "${title ?? entity.id}": ${excerpt ?? ""}`);
-      }
-    }
-
-    return summaries;
+    const members = await listSeriesCandidates(this.context.entityService, {
+      seriesName,
+      // Deliberate cap: these summaries feed an AI prompt, so bound the
+      // context size rather than walk every member of a huge series.
+      limit: 100,
+    });
+    return members.map((entity) => {
+      const parsed = memberSummarySchema.safeParse(entity.metadata);
+      const { title, excerpt } = parsed.success ? parsed.data : {};
+      return `- "${title ?? entity.id}": ${excerpt ?? ""}`;
+    });
   }
 }

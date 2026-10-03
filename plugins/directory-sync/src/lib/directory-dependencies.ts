@@ -1,3 +1,4 @@
+import type { ImportLimits } from "./directory-options";
 import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { JobRequest } from "../types";
@@ -51,7 +52,7 @@ export function createDirectoryOperationDeps(
   entityService: EntityServiceClient,
   syncPath: string,
   dependencies: DirectorySyncDependencies,
-  maxImportFileBytes: number,
+  importLimits: ImportLimits,
   pendingDeletes: PendingDeleteRegistry,
   getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined,
 ): DirectoryOperationDeps {
@@ -63,7 +64,7 @@ export function createDirectoryOperationDeps(
     quarantine: dependencies.quarantine,
     coverImageConverter: dependencies.coverImageConverter,
     inlineImageConverter: dependencies.inlineImageConverter,
-    maxImportFileBytes,
+    ...importLimits,
     pendingDeletes,
     getJobQueueCallback,
   });

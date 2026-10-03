@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createAssetRef } from "@brains/entity-service";
 import { imageAdapter } from "../src/adapters/image-adapter";
 import type { Image } from "../src/schemas/image";
 
@@ -55,6 +56,14 @@ describe("ImageAdapter", () => {
       expect(result.metadata?.height).toBe(1);
     });
 
+    it("accepts an asset reference without parsing bytes", () => {
+      const ref = createAssetRef("c".repeat(64));
+      expect(imageAdapter.fromMarkdown(ref)).toEqual({
+        entityType: "image",
+        content: ref,
+      });
+    });
+
     it("should not set title or alt from binary content", () => {
       const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
       expect(result.metadata?.title).toBeUndefined();
@@ -97,6 +106,108 @@ describe("ImageAdapter", () => {
       });
 
       expect(result.metadata.alt).toBe("My Image");
+    });
+  });
+
+  describe("createAssetImageEntity", () => {
+    const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
+    const asset = {
+      ref: createAssetRef("d".repeat(64)),
+      sizeBytes: bytes.byteLength,
+    };
+
+    it("records the described bytes and stores the reference", () => {
+      const result = imageAdapter.createAssetImageEntity({
+        asset,
+        description: {
+          format: "png",
+          mediaType: "image/png",
+          width: 1,
+          height: 1,
+        },
+        title: "Uploaded",
+        status: "draft",
+        attachmentType: "uploaded",
+      });
+
+      expect(result).toEqual({
+        entityType: "image",
+        content: asset.ref,
+        metadata: {
+          title: "Uploaded",
+          alt: "Uploaded",
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1,
+          height: 1,
+          status: "draft",
+          attachmentType: "uploaded",
+        },
+      });
+      expect(
+        imageAdapter.schema.safeParse({
+          ...mockImageEntity,
+          ...result,
+        }).success,
+      ).toBe(true);
+    });
+  });
+
+  describe("pending and failed images", () => {
+    const base = {
+      id: "img-pending",
+      entityType: "image" as const,
+      visibility: "public" as const,
+      contentHash: "hash",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+    };
+
+    it("creates a pending image with no payload and no invented dimensions", () => {
+      const pending = imageAdapter.createPendingImageEntity({
+        title: "Cover",
+        alt: "Cover",
+        status: "pending",
+        attachmentType: "uploaded",
+      });
+
+      expect(pending.content).toBe("");
+      expect(pending.metadata).toEqual({
+        title: "Cover",
+        alt: "Cover",
+        status: "pending",
+        attachmentType: "uploaded",
+      });
+    });
+
+    it("accepts pending and failed images without format or dimensions", () => {
+      for (const status of ["pending", "failed"] as const) {
+        expect(
+          imageAdapter.schema.safeParse({
+            ...base,
+            content: "",
+            metadata: { status },
+          }).success,
+        ).toBe(true);
+      }
+    });
+
+    it("still requires format and dimensions of a completed image", () => {
+      const ref = createAssetRef("a".repeat(64));
+      for (const metadata of [{}, { status: "draft" as const }]) {
+        expect(
+          imageAdapter.schema.safeParse({ ...base, content: ref, metadata })
+            .success,
+        ).toBe(false);
+      }
+    });
+
+    it("reads an image with no payload back without parsing bytes", () => {
+      expect(imageAdapter.fromMarkdown("")).toEqual({
+        entityType: "image",
+        content: "",
+      });
     });
   });
 });

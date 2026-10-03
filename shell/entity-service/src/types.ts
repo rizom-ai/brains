@@ -1,6 +1,11 @@
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
-import type { PreparedAsset } from "@brains/assets";
+import type {
+  AssetRef,
+  AssetSource,
+  StageAssetOptions,
+  StagedAsset,
+} from "@brains/assets";
 import type {
   EntityGrouping,
   EntityGroupingCatalog,
@@ -571,9 +576,18 @@ export interface SortField {
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
+/**
+ * How asset-backed binary content is returned. `"legacy-data-url"` loads the
+ * bytes and returns a data URL, as inline storage did; `"reference"` returns
+ * the stored asset reference without loading bytes.
+ */
+export type BinaryContentMode = "legacy-data-url" | "reference";
+
 export interface EntityReadOptions {
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
+  /** Defaults to `"legacy-data-url"` during the asset compatibility window. */
+  binaryContent?: BinaryContentMode | undefined;
 }
 
 export interface ListOptions<
@@ -740,8 +754,8 @@ export interface CountEntitiesRequest {
 
 export interface CreateEntityRequest<T extends BaseEntity> {
   entity: EntityInput<T>;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   options?: CreateEntityOptions | undefined;
 }
 
@@ -752,8 +766,8 @@ export interface CreateEntityFromMarkdownRequest {
 
 export interface UpdateEntityRequest<T extends BaseEntity> {
   entity: T;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   options?: UpdateEntityOptions | undefined;
 }
 
@@ -784,8 +798,8 @@ export interface DeleteEntityRequest {
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   /** Conditional upserts never fall through from a raced create to update. */
   options?:
     | (EntityJobOptions & { conditionalWrite?: EntityWriteCondition })
@@ -984,6 +998,9 @@ export interface ICoreEntityService {
     request: ListEntitiesRequest,
     schema: EntitySchema<T>,
   ): Promise<T[]>;
+
+  /** Stream a published asset's chunks in order. */
+  openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
 
   /** Immediate folders and paginated direct children; no filesystem interpretation. */
   queryEntityHierarchy(
@@ -1193,6 +1210,14 @@ export interface EntityServiceClient extends ICoreEntityService {
     mutation: () => Promise<TResult>,
   ): Promise<TResult>;
 
+  // Assets
+  /** Durably stage bytes for one later create, update or upsert to publish. */
+  stageAsset(
+    source: AssetSource,
+    options?: StageAssetOptions,
+  ): Promise<StagedAsset>;
+  /** Discard a staged upload no mutation will publish; a published asset stays. */
+  discardStagedAsset(asset: StagedAsset): Promise<void>;
   // Mutations
   createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,

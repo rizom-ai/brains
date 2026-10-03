@@ -1,6 +1,7 @@
 import {
   extractCoverImageId,
   extractOgImageId,
+  imageDataUrl,
   mapMarkdownImageUrls,
 } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
@@ -228,12 +229,16 @@ async function resolveCoverImage(
   const image = await entityService.getEntity({
     entityType: "image",
     id: imageId,
+    binaryContent: "reference",
   });
   const imageCheck = imageEntitySchema.safeParse(image);
   if (!imageCheck.success) return undefined;
+  // Without a built file the image renders inline; assets are encoded here.
+  const url = await imageDataUrl(entityService, imageCheck.data);
+  if (!url) return undefined;
 
   return {
-    url: imageCheck.data.content,
+    url,
     ...(imageCheck.data.metadata.width && {
       width: imageCheck.data.metadata.width,
     }),

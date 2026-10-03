@@ -39,7 +39,7 @@ export function createMockReceiptMethods(
         return { operation: "none" };
       }
       if (
-        input.request.preparedAsset ||
+        input.request.stagedAsset ||
         (input.operation === "create" && input.request.options?.deduplicateId)
       ) {
         throw new Error(

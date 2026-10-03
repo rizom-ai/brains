@@ -349,6 +349,7 @@ describe("read tools enforce caller visibility scope", () => {
           limit: 1,
           filter: { visibilityScope: "restricted" },
           sortFields: [{ field: "publishedAt", direction: "desc" }],
+          binaryContent: "reference",
         },
       });
     });
@@ -361,7 +362,11 @@ describe("read tools enforce caller visibility scope", () => {
       );
       expect(list).toHaveBeenCalledWith({
         entityType: "doc",
-        options: { limit: 20, filter: { visibilityScope: "restricted" } },
+        options: {
+          limit: 20,
+          filter: { visibilityScope: "restricted" },
+          binaryContent: "reference",
+        },
       });
     });
   });

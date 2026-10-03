@@ -2,6 +2,7 @@ import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
+import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "./oversized-file-error";
 
 export const directorySyncOptionsSchema: z.ZodObject<{
@@ -12,6 +13,7 @@ export const directorySyncOptionsSchema: z.ZodObject<{
   entityTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
   deleteOnFileRemoval: z.ZodOptional<z.ZodBoolean>;
   maxImportFileBytes: z.ZodOptional<z.ZodNumber>;
+  maxAssetImportBytes: z.ZodOptional<z.ZodNumber>;
 }> = z.object({
   syncPath: z.string(),
   autoSync: z.boolean().optional(),
@@ -20,6 +22,7 @@ export const directorySyncOptionsSchema: z.ZodObject<{
   entityTypes: z.array(z.string()).optional(),
   deleteOnFileRemoval: z.boolean().optional(),
   maxImportFileBytes: z.number().int().positive().optional(),
+  maxAssetImportBytes: z.number().int().positive().optional(),
 });
 
 export type DirectorySyncOptionsInput = z.output<
@@ -31,13 +34,20 @@ export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
   logger: Logger;
 }
 
-export interface NormalizedDirectorySyncOptions {
+/** File-size limits applied when a file is read for import. */
+export interface ImportLimits {
+  /** Text and inline base64 binary entity types. */
+  maxImportFileBytes: number;
+  /** Entity types whose bytes are staged as assets. */
+  maxAssetImportBytes: number;
+}
+
+export interface NormalizedDirectorySyncOptions extends ImportLimits {
   originalSyncPath: string;
   syncPath: string;
   autoSync: boolean;
   watchInterval: number;
   deleteOnFileRemoval: boolean;
-  maxImportFileBytes: number;
   entityTypes: string[] | undefined;
 }
 
@@ -59,6 +69,7 @@ export function normalizeDirectorySyncOptions(
     deleteOnFileRemoval: options.deleteOnFileRemoval ?? true,
     maxImportFileBytes:
       options.maxImportFileBytes ?? DEFAULT_MAX_IMPORT_FILE_BYTES,
+    maxAssetImportBytes: options.maxAssetImportBytes ?? IMAGE_ASSET_MAX_BYTES,
     entityTypes: options.entityTypes,
   };
 }

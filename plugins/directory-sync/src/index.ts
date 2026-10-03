@@ -58,3 +58,5 @@ export {
   importResultSchema,
   syncResultSchema,
 } from "./schemas";
+/** File extensions directory sync reads and writes as binary images. */
+export { IMAGE_EXTENSIONS } from "./lib/image-file-utils";

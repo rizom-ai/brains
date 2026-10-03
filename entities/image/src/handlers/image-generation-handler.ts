@@ -7,7 +7,7 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { imageAdapter, setCoverImageId } from "@brains/image";
+import { setCoverImageId, stageImageEntity } from "@brains/image";
 import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
@@ -195,14 +195,18 @@ ${entityContent}`,
       });
 
       // Step 3: Create or update image entity
-      const entityData = imageAdapter.createImageEntity({
-        dataUrl: generationResult.dataUrl,
-        title,
-        status: "draft",
-        attachmentType: "generated",
-        ...(targetEntityType && { sourceEntityType: targetEntityType }),
-        ...(targetEntityId && { sourceEntityId: targetEntityId }),
-      });
+      // The provider's data URL is decoded while staging, never persisted.
+      const { entity: entityData, stagedAsset } = await stageImageEntity(
+        this.context.entityService,
+        { dataUrl: generationResult.dataUrl },
+        {
+          title,
+          status: "draft",
+          attachmentType: "generated",
+          ...(targetEntityType && { sourceEntityType: targetEntityType }),
+          ...(targetEntityId && { sourceEntityId: targetEntityId }),
+        },
+      );
 
       await saveProcessedEntity({
         entityService: this.context.entityService,
@@ -210,6 +214,7 @@ ${entityContent}`,
           ...entityData,
           id: imageId,
         },
+        stagedAsset,
       });
 
       this.logger.debug("Created image entity", { imageId });

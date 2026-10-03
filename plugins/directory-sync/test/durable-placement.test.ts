@@ -1,5 +1,8 @@
 import { describe, expect, test, spyOn } from "bun:test";
-import { createTestEntity } from "@brains/entity-service/test";
+import {
+  createMockAssetStore,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import type { BaseEntity } from "@brains/plugins";
 import {
   createMockServicePluginContext,
@@ -34,6 +37,7 @@ async function fixture(): Promise<{
   const files = new FileOperations(dir, {
     serializeEntity: (e): string => e.content,
     hasEntityType: (): boolean => true,
+    openAsset: createMockAssetStore().openAsset,
   });
   let pending: DurableEntityExportIntent[] = [];
   const dispatcher = new DurableEntityExportDispatcher({

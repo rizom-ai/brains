@@ -14,7 +14,11 @@ export {
 
 // Image entity adapter
 export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
-export type { CreateImageInput } from "./adapters/image-adapter";
+export type {
+  CreateAssetImageInput,
+  ImageDescription,
+  CreateImageInput,
+} from "./adapters/image-adapter";
 
 // Image resolver utilities
 export {
@@ -38,10 +42,46 @@ export {
   parseDataUrl,
   tryParseDataUrl,
   createDataUrl,
+  base64ImageReader,
+  bytesImageReader,
+  describeImage,
+  describeImageBytes,
+  fileImageReader,
   detectImageFormat,
   detectImageDimensions,
+  detectImageDimensionsFromBytes,
+  detectImageFormatFromBytes,
+  imageMediaType,
   isValidDataUrl,
   isHttpUrl,
   fetchImageAsBase64,
 } from "./lib/image-utils";
-export type { ParsedDataUrl } from "./lib/image-utils";
+export type {
+  ImageByteDescription,
+  ImageByteReader,
+  ParsedDataUrl,
+} from "./lib/image-utils";
+
+// Staging image bytes as assets
+export {
+  IMAGE_ASSET_MAX_BYTES,
+  stageImageEntity,
+  type ImageAssetStager,
+  type ImageBytesSource,
+  type StagedImageEntity,
+} from "./lib/stage-image";
+
+// Reading stored image bytes in either storage form
+export {
+  imageDataUrl,
+  readImageBytes,
+  type ImageBytes,
+  type StoredImage,
+} from "./lib/image-bytes";
+export {
+  classifyInlineImage,
+  inlineImagePayload,
+  LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  type InlineImageBlocker,
+  type InlineImageVerdict,
+} from "./lib/inline-image-migration";
