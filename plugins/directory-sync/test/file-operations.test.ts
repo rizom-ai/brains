@@ -11,6 +11,7 @@ import {
   writeFileSync,
   existsSync,
   readFileSync,
+  readdirSync,
   statSync,
   mkdtempSync,
   utimesSync,
@@ -367,6 +368,40 @@ describe("FileOperations", () => {
           TINY_PNG_BYTES,
         ),
       ).toBe(true);
+    });
+
+    it("leaves the previous file whole when streaming an asset fails", async () => {
+      const previous = Buffer.from("previous image bytes");
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "robot.png"), previous);
+      const failing = new FileOperations(testDir, {
+        ...mockEntityService,
+        openAsset: async (): Promise<AsyncIterable<Uint8Array>> =>
+          (async function* (): AsyncGenerator<Uint8Array> {
+            yield TINY_PNG_BYTES.subarray(0, 8);
+            throw new Error("chunk 2 failed its integrity check");
+          })(),
+      });
+      const asset = await assetStore.stageAsset(TINY_PNG_BYTES);
+
+      const error = await failing
+        .writeEntity(
+          createTestEntity("image", {
+            id: "robot",
+            content: asset.ref,
+            metadata: { format: "png", mediaType: "image/png" },
+          }),
+        )
+        .catch((failure: unknown) => failure);
+
+      expect(error).toMatchObject({
+        message: expect.stringContaining("integrity"),
+      });
+
+      expect(readFileSync(join(testDir, "image", "robot.png"))).toEqual(
+        previous,
+      );
+      expect(readdirSync(join(testDir, "image"))).toEqual(["robot.png"]);
     });
 
     it("writes no file for an image whose bytes do not exist yet", async () => {

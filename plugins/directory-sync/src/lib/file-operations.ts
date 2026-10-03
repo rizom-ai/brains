@@ -1,5 +1,5 @@
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -25,6 +25,7 @@ import {
   mkdir,
   open,
   readFile,
+  rename,
   unlink,
   writeFile,
   stat,
@@ -514,14 +515,27 @@ export async function fileDigest(filePath: string): Promise<string> {
   return hash.digest("hex");
 }
 
+/**
+ * Stream chunks into a hidden temporary file beside the target, then rename
+ * it over the target: a failed stream or a crash never leaves a truncated
+ * file for the next import to take as new bytes. Sync ignores dotfiles.
+ */
 async function writeChunks(
   filePath: string,
   chunks: AsyncIterable<Uint8Array>,
 ): Promise<void> {
-  const handle = await open(filePath, "w");
+  const temporary = `${dirname(filePath)}/.${basename(filePath)}.${randomUUID()}.tmp`;
   try {
-    for await (const chunk of chunks) await handle.write(chunk);
-  } finally {
-    await handle.close();
+    const handle = await open(temporary, "w");
+    try {
+      for await (const chunk of chunks) await handle.write(chunk);
+    } finally {
+      await handle.close();
+    }
+    await rename(temporary, filePath);
+  } catch (error) {
+    // Best-effort cleanup: the write's own failure is the one to report.
+    await unlink(temporary).catch(() => undefined);
+    throw error;
   }
 }
