@@ -1,5 +1,27 @@
-import { readdir, readlink } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+
+/** Which file an open handle refers to, and who owns it. */
+export interface FileIdentity {
+  dev: number;
+  ino: number;
+  uid: number;
+}
+
+/** The two reads holder detection makes under /proc; injectable for tests. */
+export interface ProcReader {
+  readdir(path: string): Promise<string[]>;
+  /** Follows a /proc/<pid>/fd/<n> link to the open file itself. */
+  stat(path: string): Promise<FileIdentity>;
+}
+
+const procReader: ProcReader = {
+  readdir: (path) => readdir(path),
+  stat: async (path) => {
+    const { dev, ino, uid } = await stat(path);
+    return { dev, ino, uid };
+  },
+};
 
 /**
  * Other processes holding a SQLite database, its WAL or its shared-memory
@@ -13,31 +35,74 @@ export async function findDatabaseHolders(
   databasePath: string,
 ): Promise<number[] | undefined> {
   const path = resolve(databasePath);
-  const watched = new Set([path, `${path}-wal`, `${path}-shm`]);
-  return (await procHolders(watched)) ?? (await lsofHolders([...watched]));
+  const watched = [path, `${path}-wal`, `${path}-shm`];
+  const files = (
+    await Promise.all(
+      watched.map((file) => procReader.stat(file).catch(() => undefined)),
+    )
+  ).filter((file): file is FileIdentity => file !== undefined);
+  const viaProc = await readdir("/proc").then(
+    () => findProcHolders(files, procReader),
+    () => null,
+  );
+  return viaProc === null ? lsofHolders(watched) : viaProc;
 }
 
-async function procHolders(
-  watched: Set<string>,
+/**
+ * Processes with one of `files` open, matched by device and inode so a
+ * symlinked path or another mount namespace still matches. A process whose
+ * handles cannot be read counts as a possible holder when it runs as the
+ * database's owner and that owner is not the operator, so the result is undefined ("cannot tell"); unreadable
+ * processes of other users, and processes that exit meanwhile, are skipped.
+ */
+export async function findProcHolders(
+  files: readonly FileIdentity[],
+  proc: ProcReader,
+  operatorUid: number = process.getuid?.() ?? -1,
 ): Promise<number[] | undefined> {
-  const entries = await readdir("/proc").catch(() => undefined);
-  if (!entries) return undefined;
-  const holders = await Promise.all(
-    entries
-      .filter((entry) => /^\d+$/.test(entry) && Number(entry) !== process.pid)
-      .map(async (pid) => {
-        const fds = await readdir(`/proc/${pid}/fd`).catch(() => []);
-        const targets = await Promise.all(
-          fds.map((fd) =>
-            readlink(`/proc/${pid}/fd/${fd}`).catch(() => undefined),
-          ),
-        );
-        return targets.some((target) => target && watched.has(target))
-          ? [Number(pid)]
-          : [];
-      }),
+  // The operator's own unreadable processes are non-dumpable (sd-pam, agents);
+  // a brain app the operator runs is always readable.
+  const owners = new Set(
+    files.map((file) => file.uid).filter((uid) => uid !== operatorUid),
   );
-  return holders.flat().sort((a, b) => a - b);
+  const opened = (handle: FileIdentity): boolean =>
+    files.some((file) => file.dev === handle.dev && file.ino === handle.ino);
+  const pids = (await proc.readdir("/proc")).filter(
+    (entry) => /^\d+$/.test(entry) && Number(entry) !== process.pid,
+  );
+  const verdicts = await Promise.all(
+    pids.map(async (pid): Promise<"holds" | "unknown" | "clear"> => {
+      const fds = await proc
+        .readdir(`/proc/${pid}/fd`)
+        .catch((error: unknown) => error);
+      if (!Array.isArray(fds)) {
+        if (!isPermissionError(fds)) return "clear";
+        const runsAs = await proc.stat(`/proc/${pid}`).catch(() => undefined);
+        return runsAs && owners.has(runsAs.uid) ? "unknown" : "clear";
+      }
+      const handles = await Promise.all(
+        fds.map((fd) =>
+          proc.stat(`/proc/${pid}/fd/${fd}`).catch(() => undefined),
+        ),
+      );
+      return handles.some((handle) => handle && opened(handle))
+        ? "holds"
+        : "clear";
+    }),
+  );
+  if (verdicts.includes("unknown")) return undefined;
+  return pids
+    .filter((_, index) => verdicts[index] === "holds")
+    .map(Number)
+    .sort((a, b) => a - b);
+}
+
+function isPermissionError(error: unknown): boolean {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? error.code
+      : undefined;
+  return code === "EACCES" || code === "EPERM";
 }
 
 async function lsofHolders(paths: string[]): Promise<number[] | undefined> {
