@@ -1,5 +1,16 @@
 # @brains/atproto
 
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.480
+  - @brains/plugins@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/site-composition@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
 ## 0.2.0-alpha.479
 
 ### Patch Changes

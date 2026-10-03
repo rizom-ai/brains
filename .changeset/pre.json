@@ -600,6 +600,7 @@
     "core--site-routes-reach-the-worker",
     "core--site-template-render-version",
     "core--sqlite-asset-foundation",
+    "core--sqlite-client-contention-contract",
     "core--sqlite-fail-fast-contention",
     "core--sqlite-pragma-contention-retry",
     "core--standalone-ask-design",

@@ -1,5 +1,17 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/entity-service@0.2.0-alpha.480
+  - @brains/image@0.2.0-alpha.480
+  - @brains/ui-library@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/site-composition@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
 ## 0.2.0-alpha.479
 
 ### Patch Changes
