@@ -210,11 +210,23 @@ function vectorDigestDatabase(database: Database): {
   sha256: string;
 } {
   const hasher = new Bun.CryptoHasher("sha256");
-  const tables = [
-    ["embeddings", "entity_id, entity_type"],
-    ["embeddings_embedding_idx_shadow", "index_key"],
-    ["libsql_vector_meta_shadow", "name"],
-  ] as const;
+  // A vector index keeps its entries in libSQL shadow tables. They exist only
+  // while an index does: a retired index drops its own shadow table, and a
+  // database that never had one has neither. The embeddings rows always count.
+  const existing = new Set(
+    database
+      .query("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all()
+      .filter(isPlainRecord)
+      .map((row) => String(row["name"])),
+  );
+  const tables = (
+    [
+      ["embeddings", "entity_id, entity_type"],
+      ["embeddings_embedding_idx_shadow", "index_key"],
+      ["libsql_vector_meta_shadow", "name"],
+    ] as const
+  ).filter(([table]) => table === "embeddings" || existing.has(table));
   const counts: Record<string, number> = {};
   for (const [table, order] of tables) {
     hasher.update(`table:${table}\n`);
