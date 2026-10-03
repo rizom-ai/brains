@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { setTimeout as sleep } from "node:timers/promises";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
 import {
@@ -82,6 +83,38 @@ describe("ConversationService", () => {
         },
       },
     };
+
+    it("retries guest-message transaction acquisition without duplicating the transcript", async () => {
+      await client.execute("PRAGMA journal_mode = WAL");
+      await service.startConversation(guestRequest);
+      const held = await client.transaction("write");
+      const reconnect = spyOn(client, "reconnect");
+      try {
+        const pending = service
+          .addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "user",
+            content: "contention test",
+          })
+          .then(
+            () => ({ completed: true }),
+            (error: unknown) => ({ error }),
+          );
+        await sleep(25);
+        await held.commit();
+        const outcome = await pending;
+        if ("error" in outcome) throw outcome.error;
+        expect(outcome.completed).toBe(true);
+        expect(reconnect.mock.calls.length).toBeGreaterThan(0);
+        expect(await service.countMessages(guestRequest.sessionId)).toBe(1);
+        expect(await service.getMessages(guestRequest.sessionId)).toHaveLength(
+          1,
+        );
+      } finally {
+        held.close();
+        reconnect.mockRestore();
+      }
+    });
 
     it("keeps guest transcripts out of broadcasts, summaries and routine logs", async () => {
       const send = spyOn(messageBus, "send");
@@ -568,7 +601,7 @@ describe("ConversationService", () => {
   });
 
   describe("database readiness", () => {
-    it("applies the busy timeout so concurrent writers wait instead of failing", async () => {
+    it("disables native busy waiting so an in-process lock holder can continue", async () => {
       const owned = ConversationService.createFreshFromConfig(
         logger,
         messageBus,
@@ -580,7 +613,7 @@ describe("ConversationService", () => {
 
         const ownedClient = owned.getDatabaseClient();
         const busyTimeout = await ownedClient.execute("PRAGMA busy_timeout");
-        expect(busyTimeout.rows[0]?.["timeout"]).toBe(5000);
+        expect(busyTimeout.rows[0]?.["timeout"]).toBe(0);
       } finally {
         owned.close();
       }
