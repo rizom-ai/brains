@@ -2,14 +2,19 @@ import { describe, expect, it } from "bun:test";
 import {
   parseDataUrl,
   createDataUrl,
+  base64ImageReader,
+  bytesImageReader,
+  describeImage,
   describeImageBytes,
   detectImageDimensionsFromBytes,
+  type ImageByteReader,
   detectImageFormat,
   detectImageFormatFromBytes,
   imageMediaType,
   isValidDataUrl,
   toImageFormat,
 } from "../src/lib/image-utils";
+import { jpeg, jpegFrame, jpegMetadata, jpegSegment } from "./fixtures/jpeg";
 
 describe("toImageFormat", () => {
   it("accepts the supported formats", () => {
@@ -190,5 +195,79 @@ describe("isValidDataUrl", () => {
 
   it("should return false for non-image data URL", () => {
     expect(isValidDataUrl("data:text/plain;base64,abc")).toBe(false);
+  });
+});
+
+function countingReader(read: ImageByteReader): {
+  read: ImageByteReader;
+  bytes: () => number;
+} {
+  let bytes = 0;
+  return {
+    read: async (start, end): Promise<Uint8Array> => {
+      const chunk = await read(start, end);
+      bytes += chunk.byteLength;
+      return chunk;
+    },
+    bytes: () => bytes,
+  };
+}
+
+describe("describeImage", () => {
+  it("finds a JPEG frame behind more than 256 KiB of metadata", async () => {
+    const image = jpeg(...jpegMetadata(400 * 1024), jpegFrame(4032, 3024));
+
+    expect(await describeImage(bytesImageReader(image))).toEqual({
+      format: "jpg",
+      mediaType: "image/jpeg",
+      width: 4032,
+      height: 3024,
+    });
+    expect(detectImageDimensionsFromBytes(image)).toEqual({
+      width: 4032,
+      height: 3024,
+    });
+  });
+
+  it("skips a thumbnail's frame header inside an EXIF segment", async () => {
+    const thumbnail = jpeg(jpegFrame(160, 120));
+    const image = jpeg(jpegSegment(0xe1, thumbnail), jpegFrame(4032, 3024));
+
+    expect(detectImageDimensionsFromBytes(image)).toEqual({
+      width: 4032,
+      height: 3024,
+    });
+    expect(await describeImage(bytesImageReader(image))).toMatchObject({
+      width: 4032,
+      height: 3024,
+    });
+  });
+
+  it("reads only segment headers, not the metadata between them", async () => {
+    const image = jpeg(...jpegMetadata(400 * 1024), jpegFrame(800, 600));
+    const counting = countingReader(bytesImageReader(image));
+
+    await describeImage(counting.read);
+
+    expect(counting.bytes()).toBeLessThan(1024);
+  });
+
+  it("decodes only the requested ranges of a base64 payload", async () => {
+    const image = jpeg(...jpegMetadata(300 * 1024), jpegFrame(1920, 1080));
+    const reader = base64ImageReader(image.toString("base64"));
+
+    expect(await describeImage(reader)).toMatchObject({
+      width: 1920,
+      height: 1080,
+    });
+    expect(Buffer.from(await reader(5, 17)).equals(image.subarray(5, 17))).toBe(
+      true,
+    );
+  });
+
+  it("describes nothing that is not a supported image", async () => {
+    expect(
+      await describeImage(bytesImageReader(Buffer.from("not an image"))),
+    ).toBeUndefined();
   });
 });

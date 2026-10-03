@@ -116,10 +116,15 @@ describe("ImageAdapter", () => {
       sizeBytes: bytes.byteLength,
     };
 
-    it("derives binary metadata from the bytes and stores the reference", () => {
+    it("records the described bytes and stores the reference", () => {
       const result = imageAdapter.createAssetImageEntity({
         asset,
-        bytes,
+        description: {
+          format: "png",
+          mediaType: "image/png",
+          width: 1,
+          height: 1,
+        },
         title: "Uploaded",
         status: "draft",
         attachmentType: "uploaded",
@@ -146,16 +151,6 @@ describe("ImageAdapter", () => {
           ...result,
         }).success,
       ).toBe(true);
-    });
-
-    it("rejects bytes that are not a supported raster image", () => {
-      expect(() =>
-        imageAdapter.createAssetImageEntity({
-          asset,
-          bytes: Buffer.from("<svg></svg>"),
-          title: "Vector",
-        }),
-      ).toThrow("Unsupported image format");
     });
   });
 

@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto";
 import { basename, dirname, extname, join } from "node:path";
-import {
-  describeImageBytes,
-  IMAGE_HEADER_BYTES,
-  tryParseDataUrl,
-} from "@brains/image";
+import { describeImage, fileImageReader, tryParseDataUrl } from "@brains/image";
 import {
   assetRefSchema,
   base64AssetSource,
@@ -68,9 +64,7 @@ export async function importImageFile(
     }
   }
 
-  const described = describeImageBytes(
-    await Bun.file(file.fullPath).slice(0, IMAGE_HEADER_BYTES).bytes(),
-  );
+  const described = await describeImage(fileImageReader(file.fullPath));
   if (!described) {
     recordSkippedImport(result);
     recordImportIssue(

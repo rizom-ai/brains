@@ -42,8 +42,11 @@ export {
   parseDataUrl,
   tryParseDataUrl,
   createDataUrl,
+  base64ImageReader,
+  bytesImageReader,
+  describeImage,
   describeImageBytes,
-  IMAGE_HEADER_BYTES,
+  fileImageReader,
   detectImageFormat,
   detectImageDimensions,
   detectImageDimensionsFromBytes,
@@ -53,7 +56,11 @@ export {
   isHttpUrl,
   fetchImageAsBase64,
 } from "./lib/image-utils";
-export type { ImageByteDescription, ParsedDataUrl } from "./lib/image-utils";
+export type {
+  ImageByteDescription,
+  ImageByteReader,
+  ParsedDataUrl,
+} from "./lib/image-utils";
 
 // Staging image bytes as assets
 export {

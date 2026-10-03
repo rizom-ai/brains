@@ -8,10 +8,12 @@ import {
   type AssetSource,
 } from "@brains/entity-service";
 import {
-  describeImageBytes,
-  IMAGE_HEADER_BYTES,
+  bytesImageReader,
+  describeImage,
+  fileImageReader,
   inlineImagePayload,
   type ImageByteDescription,
+  type ImageByteReader,
 } from "@brains/image";
 
 /** Binary image files first, then text-form `.md` data URLs. */
@@ -22,8 +24,8 @@ export interface ImageFile {
   id: string;
   digest: string;
   sizeBytes: number;
-  /** The leading bytes, enough to describe the image. */
-  header: Uint8Array;
+  /** Reads ranges of the bytes, to describe the image without loading it. */
+  read: ImageByteReader;
   created: Date;
   updated: Date;
   /** A fresh read of the bytes, for staging. */
@@ -65,7 +67,7 @@ export async function readReadableImageFile(
   const read = await Promise.all(
     paths.map(async (path) => {
       const file = await readImageFile(id, path);
-      const description = file && describeImageBytes(file.header);
+      const description = file && (await describeImage(file.read));
       return { path, file: file && description && { ...file, description } };
     }),
   );
@@ -97,7 +99,7 @@ export async function readImageFile(
       id,
       digest: computeAssetDigest(bytes),
       sizeBytes: bytes.byteLength,
-      header: bytes.subarray(0, IMAGE_HEADER_BYTES),
+      read: bytesImageReader(bytes),
       ...times,
       source: () => bytes,
     };
@@ -108,7 +110,7 @@ export async function readImageFile(
     id,
     digest: hash.digest("hex"),
     sizeBytes: stats.size,
-    header: await Bun.file(path).slice(0, IMAGE_HEADER_BYTES).bytes(),
+    read: fileImageReader(path),
     ...times,
     source: () => Bun.file(path).stream(),
   };

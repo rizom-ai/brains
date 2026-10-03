@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { computeAssetDigest, createAssetRef } from "@brains/entity-service";
 import { createMockAssetStore } from "@brains/entity-service/test";
 import { IMAGE_ASSET_MAX_BYTES, stageImageEntity } from "../src";
+import { jpeg, jpegFrame, jpegMetadata } from "./fixtures/jpeg";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -48,6 +49,22 @@ describe("stageImageEntity", () => {
     );
 
     expect(stagedAsset.ref).toBe(createAssetRef(computeAssetDigest(TINY_PNG)));
+  });
+
+  it("describes a JPEG data URL whose frame follows more than 256 KiB of metadata", async () => {
+    const image = jpeg(...jpegMetadata(300 * 1024), jpegFrame(4032, 3024));
+
+    const { entity } = await stageImageEntity(
+      createMockAssetStore(),
+      { dataUrl: `data:image/jpeg;base64,${image.toString("base64")}` },
+      { title: "Photo" },
+    );
+
+    expect(entity.metadata).toMatchObject({
+      format: "jpg",
+      width: 4032,
+      height: 3024,
+    });
   });
 
   it("rejects bytes that are not a supported raster image before staging", async () => {

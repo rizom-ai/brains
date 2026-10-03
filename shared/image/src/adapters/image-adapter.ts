@@ -13,10 +13,10 @@ import {
 } from "../schemas/image";
 import {
   parseDataUrl,
-  describeImageBytes,
   detectImageDimensions,
   detectImageFormat,
   toImageFormat,
+  type ImageByteDescription,
 } from "../lib/image-utils";
 
 /**
@@ -58,8 +58,8 @@ export interface CreateImageInput extends ImageDescription {
 /** Input for an image whose bytes were staged as an asset. */
 export interface CreateAssetImageInput extends ImageDescription {
   asset: { ref: AssetRef; sizeBytes: number };
-  /** The staged bytes; only their headers are read. */
-  bytes: Uint8Array;
+  /** The staged bytes' format, media type and size, read from the bytes. */
+  description: ImageByteDescription;
 }
 
 function describedMetadata(
@@ -183,16 +183,12 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 
   /**
-   * Create image entity data for staged bytes. Format, media type and
-   * dimensions come from the bytes; only supported raster formats qualify.
+   * Create image entity data for staged bytes, with the format, media type
+   * and dimensions described from those bytes.
    */
   public createAssetImageEntity(
     input: CreateAssetImageInput,
   ): Pick<Image, "entityType" | "content" | "metadata"> {
-    const bytes = describeImageBytes(input.bytes);
-    if (!bytes) {
-      throw new Error("Unsupported image format: not a PNG, JPEG, GIF or WebP");
-    }
     const { title, alt, ...described } = describedMetadata(input);
     return {
       entityType: "image",
@@ -200,7 +196,7 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
       metadata: {
         title,
         alt,
-        ...bytes,
+        ...input.description,
         sizeBytes: input.asset.sizeBytes,
         ...described,
       },

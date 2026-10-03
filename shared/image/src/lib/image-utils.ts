@@ -141,12 +141,6 @@ export function imageMediaType(format: ImageFormat): string {
   }
 }
 
-/**
- * Header bytes read to describe an image: enough for a JPEG frame header
- * behind typical EXIF segments.
- */
-export const IMAGE_HEADER_BYTES: number = 256 * 1024;
-
 /** A raster image's binary facts, read from its header bytes. */
 export interface ImageByteDescription {
   format: ImageFormat;
@@ -171,6 +165,110 @@ export function describeImageBytes(
     width: dimensions?.width ?? 0,
     height: dimensions?.height ?? 0,
   };
+}
+
+/** Bytes `start` (inclusive) to `end` (exclusive) of an image; shorter at its end. */
+export type ImageByteReader = (
+  start: number,
+  end: number,
+) => Promise<Uint8Array>;
+
+type ByteRange = [start: number, end: number];
+interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
+/** Bytes PNG, GIF and WebP keep their size in; a JPEG walks its segments. */
+const FIXED_HEADER_BYTES = 64;
+
+/**
+ * Describe a supported raster image by reading only the bytes that carry its
+ * facts: a JPEG's frame header is found by skipping whole segments, however
+ * much metadata precedes it. Undefined when it is not a PNG, JPEG, GIF or WebP.
+ */
+export async function describeImage(
+  read: ImageByteReader,
+): Promise<ImageByteDescription | undefined> {
+  const header = await read(0, FIXED_HEADER_BYTES);
+  const format = detectImageFormatFromBytes(header);
+  if (!format) return undefined;
+  const dimensions =
+    format === "jpg" || format === "jpeg"
+      ? await readJpegFrameSize(read)
+      : detectImageDimensionsFromBytes(header);
+  return {
+    format,
+    mediaType: imageMediaType(format),
+    width: dimensions?.width ?? 0,
+    height: dimensions?.height ?? 0,
+  };
+}
+
+/** Read ranges of bytes held in memory. */
+export function bytesImageReader(bytes: Uint8Array): ImageByteReader {
+  return async (start, end): Promise<Uint8Array> => bytes.subarray(start, end);
+}
+
+/** Read ranges of a base64 payload, decoding only the characters they span. */
+export function base64ImageReader(base64: string): ImageByteReader {
+  const payload = /\s/.test(base64) ? base64.replace(/\s/g, "") : base64;
+  return async (start, end): Promise<Uint8Array> => {
+    const first = Math.floor(start / 3);
+    const decoded = Buffer.from(
+      payload.slice(first * 4, Math.ceil(end / 3) * 4),
+      "base64",
+    );
+    return decoded.subarray(start - first * 3, end - first * 3);
+  };
+}
+
+/** Read ranges of a file without loading it. */
+export function fileImageReader(path: string): ImageByteReader {
+  return (start, end): Promise<Uint8Array> =>
+    Bun.file(path).slice(start, end).bytes();
+}
+
+async function readJpegFrameSize(
+  read: ImageByteReader,
+): Promise<ImageDimensions | null> {
+  const walk = jpegFrameSize(2);
+  const step = async (
+    next: IteratorResult<ByteRange, ImageDimensions | null>,
+  ): Promise<ImageDimensions | null> =>
+    next.done ? next.value : step(walk.next(await read(...next.value)));
+  return step(walk.next(new Uint8Array()));
+}
+
+/**
+ * Walk a JPEG's segments from `offset` by their declared lengths, asking for
+ * only the bytes each step needs, until a frame header gives the size. EXIF
+ * thumbnails sit inside APP payloads, so their frame headers are skipped.
+ */
+function* jpegFrameSize(
+  offset: number,
+): Generator<ByteRange, ImageDimensions | null, Uint8Array> {
+  const marker = Buffer.from(yield [offset, offset + 4]);
+  if (marker.byteLength < 2 || marker[0] !== 0xff) return null;
+  const code = marker[1] ?? 0;
+  // Fill bytes pad between segments.
+  if (code === 0xff) return yield* jpegFrameSize(offset + 1);
+  // Standalone markers carry no length.
+  if (code === 0x01 || (code >= 0xd0 && code <= 0xd7)) {
+    return yield* jpegFrameSize(offset + 2);
+  }
+  // Scan data or the end of the image: no frame header came first.
+  if (code === 0xda || code === 0xd9) return null;
+  if (marker.byteLength < 4) return null;
+  // Every SOFn except DHT (C4), JPG (C8) and DAC (CC) carries the frame size.
+  if (code >= 0xc0 && code <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(code)) {
+    const size = Buffer.from(yield [offset + 5, offset + 9]);
+    if (size.byteLength < 4) return null;
+    return { height: size.readUInt16BE(0), width: size.readUInt16BE(2) };
+  }
+  const length = marker.readUInt16BE(2);
+  if (length < 2) return null;
+  return yield* jpegFrameSize(offset + 2 + length);
 }
 
 /**
@@ -201,25 +299,13 @@ export function detectImageDimensionsFromBytes(
     return { width, height };
   }
 
-  // JPEG: Need to scan for SOF0/SOF2 marker
   if (buffer[0] === 0xff && buffer[1] === 0xd8) {
-    let offset = 2;
-    while (offset < buffer.length - 8) {
-      if (buffer[offset] !== 0xff) {
-        offset++;
-        continue;
-      }
-      const marker = buffer[offset + 1];
-      // SOF0 (0xC0) or SOF2 (0xC2) - Start of Frame
-      if (marker === 0xc0 || marker === 0xc2) {
-        const height = buffer.readUInt16BE(offset + 5);
-        const width = buffer.readUInt16BE(offset + 7);
-        return { width, height };
-      }
-      // Skip to next marker
-      const length = buffer.readUInt16BE(offset + 2);
-      offset += 2 + length;
-    }
+    const walk = jpegFrameSize(2);
+    const step = (
+      next: IteratorResult<ByteRange, ImageDimensions | null>,
+    ): ImageDimensions | null =>
+      next.done ? next.value : step(walk.next(buffer.subarray(...next.value)));
+    return step(walk.next(new Uint8Array()));
   }
 
   // GIF: width at bytes 6-7, height at bytes 8-9 (little-endian)

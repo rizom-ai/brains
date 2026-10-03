@@ -7,9 +7,11 @@ import {
 import { imageAdapter, type ImageDescription } from "../adapters/image-adapter";
 import type { Image } from "../schemas/image";
 import {
-  detectImageFormatFromBytes,
-  IMAGE_HEADER_BYTES,
+  base64ImageReader,
+  bytesImageReader,
+  describeImage,
   parseDataUrl,
+  type ImageByteReader,
 } from "./image-utils";
 
 /**
@@ -17,9 +19,6 @@ import {
  * independent of size; this bounds consumers that still need whole buffers.
  */
 export const IMAGE_ASSET_MAX_BYTES: number = 25 * 1024 * 1024;
-
-/** Base64 characters decoded up front to read an image's header bytes. */
-const HEADER_BASE64_CHARS = Math.ceil(IMAGE_HEADER_BYTES / 3) * 4;
 
 /** The staging half of the entity service. */
 export interface ImageAssetStager {
@@ -47,8 +46,9 @@ export async function stageImageEntity(
   source: ImageBytesSource,
   description: ImageDescription,
 ): Promise<StagedImageEntity> {
-  const { header, bytes } = openImageSource(source);
-  if (!detectImageFormatFromBytes(header)) {
+  const { read, bytes } = openImageSource(source);
+  const facts = await describeImage(read);
+  if (!facts) {
     throw new Error("Unsupported image format: not a PNG, JPEG, GIF or WebP");
   }
   const stagedAsset = await stager.stageAsset(bytes, {
@@ -59,19 +59,18 @@ export async function stageImageEntity(
     entity: imageAdapter.createAssetImageEntity({
       ...description,
       asset: stagedAsset,
-      bytes: header,
+      description: facts,
     }),
   };
 }
 
 function openImageSource(source: ImageBytesSource): {
-  header: Uint8Array;
+  read: ImageByteReader;
   bytes: AssetSource;
 } {
-  if ("bytes" in source) return { header: source.bytes, bytes: source.bytes };
+  if ("bytes" in source) {
+    return { read: bytesImageReader(source.bytes), bytes: source.bytes };
+  }
   const { base64 } = parseDataUrl(source.dataUrl);
-  return {
-    header: Buffer.from(base64.slice(0, HEADER_BASE64_CHARS), "base64"),
-    bytes: base64AssetSource(base64),
-  };
+  return { read: base64ImageReader(base64), bytes: base64AssetSource(base64) };
 }
