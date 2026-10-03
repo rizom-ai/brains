@@ -15,6 +15,7 @@ import {
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { MockEntityStore } from "./mock-entity-store";
+import { createMockReceiptMethods } from "./mock-entity-receipts";
 
 /**
  * A stateful EntityService double over a shared store.
@@ -53,7 +54,7 @@ export function createMockEntityService(
 
   // Mirrors the real query layer's ORDER BY: system fields come from the
   // entity, everything else from metadata; NULLs sort smallest (SQLite),
-  // and nullsFirst forces them ahead regardless of direction.
+  // and nullsFirst / nullsLast force them ahead / behind regardless of direction.
   function sortFieldValue(entity: BaseEntity, field: string): unknown {
     if (field === "id" || field === "created" || field === "updated") {
       return entity[field];
@@ -68,7 +69,7 @@ export function createMockEntityService(
       NonNullable<ListEntitiesRequest["options"]>["sortFields"]
     >,
   ): number {
-    for (const { field, direction, nullsFirst } of sortFields) {
+    for (const { field, direction, nullsFirst, nullsLast } of sortFields) {
       const a = sortFieldValue(left, field);
       const b = sortFieldValue(right, field);
       const aNull = a === null || a === undefined;
@@ -76,6 +77,7 @@ export function createMockEntityService(
       if (aNull || bNull) {
         if (aNull && bNull) continue;
         if (nullsFirst) return aNull ? -1 : 1;
+        if (nullsLast) return aNull ? 1 : -1;
         // SQLite: NULL is smaller than every value.
         const nullCmp = aNull ? -1 : 1;
         if (direction === "desc") return -nullCmp;
@@ -151,6 +153,7 @@ export function createMockEntityService(
   }
 
   const service: IEntityService = {
+    ...createMockReceiptMethods(store),
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
     ): Promise<EntityMutationResult> => {

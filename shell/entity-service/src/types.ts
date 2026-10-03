@@ -85,6 +85,23 @@ export type {
 } from "./mutation-admission";
 
 import type { EntityWriteCondition } from "./entity-write-contracts";
+import type {
+  EntityMutationReceipt,
+  EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+
+/** First committed result wins, even if retries choose a different destination.
+ * Receipts survive destination edits, folds and deletion. Transaction retries
+ * never replay callbacks; validation can still run in separate attempts.
+ * A content conflict does not consume the identity. This is not an author SDK API.
+ */
+export type ApplyEntityMutationOnceRequest = {
+  receipt: EntityMutationReceiptKey;
+} & (
+  | { operation: "none" }
+  | { operation: "create"; request: CreateEntityRequest<BaseEntity> }
+  | { operation: "update"; request: UpdateEntityRequest<BaseEntity> }
+);
 
 export interface EntityWriteSnapshot {
   entity: BaseEntity;
@@ -546,6 +563,8 @@ export interface SortField {
   direction: "asc" | "desc";
   /** Sort NULL values before non-NULL values (default: false / SQLite default) */
   nullsFirst?: boolean;
+  /** Sort NULL values after non-NULL values, whatever the direction */
+  nullsLast?: boolean;
 }
 
 /**
@@ -1186,6 +1205,12 @@ export interface EntityServiceClient extends ICoreEntityService {
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
   foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
+  getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null>;
+  applyEntityMutationOnce(
+    request: ApplyEntityMutationOnceRequest,
+  ): Promise<EntityMutationReceipt>;
   upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;

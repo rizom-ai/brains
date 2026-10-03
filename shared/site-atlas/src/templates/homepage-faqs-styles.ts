@@ -43,6 +43,9 @@ export const homepageFaqsStyles: string = String.raw`
   font: 500 1.19rem/1.3 var(--font-heading); color: var(--color-heading); margin: 1.4em 0 .4em;
 }
 .faqs__answer strong { color: var(--color-heading); font-weight: 600; }
+.faqs__answer a { color: var(--color-accent); text-decoration: underline; text-underline-offset: .15em; }
+.faqs__answer > :first-child { margin-top: 0; }
+.faqs__answer > :last-child { margin-bottom: 0; }
 .faqs__answer p { margin: 0 0 .9em; }
 .faqs__answer ol, .faqs__answer ul { margin: 0 0 .9em; padding-left: 1.3em; }
 .faqs__answer ul { list-style: disc; }

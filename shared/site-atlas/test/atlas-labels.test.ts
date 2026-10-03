@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { layoutZoneLabels } from "../src/lib/atlas-labels";
-import { atlasPosition } from "../src/lib/atlas-terrain";
+import { atlasTop } from "../src/lib/atlas-terrain";
 
 const zone = {
   id: "ecosystem",
@@ -24,9 +24,9 @@ const labelTop = (
 describe("atlas zone labels", () => {
   it("sits just above the territory's highest mark", () => {
     const top = labelTop([zone], [member], "ecosystem");
-    expect(top).toBeLessThan(atlasPosition(member.y));
+    expect(top).toBeLessThan(atlasTop(member.y));
     // Above the territory's upper slope, not floating far from it.
-    expect(top).toBeGreaterThan(atlasPosition(member.y) - 10);
+    expect(top).toBeGreaterThan(atlasTop(member.y) - 10);
   });
 
   it("steps clear of a neighbouring territory's mark under its text", () => {
@@ -34,7 +34,7 @@ describe("atlas zone labels", () => {
     const intruder = { x: 0.45, y: (clear - 1.5 - 6) / 88, zoneId: "other" };
     const moved = labelTop([zone], [member, intruder], "ecosystem");
     expect(moved).not.toBe(clear);
-    const intruderY = atlasPosition(intruder.y);
+    const intruderY = atlasTop(intruder.y);
     expect(moved - 4.2 <= intruderY && intruderY <= moved + 1).toBe(false);
   });
 
@@ -42,7 +42,7 @@ describe("atlas zone labels", () => {
     // The territory's top mark sits right where a top-edge label would rest.
     const top = { x: 0.5, y: (9 - 6) / 88, zoneId: "ecosystem" };
     const bottom = labelTop([{ ...zone, y: 0.05 }], [top, member], "ecosystem");
-    const markY = atlasPosition(top.y);
+    const markY = atlasTop(top.y);
     expect(markY >= bottom - 4.2 && markY <= bottom + 2.5).toBe(false);
   });
 

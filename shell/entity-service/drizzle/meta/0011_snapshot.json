@@ -1,23 +1,16 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aa8c2612-6734-4924-9ceb-394ca69ca0bf",
+  "id": "3ec10903-6739-4d97-b6e2-7e00b0e1cbf3",
   "prevId": "f8757b36-7729-4732-b143-5a0e6883022f",
   "tables": {
-    "asset_chunks": {
-      "name": "asset_chunks",
+    "assets": {
+      "name": "assets",
       "columns": {
-        "upload_id": {
-          "name": "upload_id",
+        "digest": {
+          "name": "digest",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "ordinal": {
-          "name": "ordinal",
-          "type": "integer",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true,
           "autoincrement": false
         },
@@ -27,49 +20,11 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "asset_chunks_upload_id_asset_uploads_upload_id_fk": {
-          "name": "asset_chunks_upload_id_asset_uploads_upload_id_fk",
-          "tableFrom": "asset_chunks",
-          "tableTo": "asset_uploads",
-          "columnsFrom": ["upload_id"],
-          "columnsTo": ["upload_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "asset_chunks_upload_id_ordinal_pk": {
-          "columns": ["upload_id", "ordinal"],
-          "name": "asset_chunks_upload_id_ordinal_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {
-        "asset_chunks_ordinal_check": {
-          "name": "asset_chunks_ordinal_check",
-          "value": "\"asset_chunks\".\"ordinal\" >= 0"
         },
-        "asset_chunks_bytes_type_check": {
-          "name": "asset_chunks_bytes_type_check",
-          "value": "typeof(\"asset_chunks\".\"bytes\") = 'blob'"
-        },
-        "asset_chunks_bytes_length_check": {
-          "name": "asset_chunks_bytes_length_check",
-          "value": "length(\"asset_chunks\".\"bytes\") BETWEEN 1 AND 1048576"
-        }
-      }
-    },
-    "asset_uploads": {
-      "name": "asset_uploads",
-      "columns": {
-        "upload_id": {
-          "name": "upload_id",
-          "type": "text",
-          "primaryKey": true,
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -85,67 +40,6 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "assets": {
-      "name": "assets",
-      "columns": {
-        "digest": {
-          "name": "digest",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "upload_id": {
-          "name": "upload_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "size_bytes": {
-          "name": "size_bytes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "chunk_count": {
-          "name": "chunk_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created": {
-          "name": "created",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "assets_upload_id_unique": {
-          "name": "assets_upload_id_unique",
-          "columns": ["upload_id"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "assets_upload_id_asset_uploads_upload_id_fk": {
-          "name": "assets_upload_id_asset_uploads_upload_id_fk",
-          "tableFrom": "assets",
-          "tableTo": "asset_uploads",
-          "columnsFrom": ["upload_id"],
-          "columnsTo": ["upload_id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "checkConstraints": {
         "assets_digest_length_check": {
           "name": "assets_digest_length_check",
@@ -155,13 +49,17 @@
           "name": "assets_digest_alphabet_check",
           "value": "\"assets\".\"digest\" NOT GLOB '*[^0-9a-f]*'"
         },
+        "assets_bytes_type_check": {
+          "name": "assets_bytes_type_check",
+          "value": "typeof(\"assets\".\"bytes\") = 'blob'"
+        },
         "assets_size_nonnegative_check": {
           "name": "assets_size_nonnegative_check",
           "value": "\"assets\".\"size_bytes\" >= 0"
         },
-        "assets_chunk_count_check": {
-          "name": "assets_chunk_count_check",
-          "value": "\"assets\".\"chunk_count\" = (\"assets\".\"size_bytes\" + 1048575) / 1048576"
+        "assets_size_matches_bytes_check": {
+          "name": "assets_size_matches_bytes_check",
+          "value": "length(\"assets\".\"bytes\") = \"assets\".\"size_bytes\""
         }
       }
     },
@@ -294,6 +192,49 @@
         "entity_export_intents_entity_type_entity_id_pk": {
           "columns": ["entity_type", "entity_id"],
           "name": "entity_export_intents_entity_type_entity_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "entity_mutation_receipts": {
+      "name": "entity_mutation_receipts",
+      "columns": {
+        "namespace": {
+          "name": "namespace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "entity_mutation_receipts_namespace_key_pk": {
+          "columns": ["namespace", "key"],
+          "name": "entity_mutation_receipts_namespace_key_pk"
         }
       },
       "uniqueConstraints": {},
