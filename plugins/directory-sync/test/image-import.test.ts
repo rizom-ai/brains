@@ -491,6 +491,23 @@ describe("Image Import - Regression Tests", () => {
       expect(existsSync(path)).toBe(true);
     });
 
+    it("tells the user to rasterize an SVG, which images no longer store", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const path = join(testDir, "image", "logo.svg");
+      writeFileSync(path, '<svg xmlns="http://www.w3.org/2000/svg"/>');
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      const result = await dirSync.importEntities();
+
+      expect(result.skipped).toBe(1);
+      expect(result.issues?.[0]).toMatchObject({
+        path: "image/logo.svg",
+        message: expect.stringContaining("rasterize"),
+      });
+      expect(stage).not.toHaveBeenCalled();
+      expect(existsSync(path)).toBe(true);
+    });
+
     it("applies the asset import limit instead of the ordinary limit", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);

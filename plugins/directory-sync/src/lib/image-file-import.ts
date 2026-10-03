@@ -70,7 +70,9 @@ export async function importImageFile(
     recordImportIssue(
       result,
       filePath,
-      "Skipped: the file is not a PNG, JPEG, GIF or WebP image.",
+      extname(file.fullPath).toLowerCase() === ".svg"
+        ? "Skipped: images store PNG, JPEG, GIF or WebP only; rasterize this SVG to PNG or WebP to import it."
+        : "Skipped: the file is not a PNG, JPEG, GIF or WebP image.",
     );
     return;
   }
