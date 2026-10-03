@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { atlasPosition, buildAtlasTerrain } from "../src/lib/atlas-terrain";
+import {
+  atlasLeft,
+  atlasTop,
+  buildAtlasTerrain,
+} from "../src/lib/atlas-terrain";
 
 const zones = [
   { x: 0.3, y: 0.3, members: 4 },
@@ -68,8 +72,13 @@ describe("atlas terrain", () => {
   });
 
   it("insets unit coordinates so markers never touch the map's edge", () => {
-    expect(atlasPosition(0)).toBeGreaterThan(0);
-    expect(atlasPosition(1)).toBeLessThan(100);
-    expect(atlasPosition(0.5)).toBe(50);
+    expect(atlasLeft(0)).toBeGreaterThan(0);
+    expect(atlasLeft(1)).toBeLessThan(100);
+    expect(atlasLeft(0.5)).toBe(50);
+    expect(atlasTop(0)).toBeGreaterThan(0);
+  });
+
+  it("keeps the lowest mark clear of the legend along the map's foot", () => {
+    expect(atlasTop(1)).toBeLessThanOrEqual(88);
   });
 });
