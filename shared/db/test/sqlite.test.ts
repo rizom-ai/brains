@@ -128,6 +128,67 @@ describe("createSqliteClient", () => {
   });
 });
 
+describe("applySqlitePragmas under contention", () => {
+  it("waits out a brief lock instead of failing the connection", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sqlite-pragma-contention-"));
+    const url = `file:${join(dir, "db.sqlite")}`;
+    // A database still in rollback mode needs an exclusive lock to enter WAL,
+    // which another connection's write transaction refuses.
+    const holder = createSqliteClient({ url });
+    const opener = createSqliteClient({ url });
+    try {
+      await holder.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY)");
+      const held = await holder.transaction("write");
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        const pragmas = applySqlitePragmas(opener, url).then(
+          () => ({ ok: true as const }),
+          (error: unknown) => ({ ok: false as const, error }),
+        );
+        await sleep(50);
+        await held.commit();
+        const outcome = await pragmas;
+        if (!outcome.ok) throw outcome.error;
+      } finally {
+        held.close();
+      }
+      expect(
+        (await opener.execute("PRAGMA journal_mode")).rows[0]?.["journal_mode"],
+      ).toBe("wal");
+    } finally {
+      opener.close();
+      holder.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("still reports a lock held past the retry budget", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sqlite-pragma-contention-"));
+    const url = `file:${join(dir, "db.sqlite")}`;
+    const holder = createSqliteClient({ url });
+    const opener = createSqliteClient({ url });
+    try {
+      await holder.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY)");
+      const held = await holder.transaction("write");
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        await rejects(applySqlitePragmas(opener, url), (error: unknown) => {
+          expect(error instanceof LibsqlError && error.code).toMatch(
+            /^SQLITE_(BUSY|LOCKED)$/u,
+          );
+          return true;
+        });
+      } finally {
+        held.close();
+      }
+    } finally {
+      opener.close();
+      holder.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 10_000);
+});
+
 describe("shared transaction acquisition", () => {
   it("retries ordinary Drizzle transactions before entering their callback", async () => {
     await withConnections(async (holder, contender) => {
