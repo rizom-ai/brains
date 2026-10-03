@@ -1,0 +1,397 @@
+# Synthetic fixtures; never run this case against production content.
+id: mcp-verbatim-update
+name: MCP chat/confirm replaces a note body verbatim from the user message
+description: Verify a compact pinned user-message source instead of model-copied content, cancellation leaves the note unchanged, and approval replaces the body exactly while the stored restricted frontmatter survives.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: mcp
+tags:
+  - recipe-personal
+  - mcp-protocol
+  - regression
+  - confirmation
+  - verbatim-update
+successCriteria: {}
+turns:
+  - &a1
+    userMessage: |-
+      Replace the body of note 'mcp-verbatim-update' with only the complete Markdown between the following boundary lines, excluding the boundary lines themselves, verbatim. Keep its existing frontmatter. Do not summarize, rewrite, or omit repeated sections. Request confirmation before saving.
+
+      BEGIN EXACT CONTENT
+      # Verbatim Update Plan
+
+      ## Operations revision 1
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-1.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Research revision 2
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-2.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Funding revision 3
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-3.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Governance revision 4
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-4.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Delivery revision 5
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-5.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Documentation revision 6
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-6.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Review revision 7
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-7.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Handover revision 8
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-8.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Archive revision 9
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-9.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Retrospective revision 10
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-10.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Planning revision 11
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-11.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      ## Support revision 12
+
+      Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+      Hard break\
+      Next line. Literal pair\\
+
+      ```text
+      C:\notes\revision-12.md
+      regex: \d+\s+
+      replacement: $&
+      ```
+
+      Closing checksum line: =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+      END EXACT CONTENT
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: mcp-verbatim-update
+            source.kind: user-message
+            source.boundaryMode: lines
+            source.startAfter: BEGIN EXACT CONTENT
+            source.endBefore: END EXACT CONTENT
+            source.contentHash: e92bb4adc6060be129b9598284e6b061a2443533e69910a761d94740127b4d5b
+          argsAbsent:
+            - content
+            - edits
+            - fields
+            - confirmed
+          resultContains:
+            needsConfirmation: true
+  - userMessage: Cancel that proposed update.
+    confirmPendingAction: false
+  - userMessage: Read note 'mcp-verbatim-update' from storage now. Do not change anything.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: mcp-verbatim-update
+          resultContains:
+            entity.content: |
+              ---
+              visibility: restricted
+              ---
+              # Verbatim Update Plan
+
+              Draft placeholder. This body is replaced in full by the approved update.
+
+  - *a1
+  - userMessage: Approve the update.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          resultContains:
+            success: true
+            data.updated: mcp-verbatim-update
+  - userMessage: Read note 'mcp-verbatim-update' from storage again. Do not change anything. Briefly report its first heading.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: mcp-verbatim-update
+          resultContains:
+            entity.content: |
+              ---
+              visibility: restricted
+              ---
+              # Verbatim Update Plan
+
+              ## Operations revision 1
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-1.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Research revision 2
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-2.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Funding revision 3
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-3.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Governance revision 4
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-4.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Delivery revision 5
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-5.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Documentation revision 6
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-6.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Review revision 7
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-7.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Handover revision 8
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-8.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Archive revision 9
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-9.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Retrospective revision 10
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-10.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Planning revision 11
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-11.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              ## Support revision 12
+
+              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
+
+              Hard break\
+              Next line. Literal pair\\
+
+              ```text
+              C:\notes\revision-12.md
+              regex: \d+\s+
+              replacement: $&
+              ```
+
+              Closing checksum line: =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
