@@ -122,6 +122,43 @@ describe("SQLite durable assets", () => {
     expect(Number(fts.rows[0]?.["count"] ?? 0)).toBe(0);
   });
 
+  test("stores the bare reference for non-public assets, with visibility on the row", async () => {
+    const asset = await ctx.entityService.stageAsset(randomBytes(64));
+
+    await ctx.entityService.createEntity({
+      entity: {
+        ...entityForAsset("shared-asset", asset),
+        visibility: "shared",
+      },
+      stagedAsset: asset,
+    });
+
+    const stored = await client.execute(
+      "SELECT content, visibility FROM entities WHERE id = 'shared-asset'",
+    );
+    expect(stored.rows[0]?.["content"]).toBe(asset.ref);
+    expect(stored.rows[0]?.["visibility"]).toBe("shared");
+
+    const read = await ctx.entityService.getEntity({
+      entityType: "test",
+      id: "shared-asset",
+      binaryContent: "reference",
+      visibilityScope: "restricted",
+    });
+    expect(read?.content).toBe(asset.ref);
+    expect(read?.visibility).toBe("shared");
+
+    if (!read) throw new Error("expected the shared asset entity");
+    await ctx.entityService.updateEntity({
+      entity: { ...read, visibility: "restricted" },
+    });
+    const updated = await client.execute(
+      "SELECT content, visibility FROM entities WHERE id = 'shared-asset'",
+    );
+    expect(updated.rows[0]?.["content"]).toBe(asset.ref);
+    expect(updated.rows[0]?.["visibility"]).toBe("restricted");
+  });
+
   test("stages streamed and base64 sources to the same identity", async () => {
     const source = randomBytes(ASSET_CHUNK_BYTES + 17);
     async function* irregular(): AsyncGenerator<Uint8Array> {

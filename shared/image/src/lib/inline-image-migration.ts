@@ -19,6 +19,9 @@ export type InlineImageVerdict =
 /** Payloads may be wrapped or padded with whitespace, as files were. */
 const INLINE_DATA_URL = /^data:image\/([a-z0-9.+-]+);base64,([\s\S]*)$/i;
 
+/** Non-public rows store a visibility header before the data URL. */
+const STORED_FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
+
 /**
  * Decoding a whole data URL as base64 drops its ":", ";" and "," and stores
  * this prefix; the stripped characters cannot be recovered from the row.
@@ -77,7 +80,9 @@ export function inlineImagePayload(content: string): string | undefined {
 function parseInlineImage(
   content: string,
 ): { subtype: string; payload: string } | undefined {
-  const match = INLINE_DATA_URL.exec(content.trim());
+  const match = INLINE_DATA_URL.exec(
+    content.replace(STORED_FRONTMATTER, "").trim(),
+  );
   if (!match?.[1] || match[2] === undefined) return undefined;
   return {
     subtype: match[1].toLowerCase(),

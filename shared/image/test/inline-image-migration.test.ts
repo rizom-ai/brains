@@ -36,6 +36,14 @@ describe("classifyInlineImage", () => {
     expect(classifyInlineImage(wrapped)).toMatchObject({ status: "ready" });
   });
 
+  it("reads a non-public image behind its stored visibility header", () => {
+    const stored = `---\nvisibility: restricted\n---\n\n${pngDataUrl}\n`;
+
+    expect(classifyInlineImage(stored)).toEqual(
+      classifyInlineImage(pngDataUrl),
+    );
+  });
+
   it("blocks SVG images", () => {
     const svg = `data:image/svg+xml;base64,${Buffer.from("<svg/>").toString("base64")}`;
 
