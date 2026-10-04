@@ -912,79 +912,21 @@ describe("AuthService", () => {
     });
   });
 
-  it("requests a setup email notification when setup email is configured", async () => {
-    const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
-      domain: "brain.example.com",
-      logContext: "auth-service-test",
-    });
-    const notifications: unknown[] = [];
+  it("rejects the removed subject and body form of setup email", () => {
+    const legacyConfig: unknown = {
+      setupEmail: {
+        to: "user@example.com",
+        subject: "Welcome",
+        body: "Set up your passkey: {{setupUrl}}",
+      },
+    };
 
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
-      notifications.push(message.payload);
-      return { success: true, data: { status: "sent" } };
-    });
-
-    await harness.installPlugin(
-      authServicePlugin({
-        storageDir,
-        issuer: "https://brain.example.com",
-        setupEmail: {
-          to: "user@example.com",
-          subject: "Welcome to Rover — set up your passkey",
-          body: [
-            "Hi,",
-            "",
-            "Your Rover is ready.",
-            "",
-            "Set up your passkey:",
-            "{{setupUrl}}",
-            "",
-            "This link is single-use and expires at {{expiresAt}}.",
-            "Dashboard: {{origin}}/",
-            "MCP endpoint: {{origin}}/mcp",
-          ].join("\n"),
-        },
-      }),
-    );
-    await readyAuthPlugin(harness);
-
-    expect(notifications).toHaveLength(1);
-    const notification = z
-      .object({
-        recipient: z.object({
-          type: z.literal("email"),
-          address: z.literal("user@example.com"),
-        }),
-        title: z.string(),
-        body: z.string(),
-        sensitivity: z.literal("secret"),
-      })
-      .parse(notifications[0]);
-
-    expect(notification.title).toBe("Welcome to Rover — set up your passkey");
-    expect(notification.recipient).toEqual({
-      type: "email",
-      address: "user@example.com",
-    });
-    expect(notification.body).toContain("Your Rover is ready.");
-    expect(notification.body).toContain(
-      "https://brain.example.com/setup?token=setup_",
-    );
-    expect(notification.body).toContain("single-use");
-    expect(notification.body).toContain("expires at");
-    expect(notification.body).toContain(
-      "Dashboard: https://brain.example.com/",
-    );
-    expect(notification.body).toContain(
-      "MCP endpoint: https://brain.example.com/mcp",
-    );
-    expect(notification.body).not.toContain("{{setupUrl}}");
-    expect(notification.body).not.toContain("{{expiresAt}}");
-    expect(notification.body).not.toContain("{{origin}}");
+    expect(() => {
+      Reflect.construct(AuthServicePlugin, [legacyConfig]);
+    }).toThrow();
   });
 
-  it("keeps setup email copy generic when only a recipient is configured", async () => {
+  it("sends the rendered anchor setup email with text and HTML parts", async () => {
     const storageDir = await tempStorageDir();
     const harness = new PluginTestHarness<AuthServicePlugin>({
       domain: "brain.example.com",
@@ -1006,17 +948,31 @@ describe("AuthService", () => {
     );
     await readyAuthPlugin(harness);
 
+    expect(notifications).toHaveLength(1);
     const notification = z
-      .object({ title: z.string(), body: z.string() })
+      .object({
+        recipient: z.object({ type: z.literal("email"), address: z.string() }),
+        title: z.string(),
+        body: z.string(),
+        html: z.string(),
+        sensitivity: z.literal("secret"),
+      })
       .parse(notifications[0]);
+    const setupUrl = notification.body.match(
+      /https:\/\/brain\.example\.com\/setup\?token=setup_\S+/,
+    )?.[0];
+    if (!setupUrl) throw new Error("Expected a setup link in the body");
 
-    expect(notification.title).toBe("Set up your brain passkey");
-    expect(notification.body).toContain("Set up your brain passkey");
-    expect(notification.body).toContain(
-      "Dashboard: https://brain.example.com/",
+    expect(notification.recipient).toEqual({
+      type: "email",
+      address: "user@example.com",
+    });
+    expect(notification.title).toBe(
+      "Your brain is ready — set up your passkey",
     );
+    expect(notification.html).toContain(`href="${setupUrl}"`);
     expect(notification.body).toContain(
-      "MCP endpoint: https://brain.example.com/mcp",
+      "Connect other AI tools to your brain at https://brain.example.com/mcp.",
     );
     expect(notification.body).not.toContain("Rover");
   });

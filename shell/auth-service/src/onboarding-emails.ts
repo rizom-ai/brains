@@ -18,10 +18,24 @@ const invitationEmailInputSchema: z.ZodObject<{
   inviterName: z.string().trim().min(1).optional(),
 });
 
+const anchorSetupEmailInputSchema: z.ZodObject<{
+  kind: z.ZodLiteral<"anchor-setup">;
+  setupUrl: z.ZodURL;
+  expiresAt: z.ZodNumber;
+}> = z.object({
+  kind: z.literal("anchor-setup"),
+  setupUrl: z.url(),
+  /** Unix seconds, as stored on the setup token. */
+  expiresAt: z.number().int().positive(),
+});
+
 const onboardingEmailInputSchema: z.ZodDiscriminatedUnion<
-  [typeof invitationEmailInputSchema],
+  [typeof anchorSetupEmailInputSchema, typeof invitationEmailInputSchema],
   "kind"
-> = z.discriminatedUnion("kind", [invitationEmailInputSchema]);
+> = z.discriminatedUnion("kind", [
+  anchorSetupEmailInputSchema,
+  invitationEmailInputSchema,
+]);
 
 export type OnboardingEmailInput = z.input<typeof onboardingEmailInputSchema>;
 
@@ -70,11 +84,57 @@ export function renderOnboardingEmail(
   input: OnboardingEmailInput,
 ): RenderedEmail {
   const parsed = onboardingEmailInputSchema.parse(input);
-  const copy = invitationCopy(parsed);
+  const copy =
+    parsed.kind === "anchor-setup"
+      ? anchorSetupCopy(parsed)
+      : invitationCopy(parsed);
   return {
     subject: copy.subject,
     text: renderText(copy),
     html: renderHtml(copy),
+  };
+}
+
+function anchorSetupCopy(
+  input: z.output<typeof anchorSetupEmailInputSchema>,
+): EmailCopy {
+  const url = new URL(input.setupUrl);
+  return {
+    subject: "Your brain is ready — set up your passkey",
+    host: url.host,
+    heading: "Your brain is ready",
+    intro: [
+      "Your brain at ",
+      { strong: url.host },
+      " is set up and waiting for you. Set up your passkey to sign in.",
+    ],
+    setupUrl: input.setupUrl,
+    buttonLabel: "Set up your passkey",
+    notes: [
+      PASSKEY_NOTE,
+      `This link works once and expires on ${formatExpiry(input.expiresAt)}. Don’t forward it.`,
+    ],
+    nextSteps: [
+      {
+        before:
+          "Register your passkey. You’re signed in and taken to your dashboard.",
+      },
+      {
+        before: "Open ",
+        link: { label: "chat", href: `${url.origin}/chat` },
+        after:
+          " and say hello. Tell it what you’re working on — your brain holds your notes, links and ideas, and gets more useful the more you add.",
+      },
+      {
+        before: "Use ",
+        link: { label: "Studio", href: `${url.origin}/studio` },
+        after: " to see and edit everything your brain holds.",
+      },
+    ],
+    footer: [
+      `Connect other AI tools to your brain at ${url.origin}/mcp.`,
+      UNEXPECTED_NOTE,
+    ],
   };
 }
 

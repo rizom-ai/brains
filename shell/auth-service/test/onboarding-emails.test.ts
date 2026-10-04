@@ -116,4 +116,54 @@ describe("renderOnboardingEmail", () => {
       ).toThrow();
     });
   });
+
+  describe("anchor setup", () => {
+    const anchorSetupUrl = "https://yeehaa.brain.test/setup?token=setup_xyz";
+    const anchorSetup: OnboardingEmailInput = {
+      kind: "anchor-setup",
+      setupUrl: anchorSetupUrl,
+      expiresAt: 1_800_000_000,
+    };
+
+    it("tells the anchor their brain is ready", () => {
+      const { subject, text } = renderOnboardingEmail(anchorSetup);
+
+      expect(subject).toBe("Your brain is ready — set up your passkey");
+      expect(text).toContain(
+        "Your brain at yeehaa.brain.test is set up and waiting for you. Set up your passkey to sign in.",
+      );
+    });
+
+    it("carries the setup link, the expiry and the brain's surfaces in the text part", () => {
+      const { text } = renderOnboardingEmail(anchorSetup);
+
+      expect(text).toContain(anchorSetupUrl);
+      expect(text).toContain(
+        "This link works once and expires on Friday, 15 January 2027 at 08:00 UTC. Don’t forward it.",
+      );
+      expect(text).toContain("https://yeehaa.brain.test/chat");
+      expect(text).toContain("https://yeehaa.brain.test/studio");
+      expect(text).toContain(
+        "Connect other AI tools to your brain at https://yeehaa.brain.test/mcp.",
+      );
+    });
+
+    it("links the button and tells both parts the same thing", () => {
+      const { html, text } = renderOnboardingEmail(anchorSetup);
+
+      expect(html).toContain(`href="${anchorSetupUrl}"`);
+      expect(html).toContain(">Set up your passkey</a>");
+      for (const sentence of [
+        "A passkey replaces a password",
+        "Register your passkey. You’re signed in and taken to your dashboard.",
+        "say hello. Tell it what you’re working on",
+        "to see and edit everything your brain holds.",
+        "Connect other AI tools to your brain at https://yeehaa.brain.test/mcp.",
+        "Didn’t expect this email? Ignore it — the link expires on its own.",
+      ]) {
+        expect(text).toContain(sentence);
+        expect(html).toContain(sentence);
+      }
+    });
+  });
 });
