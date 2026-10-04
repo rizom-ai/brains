@@ -1,5 +1,27 @@
 # @brains/core
 
+## 0.2.0-alpha.482
+
+### Minor Changes
+
+- [#502](https://github.com/rizom-ai/brains/pull/502) [`8635261`](https://github.com/rizom-ai/brains/commit/8635261cde1caacac56e009c2b976b3ceabff53b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_update` can take a full replacement verbatim from the user's message: `source: { kind: "user-message", startAfter, endBefore, boundaryMode?, messageId? }`, the same source `system_create` accepts, as an alternative to `fields`, `content` or `edits` (exactly one of the four). The server reads the text from the stored message, so a large rewrite the user supplied is no longer re-typed by the model and cannot drift. The proposal shows the normal diff; approval replays the source pinned to its message and content hash, and fails if that message text changed instead of writing other text.
+
+  Replacement text without frontmatter, from `content` or `source`, now replaces the body and keeps the entity's stored frontmatter; text with frontmatter still replaces the whole document. Previously body-only text dropped a note's frontmatter and was rejected for types with structured frontmatter. Types without a body reject body-only text.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/image@0.2.0-alpha.482
+  - @brains/operation-context@0.2.0-alpha.482
+  - @brains/site-composition@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/plugins@0.2.0-alpha.482
+  - @brains/recurring-checks@0.2.0-alpha.482
+  - @brains/runtime-state@0.2.0-alpha.482
+  - @brains/scheduler@0.2.0-alpha.482
+  - @brains/templates@0.2.0-alpha.482
+
 ## 0.2.0-alpha.481
 
 ### Patch Changes
