@@ -84,8 +84,14 @@ export const livingOrganism: Organism = organism({
     ),
   },
   stages: [
-    // The opening draws the live network itself.
-    {},
+    // The opening draws the live network itself; the first team waits at the
+    // centre point, where that network draws in, so the science opens out of
+    // it (and closes back into it when the reading returns).
+    {
+      T1: [C, 300, 0, 0],
+      T2: [C, 300, 0, 0],
+      T3: [C, 300, 0, 0],
+    },
     // The science: a team, its shared memory glowing at the centre.
     {
       L: [C, 300, 8, 1],

@@ -65,8 +65,11 @@ describe("the homepage opening", () => {
 
   test("opens the story with the authored words over the live network", () => {
     const html = render({ ...map, topics: [], askBox: false });
-    expect(html).toMatch(
-      /^<section id="hero" class="chapter chapter--opening" data-title="Top">/,
+    // The drawing stands before the opening's words in the chapters column,
+    // so it can keep the figure's place down the page.
+    expect(html).toMatch(/^<div class="net-layer" aria-hidden="true">/);
+    expect(html).toContain(
+      '<section id="hero" class="chapter chapter--opening" data-title="Top">',
     );
     expect(html).toContain('<p class="eyebrow">Living memory</p>');
     expect(html).toContain(
@@ -104,28 +107,20 @@ describe("the homepage opening", () => {
       '<script src="/ask/assets/box.js" defer=""></script>',
     );
     expect(html).not.toContain('class="opening__door"');
-    // The Ask room (@brains/contracts ask-box): the hero is the room, its
-    // words the column that scrolls beside the drawing, the drawing is lent
-    // to a phone's conversation, its dots are marks keyed by brain, and the
-    // room draws leads into the layer.
+    // The Ask room (@brains/contracts ask-box; the story is the room): the
+    // words are the column that scrolls beside the drawing, the drawing is
+    // lent to a phone's conversation, its dots are marks keyed by brain, and
+    // the room draws leads into the layer; both stand before the words.
     expect(html).toMatch(
-      /^<section id="hero" class="chapter chapter--opening" data-title="Top" data-ask-room="">/,
-    );
-    expect(html).toContain('<div class="opening__words" data-ask-column="">');
-    expect(html).toContain(
-      '<div class="net-layer" aria-hidden="true" data-ask-drawing="">',
+      /^<div class="net-layer" aria-hidden="true" data-ask-drawing="">[^]*<\/div><svg class="net-leads" data-ask-leads="" aria-hidden="true"><\/svg><section id="hero" class="chapter chapter--opening" data-title="Top"><div class="opening__words" data-ask-column="">/,
     );
     expect(html).toContain(
       'class="net-mark" data-brain="becca" data-ask-mark="becca"',
     );
-    expect(html).toContain(
-      '<svg class="net-leads" data-ask-leads="" aria-hidden="true">',
-    );
   });
 
-  test("without the box, the opening is no room: no column, no lead layer, and the drawing stays", () => {
+  test("without the box, the opening has no column, no lead layer, and the drawing stays", () => {
     const html = render({ ...map, topics: [], askBox: false });
-    expect(html).not.toContain("data-ask-room");
     expect(html).not.toContain("data-ask-column");
     expect(html).not.toContain("data-ask-leads");
     expect(html).not.toContain("data-ask-drawing");

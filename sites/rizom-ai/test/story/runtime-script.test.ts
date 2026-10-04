@@ -120,16 +120,9 @@ describe("the opening listens to the network's answer", () => {
   const brains = ["becca.rizom.ai", "jo.rizom.ai", "sam.rizom.ai"];
   function opening(): void {
     window.document.body.innerHTML = `
-      <div class="story">
+      <div class="story" data-ask-room="">
         <div class="chapters">
-          <section class="chapter chapter--opening" id="hero" data-ask-room="">
-            <div class="ask"><div data-ask-box="">
-              <ul class="brain-box-sources">
-                <li data-ask-source="network-piece:becca/post/handoffs"><a href="#">Handoffs</a></li>
-                <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
-              </ul>
-            </div></div>
-            <div class="net-layer" data-ask-drawing="">
+          <div class="net-layer" data-ask-drawing="">
               <svg class="net-svg">
                 ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
                 ${brains.map((b) => `<g class="net-reply" data-brain="${b}"></g>`).join("")}
@@ -141,7 +134,14 @@ describe("the opening listens to the network's answer", () => {
               <ol class="net-names">
                 ${brains.map((b) => `<li class="net-name" data-brain="${b}">${b.split(".")[0]}</li>`).join("")}
               </ol>
-            </div>
+          </div>
+          <section class="chapter chapter--opening" id="hero">
+            <div class="ask"><div data-ask-box="">
+              <ul class="brain-box-sources">
+                <li data-ask-source="network-piece:becca/post/handoffs"><a href="#">Handoffs</a></li>
+                <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
+              </ul>
+            </div></div>
           </section>
         </div>
         <figure class="figure" data-stage="0" data-stages="6"></figure>
@@ -279,18 +279,17 @@ describe("the Asked-before chapter lights the network", () => {
   ]);
   function home(): void {
     window.document.body.innerHTML = `
-      <div class="story">
+      <div class="story" data-ask-room="">
         <div class="chapters">
-          <section class="chapter chapter--opening" id="hero" data-ask-room="">
-            <div class="net-layer" data-ask-drawing="">
-              <svg class="net-svg">
-                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
-              </svg>
-              <ul class="net-marks">
-                ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
-              </ul>
-            </div>
-          </section>
+          <div class="net-layer" data-ask-drawing="">
+            <svg class="net-svg">
+              ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+            </svg>
+            <ul class="net-marks">
+              ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+            </ul>
+          </div>
+          <section class="chapter chapter--opening" id="hero"></section>
           <section class="chapter" id="arc"><p class="eyebrow">Arc</p></section>
           <section class="chapter asked" id="asked" data-lights-network="">
             <p class="eyebrow">Asked before</p>
@@ -411,9 +410,18 @@ describe("the drawing belongs to the page while an answer is open", () => {
     watchers = [];
     scrolledTo = [];
     window.document.body.innerHTML = `
-      <div class="story">
+      <div class="story" data-ask-room="">
         <div class="chapters">
-          <section class="chapter chapter--opening" id="hero" data-ask-room="">
+          <svg class="net-leads" data-ask-leads="" aria-hidden="true"></svg>
+          <div class="net-layer" data-ask-drawing="">
+            <svg class="net-svg">
+              ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
+            </svg>
+            <ul class="net-marks">
+              ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
+            </ul>
+          </div>
+          <section class="chapter chapter--opening" id="hero">
             <div class="ask"><div class="opening__ask" data-ask-box="">
               <div class="brain-box-scroll">
                 <div class="brain-box-dock" data-ask-dock=""></div>
@@ -423,15 +431,6 @@ describe("the drawing belongs to the page while an answer is open", () => {
                 </ul>
               </div>
             </div></div>
-            <svg class="net-leads" data-ask-leads="" aria-hidden="true"></svg>
-            <div class="net-layer" data-ask-drawing="">
-              <svg class="net-svg">
-                ${brains.map((b) => `<line class="net-thread" data-brain="${b}"></line>`).join("")}
-              </svg>
-              <ul class="net-marks">
-                ${brains.map((b) => `<li class="net-mark" data-brain="${b}" data-ask-mark="${b}"><a href="/agents/${b}" aria-label="${b.split(".")[0]}"></a></li>`).join("")}
-              </ul>
-            </div>
           </section>
         </div>
         <figure class="figure" data-stage="0" data-stages="7"></figure>
