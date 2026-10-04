@@ -20,6 +20,8 @@ export {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
 } from "./templates/homepage-atlas-script";
+export { ASK_ROOM_SCRIPT } from "./templates/ask-room-script";
+export { ASK_ROOM_STYLES } from "./templates/ask-room-styles";
 export {
   atlasEntityTypeSchema,
   atlasItemSchema,

@@ -104,6 +104,31 @@ describe("the homepage opening", () => {
       '<script src="/ask/assets/box.js" defer=""></script>',
     );
     expect(html).not.toContain('class="opening__door"');
+    // The Ask room (@brains/contracts ask-box): the hero is the room, its
+    // words the column that scrolls beside the drawing, the drawing is lent
+    // to a phone's conversation, its dots are marks keyed by brain, and the
+    // room draws leads into the layer.
+    expect(html).toMatch(
+      /^<section id="hero" class="chapter chapter--opening" data-title="Top" data-ask-room="">/,
+    );
+    expect(html).toContain('<div class="opening__words" data-ask-column="">');
+    expect(html).toContain(
+      '<div class="net-layer" aria-hidden="true" data-ask-drawing="">',
+    );
+    expect(html).toContain(
+      'class="net-mark" data-brain="becca" data-ask-mark="becca"',
+    );
+    expect(html).toContain(
+      '<svg class="net-leads" data-ask-leads="" aria-hidden="true">',
+    );
+  });
+
+  test("without the box, the opening is no room: no column, no lead layer, and the drawing stays", () => {
+    const html = render({ ...map, topics: [], askBox: false });
+    expect(html).not.toContain("data-ask-room");
+    expect(html).not.toContain("data-ask-column");
+    expect(html).not.toContain("data-ask-leads");
+    expect(html).not.toContain("data-ask-drawing");
   });
 
   test("keeps the words when the network is empty", () => {

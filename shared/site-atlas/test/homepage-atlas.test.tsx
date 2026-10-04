@@ -309,10 +309,10 @@ describe("living atlas", () => {
 
   it("scrolls a docked conversation only with the text column, never inside the box", () => {
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas__ask:not\(\[data-ask-sheet\]\) \.brain-box-scroll \{ max-height: none; overflow: visible; \}/,
+      /\[data-ask-room\] \.brain-guest-box:not\(\.is-sheet\) > \.brain-box-scroll \{[^}]*max-height: none;[^}]*overflow: visible;/,
     );
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas--chat \.atlas__talk \{[^}]*scrollbar-width: thin;[^}]*scrollbar-color: var\(--color-rule\) transparent;/,
+      /\[data-ask-column\] \{[^}]*scrollbar-width: thin;[^}]*scrollbar-color: var\(--color-rule\) transparent;/,
     );
   });
 
@@ -334,7 +334,7 @@ describe("living atlas", () => {
     );
     // A slot holds its place on the page meanwhile.
     expect(phone).toMatch(
-      /\.atlas__map-slot \{[^}]*height: var\(--atlas-band\);/,
+      /\[data-ask-slot\] \{[^}]*height: var\(--atlas-band\);/,
     );
     // An answer opens below the whole map.
     expect(phone).toMatch(
@@ -377,10 +377,10 @@ describe("living atlas", () => {
     );
     // A lit piece's own card too: its lit rule must not pull it back down.
     const lit = homepageAtlasStyles.indexOf(
-      ".atlas__mark[data-cited] { z-index: 3; }",
+      ".atlas__mark[data-ask-cited] { z-index: 3; }",
     );
     const openLit = homepageAtlasStyles.indexOf(
-      ".atlas__mark[data-cited][data-open] { z-index: 4; }",
+      ".atlas__mark[data-ask-cited][data-open] { z-index: 4; }",
     );
     expect(lit).toBeGreaterThan(-1);
     expect(openLit).toBeGreaterThan(lit);
@@ -522,7 +522,7 @@ describe("atlas styles for the conversation", () => {
 
   it("lights a piece with one thin ring, not a blurred halo", () => {
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas__mark\[data-cited\] \.atlas__glyph \{[^}]*box-shadow: 0 0 0 2px var\(--color-bg\), 0 0 0 3px var\(--color-accent\);/,
+      /\.atlas__mark\[data-ask-cited\] \.atlas__glyph \{[^}]*box-shadow: 0 0 0 2px var\(--color-bg\), 0 0 0 3px var\(--color-accent\);/,
     );
   });
 
@@ -563,13 +563,20 @@ describe("atlas with guest chat", () => {
     );
   });
 
-  it("carries a hidden layer for leads from an answer's sources to the map", () => {
-    expect(html()).toMatch(/<svg[^>]*data-atlas-leads[^>]*aria-hidden="true"/);
+  it("is an Ask room: a lead layer, the map as the drawing it lends, the text as the column", () => {
+    expect(html()).toMatch(/<section[^>]*data-atlas=""[^>]*data-ask-room=""/);
+    expect(html()).toMatch(
+      /<svg class="atlas__leads" data-ask-leads="" aria-hidden="true">/,
+    );
+    expect(html()).toMatch(
+      /<div class="atlas__map" data-atlas-map="" data-ask-drawing=""/,
+    );
+    expect(html()).toContain('<div class="atlas__talk" data-ask-column="">');
   });
 
   it("lets a lit piece show where a phone's answer cites it", () => {
     expect(html()).toMatch(
-      /<button type="button" class="atlas__cited" data-atlas-cited="">Where it’s cited ↓<\/button>/,
+      /<button type="button" class="atlas__cited" data-ask-aim="">Where it’s cited ↓<\/button>/,
     );
     const phone = homepageAtlasStyles.slice(
       homepageAtlasStyles.indexOf("@media (max-width: 47.99rem)"),
@@ -577,22 +584,23 @@ describe("atlas with guest chat", () => {
     // Only on the open card of a lit piece, in the open conversation.
     expect(homepageAtlasStyles).toMatch(/\.atlas__cited \{ display: none; \}/);
     expect(phone).toMatch(
-      /\.atlas__ask \[data-ask-dock\] \.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*display: block;/,
+      /\.atlas__ask \[data-ask-dock\] \.atlas__mark\[data-open\]\[data-ask-cited\] \.atlas__cited \{[^}]*display: block;/,
     );
     // Beside its mark, towards the map's middle, so no edge of the map cuts it.
     expect(phone).toMatch(
-      /\.atlas__mark\[data-open\]\[data-cited\] \.atlas__cited \{[^}]*top: 50%; left: calc\(100% \+ \.3rem\); translate: 0 -50%;/,
+      /\.atlas__mark\[data-open\]\[data-ask-cited\] \.atlas__cited \{[^}]*top: 50%; left: calc\(100% \+ \.3rem\); translate: 0 -50%;/,
     );
     expect(phone).toMatch(
-      /\.atlas__mark--west\[data-open\]\[data-cited\] \.atlas__cited \{ left: auto; right: calc\(100% \+ \.3rem\); \}/,
+      /\.atlas__mark--west\[data-open\]\[data-ask-cited\] \.atlas__cited \{ left: auto; right: calc\(100% \+ \.3rem\); \}/,
     );
-    // A tapped source pulses its piece; a piece's source flashes in the answer.
+    // A tapped source pulses its piece; the room flashes a piece's source in the answer.
     expect(homepageAtlasStyles).toMatch(
       /\.atlas__mark\[data-atlas-pulse\] \.atlas__glyph \{ animation: atlas-pulse /,
     );
     expect(homepageAtlasStyles).toMatch(
-      /\.atlas__ask \[data-ask-source\]\[data-atlas-flash\] \{ animation: atlas-flash /,
+      /\[data-ask-source\]\[data-ask-flash\] \{\s*animation: ask-flash/,
     );
+    expect(homepageAtlasStyles).not.toContain("atlas-flash");
   });
 
   it("gives the script a handle on the map it lends to a phone's conversation", () => {
@@ -608,8 +616,10 @@ describe("atlas with guest chat", () => {
     const off = renderToStaticMarkup(<HomepageAtlas {...page} atlas={atlas} />);
     expect(off).not.toContain("data-ask-box");
     expect(off).not.toContain("data-atlas-fill");
-    expect(off).not.toContain("data-atlas-leads");
-    expect(off).not.toContain('data-atlas-cited=""');
+    expect(off).not.toContain('data-ask-room=""');
+    expect(off).not.toContain('data-ask-leads=""');
+    expect(off).not.toContain('data-ask-column=""');
+    expect(off).not.toContain('data-ask-aim=""');
     expect(off).not.toContain("<script");
   });
 });
