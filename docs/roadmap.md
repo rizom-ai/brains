@@ -102,6 +102,7 @@ Plans:
 - [identity-and-trust.md](./plans/identity-and-trust.md) — the shared subject, channel, provenance, and trust model.
 - [connected-channels.md](./plans/connected-channels.md) — finish registry-driven attach/detach and prove Slack end to end without schema or console changes.
 - [operator-runtime-db.md](./plans/operator-runtime-db.md) — the broader private durable operator/security tier beyond shipped auth state.
+- [onboarding-emails.md](./plans/onboarding-emails.md) — one renderer for the anchor setup email and the invitation: text and HTML parts, brain and inviter names, readable expiry; the `setupEmail` copy override is removed.
 
 ### 4. Hosting and operations
 
