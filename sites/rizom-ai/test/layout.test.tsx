@@ -81,6 +81,8 @@ describe("the story shell", () => {
   test("tells the homepage as a story beside the living organism", () => {
     const html = renderChrome("/");
     expect(html).toContain('class="figure living-org" data-stage="0"');
+    // The story is the Ask room (@brains/contracts ask-box).
+    expect(html).toContain('<div class="story" data-ask-room="">');
     expect(html).toContain('class="rail"');
     expect(html).not.toContain("/styles/living-memory.css");
   });

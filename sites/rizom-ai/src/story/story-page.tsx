@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
+import { ASK_ROOM_ATTRIBUTE } from "@brains/contracts";
 import type { Organism } from "./organism";
 
 /**
@@ -56,7 +57,7 @@ export function StoryPage({
     <>
       <link rel="stylesheet" href="/styles/story.css" precedence="page" />
       <ReadingThread />
-      <div className="story">
+      <div className="story" {...{ [ASK_ROOM_ATTRIBUTE]: "" }}>
         <div className="chapters">{children}</div>
         <figure
           className={`figure ${figure.className}`}

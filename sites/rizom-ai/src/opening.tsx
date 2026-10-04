@@ -12,7 +12,6 @@ import {
   ASK_DRAWING_ATTRIBUTE,
   ASK_LEADS_ATTRIBUTE,
   ASK_MARK_ATTRIBUTE,
-  ASK_ROOM_ATTRIBUTE,
 } from "@brains/contracts";
 import { createTemplate, type Template } from "@brains/templates";
 import { z } from "@rizom/site";
@@ -169,59 +168,15 @@ export function Opening(data: OpeningData): JSX.Element {
   const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
   const lede = data.lede ?? DEFAULT_COPY.lede;
   return (
-    // With the box, the opening is an Ask room (@brains/contracts ask-box):
-    // the words are its column, which scrolls within the screen beside the
-    // drawing on a wide screen; the drawing is lent to a phone's open
-    // conversation; the room draws leads from an answer's sources to the dots.
-    <section
-      id="hero"
-      className="chapter chapter--opening"
-      data-title="Top"
-      {...(data.askBox ? { [ASK_ROOM_ATTRIBUTE]: "" } : {})}
-    >
-      <div
-        className="opening__words"
-        {...(data.askBox ? { [ASK_COLUMN_ATTRIBUTE]: "" } : {})}
-      >
-        {data.kicker && <p className="eyebrow">{data.kicker}</p>}
-        <h1>
-          {headingLead}
-          {data.headingAccent && (
-            <>
-              {" "}
-              <em>{data.headingAccent}</em>
-            </>
-          )}
-        </h1>
-        <p className="lede">{lede}</p>
-        {data.askBox ? (
-          <div className="ask">
-            <AskBoxHost
-              prefix="opening"
-              placeholder={data.prompt ?? undefined}
-            />
-            {data.topics.length > 0 && (
-              <ul className="ask__topics" aria-label="Suggested questions">
-                {data.topics.map((topic) => (
-                  <li key={topic}>
-                    <button type="button" data-atlas-fill={topic}>
-                      {topic}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <script src={ASK_BOX_SCRIPT_PATH} defer />
-          </div>
-        ) : (
-          data.ctaHref &&
-          data.ctaLabel && (
-            <a className="opening__door" href={data.ctaHref}>
-              {data.ctaLabel}
-            </a>
-          )
-        )}
-      </div>
+    // The drawing and the lead layer stand before the opening's words in the
+    // chapters column: on a wide screen the drawing holds the figure's place
+    // down the story, leaving only through its centre point once the reading
+    // has moved the figure on. With the box, the story is an Ask room
+    // (@brains/contracts ask-box): the words are its column, which scrolls
+    // within the screen beside the drawing; the drawing is lent to a phone's
+    // open conversation; the room draws leads from an answer's sources to
+    // the dots.
+    <>
       <NetworkLayer {...placeNetwork(data)} lendable={data.askBox} />
       {data.askBox && (
         <svg
@@ -230,7 +185,52 @@ export function Opening(data: OpeningData): JSX.Element {
           aria-hidden="true"
         />
       )}
-    </section>
+      <section id="hero" className="chapter chapter--opening" data-title="Top">
+        <div
+          className="opening__words"
+          {...(data.askBox ? { [ASK_COLUMN_ATTRIBUTE]: "" } : {})}
+        >
+          {data.kicker && <p className="eyebrow">{data.kicker}</p>}
+          <h1>
+            {headingLead}
+            {data.headingAccent && (
+              <>
+                {" "}
+                <em>{data.headingAccent}</em>
+              </>
+            )}
+          </h1>
+          <p className="lede">{lede}</p>
+          {data.askBox ? (
+            <div className="ask">
+              <AskBoxHost
+                prefix="opening"
+                placeholder={data.prompt ?? undefined}
+              />
+              {data.topics.length > 0 && (
+                <ul className="ask__topics" aria-label="Suggested questions">
+                  {data.topics.map((topic) => (
+                    <li key={topic}>
+                      <button type="button" data-atlas-fill={topic}>
+                        {topic}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <script src={ASK_BOX_SCRIPT_PATH} defer />
+            </div>
+          ) : (
+            data.ctaHref &&
+            data.ctaLabel && (
+              <a className="opening__door" href={data.ctaHref}>
+                {data.ctaLabel}
+              </a>
+            )
+          )}
+        </div>
+      </section>
+    </>
   );
 }
 
