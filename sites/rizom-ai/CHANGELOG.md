@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.263
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening is an Ask room, as yeehaa.io's atlas is: on a wide screen the words scroll within the screen beside the drawing, the composer stays on the first screen through a long answer, and the leads from an answer's sources to their brains, the lending of the drawing to a phone's conversation and the tap on a lit dot come from the shared room.
+
 ## 0.2.0-alpha.262
 
 ### Patch Changes
