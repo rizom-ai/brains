@@ -107,14 +107,32 @@ export function mailEntities(
   ]);
 }
 
-export function operatorFor(
-  harness: PluginTestHarness,
-): MailTriageOperatorService {
+export function operatorFor(harness: PluginTestHarness): Pick<
+  MailTriageOperatorService,
+  "list" | "listInboxItems" | "getSourceRef"
+> & {
+  act(
+    input: unknown,
+    actor: Parameters<MailTriageOperatorService["act"]>[1],
+  ): ReturnType<MailTriageOperatorService["act"]>;
+} {
   const context = reaction(harness);
-  return new MailTriageOperatorService({
+  const operator = new MailTriageOperatorService({
     entities: context.entities,
     permissions: context.permissions,
   });
+  return {
+    list: operator.list.bind(operator),
+    listInboxItems: operator.listInboxItems.bind(operator),
+    getSourceRef: operator.getSourceRef.bind(operator),
+    act: (input, actor) =>
+      harness.withInboxContext(
+        SERVICE_PLUGIN_ID,
+        ["mail-item"],
+        (bound) => operator.act(input, actor, bound.edits),
+        { permission: actor.userPermissionLevel ?? "public" },
+      ),
+  };
 }
 
 /**
@@ -149,16 +167,22 @@ export function inboxSource(
     facets: declaration.facets,
     list: () => declaration.list(reaction(harness)),
     act: (itemId, actionId, actor) =>
-      declaration.act(reaction(harness), itemId, actionId, actor),
+      harness.withInboxContext(
+        SERVICE_PLUGIN_ID,
+        ["mail-item"],
+        (context) => declaration.act(context, itemId, actionId, actor),
+        { permission: actor.permissionLevel },
+      ),
     resolveDetail: (itemId, actor, signal): Promise<unknown> => {
       if (!declaration.resolveDetail) {
         throw new Error("Inbox declares no detail view");
       }
-      return declaration.resolveDetail(
-        reaction(harness),
-        itemId,
-        actor,
-        signal,
+      const resolveDetail = declaration.resolveDetail;
+      return harness.withInboxContext(
+        SERVICE_PLUGIN_ID,
+        ["mail-item"],
+        (context) => resolveDetail(context, itemId, actor, signal),
+        { permission: actor.permissionLevel, signal },
       );
     },
   };

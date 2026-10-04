@@ -2,6 +2,7 @@ import "./availability-smoke";
 import "./interface-workspace-smoke";
 import "./caller-authority-smoke";
 import "./declaration-ownership-smoke";
+import "./owned-mutations-smoke";
 import "./status-recovery-smoke";
 import "./published-readers-smoke";
 import "./publish-status-smoke";

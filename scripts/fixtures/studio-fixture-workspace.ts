@@ -4,20 +4,21 @@ import {
   instantiatePluginPackageDefinition,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
-import type { MockShell } from "@brains/plugins/test";
+import type { PluginTestHarness } from "@brains/plugins/test";
 
 /** Materialize production declarations through the real runtime, not a parallel view serializer. */
 export async function registerFixtureWorkspace(
-  shell: MockShell,
+  harness: PluginTestHarness,
   definition: PluginPackageDefinition,
 ): Promise<StudioWorkspaceRegistration> {
+  const shell = harness.getMockShell();
   const registrations: StudioWorkspaceRegistration[] = [];
   const unsubscribe = shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
       "studio:register-workspace",
       async ({ payload }) => {
-        registrations.push(payload);
+        registrations.push(harness.bindStudioWorkspace(payload));
         return {
           success: true,
           data: { workspaceUrl: `/studio/workspaces/${payload.id}` },

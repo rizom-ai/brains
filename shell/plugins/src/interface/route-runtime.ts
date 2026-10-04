@@ -3,6 +3,7 @@ import {
   revokeRouteCaller,
 } from "../internal/route-caller-authority";
 import type { UserPermissionLevel } from "@brains/templates";
+import { resolveRequestSession } from "../internal/request-session";
 import {
   SdkError,
   toSdkError,
@@ -65,7 +66,15 @@ export function createRuntimeRoute(
       try {
         if (request.signal.aborted) throw new SdkError("cancelled");
         caller = await resolveCaller(definition, request, options);
-        if (definition.security.kind !== "public" && !caller) {
+        request.signal.throwIfAborted();
+        if (
+          definition.security.kind !== "public" &&
+          !(
+            definition.security.kind === "session" &&
+            definition.security.optional
+          ) &&
+          !caller
+        ) {
           throw new SdkError("unauthenticated");
         }
 
@@ -154,7 +163,10 @@ async function resolveSessionCaller(
   request: Request,
   auth: IAuthRegistry,
 ): Promise<InterfaceCaller | null> {
-  const principal = await auth.getCaller()?.resolveSession(request);
+  const source = auth.getCaller();
+  const principal = source
+    ? await resolveRequestSession(source, request)
+    : undefined;
   if (principal?.status !== "active") return null;
   return issueRouteCaller(
     {

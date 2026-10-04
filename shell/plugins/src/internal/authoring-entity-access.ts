@@ -59,6 +59,8 @@ export function createAuthoringEntityAccess(
 ): EntityAccess {
   return Object.freeze({
     ...createAuthoringEntityReader(native),
+    mutations: native.mutations,
+    nearest: native.nearest,
     create: async (definition, input): Promise<{ id: string }> => {
       const result = await native.create(writeInput(definition, input));
       return { id: result.entityId };

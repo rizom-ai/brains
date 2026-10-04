@@ -2,6 +2,7 @@ import type { InboxActor, InboxSource } from "@brains/sdk/entities";
 import type {
   IInboxFollowUpsNamespace,
   IInboxNamespace,
+  InterfaceCaller,
 } from "@brains/sdk/services";
 import { createHash } from "node:crypto";
 import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
@@ -148,9 +149,10 @@ export class InboxOperatorService {
 
   async detail(
     request: InboxDetailRequest,
-    actor: InboxActor,
+    caller: InterfaceCaller,
     requestSignal?: AbortSignal,
   ): Promise<InboxDetailOutcome> {
+    const actor: InboxActor = { permissionLevel: caller.permission };
     if (actor.permissionLevel !== "admin") {
       return detailUnavailable();
     }
@@ -167,7 +169,12 @@ export class InboxOperatorService {
         ? AbortSignal.any([requestSignal, timeout])
         : timeout;
       if (signal.aborted) return detailUnavailable();
-      const detail = await source.resolveDetail(request.itemId, actor, signal);
+      const detail = await source.resolveDetail(
+        request.itemId,
+        actor,
+        signal,
+        caller,
+      );
       return { kind: "detail", detail };
     } catch {
       // detailUnavailable() is deliberately detail-free, so a failure to
@@ -206,8 +213,9 @@ export class InboxOperatorService {
 
   async act(
     request: InboxActionRequest,
-    actor: InboxActor,
+    caller: InterfaceCaller,
   ): Promise<InboxActionOutcome> {
+    const actor: InboxActor = { permissionLevel: caller.permission };
     const source = this.registry.getSource(request.sourceId);
     const offered = source
       ? await findOfferedAction(source, request.itemId, request.actionId)
@@ -223,7 +231,7 @@ export class InboxOperatorService {
       };
     }
 
-    await source.act(request.itemId, request.actionId, actor);
+    await source.act(request.itemId, request.actionId, actor, caller);
     return { kind: "completed" };
   }
 

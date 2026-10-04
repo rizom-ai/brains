@@ -23,6 +23,7 @@ import type {
   GetManyConversationsWithMessagesRequest,
 } from "./types";
 import {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_STARTED_CHANNEL,
   getManyConversationsWithMessagesSchema,
@@ -290,6 +291,16 @@ export class ConversationService implements IConversationService {
           throw new Error("Conversation unavailable");
         }
 
+        // Pin the reply's ordinal before another committed message can advance it.
+        const committedPosition = async (): Promise<number> => {
+          const row = await tx
+            .select({ value: count() })
+            .from(messages)
+            .where(eq(messages.conversationId, conversationId))
+            .get();
+          if (!row) throw new Error("Conversation position unavailable");
+          return row.value;
+        };
         if (conversation.interfaceType === guestInterfaceType) {
           if (
             !guestConversationOwnershipSchema.safeParse(
@@ -324,7 +335,11 @@ export class ConversationService implements IConversationService {
             // SQL errors can retain bound transcript text; never expose that cause.
             throw new Error("Guest conversation write unavailable");
           }
-          return { guest: true, timestamp: conversation.updated };
+          return {
+            guest: true,
+            timestamp: conversation.updated,
+            position: await committedPosition(),
+          };
         }
         const nextTimestamp = nextConversationTimestamp(conversation.updated);
         const newMessage: NewMessage = {
@@ -349,14 +364,33 @@ export class ConversationService implements IConversationService {
             updated: nextTimestamp,
           })
           .where(eq(summaryTracking.conversationId, conversationId));
-        return { guest: false, timestamp: nextTimestamp };
+        return {
+          guest: false,
+          timestamp: nextTimestamp,
+          position: await committedPosition(),
+        };
       })
       .catch((error: unknown) => {
         if (snapshot.interfaceType === guestInterfaceType)
           throw new Error("Guest conversation write unavailable");
         throw error;
       });
-    if (outcome.guest) return;
+    if (outcome.guest) {
+      // Broadcast identifiers only, after persistence. Transcript reads still
+      // pass the ownership/expiry checks; no content is carried by this event.
+      await this.messageBus.send({
+        type: CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+        payload: {
+          conversationId,
+          messageId,
+          role,
+          position: outcome.position,
+        },
+        sender: "conversation-service",
+        broadcast: true,
+      });
+      return;
+    }
     const timestamp = outcome.timestamp;
 
     this.logger.debug("Added message to conversation", {
@@ -374,12 +408,17 @@ export class ConversationService implements IConversationService {
         content,
         metadata,
         timestamp,
+        position: outcome.position,
       },
       sender: "conversation-service",
       broadcast: true,
     });
 
-    await this.checkAndBroadcastDigest(conversationId, timestamp);
+    await this.checkAndBroadcastDigest(
+      conversationId,
+      timestamp,
+      outcome.position,
+    );
   }
 
   /**
@@ -411,7 +450,7 @@ export class ConversationService implements IConversationService {
         .select()
         .from(messages)
         .where(condition)
-        .orderBy(asc(messages.timestamp))
+        .orderBy(asc(messages.timestamp), sql`${messages}.rowid ASC`)
         .limit(messageLimit)
         .offset(offset);
 
@@ -422,7 +461,7 @@ export class ConversationService implements IConversationService {
         .select()
         .from(messages)
         .where(condition)
-        .orderBy(desc(messages.timestamp))
+        .orderBy(desc(messages.timestamp), sql`${messages}.rowid DESC`)
         .limit(limit);
 
       // Return in chronological order
@@ -803,9 +842,8 @@ export class ConversationService implements IConversationService {
   private async checkAndBroadcastDigest(
     conversationId: string,
     timestamp: string,
+    messageCount: number,
   ): Promise<void> {
-    const messageCount = await this.countMessages(conversationId);
-
     // Check if we should trigger a digest
     const triggerInterval = this.config.digestTriggerInterval ?? 10;
     if (messageCount > 0 && messageCount % triggerInterval === 0) {

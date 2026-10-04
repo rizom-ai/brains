@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
+import { AuthRegistry } from "../src/contracts/auth-registry";
 import {
   InboxRegistry,
   inboxFacetDefinitionsSchema,
@@ -316,7 +317,7 @@ describe("InboxRegistry", () => {
       );
     }
 
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("mail-plugin", {
       ...source("mail-items"),
       facets: definitions,
@@ -339,7 +340,7 @@ describe("InboxRegistry", () => {
     ]);
     expect(Object.isFrozen(listed[0]?.facets)).toBe(true);
 
-    const invalidItemRegistry = new InboxRegistry();
+    const invalidItemRegistry = new InboxRegistry(AuthRegistry.createFresh());
     invalidItemRegistry.registerSource("mail-plugin", {
       ...source("invalid-mail"),
       facets: definitions,
@@ -357,7 +358,7 @@ describe("InboxRegistry", () => {
   });
 
   it("rejects duplicate sources deterministically at finalization", () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("first-plugin", source("mail-items"));
     registry.registerSource("second-plugin", source("mail-items"));
 
@@ -367,7 +368,8 @@ describe("InboxRegistry", () => {
   });
 
   it("freezes composition before reads and releases plugin-owned sources", async () => {
-    const registry = new InboxRegistry();
+    const harness = createPluginHarness();
+    const registry = harness.getMockShell().getInboxRegistry();
     const actions: Array<{
       itemId: string;
       actionId: string;
@@ -396,18 +398,28 @@ describe("InboxRegistry", () => {
     expect(registered?.displayName).toBe("Source mail-items");
     expect(await registered?.list()).toHaveLength(1);
     expect(
-      await registered?.resolveDetail?.(
-        "mail-items-1",
-        { permissionLevel: "admin" },
-        new AbortController().signal,
+      await harness.withCaller(async (caller) =>
+        registered?.resolveDetail?.(
+          "mail-items-1",
+          { permissionLevel: "admin" },
+          new AbortController().signal,
+          caller,
+        ),
       ),
     ).toEqual({ kind: "plain", text: "Private source", truncated: false });
     expect(details).toEqual([
       { itemId: "mail-items-1", actor: { permissionLevel: "admin" } },
     ]);
-    await registered?.act("mail-items-1", "dismiss", {
-      permissionLevel: "admin",
-    });
+    await harness.withCaller(async (caller) =>
+      registered?.act(
+        "mail-items-1",
+        "dismiss",
+        {
+          permissionLevel: "admin",
+        },
+        caller,
+      ),
+    );
     expect(actions).toEqual([
       {
         itemId: "mail-items-1",

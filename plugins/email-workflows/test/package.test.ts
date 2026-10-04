@@ -229,9 +229,16 @@ Prioritize collaboration connected to Project Aurora.`,
 
     const openItem = openItems?.[0];
     if (!openItem || !inboxSource) throw new Error("Inbox item was not listed");
-    await inboxSource.act(openItem.id, "mark-reviewed", {
-      permissionLevel: "admin",
-    });
+    await harness.withCaller((caller) =>
+      inboxSource.act(
+        openItem.id,
+        "mark-reviewed",
+        {
+          permissionLevel: "admin",
+        },
+        caller,
+      ),
+    );
     expect(await inboxSource.list()).toEqual([]);
     expect(
       await harness.executeTool("email-workflows_triage-list", {

@@ -6,6 +6,7 @@ import type {
   StudioWorkspaceActor,
 } from "@brains/sdk/services";
 import { permissionToVisibilityScope } from "@brains/sdk/entities";
+import { createStudioWorkspaceActor } from "@brains/sdk/services";
 import { jsonResponse } from "./editor-response";
 import type {
   StudioRequestAccess,
@@ -37,14 +38,7 @@ export function accessFor(caller: InterfaceCaller): StudioRequestAccess {
 export function toStudioWorkspaceActor(
   access: StudioRequestAccess,
 ): StudioWorkspaceActor {
-  return {
-    interfaceType: "studio",
-    userId: access.caller.actor.id,
-    actor: access.actor,
-    userPermissionLevel: access.permissionLevel,
-    visibilityScope: access.visibilityScope,
-    isAnchor: access.isAnchor,
-  };
+  return createStudioWorkspaceActor(access.caller);
 }
 
 export type StudioMutationOperation = "create" | "update" | "delete" | "upload";

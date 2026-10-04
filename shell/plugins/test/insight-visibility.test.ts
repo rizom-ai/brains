@@ -10,6 +10,12 @@ import {
 import { createPluginHarness } from "../src/test/harness";
 
 const scopes = ["public", "shared", "restricted"] as const;
+const excluded = defineEntity({
+  type: "insight-excluded",
+  purpose: "Excluded projection source",
+  metadata: z.object({}),
+  config: { projectionSource: false },
+});
 const record = defineEntity({
   type: "insight-record",
   purpose: "Insight visibility regression",
@@ -22,7 +28,13 @@ describe("registered insight caller visibility", () => {
       for (const [requestedIndex, requested] of scopes.entries()) {
         it(`${kind}: ${cap} caps ${requested} without widening narrower reads`, async () => {
           const insights: EntityInsightDeclaration = {
-            review: async ({ entities, visibilityScope }) => ({
+            review: async ({
+              entities,
+              projectionSourceTypes,
+              visibilityScope,
+            }) => ({
+              sources: projectionSourceTypes,
+              sourcesFrozen: Object.isFrozen(projectionSourceTypes),
               scope: visibilityScope,
               typed: await Promise.all(
                 scopes.map((id) => entities.get(record, id)),
@@ -57,13 +69,14 @@ describe("registered insight caller visibility", () => {
                   {
                     id: "insight-service",
                     config: z.object({}),
-                    entities: [record],
+                    entities: [record, excluded],
                   },
                   { insights: () => insights },
                 )
               : defineEntityPackage({
                   id: "insight-entity",
                   entities: [
+                    excluded,
                     defineEntity({
                       type: record.type,
                       purpose: record.purpose,
@@ -98,6 +111,11 @@ describe("registered insight caller visibility", () => {
               .getInsightsRegistry()
               .get("review", shell.getEntityService(), cap);
             const allowedIndex = Math.min(capIndex, requestedIndex);
+            expect(result["sources"]).toEqual(
+              expect.arrayContaining([record.type]),
+            );
+            expect(result["sources"]).not.toContain(excluded.type);
+            expect(result["sourcesFrozen"]).toBe(true);
             expect(result["scope"]).toBe(cap);
             expect(result["typed"]).toEqual(
               scopes.map((id, index) =>

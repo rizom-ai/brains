@@ -28,15 +28,20 @@ it("validates and detaches declaration flags without pinning omitted defaults", 
   const config: EntityDefinitionConfig = {
     binaryStorage: "data-url",
     markdownImport: false,
+    includeInBroadSearch: false,
     publish: { publishStatuses: ["approved"] },
     defaultSort: [
       { field: "publishedAt", direction: "desc", nullsFirst: true },
+      { field: "rank", direction: "asc", nullsLast: true },
     ],
   };
   const installed = plugins(config);
   const sort = config.defaultSort?.[0];
   if (!sort) throw new Error("Missing sort fixture");
   sort.field = "changed-by-author";
+  const rankSort = config.defaultSort[1];
+  if (!rankSort) throw new Error("Missing rank sort fixture");
+  rankSort.nullsLast = false;
   config.publish?.publishStatuses.push("draft");
   try {
     for (const plugin of installed) await harness.installPlugin(plugin);
@@ -45,8 +50,10 @@ it("validates and detaches declaration flags without pinning omitted defaults", 
     ).toMatchObject({
       binaryStorage: "data-url",
       markdownImport: false,
+      includeInBroadSearch: false,
       defaultSort: [
         { field: "publishedAt", direction: "desc", nullsFirst: true },
+        { field: "rank", direction: "asc", nullsLast: true },
       ],
     });
     const statuses = harness
@@ -75,6 +82,8 @@ for (const invalid of [
   { binaryStorage: "asset" },
   { binaryStorage: "unknown" },
   { markdownImport: "true" },
+  { includeInBroadSearch: "false" },
+  { defaultSort: [{ field: "rank", direction: "asc", nullsLast: "true" }] },
   { defaultSort: [{ field: "", direction: "desc" }] },
   { defaultSort: [{ field: "a".repeat(101), direction: "desc" }] },
   { defaultSort: [{ field: "created", direction: "sideways" }] },

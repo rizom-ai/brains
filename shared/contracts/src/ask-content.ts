@@ -9,6 +9,8 @@ export const askContentSchema: z.ZodObject<{
   contactLabel: z.ZodOptional<z.ZodString>;
   contactNote: z.ZodOptional<z.ZodString>;
   mapCaption: z.ZodOptional<z.ZodString>;
+  refusal: z.ZodOptional<z.ZodString>;
+  faqHeading: z.ZodOptional<z.ZodString>;
 }> = z.object({
   title: z.string().trim().min(1).max(500).optional(),
   introduction: z.string().trim().min(1).max(4000).optional(),
@@ -19,6 +21,11 @@ export const askContentSchema: z.ZodObject<{
   contactLabel: z.string().trim().min(1).max(80).optional(),
   contactNote: z.string().trim().min(1).max(240).optional(),
   mapCaption: z.string().trim().min(1).max(160).optional(),
+  // What a visitor reads when their question is outside what the site's
+  // work speaks to. Without it, the answer is a neutral line.
+  refusal: z.string().trim().min(1).max(500).optional(),
+  // The heading over the site's published FAQs; unwritten, they have none.
+  faqHeading: z.string().trim().min(1).max(120).optional(),
 });
 export type AskContent = z.output<typeof askContentSchema>;
 
@@ -29,6 +36,8 @@ export const askContentFrontmatterSchema: z.ZodObject<{
   contactLabel: z.ZodOptional<z.ZodString>;
   contactNote: z.ZodOptional<z.ZodString>;
   mapCaption: z.ZodOptional<z.ZodString>;
+  refusal: z.ZodOptional<z.ZodString>;
+  faqHeading: z.ZodOptional<z.ZodString>;
 }> = askContentSchema.omit({ introduction: true });
 export type AskContentFrontmatter = z.output<
   typeof askContentFrontmatterSchema

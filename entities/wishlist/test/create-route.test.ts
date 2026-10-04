@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
@@ -19,12 +19,12 @@ import packageJson from "../package.json";
 describe("the wish create route", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
-  function entityPlugin(): Plugin {
+  function entityPlugin(config: { sameWishDistance?: number } = {}): Plugin {
     const metadata = { name: packageJson.name, version: packageJson.version };
     bindPluginPackageMetadata(wishlistPackage, metadata);
     const plugin = instantiatePluginPackageDefinition(
       wishlistPackage,
-      {},
+      config,
       metadata,
     )[0];
     if (!plugin) throw new Error("Wish entity plugin was not created");
@@ -49,6 +49,65 @@ describe("the wish create route", () => {
       dataDir: "/tmp/test-wishlist",
     });
     await harness.installPlugin(entityPlugin());
+  });
+
+  it("uses configured cosine distance and AI confirmation for every input route", async () => {
+    // A separately installed package instance must not reuse the default's closures.
+    harness = createPluginHarness({ dataDir: "/tmp/test-wishlist-configured" });
+    let confirmations = 0;
+    let same = true;
+    harness.getMockShell().generateObject = async <T>(
+      _prompt: string,
+      schema: { parse(value: unknown): T },
+    ): Promise<{ object: T }> => {
+      confirmations++;
+      return { object: schema.parse({ same }) };
+    };
+    await harness.installPlugin(entityPlugin({ sameWishDistance: 0.45 }));
+    expect(confirmations).toBe(0);
+    await route({
+      title: "Calendar integration",
+      content: "Sync Google Calendar",
+    });
+    const search = spyOn(
+      harness.getEntityService(),
+      "searchWithDistances",
+    ).mockResolvedValue([
+      { entityType: "wish", entityId: "calendar-integration", distance: 0.4 },
+    ]);
+    for (const input of [
+      { title: "Calendar sync", content: "Sync events" },
+      { prompt: "Integrate my calendar" },
+      { title: "Event sync", from: { kind: "upload", uploadId: "unused" } },
+    ]) {
+      expect(await route(input)).toMatchObject({
+        kind: "handled",
+        result: {
+          success: true,
+          data: { entityId: "calendar-integration", status: "updated" },
+        },
+      });
+    }
+    expect(confirmations).toBe(3);
+    expect(
+      search.mock.calls.every(
+        ([request]) =>
+          request.maxDistance === 0.45 &&
+          request.limit === 20 &&
+          request.visibility === "public",
+      ),
+    ).toBe(true);
+    same = false;
+    expect(
+      await route({
+        title: "Stop calendar sync",
+        content: "Disconnect calendar",
+      }),
+    ).toMatchObject({
+      kind: "handled",
+      result: { data: { entityId: "stop-calendar-sync", status: "created" } },
+    });
+    expect(confirmations).toBe(4);
   });
 
   it("creates a wish and says so", async () => {

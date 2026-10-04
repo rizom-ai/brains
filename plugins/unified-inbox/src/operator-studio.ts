@@ -525,7 +525,7 @@ export function inboxWorkspaceHandlers(
                 sourceId: selection.sourceId,
                 itemId: selection.itemId,
               },
-              actor,
+              caller,
               signal,
             );
       return {
@@ -545,7 +545,7 @@ export function inboxWorkspaceHandlers(
           actionId: input.capability.id,
           confirmed: true,
         },
-        { permissionLevel: caller.permission },
+        caller,
       );
       if (outcome.kind !== "completed") {
         throw new Error("Inbox action did not complete");

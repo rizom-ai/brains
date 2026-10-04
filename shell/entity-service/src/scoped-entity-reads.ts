@@ -23,7 +23,8 @@ type ScopedReads = Pick<
   | "search"
   | "getEntityCounts"
   | "getEntityTypes"
->;
+> &
+  Partial<Pick<ICoreEntityService, "searchWithDistances">>;
 
 /**
  * A read view of an entity service for people who may see only part of a
@@ -128,6 +129,19 @@ export function scopeEntityReads<T extends ScopedReads>(
             ? target.search(scopedRequest, schema)
             : target.search(scopedRequest);
         };
+      }
+      if (prop === "searchWithDistances" && target.searchWithDistances) {
+        const search = target.searchWithDistances.bind(target);
+        return (
+          request: Parameters<ICoreEntityService["searchWithDistances"]>[0],
+        ) =>
+          search({
+            ...request,
+            visibilityScope: visibilityScope
+              ? scopeFor(request.visibilityScope)
+              : "public",
+            ...(publishedOnly && { publishedOnly: true }),
+          });
       }
       if (prop === "getEntityCounts") {
         return async (callerScope?: ContentVisibility) => {

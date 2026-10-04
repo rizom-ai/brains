@@ -7,6 +7,7 @@ const entityTypeConfigSchema = z.object({
   weight: z.number().optional(),
   embeddable: z.boolean().optional(),
   fullTextSearchable: z.boolean().optional(),
+  includeInBroadSearch: z.boolean().optional(),
   binaryStorage: z.enum(["data-url", "asset"]).optional(),
   defaultSort: z
     .array(
@@ -15,11 +16,13 @@ const entityTypeConfigSchema = z.object({
           field: z.string().min(1).max(100),
           direction: z.enum(["asc", "desc"]),
           nullsFirst: z.boolean().optional(),
+          nullsLast: z.boolean().optional(),
         })
-        .transform(({ field, direction, nullsFirst }) => ({
+        .transform(({ field, direction, nullsFirst, nullsLast }) => ({
           field,
           direction,
           ...(nullsFirst === undefined ? {} : { nullsFirst }),
+          ...(nullsLast === undefined ? {} : { nullsLast }),
         })),
     )
     .max(10)

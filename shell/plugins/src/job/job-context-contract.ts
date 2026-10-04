@@ -1,3 +1,5 @@
+import type { OwnedEntityMutations } from "../entity/owned-entity-mutations";
+import type { OwnedEntityNearest } from "../entity/owned-entity-nearest";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -45,11 +47,17 @@ export interface EntityConversationReader {
   /**
    * Messages in the order they were sent, newest last. `limit` caps how many
    * are read at all, so a long conversation does not have to be loaded whole
-   * to summarise its tail.
+   * to summarise its tail. Alternatively, `range` reads an inclusive 1-based
+   * window of at most 100 messages; it cannot be combined with `limit`.
    */
   getMessages(
     conversationId: string,
-    options?: { readonly limit?: number | undefined },
+    options?:
+      | { readonly limit?: number | undefined; readonly range?: undefined }
+      | {
+          readonly range: { readonly start: number; readonly end: number };
+          readonly limit?: undefined;
+        },
   ): Promise<Message[]>;
   /** Fixed-query batch read for bounded projection waves. */
   getManyWithMessages(request: {
@@ -73,6 +81,9 @@ export interface EntityConversationReader {
  * declares it — a cycle.
  */
 export interface JobEntityAccess {
+  /** Owned background CAS/fold/receipt work; caller-scoped access is refused. */
+  readonly mutations: OwnedEntityMutations;
+  readonly nearest: OwnedEntityNearest;
   /** Bounded folder projections with visibility enforced by the reader. Named consumer: Studio. */
   queryEntityHierarchy(
     request: QueryEntityHierarchyRequest,

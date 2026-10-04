@@ -1,5 +1,12 @@
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
+import { EntityMutationReceiptStore } from "./entity-mutation-receipt-store";
+import {
+  EntityMutationAlreadyAppliedError,
+  type EntityMutationReceipt,
+  type EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+import { snapshotEntityMutation } from "./entity-mutation-request";
 import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   AssetTransaction,
@@ -18,6 +25,8 @@ import type {
   DeleteEntityRequest,
   CreateEntityRequest,
   UpdateEntityRequest,
+  FoldEntityRequest,
+  ApplyEntityMutationOnceRequest,
   UpsertEntityRequest,
   EntityRegistry,
   EntityMutationAdmission,
@@ -31,6 +40,7 @@ import type {
 } from "./entity-export-store";
 import type { IJobQueueService } from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
+import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
@@ -85,6 +95,16 @@ function isUniqueConstraintError(error: unknown): boolean {
 
 class StaleEntityUpdateError extends Error {}
 
+const foldSourceSchema = z.strictObject({
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+  expectedRevision: z.string().min(1),
+});
+interface FoldRemoval {
+  condition: EntityWritePrecondition;
+  prior: BaseEntity;
+}
+
 export interface EntityMutationDeps {
   db: EntityDB;
   entityRegistry: EntityRegistry;
@@ -109,6 +129,7 @@ export interface EntityMutationDeps {
  */
 export class EntityMutations {
   private db: EntityDB;
+  private readonly mutationReceipts: EntityMutationReceiptStore;
   private entityRegistry: EntityRegistry;
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
@@ -124,6 +145,7 @@ export class EntityMutations {
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
+    this.mutationReceipts = new EntityMutationReceiptStore(deps.db);
     this.entityRegistry = deps.entityRegistry;
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
@@ -161,8 +183,55 @@ export class EntityMutations {
   /**
    * Create a new entity (returns immediately, embedding generated in background)
    */
-  public async createEntity<T extends BaseEntity>(
+  public getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null> {
+    return this.mutationReceipts.get(key);
+  }
+
+  public async applyEntityMutationOnce(
+    input: ApplyEntityMutationOnceRequest,
+  ): Promise<{ receipt: EntityMutationReceipt; applied: boolean }> {
+    const mutation = snapshotEntityMutation(input);
+    const key = mutation.receipt;
+    const prior = await this.mutationReceipts.get(key);
+    if (prior) return { receipt: prior, applied: false };
+    if (mutation.operation === "none")
+      return {
+        receipt: await this.mutationReceipts.completeWithoutWrite(key),
+        applied: false,
+      };
+    try {
+      const result =
+        mutation.operation === "create"
+          ? await this.writeCreatedEntity(mutation.request, key)
+          : await this.writeUpdatedEntity(mutation.request, undefined, key);
+      if (result.skipReason === "content-conflict") {
+        throw new EntityWriteConflictError(
+          mutation.request.entity.entityType,
+          result.entityId,
+        );
+      }
+      const receipt = await this.mutationReceipts.get(key);
+      if (!receipt)
+        throw new Error("Missing committed entity mutation receipt");
+      return { receipt, applied: true };
+    } catch (error) {
+      if (error instanceof EntityMutationAlreadyAppliedError)
+        return { receipt: error.receipt, applied: false };
+      throw error;
+    }
+  }
+
+  public createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
+  ): Promise<EntityMutationResult> {
+    return this.writeCreatedEntity(request);
+  }
+
+  private async writeCreatedEntity<T extends BaseEntity>(
+    request: CreateEntityRequest<T>,
+    receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
     options?.signal?.throwIfAborted();
@@ -256,6 +325,8 @@ export class EntityMutations {
         markedAt: this.projectionNow(),
       },
       async (transaction) => {
+        if (receipt)
+          await this.mutationReceipts.assertVacant(transaction, receipt);
         if (precondition)
           await assertEntityWriteCondition(
             transaction,
@@ -304,6 +375,12 @@ export class EntityMutations {
           },
           options?.persistenceOrigin,
         );
+        if (receipt)
+          await this.mutationReceipts.record(transaction, receipt, {
+            operation: "create",
+            entityType: validatedEntity.entityType,
+            entityId: finalId,
+          });
       },
     );
     await this.notifyProjectionScheduler();
@@ -340,8 +417,64 @@ export class EntityMutations {
   /**
    * Update an existing entity (returns immediately, embedding generated in background)
    */
-  public async updateEntity<T extends BaseEntity>(
+  public updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
+  ): Promise<EntityMutationResult> {
+    return this.writeUpdatedEntity(request);
+  }
+
+  public async foldEntity(
+    request: FoldEntityRequest,
+  ): Promise<EntityMutationResult> {
+    // Capture the admitted pair before any asynchronous policy/serialization work.
+    const source = foldSourceSchema.parse(request.source);
+    const targetRevision = z.string().min(1).parse(request.targetRevision);
+    const entity = structuredClone(request.entity);
+    const options = { ...request.options };
+    if (source.entityType !== entity.entityType || source.id === entity.id) {
+      throw new Error("A fold requires two distinct entities of the same type");
+    }
+    options.signal?.throwIfAborted();
+    const priorData = await this.entityQueries.getEntityData(
+      source.entityType,
+      source.id,
+      "restricted",
+    );
+    if (!priorData || entityRevision(priorData) !== source.expectedRevision) {
+      throw new EntityWriteConflictError(source.entityType, source.id);
+    }
+    const prior = await this.entitySerializer.convertToEntity(priorData);
+    if (prior?.visibility !== entity.visibility) {
+      throw new Error("A fold cannot cross visibility scopes");
+    }
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "delete",
+      entityType: source.entityType,
+      entityId: source.id,
+    });
+    return this.writeUpdatedEntity(
+      {
+        entity,
+        options: {
+          ...options,
+          conditionalWrite: { expectedRevision: targetRevision },
+        },
+      },
+      {
+        condition: {
+          entityType: source.entityType,
+          entityId: source.id,
+          expectedRevision: source.expectedRevision,
+        },
+        prior,
+      },
+    );
+  }
+
+  private async writeUpdatedEntity<T extends BaseEntity>(
+    request: UpdateEntityRequest<T>,
+    fold?: FoldRemoval,
+    receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
     options?.signal?.throwIfAborted();
@@ -436,6 +569,16 @@ export class EntityMutations {
       };
     }
 
+    if (
+      fold &&
+      (validatedEntity.visibility !== fold.prior.visibility ||
+        existingEntity.visibility !== fold.prior.visibility)
+    ) {
+      throw new EntityWriteConflictError(
+        validatedEntity.entityType,
+        validatedEntity.id,
+      );
+    }
     const stagedAsset = this.stageAsset(
       validatedEntity.entityType,
       validatedEntity.content,
@@ -445,6 +588,7 @@ export class EntityMutations {
 
     if (
       !precondition &&
+      !receipt &&
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -503,19 +647,40 @@ export class EntityMutations {
     });
 
     try {
-      await this.projectionStore.withDirtyInput(
-        {
-          sourceType: validatedEntity.entityType,
-          sourceId: validatedEntity.id,
-          revision: entityRevision({
-            contentHash,
-            metadata,
-            visibility: validatedEntity.visibility,
-          }),
-          operation: "upsert",
-          markedAt: this.projectionNow(),
-        },
+      await this.projectionStore.withDirtyInputs(
+        [
+          {
+            sourceType: validatedEntity.entityType,
+            sourceId: validatedEntity.id,
+            revision: entityRevision({
+              contentHash,
+              metadata,
+              visibility: validatedEntity.visibility,
+            }),
+            operation: "upsert",
+            markedAt: this.projectionNow(),
+          },
+          ...(fold
+            ? [
+                {
+                  sourceType: fold.condition.entityType,
+                  sourceId: fold.condition.entityId,
+                  revision: `deleted:${fold.condition.expectedRevision}`,
+                  operation: "delete" as const,
+                  markedAt: this.projectionNow(),
+                },
+              ]
+            : []),
+        ],
         async (transaction) => {
+          if (receipt)
+            await this.mutationReceipts.assertVacant(transaction, receipt);
+          if (fold)
+            await assertEntityWriteCondition(
+              transaction,
+              fold.condition,
+              fold.prior,
+            );
           if (precondition)
             await assertEntityWriteCondition(
               transaction,
@@ -567,6 +732,30 @@ export class EntityMutations {
               );
             throw new StaleEntityUpdateError();
           }
+          if (fold) {
+            await transaction
+              .delete(entities)
+              .where(
+                and(
+                  eq(entities.entityType, fold.prior.entityType),
+                  eq(entities.id, fold.prior.id),
+                ),
+              );
+            await this.deleteFtsIndex(
+              transaction,
+              fold.prior.id,
+              fold.prior.entityType,
+            );
+            await this.persistEntityExport(
+              transaction,
+              {
+                entityType: fold.prior.entityType,
+                entityId: fold.prior.id,
+                operation: "delete",
+              },
+              options?.persistenceOrigin,
+            );
+          }
           await this.syncFtsIndex(
             transaction,
             validatedEntity.id,
@@ -582,6 +771,12 @@ export class EntityMutations {
             },
             options?.persistenceOrigin,
           );
+          if (receipt)
+            await this.mutationReceipts.record(transaction, receipt, {
+              operation: "update",
+              entityType: validatedEntity.entityType,
+              entityId: validatedEntity.id,
+            });
         },
       );
     } catch (error) {
@@ -596,8 +791,24 @@ export class EntityMutations {
         skipReason: "content-conflict",
       };
     }
+    // Recoverable cross-database/index and notification work starts only after
+    // the entity pair, FTS and both durable journals have committed.
+    if (fold)
+      await this.embeddingIndex.deleteEmbedding(
+        fold.prior.entityType,
+        fold.prior.id,
+      );
     await this.notifyProjectionScheduler();
 
+    if (fold)
+      await this.emitEntityEvent(
+        ENTITY_CHANNELS.deleted,
+        fold.prior.entityType,
+        fold.prior.id,
+        fold.prior,
+        undefined,
+        options?.eventContext,
+      );
     this.logger.debug(
       `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
     );
@@ -631,7 +842,38 @@ export class EntityMutations {
    * Delete an entity by type and ID
    */
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
-    const { entityType, id, options } = request;
+    const { entityType, id } = request;
+    const options = request.options
+      ? {
+          ...request.options,
+          ...(request.options.conditionalWrite
+            ? { conditionalWrite: { ...request.options.conditionalWrite } }
+            : {}),
+          ...(request.options.eventContext
+            ? { eventContext: structuredClone(request.options.eventContext) }
+            : {}),
+        }
+      : undefined;
+    options?.signal?.throwIfAborted();
+    const condition = options?.conditionalWrite;
+    if (
+      (condition &&
+        (condition.expectedRevision === null ||
+          options.expectedContentHash !== undefined)) ||
+      (options?.beforeWrite && !condition)
+    )
+      throw new Error(
+        "Conditional deletion requires a revision, and guards require a conditional deletion",
+      );
+    const snapshot = condition
+      ? await this.entityQueries.getEntityWriteSnapshot({
+          entityType,
+          id,
+          visibilityScope: "restricted",
+        })
+      : null;
+    if (condition && snapshot?.revision !== condition.expectedRevision)
+      throw new EntityWriteConflictError(entityType, id);
 
     // Fetch prior entity so subscribers can gate on its metadata (e.g. the
     // `seriesName` field that drives the series projection). Without this,
@@ -645,9 +887,12 @@ export class EntityMutations {
       id,
       "restricted",
     );
-    const prior = priorData
-      ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
-      : undefined;
+    const prior =
+      snapshot?.entity ??
+      (priorData
+        ? ((await this.entitySerializer.convertToEntity(priorData)) ??
+          undefined)
+        : undefined);
 
     if (priorData) {
       await this.mutationAdmission?.assertMutationAdmission({
@@ -657,37 +902,84 @@ export class EntityMutations {
       });
     }
 
-    if (!priorData) return false;
+    if (!priorData) {
+      if (condition) throw new EntityWriteConflictError(entityType, id);
+      return false;
+    }
+    const expectedContentHash = options?.expectedContentHash;
+    if (
+      expectedContentHash !== undefined &&
+      priorData.contentHash !== expectedContentHash
+    ) {
+      return false;
+    }
 
     // Embeddings live in another database and are recoverable by backfill; the
     // entity row, FTS row, and scheduler journal share one atomic transaction.
+    try {
+      await this.projectionStore.withDirtyInput(
+        {
+          sourceType: entityType,
+          sourceId: id,
+          revision: `deleted:${
+            condition?.expectedRevision ??
+            entityRevision({
+              contentHash: priorData.contentHash,
+              metadata: priorData.metadata,
+              visibility: priorData.visibility,
+            })
+          }`,
+          operation: "delete",
+          markedAt: this.projectionNow(),
+        },
+        async (transaction) => {
+          if (condition)
+            await assertEntityWriteCondition(
+              transaction,
+              { ...condition, entityType, entityId: id },
+              { entityType, id },
+            );
+          if (snapshot)
+            await options?.beforeWrite?.(structuredClone(snapshot.entity));
+          options?.signal?.throwIfAborted();
+          // From here onward the row and its journals commit or roll back together.
+          const deleteResult = await transaction
+            .delete(entities)
+            .where(
+              and(
+                eq(entities.entityType, entityType),
+                eq(entities.id, id),
+                expectedContentHash !== undefined
+                  ? eq(entities.contentHash, expectedContentHash)
+                  : undefined,
+              ),
+            );
+          if (
+            (condition || expectedContentHash !== undefined) &&
+            Number(deleteResult.rowsAffected) === 0
+          ) {
+            if (condition) throw new EntityWriteConflictError(entityType, id);
+            throw new StaleEntityUpdateError();
+          }
+          await transaction.run(
+            sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
+          );
+          await this.persistEntityExport(
+            transaction,
+            { entityType, entityId: id, operation: "delete" },
+            options?.persistenceOrigin,
+          );
+        },
+      );
+    } catch (error) {
+      if (!(error instanceof StaleEntityUpdateError)) throw error;
+      // Changed between the check and the write: no entity, index or journal effect.
+      this.logger.debug(
+        `Skipping concurrently stale delete for ${entityType}:${id}`,
+      );
+      return false;
+    }
     await this.embeddingIndex.deleteEmbedding(entityType, id);
-    await this.projectionStore.withDirtyInput(
-      {
-        sourceType: entityType,
-        sourceId: id,
-        revision: `deleted:${entityRevision({
-          contentHash: priorData.contentHash,
-          metadata: priorData.metadata,
-          visibility: priorData.visibility,
-        })}`,
-        operation: "delete",
-        markedAt: this.projectionNow(),
-      },
-      async (transaction) => {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-        );
-        await transaction
-          .delete(entities)
-          .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
-        await this.persistEntityExport(
-          transaction,
-          { entityType, entityId: id, operation: "delete" },
-          options?.persistenceOrigin,
-        );
-      },
-    );
     await this.notifyProjectionScheduler();
 
     await this.emitEntityEvent(

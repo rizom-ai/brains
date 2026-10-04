@@ -24,17 +24,21 @@ import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
 } from "@brains/site-composition";
-import { ContactInboxSource } from "./inbox-source";
+import { contactInbox } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake } from "./intake";
 import { ContactHttpHandlers, previewOriginFor } from "./http";
 import { CONTACT_SLOT } from "./http-page";
 import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
-import { contactPluginConfigSchema } from "./config";
+import { contactPluginConfigSchema, resolveIntakePolicy } from "./config";
 import { contactRequest } from "./entity/plugin";
 import { contactRequestSchema } from "./entity/schema";
-import { ContactRuntime, maintenanceStatusSchema } from "./runtime";
+import {
+  ContactRuntime,
+  contactInboxUrl,
+  maintenanceStatusSchema,
+} from "./runtime";
 
 const contactRoutes = [
   { path: "/contact", method: "GET" },
@@ -87,7 +91,7 @@ const notificationReplySchema = z.object({
   data: sendNotificationResultSchema.optional(),
 });
 
-/** Default-off intake; all writes and durable state remain package-owned. */
+/** Installed Contact serves its own policy; writes and state stay package-owned. */
 export function contactService(): ServicePackageDefinition<
   typeof contactPluginConfigSchema
 > {
@@ -96,15 +100,11 @@ export function contactService(): ServicePackageDefinition<
       id: "contact",
       config: contactPluginConfigSchema,
       entities: [contactRequest],
-      dependsOn: (config) => [
+      dependsOn: [
         "@brains/contact:contact-request",
-        ...(config.intake
-          ? [
-              "@brains/notifications:notifications",
-              "@brains/studio:studio",
-              "@brains/unified-inbox:unified-inbox",
-            ]
-          : []),
+        "@brains/notifications:notifications",
+        "@brains/studio:studio",
+        "@brains/unified-inbox:unified-inbox",
       ],
       setup: ({
         config,
@@ -112,29 +112,24 @@ export function contactService(): ServicePackageDefinition<
         runtimeState,
         messaging,
         jobs,
-        permissions,
         themeCSS,
         identity,
         previewUrl,
+        siteUrl,
+        localSiteUrl,
+        preferLocalUrls,
         lifecycle,
       }) => {
-        const inbox = new ContactInboxSource({
-          entityService: entities,
-          permissions,
-        });
         const presentation: { theme: "light" | "dark" | undefined } = {
           theme: undefined,
         };
-        const intakeConfig = config.intake;
-        if (!intakeConfig)
-          return {
-            inbox,
-            presentation,
-            runtime: undefined,
-            delivery: undefined,
-            notify: undefined,
-          };
+        const origin =
+          (preferLocalUrls ? localSiteUrl : siteUrl) ?? localSiteUrl ?? siteUrl;
+        if (!origin)
+          throw new Error("Contact intake needs the brain's site URL");
+        const intakeConfig = resolveIntakePolicy(config, origin);
         const state = { scoped: runtimeState };
+        lifecycle.onRegistered(() => registerSitePages(messaging));
         const notify = defineJob({
           name: "notify",
           input: notificationJobSchema,
@@ -149,11 +144,28 @@ export function contactService(): ServicePackageDefinition<
           storage: intakeConfig.storage,
           policy: intakeConfig.delivery,
           send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
+            const destination = await messaging.request({
+              type: inboxWorkspaceRequest.topic,
+              payload: {},
+            });
+            const parsedDestination = z
+              .object({
+                success: z.literal(true),
+                data: inboxWorkspaceRequest.response,
+              })
+              .safeParse(destination);
+            const inboxUrl = contactInboxUrl(
+              origin,
+              parsedDestination.success
+                ? parsedDestination.data.data.href
+                : undefined,
+            );
+            if (!inboxUrl) return { sent: false, failure: "no-inbox" };
             const reply = await messaging.request({
               type: NOTIFICATIONS_SEND,
               payload: sendNotificationSchema.parse({
                 title: "New contact request",
-                body: `A contact request is saved in your authenticated Inbox.\n\n${intakeConfig.inboxUrl}`,
+                body: `A contact request is saved in your authenticated Inbox.\n\n${inboxUrl}`,
                 sensitivity: "secret",
                 idempotencyKey,
               }),
@@ -187,9 +199,10 @@ export function contactService(): ServicePackageDefinition<
           intake,
           new ContactHttpHandlers(admission, intake, intakeConfig.http, {
             themeCSS,
-            previewOrigin: intakeConfig.preview
-              ? previewOriginFor(intakeConfig.http.origin, previewUrl)
-              : undefined,
+            previewOrigin: previewOriginFor(
+              intakeConfig.http.origin,
+              previewUrl,
+            ),
             owner: (): string => identity.getProfile().name,
             defaultTheme: (): "light" | "dark" | undefined =>
               presentation.theme,
@@ -212,109 +225,82 @@ export function contactService(): ServicePackageDefinition<
             )?.metadata.status === "new",
         );
         lifecycle.onCleanup(() => runtime.shutdown());
-        return { inbox, runtime, delivery, notify, presentation };
+        return { runtime, delivery, notify, presentation, intakeConfig };
       },
     },
     {
-      templates: ({
-        config,
-      }): Record<string, ServiceTemplateDefinition<z.ZodType>> =>
-        config.intake
-          ? {
-              page: {
-                schema: z.strictObject({}),
-                permission: "public",
-                description:
-                  "The site's contact page around a per-request form slot",
-                render: ContactSlot,
-              },
-            }
-          : {},
+      templates: (): Record<string, ServiceTemplateDefinition<z.ZodType>> => ({
+        page: {
+          schema: z.strictObject({}),
+          permission: "public",
+          description: "The site's contact page around a per-request form slot",
+          render: ContactSlot,
+        },
+      }),
       jobs: ({ state }) => {
         const { notify, delivery } = state;
-        return notify
-          ? [
-              notify.handle(({ input, signal }) =>
-                delivery.deliver(input.id, signal),
-              ),
-            ]
-          : [];
+        return [
+          notify.handle(({ input, signal }) =>
+            delivery.deliver(input.id, signal),
+          ),
+        ];
       },
-      checks: ({ state }) =>
-        state.runtime
-          ? [
-              {
-                id: "maintenance",
-                cadence: "daily",
-                deliverAlerts: false,
-                includeInInbox: false,
-                run: async ({ signal }): Promise<Record<string, never>> => {
-                  await state.runtime.maintain(signal);
-                  return {};
-                },
-              },
-            ]
-          : [],
-      subscriptions: ({ config, state }) => {
-        const intake = config.intake;
-        return intake
-          ? [
-              defineSubscription({
-                execution: "all-roles",
-                topic: SITE_BUILDER_CHANNELS.routesCollect,
-                payload: z.strictObject({}),
-                handle: ({ messaging }) => registerSitePages(messaging),
-              }),
-              defineSubscription({
-                topic: SITE_METADATA_UPDATED_CHANNEL,
-                payload: z.unknown(),
-                handle: ({ payload }) => {
-                  state.presentation.theme =
-                    siteThemeSchema.safeParse(payload).data?.themeMode;
-                },
-              }),
-              defineSubscription({
-                execution: "all-roles",
-                ...contactFormDiscoveryRequest,
-                handle: () => ({
-                  origin: intake.http.origin,
-                  routes: contactRoutes.map((route) => ({
-                    ...route,
-                    public: true,
-                    preview: intake.preview === true,
-                  })),
-                }),
-              }),
-            ]
-          : [];
-      },
-      inbox: ({ state }) => ({
-        sourceId: state.inbox.sourceId,
-        displayName: state.inbox.displayName,
-        list: () => state.inbox.list(),
-        resolveDetail: (_context, id, actor, signal) =>
-          state.inbox.resolveDetail(id, actor, signal),
-        act: (_context, id, action, actor) =>
-          state.inbox.act(id, action, actor),
-      }),
-      routes: ({ config, state }) => {
-        const runtime = state.runtime;
-        return runtime && config.intake
-          ? contactRoutes.map((route) =>
-              defineRoute({
+      checks: ({ state }) => [
+        {
+          id: "maintenance",
+          cadence: "daily",
+          deliverAlerts: false,
+          includeInInbox: false,
+          run: async ({ signal }): Promise<Record<string, never>> => {
+            await state.runtime.maintain(signal);
+            return {};
+          },
+        },
+      ],
+      subscriptions: ({ state }) => {
+        const intake = state.intakeConfig;
+        return [
+          defineSubscription({
+            execution: "all-roles",
+            topic: SITE_BUILDER_CHANNELS.routesCollect,
+            payload: z.strictObject({}),
+            handle: ({ messaging }) => registerSitePages(messaging),
+          }),
+          defineSubscription({
+            topic: SITE_METADATA_UPDATED_CHANNEL,
+            payload: z.unknown(),
+            handle: ({ payload }) => {
+              state.presentation.theme =
+                siteThemeSchema.safeParse(payload).data?.themeMode;
+            },
+          }),
+          defineSubscription({
+            execution: "all-roles",
+            ...contactFormDiscoveryRequest,
+            handle: () => ({
+              origin: intake.http.origin,
+              routes: contactRoutes.map((route) => ({
                 ...route,
-                security: { kind: "public" },
-                preview: config.intake?.preview,
-                response: verbatim,
-                handle: ({ request, transport }) =>
-                  runtime.handle(request, transport),
-              }),
-            )
-          : [];
+                public: true,
+                preview: true,
+              })),
+            }),
+          }),
+        ];
       },
+      inbox: () => contactInbox,
+      routes: ({ state }) =>
+        contactRoutes.map((route) =>
+          defineRoute({
+            ...route,
+            security: { kind: "public" },
+            preview: true,
+            response: verbatim,
+            handle: ({ request, transport }) =>
+              state.runtime.handle(request, transport),
+          }),
+        ),
       ready: async ({ state, messaging }) => {
-        if (!state.runtime) return;
-        await registerSitePages(messaging);
         const destination = await messaging.request(inboxWorkspaceRequest, {});
         try {
           const response = await messaging.request(siteThemeRequest, {});
@@ -332,21 +318,18 @@ export function contactService(): ServicePackageDefinition<
         state,
       }): Readonly<Record<string, ContactRuntime["health"]>> => {
         const runtime = state.runtime;
-        return runtime ? { intake: () => runtime.health() } : {};
+        return { intake: () => runtime.health() };
       },
-      interactions: ({ config }) =>
-        config.intake
-          ? [
-              {
-                id: "contact",
-                label: "Contact",
-                href: `${config.intake.http.origin}/contact`,
-                kind: "human",
-                priority: 50,
-                visibility: "public",
-              },
-            ]
-          : [],
+      interactions: ({ state }) => [
+        {
+          id: "contact",
+          label: "Contact",
+          href: `${state.intakeConfig.http.origin}/contact`,
+          kind: "human",
+          priority: 50,
+          visibility: "public",
+        },
+      ],
     },
   );
 }

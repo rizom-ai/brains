@@ -36,6 +36,9 @@ function registerHandlers(): {
     fixtures: {
       seed: async (): Promise<void> => {},
       reset: async (): Promise<void> => {},
+      settleEmbeddings: async (): Promise<void> => {
+        throw new Error("This fixture does not embed entities");
+      },
     },
     template: (localName: string) => `conversation-memory:${localName}`,
     runProjectionRule: async () => [],

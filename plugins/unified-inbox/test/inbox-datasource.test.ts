@@ -3,6 +3,7 @@ import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   InboxRegistry,
+  AuthRegistry,
   type StudioWorkspaceRegistration,
   type DashboardWidgetRegistration,
   type InboxItem,
@@ -28,7 +29,7 @@ function item(
 
 describe("InboxDataSource", () => {
   it("aggregates all sources by urgency then recency", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("alpha-plugin", {
       sourceId: "alpha",
       displayName: "Alpha",
@@ -64,7 +65,7 @@ describe("InboxDataSource", () => {
   });
 
   it("isolates a failing source without exposing its exception", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("healthy-plugin", {
       sourceId: "healthy",
       displayName: "Healthy",
@@ -99,7 +100,7 @@ describe("InboxDataSource", () => {
 
   it("coalesces concurrent projections into one source fan-out", async () => {
     let lists = 0;
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("alpha-plugin", {
       sourceId: "alpha",
       displayName: "Alpha",
@@ -125,7 +126,7 @@ describe("InboxDataSource", () => {
   });
 
   it("returns a stable empty projection", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.finalize();
 
     expect(await new InboxDataSource(registry).getInboxData()).toEqual({

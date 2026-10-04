@@ -87,6 +87,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
     "email",
     "notifications",
     "conversation-memory",
+    "faq",
   ],
   permissions: [
     {
@@ -98,7 +99,7 @@ export const chatBundle: CapabilityBundleDefinition = defineBundle({
       config: { rules: [{ pattern: "web-chat:*", level: "admin" }] },
     },
   ],
-  evalDisable: ["chat", "web-chat", "email"],
+  evalDisable: ["chat", "web-chat", "email", "faq"],
 });
 
 export const siteBundle: CapabilityBundleDefinition = defineBundle({

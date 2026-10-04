@@ -1,0 +1,509 @@
+import { beforeEach, describe, expect, it } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import type {
+  ContentVisibility,
+  EntityPluginContext,
+  Message,
+  UserPermissionLevel,
+} from "@brains/plugins";
+import {
+  createPluginHarness,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
+import { captureOwnedFaq } from "../src/lib/owned-capture";
+import { classifyExchange } from "../src/lib/faq-classification";
+import { findSameFaq } from "../src/lib/faq-matching";
+import type { EntityConversationReader } from "@brains/sdk/entities";
+import * as faqAdapter from "../src/lib/faq-content";
+import {
+  faqPackage,
+  capturedReplyStore,
+  faqMetadata,
+  faqSchema,
+  type FaqClassification,
+  type FaqCaptureJobData,
+  type FaqEntity,
+  SAME_QUESTION_CHECK,
+} from "../src";
+
+const CONVERSATION_ID = "conv-1";
+const SLUG = "how-do-i-publish-a-draft-post";
+
+interface DistanceResult {
+  entityId: string;
+  entityType: string;
+  distance: number;
+}
+
+function message(
+  id: string,
+  role: "user" | "assistant",
+  content: string,
+): Message {
+  return {
+    id,
+    conversationId: CONVERSATION_ID,
+    role,
+    content,
+    timestamp: new Date().toISOString(),
+    metadata: {},
+  };
+}
+
+const transcript: Message[] = [
+  message("m1", "user", "hi"),
+  message("m2", "assistant", "Hello!"),
+  message("m3", "user", "how do I publish a draft post?"),
+  message("m4", "assistant", "Open it in Studio and choose Publish."),
+];
+
+const accepted: FaqClassification = {
+  reusable: true,
+  question: "How do I publish a draft post?",
+  answer: "Open the post in Studio and choose Publish.",
+};
+
+interface CaptureHandler {
+  process(data: FaqCaptureJobData): ReturnType<typeof captureOwnedFaq>;
+}
+
+describe("FAQ owned capture", () => {
+  let context: EntityPluginContext;
+  let prompts: string[];
+  let checks: string[];
+  let sameVerdict: boolean;
+  let classification: FaqClassification;
+  let searches: string[];
+  let fetches: Array<Parameters<EntityConversationReader["getMessages"]>[1]>;
+  let distances: DistanceResult[];
+
+  function createHandler(
+    messages: Message[] = transcript,
+    sameQuestionDistance = 0.2,
+  ): CaptureHandler {
+    const deps = {
+      entityService: context.entityService,
+      replies: capturedReplyStore(context.runtimeState),
+      sameQuestionDistance,
+      searchWithDistances: async (
+        request: Parameters<
+          EntityPluginContext["entityService"]["searchWithDistances"]
+        >[0],
+      ): Promise<DistanceResult[]> => {
+        searches.push(request.query);
+        return distances;
+      },
+      conversations: {
+        // Honours range and limit the way the conversation store does.
+        getMessages: async (
+          _id: string,
+          options: Parameters<EntityConversationReader["getMessages"]>[1],
+        ): Promise<Message[]> => {
+          fetches.push(options);
+          const range = options?.range;
+          if (range) return messages.slice(range.start - 1, range.end);
+          return options?.limit ? messages.slice(-options.limit) : messages;
+        },
+      },
+      ai: {
+        generateObject: async <T>(
+          prompt: string,
+          schema: { parse(value: unknown): T },
+        ): Promise<{ object: T }> => {
+          if (prompt.includes(SAME_QUESTION_CHECK)) {
+            checks.push(prompt);
+            return { object: schema.parse({ same: sameVerdict }) };
+          }
+          prompts.push(prompt);
+          return { object: schema.parse(classification) };
+        },
+      },
+    };
+    context.entityService.searchWithDistances = deps.searchWithDistances;
+    const { mutations, nearest } = createTestEntityAccess({
+      entityService: context.entityService,
+      ownedTypes: ["faq"],
+      owner: "@brains/faq",
+      declarationId: "capture",
+    });
+    return {
+      process: (data) =>
+        captureOwnedFaq(data, {
+          mutations,
+          wasClaimed: (key) => deps.replies.has(key),
+          messages: (id, range) =>
+            deps.conversations.getMessages(id, { range }),
+          classify: (question, answer) =>
+            classifyExchange(deps.ai, question, answer),
+          findSame: (request) =>
+            findSameFaq(
+              { nearest, ai: deps.ai, sameQuestionDistance },
+              request,
+            ),
+        }),
+    };
+  }
+
+  function capture(
+    handler: CaptureHandler,
+    userPermissionLevel: UserPermissionLevel,
+    messageId = "m4",
+    position = 4,
+  ): ReturnType<typeof captureOwnedFaq> {
+    return handler.process({
+      conversationId: CONVERSATION_ID,
+      messageId,
+      userPermissionLevel,
+      position,
+    });
+  }
+
+  async function capturedFaqs(): Promise<FaqEntity[]> {
+    return context.entityService.listEntities(
+      {
+        entityType: "faq",
+        options: { filter: { visibilityScope: "restricted" } },
+      },
+      faqSchema,
+    );
+  }
+
+  async function seed(
+    id: string,
+    visibility: ContentVisibility,
+    question = "How can I publish a draft?",
+  ): Promise<FaqEntity> {
+    const frontmatter = { question, status: "draft" as const, asked: 1 };
+    await context.entityService.createEntity({
+      entity: {
+        id,
+        entityType: "faq",
+        content: faqAdapter.createFaqContent(
+          frontmatter,
+          "Choose Publish in Studio.",
+        ),
+        visibility,
+        metadata: faqMetadata(frontmatter),
+      },
+    });
+    const faq = (await capturedFaqs()).find((entity) => entity.id === id);
+    if (!faq) throw new Error("Expected the seeded FAQ");
+    return faq;
+  }
+
+  /** Stores an earlier FAQ at `distance` from the incoming exchange. */
+  async function seedMatch(
+    visibility: ContentVisibility,
+    distance: number,
+  ): Promise<void> {
+    const existing = await seed("faq-old", visibility);
+    distances = [
+      { entityId: "note-1", entityType: "note", distance: 0.01 },
+      { entityId: existing.id, entityType: "faq", distance },
+    ];
+  }
+
+  beforeEach(async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-${randomUUID()}`,
+    });
+    for (const plugin of instantiatePluginPackageDefinition(
+      faqPackage,
+      {},
+      { name: "@brains/faq", version: "0.0.0-test" },
+    ))
+      await harness.installPlugin(plugin);
+    context = harness.getEntityContext("faq");
+    prompts = [];
+    checks = [];
+    sameVerdict = true;
+    classification = accepted;
+    searches = [];
+    fetches = [];
+    distances = [];
+  });
+
+  for (const [level, visibility] of [
+    ["admin", "restricted"],
+    ["trusted", "shared"],
+    ["public", "public"],
+  ] as const) {
+    it(`captures a ${level} turn as a ${visibility} draft`, async () => {
+      const result = await capture(createHandler(), level);
+
+      expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
+      const [faq] = await capturedFaqs();
+      expect(faq?.visibility).toBe(visibility);
+      const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
+      expect(parsed.frontmatter).toEqual({
+        question: "How do I publish a draft post?",
+        status: "draft",
+        asked: 1,
+      });
+      expect(parsed.answer).toBe("Open the post in Studio and choose Publish.");
+      expect(faq?.content).not.toContain("m4");
+    });
+  }
+
+  it("classifies the answer against the nearest preceding user message", async () => {
+    await capture(createHandler(), "admin");
+
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("how do I publish a draft post?");
+    expect(prompts[0]).toContain("Open it in Studio and choose Publish.");
+    expect(prompts[0]).not.toContain("hi\n");
+  });
+
+  it("creates nothing when the pair is not reusable", async () => {
+    classification = { reusable: false, question: "", answer: "" };
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toEqual({ captured: false, reason: "not-reusable" });
+    expect(await capturedFaqs()).toHaveLength(0);
+  });
+
+  it("skips an answer with no preceding question", async () => {
+    const result = await capture(
+      createHandler([message("m4", "assistant", "Welcome!")]),
+      "admin",
+    );
+
+    expect(result).toEqual({ captured: false, reason: "no-question" });
+    expect(prompts).toHaveLength(0);
+  });
+
+  it("skips an answer that is no longer in the conversation", async () => {
+    const result = await capture(createHandler(), "admin", "gone");
+
+    expect(result).toEqual({ captured: false, reason: "answer-not-found" });
+    expect(prompts).toHaveLength(0);
+  });
+
+  it("captures each answer once", async () => {
+    const handler = createHandler();
+    await capture(handler, "admin");
+
+    const result = await capture(handler, "admin");
+
+    expect(result).toEqual({ captured: false, reason: "already-captured" });
+    expect(prompts).toHaveLength(1);
+    expect(await capturedFaqs()).toHaveLength(1);
+  });
+
+  it("does not consume the reply when capture fails, so the retry counts it", async () => {
+    const service = context.entityService;
+    const create = service.applyEntityMutationOnce.bind(service);
+    let failed = false;
+    service.applyEntityMutationOnce = async (
+      request,
+    ): ReturnType<typeof create> => {
+      if (!failed) {
+        failed = true;
+        throw new Error("database unavailable");
+      }
+      return create(request);
+    };
+    const handler = createHandler();
+    const failure = await capture(handler, "admin").then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+    const result = await capture(handler, "admin");
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
+  });
+
+  it("names a second FAQ with a taken question slug -2", async () => {
+    await seed(SLUG, "public", "How do I publish a draft post?");
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: `${SLUG}-2`, merged: false });
+  });
+
+  it("measures the new FAQ's markdown, the form stored FAQs are embedded in", async () => {
+    await capture(createHandler(), "trusted");
+
+    expect(searches).toEqual([
+      faqAdapter.createFaqContent(
+        { question: "How do I publish a draft post?", status: "draft" },
+        "Open the post in Studio and choose Publish.",
+      ),
+    ]);
+  });
+
+  it("merges a repeated question into the FAQ of the same visibility", async () => {
+    await seedMatch("shared", 0.08);
+
+    const result = await capture(createHandler(), "trusted");
+
+    expect(result).toEqual({
+      captured: true,
+      entityId: "faq-old",
+      merged: true,
+    });
+    const faqs = await capturedFaqs();
+    expect(faqs).toHaveLength(1);
+    expect(faqs[0]?.metadata.asked).toBe(2);
+    const parsed = faqAdapter.parseFaqContent(faqs[0]?.content ?? "");
+    expect(parsed.answer).toBe("Choose Publish in Studio.");
+    expect(parsed.alternatives).toEqual([
+      { answer: "Open the post in Studio and choose Publish." },
+    ]);
+  });
+
+  it("adds no alternative when the merging answer matches the FAQ's", async () => {
+    await seedMatch("shared", 0.08);
+    classification = { ...accepted, answer: "Choose Publish in Studio." };
+
+    await capture(createHandler(), "trusted");
+
+    const [faq] = await capturedFaqs();
+    expect(faq?.metadata.asked).toBe(2);
+    expect(faqAdapter.parseFaqContent(faq?.content ?? "").alternatives).toEqual(
+      [],
+    );
+  });
+
+  for (const [existing, level] of [
+    ["public", "admin"],
+    ["restricted", "public"],
+  ] as const) {
+    it(`never merges a ${level} turn into a ${existing} FAQ`, async () => {
+      await seedMatch(existing, 0.05);
+
+      const result = await capture(createHandler(), level);
+
+      expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
+      expect(await capturedFaqs()).toHaveLength(2);
+    });
+  }
+
+  it("applies the configured same-question distance", async () => {
+    await seedMatch("restricted", 0.3);
+
+    const result = await capture(createHandler(transcript, 0.35), "admin");
+
+    expect(result).toMatchObject({ entityId: "faq-old", merged: true });
+  });
+
+  it("keeps a weak match as a separate FAQ", async () => {
+    await seedMatch("restricted", 0.3);
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: SLUG, merged: false });
+  });
+
+  it("merges each answer once", async () => {
+    await seedMatch("restricted", 0.08);
+    const handler = createHandler();
+    await capture(handler, "admin");
+
+    const result = await capture(handler, "admin");
+
+    expect(result).toEqual({ captured: false, reason: "already-captured" });
+    expect(prompts).toHaveLength(1);
+    const [faq] = await capturedFaqs();
+    expect(faq?.metadata.asked).toBe(2);
+  });
+
+  it("keeps a merge that lands while this one is writing", async () => {
+    await seedMatch("restricted", 0.08);
+    const service = context.entityService;
+    const update = service.updateEntity.bind(service);
+    const apply = service.applyEntityMutationOnce.bind(service);
+    let interleaved = false;
+    service.applyEntityMutationOnce = async (
+      request,
+    ): ReturnType<typeof apply> => {
+      if (!interleaved) {
+        interleaved = true;
+        // Another capture job merges its reply into the same FAQ first.
+        const [current] = await capturedFaqs();
+        if (!current) throw new Error("Expected the seeded FAQ");
+        const parsed = faqAdapter.parseFaqContent(current.content);
+        const frontmatter = { ...parsed.frontmatter, asked: 2 };
+        await update({
+          entity: {
+            ...current,
+            content: faqAdapter.createFaqContent(frontmatter, parsed.answer, [
+              { answer: "Another answer." },
+            ]),
+            metadata: faqMetadata(frontmatter),
+          },
+        });
+      }
+      return apply(request);
+    };
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toEqual({
+      captured: true,
+      entityId: "faq-old",
+      merged: true,
+    });
+    const [faq] = await capturedFaqs();
+    expect(faq?.metadata.asked).toBe(3);
+    expect(faqAdapter.parseFaqContent(faq?.content ?? "").alternatives).toEqual(
+      [
+        { answer: "Another answer." },
+        { answer: "Open the post in Studio and choose Publish." },
+      ],
+    );
+  });
+
+  it("finds a reply that newer messages pushed far back", async () => {
+    const long = Array.from({ length: 80 }, (_, index) =>
+      message(
+        `m${index + 1}`,
+        index % 2 === 0 ? "user" : "assistant",
+        index === 18
+          ? "how do I publish a draft post?"
+          : `message ${index + 1}`,
+      ),
+    );
+
+    const result = await capture(createHandler(long), "admin", "m20", 20);
+
+    expect(result).toMatchObject({ captured: true, entityId: SLUG });
+    expect(prompts[0]).toContain("how do I publish a draft post?");
+    expect(fetches).toEqual([{ range: { start: 1, end: 30 } }]);
+  });
+
+  it("falls back to 'faq' for a question with no latin letters", async () => {
+    classification = {
+      reusable: true,
+      question: "如何发布草稿？",
+      answer: "在 Studio 中选择发布。",
+    };
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: "faq" });
+  });
+
+  it("keeps a close look-alike separate when the check says the questions differ", async () => {
+    await seedMatch("restricted", 0.08);
+    sameVerdict = false;
+
+    const result = await capture(createHandler(), "admin");
+
+    expect(result).toMatchObject({ entityId: SLUG, merged: false });
+    expect(checks).toHaveLength(1);
+    expect(checks[0]).toContain("How can I publish a draft?");
+    expect(checks[0]).toContain("How do I publish a draft post?");
+    expect(await capturedFaqs()).toHaveLength(2);
+  });
+
+  it("asks nothing extra when no FAQ is close", async () => {
+    await capture(createHandler(), "admin");
+
+    expect(checks).toEqual([]);
+  });
+});

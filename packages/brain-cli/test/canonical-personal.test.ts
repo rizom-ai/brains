@@ -40,6 +40,7 @@ describe("canonical personal posture", () => {
       "@brains/dashboard:dashboard",
       "@brains/web-chat:web-chat",
       "@brains/conversation-memory:conversation-memory",
+      "@brains/faq:faq",
     ]) {
       expect(ids).toContain(id);
     }

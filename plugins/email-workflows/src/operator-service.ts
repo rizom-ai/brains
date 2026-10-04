@@ -1,4 +1,8 @@
-import type { EntityReactionContext, EntityAccess } from "@brains/sdk/entities";
+import type {
+  EntityInboxListContext,
+  EntityReader,
+  InboxEntityEdits,
+} from "@brains/sdk/entities";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
@@ -22,11 +26,8 @@ const INBOX_ITEM_LIMIT = 100;
 
 /** What the operator reads and changes: mail items, as this package may. */
 export interface MailTriageOperatorContext {
-  readonly entities: Pick<
-    EntityAccess,
-    "listEntities" | "getEntity" | "update" | "count"
-  >;
-  readonly permissions: EntityReactionContext["permissions"];
+  readonly entities: Pick<EntityReader, "listEntities" | "getEntity" | "count">;
+  readonly permissions: EntityInboxListContext["permissions"];
 }
 
 interface OperatorActor {
@@ -99,6 +100,7 @@ export class MailTriageOperatorService {
   async act(
     input: unknown,
     actor: OperatorActor,
+    edits: InboxEntityEdits,
   ): Promise<MailTriageStatusActionResult> {
     assertMailTriageAdmin(actor);
     const action = mailTriageStatusActionSchema.parse(input);
@@ -107,15 +109,9 @@ export class MailTriageOperatorService {
       "update",
       actor,
     );
-    const entity = await this.context.entities.getEntity(
-      {
-        entityType: "mail-item",
-        id: action.id,
-        visibilityScope: "restricted",
-      },
-      mailItemSchema,
-    );
-    if (!entity) throw new Error("Mail item not found");
+    const edit = await edits.read(mailItemReference, action.id);
+    if (!edit) throw new Error("Mail item not found");
+    const entity = mailItemSchema.parse(edit.entity);
 
     const { frontmatter, summary } = mailItemAdapter.parseMailItemContent(
       entity.content,
@@ -132,7 +128,7 @@ export class MailTriageOperatorService {
       { ...frontmatter, status },
       summary,
     );
-    await this.context.entities.update(mailItemReference, {
+    await edits.replace(mailItemReference, edit, {
       ...entity,
       content,
       metadata: { ...entity.metadata, status },

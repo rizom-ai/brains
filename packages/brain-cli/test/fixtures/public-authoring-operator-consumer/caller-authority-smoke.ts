@@ -1,5 +1,6 @@
 import { createBrainTestHarness } from "@rizom/brain/testing";
 import {
+  createStudioWorkspaceActor,
   defineRoute,
   defineServicePlugin,
   z,
@@ -30,6 +31,14 @@ const definition = defineServicePlugin(
         response: z.object({ ok: z.boolean() }),
         handle: async ({ caller }) => {
           retained = caller;
+          const actor = createStudioWorkspaceActor(caller);
+          if (
+            actor.userId !== caller.actor.id ||
+            actor.userPermissionLevel !== caller.permission
+          )
+            throw new Error(
+              "SDK helper did not preserve the host-issued caller presentation",
+            );
           await state.groups.definitions(caller);
           return { ok: true };
         },

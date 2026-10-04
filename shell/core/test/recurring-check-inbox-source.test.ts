@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { RecurringCheckOpenAlert } from "@brains/recurring-checks";
 import { createRecurringCheckInboxSource } from "../src/initialization/recurring-check-inbox-source";
 
@@ -13,6 +14,7 @@ const openAlert: RecurringCheckOpenAlert = {
 function createFixture(alerts: RecurringCheckOpenAlert[] = [openAlert]): {
   source: ReturnType<typeof createRecurringCheckInboxSource>;
   resolved: string[];
+  harness: ReturnType<typeof createPluginHarness>;
 } {
   const resolved: string[] = [];
   const source = createRecurringCheckInboxSource({
@@ -21,7 +23,13 @@ function createFixture(alerts: RecurringCheckOpenAlert[] = [openAlert]): {
       resolved.push(itemId);
     },
   });
-  return { source, resolved };
+  const harness = createPluginHarness();
+  const registry = harness.getMockShell().getInboxRegistry();
+  registry.registerSource("recurring-checks", source);
+  registry.finalize();
+  const installed = registry.getSource(source.sourceId);
+  if (!installed) throw new Error("Missing recurring check source");
+  return { source: installed, resolved, harness };
 }
 
 describe("recurring-check Inbox source", () => {
@@ -43,13 +51,29 @@ describe("recurring-check Inbox source", () => {
   });
 
   it("lets only an Admin resolve an item through the declared action", async () => {
-    const { source, resolved } = createFixture();
+    const { source, resolved, harness } = createFixture();
 
-    const permissionError = await source
-      .act(openAlert.id, "resolve", { permissionLevel: "trusted" })
+    const permissionError = await harness
+      .withCaller(
+        (caller) =>
+          source.act(
+            openAlert.id,
+            "resolve",
+            { permissionLevel: "trusted" },
+            caller,
+          ),
+        { permission: "trusted" },
+      )
       .catch((error: unknown) => error);
-    const actionError = await source
-      .act(openAlert.id, "dismiss", { permissionLevel: "admin" })
+    const actionError = await harness
+      .withCaller((caller) =>
+        source.act(
+          openAlert.id,
+          "dismiss",
+          { permissionLevel: "admin" },
+          caller,
+        ),
+      )
       .catch((error: unknown) => error);
     expect(permissionError).toEqual(new Error("Admin permission required"));
     expect(actionError).toEqual(
@@ -57,7 +81,9 @@ describe("recurring-check Inbox source", () => {
     );
     expect(resolved).toEqual([]);
 
-    await source.act(openAlert.id, "resolve", { permissionLevel: "admin" });
+    await harness.withCaller((caller) =>
+      source.act(openAlert.id, "resolve", { permissionLevel: "admin" }, caller),
+    );
     expect(resolved).toEqual([openAlert.id]);
   });
 });

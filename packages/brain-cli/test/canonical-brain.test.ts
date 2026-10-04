@@ -43,6 +43,7 @@ const expectedCatalogIds = [
   "stock-photo",
   "atproto",
   "conversation-memory",
+  "faq",
   "docs",
   "obsidian-vault",
   "email-workflows",
@@ -106,7 +107,7 @@ describe("canonical brain core", () => {
     expect(canonicalBrain.agentInstructions).toBeUndefined();
   });
 
-  test("offers contact only through explicit addition, with intake still default-off", () => {
+  test("offers contact only through explicit addition, with bounded intake enabled by default", () => {
     expect(
       canonicalBrain.bundles?.some((bundle) =>
         bundle.members.includes("contact"),
@@ -126,7 +127,12 @@ describe("canonical brain core", () => {
     );
     expect(contact).toBeDefined();
     expect(contact).toHaveProperty("config", {});
-    expect(contact?.dependencies).toEqual(["@brains/contact:contact-request"]);
+    expect(contact?.dependencies).toEqual([
+      "@brains/contact:contact-request",
+      "@brains/notifications:notifications",
+      "@brains/studio:studio",
+      "@brains/unified-inbox:unified-inbox",
+    ]);
   });
 
   test("is the sole bundled definition", () => {

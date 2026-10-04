@@ -1,4 +1,5 @@
 import { createMockShell } from "../src/test/mock-shell";
+import { createPluginHarness } from "../src/test/harness";
 import { describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -140,9 +141,10 @@ describe("declarative Studio workspace runtime", () => {
         },
       },
     );
-    const shell = createMockShell({
+    const harness = createPluginHarness({
       logger: createSilentLogger("declarative-studio-runtime"),
     });
+    const shell = harness.getMockShell();
     const registrations: StudioWorkspaceRegistration[] = [];
     const unregistrations: StudioWorkspaceUnregistration[] = [];
     shell
@@ -150,7 +152,7 @@ describe("declarative Studio workspace runtime", () => {
       .subscribe<StudioWorkspaceRegistration>(
         STUDIO_WORKSPACE_REGISTER_MESSAGE,
         (message) => {
-          registrations.push(message.payload);
+          registrations.push(harness.bindStudioWorkspace(message.payload));
           return {
             success: true,
             data: {
@@ -417,14 +419,15 @@ describe("declarative Studio workspace runtime", () => {
         ],
       },
     );
-    const shell = createMockShell();
+    const harness = createPluginHarness();
+    const shell = harness.getMockShell();
     let registration: StudioWorkspaceRegistration | undefined;
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
         STUDIO_WORKSPACE_REGISTER_MESSAGE,
         (message) => {
-          registration = message.payload;
+          registration = harness.bindStudioWorkspace(message.payload);
           return { success: true, data: { workspaceUrl: "/studio/query" } };
         },
       );
@@ -520,14 +523,15 @@ describe("declarative Studio workspace runtime", () => {
         },
       },
     );
-    const shell = createMockShell();
+    const harness = createPluginHarness();
+    const shell = harness.getMockShell();
     let registration: StudioWorkspaceRegistration | undefined;
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration>(
         STUDIO_WORKSPACE_REGISTER_MESSAGE,
         (message) => {
-          registration = message.payload;
+          registration = harness.bindStudioWorkspace(message.payload);
           return { success: true, data: { workspaceUrl: "/studio/prepared" } };
         },
       );

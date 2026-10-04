@@ -1,4 +1,4 @@
-import { createMockShell } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,
@@ -28,7 +28,8 @@ export async function createWorkViewFixtures(
   overviewBadge: () => Promise<number>;
   inbox: (query: Record<string, string>) => Promise<unknown>;
 }> {
-  const shell = createMockShell({ domain: "brain.test" });
+  const harness = createPluginHarness({ domain: "brain.test" });
+  const shell = harness.getMockShell();
   const actor: StudioWorkspaceActor = {
     interfaceType: "studio",
     userId: "visual-admin",
@@ -160,7 +161,7 @@ export async function createWorkViewFixtures(
     ),
   );
   const workspace = await registerFixtureWorkspace(
-    shell,
+    harness,
     defineServicePlugin(
       { id: "unified-inbox", config: z.strictObject({}) },
       {

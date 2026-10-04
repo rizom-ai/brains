@@ -8,6 +8,7 @@
  * and stays a thin orchestration façade.
  */
 
+import { withEmbeddingUsage } from "./openai-guest-pricing";
 import type { AgentContextItem } from "@brains/contracts";
 import {
   guestInterfaceType,
@@ -95,6 +96,7 @@ export interface TurnProcessorDeps {
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
   guestAnswerSources: AgentConfig["guestAnswerSources"];
+  embeddingUsage: AgentConfig["embeddingUsage"];
 }
 
 /** A turn that passed admission: who is asking, and under which limits. */
@@ -137,13 +139,26 @@ export class TurnProcessor {
     this.logAvailableTools(turn);
     await this.recordQuestion(turn, prepared);
 
-    const result = await this.deps.getAgent(input.interfaceType).generate({
-      messages: prepared.messages,
-      options: this.callOptions(turn, prepared),
-      ...(signal ? { abortSignal: signal } : {}),
-    });
-    signal?.throwIfAborted();
-    return this.recordResponse(turn, prepared, result, signal);
+    const answer = async (): Promise<AgentResponse> => {
+      const result = await this.deps.getAgent(input.interfaceType).generate({
+        messages: prepared.messages,
+        options: this.callOptions(turn, prepared),
+        ...(signal ? { abortSignal: signal } : {}),
+      });
+      signal?.throwIfAborted();
+      return this.recordResponse(turn, prepared, result, signal);
+    };
+    const meter = this.deps.embeddingUsage;
+    if (!turn.guest || !meter) return answer();
+    // A visitor's answer is charged for its embeddings too: its searches and
+    // the search that found its sources.
+    const { value: response, usage } = await meter.measure(answer);
+    return response.guestSettlement
+      ? {
+          ...response,
+          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+        }
+      : response;
   }
 
   /**
@@ -373,6 +388,9 @@ export class TurnProcessor {
       hasAccessibleUploads:
         hasCurrentUploadAttachments || prepared.uploadRefs.length > 0,
       guestExecution: turn.guestExecution,
+      ...(turn.guest && turn.input.guestScreening
+        ? { guestScreening: turn.input.guestScreening }
+        : {}),
       userPermissionLevel,
       isAnchor,
       conversationId,
@@ -418,9 +436,11 @@ export class TurnProcessor {
     const { toolResults, pendingConfirmations, totalToolCalls } = extracted;
     if (guest && pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
-    const cards = guest
-      ? await this.withGuestAnswerSources(extracted.cards, result.text)
-      : extracted.cards;
+    // A refusal is not an answer, so it has no sources to find.
+    const cards =
+      guest && result.guestScreening?.outcome !== "refused"
+        ? await this.withGuestAnswerSources(extracted.cards, result.text)
+        : extracted.cards;
     signal?.throwIfAborted();
     const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
@@ -480,6 +500,9 @@ export class TurnProcessor {
       usage: toTokenUsage(result.usage),
       ...(guest && result.guestSettlement
         ? { guestSettlement: result.guestSettlement }
+        : {}),
+      ...(guest && result.guestScreening
+        ? { guestScreening: result.guestScreening }
         : {}),
       ...(pendingConfirmations.length > 0 ? { pendingConfirmations } : {}),
     };

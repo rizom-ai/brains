@@ -10,6 +10,8 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { MessageBus } from "@brains/messaging-service";
 import {
   type Daemon,
+  MessageInterfacePlugin,
+  type MessageInterfacePluginContext,
   type Plugin,
   type PluginCapabilities,
   type ServicePluginContext,
@@ -103,6 +105,55 @@ function createInterfacePlugin(onRegister: () => void): Plugin {
       return { tools: [], resources: [] };
     },
   };
+}
+
+/** An interface that owns a channel, and also listens and serves. */
+class ChannelInterface extends MessageInterfacePlugin<
+  Record<string, never>,
+  Record<string, never>
+> {
+  public registered = false;
+
+  public constructor() {
+    super(
+      "channel-interface",
+      { name: "@test/channel-interface", version: "1.0.0" },
+      {},
+      z.object({}),
+    );
+  }
+
+  protected override createDaemon(): Daemon {
+    return {
+      start: async (): Promise<void> => {},
+      stop: async (): Promise<void> => {},
+    };
+  }
+
+  protected override registerChannels(
+    context: MessageInterfacePluginContext,
+  ): void {
+    context.channels.registerDescriptor({
+      type: "test-channel",
+      displayName: "Test channel",
+      subjectLabel: "Handle",
+    });
+    context.channels.registerDeliveryProvider({
+      channelType: "test-channel",
+      isAvailable: async () => true,
+      send: async () => ({ status: "sent" }),
+    });
+  }
+
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+    this.registered = true;
+    context.messaging.subscribe("test:channel-ingress", async () => ({
+      success: true,
+    }));
+  }
 }
 
 function createTrackingWorker(onStart: () => void): IJobQueueWorker {
@@ -267,6 +318,63 @@ describe("supervised runtime process roles", () => {
     expect(executionPlugin.readyCalled).toBe(false);
     expect(workerStarted).toBe(true);
   });
+
+  // A background job that sends on a channel runs in the worker, so the
+  // worker must know every channel's sender: an interface's channels, and
+  // nothing else of it.
+  it.each([
+    { name: "worker", processRole: "worker", fullyRegistered: false },
+    { name: "combined", processRole: undefined, fullyRegistered: true },
+  ] as const)(
+    "registers each interface's channels and senders: $name",
+    async ({ processRole, fullyRegistered }) => {
+      const directory = await createTestDirectory();
+      cleanups.push(directory.cleanup);
+      await Promise.all([
+        migrateEntities({ url: `file:${directory.dir}/test.db` }),
+        migrateJobQueue({ url: `file:${directory.dir}/test-jobs.db` }),
+        migrateConversations({ url: `file:${directory.dir}/test-conv.db` }),
+        migrateRuntimeState({
+          url: `file:${directory.dir}/test-runtime-state.db`,
+        }),
+      ]);
+      const logger = createSilentLogger();
+      const messageBus = MessageBus.createFresh(logger);
+      const daemonRegistry = DaemonRegistry.createFresh(logger);
+      const channelInterface = new ChannelInterface();
+      const shell = Shell.createFresh(
+        createTestShellConfig(directory.dir, { plugins: [channelInterface] }),
+        {
+          logger,
+          messageBus,
+          daemonRegistry,
+          jobQueueWorker: createTrackingWorker(() => {}),
+        },
+        processRole ? { processRole } : undefined,
+      );
+      shells.push(shell);
+      await shell.initialize({ mode: "register-only" });
+
+      const channels = shell.getChannelRegistry();
+      expect(channels.getDescriptor("test-channel")?.displayName).toBe(
+        "Test channel",
+      );
+      expect(
+        await channels.getDeliveryProvider("test-channel")?.send({
+          recipient: "someone",
+          subject: "Alert",
+          text: "A note arrived.",
+          idempotencyKey: "alert-1",
+          sensitivity: "normal",
+        }),
+      ).toEqual({ status: "sent" });
+      expect(channelInterface.registered).toBe(fullyRegistered);
+      expect(messageBus.getHandlerCount("test:channel-ingress")).toBe(
+        fullyRegistered ? 1 : 0,
+      );
+      expect(daemonRegistry.getAll().length > 0).toBe(fullyRegistered);
+    },
+  );
 
   it.each([
     { name: "combined", mode: undefined, expected: 1 },

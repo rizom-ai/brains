@@ -453,6 +453,48 @@ describe("declarative message interfaces", () => {
     ).toEqual({ status: "sent", providerDeliveryId: "ops:Ready" });
   });
 
+  // Background jobs send from the worker, which runs no listeners: there the
+  // interface gets its channel, its state and its sender, and nothing else.
+  it("delivers from the worker with its setup state, and never listens there", async () => {
+    const listen = mock(async () => {});
+    const definition = defineMessageInterface(
+      {
+        id: "pager",
+        config: z.object({ prefix: z.string() }),
+        channel: {
+          type: "pager",
+          displayName: "Pager",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
+        setup: ({ config }) => ({ prefix: config.prefix }),
+      },
+      {
+        listen,
+        send: () => undefined,
+        deliver: ({ state, recipient, message }) =>
+          `${state.prefix}:${recipient}:${message.text}`,
+      },
+    );
+    const harness = createPluginHarness();
+    const plugin = instantiate(definition, { prefix: "p" }, "@fixture/pager");
+    await plugin.registerChannelsForExecution?.(harness.getMockShell(), {
+      executionOnly: true,
+    });
+    const channels = harness.getMockShell().getChannelRegistry();
+    channels.finalize();
+    expect(
+      await channels.getDeliveryProvider("pager")?.send({
+        recipient: "ops",
+        subject: "Alert",
+        text: "Ready",
+        idempotencyKey: "alert-1",
+      }),
+    ).toEqual({ status: "sent", providerDeliveryId: "p:ops:Ready" });
+    expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([]);
+    expect(listen).not.toHaveBeenCalled();
+  });
+
   it("owns listener, normalized send/edit, delivery, and lazy attachments", async () => {
     let receiver:
       | {

@@ -15,6 +15,7 @@ export function openingFromProfile(
     contactLabel: null,
     contactNote: null,
     mapCaption: null,
+    faqHeading: null,
     contactUrl: null,
   };
 }

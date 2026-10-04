@@ -1,4 +1,12 @@
 import { runCleanups } from "../internal/cleanup";
+import {
+  issueRouteCaller,
+  revokeRouteCaller,
+} from "../internal/route-caller-authority";
+import type {
+  InterfaceCaller,
+  InterfaceActor,
+} from "../interface/route-contract";
 import { readToolFailureCause } from "../internal/tool-diagnostics";
 import { SdkError } from "@brains/contracts";
 import { readServiceJobResult } from "../service/job-definition-runtime";
@@ -41,9 +49,18 @@ import type {
 import type { AttachmentRegistrationNamespace } from "../service/attachment-registry";
 import { createMockShell, type MockShell } from "./mock-shell";
 import { createReactionContext } from "../service/reaction-context";
+import { createInboxContext } from "../internal/inbox-context";
+import { createStudioWorkspaceActor } from "../operator/workspace-actor";
+import type {
+  StudioWorkspaceActor,
+  StudioWorkspaceRegistration,
+} from "../types/studio-workspace";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import type { JobEntityAccess } from "../job/job-context-contract";
-import type { EntityReactionContext } from "../entity/entity-definition-contract";
+import type {
+  EntityReactionContext,
+  EntityInboxContext,
+} from "../entity/entity-definition-contract";
 import {
   createServicePluginContext,
   type ServicePluginContext,
@@ -292,6 +309,121 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   /**
    * Get the underlying mock shell for direct access in tests
    */
+  /** Request authority valid only in this isolated fixture, revoked on return. */
+  async withCaller<T>(
+    run: (caller: InterfaceCaller) => Promise<T>,
+    options: {
+      readonly permission?: InterfaceCaller["permission"];
+      readonly actor?: InterfaceActor;
+      readonly isAnchor?: boolean;
+      readonly signal?: AbortSignal;
+    } = {},
+  ): Promise<T> {
+    const caller = issueRouteCaller(
+      {
+        actor: options.actor ?? { id: "test-user" },
+        permission: options.permission ?? "admin",
+        isAnchor: options.isAnchor ?? false,
+      },
+      this.mockShell.getAuthRegistry(),
+      options.signal,
+    );
+    try {
+      return await run(caller);
+    } finally {
+      revokeRouteCaller(caller);
+    }
+  }
+
+  /** Explicit test transport: bind presentation-only Studio test inputs to fixture requests. */
+  bindStudioWorkspace(
+    registration: StudioWorkspaceRegistration,
+  ): StudioWorkspaceRegistration {
+    const run = <T>(
+      actor: StudioWorkspaceActor,
+      invoke: (bound: StudioWorkspaceActor) => T | Promise<T>,
+      signal?: AbortSignal,
+    ): Promise<T> =>
+      this.withCaller(
+        async (caller) => invoke(createStudioWorkspaceActor(caller)),
+        {
+          permission: actor.userPermissionLevel,
+          isAnchor: actor.isAnchor,
+          actor: {
+            id: actor.userId,
+            ...(actor.actor.kind === "user" && actor.actor.canonicalId
+              ? { canonicalId: actor.actor.canonicalId }
+              : {}),
+          },
+          ...(signal ? { signal } : {}),
+        },
+      );
+    const { actionHandler, badgeProvider, entityTypes } = registration;
+    return {
+      ...registration,
+      accessHandler: (actor) =>
+        run(actor, (bound) => registration.accessHandler(bound)),
+      dataProvider: (actor, query, signal) =>
+        run(
+          actor,
+          (bound) => registration.dataProvider(bound, query, signal),
+          signal,
+        ),
+      ...(actionHandler
+        ? {
+            actionHandler: (
+              request: unknown,
+              actor: StudioWorkspaceActor,
+              signal?: AbortSignal,
+            ) =>
+              run(
+                actor,
+                (bound) => actionHandler(request, bound, signal),
+                signal,
+              ),
+          }
+        : {}),
+      ...(badgeProvider
+        ? {
+            badgeProvider: (actor: StudioWorkspaceActor) =>
+              run(actor, (bound) => badgeProvider(bound)),
+          }
+        : {}),
+      ...(typeof entityTypes === "function"
+        ? {
+            entityTypes: (actor: StudioWorkspaceActor) =>
+              run(actor, (bound) => entityTypes(bound)),
+          }
+        : {}),
+    };
+  }
+
+  /** Isolated declaration-unit fixture; installed-source tests should use the registry. */
+  async withInboxContext<T>(
+    pluginId: string,
+    entityTypes: Iterable<string>,
+    run: (context: EntityInboxContext) => Promise<T>,
+    options: {
+      readonly permission?: InterfaceCaller["permission"];
+      readonly signal?: AbortSignal;
+    } = {},
+  ): Promise<T> {
+    const ownedTypes = new Set(entityTypes);
+    return this.withCaller(
+      (caller) =>
+        run(
+          createInboxContext({
+            reaction: this.getReactionContext(pluginId, ownedTypes),
+            entities: this.getEntityService(),
+            authority: this.mockShell.getAuthRegistry(),
+            ownedTypes,
+            caller,
+          }),
+        ),
+      options,
+    );
+  }
+
   getMockShell(): MockShell {
     return this.mockShell;
   }

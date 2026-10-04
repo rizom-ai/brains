@@ -40,7 +40,9 @@ function createDistanceDb(): EntityDB {
   const chainableMock = {
     from: mock(() => chainableMock),
     innerJoin: mock(() => chainableMock),
-    orderBy: mock(() => Promise.resolve([])),
+    where: mock(() => chainableMock),
+    orderBy: mock(() => chainableMock),
+    limit: mock(() => Promise.resolve([])),
   };
 
   return fakeEntityDb(() => chainableMock);
@@ -84,54 +86,57 @@ function createEntitySearch(options?: {
 }
 
 describe("EntitySearch query preparation", () => {
-  test("propagates cancellation and starts no SQL after a late embedding completes", async () => {
-    let queries = 0;
-    const { entitySearch, embeddingService } = createEntitySearch({
-      db: createSearchDb(() => {
-        queries++;
-      }),
-    });
-    const controller = new AbortController();
-    const entered = deferred<void>();
-    const release = deferred<void>();
-    let captured: AbortSignal | undefined;
-    embeddingService.generateEmbedding = async (
-      _text,
-      signal,
-    ): ReturnType<QueryEmbedder["generateEmbedding"]> => {
-      captured = signal;
-      entered.resolve();
-      await release.promise;
-      return {
-        embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-        usage: { tokens: 1 },
-      };
-    };
-    let settled = false;
-    const pending = entitySearch
-      .search("question", { signal: controller.signal })
-      .catch(() => null)
-      .finally(() => {
-        settled = true;
+  for (const method of ["search", "searchWithDistances"] as const) {
+    test(`${method}: propagates cancellation and starts no SQL after a late embedding completes`, async () => {
+      let queries = 0;
+      const { entitySearch, embeddingService } = createEntitySearch({
+        db: createSearchDb(() => {
+          queries++;
+        }),
       });
-    await entered.promise;
-    expect(captured).toBe(controller.signal);
-    controller.abort();
-    await Promise.resolve();
-    expect(settled).toBe(false);
-    release.resolve();
-    expect(await pending).toBeNull();
-    expect(queries).toBe(0);
-  });
+      const controller = new AbortController();
+      const entered = deferred<void>();
+      const release = deferred<void>();
+      let captured: AbortSignal | undefined;
+      embeddingService.generateEmbedding = async (
+        _text,
+        signal,
+      ): ReturnType<QueryEmbedder["generateEmbedding"]> => {
+        captured = signal;
+        entered.resolve();
+        await release.promise;
+        return {
+          embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+          usage: { tokens: 1 },
+        };
+      };
+      let settled = false;
+      const pending = entitySearch[method]("question", {
+        signal: controller.signal,
+      })
+        .catch(() => null)
+        .finally(() => {
+          settled = true;
+        });
+      await entered.promise;
+      expect(captured).toBe(controller.signal);
+      controller.abort();
+      await Promise.resolve();
+      expect(settled).toBe(false);
+      release.resolve();
+      expect(await pending).toBeNull();
+      expect(queries).toBe(0);
+    });
 
-  test("an already aborted search does not call the embedding provider", async () => {
-    const { entitySearch, embeddingService } = createEntitySearch();
-    const reason = new Error("cancelled search");
-    expect(
-      entitySearch.search("query", { signal: AbortSignal.abort(reason) }),
-    ).rejects.toBe(reason);
-    expect(embeddingService.generateEmbedding).not.toHaveBeenCalled();
-  });
+    test(`${method}: an already aborted search does not call the embedding provider`, async () => {
+      const { entitySearch, embeddingService } = createEntitySearch();
+      const reason = new Error("cancelled search");
+      expect(
+        entitySearch[method]("query", { signal: AbortSignal.abort(reason) }),
+      ).rejects.toBe(reason);
+      expect(embeddingService.generateEmbedding).not.toHaveBeenCalled();
+    });
+  }
 
   test("normalizes whitespace before generating a search embedding", async () => {
     const { entitySearch, embeddingService } = createEntitySearch();
@@ -171,6 +176,7 @@ describe("EntitySearch query preparation", () => {
 
     expect(embeddingService.generateEmbedding).toHaveBeenCalledWith(
       "distance query",
+      undefined,
     );
   });
 

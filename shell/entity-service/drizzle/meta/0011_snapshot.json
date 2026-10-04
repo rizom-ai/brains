@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4d8bfaf6-70f1-4f53-b951-39d0b64796e4",
+  "id": "3ec10903-6739-4d97-b6e2-7e00b0e1cbf3",
   "prevId": "f8757b36-7729-4732-b143-5a0e6883022f",
   "tables": {
     "assets": {
@@ -125,17 +125,7 @@
           "autoincrement": false
         }
       },
-      "indexes": {
-        "entities_type_visibility_source_summary_idx": {
-          "name": "entities_type_visibility_source_summary_idx",
-          "columns": [
-            "entityType",
-            "visibility",
-            "json_extract(\"metadata\", '$.sourceSummaryId')"
-          ],
-          "isUnique": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "entities_id_entityType_pk": {
@@ -202,6 +192,49 @@
         "entity_export_intents_entity_type_entity_id_pk": {
           "columns": ["entity_type", "entity_id"],
           "name": "entity_export_intents_entity_type_entity_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "entity_mutation_receipts": {
+      "name": "entity_mutation_receipts",
+      "columns": {
+        "namespace": {
+          "name": "namespace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "entity_mutation_receipts_namespace_key_pk": {
+          "columns": ["namespace", "key"],
+          "name": "entity_mutation_receipts_namespace_key_pk"
         }
       },
       "uniqueConstraints": {},
@@ -991,14 +1024,6 @@
     "columns": {}
   },
   "internal": {
-    "indexes": {
-      "entities_type_visibility_source_summary_idx": {
-        "columns": {
-          "json_extract(\"metadata\", '$.sourceSummaryId')": {
-            "isExpression": true
-          }
-        }
-      }
-    }
+    "indexes": {}
   }
 }

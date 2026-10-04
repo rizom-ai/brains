@@ -7,6 +7,7 @@ import {
   type BaseEntity,
   type EntityAdapter,
   type EntityExportIntent,
+  type EntityMutationReceipt,
   type IEntityRegistry,
   type PersistValidator,
 } from "@brains/entity-service";
@@ -29,6 +30,7 @@ export interface MockEntityStore {
   readonly sources: Map<string, string>;
   readonly persistValidators: Map<string, PersistValidator>;
   readonly exportIntents: Map<string, EntityExportIntent>;
+  readonly mutationReceipts: Map<string, EntityMutationReceipt>;
   readonly types: Set<string>;
   readonly adapters: Map<string, EntityAdapter<BaseEntity>>;
   readonly typeConfigs: Map<string, EntityTypeConfig | undefined>;
@@ -77,6 +79,7 @@ export function createMockEntityStore(): MockEntityStore {
     sources: new Map(),
     persistValidators: new Map(),
     exportIntents,
+    mutationReceipts: new Map(),
     types,
     adapters,
     typeConfigs,

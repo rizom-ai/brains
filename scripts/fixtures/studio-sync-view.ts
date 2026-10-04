@@ -1,4 +1,4 @@
-import { createMockShell } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { defineServicePlugin, z } from "@brains/sdk/services";
 import {
@@ -16,7 +16,7 @@ import type { StudioStudyState } from "./studio-study-state";
 export async function createSyncViewFixture(
   state?: StudioStudyState,
 ): Promise<() => Promise<unknown>> {
-  const shell = createMockShell();
+  const harness = createPluginHarness();
   const actor: StudioWorkspaceActor = {
     interfaceType: "studio",
     userId: "visual-admin",
@@ -144,7 +144,7 @@ export async function createSyncViewFixture(
     return snapshot;
   }
   const registration = await registerFixtureWorkspace(
-    shell,
+    harness,
     defineServicePlugin(
       { id: "directory-sync", config: z.strictObject({}) },
       {

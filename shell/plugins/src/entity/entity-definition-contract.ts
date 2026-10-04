@@ -1,6 +1,10 @@
 import type { SubscriptionRequester } from "../contracts/subscription";
-import type { EntityAccess } from "./entity-access-contract";
-import type { ProjectionSourceRole } from "@brains/entity-service";
+import type { EntityAccess, EntityReader } from "./entity-access-contract";
+import type { InboxEntityEdits } from "./inbox-entity-edits";
+import type {
+  ContentVisibility,
+  ProjectionSourceRole,
+} from "@brains/entity-service";
 import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
 import type { IAuthRegistry } from "../contracts/auth-registry";
@@ -144,6 +148,8 @@ export interface EntityDefinitionConfig {
   readonly embeddable?: boolean;
   /** Private operational records must also opt out of lexical indexing. */
   readonly fullTextSearchable?: boolean;
+  /** Derived answers may be queried explicitly without feeding broad search. */
+  readonly includeInBroadSearch?: boolean;
   /** Inline binary representation; this does not grant asset-store access. */
   readonly binaryStorage?: "data-url";
   /** Default system-list order; at most ten bounded field specifications. */
@@ -151,6 +157,7 @@ export interface EntityDefinitionConfig {
     field: string;
     direction: "asc" | "desc";
     nullsFirst?: boolean;
+    nullsLast?: boolean;
   }>;
   /** Opt into authorized upload-to-Markdown extraction; defaults off. */
   readonly markdownImport?: boolean;
@@ -551,6 +558,8 @@ export type EntityCreateAllocation =
 
 /** What a create route is given to decide with. */
 export interface EntityCreateContext {
+  /** Semantic confirmation before choosing an inline create/update result. */
+  readonly ai: IEntityAINamespace;
   readonly input: CreateInput;
   readonly entities: JobEntityAccess;
   readonly logger: LoggerContract;
@@ -663,8 +672,13 @@ export interface EntityEvalFixtures {
     readonly entityType: string;
     readonly content: string;
     readonly metadata?: Record<string, unknown> | undefined;
+    readonly visibility?: ContentVisibility;
   }): Promise<void>;
-  reset(): Promise<void>;
+  reset(options?: {
+    readonly visibilityScope?: ContentVisibility;
+  }): Promise<void>;
+  /** Wait for queued embeddings before measuring semantic matches (60s bound). */
+  settleEmbeddings(): Promise<void>;
 }
 
 export interface EntityEvalContext extends EntityGenerationContext {
@@ -712,19 +726,35 @@ export type EntityEvalDeclaration = Record<
  * A fact about the type rather than a registration it performs, so the
  * runtime holds the registry and a package never does.
  */
+export interface EntityInboxListContext extends Pick<
+  EntityReactionContext,
+  "messaging" | "state" | "permissions" | "domain" | "siteUrl" | "logger"
+> {
+  readonly entities: EntityReader;
+}
+
+/** Live request authority is bound by the host, never by actor presentation. */
+export interface EntityInboxDetailContext extends EntityInboxListContext {
+  readonly signal: AbortSignal;
+}
+
+export interface EntityInboxContext extends EntityInboxDetailContext {
+  readonly edits: InboxEntityEdits;
+}
+
 export interface EntityInboxDeclaration {
   readonly sourceId: string;
   readonly displayName: string;
   readonly facets?: InboxFacetDefinition[] | undefined;
-  list(context: EntityReactionContext): Promise<InboxItem[]>;
+  list(context: EntityInboxListContext): Promise<InboxItem[]>;
   resolveDetail?(
-    context: EntityReactionContext,
+    context: EntityInboxDetailContext,
     itemId: string,
     actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail>;
   act(
-    context: EntityReactionContext,
+    context: EntityInboxContext,
     itemId: string,
     actionId: string,
     actor: InboxActor,
@@ -1022,6 +1052,8 @@ export interface EntityScheduledGenerationDeclaration {
  */
 export interface EntityInsightContext {
   readonly entities: JobEntityAccess;
+  /** Detached names of types eligible as projection sources; no registry/config access. */
+  readonly projectionSourceTypes: readonly string[];
   readonly visibilityScope: EntityVisibility;
 }
 

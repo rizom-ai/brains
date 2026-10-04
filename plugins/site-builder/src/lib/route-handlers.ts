@@ -32,6 +32,7 @@ export function routeSubscriptions(
       },
     }),
     defineSubscription({
+      execution: "all-roles",
       topic: SITE_BUILDER_CHANNELS.routeUnregister,
       payload: UnregisterRoutesPayloadSchema,
       handle: ({ payload }) => {
@@ -44,6 +45,7 @@ export function routeSubscriptions(
       },
     }),
     defineSubscription({
+      execution: "all-roles",
       topic: SITE_BUILDER_CHANNELS.routeList,
       payload: ListRoutesPayloadSchema,
       handle: ({ payload }) => ({
@@ -52,6 +54,7 @@ export function routeSubscriptions(
       }),
     }),
     defineSubscription({
+      execution: "all-roles",
       topic: SITE_BUILDER_CHANNELS.routeGet,
       payload: GetRoutePayloadSchema,
       handle: ({ payload }) => ({
@@ -62,6 +65,7 @@ export function routeSubscriptions(
     // What the whole site looks like, for a package that generates content
     // per route rather than asking about one.
     defineSubscription({
+      execution: "all-roles",
       topic: SITE_BUILDER_CHANNELS.routesList,
       payload: z.unknown(),
       handle: () => ({ success: true, data: routes.list() }),

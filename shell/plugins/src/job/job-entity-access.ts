@@ -14,6 +14,11 @@ import {
   getVisibleContentVisibilities,
 } from "@brains/entity-service";
 import type { JobEntityAccess } from "./job-context-contract";
+import { createOwnedEntityNearest } from "../internal/owned-entity-nearest";
+import {
+  createOwnedEntityMutations,
+  type OwnedMutationOwner,
+} from "../internal/owned-entity-mutations";
 import { parseDefinitionEntity } from "../entity/entity-schema";
 import {
   createPendingEntity,
@@ -51,6 +56,8 @@ export function createJobEntityAccess(
    * restricted memory — and omitted for a job acting for the brain itself.
    */
   visibilityScope?: ContentVisibility,
+  /** Issued only by the installed background job runtime, never caller data. */
+  mutationOwner?: OwnedMutationOwner,
 ): JobEntityAccess {
   // A requested scope may narrow a caller's access, never widen it. An
   // unbound, brain-owned job retains the underlying reader's defaults.
@@ -206,6 +213,18 @@ export function createJobEntityAccess(
   }
 
   return {
+    nearest: createOwnedEntityNearest(
+      entityService,
+      ownedTypes,
+      visibilityScope,
+      mutationOwner?.signal,
+    ),
+    mutations: createOwnedEntityMutations(
+      entityService,
+      ownedTypes,
+      mutationOwner,
+      visibilityScope,
+    ),
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(scoped(request)),
     listEntities: listEntitiesScoped,

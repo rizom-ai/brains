@@ -363,7 +363,19 @@ function createCaptureEntityAccess(input: {
   async function listEntitiesStub(): Promise<never[]> {
     return [];
   }
+  const refuseOwned = (): never => {
+    throw new Error(
+      "Owned storage operations are unavailable in summary projection captures",
+    );
+  };
   return {
+    nearest: refuseOwned,
+    mutations: {
+      read: refuseOwned,
+      replace: refuseOwned,
+      fold: refuseOwned,
+      once: refuseOwned,
+    },
     queryEntityHierarchy: (): never => {
       throw new Error(
         "Hierarchy reads are unavailable in summary projection captures",

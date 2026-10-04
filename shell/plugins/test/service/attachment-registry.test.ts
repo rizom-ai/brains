@@ -165,6 +165,59 @@ describe("AttachmentRegistry", () => {
     expect(registry.has("deck", "carousel")).toBe(false);
   });
 
+  it.each([true, false])(
+    "keeps replacement ownership when an old release runs (same provider: %s)",
+    async (sameProvider) => {
+      const registry = AttachmentRegistry.createFresh();
+      const first = {
+        resolve: (): PublishMediaData => createPdfAttachment("first.pdf"),
+      };
+      const replacement = sameProvider
+        ? first
+        : {
+            resolve: (): PublishMediaData =>
+              createPdfAttachment("replacement.pdf"),
+          };
+      const releaseFirst = registry.register("deck", "carousel", first);
+      const releaseReplacement = registry.register(
+        "deck",
+        "carousel",
+        replacement,
+      );
+      const installed = registry.get("deck", "carousel");
+      expect(installed).toBeDefined();
+      expect(installed).not.toBe(replacement);
+      expect(Object.isFrozen(installed)).toBe(true);
+      releaseFirst();
+      releaseFirst();
+      expect(registry.get("deck", "carousel")).toBe(installed);
+      expect(
+        await registry.resolve({
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        }),
+      ).toEqual(replacement.resolve());
+      releaseReplacement();
+      expect(registry.has("deck", "carousel")).toBe(false);
+    },
+  );
+
+  it("does not let a released handle remove a later registration", () => {
+    const registry = AttachmentRegistry.createFresh();
+    const provider = {
+      resolve: (): PublishMediaData => createPdfAttachment("same.pdf"),
+    };
+    const release = registry.register("deck", "carousel", provider);
+    release();
+    registry.register("deck", "carousel", provider);
+    const installed = registry.get("deck", "carousel");
+    expect(installed).toBeDefined();
+    expect(installed).not.toBe(provider);
+    release();
+    expect(registry.get("deck", "carousel")).toBe(installed);
+  });
+
   it("returns optional provider metadata when declared", () => {
     const registry = AttachmentRegistry.createFresh();
 

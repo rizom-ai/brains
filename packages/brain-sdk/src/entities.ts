@@ -19,6 +19,13 @@ export type {
   EntityAccess,
   EntityReader,
   EntityWriteInput,
+  OwnedEntityEdit,
+  OwnedEntityMutations,
+  OwnedEntityOperation,
+  OwnedMutationReceipt,
+  OwnedEntityNearest,
+  OwnedNearestOptions,
+  EntityConfigurationBinding,
 } from "@brains/plugins";
 
 export { z } from "@brains/utils/zod";
@@ -259,6 +266,10 @@ export type {
   EntityAtprotoDiscovery,
   EntityCheckDeclaration,
   EntityInboxDeclaration,
+  EntityInboxContext,
+  EntityInboxListContext,
+  EntityInboxDetailContext,
+  InboxEntityEdits,
   EntityReactionContext,
 } from "@brains/plugins";
 export type { AgentContextItem, AgentContextRequest } from "@brains/contracts";

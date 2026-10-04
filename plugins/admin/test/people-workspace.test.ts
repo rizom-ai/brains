@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+import { createPluginHarness, createTempDataDir } from "@brains/plugins/test";
 
 import {
   actionRequest,
@@ -42,7 +42,8 @@ function findById(value: unknown, id: string): unknown {
 
 describe("Administration People tab", () => {
   it("recognizes anchor absence by code, not error wording", async () => {
-    const shell = createMockShell({ domain: "brain.test" });
+    const harness = createPluginHarness({ domain: "brain.test" });
+    const shell = harness.getMockShell();
     shell.getChannelRegistry().finalize();
     const auth = new AuthServicePlugin({
       storageDir: await createTempDataDir("brains-admin-anchor-code-"),
@@ -65,7 +66,7 @@ describe("Administration People tab", () => {
     );
     try {
       const workspace = administrationTab(
-        await captureAdminWorkspaces(shell),
+        await captureAdminWorkspaces(harness),
         "people",
       );
       const actor = actorFor(adminActor, admin);
@@ -87,7 +88,8 @@ describe("Administration People tab", () => {
   });
 
   it("owns roster detail and attributed access administration through the shared registration contract", async () => {
-    const shell = createMockShell({ domain: "brain.test" });
+    const harness = createPluginHarness({ domain: "brain.test" });
+    const shell = harness.getMockShell();
     shell.getChannelRegistry().registerDescriptor("test", {
       type: "manual-test",
       displayName: "Manual test",
@@ -124,7 +126,7 @@ describe("Administration People tab", () => {
       { actorUserId: admin.userId },
     );
 
-    const registrations = await captureAdminWorkspaces(shell);
+    const registrations = await captureAdminWorkspaces(harness);
     const workspace = administrationTab(registrations, "people");
     expect(workspace).toMatchObject({
       id: "@brains/admin:admin:administration",

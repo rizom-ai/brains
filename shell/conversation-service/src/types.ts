@@ -15,6 +15,14 @@ export const CONVERSATION_SOURCE_KIND = "conversation";
 /** Bus channel emitted when a new message is appended to a conversation. */
 export const CONVERSATION_MESSAGE_ADDED_CHANNEL = "conversation:messageAdded";
 
+/**
+ * Bus channel emitted when a message is appended to a guest conversation. It
+ * says where the message is, never what it says: a plugin that wants the text
+ * reads it through its conversation access, which honours guest expiry.
+ */
+export const CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL =
+  "conversation:guestMessageAdded";
+
 /** Bus channel emitted when a new conversation is started. */
 export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
 
@@ -44,12 +52,14 @@ export interface ConversationMetadata {
  * Options for retrieving messages
  */
 export interface GetMessagesOptions {
-  limit?: number; // Limit number of messages (for recent messages)
-  range?: {
-    // Get specific range of messages (1-based indexing)
-    start: number;
-    end: number;
-  };
+  limit?: number | undefined; // Limit number of messages (for recent messages)
+  range?:
+    | {
+        // Get specific range of messages (1-based indexing)
+        start: number;
+        end: number;
+      }
+    | undefined;
 }
 
 export const getManyConversationsWithMessagesSchema: z.ZodObject<{

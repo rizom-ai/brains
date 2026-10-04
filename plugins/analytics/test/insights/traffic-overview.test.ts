@@ -16,6 +16,7 @@ const insightContext: EntityInsightContext = {
     refuseWrites: "The traffic insight must not write entities",
   }),
   visibilityScope: "public",
+  projectionSourceTypes: Object.freeze([]),
 };
 
 function createMockClient(

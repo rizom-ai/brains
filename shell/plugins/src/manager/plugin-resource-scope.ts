@@ -44,10 +44,37 @@ export class PluginResourceScope {
     this.scope = Effect.runSync(Scope.make());
   }
 
-  public addFinalizer(finalizer: () => void | Promise<void>): void {
+  public assertOpen(): void {
     if (this.closed) {
       throw new Error("Cannot register a resource after plugin teardown");
     }
+  }
+
+  /** Admit synchronous acquisition and own its release before returning it. */
+  public acquire<T>(acquire: () => T, release: (resource: T) => void): T {
+    this.assertOpen();
+    const resource = acquire();
+    try {
+      this.addFinalizer(() => release(resource));
+    } catch (error) {
+      // Acquisition can re-enter teardown. Roll back the resource if ownership
+      // could not be attached to the now-closed scope.
+      try {
+        release(resource);
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          "Plugin acquisition rollback failed",
+          { cause: cleanupError },
+        );
+      }
+      throw error;
+    }
+    return resource;
+  }
+
+  public addFinalizer(finalizer: () => void | Promise<void>): void {
+    this.assertOpen();
     Effect.runSync(
       Scope.addFinalizer(
         this.scope,
@@ -60,9 +87,7 @@ export class PluginResourceScope {
 
   /** Register Promise-based ingress that must stop admission and drain on close. */
   public addIngress(ingress: PluginIngress): void {
-    if (this.closed) {
-      throw new Error("Cannot register ingress after plugin teardown");
-    }
+    this.assertOpen();
     this.ingress.add(ingress);
   }
 
@@ -108,6 +133,45 @@ export class PluginResourceScope {
   }
 }
 
+/** Centralize reflective registration while preserving each registry's API. */
+function scopeRegistry<T extends object>(
+  target: T,
+  methods: readonly Extract<keyof T, string>[],
+  resources: PluginResourceScope,
+  release: (args: unknown[], result: unknown) => void,
+): T {
+  return new Proxy(target, {
+    get(registry, property): unknown {
+      const value = reflectGet(registry, property);
+      if (
+        typeof property === "string" &&
+        methods.some((method) => method === property) &&
+        typeof value === "function"
+      ) {
+        return (...args: unknown[]): unknown =>
+          resources.acquire(
+            () => reflectApply(value, registry, args),
+            (result) => release(args, result),
+          );
+      }
+      return typeof value === "function" ? value.bind(registry) : value;
+    },
+  });
+}
+
+function scopePluginRegistry<
+  T extends { unregisterPlugin(pluginId: string): void },
+>(
+  target: T,
+  methods: readonly Extract<keyof T, string>[],
+  resources: PluginResourceScope,
+): T {
+  return scopeRegistry(target, methods, resources, (args): void => {
+    const pluginId = args[0];
+    if (typeof pluginId === "string") target.unregisterPlugin(pluginId);
+  });
+}
+
 /**
  * Restrict plugin-visible resource acquisition to the plugin scope. The proxy
  * preserves the existing IShell API while owning every message subscription.
@@ -130,6 +194,7 @@ export function createPluginScopedShell(
       handler: MessageHandler<T, R>,
       filter?: Parameters<IMessageBus["subscribe"]>[2],
     ): (() => void) => {
+      resources.assertOpen();
       let accepting = true;
       const inFlight = new Set<Promise<void>>();
       const scopedHandler: MessageHandler<T, R> = (message) => {
@@ -220,200 +285,96 @@ export function createPluginScopedShell(
   const attachments = shell.getAttachmentRegistry();
   const scopedAttachments: AttachmentRegistrationNamespace = {
     ...attachments,
-    register: (sourceEntityType, attachmentType, provider): (() => void) => {
-      let active = true;
-      const unregister = attachments.register(
-        sourceEntityType,
-        attachmentType,
-        provider,
-      );
-      const release = (): void => {
-        if (!active) return;
-        active = false;
-        unregister();
-      };
-      resources.addFinalizer(release);
-      return release;
-    },
+    register: (sourceEntityType, attachmentType, provider): (() => void) =>
+      resources.acquire(
+        () => attachments.register(sourceEntityType, attachmentType, provider),
+        (release) => release(),
+      ),
   };
 
   const entityRegistry = shell.getEntityRegistry();
-  const scopedEntityRegistry = new Proxy(entityRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "registerEntityType" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const entityType = args[0];
-          if (typeof entityType === "string") {
-            resources.addFinalizer(() =>
-              target.unregisterEntityType(entityType),
-            );
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
+  const scopedEntityRegistry = scopeRegistry(
+    entityRegistry,
+    ["registerEntityType"],
+    resources,
+    (args): void => {
+      const entityType = args[0];
+      if (typeof entityType === "string")
+        entityRegistry.unregisterEntityType(entityType);
     },
-  });
-
-  const profileKindRegistry = shell.getProfileKindRegistry();
-  const scopedProfileKindRegistry = new Proxy(profileKindRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "register" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const pluginId = args[0];
-          if (typeof pluginId === "string") {
-            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
-
-  const channelRegistry = shell.getChannelRegistry();
-  const scopedChannelRegistry = new Proxy(channelRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (
-        (property === "registerDescriptor" ||
-          property === "registerDeliveryProvider") &&
-        typeof value === "function"
-      ) {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const pluginId = args[0];
-          if (typeof pluginId === "string") {
-            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
-
-  const inboxRegistry = shell.getInboxRegistry();
-  const scopedInboxRegistry = new Proxy(inboxRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "registerSource" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const pluginId = args[0];
-          if (typeof pluginId === "string") {
-            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
-
-  const inboxFollowUpRegistry = shell.getInboxFollowUpRegistry();
-  const scopedInboxFollowUpRegistry = new Proxy(inboxFollowUpRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "registerKind" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const pluginId = args[0];
-          if (typeof pluginId === "string") {
-            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
+  );
+  const scopedProfileKindRegistry = scopePluginRegistry(
+    shell.getProfileKindRegistry(),
+    ["register"],
+    resources,
+  );
+  const scopedChannelRegistry = scopePluginRegistry(
+    shell.getChannelRegistry(),
+    ["registerDescriptor", "registerDeliveryProvider"],
+    resources,
+  );
+  const scopedInboxRegistry = scopePluginRegistry(
+    shell.getInboxRegistry(),
+    ["registerSource"],
+    resources,
+  );
+  const scopedInboxFollowUpRegistry = scopePluginRegistry(
+    shell.getInboxFollowUpRegistry(),
+    ["registerKind"],
+    resources,
+  );
 
   const accountSettingsRegistry = shell.getAccountSettingsRegistry();
-  const scopedAccountSettingsRegistry = new Proxy(accountSettingsRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "register" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          // The registration is an opaque token: produced by register, handed
-          // straight back to unregister. Forwarding it reflectively keeps it
-          // opaque instead of asserting a parameter type for it here.
-          const registration = reflectApply(value, target, args);
-          resources.addFinalizer((): void => {
-            reflectApply(target.unregister, target, [registration]);
-          });
-          return registration;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
+  const scopedAccountSettingsRegistry = scopeRegistry(
+    accountSettingsRegistry,
+    ["register"],
+    resources,
+    (_args, registration): void => {
+      // The registration stays an opaque token, handed directly back to its owner.
+      reflectApply(
+        accountSettingsRegistry.unregister,
+        accountSettingsRegistry,
+        [registration],
+      );
     },
-  });
-
-  const operationalHealthRegistry = shell.getOperationalHealthRegistry();
-  const scopedOperationalHealthRegistry = new Proxy(operationalHealthRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "register" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const pluginId = args[0];
-          if (typeof pluginId === "string") {
-            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
+  );
+  const scopedOperationalHealthRegistry = scopePluginRegistry(
+    shell.getOperationalHealthRegistry(),
+    ["register"],
+    resources,
+  );
 
   const dataSourceRegistry = shell.getDataSourceRegistry();
-  const scopedDataSourceRegistry = new Proxy(dataSourceRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "register" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const dataSource = args[0];
-          if (
-            typeof dataSource === "object" &&
-            dataSource !== null &&
-            "id" in dataSource &&
-            typeof dataSource.id === "string"
-          ) {
-            const id = dataSource.id.includes(":")
-              ? dataSource.id
-              : `shell:${dataSource.id}`;
-            resources.addFinalizer(() => target.unregister(id));
-          }
-          return result;
-        };
+  const scopedDataSourceRegistry = scopeRegistry(
+    dataSourceRegistry,
+    ["register"],
+    resources,
+    (args): void => {
+      const dataSource = args[0];
+      if (
+        typeof dataSource === "object" &&
+        dataSource !== null &&
+        "id" in dataSource &&
+        typeof dataSource.id === "string"
+      ) {
+        const id = dataSource.id.includes(":")
+          ? dataSource.id
+          : `shell:${dataSource.id}`;
+        dataSourceRegistry.unregister(id);
       }
-      return typeof value === "function" ? value.bind(target) : value;
     },
-  });
-
+  );
   const insightsRegistry = shell.getInsightsRegistry();
-  const scopedInsightsRegistry = new Proxy(insightsRegistry, {
-    get(target, property): unknown {
-      const value = reflectGet(target, property);
-      if (property === "register" && typeof value === "function") {
-        return (...args: unknown[]): unknown => {
-          const result = reflectApply(value, target, args);
-          const insightType = args[0];
-          if (typeof insightType === "string") {
-            resources.addFinalizer(() => target.unregister(insightType));
-          }
-          return result;
-        };
-      }
-      return typeof value === "function" ? value.bind(target) : value;
+  const scopedInsightsRegistry = scopeRegistry(
+    insightsRegistry,
+    ["register"],
+    resources,
+    (args): void => {
+      const insightType = args[0];
+      if (typeof insightType === "string")
+        insightsRegistry.unregister(insightType);
     },
-  });
+  );
 
   const scopedShell = new Proxy(shell, {
     get(target, property): unknown {

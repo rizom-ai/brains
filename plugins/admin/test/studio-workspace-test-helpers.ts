@@ -1,4 +1,4 @@
-import { type MockShell } from "@brains/plugins/test";
+import type { PluginTestHarness } from "@brains/plugins/test";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioWorkspaceActor,
@@ -28,15 +28,16 @@ export const trustedActor: StudioWorkspaceActor = {
 };
 
 export async function captureAdminWorkspaces(
-  shell: MockShell,
+  harness: PluginTestHarness,
 ): Promise<StudioWorkspaceRegistration[]> {
+  const shell = harness.getMockShell();
   const registrations: StudioWorkspaceRegistration[] = [];
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
       STUDIO_WORKSPACE_REGISTER_MESSAGE,
       async (message) => {
-        registrations.push(message.payload);
+        registrations.push(harness.bindStudioWorkspace(message.payload));
         return {
           success: true,
           data: {

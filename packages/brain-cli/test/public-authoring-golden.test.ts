@@ -281,6 +281,9 @@ describe("public authoring 0.2 golden packages", () => {
       {
         directory: "operator-surface",
         paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
           ],

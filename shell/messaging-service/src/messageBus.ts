@@ -1,6 +1,7 @@
 import type { Logger } from "@brains/utils/logger";
 import type {
   MessageHandler,
+  MessageWithPayload,
   IMessageBus,
   MessageBusSendRequest,
   MessageResponse,
@@ -66,7 +67,32 @@ export class MessageBus implements IMessageBus {
   async send<T = unknown, R = unknown>(
     request: MessageBusSendRequest<T>,
   ): Promise<MessageResponse<R>> {
-    const { type, payload, sender, target, metadata, broadcast } = request;
+    const response = await this.dispatchWithProvenance(request, (message) =>
+      this.publisher.publish(message, request.broadcast),
+    );
+    // Broadcasts deliberately have no reply, including without listeners.
+    return request.broadcast === true
+      ? { noop: true }
+      : toMessageResponse<R>(request.type, response);
+  }
+
+  /** Collect one response from every matching handler in registration order. */
+  async collect<T = unknown, R = unknown>(
+    request: MessageBusSendRequest<T>,
+  ): Promise<MessageResponse<R>[]> {
+    const responses = await this.dispatchWithProvenance(request, (message) =>
+      this.publisher.collect(message),
+    );
+    return responses.map((response) =>
+      toMessageResponse<R>(request.type, response),
+    );
+  }
+
+  private dispatchWithProvenance<T, R>(
+    request: MessageBusSendRequest<T>,
+    dispatch: (message: MessageWithPayload<T>) => Promise<R>,
+  ): Promise<R> {
+    const { type, payload, sender, target, metadata } = request;
     const draft = createMessage(type, payload, sender, target, metadata);
     const current = this.operationContext.current();
     const provided = metadata?.["provenance"];
@@ -91,26 +117,9 @@ export class MessageBus implements IMessageBus {
       ...draft,
       metadata: { ...metadata, provenance },
     };
-    const response = await this.operationContext.run(
-      provenance,
-      message.id,
-      () => this.publisher.publish(message, broadcast),
+    return this.operationContext.run(provenance, message.id, () =>
+      dispatch(message),
     );
-    // Broadcasts deliberately have no reply, even when nobody is listening.
-    // Do not turn the absence of a reply into a failed request.
-    return broadcast === true
-      ? { noop: true }
-      : toMessageResponse<R>(type, response);
-  }
-
-  /** Collect one response from every matching handler in registration order. */
-  async collect<T = unknown, R = unknown>(
-    request: MessageBusSendRequest<T>,
-  ): Promise<MessageResponse<R>[]> {
-    const { type, payload, sender, target, metadata } = request;
-    const message = createMessage(type, payload, sender, target, metadata);
-    const responses = await this.publisher.collect(message);
-    return responses.map((response) => toMessageResponse<R>(type, response));
   }
 
   /**

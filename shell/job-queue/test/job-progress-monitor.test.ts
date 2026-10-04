@@ -1,4 +1,5 @@
 import { createMockBatchJobManager } from "../src/test/index";
+import { deferred } from "@brains/utils/deferred";
 import {
   describe,
   it,
@@ -146,8 +147,8 @@ describe("JobProgressMonitor", () => {
     );
   });
 
-  afterEach(() => {
-    monitor.stop();
+  afterEach(async () => {
+    await monitor.stop();
   });
 
   describe("basic functionality", () => {
@@ -156,10 +157,101 @@ describe("JobProgressMonitor", () => {
       expect(stats.isRunning).toBe(true);
     });
 
-    it("should handle start/stop gracefully", () => {
+    it("reports terminal stop and rejects restart", async () => {
       monitor.start();
-      monitor.stop();
-      expect(monitor.getStats().isRunning).toBe(true);
+      await monitor.stop();
+      expect(monitor.getStats().isRunning).toBe(false);
+      expect(() => monitor.start()).toThrow("stopped job progress monitor");
+    });
+
+    it.each(["read", "publish"] as const)(
+      "joins stop callers and drains an admitted %s",
+      async (phase) => {
+        const entered = deferred();
+        const release = deferred();
+        const job = createMockJob({
+          progress: { progress: 1, total: 2, message: "Admitted" },
+        });
+        getRuntimeUpdatesMock.mockImplementation(async () => {
+          if (phase === "read") {
+            entered.resolve();
+            await release.promise;
+          }
+          return [{ job, cursor: { updatedAt: 2_000, jobId: job.id } }];
+        });
+        messageBusSendMock.mockImplementation(async () => {
+          if (phase === "publish") {
+            entered.resolve();
+            await release.promise;
+          }
+          return { success: true };
+        });
+        const reader = JobProgressMonitor.createFresh(
+          mockJobQueueService,
+          mockMessageBus,
+          mockBatchJobManager,
+          mockLogger,
+          "durable-reader",
+        );
+        expect(reader.getStats().isRunning).toBe(false);
+        reader.start();
+        expect(reader.getStats().isRunning).toBe(true);
+        const polling = reader.pollDurableUpdates();
+        expect(reader.pollDurableUpdates()).toBe(polling);
+        await entered.promise;
+        const stopping = reader.stop();
+        let settled = false;
+        void stopping.then(() => {
+          settled = true;
+        });
+        try {
+          expect(reader.stop()).toBe(stopping);
+          await reader.pollDurableUpdates();
+          expect(settled).toBe(false);
+          expect(reader.getStats().isRunning).toBe(false);
+          expect(getRuntimeUpdatesMock).toHaveBeenCalledTimes(1);
+        } finally {
+          release.resolve();
+          await Promise.all([polling, stopping]);
+        }
+        expect(messageBusSendMock).toHaveBeenCalledTimes(1);
+        await reader.pollDurableUpdates();
+        expect(getRuntimeUpdatesMock).toHaveBeenCalledTimes(1);
+        expect(messageBusSendMock).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("drains a poll that re-enters stop while beginning its queue read", async () => {
+      const reader = JobProgressMonitor.createFresh(
+        mockJobQueueService,
+        mockMessageBus,
+        mockBatchJobManager,
+        mockLogger,
+        "durable-reader",
+      );
+      const release = deferred();
+      const entered = deferred();
+      let stopping: Promise<void> | undefined;
+      getRuntimeUpdatesMock.mockImplementation(async () => {
+        stopping = reader.stop();
+        entered.resolve();
+        await release.promise;
+        return [];
+      });
+      const polling = reader.pollDurableUpdates();
+      await entered.promise;
+      let settled = false;
+      void stopping?.then(() => {
+        settled = true;
+      });
+      try {
+        await Promise.resolve();
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+        await Promise.all([polling, stopping]);
+      }
+      expect(getRuntimeUpdatesMock).toHaveBeenCalledTimes(1);
     });
   });
 

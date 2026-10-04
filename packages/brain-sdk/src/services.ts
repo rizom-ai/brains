@@ -1,9 +1,12 @@
 /** Declarative service authoring contract. */
 
 export {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   contentGenerationResultSchema,
   defineAccountSettings,
   defineStudioWorkspace,
+  createStudioWorkspaceActor,
   defineDashboardWidget,
   defineEntityCatalog,
   defineJob,
@@ -325,6 +328,10 @@ export type { FetchLike } from "@brains/utils/fetch-like";
 export type {
   EntityAccess,
   EntityReader,
+  EntityInboxContext,
+  EntityInboxListContext,
+  EntityInboxDetailContext,
+  InboxEntityEdits,
   EntityWriteInput,
   ServiceToolContext,
   ServiceJobHandlerContext,

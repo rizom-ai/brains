@@ -743,6 +743,10 @@ export interface MessageInterfaceDefinitionHeader<
    * What this returns is the `state` every behavior slot reads. It sits in
    * the header, a separate argument, so the type is fixed before any of them
    * is checked — the order they are written in does not matter.
+   *
+   * Also runs in the queue worker so `deliver` can send from background jobs:
+   * build clients here, but leave connecting and listening to `listen` and
+   * `daemons`.
    */
   readonly setup?:
     | ((

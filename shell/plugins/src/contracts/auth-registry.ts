@@ -46,6 +46,8 @@ function createAuditView(source: AuthAudit): AuthAudit {
 }
 
 /** Project both the registry and its returned capabilities, not the service. */
+import { resolveRequestSession } from "../internal/request-session";
+
 export function createAuthReader(registry: IAuthRegistry): IAuthRegistry {
   return Object.freeze({
     getCaller: (): AuthCaller | undefined => {
@@ -53,7 +55,8 @@ export function createAuthReader(registry: IAuthRegistry): IAuthRegistry {
       return (
         source &&
         Object.freeze({
-          resolveSession: source.resolveSession.bind(source),
+          resolveSession: (request: Request) =>
+            resolveRequestSession(source, request),
           resolveBearerGrant: source.resolveBearerGrant.bind(source),
           createAuthLoginResponse: source.createAuthLoginResponse.bind(source),
         })

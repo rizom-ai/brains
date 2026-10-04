@@ -1,12 +1,14 @@
 import { describe, expect, it, beforeEach, mock, type Mock } from "bun:test";
 import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
+import type { MessageResponse, MessageWithPayload } from "@/types";
 
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { deferred } from "@brains/utils/deferred";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
+import { SdkError } from "@brains/contracts";
 
 /** What the predicate below reads off a message it is asked to filter. */
 const prioritizedPayloadSchema = z.looseObject({
@@ -113,6 +115,156 @@ describe("MessageBus", () => {
 
       expect(messageBus.hasHandlers("test.message1")).toBe(false);
       expect(messageBus.hasHandlers("test.message2")).toBe(false);
+    });
+  });
+
+  describe.each(["send", "collect"] as const)("%s causal context", (method) => {
+    it("inherits provenance, scopes nested messages, and restores the caller", async () => {
+      const operationContext = OperationContext.createFresh();
+      messageBus = MessageBus.createFresh(logger, operationContext);
+      const provenance = {
+        rootJobId: "root-job",
+        causationId: "source-message",
+        projectionId: "topics-projection",
+        projectionLineage: ["topics-projection"],
+        derivationDepth: 1,
+      };
+      const handlerIds: string[] = [];
+      messageBus.subscribe("test.child", (message) => {
+        expect(message.metadata?.["provenance"]).toEqual({
+          ...provenance,
+          causationId: handlerIds.at(-1),
+        });
+        expect(operationContext.current()?.operationId).toBe(message.id);
+        return { success: true };
+      });
+      const handler = async (
+        message: MessageWithPayload,
+      ): Promise<MessageResponse> => {
+        await Promise.resolve();
+        const scope = operationContext.current();
+        expect(scope?.operationId).toBe(message.id);
+        expect(scope?.provenance).toEqual({
+          ...provenance,
+          causationId: "topic-job",
+        });
+        expect(message.metadata?.["provenance"]).toEqual(scope?.provenance);
+        expect(message.metadata?.["batchId"]).toBe("batch-1");
+        handlerIds.push(message.id);
+        expect(
+          await messageBus.send({
+            type: "test.child",
+            payload: {},
+            sender: "handler",
+          }),
+        ).toEqual({ success: true, data: undefined });
+        expect(operationContext.current()).toBe(scope);
+        return { success: true };
+      };
+      messageBus.subscribe("test.parent", handler);
+      messageBus.subscribe("test.parent", handler);
+
+      await operationContext.run(provenance, "topic-job", async () => {
+        const caller = operationContext.current();
+        const result = await messageBus[method]({
+          type: "test.parent",
+          payload: {},
+          sender: "test-source",
+          metadata: { batchId: "batch-1" },
+        });
+        const success = { success: true, data: undefined };
+        expect(result).toEqual(
+          method === "collect" ? [success, success] : success,
+        );
+        expect(operationContext.current()).toBe(caller);
+      });
+      expect(handlerIds).toHaveLength(method === "collect" ? 2 : 1);
+      expect(operationContext.current()).toBeUndefined();
+    });
+
+    it("creates root provenance when no causal context was supplied", async () => {
+      const operationContext = OperationContext.createFresh();
+      messageBus = MessageBus.createFresh(logger, operationContext);
+      let receivedId: string | undefined;
+      messageBus.subscribe("test.root", (message) => {
+        receivedId = message.id;
+        expect(message.metadata?.["provenance"]).toEqual({
+          rootJobId: message.id,
+          causationId: message.id,
+          projectionLineage: [],
+          derivationDepth: 0,
+        });
+        expect(operationContext.current()?.operationId).toBe(message.id);
+        return { success: true };
+      });
+      const result = await messageBus[method]({
+        type: "test.root",
+        payload: {},
+        sender: "test-source",
+      });
+      const success = { success: true, data: undefined };
+      expect(result).toEqual(method === "collect" ? [success] : success);
+      expect(receivedId).toStartWith("msg-");
+      expect(operationContext.current()).toBeUndefined();
+    });
+
+    it("prefers explicit provenance while retaining the sending operation", async () => {
+      const operationContext = OperationContext.createFresh();
+      messageBus = MessageBus.createFresh(logger, operationContext);
+      const provided = {
+        rootJobId: "explicit-root",
+        causationId: "explicit-source",
+        projectionLineage: [],
+        derivationDepth: 0,
+      };
+      const handler = mock((message: MessageWithPayload) => {
+        expect(message.metadata?.["provenance"]).toEqual({
+          ...provided,
+          causationId: "caller-operation",
+        });
+        return { success: true };
+      });
+      messageBus.subscribe("test.explicit", handler);
+      const result = await operationContext.run(
+        { ...provided, rootJobId: "inherited-root" },
+        "caller-operation",
+        () =>
+          messageBus[method]({
+            type: "test.explicit",
+            payload: {},
+            sender: "test-source",
+            metadata: { provenance: provided },
+          }),
+      );
+      const success = { success: true, data: undefined };
+      expect(result).toEqual(method === "collect" ? [success] : success);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(provided.causationId).toBe("explicit-source");
+    });
+
+    it("rejects invalid provenance before filters or handlers run", async () => {
+      const handler = mock(() => ({ success: true }));
+      const predicate = mock(() => true);
+      messageBus.subscribe("test.invalid", handler, { predicate });
+      expect(
+        messageBus[method]({
+          type: "test.invalid",
+          payload: {},
+          sender: "test-source",
+          metadata: {
+            provenance: {
+              rootJobId: "root-job",
+              causationId: "source-message",
+              projectionLineage: [],
+              derivationDepth: 1,
+            },
+          },
+        }),
+      ).rejects.toThrow(
+        "Derivation depth must equal projection lineage length",
+      );
+      expect(predicate).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
     });
   });
 
@@ -742,6 +894,96 @@ describe("MessageBus", () => {
         { success: true, data: "first" },
         { success: true, data: "second" },
       ]);
+    });
+
+    it("retains throwing and rejecting subscribers alongside successful acknowledgements", async () => {
+      const finish = deferred();
+      messageBus.subscribe("test.collect.failures", (): never => {
+        throw new Error("Synchronous failure");
+      });
+      messageBus.subscribe("test.collect.failures", async () => {
+        await finish.promise;
+        return { success: true, data: "acknowledged" };
+      });
+      messageBus.subscribe(
+        "test.collect.failures",
+        async (): Promise<never> => {
+          throw new Error("Asynchronous failure");
+        },
+      );
+      const collection = messageBus.collect({
+        type: "test.collect.failures",
+        payload: {},
+        sender: "sender",
+      });
+      finish.resolve();
+      expect(await collection).toEqual([
+        {
+          success: false,
+          code: "handler_failed",
+          error:
+            "Message handler failed for message type: test.collect.failures",
+        },
+        { success: true, data: "acknowledged" },
+        {
+          success: false,
+          code: "handler_failed",
+          error:
+            "Message handler failed for message type: test.collect.failures",
+        },
+      ]);
+    });
+
+    it("retains invalid subscriber responses as failed acknowledgements", async () => {
+      // @ts-expect-error Plugin responses are also checked at runtime.
+      messageBus.subscribe("test.collect.invalid", () => ({ invalid: true }));
+      messageBus.subscribe("test.collect.invalid", () => ({ success: true }));
+      const responses = await messageBus.collect({
+        type: "test.collect.invalid",
+        payload: {},
+        sender: "sender",
+      });
+      expect(responses).toEqual([
+        {
+          success: false,
+          code: "invalid_response",
+          error:
+            "Message handler failed for message type: test.collect.invalid",
+        },
+        { success: true, data: undefined },
+      ]);
+    });
+
+    it("preserves coded failures and no-op slots without exposing exception text", async () => {
+      messageBus.subscribe("test.collect.codes", (): never => {
+        throw new SdkError("permission_denied", {
+          message: "PRIVATE exception detail",
+        });
+      });
+      messageBus.subscribe("test.collect.codes", () => ({ noop: true }));
+      messageBus.subscribe("test.collect.codes", () => ({
+        success: true,
+        data: "ack",
+      }));
+      const responses = await messageBus.collect({
+        type: "test.collect.codes",
+        payload: {},
+        sender: "sender",
+      });
+      expect(responses).toEqual([
+        {
+          success: false,
+          code: "permission_denied",
+          error: "Message handler failed for message type: test.collect.codes",
+        },
+        {
+          success: false,
+          code: "handler_failed",
+          error: "Message handler failed for message type: test.collect.codes",
+        },
+        { success: true, data: "ack" },
+      ]);
+      expect(JSON.stringify(responses)).not.toContain("PRIVATE");
     });
 
     it("returns an empty list when no handlers match", async () => {

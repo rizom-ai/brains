@@ -3,6 +3,7 @@ import {
   defineEntityDashboardWidget,
   generateMarkdownWithFrontmatter,
   parseMarkdown,
+  type EntityCreateContext,
   type EntityCreateRoute,
   type EntityDefinition,
 } from "@brains/sdk/entities";
@@ -12,7 +13,7 @@ import {
   wishMetadataSchema,
   wishSchema,
 } from "./schemas/wish";
-import { findExistingWish } from "./lib/wish-dedup";
+import { findExistingWish, SAME_WISH_DISTANCE } from "./lib/wish-dedup";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import { topWishesWidget } from "./widgets/top-wishes";
 import { WISHLIST_INSTRUCTIONS } from "./instructions";
@@ -25,9 +26,10 @@ import { WISHLIST_INSTRUCTIONS } from "./instructions";
  * lets the runtime write it, so "created" and "updated" describe what
  * actually happened.
  */
-const resolveWish: NonNullable<
-  Extract<EntityCreateRoute, { resolve: unknown }>
->["resolve"] = async ({ input, entities }) => {
+async function resolveWish(
+  { input, entities, ai }: EntityCreateContext,
+  maxDistance: number,
+): ReturnType<Extract<EntityCreateRoute, { resolve: unknown }>["resolve"]> {
   if (input.visibility !== undefined && input.visibility !== "public") {
     return {
       refuse:
@@ -37,13 +39,26 @@ const resolveWish: NonNullable<
 
   const title = input.title ?? input.prompt ?? "Untitled wish";
   const description = input.content ?? input.prompt ?? "";
+  const frontmatter = {
+    title,
+    status: "new" as const,
+    priority: "medium" as const,
+    requested: 1,
+  };
+  const content = generateMarkdownWithFrontmatter(description, frontmatter);
   const existing = await findExistingWish(
     {
-      search: (request) => entities.search(request, wishSchema),
-      getEntity: (request) => entities.getEntity(request, wishSchema),
-      similarityThreshold: 0.85,
+      nearest: ({ query, ...options }) =>
+        entities.nearest(wish, query, options),
+      getEntity: (request) =>
+        entities.getEntity(
+          { ...request, visibilityScope: "public" },
+          wishSchema,
+        ),
+      maxDistance,
+      ai,
     },
-    { title, description },
+    { title, content },
   );
 
   if (existing) {
@@ -63,20 +78,27 @@ const resolveWish: NonNullable<
     };
   }
 
-  const frontmatter = {
-    title,
-    status: "new" as const,
-    priority: "medium" as const,
-    requested: 1,
-  };
   return {
     create: {
       id: slugify(title),
-      content: generateMarkdownWithFrontmatter(description, frontmatter),
+      content,
       metadata: { ...frontmatter, slug: slugify(title) },
     },
   };
-};
+}
+
+export function wishCreateRoutes(
+  maxDistance: number = SAME_WISH_DISTANCE,
+): NonNullable<EntityDefinition<"wish", typeof wishMetadataSchema>["create"]> {
+  const resolve: Extract<EntityCreateRoute, { resolve: unknown }>["resolve"] = (
+    context,
+  ) => resolveWish(context, maxDistance);
+  return {
+    fromPrompt: { resolve },
+    fromContent: { resolve },
+    fromUpload: { resolve },
+  };
+}
 
 /**
  * A capability the brain was asked for and could not perform.
@@ -119,11 +141,7 @@ export const wish: EntityDefinition<"wish", typeof wishMetadataSchema> =
     },
     // Whatever shape the caller used, a wish is the same record — the old
     // interceptor caught every shape, so each route names the same resolver.
-    create: {
-      fromPrompt: { resolve: resolveWish },
-      fromContent: { resolve: resolveWish },
-      fromUpload: { resolve: resolveWish },
-    },
+    create: wishCreateRoutes(),
     dashboardWidgets: [
       defineEntityDashboardWidget(topWishesWidget, async ({ entities }) => {
         const wishes = await entities.listEntities(

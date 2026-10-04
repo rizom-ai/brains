@@ -1,3 +1,5 @@
+import type { OwnedEntityMutations } from "./owned-entity-mutations";
+import type { OwnedEntityNearest } from "./owned-entity-nearest";
 import type {
   BaseEntity,
   ContentVisibility,
@@ -65,6 +67,9 @@ export interface EntityReader {
 
 /** Writes are checked against the declaring service's owned/stewarded types. */
 export interface EntityAccess extends EntityReader {
+  /** Owned background CAS/fold/receipt work; caller-scoped access is refused. */
+  readonly mutations: OwnedEntityMutations;
+  readonly nearest: OwnedEntityNearest;
   create<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,
     input: NoInfer<

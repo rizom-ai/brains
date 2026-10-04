@@ -12,6 +12,7 @@ import type { ProgressContract } from "@brains/utils/progress";
 import { createMockProgressReporter } from "@brains/test-utils";
 import { createJobProgress } from "../internal/authoring-readers";
 import { createAuthoringEntityAccess } from "../internal/authoring-entity-access";
+import { createConversationReader } from "../internal/callback-readers";
 
 /**
  * Run a declared job's handler, the way the runtime would.
@@ -73,7 +74,7 @@ export function createTestJobContext<TInput>(options: {
         success: false,
         error: "This test job creates nothing through another type's route",
       })),
-    conversations: options.conversations,
+    conversations: createConversationReader(options.conversations),
     identity: options.identity,
     domain: options.domain,
     profileKinds: options.profileKinds ?? {

@@ -17,15 +17,18 @@ export interface ContactDeliveryPolicy {
   maxAttempts: number;
   retryWindowSeconds: number;
 }
-export const contactDeliveryPolicySchema: z.ZodType<
-  ContactDeliveryPolicy,
-  ContactDeliveryPolicy
+export const contactDeliveryPolicyShape: z.ZodObject<
+  { maxAttempts: z.ZodNumber; retryWindowSeconds: z.ZodNumber },
+  z.core.$strict
 > = z.strictObject({
   maxAttempts: z.number().int().min(1).max(5),
   // Must fit inside the approved transport's idempotency retention (email: 24h).
   retryWindowSeconds: z.number().int().min(60).max(3600),
 });
-
+export const contactDeliveryPolicySchema: z.ZodType<
+  ContactDeliveryPolicy,
+  ContactDeliveryPolicy
+> = contactDeliveryPolicyShape;
 /** A sent alert, or why it was not sent as a short code without message content. */
 export type ContactAlertOutcome =
   { sent: true } | { sent: false; failure: string };

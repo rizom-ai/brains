@@ -43,6 +43,13 @@
       "when": 1788885250323,
       "tag": "0005_tough_microbe",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790869149573,
+      "tag": "0006_scope_faq_jobs",
+      "breakpoints": true
     }
   ]
 }

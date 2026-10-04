@@ -18,6 +18,7 @@ import {
   type IInboxNamespace,
   type IInterfaceConversationsNamespace,
   type InterfaceEntityReader,
+  type InterfaceCaller,
   type InterfaceJobs,
   type InterfaceDaemonDefinition,
   type MessageReceiver,
@@ -35,6 +36,7 @@ import {
 } from "./browser-access";
 import type { WebChatConversationAccess } from "./conversation-access";
 import { handleChatRequest } from "./chat-route";
+import { loadSiteSubjects } from "./site-subjects";
 import {
   renderGuestChatPage,
   guestPageStyles,
@@ -130,16 +132,22 @@ interface WebChatState {
 function rawRoute(
   method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
-  handle: (request: Request) => Promise<Response>,
+  handle: (
+    request: Request,
+    caller: InterfaceCaller | null,
+  ) => Promise<Response>,
   preview?: true,
+  session?: true,
 ): AnyInterfaceRouteDefinition {
   return defineRoute({
     method,
     path,
     ...(preview ? { preview } : {}),
-    security: { kind: "public" },
+    security: session
+      ? { kind: "session", optional: true }
+      : { kind: "public" },
     response: verbatim,
-    handle: ({ request }) => handle(request),
+    handle: ({ request, caller }) => handle(request, caller ?? null),
   });
 }
 
@@ -229,7 +237,7 @@ export function createWebChatDefinition(
             guestControl.policy !== undefined &&
             (await guestControl.isSwitchedOn());
           await context.availability.set({
-            public: configured,
+            public: configured || activated,
             preview: configured || activated,
           });
         };
@@ -252,6 +260,8 @@ export function createWebChatDefinition(
           managedPolicy ?? guestPolicy,
           {
             ...deps.guestHttp,
+            subjects: (): Promise<string[]> =>
+              loadSiteSubjects(context.messaging),
             presentation: (): ReturnType<typeof loadAskContent> =>
               loadAskContent(context.entities),
             requireAuthorization: managedPolicy !== undefined,
@@ -353,6 +363,7 @@ export function createWebChatDefinition(
               bindGuestMonitor(binding, {
                 record: usage.record,
                 bounds: usage.bounds,
+                now: usage.now,
                 control: state.guestControl.policy
                   ? state.guestControl
                   : undefined,
@@ -519,17 +530,23 @@ function webChatRoutes(
       },
       true,
     ),
-    rawRoute("POST", paths.stream, async (request) =>
-      handleChatRequest(request, {
-        access: state.access,
-        messages,
-        activeStreams: state.activeStreams,
-        conversations: state.conversations,
-        inbox: state.inbox,
-        interfaceType: webChatInterfaceType,
-        uploads: state.uploads,
-        createId: state.createId,
-      }),
+    rawRoute(
+      "POST",
+      paths.stream,
+      async (request, caller) =>
+        handleChatRequest(request, {
+          access: state.access,
+          caller,
+          messages,
+          activeStreams: state.activeStreams,
+          conversations: state.conversations,
+          inbox: state.inbox,
+          interfaceType: webChatInterfaceType,
+          uploads: state.uploads,
+          createId: state.createId,
+        }),
+      undefined,
+      true,
     ),
     rawRoute("POST", paths.actions, async (request) =>
       handleActionRequest(request, agentDeps),
@@ -549,24 +566,36 @@ function webChatRoutes(
     rawRoute("GET", paths.messages, async (request) =>
       handleMessagesRequest(request, sessionDeps),
     ),
-    rawRoute("POST", paths.contextSessions, async (request) => {
-      const requestDenied = requireSameOriginJson(request);
-      if (requestDenied) return requestDenied;
-      return handleContextSessionRequest(request, {
-        ...sessionDeps,
-        authorizeSource: async ({
-          sourceId,
-          itemId,
-          permissionLevel,
-          signal,
-        }): Promise<boolean> => {
-          const source = state.inbox.getSource(sourceId);
-          if (!source?.resolveDetail) return false;
-          await source.resolveDetail(itemId, { permissionLevel }, signal);
-          return true;
-        },
-      });
-    }),
+    rawRoute(
+      "POST",
+      paths.contextSessions,
+      async (request, caller) => {
+        if (!caller) return new Response("Forbidden", { status: 403 });
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleContextSessionRequest(request, {
+          ...sessionDeps,
+          authorizeSource: async ({
+            sourceId,
+            itemId,
+            permissionLevel,
+            signal,
+          }): Promise<boolean> => {
+            const source = state.inbox.getSource(sourceId);
+            if (!source?.resolveDetail) return false;
+            await source.resolveDetail(
+              itemId,
+              { permissionLevel },
+              signal,
+              caller,
+            );
+            return true;
+          },
+        });
+      },
+      undefined,
+      true,
+    ),
     rawRoute("GET", paths.documentAttachments, async (request) =>
       handleDocumentAttachmentRequest(request, attachmentDeps),
     ),

@@ -61,6 +61,7 @@ const unifiedInboxPackage: ServicePackageDefinition<
 
     subscriptions: ({ workspaceUrl }) => [
       defineSubscription({
+        execution: "all-roles",
         ...inboxWorkspaceRequest,
         handle: () => ({ href: workspaceUrl("inbox") }),
       }),

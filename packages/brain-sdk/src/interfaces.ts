@@ -54,7 +54,11 @@ export type {
 // What arrived that someone still has to deal with. A console offers to carry
 // an inbox item into a conversation, which means reading the source to check
 // the item is still reachable. Named consumer: @brains/web-chat.
-export type { IInboxNamespace } from "@brains/plugins";
+export type {
+  IInboxNamespace,
+  InterfaceCaller,
+  SubscriptionRequester,
+} from "@brains/plugins";
 
 // Tools an interface offers of its own — not the tools it serves, which come
 // from every other package, but the ones with no meaning without a client on

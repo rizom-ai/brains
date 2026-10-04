@@ -40,6 +40,27 @@ describe("renderRssFeed", () => {
     );
   });
 
+  it("uses site-resolved item routes for links and GUIDs, without changing author-owned feed items", () => {
+    const xml = renderRssFeed(
+      [item()],
+      channel,
+      (entry) => `https://example.com/essays/${entry.slug}?a=1&b=2`,
+    );
+    expect(xml).toContain(
+      "<link>https://example.com/essays/first-post?a=1&amp;b=2</link>",
+    );
+    expect(xml).toContain(
+      '<guid isPermaLink="true">https://example.com/essays/first-post?a=1&amp;b=2</guid>',
+    );
+    expect(xml).not.toContain("https://example.com/posts/first-post");
+    expect(
+      renderRssFeed([item({ slug: "/first-post" })], {
+        ...channel,
+        link: `${channel.link}/`,
+      }),
+    ).toContain("<link>https://example.com/posts/first-post</link>");
+  });
+
   it("carries content as CDATA so markup survives", () => {
     const xml = renderRssFeed([item()], channel);
 

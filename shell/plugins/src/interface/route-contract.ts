@@ -87,6 +87,8 @@ export interface ProtocolSecurityDefinition {
  */
 export interface SessionSecurityDefinition {
   readonly kind: "session";
+  /** Resolve a caller when present; otherwise let the handler serve its login/refusal response. Never grants anonymous authority. */
+  readonly optional?: true;
 }
 
 export interface PublicSecurityDefinition {
@@ -98,7 +100,15 @@ export type RouteSecurity =
   | ProtocolSecurityDefinition
   | SessionSecurityDefinition;
 export type RouteCaller<TSecurity extends RouteSecurity> =
-  TSecurity extends PublicSecurityDefinition ? null : InterfaceCaller;
+  TSecurity extends PublicSecurityDefinition
+    ? null
+    : TSecurity extends SessionSecurityDefinition
+      ? "optional" extends keyof TSecurity
+        ? true extends TSecurity["optional"]
+          ? InterfaceCaller | null
+          : InterfaceCaller
+        : InterfaceCaller
+      : InterfaceCaller;
 export type RouteBody<TSchema extends InterfaceSchema | undefined> =
   TSchema extends InterfaceSchema ? z.output<TSchema> : undefined;
 

@@ -169,7 +169,9 @@ describe("Shell service construction", () => {
     const constructionError = new Error("shell wiring failed");
     let runtimeStateCloseCalls = 0;
     let jobQueueCloseCalls = 0;
-    const inboxRegistry = new InboxRegistry();
+    const inboxRegistry = new InboxRegistry(
+      createMockShell().getAuthRegistry(),
+    );
 
     const jobQueueService = createMockJobQueueService();
     spyOn(jobQueueService, "close").mockImplementation(() => {

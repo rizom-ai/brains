@@ -1,11 +1,13 @@
 import { createFixtureGroupingQueries } from "./entity-groupings";
 import {
   getVisibleContentVisibilities,
+  entityRevision,
   EntityWriteConflictError,
   normalizeContentVisibility,
   validatePersist,
   type BaseEntity,
   type CreateEntityRequest,
+  type DeleteEntityRequest,
   type EntityMutationResult,
   type EntitySchema,
   type EntitySearchRequest,
@@ -20,12 +22,16 @@ import { computeContentHash } from "@brains/utils/hash";
 import {
   isFixtureEntityPublished,
   searchFixtureEntities,
+  searchFixtureDistances,
+  type FixtureDistance,
 } from "./entity-search";
 import type { MockEntityStore } from "./mock-entity-store";
+import { createMockReceiptMethods } from "./mock-entity-receipts";
 
 /** Stateful, materialized entity reads and writes over the registry's shared store. */
 export function createMockEntityService(
   store: MockEntityStore,
+  distances: (query: string) => readonly FixtureDistance[] = () => [],
 ): IEntityService {
   const publishedStatusesFor = (type: string): string[] | undefined =>
     store.adapters.get(type)?.publishedStatuses;
@@ -60,7 +66,7 @@ export function createMockEntityService(
 
   // Mirrors the real query layer's ORDER BY: system fields come from the
   // entity, everything else from metadata; NULLs sort smallest (SQLite),
-  // and nullsFirst forces them ahead regardless of direction.
+  // and nullsFirst / nullsLast force them ahead / behind regardless of direction.
   function sortFieldValue(entity: BaseEntity, field: string): unknown {
     if (field === "id" || field === "created" || field === "updated") {
       return entity[field];
@@ -75,7 +81,7 @@ export function createMockEntityService(
       NonNullable<ListEntitiesRequest["options"]>["sortFields"]
     >,
   ): number {
-    for (const { field, direction, nullsFirst } of sortFields) {
+    for (const { field, direction, nullsFirst, nullsLast } of sortFields) {
       const a = sortFieldValue(left, field);
       const b = sortFieldValue(right, field);
       const aNull = a === null || a === undefined;
@@ -83,6 +89,7 @@ export function createMockEntityService(
       if (aNull || bNull) {
         if (aNull && bNull) continue;
         if (nullsFirst) return aNull ? -1 : 1;
+        if (nullsLast) return aNull ? 1 : -1;
         // SQLite: NULL is smaller than every value.
         const nullCmp = aNull ? -1 : 1;
         if (direction === "desc") return -nullCmp;
@@ -182,6 +189,7 @@ export function createMockEntityService(
   }
 
   const service: IEntityService = {
+    ...createMockReceiptMethods(store),
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
     ): Promise<EntityMutationResult> => {
@@ -302,6 +310,16 @@ export function createMockEntityService(
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = store.entities.get(entity.id);
+      const condition = request.options?.conditionalWrite;
+      if (
+        condition &&
+        condition.expectedRevision !==
+          (existing?.entityType === entity.entityType
+            ? entityRevision(existing)
+            : null)
+      ) {
+        throw new EntityWriteConflictError(entity.entityType, entity.id);
+      }
       if (
         request.options?.expectedContentHash !== undefined &&
         existing?.contentHash !== request.options.expectedContentHash
@@ -341,18 +359,114 @@ export function createMockEntityService(
       );
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
-    deleteEntity: async (request: {
-      entityType: string;
-      id: string;
-      options?: { persistenceOrigin?: "ordinary" | "directory-sync" };
-    }): Promise<boolean> => {
-      store.sources.delete(request.id);
-      store.entities.delete(request.id);
+    foldEntity: async (request): Promise<EntityMutationResult> => {
+      const { source, entity } = structuredClone({
+        source: request.source,
+        entity: request.entity,
+      });
+      const targetRevision = request.targetRevision;
+      if (source.entityType !== entity.entityType || source.id === entity.id)
+        throw new Error("Invalid fold pair");
+      const current = (): void => {
+        const from = store.entities.get(source.id);
+        const into = store.entities.get(entity.id);
+        if (
+          from?.entityType !== source.entityType ||
+          entityRevision(from) !== source.expectedRevision
+        )
+          throw new EntityWriteConflictError(source.entityType, source.id);
+        if (
+          into?.entityType !== entity.entityType ||
+          entityRevision(into) !== targetRevision
+        )
+          throw new EntityWriteConflictError(entity.entityType, entity.id);
+        if (
+          from.visibility !== entity.visibility ||
+          into.visibility !== entity.visibility
+        )
+          throw new Error("A fold cannot cross visibility scopes");
+      };
+      current();
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        entity.entityType,
+      );
+      const { source: markdown, ...materialized } = store.materialize(entity);
+      const prepared = { ...entity, ...materialized };
+      await validatePersist(store.registry, prepared, "update");
+      await request.options?.beforeWrite?.({ ...prepared, content: markdown });
+      request.options?.signal?.throwIfAborted();
+      await assertGroupingsCurrent();
+      request.options?.signal?.throwIfAborted();
+      current();
+      // No awaits between mutations: the double models one atomic pair.
+      store.sources.set(entity.id, markdown);
+      store.entities.set(entity.id, prepared);
+      store.sources.delete(source.id);
+      store.entities.delete(source.id);
       store.markExportIntent(
-        request.entityType,
-        request.id,
+        entity.entityType,
+        entity.id,
+        "upsert",
+        request.options?.persistenceOrigin,
+      );
+      store.markExportIntent(
+        source.entityType,
+        source.id,
         "delete",
         request.options?.persistenceOrigin,
+      );
+      return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
+    },
+    deleteEntity: async (request: DeleteEntityRequest): Promise<boolean> => {
+      const { entityType, id } = request;
+      const options = request.options ? { ...request.options } : undefined;
+      options?.signal?.throwIfAborted();
+      const condition = options?.conditionalWrite
+        ? { ...options.conditionalWrite }
+        : undefined;
+      if (
+        (condition &&
+          (condition.expectedRevision === null ||
+            options?.expectedContentHash !== undefined)) ||
+        (options?.beforeWrite && !condition)
+      )
+        throw new Error(
+          "Conditional deletion requires a revision, and guards require a conditional deletion",
+        );
+      const assertCurrent = (): void => {
+        const current = store.entities.get(id);
+        if (
+          condition &&
+          (current?.entityType !== entityType ||
+            entityRevision(current) !== condition.expectedRevision)
+        )
+          throw new EntityWriteConflictError(entityType, id);
+      };
+      assertCurrent();
+      const current = await getEntityFake({
+        entityType,
+        id,
+        visibilityScope: "restricted",
+      });
+      if (!current) return false;
+      await options?.beforeWrite?.(structuredClone(current));
+      options?.signal?.throwIfAborted();
+      assertCurrent();
+      const expectedContentHash = options?.expectedContentHash;
+      if (
+        expectedContentHash !== undefined &&
+        store.entities.get(id)?.contentHash !== expectedContentHash
+      ) {
+        return false;
+      }
+      store.sources.delete(id);
+      store.entities.delete(id);
+      store.markExportIntent(
+        entityType,
+        id,
+        "delete",
+        options?.persistenceOrigin,
       );
       return true;
     },
@@ -375,7 +489,13 @@ export function createMockEntityService(
     },
     listEntities: listEntitiesFake,
     search: searchFake,
-    searchWithDistances: async () => [],
+    searchWithDistances: async (request) =>
+      searchFixtureDistances(
+        [...store.entities.values()],
+        distances(request.query),
+        request,
+        publishedStatusesFor,
+      ),
     getEntityTypes: () => Array.from(store.types),
     hasEntityType: (type: string) => store.types.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
@@ -406,7 +526,7 @@ export function createMockEntityService(
       const current = store.entities.get(id);
       const revision =
         current?.entityType === entity.entityType
-          ? computeContentHash(JSON.stringify(current))
+          ? entityRevision(current)
           : null;
       // Fence after every asynchronous guard, without yielding before storage.
       if (condition && condition.expectedRevision !== revision) {
@@ -475,10 +595,7 @@ export function createMockEntityService(
         visibilityScope: request.visibilityScope ?? "public",
       });
       return entity
-        ? {
-            entity: structuredClone(entity),
-            revision: computeContentHash(JSON.stringify(entity)),
-          }
+        ? { entity: structuredClone(entity), revision: entityRevision(entity) }
         : null;
     },
 

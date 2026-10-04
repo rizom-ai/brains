@@ -1,12 +1,13 @@
 {
   "name": "@brains/site-professional",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.456",
+  "version": "0.2.0-alpha.473",
   "description": "Professional site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/decks": "workspace:*",
+    "@brains/faq": "workspace:*",
     "@brains/knowledge-map": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile": "workspace:*",

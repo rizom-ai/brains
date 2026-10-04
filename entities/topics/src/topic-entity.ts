@@ -8,8 +8,13 @@ import { firstSentence } from "@brains/utils/string-utils";
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import { topicsDataSource } from "./datasources/topics-datasource";
 import { TOPIC_ENTITY_TYPE } from "./lib/constants";
-import { getTopicTitle, toTopicContentProjection } from "./lib/topic-presenter";
-import { topicMetadataSchema, topicEntitySchema } from "./schemas/topic";
+import { toTopicContentProjection } from "./lib/topic-presenter";
+import {
+  topicMetadataSchema,
+  topicEntitySchema,
+  topicFrontmatterSchema,
+} from "./schemas/topic";
+import { createTopicBody, parseTopicBody } from "./lib/topic-body";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicDetailTemplate } from "./templates/topic-detail";
@@ -30,6 +35,22 @@ export const topic: EntityDefinition<
   type: TOPIC_ENTITY_TYPE,
   purpose: "A recurring theme or subject derived from the user's content.",
   metadata: topicMetadataSchema,
+  // The title belongs to authored markdown, not query/display metadata. Keep
+  // that envelope when the generic entity reader decodes stored source.
+  markdown: {
+    frontmatter: topicFrontmatterSchema,
+    encode: ({ content }) => {
+      const body = parseTopicBody(content);
+      return { content: body.content, frontmatter: { title: body.title } };
+    },
+    decode: ({ content, frontmatter }) => ({
+      content: createTopicBody({
+        title: topicFrontmatterSchema.parse(frontmatter).title,
+        content,
+      }),
+      metadata: {},
+    }),
+  },
   config: {
     weight: 0.5,
     projectionSource: false,
@@ -43,23 +64,7 @@ export const topic: EntityDefinition<
   },
   dataSources: [topicsDataSource],
   atproto: createTopicAtprotoProjection(),
-  insights: {
-    "topic-distribution": async ({ entities, visibilityScope }) => {
-      const topics = await entities.listEntities(
-        {
-          entityType: TOPIC_ENTITY_TYPE,
-          options: { filter: { visibilityScope } },
-        },
-        topicEntitySchema,
-      );
-      return {
-        topics: topics.map((entry: BaseEntity) => ({
-          topic: entry.id,
-          title: getTopicTitle(entry),
-        })),
-      };
-    },
-  },
+
   dashboardWidgets: [
     defineEntityDashboardWidget(topicsWidget, async ({ entities }) => {
       const topics = await entities.listEntities(

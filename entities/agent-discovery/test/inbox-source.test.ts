@@ -5,7 +5,6 @@ import { parseAgentEntity } from "../src/lib/agent-content";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { agentSightingsInbox } from "../src/inbox-source";
 import agentDiscovery from "../src";
-import { AGENT_PLUGIN_ID } from "./fixtures/agent-network";
 import { createTestAgent } from "./fixtures/agent";
 
 /**
@@ -44,15 +43,28 @@ async function createSource(): Promise<{
     },
   );
   for (const plugin of plugins) await harness.installPlugin(plugin);
-  const context = harness.getReactionContext(AGENT_PLUGIN_ID);
-  const resolveDetail = agentSightingsInbox.resolveDetail;
-  if (!resolveDetail) throw new Error("The sightings inbox resolves no detail");
+  await harness.finalizeRegistration();
+  const installed = harness
+    .getMockShell()
+    .getInboxRegistry()
+    .getSource(agentSightingsInbox.sourceId);
+  const resolveDetail = installed?.resolveDetail;
+  if (!installed || !resolveDetail)
+    throw new Error("The sightings inbox resolves no detail");
   return {
     harness,
     source: {
-      list: () => agentSightingsInbox.list(context),
-      resolveDetail: (...args) => resolveDetail(context, ...args),
-      act: (...args) => agentSightingsInbox.act(context, ...args),
+      list: () => installed.list(),
+      resolveDetail: (itemId, actor, signal) =>
+        harness.withCaller(
+          (caller) => resolveDetail(itemId, actor, signal, caller),
+          { permission: actor.permissionLevel, signal },
+        ),
+      act: (itemId, actionId, actor) =>
+        harness.withCaller(
+          (caller) => installed.act(itemId, actionId, actor, caller),
+          { permission: actor.permissionLevel },
+        ),
     },
   };
 }

@@ -47,8 +47,7 @@ function formatRfc822(isoDate: string): string {
   return new Date(isoDate).toUTCString();
 }
 
-function itemXml(item: FeedItem, link: string): string {
-  const url = `${link}/${item.slug.replace(/^\//u, "")}`;
+function itemXml(item: FeedItem, url: string): string {
   const category = item.category
     ? `\n      <category>${escapeXml(item.category)}</category>`
     : "";
@@ -71,6 +70,7 @@ function itemXml(item: FeedItem, link: string): string {
 export function renderRssFeed(
   items: readonly FeedItem[],
   channel: FeedChannel,
+  resolveItemUrl?: (item: FeedItem) => string,
 ): string {
   const ordered = [...items].sort(
     (left, right) =>
@@ -100,7 +100,7 @@ export function renderRssFeed(
     <description>${escapeXml(channel.description)}</description>
     <language>${channel.language ?? "en-us"}</language>
     <lastBuildDate>${lastBuildDate}</lastBuildDate>${optional}
-${ordered.map((item) => itemXml(item, channel.link)).join("\n")}
+${ordered.map((item) => itemXml(item, resolveItemUrl?.(item) ?? `${channel.link.replace(/\/+$/u, "")}/${item.slug.replace(/^\/+/u, "")}`)).join("\n")}
   </channel>
 </rss>`;
 }

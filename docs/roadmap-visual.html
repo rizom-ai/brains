@@ -353,20 +353,12 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Turso-only database runtime for <code>0.3</code></span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">active <code>0.3</code> Turso-only runtime/migration work; off-thread integration, production recovery, and fleet soak remain open while <code>0.2</code> stays on libSQL.</div>
-          <div class="card-file">turso-database-engine.md</div>
-        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.</div>
+          <div class="card-desc">move image bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, then validate a production cutover.</div>
           <div class="card-file">durable-binary-assets.md</div>
         </div>
         <div class="card status-partial">
@@ -400,6 +392,14 @@
           </div>
           <div class="card-desc">incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Salvage the Turso branch onto libSQL</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">carry the engine-independent parts of the frozen Turso branch onto libSQL; <code>0.3</code> stays on libSQL.</div>
+          <div class="card-file">turso-salvage.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">

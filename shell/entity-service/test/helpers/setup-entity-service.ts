@@ -9,6 +9,7 @@ import type {
   BaseEntity,
   EntityEventBus,
   EntityTypeConfig,
+  EntityMutationAdmission,
 } from "../../src/types";
 import { mockEmbeddingService } from "./mock-services";
 import { createTestEntityDatabase } from "./test-entity-db";
@@ -41,6 +42,7 @@ export async function setupEntityService(
   options?: {
     messageBus?: EntityEventBus;
     embeddingsEnabled?: boolean;
+    mutationAdmission?: EntityMutationAdmission;
   },
 ): Promise<EntityServiceTestContext> {
   const testDb = await createTestEntityDatabase();
@@ -70,6 +72,9 @@ export async function setupEntityService(
     dbConfig: testDb.config,
     embeddingDbConfig: testDb.embeddingConfig,
     ...(options?.messageBus && { messageBus: options.messageBus }),
+    ...(options?.mutationAdmission && {
+      mutationAdmission: options.mutationAdmission,
+    }),
   });
 
   const cleanup = async (): Promise<void> => {

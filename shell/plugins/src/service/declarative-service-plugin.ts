@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { projectionSourceTypes } from "../internal/insight-source-types";
 import type { ContentFormatter } from "@brains/content-formatters";
 import { PUBLISH_CHANNELS, type JsonObject } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "../system-channels";
@@ -32,6 +33,11 @@ import { registerDeclaredSubscriptions } from "../interface/declared-subscriptio
 import { createRequester } from "../internal/requester";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
+import {
+  createInboxContext,
+  createInboxListContext,
+  createInboxDetailContext,
+} from "../internal/inbox-context";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { interactionInfoSchema } from "../contracts/runtime-app-info";
@@ -69,6 +75,7 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import { createEvalFixtures } from "../entity/eval-fixtures";
+import { waitForEmbeddingsToDrain } from "../entity/embedding-drain";
 import {
   createDeclarativeDataSource,
   createDeclarativeEntityDataSource,
@@ -225,6 +232,7 @@ function runtimeJobHandler(
   templates: ServiceTemplateFormatter,
   owned: ReadonlySet<string>,
   serviceId: string,
+  packageName: string,
   templateName: (localName: string) => string,
 ): JobHandler<string, unknown, unknown> {
   const definition = binding.definition;
@@ -274,7 +282,13 @@ function runtimeJobHandler(
         progress: createJobProgress(progress),
         templates,
         entities: createAuthoringEntityAccess(
-          createJobEntityAccess(context.entityService, owned, serviceId),
+          createJobEntityAccess(
+            context.entityService,
+            owned,
+            serviceId,
+            undefined,
+            { packageName, declarationId: serviceId, signal },
+          ),
         ),
         createRouted: createRoutedCreate({
           requester: serviceId,
@@ -855,6 +869,7 @@ class DeclarativeServicePlugin<
             this.publicId,
             visibilityScope,
           ),
+          projectionSourceTypes: projectionSourceTypes(context.entityService),
           visibilityScope,
         }),
       );
@@ -896,20 +911,47 @@ class DeclarativeServicePlugin<
         sourceId: inbox.sourceId,
         displayName: inbox.displayName,
         ...(inbox.facets ? { facets: inbox.facets } : {}),
-        list: () => inbox.list(this.reaction()),
+        list: () => inbox.list(createInboxListContext(this.reaction())),
         ...(inbox.resolveDetail
           ? {
               resolveDetail: (
                 itemId,
                 actor,
                 signal,
+                caller,
               ): Promise<InboxItemDetail> =>
-                inbox.resolveDetail?.(this.reaction(), itemId, actor, signal) ??
-                Promise.reject(new Error("No detail")),
+                inbox.resolveDetail?.(
+                  createInboxDetailContext({
+                    reaction: this.reaction(),
+                    entities: context.entityService,
+                    authority: context.auth,
+                    ownedTypes: new Set(
+                      (this.definition.entities ?? []).map(({ type }) => type),
+                    ),
+                    caller,
+                    signal,
+                  }),
+                  itemId,
+                  actor,
+                  signal,
+                ) ?? Promise.reject(new Error("No detail")),
             }
           : {}),
-        act: (itemId, actionId, actor) =>
-          inbox.act(this.reaction(), itemId, actionId, actor),
+        act: (itemId, actionId, actor, caller) =>
+          inbox.act(
+            createInboxContext({
+              reaction: this.reaction(),
+              entities: context.entityService,
+              authority: context.auth,
+              ownedTypes: new Set(
+                (this.definition.entities ?? []).map(({ type }) => type),
+              ),
+              caller,
+            }),
+            itemId,
+            actionId,
+            actor,
+          ),
       });
     }
 
@@ -933,7 +975,9 @@ class DeclarativeServicePlugin<
           conversations: createConversationReader(context.conversations),
           runProjectionRule: (rule, options) =>
             context.eval.runProjectionRule(rule, options),
-          fixtures: createEvalFixtures(context.entityService, ownedTypes),
+          fixtures: createEvalFixtures(context.entityService, ownedTypes, () =>
+            waitForEmbeddingsToDrain(context.jobs),
+          ),
           template: (localName) => this.scopedTemplateName(localName),
         }),
       );
@@ -960,6 +1004,7 @@ class DeclarativeServicePlugin<
           templates,
           this.ownedTypeNames(),
           this.publicId,
+          this.packageName,
           (localName) => this.scopedTemplateName(localName),
         ),
       );

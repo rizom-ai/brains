@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 import { createMockShell } from "../src/test/mock-shell";
+import { createPluginHarness } from "../src/test/harness";
 import {
   defineInterface,
   defineMessageInterface,
@@ -130,9 +131,10 @@ describe("declarative interface operator contributions", () => {
   );
   for (const family of ["interface", "message-interface"] as const) {
     it(`${family} gates actions and releases owned registrations on shutdown`, async () => {
-      const shell = createMockShell({
+      const harness = createPluginHarness({
         logger: createSilentLogger("interface-operators"),
       });
+      const shell = harness.getMockShell();
       const registered: StudioWorkspaceRegistration[] = [];
       const removed: unknown[] = [];
       shell
@@ -140,7 +142,7 @@ describe("declarative interface operator contributions", () => {
         .subscribe<StudioWorkspaceRegistration>(
           STUDIO_WORKSPACE_REGISTER_MESSAGE,
           (message) => {
-            registered.push(message.payload);
+            registered.push(harness.bindStudioWorkspace(message.payload));
             return { success: true, data: { workspaceUrl: "/studio/monitor" } };
           },
         );

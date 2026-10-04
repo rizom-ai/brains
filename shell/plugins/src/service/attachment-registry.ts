@@ -107,10 +107,14 @@ export function createAttachmentsNamespace(
   };
 }
 
+interface AttachmentRegistration {
+  provider: AttachmentProvider;
+}
+
 export class AttachmentRegistry {
   private readonly providers = new Map<
     string,
-    Map<string, AttachmentProvider>
+    Map<string, AttachmentRegistration>
   >();
 
   public static createFresh(): AttachmentRegistry {
@@ -133,10 +137,16 @@ export class AttachmentRegistry {
     });
     const providersByAttachmentType =
       this.getOrCreateSourceProviders(sourceEntityType);
-    providersByAttachmentType.set(attachmentType, registered);
+    const registration = { provider: registered };
+    providersByAttachmentType.set(attachmentType, registration);
 
     return () => {
-      if (this.get(sourceEntityType, attachmentType) === registered) {
+      // Release only this registration, including repeated registrations of
+      // the same provider; metadata remains detached from the author's object.
+      if (
+        this.providers.get(sourceEntityType)?.get(attachmentType) ===
+        registration
+      ) {
         this.unregister(sourceEntityType, attachmentType);
       }
     };
@@ -156,7 +166,7 @@ export class AttachmentRegistry {
     sourceEntityType: string,
     attachmentType: string,
   ): AttachmentProvider | undefined {
-    return this.providers.get(sourceEntityType)?.get(attachmentType);
+    return this.providers.get(sourceEntityType)?.get(attachmentType)?.provider;
   }
 
   public has(sourceEntityType: string, attachmentType: string): boolean {
@@ -195,13 +205,13 @@ export class AttachmentRegistry {
 
   private getOrCreateSourceProviders(
     sourceEntityType: string,
-  ): Map<string, AttachmentProvider> {
+  ): Map<string, AttachmentRegistration> {
     const existing = this.providers.get(sourceEntityType);
     if (existing) {
       return existing;
     }
 
-    const providersByAttachmentType = new Map<string, AttachmentProvider>();
+    const providersByAttachmentType = new Map<string, AttachmentRegistration>();
     this.providers.set(sourceEntityType, providersByAttachmentType);
     return providersByAttachmentType;
   }

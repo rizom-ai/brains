@@ -10,7 +10,7 @@ import {
   statSync,
   writeFileSync,
 } from "fs";
-import { join, relative } from "path";
+import { dirname, join, relative, resolve } from "path";
 import {
   findInternalDeclarationImports,
   stripDeclarationComments,
@@ -33,6 +33,30 @@ function listDeclarationFiles(dir: string): string[] {
     }
     return path.endsWith(".d.ts") ? [path] : [];
   });
+}
+
+function readDeclarationGraph(entryPath: string): string {
+  const visited = new Set<string>();
+  const queue = [entryPath];
+  const sources: string[] = [];
+  while (queue.length) {
+    const path = queue.pop();
+    if (!path || visited.has(path)) continue;
+    visited.add(path);
+    expect(relative(join(pkgDir, "dist"), path)).not.toStartWith("..");
+    const source = readFileSync(path, "utf8");
+    sources.push(source);
+    for (const match of stripDeclarationComments(source).matchAll(
+      /(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.[^"']+)["']/gu,
+    )) {
+      const specifier = match[1];
+      if (specifier)
+        queue.push(
+          resolve(dirname(path), specifier.replace(/\.js$/u, ".d.ts")),
+        );
+    }
+  }
+  return sources.join("\n");
 }
 
 interface TypedPublicExport {
@@ -124,6 +148,50 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  it("forwards original callers across independently bundled SDK and host modules without minting authority", async () => {
+    const hostSource = join(pkgDir, "../../shell/plugins/src");
+    const result = await runProcess(
+      [
+        "bun",
+        "-e",
+        `
+      import { strict as assert } from "node:assert";
+      import { createStudioWorkspaceActor } from "./dist/services.js";
+      import { AuthRegistry } from ${JSON.stringify(join(hostSource, "contracts/auth-registry.ts"))};
+      import { issueRouteCaller, revokeRouteCaller } from ${JSON.stringify(join(hostSource, "internal/route-caller-authority.ts"))};
+      import { workspaceCaller } from ${JSON.stringify(join(hostSource, "operator/workspace-actor.ts"))};
+      import { createMockServicePluginContext } from ${JSON.stringify(join(hostSource, "test/mock-service-plugin-context.ts"))};
+      import { createBuiltInStudioWorkspaceRegistration } from ${JSON.stringify(join(hostSource, "operator/studio-workspace-runtime.ts"))};
+      import { defineStudioWorkspace } from ${JSON.stringify(join(hostSource, "operator/operator-definition-contract.ts"))};
+      import { z } from "@brains/utils/zod";
+      const context = createMockServicePluginContext();
+      const authority = context.auth;
+      const definition = defineStudioWorkspace({ id: "probe", label: "Probe", permission: "trusted", data: z.object({}), actions: [], view: () => ({ blocks: [] }) });
+      const registration = createBuiltInStudioWorkspaceRegistration({ context, definition, bind: (binding) => definition.bind(binding, { actions: [], load: () => ({}) }) });
+      const claims = { actor: { id: "host", canonicalId: "person" }, permission: "admin", isAnchor: true };
+      const caller = issueRouteCaller(claims, authority);
+      const actor = createStudioWorkspaceActor(caller);
+      assert.equal(workspaceCaller(actor, authority), caller);
+      assert.equal(await registration.accessHandler(actor), true);
+      assert.deepEqual((await registration.dataProvider(actor)).view, { blocks: [] });
+      await assert.rejects(() => registration.accessHandler({ ...actor }));
+      assert.equal(JSON.stringify(actor), JSON.stringify({ ...actor }));
+      assert.throws(() => workspaceCaller({ ...actor }, authority));
+      assert.throws(() => workspaceCaller(createStudioWorkspaceActor(claims), authority));
+      assert.throws(() => workspaceCaller(createStudioWorkspaceActor({ ...caller }), authority));
+      assert.throws(() => workspaceCaller(actor, AuthRegistry.createFresh()));
+      revokeRouteCaller(caller);
+      assert.throws(() => workspaceCaller(actor, authority));
+      await assert.rejects(() => registration.accessHandler(actor));
+      await assert.rejects(() => registration.dataProvider(actor));
+    `,
+      ],
+      { cwd: pkgDir },
+    );
+    expect(result.stderr).toBe("");
+    expect(result.exitCode).toBe(0);
+  });
+
   it("does not leave emitted declarations in source directories", async () => {
     const declarations = listDeclarationFiles(join(pkgDir, "src")).map((path) =>
       relative(pkgDir, path),
@@ -160,7 +228,9 @@ describe("@rizom/brain public plugin API surface", () => {
       expect(servicesTypes).toContain(symbol);
     }
     expect(interfacesTypes).toContain("defineAccountSettings");
-    expect(interfacesTypes).toContain("forAccounts");
+    expect(
+      readDeclarationGraph(join(pkgDir, "dist", "interfaces.d.ts")),
+    ).toContain("forAccounts");
     expect(servicesTypes).not.toContain("getDashboardWidgetLoader");
     expect(servicesTypes).not.toContain("getStudioWorkspaceExecutor");
     expect(servicesTypes).not.toContain("getWorkspaceActionExecutor");
@@ -220,6 +290,19 @@ describe("@rizom/brain public plugin API surface", () => {
     }
     expect(testingTypes).not.toContain("MockShell");
     expect(testingTypes).toContain("createBrainTestHarness");
+  });
+
+  it("keeps native model storage dependencies out of reachable authoring declarations", () => {
+    for (const entry of ["index", ...subpaths, "testing"]) {
+      const declarations = readDeclarationGraph(
+        join(pkgDir, "dist", `${entry}.d.ts`),
+      );
+      expect(
+        findInternalDeclarationImports(declarations, {
+          internalPrefixes: ["@brains/", "drizzle-orm", "@libsql/"],
+        }),
+      ).toEqual([]);
+    }
   });
 
   it("compiles the Phase 1 fixtures against generated declarations", async () => {

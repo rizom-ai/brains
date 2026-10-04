@@ -11,6 +11,10 @@ import {
 import { assertCanonicalEntityMetadata } from "../entity/entity-schema";
 import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
+import {
+  applyEntityConfiguration,
+  type EntityConfigurationBinding,
+} from "../entity/entity-configuration";
 import type {
   AnyEntityDefinition,
   EntityAgentContextProvider,
@@ -168,11 +172,25 @@ export interface EntityPackageDefinition<
     readonly AnyEntityDefinition[],
   TProjections extends readonly ProjectionDefinition[] =
     readonly ProjectionDefinition[],
-> extends PluginPackageDefinition<typeof entityPackageConfig, "entity"> {
+  TConfig extends z.ZodType<object, object> = typeof entityPackageConfig,
+> extends PluginPackageDefinition<TConfig, "entity"> {
   readonly entities: TEntities;
   readonly projections: TProjections;
 }
 
+export function defineEntityPackage<
+  TConfig extends z.ZodType<object, object>,
+  const TEntities extends readonly AnyEntityDefinition[],
+  const TProjections extends readonly ProjectionDefinition[] = readonly [],
+>(definition: {
+  readonly id: string;
+  readonly config: TConfig;
+  readonly entities: TEntities;
+  readonly projections?: TProjections;
+  readonly configure: (context: {
+    readonly config: z.output<TConfig>;
+  }) => readonly EntityConfigurationBinding[];
+}): EntityPackageDefinition<TEntities, TProjections, TConfig>;
 export function defineEntityPackage<
   const TEntities extends readonly AnyEntityDefinition[],
   const TProjections extends readonly ProjectionDefinition[],
@@ -188,16 +206,41 @@ export function defineEntityPackage<
   readonly entities: TEntities;
   readonly projections?: undefined;
 }): EntityPackageDefinition<TEntities, readonly []>;
-export function defineEntityPackage(definition: {
+export function defineEntityPackage<
+  TConfig extends z.ZodType<object, object>,
+>(definition: {
   readonly id: string;
   readonly entities: readonly AnyEntityDefinition[];
   readonly projections?: readonly ProjectionDefinition[] | undefined;
-}): EntityPackageDefinition {
-  const entities = Object.freeze([...definition.entities]);
-  const projections = Object.freeze([...(definition.projections ?? [])]);
+  readonly config?: TConfig;
+  readonly configure?: (context: {
+    readonly config: z.output<TConfig>;
+  }) => readonly EntityConfigurationBinding[];
+}): EntityPackageDefinition<
+  readonly AnyEntityDefinition[],
+  readonly ProjectionDefinition[],
+  TConfig | typeof entityPackageConfig
+> {
+  const detached = new Map(
+    definition.entities.map((entity) => [entity, Object.freeze({ ...entity })]),
+  );
+  const entities = Object.freeze([...detached.values()]);
+  const configure = definition.configure;
+  const projections = Object.freeze(
+    (definition.projections ?? []).map((projection) =>
+      Object.freeze({
+        ...projection,
+        source: detached.get(projection.source) ?? projection.source,
+        target: detached.get(projection.target) ?? projection.target,
+      }),
+    ),
+  );
   const entitySet = new Set<AnyEntityDefinition>(entities);
   const entityTypes = entities.map(({ type }) => type);
-  if (new Set(entityTypes).size !== entityTypes.length) {
+  if (
+    entities.length !== definition.entities.length ||
+    new Set(entityTypes).size !== entityTypes.length
+  ) {
     throw new Error(
       `Entity package "${definition.id}" contains duplicate entity types`,
     );
@@ -221,6 +264,21 @@ export function defineEntityPackage(definition: {
     entities,
     projections,
   };
+  if (definition.config) {
+    return createPluginPackageDefinition({
+      family: "entity",
+      id: definition.id,
+      config: definition.config,
+      public: publicDefinition,
+      instantiate: ({ config, package: metadata, scope }) =>
+        createEntityPackagePlugins(
+          applyEntityConfiguration(entities, configure?.({ config }) ?? []),
+          projections,
+          metadata,
+          scope,
+        ),
+    });
+  }
   return createPluginPackageDefinition({
     family: "entity",
     id: definition.id,

@@ -1,4 +1,5 @@
 import { createRequester } from "../internal/requester";
+import { projectionSourceTypes } from "../internal/insight-source-types";
 import { SdkError, toSdkError } from "@brains/contracts";
 import {
   ProjectionJsonObjectSchema,
@@ -52,6 +53,7 @@ import { createJobEntityAccess } from "../job/job-entity-access";
 import { stateNamespaceFor } from "../internal/state-namespace";
 import { saveProcessedEntity } from "./pending-ingestion";
 import { createEvalFixtures } from "./eval-fixtures";
+import { waitForEmbeddingsToDrain } from "./embedding-drain";
 import { createAuthReader } from "../contracts/auth-registry";
 import { createConversationReader } from "../internal/callback-readers";
 import {
@@ -78,6 +80,11 @@ import {
 } from "@brains/entity-service";
 import type { MessageResponse } from "../contracts/messaging";
 import type { InboxItemDetail } from "../inbox-registry";
+import {
+  createInboxContext,
+  createInboxListContext,
+  createInboxDetailContext,
+} from "../internal/inbox-context";
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,
@@ -690,6 +697,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
         if ("resolve" in route) {
           const resolution = await route.resolve({
+            ai: context.ai,
             input,
             entities: this.entityAccess(context),
             logger: this.logger,
@@ -1001,6 +1009,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       context.insights.register(insightId, async (_service, visibilityScope) =>
         handler({
           entities: this.entityAccess(context, visibilityScope),
+          projectionSourceTypes: projectionSourceTypes(context.entityService),
           visibilityScope,
         }),
       );
@@ -1014,9 +1023,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           entities: this.entityAccess(context),
           conversations: createConversationReader(context.conversations),
           runProjectionRule: (rule) => context.eval.runProjectionRule(rule),
-          fixtures: createEvalFixtures(context.entityService, [
-            this.entityType,
-          ]),
+          fixtures: createEvalFixtures(
+            context.entityService,
+            [this.entityType],
+            () => waitForEmbeddingsToDrain(context.jobs),
+          ),
           template: (localName) =>
             scopedTemplateName(
               this.templates,
@@ -1230,20 +1241,43 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         sourceId: inbox.sourceId,
         displayName: inbox.displayName,
         ...(inbox.facets ? { facets: inbox.facets } : {}),
-        list: () => inbox.list(reader()),
+        list: () => inbox.list(createInboxListContext(reader())),
         ...(inbox.resolveDetail
           ? {
               resolveDetail: (
                 itemId,
                 actor,
                 signal,
+                caller,
               ): Promise<InboxItemDetail> =>
-                inbox.resolveDetail?.(reader(), itemId, actor, signal) ??
-                Promise.reject(new Error("No detail")),
+                inbox.resolveDetail?.(
+                  createInboxDetailContext({
+                    reaction: reader(),
+                    entities: context.entityService,
+                    authority: context.auth,
+                    ownedTypes: new Set([this.entityType]),
+                    caller,
+                    signal,
+                  }),
+                  itemId,
+                  actor,
+                  signal,
+                ) ?? Promise.reject(new Error("No detail")),
             }
           : {}),
-        act: (itemId, actionId, actor) =>
-          inbox.act(reader(), itemId, actionId, actor),
+        act: (itemId, actionId, actor, caller) =>
+          inbox.act(
+            createInboxContext({
+              reaction: reader(),
+              entities: context.entityService,
+              authority: context.auth,
+              ownedTypes: new Set([this.entityType]),
+              caller,
+            }),
+            itemId,
+            actionId,
+            actor,
+          ),
       });
     }
 
@@ -1821,7 +1855,17 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ai: context.ai,
       prompts: context.prompts,
       logger: this.logger,
-      entities: this.entityAccess(context),
+      entities: createJobEntityAccess(
+        context.entityService,
+        new Set([this.entityType]),
+        this.id,
+        undefined,
+        {
+          packageName: this.packageName,
+          declarationId: this.entityType,
+          signal,
+        },
+      ),
       createRouted: createRoutedCreate({
         requester: this.id,
         interceptorFor: (entityType) =>
@@ -1966,7 +2010,8 @@ export function createEntityPackagePlugins(
     (definition) =>
       new DeclarativeEntityPlugin(
         definition,
-        projections.filter(({ source }) => source === definition),
+        // Configured behavior is a detached copy of the registered declaration.
+        projections.filter(({ source }) => source.type === definition.type),
         metadata,
         scope,
         jobOwnerId,

@@ -1,5 +1,209 @@
 # @brains/a2a
 
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/http-signatures@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/auth-service@0.2.0-alpha.473
+  - @brains/plugins@0.2.0-alpha.473
+  - @brains/templates@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/http-signatures@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/auth-service@0.2.0-alpha.472
+  - @brains/plugins@0.2.0-alpha.472
+  - @brains/templates@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/http-signatures@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/auth-service@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+  - @brains/templates@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/http-signatures@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/auth-service@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+  - @brains/templates@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/http-signatures@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/auth-service@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+  - @brains/templates@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/http-signatures@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/auth-service@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+  - @brains/templates@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/http-signatures@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/auth-service@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+  - @brains/templates@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/http-signatures@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/auth-service@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+  - @brains/templates@0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.465
+  - @brains/http-signatures@0.2.0-alpha.465
+  - @brains/utils@0.2.0-alpha.465
+  - @brains/auth-service@0.2.0-alpha.465
+  - @brains/plugins@0.2.0-alpha.465
+  - @brains/templates@0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.464
+  - @brains/http-signatures@0.2.0-alpha.464
+  - @brains/utils@0.2.0-alpha.464
+  - @brains/auth-service@0.2.0-alpha.464
+  - @brains/plugins@0.2.0-alpha.464
+  - @brains/templates@0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.463
+  - @brains/http-signatures@0.2.0-alpha.463
+  - @brains/utils@0.2.0-alpha.463
+  - @brains/auth-service@0.2.0-alpha.463
+  - @brains/plugins@0.2.0-alpha.463
+  - @brains/templates@0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.462
+  - @brains/http-signatures@0.2.0-alpha.462
+  - @brains/utils@0.2.0-alpha.462
+  - @brains/auth-service@0.2.0-alpha.462
+  - @brains/plugins@0.2.0-alpha.462
+  - @brains/templates@0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- Updated dependencies [[`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c), [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f), [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/auth-service@0.2.0-alpha.461
+  - @brains/plugins@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+  - @brains/templates@0.2.0-alpha.461
+  - @brains/http-signatures@0.2.0-alpha.461
+
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.460
+  - @brains/http-signatures@0.2.0-alpha.460
+  - @brains/utils@0.2.0-alpha.460
+  - @brains/auth-service@0.2.0-alpha.460
+  - @brains/plugins@0.2.0-alpha.460
+  - @brains/templates@0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.459
+  - @brains/http-signatures@0.2.0-alpha.459
+  - @brains/utils@0.2.0-alpha.459
+  - @brains/auth-service@0.2.0-alpha.459
+  - @brains/plugins@0.2.0-alpha.459
+  - @brains/templates@0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.458
+  - @brains/http-signatures@0.2.0-alpha.458
+  - @brains/utils@0.2.0-alpha.458
+  - @brains/auth-service@0.2.0-alpha.458
+  - @brains/plugins@0.2.0-alpha.458
+  - @brains/templates@0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.457
+  - @brains/http-signatures@0.2.0-alpha.457
+  - @brains/utils@0.2.0-alpha.457
+  - @brains/auth-service@0.2.0-alpha.457
+  - @brains/plugins@0.2.0-alpha.457
+  - @brains/templates@0.2.0-alpha.457
+
 ## 0.2.0-alpha.456
 
 ### Patch Changes

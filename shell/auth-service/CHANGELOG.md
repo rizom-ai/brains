@@ -1,5 +1,196 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.473
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/db@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/plugins@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.472
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/db@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/plugins@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.471
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/db@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.470
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/db@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.469
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/db@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.468
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/db@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.467
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/db@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.466
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/db@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.465
+  - @brains/contracts@0.2.0-alpha.465
+  - @brains/db@0.2.0-alpha.465
+  - @brains/utils@0.2.0-alpha.465
+  - @brains/plugins@0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.464
+  - @brains/contracts@0.2.0-alpha.464
+  - @brains/db@0.2.0-alpha.464
+  - @brains/utils@0.2.0-alpha.464
+  - @brains/plugins@0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.463
+  - @brains/contracts@0.2.0-alpha.463
+  - @brains/db@0.2.0-alpha.463
+  - @brains/utils@0.2.0-alpha.463
+  - @brains/plugins@0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.462
+  - @brains/contracts@0.2.0-alpha.462
+  - @brains/db@0.2.0-alpha.462
+  - @brains/utils@0.2.0-alpha.462
+  - @brains/plugins@0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`b4896a7`](https://github.com/rizom-ai/brains/commit/b4896a7c237d5b60ba702274d249eb695176d36c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize auth initialization, lazy startup, invitation recovery startup, and shutdown in admission order. Settle both signing-key loads before rollback, release partially acquired resources on failure, continue cleanup after supervisor errors, and recreate database-bound account settings after restart.
+
+- [`d41d6c5`](https://github.com/rizom-ai/brains/commit/d41d6c5c9059eaea5097e022479c3bac339b6d8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish first-Anchor setup tokens only after persistence succeeds. Serialize token lookup, rotation, consumption, and clearing so concurrent requests cannot expose unpersisted tokens or let pending creation undo setup-state clearing.
+
+- Updated dependencies [[`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/plugins@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/notifications@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+  - @brains/db@0.2.0-alpha.461
+
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.460
+  - @brains/contracts@0.2.0-alpha.460
+  - @brains/db@0.2.0-alpha.460
+  - @brains/utils@0.2.0-alpha.460
+  - @brains/plugins@0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.459
+  - @brains/contracts@0.2.0-alpha.459
+  - @brains/db@0.2.0-alpha.459
+  - @brains/utils@0.2.0-alpha.459
+  - @brains/plugins@0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.458
+  - @brains/contracts@0.2.0-alpha.458
+  - @brains/db@0.2.0-alpha.458
+  - @brains/utils@0.2.0-alpha.458
+  - @brains/plugins@0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.457
+  - @brains/contracts@0.2.0-alpha.457
+  - @brains/db@0.2.0-alpha.457
+  - @brains/utils@0.2.0-alpha.457
+  - @brains/plugins@0.2.0-alpha.457
+
 ## 0.2.0-alpha.456
 
 ### Patch Changes

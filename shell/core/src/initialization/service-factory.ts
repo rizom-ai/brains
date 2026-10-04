@@ -1,4 +1,8 @@
-import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
+import {
+  AIService,
+  EmbeddingUsageMeter,
+  OnlineEmbeddingProvider,
+} from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import { createGenerationAuthorizer } from "./generation-authorization";
 import {
@@ -81,11 +85,15 @@ export function createShellServices(options: {
     dependencies?.operationContext ?? OperationContext.createFresh();
   const disposables: Array<() => void> = [];
 
+  // Tells a guest turn what its embeddings cost: the provider reports each
+  // call, the agent measures each turn.
+  const embeddingUsage = EmbeddingUsageMeter.createFresh();
   const embeddingService =
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
       apiKey: config.ai.apiKey,
       logger,
+      usage: embeddingUsage,
     });
   const aiService =
     dependencies?.aiService ??
@@ -125,7 +133,8 @@ export function createShellServices(options: {
   const channelRegistry =
     dependencies?.channelRegistry ?? new ChannelRegistry();
   const authRegistry = AuthRegistry.createFresh();
-  const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
+  const inboxRegistry =
+    dependencies?.inboxRegistry ?? new InboxRegistry(authRegistry);
   const inboxFollowUpRegistry =
     dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry(logger);
   const operationalHealthRegistry =
@@ -309,6 +318,7 @@ export function createShellServices(options: {
     config,
     entityService,
     embeddingService,
+    embeddingUsage,
     entityRegistry,
     logger,
     messageBus,

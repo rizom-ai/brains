@@ -92,6 +92,8 @@ describe("Ask content entity", () => {
       contactLabel: "Let’s talk",
       contactNote: "A private note. No account needed.",
       mapCaption: "Everything published here, placed by topic",
+      refusal: "I only talk about my work.",
+      faqHeading: "Asked before",
     };
     const source = generateMarkdownWithFrontmatter("Welcome copy.", page);
     const encoded = askContent.markdown?.encode({

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+import { createPluginHarness, createTempDataDir } from "@brains/plugins/test";
 
 import {
   administrationTab,
@@ -39,7 +39,8 @@ function findById(value: unknown, id: string): unknown {
 
 describe("Administration Audit tab", () => {
   it("admits only Admin actors and renders filtered URL-query detail", async () => {
-    const shell = createMockShell({ domain: "brain.test" });
+    const harness = createPluginHarness({ domain: "brain.test" });
+    const shell = harness.getMockShell();
     const auth = new AuthServicePlugin({
       storageDir: await createTempDataDir("brains-admin-audit-"),
     });
@@ -65,7 +66,7 @@ describe("Administration Audit tab", () => {
     const deniedActor = actorFor(trustedActor, trusted);
 
     const workspace = administrationTab(
-      await captureAdminWorkspaces(shell),
+      await captureAdminWorkspaces(harness),
       "audit",
     );
     expect(workspace).toMatchObject({

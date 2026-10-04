@@ -9,6 +9,7 @@
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import {
+  assertGuestCallOptions,
   assertGuestPermission,
   guestModelMessages,
   guestVisitorInstructions,
@@ -16,6 +17,7 @@ import {
   requireGuestExecutionPolicy,
 } from "./guest-execution";
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
+import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -141,16 +143,8 @@ export function createBrainAgentFactory(
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: ({ options: callOptions, ...settings }) => {
         assertGuestPermission(callOptions);
+        assertGuestCallOptions(callOptions);
         const guest = callOptions.interfaceType === guestInterfaceType;
-        if (
-          guest &&
-          (callOptions.actor ||
-            callOptions.agentContextInstructions ||
-            callOptions.enableCreateUpload ||
-            callOptions.enableCreateTransform)
-        ) {
-          throw new Error("Guest execution denied");
-        }
         // Get tools available for this permission level, unless this bounded
         // model turn is intentionally text-only (for example, after executing
         // an already-confirmed action).
@@ -231,6 +225,7 @@ export function createBrainAgentFactory(
     return {
       generate: async (params): Promise<BrainAgentResult> => {
         assertGuestPermission(params.options);
+        assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) return agent.generate(params);
         const last = guestModelMessages(params.messages).at(-1);
@@ -241,13 +236,38 @@ export function createBrainAgentFactory(
           last.content.length > policy.limits.messageCharacters
         )
           throw new Error("Guest input limit exceeded");
+        // The question is judged on the guest model before the tool loop:
+        // a refused question never reaches the agent and costs the judgment.
+        const judgment = await judgeGuestQuestion({
+          model,
+          messages: guestModelMessages(params.messages),
+          screening: params.options.guestScreening,
+          signal: params.abortSignal,
+        });
+        const judged = judgment.usage ? [{ usage: judgment.usage }] : [];
+        if (judgment.kind === "judged" && judgment.category !== "in-scope")
+          return {
+            text: params.options.guestScreening?.refusal ?? neutralGuestRefusal,
+            steps: [],
+            usage: {
+              inputTokens: judgment.usage.inputTokens,
+              outputTokens: judgment.usage.outputTokens,
+              totalTokens: judgment.usage.totalTokens,
+            },
+            guestSettlement: guestTurnSettlement(judged, options.guestPricing),
+            guestScreening: { outcome: "refused", category: judgment.category },
+          };
         const result = await agent.generate(params);
         // The SDK result exposes its fields as getters; attach, never copy.
         return Object.assign(result, {
           guestSettlement: guestTurnSettlement(
-            result.steps,
+            [...judged, ...result.steps],
             options.guestPricing,
           ),
+          guestScreening:
+            judgment.kind === "judged"
+              ? { outcome: "answered" as const }
+              : { outcome: "unscreened" as const },
         });
       },
     };

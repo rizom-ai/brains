@@ -39,7 +39,7 @@ const mockProgressReporter = createMockProgressReporter();
 
 class MockProgressMonitor implements IJobProgressMonitor {
   start(): void {}
-  stop(): void {}
+  async stop(): Promise<void> {}
 
   createProgressReporter(): ProgressReporter {
     return mockProgressReporter;

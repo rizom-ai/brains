@@ -241,18 +241,13 @@ class DeclarativeMessageInterfacePlugin<
     this.definition = definition;
   }
 
-  protected override async onRegister(
+  /**
+   * The definition's channel and sender, with the state `setup` prepares for
+   * them. This also runs in the worker, so background jobs can deliver.
+   */
+  protected override async registerChannels(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
-    await super.onRegister(context);
-    if (this.definition.accountSettings) {
-      this.accountSettingsRegistration = context.accountSettings.register({
-        ownerPluginId: this.id,
-        packageName: this.packageName,
-        definitionId: this.definition.id,
-        definition: this.definition.accountSettings,
-      });
-    }
     this.state = this.definition.setup
       ? await this.definition.setup({
           config: this.config,
@@ -362,6 +357,20 @@ class DeclarativeMessageInterfacePlugin<
           return available({ config: this.config, state: this.state });
         },
         send: (input) => this.deliver(input),
+      });
+    }
+  }
+
+  protected override async onRegister(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+    if (this.definition.accountSettings) {
+      this.accountSettingsRegistration = context.accountSettings.register({
+        ownerPluginId: this.id,
+        packageName: this.packageName,
+        definitionId: this.definition.id,
+        definition: this.definition.accountSettings,
       });
     }
 

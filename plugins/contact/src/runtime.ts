@@ -6,7 +6,23 @@ import {
 import type { ContactMaintenanceReport, ContactIntake } from "./intake";
 import type { ContactStorageSlots } from "./storage-slots";
 import type { ContactHttpHandlers } from "./http";
-import type { ContactIntakeConfig } from "./config";
+import type { ContactIntakePolicy } from "./config";
+
+/** Resolve only an actual mounted, same-origin Inbox destination. */
+export function contactInboxUrl(
+  origin: string,
+  href: string | undefined,
+): string | undefined {
+  if (!href || !URL.canParse(href, origin)) return undefined;
+  const url = new URL(href, origin);
+  return url.origin === origin &&
+    !url.username &&
+    !url.password &&
+    !url.search &&
+    !url.hash
+    ? url.href
+    : undefined;
+}
 const MAX_MAINTENANCE_AGE_MS = 26 * 60 * 60 * 1000;
 export const maintenanceStatusSchema: z.ZodType<
   MaintenanceStatus,
@@ -27,13 +43,13 @@ export class ContactRuntime {
   private readonly maintenanceStatus: IRuntimeStateStore<MaintenanceStatus>;
   private report: ContactMaintenanceReport | undefined;
   private readyState = false;
-  private readonly config: ContactIntakeConfig;
+  private readonly config: ContactIntakePolicy;
   private readonly intake: ContactIntake;
   private readonly http: ContactHttpHandlers;
   private readonly slots: ContactStorageSlots;
   private readonly isUnhandled: (id: string) => Promise<boolean>;
   constructor(
-    config: ContactIntakeConfig,
+    config: ContactIntakePolicy,
     intake: ContactIntake,
     http: ContactHttpHandlers,
     slots: ContactStorageSlots,
@@ -48,11 +64,7 @@ export class ContactRuntime {
     this.slots = slots;
   }
   async ready(inboxHref: string | undefined): Promise<void> {
-    if (
-      !inboxHref ||
-      !URL.canParse(inboxHref, this.config.http.origin) ||
-      new URL(inboxHref, this.config.http.origin).href !== this.config.inboxUrl
-    )
+    if (!contactInboxUrl(this.config.http.origin, inboxHref))
       throw new Error("Contact Inbox unavailable");
     await this.maintain(this.stop.signal);
     this.stop.signal.throwIfAborted();

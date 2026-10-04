@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+import { createPluginHarness, createTempDataDir } from "@brains/plugins/test";
 
 import { selectPeerTabSections } from "../src/peer-tab-provider";
 import {
@@ -49,7 +49,8 @@ describe("Administration peer relationships", () => {
   });
 
   it("lists, links, and invites peers without retaining setup output", async () => {
-    const shell = createMockShell({ domain: "brain.test" });
+    const harness = createPluginHarness({ domain: "brain.test" });
+    const shell = harness.getMockShell();
     shell.getChannelRegistry().registerDescriptor("test", {
       type: "manual-test",
       displayName: "Manual test",
@@ -74,7 +75,7 @@ describe("Administration peer relationships", () => {
     const actor = actorFor(adminActor, admin);
     const deniedActor = actorFor(trustedActor, member);
 
-    const registrations = await captureAdminWorkspaces(shell);
+    const registrations = await captureAdminWorkspaces(harness);
     const workspace = administrationTab(registrations, "people");
     const invitations = administrationTab(registrations, "invitations");
     expect(workspace).toMatchObject({

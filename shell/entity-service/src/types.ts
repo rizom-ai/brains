@@ -85,6 +85,23 @@ export type {
 } from "./mutation-admission";
 
 import type { EntityWriteCondition } from "./entity-write-contracts";
+import type {
+  EntityMutationReceipt,
+  EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+
+/** First committed result wins, even if retries choose a different destination.
+ * Receipts survive destination edits, folds and deletion. Transaction retries
+ * never replay callbacks; validation can still run in separate attempts.
+ * A content conflict does not consume the identity. This is not an author SDK API.
+ */
+export type ApplyEntityMutationOnceRequest = {
+  receipt: EntityMutationReceiptKey;
+} & (
+  | { operation: "none" }
+  | { operation: "create"; request: CreateEntityRequest<BaseEntity> }
+  | { operation: "update"; request: UpdateEntityRequest<BaseEntity> }
+);
 
 export interface EntityWriteSnapshot {
   entity: BaseEntity;
@@ -549,6 +566,8 @@ export interface SortField {
   direction: "asc" | "desc";
   /** Sort NULL values before non-NULL values (default: false / SQLite default) */
   nullsFirst?: boolean;
+  /** Sort NULL values after non-NULL values, whatever the direction */
+  nullsLast?: boolean;
 }
 
 /**
@@ -622,6 +641,11 @@ export interface EntityTypeConfig {
   /** Whether to index serialized content in full-text search (default: true).
    *  Set to false for binary entity types. Mutations remove stale FTS rows. */
   fullTextSearchable?: boolean;
+  /** Whether a search that names no entity types includes this type (default: true).
+   *  Set to false for entities derived from the brain's own answers, so they are
+   *  not retrieved as sources; a search naming the type still finds them, and
+   *  raw-distance search is unaffected. */
+  includeInBroadSearch?: boolean;
   /** Binary storage policy. Absence means text content. */
   binaryStorage?: "data-url" | "asset";
   /** Default system_list order, applied by the entity service before pagination. */
@@ -756,11 +780,35 @@ export interface UpdateEntityRequest<T extends BaseEntity> {
   options?: UpdateEntityOptions | undefined;
 }
 
+/** Native-only atomic same-type, same-visibility update and removal.
+ * Both revisions must come from admitted write snapshots. The source is
+ * removed only when the destination and both journals commit with it.
+ */
+export interface FoldEntityRequest<T extends BaseEntity = BaseEntity> {
+  source: { entityType: string; id: string; expectedRevision: string };
+  targetRevision: string;
+  entity: T;
+  options?: Omit<
+    UpdateEntityOptions,
+    "conditionalWrite" | "expectedContentHash"
+  >;
+}
+
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
   options?:
-    Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> | undefined;
+    | (Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> & {
+        /** Delete only while the stored entity still has this content hash; false otherwise. */
+        expectedContentHash?: string | undefined;
+        /** Full canonical delete precondition; cannot combine with a content-hash condition. */
+        conditionalWrite?: EntityWriteCondition;
+        /** Cancellation is checked before the atomic delete boundary, not after commit. */
+        signal?: AbortSignal;
+        /** Runtime authorization over the pinned canonical row; requires conditionalWrite. */
+        beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
+      })
+    | undefined;
 }
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
@@ -780,6 +828,17 @@ export interface EntitySearchRequest {
 
 export interface SearchWithDistancesRequest {
   query: string;
+  /** Only these entity types; empty or omitted includes all types. */
+  types?: string[] | undefined;
+  /** Only results at most this cosine distance from the query. */
+  maxDistance?: number | undefined;
+  /** Applied in SQL before the result bound. Omitted retains native diagnostics. */
+  visibility?: ContentVisibility | undefined;
+  visibilityScope?: ContentVisibility | undefined;
+  publishedOnly?: boolean | undefined;
+  excludeIds?: string[] | undefined;
+  limit?: number | undefined;
+  signal?: AbortSignal | undefined;
 }
 
 export interface SemanticEntityReference {
@@ -1198,6 +1257,13 @@ export interface EntityServiceClient extends ICoreEntityService {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
+  foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
+  getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null>;
+  applyEntityMutationOnce(
+    request: ApplyEntityMutationOnceRequest,
+  ): Promise<EntityMutationReceipt>;
   upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;

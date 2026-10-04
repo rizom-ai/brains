@@ -1,7 +1,7 @@
 import {
   inboxItemListSchema,
   type EntityInboxDeclaration,
-  type EntityReactionContext,
+  type EntityInboxListContext,
   type InboxAction,
   type InboxFacetDefinition,
   type InboxItem,
@@ -60,7 +60,7 @@ export function mailTriageInbox(
   deps: MailTriageInboxDependencies,
 ): EntityInboxDeclaration {
   const operator = (
-    context: EntityReactionContext,
+    context: EntityInboxListContext,
   ): MailTriageOperatorService =>
     new MailTriageOperatorService({
       entities: context.entities,
@@ -111,9 +111,13 @@ export function mailTriageInbox(
       if (!action.success) {
         throw new Error("Invalid email triage inbox action");
       }
-      await operator(context).act(action.data, {
-        userPermissionLevel: actor.permissionLevel,
-      });
+      await operator(context).act(
+        action.data,
+        {
+          userPermissionLevel: actor.permissionLevel,
+        },
+        context.edits,
+      );
     },
   };
 }

@@ -3823,6 +3823,19 @@ describe("the public testing harness", () => {
               family === "service" ? "may only write" : "cannot write one",
             ),
           });
+          for (const denied of [
+            entities.mutations.read(note, "one"),
+            entities.nearest(note, "question", {
+              visibility: "public",
+              maxDistance: 0.2,
+              limit: 1,
+            }),
+          ]) {
+            const failure = await denied.catch(
+              (cause: unknown): unknown => cause,
+            );
+            expect(failure).toMatchObject({ code: "permission_denied" });
+          }
           const entity = await entities.get(note, "one");
           return {
             keys: Object.keys(entities).sort(),
@@ -3874,6 +3887,8 @@ describe("the public testing harness", () => {
               "getEntityTypes",
               "list",
               "listEntities",
+              "mutations",
+              "nearest",
               "saveProcessed",
               "search",
               "update",

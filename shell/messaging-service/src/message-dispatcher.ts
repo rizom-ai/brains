@@ -50,11 +50,29 @@ export async function collectHandlerResponses(
   handlers: HandlerEntry[],
   logger: Logger,
 ): Promise<InternalMessageResponse[]> {
-  const responses = await Promise.all(
-    handlers.map((entry) => invokeHandler(entry, message, logger)),
-  );
-  return responses.filter(
-    (response): response is InternalMessageResponse => response !== null,
+  // Collection is an acknowledgement barrier, not best-effort broadcast.
+  // Keep failures in their registration slots and retain public error codes;
+  // neither a successful subscriber nor an exception may erase an ack slot.
+  return Promise.all(
+    handlers.map(async (entry): Promise<InternalMessageResponse> => {
+      let code: SdkErrorCode = "handler_failed";
+      const response = await invokeHandler(
+        entry,
+        message,
+        logger,
+        (failure) => {
+          code = failure;
+        },
+      );
+      if (response) return response;
+      const failure = toInternalResponse(message.id, {
+        success: false,
+        code,
+        error: `Message handler failed for message type: ${message.type}`,
+      });
+      if (!failure) throw new Error("Missing failed acknowledgement");
+      return failure;
+    }),
   );
 }
 

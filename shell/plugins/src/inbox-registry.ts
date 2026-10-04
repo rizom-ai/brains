@@ -1,4 +1,11 @@
 import { z } from "@brains/utils/zod";
+import { SdkError } from "@brains/contracts";
+import type { IAuthRegistry } from "./contracts/auth-registry";
+import type { InterfaceCaller } from "./interface/route-contract";
+import {
+  assertRouteCaller,
+  routeCallerSignal,
+} from "./internal/route-caller-authority";
 
 const inboxIdPattern = /^[a-z][a-z0-9-]*$/;
 
@@ -286,8 +293,14 @@ export interface InboxSource extends InboxSourceDescriptor {
     itemId: string,
     actor: InboxActor,
     signal: AbortSignal,
+    caller: InterfaceCaller,
   ): Promise<InboxItemDetail>;
-  act(itemId: string, actionId: string, actor: InboxActor): Promise<void>;
+  act(
+    itemId: string,
+    actionId: string,
+    actor: InboxActor,
+    caller: InterfaceCaller,
+  ): Promise<void>;
 }
 
 export interface IInboxRegistry {
@@ -310,6 +323,11 @@ export class InboxRegistry implements IInboxRegistry {
   private activeSources = new Map<string, InboxSource>();
   private finalized = false;
 
+  private readonly authority: IAuthRegistry;
+  constructor(authority: IAuthRegistry) {
+    this.authority = authority;
+  }
+
   registerSource(pluginId: string, source: InboxSource): void {
     this.assertRegistrationOpen();
     const owner = normalizePluginId(pluginId);
@@ -325,6 +343,7 @@ export class InboxRegistry implements IInboxRegistry {
       descriptor,
       descriptor.facets ?? [],
       source,
+      this.authority,
     );
     const registrations = this.registrations.get(descriptor.sourceId) ?? [];
     registrations.push({ pluginId: owner, source: normalized });
@@ -397,7 +416,18 @@ function normalizeSource(
   metadata: InboxSourceMetadata,
   facets: InboxFacetDefinition[],
   source: InboxSource,
+  authority: IAuthRegistry,
 ): InboxSource {
+  const authorize = (
+    caller: InterfaceCaller,
+    actor: InboxActor,
+  ): InboxActor => {
+    assertRouteCaller(caller, authority);
+    const parsed = inboxActorSchema.parse(actor);
+    if (parsed.permissionLevel !== caller.permission)
+      throw new SdkError("permission_denied");
+    return Object.freeze(parsed);
+  };
   const normalizedFacets = freezeFacetDefinitions(facets);
   const sourceFacetsSchema = createSourceFacetsSchema(normalizedFacets);
   return Object.freeze({
@@ -416,17 +446,26 @@ function normalizeSource(
             itemId: string,
             actor: InboxActor,
             signal: AbortSignal,
+            caller: InterfaceCaller,
           ): Promise<InboxItemDetail> => {
+            const actorData = authorize(caller, actor);
             if (!(signal instanceof AbortSignal)) {
               throw new Error("Inbox detail signal is invalid");
             }
-            return inboxItemDetailSchema.parse(
-              await source.resolveDetail?.(
-                inboxItemIdSchema.parse(itemId),
-                inboxActorSchema.parse(actor),
-                signal,
-              ),
+            const boundedSignal = AbortSignal.any([
+              signal,
+              routeCallerSignal(caller, authority),
+            ]);
+            boundedSignal.throwIfAborted();
+            const detail = await source.resolveDetail?.(
+              inboxItemIdSchema.parse(itemId),
+              actorData,
+              boundedSignal,
+              caller,
             );
+            assertRouteCaller(caller, authority);
+            boundedSignal.throwIfAborted();
+            return inboxItemDetailSchema.parse(detail);
           },
         }
       : {}),
@@ -434,14 +473,12 @@ function normalizeSource(
       itemId: string,
       actionId: string,
       actor: InboxActor,
+      caller: InterfaceCaller,
     ): Promise<void> => {
+      const actorData = authorize(caller, actor);
       const normalizedItemId = inboxItemIdSchema.parse(itemId);
       const normalizedActionId = inboxIdSchema.parse(actionId);
-      await source.act(
-        normalizedItemId,
-        normalizedActionId,
-        inboxActorSchema.parse(actor),
-      );
+      await source.act(normalizedItemId, normalizedActionId, actorData, caller);
     },
   });
 }

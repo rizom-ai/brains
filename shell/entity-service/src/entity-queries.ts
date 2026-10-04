@@ -59,10 +59,12 @@ const sortFieldSchema: z.ZodObject<{
   field: z.ZodString;
   direction: z.ZodEnum<{ asc: "asc"; desc: "desc" }>;
   nullsFirst: z.ZodOptional<z.ZodBoolean>;
+  nullsLast: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   field: z.string(),
   direction: z.enum(["asc", "desc"]),
   nullsFirst: z.boolean().optional(),
+  nullsLast: z.boolean().optional(),
 });
 
 /**
@@ -650,7 +652,7 @@ export class EntityQueries {
       return [desc(entities.updated)];
     }
 
-    return sortFields.flatMap(({ field, direction, nullsFirst }) => {
+    return sortFields.flatMap(({ field, direction, nullsFirst, nullsLast }) => {
       const orderFn = direction === "desc" ? desc : asc;
 
       // System fields
@@ -683,6 +685,9 @@ export class EntityQueries {
           asc(isNotNull(fieldExpression)), // Always ASC: false (NULL) before true (NOT NULL)
           orderFn(fieldExpression),
         ];
+      }
+      if (nullsLast) {
+        return [desc(isNotNull(fieldExpression)), orderFn(fieldExpression)];
       }
 
       return [orderFn(fieldExpression)];

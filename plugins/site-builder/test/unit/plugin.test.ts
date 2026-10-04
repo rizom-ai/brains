@@ -280,6 +280,7 @@ describe("the site builder", () => {
     });
     if (!registration)
       throw new Error("Expected Studio workspace registration");
+    registration = harness.bindStudioWorkspace(registration);
     if (!registration.actionHandler) {
       throw new Error("Expected Studio workspace actions");
     }
@@ -506,6 +507,7 @@ describe("the site builder", () => {
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     await plugin.ready?.();
+    if (registration) registration = harness.bindStudioWorkspace(registration);
     if (!registration?.actionHandler) {
       throw new Error("Expected Studio workspace actions");
     }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { webChatConfigSchema } from "../src/config";
-import { guestPolicySchema } from "../src/guest-policy";
+import { guestPolicySchema, guestRequestOrigin } from "../src/guest-policy";
 
 import { testGuestPolicy } from "./fixtures/guest-policy";
 
@@ -84,6 +84,33 @@ describe("guest policy", () => {
       expect(
         guestPolicySchema.safeParse({ ...testGuestPolicy, origin }).success,
       ).toBe(true);
+    }
+  });
+
+  it("serves the site and its preview, holding the preview to the same origin rules", () => {
+    const policy = guestPolicySchema.parse({
+      ...testGuestPolicy,
+      origin: "https://brain.test",
+      budgeted: true,
+      previewOrigin: "https://preview.brain.test",
+    });
+    if (!policy.enabled) throw new Error("Expected an enabled policy");
+    const on = (url: string): string | undefined =>
+      guestRequestOrigin(new Request(url), policy);
+    expect(on("https://brain.test/ask")).toBe("https://brain.test");
+    expect(on("https://preview.brain.test/ask")).toBe(
+      "https://preview.brain.test",
+    );
+    // TLS ends at the proxy: the backend sees each configured host over HTTP.
+    expect(on("http://preview.brain.test/ask")).toBe(
+      "https://preview.brain.test",
+    );
+    expect(on("https://other.test/ask")).toBeUndefined();
+    for (const previewOrigin of ["http://preview.brain.test", "*"]) {
+      expect(
+        guestPolicySchema.safeParse({ ...testGuestPolicy, previewOrigin })
+          .success,
+      ).toBe(false);
     }
   });
 

@@ -44,23 +44,25 @@ function normalizeRoutePath(path: string): string {
  * keeps this manifest measuring the whole HTTP surface rather than quietly
  * shrinking to whatever is still written as a class.
  *
- * Services register too. Registration is not where a service does its work —
- * bring-up runs from `lifecycle.onRegistered`, which only `finalizeRegistration`
- * triggers, and this never calls it — so nothing here starts a sync or a build.
+ * Do not finalize registration or start builds. Directory Sync connects to its
+ * broker during setup, so verify its empty HTTP surface without starting it.
+ * Every other registration must succeed; failures must not silently lose routes.
  */
 async function registered(plugins: readonly Plugin[]): Promise<Plugin[]> {
-  const shell = createMockShell({ logger: createSilentLogger("routes") });
+  const shell = createMockShell({
+    logger: createSilentLogger("routes"),
+    localSiteUrl: "http://localhost:8080",
+  });
   // Announce the whole composition before registering any of it: an interface
   // that mounts on the shared HTTP host asks whether the host is present, and
   // the answer must not depend on registration order.
   for (const plugin of plugins) shell.addPlugin(plugin);
   for (const plugin of plugins) {
-    try {
-      await plugin.register(shell);
-    } catch {
-      // A plugin that refuses this bare shell contributes no routes, which is
-      // what an unregistered one contributed before.
+    if (plugin.id === "@brains/directory-sync:directory-sync") {
+      expect(routeManifest([plugin])).toEqual([]);
+      continue;
     }
+    await plugin.register(shell);
   }
   return [...plugins];
 }

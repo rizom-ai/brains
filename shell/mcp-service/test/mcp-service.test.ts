@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   createMcpHandler,
   InMemoryTransport,
@@ -160,6 +160,167 @@ describe("MCPService", () => {
     });
 
     mcpService = MCPService.createFresh(mockMessageBus, createSilentLogger());
+  });
+
+  describe("registration ownership", () => {
+    it.each(["admin", "public"] as const)(
+      "rejects duplicate capabilities even at %s permission without changing ownership",
+      (permission) => {
+        mcpService.setProtocolMode("debug");
+        mcpService.setPermissionLevel(permission);
+        const tool: Tool = {
+          name: "owned_tool",
+          description: "Original tool",
+          inputSchema: {},
+          handler: async () => ({ success: true }),
+        };
+        const resource: Resource = {
+          name: "owned-resource",
+          uri: "test://owned",
+          description: "Original resource",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const template: ResourceTemplate = {
+          name: "owned-template",
+          uriTemplate: "test://template/{id}",
+          description: "Original template",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const prompt: Prompt = {
+          name: "owned-prompt",
+          args: {},
+          handler: async () => ({ messages: [] }),
+        };
+        mcpService.registerTool("owner", tool);
+        mcpService.registerResource("owner", resource);
+        mcpService.registerResourceTemplate("owner", template);
+        mcpService.registerPrompt("owner", prompt);
+
+        expect(() => mcpService.registerTool("other", tool)).toThrow(
+          "already registered",
+        );
+        expect(() => mcpService.registerResource("other", resource)).toThrow(
+          "already registered",
+        );
+        expect(() =>
+          mcpService.registerResourceTemplate("other", template),
+        ).toThrow("already registered");
+        expect(() => mcpService.registerPrompt("other", prompt)).toThrow(
+          "already registered",
+        );
+        mcpService.unregisterPlugin("other");
+
+        expect(mcpService.listTools().map((entry) => entry.pluginId)).toEqual([
+          "owner",
+        ]);
+        expect(mcpService.listResources()).toEqual([
+          { pluginId: "owner", resource },
+        ]);
+        const server = mcpService.createMcpServer("admin");
+        expect(listProtocolToolNames(server)).toEqual([tool.name]);
+        expect(listProtocolResourceUris(server)).toEqual([resource.uri]);
+        expect(listProtocolResourceTemplateNames(server)).toEqual([
+          template.name,
+        ]);
+        expect(listProtocolPromptNames(server)).toEqual([prompt.name]);
+      },
+    );
+
+    it.each(["resource", "template", "prompt"] as const)(
+      "does not retain a %s after SDK registration fails",
+      (kind) => {
+        const resource: Resource = {
+          name: "retry-resource",
+          uri: "test://retry",
+          description: "Retry resource",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const template: ResourceTemplate = {
+          name: "retry-template",
+          uriTemplate: "test://retry/{id}",
+          description: "Retry template",
+          mimeType: "text/plain",
+          handler: async () => ({ contents: [] }),
+        };
+        const prompt: Prompt = {
+          name: "retry-prompt",
+          args: {},
+          handler: async () => ({ messages: [] }),
+        };
+        const register = (): void => {
+          switch (kind) {
+            case "resource":
+              return mcpService.registerResource("owner", resource);
+            case "template":
+              return mcpService.registerResourceTemplate("owner", template);
+            case "prompt":
+              return mcpService.registerPrompt("owner", prompt);
+          }
+        };
+        const failure = new Error("SDK registration failed");
+        const sdkRegistration = spyOn(
+          mcpService.getMcpServer(),
+          kind === "prompt" ? "registerPrompt" : "registerResource",
+        ).mockImplementationOnce(() => {
+          throw failure;
+        });
+        try {
+          expect(register).toThrow(failure);
+          const server = mcpService.createMcpServer("admin");
+          expect(listProtocolResourceUris(server)).toEqual([]);
+          expect(listProtocolResourceTemplateNames(server)).toEqual([]);
+          expect(listProtocolPromptNames(server)).toEqual([]);
+        } finally {
+          sdkRegistration.mockRestore();
+        }
+        register();
+        const server = mcpService.createMcpServer("admin");
+        const names =
+          kind === "resource"
+            ? listProtocolResourceUris(server)
+            : kind === "template"
+              ? listProtocolResourceTemplateNames(server)
+              : listProtocolPromptNames(server);
+        expect(names).toEqual([
+          kind === "resource"
+            ? resource.uri
+            : kind === "template"
+              ? template.name
+              : prompt.name,
+        ]);
+      },
+    );
+
+    it("does not retain a tool when SDK registration fails and permits a retry", () => {
+      mcpService.setProtocolMode("debug");
+      const tool: Tool = {
+        name: "retry_tool",
+        description: "Retry tool",
+        inputSchema: {},
+        handler: async () => ({ success: true }),
+      };
+      const failure = new Error("SDK registration failed");
+      const register = spyOn(
+        mcpService.getMcpServer(),
+        "registerTool",
+      ).mockImplementationOnce(() => {
+        throw failure;
+      });
+      try {
+        expect(() => mcpService.registerTool("owner", tool)).toThrow(failure);
+        expect(mcpService.listTools()).toEqual([]);
+      } finally {
+        register.mockRestore();
+      }
+      mcpService.registerTool("owner", tool);
+      expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
+        tool.name,
+      ]);
+      expect(mcpService.listTools()[0]?.pluginId).toBe("owner");
+    });
   });
 
   describe("plugin instructions", () => {

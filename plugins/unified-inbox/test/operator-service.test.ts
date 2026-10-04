@@ -15,6 +15,9 @@ import {
   inboxWorkspaceQuerySchema,
 } from "../src";
 
+import { createPluginHarness } from "@brains/plugins/test";
+const harness = createPluginHarness();
+
 const receivedAt = "2026-08-05T09:00:00.000Z";
 
 function attentionItem(
@@ -41,7 +44,7 @@ function createService(input?: { rejectActor?: (actor: InboxActor) => void }): {
 } {
   let open = true;
   const actors: InboxActor[] = [];
-  const registry = new InboxRegistry();
+  const registry = new InboxRegistry(harness.getMockShell().getAuthRegistry());
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
@@ -99,7 +102,9 @@ describe("InboxOperatorService", () => {
   });
 
   it("filters before paging and returns bounded workspace totals", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(
+      harness.getMockShell().getAuthRegistry(),
+    );
     registry.registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
@@ -175,7 +180,9 @@ describe("InboxOperatorService", () => {
   });
 
   it("filters source-scoped facets consistently and ignores orphaned selections", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(
+      harness.getMockShell().getAuthRegistry(),
+    );
     registry.registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
@@ -295,7 +302,9 @@ describe("InboxOperatorService", () => {
   });
 
   it("resolves universal follow-ups only for the bounded workspace page", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(
+      harness.getMockShell().getAuthRegistry(),
+    );
     registry.registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
@@ -351,7 +360,9 @@ describe("InboxOperatorService", () => {
   it("revalidates offered items and fixes private source-detail failures", async () => {
     let open = true;
     let detailReads = 0;
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(
+      harness.getMockShell().getAuthRegistry(),
+    );
     registry.registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
@@ -384,7 +395,7 @@ describe("InboxOperatorService", () => {
 
     expect(
       inboxDetailOutcomeSchema.parse(
-        await service.detail(request, { permissionLevel: "admin" }),
+        await harness.withCaller((caller) => service.detail(request, caller)),
       ),
     ).toEqual({
       kind: "detail",
@@ -397,7 +408,9 @@ describe("InboxOperatorService", () => {
     expect(detailReads).toBe(1);
 
     expect(
-      await service.detail(request, { permissionLevel: "trusted" }),
+      await harness.withCaller((caller) => service.detail(request, caller), {
+        permission: "trusted",
+      }),
     ).toEqual({
       kind: "detail-unavailable",
       error: "Original content is unavailable",
@@ -405,26 +418,28 @@ describe("InboxOperatorService", () => {
     expect(detailReads).toBe(1);
 
     open = false;
-    expect(await service.detail(request, { permissionLevel: "admin" })).toEqual(
-      {
-        kind: "detail-unavailable",
-        error: "Original content is unavailable",
-      },
-    );
+    expect(
+      await harness.withCaller((caller) => service.detail(request, caller)),
+    ).toEqual({
+      kind: "detail-unavailable",
+      error: "Original content is unavailable",
+    });
     expect(detailReads).toBe(1);
   });
 
   it("requires confirmation before dispatching flagged actions and returns no projection after execution", async () => {
     const fixture = createService();
     const requested = inboxActionOutcomeSchema.parse(
-      await fixture.service.act(
-        {
-          sourceId: "mail-items",
-          itemId: "mail-opaque",
-          actionId: "archive",
-          confirmed: false,
-        },
-        { permissionLevel: "admin" },
+      await harness.withCaller((caller) =>
+        fixture.service.act(
+          {
+            sourceId: "mail-items",
+            itemId: "mail-opaque",
+            actionId: "archive",
+            confirmed: false,
+          },
+          caller,
+        ),
       ),
     );
 
@@ -435,14 +450,16 @@ describe("InboxOperatorService", () => {
     expect(fixture.actors).toEqual([]);
 
     const completed = inboxActionOutcomeSchema.parse(
-      await fixture.service.act(
-        {
-          sourceId: "mail-items",
-          itemId: "mail-opaque",
-          actionId: "archive",
-          confirmed: true,
-        },
-        { permissionLevel: "admin" },
+      await harness.withCaller((caller) =>
+        fixture.service.act(
+          {
+            sourceId: "mail-items",
+            itemId: "mail-opaque",
+            actionId: "archive",
+            confirmed: true,
+          },
+          caller,
+        ),
       ),
     );
 
@@ -451,7 +468,9 @@ describe("InboxOperatorService", () => {
   });
 
   it("builds a five-entry Dashboard allowlist without source identifiers or actions", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(
+      harness.getMockShell().getAuthRegistry(),
+    );
     registry.registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
@@ -508,14 +527,18 @@ describe("InboxOperatorService", () => {
     });
 
     expect(
-      fixture.service.act(
-        {
-          sourceId: "mail-items",
-          itemId: "mail-opaque",
-          actionId: "mark-reviewed",
-          confirmed: false,
-        },
-        { permissionLevel: "trusted" },
+      harness.withCaller(
+        (caller) =>
+          fixture.service.act(
+            {
+              sourceId: "mail-items",
+              itemId: "mail-opaque",
+              actionId: "mark-reviewed",
+              confirmed: false,
+            },
+            caller,
+          ),
+        { permission: "trusted" },
       ),
     ).rejects.toThrow("Source requires admin permission");
     expect(fixture.actors).toEqual([{ permissionLevel: "trusted" }]);
@@ -525,14 +548,16 @@ describe("InboxOperatorService", () => {
     const fixture = createService();
 
     expect(
-      fixture.service.act(
-        {
-          sourceId: "mail-items",
-          itemId: "mail-opaque",
-          actionId: "delete",
-          confirmed: true,
-        },
-        { permissionLevel: "admin" },
+      harness.withCaller((caller) =>
+        fixture.service.act(
+          {
+            sourceId: "mail-items",
+            itemId: "mail-opaque",
+            actionId: "delete",
+            confirmed: true,
+          },
+          caller,
+        ),
       ),
     ).rejects.toThrow("Inbox item or action not found");
     expect(fixture.actors).toEqual([]);

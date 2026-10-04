@@ -1,5 +1,179 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/job-queue@0.2.0-alpha.473
+  - @brains/runtime-state@0.2.0-alpha.473
+  - @brains/scheduler@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/job-queue@0.2.0-alpha.472
+  - @brains/runtime-state@0.2.0-alpha.472
+  - @brains/scheduler@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/job-queue@0.2.0-alpha.471
+  - @brains/runtime-state@0.2.0-alpha.471
+  - @brains/scheduler@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/job-queue@0.2.0-alpha.470
+  - @brains/runtime-state@0.2.0-alpha.470
+  - @brains/scheduler@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/job-queue@0.2.0-alpha.469
+  - @brains/runtime-state@0.2.0-alpha.469
+  - @brains/scheduler@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/job-queue@0.2.0-alpha.468
+  - @brains/runtime-state@0.2.0-alpha.468
+  - @brains/scheduler@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/job-queue@0.2.0-alpha.467
+  - @brains/runtime-state@0.2.0-alpha.467
+  - @brains/scheduler@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/job-queue@0.2.0-alpha.466
+  - @brains/runtime-state@0.2.0-alpha.466
+  - @brains/scheduler@0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.465
+  - @brains/job-queue@0.2.0-alpha.465
+  - @brains/runtime-state@0.2.0-alpha.465
+  - @brains/scheduler@0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.464
+  - @brains/job-queue@0.2.0-alpha.464
+  - @brains/runtime-state@0.2.0-alpha.464
+  - @brains/scheduler@0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.463
+  - @brains/job-queue@0.2.0-alpha.463
+  - @brains/runtime-state@0.2.0-alpha.463
+  - @brains/scheduler@0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.462
+  - @brains/job-queue@0.2.0-alpha.462
+  - @brains/runtime-state@0.2.0-alpha.462
+  - @brains/scheduler@0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`23f916d`](https://github.com/rizom-ai/brains/commit/23f916d1dcb42d4d4511a6167ebfbd41eabc37d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Wait for every recurring-check cleanup task before reporting service-stop or plugin-unregistration failures. Preserve a single cleanup error and aggregate multiple failures instead of letting the first failed schedule bypass sibling drains.
+
+- [`815edf3`](https://github.com/rizom-ai/brains/commit/815edf384e2acec98043b510c5b93568e2991cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain admitted recurring-check callbacks and alert deliveries after Effect interruption, before plugin or service teardown completes. Do not record cancelled checks as successful after their final alert delivery.
+
+- Updated dependencies [[`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/job-queue@0.2.0-alpha.461
+  - @brains/runtime-state@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/scheduler@0.2.0-alpha.461
+
+## 0.2.0-alpha.460
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.460
+  - @brains/job-queue@0.2.0-alpha.460
+  - @brains/runtime-state@0.2.0-alpha.460
+  - @brains/scheduler@0.2.0-alpha.460
+
+## 0.2.0-alpha.459
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.459
+  - @brains/job-queue@0.2.0-alpha.459
+  - @brains/runtime-state@0.2.0-alpha.459
+  - @brains/scheduler@0.2.0-alpha.459
+
+## 0.2.0-alpha.458
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.458
+  - @brains/job-queue@0.2.0-alpha.458
+  - @brains/runtime-state@0.2.0-alpha.458
+  - @brains/scheduler@0.2.0-alpha.458
+
+## 0.2.0-alpha.457
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.457
+  - @brains/job-queue@0.2.0-alpha.457
+  - @brains/runtime-state@0.2.0-alpha.457
+  - @brains/scheduler@0.2.0-alpha.457
+
 ## 0.2.0-alpha.456
 
 ### Patch Changes

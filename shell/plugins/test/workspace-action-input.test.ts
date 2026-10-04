@@ -10,7 +10,7 @@ import {
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "../src";
-import { createMockShell } from "../src/test/mock-shell";
+import { createPluginHarness } from "../src/test/harness";
 
 const actor: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -116,14 +116,15 @@ describe("workspace action wire inputs", () => {
             ],
           },
         );
-        const shell = createMockShell();
+        const harness = createPluginHarness();
+        const shell = harness.getMockShell();
         const registrations: StudioWorkspaceRegistration[] = [];
         shell
           .getMessageBus()
           .subscribe<StudioWorkspaceRegistration>(
             STUDIO_WORKSPACE_REGISTER_MESSAGE,
             (message) => {
-              registrations.push(message.payload);
+              registrations.push(harness.bindStudioWorkspace(message.payload));
               return {
                 success: true,
                 data: { workspaceUrl: "/studio/inputs" },

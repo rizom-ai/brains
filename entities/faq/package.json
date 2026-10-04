@@ -1,0 +1,38 @@
+{
+  "name": "@brains/faq",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.473",
+  "description": "Plugin that captures reusable chat questions and answers as FAQ entities",
+  "dependencies": {
+    "@brains/contracts": "workspace:*",
+    "@brains/sdk": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
+    "react": "^19.2.7"
+  },
+  "devDependencies": {
+    "@brains/entity-service": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
+    "bun-types": "^1.4.0",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "eval": "cd evals && bun run brain-eval",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

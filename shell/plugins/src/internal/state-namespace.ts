@@ -34,6 +34,14 @@ export function stateNamespaceFor(
   namespace: string,
 ): string {
   const owner = stateOwnerSchema.parse(packageName);
+  // Host-owned durable identity, not an author-selectable unqualified scope.
+  // Legacy native FAQ claims cannot distinguish completion from interruption. Keep
+  // reading that exact store during the declaration port; never replay or
+  // age out a claim. Tracked as faq-ambiguous-capture-claims. Old writers must
+  // stop before rollout; no mixed-version or downgrade guarantee is implied.
+  if (owner === "@brains/faq" && namespace === "faq.captured-replies") {
+    return "faq.captured-replies";
+  }
   if (simpleScopedPackage.test(owner)) {
     return `${owner.slice(1).replace("/", ".")}.${namespace}`;
   }

@@ -36,6 +36,66 @@ describe("package-owned state namespaces", () => {
     expect(() => stateNamespaceFor("\ud800", "cache")).toThrow("well-formed");
   });
 
+  it("retains only FAQ's exact native claim identity across reopening", async () => {
+    const database = await createTestDatabase({
+      prefix: "faq-claim-owner-",
+      filename: "runtime-state.db",
+      migrate: (url) => migrateRuntimeState({ url }),
+    });
+    let service = RuntimeStateService.createFresh({ url: database.url });
+    const schema = z.object({ claimedAt: z.string() });
+    const claim = { claimedAt: "2020-01-01T00:00:00.000Z" };
+    try {
+      await service.initialize();
+      await service
+        .scoped({ namespace: "faq.captured-replies", schema })
+        .set("reply", claim);
+      service.close();
+      service = RuntimeStateService.createFresh({ url: database.url });
+      await service.initialize();
+      const namespace = stateNamespaceFor(
+        "@brains/faq",
+        "faq.captured-replies",
+      );
+      expect(namespace).toBe("faq.captured-replies");
+      expect(await service.scoped({ namespace, schema }).get("reply")).toEqual(
+        claim,
+      );
+      for (const other of [
+        "@fixture/faq",
+        "@brains/faq.other",
+        "brains.faq",
+        "faq",
+      ]) {
+        const store = service.scoped({
+          namespace: stateNamespaceFor(other, "faq.captured-replies"),
+          schema,
+        });
+        expect(await store.get("reply")).toBeNull();
+        await store.set("reply", { claimedAt: "other" });
+        await store.clear();
+      }
+      const interfaceStore = service.scoped({
+        namespace: interfaceStateNamespaceFor(
+          "@brains/faq",
+          "faq",
+          "faq.captured-replies",
+        ),
+        schema,
+      });
+      expect(await interfaceStore.get("reply")).toBeNull();
+      expect(stateNamespaceFor("@brains/faq", "other")).toBe(
+        "brains.faq.other",
+      );
+      expect(await service.scoped({ namespace, schema }).get("reply")).toEqual(
+        claim,
+      );
+    } finally {
+      service.close();
+      await database.cleanup();
+    }
+  });
+
   it("reopens existing scoped state without moving it and never guesses ownership of old collapsed keys", async () => {
     const database = await createTestDatabase({
       prefix: "state-owner-",

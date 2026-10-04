@@ -3,6 +3,7 @@ import {
   type BaseEntity,
   type EntitySearchRequest,
   type SearchResult,
+  type SearchWithDistancesRequest,
 } from "@brains/entity-service";
 
 /** Mirrors the SQL publication gate, including adapter-specific lifecycles. */
@@ -82,4 +83,57 @@ export function searchFixtureEntities(
   });
   const offset = options.offset ?? 0;
   return results.slice(offset, offset + (options.limit ?? 20));
+}
+
+export interface FixtureDistance {
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly distance: number;
+}
+
+/** Explicit distances, never inferred from lexical fixture scores. */
+export function searchFixtureDistances(
+  entities: readonly BaseEntity[],
+  distances: readonly FixtureDistance[],
+  request: SearchWithDistancesRequest,
+  publishedStatusesFor: (type: string) => readonly string[] | undefined = () =>
+    undefined,
+): Array<{ entityType: string; entityId: string; distance: number }> {
+  request.signal?.throwIfAborted();
+  const visible =
+    request.visibilityScope &&
+    getVisibleContentVisibilities(request.visibilityScope);
+  const results = distances
+    .filter((row) => {
+      const entity = entities.find(
+        (entry) =>
+          entry.entityType === row.entityType && entry.id === row.entityId,
+      );
+      return (
+        entity !== undefined &&
+        (!request.types?.length || request.types.includes(row.entityType)) &&
+        (request.maxDistance === undefined ||
+          row.distance <= request.maxDistance) &&
+        (!request.visibility || entity.visibility === request.visibility) &&
+        (!visible || visible.includes(entity.visibility)) &&
+        (!request.publishedOnly ||
+          isFixtureEntityPublished(
+            entity,
+            publishedStatusesFor(entity.entityType),
+          )) &&
+        !request.excludeIds?.includes(row.entityId)
+      );
+    })
+    .map((row) => ({ ...row }));
+  const compare = (a: string, b: string): number =>
+    a < b ? -1 : a > b ? 1 : 0;
+  results.sort(
+    (a, b) =>
+      a.distance - b.distance ||
+      compare(a.entityType, b.entityType) ||
+      compare(a.entityId, b.entityId),
+  );
+  return request.limit === undefined
+    ? results
+    : results.slice(0, request.limit);
 }

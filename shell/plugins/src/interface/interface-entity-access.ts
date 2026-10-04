@@ -7,6 +7,7 @@ import type {
   SearchOptions,
   SearchResult,
 } from "@brains/entity-service";
+import { SdkError } from "@brains/contracts";
 import type { JobEntityAccess } from "../job/job-context-contract";
 import { parseDefinitionEntity } from "../entity/entity-schema";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
@@ -31,6 +32,11 @@ export function createInterfaceEntityAccess(
       `Interface "${interfaceId}" declares no entity types, so it cannot write one`,
     );
   };
+
+  const refuseOwned = (): never => {
+    throw new SdkError("permission_denied");
+  };
+  const refuseOwnedAsync = async (): Promise<never> => refuseOwned();
 
   // Declared as the contract's overload pairs so the schema-bearing form
   // parses what comes back rather than asserting a caller-chosen type.
@@ -134,6 +140,13 @@ export function createInterfaceEntityAccess(
   }
 
   return {
+    nearest: refuseOwnedAsync,
+    mutations: Object.freeze({
+      read: refuseOwnedAsync,
+      replace: refuseOwnedAsync,
+      fold: refuseOwnedAsync,
+      once: refuseOwned,
+    }),
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(request),
     listEntities,

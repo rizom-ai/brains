@@ -33,6 +33,13 @@ export {
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
+export { findNearestEntity } from "./entity/nearest-entity";
+export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
+export type { EmbeddingDrainOptions } from "./entity/embedding-drain";
+export type {
+  NearestEntityDeps,
+  NearestEntityQuery,
+} from "./entity/nearest-entity";
 export {
   CONVERSATION_SOURCE_TYPE,
   PROJECTION_ABSTAINED,
@@ -322,6 +329,9 @@ export type {
   EntityAtprotoDiscovery,
   EntityCheckDeclaration,
   EntityInboxDeclaration,
+  EntityInboxContext,
+  EntityInboxListContext,
+  EntityInboxDetailContext,
   EntityReactionContext,
   EntityConversationSurvey,
   EntitySemanticReader,
@@ -831,6 +841,7 @@ export type {
   IConversationService,
 } from "@brains/conversation-service";
 export {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_SOURCE_KIND,
   coerceConversationMetadata,
@@ -1065,6 +1076,7 @@ export {
   type StudioWorkspaceRendererName,
   type StudioWorkspaceUnregistration,
 } from "./types/studio-workspace";
+export { createStudioWorkspaceActor } from "./operator/workspace-actor";
 export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
@@ -1219,6 +1231,18 @@ export type {
   EntityAccess,
   EntityReader,
 } from "./entity/entity-access-contract";
+export type { EntityConfigurationBinding } from "./entity/entity-configuration";
+export type { InboxEntityEdits } from "./entity/inbox-entity-edits";
+export type {
+  OwnedEntityEdit,
+  OwnedEntityMutations,
+  OwnedEntityOperation,
+  OwnedMutationReceipt,
+} from "./entity/owned-entity-mutations";
+export type {
+  OwnedEntityNearest,
+  OwnedNearestOptions,
+} from "./entity/owned-entity-nearest";
 
 // What a package delegated when it declared `publish`, and the access a
 // service that publishes on its behalf is given. See the registry's own docs.

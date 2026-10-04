@@ -7,12 +7,22 @@ import {
   type SearchOptions,
   type ProjectSemanticSpaceRequest,
   type SemanticSpaceProjection,
+  type SearchWithDistancesRequest,
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
+import {
+  sql,
+  and,
+  asc,
+  desc,
+  inArray,
+  notInArray,
+  eq,
+  type SQL,
+} from "drizzle-orm";
 import { entities } from "./schema/entities";
 import { publishedAcrossTypesCondition } from "./published-condition";
 import {
@@ -503,21 +513,28 @@ export class EntitySearch {
   }
 
   /**
-   * Return all embedded entities with their raw cosine distance to the query.
-   * No threshold filter — used for diagnostics and threshold tuning.
-   * Results sorted by distance ascending (closest first).
+   * Return embedded entities with their raw cosine distance to the query,
+   * sorted closest first. Without filters every embedded entity is returned,
+   * for diagnostics and threshold tuning; `types` and `maxDistance` narrow it
+   * in the query for callers that look for one close match.
    */
   public async searchWithDistances(
     query: string,
+    filters: Omit<SearchWithDistancesRequest, "query"> = {},
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
+    filters.signal?.throwIfAborted();
     if (!this.embeddingsEnabled) {
       throw new Error("Semantic indexing is disabled for this Brain instance");
     }
     const preparedQuery = prepareSearchQuery(query, this.logger);
     const { embedding: queryEmbedding } =
-      await this.embeddingService.generateEmbedding(preparedQuery);
+      await this.embeddingService.generateEmbedding(
+        preparedQuery,
+        filters.signal,
+      );
+    filters.signal?.throwIfAborted();
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
@@ -533,7 +550,32 @@ export class EntitySearch {
         sql`emb.embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
-      .orderBy(sql`${distanceExpr} ASC`);
+      .where(
+        and(
+          filters.types && filters.types.length > 0
+            ? inArray(entities.entityType, filters.types)
+            : undefined,
+          filters.maxDistance !== undefined
+            ? sql`${distanceExpr} <= ${filters.maxDistance}`
+            : undefined,
+          filters.visibility
+            ? eq(entities.visibility, filters.visibility)
+            : undefined,
+          ...(filters.visibilityScope
+            ? this.buildVisibilityConditions(filters.visibilityScope)
+            : []),
+          ...this.buildPublishedConditions(filters.publishedOnly ?? false),
+          filters.excludeIds?.length
+            ? notInArray(entities.id, filters.excludeIds)
+            : undefined,
+        ),
+      )
+      .orderBy(
+        sql`${distanceExpr} ASC`,
+        asc(entities.entityType),
+        asc(entities.id),
+      )
+      .limit(filters.limit ?? -1);
 
     return results;
   }

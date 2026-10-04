@@ -15,6 +15,7 @@ export interface WriteSiteBuildFeedsOptions {
   siteTitle: string | undefined;
   siteDescription: string | undefined;
   siteUrl: string | undefined;
+  generateEntityUrl: (entityType: string, slug: string) => string;
   logger: Logger;
   signal: AbortSignal;
 }
@@ -62,11 +63,20 @@ export async function writeSiteBuildFeeds(
       continue;
     }
 
-    const xml = renderRssFeed(items, {
-      title: options.siteTitle ?? "Feed",
-      description: options.siteDescription ?? "Latest updates",
-      link: `${(options.siteUrl ?? "https://example.com").replace(/\/+$/u, "")}/${declaration.routePrefix.replace(/^\/+/u, "")}`,
-    });
+    const siteUrl = (options.siteUrl ?? "https://example.com").replace(
+      /\/+$/u,
+      "",
+    );
+    const xml = renderRssFeed(
+      items,
+      {
+        title: options.siteTitle ?? "Feed",
+        description: options.siteDescription ?? "Latest updates",
+        link: `${siteUrl}/${declaration.routePrefix.replace(/^\/+/u, "")}`,
+      },
+      (item) =>
+        `${siteUrl}/${options.generateEntityUrl(declaration.entityType, item.slug).replace(/^\/+/u, "")}`,
+    );
 
     await fs.writeFile(
       resolveSafeOutputFile(options.outputDir, declaration.path),

@@ -1,6 +1,7 @@
 import { chatContextHandoffRequestSchema } from "@brains/contracts/chat";
 import type {
   AuthPrincipal,
+  InterfaceCaller,
   AuthenticatedCaller,
   ChatAttachment,
   InboundMessageAttachment,
@@ -46,6 +47,8 @@ const MAX_INBOX_SOURCE_CHARACTERS = 50_000;
 
 export interface ChatRouteDeps {
   access: BrowserAccessReader;
+  /** Original host-issued request caller, required for Inbox handoffs. */
+  caller?: InterfaceCaller | null;
   /** The turn goes here; the runtime does the rest. */
   messages: MessageReceiver;
   activeStreams: Map<string, ActiveStream>;
@@ -66,6 +69,7 @@ export interface ChatRouteDeps {
             itemId: string,
             caller: { permissionLevel: UserPermissionLevel },
             signal: AbortSignal,
+            authority: InterfaceCaller,
           ) => Promise<{ text: string; truncated: boolean }>;
         }
       | undefined;
@@ -112,7 +116,7 @@ async function inboxAttachment(
   signal: AbortSignal,
 ): Promise<ChatAttachment | Response> {
   const source = deps.inbox.getSource(sourceId);
-  if (!source?.resolveDetail) return inboxContextUnavailable();
+  if (!source?.resolveDetail || !deps.caller) return inboxContextUnavailable();
 
   // Only the read is allowed to fail — the item may be gone, or the source
   // unreachable — and 409 is what the page shows for either. Framing the text
@@ -120,8 +124,15 @@ async function inboxAttachment(
   // answer "unavailable" for a bug in our own formatting.
   let detail: { text: string; truncated: boolean };
   try {
-    detail = await source.resolveDetail(itemId, { permissionLevel }, signal);
+    detail = await source.resolveDetail(
+      itemId,
+      { permissionLevel },
+      signal,
+      deps.caller,
+    );
   } catch {
+    // Missing, revoked or unavailable sources share the existing 409 response;
+    // never expose source/provider diagnostics in a chat attachment.
     return inboxContextUnavailable();
   }
 
@@ -280,6 +291,12 @@ export async function handleChatRequest(
   if (accessError) return accessError;
 
   const handoff = await storedContextHandoff(deps, conversationId);
+  if (
+    handoff &&
+    (deps.caller?.actor.id !== principal.userId ||
+      deps.caller.permission !== permissionLevel)
+  )
+    return inboxContextUnavailable();
   const attached =
     approvalResponses.length === 0 && handoff
       ? await inboxAttachment(

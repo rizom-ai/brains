@@ -78,8 +78,12 @@ const aliases = buildAliases();
 
 export default {
   cwd: packageDir,
-  input: process.env.INPUT,
-  output: { dir: process.env.OUTPUT_DIR, format: "es" },
+  input: JSON.parse(process.env.INPUTS),
+  output: {
+    dir: process.env.OUTPUT_DIR,
+    format: "es",
+    chunkFileNames: "declarations/[name]-[hash].d.ts",
+  },
   // Rolldown's JS transform should not try to discover tsconfigs for virtual
   // declaration modules; declaration generation uses the plugin tsconfig below.
   tsconfig: false,

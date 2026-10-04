@@ -290,6 +290,7 @@ export async function runSiteBuild(
       siteTitle: preparation.preparedBuild.site.title,
       siteDescription: preparation.preparedBuild.site.description,
       siteUrl: baseUrl,
+      generateEntityUrl: stagingPayload.generateEntityUrl,
       logger: options.pipelineContext.logger,
       signal: options.signal,
     });

@@ -10,6 +10,8 @@ import type {
   SearchResult,
 } from "../index";
 import type { JobEntityAccess } from "../index";
+import { createOwnedEntityMutations } from "../internal/owned-entity-mutations";
+import { createOwnedEntityNearest } from "../internal/owned-entity-nearest";
 
 /**
  * The entity access a job handler sees, backed by a real entity service.
@@ -20,6 +22,10 @@ import type { JobEntityAccess } from "../index";
  */
 export function createTestEntityAccess(options: {
   readonly entityService: IEntityService;
+  /** Explicit authority for owned atomic mutation tests. Empty by default. */
+  readonly ownedTypes?: readonly string[];
+  readonly owner?: string;
+  readonly declarationId?: string;
   /**
    * Thrown on any write. A generation returns content and the runtime
    * persists it, so a generation that writes its own entity is a defect the
@@ -143,6 +149,38 @@ export function createTestEntityAccess(options: {
   }
 
   return {
+    nearest: createOwnedEntityNearest(
+      service,
+      new Set(options.ownedTypes ?? []),
+    ),
+    mutations: createOwnedEntityMutations(
+      {
+        getEntityWriteSnapshot: (request) =>
+          service.getEntityWriteSnapshot(request),
+        getEntityMutationReceipt: (request) =>
+          service.getEntityMutationReceipt(request),
+        applyEntityMutationOnce: (request) => {
+          options.onWrite?.();
+          if (refusal !== undefined) refuse();
+          return service.applyEntityMutationOnce(request);
+        },
+        updateEntity: (request) => {
+          options.onWrite?.();
+          if (refusal !== undefined) refuse();
+          return service.updateEntity(request);
+        },
+        foldEntity: (request) => {
+          options.onWrite?.();
+          if (refusal !== undefined) refuse();
+          return service.foldEntity(request);
+        },
+      },
+      new Set(options.ownedTypes ?? []),
+      {
+        packageName: options.owner ?? "@test/entity-access",
+        declarationId: options.declarationId ?? "job",
+      },
+    ),
     queryEntityHierarchy: (request) => service.queryEntityHierarchy(request),
     listEntities,
     getEntityCounts: (visibilityScope) =>

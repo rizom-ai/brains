@@ -94,6 +94,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "dashboard",
     "admin",
     "conversation-memory",
+    "faq",
     "unified-inbox",
     "mcp",
     "email",
@@ -135,6 +136,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "stock-photo",
     "atproto",
     "conversation-memory",
+    "faq",
     "unified-inbox",
     "mcp",
     "email",
@@ -166,6 +168,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "site-builder",
     "analytics",
     "conversation-memory",
+    "faq",
     "docs",
     "unified-inbox",
     "mcp",
@@ -324,6 +327,7 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
+      "faq",
     ]);
   });
 
@@ -359,6 +363,7 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
+      "faq",
       "analytics",
       "atproto",
     ]);
@@ -382,6 +387,7 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
+      "faq",
       "analytics",
     ]);
   });

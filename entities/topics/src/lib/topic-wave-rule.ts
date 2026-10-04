@@ -78,7 +78,7 @@ function sourcePolicy(
   };
 }
 
-function includesSourceType(
+export function includesSourceType(
   entityType: string,
   config: TopicsPluginConfig,
   projectionSource: boolean | undefined,

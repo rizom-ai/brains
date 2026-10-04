@@ -52,16 +52,15 @@ export class GuestAccessControl {
     this.context = context;
     this.resolveAccess = resolveAccess;
     this.ready = ready;
-    const origin = context.previewUrl;
-    if (
-      !available ||
-      !origin ||
-      !context.siteUrl ||
-      origin === context.siteUrl ||
-      new URL(origin).protocol !== "https:"
-    )
-      return;
-    const defaults = createDefaultGuestPolicy(origin);
+    // The site itself, and its preview when it has its own host.
+    const origin = context.siteUrl;
+    if (!available || !origin || new URL(origin).protocol !== "https:") return;
+    const preview = context.previewUrl;
+    const previewOrigin =
+      preview && preview !== origin && new URL(preview).protocol === "https:"
+        ? preview
+        : undefined;
+    const defaults = createDefaultGuestPolicy(origin, previewOrigin);
     if (!defaults.enabled) return;
     this.policy = { ...defaults, budgeted: true };
     this.admission = new GuestAdmission(context.runtimeState, this.policy, {
@@ -147,7 +146,7 @@ export class GuestAccessControl {
               return privateJsonResponse({ error: "Forbidden" }, 403);
             if (!this.policy || !this.admission || !this.context.siteUrl)
               return privateJsonResponse(
-                { error: "Preview guest access unavailable" },
+                { error: "Guest access unavailable" },
                 503,
               );
             if (request.method !== method)

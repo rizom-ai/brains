@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
+import {
+  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+} from "../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
 import type { ConversationDB } from "../src/database";
@@ -92,7 +96,16 @@ describe("ConversationService", () => {
         });
       }
       expect(await service.countMessages(guestRequest.sessionId)).toBe(6);
-      expect(send).not.toHaveBeenCalled();
+      // Only the guest event leaves, carrying where the message is, never
+      // what it says.
+      const sent = send.mock.calls.map(([message]) => message);
+      expect(sent.map((message) => message.type)).toEqual(
+        Array(6).fill(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL),
+      );
+      expect(JSON.stringify(sent)).not.toContain("visitor private text");
+      expect(sent.map((message) => message.type)).not.toContain(
+        CONVERSATION_MESSAGE_ADDED_CHANNEL,
+      );
       const tracking = await client.execute("SELECT * FROM summary_tracking");
       expect(tracking.rows).toHaveLength(0);
       await service.updateConversationMetadata({
@@ -101,6 +114,90 @@ describe("ConversationService", () => {
       });
       await service.deleteConversation(guestRequest.sessionId);
       expect(JSON.stringify(debug.mock.calls)).not.toContain("visitor");
+    });
+
+    for (const guest of [true, false]) {
+      it(`pins ${guest ? "guest" : "normal"} positions in persistence, with deterministic timestamp ties`, async () => {
+        const id = guest ? guestRequest.sessionId : "normal-position";
+        await service.startConversation(
+          guest
+            ? guestRequest
+            : {
+                ...guestRequest,
+                sessionId: id,
+                interfaceType: "test",
+                metadata: testMetadata,
+              },
+        );
+        const send = spyOn(messageBus, "send");
+        const outsideCount = spyOn(service, "countMessages").mockRejectedValue(
+          new Error("Must not derive a committed position from a later count"),
+        );
+        for (const content of ["one", "two", "three"])
+          await service.addMessage({
+            conversationId: id,
+            role: "assistant",
+            content,
+          });
+        expect(outsideCount).not.toHaveBeenCalled();
+        const type = guest
+          ? CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL
+          : CONVERSATION_MESSAGE_ADDED_CHANNEL;
+        expect(
+          send.mock.calls
+            .filter(([event]) => event.type === type)
+            .map(([event]) => event.payload),
+        ).toMatchObject([{ position: 1 }, { position: 2 }, { position: 3 }]);
+        await client.execute({
+          sql: "UPDATE messages SET timestamp = ? WHERE conversation_id = ?",
+          args: ["2026-01-01T00:00:00.000Z", id],
+        });
+        expect(
+          (await service.getMessages(id, { range: { start: 1, end: 3 } })).map(
+            (message) => message.content,
+          ),
+        ).toEqual(["one", "two", "three"]);
+        expect(
+          (await service.getMessages(id, { limit: 2 })).map(
+            (message) => message.content,
+          ),
+        ).toEqual(["two", "three"]);
+      });
+    }
+
+    it("tells plugins where a guest message is, so they can read it with conversation access", async () => {
+      const send = spyOn(messageBus, "send");
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "What do you write about?",
+      });
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "assistant",
+        content: "Mostly about institutions.",
+      });
+      const [, reply] = send.mock.calls.map(([message]) => message);
+      const [stored] = (
+        await service.getMessages(guestRequest.sessionId)
+      ).filter((message) => message.role === "assistant");
+      expect(reply).toMatchObject({
+        type: CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
+        broadcast: true,
+        payload: {
+          conversationId: guestRequest.sessionId,
+          messageId: stored?.id,
+          role: "assistant",
+          position: 2,
+        },
+      });
+      expect(Object.keys(reply?.payload ?? {}).sort()).toEqual([
+        "conversationId",
+        "messageId",
+        "position",
+        "role",
+      ]);
     });
 
     it("excludes guests from general search and enumeration even when explicitly filtered", async () => {

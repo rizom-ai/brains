@@ -1,4 +1,4 @@
-import { createMockShell } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
@@ -79,7 +79,8 @@ async function setup(options?: {
   detailActors: InboxActor[];
   withdraw(): void;
 }> {
-  const shell = createMockShell({ domain: "brain.test" });
+  const harness = createPluginHarness({ domain: "brain.test" });
+  const shell = harness.getMockShell();
   if (options?.adminHref !== false) {
     shell.registerInteraction({
       id: "admin",
@@ -170,7 +171,7 @@ async function setup(options?: {
   await plugin.finalizeRegistration?.();
   if (!workspace) throw new Error("Unified inbox workspace was not registered");
   return {
-    workspace,
+    workspace: harness.bindStudioWorkspace(workspace),
     actors,
     detailActors,
     withdraw: (): void => {

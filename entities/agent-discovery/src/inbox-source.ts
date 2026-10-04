@@ -1,7 +1,7 @@
 import {
   inboxItemListSchema,
   type EntityInboxDeclaration,
-  type EntityReactionContext,
+  type EntityInboxListContext,
   type InboxItem,
   type InboxItemDetail,
 } from "@brains/sdk/entities";
@@ -75,12 +75,14 @@ export const agentSightingsInbox: EntityInboxDeclaration = {
       userPermissionLevel: actor.permissionLevel,
     });
 
-    const entity = await requireSighting(context, itemId);
+    const edit = await context.edits.read(agentEntityReference, itemId);
+    if (!edit) throw new Error("Agent sighting not found");
+    const entity = agentEntitySchema.parse(edit.entity);
     const parsed = parseSighting(entity);
     if (!parsed) throw new Error("Agent sighting not found");
 
     const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    await context.entities.update(agentEntityReference, {
+    await context.edits.replace(agentEntityReference, edit, {
       ...entity,
       content: createAgentContent({
         ...parsed.frontmatter,
@@ -112,7 +114,7 @@ async function requireSighting(
   return agentEntitySchema.parse(entity);
 }
 
-type AgentSightingContext = EntityReactionContext;
+type AgentSightingContext = EntityInboxListContext;
 
 type ParsedSighting = ReturnType<typeof parseAgentEntity>;
 

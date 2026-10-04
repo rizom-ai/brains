@@ -18,6 +18,44 @@ import {
 describe("where a service's runtime state is filed", () => {
   const harness = createPluginHarness();
 
+  it("issues FAQ's preserved claim store only to that installed package", async () => {
+    const local = createPluginHarness();
+    const schema = z.object({ claimedAt: z.string() });
+    const claim = { claimedAt: "2020-01-01T00:00:00.000Z" };
+    await local
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({ namespace: "faq.captured-replies", schema })
+      .set("reply", claim);
+    const stores: IRuntimeStateStore<z.output<typeof schema>>[] = [];
+    const definition = defineServicePlugin({
+      id: "capture",
+      config: z.object({}),
+      setup: ({ runtimeState }) => {
+        const store = runtimeState({
+          namespace: "faq.captured-replies",
+          schema,
+        });
+        stores.push(store);
+        return { store };
+      },
+    });
+    try {
+      for (const name of ["@brains/faq", "@fixture/faq"]) {
+        for (const plugin of instantiatePluginPackageDefinition(
+          definition,
+          {},
+          { name, version: "0.0.0" },
+        ))
+          await local.installPlugin(plugin);
+      }
+      expect(await stores[0]?.get("reply")).toEqual(claim);
+      expect(await stores[1]?.get("reply")).toBeNull();
+    } finally {
+      await local.reset();
+    }
+  });
+
   it("files it under the package name, whatever the accessor is called", async () => {
     const attempts = z.number();
     let store: IRuntimeStateStore<number> | undefined;

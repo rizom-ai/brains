@@ -174,7 +174,7 @@ describe("declared job failure boundaries", () => {
     if (!plugin) throw new Error("Plugin not instantiated");
     const progress: IJobProgressMonitor = {
       start: () => {},
-      stop: () => {},
+      stop: async () => {},
       createProgressReporter: () => createMockProgressReporter(),
       emitJobCompletion: async () => {},
       emitJobFailure: async () => {},

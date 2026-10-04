@@ -4,10 +4,7 @@ import {
   emailSourceReadRequestSchema,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  createMailItemProjection,
-  type MailTriageOperatorService,
-} from "../src";
+import { createMailItemProjection } from "../src";
 import { EmailWorkflowsSourceReader } from "../src/source-read";
 import {
   inboxSource,
@@ -20,7 +17,7 @@ const sourceRef = `imap:${"a".repeat(64)}`;
 
 interface SourceReadFixture {
   harness: ReturnType<typeof createPluginHarness>;
-  operator: MailTriageOperatorService;
+  operator: ReturnType<typeof operatorFor>;
   reader: EmailWorkflowsSourceReader;
   itemId: string;
 }

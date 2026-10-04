@@ -1,4 +1,4 @@
-import { and, eq, gt, asc, sql, getTableColumns } from "drizzle-orm";
+import { and, eq, gt, asc, sql, getTableColumns, type SQL } from "drizzle-orm";
 import { z } from "@brains/utils/zod";
 import { prepareRuntimeStateValue } from "./wire-value";
 import { isDeepStrictEqual } from "node:util";
@@ -187,25 +187,23 @@ export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
   async clear(
     options: { keyPrefix?: string | undefined } = {},
   ): Promise<number> {
-    const keyPrefix = options.keyPrefix;
-    if (keyPrefix === undefined) {
-      const result = await this.db
-        .delete(runtimeStateRecords)
-        .where(eq(runtimeStateRecords.namespace, this.namespace));
-      return Number(result.rowsAffected);
-    }
-
-    normalizeKeyPrefix(keyPrefix);
-    const records = await this.list({ keyPrefix });
-    await Promise.all(records.map((record) => this.delete(record.key)));
-    return records.length;
+    // Cleanup must not parse values: old schema versions and corrupt records
+    // still need to be removable. One statement also avoids partial deletion.
+    const result = await this.db
+      .delete(runtimeStateRecords)
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          keyPrefixCondition(options.keyPrefix),
+        ),
+      );
+    return Number(result.rowsAffected);
   }
 
   private async listRows(
     options: RuntimeStateListOptions,
   ): Promise<RuntimeStateRecord[]> {
     const { keyPrefix, afterKey, limit } = options;
-    if (keyPrefix !== undefined) normalizeKeyPrefix(keyPrefix);
     if (afterKey !== undefined) normalizeKey(afterKey);
     if (limit !== undefined) z.number().int().min(1).max(1000).parse(limit);
     const query = this.db
@@ -222,9 +220,7 @@ export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
       .where(
         and(
           eq(runtimeStateRecords.namespace, this.namespace),
-          keyPrefix !== undefined
-            ? sql`substr(CAST(${runtimeStateRecords.key} AS BLOB), 1, length(CAST(${keyPrefix} AS BLOB))) = CAST(${keyPrefix} AS BLOB)`
-            : undefined,
+          keyPrefixCondition(keyPrefix),
           afterKey !== undefined
             ? gt(runtimeStateRecords.key, afterKey)
             : undefined,
@@ -249,6 +245,13 @@ function normalizeKey(key: string): string {
     throw new Error("Runtime state keys must be 1-512 characters long");
   }
   return key;
+}
+
+function keyPrefixCondition(keyPrefix: string | undefined): SQL | undefined {
+  if (keyPrefix === undefined) return undefined;
+  normalizeKeyPrefix(keyPrefix);
+  // Byte matching keeps wildcard characters literal and preserves embedded NULs.
+  return sql`substr(CAST(${runtimeStateRecords.key} AS BLOB), 1, length(CAST(${keyPrefix} AS BLOB))) = CAST(${keyPrefix} AS BLOB)`;
 }
 
 function normalizeKeyPrefix(keyPrefix: string): string {

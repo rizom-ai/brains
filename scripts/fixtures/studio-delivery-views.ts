@@ -1,4 +1,4 @@
-import { createMockShell } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -49,7 +49,8 @@ export async function createDeliveryViewFixtures(
   site: () => Promise<unknown>;
   publishing: () => Promise<unknown>;
 }> {
-  const shell = createMockShell({ domain: "example.com" });
+  const harness = createPluginHarness({ domain: "example.com" });
+  const shell = harness.getMockShell();
   const actor: StudioWorkspaceActor = {
     interfaceType: "studio",
     userId: "visual-admin",
@@ -159,7 +160,7 @@ export async function createDeliveryViewFixtures(
     return snapshot;
   }
   const site = await registerFixtureWorkspace(
-    shell,
+    harness,
     defineServicePlugin(
       { id: "site-builder", config: z.strictObject({}) },
       {
@@ -275,7 +276,7 @@ export async function createDeliveryViewFixtures(
     }),
   });
   const publishing = await registerFixtureWorkspace(
-    shell,
+    harness,
     defineServicePlugin(
       { id: "content-pipeline", config: z.strictObject({}) },
       {

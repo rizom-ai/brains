@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+import { createPluginHarness, createTempDataDir } from "@brains/plugins/test";
 
 import {
   actionRequest,
@@ -88,7 +88,8 @@ function findRowForPerson(value: unknown, displayName: string): unknown {
 
 describe("Administration Invitations tab", () => {
   it("preserves the invitation lifecycle without retaining setup URLs", async () => {
-    const shell = createMockShell({ domain: "brain.test" });
+    const harness = createPluginHarness({ domain: "brain.test" });
+    const shell = harness.getMockShell();
     shell.getChannelRegistry().registerDescriptor("test", {
       type: "manual-test",
       displayName: "Manual test",
@@ -124,7 +125,7 @@ describe("Administration Invitations tab", () => {
     const deniedActor = actorFor(trustedActor, trusted);
 
     const workspace = administrationTab(
-      await captureAdminWorkspaces(shell),
+      await captureAdminWorkspaces(harness),
       "invitations",
     );
     expect(workspace).toMatchObject({

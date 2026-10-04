@@ -25,6 +25,7 @@ import studioPackage from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
 import contactPackage from "@brains/contact";
 import conversationMemoryPackage from "@brains/conversation-memory";
+import faqPackage from "@brains/faq";
 import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
@@ -233,6 +234,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       "@brains/conversation-memory",
       conversationMemoryPackage,
     ),
+    packageCapability("faq", "@brains/faq", faqPackage),
     packageCapability("docs", "@brains/doc", docPackage),
 
     // autoSync was never a config key the schema accepted — it was silently

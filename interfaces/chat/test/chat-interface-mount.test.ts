@@ -104,6 +104,37 @@ describe("chat mount", () => {
     ]);
   });
 
+  it("registers worker senders without starting listeners or HTTP routes", async () => {
+    const plugins = createPlugins({
+      adapters: { discord: baseDiscordConfig, slack: baseSlackConfig },
+    });
+    try {
+      for (const plugin of plugins) {
+        await plugin.registerChannelsForExecution?.(
+          suite.harness.getMockShell(),
+          {
+            executionOnly: true,
+          },
+        );
+        expect(plugin.getWebRoutes?.()).toEqual([]);
+      }
+      const channels = suite.harness.getMockShell().getChannelRegistry();
+      channels.finalize();
+      expect(channels.listDescriptors().map(({ type }) => type)).toEqual([
+        "discord",
+        "slack",
+      ]);
+      expect(MockChatSdk.instances).toHaveLength(2);
+      for (const app of MockChatSdk.instances)
+        expect(app.initialize).not.toHaveBeenCalled();
+      expect(suite.harness.getMockShell().getDaemonRegistry().getAll()).toEqual(
+        [],
+      );
+    } finally {
+      for (const plugin of plugins) await plugin.shutdown?.();
+    }
+  });
+
   it("creates a Slack-only adapter and listener", async () => {
     const plugin = createSlackPlugin();
 
