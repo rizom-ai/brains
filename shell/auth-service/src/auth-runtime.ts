@@ -349,6 +349,8 @@ export class AuthRuntime {
       ...(this.getChannelDescriptor
         ? { getChannelDescriptor: this.getChannelDescriptor }
         : {}),
+      getBrainName: (): Promise<string | undefined> =>
+        this.profileDisplayName(this.anchorProfileEntityId),
     });
     this.invitationDeliverySupervisor = new InvitationDeliverySupervisor(
       this.invitationDeliveryRecoveryIntervalMs,

@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned. Copy is drafted in [../onboarding-email-mockups.html](../onboarding-email-mockups.html) and awaits review before Phase 1.
+In progress. Phase 1 (invitation email) is implemented; Phase 2 remains. Copy is drafted in [../onboarding-email-mockups.html](../onboarding-email-mockups.html).
 
 ## Current state
 
@@ -28,8 +28,10 @@ Defects shared across them:
 
 `shell/auth-service/src/onboarding-emails.ts` exports `renderOnboardingEmail(input): { subject, text, html }`. The input is a Zod schema discriminated on `kind`:
 
-- `anchor-setup` — `setupUrl`, `expiresAt`, `origin`.
-- `invitation` — `setupUrl`, `expiresAt`, `origin`, `brainName`, `role` (`admin` | `trusted`), optional `inviterName`.
+- `anchor-setup` — `setupUrl`, `expiresAt`.
+- `invitation` — `setupUrl`, `expiresAt`, `brainName`, `role` (`admin` | `trusted`), optional `inviterName`.
+
+The host and origin for links are derived from `setupUrl`.
 
 Both emails are rendered by this function only. The text and HTML parts come from the same copy, so they cannot drift apart.
 
@@ -43,20 +45,21 @@ Both emails are rendered by this function only. The text and HTML parts come fro
 
 ### Names in the copy
 
-- **Brain name**: `context.identity.getProfile().name`, using the existing "empty or `Unknown` means absent" rule from `resolveProfileDisplayName`. Fallback: the issuer hostname. `InvitationService` receives it through a new `getBrainName` option, read at send time.
+- **Brain name**: `context.identity.getProfile().name`, using the existing "empty or `Unknown` means absent" rule from `resolveProfileDisplayName`. Fallback: the issuer hostname. `AuthRuntime` passes it to `InvitationService` as a `getBrainName` option built on its existing `resolveProfileDisplayName`, read at send time.
 - **Inviter**: `authInvitations.createdByUserId` → `authUsers.displayName`, looked up when the email is sent, so resends and recovered deliveries carry it too. When the creator no longer exists, the subject and body drop the inviter clause.
 - **Role**: `admin` → "an admin"; `trusted` → "a trusted member", matching the `Trusted` label in Studio. The email makes no claims about permissions.
 - **Product name**: the copy says "brain". Rover-specific wording goes away with the override, because the same renderer serves client and team brains.
 
 ### Expiry
 
-Rendered as `Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" })` plus ` UTC`, e.g. "Tuesday 6 October 2026 at 14:00 UTC". The recipient's time zone is unknown, so UTC is stated explicitly.
+Rendered as `Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" })` plus ` UTC`, e.g. "Tuesday, 6 October 2026 at 14:00 UTC". The recipient's time zone is unknown, so UTC is stated explicitly.
 
 ### HTML
 
 - Single column, max 560px, table layout with inline styles. No images, web fonts, or external CSS.
 - One primary button for the setup link, with the raw URL repeated below it for clients that strip buttons.
-- Every interpolated value is escaped with the existing `escapeHtml` from `pages.ts`, moved to a shared module inside auth-service.
+- Every interpolated value is escaped with `escapeHtml` from `@brains/utils/string-utils`.
+- Invitations are sent with `sensitivity: "secret"`, like the setup email, because they carry a live setup link.
 - Neutral palette; no per-brain theming.
 
 ### Content
@@ -78,7 +81,7 @@ Each phase lands with its tests written first.
 ### Phase 1 — Invitation email
 
 1. Tests: `onboarding-emails.test.ts` covers the invitation kind with and without an inviter, both roles, the expiry format, and HTML escaping of the brain and inviter names. `invitation-channels.test.ts` asserts that the provider receives `subject`, `text` and `html` from the renderer. `auth-invitation-service.test.ts` asserts that a resend carries the inviter name.
-2. Implement the renderer (invitation kind), the inviter lookup in `InvitationService`, the `getBrainName` option wired from `AuthServicePlugin`, and the `escapeHtml` move.
+2. Implement the renderer (invitation kind), the inviter lookup in `InvitationService`, and the `getBrainName` option wired in `AuthRuntime`.
 3. Verify: start the team posture (`bun start:team` in `packages/brain-cli`), invite `smoke@rizom.ai` from Studio, and read the delivered message from the smoke mailbox in both an HTML and a text-only view.
 
 ### Phase 2 — Anchor setup email and override removal

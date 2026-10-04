@@ -4,6 +4,7 @@ import type {
   ChannelDescriptor,
 } from "@brains/plugins";
 import { absoluteUrl } from "./issuer";
+import { renderOnboardingEmail } from "./onboarding-emails";
 
 export interface InvitationChannelsOptions {
   issuer: string;
@@ -21,6 +22,11 @@ export interface InvitationSend {
   expiresAtSeconds: number;
   /** The delivery attempt's id, so a provider can deduplicate a resend. */
   idempotencyKey: string;
+  /** The brain's display name, or its host when it has none. */
+  brainName: string;
+  role: "admin" | "trusted";
+  /** The Admin who created the invitation, when they still exist. */
+  inviterName?: string | undefined;
 }
 
 /**
@@ -108,16 +114,21 @@ export class InvitationChannels {
       this.issuer,
       `/setup?token=${encodeURIComponent(input.setupToken)}`,
     );
+    const email = renderOnboardingEmail({
+      kind: "invitation",
+      setupUrl,
+      expiresAt: input.expiresAtSeconds,
+      brainName: input.brainName,
+      role: input.role,
+      ...(input.inviterName ? { inviterName: input.inviterName } : {}),
+    });
     return provider.send({
       recipient: input.recipient,
-      subject: `Join ${new URL(this.issuer).hostname}`,
-      text: [
-        "You have been invited to access this brain.",
-        "",
-        `Set up your passkey: ${setupUrl}`,
-        "",
-        `This single-use link expires at ${new Date(input.expiresAtSeconds * 1000).toISOString()}.`,
-      ].join("\n"),
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+      // The message carries a live setup link.
+      sensitivity: "secret",
       idempotencyKey: input.idempotencyKey,
     });
   }

@@ -68,6 +68,8 @@ export interface AuthInvitationServiceOptions {
     channelType: string,
   ) => ChannelDeliveryProvider | undefined;
   getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
+  /** The brain's display name for invitation copy; the issuer host stands in when absent. */
+  getBrainName?: () => Promise<string | undefined>;
 }
 
 export class AuthInvitationService {
@@ -77,6 +79,8 @@ export class AuthInvitationService {
   private readonly audit: AuthAuditStore;
   private readonly deliveryRecoveryStaleMs: number;
   private readonly channels: InvitationChannels;
+  private readonly getBrainName:
+    (() => Promise<string | undefined>) | undefined;
   private readonly creations = new KeyedSingleFlight<CreateInvitationResult>();
   private readonly manualConfirmations =
     new KeyedSingleFlight<AuthInvitation>();
@@ -87,6 +91,7 @@ export class AuthInvitationService {
     this.issuer = options.issuer;
     this.setupTokenTtlSeconds = options.setupTokenTtlSeconds;
     this.audit = options.audit;
+    this.getBrainName = options.getBrainName;
     this.deliveryRecoveryStaleMs = Math.max(
       1,
       options.deliveryRecoveryStaleMs ??
@@ -763,6 +768,36 @@ export class AuthInvitationService {
     });
   }
 
+  /**
+   * Who and what the invitation names, read at send time so a resend or a
+   * recovered delivery says the same as the first one.
+   */
+  private async invitationNames(created: CreatedInvitation): Promise<{
+    brainName: string;
+    role: "admin" | "trusted";
+    inviterName?: string;
+  }> {
+    const role = created.user.role;
+    if (role === "public") {
+      throw new Error("An invitation cannot grant the public role");
+    }
+    const brainName =
+      (await this.getBrainName?.()) ?? new URL(this.issuer).hostname;
+    const inviterId = created.invitation.createdByUserId;
+    const [inviter] = inviterId
+      ? await this.db
+          .select({ displayName: authUsers.displayName })
+          .from(authUsers)
+          .where(eq(authUsers.id, inviterId))
+          .limit(1)
+      : [];
+    return {
+      brainName,
+      role,
+      ...(inviter ? { inviterName: inviter.displayName } : {}),
+    };
+  }
+
   private async deliver(created: CreatedInvitation): Promise<AuthInvitation> {
     const startedAt = Date.now();
     const started = await this.db.transaction(async (tx) => {
@@ -812,6 +847,7 @@ export class AuthInvitationService {
       setupToken: created.setupToken,
       expiresAtSeconds: created.expiresAt,
       idempotencyKey: created.attempt.id,
+      ...(await this.invitationNames(created)),
     });
     const completedAt = Date.now();
 
