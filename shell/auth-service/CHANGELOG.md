@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [`fdca4f8`](https://github.com/rizom-ai/brains/commit/fdca4f8d5e98f222fed1743ab55a74b6acc52169) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain complete auth HTTP handlers and facade operations before runtime shutdown. Keep independent requests concurrent, allow admitted handlers to finish nested auth calls, and defer later callers until cleanup settles. Track nested operations independently, give admitted background callbacks the same owner while skipping new scheduled ticks during shutdown, reject self-close instead of deadlocking, and prevent detached continuations from reusing completed request scopes.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.484
+  - @brains/contracts@0.2.0-alpha.484
+  - @brains/db@0.2.0-alpha.484
+  - @brains/utils@0.2.0-alpha.484
+  - @brains/plugins@0.2.0-alpha.484
+
 ## 0.2.0-alpha.483
 
 ### Patch Changes

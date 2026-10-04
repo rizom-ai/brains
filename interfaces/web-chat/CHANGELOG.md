@@ -1,5 +1,17 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- Updated dependencies [[`fdca4f8`](https://github.com/rizom-ai/brains/commit/fdca4f8d5e98f222fed1743ab55a74b6acc52169)]:
+  - @brains/auth-service@0.2.0-alpha.484
+  - @brains/app-ui-react@0.2.0-alpha.484
+  - @brains/console-theme@0.2.0-alpha.484
+  - @brains/contracts@0.2.0-alpha.484
+  - @brains/utils@0.2.0-alpha.484
+  - @brains/plugins@0.2.0-alpha.484
+
 ## 0.2.0-alpha.483
 
 ### Patch Changes
