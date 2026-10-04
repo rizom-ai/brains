@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask room: the atlas kit now carries one runtime and one set of styles for a page that presents the Ask box beside a drawing of what an answer may cite, shared by the atlas sites and rizom.ai. The room matches an answer's sources to the drawing's marks, draws the leads between the listed sources and their marks, lends the drawing to a phone's open conversation and brings a cited source into view from its mark; the atlas keeps only what is the map's own, its turn towards the cited pieces and its names.
+
 ## 0.2.0-alpha.482
 
 ## 0.2.0-alpha.481
