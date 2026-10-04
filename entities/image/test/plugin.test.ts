@@ -76,6 +76,23 @@ describe("ImagePlugin", () => {
     expect(registration?.entityType).toBe("image");
   });
 
+  it("accepts uploads only of the raster types assets store", () => {
+    const registry = harness.getEntityRegistry();
+    for (const mediaType of [
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+    ]) {
+      expect(registry.getUploadSaveHandler(mediaType)?.entityType).toBe(
+        "image",
+      );
+    }
+    for (const mediaType of ["image/svg+xml", "image/avif", "image/bmp"]) {
+      expect(registry.getUploadSaveHandler(mediaType)).toBeUndefined();
+    }
+  });
+
   async function runQueuedUploadPromotion(): Promise<void> {
     const handler = registeredHandlers.get("image:upload-promote");
     if (!handler) throw new Error("image:upload-promote handler missing");

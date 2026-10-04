@@ -10,6 +10,7 @@ import {
   base64ImageReader,
   bytesImageReader,
   describeImage,
+  imageMediaType,
   parseDataUrl,
   type ImageByteReader,
 } from "./image-utils";
@@ -19,6 +20,11 @@ import {
  * independent of size; this bounds consumers that still need whole buffers.
  */
 export const IMAGE_ASSET_MAX_BYTES: number = 25 * 1024 * 1024;
+
+/** Media types stored as image assets: the raster formats staging accepts. */
+export const IMAGE_ASSET_MEDIA_TYPES: readonly string[] = (
+  ["png", "jpg", "gif", "webp"] as const
+).map(imageMediaType);
 
 /** The staging half of the entity service. */
 export interface ImageAssetStager {

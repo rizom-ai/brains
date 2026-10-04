@@ -18,6 +18,7 @@ import {
   type Image,
   imageAdapter,
   type ImageAdapter,
+  IMAGE_ASSET_MEDIA_TYPES,
   imageSchema,
 } from "@brains/image";
 import { slugify } from "@brains/utils/string-utils";
@@ -620,7 +621,8 @@ export class ImagePlugin extends EntityPlugin<
   ): Promise<void> {
     context.entities.registerUploadSaveHandler({
       entityType: this.entityType,
-      mediaTypes: ["image/*"],
+      // Only raster types become assets; anything else is refused before it is stored.
+      mediaTypes: [...IMAGE_ASSET_MEDIA_TYPES],
       handler: async (input, executionContext) => {
         const interception = await this.promoteUpload(
           {

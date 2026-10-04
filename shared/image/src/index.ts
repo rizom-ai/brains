@@ -65,6 +65,7 @@ export type {
 // Staging image bytes as assets
 export {
   IMAGE_ASSET_MAX_BYTES,
+  IMAGE_ASSET_MEDIA_TYPES,
   stageImageEntity,
   type ImageAssetStager,
   type ImageBytesSource,
