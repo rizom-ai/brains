@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [#505](https://github.com/rizom-ai/brains/pull/505) [`7553962`](https://github.com/rizom-ai/brains/commit/75539623ba98972c474fb91058c3ba8f84966bbd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure through the centre point: once the reading moves the figure on, the network draws into its centre and the first team's pyramid opens out of that point; back up the page, the pyramid closes into the point and the network opens out again.
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes
