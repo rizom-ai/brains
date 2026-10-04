@@ -111,6 +111,7 @@ Plans:
 
 - [bootstrap-secrets-bitwarden.md](./plans/bootstrap-secrets-bitwarden.md) — make `--push-to bitwarden` on the bootstrap commands store the secret in Bitwarden and map it in `.env.schema`, instead of pushing to GitHub.
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit, recoverable hosted-user offboarding.
+- [artifacts-content-repos.md](./plans/artifacts-content-repos.md) — move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
 
