@@ -4,6 +4,7 @@
  * function is exported for tests and inlined into the shipped script, so
  * there is one source for the reading line.
  */
+import { ASK_ROOM_SCRIPT } from "@brains/site-atlas";
 
 /** The index of the last chapter whose top has passed the reading line, clamped to the stages a drawing has. */
 export function currentChapter(
@@ -33,7 +34,9 @@ export function readingLine(
   return stripBottom === null ? viewportHeight * beside : stripBottom + 1;
 }
 
-export const storyRuntimeScript: string = `(function () {
+export const storyRuntimeScript: string =
+  ASK_ROOM_SCRIPT +
+  `(function () {
   ${currentChapter.toString()}
   ${readingLine.toString()}
   function init() {
@@ -89,6 +92,8 @@ export const storyRuntimeScript: string = `(function () {
       var stage = currentChapter(tops, line, stageCount);
       if (figure) figure.dataset.stage = String(stage);
       chapters.forEach(function (chapter, i) { chapter.classList.toggle("is-current", i === current); });
+      // A chapter that lights the network keeps the live drawing in view while it is read.
+      story.classList.toggle("is-asked", !!(chapters[current] && chapters[current].hasAttribute("data-lights-network")));
       if (!rail) return;
       var max = document.documentElement.scrollHeight - innerHeight;
       var progress = max > 0 ? Math.min(1, scrollY / max) : 0;
@@ -107,10 +112,91 @@ export const storyRuntimeScript: string = `(function () {
     addEventListener("resize", function () { placeRail(); read(); });
     addEventListener("load", function () { placeRail(); read(); });
   }
+  // The homepage's drawings listen to the Ask room: an answer's sources name
+  // the brains whose published memory they came from (the room matches them
+  // to the opening's dots, keyed by brain, and tells the page), and those
+  // brains light in every drawing while the rest dim. A source the room
+  // matched to no brain is this brain's own and lights the center. Pointing
+  // works both ways: a listed source lights its brain, a brain flags its
+  // listed sources. Leads, the lending of the drawing to a phone's open
+  // conversation and the tap on a lit dot are the room's.
+  function listen() {
+    // The opening draws the network, and a chapter may draw it again beside
+    // its own words: every drawing answers the same events.
+    var layers = Array.prototype.slice.call(document.querySelectorAll(".net-layer"));
+    if (!layers.length) return;
+    function all(selector) {
+      return layers.reduce(function (found, layer) { return found.concat(Array.prototype.slice.call(layer.querySelectorAll(selector))); }, []);
+    }
+    var marks = all(".net-mark[data-brain]");
+    var threads = all(".net-thread[data-brain]");
+    var replies = all(".net-reply[data-brain]");
+    var names = all(".net-name[data-brain]");
+    var sourceBrain = {};
+    function light(id, on) {
+      [marks, threads, replies, names].forEach(function (list) {
+        list.forEach(function (el) { if (el.getAttribute("data-brain") === id) el.classList.toggle("is-lit", on); });
+      });
+    }
+    function hot(id, on) {
+      marks.concat(threads).forEach(function (el) { if (el.getAttribute("data-brain") === id) el.classList.toggle("is-hot", on); });
+    }
+    document.addEventListener("ask:cited", function (event) {
+      var detail = event.detail || {};
+      var lit = {};
+      sourceBrain = {};
+      (detail.cited || []).forEach(function (entry) {
+        lit[entry.key] = true;
+        sourceBrain[entry.source.id] = entry.key;
+      });
+      marks.forEach(function (m) { light(m.getAttribute("data-brain"), !!lit[m.getAttribute("data-brain")]); });
+      var rizom = (detail.unmatched || []).length > 0 && (detail.sources || []).length > 0;
+      layers.forEach(function (layer) {
+        layer.classList.toggle("has-replies", Object.keys(lit).length > 0);
+        layer.classList.toggle("is-rizom", rizom);
+      });
+    });
+    function listed(target) {
+      var row = target && target.closest ? target.closest("[data-ask-source]") : null;
+      return row ? row : null;
+    }
+    function point(event, on) {
+      var row = listed(event.target);
+      if (row) { var id = sourceBrain[row.getAttribute("data-ask-source")]; if (id) hot(id, on); return; }
+      var mark = event.target && event.target.closest ? event.target.closest(".net-mark[data-brain]") : null;
+      if (!mark) return;
+      var brain = mark.getAttribute("data-brain");
+      hot(brain, on);
+      Object.keys(sourceBrain).forEach(function (key) {
+        if (sourceBrain[key] !== brain) return;
+        Array.prototype.forEach.call(document.querySelectorAll("[data-ask-source]"), function (row) {
+          if (row.getAttribute("data-ask-source") !== key) return;
+          if (on) row.setAttribute("data-ask-hot", ""); else row.removeAttribute("data-ask-hot");
+        });
+      });
+    }
+    // "Asked before": an open question's kept sources light the drawing the
+    // way a fresh answer's do; with no question open, the drawing rests.
+    function askedSources() {
+      var open = document.querySelector("details[data-ask-answer][open]");
+      if (!open) return [];
+      try { var kept = JSON.parse(open.getAttribute("data-ask-answer") || "[]"); return Array.isArray(kept) ? kept : []; } catch (e) { return []; }
+    }
+    document.addEventListener("toggle", function (event) {
+      var target = event.target;
+      if (!target || !target.hasAttribute || !target.hasAttribute("data-ask-answer")) return;
+      document.dispatchEvent(new CustomEvent("ask:sources", { detail: { sources: askedSources() } }));
+    }, true);
+    document.addEventListener("mouseover", function (e) { point(e, true); });
+    document.addEventListener("mouseout", function (e) { point(e, false); });
+    document.addEventListener("focusin", function (e) { point(e, true); });
+    document.addEventListener("focusout", function (e) { point(e, false); });
+  }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", function () { init(); listen(); });
   } else {
     init();
+    listen();
   }
 })();
 `;

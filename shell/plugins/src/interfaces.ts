@@ -430,6 +430,14 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
     shell: IShell,
     context?: PluginRegistrationContext,
   ): Promise<PluginCapabilities>;
+  /**
+   * Worker registration for an interface: only the channels it owns and their
+   * senders, so background jobs can send on them.
+   */
+  registerChannelsForExecution?(
+    shell: IShell,
+    context?: PluginRegistrationContext,
+  ): Promise<void>;
   finalizeRegistration?(): Promise<void>;
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;

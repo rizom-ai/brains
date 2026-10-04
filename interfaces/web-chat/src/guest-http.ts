@@ -18,6 +18,7 @@ import {
   guestInterfaceType,
   getGuestSourceCards,
 } from "@brains/contracts/chat";
+import { askedBeforeSchema } from "@brains/contracts";
 import type {
   InterfacePluginContext,
   WebRouteDefinition,
@@ -62,7 +63,7 @@ function refusal(status: number): GuestUsageDenialReason {
 
 import {
   guestPolicySchema,
-  matchesGuestOrigin,
+  guestRequestOrigin,
   type GuestPolicy,
   type EnabledGuestPolicy,
 } from "./guest-policy";
@@ -74,6 +75,8 @@ import type { AskContent } from "@brains/contracts";
 export interface GuestHttpOptions {
   /** Bounded public authored copy, not execution configuration. */
   presentation?: () => Promise<AskContent | undefined>;
+  /** What the brain's public work is about: the subjects a question is screened against. */
+  subjects?: () => Promise<string[]>;
   /** Trusted host readiness, never browser configuration. Absent means closed.
    * Tests can supply a mocked runtime; production must verify accounting and
    * source-work prerequisites before supplying a positive readiness check.
@@ -152,6 +155,7 @@ export class GuestHttpHandlers {
   private readonly services: Services;
   private readonly requireAuthorization: boolean;
   private readonly presentation: GuestHttpOptions["presentation"];
+  private readonly subjects: GuestHttpOptions["subjects"];
   constructor(
     services: Services,
     policy: GuestPolicy,
@@ -159,6 +163,7 @@ export class GuestHttpHandlers {
   ) {
     this.services = services;
     this.presentation = options.presentation;
+    this.subjects = options.subjects;
     this.requireAuthorization = options.requireAuthorization === true;
     this.policy = guestPolicySchema.parse(policy);
     this.now = options.now ?? Date.now;
@@ -264,11 +269,12 @@ export class GuestHttpHandlers {
           if (localOnly && !isLoopbackPeer(transport?.remoteAddress))
             throw new GuestHttpError(403, "Guest request denied");
           const origin = request.headers.get("origin");
+          const served = guestRequestOrigin(request, this.policy);
           if (
-            !matchesGuestOrigin(request, this.policy) ||
-            (origin !== null && origin !== this.policy.origin) ||
+            served === undefined ||
+            (origin !== null && origin !== served) ||
             request.headers.get("sec-fetch-site") === "cross-site" ||
-            (method !== "GET" && origin !== this.policy.origin)
+            (method !== "GET" && origin !== served)
           )
             throw new GuestHttpError(403, "Guest request denied");
           if (
@@ -532,7 +538,12 @@ export class GuestHttpHandlers {
           const work = Promise.resolve().then(async () => {
             // The site's topics bound what the question is screened against,
             // and its refusal line is what a screened-out visitor reads.
-            const content = await this.presentation?.();
+            // The question is screened against the brain's topics and the
+            // owner's introduction; a screened-out visitor reads the refusal.
+            const [content, topics] = await Promise.all([
+              this.presentation?.(),
+              this.subjects?.() ?? [],
+            ]);
             signal.throwIfAborted();
             const response = await this.services.agent
               .chat(
@@ -544,7 +555,10 @@ export class GuestHttpHandlers {
                   isAnchor: false,
                   guestExecution: lease.execution,
                   guestScreening: {
-                    topics: content?.topics ?? [],
+                    topics,
+                    ...(content?.introduction
+                      ? { introduction: content.introduction }
+                      : {}),
                     ...(content?.refusal ? { refusal: content.refusal } : {}),
                   },
                 },
@@ -593,6 +607,14 @@ export class GuestHttpHandlers {
           for (const card of getGuestSourceCards(response.cards)) {
             writer.write({ type: "data-sources", id: card.id, data: card });
           }
+          // A FAQ answered in the model's place: the box says so by the answer.
+          if (response.askedBefore) {
+            writer.write({
+              type: "data-asked-before",
+              id: "asked-before",
+              data: { faqId: response.askedBefore.faqId },
+            });
+          }
           writeTextPart(writer, randomUUID(), response.text);
           writer.write({ type: "finish", finishReason: "stop" });
         } finally {
@@ -631,12 +653,18 @@ export class GuestHttpHandlers {
     });
     await this.owned(request, id, policy);
     const history = chatMessagesResponseSchema.parse({
-      messages: messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        cards: getGuestSourceCards(message.metadata["cards"]),
-      })),
+      messages: messages.map((message) => {
+        const askedBefore = askedBeforeSchema.safeParse(
+          message.metadata["askedBefore"],
+        );
+        return {
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          cards: getGuestSourceCards(message.metadata["cards"]),
+          ...(askedBefore.success ? { askedBefore: askedBefore.data } : {}),
+        };
+      }),
     });
     return Response.json(
       submissionId === null

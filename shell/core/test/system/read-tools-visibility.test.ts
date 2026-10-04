@@ -452,7 +452,7 @@ describe("read tools give public callers published work only", () => {
 
     it(`system_get for ${who} callers ${publishedOnly ? "asks" : "does not ask"} for published work`, async () => {
       const services = servicesWithADoc();
-      const get = spyOn(services.entityService, "getEntity");
+      const get = spyOn(services.entityService, "getEntityRaw");
       await toolNamed(services, "system_get").handler(
         { entityType: "doc", id: "doc-public" },
         baseContext(level),

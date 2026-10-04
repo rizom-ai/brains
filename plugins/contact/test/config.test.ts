@@ -73,3 +73,19 @@ describe("contact intake configuration", () => {
     ).toBe(true);
   });
 });
+
+describe("the admission defaults behind a proxy", () => {
+  // A deployment serves through a TLS-terminating proxy or a CDN, so the
+  // "network" the plugin sees is the proxy's: every visitor shares it. The
+  // network limits therefore equal the global ones, and requests and forms
+  // take the bound's maximum, so honest traffic is never refused.
+  it("never refuse honest visitors who share the proxy's network", () => {
+    const { admission } = CONTACT_INTAKE_DEFAULTS;
+    expect(admission.networkRequests).toBe(admission.globalRequests);
+    expect(admission.networkForms).toBe(admission.globalForms);
+    expect(admission.networkSubmissions).toBe(admission.globalSubmissions);
+    expect(admission.globalRequests).toBe(1000);
+    expect(admission.globalForms).toBe(1000);
+    expect(admission.maxEntries).toBe(1000);
+  });
+});

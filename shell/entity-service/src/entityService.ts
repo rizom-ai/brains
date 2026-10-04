@@ -17,7 +17,6 @@ import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
   migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
   dbUrlToPath,
   type EmbeddingDB,
@@ -45,6 +44,8 @@ import type {
   EntityGroupingMembers,
   CountEntitiesRequest,
   DeleteEntityRequest,
+  FoldEntityRequest,
+  ApplyEntityMutationOnceRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
   ProjectSemanticSpaceRequest,
@@ -77,6 +78,12 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations, validatePersist } from "./entity-mutations";
+import {
+  entityMutationReceiptKeySchema,
+  type EntityMutationReceipt,
+  type EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
+import { snapshotEntityMutation } from "./entity-mutation-request";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
@@ -409,7 +416,6 @@ export class EntityService implements IEntityService {
     // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
     await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
-    await ensureEmbeddingIndexes(this.embeddingDbClient);
     await attachEmbeddingDatabase(
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),
@@ -559,6 +565,36 @@ export class EntityService implements IEntityService {
     await this.initialize();
     await this.entityRegistry.ensureGroupingsCurrent();
     const result = await this.entityMutations.updateEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
+  }
+
+  public async getEntityMutationReceipt(
+    key: EntityMutationReceiptKey,
+  ): Promise<EntityMutationReceipt | null> {
+    const captured = entityMutationReceiptKeySchema.parse(key);
+    await this.initialize();
+    return this.entityMutations.getEntityMutationReceipt(captured);
+  }
+
+  public async applyEntityMutationOnce(
+    request: ApplyEntityMutationOnceRequest,
+  ): Promise<EntityMutationReceipt> {
+    const captured = snapshotEntityMutation(request);
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.applyEntityMutationOnce(captured);
+    if (result.applied && result.receipt.operation !== "none")
+      await this.afterGroupingSourceMutation(result.receipt.entityType);
+    return result.receipt;
+  }
+
+  public async foldEntity(
+    request: FoldEntityRequest,
+  ): Promise<EntityMutationResult> {
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.foldEntity(request);
     await this.afterGroupingSourceMutation(request.entity.entityType);
     return result;
   }
@@ -952,7 +988,7 @@ export class EntityService implements IEntityService {
     await this.initialize();
     const results = await this.entitySearch.search(
       request.query,
-      request.options,
+      this.withBroadSearchExclusions(request.options),
     );
     request.options?.signal?.throwIfAborted();
     return schema
@@ -961,6 +997,28 @@ export class EntityService implements IEntityService {
           entity: schema.parse(result.entity),
         }))
       : results;
+  }
+
+  /**
+   * A search naming no types leaves out types that opted out of broad search;
+   * a search naming types is taken as asked.
+   */
+  private withBroadSearchExclusions(
+    options: SearchOptions | undefined,
+  ): SearchOptions | undefined {
+    if (options?.types && options.types.length > 0) return options;
+    const optedOut = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          this.entityRegistry.getEntityTypeConfig(type).includeInBroadSearch ===
+          false,
+      );
+    if (optedOut.length === 0) return options;
+    return {
+      ...options,
+      excludeTypes: [...(options?.excludeTypes ?? []), ...optedOut],
+    };
   }
 
   public async searchEntities(
@@ -978,7 +1036,10 @@ export class EntityService implements IEntityService {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     await this.initialize();
-    return this.entitySearch.searchWithDistances(request.query);
+    return this.entitySearch.searchWithDistances(request.query, {
+      types: request.types,
+      maxDistance: request.maxDistance,
+    });
   }
 
   public async projectSemanticSpace(

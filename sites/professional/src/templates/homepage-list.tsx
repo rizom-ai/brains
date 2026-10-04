@@ -1,7 +1,9 @@
 import type { JSX, ReactNode } from "react";
 import {
   HomepageAtlas,
+  HomepageFaqs,
   type HomepageAtlasData,
+  type HomepageFaq,
   type HomepageOpeningContent,
 } from "@brains/site-atlas";
 import type { ProfessionalProfile } from "../schemas";
@@ -44,6 +46,8 @@ export interface HomepageListData {
   atlas?: HomepageAtlasData | null | undefined;
   /** Guest chat is enabled here: the atlas docks the shared chat box. */
   askBox?: boolean | undefined;
+  /** The owner's published FAQs, most asked first, under the atlas. */
+  faqs?: HomepageFaq[] | undefined;
 }
 
 const GRID_CLS =
@@ -93,6 +97,7 @@ export const HomepageListLayout = ({
   atlas = null,
   askBox = false,
   homepageOpening = false,
+  faqs = [],
 }: HomepageListData): JSX.Element => {
   // Use tagline if non-empty (empty string counts as absent), fall back to
   // description
@@ -141,6 +146,7 @@ export const HomepageListLayout = ({
           owner={profile.name}
           askBox={askBox}
         />
+        <HomepageFaqs heading={opening.faqHeading ?? null} faqs={faqs} />
       </>
     );
   }

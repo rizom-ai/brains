@@ -312,6 +312,35 @@ function validateFieldUpdatePersistence(
   };
 }
 
+const FRONTMATTER_BLOCK = /^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/;
+
+/**
+ * Turns replacement text into the full document it stands for. Text with its
+ * own frontmatter replaces the whole document. Body-only text replaces the body
+ * under the stored frontmatter, so metadata the caller never saw survives;
+ * types without a body have nothing to replace and need full markdown. Blank
+ * text stays blank, so empty-replacement validation still rejects it.
+ */
+export function resolveReplacementContent(
+  entity: BaseEntity,
+  text: string,
+  registry: SystemServices["entityRegistry"],
+): string | UpdateError {
+  const storedFrontmatter = FRONTMATTER_BLOCK.exec(entity.content)?.[0];
+  if (
+    storedFrontmatter === undefined ||
+    !text.trim() ||
+    FRONTMATTER_BLOCK.test(text)
+  )
+    return text;
+  if (registry.getAdapter(entity.entityType).hasBody === false)
+    return {
+      success: false,
+      error: `${entity.entityType} has no body. Replace its full markdown, including frontmatter.`,
+    };
+  return storedFrontmatter + text;
+}
+
 function validateContentReplacement(
   entityType: string,
   operation: UpdateOperation,

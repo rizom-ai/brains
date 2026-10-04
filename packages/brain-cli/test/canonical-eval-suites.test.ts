@@ -58,14 +58,14 @@ const expectedMembers: Record<SuiteName, string> = {
   headless:
     "a2a agents ask-content directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email faq image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email faq image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
-  personal: 26,
+  personal: 27,
   professional: 85,
   team: 38,
 };
@@ -250,7 +250,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(202);
+    expect(testCases.length).toBe(203);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -518,6 +518,120 @@ describe("canonical eval recipe ladder", () => {
         `---\nvisibility: restricted\n---\n${content}`,
       );
       expect(saved?.metadata["title"]).toBe("MCP verbatim create");
+      expect(saved?.visibility).toBe("restricted");
+    } finally {
+      await app.stop();
+    }
+  }, 120_000);
+
+  test("replaces a note body from a user-message source under its stored frontmatter", async () => {
+    const selection = suiteSelection("personal");
+    const { app } = createSuiteApp(
+      "personal",
+      selection,
+      seedContentPath(selection),
+    );
+    const testCase = await YAMLLoader.createFresh({
+      directory: testCasesDirectory,
+    }).loadTestCase(
+      join(testCasesDirectory, "personal/multi-turn/mcp-verbatim-update.yaml"),
+    );
+    if (testCase.type !== "multi_turn")
+      throw new Error("Expected multi-turn eval");
+    const request = testCase.turns[0]?.userMessage;
+    if (!request) throw new Error("Missing source request");
+    const startAfter = "BEGIN EXACT CONTENT";
+    const endBefore = "END EXACT CONTENT";
+    const content = request.slice(
+      request.indexOf(`${startAfter}\n`) + startAfter.length + 1,
+      request.lastIndexOf(endBefore),
+    );
+    // Seeding stores canonical Markdown, without the fixture's blank line
+    // after frontmatter.
+    const original = readFileSync(
+      join(
+        packageDirectory,
+        "eval-content/recipes/personal/mcp-verbatim-update.md",
+      ),
+      "utf8",
+    ).replace("---\n\n", "---\n");
+    try {
+      await app.initialize();
+      const shell = app.getShell();
+      const conversations = shell.getConversationService();
+      const conversationId = await conversations.startConversation({
+        sessionId: "verbatim-update-regression",
+        channelId: "verbatim-update-regression",
+        interfaceType: "mcp",
+        metadata: {
+          channelName: "Verbatim update regression",
+          interfaceType: "mcp",
+          channelId: "verbatim-update-regression",
+        },
+      });
+      await conversations.addMessage({
+        conversationId,
+        role: "user",
+        content: request,
+        metadata: { userPermissionLevel: "admin" },
+      });
+      const tool = shell
+        .getMCPService()
+        .listAgentToolsForPermissionLevel("admin")
+        .find((entry) => entry.tool.name === "system_update")?.tool;
+      if (!tool) throw new Error("Missing update tool");
+      const context = {
+        interfaceType: "mcp",
+        userPermissionLevel: "admin",
+        actor: { kind: "user", userId: "verbatim-update-regression" },
+        conversationId,
+      } as const;
+      const entityRef = {
+        entityType: "note",
+        id: "mcp-verbatim-update",
+        visibilityScope: internalFullScope(
+          "verbatim update persistence verification",
+        ),
+      };
+      expect(
+        (await shell.getEntityService().getEntity(entityRef))?.content,
+      ).toBe(original);
+      const proposal = await tool.handler(
+        {
+          entityType: "note",
+          id: "mcp-verbatim-update",
+          source: {
+            kind: "user-message",
+            boundaryMode: "lines",
+            startAfter,
+            endBefore,
+          },
+        },
+        context,
+      );
+      const approval = z
+        .object({
+          needsConfirmation: z.literal(true),
+          args: z.record(z.string(), z.unknown()),
+        })
+        .parse(proposal);
+      expect(approval.args).toMatchObject({
+        source: { contentHash: computeContentHash(content) },
+      });
+      expect(approval.args).not.toHaveProperty("content");
+      await conversations.addMessage({
+        conversationId,
+        role: "user",
+        content: "Yes, apply it.",
+        metadata: { userPermissionLevel: "admin" },
+      });
+      expect(await tool.handler(approval.args, context)).toMatchObject({
+        success: true,
+      });
+      const saved = await shell.getEntityService().getEntity(entityRef);
+      expect(saved?.content).toBe(
+        `---\nvisibility: restricted\n---\n${content}`,
+      );
       expect(saved?.visibility).toBe("restricted");
     } finally {
       await app.stop();

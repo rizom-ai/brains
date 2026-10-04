@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yeehaa.io newest piece</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap");
+/*
+  The newest piece on the atlas. Every picture is the live site in WebKit
+  with yeehaa-latest-mark/proposal.css and proposal.js injected; variant A
+  labels the mark on the map, variant B names it in the legend.
+*/
+:root{--paper:#f4ede0;--ink:#18132a;--ink-muted:#443c54;--ink-subtle:#756c80;--accent:#b8410c;--rule:rgb(24 19 42 / .12);--rule-strong:rgb(24 19 42 / .2)}
+*{box-sizing:border-box}
+body{margin:0;background:#e5ddcd;color:var(--ink);font:15px/1.55 Barlow,system-ui,sans-serif}
+.page{max-width:1240px;margin:0 auto;padding:40px 24px 80px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 10px}
+h2.part{font:600 22px/1.2 Fraunces,Georgia,serif;margin:48px 0 0}
+.lede{color:var(--ink-muted);max-width:70ch;margin:0 0 12px}
+figure{margin:0}
+figcaption{font:500 13px Barlow,sans-serif;color:var(--ink-subtle);margin:0 0 8px}
+.new figcaption{color:var(--accent)}
+.notes h3{font:600 19px/1.25 Fraunces,Georgia,serif;margin:0 0 10px}
+.notes ul{margin:0;padding-left:18px;color:var(--ink-muted)}
+.notes li{margin-bottom:8px}
+.notes b{color:var(--ink)}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.drow{grid-template-columns:1fr}}
+.screens{display:grid;gap:18px}
+.screen{border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--rule-strong),0 10px 24px rgb(0 0 0 / .14)}
+.screen img{display:block;width:100%}
+.row{display:grid;grid-template-columns:auto auto auto 1fr;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1100px){.row{grid-template-columns:auto auto auto}.row .notes{grid-column:1/-1}}
+@media (max-width:760px){.row{grid-template-columns:1fr;justify-items:center}}
+.phone{width:260px;height:560px;border-radius:24px;overflow:hidden;box-shadow:0 0 0 7px #1d1a26,0 14px 30px rgb(0 0 0 / .22);background:var(--paper)}
+.phone img{display:block;width:100%}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>The newest piece on the map</h1>
+  <p class="lede">The most recently published piece gets a thin accent ring around its mark, drawn once as the page loads. Its shape and colour stay as they are, so it never reads as a piece the answer cites. Three ways to name it: a label on the map (A), the title in the legend (B), or just "Latest" in the legend, which opens the mark's card (C, recommended). Every picture is the live site in WebKit with <code>yeehaa-latest-mark/proposal.css</code> and <code>proposal.js</code> injected.</p>
+
+  <h2 class="part">C (recommended): "Latest" in the legend</h2>
+  <div class="drow">
+    <div class="screens">
+      <figure class="new"><figcaption>Desktop: the ring, and "Latest" as a legend key</figcaption><div class="screen"><img src="yeehaa-latest-mark/new-c-desk.jpg" alt="Variant C, desktop"></div></figure>
+      <figure class="new"><figcaption>Desktop: hovering "Latest" (or the mark) opens its card</figcaption><div class="screen"><img src="yeehaa-latest-mark/new-c-desk-open.jpg" alt="Variant C, desktop, card open"></div></figure>
+    </div>
+    <div class="notes">
+      <h3>Just "Latest"</h3>
+      <ul>
+        <li><b>The legend</b> gains one key in the same voice as Essay, Presentation and Project: an accent ring, "Latest".</li>
+        <li><b>The title is one gesture away:</b> hovering the mark or the key opens the piece's usual card; on a phone, tapping "Latest" opens it.</li>
+        <li><b>Fits on one line</b> on desktop and phone, where B wraps to a second.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="row" style="grid-template-columns:auto auto 1fr">
+    <figure class="new"><figcaption>Phone: the ring and "Latest"</figcaption><div class="phone" style="height:auto"><img src="yeehaa-latest-mark/new-c-phone.jpg" alt="Variant C, phone"></div></figure>
+    <figure class="new"><figcaption>Phone: tapping "Latest" opens the card</figcaption><div class="phone" style="height:auto"><img src="yeehaa-latest-mark/new-c-phone-open.jpg" alt="Variant C, phone, card open"></div></figure>
+    <div class="notes"><h3>On a phone</h3><ul><li><b>No hover,</b> so the key is a button: tap it and the card opens over the map, tap elsewhere and it closes, as for any mark.</li></ul></div>
+  </div>
+
+  <h2 class="part">A and B, desktop</h2>
+  <div class="drow">
+    <div class="screens">
+      <figure><figcaption>Now</figcaption><div class="screen"><img src="yeehaa-latest-mark/now-desk.jpg" alt="Current atlas"></div></figure>
+      <figure class="new"><figcaption>B: ring on the map, named in the legend</figcaption><div class="screen"><img src="yeehaa-latest-mark/new-b-desk.jpg" alt="Variant B, full"></div></figure>
+      <figure class="new"><figcaption>B, close up</figcaption><div class="screen"><img src="yeehaa-latest-mark/new-b-desk-detail.jpg" alt="Variant B, detail"></div></figure>
+      <figure class="new"><figcaption>A: ring with a label above the mark</figcaption><div class="screen"><img src="yeehaa-latest-mark/new-a-desk-detail.jpg" alt="Variant A, detail"></div></figure>
+    </div>
+    <div class="notes">
+      <h3>B: the legend names it</h3>
+      <ul>
+        <li><b>The ring</b> is a new legend key, like the circle, diamond and square: "Newest: <i>title</i>, June 2026", linking to the piece.</li>
+        <li><b>Nothing new on the map</b> but the ring, so it never covers a topic name or a neighbouring mark, wherever the piece lands.</li>
+        <li><b>Hover or tap the mark</b> and its usual card opens, as for every piece.</li>
+      </ul>
+      <h3 style="margin-top:22px">A: a label on the map</h3>
+      <ul>
+        <li><b>Covers whatever is above the mark:</b> here half of "data driven knowledge", on desktop and phone. Every placement collides somewhere as the map changes.</li>
+      </ul>
+      <h3 style="margin-top:22px">Both</h3>
+      <ul>
+        <li><b>Always the newest,</b> with its month: the date tells a visitor how recent it is, so nothing is hidden after a quiet stretch. Today that is June.</li>
+        <li><b>Marks clear of the legend:</b> this essay's mark sits under the legend today, half hidden and not hoverable on desktop. Here it is drawn just above; the build keeps every mark clear of the legend.</li>
+        <li><b>Reduced motion:</b> the ring is there without drawing.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="part">A and B, phone</h2>
+  <div class="row">
+    <figure><figcaption>Now</figcaption><div class="phone"><img src="yeehaa-latest-mark/now-phone.jpg" alt="Phone, current"></div></figure>
+    <figure class="new"><figcaption>B</figcaption><div class="phone"><img src="yeehaa-latest-mark/new-b-phone.jpg" alt="Phone, variant B"></div></figure>
+    <figure class="new"><figcaption>A</figcaption><div class="phone"><img src="yeehaa-latest-mark/new-a-phone.jpg" alt="Phone, variant A"></div></figure>
+    <div class="notes">
+      <h3>On a phone</h3>
+      <ul>
+        <li><b>B</b> adds one line under the legend, the only place a phone gives it room without covering the map.</li>
+        <li><b>A</b> covers the "data driven knowledge" name.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

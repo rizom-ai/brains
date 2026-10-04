@@ -1,5 +1,37 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [#505](https://github.com/rizom-ai/brains/pull/505) [`7553962`](https://github.com/rizom-ai/brains/commit/75539623ba98972c474fb91058c3ba8f84966bbd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure through the centre point: once the reading moves the figure on, the network draws into its centre and the first team's pyramid opens out of that point; back up the page, the pyramid closes into the point and the network opens out again.
+
+## 0.2.0-alpha.263
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening is an Ask room, as yeehaa.io's atlas is: on a wide screen the words scroll within the screen beside the drawing, the composer stays on the first screen through a long answer, and the leads from an answer's sources to their brains, the lending of the drawing to a phone's conversation and the tap on a lit dot come from the shared room.
+
+## 0.2.0-alpha.262
+
+### Patch Changes
+
+- [#503](https://github.com/rizom-ai/brains/pull/503) [`cbcb741`](https://github.com/rizom-ai/brains/commit/cbcb7418446cdda8c80135c8d02c398ec949cb84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a wide screen an answer grows in rizom.ai's opening instead of scrolling inside a band, the drawing keeps its place beside the words while the opening is read, and the leads from an answer's sources to their brains are drawn in the viewport, only between a row and a dot that are both in view.
+
+## 0.2.0-alpha.261
+
+### Minor Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`760a0bb`](https://github.com/rizom-ai/brains/commit/760a0bb09722929829ebb8db17fd30fc19026a23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage drawing listens to the Ask box: the brains an answer's sources came from light with their own echo and spark while the rest dim, Rizom's center stays lit for its own pieces, and pointing at a listed source or a brain lights the other.
+
+### Patch Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`934ebe5`](https://github.com/rizom-ai/brains/commit/934ebe5cc8707c8a0c2569c57dcc560aea198776) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage gains "Asked before" after "Where this goes": the visitors' questions the owner kept and published, most asked first, each opening on its answer, who answered, and the sources in their owners' words. The chapter draws the live network beside the questions; opening one lights the brains its answer drew on, and the organism steps aside while the chapter is read. No count is shown.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`867ad44`](https://github.com/rizom-ai/brains/commit/867ad44544889e6707e0d2a27aeb188035f185a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage drawing belongs to the page while an answer is open: on desktop a dotted lead runs from each listed source to its brain in the drawing; on a phone the drawing joins the open conversation above the answer and a tap on a lit dot brings its source into view. Reduced motion keeps the lit states and drops the leads and flashes.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`eecbdea`](https://github.com/rizom-ai/brains/commit/eecbdea7dc0467b0df76f0c9ecb2a6e4265c284e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai names what a visitor's answer may cite: its essays, talks and agents, and the network's pieces, which live on their brains' sites.
+
 ## 0.2.0-alpha.260
 
 ### Patch Changes

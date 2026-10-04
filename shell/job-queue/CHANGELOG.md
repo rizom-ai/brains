@@ -1,5 +1,273 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.483
+  - @brains/db@0.2.0-alpha.483
+  - @brains/operation-context@0.2.0-alpha.483
+  - @brains/utils@0.2.0-alpha.483
+  - @brains/mcp-service@0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/db@0.2.0-alpha.482
+  - @brains/operation-context@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/mcp-service@0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/db@0.2.0-alpha.481
+  - @brains/operation-context@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+  - @brains/mcp-service@0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- [#498](https://github.com/rizom-ai/brains/pull/498) [`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Local SQLite clients wait out a briefly held lock on every write path, not only when starting a transaction. Since connections stopped waiting on locks natively, a single statement, a batch or a migration that met another connection's write lock failed at once with `SQLITE_BUSY`; in production, embedding writes failed this way and the semantic index came up degraded. Standalone statements, batches and migrations now retry asynchronously under the same policy as transactions, and the retry budget is 5 seconds, as long as the native busy timeout it replaced. Statements inside an open transaction and multi-statement scripts are still never retried.
+
+  A refused batch or migration now reopens its connection, as a refused transaction start already did, so the client stays usable for later commits. The job queue keeps its own transaction-level retries as its only contention policy: its client sets `contentionRetryBudgetMs: 0` and surfaces each refusal at once. The entity service's separate write retry is removed; its writes rely on the client's.
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/db@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/operation-context@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+  - @brains/mcp-service@0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies [[`48e2464`](https://github.com/rizom-ai/brains/commit/48e2464c5531d6b9b9ee9e3b69b44f1c5df5805c)]:
+  - @brains/db@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/operation-context@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+  - @brains/mcp-service@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/db@0.2.0-alpha.478
+  - @brains/operation-context@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/mcp-service@0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#473](https://github.com/rizom-ai/brains/pull/473) [`e1f56b3`](https://github.com/rizom-ai/brains/commit/e1f56b35ff11affce5dee81584121147e3889125) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate durable runtime-update page sizes before querying SQLite: require an integer from zero to 1,000 and return zero-sized pages without database I/O. Preserve the existing 1,000-row service default, indexed tuple seek, SQL LIMIT and timestamp/ID cursor ordering. Invalid sizes now reject instead of allowing negative SQLite limits to read the entire queue.
+
+- Updated dependencies [[`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/db@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/operation-context@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+  - @brains/mcp-service@0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/db@0.2.0-alpha.476
+  - @brains/operation-context@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/mcp-service@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/db@0.2.0-alpha.475
+  - @brains/operation-context@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/mcp-service@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/db@0.2.0-alpha.474
+  - @brains/operation-context@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/mcp-service@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/db@0.2.0-alpha.473
+  - @brains/operation-context@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/mcp-service@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/db@0.2.0-alpha.472
+  - @brains/operation-context@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/mcp-service@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/db@0.2.0-alpha.471
+  - @brains/operation-context@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/mcp-service@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/db@0.2.0-alpha.470
+  - @brains/operation-context@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/mcp-service@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/db@0.2.0-alpha.469
+  - @brains/operation-context@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/mcp-service@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/db@0.2.0-alpha.468
+  - @brains/operation-context@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/mcp-service@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/db@0.2.0-alpha.467
+  - @brains/operation-context@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/mcp-service@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/db@0.2.0-alpha.466
+  - @brains/operation-context@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/mcp-service@0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.465
+  - @brains/db@0.2.0-alpha.465
+  - @brains/operation-context@0.2.0-alpha.465
+  - @brains/utils@0.2.0-alpha.465
+  - @brains/mcp-service@0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.464
+  - @brains/db@0.2.0-alpha.464
+  - @brains/operation-context@0.2.0-alpha.464
+  - @brains/utils@0.2.0-alpha.464
+  - @brains/mcp-service@0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.463
+  - @brains/db@0.2.0-alpha.463
+  - @brains/operation-context@0.2.0-alpha.463
+  - @brains/utils@0.2.0-alpha.463
+  - @brains/mcp-service@0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.462
+  - @brains/db@0.2.0-alpha.462
+  - @brains/operation-context@0.2.0-alpha.462
+  - @brains/utils@0.2.0-alpha.462
+  - @brains/mcp-service@0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- [`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden shell registration, acknowledgement barriers, and resource teardown:
+
+  - Reject duplicate MCP capabilities without overwriting their owners, and propagate registration failures for plugin rollback.
+  - Retain failed message collection acknowledgements so successful subscribers cannot hide a failed projection-wave completion effect.
+  - Reject scoped plugin acquisition before registry mutation and keep attachment release handles bound to their own registrations.
+  - Drain admitted durable progress polling before runtime teardown; progress monitor stop is now terminal and Promise-based.
+  - Clear runtime-state prefixes atomically without parsing stale values, preserving literal wildcard, Unicode, and embedded-NUL matching.
+  - Separate operator runtime contracts, schemas, action normalization, block normalization, and diagnostics into private responsibility-owned modules without changing rendered output.
+
+- Updated dependencies [[`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/mcp-service@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+  - @brains/db@0.2.0-alpha.461
+  - @brains/operation-context@0.2.0-alpha.461
+
 ## 0.2.0-alpha.460
 
 ### Patch Changes

@@ -40,6 +40,7 @@ export const atlasItemSchema: z.ZodObject<{
   zoneId: z.ZodNullable<z.ZodString>;
   url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  latest: z.ZodDefault<z.ZodBoolean>;
 }> = z.object({
   id: z.string(),
   entityType: atlasEntityTypeSchema,
@@ -53,6 +54,8 @@ export const atlasItemSchema: z.ZodObject<{
   // Null until enrichment links it; JSON has no undefined.
   url: z.string().nullable().default(null),
   typeLabel: z.string().nullable().default(null),
+  /** The most recently published piece, ringed on the map. */
+  latest: z.boolean().default(false),
 });
 
 export const homepageAtlasSchema: z.ZodDefault<

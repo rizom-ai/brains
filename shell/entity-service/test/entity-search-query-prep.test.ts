@@ -40,6 +40,7 @@ function createDistanceDb(): EntityDB {
   const chainableMock = {
     from: mock(() => chainableMock),
     innerJoin: mock(() => chainableMock),
+    where: mock(() => chainableMock),
     orderBy: mock(() => Promise.resolve([])),
   };
 

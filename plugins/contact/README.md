@@ -64,9 +64,10 @@ or browser-preview acceptance have been performed.
 
 ## Runtime configuration and delivery
 
-The intake runs on the plugin's own policy (`CONTACT_INTAKE_DEFAULTS`): an hour's
-window of modest request, form and submission limits, half-hour form tokens, notes
-kept for a day, and a few alert attempts. `ContactPluginConfig.intake` takes only
+The intake runs on the plugin's own policy (`CONTACT_INTAKE_DEFAULTS`): a thousand
+requests and forms an hour and a hundred submissions, with the network limits equal to
+the global ones because every visitor shares a proxied deployment's network; half-hour
+form tokens, notes kept for a day, and a few alert attempts. `ContactPluginConfig.intake` takes only
 the values an owner wants different, in `http`, `admission`, `storage` and
 `delivery`; each is held to the bounds the schema exports describe. Intake depends
 on `notifications`, `studio` and `unified-inbox`; configure the notification

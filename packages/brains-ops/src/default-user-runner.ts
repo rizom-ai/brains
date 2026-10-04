@@ -1,4 +1,5 @@
 import { deepMerge } from "@brains/utils/config-merge";
+import { runtimeImageTag, sitePackagesFor } from "./images";
 import { toYaml } from "@brains/utils/yaml";
 import { renderContentRepoRef as renderRepoRef } from "./content-repo-ref";
 import type { ResolvedUser } from "./load-registry";
@@ -150,8 +151,15 @@ function renderAnchorProfile(user: ResolvedUser): string {
 }
 
 function renderUserEnv(user: ResolvedUser, githubOrg: string): string {
+  const sitePackages = sitePackagesFor(user.siteOverride);
   return [
     `BRAIN_VERSION=${user.brainVersion}`,
+    // An instance with site pins names the image it runs, so a pin change is
+    // a changed config, and so a deploy; a plain instance runs the plain
+    // image and its env says only its version.
+    ...(sitePackages.length > 0
+      ? [`IMAGE_TAG=${runtimeImageTag(user.brainVersion, sitePackages)}`]
+      : []),
     `CONTENT_REPO=${renderContentRepoRef(user, githubOrg)}`,
     "",
   ].join("\n");

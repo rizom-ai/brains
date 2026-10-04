@@ -1,5 +1,285 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.483
+  - @brains/contracts@0.2.0-alpha.483
+  - @brains/image@0.2.0-alpha.483
+  - @brains/utils@0.2.0-alpha.483
+  - @brains/entity-service@0.2.0-alpha.483
+  - @brains/plugins@0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.482
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/image@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/entity-service@0.2.0-alpha.482
+  - @brains/plugins@0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.481
+  - @brains/image@0.2.0-alpha.481
+  - @brains/content-formatters@0.2.0-alpha.481
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+  - @brains/entity-service@0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/entity-service@0.2.0-alpha.480
+  - @brains/image@0.2.0-alpha.480
+  - @brains/plugins@0.2.0-alpha.480
+  - @brains/content-formatters@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`10c2f55`](https://github.com/rizom-ai/brains/commit/10c2f55eeae34ef03c74a309cd1c803af705aa30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync no longer re-imports a file that parses to exactly what is stored. A file not in canonical form, such as a note without a final newline, hashed differently from the stored row on every sync, so it was written again each time: its `updated` time moved to the file's modification time and an embedding job was queued, with no content change. On a copy of yeehaa.io this touched ten notes on every start.
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`6dc14d2`](https://github.com/rizom-ai/brains/commit/6dc14d262ea428140baec221e4ec7ed0b6e14c0c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Removing one file of an entity no longer deletes the entity while another of its files remains, such as an image's `.png` beside a leftover `.jpg`. The entity is kept and the remaining file is imported, so it becomes the entity's content. Before, deleting the leftover file from the content repository deleted the image itself on the next pull.
+
+- Updated dependencies [[`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a), [`9072132`](https://github.com/rizom-ai/brains/commit/9072132dd1bac2e39c19d1274b29252abf9adf63)]:
+  - @brains/entity-service@0.2.0-alpha.479
+  - @brains/image@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/content-formatters@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.478
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/image@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/entity-service@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- Updated dependencies [[`aa0b1a6`](https://github.com/rizom-ai/brains/commit/aa0b1a65c0da59cbbbc597d6ed4b4e10153f1f8b), [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/entity-service@0.2.0-alpha.477
+  - @brains/plugins@0.2.0-alpha.477
+  - @brains/image@0.2.0-alpha.477
+  - @brains/content-formatters@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.476
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/image@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/entity-service@0.2.0-alpha.476
+  - @brains/plugins@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.475
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/image@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/entity-service@0.2.0-alpha.475
+  - @brains/plugins@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.474
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/image@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/entity-service@0.2.0-alpha.474
+  - @brains/plugins@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.473
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/image@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/entity-service@0.2.0-alpha.473
+  - @brains/plugins@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.472
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/image@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/entity-service@0.2.0-alpha.472
+  - @brains/plugins@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.471
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/image@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/entity-service@0.2.0-alpha.471
+  - @brains/plugins@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.470
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/image@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/entity-service@0.2.0-alpha.470
+  - @brains/plugins@0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.469
+  - @brains/contracts@0.2.0-alpha.469
+  - @brains/image@0.2.0-alpha.469
+  - @brains/utils@0.2.0-alpha.469
+  - @brains/entity-service@0.2.0-alpha.469
+  - @brains/plugins@0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.468
+  - @brains/contracts@0.2.0-alpha.468
+  - @brains/image@0.2.0-alpha.468
+  - @brains/utils@0.2.0-alpha.468
+  - @brains/entity-service@0.2.0-alpha.468
+  - @brains/plugins@0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.467
+  - @brains/contracts@0.2.0-alpha.467
+  - @brains/image@0.2.0-alpha.467
+  - @brains/utils@0.2.0-alpha.467
+  - @brains/entity-service@0.2.0-alpha.467
+  - @brains/plugins@0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.466
+  - @brains/contracts@0.2.0-alpha.466
+  - @brains/image@0.2.0-alpha.466
+  - @brains/utils@0.2.0-alpha.466
+  - @brains/entity-service@0.2.0-alpha.466
+  - @brains/plugins@0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.465
+  - @brains/contracts@0.2.0-alpha.465
+  - @brains/image@0.2.0-alpha.465
+  - @brains/utils@0.2.0-alpha.465
+  - @brains/entity-service@0.2.0-alpha.465
+  - @brains/plugins@0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.464
+  - @brains/contracts@0.2.0-alpha.464
+  - @brains/image@0.2.0-alpha.464
+  - @brains/utils@0.2.0-alpha.464
+  - @brains/entity-service@0.2.0-alpha.464
+  - @brains/plugins@0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.463
+  - @brains/contracts@0.2.0-alpha.463
+  - @brains/image@0.2.0-alpha.463
+  - @brains/utils@0.2.0-alpha.463
+  - @brains/entity-service@0.2.0-alpha.463
+  - @brains/plugins@0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.462
+  - @brains/contracts@0.2.0-alpha.462
+  - @brains/image@0.2.0-alpha.462
+  - @brains/utils@0.2.0-alpha.462
+  - @brains/entity-service@0.2.0-alpha.462
+  - @brains/plugins@0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
+### Patch Changes
+
+- Updated dependencies [[`a294aa5`](https://github.com/rizom-ai/brains/commit/a294aa5756acd7a44d55971e30c62becf15708e0)]:
+  - @brains/plugins@0.2.0-alpha.461
+  - @brains/utils@0.2.0-alpha.461
+  - @brains/image@0.2.0-alpha.461
+  - @brains/entity-service@0.2.0-alpha.461
+  - @brains/content-formatters@0.2.0-alpha.461
+  - @brains/contracts@0.2.0-alpha.461
+
 ## 0.2.0-alpha.460
 
 ### Patch Changes

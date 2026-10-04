@@ -184,6 +184,9 @@ async function prepareRoute(
     options.signal.throwIfAborted();
     if (section.template === "footer") continue;
 
+    // Local libSQL answers queries synchronously, so resolving sections is one
+    // unbroken chain of microtasks; yield so requests are served between them.
+    await new Promise<void>((resolve) => setImmediate(resolve));
     const result = await prepareSection(options, section);
     if (result.section) sections.push(result.section);
     if (result.diagnostic) diagnostics.push(result.diagnostic);

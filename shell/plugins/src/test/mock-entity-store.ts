@@ -2,6 +2,7 @@ import {
   type BaseEntity,
   type EntityAdapter,
   type EntityExportIntent,
+  type EntityMutationReceipt,
   type IEntityRegistry,
 } from "@brains/entity-service";
 
@@ -20,6 +21,7 @@ type EntityTypeConfig = NonNullable<
 export interface MockEntityStore {
   readonly entities: Map<string, BaseEntity>;
   readonly exportIntents: Map<string, EntityExportIntent>;
+  readonly mutationReceipts: Map<string, EntityMutationReceipt>;
   readonly types: Set<string>;
   readonly adapters: Map<string, EntityAdapter<BaseEntity>>;
   readonly typeConfigs: Map<string, EntityTypeConfig | undefined>;
@@ -60,6 +62,7 @@ export function createMockEntityStore(): MockEntityStore {
   return {
     entities,
     exportIntents,
+    mutationReceipts: new Map(),
     types,
     adapters,
     typeConfigs,

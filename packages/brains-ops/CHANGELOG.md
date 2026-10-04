@@ -1,5 +1,55 @@
 # @brains/ops
 
+## 0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`99f6c6b`](https://github.com/rizom-ai/brains/commit/99f6c6b28bef79a39b083142d4c7717f3452fdf9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup verifies embedding databases whether or not they still carry the retired libSQL vector index. Before, it read the index's shadow table unconditionally and failed once the index was dropped. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+## 0.2.0-alpha.469
+
+## 0.2.0-alpha.468
+
+## 0.2.0-alpha.467
+
+## 0.2.0-alpha.466
+
+## 0.2.0-alpha.465
+
+## 0.2.0-alpha.464
+
+## 0.2.0-alpha.463
+
+## 0.2.0-alpha.462
+
+## 0.2.0-alpha.461
+
 ## 0.2.0-alpha.460
 
 ## 0.2.0-alpha.459

@@ -25,12 +25,28 @@ export {
   ASK_SHEET_MEDIA,
   ASK_SOURCE_ATTRIBUTE,
   ASK_SOURCES_EVENT,
+  ASK_ROOM_ATTRIBUTE,
+  ASK_COLUMN_ATTRIBUTE,
+  ASK_MARK_ATTRIBUTE,
+  ASK_DRAWING_ATTRIBUTE,
+  ASK_LEADS_ATTRIBUTE,
+  ASK_SLOT_ATTRIBUTE,
+  ASK_AIM_ATTRIBUTE,
+  ASK_CITED_ATTRIBUTE,
+  ASK_FLASH_ATTRIBUTE,
+  ASK_CITED_EVENT,
+  ASK_LENT_EVENT,
+  ASK_RETURNED_EVENT,
+  ASK_AIMED_EVENT,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
   askBoxAvailabilitySchema,
+  answeredBy,
   askSourcesDetailSchema,
+  sourceBrainSchema,
   type AskBoxAvailability,
   type AskSourcesDetail,
+  type SourceBrain,
 } from "./ask-box";
 export {
   AGENT_ACTION_REQUEST_CHANNEL,
@@ -62,6 +78,8 @@ export {
   type AttachmentCardSource,
   type AttachmentCardData,
   type AttachmentCard,
+  askedBeforeSchema,
+  type AskedBefore,
   type SourceCitation,
   type SourcesCard,
   type PromptChatAction,
@@ -72,6 +90,16 @@ export {
   type PendingConfirmation,
   type ToolResultData,
 } from "./agent-response";
+export {
+  GUEST_ASKED_BEFORE_CHANNEL,
+  askedBeforeRequestSchema,
+  askedBeforeHitSchema,
+  askedBeforeResponseSchema,
+  firstAskedBeforeHit,
+  type AskedBeforeRequest,
+  type AskedBeforeHit,
+  type AskedBeforeResponse,
+} from "./asked-before";
 export {
   AGENT_CONTEXT_REQUEST_CHANNEL,
   agentContextPermissionLevelSchema,
@@ -239,6 +267,11 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export {
+  TOPIC_TITLES_MESSAGE,
+  topicTitlesResponseSchema,
+  type TopicTitlesResponse,
+} from "./topic-titles";
 export {
   NOTE_CAPTURE_MESSAGE,
   noteCaptureRequestSchema,

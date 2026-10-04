@@ -42,19 +42,12 @@ export async function migrateEmbeddingDatabase(
       PRIMARY KEY(entity_id, entity_type)
     )
   `);
+  // Searches use vector_distance_cos, never vector_top_k. Retire the unused
+  // ANN index on existing files before any embedding rows are rewritten.
+  await client.execute("DROP INDEX IF EXISTS embeddings_embedding_idx");
   await client.execute(
     "UPDATE embeddings SET entity_type = 'note' WHERE entity_type = 'base'",
   );
-}
-
-/**
- * Ensure vector index exists on the embedding database
- */
-export async function ensureEmbeddingIndexes(client: Client): Promise<void> {
-  await client.execute(`
-    CREATE INDEX IF NOT EXISTS embeddings_embedding_idx
-    ON embeddings(libsql_vector_idx(embedding))
-  `);
 }
 
 /**

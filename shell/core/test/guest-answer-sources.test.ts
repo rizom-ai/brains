@@ -137,3 +137,38 @@ describe("a visitor's answer's sources", () => {
     expect(await find({ answer: "Storage is not memory." })).toEqual([]);
   });
 });
+
+describe("a source from another brain", () => {
+  it("is cited at its origin, with the brain it came from", async () => {
+    const piece = result("network-piece", "plc-peer--post--3kabc", 0.6, {
+      title: "Handoffs between teams",
+      origin: "https://becca.rizom.ai/essays/handoffs",
+      brain: {
+        did: "did:plc:peer",
+        name: "Becca",
+        url: "https://becca.rizom.ai",
+      },
+    });
+    const search = mock(async (request: EntitySearchRequest) => {
+      void request;
+      return [piece];
+    });
+    const find = createGuestAnswerSources({
+      entityService: { search },
+      isCitable: (entityType) => entityType === "network-piece",
+      urlFor: () => "/never-used",
+      siteBaseUrl: "rizom.ai",
+    });
+    expect(await find({ answer: "…" })).toEqual([
+      {
+        id: "network-piece:plc-peer--post--3kabc",
+        title: "Handoffs between teams",
+        source: "network-piece",
+        entityType: "network-piece",
+        entityId: "plc-peer--post--3kabc",
+        url: "https://becca.rizom.ai/essays/handoffs",
+        brain: { name: "Becca", url: "https://becca.rizom.ai" },
+      },
+    ]);
+  });
+});

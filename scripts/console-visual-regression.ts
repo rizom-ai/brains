@@ -8,6 +8,10 @@ import path from "node:path";
 import { PNG } from "pngjs";
 import axe from "axe-core";
 import { createAdministrationFixture } from "./fixtures/studio-administration";
+import {
+  pinConsoleFonts,
+  servePinnedConsoleFont,
+} from "./lib/pinned-console-fonts";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
 import { createSyncViewFixture } from "./fixtures/studio-sync-view";
@@ -3286,9 +3290,8 @@ const workViewFixtures = await createWorkViewFixtures(STUDY_STATE);
 const deliveryViewFixtures = await createDeliveryViewFixtures(STUDY_STATE);
 const syncViewFixture = await createSyncViewFixture(STUDY_STATE);
 const sessionTitleOverrides = new Map<string, string>();
-const server = Bun.serve({
-  port: 0,
-  async fetch(request) {
+const fixtureRoutes = {
+  async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/fixture/verdigris.png")
       return new Response(fixtureImage, {
@@ -3902,6 +3905,33 @@ const server = Bun.serve({
       });
     if (url.pathname === "/api/console/jump") return json({ groups: [] });
     return new Response("Not found", { status: 404 });
+  },
+};
+const server = Bun.serve({
+  port: 0,
+  // Pages and stylesheets load the pinned fonts, never Google's: the
+  // baselines are drawn with one exact build of each face.
+  async fetch(request) {
+    const font = await servePinnedConsoleFont(new URL(request.url).pathname);
+    if (font) return font;
+    const response = await fixtureRoutes.fetch(request);
+    const type = response.headers.get("content-type") ?? "";
+    if (!type.includes("text/html") && !type.includes("text/css"))
+      return response;
+    const headers = new Headers(response.headers);
+    headers.delete("content-length");
+    return new Response(await pinConsoleFonts(await response.text()), {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  },
+  // A page the harness cannot serve as captured fails the run loudly, not
+  // only inside a screenshot.
+  error(error) {
+    console.error(error);
+    process.exitCode = 1;
+    return new Response(getErrorMessage(error), { status: 500 });
   },
 });
 

@@ -284,6 +284,18 @@ export function createMockSystemServices(
     );
   };
 
+  const readEntity = async (request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: BaseEntity["visibility"];
+  }): Promise<SeedEntity | null> => {
+    const entity = entities.get(request.id);
+    if (entity?.entityType !== request.entityType) return null;
+    const scope = request.visibilityScope ?? "public";
+    const allowed = new Set(getVisibleContentVisibilities(scope));
+    return allowed.has(entity.visibility) ? entity : null;
+  };
+
   const entityServiceBehaviour = {
     search: async (request: EntitySearchRequest) => {
       const scope = request.options?.visibilityScope;
@@ -311,17 +323,9 @@ export function createMockSystemServices(
           return minScore === undefined || result.score >= minScore;
         });
     },
-    getEntity: async (request: {
-      entityType: string;
-      id: string;
-      visibilityScope?: BaseEntity["visibility"];
-    }) => {
-      const entity = entities.get(request.id);
-      if (entity?.entityType !== request.entityType) return null;
-      const scope = request.visibilityScope ?? "public";
-      const allowed = new Set(getVisibleContentVisibilities(scope));
-      return allowed.has(entity.visibility) ? entity : null;
-    },
+    getEntity: readEntity,
+    // The double holds stored content only, so a raw read is the same read.
+    getEntityRaw: readEntity,
     listEntities: async (request: ListEntitiesRequest) => {
       const scope = request.options?.filter?.visibilityScope;
       const allowed = scope

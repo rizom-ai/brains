@@ -7,12 +7,21 @@
  */
 export { HomepageAtlas, type SuppliedMap } from "./templates/homepage-atlas";
 export { AskBoxHost } from "./templates/ask-box-host";
+export { HomepageFaqs } from "./templates/homepage-faqs";
+export { homepageFaqsStyles } from "./templates/homepage-faqs-styles";
+export {
+  homepageFaqSchema,
+  homepageFaqsSchema,
+  type HomepageFaq,
+} from "./schemas/homepage-faqs";
 export { homepageAtlasStyles } from "./templates/homepage-atlas-styles";
 export { sampleGrid, traceContours, type ContourGrid } from "./lib/contours";
 export {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
 } from "./templates/homepage-atlas-script";
+export { ASK_ROOM_SCRIPT } from "./templates/ask-room-script";
+export { ASK_ROOM_STYLES } from "./templates/ask-room-styles";
 export {
   atlasEntityTypeSchema,
   atlasItemSchema,

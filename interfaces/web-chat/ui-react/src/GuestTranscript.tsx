@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { ReactElement } from "react";
 import { Streamdown } from "streamdown";
-import { ASK_SOURCE_ATTRIBUTE } from "@brains/contracts";
+import { ASK_SOURCE_ATTRIBUTE, answeredBy } from "@brains/contracts";
 import {
   getGuestSourceCards,
   type ChatCard,
@@ -59,17 +59,38 @@ export function GuestMarkdown({
   );
 }
 
-/** An answer's sources as links to what it drew on, each marked for its host. */
+/** An answer's sources as links to what it drew on, each marked for its host
+ * with its key and, when it came from another brain, that brain. */
 function SourceLinks({
   card,
+  owner,
 }: {
   card: Extract<ChatCard, { kind: "sources" }>;
+  owner: string;
 }): ReactElement {
+  const brains = card.sources.flatMap((source) =>
+    source.brain ? [source.brain.name] : [],
+  );
   return (
-    <ul className="brain-box-sources" aria-label="Sources">
+    <ul
+      className="brain-box-sources"
+      aria-label={
+        brains.length ? `Sources, ${answeredBy(owner, brains)}` : "Sources"
+      }
+    >
+      {brains.length > 0 && (
+        <li className="brain-box-answered-by">{answeredBy(owner, brains)}</li>
+      )}
       {card.sources.map((source) => (
-        <li key={source.id} {...{ [ASK_SOURCE_ATTRIBUTE]: source.id }}>
+        <li
+          key={source.id}
+          {...{ [ASK_SOURCE_ATTRIBUTE]: source.id }}
+          {...(source.brain ? { "data-ask-brain": source.brain.name } : {})}
+        >
           <span className="brain-box-source-mark" aria-hidden="true" />
+          {source.brain && (
+            <b className="brain-box-source-brain">{source.brain.name}</b>
+          )}
           {source.url ? (
             <a href={source.url} target="_blank" rel="noopener noreferrer">
               {source.title}
@@ -107,10 +128,13 @@ export function GuestTranscript({
           ) : (
             <GuestMarkdown>{message.content}</GuestMarkdown>
           )}
+          {message.role === "assistant" && message.askedBefore && (
+            <p className="brain-box-asked-before">Asked before</p>
+          )}
           {message.role === "assistant" &&
             getGuestSourceCards(message.cards).map((card) =>
               sourceLinks ? (
-                <SourceLinks key={card.id} card={card} />
+                <SourceLinks key={card.id} card={card} owner={assistantLabel} />
               ) : (
                 <SourcesPart key={card.id} data={card} openInNewTab />
               ),

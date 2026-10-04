@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yeehaa.io without starters</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap");
+/*
+  Revision of yeehaa-faq-mockup.html: no starters, FAQs closed. Every picture
+  is the live preview in WebKit with yeehaa-faq-no-starters/proposal.css and
+  proposal.js injected.
+*/
+:root{--paper:#f4ede0;--ink:#18132a;--ink-muted:#443c54;--ink-subtle:#756c80;--accent:#b8410c;--rule:rgb(24 19 42 / .12);--rule-strong:rgb(24 19 42 / .2)}
+*{box-sizing:border-box}
+body{margin:0;background:#e5ddcd;color:var(--ink);font:15px/1.55 Barlow,system-ui,sans-serif}
+.page{max-width:1240px;margin:0 auto;padding:40px 24px 80px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 10px}
+h2.part{font:600 22px/1.2 Fraunces,Georgia,serif;margin:48px 0 0}
+.lede{color:var(--ink-muted);max-width:70ch;margin:0 0 12px}
+figure{margin:0}
+figcaption{font:500 13px Barlow,sans-serif;color:var(--ink-subtle);margin:0 0 8px}
+.new figcaption{color:var(--accent)}
+.notes h3{font:600 19px/1.25 Fraunces,Georgia,serif;margin:0 0 10px}
+.notes ul{margin:0;padding-left:18px;color:var(--ink-muted)}
+.notes li{margin-bottom:8px}
+.notes b{color:var(--ink)}
+.drow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.drow{grid-template-columns:1fr}}
+.screens{display:grid;gap:18px}
+.screen{border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px var(--rule-strong),0 10px 24px rgb(0 0 0 / .14)}
+.screen img{display:block;width:100%}
+.row{display:grid;grid-template-columns:auto auto 1fr;gap:28px;align-items:start;padding:30px 0;border-top:1px solid var(--rule-strong)}
+@media (max-width:1000px){.row{grid-template-columns:auto auto}.row .notes{grid-column:1/-1}}
+@media (max-width:680px){.row{grid-template-columns:1fr;justify-items:center}}
+.phone{width:300px;height:640px;border-radius:26px;overflow:hidden;box-shadow:0 0 0 8px #1d1a26,0 14px 30px rgb(0 0 0 / .22);background:var(--paper)}
+.phone img{display:block;width:100%}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>No starters; FAQs closed</h1>
+  <p class="lede">The opening ends at the box and "Let's talk". The FAQ band under the atlas is the page's one list of questions, every question closed until it is tapped. Every picture is the live preview in WebKit with <code>yeehaa-faq-no-starters/proposal.css</code> and <code>proposal.js</code> injected; the questions and answers are the published FAQs.</p>
+
+  <h2 class="part">Desktop</h2>
+  <div class="drow">
+    <div class="screens">
+      <figure><figcaption>Now: starters in the opening, the FAQ band under the atlas with one answer open</figcaption><div class="screen"><img src="yeehaa-faq-no-starters/now-desk.jpg" alt="Current homepage"></div></figure>
+      <figure class="new"><figcaption>Proposed: the opening without starters</figcaption><div class="screen"><img src="yeehaa-faq-no-starters/new-desk-top.jpg" alt="Opening without starters"></div></figure>
+      <figure class="new"><figcaption>Proposed: the band, all closed</figcaption><div class="screen"><img src="yeehaa-faq-no-starters/new-desk-band.jpg" alt="FAQ band closed"></div></figure>
+      <figure class="new"><figcaption>Proposed: one question opened</figcaption><div class="screen"><img src="yeehaa-faq-no-starters/new-desk-open.jpg" alt="FAQ band with one question open"></div></figure>
+    </div>
+    <div class="notes">
+      <h3>The page</h3>
+      <ul>
+        <li><b>The opening:</b> title, introduction, the box, "Let's talk". No "Where would you start?".</li>
+        <li><b>The band:</b> the owner's heading over the published FAQs, most asked first, up to six; a "+" on each, closed until tapped, one open at a time, the answer opening under its question. The same on desktop and phone; the side-by-side reader goes.</li>
+        <li><b>Without a script</b> it is the same: native disclosures.</li>
+      </ul>
+      <h3 style="margin-top:22px">Screening scope</h3>
+      <ul>
+        <li><b>The starters were also screening's list of the site's subjects.</b> Instead, screening reads the published topics and the introduction.</li>
+        <li><b>Topics today:</b> brain architecture, collaborative AI agents, data-driven knowledge, decentralization, ecosystem architecture, future of work, innovation, institutional resilience, narrow artificial intelligence, sovereign technology, trust networks, value-driven development.</li>
+        <li><b>Introduction:</b> "I work on how institutions hold what they know. Everything I've published is on this map."</li>
+        <li><b>It follows the work:</b> a new topic from a new essay widens the scope with nothing to edit.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="part">Phone</h2>
+  <div class="row">
+    <figure class="new"><figcaption>Proposed: closed</figcaption><div class="phone"><img src="yeehaa-faq-no-starters/new-phone-band.jpg" alt="Phone, FAQ band closed"></div></figure>
+    <figure class="new"><figcaption>Proposed: one open</figcaption><div class="phone"><img src="yeehaa-faq-no-starters/new-phone-open.jpg" alt="Phone, one FAQ open"></div></figure>
+    <div class="notes">
+      <h3>On a phone</h3>
+      <ul>
+        <li><b>Four short lines</b> under the map and the opening; tapping one opens its answer beneath it, tapping again closes it.</li>
+        <li><b>Same sizes as now:</b> nothing grows.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

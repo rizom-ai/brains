@@ -18,6 +18,21 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "faq-ambiguous-capture-claims",
+      "paths": [
+        "entities/faq/src/handlers/faq-capture-handler.ts",
+        "entities/faq/src/lib/captured-replies.ts"
+      ],
+      "symbol": "capturedReplyStore legacy claim guard",
+      "owner": "@brains/faq",
+      "class": "durable-data-compatibility",
+      "behavior": "Preserves timestamp-only capture claims without automatically replaying them; new captures use atomic entity mutation receipts.",
+      "currentConsumers": "Persisted faq.captured-replies entries that cannot distinguish completed captures from interrupted attempts.",
+      "removalPrerequisite": "Explicitly reconcile all existing claims into verified durable dispositions or retire them with owner approval, and stop all old claim writers. Age alone cannot prove completion.",
+      "rollbackDependency": "Retain existing claims to avoid counting historical completed captures twice. New receipts are not understood by older runtimes; rolling back capture code requires disabling capture or a separately verified downgrade plan.",
+      "targetRelease": "0.3.0-or-later, after explicit claim reconciliation"
+    },
+    {
       "id": "image-handler-alias",
       "paths": ["entities/image/src/image-plugin.ts"],
       "symbol": "image-generate handler alias",

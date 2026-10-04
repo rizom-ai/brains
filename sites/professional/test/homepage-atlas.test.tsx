@@ -7,7 +7,10 @@ import {
   type HomepageListData,
 } from "../src/templates/homepage-list";
 import { professionalProfileSchema } from "../src/schemas";
-import type { HomepageAtlasData } from "@brains/site-atlas";
+import type {
+  HomepageAtlasData,
+  HomepageOpeningContent,
+} from "@brains/site-atlas";
 
 function entity(
   entityType: string,
@@ -112,6 +115,13 @@ describe("homepage atlas data", () => {
     }
   });
 
+  it("marks the most recently published piece as the latest, and only it", async () => {
+    const atlas = await loadHomepageAtlas(source());
+    expect(
+      atlas?.items.filter((item) => item.latest).map((item) => item.id),
+    ).toEqual(["hiding"]);
+  });
+
   it("keeps a territory only while it holds a shown item", async () => {
     const atlas = await loadHomepageAtlas(source());
     expect(atlas?.zones.map((zone) => zone.name)).toEqual(["New institutions"]);
@@ -159,6 +169,7 @@ const atlas: HomepageAtlasData = {
       zoneId: "institutions",
       url: "/essays/hiding-in-plain-sight",
       typeLabel: "Essay",
+      latest: false,
     },
     {
       id: "lefthoek",
@@ -172,6 +183,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/lefthoek",
       typeLabel: "Project",
+      latest: false,
     },
     {
       id: "offcourse",
@@ -185,6 +197,7 @@ const atlas: HomepageAtlasData = {
       zoneId: null,
       url: "/projects/offcourse",
       typeLabel: "Project",
+      latest: false,
     },
   ],
 };
@@ -215,10 +228,42 @@ const page: HomepageListData = {
     contactLabel: "Write to me",
     contactNote: "I read these myself.",
     mapCaption: "My published work, by topic",
+    faqHeading: null,
   },
 };
 
+const opening: HomepageOpeningContent = page.opening ?? {
+  title: null,
+  introduction: null,
+  topics: [],
+  topicsHeading: null,
+  contactLabel: null,
+  contactNote: null,
+  mapCaption: null,
+  faqHeading: null,
+  contactUrl: null,
+};
+
 describe("atlas homepage", () => {
+  it("places the owner's published FAQs under the atlas, in their words", () => {
+    const html = renderToStaticMarkup(
+      <HomepageListLayout
+        {...page}
+        opening={{ ...opening, faqHeading: "Asked before" }}
+        atlas={atlas}
+        faqs={[{ id: "q", question: "What is it?", answer: "**This**." }]}
+      />,
+    );
+    expect(html.indexOf('data-atlas=""')).toBeLessThan(
+      html.indexOf("data-atlas-faqs"),
+    );
+    expect(html).toContain("<h2>Asked before</h2>");
+    expect(html).toContain("<summary>What is it?</summary>");
+    expect(
+      renderToStaticMarkup(<HomepageListLayout {...page} atlas={atlas} />),
+    ).not.toContain("data-atlas-faqs");
+  });
+
   it("replaces the hero and the lists with the atlas when the opening loads", () => {
     const html = renderToStaticMarkup(
       <HomepageListLayout {...page} atlas={atlas} />,

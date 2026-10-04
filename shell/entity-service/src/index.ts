@@ -57,6 +57,15 @@ export {
   type EntityWriteCondition,
 } from "./entity-write-contracts";
 export type { EntityWriteSnapshot } from "./types";
+export { entityRevision } from "./entity-revision";
+export {
+  entityMutationReceiptKeySchema,
+  entityMutationReceiptSchema,
+} from "./entity-mutation-receipt";
+export type {
+  EntityMutationReceipt,
+  EntityMutationReceiptKey,
+} from "./entity-mutation-receipt";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
@@ -125,7 +134,6 @@ export type {
 export {
   createEmbeddingDatabase,
   migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
   dbUrlToPath,
 } from "./db/embedding-db";
@@ -171,6 +179,8 @@ export type {
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,
   UpdateEntityRequest,
+  FoldEntityRequest,
+  ApplyEntityMutationOnceRequest,
   UpsertEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,

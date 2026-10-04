@@ -142,6 +142,31 @@
   margin-top: 18px;
   padding-top: 14px;
 }
+/* A box that mounts with nothing to show above its composer takes no more
+   room than the composer its host showed before it: no padding or fade under
+   an empty welcome area, and no gap or divider above the composer, until a
+   welcome, an answer or a notice arrives. The phone sheet lays itself out. */
+:where(
+  [data-ask-styled]
+    .brain-box-scroll.is-welcome:not(
+      :has(.brain-box-welcome, .guest-message, .chat-notice)
+    )
+) {
+  padding-bottom: 0;
+  mask-image: none;
+}
+:where(
+  [data-ask-styled]
+    .brain-guest-box:not(.is-sheet)
+    > .brain-box-scroll.is-welcome:not(
+      :has(.brain-box-welcome, .guest-message, .chat-notice)
+    )
+    ~ .brain-box-bottom
+) {
+  margin-top: 0;
+  padding-top: 0;
+  border-top-width: 0;
+}
 :where([data-ask-styled] .brain-box-bottom form) {
   margin: 0;
 }
@@ -332,6 +357,23 @@
   text-decoration: none;
 }
 :where([data-ask-styled] .brain-box-sources a:hover) {
+  color: var(--ask-accent);
+}
+/* Who answered: the brain, with the brains whose memory it drew on; and
+   whether the question was asked before and the owner's kept answer stands. */
+:where([data-ask-styled] .brain-box-answered-by) {
+  font-size: 13px;
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .brain-box-source-brain) {
+  flex: none;
+  font-weight: 600;
+}
+:where([data-ask-styled] .brain-box-asked-before) {
+  margin: 14px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: var(--ask-accent);
 }
 :where([data-ask-styled] .web-chat-sources-card) {

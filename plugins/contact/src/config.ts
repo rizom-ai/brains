@@ -29,10 +29,13 @@ export interface ContactIntakePolicy {
   delivery: ContactDeliveryPolicy;
 }
 
-/** What the intake runs on unless the owner says otherwise: an hour's window
- * of modest request, form and submission limits, half-hour form tokens, notes
- * kept for a day, and a few alert attempts within the transport's idempotency
- * window. The brain supplies the origin. */
+/** What the intake runs on unless the owner says otherwise. A deployment
+ * serves through a proxy or a CDN, so the "network" the plugin sees is the
+ * proxy's and every visitor shares it: the network limits equal the global
+ * ones, and requests and forms take their bound's maximum, so honest traffic
+ * is never refused; a hundred submissions an hour, half-hour form tokens,
+ * notes kept for a day, and a few alert attempts within the transport's
+ * idempotency window. The brain supplies the origin. */
 export const CONTACT_INTAKE_DEFAULTS: {
   http: Omit<ContactHttpPolicy, "origin" | "trustForwardedProto">;
   admission: ContactAdmissionPolicy;
@@ -42,15 +45,15 @@ export const CONTACT_INTAKE_DEFAULTS: {
   http: { maxBodyBytes: 20000, readTimeoutMs: 10000 },
   admission: {
     windowSeconds: 3600,
-    globalRequests: 300,
-    networkRequests: 100,
-    globalForms: 60,
-    networkForms: 30,
-    globalSubmissions: 20,
-    networkSubmissions: 10,
+    globalRequests: 1000,
+    networkRequests: 1000,
+    globalForms: 1000,
+    networkForms: 1000,
+    globalSubmissions: 100,
+    networkSubmissions: 100,
     tokenTtlSeconds: 1800,
     receiptTtlSeconds: 600,
-    maxEntries: 500,
+    maxEntries: 1000,
   },
   storage: { retentionSeconds: 86400, maxRecords: 50, maxBytes: 500000 },
   delivery: { maxAttempts: 3, retryWindowSeconds: 3600 },
