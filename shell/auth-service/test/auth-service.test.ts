@@ -968,11 +968,11 @@ describe("AuthService", () => {
       address: "user@example.com",
     });
     expect(notification.title).toBe(
-      "Your brain is ready — set up your passkey",
+      "Your brain is ready — here’s how to start",
     );
     expect(notification.html).toContain(`href="${setupUrl}"`);
     expect(notification.body).toContain(
-      "Connect other AI tools to your brain at https://brain.example.com/mcp.",
+      "Its address is https://brain.example.com/mcp.",
     );
     expect(notification.body).not.toContain("Rover");
   });
