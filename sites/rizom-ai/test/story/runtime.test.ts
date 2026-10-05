@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   currentChapter,
+  handoverProgress,
   readingLine,
   storyRuntimeScript,
 } from "../../src/story/runtime";
@@ -18,6 +19,20 @@ describe("the reading line", () => {
 
   test("clamps to the drawing's last stage when a page has more chapters", () => {
     expect(currentChapter([-900, -500, -100], 405, 2)).toBe(1);
+  });
+});
+
+describe("the handover from the opening to the science", () => {
+  test("follows the scroll: nothing at the top of the page, the point when the science's top reaches the reading line, open as far again beyond", () => {
+    // 1000px screen, line at 450, the science's top at 1000 at rest: the
+    // flip takes 550px of scroll, and a further 550px opens the pyramid.
+    expect(handoverProgress(1000, 0, 1000, 450)).toBe(0);
+    expect(handoverProgress(1053, 0, 1000, 450)).toBe(0);
+    expect(handoverProgress(725, 275, 1000, 450)).toBe(0.5);
+    expect(handoverProgress(450, 550, 1000, 450)).toBe(1);
+    expect(handoverProgress(175, 825, 1000, 450)).toBe(1.5);
+    expect(handoverProgress(-100, 1100, 1000, 450)).toBe(2);
+    expect(handoverProgress(-5000, 6000, 1000, 450)).toBe(2);
   });
 });
 
