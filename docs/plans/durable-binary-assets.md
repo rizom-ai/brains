@@ -1,29 +1,29 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-10-02
+Last updated: 2026-10-05
 
 ## Status
 
-In progress. Phases 1–5 are open as one stacked PR chain on `main`:
+In progress. Phases 1–5 are one PR, #476, which absorbed the stacked PRs #447, #450,
+#451, #455, #456, #465, #467 and #470. The independent fixes #478–#480, #488, #489, #491
+and #494 landed on `main` in #495.
 
-| Phase | PRs                                                                      |
-| ----- | ------------------------------------------------------------------------ |
-| 1     | #447 staged chunk storage                                                |
-| 2     | #450 image upload walking skeleton                                       |
-| 3     | #451 remaining writers                                                   |
-| 4     | #455 delivery and publishing, #456 export, #465 render, #467 Studio      |
-| —     | #470 streamed directory-sync import                                      |
-| 5     | #476 `assets:migrate`, `assets:verify`, `assets:reconcile`, backup check |
+The Phase 6 rehearsal on an isolated copy of `yeehaa.io` passed every step except UX
+acceptance, which needs a passkey login:
 
-Independent fixes on `main`: #478 (site preparation yields between sections), #479
-(body-image discovery, the `926533fda4` port) and #480 (entity lookups return stored
-content, so writers never persist resolved image bytes).
+- dry-run: 166 inline images ready, none blocked;
+- migration: 166 images in 74 s at a 368 MiB memory peak, stored as 164 distinct assets;
+- verify: all 166 valid and matching their `brain-data` files; `VACUUM` shrinks the
+  database from 1,462 MiB to 338 MiB and it still verifies;
+- the preview built on the migrated copy matches the unmigrated baseline byte for byte;
+- the restored snapshot under the previous release builds the same site.
 
-This plan is a stable `0.2.0` release gate. Images and PDFs reach their completion
-criteria, including bridge removal, before the final alpha is nominated.
+No instance has migrated. Next: merge and release #476, run UX acceptance, then the
+production cutover on `yeehaa.io`.
 
-No instance has migrated. Next is Phase 6, the rehearsal on a copy of `yeehaa.io`. This
-plan is the single source for asset storage and proceeds independently of
+This plan is a stable `0.2.0` release gate: images and PDFs reach their completion
+criteria, including bridge removal, before the final alpha is nominated. It is the
+single source for asset storage and proceeds independently of
 [turso-salvage.md](./turso-salvage.md).
 
 ## Decision
