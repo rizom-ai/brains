@@ -5,20 +5,12 @@ import { livingOrganism } from "../../src/story/living-organism";
 import { workOrganism } from "../../src/story/work-organism";
 
 describe("the room drawings", () => {
-  test("the homepage drawing grows its first team out of the centre point, where the opening's network gathers", () => {
-    const css = livingOrganism.css();
-    // Before the science, the team waits at the centre, unseen; the science
-    // sends it out to its corners, so the pyramid opens from the point the
-    // network drew into. Back up the page, it closes into the point again.
-    expect(css).toContain(
-      '.living-org[data-stage="0"] #living-org-n-T1 { cx: 300px; cy: 300px; r: 0px; opacity: 0; }',
+  test("the homepage drawing has six stages: the opening draws the network itself, then the science onwards to the doors", () => {
+    expect(livingOrganism.stageCount).toBe(6);
+    expect(livingOrganism.css()).toContain(
+      '.living-org[data-stage="5"] #living-org-n-L',
     );
-    expect(css).toContain(
-      '.living-org[data-stage="0"] #living-org-n-T3 { cx: 300px; cy: 300px; r: 0px; opacity: 0; }',
-    );
-    expect(css).toContain(
-      '.living-org[data-stage="1"] #living-org-n-T1 { cx: 300px; cy: 165px; r: 6px; opacity: 1; }',
-    );
+    expect(livingOrganism.css()).not.toContain('[data-stage="6"]');
   });
 
   test("the Brain's drawing grows from one lantern through six stages", () => {

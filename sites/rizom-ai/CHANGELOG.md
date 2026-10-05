@@ -1,5 +1,29 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#515](https://github.com/rizom-ai/brains/pull/515) [`428dcd1`](https://github.com/rizom-ai/brains/commit/428dcd1701affddf5f81ca3f352ccea6e9d2026a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening shows the organism again, one brain becoming a team and a network in the rooms' lights, in the drawing's place beside the words; the live network is drawn on /ask, where the growth section's "network" now leads.
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [#513](https://github.com/rizom-ai/brains/pull/513) [`b1ed5d1`](https://github.com/rizom-ai/brains/commit/b1ed5d13be681f07146fe0fdb3c33833fb24a401) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's homepage opens as it did before the Ask box moved in: the words, the door and the live network drawing, which leaves with the opening; the figure runs its stages without a handover. The Ask room is its own page, /ask, linked from the bar: the box beside the live network, which an answer's sources light and lead to, and under it the questions visitors asked before.
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [#511](https://github.com/rizom-ai/brains/pull/511) [`a3d6d0a`](https://github.com/rizom-ai/brains/commit/a3d6d0ac994b8e0a7bb99b7e4abab541f858a053) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's Asked-before chapter takes the figure's place by scroll, through the centre point: the figure draws into the point as the chapter arrives, the chapter's network opens out of it and holds the centre line while the questions are read, and as the next chapter arrives the network draws back in and the figure's lantern opens again; scrolling back runs it backwards.
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- [#509](https://github.com/rizom-ai/brains/pull/509) [`019094f`](https://github.com/rizom-ai/brains/commit/019094f45128e967a72c3cd1a269614c9c5cae10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure by scroll: as the science comes up the screen the network draws into its centre point, and past the reading line the first team's pyramid opens out of that same point; scrolling back runs it backwards. No timers.
+
 ## 0.2.0-alpha.264
 
 ### Patch Changes

@@ -47,6 +47,7 @@ function createEntity(
   input: {
     entityType?: string;
     visibility?: "public" | "restricted";
+    status?: string;
   } = {},
 ): BaseEntity {
   return {
@@ -57,7 +58,10 @@ function createEntity(
     updated: "2026-07-20T10:00:00.000Z",
     visibility: input.visibility ?? "public",
     contentHash: "note-hash",
-    metadata: { title: "Public note" },
+    metadata: {
+      title: "Public note",
+      ...(input.status && { status: input.status }),
+    },
   };
 }
 
@@ -82,9 +86,12 @@ function createLexicon(id: string): AtprotoLexicon {
   };
 }
 
-function createRegistry(): AtprotoProjectionRegistry {
+function createRegistry(
+  input: { isPublishable?: (entity: BaseEntity) => boolean } = {},
+): AtprotoProjectionRegistry {
   const registry = AtprotoProjectionRegistry.createFresh();
   registry.register({
+    ...(input.isPublishable && { isPublishable: input.isPublishable }),
     entityType: "note",
     collection: "ai.rizom.brain.note",
     lexicon: createLexicon("ai.rizom.brain.note"),
@@ -530,6 +537,120 @@ describe("AT Protocol ambient publishing triggers", () => {
       rkey: "note-123",
     });
     expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("deletes instead of upserting a public entity its projection does not deem publishable", async () => {
+    // A public draft must never reach the PDS; deleting on update also cleans
+    // up a draft record projected before this guard existed.
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry({
+        isPublishable: (entity) => entity.metadata["status"] === "published",
+      }),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const entity = createEntity({ status: "draft" });
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+
+    await shell.getMessageBus().send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+
+    expect(client.deleteRecord).toHaveBeenCalledWith({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.note",
+      rkey: "note-123",
+    });
+    expect(client.putRecord).not.toHaveBeenCalled();
+  });
+
+  it("upserts a public entity once its projection deems it publishable", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry({
+        isPublishable: (entity) => entity.metadata["status"] === "published",
+      }),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const entity = createEntity({ status: "published" });
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+
+    await shell.getMessageBus().send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+
+    expect(client.putRecord).toHaveBeenCalledTimes(1);
+    expect(client.putRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: "ai.rizom.brain.note",
+        rkey: "note-123",
+      }),
+    );
+    expect(client.deleteRecord).not.toHaveBeenCalled();
+  });
+
+  it("upserts a draft once the publish pipeline marks it published", async () => {
+    // The pipeline persists status: "published" before broadcasting
+    // publish:completed, so the re-fetched entity must reach the PDS.
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry({
+        isPublishable: (entity) => entity.metadata["status"] === "published",
+      }),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const draft = createEntity({ status: "draft" });
+    shell.addEntities([draft]);
+    await plugin.register(shell);
+    const bus = shell.getMessageBus();
+
+    await bus.send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity: draft },
+      sender: "entity-service",
+      broadcast: true,
+    });
+
+    const published = createEntity({ status: "published" });
+    shell.addEntities([published]);
+    await bus.send({
+      type: "entity:updated",
+      payload: { entityType: "note", entityId: "note-123", entity: published },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    await bus.send({
+      type: "publish:completed",
+      payload: { entityType: "note", entityId: "note-123" },
+      sender: "publish-service",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+
+    expect(client.deleteRecord).toHaveBeenCalledTimes(1);
+    expect(client.putRecord).toHaveBeenCalledTimes(2);
+    expect(client.putRecord).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        collection: "ai.rizom.brain.note",
+        rkey: "note-123",
+      }),
+    );
+    const [deleteOrder] = client.deleteRecord.mock.invocationCallOrder;
+    const [, lastPutOrder] = client.putRecord.mock.invocationCallOrder;
+    expect(lastPutOrder).toBeGreaterThan(deleteOrder ?? Infinity);
   });
 
   it("ignores entity types without a registered projection", async () => {

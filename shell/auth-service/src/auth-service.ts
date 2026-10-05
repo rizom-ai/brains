@@ -2,6 +2,7 @@ import type {
   ActorRef,
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
+import type { OnboardingDetails } from "./onboarding-emails";
 import type {
   AccountSettingsRegistry,
   ChannelDeliveryProvider,
@@ -117,6 +118,8 @@ export interface AuthServiceOptions {
   setupTokenTtlSeconds?: number;
   /** Whether this process issues and logs the first-passkey setup link at startup. */
   issuesSetupLinks?: boolean;
+  /** The brain's purpose and links for onboarding emails. */
+  getOnboardingDetails?: () => Promise<OnboardingDetails>;
   /** Resolve the registered delivery provider for an invitation channel. */
   getInvitationDeliveryProvider?: (
     channelType: string,
@@ -197,6 +200,9 @@ export class AuthService {
         : {}),
       ...(options.issuesSetupLinks !== undefined
         ? { issuesSetupLinks: options.issuesSetupLinks }
+        : {}),
+      ...(options.getOnboardingDetails
+        ? { getOnboardingDetails: options.getOnboardingDetails }
         : {}),
       ...(options.getInvitationDeliveryProvider
         ? {

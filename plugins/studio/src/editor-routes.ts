@@ -1,16 +1,22 @@
 import { join } from "node:path";
 import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
+  issuerFromRequest,
   requireSameOriginJson,
   requireSameOriginRequest,
 } from "@brains/auth-service";
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  UserPermissionLevel,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import {
+  PermissionService,
   canWriteVisibility,
   entityTypeClassificationSchema,
   permissionToVisibilityScope,
 } from "@brains/plugins";
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
 import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import {
@@ -277,6 +283,11 @@ export function createEditorRoutes(
       .map((route) => route.fullPath)
       .sort((left, right) => left.length - right.length)[0];
     const profileName = context.identity.getProfile().name.trim();
+    const mcpUrl = await resolveMcpUrl(
+      context,
+      request,
+      resolution.access.principal.role,
+    );
     let manifest: z.output<typeof studioAssetManifestSchema>;
     try {
       manifest = await readStudioAssetManifest();
@@ -300,6 +311,7 @@ export function createEditorRoutes(
           displayName: resolution.access.principal.displayName,
           role: resolution.access.principal.role,
         },
+        mcpUrl,
       }),
       {
         headers: {
@@ -875,4 +887,25 @@ async function handleGetSchema(
     hasBody: raw || adapter?.hasBody !== false,
     fields,
   });
+}
+
+/**
+ * The address AI tools connect to, when this brain serves MCP over HTTP and the
+ * person's role can use it. Built from the request's public origin, the same
+ * one OAuth issues tokens for.
+ */
+async function resolveMcpUrl(
+  context: ServicePluginContext,
+  request: Request,
+  role: UserPermissionLevel,
+): Promise<string | undefined> {
+  const appInfo = await context.identity.getAppInfo().catch(() => undefined);
+  const mcp = appInfo?.interactions.find(
+    (interaction) =>
+      interaction.id === MCP_INTERACTION_ID && interaction.href.startsWith("/"),
+  );
+  if (!mcp || !PermissionService.hasPermission(role, mcp.visibility)) {
+    return undefined;
+  }
+  return `${issuerFromRequest(request)}${mcp.href}`;
 }

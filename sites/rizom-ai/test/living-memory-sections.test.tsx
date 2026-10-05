@@ -79,8 +79,6 @@ describe("the homepage story", () => {
       { id: "turn", template: "living-memory:turn" },
       { id: "growth", template: "living-memory:growth" },
       { id: "arc", template: "living-memory:arc" },
-      // Asked before is the site's own template over the published FAQs.
-      { id: "asked", template: "rizom:asked", dataQuery: {} },
       { id: "doors", template: "living-memory:doors" },
     ]);
     expect(route?.path).toBe("/");
@@ -132,7 +130,8 @@ describe("the homepage story", () => {
       '<dt><a href="/brain">The brain</a></dt><dd>One agent that ships what you know.</dd>',
     );
     expect(html).toContain('<dt><a href="/work">The practice</a></dt>');
-    expect(html).toContain('<dt><a href="#hero">The network</a></dt>');
+    // The live network is drawn on /ask, the Ask room.
+    expect(html).toContain('<dt><a href="/ask">The network</a></dt>');
     expect(html).not.toContain("<svg");
   });
 

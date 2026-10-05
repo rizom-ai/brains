@@ -5,13 +5,13 @@ import { brainSections } from "./brain";
 import { openingTemplate } from "./opening";
 import { openingDataSource } from "./opening-datasource";
 import { askedTemplate } from "./asked";
+import { askRoomTemplate } from "./ask-room";
 import { askedDataSource } from "./asked-datasource";
 import { writingTemplate } from "./writing";
 import { writingDataSource } from "./writing-datasource";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
-import { publicAskSections } from "./public-ask";
 
 export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
@@ -25,6 +25,7 @@ export const rizomAiSite: SitePackage = createRizomSite({
       opening: openingTemplate,
       writing: writingTemplate,
       asked: askedTemplate,
+      "ask-room": askRoomTemplate,
     },
     dataSourceFactories: [
       openingDataSource,
@@ -37,7 +38,6 @@ export const rizomAiSite: SitePackage = createRizomSite({
   sections: [
     livingMemorySections,
     brainSections,
-    publicAskSections,
     workSections,
     foundationSections,
   ],

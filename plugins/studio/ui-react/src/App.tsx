@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import type { AccountBootstrap } from "./account/account-view";
 import { StudioStatus } from "./studio-status";
 import { StudioGroupingView } from "./studio-groupings";
 import {
@@ -111,19 +112,25 @@ const ACCOUNT_ROLES: readonly AuthAccountRole[] = [
 function accountBootstrap(
   routePath: string,
   studioPath: string,
-): {
-  displayName: string;
-  role: AuthAccountRole;
-  routePath: string;
-  studioPath: string;
-} {
+  rawSearch: string,
+): AccountBootstrap {
   const root = document.querySelector("[data-studio-root]");
   const displayName =
     root?.getAttribute("data-studio-principal-name") ?? "Your account";
   const rawRole = root?.getAttribute("data-studio-principal-role");
   const role =
     ACCOUNT_ROLES.find((candidate) => candidate === rawRole) ?? "public";
-  return { displayName, role, routePath, studioPath };
+  const mcpUrl = root?.getAttribute("data-studio-mcp-url") ?? undefined;
+  const initialSection =
+    new URLSearchParams(rawSearch).get("section") ?? undefined;
+  return {
+    displayName,
+    role,
+    routePath,
+    studioPath,
+    ...(mcpUrl ? { mcpUrl } : {}),
+    ...(initialSection ? { initialSection } : {}),
+  };
 }
 
 export function App(): ReactElement {
@@ -411,7 +418,11 @@ export function App(): ReactElement {
       >
         <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
           <LazyAccountApp
-            bootstrap={accountBootstrap(accountPath, studioBasePath)}
+            bootstrap={accountBootstrap(
+              accountPath,
+              studioBasePath,
+              routeSearch,
+            )}
           />
         </Suspense>
       </StudioAccountWorkspaceView>

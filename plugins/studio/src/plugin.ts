@@ -1,3 +1,4 @@
+import { CHAT_INTERACTION_ID, STUDIO_INTERACTION_ID } from "@brains/contracts";
 import { getActiveAuthService } from "@brains/auth-service";
 import type {
   StudioOverviewContributionRegistration,
@@ -176,7 +177,7 @@ export class StudioPlugin extends ServicePlugin<
         requiresActiveSession: true,
       });
       context.interactions.register({
-        id: "chat",
+        id: CHAT_INTERACTION_ID,
         label: "Chat",
         description: "Chat with this brain in the browser.",
         href: STUDIO_CHAT_ROUTE_PATH,
@@ -218,7 +219,7 @@ export class StudioPlugin extends ServicePlugin<
       requiresActiveSession: true,
     });
     context.interactions.register({
-      id: "studio",
+      id: STUDIO_INTERACTION_ID,
       label: "Studio",
       description: "Edit and manage content through the browser Studio.",
       href: this.config.routePath,
