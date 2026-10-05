@@ -1,5 +1,16 @@
 # @brains/mcp
 
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies [[`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74), [`46c7739`](https://github.com/rizom-ai/brains/commit/46c773981cdd998539a0ef65b71339b5978ac136)]:
+  - @brains/auth-service@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/mcp-service@0.2.0-alpha.485
+  - @brains/plugins@0.2.0-alpha.485
+
 ## 0.2.0-alpha.484
 
 ### Patch Changes
