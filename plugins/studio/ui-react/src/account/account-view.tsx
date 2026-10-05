@@ -15,6 +15,7 @@ import type {
   AuthAccountRole,
   AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
+import { STUDIO_AI_TOOLS_SECTION } from "@brains/contracts";
 import { useMemo, useState } from "react";
 import { AccountClient } from "./account-api";
 import {
@@ -44,14 +45,17 @@ const ACCOUNT_SECTIONS = [
   "security",
   "identities",
   "settings",
-  "ai-tools",
+  STUDIO_AI_TOOLS_SECTION,
 ] as const;
 
 function openingSection(bootstrap: AccountBootstrap): string {
   const requested = ACCOUNT_SECTIONS.find(
     (section) => section === bootstrap.initialSection,
   );
-  if (!requested || (requested === "ai-tools" && !bootstrap.mcpUrl)) {
+  if (
+    !requested ||
+    (requested === STUDIO_AI_TOOLS_SECTION && !bootstrap.mcpUrl)
+  ) {
     return "profile";
   }
   return requested;
@@ -146,7 +150,7 @@ export function AccountApp({
                 </TabsTrigger>
               )}
               {bootstrap.mcpUrl && (
-                <TabsTrigger value="ai-tools" disabled={busy}>
+                <TabsTrigger value={STUDIO_AI_TOOLS_SECTION} disabled={busy}>
                   AI tools
                 </TabsTrigger>
               )}
@@ -195,9 +199,9 @@ export function AccountApp({
             </TabsContent>
             {bootstrap.mcpUrl && (
               <TabsContent
-                value="ai-tools"
+                value={STUDIO_AI_TOOLS_SECTION}
                 forceMount
-                hidden={section !== "ai-tools"}
+                hidden={section !== STUDIO_AI_TOOLS_SECTION}
                 className={accountClass("", accountLayout.tabPanel)}
               >
                 <AccountAiToolsTab mcpUrl={bootstrap.mcpUrl} />

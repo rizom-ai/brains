@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 (AI tools tab) is implemented and awaits client verification; Phase 2 remains. Copy and layout are drafted in [../onboarding-ai-tools-mockups.html](../onboarding-ai-tools-mockups.html).
+In progress. Phases 1 and 2 are implemented; connecting each listed client to a brain remains. Copy and layout are drafted in [../onboarding-ai-tools-mockups.html](../onboarding-ai-tools-mockups.html).
 
 ## Current state
 
@@ -42,11 +42,11 @@ The tab is deep-linkable: `?section=ai-tools` on the Account workspace URL opens
 ### Shorter, personal emails
 
 - **Greeting.** When the auth anchor is a person and its profile name resolves, the anchor email says "Hi Becca, your brain is ready" (subject "Becca, your brain is ready"). Team and organization anchors, and unnamed ones, keep "Your brain is ready".
-- **Purpose.** Both emails carry the brain character's purpose as "What it’s for: …" when it differs from the default character's purpose. A brain that has not been given a purpose says nothing rather than the generic default.
+- **Purpose.** Invitations carry the brain character's purpose as "What it’s for: …". The anchor setup email has no purpose line: it only goes to brand-new brains, whose character is still the brain model's stock one, and a seeded stock character cannot be told apart from a customised one.
 - **MCP section.** The connection steps leave the email. One paragraph remains: the AI tools you already use — Claude, ChatGPT, Cursor and others — can work with the brain directly; Account → AI tools has the address and the steps for each one. It links to the deep link above.
-- **Links from the brain.** Chat, Studio and AI tools links are resolved at send time from the brain's registered interactions and endpoints. A link whose target is not registered is left out with its sentence.
+- **Links from the brain.** Chat, Studio and AI tools links are resolved at send time from the brain's registered `chat`, `studio` and `mcp` interactions, through shared ids and the `studioAiToolsHref` builder in `@brains/contracts`. AI tools needs both Studio and MCP. A link whose target is not registered is left out with its sentence.
 
-`AuthInvitationService`'s `getBrainName` option becomes `getOnboardingContext`, returning the brain name, purpose and links, read at send time so resends and recovered deliveries carry them. The anchor setup email reads the same context in `AuthServicePlugin`.
+`AuthInvitationService`'s `getBrainName` option becomes `getOnboardingContext`: `AuthRuntime` supplies the brain name and `AuthServicePlugin` supplies the purpose and links through a `getOnboardingDetails` option, read at send time so resends and recovered deliveries carry them. The anchor setup email reads the same details in `AuthServicePlugin`.
 
 ## Phases
 

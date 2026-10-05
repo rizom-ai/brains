@@ -20,7 +20,16 @@ import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
 import { AuthService } from "./auth-service";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
-import { renderOnboardingEmail } from "./onboarding-emails";
+import {
+  renderOnboardingEmail,
+  type OnboardingDetails,
+} from "./onboarding-emails";
+import {
+  CHAT_INTERACTION_ID,
+  MCP_INTERACTION_ID,
+  STUDIO_INTERACTION_ID,
+  studioAiToolsHref,
+} from "@brains/contracts";
 import packageJson from "../package.json";
 
 /** First-passkey setup email recipient. The email's copy is built in. */
@@ -122,6 +131,37 @@ export function resolveAuthStorageDir(configured: string | undefined): string {
   return configured ?? join(".", "data", "auth");
 }
 
+/**
+ * What onboarding emails say about the brain: its character's purpose, and the
+ * chat, Studio and AI tools pages it serves. A page the brain does not serve
+ * is left out; AI tools needs both Studio and MCP over HTTP.
+ */
+async function resolveOnboardingDetails(
+  context: ServicePluginContext,
+): Promise<OnboardingDetails> {
+  const purpose = context.identity.get().purpose.trim();
+  const interactions =
+    (await context.identity.getAppInfo().catch(() => undefined))
+      ?.interactions ?? [];
+  const href = (id: string): string | undefined =>
+    interactions.find(
+      (interaction) =>
+        interaction.id === id && interaction.href.startsWith("/"),
+    )?.href;
+  const chat = href(CHAT_INTERACTION_ID);
+  const studio = href(STUDIO_INTERACTION_ID);
+  const aiTools =
+    studio && href(MCP_INTERACTION_ID) ? studioAiToolsHref(studio) : undefined;
+  return {
+    ...(purpose ? { purpose } : {}),
+    links: {
+      ...(chat ? { chat } : {}),
+      ...(studio ? { studio } : {}),
+      ...(aiTools ? { aiTools } : {}),
+    },
+  };
+}
+
 async function resolveProfileDisplayName(
   context: ServicePluginContext,
   profileEntityId: string,
@@ -202,6 +242,8 @@ export class AuthServicePlugin extends ServicePlugin<
         context.channels.listDescriptors(),
       isChannelTypeRegistered: (channelType): boolean =>
         Boolean(context.channels.getDescriptor(channelType)),
+      getOnboardingDetails: (): Promise<OnboardingDetails> =>
+        resolveOnboardingDetails(context),
       logger: context.logger,
     });
     await this.service.initialize();
@@ -547,10 +589,20 @@ export class AuthServicePlugin extends ServicePlugin<
       return;
     }
 
+    const greetingName =
+      this.config.anchor === "person"
+        ? await resolveProfileDisplayName(
+            context,
+            "anchor-profile/anchor-profile",
+          )
+        : undefined;
+    const { links } = await resolveOnboardingDetails(context);
     const email = renderOnboardingEmail({
       kind: "anchor-setup",
       setupUrl: setup.setupUrl,
       expiresAt: setup.expiresAt,
+      links,
+      ...(greetingName ? { greetingName } : {}),
     });
     const response = await context.messaging.send({
       type: NOTIFICATIONS_SEND,

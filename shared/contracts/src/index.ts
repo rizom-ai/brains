@@ -287,3 +287,10 @@ export type {
 } from "./render";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
+export {
+  CHAT_INTERACTION_ID,
+  STUDIO_ACCOUNT_WORKSPACE_ID,
+  STUDIO_AI_TOOLS_SECTION,
+  STUDIO_INTERACTION_ID,
+  studioAiToolsHref,
+} from "./studio-links";
