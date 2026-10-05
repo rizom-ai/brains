@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- [#516](https://github.com/rizom-ai/brains/pull/516) [`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Onboarding emails are shorter and personal. The anchor setup email greets a person anchor by name, and invitations say what the brain is for. Instead of listing MCP connection steps, both point to Studio → Account → AI tools. Chat, Studio and AI tools links come from the interactions the brain registers, and a sentence is left out when its page is not served. The chat, Studio and Account AI tools ids and link builder are shared contracts.
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/notifications@0.2.0-alpha.486
+  - @brains/plugins@0.2.0-alpha.486
+  - @brains/db@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+
 ## 0.2.0-alpha.485
 
 ### Minor Changes

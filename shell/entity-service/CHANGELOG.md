@@ -1,5 +1,17 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/content-formatters@0.2.0-alpha.486
+  - @brains/job-queue@0.2.0-alpha.486
+  - @brains/assets@0.2.0-alpha.486
+  - @brains/db@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+
 ## 0.2.0-alpha.485
 
 ### Patch Changes
