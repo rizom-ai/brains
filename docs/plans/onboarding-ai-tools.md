@@ -18,13 +18,18 @@ Brain alpha.485 sends one onboarding email per person, rendered by `renderOnboar
 
 The Studio Account workspace (`studio:account`, open to every signed-in user) gets a fifth tab, **AI tools**, next to Profile, Sign-in & sessions, Linked identities and Personal settings. Connecting a client is personal: the client acts as the signed-in user, with that user's access.
 
-The tab shows:
+The tab shows the brain's MCP address with a copy button, what a connected tool can do (talk to the brain as the user does in chat, within the user's access), and one card per client:
 
-- the brain's MCP address with a copy button;
-- Claude Code: the `claude mcp add --transport http brain <address>` command with a copy button;
-- Claude Desktop: Settings → Connectors → Add custom connector, paste the address, sign in with the passkey;
-- other MCP clients that support OAuth: add a remote server with the address;
-- what a connected tool can do: talk to the brain as the user does in chat, within the user's access.
+| Client                   | Steps on the card                                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude (desktop and web) | Settings → Connectors → Add custom connector; paste the address; sign in with the passkey.                                             |
+| Claude Code              | `claude mcp add --transport http brain <address>` with a copy button; then `/mcp` to sign in.                                          |
+| ChatGPT                  | Settings → Apps & Connectors → Advanced → Developer mode; Create; paste the address; choose OAuth; sign in.                            |
+| Cursor                   | `~/.cursor/mcp.json` entry `{"mcpServers": {"brain": {"url": "<address>"}}}` with a copy button; sign in when Cursor asks.             |
+| VS Code                  | `.vscode/mcp.json` entry `{"servers": {"brain": {"type": "http", "url": "<address>"}}}` with a copy button; sign in when VS Code asks. |
+| Any other MCP client     | Add a remote server with the address and sign in with the passkey, if the client supports OAuth.                                       |
+
+The cards are one typed list in the Studio account UI; adding a client is one entry. A client appears on the tab only after it has been connected to a deployed brain and completed the passkey sign-in. Client steps follow each vendor's current settings labels and are rechecked when a card is added or changed.
 
 The address comes from the registered `mcp` interaction (`interfaces/mcp/src/mcp-interface.ts`), resolved against the issuer origin and passed to the Account bootstrap as `mcpUrl`. Without an HTTP MCP interaction the tab is not rendered.
 
@@ -34,7 +39,7 @@ The tab is deep-linkable: `?section=ai-tools` on the Account workspace URL opens
 
 - **Greeting.** When the auth anchor is a person and its profile name resolves, the anchor email says "Hi Becca, your brain is ready" (subject "Becca, your brain is ready"). Team and organization anchors, and unnamed ones, keep "Your brain is ready".
 - **Purpose.** Both emails carry the brain character's purpose as "What it’s for: …" when it differs from the default character's purpose. A brain that has not been given a purpose says nothing rather than the generic default.
-- **MCP section.** The connection steps leave the email. One paragraph remains: Claude, Claude Code and other AI tools can work with the brain directly; Account → AI tools has the address and the steps. It links to the deep link above.
+- **MCP section.** The connection steps leave the email. One paragraph remains: the AI tools you already use — Claude, ChatGPT, Cursor and others — can work with the brain directly; Account → AI tools has the address and the steps for each one. It links to the deep link above.
 - **Links from the brain.** Chat, Studio and AI tools links are resolved at send time from the brain's registered interactions and endpoints. A link whose target is not registered is left out with its sentence.
 
 `AuthInvitationService`'s `getBrainName` option becomes `getOnboardingContext`, returning the brain name, purpose and links, read at send time so resends and recovered deliveries carry them. The anchor setup email reads the same context in `AuthServicePlugin`.
@@ -45,9 +50,10 @@ Each phase lands with its tests written first.
 
 ### Phase 1 — AI tools tab
 
-1. Tests: Account bootstrap carries `mcpUrl` when an HTTP `mcp` interaction is registered and omits it otherwise; `account-view.test.tsx` renders the AI tools tab with the address and the Claude Code command when `mcpUrl` is set, hides the tab without it, and opens it from `?section=ai-tools`.
-2. Implement the bootstrap field, the tab, copy buttons and the `section` query parameter.
-3. Verify on `bun start:personal` in `packages/brain-cli`: sign in, open the deep link, copy the command, and run it against the local brain with Claude Code.
+1. Tests: Account bootstrap carries `mcpUrl` when an HTTP `mcp` interaction is registered and omits it otherwise; `account-view.test.tsx` renders the AI tools tab with the address and every client card's address-bearing snippet when `mcpUrl` is set, hides the tab without it, and opens it from `?section=ai-tools`.
+2. Implement the bootstrap field, the client card list, the tab, copy buttons and the `section` query parameter.
+3. Verify on `bun start:personal` in `packages/brain-cli`: sign in, open the deep link, and connect Claude Code, Cursor and VS Code to the local brain.
+4. Verify the cloud-hosted connectors against `smoke.rizom.ai` once it runs the release: Claude (desktop and web) and ChatGPT reach the brain from their vendors' servers, so they cannot use a local brain. A client whose sign-in fails is removed from the list before the phase ships.
 
 ### Phase 2 — Personal emails linking to AI tools
 

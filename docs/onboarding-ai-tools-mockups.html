@@ -182,7 +182,7 @@
       .copyrow {
         display: flex;
         gap: 8px;
-        align-items: stretch;
+        align-items: flex-start;
       }
       .copyrow code {
         flex: 1;
@@ -197,9 +197,23 @@
         border: 1px solid #c9ced4;
         background: #fff;
         border-radius: 6px;
-        padding: 0 12px;
+        padding: 8px 12px;
         font: 600 13px var(--sans);
         color: var(--ink);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 14px;
+      }
+      .cards .card {
+        margin: 0;
+      }
+      .card p code {
+        font: 12px var(--mono);
+        background: var(--code);
+        border-radius: 4px;
+        padding: 1px 4px;
       }
       ol.steps {
         margin: 0;
@@ -265,8 +279,8 @@
                 </p>
                 <h4>Bring it into your AI tools</h4>
                 <p>
-                  Claude, Claude Code and other AI tools can work with your
-                  brain directly.
+                  The AI tools you already use — Claude, ChatGPT, Cursor and
+                  others — can work with your brain directly.
                   <a class="inline" href="#">Account → AI tools</a> has the
                   address and the steps for each one.
                 </p>
@@ -329,8 +343,8 @@
                 </p>
                 <h4>Bring it into your AI tools</h4>
                 <p>
-                  Claude, Claude Code and other AI tools can work with the brain
-                  directly.
+                  The AI tools you already use — Claude, ChatGPT, Cursor and
+                  others — can work with the brain directly.
                   <a class="inline" href="#">Account → AI tools</a> has the
                   address and the steps for each one.
                 </p>
@@ -385,32 +399,75 @@
               ><button class="copy" type="button">Copy</button>
             </div>
           </div>
-          <div class="card">
-            <h4>Claude Code</h4>
-            <p>
-              Run this in your terminal, then sign in when the browser opens.
-            </p>
-            <div class="copyrow">
-              <code
-                >claude mcp add --transport http brain
-                https://becca.rizom.ai/mcp</code
-              ><button class="copy" type="button">Copy</button>
+          <div class="cards">
+            <div class="card">
+              <h4>Claude</h4>
+              <p>Desktop app and claude.ai.</p>
+              <ol class="steps">
+                <li>Open Settings → Connectors → Add custom connector.</li>
+                <li>Paste your brain’s address.</li>
+                <li>Sign in with your passkey when asked.</li>
+              </ol>
             </div>
-          </div>
-          <div class="card">
-            <h4>Claude Desktop</h4>
-            <ol class="steps">
-              <li>Open Settings → Connectors → Add custom connector.</li>
-              <li>Paste your brain’s address.</li>
-              <li>Sign in with your passkey when asked.</li>
-            </ol>
-          </div>
-          <div class="card">
-            <h4>Other AI tools</h4>
-            <p>
-              Any MCP client that supports OAuth: add a remote server with your
-              brain’s address and sign in with your passkey.
-            </p>
+            <div class="card">
+              <h4>ChatGPT</h4>
+              <ol class="steps">
+                <li>
+                  Open Settings → Apps &amp; Connectors → Advanced and turn on
+                  Developer mode.
+                </li>
+                <li>
+                  Choose Create, paste your brain’s address and pick OAuth.
+                </li>
+                <li>Sign in with your passkey when asked.</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h4>Claude Code</h4>
+              <p>
+                Run this in your terminal, then type <code>/mcp</code> to sign
+                in.
+              </p>
+              <div class="copyrow">
+                <code
+                  >claude mcp add --transport http brain
+                  https://becca.rizom.ai/mcp</code
+                ><button class="copy" type="button">Copy</button>
+              </div>
+            </div>
+            <div class="card">
+              <h4>Cursor</h4>
+              <p>
+                Add this to <code>~/.cursor/mcp.json</code>, then sign in when
+                Cursor asks.
+              </p>
+              <div class="copyrow">
+                <code
+                  >{ "mcpServers": { "brain": { "url":
+                  "https://becca.rizom.ai/mcp" } } }</code
+                ><button class="copy" type="button">Copy</button>
+              </div>
+            </div>
+            <div class="card">
+              <h4>VS Code</h4>
+              <p>
+                Add this to <code>.vscode/mcp.json</code>, then sign in when VS
+                Code asks.
+              </p>
+              <div class="copyrow">
+                <code
+                  >{ "servers": { "brain": { "type": "http", "url":
+                  "https://becca.rizom.ai/mcp" } } }</code
+                ><button class="copy" type="button">Copy</button>
+              </div>
+            </div>
+            <div class="card">
+              <h4>Any other AI tool</h4>
+              <p>
+                If it supports MCP with OAuth: add a remote server with your
+                brain’s address and sign in with your passkey.
+              </p>
+            </div>
           </div>
         </div>
       </section>
