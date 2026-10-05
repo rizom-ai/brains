@@ -16,8 +16,8 @@ const faqs = homepageFaqsSchema.parse([
   },
 ]);
 
-// The owner's published FAQs under the atlas, most asked first: one answer
-// open at a time, readable without any script.
+// The owner's published FAQs under the atlas, in the order given: every
+// question closed until tapped, one open at a time, readable without script.
 describe("HomepageFaqs", () => {
   it("renders nothing while no FAQ is published", () => {
     expect(
@@ -25,15 +25,14 @@ describe("HomepageFaqs", () => {
     ).toBe("");
   });
 
-  it("opens the most asked question, one at a time", () => {
+  it("starts with every question closed, one open at a time", () => {
     const html = renderToStaticMarkup(
       <HomepageFaqs heading="Asked before" faqs={faqs} />,
     );
     const details = [...html.matchAll(/<details[^>]*>/g)].map(([tag]) => tag);
     expect(details).toHaveLength(2);
     expect(details.every((tag) => tag.includes('name="faqs"'))).toBe(true);
-    expect(details[0]).toContain("open");
-    expect(details[1]).not.toContain("open");
+    expect(details.some((tag) => tag.includes("open"))).toBe(false);
     expect(html.indexOf("ecosystem architecture")).toBeLessThan(
       html.indexOf("Knowledge Audit"),
     );
@@ -43,6 +42,14 @@ describe("HomepageFaqs", () => {
     expect(html).toContain("<strong>living systems</strong>");
     expect(html).toContain("<ol>");
     expect(html).toContain("data-atlas-faqs");
+  });
+
+  it("sets answers in the band's own type, not a blog post's", () => {
+    const html = renderToStaticMarkup(
+      <HomepageFaqs heading="Asked before" faqs={faqs} />,
+    );
+    expect(html).toContain('<div class="faqs__answer"><p>Designing');
+    expect(html).not.toContain("prose");
   });
 
   it("names the band in the owner's words, or not at all", () => {

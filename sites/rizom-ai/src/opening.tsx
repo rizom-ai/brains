@@ -7,6 +7,12 @@ import {
 import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { AskBoxHost } from "@brains/site-atlas";
+import {
+  ASK_COLUMN_ATTRIBUTE,
+  ASK_DRAWING_ATTRIBUTE,
+  ASK_LEADS_ATTRIBUTE,
+  ASK_MARK_ATTRIBUTE,
+} from "@brains/contracts";
 import { createTemplate, type Template } from "@brains/templates";
 import { z } from "@rizom/site";
 import { placeNetwork, type PlacedBrain } from "./story/network";
@@ -45,14 +51,22 @@ const PULSE_TRAVEL = 4.55;
 const replyDelay = (reach: number, after = 0): string =>
   `${(reach * PULSE_TRAVEL + after).toFixed(2)}s`;
 
-function NetworkLayer({
+export function NetworkLayer({
   brains,
   kin,
-}: ReturnType<typeof placeNetwork>): JSX.Element | null {
+  lendable = false,
+}: ReturnType<typeof placeNetwork> & {
+  /** The Ask room lends this drawing to a phone's open conversation (the opening's; a chapter's stays put). */
+  lendable?: boolean;
+}): JSX.Element | null {
   if (brains.length === 0) return null;
   const byId = new Map(brains.map((brain) => [brain.id, brain]));
   return (
-    <div className="net-layer" aria-hidden="true">
+    <div
+      className="net-layer"
+      aria-hidden="true"
+      {...(lendable ? { [ASK_DRAWING_ATTRIBUTE]: "" } : {})}
+    >
       <svg className="net-svg" viewBox="0 0 100 100">
         {[14.7, 29.3, 44].map((r) => (
           <circle key={r} className="net-ring" cx="50" cy="50" r={r} />
@@ -75,6 +89,7 @@ function NetworkLayer({
           <line
             key={`thread-${brain.id}`}
             className="net-thread"
+            data-brain={brain.id}
             x1="50"
             y1="50"
             x2={brain.x}
@@ -83,7 +98,11 @@ function NetworkLayer({
         ))}
         <circle className="net-pulse" cx="50" cy="50" r="46" />
         {brains.map((brain) => (
-          <g key={`reply-${brain.id}`} className="net-reply">
+          <g
+            key={`reply-${brain.id}`}
+            className="net-reply"
+            data-brain={brain.id}
+          >
             <circle
               className="net-echo"
               cx={brain.x}
@@ -119,6 +138,8 @@ function NetworkLayer({
           <li
             key={brain.id}
             className="net-mark"
+            data-brain={brain.id}
+            {...{ [ASK_MARK_ATTRIBUTE]: brain.id }}
             style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
           >
             <a href={`/agents/${brain.id}`} aria-label={brain.name}>
@@ -132,6 +153,7 @@ function NetworkLayer({
           <li
             key={brain.id}
             className={`net-name net-name--${brain.side}`}
+            data-brain={brain.id}
             style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
           >
             {brain.name}
@@ -146,44 +168,69 @@ export function Opening(data: OpeningData): JSX.Element {
   const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
   const lede = data.lede ?? DEFAULT_COPY.lede;
   return (
-    <section id="hero" className="chapter chapter--opening" data-title="Top">
-      {data.kicker && <p className="eyebrow">{data.kicker}</p>}
-      <h1>
-        {headingLead}
-        {data.headingAccent && (
-          <>
-            {" "}
-            <em>{data.headingAccent}</em>
-          </>
-        )}
-      </h1>
-      <p className="lede">{lede}</p>
-      {data.askBox ? (
-        <div className="ask">
-          <AskBoxHost prefix="opening" placeholder={data.prompt ?? undefined} />
-          {data.topics.length > 0 && (
-            <ul className="ask__topics" aria-label="Suggested questions">
-              {data.topics.map((topic) => (
-                <li key={topic}>
-                  <button type="button" data-atlas-fill={topic}>
-                    {topic}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <script src={ASK_BOX_SCRIPT_PATH} defer />
-        </div>
-      ) : (
-        data.ctaHref &&
-        data.ctaLabel && (
-          <a className="opening__door" href={data.ctaHref}>
-            {data.ctaLabel}
-          </a>
-        )
+    // The drawing and the lead layer stand before the opening's words in the
+    // chapters column: on a wide screen the drawing holds the figure's place
+    // down the story, leaving only through its centre point once the reading
+    // has moved the figure on. With the box, the story is an Ask room
+    // (@brains/contracts ask-box): the words are its column, which scrolls
+    // within the screen beside the drawing; the drawing is lent to a phone's
+    // open conversation; the room draws leads from an answer's sources to
+    // the dots.
+    <>
+      <NetworkLayer {...placeNetwork(data)} lendable={data.askBox} />
+      {data.askBox && (
+        <svg
+          className="net-leads"
+          {...{ [ASK_LEADS_ATTRIBUTE]: "" }}
+          aria-hidden="true"
+        />
       )}
-      <NetworkLayer {...placeNetwork(data)} />
-    </section>
+      <section id="hero" className="chapter chapter--opening" data-title="Top">
+        <div
+          className="opening__words"
+          {...(data.askBox ? { [ASK_COLUMN_ATTRIBUTE]: "" } : {})}
+        >
+          {data.kicker && <p className="eyebrow">{data.kicker}</p>}
+          <h1>
+            {headingLead}
+            {data.headingAccent && (
+              <>
+                {" "}
+                <em>{data.headingAccent}</em>
+              </>
+            )}
+          </h1>
+          <p className="lede">{lede}</p>
+          {data.askBox ? (
+            <div className="ask">
+              <AskBoxHost
+                prefix="opening"
+                placeholder={data.prompt ?? undefined}
+              />
+              {data.topics.length > 0 && (
+                <ul className="ask__topics" aria-label="Suggested questions">
+                  {data.topics.map((topic) => (
+                    <li key={topic}>
+                      <button type="button" data-atlas-fill={topic}>
+                        {topic}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <script src={ASK_BOX_SCRIPT_PATH} defer />
+            </div>
+          ) : (
+            data.ctaHref &&
+            data.ctaLabel && (
+              <a className="opening__door" href={data.ctaHref}>
+                {data.ctaLabel}
+              </a>
+            )
+          )}
+        </div>
+      </section>
+    </>
   );
 }
 

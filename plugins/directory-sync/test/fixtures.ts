@@ -135,6 +135,7 @@ export function createMockDirectorySync(
       })),
       parseEntityFromPath: mock(() => ({ entityType: "topic", id: "test" })),
       fileExists: mock(async () => false),
+      getEntityDeletePaths: mock((): string[] => []),
     },
     shouldDeleteOnFileRemoval: true,
     getAllMarkdownFiles: mock(async () => []),

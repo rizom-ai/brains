@@ -131,6 +131,7 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
         let locatorReceived = false;
         let responseText = "";
         let responseCards: ChatCard[] = [];
+        let responseAskedBefore: { faqId: string } | undefined;
         try {
           const response = await client.streamMessages(submission, {
             signal: abort.signal,
@@ -152,7 +153,13 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
                 ...responseCards,
                 event.data,
               ]);
-            if (event.type === "text-delta" || event.type === "data-sources") {
+            if (event.type === "data-asked-before")
+              responseAskedBefore = { faqId: event.data.faqId };
+            if (
+              event.type === "text-delta" ||
+              event.type === "data-sources" ||
+              event.type === "data-asked-before"
+            ) {
               setMessages((previous) => [
                 ...previous.filter((message) => message.id !== answerId),
                 {
@@ -160,6 +167,9 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
                   role: "assistant",
                   content: responseText,
                   cards: responseCards,
+                  ...(responseAskedBefore
+                    ? { askedBefore: responseAskedBefore }
+                    : {}),
                 },
               ]);
             }

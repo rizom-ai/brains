@@ -38,6 +38,7 @@ import type {
 } from "./audit-store";
 import { AuthRequestRouter } from "./auth-request-router";
 import { AuthRuntime } from "./auth-runtime";
+import { AuthOperationScope } from "./auth-operation-scope";
 import type {
   AttachAuthIdentityInput,
   AuthIdentityRecord,
@@ -145,6 +146,7 @@ export interface AuthServiceOptions {
 export class AuthService {
   private readonly issuer: string;
   private readonly runtime: AuthRuntime;
+  private readonly operations = new AuthOperationScope();
   private readonly requestRouter: AuthRequestRouter;
   private readonly getInvitationDeliveryProvider:
     ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
@@ -170,6 +172,8 @@ export class AuthService {
         : undefined);
     this.runtime = new AuthRuntime({
       storageDir: options.storageDir,
+      runBackgroundOperation: (operation): Promise<void> =>
+        this.operations.runBackground(operation),
       ...(options.replica ? { replica: options.replica } : {}),
       issuer: this.issuer,
       trustedIssuers: new Set([
@@ -264,34 +268,40 @@ export class AuthService {
   }
 
   initialize(): Promise<void> {
-    return this.runtime.initialize();
+    return this.operations.run(() => this.runtime.initialize());
   }
 
   startInvitationDeliveryRecovery(): Promise<void> {
-    return this.runtime.startInvitationDeliveryRecovery();
+    return this.operations.run(() =>
+      this.runtime.startInvitationDeliveryRecovery(),
+    );
   }
 
   close(): Promise<void> {
-    return this.runtime.close();
+    return this.operations.close(() => this.runtime.close());
   }
 
   async initializeConfiguredInterfacePrincipals(
     config: ConfiguredInterfacePrincipals,
   ): Promise<RuntimeInterfacePrincipalState> {
-    await this.initialize();
-    const store = this.runtime.getInterfacePrincipalStore();
-    await store.seedConfigOnce(config);
-    return store.listActiveState();
+    return this.operations.run(async () => {
+      await this.initialize();
+      const store = this.runtime.getInterfacePrincipalStore();
+      await store.seedConfigOnce(config);
+      return store.listActiveState();
+    });
   }
 
   async resolveInterfacePrincipal(
     interfaceType: string,
     subject: string,
   ): Promise<ResolvedInterfacePrincipal | undefined> {
-    await this.initialize();
-    return this.runtime
-      .getInterfacePrincipalStore()
-      .resolve(interfaceType, subject);
+    return this.operations.run(async () => {
+      await this.initialize();
+      return this.runtime
+        .getInterfacePrincipalStore()
+        .resolve(interfaceType, subject);
+    });
   }
 
   getAccountSettingsBackend(): ReturnType<
@@ -301,55 +311,65 @@ export class AuthService {
   }
 
   hasPasskeyCredentials(): Promise<boolean> {
-    return this.runtime.hasPasskeyCredentials();
+    return this.operations.run(() => this.runtime.hasPasskeyCredentials());
   }
 
   async revokePasskey(
     credentialId: string,
     context: AuthMutationContext = {},
   ): Promise<void> {
-    await this.runtime.ensureStarted();
-    await this.runtime
-      .getAdministrationService()
-      .revokePasskey(credentialId, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      await this.runtime
+        .getAdministrationService()
+        .revokePasskey(credentialId, context);
+    });
   }
 
   getJwks(): Promise<JwksResponse> {
-    return this.runtime.getJwks();
+    return this.operations.run(() => this.runtime.getJwks());
   }
 
   async getA2ASigningKey(): Promise<A2ASigningKey> {
-    const privateJwk = await this.runtime.getA2APrivateJwk();
-    return {
-      privateJwk,
-      keyId: absoluteUrl(
-        this.issuer,
-        `/.well-known/jwks.json#${privateJwk.kid}`,
-      ),
-    };
+    return this.operations.run(async () => {
+      const privateJwk = await this.runtime.getA2APrivateJwk();
+      return {
+        privateJwk,
+        keyId: absoluteUrl(
+          this.issuer,
+          `/.well-known/jwks.json#${privateJwk.kid}`,
+        ),
+      };
+    });
   }
 
   async grantA2APeerTrust(
     input: GrantA2APeerTrustInput,
     context: AuthMutationContext = {},
   ): Promise<A2APeerTrustRecord> {
-    await this.initialize();
-    return this.runtime.peerTrustStore.grant(input, context);
+    return this.operations.run(async () => {
+      await this.initialize();
+      return this.runtime.peerTrustStore.grant(input, context);
+    });
   }
 
   async getA2APeerTrust(
     domain: string,
   ): Promise<A2APeerTrustRecord | undefined> {
-    await this.initialize();
-    return this.runtime.peerTrustStore.get(domain);
+    return this.operations.run(async () => {
+      await this.initialize();
+      return this.runtime.peerTrustStore.get(domain);
+    });
   }
 
   async revokeA2APeerTrust(
     domain: string,
     context: AuthMutationContext = {},
   ): Promise<void> {
-    await this.initialize();
-    return this.runtime.peerTrustStore.revoke(domain, context);
+    return this.operations.run(async () => {
+      await this.initialize();
+      return this.runtime.peerTrustStore.revoke(domain, context);
+    });
   }
 
   getAuthorizationServerMetadata(
@@ -392,33 +412,41 @@ export class AuthService {
   }
 
   async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
-    await this.initialize();
-    return this.runtime.clientStore.registerClient(input);
+    return this.operations.run(async () => {
+      await this.initialize();
+      return this.runtime.clientStore.registerClient(input);
+    });
   }
 
   async getRegisteredClient(
     clientId: string,
   ): Promise<RegisteredOAuthClient | undefined> {
-    await this.initialize();
-    return this.runtime.clientStore.getClient(clientId);
+    return this.operations.run(async () => {
+      await this.initialize();
+      return this.runtime.clientStore.getClient(clientId);
+    });
   }
 
   async createUser(
     input: CreateAuthUserInput,
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().createUser(input, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().createUser(input, context);
+    });
   }
 
   async cancelInvitation(
     invitationId: string,
     context: AuthMutationContext,
   ): Promise<AuthInvitationSummary> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .cancelInvitation(invitationId, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .cancelInvitation(invitationId, context);
+    });
   }
 
   async confirmManualInvitationDelivery(
@@ -426,138 +454,167 @@ export class AuthService {
     deliveryAttemptId: string,
     context: AuthMutationContext,
   ): Promise<AuthInvitationSummary> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .confirmManualInvitationDelivery(
-        invitationId,
-        deliveryAttemptId,
-        context,
-      );
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .confirmManualInvitationDelivery(
+          invitationId,
+          deliveryAttemptId,
+          context,
+        );
+    });
   }
 
   async createInvitation(
     input: CreateInvitationRequest,
     context: AuthMutationContext,
   ): Promise<CreatedInvitationAccess> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .createInvitation(input, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .createInvitation(input, context);
+    });
   }
 
   async resendInvitation(
     invitationId: string,
     context: AuthMutationContext,
   ): Promise<CreatedInvitationAccess> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .resendInvitation(invitationId, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .resendInvitation(invitationId, context);
+    });
   }
 
   async inviteExternalPeerPerson(
     input: InviteExternalPeerPersonRequest,
     context: AuthMutationContext,
   ): Promise<InvitedExternalPeerAccess> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .inviteExternalPeerPerson(input, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .inviteExternalPeerPerson(input, context);
+    });
   }
 
   async linkExternalPeer(
     input: LinkExternalPeerRequest,
     context: AuthMutationContext,
   ): Promise<PersonExternalPeer> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .linkExternalPeer(input, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .linkExternalPeer(input, context);
+    });
   }
 
   async unlinkExternalPeer(
     input: UnlinkExternalPeerRequest,
     context: AuthMutationContext,
   ): Promise<PersonExternalPeer> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .unlinkExternalPeer(input, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .unlinkExternalPeer(input, context);
+    });
   }
 
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().getBrainAnchor();
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().getBrainAnchor();
+    });
   }
 
   async listUsers(): Promise<AuthPrincipal[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().listUsers();
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().listUsers();
+    });
   }
 
   async listAdminUsers(): Promise<AuthAdminUserSummary[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().listAdminUsers();
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().listAdminUsers();
+    });
   }
 
   async listInvitationChannels(): Promise<AuthInvitationChannelSummary[]> {
-    await this.runtime.ensureStarted();
-    const descriptors = this.listChannelDescriptors?.() ?? [];
-    const channels = await Promise.all(
-      descriptors.map(async (descriptor) => {
-        const deliveryModes: AuthInvitationChannelSummary["deliveryModes"] = [];
-        try {
-          const provider = this.getInvitationDeliveryProvider?.(
-            descriptor.type,
-          );
-          if (provider && (await provider.isAvailable())) {
-            deliveryModes.push("automatic");
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      const descriptors = this.listChannelDescriptors?.() ?? [];
+      const channels = await Promise.all(
+        descriptors.map(async (descriptor) => {
+          const deliveryModes: AuthInvitationChannelSummary["deliveryModes"] =
+            [];
+          try {
+            const provider = this.getInvitationDeliveryProvider?.(
+              descriptor.type,
+            );
+            if (provider && (await provider.isAvailable())) {
+              deliveryModes.push("automatic");
+            }
+          } catch {
+            // Dynamic provider failures make automatic delivery unavailable.
           }
-        } catch {
-          // Dynamic provider failures make automatic delivery unavailable.
-        }
-        if (descriptor.manualDelivery === true) {
-          deliveryModes.push("manual");
-        }
-        return {
-          type: descriptor.type,
-          displayName: descriptor.displayName,
-          subjectLabel: descriptor.subjectLabel,
-          ...(descriptor.subjectPattern
-            ? { subjectPattern: descriptor.subjectPattern }
-            : {}),
-          deliveryModes,
-        } satisfies AuthInvitationChannelSummary;
-      }),
-    );
-    return channels;
+          if (descriptor.manualDelivery === true) {
+            deliveryModes.push("manual");
+          }
+          return {
+            type: descriptor.type,
+            displayName: descriptor.displayName,
+            subjectLabel: descriptor.subjectLabel,
+            ...(descriptor.subjectPattern
+              ? { subjectPattern: descriptor.subjectPattern }
+              : {}),
+            deliveryModes,
+          } satisfies AuthInvitationChannelSummary;
+        }),
+      );
+      return channels;
+    });
   }
 
   async reconcileIdentityProposals(
     claims: AuthIdentityProposalInput[],
   ): Promise<AuthIdentityReconciliationResponse> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getIdentityReconciliationService().reconcile(claims);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getIdentityReconciliationService().reconcile(claims);
+    });
   }
 
   async listPersonExternalPeers(
     personId: string,
   ): Promise<PersonExternalPeer[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .listPersonExternalPeers(personId);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .listPersonExternalPeers(personId);
+    });
   }
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().listUserIdentities(userId);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().listUserIdentities(userId);
+    });
   }
 
   async listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().listUserPasskeys(userId);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().listUserPasskeys(userId);
+    });
   }
 
   async updateUserRole(
@@ -565,10 +622,12 @@ export class AuthService {
     role: AuthUserRole,
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .updateUserRole(userId, role, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .updateUserRole(userId, role, context);
+    });
   }
 
   async updateUserStatus(
@@ -576,10 +635,12 @@ export class AuthService {
     status: AuthUserStatus,
     context: AuthMutationContext = {},
   ): Promise<AuthPrincipal> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .updateUserStatus(userId, status, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .updateUserStatus(userId, status, context);
+    });
   }
 
   suspendUser(
@@ -593,98 +654,122 @@ export class AuthService {
     userId: string,
     context: AuthMutationContext = {},
   ): Promise<void> {
-    await this.runtime.ensureStarted();
-    await this.runtime
-      .getAdministrationService()
-      .deleteSuspendedUser(userId, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      await this.runtime
+        .getAdministrationService()
+        .deleteSuspendedUser(userId, context);
+    });
   }
 
   async revokeUserSessionsAndRefreshTokens(
     userId: string,
     context: AuthMutationContext = {},
   ): Promise<{ sessions: number; refreshTokens: number }> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .revokeUserGrants(userId, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .revokeUserGrants(userId, context);
+    });
   }
 
   async attachIdentity(
     input: AttachAuthIdentityInput,
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
-    await this.runtime.ensureStarted();
-    const descriptor = this.validateChannelSubject(input.type, input.subject);
-    return this.runtime.getAdministrationService().attachIdentity(
-      {
-        ...input,
-        ...(descriptor && !input.deliverySubject
-          ? { deliverySubject: input.subject }
-          : {}),
-      },
-      context,
-    );
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      const descriptor = this.validateChannelSubject(input.type, input.subject);
+      return this.runtime.getAdministrationService().attachIdentity(
+        {
+          ...input,
+          ...(descriptor && !input.deliverySubject
+            ? { deliverySubject: input.subject }
+            : {}),
+        },
+        context,
+      );
+    });
   }
 
   async detachIdentity(
     identityId: string,
     context: AuthMutationContext = {},
   ): Promise<AuthIdentityRecord> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getAdministrationService()
-      .detachIdentity(identityId, context);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getAdministrationService()
+        .detachIdentity(identityId, context);
+    });
   }
 
   async recordAuditEvent(
     input: AppendAuthAuditEventInput,
   ): Promise<AuthAuditEvent> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAuditStore().append(input);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAuditStore().append(input);
+    });
   }
 
   async listAuditEvents(): Promise<AuthAuditEvent[]> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAdministrationService().listAuditEvents();
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAdministrationService().listAuditEvents();
+    });
   }
 
   async queryAuditEvents(query: AuthAuditQuery): Promise<AuthAuditQueryResult> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getAuditStore().query(query);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getAuditStore().query(query);
+    });
   }
 
   async resolveActorPrincipal(
     actor: ActorRef,
   ): Promise<AuthPrincipal | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getPrincipalService().resolveActor(actor);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getPrincipalService().resolveActor(actor);
+    });
   }
 
   async resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getPrincipalService().resolveIdentityAccess(input);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getPrincipalService().resolveIdentityAccess(input);
+    });
   }
 
   async createAuthSession(
     subject?: string,
     options: { secure?: boolean } = {},
   ): Promise<CreateAuthSessionResult> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getPrincipalService().createSession(subject, options);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getPrincipalService().createSession(subject, options);
+    });
   }
 
   async getAuthSession(
     request: Request,
   ): Promise<AuthSessionRecord | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getPrincipalService().getSession(request);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getPrincipalService().getSession(request);
+    });
   }
 
   async resolveSession(request: Request): Promise<AuthPrincipal | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime.getPrincipalService().resolveSession(request);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getPrincipalService().resolveSession(request);
+    });
   }
 
   createAuthLoginResponse(request: Request): Response {
@@ -695,30 +780,36 @@ export class AuthService {
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<VerifiedAccessToken | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getPrincipalService()
-      .verifyBearerToken(request, options);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getPrincipalService()
+        .verifyBearerToken(request, options);
+    });
   }
 
   async resolveBearerGrant(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthBearerGrant | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getPrincipalService()
-      .resolveBearerGrant(request, options);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getPrincipalService()
+        .resolveBearerGrant(request, options);
+    });
   }
 
   async resolveBearerToken(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
   ): Promise<AuthPrincipal | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getPrincipalService()
-      .resolveBearerToken(request, options);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getPrincipalService()
+        .resolveBearerToken(request, options);
+    });
   }
 
   getSetupUrl(issuer: string = this.issuer): string | undefined {
@@ -730,41 +821,49 @@ export class AuthService {
     context: AuthMutationContext = {},
     delivery?: AuthSetupDeliveryInput,
   ): Promise<UserPasskeyRegistration> {
-    await this.runtime.ensureStarted();
-    if (delivery) {
-      this.validateChannelSubject(delivery.type, delivery.subject);
-    }
-    return this.runtime
-      .getPasskeySetupCoordinator()
-      .startRegistration(userId, context, delivery);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      if (delivery) {
+        this.validateChannelSubject(delivery.type, delivery.subject);
+      }
+      return this.runtime
+        .getPasskeySetupCoordinator()
+        .startRegistration(userId, context, delivery);
+    });
   }
 
   async getPasskeySetupRequired(
     issuer: string = this.issuer,
   ): Promise<PasskeySetupRequired | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getPasskeySetupCoordinator()
-      .getPasskeySetupRequired(issuer);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getPasskeySetupCoordinator()
+        .getPasskeySetupRequired(issuer);
+    });
   }
 
   async getPasskeySetupRequiredForDelivery(
     issuer: string = this.issuer,
   ): Promise<PasskeySetupRequired | undefined> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getPasskeySetupCoordinator()
-      .getPasskeySetupRequiredForDelivery(issuer);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getPasskeySetupCoordinator()
+        .getPasskeySetupRequiredForDelivery(issuer);
+    });
   }
 
   async hasSetupEmailDelivery(
     setupTokenIdValue: string,
     recipient: string,
   ): Promise<boolean> {
-    await this.runtime.ensureStarted();
-    return this.runtime
-      .getPasskeySetupCoordinator()
-      .hasSetupEmailDelivery(setupTokenIdValue, recipient);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime
+        .getPasskeySetupCoordinator()
+        .hasSetupEmailDelivery(setupTokenIdValue, recipient);
+    });
   }
 
   async recordSetupEmailDelivery(
@@ -772,25 +871,29 @@ export class AuthService {
     recipient: string,
     options: { deliveryId?: string } = {},
   ): Promise<void> {
-    await this.runtime.ensureStarted();
-    await this.runtime
-      .getPasskeySetupCoordinator()
-      .recordSetupEmailDelivery(setupTokenIdValue, recipient, options);
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      await this.runtime
+        .getPasskeySetupCoordinator()
+        .recordSetupEmailDelivery(setupTokenIdValue, recipient, options);
+    });
   }
 
   async handleRequest(request: Request): Promise<Response> {
-    await this.initialize();
+    return this.operations.run(async () => {
+      await this.initialize();
 
-    let requestIssuer: string;
-    try {
-      requestIssuer = this.resolveRequestIssuer(request);
-    } catch (error) {
-      this.logger?.warn("Rejected OAuth request from untrusted issuer", {
-        error: getErrorMessage(error),
-      });
-      return new Response("Untrusted OAuth issuer", { status: 400 });
-    }
-    return this.requestRouter.handle(request, requestIssuer);
+      let requestIssuer: string;
+      try {
+        requestIssuer = this.resolveRequestIssuer(request);
+      } catch (error) {
+        this.logger?.warn("Rejected OAuth request from untrusted issuer", {
+          error: getErrorMessage(error),
+        });
+        return new Response("Untrusted OAuth issuer", { status: 400 });
+      }
+      return this.requestRouter.handle(request, requestIssuer);
+    });
   }
 
   async handleWellKnownRequest(request: Request): Promise<Response> {

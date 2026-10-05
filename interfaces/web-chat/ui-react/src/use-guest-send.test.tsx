@@ -192,6 +192,28 @@ describe("useGuestSend", () => {
     expect(JSON.stringify(reported[0])).toContain("post:hiding");
   });
 
+  it("keeps on the answer that a FAQ gave it", async () => {
+    const harness = await render({
+      streamMessages: () =>
+        Promise.resolve(
+          stream([
+            { type: "text-start", id: "answer" },
+            {
+              type: "data-asked-before",
+              id: "asked-before",
+              data: { faqId: "how-does-rizom-keep-memory" },
+            },
+            ...answered.slice(1),
+          ]),
+        ),
+    });
+    await act(async () => harness.send().send());
+    const reply = harness
+      .messages()
+      .find((entry) => entry.role === "assistant");
+    expect(reply?.askedBefore).toEqual({ faqId: "how-does-rizom-keep-memory" });
+  });
+
   it("reports nothing for an answer that never finished", async () => {
     const reported: ChatCard[][] = [];
     const harness = await render({

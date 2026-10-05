@@ -118,11 +118,17 @@ describe("@rizom/site-rizom-ai", () => {
       "turn",
       "growth",
       "arc",
+      "asked",
       "doors",
     ]);
     const opening = route?.sections?.[0];
     expect(opening?.template).toBe("rizom:opening");
     expect(opening?.dataQuery).toBeDefined();
+    // "Asked before" comes after the argument and before the doors, and
+    // reads the published FAQs through the site's own datasource.
+    const asked = route?.sections?.find((section) => section.id === "asked");
+    expect(asked?.template).toBe("rizom:asked");
+    expect(asked?.dataQuery).toBeDefined();
   });
 
   test("home body sections reference their content namespaces by string", () => {
@@ -136,6 +142,7 @@ describe("@rizom/site-rizom-ai", () => {
       "living-memory:turn",
       "living-memory:growth",
       "living-memory:arc",
+      "rizom:asked",
       "living-memory:doors",
     ]);
   });
@@ -147,5 +154,18 @@ describe("the site's icon", () => {
     expect(icon).toStartWith("<svg");
     expect(icon).toContain('fill="#14132b"');
     expect(icon).toContain("#d4af37");
+  });
+});
+
+describe("what a visitor's answer may cite", () => {
+  test("names the network's pieces beside the site's own, all opted in", () => {
+    expect(site.entityDisplay["network-piece"]).toMatchObject({
+      label: "From the network",
+      citable: true,
+      navigation: { show: false },
+    });
+    for (const type of ["post", "deck", "agent"]) {
+      expect(site.entityDisplay[type]?.citable).toBe(true);
+    }
   });
 });

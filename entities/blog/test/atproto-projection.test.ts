@@ -69,6 +69,44 @@ describe("blog ATProto projection", () => {
     }
   });
 
+  it("names its page on this site, unless the essay was first published elsewhere", async () => {
+    const projection = createBlogAtprotoProjection();
+    const context = createMockServicePluginContext();
+    const entity = createMockPost(
+      "post-1",
+      "Distributed Brains",
+      "distributed-brains",
+    );
+    const here = await projection.buildRecord({
+      entity,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/essays/distributed-brains",
+    });
+    expect(here.canonicalUrl).toBe(
+      "https://brain.example.com/essays/distributed-brains",
+    );
+    const elsewhere = await projection.buildRecord({
+      entity: {
+        ...entity,
+        content: entity.content.replace(
+          "---\n",
+          "---\ncanonicalUrl: https://elsewhere.example/first\n",
+        ),
+      },
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/essays/distributed-brains",
+    });
+    expect(elsewhere.canonicalUrl).toBe("https://elsewhere.example/first");
+    const unplaced = await projection.buildRecord({
+      entity,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("includes cover image shape during dry-run without uploading a blob", async () => {
     const projection = createBlogAtprotoProjection();
     const entity = createMockPost(

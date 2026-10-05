@@ -67,6 +67,11 @@ describe("createDefaultUserRunner", () => {
       },
     });
     expect(result.envFile).toContain("CONTENT_REPO=rizom-ai/rizom-ai-content");
+    // The image the instance runs, named by its Brain version and its own
+    // site pins, so a site pin change is a changed config and deploys.
+    expect(result.envFile).toMatch(
+      /^IMAGE_TAG=brain-[^\n]+--rizom-site-rizom-ai-[^\n]+$/m,
+    );
     expect(result.contentRepoFiles?.[0]?.content).not.toContain("kind:");
   });
 

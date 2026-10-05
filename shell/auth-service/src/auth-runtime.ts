@@ -58,6 +58,7 @@ import { WebAuthnEndpoints } from "./webauthn-endpoints";
 
 export interface AuthRuntimeOptions {
   storageDir: string;
+  runBackgroundOperation: (operation: () => Promise<void>) => Promise<void>;
   replica?: AuthRuntimeReplicaOptions;
   issuer: string;
   trustedIssuers: Set<string>;
@@ -96,6 +97,7 @@ export class AuthRuntime {
   readonly webauthnEndpoints: WebAuthnEndpoints;
 
   private readonly runtimeDatabase: AuthRuntimeDatabase;
+  private readonly runBackgroundOperation: AuthRuntimeOptions["runBackgroundOperation"];
   private readonly refreshTokenStore: RuntimeRefreshTokenStore;
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
@@ -137,6 +139,7 @@ export class AuthRuntime {
   private closePromise: Promise<void> | undefined;
 
   constructor(options: AuthRuntimeOptions) {
+    this.runBackgroundOperation = options.runBackgroundOperation;
     this.issuer = options.issuer;
     this.trustedIssuers = options.trustedIssuers;
     this.allowLocalhostIssuers = options.allowLocalhostIssuers;
@@ -206,6 +209,7 @@ export class AuthRuntime {
               options.oauthClientMaintenanceIntervalMs,
           }
         : {}),
+      runClientMaintenance: this.runBackgroundOperation,
       onClientMaintenanceError: (error): void => {
         this.logger?.warn("Failed to prune stale OAuth clients", { error });
       },
@@ -345,12 +349,15 @@ export class AuthRuntime {
       ...(this.getChannelDescriptor
         ? { getChannelDescriptor: this.getChannelDescriptor }
         : {}),
+      getBrainName: (): Promise<string | undefined> =>
+        this.profileDisplayName(this.anchorProfileEntityId),
     });
     this.invitationDeliverySupervisor = new InvitationDeliverySupervisor(
       this.invitationDeliveryRecoveryIntervalMs,
-      async (now): Promise<void> => {
-        await this.getInvitationService().recoverInterruptedDeliveries(now);
-      },
+      (now): Promise<void> =>
+        this.runBackgroundOperation(async () => {
+          await this.getInvitationService().recoverInterruptedDeliveries(now);
+        }),
       {
         onError: (error): void => {
           this.logger?.warn("Failed to recover invitation delivery", {

@@ -22,11 +22,13 @@ describe("FaqDataSource", () => {
     status: FaqStatus,
     visibility: ContentVisibility,
     asked: number,
+    { rank, created }: { rank?: number; created?: string } = {},
   ): Promise<void> {
     const frontmatter: FaqFrontmatter = {
       question: `Question ${id}?`,
       status,
       asked,
+      ...(rank !== undefined && { rank }),
     };
     await context.entityService.createEntity({
       entity: {
@@ -35,6 +37,7 @@ describe("FaqDataSource", () => {
         content: faqAdapter.createFaqContent(frontmatter, `Answer **${id}**.`),
         visibility,
         metadata: faqMetadata(frontmatter),
+        ...(created !== undefined && { created }),
       },
     });
   }
@@ -59,7 +62,7 @@ describe("FaqDataSource", () => {
     );
   }
 
-  it("lists only public FAQs, most asked first, as question and answer", async () => {
+  it("lists only public FAQs, unranked ones most asked first, as question and answer", async () => {
     expect(await fetch(false)).toEqual({
       faqs: [
         {
@@ -67,21 +70,53 @@ describe("FaqDataSource", () => {
           question: "Question thrice?",
           answer: "Answer **thrice**.",
           asked: 3,
+          sources: [],
         },
         {
           id: "draft",
           question: "Question draft?",
           answer: "Answer **draft**.",
           asked: 2,
+          sources: [],
         },
         {
           id: "once",
           question: "Question once?",
           answer: "Answer **once**.",
           asked: 1,
+          sources: [],
         },
       ],
     });
+  });
+
+  it("puts the owner's ranked FAQs first, in rank order", async () => {
+    await seed("second", "published", "public", 1, { rank: 2 });
+    await seed("first", "published", "public", 1, { rank: 1 });
+
+    const section = faqSectionSchema.parse(await fetch(true));
+
+    expect(section.faqs.map((faq) => faq.id)).toEqual([
+      "first",
+      "second",
+      "thrice",
+      "once",
+    ]);
+  });
+
+  it("orders unranked FAQs asked equally newest first", async () => {
+    // Alphabetically after "once", but asked since.
+    await seed("zeta", "published", "public", 1, {
+      created: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    const section = faqSectionSchema.parse(await fetch(true));
+
+    expect(section.faqs.map((faq) => faq.id)).toEqual([
+      "thrice",
+      "zeta",
+      "once",
+    ]);
   });
 
   it("shows only published FAQs to a published-only build", async () => {
@@ -122,8 +157,46 @@ describe("FaqDataSource", () => {
     expect(JSON.stringify(section)).not.toContain("unreviewed alternative");
   });
 
-  // A site shows the most asked FAQs beside its other content.
-  it("loads the most asked public FAQs for a site, up to a limit", async () => {
+  it("carries the sources a FAQ kept, so a page can show whose memory answered", async () => {
+    const frontmatter: FaqFrontmatter = {
+      question: "How does Rizom keep memory?",
+      status: "published",
+      asked: 5,
+      sources: [
+        {
+          id: "network-piece:plc-peer--post--3kabc",
+          title: "Handoffs between teams",
+          url: "https://becca.rizom.ai/essays/handoffs",
+          excerpt: "Before anyone leaves a task we write three things down.",
+          brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+        },
+      ],
+    };
+    await context.entityService.createEntity({
+      entity: {
+        id: "sourced",
+        entityType: "faq",
+        content: faqAdapter.createFaqContent(frontmatter, "In their brains."),
+        visibility: "public",
+        metadata: faqMetadata(frontmatter),
+      },
+    });
+    const section = faqSectionSchema.parse(await fetch(true));
+    const sourced = section.faqs.find((faq) => faq.id === "sourced");
+    expect(sourced?.sources).toEqual([
+      {
+        id: "network-piece:plc-peer--post--3kabc",
+        title: "Handoffs between teams",
+        url: "https://becca.rizom.ai/essays/handoffs",
+        excerpt: "Before anyone leaves a task we write three things down.",
+        brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+      },
+    ]);
+    expect(section.faqs.find((faq) => faq.id === "once")?.sources).toEqual([]);
+  });
+
+  // A site shows the first FAQs beside its other content.
+  it("loads the first public FAQs for a site, up to a limit", async () => {
     const preview = await loadPublicFaqs(
       { entityService: context.entityService, publishedOnly: false },
       2,

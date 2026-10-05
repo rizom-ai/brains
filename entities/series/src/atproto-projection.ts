@@ -10,6 +10,7 @@ import { seriesSchema } from "./schemas/series";
 export async function buildSeriesAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainSeriesRecord> {
   const series = seriesSchema.parse(entity);
   const body = seriesAdapter.parseBody(series.content);
@@ -21,6 +22,7 @@ export async function buildSeriesAtprotoRecord({
     ...(body.description && { description: body.description }),
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "series",
     sourceEntityId: series.id,
     createdAt: series.created,

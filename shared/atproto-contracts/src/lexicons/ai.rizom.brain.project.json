@@ -18,6 +18,7 @@
           "year": { "type": "integer" },
           "url": { "type": "string", "format": "uri" },
           "publishedAt": { "type": "string", "format": "datetime" },
+          "canonicalUrl": { "type": "string", "format": "uri" },
           "brainDid": { "type": "string" },
           "anchorDid": { "type": "string" },
           "sourceEntityType": { "type": "string" },

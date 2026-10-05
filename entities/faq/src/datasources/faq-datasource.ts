@@ -7,15 +7,49 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { faqAdapter } from "../adapters/faq-adapter";
-import { faqSchema, type FaqEntity } from "../schemas/faq";
+import { faqSchema, type FaqEntity, type FaqSource } from "../schemas/faq";
 
 export const FAQ_DATASOURCE_ID = "faq:entities" as const;
+
+type FaqItemSourceSchema = z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  url: z.ZodNullable<z.ZodString>;
+  excerpt: z.ZodNullable<z.ZodString>;
+  brain: z.ZodNullable<
+    z.ZodObject<{ name: z.ZodString; url: z.ZodNullable<z.ZodString> }>
+  >;
+}>;
+
+/** A kept source as a page receives it: every field present, absent as null. */
+export const faqItemSourceSchema: FaqItemSourceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  url: z.string().nullable(),
+  excerpt: z.string().nullable(),
+  brain: z.object({ name: z.string(), url: z.string().nullable() }).nullable(),
+});
+
+export type FaqItemSource = z.output<typeof faqItemSourceSchema>;
+
+function itemSource(source: FaqSource): FaqItemSource {
+  return {
+    id: source.id,
+    title: source.title,
+    url: source.url ?? null,
+    excerpt: source.excerpt ?? null,
+    brain: source.brain
+      ? { name: source.brain.name, url: source.brain.url ?? null }
+      : null,
+  };
+}
 
 type FaqItemSchema = z.ZodObject<{
   id: z.ZodString;
   question: z.ZodString;
   answer: z.ZodString;
   asked: z.ZodNumber;
+  sources: z.ZodArray<FaqItemSourceSchema>;
 }>;
 
 export const faqItemSchema: FaqItemSchema = z.object({
@@ -23,6 +57,8 @@ export const faqItemSchema: FaqItemSchema = z.object({
   question: z.string(),
   answer: z.string(),
   asked: z.number().int(),
+  /** What the answer drew on when it was first given; a page may show them. */
+  sources: z.array(faqItemSourceSchema),
 });
 
 export type FaqItem = z.output<typeof faqItemSchema>;
@@ -34,7 +70,8 @@ export const faqSectionSchema: z.ZodObject<{
 export type FaqSectionData = z.output<typeof faqSectionSchema>;
 
 /**
- * Supplies the FAQ section with public FAQs, most asked first. A FAQ drawn
+ * Supplies the FAQ section with public FAQs: the owner's ranked ones in rank
+ * order, then the rest most asked first, newest first on a tie. A FAQ drawn
  * from shared or restricted content never reaches a site, whatever the
  * build's visibility scope; drafts stay out of published-only builds.
  */
@@ -51,8 +88,9 @@ export class FaqDataSource extends BaseEntityDataSource<
     entityType: "faq",
     entitySchema: faqSchema,
     defaultSort: [
-      { field: "asked" as const, direction: "desc" as const },
-      { field: "question" as const, direction: "asc" as const },
+      { field: "rank", direction: "asc", nullsLast: true },
+      { field: "asked", direction: "desc" },
+      { field: "created", direction: "desc" },
     ],
     defaultLimit: 100,
     lookupField: "id",
@@ -63,12 +101,13 @@ export class FaqDataSource extends BaseEntityDataSource<
   }
 
   protected transformEntity(entity: FaqEntity): FaqItem {
-    const { answer } = faqAdapter.parseFaqContent(entity.content);
+    const { answer, frontmatter } = faqAdapter.parseFaqContent(entity.content);
     return {
       id: entity.id,
       question: entity.metadata.question,
       answer,
       asked: entity.metadata.asked,
+      sources: (frontmatter.sources ?? []).map(itemSource),
     };
   }
 
@@ -91,8 +130,9 @@ export class FaqDataSource extends BaseEntityDataSource<
 }
 
 /**
- * The most asked public FAQs a site shows beside its other content, under the
- * build's publish rule; none where the brain does not capture FAQs.
+ * The first public FAQs in the section's order, for a site that shows them
+ * beside its other content, under the build's publish rule; none where the
+ * brain does not capture FAQs.
  */
 export async function loadPublicFaqs(
   context: BaseDataSourceContext,

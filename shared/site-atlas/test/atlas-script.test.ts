@@ -28,19 +28,21 @@ function setup(options: {
     media["(max-width: 60rem)"] = options.narrow;
   media["(prefers-reduced-motion: reduce)"] = options.still ?? false;
   window.document.body.innerHTML = `
-    <section data-atlas>
+    <section data-atlas data-ask-room>
       <a class="contact" href="/contact" data-atlas-door>Let’s talk</a>
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
       <a id="topic" href="/contact?topic=What+is+Rizom%3F" data-atlas-door data-atlas-fill="What is Rizom?">What is Rizom?</a>
-      <svg data-atlas-leads></svg>
-      <div class="atlas__map" data-atlas-map><div data-atlas-field>
+      <svg data-atlas-leads data-ask-leads></svg>
+      <div class="atlas__map" data-atlas-map data-ask-drawing><div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
-          <li data-atlas-mark data-atlas-key="post:first" data-atlas-type="Essay" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-atlas-cited>Where it’s cited ↓</button></li>
-          <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
-          <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:first" data-ask-mark="post:first" data-atlas-type="Essay" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a><button id="first-cited" data-ask-aim>Where it’s cited ↓</button></li>
+          <li data-atlas-mark data-atlas-key="post:second" data-ask-mark="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:third" data-ask-mark="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
-      </div></div>
+      </div>
+      <p class="atlas__legend"><a id="latest" class="atlas__key--latest" href="/essays/second" data-atlas-latest="post:second" aria-label="Latest: Second">Latest</a></p>
+      </div>
     </section>
     <p id="outside">Elsewhere</p>
     <section data-atlas-faqs>
@@ -111,6 +113,8 @@ beforeEach(() => {
       matches: media[query] ?? false,
       addEventListener: (): void => undefined,
     }),
+    // The room reads the page's window for its observers.
+    MutationObserver: Watcher,
   });
   class Observer {
     constructor(
@@ -125,6 +129,7 @@ beforeEach(() => {
     document: window.document,
     // The page's own Event, as a browser page has it.
     Event: window.Event,
+    CustomEvent: window.CustomEvent,
     IntersectionObserver: Observer,
     MutationObserver: Watcher,
   });
@@ -135,61 +140,41 @@ afterEach(() => {
   restoreGlobals();
 });
 
-/**
- * Opens one FAQ as a browser does for exclusive details: the chosen one opens
- * and the open one closes, and only then do their toggle events fire.
- */
-function openFaq(id: string): void {
-  const all = Array.from(
-    window.document.querySelectorAll("details[name=faqs]"),
-  );
-  const changed = all.filter(
-    (details) => details.hasAttribute("open") !== (details.id === id),
-  );
-  // Chosen first, so the page never sees a moment with none open.
-  changed.sort((a, b) => Number(b.id === id) - Number(a.id === id));
-  for (const details of changed)
-    if (details.id === id) details.setAttribute("open", "");
-    else details.removeAttribute("open");
-  for (const details of changed)
-    details.dispatchEvent(new window.Event("toggle"));
-}
-
-function reader(): string | undefined {
-  return window.document.querySelector("[data-atlas-faqs-reader]")?.innerHTML;
-}
-
 describe("published FAQs under the atlas", () => {
-  it("reads the open answer beside the questions on a wide screen", () => {
+  // They are plain disclosures: closed until tapped, on every screen.
+  it("leaves them as plain disclosures on a wide screen", () => {
     setup({ touch: false });
     const band = window.document.querySelector("[data-atlas-faqs]");
-    expect(band?.hasAttribute("data-split")).toBe(true);
-    expect(reader()).toContain("First <strong>answer</strong>.");
-    openFaq("faq-two");
-    expect(reader()).toContain("Second answer.");
-  });
-
-  it("keeps one answer open while they read side by side", () => {
-    setup({ touch: false });
+    expect(band?.hasAttribute("data-split")).toBe(false);
+    expect(
+      window.document.querySelector("[data-atlas-faqs-reader]"),
+    ).toBeNull();
     const first = window.document.querySelector("#faq-one");
     first?.removeAttribute("open");
     first?.dispatchEvent(new window.Event("toggle"));
-    expect(first?.hasAttribute("open")).toBe(true);
-    expect(reader()).toContain("First <strong>answer</strong>.");
-  });
-
-  it("leaves the questions stacked on a narrow screen", () => {
-    setup({ touch: true, narrow: true });
-    expect(
-      window.document
-        .querySelector("[data-atlas-faqs]")
-        ?.hasAttribute("data-split"),
-    ).toBe(false);
-    expect(reader()).toBeUndefined();
+    expect(first?.hasAttribute("open")).toBe(false);
   });
 });
 
 describe("atlas on touch screens", () => {
+  it("opens the latest piece's card on the first tap even with the tap's emulated hover and focus", () => {
+    setup({ touch: true });
+    const latest = window.document.querySelector("#latest");
+    if (!latest) throw new Error("missing #latest");
+    // A touch browser fires these before the tap's click.
+    latest.dispatchEvent(new window.Event("mouseenter"));
+    latest.dispatchEvent(new window.Event("focus"));
+    expect(tap("#latest")).toBe(false);
+    expect(openMarks()).toEqual(["second"]);
+  });
+
+  it("opens the latest piece's card from the legend's Latest, then follows it", () => {
+    setup({ touch: true });
+    expect(tap("#latest")).toBe(false);
+    expect(openMarks()).toEqual(["second"]);
+    expect(tap("#latest")).toBe(true);
+  });
+
   it("shows a mark's title on the first tap and follows it on the second", () => {
     setup({ touch: true });
     expect(tap("#first")).toBe(false);
@@ -282,6 +267,22 @@ describe("atlas with a mouse", () => {
     setup({ touch: false });
     expect(tap("#first")).toBe(true);
     expect(openMarks()).toEqual([]);
+  });
+
+  it("shows the latest piece's card while the legend's Latest is hovered or focused", () => {
+    setup({ touch: false });
+    const latest = window.document.querySelector("#latest");
+    if (!latest) throw new Error("missing #latest");
+    for (const [on, off] of [
+      ["mouseenter", "mouseleave"],
+      ["focus", "blur"],
+    ] as const) {
+      latest.dispatchEvent(new window.Event(on));
+      expect(openMarks()).toEqual(["second"]);
+      latest.dispatchEvent(new window.Event(off));
+      expect(openMarks()).toEqual([]);
+    }
+    expect(tap("#latest")).toBe(true);
   });
 });
 
@@ -380,7 +381,7 @@ describe("atlas and its chat", () => {
     setup({ touch: false, chat: "live" });
     answer(["post:first"]);
     const cited = Array.from(
-      window.document.querySelectorAll("[data-atlas-mark][data-cited]"),
+      window.document.querySelectorAll("[data-atlas-mark][data-ask-cited]"),
     ).map((mark) => mark.getAttribute("data-atlas-key"));
     expect(cited).toEqual(["post:first"]);
     expect(focused()).toBe(true);
@@ -516,7 +517,7 @@ describe("atlas and its chat", () => {
       tap("#source-first");
       tap("#first-cited");
       expect(region().scrollTop).toBe(900 - 200 + 15);
-      expect(source.hasAttribute("data-atlas-flash")).toBe(true);
+      expect(source.hasAttribute("data-ask-flash")).toBe(true);
       expect(openMarks()).toEqual([]);
     });
 
@@ -527,11 +528,11 @@ describe("atlas and its chat", () => {
       const home = map?.parentElement;
       sheet();
       expect(map?.parentElement?.hasAttribute("data-ask-dock")).toBe(true);
-      expect(home?.querySelector(".atlas__map-slot")).not.toBe(null);
+      expect(home?.querySelector("[data-ask-slot]")).not.toBe(null);
       host()?.removeAttribute("data-ask-sheet");
       mutate();
       expect(map?.parentElement).toBe(home);
-      expect(home?.querySelector(".atlas__map-slot")).toBe(null);
+      expect(home?.querySelector("[data-ask-slot]")).toBe(null);
     });
 
     it("lends the map only once the conversation's dock is there", () => {
@@ -575,7 +576,7 @@ describe("atlas and its chat", () => {
 
   const leads = (): Array<[string | null, string | null]> =>
     Array.from(
-      window.document.querySelectorAll("[data-atlas-leads] path"),
+      window.document.querySelectorAll("[data-ask-leads] path"),
       (path) => [path.getAttribute("data-lead"), path.getAttribute("d")],
     );
 
@@ -608,7 +609,9 @@ describe("atlas and its chat", () => {
     setup({ touch: false, chat: "live" });
     answer(["post:first"]);
     answer([]);
-    expect(window.document.querySelectorAll("[data-cited]")).toHaveLength(0);
+    expect(window.document.querySelectorAll("[data-ask-cited]")).toHaveLength(
+      0,
+    );
     expect(focused()).toBe(false);
     expect(leads()).toEqual([]);
   });
@@ -678,7 +681,7 @@ describe("atlas territory names", () => {
     area: Box = field,
   ): void {
     window.document.body.innerHTML = `
-      <section data-atlas>
+      <section data-atlas data-ask-room>
         <div data-atlas-field>
           <svg data-atlas-terrain></svg>
           ${labels.map(([id]) => `<span id="${id}" class="atlas__zone" data-atlas-zone>${id}</span>`).join("")}

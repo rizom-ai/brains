@@ -28,14 +28,14 @@ function createCapturedService(): CapturedService {
 
   const service: ICoreEntityService = {
     async getEntity<T extends BaseEntity>(
-      request: GetEntityRequest,
+      _request: GetEntityRequest,
     ): Promise<T | null> {
-      getEntityCalls.push(request);
       return null;
     },
     async getEntityRaw<T extends BaseEntity>(
-      _request: GetEntityRawRequest,
+      request: GetEntityRawRequest,
     ): Promise<T | null> {
+      getEntityCalls.push(request);
       return null;
     },
     async listEntities<T extends BaseEntity>(
@@ -125,7 +125,7 @@ describe("findEntityByIdentifier scope propagation", () => {
     const controller = new AbortController();
     const reads = {
       ...captured.service,
-      getEntity: async (): Promise<null> => {
+      getEntityRaw: async (): Promise<null> => {
         controller.abort();
         return null;
       },
@@ -270,7 +270,7 @@ describe("findEntityByIdentifier scope propagation", () => {
     // null as exactly that message.
     const unreachable: ICoreEntityService = {
       ...createCapturedService().service,
-      async getEntity<T extends BaseEntity>(): Promise<T | null> {
+      async getEntityRaw<T extends BaseEntity>(): Promise<T | null> {
         throw new Error("database unreachable");
       },
     };

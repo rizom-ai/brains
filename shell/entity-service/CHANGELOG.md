@@ -1,5 +1,207 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.485
+  - @brains/content-formatters@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/db@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/job-queue@0.2.0-alpha.485
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.484
+  - @brains/content-formatters@0.2.0-alpha.484
+  - @brains/contracts@0.2.0-alpha.484
+  - @brains/db@0.2.0-alpha.484
+  - @brains/utils@0.2.0-alpha.484
+  - @brains/job-queue@0.2.0-alpha.484
+
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.483
+  - @brains/content-formatters@0.2.0-alpha.483
+  - @brains/contracts@0.2.0-alpha.483
+  - @brains/db@0.2.0-alpha.483
+  - @brains/utils@0.2.0-alpha.483
+  - @brains/job-queue@0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.482
+  - @brains/content-formatters@0.2.0-alpha.482
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/db@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/job-queue@0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.481
+  - @brains/content-formatters@0.2.0-alpha.481
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/db@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+  - @brains/job-queue@0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- [#498](https://github.com/rizom-ai/brains/pull/498) [`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Local SQLite clients wait out a briefly held lock on every write path, not only when starting a transaction. Since connections stopped waiting on locks natively, a single statement, a batch or a migration that met another connection's write lock failed at once with `SQLITE_BUSY`; in production, embedding writes failed this way and the semantic index came up degraded. Standalone statements, batches and migrations now retry asynchronously under the same policy as transactions, and the retry budget is 5 seconds, as long as the native busy timeout it replaced. Statements inside an open transaction and multi-statement scripts are still never retried.
+
+  A refused batch or migration now reopens its connection, as a refused transaction start already did, so the client stays usable for later commits. The job queue keeps its own transaction-level retries as its only contention policy: its client sets `contentionRetryBudgetMs: 0` and surfaces each refusal at once. The entity service's separate write retry is removed; its writes rely on the client's.
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/db@0.2.0-alpha.480
+  - @brains/job-queue@0.2.0-alpha.480
+  - @brains/assets@0.2.0-alpha.480
+  - @brains/content-formatters@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity lookups by id, slug or title return stored content. The id lookup used a read that resolves `entity://image/...` references into data URLs, and its callers write the entity back: setting a generated or rendered image on a post, or a `system_update`, replaced an inline image reference in the post body with its bytes, in the database and in the synced Markdown file, and embedding then failed on the oversized body. `system_get` and `system_generate` now see a body's image references rather than its inlined bytes.
+
+- Updated dependencies [[`48e2464`](https://github.com/rizom-ai/brains/commit/48e2464c5531d6b9b9ee9e3b69b44f1c5df5805c)]:
+  - @brains/db@0.2.0-alpha.479
+  - @brains/job-queue@0.2.0-alpha.479
+  - @brains/assets@0.2.0-alpha.479
+  - @brains/content-formatters@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.478
+  - @brains/content-formatters@0.2.0-alpha.478
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/db@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/job-queue@0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`aa0b1a6`](https://github.com/rizom-ai/brains/commit/aa0b1a65c0da59cbbbc597d6ed4b4e10153f1f8b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop creating the unused libSQL vector index and drop it idempotently when existing embedding databases initialize. Keep embedding rows, primary-key constraints and cosine-distance search unchanged; remove the obsolete index-creation helper.
+
+- [#471](https://github.com/rizom-ai/brains/pull/471) [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Disable native SQLite busy waiting on application-thread connections, including local auth replicas. Retry refused BEGIN acquisition asynchronously for non-replica local clients within a two-second budget, covering auth, conversation and entity transactions without replaying callbacks or commits. Reset only refused local BEGIN connections so libSQL's retained failed statements cannot poison a later commit. Embedded replicas retain SDK-owned transaction acquisition and reconnect behavior. Route formerly unguarded export acknowledgements and projection-rule scheduling writes through BEGIN-only transaction retries, avoiding libSQL's retained stale snapshots after refused implicit writes. Preserve foreign keys, FULL synchronization, automatic checkpoints and replica configuration.
+
+- Updated dependencies [[`e1f56b3`](https://github.com/rizom-ai/brains/commit/e1f56b35ff11affce5dee81584121147e3889125), [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/job-queue@0.2.0-alpha.477
+  - @brains/db@0.2.0-alpha.477
+  - @brains/assets@0.2.0-alpha.477
+  - @brains/content-formatters@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.476
+  - @brains/content-formatters@0.2.0-alpha.476
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/db@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/job-queue@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.475
+  - @brains/content-formatters@0.2.0-alpha.475
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/db@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/job-queue@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.474
+  - @brains/content-formatters@0.2.0-alpha.474
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/db@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/job-queue@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.473
+  - @brains/content-formatters@0.2.0-alpha.473
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/db@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/job-queue@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.472
+  - @brains/content-formatters@0.2.0-alpha.472
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/db@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/job-queue@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.471
+  - @brains/content-formatters@0.2.0-alpha.471
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/db@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/job-queue@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.470
+  - @brains/content-formatters@0.2.0-alpha.470
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/db@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/job-queue@0.2.0-alpha.470
+
 ## 0.2.0-alpha.469
 
 ### Patch Changes

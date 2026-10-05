@@ -151,6 +151,53 @@ describe("contentHash regression: canonical form, not raw content", () => {
     expect(mockEntityService.deserializeEntity).toHaveBeenCalledTimes(2);
   });
 
+  it("leaves an unchanged non-canonical file alone instead of re-importing it on every sync", async () => {
+    // A file that is not in canonical form, such as one without a final
+    // newline, always hashes differently from the stored canonical hash.
+    const rawContent = "Hello world";
+    const store = new Map<string, Partial<BaseEntity>>();
+    const upsert = spyOn(mockEntityService, "upsertEntity").mockImplementation(
+      async (request: { entity: Partial<BaseEntity> }) => {
+        const entity = request.entity;
+        store.set(`${entity.entityType}:${entity.id}`, entity);
+        return {
+          entityId: entity.id ?? "mock-entity-id",
+          jobId: "mock-job",
+          created: true,
+          skipped: false,
+        };
+      },
+    );
+    mockEntityService.getEntityWriteSnapshot = async (request: {
+      entityType: string;
+      id: string;
+    }): Promise<{ entity: BaseEntity; revision: string } | null> => {
+      const found = store.get(`${request.entityType}:${request.id}`);
+      return found
+        ? {
+            entity: baseEntitySchema.parse(found),
+            revision: computeContentHash(JSON.stringify(found)),
+          }
+        : null;
+    };
+    const dirSync = new DirectorySync({
+      syncPath: testDir,
+      entityService: mockEntityService,
+      logger: createSilentLogger("test"),
+    });
+    writeFileSync(join(testDir, "note", "my-note.md"), rawContent);
+    expect((await dirSync.importEntities(["note/my-note.md"])).imported).toBe(
+      1,
+    );
+
+    // The next sync sees the same file again.
+    const again = await dirSync.importEntities(["note/my-note.md"]);
+
+    expect(again.skipped).toBe(1);
+    expect(again.imported).toBe(0);
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
   it("imports a document metadata-only sidecar change", async () => {
     mkdirSync(join(testDir, "document"), { recursive: true });
     const documentPath = join(testDir, "document", "report.pdf");

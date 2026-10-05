@@ -26,6 +26,7 @@ import {
 } from "./identity-resolver";
 import { PublishingTaskQueue } from "./publishing-tasks";
 import { buildAtprotoWebRoutes } from "./web-routes";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import {
   type DiscoverBrainCardResult,
   type DiscoverBrainCardsOptions,
@@ -550,6 +551,28 @@ export class AtprotoPlugin extends ServicePlugin<
     }
   }
 
+  /**
+   * The entity's page on this brain's site: the site's route for its type at
+   * the public domain, when the site gives the type a page at all.
+   */
+  private pageUrlOf(
+    context: ServicePluginContext,
+    entity: BaseEntity,
+  ): string | undefined {
+    const routes = EntityUrlGenerator.getInstance();
+    if (!context.siteUrl || !routes.hasRoute(entity.entityType)) {
+      return undefined;
+    }
+    const slug = entity.metadata["slug"];
+    return new URL(
+      routes.generateUrl(
+        entity.entityType,
+        typeof slug === "string" && slug ? slug : entity.id,
+      ),
+      context.siteUrl,
+    ).href;
+  }
+
   private async publishProjectedEntity<TRecord extends Record<string, unknown>>(
     context: ServicePluginContext,
     options: PublishEntityOptions,
@@ -577,6 +600,7 @@ export class AtprotoPlugin extends ServicePlugin<
     }
 
     const repo = this.config.repoDid;
+    const pageUrl = this.pageUrlOf(context, entity);
 
     if (options.dryRun) {
       const record = await projection.buildRecord({
@@ -584,6 +608,7 @@ export class AtprotoPlugin extends ServicePlugin<
         context,
         config: this.config,
         ...(options.topics && { topics: options.topics }),
+        ...(pageUrl && { pageUrl }),
         dryRun: true,
       });
       validateAtprotoRecord(projection.lexicon, record);
@@ -610,6 +635,7 @@ export class AtprotoPlugin extends ServicePlugin<
       config: this.config,
       client,
       ...(options.topics && { topics: options.topics }),
+      ...(pageUrl && { pageUrl }),
     });
     validateAtprotoRecord(projection.lexicon, record);
     if (!client.putRecord) {

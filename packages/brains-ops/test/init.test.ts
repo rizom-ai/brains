@@ -606,8 +606,8 @@ describe("initPilotRepo", () => {
     // Tag derivation goes through the shared @rizom/ops helpers so the build
     // and the deploy can never disagree about a tag.
     expect(resolveScript).toContain("runtimeImageTag");
+    expect(resolveScript).toContain("sitePackagesFor");
     expect(resolveScript).not.toContain("imageContract");
-    expect(resolveScript).not.toContain("sitePackagesFor");
     expect(resolveScript).toContain("derivePreviewDomain");
     expect(resolveScript).toContain(
       "sharedDomain: registry.pilot.domainSuffix",
@@ -750,7 +750,10 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("version: <exact-site-version>");
     expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");
     expect(operatorPlaybook).not.toContain("imageContract");
-    expect(operatorPlaybook).toContain("same image");
+    // Images are named by Brain version and site pins; promotion reuses the
+    // canary image where the pins match.
+    expect(operatorPlaybook).toContain("named by Brain version and site pins");
+    expect(operatorPlaybook).toContain("reuses that image where their");
     expect(operatorPlaybook).toContain(
       "### Custom-package canary and rollback",
     );

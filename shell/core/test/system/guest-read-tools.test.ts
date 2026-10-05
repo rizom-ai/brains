@@ -47,7 +47,7 @@ describe("guest read tool boundaries", () => {
     const search = spyOn(services.entityService, "search").mockResolvedValue(
       [],
     );
-    const get = spyOn(services.entityService, "getEntity").mockResolvedValue(
+    const get = spyOn(services.entityService, "getEntityRaw").mockResolvedValue(
       null,
     );
     const list = spyOn(

@@ -46,13 +46,50 @@ export type AskBoxAvailability = z.output<typeof askBoxAvailabilitySchema>;
  * Each source the mounted box lists carries ASK_SOURCE_ATTRIBUTE with the
  * same key, so a host can point at it.
  */
+/** The brain whose published memory a source came from: its name, and its address when it has one. */
+export const sourceBrainSchema: z.ZodObject<{
+  name: z.ZodString;
+  url: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  name: z.string().trim().min(1).max(200),
+  url: z.string().url().optional(),
+});
+export type SourceBrain = z.output<typeof sourceBrainSchema>;
+
+/**
+ * "Rizom, with Becca and Jo": who answered, then the brains whose published
+ * memory the answer drew on, each once, in arrival order.
+ */
+export function answeredBy(owner: string, brains: readonly string[]): string {
+  const names = brains.filter((name, i) => brains.indexOf(name) === i);
+  if (names.length === 0) return owner;
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `${owner}, with ${list}`;
+}
+
 export const ASK_SOURCES_EVENT = "ask:sources";
 export const ASK_SOURCE_ATTRIBUTE = "data-ask-source";
 
 export const askSourcesDetailSchema: z.ZodObject<{
-  sources: z.ZodArray<z.ZodObject<{ id: z.ZodString; title: z.ZodString }>>;
+  sources: z.ZodArray<
+    z.ZodObject<{
+      id: z.ZodString;
+      title: z.ZodString;
+      brain: z.ZodOptional<typeof sourceBrainSchema>;
+    }>
+  >;
 }> = z.object({
-  sources: z.array(z.object({ id: z.string(), title: z.string() })),
+  sources: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      // The brain whose published memory the source came from, when not this brain's own.
+      brain: sourceBrainSchema.optional(),
+    }),
+  ),
 });
 export type AskSourcesDetail = z.output<typeof askSourcesDetailSchema>;
 
@@ -130,3 +167,46 @@ export const ASK_DOCK_ATTRIBUTE = "data-ask-dock";
  * the boot or the box, sets it; the box clears it on close.
  */
 export const ASK_PAGE_LOCK_ATTRIBUTE = "data-ask-locked";
+
+/**
+ * The Ask room: a page section that presents the box beside a drawing of
+ * what an answer may cite (a map of pieces, a network of brains). The room
+ * script (@brains/site-atlas) runs on every root; the page supplies the
+ * parts by attribute and reacts to the room's events.
+ *
+ * - The root holds the box, the drawing and the lead layer.
+ * - A mark is a drawing's element for one thing an answer may cite; its
+ *   value is its key. A source cites a mark whose key is the source's id or
+ *   its brain's address (the host of its url); a brain without an address
+ *   cites a mark whose label (an `aria-label` on or in it) is its name.
+ * - The drawing is the element lent to an open sheet's dock, a slot holding
+ *   its place meanwhile; leads run only to its marks.
+ * - The lead layer is an svg the room draws into, in its own frame.
+ * - A mark's aim is the control in it that brings its listed source into
+ *   view in the open conversation; a mark without one is its own aim.
+ * - The column is the room's text column, which scrolls within the screen
+ *   beside the drawing on a wide screen.
+ */
+export const ASK_ROOM_ATTRIBUTE = "data-ask-room";
+export const ASK_COLUMN_ATTRIBUTE = "data-ask-column";
+export const ASK_MARK_ATTRIBUTE = "data-ask-mark";
+export const ASK_DRAWING_ATTRIBUTE = "data-ask-drawing";
+export const ASK_LEADS_ATTRIBUTE = "data-ask-leads";
+export const ASK_SLOT_ATTRIBUTE = "data-ask-slot";
+export const ASK_AIM_ATTRIBUTE = "data-ask-aim";
+/** Set on each mark an answer cites, while it does. */
+export const ASK_CITED_ATTRIBUTE = "data-ask-cited";
+/** Set for a moment on a listed source brought into view by its mark. */
+export const ASK_FLASH_ATTRIBUTE = "data-ask-flash";
+/**
+ * Dispatched on the root after an answer's sources are matched to marks:
+ * `detail.sources` as the box gave them, `detail.cited` one entry per
+ * source that found marks ({ source, key, marks }), `detail.marks` every
+ * cited mark once, `detail.unmatched` the sources that found none.
+ */
+export const ASK_CITED_EVENT = "ask:cited";
+/** Dispatched on the root when the drawing is lent to the open sheet's dock, and when it is back. */
+export const ASK_LENT_EVENT = "ask:lent";
+export const ASK_RETURNED_EVENT = "ask:returned";
+/** Dispatched on the root when a mark's aim brought its source into view: `detail.mark`, `detail.source` (the listed row). */
+export const ASK_AIMED_EVENT = "ask:aimed";

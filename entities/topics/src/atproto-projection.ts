@@ -12,6 +12,7 @@ const topicAdapter = new TopicAdapter();
 export async function buildTopicAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainTopicRecord> {
   const topic = topicEntitySchema.parse(entity);
   const parsed = topicAdapter.parseTopicBody(topic.content);
@@ -23,6 +24,7 @@ export async function buildTopicAtprotoRecord({
     format: "text/markdown",
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "topic",
     sourceEntityId: topic.id,
     createdAt: topic.created,

@@ -1,5 +1,51 @@
 # @brains/ops
 
+## 0.2.0-alpha.485
+
+### Minor Changes
+
+- [#508](https://github.com/rizom-ai/brains/pull/508) [`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: `auth-service.setupEmail` now takes only the recipient address. The `{ to, subject, body }` form and its `{{setupUrl}}`, `{{expiresAt}}` and `{{origin}}` placeholders are removed; a brain.yaml that still uses them fails config validation. Regenerate pilot brain.yaml files with `brains-ops reconcile` before pinning this release.
+
+  The anchor setup email and the invitation now share one onboarding body after their own opening: a first save-and-ask in chat, Studio, and how to connect AI tools over MCP (the brain's `/mcp` address, the Claude Code command, Claude Desktop custom connectors, OAuth sign-in with the passkey). Both have text and HTML parts. brains-ops no longer writes Rover-specific setup email copy.
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [#506](https://github.com/rizom-ai/brains/pull/506) [`baca6ba`](https://github.com/rizom-ai/brains/commit/baca6ba4b29f8c768ff1fad1935573e34800f455) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fleet images are named by their Brain version and their site pins: an instance without a site override runs `brain-<version>`, an instance with one runs `brain-<version>--<pins>` (or a digest of the pins when too long to spell out), and every instance with the same version and pins shares one image. A site's pin change builds that site's image and no other, and deploys on its own, because the generated `users/<handle>/.env` now names the image (`IMAGE_TAG`). Promotion reuses a smoke-tested image unchanged, as its name already carries its pins; an existing image is verified against what its name says it holds. Explicit dispatch builds install exactly the dispatched pins. The scaffolded fleet scripts derive the tag from the instance's own pins.
+
+## 0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`99f6c6b`](https://github.com/rizom-ai/brains/commit/99f6c6b28bef79a39b083142d4c7717f3452fdf9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup verifies embedding databases whether or not they still carry the retired libSQL vector index. Before, it read the index's shadow table unconditionally and failed once the index was dropped. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
 ## 0.2.0-alpha.469
 
 ## 0.2.0-alpha.468

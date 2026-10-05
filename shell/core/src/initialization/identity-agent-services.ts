@@ -12,6 +12,8 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  GUEST_ASKED_BEFORE_CHANNEL,
+  firstAskedBeforeHit,
   ENTITY_CHANNELS,
   parseAgentContextItems,
   type AgentContextRequest,
@@ -266,6 +268,20 @@ export function initializeIdentityAndAgentServices(
         : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
+      // A visitor's question a published FAQ already answers, asked of the
+      // plugins that keep FAQs; the hit's data is an answer only when it parses.
+      guestAskedBefore: async (request) => {
+        const responses = await messageBus.collect({
+          type: GUEST_ASKED_BEFORE_CHANNEL,
+          sender: "shell:agent-service",
+          payload: request,
+        });
+        return firstAskedBeforeHit(
+          responses.flatMap((response) =>
+            "noop" in response || !response.success ? [] : [response.data],
+          ),
+        );
+      },
       agentContextProvider: async (request: AgentContextRequest) => {
         const responses = await messageBus.collect({
           type: AGENT_CONTEXT_REQUEST_CHANNEL,

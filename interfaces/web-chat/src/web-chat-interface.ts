@@ -106,6 +106,7 @@ import {
 import { GuestStateMaintenance } from "./guest-maintenance";
 import { registerGuestMonitor } from "./guest-monitor";
 import { loadAskContent } from "./ask-content";
+import { loadSiteSubjects } from "./site-subjects";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
 import {
@@ -210,6 +211,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         ...this.guestHttpOptions,
         presentation: (): ReturnType<typeof loadAskContent> =>
           loadAskContent(context.entityService),
+        subjects: (): Promise<string[]> => loadSiteSubjects(context.messaging),
         requireAuthorization: managedPolicy !== undefined,
         ready:
           this.guestHttpOptions.ready ??

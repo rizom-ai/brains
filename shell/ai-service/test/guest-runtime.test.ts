@@ -14,7 +14,10 @@ import type {
 import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
-import { openAiEmbeddingPricingRevision } from "../src/openai-guest-pricing";
+import {
+  openAiEmbeddingPricingRevision,
+  openAiGuestPricingRevision,
+} from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
 import type { AgentConversationStore } from "../src/turn-processor";
@@ -466,6 +469,140 @@ describe("guest runtime boundary", () => {
         isAnchor: true,
       });
       expect(guestAnswerSources).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a question asked before", () => {
+    const citedIds = (cards: unknown): string[] =>
+      (Array.isArray(cards) ? cards : []).flatMap((card: unknown) =>
+        typeof card === "object" &&
+        card !== null &&
+        "kind" in card &&
+        card.kind === "sources" &&
+        "sources" in card &&
+        Array.isArray(card.sources)
+          ? card.sources.map((source: { id: string }) => source.id)
+          : [],
+      );
+    const askedBefore = {
+      faqId: "how-does-rizom-keep-memory",
+      answer: "Rizom keeps memory in the brains of the people who hold it.",
+      sources: [
+        {
+          id: "network-piece:plc-peer--post--3kabc",
+          source: "network-piece",
+          entityType: "network-piece",
+          entityId: "plc-peer--post--3kabc",
+          title: "Handoffs between teams",
+          url: "https://becca.rizom.ai/essays/handoffs",
+          brain: { name: "Becca", url: "https://becca.rizom.ai" },
+        },
+      ],
+    };
+    it("is answered from the FAQ, with its sources, before the model", async () => {
+      const guestAskedBefore = mock(async () => askedBefore);
+      const h = harness(conversation, [], { guestAskedBefore });
+      const response = await h.service.chat(
+        "How does Rizom keep memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(guestAskedBefore).toHaveBeenCalledWith({
+        question: "How does Rizom keep memory?",
+      });
+      expect(h.generate).not.toHaveBeenCalled();
+      // Nothing was prepared for a model that was never asked.
+      expect(h.agentContextProvider).not.toHaveBeenCalled();
+      // The turn cost nothing but its own check, and says so.
+      expect(response.guestSettlement).toEqual({
+        usage: {
+          modelCalls: 0,
+          inputTokens: 0,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          embeddingTokens: 0,
+        },
+        cost: {
+          state: "known",
+          microUsd: 0,
+          pricing: openAiGuestPricingRevision,
+        },
+      });
+      expect(response.text).toBe(askedBefore.answer);
+      expect(response.askedBefore).toEqual({
+        faqId: "how-does-rizom-keep-memory",
+      });
+      expect(citedIds(response.cards)).toEqual([
+        "network-piece:plc-peer--post--3kabc",
+      ]);
+      // The question and the answer are the conversation's, as any turn's.
+      const roles = h.conversations.addMessage.mock.calls.map(
+        ([message]) => message.role,
+      );
+      expect(roles).toEqual(["user", "assistant"]);
+      const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
+      expect(stored).toContain("network-piece:plc-peer--post--3kabc");
+      expect(stored).toContain("Becca");
+      // History knows a FAQ answered, as the live box does.
+      const [, reply] = h.conversations.addMessage.mock.calls;
+      expect(reply?.[0].metadata).toMatchObject({
+        askedBefore: { faqId: "how-does-rizom-keep-memory" },
+      });
+    });
+    it("charges the check's own embedding to the turn", async () => {
+      const embeddingUsage = EmbeddingUsageMeter.createFresh();
+      const guestAskedBefore = mock(async () => {
+        // Finding the FAQ embeds the question.
+        embeddingUsage.record("text-embedding-3-small", 12);
+        return askedBefore;
+      });
+      const h = harness(conversation, [], { guestAskedBefore, embeddingUsage });
+      const response = await h.service.chat(
+        "How does Rizom keep memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(response.guestSettlement?.usage.embeddingTokens).toBe(12);
+      expect(response.guestSettlement?.cost).toMatchObject({
+        state: "known",
+        pricing: `${openAiGuestPricingRevision}+${openAiEmbeddingPricingRevision}`,
+      });
+    });
+
+    it("goes to the model when no FAQ asks it, or the check fails", async () => {
+      const h = harness(conversation, [], {
+        guestAskedBefore: mock(async () => undefined),
+      });
+      await h.service.chat("Something new?", conversation.id, guestContext);
+      expect(h.generate).toHaveBeenCalledTimes(1);
+      const failing = harness(conversation, [], {
+        guestAskedBefore: mock(async () => {
+          throw new Error("faq index unavailable");
+        }),
+      });
+      const response = await failing.service.chat(
+        "Something new?",
+        conversation.id,
+        guestContext,
+      );
+      expect(failing.generate).toHaveBeenCalledTimes(1);
+      expect(response.askedBefore).toBeUndefined();
+    });
+    it("is never consulted for an owner's turn", async () => {
+      const guestAskedBefore = mock(async () => askedBefore);
+      const h = harness(null, [], { guestAskedBefore });
+      await h.service.chat(
+        "How does Rizom keep memory?",
+        "operator-conversation",
+        {
+          interfaceType: "cli",
+          userPermissionLevel: "admin",
+          isAnchor: true,
+        },
+      );
+      expect(guestAskedBefore).not.toHaveBeenCalled();
+      expect(h.generate).toHaveBeenCalledTimes(1);
     });
   });
 

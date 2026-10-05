@@ -1,6 +1,6 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-09-30
+Last updated: 2026-10-02
 
 ## Status
 
@@ -9,6 +9,9 @@ contracts, a single-BLOB `assets` table (migration 0010), `SqliteAssetRepository
 `fullTextSearchable` and `binaryStorage` entity-type settings, and atomic
 asset/entity tests. No entity type uses `binaryStorage: "asset"`; images and documents
 remain `data-url`. No instance has migrated.
+
+This plan is a stable `0.2.0` release gate. Images and PDFs reach their completion
+criteria, including bridge removal, before the final alpha is nominated.
 
 Next is Phase 1: replace the single-BLOB storage with staged chunk storage. This plan is
 the single source for asset storage and proceeds independently of
@@ -207,7 +210,7 @@ every entity reference, rollback retention, directory-sync recovery and backup r
 
 ### Compatibility window
 
-Entity get/list gain a `binaryContent` mode. For one release, an omitted mode means
+Entity get/list gain a `binaryContent` mode. Until bridge removal, which lands before stable `0.2.0`, an omitted mode means
 `"legacy-data-url"`, which materializes today's data URLs for legacy callers. New
 internal callers pass `"reference"`, which returns the stored reference and never loads
 bytes. Telemetry counts legacy materializations per caller surface without logging
@@ -301,9 +304,10 @@ Each phase is one PR, tests first.
 
 5. **Migration tooling:** `brain migrate binary-assets` (dry-run, migrate, verify) and
    `brain assets reconcile`.
-6. **Rehearsal and production cutover.**
-7. **Soak and bridge removal.**
-8. **PDF follow-up**, after images soak without open defects.
+6. **Rehearsal and production cutover** on a `0.2` alpha. `yeehaa.io` runs migrated
+   storage before final-alpha nomination.
+7. **Soak and bridge removal**, before stable `0.2.0`.
+8. **PDFs**, after images soak without open defects, before stable `0.2.0`.
 
 ### Migration (Phase 5)
 

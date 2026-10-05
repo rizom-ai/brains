@@ -1,5 +1,165 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/conversation-service@0.2.0-alpha.485
+  - @brains/entity-service@0.2.0-alpha.485
+
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.484
+  - @brains/utils@0.2.0-alpha.484
+  - @brains/conversation-service@0.2.0-alpha.484
+  - @brains/entity-service@0.2.0-alpha.484
+
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.483
+  - @brains/utils@0.2.0-alpha.483
+  - @brains/conversation-service@0.2.0-alpha.483
+  - @brains/entity-service@0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/conversation-service@0.2.0-alpha.482
+  - @brains/entity-service@0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+  - @brains/conversation-service@0.2.0-alpha.481
+  - @brains/entity-service@0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/entity-service@0.2.0-alpha.480
+  - @brains/conversation-service@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies [[`17991cc`](https://github.com/rizom-ai/brains/commit/17991cc010e1d0b647e636d4714fc7dede69717a)]:
+  - @brains/entity-service@0.2.0-alpha.479
+  - @brains/conversation-service@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/conversation-service@0.2.0-alpha.478
+  - @brains/entity-service@0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- Updated dependencies [[`aa0b1a6`](https://github.com/rizom-ai/brains/commit/aa0b1a65c0da59cbbbc597d6ed4b4e10153f1f8b), [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/entity-service@0.2.0-alpha.477
+  - @brains/conversation-service@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/conversation-service@0.2.0-alpha.476
+  - @brains/entity-service@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/conversation-service@0.2.0-alpha.475
+  - @brains/entity-service@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/conversation-service@0.2.0-alpha.474
+  - @brains/entity-service@0.2.0-alpha.474
+
+## 0.2.0-alpha.473
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.473
+  - @brains/utils@0.2.0-alpha.473
+  - @brains/conversation-service@0.2.0-alpha.473
+  - @brains/entity-service@0.2.0-alpha.473
+
+## 0.2.0-alpha.472
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.472
+  - @brains/utils@0.2.0-alpha.472
+  - @brains/conversation-service@0.2.0-alpha.472
+  - @brains/entity-service@0.2.0-alpha.472
+
+## 0.2.0-alpha.471
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.471
+  - @brains/utils@0.2.0-alpha.471
+  - @brains/conversation-service@0.2.0-alpha.471
+  - @brains/entity-service@0.2.0-alpha.471
+
+## 0.2.0-alpha.470
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.470
+  - @brains/utils@0.2.0-alpha.470
+  - @brains/conversation-service@0.2.0-alpha.470
+  - @brains/entity-service@0.2.0-alpha.470
+
 ## 0.2.0-alpha.469
 
 ### Patch Changes
