@@ -242,7 +242,7 @@
       }
       dl.fields {
         display: grid;
-        grid-template-columns: max-content 1fr;
+        grid-template-columns: max-content minmax(0, 1fr);
         gap: 6px 16px;
         margin: 0 0 12px;
         font-size: 14px;
@@ -251,6 +251,8 @@
         font-weight: 600;
       }
       dl.fields dd {
+        min-width: 0;
+        overflow-wrap: anywhere;
         margin: 0;
         color: var(--muted);
       }
@@ -271,19 +273,26 @@
         border-radius: 4px;
         padding: 1px 4px;
       }
-      details.advanced {
-        margin-top: 12px;
-        border-top: 1px solid var(--line);
-        padding-top: 10px;
+      details.dev {
+        margin-top: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 18px;
       }
-      details.advanced summary {
+      details.dev summary {
         cursor: pointer;
-        font-size: 13px;
+        font-size: 15px;
         font-weight: 600;
+      }
+      details.dev summary span {
+        display: block;
+        margin-left: 18px;
+        font-size: 13px;
+        font-weight: 400;
         color: var(--muted);
       }
-      details.advanced[open] summary {
-        margin-bottom: 10px;
+      details.dev[open] summary {
+        margin-bottom: 14px;
       }
       ol.steps {
         margin: 0;
@@ -496,32 +505,39 @@
                 <li>Sign in with your passkey when asked.</li>
               </ol>
             </div>
-            <div class="card wide">
-              <h4>Claude Code</h4>
-              <p>Add the server in your terminal:</p>
-              <div class="snippet">
-                <pre>
+          </div>
+          <details class="dev">
+            <summary>
+              Developer tools and other clients
+              <span>Claude Code, Cursor, VS Code, any MCP client</span>
+            </summary>
+            <div class="cards">
+              <div class="card wide">
+                <h4>Claude Code</h4>
+                <p>Add the server in your terminal:</p>
+                <div class="snippet">
+                  <pre>
 claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
-                <button class="copy" type="button">Copy</button>
+                  <button class="copy" type="button">Copy</button>
+                </div>
+                <p>
+                  Then start Claude Code, run <code>/mcp</code>, choose
+                  <code>becca-rizom-ai</code> and sign in with your passkey.
+                </p>
               </div>
-              <p>
-                Then start Claude Code, run <code>/mcp</code>, choose
-                <code>becca-rizom-ai</code> and sign in with your passkey.
-              </p>
-            </div>
-            <div class="card">
-              <h4>Cursor</h4>
-              <ol class="steps">
-                <li>Open Cursor Settings → MCP → Add new global MCP server.</li>
-                <li>
-                  Name it <code>becca-rizom-ai</code> and paste your brain’s
-                  address.
-                </li>
-                <li>Sign in with your passkey when Cursor asks.</li>
-              </ol>
-              <details class="advanced">
-                <summary>Advanced</summary>
-                <p>Edit <code>~/.cursor/mcp.json</code> instead:</p>
+              <div class="card wide">
+                <h4>Cursor</h4>
+                <ol class="steps">
+                  <li>
+                    Open Cursor Settings → MCP → Add new global MCP server.
+                  </li>
+                  <li>
+                    Name it <code>becca-rizom-ai</code> and paste your brain’s
+                    address.
+                  </li>
+                  <li>Sign in with your passkey when Cursor asks.</li>
+                </ol>
+                <p>Or add it to <code>~/.cursor/mcp.json</code>:</p>
                 <div class="snippet">
                   <pre>
 {
@@ -534,32 +550,27 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
                   <button class="copy" type="button">Copy</button>
                 </div>
                 <p class="hint">
-                  Already have servers in <code>~/.cursor/mcp.json</code>? Add
-                  only the <code>"becca-rizom-ai"</code> entry inside
-                  <code>"mcpServers"</code>.
+                  Already have servers there? Add only the
+                  <code>"becca-rizom-ai"</code> entry inside
+                  <code>"mcpServers"</code> of the file.
                 </p>
-              </details>
-            </div>
-            <div class="card">
-              <h4>VS Code</h4>
-              <ol class="steps">
-                <li>
-                  Open the Command Palette and run <code>MCP: Add Server</code>.
-                </li>
-                <li>
-                  Choose HTTP, paste your brain’s address and name it
-                  <code>becca-rizom-ai</code>.
-                </li>
-                <li>
-                  Choose Global, then sign in with your passkey when asked.
-                </li>
-              </ol>
-              <details class="advanced">
-                <summary>Advanced</summary>
-                <p>
-                  Edit your configuration instead: run
-                  <code>MCP: Open User Configuration</code> and add:
-                </p>
+              </div>
+              <div class="card wide">
+                <h4>VS Code</h4>
+                <ol class="steps">
+                  <li>
+                    Open the Command Palette and run
+                    <code>MCP: Add Server</code>.
+                  </li>
+                  <li>
+                    Choose HTTP, paste your brain’s address and name it
+                    <code>becca-rizom-ai</code>.
+                  </li>
+                  <li>
+                    Choose Global, then sign in with your passkey when asked.
+                  </li>
+                </ol>
+                <p>Or run <code>MCP: Open User Configuration</code> and add:</p>
                 <div class="snippet">
                   <pre>
 {
@@ -573,41 +584,36 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
                   <button class="copy" type="button">Copy</button>
                 </div>
                 <p class="hint">
-                  Already have servers in your user configuration? Add only the
+                  Already have servers there? Add only the
                   <code>"becca-rizom-ai"</code> entry inside
-                  <code>"servers"</code>.
+                  <code>"servers"</code> of your user configuration.
                 </p>
-              </details>
-            </div>
-            <div class="card wide">
-              <h4>Any other AI tool</h4>
-              <p>
-                Look for “add MCP server”, “connector” or “integration” in the
-                tool’s settings and fill in:
-              </p>
-              <dl class="fields">
-                <dt>Name</dt>
-                <dd><code>becca-rizom-ai</code></dd>
-                <dt>Type</dt>
-                <dd>Remote server, Streamable HTTP</dd>
-                <dt>URL</dt>
-                <dd><code>https://becca.rizom.ai/mcp</code></dd>
-                <dt>Authentication</dt>
-                <dd>OAuth — leave API key and client fields empty</dd>
-              </dl>
-              <p>
-                When you connect, your brain asks you to approve the tool with
-                your passkey.
-              </p>
-              <details class="advanced">
-                <summary>Advanced</summary>
+              </div>
+              <div class="card wide">
+                <h4>Any other MCP client</h4>
                 <p>
-                  The tool registers itself, so there is no client ID or secret
-                  to copy. After you approve “Authorize &lt;tool&gt;?”, it has
-                  two tools: <code>chat</code>, to ask your brain anything as
-                  you would in chat, and <code>confirm</code>, to approve
-                  changes when the brain asks. Stdio and SSE transports are not
-                  supported.
+                  Look for “add MCP server”, “connector” or “integration” in the
+                  tool’s settings and fill in:
+                </p>
+                <dl class="fields">
+                  <dt>Name</dt>
+                  <dd><code>becca-rizom-ai</code></dd>
+                  <dt>Type</dt>
+                  <dd>Remote server, Streamable HTTP — not stdio, not SSE</dd>
+                  <dt>URL</dt>
+                  <dd><code>https://becca.rizom.ai/mcp</code></dd>
+                  <dt>Authentication</dt>
+                  <dd>
+                    OAuth. Leave API key, token, client ID and secret empty; the
+                    tool registers itself.
+                  </dd>
+                </dl>
+                <p>
+                  When you connect, your browser opens “Authorize &lt;tool&gt;?”
+                  on your brain. Approve MCP access with your passkey. The tool
+                  then has two tools: <code>chat</code>, to ask your brain
+                  anything as you would in chat, and <code>confirm</code>, to
+                  approve changes when the brain asks.
                 </p>
                 <p>
                   Tool only takes local (stdio) servers, or insists on an API
@@ -630,9 +636,9 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
 }</pre>
                   <button class="copy" type="button">Copy</button>
                 </div>
-              </details>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
       </section>
     </main>
