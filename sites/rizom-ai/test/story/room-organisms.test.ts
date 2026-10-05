@@ -5,8 +5,33 @@ import { livingOrganism } from "../../src/story/living-organism";
 import { workOrganism } from "../../src/story/work-organism";
 
 describe("the room drawings", () => {
-  test("the homepage drawing has six stages: the opening draws the network itself, then the science onwards to the doors", () => {
+  test("the homepage drawing opens on the whole organism at rest, which the science then takes apart", () => {
     expect(livingOrganism.stageCount).toBe(6);
+    const css = livingOrganism.css();
+    // Stage 0: the brain to the left, the practice small at the centre, the
+    // network to the right, joined but still; no agent yet, no labels.
+    expect(css).toContain(
+      '.living-org[data-stage="0"] #living-org-n-L { cx: 110px; cy: 300px; r: 10px; opacity: 1; }',
+    );
+    expect(css).toContain(
+      '.living-org[data-stage="0"] #living-org-n-T1 { cx: 300px; cy: 227px; r: 5px; opacity: 1; }',
+    );
+    expect(css).toContain(
+      '.living-org[data-stage="0"] #living-org-n-N1 { cx: 478px; cy: 248px; r: 5px; opacity: 1; }',
+    );
+    expect(css).toMatch(
+      /\.living-org\[data-stage="0"\] #living-org-n-A \{[^}]*opacity: 0;/,
+    );
+    expect(css).toMatch(
+      /\.living-org\[data-stage="0"\] #living-org-l-you-team \{[^}]*opacity: 1;/,
+    );
+    expect(css).toMatch(
+      /\.living-org\[data-stage="0"\] #living-org-f-you-team \{[^}]*opacity: 0;/,
+    );
+    // The science: the team's pyramid pulls out of it, the brain to the centre.
+    expect(css).toContain(
+      '.living-org[data-stage="1"] #living-org-n-L { cx: 300px; cy: 300px; r: 8px; opacity: 1; }',
+    );
     expect(livingOrganism.css()).toContain(
       '.living-org[data-stage="5"] #living-org-n-L',
     );

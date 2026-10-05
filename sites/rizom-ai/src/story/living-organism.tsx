@@ -2,7 +2,7 @@
  * The homepage's drawing after the opening: a team around its shared memory,
  * AI arriving outside it, the organism of you, the practice and the network,
  * an economy of brains, and back to one lantern for the two ways in. The
- * opening itself draws the live network (see ./network), so stage 0 is empty.
+ * opening shows the whole organism at rest, before the story takes it apart.
  */
 import { organism, type NodePlace, type Organism } from "./organism";
 
@@ -84,8 +84,16 @@ export const livingOrganism: Organism = organism({
     ),
   },
   stages: [
-    // The opening draws the live network itself.
-    {},
+    // The opening: the whole organism at rest, the brain to the left, the
+    // practice small at the centre, the network to the right, before the
+    // story takes it apart. No agent yet.
+    {
+      L: one["L"] ?? [110, 300, 10, 1],
+      T1: at(small[0], 5),
+      T2: at(small[1], 5),
+      T3: at(small[2], 5),
+      ...Object.fromEntries(net.map((p, i) => [`N${i + 1}`, at(p, 5)])),
+    },
     // The science: a team, its shared memory glowing at the centre.
     {
       L: [C, 300, 8, 1],
@@ -137,7 +145,19 @@ export const livingOrganism: Organism = organism({
     ...uniqueEconomyLinks,
   ],
   visible: [
-    [],
+    [
+      "t12",
+      "t23",
+      "t31",
+      "you-team",
+      "team-net",
+      "n12",
+      "n23",
+      "n34",
+      "n45",
+      "n51",
+      "n13",
+    ],
     ["t12", "t23", "t31", "s1", "s2", "s3"],
     ["t12", "t23", "t31", "s1", "s2", "s3", "ai"],
     [
