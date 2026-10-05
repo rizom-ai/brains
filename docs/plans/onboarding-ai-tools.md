@@ -29,7 +29,7 @@ The tab shows the brain's MCP address with a copy button, what a connected tool 
 | VS Code                  | `.vscode/mcp.json` entry `{"servers": {"brain": {"type": "http", "url": "<address>"}}}` with a copy button; sign in when VS Code asks. |
 | Any other MCP client     | Add a remote server with the address and sign in with the passkey, if the client supports OAuth.                                       |
 
-The cards are one typed list in the Studio account UI; adding a client is one entry. A client appears on the tab only after it has been connected to a deployed brain and completed the passkey sign-in. Client steps follow each vendor's current settings labels and are rechecked when a card is added or changed.
+The cards are one typed list in the Studio account UI; adding a client is one entry. Commands and config snippets are shown exactly as they are copied: JSON pretty-printed over several lines, never wrapped inside a token, scrolling horizontally when wider than the card. A client appears on the tab only after it has been connected to a deployed brain and completed the passkey sign-in. Client steps follow each vendor's current settings labels and are rechecked when a card is added or changed.
 
 The address comes from the registered `mcp` interaction (`interfaces/mcp/src/mcp-interface.ts`), resolved against the issuer origin and passed to the Account bootstrap as `mcpUrl`. Without an HTTP MCP interaction the tab is not rendered.
 

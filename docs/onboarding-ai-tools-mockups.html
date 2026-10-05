@@ -203,7 +203,7 @@
       }
       .cards {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
       }
       .cards .card {
@@ -214,6 +214,30 @@
         background: var(--code);
         border-radius: 4px;
         padding: 1px 4px;
+      }
+      @media (max-width: 640px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+      .cards .card.wide {
+        grid-column: 1 / -1;
+      }
+      .snippet {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+      .snippet pre {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        font: 13px/1.55 var(--mono);
+        background: var(--code);
+        border-radius: 6px;
+        padding: 10px 12px;
+        white-space: pre;
+        overflow-x: auto;
       }
       ol.steps {
         margin: 0;
@@ -422,46 +446,56 @@
                 <li>Sign in with your passkey when asked.</li>
               </ol>
             </div>
-            <div class="card">
+            <div class="card wide">
               <h4>Claude Code</h4>
               <p>
                 Run this in your terminal, then type <code>/mcp</code> to sign
                 in.
               </p>
-              <div class="copyrow">
-                <code
-                  >claude mcp add --transport http brain
-                  https://becca.rizom.ai/mcp</code
-                ><button class="copy" type="button">Copy</button>
+              <div class="snippet">
+                <pre>
+claude mcp add --transport http brain https://becca.rizom.ai/mcp</pre>
+                <button class="copy" type="button">Copy</button>
               </div>
             </div>
-            <div class="card">
+            <div class="card wide">
               <h4>Cursor</h4>
               <p>
                 Add this to <code>~/.cursor/mcp.json</code>, then sign in when
                 Cursor asks.
               </p>
-              <div class="copyrow">
-                <code
-                  >{ "mcpServers": { "brain": { "url":
-                  "https://becca.rizom.ai/mcp" } } }</code
-                ><button class="copy" type="button">Copy</button>
+              <div class="snippet">
+                <pre>
+{
+  "mcpServers": {
+    "brain": {
+      "url": "https://becca.rizom.ai/mcp"
+    }
+  }
+}</pre>
+                <button class="copy" type="button">Copy</button>
               </div>
             </div>
-            <div class="card">
+            <div class="card wide">
               <h4>VS Code</h4>
               <p>
                 Add this to <code>.vscode/mcp.json</code>, then sign in when VS
                 Code asks.
               </p>
-              <div class="copyrow">
-                <code
-                  >{ "servers": { "brain": { "type": "http", "url":
-                  "https://becca.rizom.ai/mcp" } } }</code
-                ><button class="copy" type="button">Copy</button>
+              <div class="snippet">
+                <pre>
+{
+  "servers": {
+    "brain": {
+      "type": "http",
+      "url": "https://becca.rizom.ai/mcp"
+    }
+  }
+}</pre>
+                <button class="copy" type="button">Copy</button>
               </div>
             </div>
-            <div class="card">
+            <div class="card wide">
               <h4>Any other AI tool</h4>
               <p>
                 If it supports MCP with OAuth: add a remote server with your
