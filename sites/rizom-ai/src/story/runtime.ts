@@ -34,11 +34,33 @@ export function readingLine(
   return stripBottom === null ? viewportHeight * beside : stripBottom + 1;
 }
 
+/**
+ * How far the opening has handed over to the science: 0 at the top of the
+ * page, 1 when the science's top reaches the reading line (the scroll so far
+ * over the scroll that takes it there), 2 once it has come as far again as
+ * the line is from the bottom of the screen (then held). The page draws the
+ * network into its centre point over 0–1 and opens the pyramid out of it
+ * over 1–2, so the handover follows the scroll both ways.
+ */
+export function handoverProgress(
+  nextTop: number,
+  scrolled: number,
+  viewportHeight: number,
+  line: number,
+): number {
+  if (nextTop > line) {
+    return scrolled <= 0 ? 0 : scrolled / (scrolled + nextTop - line);
+  }
+  const span = viewportHeight - line;
+  return span <= 0 ? 2 : 1 + Math.min(1, (line - nextTop) / span);
+}
+
 export const storyRuntimeScript: string =
   ASK_ROOM_SCRIPT +
   `(function () {
   ${currentChapter.toString()}
   ${readingLine.toString()}
+  ${handoverProgress.toString()}
   function init() {
     var story = document.querySelector(".story");
     if (!story) return;
@@ -91,6 +113,7 @@ export const storyRuntimeScript: string =
       var current = currentChapter(tops, line);
       var stage = currentChapter(tops, line, stageCount);
       if (figure) figure.dataset.stage = String(stage);
+      if (tops.length > 1) story.style.setProperty("--handover", handoverProgress(tops[1], scrollY, innerHeight, line).toFixed(4));
       chapters.forEach(function (chapter, i) { chapter.classList.toggle("is-current", i === current); });
       // A chapter that lights the network keeps the live drawing in view while it is read.
       story.classList.toggle("is-asked", !!(chapters[current] && chapters[current].hasAttribute("data-lights-network")));

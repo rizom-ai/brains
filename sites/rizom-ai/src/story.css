@@ -788,9 +788,11 @@
    before the opening in the chapters column and sticks at the figure's centre
    line down the whole story (the story is a size container, so nothing in it
    can be fixed to the screen). It stays while the opening is read, an answer
-   included, and the words scroll past it. Once the reading has moved the
-   figure on, it draws into its centre point and the figure's first drawing
-   opens out of that same point; back up the page, the other way round. */
+   included, and the words scroll past it. The handover to the figure follows
+   the scroll (--handover, set by the runtime from the science's top on the
+   screen): as the science comes up the network draws into its centre point,
+   and past the reading line the figure's first drawing opens out of that same
+   point; scrolling back runs it backwards. */
 @media not all and (max-width: 60rem) {
   /* The words are the room's column (the kit scrolls it within the screen);
      the bar and the opening's 4rem of padding above and below stay clear, so
@@ -811,26 +813,17 @@
       100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
         var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
     );
-    /* Back from the point, lit at once. */
-    transition: opacity 0.3s ease;
   }
   :where(.chapters) > .net-layer > * {
     translate: 0 -50%;
-    transition: scale 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
-  }
-  .story:has(.figure:not([data-stage="0"])) :where(.chapters) > .net-layer > * {
-    scale: 0;
-  }
-  .story:has(.figure:not([data-stage="0"])) :where(.chapters) > .net-layer,
-  .story:has(.figure:not([data-stage="0"])) .net-leads {
-    opacity: 0;
-  }
-  /* Lit while it draws in; out at the point. */
-  .story:has(.figure:not([data-stage="0"])) :where(.chapters) > .net-layer {
-    transition: opacity 0.6s ease 0.6s;
+    scale: calc(1 - clamp(0, var(--handover, 0), 1));
   }
   .net-leads {
-    transition: opacity 0.6s ease;
+    opacity: calc(1 - clamp(0, var(--handover, 0) * 2, 1));
+  }
+  /* The figure's first drawing opens out of the point the network drew into. */
+  .living-org .o-box {
+    scale: clamp(0, var(--handover, 0) - 1, 1);
   }
 }
 .net-svg {

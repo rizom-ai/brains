@@ -55,6 +55,9 @@ function run(): void {
 
 function scrollTo(next: number[]): void {
   tops = next;
+  // The first chapter starts at the top of the page, so its top says how far
+  // the page has scrolled.
+  Reflect.set(globalThis, "scrollY", Math.max(0, -(next[0] ?? 0)));
   window.dispatchEvent(new window.Event("scroll"));
 }
 
@@ -92,6 +95,32 @@ describe("the shipped story script", () => {
     // And back up.
     scrollTo([-700, 460, 1200]);
     expect(reading()).toEqual({ stage: "0", current: "c0" });
+  });
+
+  test("tells the page how far the science has come, for the drawings to hand over by scroll", () => {
+    page({ viewport: 1000, stages: 3, chapters: 3 });
+    tops = [0, 1000, 1800];
+    run();
+    const handover = (): string => {
+      const story = window.document.querySelector(".story");
+      return story instanceof window.HTMLElement
+        ? story.style.getPropertyValue("--handover")
+        : "";
+    };
+    expect(handover()).toBe("0.0000");
+    // Halfway to the line at 450: the network is half drawn in.
+    scrollTo([-275, 725, 1525]);
+    expect(handover()).toBe("0.5000");
+    // At the line: the point; the stage flips.
+    scrollTo([-550, 450, 1250]);
+    expect(handover()).toBe("1.0000");
+    expect(reading().stage).toBe("1");
+    // Beyond: the pyramid opens, fully once as far again.
+    scrollTo([-1100, -100, 700]);
+    expect(handover()).toBe("2.0000");
+    // And back up, the same way.
+    scrollTo([-275, 725, 1525]);
+    expect(handover()).toBe("0.5000");
   });
 
   test("holds the last stage when a page has more chapters than stages", () => {

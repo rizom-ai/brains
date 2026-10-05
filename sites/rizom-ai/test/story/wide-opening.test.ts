@@ -6,7 +6,7 @@ import { ASK_ROOM_STYLES } from "@brains/site-atlas";
 // On a wide screen the story is an Ask room (the room's styles come with the
 // kit): the opening's words scroll within the screen beside the drawing,
 // which holds the figure's place down the story and hands over to the figure
-// through their shared centre point; the leads between words and drawing are
+// through their shared centre point, driven by the scroll; the leads between words and drawing are
 // drawn in the chapters column's frame.
 const css = readFileSync(join(import.meta.dir, "../../src/story.css"), "utf8");
 const wide = css.split("@media not all and (max-width: 60rem)")[1] ?? "";
@@ -35,25 +35,21 @@ describe("the opening on a wide screen", () => {
     );
   });
 
-  test("draws the network into its centre point when the reading moves the figure on, and back out when it returns", () => {
+  test("hands over by scroll: the network draws into its centre point as the science comes up, and the pyramid opens out of it beyond the line", () => {
+    // --handover is the runtime's measure: 0 with the science below the
+    // screen, 1 with its top at the reading line, 2 as far again. No timers:
+    // scrolling back runs it backwards.
     expect(wide).toMatch(
-      /:where\(\.chapters\) > \.net-layer > \* \{[^}]*transition: scale 1\.2s cubic-bezier\(0\.3, 0\.7, 0\.2, 1\);/,
+      /:where\(\.chapters\) > \.net-layer > \* \{[^}]*scale: calc\(1 - clamp\(0, var\(--handover, 0\), 1\)\);/,
     );
     expect(wide).toMatch(
-      /\.story:has\(\.figure:not\(\[data-stage="0"\]\)\)\s+:where\(\.chapters\)\s+> \.net-layer\s+> \* \{[^}]*scale: 0;/,
-    );
-    // The layer holds its light while it draws in and goes out at the point;
-    // back from the point it is lit at once.
-    expect(wide).toMatch(
-      /\.story:has\(\.figure:not\(\[data-stage="0"\]\)\)\s+:where\(\.chapters\)\s+> \.net-layer \{[^}]*transition: opacity 0\.6s ease 0\.6s;/,
+      /\.living-org \.o-box \{[^}]*scale: clamp\(0, var\(--handover, 0\) - 1, 1\);/,
     );
     expect(wide).toMatch(
-      /:where\(\.chapters\) > \.net-layer \{[^}]*transition: opacity 0\.3s ease;/,
+      /\.net-leads \{[^}]*opacity: calc\(1 - clamp\(0, var\(--handover, 0\) \* 2, 1\)\);/,
     );
-    // The leads go with the drawing.
-    expect(wide).toMatch(
-      /\.story:has\(\.figure:not\(\[data-stage="0"\]\)\)\s+:where\(\.chapters\)\s+> \.net-layer,\s+\.story:has\(\.figure:not\(\[data-stage="0"\]\)\) \.net-leads \{[^}]*opacity: 0;/,
-    );
+    expect(wide).not.toMatch(/transition: scale/);
+    expect(wide).not.toMatch(/data-stage="0"\]\)\)\s+:where\(\.chapters\)/);
   });
 
   test("spreads the lead layer over the chapters column, its frame", () => {
