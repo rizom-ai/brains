@@ -55,18 +55,37 @@ export function handoverProgress(
   return span <= 0 ? 2 : 1 + Math.min(1, (line - nextTop) / span);
 }
 
+/**
+ * How far a chapter has arrived from below: 0 while its top is at or below
+ * the bottom of the screen, 1 when it reaches the reading line, 2 once it
+ * has come as far again (then held). The Asked-before chapter and the one
+ * after it hand the figure's place over and back by this measure.
+ */
+export function arrivalProgress(
+  top: number,
+  viewportHeight: number,
+  line: number,
+): number {
+  const span = viewportHeight - line;
+  if (span <= 0) return top <= line ? 2 : 0;
+  return Math.min(2, Math.max(0, (viewportHeight - top) / span));
+}
+
 export const storyRuntimeScript: string =
   ASK_ROOM_SCRIPT +
   `(function () {
   ${currentChapter.toString()}
   ${readingLine.toString()}
   ${handoverProgress.toString()}
+  ${arrivalProgress.toString()}
   function init() {
     var story = document.querySelector(".story");
     if (!story) return;
     var chapters = Array.prototype.slice.call(story.querySelectorAll(".chapter"));
     if (!chapters.length) return;
     var figure = story.querySelector(".figure");
+    // The chapter that takes the figure's place with its own drawing, and the one after it.
+    var lights = chapters.findIndex(function (chapter) { return chapter.hasAttribute("data-lights-network"); });
     var stageCount = figure ? Number(figure.dataset.stages || chapters.length) : chapters.length;
     var rail = document.querySelector(".rail");
     var railNodes = [];
@@ -114,6 +133,10 @@ export const storyRuntimeScript: string =
       var stage = currentChapter(tops, line, stageCount);
       if (figure) figure.dataset.stage = String(stage);
       if (tops.length > 1) story.style.setProperty("--handover", handoverProgress(tops[1], scrollY, innerHeight, line).toFixed(4));
+      if (lights >= 0) {
+        story.style.setProperty("--asked", arrivalProgress(tops[lights], innerHeight, line).toFixed(4));
+        story.style.setProperty("--leaving", (lights + 1 < tops.length ? arrivalProgress(tops[lights + 1], innerHeight, line) : 0).toFixed(4));
+      }
       chapters.forEach(function (chapter, i) { chapter.classList.toggle("is-current", i === current); });
       // A chapter that lights the network keeps the live drawing in view while it is read.
       story.classList.toggle("is-asked", !!(chapters[current] && chapters[current].hasAttribute("data-lights-network")));

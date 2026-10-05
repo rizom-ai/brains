@@ -408,6 +408,23 @@ describe("the Asked-before chapter lights the network", () => {
     scrollTo([-3000, -2200, -1100, -100]);
     expect(story?.classList.contains("is-asked")).toBe(false);
   });
+
+  test("tells the page how far the chapter has arrived, and how far the next one has, for the drawings to hand over by scroll", () => {
+    home();
+    const story = window.document.querySelector(".story");
+    const measure = (name: string): string =>
+      story instanceof window.HTMLElement
+        ? story.style.getPropertyValue(name)
+        : "";
+    // 900px screen, line at 405: the chapter's top at 652.5 is halfway up to the line.
+    scrollTo([-1247.5, -447.5, 652.5, 1352.5]);
+    expect(measure("--asked")).toBe("0.5000");
+    expect(measure("--leaving")).toBe("0.0000");
+    // The chapter has come as far again; the next is halfway up.
+    scrollTo([-2000, -1200, -100, 652.5]);
+    expect(measure("--asked")).toBe("2.0000");
+    expect(measure("--leaving")).toBe("0.5000");
+  });
 });
 
 describe("the drawing belongs to the page while an answer is open", () => {
