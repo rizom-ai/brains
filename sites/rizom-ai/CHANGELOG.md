@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- [#509](https://github.com/rizom-ai/brains/pull/509) [`019094f`](https://github.com/rizom-ai/brains/commit/019094f45128e967a72c3cd1a269614c9c5cae10) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening hands over to the figure by scroll: as the science comes up the screen the network draws into its centre point, and past the reading line the first team's pyramid opens out of that same point; scrolling back runs it backwards. No timers.
+
 ## 0.2.0-alpha.264
 
 ### Patch Changes
