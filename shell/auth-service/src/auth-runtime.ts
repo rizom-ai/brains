@@ -69,6 +69,12 @@ export interface AuthRuntimeOptions {
     profileEntityId: string,
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
+  /**
+   * Whether this process issues and logs the first-passkey setup link at
+   * startup. Only a process that serves `/setup` should: a token issued by
+   * another process replaces the one whose link was already logged.
+   */
+  issuesSetupLinks?: boolean;
   getInvitationDeliveryProvider?: (
     channelType: string,
   ) => ChannelDeliveryProvider | undefined;
@@ -105,6 +111,7 @@ export class AuthRuntime {
   private readonly anchor: AuthBrainAnchorConfigKind;
   private readonly anchorProfileEntityId: string;
   private readonly setupTokenTtlSeconds: number;
+  private readonly issuesSetupLinks: boolean;
   private readonly getInvitationDeliveryProvider:
     ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
   private readonly getChannelDescriptor:
@@ -147,6 +154,7 @@ export class AuthRuntime {
     this.anchorProfileEntityId = options.anchorProfileEntityId;
     this.setupTokenTtlSeconds =
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
+    this.issuesSetupLinks = options.issuesSetupLinks ?? true;
     this.getInvitationDeliveryProvider = options.getInvitationDeliveryProvider;
     this.getChannelDescriptor = options.getChannelDescriptor;
     this.isChannelTypeRegistered = options.isChannelTypeRegistered;
@@ -542,7 +550,10 @@ export class AuthRuntime {
     await this.loadSigningKeys();
     this.logger?.debug("Auth service signing keys loaded");
 
-    if (!(await this.passkeyService.hasCredentials())) {
+    if (
+      this.issuesSetupLinks &&
+      !(await this.passkeyService.hasCredentials())
+    ) {
       await this.setupFlow.ensureSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {
