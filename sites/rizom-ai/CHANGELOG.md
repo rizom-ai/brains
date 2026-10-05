@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#515](https://github.com/rizom-ai/brains/pull/515) [`428dcd1`](https://github.com/rizom-ai/brains/commit/428dcd1701affddf5f81ca3f352ccea6e9d2026a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's opening shows the organism again, one brain becoming a team and a network in the rooms' lights, in the drawing's place beside the words; the live network is drawn on /ask, where the growth section's "network" now leads.
+
 ## 0.2.0-alpha.267
 
 ### Patch Changes
