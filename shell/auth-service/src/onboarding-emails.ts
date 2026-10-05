@@ -1,6 +1,37 @@
 import { escapeHtml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
+const pathSchema: z.ZodString = z.string().startsWith("/");
+
+/**
+ * Where the brain serves the surfaces the email points to, as paths resolved
+ * against the setup link's origin. A missing link drops the sentence about it.
+ */
+const onboardingLinksSchema: z.ZodDefault<
+  z.ZodObject<{
+    chat: z.ZodOptional<z.ZodString>;
+    studio: z.ZodOptional<z.ZodString>;
+    aiTools: z.ZodOptional<z.ZodString>;
+  }>
+> = z
+  .object({
+    chat: pathSchema.optional(),
+    studio: pathSchema.optional(),
+    aiTools: pathSchema.optional(),
+  })
+  .default({});
+
+const onboardingDetailsSchema: z.ZodObject<{
+  purpose: z.ZodOptional<z.ZodString>;
+  links: typeof onboardingLinksSchema;
+}> = z.object({
+  purpose: z.string().trim().min(1).optional(),
+  links: onboardingLinksSchema,
+});
+
+/** What the brain tells a new person about itself: its purpose and where things are. */
+export type OnboardingDetails = z.input<typeof onboardingDetailsSchema>;
+
 const invitationEmailInputSchema: z.ZodObject<{
   kind: z.ZodLiteral<"invitation">;
   setupUrl: z.ZodURL;
@@ -8,6 +39,8 @@ const invitationEmailInputSchema: z.ZodObject<{
   brainName: z.ZodString;
   role: z.ZodEnum<{ admin: "admin"; trusted: "trusted" }>;
   inviterName: z.ZodOptional<z.ZodString>;
+  purpose: z.ZodOptional<z.ZodString>;
+  links: typeof onboardingLinksSchema;
 }> = z.object({
   kind: z.literal("invitation"),
   setupUrl: z.url(),
@@ -16,17 +49,24 @@ const invitationEmailInputSchema: z.ZodObject<{
   brainName: z.string().trim().min(1),
   role: z.enum(["admin", "trusted"]),
   inviterName: z.string().trim().min(1).optional(),
+  /** The brain character's purpose, and where the brain serves chat, Studio and AI tools. */
+  ...onboardingDetailsSchema.shape,
 });
 
 const anchorSetupEmailInputSchema: z.ZodObject<{
   kind: z.ZodLiteral<"anchor-setup">;
   setupUrl: z.ZodURL;
   expiresAt: z.ZodNumber;
+  greetingName: z.ZodOptional<z.ZodString>;
+  links: typeof onboardingLinksSchema;
 }> = z.object({
   kind: z.literal("anchor-setup"),
   setupUrl: z.url(),
   /** Unix seconds, as stored on the setup token. */
   expiresAt: z.number().int().positive(),
+  /** The person anchor's name; team and organization anchors have none. */
+  greetingName: z.string().trim().min(1).optional(),
+  links: onboardingDetailsSchema.shape.links,
 });
 
 const onboardingEmailInputSchema: z.ZodDiscriminatedUnion<
@@ -66,6 +106,8 @@ interface EmailCopy {
   host: string;
   heading: string;
   intro: Run[];
+  /** What the brain is for, shown under the intro. */
+  purpose?: string | undefined;
   setupUrl: string;
   buttonLabel: string;
   notes: string[];
@@ -77,7 +119,7 @@ interface EmailCopy {
 type Opening = Pick<
   EmailCopy,
   "subject" | "heading" | "intro" | "buttonLabel"
-> & { forwardNote: string };
+> & { forwardNote: string; purpose?: string | undefined };
 
 const PASSKEY_NOTE =
   "A passkey replaces a password: your device confirms it’s you with your fingerprint, face or screen lock. It takes under a minute.";
@@ -94,20 +136,30 @@ export function renderOnboardingEmail(
   const url = new URL(parsed.setupUrl);
   const opening =
     parsed.kind === "anchor-setup"
-      ? anchorSetupOpening(url)
+      ? anchorSetupOpening(parsed, url)
       : invitationOpening(parsed, url);
+  const resolve = (path: string | undefined): string | undefined =>
+    path ? new URL(path, url.origin).toString() : undefined;
   const copy: EmailCopy = {
     subject: opening.subject,
     host: url.host,
     heading: opening.heading,
     intro: opening.intro,
+    purpose: opening.purpose,
     setupUrl: parsed.setupUrl,
     buttonLabel: opening.buttonLabel,
     notes: [
       PASSKEY_NOTE,
       `This link works once and expires on ${formatExpiry(parsed.expiresAt)}. ${opening.forwardNote}`,
     ],
-    sections: onboardingSections(url.origin),
+    sections: onboardingSections(
+      {
+        chat: resolve(parsed.links.chat),
+        studio: resolve(parsed.links.studio),
+        aiTools: resolve(parsed.links.aiTools),
+      },
+      parsed.kind === "anchor-setup" ? "your brain" : "the brain",
+    ),
     footer: [
       "Lost access to your passkey? Ask whoever runs this brain for a new setup link.",
       "Didn’t expect this email? Ignore it — the link expires on its own.",
@@ -120,10 +172,16 @@ export function renderOnboardingEmail(
   };
 }
 
-function anchorSetupOpening(url: URL): Opening {
+function anchorSetupOpening(
+  input: z.output<typeof anchorSetupEmailInputSchema>,
+  url: URL,
+): Opening {
+  const name = input.greetingName;
   return {
-    subject: "Your brain is ready — here’s how to start",
-    heading: "Your brain is ready",
+    subject: name
+      ? `${name}, your brain is ready`
+      : "Your brain is ready — here’s how to start",
+    heading: name ? `Hi ${name}, your brain is ready` : "Your brain is ready",
     intro: [
       "Your brain at ",
       { strong: url.host },
@@ -152,49 +210,66 @@ function invitationOpening(
       { strong: url.host },
       ` as ${ROLE_PHRASES[input.role]}. Set up your passkey to accept.`,
     ],
+    purpose: input.purpose
+      ? `What it’s for: ${sentence(input.purpose)}`
+      : undefined,
     buttonLabel: "Accept and set up your passkey",
     forwardNote: "Don’t forward it — it’s tied to you.",
   };
 }
 
+/** Ends free text with a full stop unless it already ends a sentence. */
+function sentence(text: string): string {
+  return /[.!?…]$/.test(text) ? text : `${text}.`;
+}
+
 /** The onboarding both recipients get once they are signed in. */
-function onboardingSections(origin: string): Section[] {
-  const mcpUrl = `${origin}/mcp`;
+function onboardingSections(
+  links: {
+    chat?: string | undefined;
+    studio?: string | undefined;
+    aiTools?: string | undefined;
+  },
+  whose: "your brain" | "the brain",
+): Section[] {
+  const firstSteps: Run[][] = [
+    ...(links.chat
+      ? [
+          [
+            "Open ",
+            { link: { label: "chat", href: links.chat } },
+            " and say “Help me save my first note.” Give it a rough thought — a half-formed idea is fine. Then ask about it: “What did I just save?”",
+          ],
+        ]
+      : []),
+    ...(links.studio
+      ? [
+          [
+            "Use ",
+            { link: { label: "Studio", href: links.studio } },
+            " to browse and edit everything the brain holds.",
+          ],
+        ]
+      : []),
+  ];
   return [
-    {
-      heading: "Your first five minutes",
-      paragraphs: [
-        [
-          "Open ",
-          { link: { label: "chat", href: `${origin}/chat` } },
-          " and say “Help me save my first note.” Give it a rough thought — a half-formed idea is fine.",
-        ],
-        [
-          "Then ask about it, for example “What did I just save?” Save, ask, use: that loop is the core of working with the brain.",
-        ],
-        [
-          "Use ",
-          { link: { label: "Studio", href: `${origin}/studio` } },
-          " to browse and edit everything the brain holds.",
-        ],
-      ],
-    },
-    {
-      heading: "Use it from your own AI tools",
-      paragraphs: [
-        [
-          "The brain speaks MCP, so AI tools you already use can work with it. Its address is ",
-          { code: mcpUrl },
-          ".",
-        ],
-        ["In Claude Code, run:"],
-        [{ code: `claude mcp add --transport http brain ${mcpUrl}` }],
-        ["In Claude Desktop, add a custom connector with that address."],
-        [
-          "Other MCP clients that support OAuth work the same way. When the tool asks, sign in with your passkey. It can then talk to the brain just as you do in chat.",
-        ],
-      ],
-    },
+    ...(firstSteps.length > 0
+      ? [{ heading: "Your first five minutes", paragraphs: firstSteps }]
+      : []),
+    ...(links.aiTools
+      ? [
+          {
+            heading: "Bring it into your AI tools",
+            paragraphs: [
+              [
+                `The AI tools you already use — Claude, ChatGPT, Cursor and others — can work with ${whose} directly. `,
+                { link: { label: "Account → AI tools", href: links.aiTools } },
+                " has the address and the steps for each one.",
+              ],
+            ],
+          },
+        ]
+      : []),
   ];
 }
 
@@ -220,6 +295,7 @@ function renderText(copy: EmailCopy): string {
   return [
     copy.heading,
     paragraph(copy.intro),
+    ...(copy.purpose ? [copy.purpose] : []),
     copy.setupUrl,
     ...copy.notes,
     ...copy.sections.flatMap((section) => [
@@ -297,6 +373,7 @@ function renderHtml(copy: EmailCopy): string {
 <p style="margin:0 0 6px;font-size:13px;color:${MUTED};">${escapeHtml(copy.host)}</p>
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;">${escapeHtml(copy.heading)}</h1>
 <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">${copy.intro.map(runHtml).join("")}</p>
+${copy.purpose ? `<p style="margin:-8px 0 24px;padding:10px 14px;border-left:3px solid ${INK};background:#f6f7f8;font-size:14px;line-height:1.5;color:${INK};">${escapeHtml(copy.purpose)}</p>` : ""}
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${INK};border-radius:6px;"><a href="${setupHref}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(copy.buttonLabel)}</a></td></tr></table>
 ${notes}
 </td></tr>
