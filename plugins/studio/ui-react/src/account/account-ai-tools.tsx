@@ -106,6 +106,12 @@ function ClientCard(props: { client: AiToolClient }): ReactElement {
   );
 }
 
+function listInSentence(names: readonly string[]): string {
+  return names.length < 2
+    ? (names[0] ?? "")
+    : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
 /** How to connect the AI tools a person already uses to this brain over MCP. */
 export function AccountAiToolsTab(props: { mcpUrl: string }): ReactElement {
   const clients = aiToolClients(props.mcpUrl);
@@ -129,7 +135,9 @@ export function AccountAiToolsTab(props: { mcpUrl: string }): ReactElement {
         <summary className={accountClass("", s.developerSummary)}>
           Developer tools and other clients
           <span className={accountClass("", s.developerHint)}>
-            {developer.map((client) => client.name).join(", ")}
+            {listInSentence(
+              developer.map((client) => client.inlineName ?? client.name),
+            )}
           </span>
         </summary>
         <div

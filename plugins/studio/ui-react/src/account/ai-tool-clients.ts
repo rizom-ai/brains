@@ -6,6 +6,8 @@ export interface AiToolClient {
   /** Primary clients are always shown; developer clients sit in one collapsed section. */
   group: "primary" | "developer";
   name: string;
+  /** How the client reads inside a sentence listing several; defaults to `name`. */
+  inlineName?: string;
   note?: AiToolText;
   steps?: readonly AiToolText[];
   fields?: readonly { label: string; value: AiToolText }[];
@@ -134,6 +136,7 @@ export function aiToolClients(address: string): readonly AiToolClient[] {
       id: "other",
       group: "developer",
       name: "Any other MCP client",
+      inlineName: "any other MCP client",
       note: [
         "Look for “add MCP server”, “connector” or “integration” in the tool’s settings and fill in:",
       ],

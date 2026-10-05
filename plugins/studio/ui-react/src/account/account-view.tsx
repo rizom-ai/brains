@@ -101,9 +101,9 @@ export function AccountApp({
           }}
         />
         <p className={accountClass("account-scope", accountLayout.description)}>
-          Your account on this brain. Manage your profile, sign-in security,
-          linked identities, and personal settings here—not shared services or
-          other people’s access.
+          {bootstrap.mcpUrl
+            ? "Your account on this brain. Manage your profile, sign-in security, linked identities, personal settings and AI tools here—not shared services or other people’s access."
+            : "Your account on this brain. Manage your profile, sign-in security, linked identities, and personal settings here—not shared services or other people’s access."}
         </p>
         <p
           className={accountClass(

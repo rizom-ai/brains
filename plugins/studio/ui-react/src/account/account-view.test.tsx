@@ -250,6 +250,13 @@ describe("Account surface", () => {
       ]);
     });
 
+    it("names AI tools in the account scope only when the tab is there", () => {
+      expect(render(account, { mcpUrl })).toContain(
+        "linked identities, personal settings and AI tools here",
+      );
+      expect(render()).not.toContain("and AI tools here");
+    });
+
     it("has no AI tools tab without an MCP address", () => {
       const html = render(account, { initialSection: "ai-tools" });
 
@@ -277,6 +284,9 @@ describe("Account surface", () => {
       expect(visible).toContain("Claude");
       expect(visible).toContain("ChatGPT");
       expect(visible).toContain("Developer tools and other clients");
+      expect(visible).toContain(
+        "Claude Code, Cursor, VS Code and any other MCP client",
+      );
       expect(visible).toMatch(/<details(?![^>]*\bopen\b)[^>]*>/);
       expect(visible).toContain(
         "claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp",
