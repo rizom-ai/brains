@@ -343,7 +343,7 @@ Use this for browser/Studio-first users who should receive their own first-passk
    - `bunx brains-ops onboard . <handle>`
    - or `bunx brains-ops reconcile-cohort . <cohort>`
 
-4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` and `email` interface config.
+4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` set to the user's address and `email` interface config.
 5. Ask the user to complete passkey setup from the email link, then use:
    - Dashboard: `https://<handle>.rizom.ai/`
    - Studio: `https://<handle>.rizom.ai/studio`

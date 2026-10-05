@@ -17,34 +17,14 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
-import { AuthService, type PasskeySetupRequired } from "./auth-service";
+import { AuthService } from "./auth-service";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
+import { renderOnboardingEmail } from "./onboarding-emails";
 import packageJson from "../package.json";
 
-const setupEmailSchema: z.ZodUnion<
-  readonly [
-    z.ZodString,
-    z.ZodObject<
-      { to: z.ZodString; subject: z.ZodString; body: z.ZodString },
-      z.core.$strict
-    >,
-  ]
-> = z.union([
-  z.string().email(),
-  z
-    .object({
-      /** Setup email recipient. */
-      to: z.string().email(),
-      /** Notification subject. */
-      subject: z.string().min(1),
-      /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
-      body: z.string().min(1),
-    })
-    .strict(),
-]);
-
-export type SetupEmailConfig = z.output<typeof setupEmailSchema>;
+/** First-passkey setup email recipient. The email's copy is built in. */
+const setupEmailSchema: z.ZodString = z.string().email();
 
 const authRuntimeReplicaSchema: z.ZodObject<
   {
@@ -113,7 +93,7 @@ const authServiceConfigSchema: z.ZodObject<{
     .int()
     .positive()
     .default(DEFAULT_SETUP_TOKEN_TTL_SECONDS),
-  /** Optional first-passkey setup email recipient or template. */
+  /** Optional first-passkey setup email recipient. */
   setupEmail: setupEmailSchema.optional(),
   /** Deployment secret for encrypted per-account plugin settings. */
   accountSettingsEncryptionKey: z.string().min(32).optional(),
@@ -562,20 +542,23 @@ export class AuthServicePlugin extends ServicePlugin<
     const setup = await service.getPasskeySetupRequiredForDelivery();
     if (!setup) return;
 
-    const setupEmail = resolveSetupEmail(this.config.setupEmail, setup);
-
-    if (
-      await service.hasSetupEmailDelivery(setup.setupTokenId, setupEmail.to)
-    ) {
+    const recipient = this.config.setupEmail;
+    if (await service.hasSetupEmailDelivery(setup.setupTokenId, recipient)) {
       return;
     }
 
+    const email = renderOnboardingEmail({
+      kind: "anchor-setup",
+      setupUrl: setup.setupUrl,
+      expiresAt: setup.expiresAt,
+    });
     const response = await context.messaging.send({
       type: NOTIFICATIONS_SEND,
       payload: {
-        recipient: { type: "email", address: setupEmail.to },
-        title: setupEmail.subject,
-        body: setupEmail.body,
+        recipient: { type: "email", address: recipient },
+        title: email.subject,
+        body: email.text,
+        html: email.html,
         sensitivity: "secret",
       },
     });
@@ -593,52 +576,10 @@ export class AuthServicePlugin extends ServicePlugin<
 
     await service.recordSetupEmailDelivery(
       setup.setupTokenId,
-      setupEmail.to,
+      recipient,
       parsed.data.deliveryId ? { deliveryId: parsed.data.deliveryId } : {},
     );
   }
-}
-
-function resolveSetupEmail(
-  config: NonNullable<AuthServiceConfig["setupEmail"]>,
-  setup: PasskeySetupRequired,
-): { to: string; subject: string; body: string } {
-  if (typeof config === "string") {
-    const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
-    const origin = new URL(setup.setupUrl).origin;
-    return {
-      to: config,
-      subject: "Set up your brain passkey",
-      body: [
-        "Set up your brain passkey using this single-use link:",
-        "",
-        setup.setupUrl,
-        "",
-        `This link expires at ${expiresAt}.`,
-        `Dashboard: ${origin}/`,
-        `MCP endpoint: ${origin}/mcp`,
-        "The first successful passkey registration completes setup and closes this link.",
-      ].join("\n"),
-    };
-  }
-
-  return {
-    to: config.to,
-    subject: interpolateSetupEmailTemplate(config.subject, setup),
-    body: interpolateSetupEmailTemplate(config.body, setup),
-  };
-}
-
-function interpolateSetupEmailTemplate(
-  template: string,
-  setup: PasskeySetupRequired,
-): string {
-  const expiresAt = new Date(setup.expiresAt * 1000).toISOString();
-  const origin = new URL(setup.setupUrl).origin;
-  return template
-    .replaceAll("{{setupUrl}}", setup.setupUrl)
-    .replaceAll("{{expiresAt}}", expiresAt)
-    .replaceAll("{{origin}}", origin);
 }
 
 export function authServicePlugin(
