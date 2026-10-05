@@ -821,9 +821,45 @@
   .net-leads {
     opacity: calc(1 - clamp(0, var(--handover, 0) * 2, 1));
   }
-  /* The figure's first drawing opens out of the point the network drew into. */
+  /* The figure's first drawing opens out of the point the network drew into;
+     the figure draws back into the point as the Asked-before chapter arrives
+     with its own drawing, and opens again as the chapter after it does. */
   .living-org .o-box {
-    scale: clamp(0, var(--handover, 0) - 1, 1);
+    scale: min(
+      clamp(0, var(--handover, 0) - 1, 1),
+      max(
+        1 - clamp(0, var(--asked, 0), 1),
+        clamp(0, (var(--leaving, 0) - 1) * 2, 1)
+      )
+    );
+  }
+  /* The Asked-before chapter's drawing holds the figure's centre line while
+     the chapter is read: first in the chapter's flow, so it is at the line
+     from the moment the chapter reaches it. It opens out of the point as the
+     chapter arrives, in half the line's distance so a short chapter still
+     shows it whole, and draws back in as the next chapter does. */
+  .asked > .net-layer {
+    position: sticky;
+    order: -1;
+    top: calc(
+      var(--bar-height, 4.6rem) + (100svh - var(--bar-height, 4.6rem)) / 2
+    );
+    left: auto;
+    right: auto;
+    height: 0;
+    margin-left: calc(100% + var(--words-gap));
+    width: calc(
+      100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
+        var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
+    );
+    translate: none;
+  }
+  .asked > .net-layer > * {
+    translate: 0 -50%;
+    scale: calc(
+      clamp(0, (var(--asked, 0) - 1) * 2, 1) *
+        (1 - clamp(0, var(--leaving, 0), 1))
+    );
   }
 }
 .net-svg {
@@ -1442,22 +1478,8 @@
   color: var(--color-text-muted);
   quotes: "“" "”";
 }
-/* The chapter's drawing stands where the organism stood, beside the words,
-   and the organism steps aside while the chapter is read. */
-.asked .net-layer {
-  top: 50%;
-  translate: 0 -50%;
-  left: calc(100% + var(--words-gap));
-  right: auto;
-  width: min(
-    calc(100svh - var(--bar-height, 4.6rem) - 2rem),
-    calc(100cqi - var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem))
-  );
-}
-.story.is-asked .figure {
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
+/* The chapter's drawing stands where the organism stood, beside the words
+   (placed in the wide-screen block above; on a phone it takes the strip). */
 /* The Ask room's lead layer (the room script draws into it; the kit styles
    the leads): leads join words to the drawing across the page, so the
    viewport is their frame. On a phone the opening's drawing joins the open

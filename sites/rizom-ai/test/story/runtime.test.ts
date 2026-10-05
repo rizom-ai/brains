@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  arrivalProgress,
   currentChapter,
   handoverProgress,
   readingLine,
@@ -33,6 +34,17 @@ describe("the handover from the opening to the science", () => {
     expect(handoverProgress(175, 825, 1000, 450)).toBe(1.5);
     expect(handoverProgress(-100, 1100, 1000, 450)).toBe(2);
     expect(handoverProgress(-5000, 6000, 1000, 450)).toBe(2);
+  });
+});
+
+describe("a chapter's arrival from below", () => {
+  test("is 0 while its top is below the screen, 1 at the reading line, 2 once it has come as far again", () => {
+    expect(arrivalProgress(1000, 1000, 450)).toBe(0);
+    expect(arrivalProgress(1200, 1000, 450)).toBe(0);
+    expect(arrivalProgress(725, 1000, 450)).toBe(0.5);
+    expect(arrivalProgress(450, 1000, 450)).toBe(1);
+    expect(arrivalProgress(-100, 1000, 450)).toBe(2);
+    expect(arrivalProgress(-5000, 1000, 450)).toBe(2);
   });
 });
 

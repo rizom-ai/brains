@@ -43,7 +43,7 @@ describe("the opening on a wide screen", () => {
       /:where\(\.chapters\) > \.net-layer > \* \{[^}]*scale: calc\(1 - clamp\(0, var\(--handover, 0\), 1\)\);/,
     );
     expect(wide).toMatch(
-      /\.living-org \.o-box \{[^}]*scale: clamp\(0, var\(--handover, 0\) - 1, 1\);/,
+      /\.living-org \.o-box \{[^}]*scale: min\(\s*clamp\(0, var\(--handover, 0\) - 1, 1\),/,
     );
     expect(wide).toMatch(
       /\.net-leads \{[^}]*opacity: calc\(1 - clamp\(0, var\(--handover, 0\) \* 2, 1\)\);/,
