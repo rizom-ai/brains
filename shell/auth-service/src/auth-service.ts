@@ -116,6 +116,8 @@ export interface AuthServiceOptions {
   allowLocalhostIssuers?: boolean;
   /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
   setupTokenTtlSeconds?: number;
+  /** Whether this process issues and logs the first-passkey setup link at startup. */
+  issuesSetupLinks?: boolean;
   /** The brain's purpose and links for onboarding emails. */
   getOnboardingDetails?: () => Promise<OnboardingDetails>;
   /** Resolve the registered delivery provider for an invitation channel. */
@@ -195,6 +197,9 @@ export class AuthService {
         : {}),
       ...(options.setupTokenTtlSeconds !== undefined
         ? { setupTokenTtlSeconds: options.setupTokenTtlSeconds }
+        : {}),
+      ...(options.issuesSetupLinks !== undefined
+        ? { issuesSetupLinks: options.issuesSetupLinks }
         : {}),
       ...(options.getOnboardingDetails
         ? { getOnboardingDetails: options.getOnboardingDetails }

@@ -232,6 +232,9 @@ export class AuthServicePlugin extends ServicePlugin<
       },
       accountSettingsRegistry: context.accountSettings,
       autoStartInvitationDeliveryRecovery: false,
+      // The worker serves no `/setup`; a token it issued would replace the
+      // one whose link the web process logged.
+      issuesSetupLinks: !context.executionOnly,
       getInvitationDeliveryProvider: (
         channelType,
       ): ChannelDeliveryProvider | undefined =>

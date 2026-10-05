@@ -501,6 +501,31 @@ describe("AuthService", () => {
     expect(setup?.expiresAt).toBeLessThanOrEqual(after + 24 * 60 * 60);
   });
 
+  it("issues no first-passkey setup link from the worker process", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    const plugin = authServicePlugin({
+      storageDir,
+      issuer: "https://brain.example.com",
+    });
+
+    await plugin.register(harness.getMockShell(), { executionOnly: true });
+
+    const database = createClient({
+      url: `file:${join(storageDir, "auth.db")}`,
+    });
+    try {
+      const rows = await database.execute(
+        "SELECT count(*) AS active FROM setup_tokens WHERE consumed_at IS NULL",
+      );
+      expect(Number(rows.rows[0]?.["active"])).toBe(0);
+    } finally {
+      database.close();
+    }
+  });
+
   it("allows configuring the first-passkey setup token lifetime", async () => {
     const harness = new PluginTestHarness({ domain: "brain.example.com" });
 

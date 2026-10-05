@@ -67,16 +67,8 @@ export class SetupFlow {
   private async ensureSetupTokenInternal(): Promise<
     SetupTokenState | undefined
   > {
-    const currentSetupToken = this.getValidSetupToken();
-    if (currentSetupToken) return currentSetupToken;
-
-    const storedSetupToken = await this.setupStateStore.getValidSetupToken(
-      Math.floor(Date.now() / 1000),
-    );
-    if (storedSetupToken) {
-      this.setupToken = storedSetupToken;
-      return storedSetupToken;
-    }
+    const activeSetupToken = await this.getActiveSetupToken();
+    if (activeSetupToken) return activeSetupToken;
     const now = Math.floor(Date.now() / 1000);
     if (await this.setupStateStore.hasActiveSetupToken(now)) {
       return (await this.setupStateStore.hasActiveSetupDelivery(now))
@@ -95,6 +87,17 @@ export class SetupFlow {
     await this.setupStateStore.saveSetupToken(setupToken);
     this.setupToken = setupToken;
     return setupToken;
+  }
+
+  /**
+   * This process's token while the shared store still holds it active.
+   * Another process may have rotated it, which leaves the cached copy dead.
+   */
+  private async getActiveSetupToken(): Promise<SetupTokenState | undefined> {
+    this.setupToken = await this.setupStateStore.getValidSetupToken(
+      Math.floor(Date.now() / 1000),
+    );
+    return this.setupToken;
   }
 
   getValidSetupToken(): SetupTokenState | undefined {
@@ -166,7 +169,7 @@ export class SetupFlow {
   ): Promise<PasskeySetupRequired | undefined> {
     return this.setupOperations.run(async () => {
       if (await this.passkeyService.hasCredentials()) return undefined;
-      let setupToken = this.getValidSetupToken();
+      let setupToken = await this.getActiveSetupToken();
       if (!setupToken && options.rotateHidden) {
         const now = Math.floor(Date.now() / 1000);
         if (await this.setupStateStore.hasActiveSetupDelivery(now)) {
