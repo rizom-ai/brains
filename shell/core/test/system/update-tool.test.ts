@@ -372,6 +372,18 @@ describe("system_update tool", () => {
     });
   });
 
+  it("reads stored asset references, so updates and deletes never load or inline bytes", async () => {
+    await exec({
+      entityType: "base",
+      id: "woodchuck-note",
+      fields: { title: "Renamed" },
+    });
+    await execDelete({ entityType: "base", id: "woodchuck-note" });
+
+    expect(services.getRawReadModes().length).toBeGreaterThan(0);
+    expect(new Set(services.getRawReadModes())).toEqual(new Set(["reference"]));
+  });
+
   it("uses non-title metadata as the display label in delete confirmations", async () => {
     const result = await execDelete({
       entityType: "newsletter",

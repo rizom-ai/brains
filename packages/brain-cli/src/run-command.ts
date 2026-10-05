@@ -306,6 +306,94 @@ const configMigrate: BrainCommand = defineCommand({
   },
 });
 
+const assetsMigrate: BrainCommand = defineCommand({
+  name: "assets:migrate",
+  usage: "[--dry-run] [--database <path>] [--manifest <path>]",
+  description: "Move inline images into durable assets (offline, app stopped)",
+  flags: {
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Decode every inline image and report without writing",
+    },
+    manifest: {
+      type: "string",
+      placeholder: "<path>",
+      description:
+        "Run record to append to (default: binary-asset-migration.json beside the database)",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsMigrate } = await import("./commands/assets-migrate");
+    return runAssetsMigrate(dir, {
+      database: getStringFlag(flags, "database"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+      manifest: getStringFlag(flags, "manifest"),
+    });
+  },
+});
+
+const assetsVerify: BrainCommand = defineCommand({
+  name: "assets:verify",
+  usage: "[--database <path>] [--brain-data <dir>]",
+  description:
+    "Check migrated images resolve to intact assets (offline, app stopped)",
+  flags: {
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    "brain-data": {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Synced content directory whose image files to compare",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsVerify } = await import("./commands/assets-verify");
+    return runAssetsVerify(dir, {
+      database: getStringFlag(flags, "database"),
+      brainData: getStringFlag(flags, "brain-data"),
+    });
+  },
+});
+
+const assetsReconcile: BrainCommand = defineCommand({
+  name: "assets:reconcile",
+  usage: "[--from <dir>] [--dry-run] [--database <path>]",
+  description:
+    "Restore image rows and assets from brain-data (offline, app stopped)",
+  flags: {
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    from: {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Synced content directory (default: brain-data)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Report what would be restored without writing",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsReconcile } = await import("./commands/assets-reconcile");
+    return runAssetsReconcile(dir, {
+      database: getStringFlag(flags, "database"),
+      from: getStringFlag(flags, "from"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+    });
+  },
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json] [--yes]",
@@ -433,6 +521,9 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   authResetPasskeys,
   authReinitializeAccess,
   configMigrate,
+  assetsMigrate,
+  assetsVerify,
+  assetsReconcile,
   toolCommand,
   helpCommand,
   versionCommand,

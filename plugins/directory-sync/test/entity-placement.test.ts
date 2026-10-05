@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { createTestEntity } from "@brains/entity-service/test";
+import {
+  createMockAssetStore,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import { encodeEntityIdPath } from "@brains/entity-service";
 import { entityIdPathSchema } from "@brains/plugins";
 import {
@@ -69,6 +72,7 @@ describe("injective entity placement", () => {
     const dir = await mkdtemp(join(tmpdir(), "injective-placement-"));
     try {
       const files = new FileOperations(dir, {
+        openAsset: createMockAssetStore().openAsset,
         serializeEntity: (entity): string => entity.content,
         hasEntityType: (): never => {
           throw new Error("placement must not consult the registry");
@@ -122,6 +126,7 @@ describe("injective entity placement", () => {
       const dir = await mkdtemp(join(tmpdir(), "refused-placement-"));
       try {
         const files = new FileOperations(dir, {
+          openAsset: createMockAssetStore().openAsset,
           serializeEntity: (): never => {
             throw new Error("must refuse before serialization");
           },

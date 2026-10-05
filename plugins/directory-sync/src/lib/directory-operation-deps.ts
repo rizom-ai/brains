@@ -10,8 +10,9 @@ import type { MarkdownImageConverter } from "./markdown-image-converter";
 import type { Quarantine } from "./quarantine";
 import type { JobRequest } from "../types";
 import type { PendingDeleteRegistry } from "./pending-delete-registry";
+import type { ImportLimits } from "./directory-options";
 
-export interface DirectoryOperationDepsOptions {
+export interface DirectoryOperationDepsOptions extends ImportLimits {
   entityService: EntityServiceClient;
   logger: Logger;
   syncPath: string;
@@ -19,7 +20,6 @@ export interface DirectoryOperationDepsOptions {
   quarantine: Quarantine;
   coverImageConverter: FrontmatterImageConverter;
   inlineImageConverter: MarkdownImageConverter;
-  maxImportFileBytes: number;
   pendingDeletes: PendingDeleteRegistry;
   getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined;
 }
@@ -51,6 +51,7 @@ export class DirectoryOperationDeps {
       quarantine: this.options.quarantine,
       imageJobQueue: this.createImageJobQueueDeps(),
       maxImportFileBytes: this.options.maxImportFileBytes,
+      maxAssetImportBytes: this.options.maxAssetImportBytes,
       entityTypes,
     };
   }

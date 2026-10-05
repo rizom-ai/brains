@@ -381,6 +381,45 @@ coverImageId: project-cover-image
       expect(result.url).toBe("/projects/test-project");
     });
 
+    it("encodes an asset-backed cover image when no built file exists", async () => {
+      const bytes = Buffer.from("staged cover bytes");
+      const asset = await mockContext.entityService.stageAsset(bytes);
+      const entity = createTestEntity("project", {
+        id: "project-1",
+        content: `---
+title: Test Project
+slug: test-project
+coverImageId: project-cover-image
+---
+# Test Project`,
+        metadata: { slug: "test-project", title: "Test Project" },
+      });
+      const getEntity = spyOn(
+        mockContext.entityService,
+        "getEntity",
+      ).mockResolvedValue({
+        id: "project-cover-image",
+        entityType: "image",
+        content: asset.ref,
+        contentHash: "hash",
+        visibility: "public",
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: { mediaType: "image/png", width: 800, height: 600 },
+      });
+
+      const result = z
+        .object({ coverImageUrl: z.string() })
+        .parse(await enrich(entity));
+
+      expect(result.coverImageUrl).toBe(
+        `data:image/png;base64,${bytes.toString("base64")}`,
+      );
+      expect(getEntity).toHaveBeenCalledWith(
+        expect.objectContaining({ binaryContent: "reference" }),
+      );
+    });
+
     it("should resolve absolute ogImageUrl from ogImageId before coverImageId", async () => {
       const content = `---
 title: Test Post

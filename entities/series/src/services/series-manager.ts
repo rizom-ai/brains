@@ -9,6 +9,7 @@ import {
   type SeriesFrontmatter,
 } from "../schemas/series";
 import { getSeriesName } from "../lib/series-metadata";
+import { listSeriesCandidates } from "../lib/series-members";
 
 /**
  * Manages series entities derived from ANY entity type with seriesName metadata.
@@ -158,37 +159,16 @@ export class SeriesManager {
   }
 
   private async hasSeriesReferences(seriesName: string): Promise<boolean> {
-    const types = this.entityService.getEntityTypes();
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await this.entityService.listEntities({
-        entityType: type,
-        options: {
-          filter: { metadata: { seriesName } },
-          limit: 1,
-        },
-      });
-      if (entities.length > 0) return true;
-    }
-    return false;
+    const references = await listSeriesCandidates(this.entityService, {
+      seriesName,
+      limit: 1,
+    });
+    return references.length > 0;
   }
 
   private async collectSeriesNames(): Promise<Set<string>> {
-    const names = new Set<string>();
-    const types = this.entityService.getEntityTypes();
-
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await this.entityService.listEntities({
-        entityType: type,
-      });
-      for (const entity of entities) {
-        const name = getSeriesName(entity);
-        if (name) names.add(name);
-      }
-    }
-
-    return names;
+    const candidates = await listSeriesCandidates(this.entityService);
+    return new Set(candidates.flatMap((entity) => getSeriesName(entity) ?? []));
   }
 
   private createSeriesContent(seriesName: string): string {

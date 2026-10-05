@@ -300,6 +300,46 @@ describe("createOgImageProvider", () => {
     expect(resolved).toBe(COVER_DATA_URL);
   });
 
+  it("encodes an asset-backed image reference as a data URL from its bytes", async () => {
+    const context = createContext();
+    const bytes = Buffer.from("staged cover");
+    const asset = await context.entityService.stageAsset(bytes);
+    const base = createWidget();
+    const reads: unknown[] = [];
+    const entityService = createMockEntityService({
+      entityTypes: ["widget", "image"],
+      getEntityImpl: async (request) => {
+        reads.push(request);
+        if (request.entityType === "widget") return base;
+        return {
+          ...base,
+          entityType: "image",
+          id: "cover-asset",
+          content: asset.ref,
+          metadata: { ...base.metadata, mediaType: "image/png" },
+        };
+      },
+    });
+    entityService.openAsset = context.entityService.openAsset;
+    let resolved: string | undefined;
+    const provider = createOgImageProvider({
+      ...WIDGET_OG_CONFIG,
+      buildContent: async (widget: Widget, helpers): Promise<WidgetContent> => {
+        resolved = await helpers.resolveImageDataUrl("cover-asset");
+        return { title: widget.metadata.title };
+      },
+    })({ ...context, entityService }, { screenshotPng: async () => TINY_PNG });
+
+    await provider.resolve({
+      sourceEntityType: "widget",
+      sourceEntityId: "widget-1",
+      attachmentType: "og-image",
+    });
+
+    expect(resolved).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
+    expect(reads.at(-1)).toMatchObject({ binaryContent: "reference" });
+  });
+
   it("ignores image references that are not inline data URLs", async () => {
     const seen: Array<string | undefined> = [];
     const provider = createOgImageProvider({

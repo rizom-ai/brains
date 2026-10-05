@@ -1,5 +1,8 @@
 import type { BaseEntity } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  readArtifactContent,
+} from "@brains/plugins";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
@@ -20,19 +23,19 @@ interface BlobUploader {
   }): Promise<{ blob: AtprotoBlobRef }>;
 }
 
-function dataUrlToUploadInput(dataUrl: string): {
-  data: Buffer;
-  mimeType: string;
-} {
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
-  if (!match?.[1] || !match[2]) {
-    throw new Error("Cover image must be a base64 data URL");
+async function readCoverImage(
+  context: AtprotoProjectionContext,
+  image: BaseEntity,
+): Promise<{ data: Buffer; mimeType: string }> {
+  const content = await readArtifactContent(
+    context.entityService,
+    "image",
+    image,
+  );
+  if (content?.status !== "ready") {
+    throw new Error(`Cover image has no readable image bytes: ${image.id}`);
   }
-
-  return {
-    data: Buffer.from(match[2], "base64"),
-    mimeType: match[1],
-  };
+  return { data: Buffer.from(content.data), mimeType: content.mimeType };
 }
 
 async function uploadCoverImage(
@@ -55,13 +58,14 @@ async function uploadCoverImage(
   const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
+    binaryContent: "reference",
   });
   if (!image) return undefined;
   if (image.visibility !== "public") {
     throw new Error(`Cannot publish non-public cover image: ${image.id}`);
   }
 
-  const uploadInput = dataUrlToUploadInput(image.content);
+  const uploadInput = await readCoverImage(context, image);
   const blob = dryRun
     ? {
         $type: "blob" as const,

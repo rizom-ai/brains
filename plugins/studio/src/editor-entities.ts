@@ -10,6 +10,7 @@ import {
 } from "@brains/contracts";
 import {
   canWriteVisibility,
+  createArtifactResponse,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
   getPublishBoundaryState,
@@ -64,7 +65,10 @@ function readEditorEntity(
 
 const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
 
-/** Binary images are readable for previews, not editable frontmatter types. */
+/**
+ * Binary images are readable for previews, not editable frontmatter types.
+ * The bytes stream from storage; the client never sees an asset reference.
+ */
 export async function handleGetImagePreview(
   context: ServicePluginContext,
   request: Request,
@@ -80,11 +84,21 @@ export async function handleGetImagePreview(
         entityType: "image",
         id: query.data.id,
         visibilityScope: access.visibilityScope,
+        binaryContent: "reference",
       })
     : null;
-  if (!image?.content.startsWith("data:image/"))
-    return jsonResponse({ error: "Image unavailable" }, 404);
-  return jsonResponse({ source: image.content });
+  const response =
+    image &&
+    (await createArtifactResponse(context.entityService, {
+      entityType: "image",
+      id: image.id,
+      entity: image,
+      disposition: "inline",
+    }));
+  if (!response) return jsonResponse({ error: "Image unavailable" }, 404);
+  // Studio API responses are never cached, previews included.
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
 
 const updateEntityPayloadSchema = z.object({

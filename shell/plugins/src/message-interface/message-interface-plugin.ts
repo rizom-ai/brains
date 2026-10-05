@@ -47,7 +47,7 @@ import {
 } from "./artifact-access";
 import {
   getArtifactEntityFilename,
-  parseArtifactDataUrl,
+  readArtifactContent,
   resolveArtifactEntityRefFromCard,
 } from "./artifact-entity";
 
@@ -176,9 +176,18 @@ export abstract class MessageInterfacePlugin<
       const access = await resolveMessageArtifactAccess({
         entityRef,
         userLevel: input.userPermissionLevel,
-        getEntity: (ref) => context.entityService.getEntity(ref),
+        // Access checks read references; bytes load only for delivery.
+        getEntity: (ref) =>
+          context.entityService.getEntity({
+            ...ref,
+            binaryContent: "reference",
+          }),
         getVisibleEntity: (ref, visibilityScope) =>
-          context.entityService.getEntity({ ...ref, visibilityScope }),
+          context.entityService.getEntity({
+            ...ref,
+            visibilityScope,
+            binaryContent: "reference",
+          }),
       });
       if (access.status === "denied") {
         deniedCardIds.add(card.id);
@@ -186,20 +195,17 @@ export abstract class MessageInterfacePlugin<
       }
       if (access.status !== "visible") continue;
       if (!canReceiveNativeArtifactFile(input.userPermissionLevel)) continue;
-      if (typeof access.entity.content !== "string") continue;
-
-      const parsed = parseArtifactDataUrl(
+      const parsed = await readArtifactContent(
+        context.entityService,
         entityRef.entityType,
-        access.entity.content,
+        access.entity,
+        input.maxBytes,
       );
       if (!parsed) continue;
-      if (
-        input.maxBytes !== undefined &&
-        parsed.data.byteLength > input.maxBytes
-      ) {
+      if (parsed.status === "oversized") {
         this.logger.debug("Skipping oversized native artifact upload", {
           cardId: card.id,
-          sizeBytes: parsed.data.byteLength,
+          sizeBytes: parsed.sizeBytes,
         });
         continue;
       }

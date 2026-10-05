@@ -7,6 +7,7 @@ import {
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity, ICoreEntityService } from "../src/types";
 import { createMockEntityService } from "../src/test/mock-entity-service";
+import { createMockAssetStore } from "../src/test/mock-asset-store";
 
 /**
  * A whole image entity, not `{ content }` asserted into one.
@@ -136,6 +137,7 @@ Some text
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
         queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
+        openAsset: createMockEntityService().openAsset,
         queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
         queryGroupingMembers: createMockEntityService().queryGroupingMembers,
         queryGroupingUsage: createMockEntityService().queryGroupingUsage,
@@ -245,6 +247,29 @@ Some text
       expect(result.failedCount).toBe(1);
     });
 
+    it("renders an asset-backed image reference as a data URL from its bytes", async () => {
+      const store = createMockAssetStore();
+      const bytes = Buffer.from("staged image bytes");
+      const asset = await store.stageAsset(bytes);
+      mockEntityService.openAsset = store.openAsset;
+      mockEntityService.getEntityRaw = mock(() =>
+        Promise.resolve({
+          ...imageEntity(asset.ref),
+          metadata: { mediaType: "image/png" },
+        }),
+      );
+
+      const result = await resolver.resolve(
+        "![Alt](entity://image/test-id)",
+        mockEntityService,
+      );
+
+      expect(result.content).toBe(
+        `![Alt](data:image/png;base64,${bytes.toString("base64")})`,
+      );
+      expect(result.resolvedCount).toBe(1);
+    });
+
     it("should use getEntityRaw to avoid recursion", async () => {
       const dataUrl = "data:image/png;base64,test";
       mockEntityService.getEntityRaw = mock(() =>
@@ -258,6 +283,7 @@ Some text
       expect(mockEntityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "image",
         id: "test-id",
+        binaryContent: "reference",
       });
       expect(mockEntityService.getEntity).not.toHaveBeenCalled();
     });

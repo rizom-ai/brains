@@ -9,6 +9,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createSeriesBodyFormatter } from "../schemas/series";
 import { getSeriesName } from "./series-metadata";
+import { listSeriesCandidates } from "./series-members";
 
 const seriesMemberSchema = z.object({
   id: z.string(),
@@ -56,18 +57,7 @@ function hasSeriesDescription(content: string): boolean {
 async function selectSeriesInput(
   context: Parameters<ProjectionRule["selectInput"]>[1],
 ): Promise<SeriesProjectionInput> {
-  const entityTypes = context.entities
-    .getEntityTypes()
-    .filter((entityType) => entityType !== "series")
-    .sort();
-  const members = (
-    await Promise.all(
-      entityTypes.map(async (entityType) =>
-        context.entities.listEntities({ entityType }),
-      ),
-    )
-  )
-    .flat()
+  const members = (await listSeriesCandidates(context.entities))
     .map(memberInput)
     .filter((member): member is NonNullable<typeof member> => member !== null)
     .sort(

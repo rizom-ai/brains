@@ -4,27 +4,33 @@ export {
 } from "./entity-type-classification";
 export { isGroupingContributor } from "./grouping-eligibility";
 export {
+  ASSET_CHUNK_BYTES,
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
   MAX_ASSET_BYTES,
   SHA256_DIGEST_PATTERN,
-  assertPreparedAsset,
   assetRecordSchema,
   assetRefSchema,
+  base64AssetSource,
   computeAssetDigest,
   createAssetRef,
   getAssetDigest,
   parseAssetRef,
-  prepareAsset,
+  readAssetBytes,
+  type AssetOpener,
   type AssetReader,
   type AssetRecord,
   type AssetRef,
+  type AssetSource,
   type AssetStat,
   type AssetVerification,
-  type PreparedAsset,
-  type PrepareAssetOptions,
+  type StageAssetOptions,
+  type StagedAsset,
 } from "@brains/assets";
-export { EntityService } from "./entityService";
+export {
+  EntityService,
+  type LegacyBinaryMaterialization,
+} from "./entityService";
 export {
   decodeEntityIdPath,
   encodeEntityIdPath,
@@ -196,6 +202,7 @@ export type {
   EntitySearchRequest,
   SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
+  BinaryContentMode,
   EntityService as IEntityService,
   ReadOnlyEntityService,
   EntityServiceClient,
@@ -277,3 +284,28 @@ export type {
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
 export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";
+export {
+  openOfflineEntityDatabase,
+  readBinaryAssetInventory,
+  readInlineBinaryRow,
+  type BinaryAssetInventory,
+  type InlineBinaryRow,
+  type OfflineEntityConnection,
+  type OfflineReader,
+} from "./offline/binary-asset-inventory";
+export {
+  verifyAssetBackedRows,
+  type AssetBackedVerification,
+  type AssetRowCheck,
+} from "./offline/binary-asset-verification";
+export {
+  OfflineBinaryMigrator,
+  type AssetRestoreInput,
+  type AssetRestoreOutcome,
+  type AssetRowInput,
+  type AssetRowOutcome,
+  type InlineRowMigrationInput,
+  type InlineRowMigrationOutcome,
+  type PlaceholderClearInput,
+  type PlaceholderClearOutcome,
+} from "./offline/binary-asset-migration";

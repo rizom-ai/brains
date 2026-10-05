@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import type { BaseEntity } from "@brains/entity-service";
@@ -88,6 +88,17 @@ describe("system_insights tool", () => {
 
     const tools = createSystemTools(services);
     tool = findTool(tools, "system_insights");
+  });
+
+  it("lists entities by reference, never loading binary content", async () => {
+    const listEntities = spyOn(services.entityService, "listEntities");
+
+    await tool.handler({ type: "overview" }, toolContext);
+
+    expect(listEntities.mock.calls.length).toBeGreaterThan(0);
+    for (const [request] of listEntities.mock.calls) {
+      expect(request.options?.binaryContent).toBe("reference");
+    }
   });
 
   describe("overview", () => {

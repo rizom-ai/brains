@@ -13,6 +13,7 @@ import {
   type UpdateEntityRequest,
   type UpsertEntityRequest,
 } from "@brains/entity-service";
+import { createMockAssetStore } from "@brains/entity-service/test";
 import { computeContentHash } from "@brains/utils/hash";
 import type { MockEntityStore } from "./mock-entity-store";
 import { createMockReceiptMethods } from "./mock-entity-receipts";
@@ -152,6 +153,7 @@ export function createMockEntityService(
     return schema ? results.map((entity) => schema.parse(entity)) : results;
   }
 
+  const assetStore = createMockAssetStore();
   const service: IEntityService = {
     ...createMockReceiptMethods(store),
     createEntity: async <T extends BaseEntity>(
@@ -269,6 +271,9 @@ export function createMockEntityService(
       );
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
+    stageAsset: assetStore.stageAsset,
+    discardStagedAsset: assetStore.discardStagedAsset,
+    openAsset: assetStore.openAsset,
     foldEntity: async (request): Promise<EntityMutationResult> => {
       const { source, entity } = structuredClone({
         source: request.source,

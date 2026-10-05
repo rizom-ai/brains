@@ -309,24 +309,29 @@ export class StudioApi {
     return studioApiPath(suffix, this.basePath);
   }
 
-  private async requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  /** A successful response; a failed one throws the API's error. */
+  private async request(path: string, init?: RequestInit): Promise<Response> {
     const response = await this.fetch(path, init);
-    const payload = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      const details = apiErrorPayload(payload);
-      throw new ApiError(
-        response.status,
-        details.error ?? response.statusText,
-        details.issues,
-        {
-          code: details.code,
-          retryAfterMs: response.headers.has("Retry-After")
-            ? Number(response.headers.get("Retry-After")) * 1000
-            : undefined,
-        },
-      );
-    }
-    return payload;
+    if (response.ok) return response;
+    const details = apiErrorPayload(
+      await response.json().catch(() => undefined),
+    );
+    throw new ApiError(
+      response.status,
+      details.error ?? response.statusText,
+      details.issues,
+      {
+        code: details.code,
+        retryAfterMs: response.headers.has("Retry-After")
+          ? Number(response.headers.get("Retry-After")) * 1000
+          : undefined,
+      },
+    );
+  }
+
+  private async requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+    const response = await this.request(path, init);
+    return response.json().catch(() => undefined);
   }
 
   async fetchNavigation(): Promise<StudioNavigation> {
@@ -460,12 +465,13 @@ export class StudioApi {
     );
   }
 
-  async fetchImagePreview(id: string, signal: AbortSignal): Promise<string> {
-    const { source } = await this.requestJson<{ source: string }>(
+  /** An image's bytes for preview, read through this scoped client. */
+  async fetchImagePreview(id: string, signal: AbortSignal): Promise<Blob> {
+    const response = await this.request(
       this.path(`images?id=${encodeURIComponent(id)}`),
       { signal },
     );
-    return source;
+    return response.blob();
   }
 
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {
