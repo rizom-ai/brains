@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID, type Hash } from "node:crypto";
 import { setImmediate as yieldToEventLoop } from "node:timers/promises";
 import {
   ASSET_CHUNK_BYTES,
@@ -188,7 +188,7 @@ export class SqliteAssetRepository implements AssetReader {
     const canonical = parseAssetRef(ref);
     const header = await this.header(this.db, canonical);
     if (!header) throw new AssetNotFoundError(canonical);
-    return this.readChunks(canonical, header, 0);
+    return this.readChunks(canonical, header, 0, createHash("sha256"));
   }
 
   public async read(ref: AssetRef): Promise<Uint8Array> {
@@ -197,7 +197,12 @@ export class SqliteAssetRepository implements AssetReader {
     if (!header) throw new AssetNotFoundError(canonical);
     const output = Buffer.allocUnsafe(header.sizeBytes);
     let offset = 0;
-    for await (const chunk of this.readChunks(canonical, header, 0)) {
+    for await (const chunk of this.readChunks(
+      canonical,
+      header,
+      0,
+      createHash("sha256"),
+    )) {
       output.set(chunk, offset);
       offset += chunk.byteLength;
     }
@@ -212,9 +217,12 @@ export class SqliteAssetRepository implements AssetReader {
 
   public async verify(ref: AssetRef): Promise<AssetVerification> {
     const canonical = parseAssetRef(ref);
+    const header = await this.header(this.db, canonical);
+    if (!header) throw new AssetNotFoundError(canonical);
     const hash = createHash("sha256");
     let sizeBytes = 0;
-    for await (const chunk of await this.openRead(canonical)) {
+    // Verification reports a mismatch instead of refusing the bytes.
+    for await (const chunk of this.readChunks(canonical, header, 0, null)) {
       hash.update(chunk);
       sizeBytes += chunk.byteLength;
     }
@@ -367,13 +375,19 @@ export class SqliteAssetRepository implements AssetReader {
     return rows[0] ?? null;
   }
 
+  /**
+   * Stream an asset's chunks in order. With a hash, the digest is checked
+   * before the final chunk is yielded, so no reader receives the whole of
+   * bytes that do not match their reference.
+   */
   private async *readChunks(
     ref: AssetRef,
     header: AssetHeader,
     ordinal: number,
+    hash: Hash | null,
   ): AsyncGenerator<Uint8Array, void, undefined> {
     if (ordinal === header.chunkCount) {
-      await this.assertNoExtraChunks(ref, header);
+      await this.assertComplete(ref, header, hash);
       return;
     }
     const rows = await this.db
@@ -400,9 +414,29 @@ export class SqliteAssetRepository implements AssetReader {
         `chunk ${ordinal} holds ${bytes.byteLength} bytes; expected ${expected}`,
       );
     }
+    hash?.update(bytes);
+    if (hash && ordinal === header.chunkCount - 1) {
+      await this.assertComplete(ref, header, hash);
+      yield bytes;
+      return;
+    }
     yield bytes;
     await yieldToEventLoop();
-    yield* this.readChunks(ref, header, ordinal + 1);
+    yield* this.readChunks(ref, header, ordinal + 1, hash);
+  }
+
+  /** No chunks beyond the declared count, and, when hashed, the digest holds. */
+  private async assertComplete(
+    ref: AssetRef,
+    header: AssetHeader,
+    hash: Hash | null,
+  ): Promise<void> {
+    await this.assertNoExtraChunks(ref, header);
+    if (!hash) return;
+    const actual = hash.digest("hex");
+    if (actual !== getAssetDigest(ref)) {
+      throw new AssetIntegrityError(ref, `stored bytes hash to ${actual}`);
+    }
   }
 
   private async assertNoExtraChunks(

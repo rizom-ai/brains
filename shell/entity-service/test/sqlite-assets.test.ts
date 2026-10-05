@@ -427,6 +427,36 @@ describe("SQLite durable assets", () => {
     ).rejects.toThrow("Asset integrity check failed");
   });
 
+  test("reads fail visibly when stored bytes no longer match the digest", async () => {
+    const asset = await ctx.entityService.stageAsset(
+      randomBytes(ASSET_CHUNK_BYTES * 2 + 17),
+    );
+    await ctx.entityService.createEntity({
+      entity: entityForAsset("corrupt-bytes", asset),
+      stagedAsset: asset,
+    });
+    // Same length, different bytes: only the digest can tell.
+    await client.execute({
+      sql: "UPDATE asset_chunks SET bytes = ? WHERE ordinal = 0",
+      args: [randomBytes(ASSET_CHUNK_BYTES)],
+    });
+
+    expect(ctx.entityService.readAsset(asset.ref)).rejects.toThrow(
+      "Asset integrity check failed",
+    );
+    // A stream withholds the final chunk, so no consumer receives the whole
+    // declared size of bytes that do not match the reference.
+    const received: Uint8Array[] = [];
+    const streamed = (async (): Promise<void> => {
+      for await (const chunk of await ctx.entityService.openAsset(asset.ref)) {
+        received.push(chunk);
+      }
+    })();
+    expect(streamed).rejects.toThrow("Asset integrity check failed");
+    await streamed.catch(() => undefined);
+    expect(Buffer.concat(received).byteLength).toBeLessThan(asset.sizeBytes);
+  });
+
   test("enforces byte limits while staging and leaves nothing behind", async () => {
     expect(
       ctx.entityService.stageAsset(Buffer.from("abc"), { maxBytes: 2 }),

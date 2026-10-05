@@ -217,6 +217,27 @@ describe("artifact entity helpers", () => {
       expect(await body(response)).toEqual(png);
     });
 
+    it("fails the response body when the stored bytes fail their integrity check", async () => {
+      const { entity } = await stagedImage();
+      const integrityFailure = new Error("Asset integrity check failed");
+      const reader = {
+        openAsset: async (): Promise<AsyncIterable<Uint8Array>> =>
+          (async function* (): AsyncGenerator<Uint8Array> {
+            yield png.subarray(0, 8);
+            throw integrityFailure;
+          })(),
+      };
+
+      const response = await createArtifactResponse(reader, {
+        entityType: "image",
+        id: "robot-1",
+        entity,
+        disposition: "attachment",
+      });
+
+      expect(body(response)).rejects.toBe(integrityFailure);
+    });
+
     it("serves an inline data URL artifact as bytes", async () => {
       const response = await createArtifactResponse(createMockAssetStore(), {
         entityType: "image",
