@@ -83,6 +83,7 @@ Plans:
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
+- [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
 
 ### 2. The collective posture
 
