@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [#513](https://github.com/rizom-ai/brains/pull/513) [`b1ed5d1`](https://github.com/rizom-ai/brains/commit/b1ed5d13be681f07146fe0fdb3c33833fb24a401) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's homepage opens as it did before the Ask box moved in: the words, the door and the live network drawing, which leaves with the opening; the figure runs its stages without a handover. The Ask room is its own page, /ask, linked from the bar: the box beside the live network, which an answer's sources light and lead to, and under it the questions visitors asked before.
+
 ## 0.2.0-alpha.266
 
 ### Patch Changes
