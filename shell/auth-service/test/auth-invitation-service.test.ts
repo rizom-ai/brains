@@ -537,6 +537,107 @@ describe("AuthInvitationService", () => {
     await database.stop();
   });
 
+  it("names the inviter, the brain and the role on the first send and on a resend", async () => {
+    const { admin, database } = await createFixture();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthInvitationService({
+      db: database.db,
+      issuer: "https://brain.example.com",
+      setupTokenTtlSeconds: 86_400,
+      audit: new AuthAuditStore(database.db),
+      getBrainName: async (): Promise<string> => "Rizom",
+      getDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+    const created = await service.create({
+      idempotencyKey: "named-request-1",
+      displayName: "Mira Reyes",
+      role: "trusted",
+      delivery: { type: "email", subject: "mira@example.com" },
+      actorUserId: admin.id,
+    });
+
+    await service.resend(created.invitation.id, admin.id);
+
+    expect(sent.map((input) => input.subject)).toEqual([
+      "Admin invited you to the Rizom brain",
+      "Admin invited you to the Rizom brain",
+    ]);
+    for (const input of sent) {
+      expect(input.text).toContain("as a trusted member.");
+      expect(input.html).toContain("Rizom");
+      expect(input.sensitivity).toBe("secret");
+    }
+    await database.stop();
+  });
+
+  it("names the brain by its host when the brain has no name", async () => {
+    const { admin, database } = await createFixture();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthInvitationService({
+      db: database.db,
+      issuer: "https://brain.example.com",
+      setupTokenTtlSeconds: 86_400,
+      audit: new AuthAuditStore(database.db),
+      getBrainName: async (): Promise<undefined> => undefined,
+      getDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+
+    await service.create({
+      idempotencyKey: "unnamed-request-1",
+      displayName: "Mira Reyes",
+      role: "admin",
+      delivery: { type: "email", subject: "mira@example.com" },
+      actorUserId: admin.id,
+    });
+
+    expect(sent[0]?.subject).toBe(
+      "Admin invited you to the brain.example.com brain",
+    );
+    expect(sent[0]?.text).toContain("as an admin.");
+    await database.stop();
+  });
+
+  it("names the brain from the anchor profile when invited through AuthService", async () => {
+    const { admin, database, storageDir } = await createFixture();
+    await database.stop();
+    const sent: ChannelDeliveryInput[] = [];
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+      autoStartInvitationDeliveryRecovery: false,
+      resolveProfileDisplayName: async (
+        profileEntityId,
+      ): Promise<string | undefined> =>
+        profileEntityId === "anchor-profile/anchor-profile"
+          ? "Rizom"
+          : undefined,
+      getInvitationDeliveryProvider: getEmailDeliveryProvider(async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      }),
+    });
+    await service.initialize();
+
+    await service.createInvitation(
+      {
+        idempotencyKey: "anchor-named-request-1",
+        displayName: "Mira Reyes",
+        role: "trusted",
+        delivery: { type: "email", subject: "mira@example.com" },
+      },
+      { actorUserId: admin.id },
+    );
+
+    expect(sent[0]?.subject).toEndWith("invited you to the Rizom brain");
+    await service.close();
+  });
+
   it("does not revive a cancelled invitation when provider acceptance arrives late", async () => {
     const { admin, database } = await createFixture();
     let markDispatchStarted: (() => void) | undefined;
