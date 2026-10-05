@@ -1,9 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { brainOrganism } from "../../src/story/brain-organism";
+import { livingOrganism } from "../../src/story/living-organism";
 import { workOrganism } from "../../src/story/work-organism";
 
 describe("the room drawings", () => {
+  test("the homepage drawing has six stages: the opening draws the network itself, then the science onwards to the doors", () => {
+    expect(livingOrganism.stageCount).toBe(6);
+    expect(livingOrganism.css()).toContain(
+      '.living-org[data-stage="5"] #living-org-n-L',
+    );
+    expect(livingOrganism.css()).not.toContain('[data-stage="6"]');
+  });
+
   test("the Brain's drawing grows from one lantern through six stages", () => {
     expect(brainOrganism.stageCount).toBe(6);
     const svg = renderToStaticMarkup(brainOrganism.svg());

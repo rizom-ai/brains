@@ -97,32 +97,6 @@ describe("the shipped story script", () => {
     expect(reading()).toEqual({ stage: "0", current: "c0" });
   });
 
-  test("tells the page how far the science has come, for the drawings to hand over by scroll", () => {
-    page({ viewport: 1000, stages: 3, chapters: 3 });
-    tops = [0, 1000, 1800];
-    run();
-    const handover = (): string => {
-      const story = window.document.querySelector(".story");
-      return story instanceof window.HTMLElement
-        ? story.style.getPropertyValue("--handover")
-        : "";
-    };
-    expect(handover()).toBe("0.0000");
-    // Halfway to the line at 450: the network is half drawn in.
-    scrollTo([-275, 725, 1525]);
-    expect(handover()).toBe("0.5000");
-    // At the line: the point; the stage flips.
-    scrollTo([-550, 450, 1250]);
-    expect(handover()).toBe("1.0000");
-    expect(reading().stage).toBe("1");
-    // Beyond: the pyramid opens, fully once as far again.
-    scrollTo([-1100, -100, 700]);
-    expect(handover()).toBe("2.0000");
-    // And back up, the same way.
-    scrollTo([-275, 725, 1525]);
-    expect(handover()).toBe("0.5000");
-  });
-
   test("holds the last stage when a page has more chapters than stages", () => {
     page({ viewport: 1000, stages: 2, chapters: 4 });
     tops = [0, 800, 1600, 2400];
@@ -407,23 +381,6 @@ describe("the Asked-before chapter lights the network", () => {
     expect(story?.classList.contains("is-asked")).toBe(true);
     scrollTo([-3000, -2200, -1100, -100]);
     expect(story?.classList.contains("is-asked")).toBe(false);
-  });
-
-  test("tells the page how far the chapter has arrived, and how far the next one has, for the drawings to hand over by scroll", () => {
-    home();
-    const story = window.document.querySelector(".story");
-    const measure = (name: string): string =>
-      story instanceof window.HTMLElement
-        ? story.style.getPropertyValue(name)
-        : "";
-    // 900px screen, line at 405: the chapter's top at 652.5 is halfway up to the line.
-    scrollTo([-1247.5, -447.5, 652.5, 1352.5]);
-    expect(measure("--asked")).toBe("0.5000");
-    expect(measure("--leaving")).toBe("0.0000");
-    // The chapter has come as far again; the next is halfway up.
-    scrollTo([-2000, -1200, -100, 652.5]);
-    expect(measure("--asked")).toBe("2.0000");
-    expect(measure("--leaving")).toBe("0.5000");
   });
 });
 

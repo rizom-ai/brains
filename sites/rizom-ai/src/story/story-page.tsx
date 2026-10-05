@@ -50,23 +50,29 @@ export function StoryPage({
   figure,
   children,
 }: {
-  figure: StoryFigure;
+  /** The drawing beside the chapters; null for a page that brings its own (the Ask room). */
+  figure: StoryFigure | null;
   children: ReactNode;
 }): JSX.Element {
   return (
     <>
       <link rel="stylesheet" href="/styles/story.css" precedence="page" />
       <ReadingThread />
-      <div className="story" {...{ [ASK_ROOM_ATTRIBUTE]: "" }}>
+      <div
+        className={figure ? "story" : "story story--room"}
+        {...{ [ASK_ROOM_ATTRIBUTE]: "" }}
+      >
         <div className="chapters">{children}</div>
-        <figure
-          className={`figure ${figure.className}`}
-          data-stage="0"
-          data-stages={figure.organism.stageCount}
-          aria-hidden="true"
-        >
-          {figure.organism.svg()}
-        </figure>
+        {figure && (
+          <figure
+            className={`figure ${figure.className}`}
+            data-stage="0"
+            data-stages={figure.organism.stageCount}
+            aria-hidden="true"
+          >
+            {figure.organism.svg()}
+          </figure>
+        )}
       </div>
     </>
   );

@@ -39,6 +39,7 @@ describe("the one bar", () => {
     expect(html).toContain('id="themeToggle"');
     expect(html).toContain('aria-label="Toggle color theme"');
     expect(html).toMatch(/<a href="\/"[^>]*aria-label="Rizom home"/);
+    expect(html).toContain('href="/ask"');
   });
 
   test("marks the current room and no other", () => {
@@ -85,6 +86,15 @@ describe("the story shell", () => {
     expect(html).toContain('<div class="story" data-ask-room="">');
     expect(html).toContain('class="rail"');
     expect(html).not.toContain("/styles/living-memory.css");
+  });
+
+  test("tells /ask as a story around the Ask room, with no figure of its own", () => {
+    const html = renderChrome("/ask");
+    expect(html).toContain('<div class="story story--room" data-ask-room="">');
+    expect(html).toContain('class="chapters"');
+    expect(html).toContain('class="rail"');
+    expect(html).not.toContain("<figure");
+    expect(html).toContain('href="/styles/story.css"');
   });
 
   test("tells the Brain and Work rooms beside their drawings, without the old room stylesheet", () => {

@@ -784,23 +784,20 @@
   width: min(100%, calc(100svh - var(--bar-height, 4.6rem) - 2rem));
   aspect-ratio: 1;
 }
-/* On a wide screen the opening's drawing holds the figure's place: it stands
-   before the opening in the chapters column and sticks at the figure's centre
-   line down the whole story (the story is a size container, so nothing in it
-   can be fixed to the screen). It stays while the opening is read, an answer
-   included, and the words scroll past it. The handover to the figure follows
-   the scroll (--handover, set by the runtime from the science's top on the
-   screen): as the science comes up the network draws into its centre point,
-   and past the reading line the figure's first drawing opens out of that same
-   point; scrolling back runs it backwards. */
+/* The Ask room page (/ask, told as a story without a figure) brings its own
+   drawing: it stands before the words in the chapters column and sticks at
+   the figure's centre line down the page (the story is a size container, so
+   nothing in it can be fixed to the screen), while the words scroll within
+   the screen beside it. The homepage's opening keeps its drawing in the
+   opening (the rule above), which leaves with it. */
 @media not all and (max-width: 60rem) {
   /* The words are the room's column (the kit scrolls it within the screen);
-     the bar and the opening's 4rem of padding above and below stay clear, so
+     the bar and the chapter's 4rem of padding above and below stay clear, so
      the composer is on the first screen. */
   .chapter--opening .opening__words {
     --ask-column-clear: calc(8rem + var(--bar-height, 4.6rem));
   }
-  :where(.chapters) > .net-layer {
+  .story--room :where(.chapters) > .net-layer {
     position: sticky;
     top: calc(
       var(--bar-height, 4.6rem) + (100svh - var(--bar-height, 4.6rem)) / 2
@@ -814,52 +811,8 @@
         var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
     );
   }
-  :where(.chapters) > .net-layer > * {
+  .story--room :where(.chapters) > .net-layer > * {
     translate: 0 -50%;
-    scale: calc(1 - clamp(0, var(--handover, 0), 1));
-  }
-  .net-leads {
-    opacity: calc(1 - clamp(0, var(--handover, 0) * 2, 1));
-  }
-  /* The figure's first drawing opens out of the point the network drew into;
-     the figure draws back into the point as the Asked-before chapter arrives
-     with its own drawing, and opens again as the chapter after it does. */
-  .living-org .o-box {
-    scale: min(
-      clamp(0, var(--handover, 0) - 1, 1),
-      max(
-        1 - clamp(0, var(--asked, 0), 1),
-        clamp(0, (var(--leaving, 0) - 1) * 2, 1)
-      )
-    );
-  }
-  /* The Asked-before chapter's drawing holds the figure's centre line while
-     the chapter is read: first in the chapter's flow, so it is at the line
-     from the moment the chapter reaches it. It opens out of the point as the
-     chapter arrives, in half the line's distance so a short chapter still
-     shows it whole, and draws back in as the next chapter does. */
-  .asked > .net-layer {
-    position: sticky;
-    order: -1;
-    top: calc(
-      var(--bar-height, 4.6rem) + (100svh - var(--bar-height, 4.6rem)) / 2
-    );
-    left: auto;
-    right: auto;
-    height: 0;
-    margin-left: calc(100% + var(--words-gap));
-    width: calc(
-      100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
-        var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
-    );
-    translate: none;
-  }
-  .asked > .net-layer > * {
-    translate: 0 -50%;
-    scale: calc(
-      clamp(0, (var(--asked, 0) - 1) * 2, 1) *
-        (1 - clamp(0, var(--leaving, 0), 1))
-    );
   }
 }
 .net-svg {
@@ -1478,8 +1431,6 @@
   color: var(--color-text-muted);
   quotes: "“" "”";
 }
-/* The chapter's drawing stands where the organism stood, beside the words
-   (placed in the wide-screen block above; on a phone it takes the strip). */
 /* The Ask room's lead layer (the room script draws into it; the kit styles
    the leads): leads join words to the drawing across the page, so the
    viewport is their frame. On a phone the opening's drawing joins the open
@@ -1510,29 +1461,17 @@
     border-bottom: 1px solid var(--color-border);
   }
 }
-/* The chapter's drawing is the network at rest: no pulse travels it and no
-   brain blinks on its own; only the open question's brains answer. */
-.asked .net-pulse,
-.asked .net-reply:not(.is-lit) .net-echo,
-.asked .net-reply:not(.is-lit) .net-spark {
+/* While the Asked-before questions are read, the page's drawing is the
+   network at rest: no pulse travels it and no brain blinks on its own; only
+   the open question's brains answer. */
+.story.is-asked .net-pulse,
+.story.is-asked .net-reply:not(.is-lit) .net-echo,
+.story.is-asked .net-reply:not(.is-lit) .net-spark {
   display: none;
 }
-.asked .net-mark i {
+.story.is-asked .net-mark i {
   animation: none;
 }
-@media (max-width: 60rem) {
-  /* On a phone the chapter's drawing takes the strip while the chapter is read. */
-  .asked .net-layer {
-    top: var(--bar-height, 4.6rem);
-    translate: none;
-    left: 0;
-    right: 0;
-    width: auto;
-  }
-  .story.is-asked .asked .net-layer {
-    opacity: 1;
-    z-index: 3;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

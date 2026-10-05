@@ -4,15 +4,8 @@ import {
   proximityMapCopySchema,
   proximityMapDataSchema,
 } from "@brains/agent-discovery/proximity-map";
-import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { AskBoxHost } from "@brains/site-atlas";
-import {
-  ASK_COLUMN_ATTRIBUTE,
-  ASK_DRAWING_ATTRIBUTE,
-  ASK_LEADS_ATTRIBUTE,
-  ASK_MARK_ATTRIBUTE,
-} from "@brains/contracts";
+import { ASK_DRAWING_ATTRIBUTE, ASK_MARK_ATTRIBUTE } from "@brains/contracts";
 import { createTemplate, type Template } from "@brains/templates";
 import { z } from "@rizom/site";
 import { placeNetwork, type PlacedBrain } from "./story/network";
@@ -168,69 +161,29 @@ export function Opening(data: OpeningData): JSX.Element {
   const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
   const lede = data.lede ?? DEFAULT_COPY.lede;
   return (
-    // The drawing and the lead layer stand before the opening's words in the
-    // chapters column: on a wide screen the drawing holds the figure's place
-    // down the story, leaving only through its centre point once the reading
-    // has moved the figure on. With the box, the story is an Ask room
-    // (@brains/contracts ask-box): the words are its column, which scrolls
-    // within the screen beside the drawing; the drawing is lent to a phone's
-    // open conversation; the room draws leads from an answer's sources to
-    // the dots.
-    <>
-      <NetworkLayer {...placeNetwork(data)} lendable={data.askBox} />
-      {data.askBox && (
-        <svg
-          className="net-leads"
-          {...{ [ASK_LEADS_ATTRIBUTE]: "" }}
-          aria-hidden="true"
-        />
+    // The story opens on the authored words over the live network, with the
+    // door to the practice; the drawing stands in the opening and leaves with
+    // it. The Ask room (the box beside this network, lit by an answer) is its
+    // own page, /ask (see ./ask-room).
+    <section id="hero" className="chapter chapter--opening" data-title="Top">
+      {data.kicker && <p className="eyebrow">{data.kicker}</p>}
+      <h1>
+        {headingLead}
+        {data.headingAccent && (
+          <>
+            {" "}
+            <em>{data.headingAccent}</em>
+          </>
+        )}
+      </h1>
+      <p className="lede">{lede}</p>
+      {data.ctaHref && data.ctaLabel && (
+        <a className="opening__door" href={data.ctaHref}>
+          {data.ctaLabel}
+        </a>
       )}
-      <section id="hero" className="chapter chapter--opening" data-title="Top">
-        <div
-          className="opening__words"
-          {...(data.askBox ? { [ASK_COLUMN_ATTRIBUTE]: "" } : {})}
-        >
-          {data.kicker && <p className="eyebrow">{data.kicker}</p>}
-          <h1>
-            {headingLead}
-            {data.headingAccent && (
-              <>
-                {" "}
-                <em>{data.headingAccent}</em>
-              </>
-            )}
-          </h1>
-          <p className="lede">{lede}</p>
-          {data.askBox ? (
-            <div className="ask">
-              <AskBoxHost
-                prefix="opening"
-                placeholder={data.prompt ?? undefined}
-              />
-              {data.topics.length > 0 && (
-                <ul className="ask__topics" aria-label="Suggested questions">
-                  {data.topics.map((topic) => (
-                    <li key={topic}>
-                      <button type="button" data-atlas-fill={topic}>
-                        {topic}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <script src={ASK_BOX_SCRIPT_PATH} defer />
-            </div>
-          ) : (
-            data.ctaHref &&
-            data.ctaLabel && (
-              <a className="opening__door" href={data.ctaHref}>
-                {data.ctaLabel}
-              </a>
-            )
-          )}
-        </div>
-      </section>
-    </>
+      <NetworkLayer {...placeNetwork(data)} />
+    </section>
   );
 }
 
@@ -256,7 +209,7 @@ const openingCopyFormatter = new StructuredContentFormatter(
 export const openingTemplate: Template = createTemplate({
   name: "opening",
   description:
-    "The homepage opening: the authored words over the live network, with the Ask box",
+    "The homepage opening: the authored words over the live network, with the door",
   schema: openingSchema,
   dataSourceId: "rizom:opening",
   overlayFormatter: openingCopyFormatter,

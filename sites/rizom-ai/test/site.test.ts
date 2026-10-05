@@ -23,7 +23,6 @@ describe("@rizom/site-rizom-ai", () => {
     expect(sections.map((group) => group.namespace)).toEqual([
       "living-memory",
       "brain",
-      "public-ask",
       "work",
       "foundation",
     ]);
@@ -118,17 +117,22 @@ describe("@rizom/site-rizom-ai", () => {
       "turn",
       "growth",
       "arc",
-      "asked",
       "doors",
     ]);
     const opening = route?.sections?.[0];
     expect(opening?.template).toBe("rizom:opening");
     expect(opening?.dataQuery).toBeDefined();
-    // "Asked before" comes after the argument and before the doors, and
-    // reads the published FAQs through the site's own datasource.
-    const asked = route?.sections?.find((section) => section.id === "asked");
-    expect(asked?.template).toBe("rizom:asked");
-    expect(asked?.dataQuery).toBeDefined();
+    // The Ask room and "Asked before" live on /ask: the box beside the live
+    // network, then the published FAQs through the site's own datasource.
+    const ask = site.routes.find((route) => route.path === "/ask");
+    expect(
+      ask?.sections?.map((section) => [section.id, section.template]),
+    ).toEqual([
+      ["ask", "rizom:ask-room"],
+      ["asked", "rizom:asked"],
+    ]);
+    expect(ask?.layout).toBe("default");
+    expect(ask?.sections?.every((section) => section.dataQuery)).toBe(true);
   });
 
   test("home body sections reference their content namespaces by string", () => {
@@ -142,7 +146,6 @@ describe("@rizom/site-rizom-ai", () => {
       "living-memory:turn",
       "living-memory:growth",
       "living-memory:arc",
-      "rizom:asked",
       "living-memory:doors",
     ]);
   });
