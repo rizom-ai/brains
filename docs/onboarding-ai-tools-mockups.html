@@ -271,6 +271,20 @@
         border-radius: 4px;
         padding: 1px 4px;
       }
+      details.advanced {
+        margin-top: 12px;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+      }
+      details.advanced summary {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      details.advanced[open] summary {
+        margin-bottom: 10px;
+      }
       ol.steps {
         margin: 0;
         padding-left: 20px;
@@ -495,14 +509,21 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
                 <code>becca-rizom-ai</code> and sign in with your passkey.
               </p>
             </div>
-            <div class="card wide">
+            <div class="card">
               <h4>Cursor</h4>
-              <p>
-                Open Cursor Settings → MCP → Add new global MCP server, or edit
-                <code>~/.cursor/mcp.json</code> directly:
-              </p>
-              <div class="snippet">
-                <pre>
+              <ol class="steps">
+                <li>Open Cursor Settings → MCP → Add new global MCP server.</li>
+                <li>
+                  Name it <code>becca-rizom-ai</code> and paste your brain’s
+                  address.
+                </li>
+                <li>Sign in with your passkey when Cursor asks.</li>
+              </ol>
+              <details class="advanced">
+                <summary>Advanced</summary>
+                <p>Edit <code>~/.cursor/mcp.json</code> instead:</p>
+                <div class="snippet">
+                  <pre>
 {
   "mcpServers": {
     "becca-rizom-ai": {
@@ -510,16 +531,16 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
     }
   }
 }</pre>
-                <button class="copy" type="button">Copy</button>
-              </div>
-              <p class="hint">
-                Already have servers in <code>~/.cursor/mcp.json</code>? Add
-                only the <code>"becca-rizom-ai"</code> entry inside
-                <code>"mcpServers"</code>.
-              </p>
-              <p>Cursor asks you to sign in the first time it connects.</p>
+                  <button class="copy" type="button">Copy</button>
+                </div>
+                <p class="hint">
+                  Already have servers in <code>~/.cursor/mcp.json</code>? Add
+                  only the <code>"becca-rizom-ai"</code> entry inside
+                  <code>"mcpServers"</code>.
+                </p>
+              </details>
             </div>
-            <div class="card wide">
+            <div class="card">
               <h4>VS Code</h4>
               <ol class="steps">
                 <li>
@@ -530,16 +551,17 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
                   <code>becca-rizom-ai</code>.
                 </li>
                 <li>
-                  Choose Global to use it in every project, then sign in with
-                  your passkey when asked.
+                  Choose Global, then sign in with your passkey when asked.
                 </li>
               </ol>
-              <p>
-                Prefer editing configuration? Run
-                <code>MCP: Open User Configuration</code> and add:
-              </p>
-              <div class="snippet">
-                <pre>
+              <details class="advanced">
+                <summary>Advanced</summary>
+                <p>
+                  Edit your configuration instead: run
+                  <code>MCP: Open User Configuration</code> and add:
+                </p>
+                <div class="snippet">
+                  <pre>
 {
   "servers": {
     "becca-rizom-ai": {
@@ -548,13 +570,14 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
     }
   }
 }</pre>
-                <button class="copy" type="button">Copy</button>
-              </div>
-              <p class="hint">
-                Already have servers in your user configuration? Add only the
-                <code>"becca-rizom-ai"</code> entry inside
-                <code>"servers"</code>.
-              </p>
+                  <button class="copy" type="button">Copy</button>
+                </div>
+                <p class="hint">
+                  Already have servers in your user configuration? Add only the
+                  <code>"becca-rizom-ai"</code> entry inside
+                  <code>"servers"</code>.
+                </p>
+              </details>
             </div>
             <div class="card wide">
               <h4>Any other AI tool</h4>
@@ -566,29 +589,33 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
                 <dt>Name</dt>
                 <dd><code>becca-rizom-ai</code></dd>
                 <dt>Type</dt>
-                <dd>Remote server, Streamable HTTP — not stdio, not SSE</dd>
+                <dd>Remote server, Streamable HTTP</dd>
                 <dt>URL</dt>
                 <dd><code>https://becca.rizom.ai/mcp</code></dd>
                 <dt>Authentication</dt>
-                <dd>
-                  OAuth. Leave API key, token, client ID and secret empty; the
-                  tool registers itself.
-                </dd>
+                <dd>OAuth — leave API key and client fields empty</dd>
               </dl>
               <p>
-                When you connect, your browser opens “Authorize &lt;tool&gt;?”
-                on your brain. Approve MCP access with your passkey. The tool
-                then has two tools, <code>chat</code> and <code>confirm</code>:
-                it asks your brain anything as you would in chat, and confirms
-                changes when the brain asks.
+                When you connect, your brain asks you to approve the tool with
+                your passkey.
               </p>
-              <p>
-                Tool only takes local (stdio) servers, or asks for an API key?
-                Bridge it with <code>mcp-remote</code>, which handles the
-                sign-in:
-              </p>
-              <div class="snippet">
-                <pre>
+              <details class="advanced">
+                <summary>Advanced</summary>
+                <p>
+                  The tool registers itself, so there is no client ID or secret
+                  to copy. After you approve “Authorize &lt;tool&gt;?”, it has
+                  two tools: <code>chat</code>, to ask your brain anything as
+                  you would in chat, and <code>confirm</code>, to approve
+                  changes when the brain asks. Stdio and SSE transports are not
+                  supported.
+                </p>
+                <p>
+                  Tool only takes local (stdio) servers, or insists on an API
+                  key? Bridge it with <code>mcp-remote</code>, which handles the
+                  sign-in:
+                </p>
+                <div class="snippet">
+                  <pre>
 {
   "mcpServers": {
     "becca-rizom-ai": {
@@ -601,8 +628,9 @@ claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp</pre>
     }
   }
 }</pre>
-                <button class="copy" type="button">Copy</button>
-              </div>
+                  <button class="copy" type="button">Copy</button>
+                </div>
+              </details>
             </div>
           </div>
         </div>
