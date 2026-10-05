@@ -130,7 +130,8 @@ describe("the homepage story", () => {
       '<dt><a href="/brain">The brain</a></dt><dd>One agent that ships what you know.</dd>',
     );
     expect(html).toContain('<dt><a href="/work">The practice</a></dt>');
-    expect(html).toContain('<dt><a href="#hero">The network</a></dt>');
+    // The live network is drawn on /ask, the Ask room.
+    expect(html).toContain('<dt><a href="/ask">The network</a></dt>');
     expect(html).not.toContain("<svg");
   });
 
