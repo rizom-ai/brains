@@ -22,6 +22,11 @@ describe("the Ask room page on a wide screen", () => {
     );
   });
 
+  test("gives the words the words' width, so the drawing has its room beside them at every width", () => {
+    // Not only the story's first chapter: on /ask the drawing comes first.
+    expect(css).toMatch(/\.chapter--opening \{[^}]*max-width: var\(--words\);/);
+  });
+
   test("holds the room's drawing at the figure's centre line down the page", () => {
     expect(wide).toMatch(
       /\.story--room :where\(\.chapters\) > \.net-layer \{[^}]*position: sticky;[^}]*top: calc\(\s*var\(--bar-height, 4\.6rem\) \+ \(100svh - var\(--bar-height, 4\.6rem\)\) \/ 2\s*\);[^}]*height: 0;/,
