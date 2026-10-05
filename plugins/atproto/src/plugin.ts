@@ -570,6 +570,11 @@ export class AtprotoPlugin extends ServicePlugin<
         `Cannot publish non-public ${options.entityType}: ${identifier}`,
       );
     }
+    if (!isProjectionPublishable(projection, entity)) {
+      throw new Error(
+        `Cannot publish non-publishable ${options.entityType}: ${identifier}`,
+      );
+    }
 
     const repo = this.config.repoDid;
 
@@ -719,7 +724,10 @@ export class AtprotoPlugin extends ServicePlugin<
       return;
     }
 
-    if (entity?.visibility === "public") {
+    if (
+      entity?.visibility === "public" &&
+      isProjectionPublishable(projection, entity)
+    ) {
       await this.publishingTasks.runTrigger(
         context,
         {
@@ -957,6 +965,13 @@ export class AtprotoPlugin extends ServicePlugin<
 function deriveAtprotoRecordKey(entityId: string): string {
   const sanitized = entityId.replace(/[^A-Za-z0-9._~:-]/g, "_").slice(0, 512);
   return sanitized.length > 0 ? sanitized : "self";
+}
+
+function isProjectionPublishable(
+  projection: Pick<AtprotoProjection, "isPublishable">,
+  entity: BaseEntity,
+): boolean {
+  return projection.isPublishable?.(entity) ?? true;
 }
 
 function parseAtUriRepo(uri: string): string | undefined {

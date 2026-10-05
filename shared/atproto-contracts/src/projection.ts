@@ -88,6 +88,13 @@ export interface AtprotoProjection<
   collection: string;
   lexicon: AtprotoLexicon;
   validate?: boolean;
+  /**
+   * Whether a public entity is ready to be projected to the PDS (e.g. a post
+   * must be published, not a draft). Unpublishable entities are not upserted,
+   * and any previously projected record is deleted. Omitted means every public
+   * entity is publishable.
+   */
+  isPublishable?(entity: BaseEntity): boolean;
   buildRecord(input: AtprotoProjectionBuildInput): Promise<TRecord>;
   onPublished?(input: AtprotoProjectionPublishedInput<TRecord>): Promise<void>;
 }

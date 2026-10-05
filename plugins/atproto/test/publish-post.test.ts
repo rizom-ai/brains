@@ -511,6 +511,63 @@ describe("AT Protocol post publishing", () => {
     }
   });
 
+  it("refuses to publish entities their projection does not deem publishable", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const buildRecord = mock(async ({ entity }: { entity: BaseEntity }) => ({
+      $type: "ai.rizom.brain.post",
+      title: "Distributed Brains",
+      createdAt: entity.created,
+    }));
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      validate: false,
+      buildRecord,
+      isPublishable: () => false,
+    });
+    const putRecord = mock(async () => ({
+      uri: "at://repo/post",
+      cid: "cid",
+    }));
+    const plugin = new AtprotoPlugin(
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        projectionRegistry: registry,
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: mock(async () => ({
+            did: "did:plc:session-repo",
+            handle: "brain.example.com",
+            accessJwt: "access-token",
+            refreshJwt: "refresh-token",
+          })),
+          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
+          putRecord,
+        }),
+      },
+    );
+
+    for (const dryRun of [true, false]) {
+      try {
+        await plugin.publishPost(createContext(), {
+          entityId: "post-123",
+          dryRun,
+        });
+        throw new Error("Expected unpublishable post publish to fail");
+      } catch (error) {
+        expect(caughtError(error).message).toContain(
+          "Cannot publish non-publishable post",
+        );
+      }
+    }
+    expect(buildRecord).not.toHaveBeenCalled();
+    expect(putRecord).not.toHaveBeenCalled();
+  });
+
   it("does not expose publish-entity as an agent tool", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);

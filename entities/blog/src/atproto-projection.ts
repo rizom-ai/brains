@@ -133,6 +133,8 @@ export function createBlogAtprotoProjection(): AtprotoProjection<AtprotoBrainPos
     collection: "ai.rizom.brain.post",
     lexicon: canonicalAtprotoLexicons["ai.rizom.brain.post"],
     validate: false,
+    isPublishable: (entity): boolean =>
+      entity.metadata["status"] === "published",
     buildRecord: buildBlogAtprotoPostRecord,
     onPublished: async ({ entity, context, uri }): Promise<void> => {
       if (entity.entityType !== "post") {
