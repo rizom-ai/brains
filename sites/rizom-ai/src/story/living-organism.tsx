@@ -84,8 +84,7 @@ export const livingOrganism: Organism = organism({
     ),
   },
   stages: [
-    // The opening draws the live network itself; the page opens this drawing
-    // out of the network's centre point by scroll (see ../story.css).
+    // The opening draws the live network itself.
     {},
     // The science: a team, its shared memory glowing at the centre.
     {
@@ -105,16 +104,6 @@ export const livingOrganism: Organism = organism({
     // One organism: you and your agent, the practice, the network.
     one,
     // Where this goes: the organism becomes one brain among many.
-    {
-      ...Object.fromEntries(
-        Object.entries(one).map(([k, v]) => [k, shrink(v)]),
-      ),
-      ...Object.fromEntries(
-        economy.map((p, i) => [`E${i + 1}`, at(p, i % 3 === 0 ? 6 : 4)]),
-      ),
-    },
-    // Asked before: the economy stays, at rest; the live network beside the
-    // chapter lights from the open question (see ./runtime).
     {
       ...Object.fromEntries(
         Object.entries(one).map(([k, v]) => [k, shrink(v)]),
@@ -183,7 +172,6 @@ export const livingOrganism: Organism = organism({
       "core-e3",
       ...uniqueEconomyLinks.map((l) => l[0]),
     ],
-    [],
   ],
   flowing: [
     [],
@@ -198,7 +186,6 @@ export const livingOrganism: Organism = organism({
       "core-e3",
       ...uniqueEconomyLinks.filter((_, i) => i % 2 === 0).map((l) => l[0]),
     ],
-    [],
   ],
   labels: [
     [],

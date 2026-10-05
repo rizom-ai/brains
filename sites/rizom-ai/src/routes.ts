@@ -25,9 +25,6 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "turn", template: "living-memory:turn" },
       { id: "growth", template: "living-memory:growth" },
       { id: "arc", template: "living-memory:arc" },
-      // What visitors asked before, answered and kept by the owner, read
-      // live from the published FAQs (see ./asked-datasource).
-      { id: "asked", template: "rizom:asked", dataQuery: {} },
       { id: "doors", template: "living-memory:doors" },
     ],
   },
@@ -51,15 +48,18 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
+    // The Ask room: the guest box beside the live network, and what
+    // visitors asked before, answered and kept by the owner, read live from
+    // the published FAQs (see ./ask-room, ./asked-datasource).
     id: "public-ask",
     path: "/ask",
-    title: "Ask Rizom AI",
+    title: "Ask the network",
     description: "Ask a question of Rizom's public Brain knowledge",
     layout: "default",
     navigation: { show: false },
-    // The runtime mount has no authored copy or generated answer content.
     sections: [
-      { id: "conversation", template: "public-ask:conversation", content: {} },
+      { id: "ask", template: "rizom:ask-room", dataQuery: {} },
+      { id: "asked", template: "rizom:asked", dataQuery: {} },
     ],
   },
   {

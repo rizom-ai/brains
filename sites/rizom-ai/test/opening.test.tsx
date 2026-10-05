@@ -63,13 +63,10 @@ describe("the homepage opening", () => {
     expect(openingTemplate.overlayFormatter).toBeDefined();
   });
 
-  test("opens the story with the authored words over the live network", () => {
-    const html = render({ ...map, topics: [], askBox: false });
-    // The drawing stands before the opening's words in the chapters column,
-    // so it can keep the figure's place down the page.
-    expect(html).toMatch(/^<div class="net-layer" aria-hidden="true">/);
-    expect(html).toContain(
-      '<section id="hero" class="chapter chapter--opening" data-title="Top">',
+  test("opens the story with the authored words over the live network, and a door", () => {
+    const html = render(map);
+    expect(html).toMatch(
+      /^<section id="hero" class="chapter chapter--opening" data-title="Top">/,
     );
     expect(html).toContain('<p class="eyebrow">Living memory</p>');
     expect(html).toContain(
@@ -81,53 +78,21 @@ describe("the homepage opening", () => {
     expect(html).toContain(
       '<a class="opening__door" href="https://rizom.ai/work">Book a knowledge session</a>',
     );
+    // The drawing stands in the opening itself and leaves with it.
+    expect(html).toContain('<div class="net-layer" aria-hidden="true">');
     expect(html.match(/class="net-mark"/g)).toHaveLength(2);
     expect(html).toContain('<li class="net-name net-name--right"');
     expect(html).toContain(">Becca<");
     expect(html).toContain('class="net-pulse"');
+    // The Ask room lives on /ask (see ./ask-room); the opening carries none of it.
     expect(html).not.toContain("data-ask-box");
-  });
-
-  test("docks the Ask box, disabled, with the drafted questions as topics", () => {
-    const html = render({
-      ...map,
-      topics: ["What changes when a brain is yours?"],
-      askBox: true,
-      prompt: "What’s on your mind?",
-    });
-    expect(html).toContain('data-ask-box=""');
-    expect(html).toContain(
-      '<textarea rows="1" disabled="" aria-label="Your question" placeholder="What’s on your mind?">',
-    );
-    expect(html).toContain('data-ask-send=""');
-    expect(html).toContain(
-      '<button type="button" data-atlas-fill="What changes when a brain is yours?">What changes when a brain is yours?</button>',
-    );
-    expect(html).toContain(
-      '<script src="/ask/assets/box.js" defer=""></script>',
-    );
-    expect(html).not.toContain('class="opening__door"');
-    // The Ask room (@brains/contracts ask-box; the story is the room): the
-    // words are the column that scrolls beside the drawing, the drawing is
-    // lent to a phone's conversation, its dots are marks keyed by brain, and
-    // the room draws leads into the layer; both stand before the words.
-    expect(html).toMatch(
-      /^<div class="net-layer" aria-hidden="true" data-ask-drawing="">[^]*<\/div><svg class="net-leads" data-ask-leads="" aria-hidden="true"><\/svg><section id="hero" class="chapter chapter--opening" data-title="Top"><div class="opening__words" data-ask-column="">/,
-    );
-    expect(html).toContain(
-      'class="net-mark" data-brain="becca" data-ask-mark="becca"',
-    );
-  });
-
-  test("without the box, the opening has no column, no lead layer, and the drawing stays", () => {
-    const html = render({ ...map, topics: [], askBox: false });
     expect(html).not.toContain("data-ask-column");
     expect(html).not.toContain("data-ask-leads");
     expect(html).not.toContain("data-ask-drawing");
   });
 
   test("keeps the words when the network is empty", () => {
-    const html = render({ ...map, nodes: [], topics: [], askBox: false });
+    const html = render({ ...map, nodes: [] });
     expect(html).toContain("<h1>AI didn&#x27;t break");
     expect(html).not.toContain("net-mark");
     expect(html).not.toContain("net-pulse");
