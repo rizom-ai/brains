@@ -1,5 +1,13 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`abeaf35`](https://github.com/rizom-ai/brains/commit/abeaf350dc738b4d030e93210a7fb913f5311cf1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's science chapter lists its three dimensions in the same form as the organism's parts, a left accent rule, display-face titles and muted text; a part that is one of the site's rooms shows as a door, underlined in the accent. A stray closing brace at the end of the story stylesheet is gone.
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`ead43fa`](https://github.com/rizom-ai/brains/commit/ead43fa3798715dfa709f7dd692aeb64ddffd671) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's figure opens on the whole organism at rest, the brain, the practice and the network joined, beside the opening's words; the science then pulls the team's pyramid out of it and every stage follows from the last, back and forth with the reading. The opening carries no separate picture.
+
 ## 0.2.0-alpha.268
 
 ### Patch Changes
