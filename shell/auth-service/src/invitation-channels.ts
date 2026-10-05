@@ -4,7 +4,10 @@ import type {
   ChannelDescriptor,
 } from "@brains/plugins";
 import { absoluteUrl } from "./issuer";
-import { renderOnboardingEmail } from "./onboarding-emails";
+import {
+  renderOnboardingEmail,
+  type OnboardingDetails,
+} from "./onboarding-emails";
 
 export interface InvitationChannelsOptions {
   issuer: string;
@@ -27,6 +30,8 @@ export interface InvitationSend {
   role: "admin" | "trusted";
   /** The Admin who created the invitation, when they still exist. */
   inviterName?: string | undefined;
+  purpose?: OnboardingDetails["purpose"];
+  links?: OnboardingDetails["links"];
 }
 
 /**
@@ -121,6 +126,8 @@ export class InvitationChannels {
       brainName: input.brainName,
       role: input.role,
       ...(input.inviterName ? { inviterName: input.inviterName } : {}),
+      ...(input.purpose ? { purpose: input.purpose } : {}),
+      ...(input.links ? { links: input.links } : {}),
     });
     return provider.send({
       recipient: input.recipient,

@@ -2,6 +2,7 @@ import type {
   ActorRef,
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
+import type { OnboardingDetails } from "./onboarding-emails";
 import type {
   AccountSettingsRegistry,
   ChannelDeliveryProvider,
@@ -115,6 +116,8 @@ export interface AuthServiceOptions {
   allowLocalhostIssuers?: boolean;
   /** First-passkey setup token lifetime in seconds. Defaults to 24 hours. */
   setupTokenTtlSeconds?: number;
+  /** The brain's purpose and links for onboarding emails. */
+  getOnboardingDetails?: () => Promise<OnboardingDetails>;
   /** Resolve the registered delivery provider for an invitation channel. */
   getInvitationDeliveryProvider?: (
     channelType: string,
@@ -192,6 +195,9 @@ export class AuthService {
         : {}),
       ...(options.setupTokenTtlSeconds !== undefined
         ? { setupTokenTtlSeconds: options.setupTokenTtlSeconds }
+        : {}),
+      ...(options.getOnboardingDetails
+        ? { getOnboardingDetails: options.getOnboardingDetails }
         : {}),
       ...(options.getInvitationDeliveryProvider
         ? {

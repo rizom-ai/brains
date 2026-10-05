@@ -6,6 +6,11 @@ import {
 
 const setupUrl = "https://team.brain.test/setup?token=setup_abc";
 const anchorSetupUrl = "https://yeehaa.brain.test/setup?token=setup_xyz";
+const links = {
+  chat: "/chat",
+  studio: "/studio",
+  aiTools: "/studio/workspaces/studio%3Aaccount?section=ai-tools",
+};
 
 function invitation(
   overrides: Partial<
@@ -19,15 +24,25 @@ function invitation(
     brainName: "Rizom",
     role: "trusted",
     inviterName: "Sam Jansen",
+    purpose: "Keep the team’s decisions, plans and meeting notes in one place",
+    links,
     ...overrides,
   };
 }
 
-const anchorSetup: OnboardingEmailInput = {
-  kind: "anchor-setup",
-  setupUrl: anchorSetupUrl,
-  expiresAt: 1_800_000_000,
-};
+function anchorSetup(
+  overrides: Partial<
+    Extract<OnboardingEmailInput, { kind: "anchor-setup" }>
+  > = {},
+): OnboardingEmailInput {
+  return {
+    kind: "anchor-setup",
+    setupUrl: anchorSetupUrl,
+    expiresAt: 1_800_000_000,
+    links,
+    ...overrides,
+  };
+}
 
 describe("renderOnboardingEmail", () => {
   describe("invitation opening", () => {
@@ -58,6 +73,23 @@ describe("renderOnboardingEmail", () => {
       ).toContain("as an admin.");
     });
 
+    it("says what the brain is for", () => {
+      const { text, html } = renderOnboardingEmail(invitation());
+
+      expect(text).toContain(
+        "What it’s for: Keep the team’s decisions, plans and meeting notes in one place.",
+      );
+      expect(html).toContain(
+        "What it’s for: Keep the team’s decisions, plans and meeting notes in one place.",
+      );
+    });
+
+    it("leaves the purpose out when the brain has none", () => {
+      expect(
+        renderOnboardingEmail(invitation({ purpose: undefined })).text,
+      ).not.toContain("What it’s for");
+    });
+
     it("prints the expiry as a readable UTC date", () => {
       const { text, html } = renderOnboardingEmail(invitation());
 
@@ -78,13 +110,18 @@ describe("renderOnboardingEmail", () => {
       ).toHaveLength(2);
     });
 
-    it("escapes the brain and inviter names in the HTML part", () => {
+    it("escapes the brain, inviter and purpose in the HTML part", () => {
       const { html, text } = renderOnboardingEmail(
-        invitation({ brainName: "<b>Lab</b>", inviterName: "Ana & Bo" }),
+        invitation({
+          brainName: "<b>Lab</b>",
+          inviterName: "Ana & Bo",
+          purpose: "Track <script>",
+        }),
       );
 
       expect(html).toContain("&lt;b&gt;Lab&lt;/b&gt;");
       expect(html).toContain("Ana &amp; Bo");
+      expect(html).toContain("Track &lt;script&gt;");
       expect(html).not.toContain("<b>Lab</b>");
       expect(text).toContain(
         "Ana & Bo invited you to join the <b>Lab</b> brain",
@@ -99,20 +136,38 @@ describe("renderOnboardingEmail", () => {
   });
 
   describe("anchor setup opening", () => {
-    it("tells the anchor their brain is ready", () => {
-      const { subject, text } = renderOnboardingEmail(anchorSetup);
+    it("greets a named person anchor", () => {
+      const { subject, text, html } = renderOnboardingEmail(
+        anchorSetup({ greetingName: "Becca" }),
+      );
+
+      expect(subject).toBe("Becca, your brain is ready");
+      expect(text).toStartWith("Hi Becca, your brain is ready\n");
+      expect(html).toContain("Hi Becca, your brain is ready");
+    });
+
+    it("keeps the plain opening without a name", () => {
+      const { subject, text } = renderOnboardingEmail(anchorSetup());
 
       expect(subject).toBe("Your brain is ready — here’s how to start");
+      expect(text).toStartWith("Your brain is ready\n");
       expect(text).toContain(
         "Your brain at yeehaa.brain.test is set up and waiting for you. Set up your passkey to sign in.",
       );
       expect(text).toContain(
         "This link works once and expires on Friday, 15 January 2027 at 08:00 UTC. Don’t forward it.",
       );
+      expect(text).not.toContain("What it’s for");
+    });
+
+    it("escapes the greeting name in the HTML part", () => {
+      expect(
+        renderOnboardingEmail(anchorSetup({ greetingName: "<i>Bo</i>" })).html,
+      ).toContain("Hi &lt;i&gt;Bo&lt;/i&gt;, your brain is ready");
     });
 
     it("links the setup button", () => {
-      const { html } = renderOnboardingEmail(anchorSetup);
+      const { html } = renderOnboardingEmail(anchorSetup());
 
       expect(html).toContain(`href="${anchorSetupUrl}"`);
       expect(html).toContain(">Set up your passkey</a>");
@@ -120,46 +175,44 @@ describe("renderOnboardingEmail", () => {
   });
 
   describe.each([
-    ["invitation", invitation(), "https://team.brain.test"],
-    ["anchor setup", anchorSetup, "https://yeehaa.brain.test"],
-  ] as const)("shared onboarding body (%s)", (_kind, input, origin) => {
+    ["invitation", invitation(), "https://team.brain.test", "the brain"],
+    ["anchor setup", anchorSetup(), "https://yeehaa.brain.test", "your brain"],
+  ] as const)("shared onboarding body (%s)", (_kind, input, origin, whose) => {
     it("walks through a first save and ask in chat", () => {
       const { text, html } = renderOnboardingEmail(input);
 
       expect(text).toContain("Your first five minutes");
       expect(text).toContain(
-        `Open chat (${origin}/chat) and say “Help me save my first note.”`,
+        `Open chat (${origin}/chat) and say “Help me save my first note.” Give it a rough thought — a half-formed idea is fine. Then ask about it: “What did I just save?”`,
+      );
+      expect(text).toContain(
+        `Use Studio (${origin}/studio) to browse and edit everything the brain holds.`,
       );
       expect(html).toContain(`href="${origin}/chat"`);
-      for (const sentence of [
-        "Save, ask, use: that loop is the core of working with the brain.",
-        "to browse and edit everything the brain holds.",
-      ]) {
-        expect(text).toContain(sentence);
-        expect(html).toContain(sentence);
-      }
-      expect(text).toContain(`Studio (${origin}/studio)`);
       expect(html).toContain(`href="${origin}/studio"`);
     });
 
-    it("explains how to connect AI tools over MCP", () => {
+    it("points to Account → AI tools instead of listing connection steps", () => {
       const { text, html } = renderOnboardingEmail(input);
-      const command = `claude mcp add --transport http brain ${origin}/mcp`;
+      const aiTools = `${origin}/studio/workspaces/studio%3Aaccount?section=ai-tools`;
 
-      expect(text).toContain("Use it from your own AI tools");
-      expect(text).toContain(`Its address is ${origin}/mcp.`);
-      expect(text).toContain(`In Claude Code, run:\n\n${command}\n`);
-      expect(html).toContain(`<code`);
-      expect(html).toMatch(
-        new RegExp(`<div[^>]*>${command.replace(/[.]/g, "\\.")}</div>`),
+      expect(text).toContain("Bring it into your AI tools");
+      expect(text).toContain(
+        `The AI tools you already use — Claude, ChatGPT, Cursor and others — can work with ${whose} directly. Account → AI tools (${aiTools}) has the address and the steps for each one.`,
       );
-      for (const sentence of [
-        "In Claude Desktop, add a custom connector with that address.",
-        "When the tool asks, sign in with your passkey.",
-      ]) {
-        expect(text).toContain(sentence);
-        expect(html).toContain(sentence);
-      }
+      expect(html).toContain(`href="${aiTools}"`);
+      expect(text).not.toContain("claude mcp add");
+      expect(text).not.toContain("/mcp");
+    });
+
+    it("drops each sentence whose link the brain does not serve", () => {
+      const { text } = renderOnboardingEmail({ ...input, links: {} });
+
+      expect(text).not.toContain("Your first five minutes");
+      expect(text).not.toContain("Bring it into your AI tools");
+      expect(
+        renderOnboardingEmail({ ...input, links: { chat: "/chat" } }).text,
+      ).toContain("Your first five minutes");
     });
 
     it("explains passkeys and ends with recovery and an unexpected-email note", () => {

@@ -43,13 +43,29 @@ const account: AuthAccountSnapshot = {
   ],
 };
 
-function render(snapshot: AuthAccountSnapshot = account): string {
+function render(
+  snapshot: AuthAccountSnapshot = account,
+  overrides: Partial<AccountBootstrap> = {},
+): string {
   return renderToStaticMarkup(
     createElement(AccountApp, {
-      bootstrap,
+      bootstrap: { ...bootstrap, ...overrides },
       initialAccount: snapshot,
     }),
   );
+}
+
+function withDocument<T>(
+  html: string,
+  read: (document: Window["document"]) => T,
+): T {
+  const window = new Window();
+  try {
+    window.document.body.innerHTML = html;
+    return read(window.document);
+  } finally {
+    window.close();
+  }
 }
 
 describe("Account surface", () => {
@@ -214,5 +230,67 @@ describe("Account surface", () => {
     });
 
     expect(html.match(/>Revoke<\/button>/g)).toHaveLength(2);
+  });
+
+  describe("AI tools", () => {
+    const mcpUrl = "https://becca.rizom.ai/mcp";
+
+    it("adds an AI tools tab when the brain serves MCP", () => {
+      const tabs = withDocument(render(account, { mcpUrl }), (document) =>
+        [...document.querySelectorAll('[role="tab"]')].map(
+          (tab) => tab.textContent,
+        ),
+      );
+
+      expect(tabs).toEqual([
+        "Profile",
+        "Sign-in & sessions",
+        "Linked identities",
+        "AI tools",
+      ]);
+    });
+
+    it("names AI tools in the account scope only when the tab is there", () => {
+      expect(render(account, { mcpUrl })).toContain(
+        "linked identities, personal settings and AI tools here",
+      );
+      expect(render()).not.toContain("and AI tools here");
+    });
+
+    it("has no AI tools tab without an MCP address", () => {
+      const html = render(account, { initialSection: "ai-tools" });
+
+      expect(html).not.toContain("AI tools");
+      expect(
+        withDocument(html, (document) =>
+          [...document.querySelectorAll('[role="tab"]')]
+            .filter((tab) => tab.getAttribute("aria-selected") === "true")
+            .map((tab) => tab.textContent),
+        ),
+      ).toEqual(["Profile"]);
+    });
+
+    it("opens on AI tools from the section link with the address, chat apps and a closed developer section", () => {
+      const html = render(account, { mcpUrl, initialSection: "ai-tools" });
+      const visible = withDocument(
+        html,
+        (document) =>
+          [...document.querySelectorAll('[role="tabpanel"]')].find(
+            (panel) => !panel.hasAttribute("hidden"),
+          )?.innerHTML ?? "",
+      );
+
+      expect(visible).toContain(mcpUrl);
+      expect(visible).toContain("Claude");
+      expect(visible).toContain("ChatGPT");
+      expect(visible).toContain("Developer tools and other clients");
+      expect(visible).toContain(
+        "Claude Code, Cursor, VS Code and any other MCP client",
+      );
+      expect(visible).toMatch(/<details(?![^>]*\bopen\b)[^>]*>/);
+      expect(visible).toContain(
+        "claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp",
+      );
+    });
   });
 });
