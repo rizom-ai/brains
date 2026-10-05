@@ -820,79 +820,6 @@
     translate: 0 -50%;
   }
 }
-/* The opening's organism art: one brain, a team and a network in the rooms'
-   lights, joined by one thread (see ./story/organism-art). A wide picture, it
-   runs the full width of the opening under the words and the door, and
-   leaves with the opening. */
-.opening__art {
-  width: calc(min(100cqi, 80rem) - 2 * clamp(1rem, 5vw, 5rem));
-  max-width: none;
-  margin-top: 3rem;
-}
-.opening__art .organism-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-.opening__art > .organism-map {
-  display: block;
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-.opening__art .organism-ray {
-  fill: none;
-  stroke: url(#org-thread);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-.opening__art .organism-ray-soft {
-  fill: none;
-  stroke: url(#org-thread);
-  stroke-width: 6;
-  opacity: 0.16;
-  filter: url(#org-blur);
-}
-.opening__art .organism-ray-fine {
-  stroke-width: 0.8;
-  opacity: 0.45;
-}
-.opening__art .organism-wire {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.45;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.7;
-}
-.opening__art .organism-wire-faint {
-  stroke-width: 0.8;
-  opacity: 0.28;
-}
-.opening__art .organism-peer {
-  fill: var(--color-bg);
-  stroke: currentColor;
-  stroke-width: 1.4;
-}
-.opening__art .organism-hot {
-  fill: var(--color-text);
-}
-.opening__art .organism-halo {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 0.7;
-  opacity: 0.38;
-}
-.opening__art .organism-brain {
-  color: var(--palette-brass);
-}
-.opening__art .organism-team {
-  color: var(--palette-ruby-soft);
-}
-.opening__art .organism-network {
-  color: var(--palette-moss);
-}
 .net-svg {
   overflow: visible;
 }
@@ -1371,10 +1298,6 @@
   .story--room .chapters {
     padding-top: var(--strip-h);
   }
-  .opening__art {
-    width: 100%;
-    margin-top: 2rem;
-  }
   .chapter.chapter--opening {
     min-height: auto;
     justify-content: flex-start;
@@ -1386,9 +1309,6 @@
   .chapter--opening .lede {
     font-size: 1.05rem;
     margin-top: 1rem;
-  }
-  .living-org[data-stage="0"] {
-    background: none;
   }
   .story:has(.figure:not([data-stage="0"])) .net-layer {
     opacity: 0;

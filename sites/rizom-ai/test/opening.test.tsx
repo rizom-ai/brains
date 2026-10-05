@@ -78,16 +78,12 @@ describe("the homepage opening", () => {
     expect(html).toContain(
       '<a class="opening__door" href="https://rizom.ai/work">Book a knowledge session</a>',
     );
-    // The opening's picture is the organism, one brain becoming a team and
-    // a network, standing where the story's drawing stands and leaving with
-    // the opening. The live network is drawn on /ask.
-    expect(html).toContain('<div class="opening__art" aria-hidden="true">');
-    expect(html).toContain('class="organism-map"');
-    expect(html).toContain('<use href="#org-brain"');
-    expect(html).toContain('<use href="#org-team"');
-    expect(html).toContain('<use href="#org-network"');
-    expect(html).not.toContain("net-mark");
-    expect(html).not.toContain("net-pulse");
+    // The opening has no picture of its own: the figure beside the chapters
+    // opens on the whole organism and the stages take it apart (see
+    // ./story/living-organism). The live network is drawn on /ask.
+    expect(html).not.toContain("opening__art");
+    expect(html).not.toContain("organism-map");
+    expect(html).not.toContain("net-layer");
     // The Ask room lives on /ask (see ./ask-room); the opening carries none of it.
     expect(html).not.toContain("data-ask-box");
     expect(html).not.toContain("data-ask-column");
@@ -95,9 +91,8 @@ describe("the homepage opening", () => {
     expect(html).not.toContain("data-ask-drawing");
   });
 
-  test("keeps the words and the picture when the network is empty", () => {
+  test("keeps the words when the network is empty", () => {
     const html = render({ ...map, nodes: [] });
     expect(html).toContain("<h1>AI didn&#x27;t break");
-    expect(html).toContain('class="organism-map"');
   });
 });

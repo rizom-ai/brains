@@ -9,7 +9,6 @@ import { ASK_DRAWING_ATTRIBUTE, ASK_MARK_ATTRIBUTE } from "@brains/contracts";
 import { createTemplate, type Template } from "@brains/templates";
 import { z } from "@rizom/site";
 import type { placeNetwork, PlacedBrain } from "./story/network";
-import { OrganismArt } from "./story/organism-art";
 
 /**
  * The homepage's opening: the authored words over Rizom's live network, with
@@ -162,11 +161,10 @@ export function Opening(data: OpeningData): JSX.Element {
   const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
   const lede = data.lede ?? DEFAULT_COPY.lede;
   return (
-    // The story opens on the authored words beside the organism, one brain
-    // becoming a team and a network, with the door to the practice; the
-    // picture stands in the drawing's place and leaves with the opening, and
-    // the figure then tells the organism stage by stage. The live network,
-    // and the Ask room around it, is its own page, /ask (see ./ask-room).
+    // The story opens on the authored words beside the figure, which shows
+    // the whole organism at rest and takes it apart stage by stage. The live
+    // network, and the Ask room around it, is its own page, /ask (see
+    // ./ask-room).
     <section id="hero" className="chapter chapter--opening" data-title="Top">
       {data.kicker && <p className="eyebrow">{data.kicker}</p>}
       <h1>
@@ -184,9 +182,6 @@ export function Opening(data: OpeningData): JSX.Element {
           {data.ctaLabel}
         </a>
       )}
-      <div className="opening__art" aria-hidden="true">
-        <OrganismArt />
-      </div>
     </section>
   );
 }
