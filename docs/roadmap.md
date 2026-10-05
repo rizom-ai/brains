@@ -79,7 +79,7 @@ The personal-publishing posture remains the public reference. Product improvemen
 Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
-- [corpus-brains.md](./plans/corpus-brains.md) — read-only `work`/`passage` entities and an importer for three corpus brains (Friedrich, Karl, Sigmund) holding the authors' German works from public-domain and CC BY-SA sources.
+- [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
