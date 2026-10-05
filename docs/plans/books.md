@@ -157,33 +157,38 @@ Flow per book:
 
 Each phase ships on its own PR, tests first.
 
-### Phase 1 — walking skeleton
+### Phase 1 — walking skeleton: Der Antichrist
 
 - `@brains/book`: schema, adapter, entity type config; tests for schema, markdown round trip, id paths, action policy
 - `book` catalog member
-- `book-import` with the shared writer and the `dta-tei` adapter; tests for splitting and determinism
-- import Studien über Hysterie into a local test app from `packages/brain-cli`; verify Studio shows the book as a folder in reading order, `system_search` returns entries with book and section, and the agent cannot update or delete an entry
+- `book-import` with the shared writer and the `ekgwb` adapter: eKGWB text endpoint and siglum list per book, polite fetch, attribution per entry; tests for splitting and determinism against recorded responses
+- import Der Antichrist (`AC`) into a local test app from `packages/brain-cli`; verify Studio shows the book as a folder in reading order, `system_search` returns entries with book and siglum, and the agent cannot update or delete an entry
 
-### Phase 2 — Sigmund
+### Phase 2 — Friedrich: published works
 
-- `archive-ocr` adapter with apparatus stripping; OCR gate on GW I–XVII
-- full Freud import locally: measure import time, index-readiness time and DB size; the readiness gate must clear before deploy
-- release, `books` cohort, `sigmund` user, content repo seeded, deploy
-- verify `https://sigmund.rizom.ai/health/ready` is 200 and a chat question returns cited sections
-
-### Phase 3 — Friedrich
-
-- `ekgwb` adapter: siglum list per book, polite fetch, attribution per entry; Nietzsche manifest and coverage note
 - operator note to Nietzsche Source before the full fetch
-- `friedrich` user added, content repo seeded, deploy, same verification
+- Nietzsche manifest for the published works and private prints; coverage note
+- release, `books` cohort, `friedrich` user, content repo seeded, deploy
+- verify `https://friedrich.rizom.ai/health/ready` is 200 and a chat question returns sections cited by siglum
 
-### Phase 4 — Karl
+### Phase 3 — Friedrich: Nachlass and letters
+
+- full local import of the Nachlass fragments 1869–1889 and Nietzsche's letters: measure import time, index-readiness time and DB size; the readiness gate must clear before deploy
+- content repo updated, deploy, same verification
+- `dta-tei` and `archive-ocr` adapters with the OCR gate for Homer, Idyllen aus Messina and the Philologica
+
+### Phase 4 — Sigmund
+
+- apparatus stripping for `archive-ocr`; OCR gate on GW I–XVII; Freud manifest and coverage note
+- `sigmund` user added, content repo seeded, deploy, same verification
+
+### Phase 5 — Karl
 
 - `mega-tei`, `gutenberg-text` and `wikisource` adapters; Marx manifest and coverage note
 - `karl` user added, content repo seeded, deploy, same verification
 
 ## Risks
 
-- **Scale.** Directory-sync stress was proven to 700 files; Marx and Nietzsche each run past 10,000 entries. Phase 2's full Freud import is the measurement before any larger book set ships.
+- **Scale.** Directory-sync stress was proven to 700 files; the Nachlass, Nietzsche's letters and Marx each run past 10,000 entries. Phase 3's full local import is the measurement before any of them ships.
 - **OCR quality** of Fraktur scans: handled by the OCR gate; failing volumes become listed gaps.
 - **"Complete" is bounded by licensing.** The coverage note shows what is missing and why.
