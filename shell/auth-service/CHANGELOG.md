@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.487
+
+### Patch Changes
+
+- [#510](https://github.com/rizom-ai/brains/pull/510) [`a7d655f`](https://github.com/rizom-ai/brains/commit/a7d655f9e2aed518961bed39ff84c2110f41b8fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The first-passkey setup link works in a multi-process runtime. The worker no longer issues a setup token at startup, which replaced the token whose link the web process had just logged, and the Admin setup-link tool no longer hands out a token another process has replaced: it issues a fresh one instead.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.487
+  - @brains/contracts@0.2.0-alpha.487
+  - @brains/db@0.2.0-alpha.487
+  - @brains/utils@0.2.0-alpha.487
+  - @brains/plugins@0.2.0-alpha.487
+
 ## 0.2.0-alpha.486
 
 ### Patch Changes

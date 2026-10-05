@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-organization",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.486",
+  "version": "0.2.0-alpha.487",
   "description": "Organization site composition package: the atlas homepage drawn from the agent network",
   "dependencies": {
     "@brains/agent-discovery": "workspace:*",

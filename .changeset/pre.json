@@ -588,6 +588,7 @@
     "core--search-below-threshold-hint",
     "core--section-template-default-unwrap",
     "core--serialized-status-store",
+    "core--setup-link-processes",
     "core--setup-token-publication",
     "core--shared-fleet-image-contract",
     "core--shared-sqlite-column-annotations",
