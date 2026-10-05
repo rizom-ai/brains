@@ -1,3 +1,4 @@
+import { MCP_INTERACTION_ID } from "@brains/contracts";
 import type {
   InterfacePluginContext,
   WebRouteDefinition,
@@ -76,7 +77,7 @@ export class MCPInterface
         visibility: "trusted",
       });
       context.interactions.register({
-        id: "mcp",
+        id: MCP_INTERACTION_ID,
         label: "MCP",
         description:
           "Connect a trusted client through the Model Context Protocol.",

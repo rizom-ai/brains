@@ -286,3 +286,4 @@ export type {
   RenderedImageRef,
 } from "./render";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export { MCP_INTERACTION_ID } from "./mcp";

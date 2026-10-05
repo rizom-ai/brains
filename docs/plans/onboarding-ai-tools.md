@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Copy and layout are drafted in [../onboarding-ai-tools-mockups.html](../onboarding-ai-tools-mockups.html).
+In progress. Phase 1 (AI tools tab) is implemented and awaits client verification; Phase 2 remains. Copy and layout are drafted in [../onboarding-ai-tools-mockups.html](../onboarding-ai-tools-mockups.html).
 
 ## Current state
 

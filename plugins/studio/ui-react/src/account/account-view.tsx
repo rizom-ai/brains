@@ -23,6 +23,7 @@ import {
   AccountSecurityTab,
   AccountSettingsTab,
 } from "./account-tabs";
+import { AccountAiToolsTab } from "./account-ai-tools";
 import { useAccountActions } from "./use-account-actions";
 import { useStudioApi } from "../studio-api-context";
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
@@ -32,6 +33,28 @@ export interface AccountBootstrap {
   role: AuthAccountRole;
   routePath: string;
   studioPath: string;
+  /** This brain's MCP address, present when the person can connect AI tools. */
+  mcpUrl?: string | undefined;
+  /** Tab to open first, from the `section` query parameter. */
+  initialSection?: string | undefined;
+}
+
+const ACCOUNT_SECTIONS = [
+  "profile",
+  "security",
+  "identities",
+  "settings",
+  "ai-tools",
+] as const;
+
+function openingSection(bootstrap: AccountBootstrap): string {
+  const requested = ACCOUNT_SECTIONS.find(
+    (section) => section === bootstrap.initialSection,
+  );
+  if (!requested || (requested === "ai-tools" && !bootstrap.mcpUrl)) {
+    return "profile";
+  }
+  return requested;
 }
 
 export interface AccountAppProps {
@@ -58,7 +81,7 @@ export function AccountApp({
     routePath: bootstrap.routePath,
   });
   const { account: current, status, error, busy, confirmation } = actions;
-  const [section, setSection] = useState("profile");
+  const [section, setSection] = useState(() => openingSection(bootstrap));
   const title = current?.displayName ?? bootstrap.displayName;
 
   return (
@@ -122,6 +145,11 @@ export function AccountApp({
                   Personal settings
                 </TabsTrigger>
               )}
+              {bootstrap.mcpUrl && (
+                <TabsTrigger value="ai-tools" disabled={busy}>
+                  AI tools
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent
               value="profile"
@@ -165,6 +193,16 @@ export function AccountApp({
             >
               <AccountSecurityTab account={current} actions={actions} />
             </TabsContent>
+            {bootstrap.mcpUrl && (
+              <TabsContent
+                value="ai-tools"
+                forceMount
+                hidden={section !== "ai-tools"}
+                className={accountClass("", accountLayout.tabPanel)}
+              >
+                <AccountAiToolsTab mcpUrl={bootstrap.mcpUrl} />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>
