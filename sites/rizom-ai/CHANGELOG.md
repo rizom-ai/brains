@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [#511](https://github.com/rizom-ai/brains/pull/511) [`a3d6d0a`](https://github.com/rizom-ai/brains/commit/a3d6d0ac994b8e0a7bb99b7e4abab541f858a053) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's Asked-before chapter takes the figure's place by scroll, through the centre point: the figure draws into the point as the chapter arrives, the chapter's network opens out of it and holds the centre line while the questions are read, and as the next chapter arrives the network draws back in and the figure's lantern opens again; scrolling back runs it backwards.
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes
