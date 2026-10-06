@@ -1490,7 +1490,8 @@
   }
   /* The strip is small: the names would collide, so they wait until an
      answer lights them. */
-  .net-name {
+  .net-name,
+  .net-layer.has-replies .net-name:not(.is-lit) {
     opacity: 0;
   }
   .net-layer.has-replies .net-name.is-lit {
