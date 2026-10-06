@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- [#524](https://github.com/rizom-ai/brains/pull/524) [`6c58043`](https://github.com/rizom-ai/brains/commit/6c580434e630f4156da2c691ec6da9ddd2cbd177) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sets the brains' names as one quiet layer under the sky: lowercase, below every light, aligned inward at the drawing's edges.
+
 ## 0.2.0-alpha.270
 
 ### Patch Changes
