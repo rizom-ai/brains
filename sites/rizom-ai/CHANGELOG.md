@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- [#528](https://github.com/rizom-ai/brains/pull/528) [`fb497e9`](https://github.com/rizom-ai/brains/commit/fb497e9dda80e21721cbfbde7b8077f74fad7620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the un-lit brains' names hidden in the phone strip while an answer is shown.
+
 ## 0.2.0-alpha.272
 
 ### Patch Changes
