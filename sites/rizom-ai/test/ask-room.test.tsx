@@ -160,9 +160,12 @@ describe("the Ask room on /ask", () => {
     expect(html).toMatch(
       /<a href="\/agents\/becca" aria-label="Becca"><i><\/i><\/a>/,
     );
-    // Names carry no glyph; the shape does.
+    // Names carry no glyph; the shape does. Each sits below its light, aligned inward at the edges.
     expect(html).toMatch(
-      /<li class="net-name net-name--[a-z]+" data-brain="becca"[^>]*>Becca<\/li>/,
+      /<li class="net-name" data-brain="becca"[^>]*>Becca<\/li>/,
+    );
+    expect(html).toMatch(
+      /<li class="net-name net-name--start" data-brain="org"[^>]*>Mindinn<\/li>/,
     );
     // The radar is gone.
     for (const old of [

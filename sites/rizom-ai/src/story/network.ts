@@ -17,11 +17,8 @@ import {
 const DISC = { x: 50, y: 50, radius: 44 };
 /** A near brain still clears Rizom's corona. */
 const INNER = 11;
-/** Percent of the drawing one character of a name takes, at the names' size. */
-const CHARACTER = 1.45;
-const GAP = 3;
-/** At the drawing's right edge a name goes below its light, so it stays in the frame. */
-const EDGE = 78;
+/** Within this much of the drawing's edge a name aligns inward, so it stays in the frame. */
+const EDGE = 22;
 /** Where a tendril forks, as a share of the nearer brain's radius. */
 const FORK = 0.45;
 const DUST_CAP = 40;
@@ -37,8 +34,8 @@ export interface PlacedBrain {
   y: number;
   /** How far out it sits, from the centre (0) to the outer ring (1). */
   reach: number;
-  /** Where its name goes: beside it on the outer side; below it when that side has no room or a neighbour, and at the drawing's right edge. */
-  side: "left" | "right" | "below";
+  /** Every name sits below its light; at the drawing's edges it aligns inward. */
+  align: "center" | "start" | "end";
 }
 
 /** A trunk from Rizom to a fork, and a branch from the fork to each of its brains. */
@@ -64,12 +61,6 @@ export interface PlacedNetwork {
   kin: { from: string; to: string }[];
   tendrils: Tendril[];
   dust: Mote[];
-}
-
-interface Spot {
-  x: number;
-  y: number;
-  name: string;
 }
 
 const r1 = (v: number): number => Math.round(v * 10) / 10;
@@ -124,31 +115,11 @@ export function placeNetwork(map: ProximityMapData): PlacedNetwork {
       radius,
     };
   });
-  const span = (name: string): number => name.length * CHARACTER + GAP;
-  const room = (brain: Spot, dir: -1 | 1): boolean =>
-    (dir < 0 ? brain.x - GAP : 100 - brain.x - GAP) >= span(brain.name);
-  const blocked = (brain: Spot, dir: -1 | 1): boolean =>
-    placed.some(
-      (other) =>
-        other !== brain &&
-        Math.abs(other.y - brain.y) < 4 &&
-        (dir < 0
-          ? other.x < brain.x && brain.x - other.x < span(brain.name)
-          : other.x > brain.x && other.x - brain.x < span(brain.name)),
-    );
   const brains = placed.map(
-    ({ bearing: _b, radius: _r, ...brain }): PlacedBrain => {
-      // A name sits on its light's outer side; when there is no room there,
-      // or a neighbour is in the way, it goes below, never inward across
-      // the tendrils.
-      if (brain.x >= EDGE) return { ...brain, side: "below" };
-      const outer: -1 | 1 = brain.x < DISC.x ? -1 : 1;
-      const fits = room(brain, outer) && !blocked(brain, outer);
-      return {
-        ...brain,
-        side: !fits ? "below" : outer < 0 ? "left" : "right",
-      };
-    },
+    ({ bearing: _b, radius: _r, ...brain }): PlacedBrain => ({
+      ...brain,
+      align: brain.x < EDGE ? "start" : brain.x > 100 - EDGE ? "end" : "center",
+    }),
   );
   const ids = new Set(brains.map((brain) => brain.id));
   const kin = map.clusters.flatMap((cluster) =>

@@ -39,10 +39,19 @@ describe("the sky's drawing", () => {
     );
   });
 
-  test("names a right-edge brain below its light", () => {
-    expect(rule(".net-name--below")).toMatch(
+  test("sets the names as one quiet layer: lowercase, below every light, aligned inward at the edges", () => {
+    expect(rule(".net-name")).toMatch(/text-transform: lowercase/);
+    expect(rule(".net-name")).toMatch(
       /transform: translate\(-50%, [0-9.]+rem\)/,
     );
+    expect(rule(".net-name--start")).toMatch(
+      /transform: translate\(-0\.5rem, [0-9.]+rem\)/,
+    );
+    expect(rule(".net-name--end")).toMatch(
+      /transform: translate\(calc\(-100% \+ 0\.5rem\), [0-9.]+rem\)/,
+    );
+    expect(css).not.toContain(".net-name--below");
+    expect(css).not.toContain(".net-name--right");
   });
 
   test("grows tendrils that thin and dim outward, with a seep of light along the trunk", () => {

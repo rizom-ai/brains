@@ -328,7 +328,11 @@ export function NetworkLayer({
           {brains.map((brain: PlacedBrain) => (
             <li
               key={brain.id}
-              className={`net-name net-name--${brain.side}`}
+              className={
+                brain.align === "center"
+                  ? "net-name"
+                  : `net-name net-name--${brain.align}`
+              }
               data-brain={brain.id}
               style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
             >

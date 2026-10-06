@@ -1282,9 +1282,12 @@
   padding: 0;
   position: relative;
 }
+/* The names: one quiet layer under the sky, lowercase, each below its light. */
 .net-name {
   position: absolute;
   white-space: nowrap;
+  text-transform: lowercase;
+  transform: translate(-50%, 0.9rem);
   font-family: var(--font-label, var(--font-body));
   font-size: 0.74rem;
   line-height: 1;
@@ -1295,14 +1298,11 @@
     0 0 0.2rem var(--color-bg),
     0 0 0.1rem var(--color-bg);
 }
-.net-name--right {
-  transform: translate(0.9rem, -50%);
+.net-name--start {
+  transform: translate(-0.5rem, 0.9rem);
 }
-.net-name--left {
-  transform: translate(calc(-100% - 0.9rem), -50%);
-}
-.net-name--below {
-  transform: translate(-50%, 0.9rem);
+.net-name--end {
+  transform: translate(calc(-100% + 0.5rem), 0.9rem);
 }
 
 /* The Ask box, docked under the opening. */
