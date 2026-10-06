@@ -34,6 +34,10 @@ export const bookFrontmatterSchema: z.ZodObject<{
   edition: NullableStringSchema;
   license: z.ZodDefault<z.ZodNullable<typeof bookLicenseSchema>>;
   attribution: NullableStringSchema;
+  published: z.ZodDefault<z.ZodNullable<z.ZodBoolean>>;
+  length: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  sections: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  shortTitle: NullableStringSchema;
 }> = z.object({
   title: z.string(),
   book: z.string().min(1),
@@ -47,6 +51,13 @@ export const bookFrontmatterSchema: z.ZodObject<{
   edition: z.string().nullable().default(null),
   license: bookLicenseSchema.nullable().default(null),
   attribution: z.string().nullable().default(null),
+  /** Published in the author's lifetime, including private prints. */
+  published: z.boolean().nullable().default(null),
+  /** Bytes of the book's text, summed over its sections. */
+  length: z.number().int().min(0).nullable().default(null),
+  sections: z.number().int().min(0).nullable().default(null),
+  /** A title short enough for a book's spine. */
+  shortTitle: z.string().nullable().default(null),
 });
 
 export type BookFrontmatter = z.output<typeof bookFrontmatterSchema>;

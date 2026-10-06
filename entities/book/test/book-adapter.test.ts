@@ -26,6 +26,10 @@ kind: work
 edition: Digitale Kritische Gesamtausgabe (eKGWB)
 license: CC-BY-NC-ND-4.0
 attribution: Nietzsche Source, eKGWB, ed. Paolo D'Iorio
+published: false
+length: 165000
+sections: 65
+shortTitle: Antichrist
 ---
 
 Inhalt.
@@ -57,6 +61,10 @@ describe("BookAdapter", () => {
       year: 1888,
       kind: "work",
       license: "CC-BY-NC-ND-4.0",
+      published: false,
+      length: 165000,
+      sections: 65,
+      shortTitle: "Antichrist",
     });
     expect(bookAdapter.fromMarkdown(titleMarkdown).metadata).toEqual({
       title: "Der Antichrist",

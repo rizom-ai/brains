@@ -51,6 +51,10 @@ function entry(
       edition: null,
       license: null,
       attribution: null,
+      published: null,
+      length: null,
+      sections: null,
+      shortTitle: null,
       ...extra,
     },
     body: `Erfundener Text in **${title}**.`,
@@ -60,18 +64,102 @@ function entry(
 const erstes = entry("erstes", 0, "Erstes Buch", bookDetails);
 
 describe("BookListTemplate", () => {
-  test("links every book with its author and year", () => {
+  const shelf = [
+    entry("lang", 0, "Ein langes Buch", {
+      ...bookDetails,
+      year: 1872,
+      length: 200000,
+      sections: 80,
+      shortTitle: "Lang",
+    }),
+    entry("halb", 0, "Ein halbes Buch", {
+      ...bookDetails,
+      year: 1880,
+      length: 100000,
+      sections: 30,
+    }),
+    entry("nachlass", 0, "Aus dem Nachlass", {
+      ...bookDetails,
+      year: 1888,
+      length: 50000,
+      sections: 10,
+      published: false,
+    }),
+  ];
+
+  test("heads the work with its author, years and size", () => {
+    const html = render(<BookListTemplate books={shelf} />);
+
+    expect(html.replace(/<[^>]+>/g, "")).toContain("The Work");
+    expect(html).toContain("1872");
+    expect(html).toContain("1888");
+    expect(html).toContain("Erfundener Autor");
+    expect(html).toContain("3 books · 120 sections");
+  });
+
+  test("stands every book on the horizon as a linked spine", () => {
+    const html = render(<BookListTemplate books={shelf} />);
+
+    expect(html).toContain('href="/books/lang"');
+    expect(html).toContain('href="/books/halb"');
+    expect(html).toContain('href="/books/nachlass"');
+    expect(html).toContain('aria-label="Ein langes Buch, 1872"');
+  });
+
+  test("makes each spine as tall as its text, the longest the tallest", () => {
+    const html = render(<BookListTemplate books={shelf} />);
+
+    expect(html).toMatch(
+      /aria-label="Ein langes Buch, 1872"[^>]*style="[^"]*height:280px/,
+    );
+    expect(html).toMatch(
+      /aria-label="Ein halbes Buch, 1880"[^>]*style="[^"]*height:140px/,
+    );
+  });
+
+  test("hangs posthumous writings below the line", () => {
+    const html = render(<BookListTemplate books={shelf} />);
+
+    expect(html).toMatch(
+      /aria-label="Aus dem Nachlass, 1888"[^>]*data-published="false"/,
+    );
+    expect(html).toMatch(
+      /aria-label="Ein langes Buch, 1872"[^>]*data-published="true"/,
+    );
+  });
+
+  test("labels a spine with its short title", () => {
+    const html = render(<BookListTemplate books={shelf} />);
+
+    expect(html).toContain(">Lang</span>");
+  });
+
+  test("labels the last year even off the label step", () => {
     const html = render(
       <BookListTemplate
-        books={[erstes, entry("zweites", 0, "Zweites Buch", bookDetails)]}
+        books={[
+          entry("a", 0, "Anfang", { ...bookDetails, year: 1870, length: 10 }),
+          entry("m", 0, "Mitte", { ...bookDetails, year: 1880, length: 10 }),
+          entry("e", 0, "Ende", { ...bookDetails, year: 1889, length: 10 }),
+        ]}
       />,
     );
 
-    expect(html).toContain('href="/books/erstes"');
-    expect(html).toContain('href="/books/zweites"');
-    expect(html).toContain("Erstes Buch");
-    expect(html).toContain("Erfundener Autor");
-    expect(html).toContain("1888");
+    const axisLabel = (year: number): RegExp =>
+      new RegExp(
+        `class="pt-5 font-mono text-\\[11px\\] text-theme-light">${year}</span>`,
+      );
+
+    expect(html).toMatch(axisLabel(1870));
+    expect(html).toMatch(axisLabel(1889));
+    expect(html).not.toMatch(axisLabel(1871));
+  });
+
+  test("lists every book by year for small screens", () => {
+    const html = render(<BookListTemplate books={shelf} />);
+
+    expect(html.match(/class="book-year-list/g)).toHaveLength(1);
+    expect(html).toContain("Aus dem Nachlass");
   });
 });
 
