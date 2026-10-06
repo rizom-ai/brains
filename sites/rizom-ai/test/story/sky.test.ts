@@ -163,9 +163,11 @@ describe("the sky's motion", () => {
     );
     expect(reduced).toMatch(/\.net-bead \{\n {4}display: none;/);
   });
-  test("on a phone the names stay out of the strip until an answer lights them", () => {
+  test("on a phone the names stay out of the strip until an answer lights them, the un-lit ones even then", () => {
     const phone = css.slice(css.indexOf("@media (max-width: 60rem)"));
-    expect(phone).toMatch(/\.net-name \{[^}]*opacity: 0;/);
+    expect(phone).toMatch(
+      /\.net-name,\n\s*\.net-layer\.has-replies \.net-name:not\(\.is-lit\) \{[^}]*opacity: 0;/,
+    );
     expect(phone).toMatch(
       /\.net-layer\.has-replies \.net-name\.is-lit \{[^}]*opacity: 1;/,
     );
