@@ -68,6 +68,10 @@ Body: the author's text, unchanged except for markdown conversion.
 
 The plugin ships `book-list` and `book-detail` templates and a `book:entities` datasource. Generated routes: `/books` lists title entries; `/books/<book>` is the title page; `/books/<book>/<order>` is an entry with its citation, source attribution and prev/next in reading order. Every entry carries `book`, `order` and a derived `slug` in metadata, so each page is four indexed lookups regardless of book length. The site serving books sets `entityDisplay.book.paginate: false`, since the index lists books, not entries. The site-engine route generator pages through all entities, so books past 1,000 entries get every route.
 
+### Reading site
+
+Book brains get a purpose-built reading site, not the default site with books added. Mockup: [friedrich-reading-site-mockups.html](../friedrich-reading-site-mockups.html) — the work as one horizon of spines (height = measured length, published above the line, posthumous below), a book as a score of its sections, a section page cited by siglum with Sperrsatz emphasis and themes in the margin, a theme traced across the works, Frag Friedrich with cited answers, and phone layouts. The site turns off pagination for `book`.
+
 ### Entity type config
 
 - `actionPolicy: { create: "never", update: "never", delete: "never" }` — the agent reads and cites, never edits; the importer writes through directory-sync.

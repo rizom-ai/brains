@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Friedrich — Reading Site Mockup · rev 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f3eee4;
+    --paper-deep: #e9e2d4;
+    --ink: #1c1a16;
+    --ink-70: rgba(28,26,22,.72);
+    --ink-50: rgba(28,26,22,.52);
+    --ink-30: rgba(28,26,22,.3);
+    --rule: rgba(28,26,22,.16);
+    --rule-soft: rgba(28,26,22,.08);
+    --pencil: #b3261e;
+    --pencil-soft: rgba(179,38,30,.12);
+    --spine: #2a2620;
+    --spine-hollow: transparent;
+    --display: "Bodoni Moda", serif;
+    --read: "Literata", serif;
+    --type: "Courier Prime", monospace;
+    --grain-opacity: .35;
+  }
+  html[data-theme="dark"] {
+    --paper: #15140f;
+    --paper-deep: #1d1b15;
+    --ink: #ece4d3;
+    --ink-70: rgba(236,228,211,.74);
+    --ink-50: rgba(236,228,211,.52);
+    --ink-30: rgba(236,228,211,.3);
+    --rule: rgba(236,228,211,.16);
+    --rule-soft: rgba(236,228,211,.07);
+    --pencil: #e2614f;
+    --pencil-soft: rgba(226,97,79,.14);
+    --spine: #d9cfba;
+    --grain-opacity: .18;
+  }
+  * { box-sizing: border-box; }
+  html { background: #8d8676; }
+  html[data-theme="dark"] { background: #07070a; }
+  body {
+    margin: 0;
+    font-family: var(--read);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Mockup chrome ─────────────────────────────── */
+  .sheet-head {
+    max-width: 1320px; margin: 0 auto; padding: 48px 24px 8px;
+    color: #f3eee4; display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap;
+  }
+  .sheet-head h1 { font-family: var(--display); font-weight: 500; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+  .sheet-head p { font-family: var(--type); font-size: 13px; margin: 6px 0 0; opacity: .8; max-width: 760px; line-height: 1.5; }
+  .toggle {
+    font-family: var(--type); font-size: 13px; background: none; color: #f3eee4;
+    border: 1px solid rgba(243,238,228,.5); padding: 8px 14px; cursor: pointer;
+  }
+  .frame-label {
+    max-width: 1320px; margin: 56px auto 12px; padding: 0 24px;
+    font-family: var(--type); font-size: 13px; color: #f3eee4; letter-spacing: .04em;
+    display: flex; gap: 16px; align-items: baseline;
+  }
+  .frame-label b { font-weight: 700; }
+  .frame-label span { opacity: .7; }
+  .frame {
+    max-width: 1320px; margin: 0 auto; position: relative; overflow: hidden;
+    background: var(--paper);
+    box-shadow: 0 40px 80px -40px rgba(0,0,0,.55);
+  }
+  .frame::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  html[data-theme="dark"] .frame::before { mix-blend-mode: screen; }
+  .frame > * { position: relative; z-index: 1; }
+  .note {
+    max-width: 1320px; margin: 10px auto 0; padding: 0 24px;
+    font-family: var(--type); font-size: 12px; color: rgba(243,238,228,.72); line-height: 1.55;
+  }
+
+  /* ── Site bar ──────────────────────────────────── */
+  .bar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 26px 48px 0; gap: 24px;
+  }
+  .mark { font-family: var(--display); font-style: italic; font-size: 30px; font-weight: 500; letter-spacing: -.01em; }
+  .mark small { font-family: var(--type); font-style: normal; font-size: 11px; color: var(--ink-50); margin-left: 10px; letter-spacing: .06em; }
+  .nav { display: flex; gap: 28px; font-family: var(--type); font-size: 13px; color: var(--ink-70); }
+  .nav a { color: inherit; text-decoration: none; padding-bottom: 3px; }
+  .nav a.on { color: var(--ink); border-bottom: 1.5px solid var(--pencil); }
+  .ask-pill {
+    font-family: var(--type); font-size: 13px; color: var(--ink);
+    border: 1px solid var(--ink); padding: 7px 14px 6px; border-radius: 999px; background: none;
+  }
+  .ask-pill::before { content: "? "; color: var(--pencil); font-weight: 700; }
+
+  /* ── 01 Das Werk ───────────────────────────────── */
+  .werk-head { display: grid; grid-template-columns: 1fr 400px; gap: 48px; padding: 64px 48px 8px; align-items: end; }
+  .werk-head h2 {
+    font-family: var(--display); font-weight: 400; font-size: 112px; line-height: .86; margin: 0; letter-spacing: -.035em;
+  }
+  .werk-head h2 em { font-style: italic; font-weight: 400; }
+  .werk-head h2 .years { display: flex; align-items: center; gap: 18px; font-size: 40px; letter-spacing: -.01em; margin-top: 18px; color: var(--ink-70); font-style: normal; }
+  .werk-head h2 .years .dash { display: inline-block; width: 64px; height: 2px; background: var(--ink-70); }
+  .year::before { content: ""; position: absolute; left: 50%; top: -100px; height: 92px; border-left: 1px dotted var(--rule); }
+  .werk-facts { font-family: var(--type); font-size: 12.5px; line-height: 1.7; color: var(--ink-70); border-left: 1px solid var(--rule); padding-left: 20px; }
+  .werk-facts b { color: var(--ink); font-weight: 700; }
+
+  .horizon { position: relative; height: 470px; margin: 24px 32px 0; }
+  .axis { position: absolute; left: 0; right: 0; top: 330px; height: 1.5px; background: var(--ink); }
+  .axis-break {
+    position: absolute; top: 300px; width: 1.5px; height: 62px; background: var(--pencil);
+    transform: rotate(14deg); transform-origin: bottom center;
+  }
+  .axis-break-label {
+    position: absolute; top: 96px; font-family: var(--type); font-size: 11px; color: var(--pencil);
+    line-height: 1.35; width: 120px; text-align: right;
+  }
+  .year {
+    position: absolute; top: 436px; font-family: var(--type); font-size: 11px; color: var(--ink-50);
+    transform: translateX(-50%);
+  }
+  .place {
+    position: absolute; top: 8px; font-family: var(--type); font-size: 11px; color: var(--ink-50);
+    border-left: 1px dashed var(--ink-30); padding-left: 6px; height: 22px; letter-spacing: .04em;
+  }
+  .spine {
+    position: absolute; bottom: calc(470px - 330px); width: 18px;
+    background: var(--spine); color: var(--paper);
+    display: flex; align-items: flex-end; justify-content: center;
+    transition: transform .25s ease, background .25s ease;
+    cursor: pointer;
+  }
+  .spine span {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-family: var(--display); font-size: 11px; font-weight: 600; letter-spacing: .02em;
+    padding: 8px 0; white-space: nowrap; overflow: hidden; max-height: calc(100% - 6px);
+  }
+  .spine:hover { transform: translateY(-8px); background: var(--pencil); }
+  .spine.hollow {
+    top: calc(330px + 1.5px); bottom: auto; background: transparent;
+    border: 1.2px solid var(--spine); border-top: none; color: var(--ink);
+    align-items: flex-start;
+  }
+  .spine.hollow:hover { background: var(--pencil-soft); transform: translateY(6px); }
+  .spine.tiny::after {
+    content: ""; position: absolute; left: 50%; bottom: 100%; width: 1px; height: 26px; background: var(--ink-30);
+  }
+  .legend {
+    position: absolute; right: 16px; bottom: 60px; font-family: var(--type); font-size: 11px; color: var(--ink-50);
+    display: grid; gap: 6px; text-align: right;
+  }
+  .legend i { display: inline-block; width: 10px; height: 10px; margin-left: 8px; vertical-align: -1px; }
+  .legend .s { background: var(--spine); }
+  .legend .h { border: 1.2px solid var(--spine); border-top: none; }
+
+  .werk-foot {
+    display: grid; grid-template-columns: 1.3fr 1fr; gap: 48px; padding: 8px 48px 56px; align-items: start;
+    border-top: 1px solid var(--rule); margin: 0 48px; padding-left: 0; padding-right: 0; padding-top: 32px;
+  }
+  .today { font-family: var(--read); font-size: 22px; line-height: 1.5; font-weight: 350; }
+  .today .sig { font-family: var(--type); font-size: 12px; color: var(--pencil); display: block; margin-bottom: 10px; letter-spacing: .04em; }
+  .today a { color: inherit; text-decoration-color: var(--ink-30); text-underline-offset: 4px; }
+  .askbox { border: 1px solid var(--ink); padding: 18px 20px; }
+  .askbox label { font-family: var(--type); font-size: 12px; color: var(--ink-50); display: block; margin-bottom: 10px; }
+  .askbox .field { font-family: var(--read); font-size: 19px; color: var(--ink-50); font-style: italic; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+  .askbox .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip { font-family: var(--type); font-size: 12px; border: 1px solid var(--rule); padding: 4px 9px; color: var(--ink-70); }
+
+  /* ── 02 Buch ───────────────────────────────────── */
+  .buch { display: grid; grid-template-columns: 420px 1fr; min-height: 720px; }
+  .buch-title { padding: 56px 40px 48px 48px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; }
+  .buch-title .sig { font-family: var(--type); color: var(--pencil); font-size: 13px; letter-spacing: .06em; }
+  .buch-title h2 { font-family: var(--display); font-weight: 400; font-size: 60px; line-height: .92; margin: 22px 0 0; letter-spacing: -.03em; }
+  .buch-title h2 em { font-style: italic; }
+  .buch-title .motto { font-family: var(--read); font-style: italic; color: var(--ink-70); font-size: 17px; line-height: 1.55; margin: 30px 0 0; max-width: 30ch; }
+  .buch-title dl { margin: auto 0 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; font-family: var(--type); font-size: 12px; color: var(--ink-70); padding-top: 40px; }
+  .buch-title dt { color: var(--ink-50); }
+  .buch-title dd { margin: 0; }
+  .partitur { padding: 56px 48px 48px; }
+  .partitur h3 { font-family: var(--type); font-weight: 400; font-size: 12px; color: var(--ink-50); letter-spacing: .08em; margin: 0 0 30px; display: flex; justify-content: space-between; }
+  .teil { display: grid; grid-template-columns: 210px 1fr 50px; gap: 20px; align-items: end; padding: 16px 0; border-bottom: 1px solid var(--rule-soft); }
+  .teil .name { font-family: var(--display); font-size: 19px; font-style: italic; }
+  .teil .count { font-family: var(--type); font-size: 12px; color: var(--ink-50); text-align: right; }
+  .ticks { display: flex; align-items: flex-end; gap: 1px; height: 46px; }
+  .ticks i { display: block; width: 2px; background: var(--ink); opacity: .82; flex: none; }
+  .ticks i.read { background: var(--pencil); opacity: 1; }
+  .ticks i.here { background: var(--pencil); opacity: 1; outline: 2px solid var(--pencil-soft); outline-offset: 2px; height: 46px !important; }
+  .ticks i:hover { background: var(--pencil); opacity: 1; }
+  .partitur .hint { font-family: var(--type); font-size: 12px; color: var(--ink-50); margin-top: 22px; }
+  .partitur .hint b { color: var(--pencil); font-weight: 400; }
+
+  /* ── 03 Lesen ──────────────────────────────────── */
+  .lesen { display: grid; grid-template-columns: 220px minmax(0, 640px) 1fr; gap: 0 56px; padding: 40px 48px 0; min-height: 860px; }
+  .crumbs { grid-column: 1 / -1; font-family: var(--type); font-size: 12px; color: var(--ink-50); padding-bottom: 40px; }
+  .crumbs a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .margin-l { padding-top: 6px; }
+  .margin-l .siglum { font-family: var(--type); font-size: 38px; line-height: 1; letter-spacing: -.02em; }
+  .margin-l .siglum span { color: var(--pencil); }
+  .margin-l .where { font-family: var(--type); font-size: 12px; color: var(--ink-50); margin-top: 14px; line-height: 1.6; }
+  .progress { margin-top: 26px; height: 120px; width: 2px; background: var(--rule); position: relative; }
+  .progress::after { content: ""; position: absolute; left: -3px; top: 3%; width: 8px; height: 8px; border-radius: 50%; background: var(--pencil); }
+  .text h2 { font-family: var(--display); font-weight: 400; font-size: 64px; margin: 0 0 30px; line-height: 1; letter-spacing: -.02em; }
+  .text p {
+    font-family: var(--read); font-size: 21px; line-height: 1.62; font-weight: 360; margin: 0 0 1.05em;
+    hyphens: auto; -webkit-hyphens: auto; text-wrap: pretty;
+    font-variant-numeric: oldstyle-nums;
+  }
+  .gesperrt { letter-spacing: .16em; margin-right: -.16em; }
+  .text .lead::first-letter { font-family: var(--display); font-size: 3.4em; float: left; line-height: .82; padding: 6px 10px 0 0; }
+  .source {
+    margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-family: var(--type); font-size: 12px; color: var(--ink-50); line-height: 1.6;
+  }
+  .source a { color: var(--ink-70); }
+  .pager { display: flex; justify-content: space-between; margin: 40px 0 64px; font-family: var(--type); font-size: 13px; }
+  .pager a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); padding-bottom: 3px; }
+  .pager kbd { font-family: var(--type); font-size: 11px; border: 1px solid var(--rule); padding: 1px 5px; margin: 0 6px; color: var(--ink-50); }
+  .margin-r { padding-top: 10px; display: grid; gap: 36px; align-content: start; }
+  .margin-r h4 { font-family: var(--type); font-weight: 400; font-size: 11px; letter-spacing: .1em; color: var(--ink-50); margin: 0 0 12px; text-transform: uppercase; }
+  .themes a {
+    display: block; font-family: var(--display); font-size: 21px; font-style: italic; color: var(--ink);
+    text-decoration: none; padding: 5px 0; border-bottom: 1px solid var(--rule-soft);
+  }
+  .themes a small { font-family: var(--type); font-style: normal; font-size: 11px; color: var(--ink-50); float: right; padding-top: 7px; }
+  .echo { font-family: var(--read); font-size: 15px; line-height: 1.5; color: var(--ink-70); }
+  .echo b { font-family: var(--type); font-weight: 400; font-size: 11px; color: var(--pencil); display: block; margin-bottom: 4px; }
+  .echo + .echo { margin-top: 14px; }
+  .margin-ask { border-top: 1.5px solid var(--ink); padding-top: 14px; font-family: var(--read); font-style: italic; color: var(--ink-50); font-size: 16px; }
+
+  /* ── 04 Thema ──────────────────────────────────── */
+  .thema { padding: 56px 48px 64px; }
+  .thema-head { display: grid; grid-template-columns: 1fr 360px; gap: 48px; align-items: end; }
+  .thema-head .kicker { font-family: var(--type); font-size: 12px; color: var(--pencil); letter-spacing: .08em; }
+  .thema-head h2 { font-family: var(--display); font-size: 150px; font-weight: 400; font-style: italic; line-height: .8; margin: 14px 0 0; letter-spacing: -.04em; }
+  .thema-head p { font-family: var(--read); font-size: 18px; line-height: 1.55; color: var(--ink-70); margin: 0; }
+  .strand { position: relative; height: 150px; margin: 54px 0 10px; border-bottom: 1.5px solid var(--ink); }
+  .strand .dot { position: absolute; bottom: 0; width: 7px; background: var(--pencil); transform: translateX(-50%); border-radius: 4px 4px 0 0; opacity: .9; }
+  .strand .lab { position: absolute; bottom: -24px; font-family: var(--type); font-size: 11px; color: var(--ink-50); transform: translateX(-50%); }
+  .stellen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 64px; border-top: 1px solid var(--rule); }
+  .stelle { padding: 26px 28px 30px 0; border-right: 1px solid var(--rule); }
+  .stelle + .stelle { padding-left: 28px; }
+  .stelle:last-child { border-right: none; }
+  .stelle .sig { font-family: var(--type); font-size: 12px; color: var(--pencil); }
+  .stelle h5 { font-family: var(--display); font-weight: 500; font-size: 22px; margin: 8px 0 12px; }
+  .stelle p { font-family: var(--read); font-size: 17px; line-height: 1.55; margin: 0; color: var(--ink-70); }
+  .stelle p q { color: var(--ink); quotes: "„" "“"; }
+
+  /* ── 05 Gespräch ───────────────────────────────── */
+  .gespraech { display: grid; grid-template-columns: 1fr 380px; min-height: 760px; }
+  .thread { padding: 56px 64px 40px 48px; display: flex; flex-direction: column; gap: 34px; }
+  .q { align-self: flex-end; max-width: 60%; font-family: var(--read); font-size: 20px; line-height: 1.5; border: 1px solid var(--ink); padding: 14px 18px; }
+  .q small { display: block; font-family: var(--type); font-size: 11px; color: var(--ink-50); margin-bottom: 6px; }
+  .a { max-width: 680px; }
+  .a .who { font-family: var(--display); font-style: italic; font-size: 22px; margin-bottom: 12px; }
+  .a p { font-family: var(--read); font-size: 19px; line-height: 1.62; margin: 0 0 16px; font-weight: 360; }
+  .cite {
+    font-family: var(--type); font-size: 12px; color: var(--pencil); border: 1px solid var(--pencil);
+    padding: 0 5px; margin: 0 2px; white-space: nowrap; text-decoration: none; vertical-align: 2px;
+  }
+  .a blockquote {
+    margin: 22px 0; padding: 4px 0 4px 22px; border-left: 2px solid var(--pencil);
+    font-family: var(--read); font-size: 21px; line-height: 1.5; font-style: italic;
+  }
+  .a blockquote footer { font-style: normal; font-family: var(--type); font-size: 12px; color: var(--ink-50); margin-top: 6px; }
+  .composer { margin-top: auto; border: 1px solid var(--ink); padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; font-family: var(--read); font-style: italic; color: var(--ink-50); font-size: 18px; }
+  .composer b { font-family: var(--type); font-style: normal; font-weight: 400; color: var(--ink); font-size: 13px; }
+  .sources-rail { border-left: 1px solid var(--rule); padding: 56px 36px; background: var(--paper-deep); }
+  .sources-rail h4 { font-family: var(--type); font-weight: 400; font-size: 11px; letter-spacing: .1em; color: var(--ink-50); margin: 0 0 18px; text-transform: uppercase; }
+  .src { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .src .sig { font-family: var(--type); font-size: 12px; color: var(--pencil); }
+  .src .t { font-family: var(--display); font-size: 18px; margin: 4px 0; }
+  .src .b { font-family: var(--type); font-size: 11px; color: var(--ink-50); }
+  .disclaimer { font-family: var(--type); font-size: 11px; color: var(--ink-50); line-height: 1.6; margin-top: 26px; }
+
+  /* ── 06 Mobil ──────────────────────────────────── */
+  .mobile-row { display: flex; gap: 48px; justify-content: center; padding: 56px 24px 64px; flex-wrap: wrap; }
+  .phone {
+    width: 390px; height: 800px; border: 1px solid var(--ink); background: var(--paper); position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .phone-bar { display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px 12px; border-bottom: 1px solid var(--rule); }
+  .phone-bar .mark { font-size: 22px; }
+  .phone-bar .sig { font-family: var(--type); font-size: 12px; color: var(--pencil); }
+  .phone-body { padding: 26px 22px; overflow: hidden; flex: 1; }
+  .phone-body h2 { font-family: var(--display); font-weight: 400; font-size: 44px; margin: 0 0 16px; }
+  .phone-body p { font-family: var(--read); font-size: 18px; line-height: 1.6; margin: 0 0 1em; font-weight: 360; hyphens: auto; }
+  .phone-foot { border-top: 1px solid var(--rule); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 12px 20px 18px; font-family: var(--type); font-size: 12px; }
+  .phone-foot .mid { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--ink); display: grid; place-items: center; font-weight: 700; color: var(--pencil); font-size: 18px; }
+  .phone-foot .r { text-align: right; }
+  .phone .mini-horizon { padding: 26px 22px 0; }
+  .phone .mini-horizon h2 { font-family: var(--display); font-weight: 400; font-size: 54px; line-height: .9; margin: 0; letter-spacing: -.03em; }
+  .phone .mini-horizon h2 .dash { display: inline-block; width: 28px; height: 1.5px; background: var(--ink-70); vertical-align: middle; margin: 0 6px; }
+  .phone .mini-horizon h2 span { display: block; font-size: 22px; color: var(--ink-70); margin-top: 10px; }
+  .vlist { margin-top: 26px; border-top: 1.5px solid var(--ink); }
+  .vrow { display: grid; grid-template-columns: 46px 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--rule-soft); }
+  .vrow .y { font-family: var(--type); font-size: 12px; color: var(--ink-50); }
+  .vrow .t { font-family: var(--display); font-size: 18px; }
+  .vrow .bar-len { height: 6px; background: var(--spine); }
+  .vrow.post .t { font-style: italic; color: var(--ink-70); }
+  .vrow.post .bar-len { background: transparent; border: 1px solid var(--spine); height: 6px; }
+
+  @media (max-width: 1100px) {
+    .werk-head, .buch, .lesen, .thema-head, .gespraech, .werk-foot { grid-template-columns: 1fr; }
+    .werk-head h2 { font-size: 72px; }
+    .horizon { overflow-x: auto; }
+    .stellen { grid-template-columns: 1fr; }
+    .stelle, .stelle + .stelle { padding-left: 0; border-right: none; border-bottom: 1px solid var(--rule); }
+  }
+</style>
+</head>
+<body>
+
+<header class="sheet-head">
+  <div>
+    <h1>Friedrich — eine Lese-Site · Mockup rev 1</h1>
+    <p>Purpose-built reading site for the <code>friedrich</code> brain. Six screens: the work as one horizon, a book, a section, a theme across the works, asking Friedrich, and reading on a phone. Spine heights and section counts are the measured eKGWB import; theme counts and the answer text are illustrative.</p>
+  </div>
+  <button class="toggle" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">Hell / Dunkel</button>
+</header>
+
+<!-- ═══════════════ 01 · DAS WERK ═══════════════ -->
+<div class="frame-label"><b>01 · Das Werk</b><span>/ — the home page is the whole work, 1869–1889, as one horizon</span></div>
+<section class="frame">
+  <div class="bar">
+    <div class="mark">Friedrich <small>NIETZSCHE · WERKE</small></div>
+    <nav class="nav"><a class="on" href="#">Werk</a><a href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
+    <button class="ask-pill">Frag Friedrich</button>
+  </div>
+
+  <div class="werk-head">
+    <h2>Das <em>Werk</em><span class="years">1869<i class="dash"></i>1889</span></h2>
+    <div class="werk-facts">
+      <b>33 Bücher</b> · 3.705 Abschnitte<br />
+      jeder Rücken so hoch wie sein Text lang ist<br />
+      über der Linie: veröffentlicht &amp; Privatdrucke<br />
+      unter der Linie: nachgelassene Schriften<br />
+      Text: Digitale Kritische Gesamtausgabe (eKGWB)
+    </div>
+  </div>
+
+  <div class="horizon" id="horizon">
+    <div class="axis"></div>
+    <div class="axis-break" style="left:1180px"></div>
+    <div class="axis-break-label" style="left:1062px">Turin<br />3. Januar 1889<br />↓</div>
+    <div class="legend"><div>veröffentlicht <i class="s"></i></div><div>nachgelassen <i class="h"></i></div></div>
+  </div>
+
+  <div class="werk-foot">
+    <div class="today">
+      <span class="sig">HEUTE AUFGESCHLAGEN · FW-125</span>
+      Der tolle Mensch, am hellen Vormittage, mit der Laterne auf dem Markt — „Gott ist todt! Gott bleibt todt! Und wir haben ihn getödtet!“ <a href="#">weiterlesen</a>
+    </div>
+    <div class="askbox">
+      <label>FRAG FRIEDRICH — antwortet aus dem Werk, mit Stellenangaben</label>
+      <div class="field">Was meint er mit der ewigen Wiederkunft?</div>
+      <div class="chips"><span class="chip">Mitleid</span><span class="chip">Ressentiment</span><span class="chip">Wille zur Macht</span><span class="chip">Übermensch</span><span class="chip">Wagner</span></div>
+    </div>
+  </div>
+</section>
+<p class="note">Every spine links to its book. The 1888 burst — Der Fall Wagner, Götzen-Dämmerung, Der Antichrist, Ecce homo, Nietzsche contra Wagner, the Dithyrambs — reads at a glance; the line breaks at Turin. Places along the top mark where he wrote.</p>
+
+<!-- ═══════════════ 02 · BUCH ═══════════════ -->
+<div class="frame-label"><b>02 · Ein Buch</b><span>/books/die-froehliche-wissenschaft — title page as a score of its sections</span></div>
+<section class="frame">
+  <div class="bar">
+    <div class="mark">Friedrich</div>
+    <nav class="nav"><a class="on" href="#">Werk</a><a href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
+    <button class="ask-pill">Frag Friedrich</button>
+  </div>
+  <div class="buch">
+    <div class="buch-title">
+      <div class="sig">FW · 1882 / 1887</div>
+      <h2>Die <em>fröhliche</em> Wissenschaft</h2>
+      <p class="motto">„la gaya scienza“ — vier Bücher 1882, das fünfte Buch und die Lieder des Prinzen Vogelfrei 1887.</p>
+      <dl>
+        <dt>Abschnitte</dt><dd>467</dd>
+        <dt>Ausgabe</dt><dd>eKGWB, nach Colli / Montinari</dd>
+        <dt>Lizenz</dt><dd>CC BY-NC-ND 4.0 · Nietzsche Source</dd>
+        <dt>Quelle</dt><dd>nietzschesource.org/eKGWB/FW</dd>
+      </dl>
+    </div>
+    <div class="partitur">
+      <h3><span>PARTITUR — JEDER STRICH EIN ABSCHNITT, SO HOCH WIE ER LANG IST</span><span>GELESEN: 126 / 467</span></h3>
+      <div id="score"></div>
+      <div class="hint">Rot: schon gelesen. Ein Strich öffnet seinen Abschnitt; <b>FW-125</b> ist markiert.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 03 · LESEN ═══════════════ -->
+<div class="frame-label"><b>03 · Lesen</b><span>/books/der-antichrist/3 — one section, cited by its siglum</span></div>
+<section class="frame">
+  <div class="bar">
+    <div class="mark">Friedrich</div>
+    <nav class="nav"><a href="#">Werk</a><a href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
+    <button class="ask-pill">Frag Friedrich</button>
+  </div>
+  <div class="lesen">
+    <div class="crumbs"><a href="#">Werk</a> &nbsp;/&nbsp; <a href="#">Der Antichrist</a> &nbsp;/&nbsp; 2</div>
+    <aside class="margin-l">
+      <div class="siglum">AC<span>-</span>2</div>
+      <div class="where">Der Antichrist<br />Fluch auf das Christenthum<br />1888 · Abschnitt 3 von 64</div>
+      <div class="progress"></div>
+    </aside>
+    <article class="text">
+      <h2>2.</h2>
+      <p class="lead">Was ist <span class="gesperrt">gut</span>? — Alles, was das Gefühl der Macht, den Willen zur Macht, die Macht selbst im Menschen erhöht.</p>
+      <p>Was ist <span class="gesperrt">schlecht</span>? — Alles, was aus der Schwäche stammt.</p>
+      <p>Was ist <span class="gesperrt">Glück</span>? — Das Gefühl davon, dass die Macht <em>wächst</em>, dass ein Widerstand überwunden wird.</p>
+      <p>Nicht Zufriedenheit, sondern mehr Macht; nicht Friede überhaupt, sondern Krieg; nicht Tugend, sondern Tüchtigkeit (Tugend im Renaissance-Stile, <i>virtù</i>, moralinfreie Tugend).</p>
+      <div class="source">
+        Quelle: <a href="#">nietzschesource.org/eKGWB/AC-2</a> · Digitale Kritische Gesamtausgabe, hg. von Paolo D’Iorio, nach Colli / Montinari · CC BY-NC-ND 4.0
+      </div>
+      <div class="pager"><a href="#">← Vorwort / 1</a><span style="color:var(--ink-50)"><kbd>←</kbd>blättern<kbd>→</kbd></span><a href="#">3 →</a></div>
+    </article>
+    <aside class="margin-r">
+      <div class="themes">
+        <h4>Themen dieses Abschnitts</h4>
+        <a href="#">Wille zur Macht <small>238</small></a>
+        <a href="#">Mitleid <small>212</small></a>
+        <a href="#">Umwertung <small>97</small></a>
+      </div>
+      <div>
+        <h4>Anklänge</h4>
+        <div class="echo"><b>GD-Streifzüge-38</b>Was ist Freiheit? Dass man den Willen zur Selbstverantwortlichkeit hat …</div>
+        <div class="echo"><b>JGB-13</b>Etwas Lebendiges will vor Allem seine Kraft auslassen …</div>
+      </div>
+      <div class="margin-ask">Frag Friedrich zu AC-2 …</div>
+    </aside>
+  </div>
+</section>
+<p class="note">Spaced emphasis prints as Sperrsatz (letter-spacing), the way the first editions set it, not as italics. Sigla and sources sit in the margin so the text column stays clean; ← → page through the book.</p>
+
+<!-- ═══════════════ 04 · THEMA ═══════════════ -->
+<div class="frame-label"><b>04 · Ein Thema</b><span>/themen/mitleid — a topic traced across the work</span></div>
+<section class="frame">
+  <div class="bar">
+    <div class="mark">Friedrich</div>
+    <nav class="nav"><a href="#">Werk</a><a class="on" href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
+    <button class="ask-pill">Frag Friedrich</button>
+  </div>
+  <div class="thema">
+    <div class="thema-head">
+      <div>
+        <div class="kicker">THEMA · IN 14 BÜCHERN · 212 ABSCHNITTE</div>
+        <h2>Mitleid</h2>
+      </div>
+      <p>Vom Lob Schopenhauers über die Kritik in der Morgenröthe bis zum Fluch im Antichrist — wo und wie oft Nietzsche über das Mitleid schreibt.</p>
+    </div>
+    <div class="strand" id="strand"></div>
+    <div class="stellen">
+      <div class="stelle"><div class="sig">AC-7</div><h5>Der Antichrist</h5><p><q>Man nennt das Christenthum die Religion des Mitleidens.</q></p></div>
+      <div class="stelle"><div class="sig">FW-338</div><h5>Der Wille zum Leiden und die Mitleidigen</h5><p>Aus dem vierten Buch der Fröhlichen Wissenschaft.</p></div>
+      <div class="stelle"><div class="sig">Za-IV</div><h5>Also sprach Zarathustra IV</h5><p>Zarathustras letzte Versuchung: das Mitleiden mit dem höheren Menschen.</p></div>
+    </div>
+  </div>
+</section>
+<p class="note">Topics come from the brain's topic extraction over the books (books are canonical topic sources). The strand reuses the Werk horizon's time axis, so a theme's rise and fall reads against the life. Counts here are illustrative.</p>
+
+<!-- ═══════════════ 05 · GESPRÄCH ═══════════════ -->
+<div class="frame-label"><b>05 · Frag Friedrich</b><span>/gespraech — answers from the work, every claim cited</span></div>
+<section class="frame">
+  <div class="bar">
+    <div class="mark">Friedrich</div>
+    <nav class="nav"><a href="#">Werk</a><a href="#">Themen</a><a class="on" href="#">Gespräch</a><a href="#">Suche</a></nav>
+    <button class="ask-pill">Frag Friedrich</button>
+  </div>
+  <div class="gespraech">
+    <div class="thread">
+      <div class="q"><small>DU</small>Warum lehnt Nietzsche das Mitleid ab?</div>
+      <div class="a">
+        <div class="who">Friedrich</div>
+        <p>Nietzsche sieht im Mitleid eine Kraft, die das Leiden vermehrt statt es zu überwinden: Es erhält, was zu Grunde gehen will, und macht die Schwäche zum Maßstab <a class="cite" href="#">AC-7</a>. Im Antichrist wird es zum Kern seiner Christentumskritik — das Christentum heißt dort die Religion des Mitleidens.</p>
+        <blockquote>„Man nennt das Christenthum die Religion des Mitleidens.“<footer>Der Antichrist · AC-7</footer></blockquote>
+        <p>Früher, in der Fröhlichen Wissenschaft, fragt er nach dem Willen hinter dem Mitleiden: Wer hilft, will oft sich selbst etwas beweisen <a class="cite" href="#">FW-338</a>. Zarathustras letzte Versuchung ist eben das Mitleiden mit dem höheren Menschen <a class="cite" href="#">Za-IV</a>.</p>
+      </div>
+      <div class="composer">Weiterfragen … <b>↵ senden</b></div>
+    </div>
+    <aside class="sources-rail">
+      <h4>Stellen in dieser Antwort</h4>
+      <div class="src"><div class="sig">AC-7</div><div class="t">Der Antichrist</div><div class="b">1888 · lesen →</div></div>
+      <div class="src"><div class="sig">FW-338</div><div class="t">Die fröhliche Wissenschaft</div><div class="b">1882 · lesen →</div></div>
+      <div class="src"><div class="sig">Za-IV</div><div class="t">Also sprach Zarathustra IV</div><div class="b">1885 · lesen →</div></div>
+      <p class="disclaimer">Friedrich antwortet aus Nietzsches Texten in der eKGWB und nennt jede Stelle. Er spricht über Nietzsche, nicht als Nietzsche. Was nicht im Werk steht, sagt er auch so.</p>
+    </aside>
+  </div>
+</section>
+<p class="note">Answer text is illustrative; the behaviour is the brain-character from the plan: answer in the user's language, quote the German, cite by siglum, never speak as Nietzsche.</p>
+
+<!-- ═══════════════ 06 · MOBIL ═══════════════ -->
+<div class="frame-label"><b>06 · Mobil</b><span>the horizon becomes a year list; reading keeps one column</span></div>
+<section class="frame">
+  <div class="mobile-row">
+    <div class="phone">
+      <div class="phone-bar"><span class="mark">Friedrich</span><span class="sig">WERK</span></div>
+      <div class="mini-horizon">
+        <h2>Das Werk<span>1869 <i class="dash"></i> 1889</span></h2>
+        <div class="vlist" id="vlist"></div>
+      </div>
+    </div>
+    <div class="phone">
+      <div class="phone-bar"><span class="mark">Friedrich</span><span class="sig">AC-2</span></div>
+      <div class="phone-body">
+        <h2>2.</h2>
+        <p>Was ist <span class="gesperrt">gut</span>? — Alles, was das Gefühl der Macht, den Willen zur Macht, die Macht selbst im Menschen erhöht.</p>
+        <p>Was ist <span class="gesperrt">schlecht</span>? — Alles, was aus der Schwäche stammt.</p>
+        <p>Was ist <span class="gesperrt">Glück</span>? — Das Gefühl davon, dass die Macht <em>wächst</em>, dass ein Widerstand überwunden wird.</p>
+      </div>
+      <div class="phone-foot"><span>← 1</span><span class="mid">?</span><span class="r">3 →</span></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Measured eKGWB import: [siglum, spine title, year, KB, posthumous]
+  const books = [
+    ["GMD","Musikdrama",1870,35,1],["ST","Socrates",1870,32,1],
+    ["DW","Dionysische Weltanschauung",1870,49,1],["GG","Tragischer Gedanke",1870,36,1],
+    ["SGT","Sokrates",1871,76,0],
+    ["GT","Geburt der Tragödie",1872,288,0],
+    ["BA","Bildungsanstalten",1872,212,1],["CV","Fünf Vorreden",1872,69,1],
+    ["DS","David Strauss",1873,168,0],["NJ","Neujahrswort",1873,4,0],
+    ["PHG","Philosophie",1873,142,1],["WL","Wahrheit und Lüge",1873,31,1],["MD","Mahnruf",1873,9,1],
+    ["HL","Historie",1874,179,0],["SE","Schopenhauer",1874,186,0],
+    ["WB","Wagner in Bayreuth",1876,159,0],
+    ["MA-I","Menschliches I",1878,566,0],["MA-II","Menschliches II",1879,513,0],
+    ["M","Morgenröthe",1881,527,0],
+    ["IM","Idyllen",1882,7,0],["FW","Fröhliche Wissenschaft",1882,502,0],
+    ["Za-I","Zarathustra I",1883,117,0],["Za-II","Zarathustra II",1883,115,0],
+    ["Za-III","Zarathustra III",1884,136,0],["Za-IV","Zarathustra IV",1885,152,0],
+    ["JGB","Jenseits von Gut und Böse",1886,388,0],["GM","Genealogie der Moral",1887,314,0],
+    ["WA","Fall Wagner",1888,75,0],["AC","Antichrist",1888,165,0],["EH","Ecce homo",1888,197,0],["DD","Dithyramben",1888,23,0],
+    ["GD","Götzen-Dämmerung",1889,168,0],["NW","Contra Wagner",1889,45,0],
+  ];
+  const horizon = document.getElementById("horizon");
+  const x = (year) => 40 + (year - 1869) * 56;
+  for (let y = 1869; y <= 1889; y++) {
+    if (y % 2 === 1 || y === 1888) {
+      const el = document.createElement("div");
+      el.className = "year"; el.style.left = (y === 1889 ? 1220 : x(y)) + "px"; el.textContent = y;
+      horizon.appendChild(el);
+    }
+  }
+  [["Basel",1869],["Sorrent",1876],["Genua",1880],["Sils-Maria",1881],["Nizza",1884],["Turin",1888]]
+    .forEach(([name, y], i) => {
+      const el = document.createElement("div");
+      el.className = "place"; el.style.left = x(y) + "px"; el.style.top = (8 + (i % 2) * 22) + "px"; el.textContent = name;
+      horizon.appendChild(el);
+    });
+  const slots = {};
+  books.forEach(([sig, title, year, kb, post]) => {
+    const key = year + (post ? "p" : "w");
+    const n = slots[key] = (slots[key] ?? -1) + 1;
+    let left = x(year) - 10 + n * 20;
+    if (year === 1889) left = 1200 + n * 20;
+    const el = document.createElement("div");
+    el.className = "spine" + (post ? " hollow" : "") + (kb < 40 ? " tiny" : "");
+    el.style.left = left + "px";
+    el.style.height = Math.max(6, kb * (post ? 0.42 : 0.5)) + "px";
+    el.title = `${sig} · ${title} · ${year}`;
+    const h = Math.max(6, kb * (post ? 0.42 : 0.5));
+    const fits = (text) => h >= text.length * 6.4 + 18;
+    const label = fits(title) ? title : fits(sig) ? sig : null;
+    if (label) { const s = document.createElement("span"); s.textContent = label; el.appendChild(s); }
+    horizon.appendChild(el);
+  });
+
+  // Section score for Die fröhliche Wissenschaft (deterministic, illustrative lengths)
+  let seed = 7;
+  const rand = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const parts = [["Vorrede",4],["Scherz, List und Rache",63],["Erstes Buch",56],["Zweites Buch",51],["Drittes Buch",168],["Viertes Buch",67],["Fünftes Buch",41],["Lieder",14]];
+  const order = parts.map((p) => p[0]);
+  const score = document.getElementById("score");
+  let readLeft = 126;
+  order.forEach((name) => {
+    const count = parts.find((p) => p[0] === name)[1];
+    const row = document.createElement("div"); row.className = "teil";
+    const label = document.createElement("div"); label.className = "name"; label.textContent = name;
+    const ticks = document.createElement("div"); ticks.className = "ticks";
+    for (let i = 0; i < count; i++) {
+      const t = document.createElement("i");
+      t.style.height = (6 + Math.pow(rand(), 1.8) * 40) + "px";
+      if (name === "Drittes Buch" && i === 125 - 108) t.className = "here";
+      else if (readLeft > 0) { t.className = "read"; readLeft--; }
+      ticks.appendChild(t);
+    }
+    const c = document.createElement("div"); c.className = "count"; c.textContent = count;
+    row.append(label, ticks, c); score.appendChild(row);
+  });
+
+  // Theme strand: mentions per book on the same time axis (illustrative)
+  const strand = document.getElementById("strand");
+  [["SE",1874,14],["MA-I",1878,22],["M",1881,38],["FW",1882,17],["Za-IV",1885,26],["JGB",1886,19],["GM",1887,24],["AC",1888,31],["EH",1888,9]]
+    .forEach(([sig, year, n], i, all) => {
+      const left = ((year - 1869) / 20) * 100;
+      const nth = all.slice(0, i).filter((b) => b[1] === year).length;
+      const at = `calc(${left}% + ${nth * 22}px)`;
+      const d = document.createElement("div"); d.className = "dot";
+      d.style.left = at; d.style.height = n * 3.6 + "px"; d.title = `${sig}: ${n}`;
+      const l = document.createElement("div"); l.className = "lab"; l.style.left = at; l.style.bottom = `${-24 - nth * 14}px`; l.textContent = sig;
+      strand.append(d, l);
+    });
+
+  // Phone: the horizon as a year list
+  const vlist = document.getElementById("vlist");
+  books.filter((b) => b[3] >= 60).slice(0, 14).sort((a, b) => a[2] - b[2]).forEach(([sig, title, year, kb, post]) => {
+    const row = document.createElement("div"); row.className = "vrow" + (post ? " post" : "");
+    row.innerHTML = `<span class="y">${year}</span><span class="t">${title}</span><span class="bar-len" style="width:${Math.round(kb / 9)}px"></span>`;
+    vlist.appendChild(row);
+  });
+</script>
+</body>
+</html>
