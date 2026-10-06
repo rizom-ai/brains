@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- [#522](https://github.com/rizom-ai/brains/pull/522) [`93621cf`](https://github.com/rizom-ai/brains/commit/93621cf7f4655381479fe399f9311ff380e9084a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask draws the live network as a night sky: Rizom the densest light, tendrils forking outward toward the brains and thinning as they reach, every brain a layered light that breathes on its own clock, energy travelling a tendril to a brain now and then, the brains not yet in reach as dust at the edge, grain in the substrate. An answer flares the cited brains while the rest withdraw. The rings, spokes, pulse and sparks are gone.
+
 ## 0.2.0-alpha.269
 
 ### Patch Changes
