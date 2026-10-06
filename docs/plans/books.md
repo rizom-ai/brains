@@ -72,6 +72,16 @@ The plugin ships `book-list` and `book-detail` templates and a `book:entities` d
 
 Book brains get a purpose-built reading site, not the default site with books added. Mockup: [friedrich-reading-site-mockups.html](../friedrich-reading-site-mockups.html) — the work as one horizon of spines (height = measured length, published above the line, posthumous below), a book as a score of its sections, a section page cited by siglum with Sperrsatz emphasis and themes in the margin, a theme traced across the works, Frag Friedrich with cited answers, and phone layouts. The site turns off pagination for `book`.
 
+Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` is a book's score on its title entry and the reading page on a section. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode. Title entries gain `published`, `length` and `sections`; sections gain `part`; the importer writes them.
+
+Build slices, one PR each:
+
+1. theme and site skeleton, and the reading page;
+2. the horizon;
+3. the score;
+4. topics, with Nietzsche's terms kept German;
+5. Ask.
+
 ### Entity type config
 
 - `actionPolicy: { create: "never", update: "never", delete: "never" }` — the agent reads and cites, never edits; the importer writes through directory-sync.
