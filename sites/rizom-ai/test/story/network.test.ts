@@ -93,20 +93,19 @@ describe("the live network as the Ask room draws it", () => {
     expect(by["west"]?.y).toBeCloseTo(75.3, 0);
   });
 
-  test("names a brain on its outer side, below it when that side is taken, and below it at the drawing's right edge", () => {
-    expect(by["east"]?.side).toBe("right");
-    expect(by["west"]?.side).toBe("left");
-    // Near North sits too close to the left edge for its name: it goes below,
-    // never inward across the tendrils.
-    expect(by["near-north"]?.side).toBe("below");
-    expect(by["north"]?.side).toBe("right");
+  test("sets every name below its light, aligned inward at the drawing's edges", () => {
+    expect(by["east"]?.align).toBe("center");
+    expect(by["west"]?.align).toBe("center");
+    // Near North is at the left edge: its name starts at the light; a brain at
+    // the right edge has its name end there.
+    expect(by["near-north"]?.align).toBe("start");
     const edge = placeNetwork({
       ...map,
       nodes: [node("far-east", "Far East", 0.6, 0)],
       clusters: [],
     });
     expect(edge.brains[0]?.x).toBeCloseTo(94, 0);
-    expect(edge.brains[0]?.side).toBe("below");
+    expect(edge.brains[0]?.align).toBe("end");
   });
 
   test("grows a tendril per pair of neighbours: a trunk from Rizom to a fork, a branch to each brain", () => {
