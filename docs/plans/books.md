@@ -18,9 +18,8 @@ Asking a brain about an idea returns an answer grounded in book sections, quotin
 
 ## Non-goals
 
-- No site of their own yet beyond the book templates; the site that serves a brain's books is chosen per brain in its rollout phase.
+- No Ask before its slice; the reading site ships slice by slice.
 - No Studio changes; books use Studio's existing id-path folders.
-- No topic extraction over book sections.
 - No translations produced by the brain; books hold only published German texts.
 - No letters written _to_ the author.
 
@@ -47,12 +46,14 @@ Every entry:
 - `order` — reading order within the book, 0 for the title entry
 - `section` — the author's or edition's own citation unit where it exists (aphorism number, `§`, eKGWB siglum such as `FW-125`), else null
 - `page` — source page reference, else null
+- `part` — the top-level part of the book the section belongs to, else null
 - `source` — URL of the source for this entry
 
 Title entry only:
 
 - `author`, `year`, `kind` (`work` | `nachlass` | `letters` | `excerpt`)
 - `edition`, `license` (`public-domain` | `CC-BY-SA-4.0` | `CC-BY-NC-ND-4.0`), `attribution`
+- `published` (in the author's lifetime, private prints included), `length` (bytes of text), `sections`, `shortTitle` (for the spine)
 
 Body: the author's text, unchanged except for markdown conversion.
 
@@ -87,7 +88,7 @@ Build slices, one PR each:
 ### Entity type config
 
 - `actionPolicy: { create: "never", update: "never", delete: "never" }` — the agent reads and cites, never edits; the importer writes through directory-sync.
-- `projectionSourceRole: "excluded"` — no topic extraction.
+- `projectionSourceRole: "canonical"` — a book brain's books are its primary texts; its topics map their themes.
 - `defaultSort`: `id` ascending — reading order for `system_list`.
 
 Action policy is enforced in the `system_*` tools, Studio and the operator surface, not in the entity service, so directory-sync writes books unhindered.
@@ -106,14 +107,14 @@ Allowed: public-domain texts, CC BY-SA 4.0, and Nietzsche Source's CC BY-NC-ND 4
 
 ### Friedrich
 
-| Source                                          | Coverage                                                                        | License                     | Format          |
-| ----------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------- | --------------- |
-| eKGWB, nietzschesource.org                      | published works, Nachlass 1869–1889, Nietzsche's letters (Colli–Montinari text) | CC BY-NC-ND 4.0             | HTML per siglum |
-| Deutsches Textarchiv                            | Homer, Idyllen aus Messina (first editions)                                     | CC BY-SA 4.0                | TEI             |
-| archive.org, Großoktavausgabe (1894–1926) scans | Philologica                                                                     | public domain (author text) | OCR             |
+| Source                                          | Coverage                                                                        | License                     | Format              |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------- | ------------------- |
+| eKGWB, nietzschesource.org                      | published works, Nachlass 1869–1889, Nietzsche's letters (Colli–Montinari text) | CC BY-NC-ND 4.0             | print page per book |
+| Deutsches Textarchiv                            | Homer, Idyllen aus Messina (first editions)                                     | CC BY-SA 4.0                | TEI                 |
+| archive.org, Großoktavausgabe (1894–1926) scans | Philologica                                                                     | public domain (author text) | OCR                 |
 
 eKGWB terms: attribution with URL on every entry (`source`), no commercial use, text unchanged. Every eKGWB unit is addressed by its siglum (`/eKGWB/<siglum>`), which becomes `section`.
-Fetching: the importer requests only known sigla, at most one request per second, caches every response and never refetches, and identifies itself with a User-Agent carrying a contact address. The operator tells Nietzsche Source about the import.
+Fetching: the importer requests each book's print page (`/eKGWB/<book>/print`) once, at most one request per second, caches every response and never refetches, and identifies itself with a User-Agent carrying a contact address. The operator has told Nietzsche Source about the import.
 Not covered: Juvenilia, letters to Nietzsche.
 
 ### Karl
