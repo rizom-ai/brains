@@ -1,0 +1,233 @@
+/*
+ * Books theme — the reading theme for book brains.
+ *
+ * Paper and ink with one red pencil. A Didone display face in the spirit of
+ * nineteenth-century German book printing, a serif built for long reading,
+ * and a typewriter face for sigla and labels. It keeps the default theme's
+ * semantic token names, so shared templates and components render unchanged.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap");
+
+@theme inline {
+  --font-display: var(--font-heading);
+  --font-body: var(--font-sans);
+  --font-label: var(--font-mono);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+  --color-accent-bright: var(--color-accent-bright);
+}
+
+@layer theme {
+  :root {
+    /* Layout */
+    --layout-max-width: 76rem;
+    --spacing-section: clamp(3.5rem, 7vw, 6rem);
+    --radius-lg: 0;
+
+    /* Palette — paper, ink, a red pencil. */
+    --palette-paper: #f3eee4;
+    --palette-paper-soft: #f7f3eb;
+    --palette-paper-muted: #ece5d8;
+    --palette-paper-deep: #e9e2d4;
+    --palette-ink: #1c1a16;
+    --palette-ink-muted: #4a463d;
+    --palette-ink-subtle: #7a7466;
+    --palette-border: #d9d1c1;
+    --palette-pencil: #b3261e;
+    --palette-pencil-dark: #8e1d16;
+    --palette-pencil-light: #e2614f;
+
+    --palette-night: #15140f;
+    --palette-night-subtle: #1d1b15;
+    --palette-night-muted: #25221b;
+    --palette-night-deep: #0f0e0b;
+    --palette-night-ink: #ece4d3;
+
+    /* Semantic colours */
+    --color-brand: var(--palette-pencil);
+    --color-brand-dark: var(--palette-pencil-dark);
+    --color-brand-light: var(--palette-pencil-light);
+    --color-accent: var(--palette-pencil);
+    --color-accent-dark: var(--palette-pencil-dark);
+    --color-accent-soft: rgb(from var(--color-accent) r g b / 0.1);
+    --color-accent-bright: var(--palette-pencil-light);
+    --color-secondary: var(--palette-ink-muted);
+    --color-secondary-dark: var(--palette-ink);
+    --color-on-accent: var(--palette-paper-soft);
+
+    --color-text: var(--palette-ink);
+    --color-text-muted: var(--palette-ink-muted);
+    --color-text-light: var(--palette-ink-subtle);
+    --color-text-inverse: var(--palette-paper-soft);
+    --color-text-on-dark: var(--palette-paper-soft);
+    --color-heading: var(--palette-ink);
+
+    --color-bg: var(--palette-paper);
+    --color-bg-subtle: var(--palette-paper-soft);
+    --color-bg-muted: var(--palette-paper-muted);
+    --color-bg-dark: var(--palette-ink);
+    --color-bg-deep: var(--palette-paper-deep);
+
+    --color-border: var(--palette-border);
+    --color-border-light: rgb(255 255 255 / 0.6);
+
+    --color-rule: rgb(from var(--color-text) r g b / 0.08);
+    --color-rule-strong: rgb(from var(--color-text) r g b / 0.16);
+
+    --color-footer: var(--palette-paper-deep);
+    --color-footer-text: var(--palette-ink-muted);
+    --color-logo: var(--palette-ink);
+    --color-selection: var(--color-accent);
+    --color-selection-bg: rgb(179 38 30 / 0.16);
+    --color-selection-text: var(--palette-ink);
+
+    --color-gradient-start: var(--palette-paper);
+    --color-gradient-end: var(--palette-paper-deep);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--color-gradient-start) 0%,
+      var(--color-gradient-end) 100%
+    );
+    --color-pattern-dot: rgb(28 26 22 / 0.1);
+
+    /* Typography */
+    --font-sans: "Literata", Georgia, serif;
+    --font-heading: "Bodoni Moda", "Didot", Georgia, serif;
+    --font-mono: "Courier Prime", "Courier New", ui-monospace, monospace;
+    --font-reading: "Literata", Georgia, serif;
+
+    --text-display-2xl: clamp(4.5rem, 9vw, 8rem);
+    --text-display-xl: clamp(3.5rem, 7vw, 6.5rem);
+    --text-display-lg: clamp(2.75rem, 5vw, 4.5rem);
+    --text-display-md: clamp(2.1rem, 4vw, 3.25rem);
+    --text-display-sm: clamp(1.75rem, 3vw, 2.5rem);
+    --text-heading-lg: clamp(1.5rem, 2vw, 2rem);
+    --text-heading-md: clamp(1.25rem, 1.6vw, 1.625rem);
+    --text-heading-sm: clamp(1.1rem, 1.3vw, 1.25rem);
+    --text-body-xl: clamp(1.25rem, 1.8vw, 1.5rem);
+    --text-body-lg: clamp(1.125rem, 1.5vw, 1.3125rem);
+    --text-body-md: 1.0625rem;
+    --text-body-sm: 0.9375rem;
+    --text-body-xs: 0.8125rem;
+    --text-label-md: 0.875rem;
+    --text-label-sm: 0.75rem;
+    --text-label-xs: 0.6875rem;
+
+    --text-h1: var(--text-display-xl);
+    --text-h1-mobile: 3.5rem;
+    --text-h2: var(--text-display-lg);
+    --text-h2-mobile: 2.75rem;
+    --text-h3: var(--text-display-md);
+    --text-h3-mobile: 2.125rem;
+    --text-h4: 1.875rem;
+    --text-body: 1.1875rem;
+    --text-body-mobile: 1.0625rem;
+
+    /* Shared button token contract — quiet, ink-and-pencil buttons. */
+    --rizom-btn-font-family: var(--font-mono);
+    --rizom-btn-font-style: normal;
+    --rizom-btn-gap: 8px;
+    --rizom-btn-letter-spacing: 0.02em;
+    --rizom-btn-primary-bg: var(--color-text);
+    --rizom-btn-primary-border-color: transparent;
+    --rizom-btn-primary-border-width: 0px;
+    --rizom-btn-primary-color: var(--color-bg);
+    --rizom-btn-primary-hover-border-color: transparent;
+    --rizom-btn-primary-hover-border-width: 0px;
+    --rizom-btn-primary-hover-color: var(--color-bg);
+    --rizom-btn-primary-strong-bg: var(--color-accent);
+    --rizom-btn-primary-strong-border-color: transparent;
+    --rizom-btn-primary-strong-border-width: 0px;
+    --rizom-btn-primary-strong-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-hover-border-color: transparent;
+    --rizom-btn-primary-strong-hover-border-width: 0px;
+    --rizom-btn-primary-strong-hover-color: var(--color-on-accent);
+    --rizom-btn-secondary-hover-color: var(--color-accent);
+    --rizom-btn-secondary-hover-shadow: none;
+    --rizom-btn-secondary-hover-transform: none;
+    --rizom-btn-secondary-shadow: none;
+    --rizom-btn-text-transform: none;
+  }
+
+  [data-theme="dark"] {
+    --color-brand: var(--palette-pencil-light);
+    --color-brand-dark: var(--palette-pencil);
+    --color-brand-light: #ef8a7b;
+    --color-accent: var(--palette-pencil-light);
+    --color-accent-dark: var(--palette-pencil);
+    --color-accent-soft: rgb(from var(--color-accent) r g b / 0.14);
+    --color-accent-bright: #ef8a7b;
+    --color-secondary: rgb(236 228 211 / 0.7);
+    --color-secondary-dark: var(--palette-night-ink);
+    --color-on-accent: var(--palette-night);
+
+    --color-text: var(--palette-night-ink);
+    --color-text-muted: rgb(236 228 211 / 0.72);
+    --color-text-light: rgb(236 228 211 / 0.5);
+    --color-text-inverse: var(--palette-night);
+    --color-text-on-dark: var(--palette-night-ink);
+    --color-heading: var(--palette-night-ink);
+
+    --color-bg: var(--palette-night);
+    --color-bg-subtle: var(--palette-night-subtle);
+    --color-bg-muted: var(--palette-night-muted);
+    --color-bg-dark: var(--palette-night-deep);
+    --color-bg-deep: var(--palette-night-deep);
+
+    --color-border: rgb(236 228 211 / 0.14);
+    --color-border-light: rgb(236 228 211 / 0.2);
+    --color-footer: var(--palette-night-deep);
+    --color-footer-text: rgb(236 228 211 / 0.7);
+    --color-logo: var(--palette-night-ink);
+    --color-selection-bg: rgb(226 97 79 / 0.24);
+    --color-selection-text: var(--palette-night-ink);
+    --color-gradient-start: var(--palette-night);
+    --color-gradient-end: var(--palette-night-deep);
+    --color-pattern-dot: rgb(236 228 211 / 0.08);
+  }
+}
+
+/* Book text: set for long reading. Spaced emphasis (Sperrsatz) in the source
+   arrives as markdown emphasis and prints as letter-spacing, the way the
+   first editions set it — not as italics. */
+.book-text {
+  font-family: var(--font-reading);
+  font-size: var(--text-body);
+  line-height: 1.62;
+  font-weight: 360;
+  font-variant-numeric: oldstyle-nums;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  text-wrap: pretty;
+}
+
+.book-text .prose {
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
+  color: var(--color-text);
+  max-width: none;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.book-text em {
+  font-style: normal;
+  letter-spacing: 0.16em;
+  margin-right: -0.16em;
+}
+
+.book-text p {
+  margin: 0 0 1.05em;
+}
+
+.book-siglum {
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}

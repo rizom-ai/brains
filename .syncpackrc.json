@@ -5,6 +5,7 @@
       "label": "Public site/theme packages pin concrete versions of published internal deps: npm publish builds the registry metadata from the on-disk manifest before prepack rewrites it, so workspace:* here ships broken packuments",
       "packages": [
         "@rizom/site",
+        "@rizom/site-books",
         "@rizom/site-docs",
         "@rizom/site-rizom-ai",
         "@rizom/theme-rizom-ai"
@@ -52,6 +53,7 @@
     {
       "label": "Public site/theme packages pin exact versions of published internal deps",
       "packages": [
+        "@rizom/site-books",
         "@rizom/site-docs",
         "@rizom/site-rizom-ai",
         "@rizom/theme-rizom-ai"

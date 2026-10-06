@@ -1645,6 +1645,18 @@
         "typescript": "^7.0.2",
       },
     },
+    "shared/theme-books": {
+      "name": "@rizom/theme-books",
+      "version": "0.2.0-alpha.0",
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
     "shared/theme-default": {
       "name": "@rizom/theme-default",
       "version": "0.2.0-alpha.235",
@@ -2131,6 +2143,25 @@
         "@brains/typescript-config": "workspace:*",
         "@types/react": "^19.2.17",
         "bun-types": "^1.4.0",
+        "typescript": "^7.0.2",
+      },
+    },
+    "sites/books": {
+      "name": "@rizom/site-books",
+      "version": "0.2.0-alpha.0",
+      "dependencies": {
+        "@rizom/site": "0.2.0-alpha.238",
+      },
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
+        "eslint": "^10.5.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
@@ -3042,11 +3073,15 @@
 
     "@rizom/site": ["@rizom/site@workspace:packages/site"],
 
+    "@rizom/site-books": ["@rizom/site-books@workspace:sites/books"],
+
     "@rizom/site-docs": ["@rizom/site-docs@workspace:sites/docs"],
 
     "@rizom/site-rizom-ai": ["@rizom/site-rizom-ai@workspace:sites/rizom-ai"],
 
     "@rizom/site-smoke-canary": ["@rizom/site-smoke-canary@workspace:sites/smoke-canary"],
+
+    "@rizom/theme-books": ["@rizom/theme-books@workspace:shared/theme-books"],
 
     "@rizom/theme-default": ["@rizom/theme-default@workspace:shared/theme-default"],
 

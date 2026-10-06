@@ -1,0 +1,203 @@
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
+import { preparePublishManifest } from "@brains/build-tools";
+
+const packageDir = join(import.meta.dir, "..");
+const sdkPackageDir = join(packageDir, "../../packages/site");
+const repoRoot = join(packageDir, "../..");
+
+/**
+ * Resolve a third-party package from the workspace's own install.
+ *
+ * This test packs and installs real tarballs, which is the point — but
+ * fetching their third-party dependencies from the registry made it depend on
+ * network latency, and it timed out under load. The @rizom/* entries stay on
+ * tarballs: resolving those is what is under test.
+ */
+function workspaceCopy(name: string): string {
+  return `file:${join(repoRoot, "node_modules", name)}`;
+}
+
+async function run(command: string[], cwd: string): Promise<string> {
+  const process = Bun.spawn(command, {
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const [exitCode, stdout, stderr] = await Promise.all([
+    process.exited,
+    new Response(process.stdout).text(),
+    new Response(process.stderr).text(),
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(
+      [
+        `Command failed: ${command.join(" ")}`,
+        `cwd: ${cwd}`,
+        stdout,
+        stderr,
+      ].join("\n"),
+    );
+  }
+
+  return stdout;
+}
+
+async function findPackedTarball(
+  packDir: string,
+  packagePrefix: string,
+): Promise<string> {
+  const entries = await readdir(packDir);
+  const tarball = entries.find(
+    (entry) =>
+      entry.startsWith(packagePrefix) &&
+      /^\d/.test(entry.slice(packagePrefix.length)) &&
+      entry.endsWith(".tgz"),
+  );
+
+  if (!tarball) {
+    throw new Error(`Missing packed tarball with prefix ${packagePrefix}`);
+  }
+
+  return join(packDir, tarball);
+}
+
+async function stagePublishableCopy(
+  sourceDir: string,
+  destinationDir: string,
+): Promise<void> {
+  await cp(sourceDir, destinationDir, {
+    recursive: true,
+    filter: (source) =>
+      !source.includes("node_modules") && !source.includes(".turbo"),
+  });
+  await preparePublishManifest(destinationDir, { resolveFrom: sourceDir });
+
+  const manifestPath = join(destinationDir, "package.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  delete manifest.scripts?.prepack;
+  delete manifest.scripts?.postpack;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+describe("@rizom/site-books package boundary", () => {
+  test("publishable manifest installs and imports cleanly from packed tarballs", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "site-books-pack-"));
+
+    try {
+      const sdkCopyDir = join(tempDir, "sdk-copy");
+      const booksCopyDir = join(tempDir, "books-copy");
+      await stagePublishableCopy(sdkPackageDir, sdkCopyDir);
+      await stagePublishableCopy(packageDir, booksCopyDir);
+
+      await run(
+        ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
+        sdkCopyDir,
+      );
+      await run(
+        ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
+        booksCopyDir,
+      );
+
+      const sdkTarball = await findPackedTarball(tempDir, "rizom-site-");
+      const booksTarball = await findPackedTarball(
+        tempDir,
+        "rizom-site-books-",
+      );
+
+      const brainPeerDir = join(tempDir, "brain-peer");
+      await mkdir(brainPeerDir);
+      await writeFile(
+        join(brainPeerDir, "package.json"),
+        JSON.stringify({ name: "@rizom/brain", version: "0.2.0-alpha.136" }),
+      );
+
+      await writeFile(
+        join(tempDir, "package.json"),
+        JSON.stringify(
+          {
+            type: "module",
+            dependencies: {
+              "@rizom/brain": `file:${brainPeerDir}`,
+              "@rizom/site-books": `file:${booksTarball}`,
+              react: workspaceCopy("react"),
+              "react-dom": workspaceCopy("react-dom"),
+            },
+            overrides: {
+              "@rizom/site": `file:${sdkTarball}`,
+              react: workspaceCopy("react"),
+              "react-dom": workspaceCopy("react-dom"),
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      await run(["bun", "install"], tempDir);
+
+      const output = await run(
+        [
+          "bun",
+          "-e",
+          'const site = await import("@rizom/site-books"); console.log(site.default.routes.map((route) => route.id).join(","))',
+        ],
+        tempDir,
+      );
+
+      expect(output.trim()).toBe("home");
+
+      const sourceDocsManifest = JSON.parse(
+        await readFile(join(packageDir, "package.json"), "utf8"),
+      );
+      const sourceSdkManifest = JSON.parse(
+        await readFile(join(sdkPackageDir, "package.json"), "utf8"),
+      );
+      const installedDocsManifest = JSON.parse(
+        await readFile(
+          join(tempDir, "node_modules/@rizom/site-books/package.json"),
+          "utf8",
+        ),
+      );
+
+      expect(JSON.stringify(installedDocsManifest)).not.toContain("workspace:");
+      expect(installedDocsManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
+      );
+      expect(installedDocsManifest.dependencies).not.toHaveProperty(
+        "@rizom/site-rizom",
+      );
+      expect(installedDocsManifest.devDependencies).toBeUndefined();
+
+      // npm builds the registry dependency metadata from the on-disk
+      // manifest before prepack rewrites it, so a workspace: range here
+      // ships a broken packument even when the tarball manifest is
+      // clean (@rizom/site-rizom-ai@0.2.0-alpha.145). The repo manifest
+      // must pin the concrete version of published @rizom deps.
+      expect(sourceDocsManifest.dependencies["@rizom/site"]).toBe(
+        sourceSdkManifest.version,
+      );
+      expect(sourceDocsManifest.peerDependencies).toBeUndefined();
+      expect(installedDocsManifest.peerDependencies).toEqual(
+        sourceDocsManifest.publishPeerDependencies,
+      );
+      expect(
+        installedDocsManifest.peerDependencies?.["@rizom/brain"],
+      ).toBeDefined();
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  }, 20_000);
+});
