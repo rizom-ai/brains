@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import type { BaseDataSourceContext } from "@brains/plugins";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  SemanticSpacePoint,
+} from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { BookDataSource } from "../src/datasources/book-datasource";
@@ -152,6 +156,105 @@ describe("BookDataSource", () => {
     );
 
     expect(result.score).toEqual([]);
+  });
+
+  describe("themes", () => {
+    const topic = (id: string, title: string): BaseEntity => ({
+      id,
+      entityType: "topic",
+      content: `---\ntitle: ${title}\n---\n\nEine erfundene Zusammenfassung.\n`,
+      contentHash: id,
+      created: "2026-10-06T00:00:00.000Z",
+      updated: "2026-10-06T00:00:00.000Z",
+      visibility: "public",
+      metadata: {},
+    });
+    const centre: [number, number] = [0, 0];
+    const near = (
+      entityId: string,
+      distanceToOrigin: number,
+    ): SemanticSpacePoint => ({
+      entityId,
+      entityType: "topic",
+      coordinates: centre,
+      distanceToOrigin,
+    });
+    const projection = {
+      origin: { kind: "centroid" as const },
+      neighbors: [],
+      distanceRange: { min: 0, max: 1 },
+      points: [
+        near("fern", 0.7),
+        near("mitleid", 0.3),
+        near("macht", 0.55),
+        near("leben", 0.5),
+        near("schwaeche", 0.58),
+      ],
+    };
+    const themeSchema = z.object({
+      themes: z.array(z.object({ id: z.string(), title: z.string() })),
+    });
+
+    beforeEach(() => {
+      shell.addEntities(
+        ["fern", "mitleid", "macht", "leben", "schwaeche"].map((id) =>
+          topic(id, id.toUpperCase()),
+        ),
+      );
+    });
+
+    it("finds a section's nearest themes, closest first, three at most", async () => {
+      const result = await datasource.fetch(
+        { entityType: "book", query: { id: "erstes/2" } },
+        themeSchema,
+        {
+          entityService: {
+            ...shell.getEntityService(),
+            projectSemanticSpace: async () => projection,
+          },
+        },
+      );
+
+      expect(result.themes).toEqual([
+        { id: "mitleid", title: "MITLEID" },
+        { id: "leben", title: "LEBEN" },
+        { id: "macht", title: "MACHT" },
+      ]);
+    });
+
+    it("gives a book's title page no themes", async () => {
+      const result = await datasource.fetch(
+        { entityType: "book", query: { id: "erstes" } },
+        themeSchema,
+        {
+          entityService: {
+            ...shell.getEntityService(),
+            projectSemanticSpace: async () => projection,
+          },
+        },
+      );
+
+      expect(result.themes).toEqual([]);
+    });
+
+    it("reads a section without themes where the brain has no embeddings", async () => {
+      const result = await datasource.fetch(
+        { entityType: "book", query: { id: "erstes/2" } },
+        themeSchema,
+        {
+          entityService: {
+            ...shell.getEntityService(),
+            projectSemanticSpace: async () => {
+              throw new Error(
+                "Semantic indexing is disabled for this Brain instance",
+              );
+            },
+          },
+        },
+      );
+
+      expect(result.themes).toEqual([]);
+    });
   });
 
   it("has no next entry after the last section", async () => {

@@ -10,6 +10,7 @@ import type {
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import {
   bookFrontmatterSchema,
   bookSchema,
@@ -23,6 +24,18 @@ interface BookListData {
 }
 
 type EntityServiceClient = BaseDataSourceContext["entityService"];
+
+/** A theme near a section: a topic page to link to. */
+export interface Theme {
+  id: string;
+  title: string;
+}
+
+/** At most this many themes per section, and none further than this. */
+const THEME_LIMIT = 3;
+const THEME_DISTANCE = 0.6;
+
+const topicFrontmatterSchema = z.object({ title: z.string() });
 
 /** One section in a book's score: enough to draw and link it. */
 export interface ScoreEntry {
@@ -97,7 +110,7 @@ export class BookDataSource extends BaseEntityDataSource<
       await this.lookupEntity(params.query.id, entityService),
     );
     const { book, order } = entry.metadata;
-    const [title, prev, next, entries, score] = await Promise.all([
+    const [title, prev, next, entries, score, themes] = await Promise.all([
       order === 0 ? entry : this.findEntry(book, 0, entityService),
       order === 0 ? null : this.findEntry(book, order - 1, entityService),
       this.findEntry(book, order + 1, entityService),
@@ -106,6 +119,7 @@ export class BookDataSource extends BaseEntityDataSource<
         options: { filter: { metadata: { book } } },
       }),
       order === 0 ? this.scoreOf(book, entityService) : [],
+      order === 0 ? [] : this.themesOf(entry.id, entityService),
     ]);
 
     return outputSchema.parse({
@@ -116,6 +130,7 @@ export class BookDataSource extends BaseEntityDataSource<
       // The title entry is not a section.
       total: Math.max(0, entries - 1),
       score,
+      themes,
     });
   }
 
@@ -145,6 +160,39 @@ export class BookDataSource extends BaseEntityDataSource<
         order: entry.metadata.order,
         part: entry.frontmatter.part,
         length: Buffer.byteLength(entry.body.trim(), "utf8"),
+      }));
+  }
+
+  /** The topics nearest a section, by their stored embeddings: no API calls. */
+  private async themesOf(
+    entryId: string,
+    entityService: EntityServiceClient,
+  ): Promise<Theme[]> {
+    const projection = await entityService
+      .projectSemanticSpace({
+        types: ["topic"],
+        origin: { entityType: "book", entityId: entryId },
+      })
+      // A brain without embeddings has no themes; the section still reads.
+      .catch(() => null);
+    if (!projection) return [];
+    const nearest = projection.points
+      .filter((point) => point.distanceToOrigin <= THEME_DISTANCE)
+      .sort((a, b) => a.distanceToOrigin - b.distanceToOrigin)
+      .slice(0, THEME_LIMIT);
+    const topics = await Promise.all(
+      nearest.map((point) =>
+        entityService.getEntity({ entityType: "topic", id: point.entityId }),
+      ),
+    );
+    return topics
+      .filter((topic) => topic !== null)
+      .map((topic) => ({
+        id: topic.id,
+        title: parseMarkdownWithFrontmatter(
+          topic.content,
+          topicFrontmatterSchema,
+        ).metadata.title,
       }));
   }
 

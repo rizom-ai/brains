@@ -174,6 +174,7 @@ describe("BookDetailTemplate", () => {
         next={entry("erstes", 3, "Ende")}
         total={3}
         score={[]}
+        themes={[]}
       />,
     );
 
@@ -197,6 +198,7 @@ describe("BookDetailTemplate", () => {
         next={entry("erstes", 3, "Ende")}
         total={3}
         score={[]}
+        themes={[]}
       />,
     );
 
@@ -244,6 +246,7 @@ describe("BookDetailTemplate", () => {
         next={entry("erstes", 1, "Vorrede")}
         total={3}
         score={score}
+        themes={[]}
       />,
     );
 
@@ -262,11 +265,73 @@ describe("BookDetailTemplate", () => {
         next={entry("erstes", 1, "Vorrede")}
         total={3}
         score={score}
+        themes={[]}
       />,
     );
 
     expect(html).toMatch(/href="\/books\/erstes\/2"[^>]*>Erster Teil</);
     expect(html).toMatch(/href="\/books\/erstes\/1"[^>]*>Vorrede</);
+  });
+
+  test("renders spaced emphasis only on its words, editorial brackets as text", () => {
+    const section = {
+      ...entry("erstes", 2, "Mitte"),
+      body: "Ein *gespro*\\<*chenes*\\> Wort, dann *zusammen* und ein Stern \\* hier.",
+    };
+    const html = render(
+      <BookDetailTemplate
+        entry={section}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toContain(
+      "<em>gespro</em>&lt;<em>chenes</em>&gt; Wort, dann <em>zusammen</em> und ein Stern * hier.",
+    );
+  });
+
+  test("names a section's themes in the margin, linked to their pages", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[
+          { id: "mitleid", title: "Mitleid" },
+          { id: "wille-zur-macht", title: "Wille zur Macht" },
+        ]}
+      />,
+    );
+
+    expect(html).toContain("Themes in this section");
+    expect(html).toMatch(/href="\/topics\/mitleid"[^>]*>Mitleid</);
+    expect(html).toMatch(
+      /href="\/topics\/wille-zur-macht"[^>]*>Wille zur Macht</,
+    );
+  });
+
+  test("leaves the margin empty when a section has no themes", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).not.toContain("Themes in this section");
   });
 
   test("opens a book on its title page with the first section next", () => {
@@ -278,6 +343,7 @@ describe("BookDetailTemplate", () => {
         next={entry("erstes", 1, "Anfang")}
         total={3}
         score={[]}
+        themes={[]}
       />,
     );
 

@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { BookWithData } from "../schemas/book";
-import type { ScoreEntry } from "../datasources/book-datasource";
+import type { ScoreEntry, Theme } from "../datasources/book-datasource";
 import { bookClasses, bookHref, licenseLabel } from "./book-design";
 
 export interface BookDetailProps {
@@ -13,6 +13,8 @@ export interface BookDetailProps {
   total: number;
   /** On a book's title page, every section in reading order. */
   score: ScoreEntry[];
+  /** On a section page, the topics nearest it. */
+  themes: Theme[];
 }
 
 const BookDetails = ({ book }: { book: BookWithData }): JSX.Element => (
@@ -206,8 +208,9 @@ const SectionView = ({
   prev,
   next,
   total,
+  themes,
 }: BookDetailProps): JSX.Element => (
-  <article className="mx-auto grid w-full max-w-[76rem] gap-x-14 gap-y-8 px-4 py-14 md:grid-cols-[13rem_minmax(0,40rem)] md:py-20">
+  <article className="mx-auto grid w-full max-w-[76rem] gap-x-14 gap-y-8 px-4 py-14 md:grid-cols-[13rem_minmax(0,40rem)] md:py-20 lg:grid-cols-[13rem_minmax(0,40rem)_minmax(0,14rem)]">
     <aside className="md:pt-3">
       <p className="book-siglum m-0 text-3xl leading-none text-heading md:text-4xl">
         {entry.metadata.section ?? entry.metadata.order}
@@ -234,6 +237,25 @@ const SectionView = ({
       <Source entry={entry} book={book} />
       <Pager prev={prev} next={next} />
     </div>
+    {themes.length > 0 && (
+      <aside className="md:col-start-2 lg:col-start-3 lg:pt-3">
+        <p className={`${bookClasses.label} m-0 mb-3`}>
+          Themes in this section
+        </p>
+        <ul className="m-0 list-none p-0">
+          {themes.map((theme) => (
+            <li key={theme.id} className={`${bookClasses.rule} py-2`}>
+              <a
+                href={`/topics/${theme.id}`}
+                className={`${bookClasses.link} font-heading text-xl italic`}
+              >
+                {theme.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    )}
   </article>
 );
 

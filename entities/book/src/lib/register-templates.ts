@@ -34,6 +34,7 @@ const bookDetailSchema = z.object({
   prev: bookEntryDisplaySchema.nullable(),
   next: bookEntryDisplaySchema.nullable(),
   total: z.number().int().min(0),
+  themes: z.array(z.object({ id: z.string(), title: z.string() })),
   score: z.array(
     z.object({
       slug: z.string(),
