@@ -37,8 +37,8 @@ export interface PlacedBrain {
   y: number;
   /** How far out it sits, from the centre (0) to the outer ring (1). */
   reach: number;
-  /** Where its name goes: beside it on the outer side, on the other side when a neighbour is in the way, above when there is no room, below at the right edge. */
-  side: "left" | "right" | "above" | "below";
+  /** Where its name goes: beside it on the outer side; below it when that side has no room or a neighbour, and at the drawing's right edge. */
+  side: "left" | "right" | "below";
 }
 
 /** A trunk from Rizom to a fork, and a branch from the fork to each of its brains. */
@@ -138,14 +138,15 @@ export function placeNetwork(map: ProximityMapData): PlacedNetwork {
     );
   const brains = placed.map(
     ({ bearing: _b, radius: _r, ...brain }): PlacedBrain => {
+      // A name sits on its light's outer side; when there is no room there,
+      // or a neighbour is in the way, it goes below, never inward across
+      // the tendrils.
       if (brain.x >= EDGE) return { ...brain, side: "below" };
-      const sides: [-1 | 1, -1 | 1] = brain.x < DISC.x ? [-1, 1] : [1, -1];
-      const dir = sides.find(
-        (candidate) => room(brain, candidate) && !blocked(brain, candidate),
-      );
+      const outer: -1 | 1 = brain.x < DISC.x ? -1 : 1;
+      const fits = room(brain, outer) && !blocked(brain, outer);
       return {
         ...brain,
-        side: dir === undefined ? "above" : dir < 0 ? "left" : "right",
+        side: !fits ? "below" : outer < 0 ? "left" : "right",
       };
     },
   );

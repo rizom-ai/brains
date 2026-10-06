@@ -1301,9 +1301,6 @@
 .net-name--left {
   transform: translate(calc(-100% - 0.9rem), -50%);
 }
-.net-name--above {
-  transform: translate(-50%, calc(-100% - 0.7rem));
-}
 .net-name--below {
   transform: translate(-50%, 0.9rem);
 }
