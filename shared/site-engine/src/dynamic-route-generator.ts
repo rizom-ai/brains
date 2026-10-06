@@ -280,7 +280,11 @@ export class DynamicRouteGenerator {
           const detailRoute: RouteDefinitionInput = {
             id: `${entityType}-${entity.id}`,
             path: `/${pluralName}/${urlSlug}`,
-            title: `${this.capitalize(entityType)}: ${urlSlug}`,
+            // An entry can name its page; otherwise its title, then the type and slug.
+            title:
+              readString(entity.metadata, "pageTitle") ??
+              readString(entity.metadata, "title") ??
+              `${this.capitalize(entityType)}: ${urlSlug}`,
             description: `View ${entityType} details`,
             ...(layout && { layout }),
             sections: [
