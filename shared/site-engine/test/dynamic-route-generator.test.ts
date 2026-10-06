@@ -299,6 +299,10 @@ describe("DynamicRouteGenerator", () => {
           metadata: { slug: "b", title: "Ein Buch" },
         },
         createMockEntity("b2", "book", "b/2"),
+        {
+          ...createMockEntity("b3", "book", "b/3"),
+          content: "---\ntitle: Aus der Vorrede\n---\n\nText.",
+        },
       ]);
       templates.push({ name: "book:book-detail", pluginId: "book" });
 
@@ -306,7 +310,49 @@ describe("DynamicRouteGenerator", () => {
 
       expect(routeRegistry.get("/books/b/1")?.title).toBe("B-1");
       expect(routeRegistry.get("/books/b")?.title).toBe("Ein Buch");
+      expect(routeRegistry.get("/books/b/3")?.title).toBe("Aus der Vorrede");
       expect(routeRegistry.get("/books/b/2")?.title).toBe("Book: b/2");
+    });
+
+    test("renders an entity type's pages with the template its site names", async () => {
+      entityTypes.push("topic");
+      entities.set("topic", [createMockEntity("mitleid", "topic")]);
+      templates.push(
+        { name: "topics:topic-list", pluginId: "topics" },
+        { name: "topics:topic-detail", pluginId: "topics" },
+        { name: "book:theme", pluginId: "book" },
+      );
+      const sited = new DynamicRouteGenerator(services, routeRegistry, {
+        topic: {
+          label: "Theme",
+          pluralName: "topics",
+          detailTemplate: "book:theme",
+        },
+      });
+
+      await sited.generateEntityRoutes();
+
+      expect(routeRegistry.get("/topics/mitleid")?.sections[0]?.template).toBe(
+        "book:theme",
+      );
+      expect(routeRegistry.get("/topics")?.sections[0]?.template).toBe(
+        "topics:topic-list",
+      );
+    });
+
+    test("keeps the plugin's own detail template when the site names none", async () => {
+      entityTypes.push("topic");
+      entities.set("topic", [createMockEntity("mitleid", "topic")]);
+      templates.push(
+        { name: "topics:topic-detail", pluginId: "topics" },
+        { name: "book:theme", pluginId: "book" },
+      );
+
+      await generator.generateEntityRoutes();
+
+      expect(routeRegistry.get("/topics/mitleid")?.sections[0]?.template).toBe(
+        "topics:topic-detail",
+      );
     });
 
     test("passes configured visibilityScope to listEntities for detail routes", async () => {

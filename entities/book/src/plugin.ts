@@ -8,6 +8,7 @@ import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { bookSchema, type Book } from "./schemas/book";
 import { bookAdapter, type BookAdapter } from "./adapters/book-adapter";
 import { BookDataSource } from "./datasources/book-datasource";
+import { BookThemeDataSource } from "./datasources/book-theme-datasource";
 import { getTemplates } from "./lib/register-templates";
 import packageJson from "../package.json";
 
@@ -48,7 +49,10 @@ export class BookPlugin extends EntityPlugin<
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new BookDataSource(this.logger.child("BookDataSource"))];
+    return [
+      new BookDataSource(this.logger.child("BookDataSource")),
+      new BookThemeDataSource(this.logger.child("BookThemeDataSource")),
+    ];
   }
 }
 

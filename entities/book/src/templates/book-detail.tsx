@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { BookWithData } from "../schemas/book";
 import type { ScoreEntry, Theme } from "../datasources/book-datasource";
+import { count } from "../lib/count";
 import { bookClasses, bookHref, licenseLabel } from "./book-design";
 
 export interface BookDetailProps {
@@ -192,7 +193,7 @@ const TitleView = ({
       </h1>
       <BookDetails book={book} />
       <p className="m-0 mt-2 font-mono text-sm text-theme-muted">
-        {total} sections
+        {count(total, "section")}
       </p>
       <Source entry={entry} book={book} />
       <Pager prev={null} next={next} />

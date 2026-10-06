@@ -35,6 +35,15 @@ describe("@rizom/site-books", () => {
     });
   });
 
+  test("renders topic pages as themes traced across the books", () => {
+    expect(site.entityDisplay["topic"]).toMatchObject({
+      label: "Theme",
+      pluralName: "topics",
+      detailTemplate: "book:theme",
+      navigation: { show: true, slot: "primary" },
+    });
+  });
+
   test("frames every page with the brain's name and its navigation", () => {
     const Layout = site.layouts["default"];
     expect(Layout).toBeDefined();

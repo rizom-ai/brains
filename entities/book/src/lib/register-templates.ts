@@ -8,6 +8,10 @@ import {
   BookDetailTemplate,
   type BookDetailProps,
 } from "../templates/book-detail";
+import {
+  BookThemeTemplate,
+  type BookThemeProps,
+} from "../templates/book-theme";
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
@@ -47,6 +51,28 @@ const bookDetailSchema = z.object({
   ),
 });
 
+const bookThemeSchema = z.object({
+  theme: z.object({ id: z.string(), title: z.string(), summary: z.string() }),
+  strand: z.array(
+    z.object({
+      book: z.string(),
+      title: z.string(),
+      shortTitle: z.string().nullable(),
+      year: z.number().int().nullable(),
+      published: z.boolean(),
+      sections: z.number().int().min(0),
+    }),
+  ),
+  passages: z.array(
+    z.object({
+      slug: z.string(),
+      title: z.string(),
+      section: z.string().nullable(),
+      bookTitle: z.string(),
+    }),
+  ),
+});
+
 export function getTemplates(): Record<string, Template> {
   return {
     "book-list": createTemplate<z.output<typeof bookListSchema>, BookListProps>(
@@ -69,6 +95,14 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "book:entities",
       requiredPermission: "public",
       layout: { component: BookDetailTemplate },
+    }),
+    theme: createTemplate<z.output<typeof bookThemeSchema>, BookThemeProps>({
+      name: "theme",
+      description: "A topic traced across a book brain's books",
+      schema: bookThemeSchema,
+      dataSourceId: "book:theme",
+      requiredPermission: "public",
+      layout: { component: BookThemeTemplate },
     }),
   };
 }

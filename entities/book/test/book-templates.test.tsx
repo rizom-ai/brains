@@ -98,6 +98,13 @@ describe("BookListTemplate", () => {
     expect(html).toContain("3 books · 120 sections");
   });
 
+  test("counts a single book and section in the singular", () => {
+    const one = entry("eins", 0, "Ein Buch", { ...bookDetails, sections: 1 });
+    const html = render(<BookListTemplate books={[one]} />);
+
+    expect(html).toContain("1 book · 1 section<");
+  });
+
   test("stands every book on the horizon as a linked spine", () => {
     const html = render(<BookListTemplate books={shelf} />);
 
@@ -254,6 +261,22 @@ describe("BookDetailTemplate", () => {
     expect(html).toMatch(/href="\/books\/erstes\/3"[^>]*style="height:23px"/);
     expect(html).toContain('title="S-2 · Mitte"');
     expect(html).toContain("3 sections");
+  });
+
+  test("counts a one-section book in the singular", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={erstes}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={1}
+        score={score.slice(0, 1)}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toContain("1 section<");
   });
 
   test("groups the score by part, each part opening at its first section", () => {

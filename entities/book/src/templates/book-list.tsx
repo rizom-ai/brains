@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import type { BookWithData } from "../schemas/book";
+import { count } from "../lib/count";
 import { bookClasses, bookHref } from "./book-design";
 
 export interface BookListProps {
@@ -200,7 +201,7 @@ export const BookListTemplate = ({ books }: BookListProps): JSX.Element => {
               <br />
             </>
           )}
-          {books.length} books · {sections} sections
+          {count(books.length, "book")} · {count(sections, "section")}
           <br />
           each spine as tall as its text
           <br />

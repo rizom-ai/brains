@@ -245,6 +245,7 @@ export {
 
 export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export {
+  entityTitle,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,

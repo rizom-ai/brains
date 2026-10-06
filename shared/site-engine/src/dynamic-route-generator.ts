@@ -9,7 +9,7 @@ import type {
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
-import { isVisibleWithinScope } from "@brains/entity-service";
+import { entityTitle, isVisibleWithinScope } from "@brains/entity-service";
 import { readString } from "@brains/utils/record-fields";
 import { type Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
@@ -17,7 +17,7 @@ import type { RouteRegistry } from "./route-registry";
 
 export type DynamicRouteEntity = Pick<
   BaseEntity,
-  "id" | "metadata" | "visibility"
+  "id" | "metadata" | "visibility" | "content"
 >;
 
 export interface DynamicRouteEntityService extends Pick<
@@ -175,8 +175,12 @@ export class DynamicRouteGenerator {
     const logger = this.services.logger;
 
     // Try to find matching templates from any plugin
-    const { listTemplateName, detailTemplateName } =
-      this.findTemplatesForEntityType(entityType);
+    const found = this.findTemplatesForEntityType(entityType);
+    const listTemplateName = found.listTemplateName;
+    // A site can render a type's pages with a template of its choosing.
+    const detailTemplateName =
+      this.entityDisplay?.[entityType]?.detailTemplate ??
+      found.detailTemplateName;
 
     if (!listTemplateName && !detailTemplateName) {
       logger.debug(
@@ -283,7 +287,7 @@ export class DynamicRouteGenerator {
             // An entry can name its page; otherwise its title, then the type and slug.
             title:
               readString(entity.metadata, "pageTitle") ??
-              readString(entity.metadata, "title") ??
+              entityTitle(entity) ??
               `${this.capitalize(entityType)}: ${urlSlug}`,
             description: `View ${entityType} details`,
             ...(layout && { layout }),

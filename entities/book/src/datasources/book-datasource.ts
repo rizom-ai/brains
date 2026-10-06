@@ -1,5 +1,6 @@
 import {
   BaseEntityDataSource,
+  findRelatedEntities,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type {
@@ -10,7 +11,7 @@ import type {
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
+import { THEME_DISTANCE, THEME_LIMIT } from "../lib/themes";
 import {
   bookFrontmatterSchema,
   bookSchema,
@@ -30,12 +31,6 @@ export interface Theme {
   id: string;
   title: string;
 }
-
-/** At most this many themes per section, and none further than this. */
-const THEME_LIMIT = 3;
-const THEME_DISTANCE = 0.6;
-
-const topicFrontmatterSchema = z.object({ title: z.string() });
 
 /** One section in a book's score: enough to draw and link it. */
 export interface ScoreEntry {
@@ -168,32 +163,13 @@ export class BookDataSource extends BaseEntityDataSource<
     entryId: string,
     entityService: EntityServiceClient,
   ): Promise<Theme[]> {
-    const projection = await entityService
-      .projectSemanticSpace({
-        types: ["topic"],
-        origin: { entityType: "book", entityId: entryId },
-      })
-      // A brain without embeddings has no themes; the section still reads.
-      .catch(() => null);
-    if (!projection) return [];
-    const nearest = projection.points
-      .filter((point) => point.distanceToOrigin <= THEME_DISTANCE)
-      .sort((a, b) => a.distanceToOrigin - b.distanceToOrigin)
-      .slice(0, THEME_LIMIT);
-    const topics = await Promise.all(
-      nearest.map((point) =>
-        entityService.getEntity({ entityType: "topic", id: point.entityId }),
-      ),
-    );
-    return topics
-      .filter((topic) => topic !== null)
-      .map((topic) => ({
-        id: topic.id,
-        title: parseMarkdownWithFrontmatter(
-          topic.content,
-          topicFrontmatterSchema,
-        ).metadata.title,
-      }));
+    const related = await findRelatedEntities(entityService, {
+      origin: { entityType: "book", entityId: entryId },
+      types: ["topic"],
+      maxDistance: THEME_DISTANCE,
+      limit: THEME_LIMIT,
+    });
+    return related.map(({ entity, title }) => ({ id: entity.id, title }));
   }
 
   private async findEntry(

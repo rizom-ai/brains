@@ -95,6 +95,13 @@ export const booksSite: SiteDefinition = {
       paginate: false,
       navigation: { show: false },
     },
+    // A topic's page is its theme traced across the books; paths stay /topics.
+    topic: {
+      label: "Theme",
+      pluralName: "topics",
+      detailTemplate: "book:theme",
+      navigation: { show: true, slot: "primary", priority: 20 },
+    },
   },
   themeOverride: layoutCSS,
   headScripts: [pagingScript],
