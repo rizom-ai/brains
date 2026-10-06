@@ -7,42 +7,49 @@ books:
   - siglum: GT
     slug: die-geburt-der-tragoedie
     title: Die Geburt der Tragödie
+    shortTitle: Geburt der Tragödie
     author: Friedrich Nietzsche
     year: 1872
     kind: work
   - siglum: DS
     slug: david-strauss
     title: "Unzeitgemässe Betrachtungen I: David Strauss der Bekenner und der Schriftsteller"
+    shortTitle: David Strauss
     author: Friedrich Nietzsche
     year: 1873
     kind: work
   - siglum: HL
     slug: vom-nutzen-und-nachtheil-der-historie
     title: "Unzeitgemässe Betrachtungen II: Vom Nutzen und Nachtheil der Historie für das Leben"
+    shortTitle: Historie
     author: Friedrich Nietzsche
     year: 1874
     kind: work
   - siglum: SE
     slug: schopenhauer-als-erzieher
     title: "Unzeitgemässe Betrachtungen III: Schopenhauer als Erzieher"
+    shortTitle: Schopenhauer
     author: Friedrich Nietzsche
     year: 1874
     kind: work
   - siglum: WB
     slug: richard-wagner-in-bayreuth
     title: "Unzeitgemässe Betrachtungen IV: Richard Wagner in Bayreuth"
+    shortTitle: Wagner in Bayreuth
     author: Friedrich Nietzsche
     year: 1876
     kind: work
   - siglum: NJ
     slug: ein-neujahrswort
     title: Ein Neujahrswort an den Herausgeber der Wochenschrift „Im neuen Reich“
+    shortTitle: Neujahrswort
     author: Friedrich Nietzsche
     year: 1873
     kind: work
   - siglum: MA-I
     slug: menschliches-allzumenschliches-1
     title: Menschliches, Allzumenschliches I
+    shortTitle: Menschliches I
     author: Friedrich Nietzsche
     year: 1878
     kind: work
@@ -51,156 +58,191 @@ books:
   - siglum: MA-II
     slug: menschliches-allzumenschliches-2
     title: Menschliches, Allzumenschliches II
+    shortTitle: Menschliches II
     author: Friedrich Nietzsche
     year: 1879
     kind: work
   - siglum: M
     slug: morgenroethe
     title: Morgenröthe
+    shortTitle: Morgenröthe
     author: Friedrich Nietzsche
     year: 1881
     kind: work
   - siglum: IM
     slug: idyllen-aus-messina
     title: Idyllen aus Messina
+    shortTitle: Idyllen
     author: Friedrich Nietzsche
     year: 1882
     kind: work
   - siglum: FW
     slug: die-froehliche-wissenschaft
     title: Die fröhliche Wissenschaft
+    shortTitle: Fröhliche Wissenschaft
     author: Friedrich Nietzsche
     year: 1882
     kind: work
   - siglum: Za-I
     slug: also-sprach-zarathustra-1
     title: Also sprach Zarathustra I
+    shortTitle: Zarathustra I
     author: Friedrich Nietzsche
     year: 1883
     kind: work
   - siglum: Za-II
     slug: also-sprach-zarathustra-2
     title: Also sprach Zarathustra II
+    shortTitle: Zarathustra II
     author: Friedrich Nietzsche
     year: 1883
     kind: work
   - siglum: Za-III
     slug: also-sprach-zarathustra-3
     title: Also sprach Zarathustra III
+    shortTitle: Zarathustra III
     author: Friedrich Nietzsche
     year: 1884
     kind: work
   - siglum: JGB
     slug: jenseits-von-gut-und-boese
     title: Jenseits von Gut und Böse
+    shortTitle: Jenseits von Gut und Böse
     author: Friedrich Nietzsche
     year: 1886
     kind: work
   - siglum: GM
     slug: zur-genealogie-der-moral
     title: Zur Genealogie der Moral
+    shortTitle: Genealogie der Moral
     author: Friedrich Nietzsche
     year: 1887
     kind: work
   - siglum: WA
     slug: der-fall-wagner
     title: Der Fall Wagner
+    shortTitle: Fall Wagner
     author: Friedrich Nietzsche
     year: 1888
     kind: work
   - siglum: GD
     slug: goetzen-daemmerung
     title: Götzen-Dämmerung
+    shortTitle: Götzen-Dämmerung
     author: Friedrich Nietzsche
     year: 1889
     kind: work
   - siglum: SGT
     slug: sokrates-und-die-griechische-tragoedie
     title: Sokrates und die griechische Tragoedie
+    shortTitle: Sokrates
     author: Friedrich Nietzsche
     year: 1871
     kind: work
   - siglum: Za-IV
     slug: also-sprach-zarathustra-4
     title: Also sprach Zarathustra IV
+    shortTitle: Zarathustra IV
     author: Friedrich Nietzsche
     year: 1885
     kind: work
   - siglum: NW
     slug: nietzsche-contra-wagner
     title: Nietzsche contra Wagner
+    shortTitle: Contra Wagner
     author: Friedrich Nietzsche
     year: 1889
     kind: work
   - siglum: AC
     slug: der-antichrist
     title: Der Antichrist
+    shortTitle: Antichrist
     author: Friedrich Nietzsche
     year: 1888
     kind: work
   - siglum: EH
     slug: ecce-homo
     title: Ecce homo
+    shortTitle: Ecce homo
     author: Friedrich Nietzsche
     year: 1888
     kind: work
   - siglum: DD
     slug: dionysos-dithyramben
     title: Dionysos-Dithyramben
+    shortTitle: Dithyramben
     author: Friedrich Nietzsche
     year: 1888
     kind: work
   - siglum: GMD
     slug: das-griechische-musikdrama
     title: Das griechische Musikdrama
+    shortTitle: Musikdrama
+    published: false
     author: Friedrich Nietzsche
     year: 1870
     kind: work
   - siglum: ST
     slug: socrates-und-die-tragoedie
     title: Socrates und die Tragoedie
+    shortTitle: Socrates
+    published: false
     author: Friedrich Nietzsche
     year: 1870
     kind: work
   - siglum: DW
     slug: die-dionysische-weltanschauung
     title: Die dionysische Weltanschauung
+    shortTitle: Dionysische Weltanschauung
+    published: false
     author: Friedrich Nietzsche
     year: 1870
     kind: work
   - siglum: GG
     slug: die-geburt-des-tragischen-gedankens
     title: Die Geburt des tragischen Gedankens
+    shortTitle: Tragischer Gedanke
+    published: false
     author: Friedrich Nietzsche
     year: 1870
     kind: work
   - siglum: BA
     slug: ueber-die-zukunft-unserer-bildungsanstalten
     title: Ueber die Zukunft unserer Bildungsanstalten
+    shortTitle: Bildungsanstalten
+    published: false
     author: Friedrich Nietzsche
     year: 1872
     kind: work
   - siglum: CV
     slug: fuenf-vorreden
     title: Fünf Vorreden zu fünf ungeschriebenen Büchern
+    shortTitle: Fünf Vorreden
+    published: false
     author: Friedrich Nietzsche
     year: 1872
     kind: work
   - siglum: PHG
     slug: die-philosophie-im-tragischen-zeitalter-der-griechen
     title: Die Philosophie im tragischen Zeitalter der Griechen
+    shortTitle: Philosophie
+    published: false
     author: Friedrich Nietzsche
     year: 1873
     kind: work
   - siglum: WL
     slug: ueber-wahrheit-und-luege
     title: Ueber Wahrheit und Lüge im aussermoralischen Sinne
+    shortTitle: Wahrheit und Lüge
+    published: false
     author: Friedrich Nietzsche
     year: 1873
     kind: work
   - siglum: MD
     slug: mahnruf-an-die-deutschen
     title: Mahnruf an die Deutschen
+    shortTitle: Mahnruf
+    published: false
     author: Friedrich Nietzsche
     year: 1873
     kind: work

@@ -93,6 +93,41 @@ describe("importBooks", () => {
     ).toBe("Ein genauerer Titel");
   });
 
+  it("carries published and shortTitle from the manifest", async () => {
+    await importBooks(
+      parseManifest(
+        manifestYaml.replace(
+          "slug: erfundenes-buch",
+          "slug: erfundenes-buch\n    published: false\n    shortTitle: Erfunden",
+        ),
+      ),
+      brainData,
+      fetchFixture,
+    );
+    const title = await readFile(
+      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      "utf8",
+    );
+
+    expect(
+      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
+    ).toMatchObject({ published: false, shortTitle: "Erfunden" });
+  });
+
+  it("counts a book as published unless the manifest says otherwise", async () => {
+    await importBooks(parseManifest(manifestYaml), brainData, fetchFixture);
+    const title = await readFile(
+      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      "utf8",
+    );
+
+    expect(
+      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema)[
+        "published"
+      ],
+    ).toBe(true);
+  });
+
   it("rejects a manifest entry without a siglum", () => {
     expect(() =>
       parseManifest(

@@ -9,6 +9,8 @@ const manifestBookSchema: z.ZodObject<{
   siglum: z.ZodString;
   slug: z.ZodString;
   title: z.ZodOptional<z.ZodString>;
+  shortTitle: z.ZodOptional<z.ZodString>;
+  published: z.ZodDefault<z.ZodBoolean>;
   author: z.ZodString;
   year: z.ZodNumber;
   kind: typeof bookKindSchema;
@@ -17,6 +19,10 @@ const manifestBookSchema: z.ZodObject<{
   slug: z.string().min(1),
   /** The work's own title, where the page heads it with a series title. */
   title: z.string().min(1).optional(),
+  /** A title short enough for a book's spine. */
+  shortTitle: z.string().min(1).optional(),
+  /** False for writings published only after the author's death. */
+  published: z.boolean().default(true),
   author: z.string().min(1),
   year: z.number().int(),
   kind: bookKindSchema,
@@ -70,6 +76,8 @@ export async function importBooks(
         license: "CC-BY-NC-ND-4.0",
         attribution: EKGWB_ATTRIBUTION,
         source: `${EKGWB_BASE}${entry.siglum}`,
+        published: entry.published,
+        shortTitle: entry.shortTitle ?? null,
       },
       units,
     });

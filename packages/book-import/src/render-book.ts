@@ -24,6 +24,9 @@ export interface BookDetails {
   license: NonNullable<BookFrontmatter["license"]>;
   attribution: string | null;
   source: string;
+  /** Published in the author's lifetime, including private prints. */
+  published: boolean;
+  shortTitle: string | null;
 }
 
 export interface BookSource {
@@ -164,6 +167,10 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
       edition: book.edition,
       license: book.license,
       attribution: book.attribution,
+      published: book.published,
+      shortTitle: book.shortTitle,
+      sections: entries.length,
+      length: entries.reduce((sum, entry) => sum + bytes(entry.body), 0),
     }),
   };
 

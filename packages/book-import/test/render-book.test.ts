@@ -13,6 +13,8 @@ const source: BookSource = {
     license: "CC-BY-NC-ND-4.0",
     attribution: "Testquelle",
     source: "https://example.org/eb",
+    published: true,
+    shortTitle: "Erfunden",
   },
   units: [
     {
@@ -63,6 +65,20 @@ describe("renderBook", () => {
     expect(title?.markdown).toContain(
       "[Erstes Hauptstück](/books/erfundenes-buch/2)",
     );
+  });
+
+  it("measures the book on its title entry", () => {
+    const [title, ...sections] = renderBook(source);
+    const bodyBytes = sections
+      .map((file) => file.markdown.split("---\n").slice(2).join("---\n").trim())
+      .reduce((sum, body) => sum + Buffer.byteLength(body, "utf8"), 0);
+
+    expect(frontmatterOf(title?.markdown ?? "")).toMatchObject({
+      published: true,
+      shortTitle: "Erfunden",
+      sections: 3,
+      length: bodyBytes,
+    });
   });
 
   it("writes one entry per unit in reading order, parents as folders", () => {
