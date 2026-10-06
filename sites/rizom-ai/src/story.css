@@ -859,6 +859,8 @@
 .net-sky {
   position: relative;
   display: grid;
+  transform-origin: center;
+  animation: net-drift 140s ease-in-out infinite alternate;
 }
 .net-sky > * {
   grid-area: 1 / 1;
@@ -871,14 +873,18 @@
 .net-boundary {
   fill: url(#net-boundary);
   transform-origin: 50px 50px;
+  animation: net-weather 37s ease-in-out infinite alternate;
 }
 .net-wash {
   fill: url(#net-wash);
   transform-origin: 50px 50px;
+  animation: net-breathe-wash 9s ease-in-out infinite;
 }
 .net-dust circle {
   fill: var(--net-lilac);
   opacity: 0.22;
+  animation: net-dust var(--net-breath, 20s) ease-in-out var(--net-phase, 0s)
+    infinite alternate;
 }
 /* Tendrils: a trunk leaves Rizom and forks toward neighbouring brains, thin
    and dim where it arrives; a seep of light runs the trunk. */
@@ -906,6 +912,7 @@
   stroke-opacity: 0.35;
   stroke-linecap: round;
   stroke-dasharray: 0.6 7;
+  animation: net-seep 26s linear infinite;
 }
 /* Kin: brains whose work has drifted together share one faint thread. */
 .net-kin {
@@ -913,6 +920,7 @@
   stroke-width: 0.9;
   stroke-opacity: 0.35;
   vector-effect: non-scaling-stroke;
+  animation: net-kin 11s ease-in-out infinite;
 }
 /* A light: a wide amber halo, an ember rim where it meets the dark, a ripple
    and a bead on its route; the mark above it is the core. */
@@ -923,11 +931,14 @@
   fill: url(#net-rim);
   transform-box: fill-box;
   transform-origin: center;
+  animation: net-swell 46.8s ease-out var(--net-turn, 0s) infinite;
 }
 .net-halo {
   fill: url(#net-halo);
   transform-box: fill-box;
   transform-origin: center;
+  animation: net-breathe var(--net-breath, 7s) ease-in-out var(--net-phase, 0s)
+    infinite;
 }
 .net-ripple {
   fill: none;
@@ -936,30 +947,37 @@
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
+  animation: net-ripple 46.8s linear var(--net-turn, 0s) infinite;
 }
 .net-bead {
   fill: var(--net-flame);
   opacity: 0;
   filter: drop-shadow(0 0 1.2px var(--color-accent-bright))
     drop-shadow(0 0 3px var(--net-ember));
+  offset-rotate: 0deg;
+  animation: net-travel 46.8s linear var(--net-turn, 0s) infinite;
 }
 /* Rizom: the densest light. */
 .net-corona {
   fill: url(#net-corona);
   transform-origin: 50px 50px;
+  animation: net-breathe-wash 6.5s ease-in-out infinite;
 }
 .net-embers {
   transform-origin: 50px 50px;
+  animation: net-turn 90s linear infinite;
 }
 .net-embers circle {
   fill: var(--color-accent-bright);
   opacity: 0.55;
+  animation: net-ember 5s ease-in-out var(--net-phase, 0s) infinite;
 }
 .net-lantern {
   fill: var(--net-flame);
   filter: drop-shadow(0 0 2.4px var(--color-accent-bright))
     drop-shadow(0 0 7px var(--net-ember));
   transform-origin: 50px 50px;
+  animation: net-lantern 4.5s ease-in-out infinite;
 }
 .net-grain {
   fill: url(#net-grain-fill);
@@ -1032,6 +1050,179 @@
 .net-layer.is-rizom .net-lantern {
   filter: drop-shadow(0 0 12px var(--color-accent))
     drop-shadow(0 0 4px var(--net-flame));
+}
+/* The sky's motion. Lights come on, they don't pop: every light breathes on
+   its own clock, the sky drifts, light seeps along the trunks, and on a
+   shared cycle of nine slots a bead travels one brain's route (5.1% of the
+   cycle, 2.4 s) and the brain's ripple and rim swell as it arrives. */
+@keyframes net-drift {
+  from {
+    transform: rotate(-1.1deg);
+  }
+  to {
+    transform: rotate(1.1deg);
+  }
+}
+@keyframes net-weather {
+  from {
+    transform: scale(0.96) rotate(0deg);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.04) rotate(6deg);
+    opacity: 1;
+  }
+}
+@keyframes net-breathe-wash {
+  50% {
+    transform: scale(1.07);
+    opacity: 0.88;
+  }
+}
+@keyframes net-breathe {
+  50% {
+    transform: scale(1.18);
+    opacity: 0.75;
+  }
+}
+@keyframes net-dust {
+  to {
+    opacity: 0.5;
+    transform: translate(0.6px, -0.4px);
+  }
+}
+@keyframes net-seep {
+  to {
+    stroke-dashoffset: -152;
+  }
+}
+@keyframes net-kin {
+  50% {
+    stroke-opacity: 0.12;
+  }
+}
+@keyframes net-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  0.6% {
+    opacity: 1;
+  }
+  4.6% {
+    opacity: 1;
+  }
+  5.1%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes net-ripple {
+  0%,
+  5% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  5.3% {
+    opacity: 0.7;
+  }
+  9.8%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes net-swell {
+  0%,
+  5% {
+    transform: scale(1);
+  }
+  7% {
+    transform: scale(1.9);
+  }
+  10.7%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes net-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes net-ember {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes net-lantern {
+  50% {
+    transform: scale(1.1);
+  }
+}
+/* An answer: the cited brains flare and their bead runs once; while the leads
+   hold, the sky holds still under them. */
+.net-layer .net-reply.is-lit .net-halo {
+  animation:
+    net-answer 2.4s ease-out 1 both,
+    net-breathe 5s ease-in-out 2.4s infinite;
+}
+.net-layer .net-reply.is-lit .net-rim {
+  animation:
+    net-answer 2.4s ease-out 0.1s 1 both,
+    net-breathe 5s ease-in-out 2.5s infinite;
+}
+.net-layer .net-reply.is-lit .net-bead {
+  animation: net-travel-once 1.6s ease-out 1 both;
+}
+.net-layer .net-reply.is-lit .net-ripple {
+  animation: net-ripple-once 2.2s ease-out 1.6s 1 both;
+}
+@keyframes net-answer {
+  0% {
+    transform: scale(0.8);
+  }
+  35% {
+    transform: scale(2.3);
+  }
+  100% {
+    transform: scale(1.5);
+  }
+}
+@keyframes net-travel-once {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes net-ripple-once {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.net-layer.has-replies .net-sky,
+.net-layer.has-replies .net-seep,
+.net-layer.has-replies .net-embers,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-bead,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-ripple,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
+  animation-play-state: paused;
 }
 [data-ask-source][data-ask-hot] {
   background: rgb(from var(--color-accent) r g b / 0.12);
@@ -1486,7 +1677,7 @@
 .story.is-asked .net-seep,
 .story.is-asked .net-embers,
 .story.is-asked .net-reply:not(.is-lit) .net-bead,
-.story.is-asked .net-reply:not(.is-lit) .net-halo,
+.story.is-asked .net-reply:not(.is-lit) .net-ripple,
 .story.is-asked .net-reply:not(.is-lit) .net-rim {
   animation-play-state: paused;
 }

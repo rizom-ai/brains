@@ -124,6 +124,16 @@ describe("the Ask room on /ask", () => {
     expect(html).toMatch(
       /<g class="net-reply" data-brain="team"[^>]*><circle class="net-rim"[^>]*><\/circle><circle class="net-halo"[^>]*><\/circle><circle class="net-ripple"[^>]*><\/circle><circle class="net-bead" r="0.7" style="[^"]*offset-path:path\(&quot;M50 50 Q[^)]+\)"><\/circle><\/g>/,
     );
+    // Each reply carries its own clock: its breath, its phase and its turn on the shared cycle.
+    expect(html).toContain(
+      '<g class="net-reply" data-brain="team" style="--net-breath:8.6s;--net-phase:-3.4s;--net-turn:10.4s">',
+    );
+    expect(html).toMatch(
+      /<g class="net-dust"><circle cx="[0-9.-]+" cy="[0-9.-]+" r="[0-9.]+" style="--net-breath:16s;--net-phase:0s"><\/circle>/,
+    );
+    expect(html).toMatch(
+      /<g class="net-embers"><circle cx="[0-9.]+" cy="[0-9.]+" r="[0-9.]+" style="--net-phase:0s"><\/circle>/,
+    );
     const halo = (id: string): number =>
       Number(
         html.match(

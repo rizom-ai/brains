@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { Fragment, type JSX } from "react";
+import { Fragment, type CSSProperties, type JSX } from "react";
 import {
   proximityMapCopySchema,
   proximityMapDataSchema,
@@ -39,6 +39,14 @@ const DEFAULT_COPY = {
   lede: "For hybrid human–AI teams: memory kept in brains each team owns, connected from one team to an economy.",
 };
 
+/** Custom properties as an inline style: the sky's clocks, read by the stylesheet's animations. */
+function clocks(vars: Record<`--net-${string}`, string>): CSSProperties {
+  const style: CSSProperties = {};
+  for (const [name, value] of Object.entries(vars))
+    Reflect.set(style, name, value);
+  return style;
+}
+
 /** Rizom's embers: slow lights circling the lantern. */
 const EMBERS = Array.from({ length: 7 }, (_, i) => {
   const radians = (i * 51.4 * Math.PI) / 180;
@@ -47,7 +55,7 @@ const EMBERS = Array.from({ length: 7 }, (_, i) => {
     cx: (50 + radius * Math.cos(radians)).toFixed(2),
     cy: (50 - radius * Math.sin(radians)).toFixed(2),
     r: (0.28 + (i % 2) * 0.12).toFixed(2),
-    delay: `${(-i * 0.7).toFixed(1)}s`,
+    phase: `${+(-i * 0.7).toFixed(1)}s`,
   };
 });
 
@@ -193,10 +201,10 @@ export function NetworkLayer({
                 cx={mote.x}
                 cy={mote.y}
                 r={mote.r}
-                style={{
-                  animationDuration: `${16 + (i % 7) * 2}s`,
-                  animationDelay: `${-i * 1.3}s`,
-                }}
+                style={clocks({
+                  "--net-breath": `${16 + (i % 7) * 2}s`,
+                  "--net-phase": `${+(-i * 1.3).toFixed(1)}s`,
+                })}
               />
             ))}
           </g>
@@ -235,21 +243,25 @@ export function NetworkLayer({
             const halo = +(3.6 + near * 8).toFixed(2);
             const route = routes.get(brain.id);
             // Each light breathes on its own clock; its rim, ripple and bead
-            // take their turn on the sky's shared cycle (the stylesheet's
-            // net-turn), one brain every 5.2 s.
-            const breath = {
-              animationDuration: `${6 + (i % 4) * 1.3}s`,
-              animationDelay: `${-(i * 1.7)}s`,
-            };
-            const turn = { animationDelay: `${i * 5.2}s` };
+            // take their turn on the sky's shared cycle of nine slots, one
+            // brain every 5.2 s.
+            const clock = clocks({
+              "--net-breath": `${+(6 + (i % 4) * 1.3).toFixed(1)}s`,
+              "--net-phase": `${+(-(i * 1.7)).toFixed(1)}s`,
+              "--net-turn": `${+((i % 9) * 5.2).toFixed(1)}s`,
+            });
             return (
-              <g key={brain.id} className="net-reply" data-brain={brain.id}>
+              <g
+                key={brain.id}
+                className="net-reply"
+                data-brain={brain.id}
+                style={clock}
+              >
                 <circle
                   className="net-rim"
                   cx={brain.x}
                   cy={brain.y}
                   r={+(halo * 1.25).toFixed(2)}
-                  style={turn}
                 />
                 <circle
                   className="net-halo"
@@ -257,20 +269,18 @@ export function NetworkLayer({
                   cy={brain.y}
                   r={halo}
                   opacity={+(0.6 + near * 0.8).toFixed(2)}
-                  style={breath}
                 />
                 <circle
                   className="net-ripple"
                   cx={brain.x}
                   cy={brain.y}
                   r={+(halo * 0.9).toFixed(2)}
-                  style={turn}
                 />
                 {route && (
                   <circle
                     className="net-bead"
                     r="0.7"
-                    style={{ ...turn, offsetPath: `path("${route}")` }}
+                    style={{ offsetPath: `path("${route}")` }}
                   />
                 )}
               </g>
@@ -284,7 +294,7 @@ export function NetworkLayer({
                 cx={ember.cx}
                 cy={ember.cy}
                 r={ember.r}
-                style={{ animationDelay: ember.delay }}
+                style={clocks({ "--net-phase": ember.phase })}
               />
             ))}
           </g>
