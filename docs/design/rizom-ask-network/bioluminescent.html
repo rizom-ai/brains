@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the network — bioluminescent sky (study A2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Study A2, the bioluminescent sky (docs/design/bioluminescent-infrastructure.md
+   made literal). Rizom is the densest light; tendrils fork outward toward the
+   brains, thinning and dimming as they reach; every brain is a layered light,
+   amber at the core, orange where it meets the dark; energy travels a tendril
+   now and then and the brain it reaches swells. Purple sits at the boundary
+   where the network meets the wider directory, whose brains not yet in reach
+   are dust beyond the far lights. Grain in the substrate. 15:85 light to dark. */
+:root {
+  --night: #14132b; --night-deep: #0e0d20; --cream: #faf8f3; --brass: #d4af37; --brass-soft: #e8cc6a; --ember: #ff8b3d; --violet: #6b2fa0; --lilac: #8c82c8;
+  --text: var(--cream); --muted: rgb(250 248 243 / 0.72); --light: rgb(250 248 243 / 0.46); --border: rgb(250 248 243 / 0.14);
+  --display: "Fraunces", Georgia, serif; --body: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --bar: 4.6rem; --words: 36rem; --gap: 4rem;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--night); color: var(--text); font-family: var(--body); -webkit-font-smoothing: antialiased; }
+.bar { position: sticky; top: 0; z-index: 5; height: var(--bar); display: flex; align-items: center; gap: 2.2rem; padding: 0 clamp(1rem, 5vw, 5rem); background: rgb(20 19 43 / 0.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+.wordmark { font-family: var(--display); font-weight: 600; font-size: 1.55rem; font-variation-settings: "SOFT" 70, "opsz" 24; }
+.wordmark b { color: var(--brass); }
+.bar nav { display: flex; gap: 1.6rem; font-size: 0.98rem; color: var(--light); }
+.bar nav a { color: inherit; text-decoration: none; } .bar nav a.is-current { color: var(--text); }
+.bar .cta { margin-left: auto; background: var(--brass); color: #1b1a0e; padding: 0.85rem 1.4rem; border-radius: 0.35rem; font-weight: 500; text-decoration: none; }
+.story { position: relative; min-height: calc(100svh - var(--bar)); max-width: 80rem; margin: 0 auto; padding: 0 clamp(1rem, 6vw, 7rem) 0 clamp(1rem, 5vw, 5rem); }
+.words { position: relative; z-index: 1; max-width: var(--words); min-height: calc(100svh - var(--bar)); display: flex; flex-direction: column; justify-content: center; padding: 4rem 0; }
+.eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); margin: 0 0 1.4rem; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2.6rem, 5.4vw, 4.6rem); line-height: 1.02; letter-spacing: -0.01em; margin: 0; font-variation-settings: "SOFT" 70, "opsz" 144; }
+.lede { font-family: var(--display); font-size: 1.32rem; line-height: 1.5; color: var(--muted); margin: 1.6rem 0 0; font-variation-settings: "SOFT" 70, "opsz" 24; }
+.composer { margin-top: 2.2rem; display: flex; align-items: center; border: 1px solid rgb(from var(--brass) r g b / 0.55); border-radius: 999px; padding: 0.35rem 0.35rem 0.35rem 1.4rem; background: rgb(14 13 32 / 0.7); }
+.composer input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: inherit; font-size: 1.05rem; }
+.composer button { width: 3rem; height: 3rem; border-radius: 50%; border: 0; background: var(--brass); color: #1b1a0e; font-size: 1.2rem; cursor: pointer; }
+.hint { margin: 1rem 0 0; font-size: 0.85rem; color: var(--light); }
+.hint button { font: inherit; color: var(--brass); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
+
+.sky { position: absolute; top: var(--bar); bottom: 0; left: calc(clamp(1rem, 5vw, 5rem) + var(--words) + var(--gap)); right: clamp(1rem, 6vw, 7rem); pointer-events: none; }
+.sky-stage { position: sticky; top: calc(var(--bar) + (100svh - var(--bar)) / 2); height: 0; display: grid; place-items: center; }
+.sky-stage > * { grid-area: 1 / 1; translate: 0 -50%; width: min(100%, calc(100svh - var(--bar) - 2rem)); aspect-ratio: 1; }
+.sky svg { overflow: visible; }
+.parallax { transform-origin: 50px 50px; transition: transform 1.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.drift { transform-origin: 50px 50px; animation: drift 140s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: rotate(-1.1deg); } to { transform: rotate(1.1deg); } }
+
+/* The substrate: the boundary's purple at the periphery, Rizom's amber at the
+   centre, and grain over it all. */
+.boundary { fill: url(#boundary); animation: boundary 37s ease-in-out infinite alternate; transform-origin: 50px 50px; }
+@keyframes boundary { from { transform: scale(0.96) rotate(0deg); opacity: 0.8; } to { transform: scale(1.04) rotate(6deg); opacity: 1; } }
+.wash { fill: url(#wash); animation: breathe-wash 9s ease-in-out infinite; transform-origin: 50px 50px; }
+@keyframes breathe-wash { 50% { transform: scale(1.07); opacity: 0.88; } }
+.grain { fill: url(#grainfill); opacity: 0.045; mix-blend-mode: screen; }
+
+/* Tendrils: a trunk leaves Rizom and forks toward neighbouring brains, dim and
+   thin where it arrives. The light that seeps along them is the network's
+   slow metabolism; a bead is a transfer. */
+.trunk { fill: none; stroke: var(--brass); stroke-width: 0.55; stroke-opacity: 0.28; stroke-linecap: round; }
+.branch { fill: none; stroke: var(--brass); stroke-width: 0.28; stroke-opacity: 0.2; stroke-linecap: round; transition: stroke-opacity 0.6s ease, stroke 0.6s ease; }
+.seep { fill: none; stroke: var(--brass-soft); stroke-width: 0.3; stroke-opacity: 0.35; stroke-linecap: round; stroke-dasharray: 0.6 7; animation: seep 26s linear infinite; }
+@keyframes seep { to { stroke-dashoffset: -152; } }
+.bead { fill: #fff6d6; filter: drop-shadow(0 0 1.2px var(--brass-soft)) drop-shadow(0 0 3px var(--ember)); opacity: 0; }
+.ripple { fill: none; stroke: var(--brass-soft); stroke-width: 0.25; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.ripple.is-on { animation: ripple 2.2s ease-out 1; }
+@keyframes ripple { 0% { opacity: 0.7; transform: scale(0.3); } 100% { opacity: 0; transform: scale(1.6); } }
+
+/* A light: a wide amber halo, an ember rim where it meets the dark, a core. */
+.light { transition: opacity 0.7s ease; }
+.light .halo { fill: url(#halo); transform-box: fill-box; transform-origin: center; animation: breathe var(--breath, 7s) ease-in-out var(--phase, 0s) infinite; }
+.light .rim { fill: url(#rim); transform-box: fill-box; transform-origin: center; animation: breathe var(--breath, 7s) ease-in-out calc(var(--phase, 0s) - 0.6s) infinite; }
+@keyframes breathe { 50% { transform: scale(1.18); opacity: 0.75; } }
+.light .core { fill: var(--cream); stroke: var(--night); stroke-width: 0.5; }
+.light .core--team { fill: none; stroke: var(--cream); stroke-width: 0.9; }
+.light .core--org { fill: none; stroke: var(--cream); stroke-width: 0.55; stroke-dasharray: 0.32 0.32; stroke-linecap: round; }
+.float { animation: float var(--float, 14s) ease-in-out var(--phase, 0s) infinite alternate; }
+@keyframes float { from { transform: translate(0, 0); } to { transform: translate(var(--dx, 0.5px), var(--dy, -0.6px)); } }
+.light.is-swelling .halo { animation: swell 2.6s ease-out 1; }
+.light.is-swelling .rim { animation: swell 2.6s ease-out 0.1s 1; }
+@keyframes swell { 0% { transform: scale(1); } 30% { transform: scale(1.9); opacity: 1; } 100% { transform: scale(1); } }
+
+/* Rizom: the densest light. A corona, an inner glow, the lantern, and embers
+   that circle it slowly. */
+.corona { fill: url(#corona); animation: breathe-wash 6.5s ease-in-out infinite; transform-origin: 50px 50px; }
+.lantern { fill: #fff6d6; filter: drop-shadow(0 0 2.4px var(--brass-soft)) drop-shadow(0 0 7px var(--ember)); animation: lantern 4.5s ease-in-out infinite; transform-origin: 50px 50px; }
+@keyframes lantern { 50% { transform: scale(1.1); } }
+.embers { transform-origin: 50px 50px; animation: turn 90s linear infinite; }
+.embers circle { fill: var(--brass-soft); opacity: 0.55; animation: ember 5s ease-in-out infinite; }
+@keyframes turn { to { transform: rotate(360deg); } }
+@keyframes ember { 50% { opacity: 0.15; } }
+
+/* Dust: the directory's brains not yet in reach, beyond the far lights. */
+.dust circle { fill: var(--lilac); opacity: 0.22; animation: dust var(--d, 20s) ease-in-out var(--p, 0s) infinite alternate; }
+@keyframes dust { to { opacity: 0.5; transform: translate(0.6px, -0.4px); } }
+
+.name { font-family: var(--mono); font-size: 2.3px; fill: var(--light); letter-spacing: 0.04px; transition: fill 0.6s ease, opacity 0.6s ease; }
+.kin { stroke: var(--brass); stroke-width: 0.9; stroke-opacity: 0.35; vector-effect: non-scaling-stroke; animation: kin 11s ease-in-out infinite; }
+@keyframes kin { 50% { stroke-opacity: 0.12; } }
+
+/* An answer: the cited brains' tendrils carry the light, the brains swell, the rest withdraw. */
+.sky.has-replies .light:not(.is-lit) { opacity: 0.22; }
+.sky.has-replies .branch:not(.is-lit) { stroke-opacity: 0.08; }
+.sky.has-replies .trunk { stroke-opacity: 0.14; }
+.sky.has-replies .seep, .sky.has-replies .embers { animation-play-state: paused; opacity: 0.4; }
+.sky.has-replies .light.is-lit .name { fill: var(--cream); }
+.branch.is-lit { stroke: var(--brass-soft); stroke-opacity: 0.9; filter: drop-shadow(0 0 1.2px rgb(from var(--ember) r g b / 0.8)); }
+.light.is-lit .halo { animation: flare 2.4s ease-out 1 both, breathe 5s ease-in-out 2.4s infinite; }
+.light.is-lit .rim { animation: flare 2.4s ease-out 0.1s 1 both, breathe 5s ease-in-out 2.5s infinite; }
+@keyframes flare { 0% { transform: scale(0.8); } 35% { transform: scale(2.3); } 100% { transform: scale(1.5); } }
+.light.is-lit .core { fill: #fff6d6; filter: drop-shadow(0 0 3px var(--brass-soft)); }
+
+.legend { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 1.6rem; justify-content: flex-end; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--light); padding: 0 0 1.4rem; }
+.legend b { color: var(--brass); font-weight: 400; margin-right: 0.45em; }
+.legend b.d { color: var(--lilac); }
+
+@media (max-width: 60rem) {
+  :root { --strip: 34svh; }
+  .bar nav { display: none; }
+  .story { padding-top: var(--strip); }
+  .sky { position: fixed; top: var(--bar); left: 0; right: 0; bottom: auto; height: var(--strip); background: var(--night); border-bottom: 1px solid var(--border); z-index: 4; overflow: hidden; }
+  .sky-stage { position: static; height: 100%; }
+  .sky-stage > * { translate: none; width: auto; height: calc(var(--strip) - 1.5rem); }
+  .words { min-height: calc(100svh - var(--bar) - var(--strip)); padding: 2.5rem 0 3rem; }
+  .name { font-size: 2.9px; }
+  .legend { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .drift, .boundary, .wash, .corona, .lantern, .embers, .embers circle, .halo, .rim, .float, .seep, .dust circle { animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="bar"><span class="wordmark">rizom<b>.</b></span><nav><a href="#">Brain</a><a href="#">Work</a><a href="#">Foundation</a><a href="#">Writing</a><a class="is-current" href="#">Ask</a></nav><a class="cta" href="#">Book an audit</a></header>
+<main class="story">
+  <div class="sky" id="sky" aria-hidden="true">
+    <div class="sky-stage">
+      <svg viewBox="0 0 100 100" id="svg">
+        <defs>
+          <radialGradient id="boundary" cx="0.47" cy="0.53"><stop offset="0.5" stop-color="#6b2fa0" stop-opacity="0"/><stop offset="0.78" stop-color="#6b2fa0" stop-opacity="0.085"/><stop offset="0.9" stop-color="#4b2a63" stop-opacity="0.05"/><stop offset="1" stop-color="#4b2a63" stop-opacity="0"/></radialGradient>
+          <radialGradient id="wash"><stop offset="0" stop-color="#d4af37" stop-opacity="0.16"/><stop offset="0.5" stop-color="#b8410c" stop-opacity="0.045"/><stop offset="1" stop-color="#b8410c" stop-opacity="0"/></radialGradient>
+          <radialGradient id="corona"><stop offset="0" stop-color="#fff0c2" stop-opacity="0.55"/><stop offset="0.25" stop-color="#e8cc6a" stop-opacity="0.22"/><stop offset="0.6" stop-color="#ff8b3d" stop-opacity="0.06"/><stop offset="1" stop-color="#ff8b3d" stop-opacity="0"/></radialGradient>
+          <radialGradient id="halo"><stop offset="0" stop-color="#ffe9a8" stop-opacity="0.6"/><stop offset="0.35" stop-color="#d4af37" stop-opacity="0.2"/><stop offset="1" stop-color="#d4af37" stop-opacity="0"/></radialGradient>
+          <radialGradient id="rim"><stop offset="0.5" stop-color="#ff8b3d" stop-opacity="0"/><stop offset="0.8" stop-color="#ff8b3d" stop-opacity="0.11"/><stop offset="1" stop-color="#ff8b3d" stop-opacity="0"/></radialGradient>
+          <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.98  0 0 0 0 0.9  0 0 0 0 0.7  0 0 0 0.9 0"/></filter>
+          <radialGradient id="fade"><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient><mask id="fademask"><circle cx="50" cy="50" r="60" fill="url(#fade)"/></mask>
+          <pattern id="grainfill" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" filter="url(#grain)"/></pattern>
+        </defs>
+        <g class="parallax" id="parallax">
+          <g class="drift">
+            <circle class="boundary" cx="50" cy="50" r="58"/>
+            <circle class="wash" cx="50" cy="50" r="30"/>
+            <g class="dust" id="dust"></g>
+            <g id="tendrils"></g>
+            <g id="kin"></g>
+            <g id="lights"></g>
+            <circle class="corona" cx="50" cy="50" r="13"/>
+            <g class="embers" id="embers"></g>
+            <circle class="lantern" cx="50" cy="50" r="1.9"/>
+            <g id="beads"></g>
+            <rect class="grain" x="-10" y="-10" width="120" height="120" mask="url(#fademask)"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <p class="legend"><span><b>●</b>person</span><span><b>○</b>team</span><span><b>◌</b>organization</span><span><b class="d">·</b>not yet in reach</span></p>
+  </div>
+  <section class="words">
+    <p class="eyebrow">Ask</p>
+    <h1>Ask the network</h1>
+    <p class="lede">Put a question to Rizom. It answers from what the connected brains have published, and the brains it drew on light up.</p>
+    <form class="composer" onsubmit="return false"><input placeholder="" aria-label="Your question"><button id="send" aria-label="Ask">↑</button></form>
+    <p class="hint">Study: <button id="demo">show an answer citing three brains</button> · <button id="reset">reset</button></p>
+  </section>
+</main>
+<script>
+// The live map as /ask serves it: reach from Rizom (0 near, 1 far), the bearing it
+// was placed on, the directory's kind; and the directory's count of brains not
+// yet in reach (pendingCount), drawn as dust beyond the far lights.
+const brains = [
+  { id: "team.rizom.ai",      name: "rizom core team",             kind: "team",   reach: 0.51, bearing: 200 },
+  { id: "docs.rizom.ai",      name: "rizom brain docs",            kind: "team",   reach: 0.56, bearing: 184 },
+  { id: "jo.rizom.ai",        name: "jo",                          kind: "person", reach: 0.81, bearing: -10 },
+  { id: "sam.rizom.ai",       name: "sam",                         kind: "person", reach: 0.91, bearing: -35 },
+  { id: "yeehaa.io",          name: "yeehaa",                      kind: "person", reach: 0.95, bearing: 55 },
+  { id: "gg-brain.mindinn.com", name: "green generation foundation", kind: "org",  reach: 0.96, bearing: -28 },
+  { id: "becca.rizom.ai",     name: "becca",                       kind: "person", reach: 0.97, bearing: -59 },
+  { id: "mindinn.rizom.ai",   name: "mindinn",                     kind: "org",    reach: 0.97, bearing: 186 },
+  { id: "natalie.rizom.ai",   name: "natalie",                     kind: "person", reach: 0.98, bearing: -44 },
+];
+const kin = [["docs.rizom.ai", "team.rizom.ai"]];
+const pendingCount = 23;
+
+// Placement: reach kept, bearings relaxed halfway to an even spread.
+const sorted = [...brains].sort((a, b) => a.bearing - b.bearing);
+const step = 360 / sorted.length;
+const placed = sorted.map((b, i) => {
+  const even = -90 + i * step + step / 2 - 20;
+  const angle = (b.bearing + even) / 2, rad = (angle * Math.PI) / 180, r = 11 + b.reach * 33;
+  return { ...b, angle, r, x: 50 + r * Math.cos(rad), y: 50 + r * Math.sin(rad) };
+});
+const svgNS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs) => { const n = document.createElementNS(svgNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); return n; };
+const P = (a, r) => ({ x: 50 + r * Math.cos((a * Math.PI) / 180), y: 50 + r * Math.sin((a * Math.PI) / 180) });
+// A seeded wobble, so the tendrils fork like roots and not like compass lines.
+let seed = 7; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280 - 0.5; };
+
+// Tendrils: neighbouring brains share a trunk that forks at about half the way.
+const tendrils = document.getElementById("tendrils");
+const branchPaths = new Map();
+const pairs = []; for (let i = 0; i < placed.length; i += 2) pairs.push(placed.slice(i, i + 2));
+pairs.forEach((pair) => {
+  const mean = pair.reduce((s, b) => s + b.angle, 0) / pair.length;
+  const forkR = Math.min(...pair.map((b) => b.r)) * (0.42 + rnd() * 0.12);
+  const fork = P(mean + rnd() * 14, forkR);
+  const c1 = P(mean + rnd() * 30, forkR * 0.45);
+  const trunk = `M50 50 Q${c1.x.toFixed(2)} ${c1.y.toFixed(2)} ${fork.x.toFixed(2)} ${fork.y.toFixed(2)}`;
+  tendrils.append(el("path", { class: "trunk", d: trunk }));
+  tendrils.append(el("path", { class: "seep", d: trunk }));
+  pair.forEach((b) => {
+    const mid = P(b.angle + rnd() * 18, (forkR + b.r) / 2);
+    const d = `M${fork.x.toFixed(2)} ${fork.y.toFixed(2)} Q${mid.x.toFixed(2)} ${mid.y.toFixed(2)} ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+    tendrils.append(el("path", { class: "branch", d, "data-brain": b.id }));
+    branchPaths.set(b.id, trunk + " " + d.replace(/^M[^Q]+/, ""));
+  });
+});
+
+// Lights.
+const lights = document.getElementById("lights");
+placed.forEach((b, i) => {
+  const near = 1 - b.reach, halo = 3.6 + near * 8, core = 0.8 + near * 1.1;
+  const g = el("g", { class: "light float", "data-brain": b.id });
+  g.style.setProperty("--breath", `${6 + (i % 4) * 1.3}s`); g.style.setProperty("--float", `${12 + (i % 5) * 2}s`); g.style.setProperty("--phase", `${-(i * 1.7)}s`);
+  g.style.setProperty("--dx", `${(i % 2 ? 1 : -1) * 0.5}px`); g.style.setProperty("--dy", `${(i % 3 ? -1 : 1) * 0.6}px`);
+  g.append(el("circle", { class: "rim", cx: b.x, cy: b.y, r: halo * 1.25 }));
+  g.append(el("circle", { class: "halo", cx: b.x, cy: b.y, r: halo, opacity: 0.6 + near * 0.8 }));
+  g.append(el("circle", { class: "ripple", cx: b.x, cy: b.y, r: halo * 0.9 }));
+  g.append(el("circle", { class: `core core--${b.kind}`, cx: b.x, cy: b.y, r: b.kind === "org" ? core * 1.25 : core }));
+  const side = b.x >= 78 ? "below" : b.x >= 50 ? "right" : "left";
+  const t = side === "below" ? el("text", { class: "name", x: b.x, y: b.y + halo * 0.5 + 2.6, "text-anchor": "middle" })
+    : el("text", { class: "name", x: b.x + (side === "right" ? core + 1.7 : -(core + 1.7)), y: b.y + 0.85, "text-anchor": side === "right" ? "start" : "end" });
+  t.textContent = b.name; g.append(t);
+  lights.append(g);
+});
+const at = (id) => placed.find((b) => b.id === id);
+kin.forEach(([a, b]) => { const p = at(a), q = at(b); document.getElementById("kin").append(el("line", { class: "kin", x1: p.x, y1: p.y, x2: q.x, y2: q.y, "data-kin": `${a} ${b}` })); });
+
+// Embers around Rizom and dust at the periphery.
+const embers = document.getElementById("embers");
+for (let i = 0; i < 7; i++) { const p = P(i * 51.4, 4.6 + (i % 3) * 1.1); const c = el("circle", { cx: p.x, cy: p.y, r: 0.28 + (i % 2) * 0.12 }); c.style.animationDelay = `${-i * 0.7}s`; embers.append(c); }
+const dust = document.getElementById("dust");
+for (let i = 0; i < pendingCount; i++) { const p = P(rnd() * 360, 45 + Math.abs(rnd()) * 10); const c = el("circle", { cx: p.x, cy: p.y, r: 0.22 + Math.abs(rnd()) * 0.3 }); c.style.setProperty("--d", `${16 + (i % 7) * 2}s`); c.style.setProperty("--p", `${-i * 1.3}s`); dust.append(c); }
+
+// Transfers: every few seconds energy travels a tendril to one brain, which swells.
+const beads = document.getElementById("beads"), sky = document.getElementById("sky");
+const travel = (id, dur = 2.4) => {
+  const g = lights.querySelector(`[data-brain="${id}"]`);
+  const bead = el("circle", { class: "bead", r: 0.7 });
+  const m = el("animateMotion", { dur: `${dur}s`, fill: "freeze", path: branchPaths.get(id), calcMode: "spline", keySplines: "0.3 0 0.4 1", keyTimes: "0;1", keyPoints: "0;1" });
+  bead.append(m); beads.append(bead); bead.style.opacity = 1;
+  setTimeout(() => { bead.style.opacity = 0; g.classList.add("is-swelling"); const rp = g.querySelector(".ripple"); rp.classList.add("is-on"); setTimeout(() => { g.classList.remove("is-swelling"); rp.classList.remove("is-on"); bead.remove(); }, 2600); }, dur * 1000);
+};
+let last = -1;
+setInterval(() => { if (sky.classList.contains("has-replies")) return; let i; do { i = Math.floor(Math.random() * placed.length); } while (i === last); last = i; travel(placed[i].id); }, 5200);
+setTimeout(() => travel(placed[2].id), 900);
+
+// Depth: the sky leans a little toward the pointer.
+const parallax = document.getElementById("parallax");
+addEventListener("pointermove", (e) => { const dx = e.clientX / innerWidth - 0.5, dy = e.clientY / innerHeight - 0.5; parallax.style.transform = `translate(${(dx * 1.6).toFixed(2)}px, ${(dy * 1.6).toFixed(2)}px)`; });
+
+// An answer.
+const answer = (ids) => {
+  sky.classList.add("has-replies");
+  for (const n of document.querySelectorAll("[data-brain], [data-kin]")) n.classList.toggle("is-lit", ids.some((id) => (n.dataset.brain ?? n.dataset.kin).includes(id)));
+  ids.forEach((id, i) => setTimeout(() => travel(id, 1.6), i * 220));
+};
+const reset = () => { sky.classList.remove("has-replies"); for (const n of document.querySelectorAll(".is-lit")) n.classList.remove("is-lit"); };
+document.getElementById("demo").addEventListener("click", () => answer(["docs.rizom.ai", "yeehaa.io", "jo.rizom.ai"]));
+document.getElementById("send").addEventListener("click", () => answer(["team.rizom.ai", "mindinn.rizom.ai", "natalie.rizom.ai"]));
+document.getElementById("reset").addEventListener("click", reset);
+</script>
+</body>
+</html>
