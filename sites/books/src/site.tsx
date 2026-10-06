@@ -64,7 +64,7 @@ const layoutCSS = `
 .books-site { min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
 .books-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 1.5rem; padding: 1.6rem clamp(1rem, 4vw, 3rem) 0; flex-wrap: wrap; }
 .books-mark { font-family: var(--font-heading); font-style: italic; font-weight: 500; font-size: 1.9rem; color: var(--color-heading); text-decoration: none; letter-spacing: -0.01em; }
-.books-nav { display: flex; gap: 1.75rem; font-family: var(--font-mono); font-size: var(--text-label-md); }
+.books-nav { display: flex; flex-wrap: wrap; column-gap: 1.75rem; row-gap: 0.5rem; font-family: var(--font-mono); font-size: var(--text-label-md); }
 .books-nav a { color: var(--color-text-muted); text-decoration: none; padding-bottom: 3px; }
 .books-nav a[aria-current="page"] { color: var(--color-text); border-bottom: 1.5px solid var(--color-accent); }
 .books-main { flex: 1; }
