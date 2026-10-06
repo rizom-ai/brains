@@ -114,6 +114,36 @@ describe("renderBook", () => {
     }
   });
 
+  it("splits a single paragraph over 8,000 bytes at sentence boundaries", () => {
+    const sentence = "Ein erfundener Satz mit einigen Worten darin.";
+    const paragraph = Array.from({ length: 300 }, () => sentence).join(" ");
+    const files = renderBook({
+      ...source,
+      units: [
+        {
+          parents: [],
+          title: "Ein Absatz",
+          section: "EB-A",
+          page: null,
+          source: "https://example.org/eb/a",
+          paragraphs: [paragraph],
+        },
+      ],
+    });
+    const bodies = files
+      .slice(1)
+      .map((file) =>
+        file.markdown.split("---\n").slice(2).join("---\n").trim(),
+      );
+
+    expect(bodies.length).toBeGreaterThan(1);
+    for (const body of bodies) {
+      expect(Buffer.byteLength(body, "utf8")).toBeLessThanOrEqual(8000);
+      expect(body.endsWith(".")).toBe(true);
+    }
+    expect(bodies.join(" ")).toBe(paragraph);
+  });
+
   it("writes only files the book schema accepts", () => {
     for (const file of renderBook(source)) {
       expect(() => bookAdapter.fromMarkdown(file.markdown)).not.toThrow();

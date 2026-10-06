@@ -66,18 +66,30 @@ function bytes(text: string): number {
   return Buffer.byteLength(text, "utf8");
 }
 
-/** Pack paragraphs into bodies of at most MAX_ENTRY_BYTES, never splitting one. */
-function packParagraphs(paragraphs: string[]): string[] {
-  return paragraphs.reduce<string[]>((bodies, paragraph) => {
+/** Greedily join pieces into bodies of at most MAX_ENTRY_BYTES. */
+function pack(pieces: string[], separator: string): string[] {
+  return pieces.reduce<string[]>((bodies, piece) => {
     const last = bodies.at(-1);
-    if (
-      last !== undefined &&
-      bytes(`${last}\n\n${paragraph}`) <= MAX_ENTRY_BYTES
-    ) {
-      return [...bodies.slice(0, -1), `${last}\n\n${paragraph}`];
+    const joined = `${last}${separator}${piece}`;
+    if (last !== undefined && bytes(joined) <= MAX_ENTRY_BYTES) {
+      return [...bodies.slice(0, -1), joined];
     }
-    return [...bodies, paragraph];
+    return [...bodies, piece];
   }, []);
+}
+
+/** A paragraph too long for one entry breaks at its sentences instead. */
+function fitParagraph(paragraph: string): string[] {
+  if (bytes(paragraph) <= MAX_ENTRY_BYTES) return [paragraph];
+  return pack(paragraph.split(/(?<=[.!?;:])\s+/), " ");
+}
+
+/**
+ * Pack paragraphs into bodies of at most MAX_ENTRY_BYTES at paragraph
+ * boundaries; only a paragraph longer than that is split, at its sentences.
+ */
+function packParagraphs(paragraphs: string[]): string[] {
+  return pack(paragraphs.flatMap(fitParagraph), "\n\n");
 }
 
 interface PlacedEntry {
