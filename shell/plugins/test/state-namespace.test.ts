@@ -19,6 +19,20 @@ const cases = [
 ];
 
 describe("package-owned state namespaces", () => {
+  it("preserves pending FAQ withdrawals only for their exact installed package", () => {
+    const namespace = "faq.source-withdrawals";
+    expect(stateNamespaceFor("@brains/faq", namespace)).toBe(namespace);
+    for (const owner of [
+      "faq",
+      "brains.faq",
+      "@fixture/faq",
+      "@brains/faq.other",
+    ])
+      expect(stateNamespaceFor(owner, namespace)).not.toBe(namespace);
+    expect(
+      interfaceStateNamespaceFor("@brains/faq", "capture", namespace),
+    ).not.toBe(namespace);
+  });
   it("keeps ordinary scoped keys and separates owner and namespace boundaries", () => {
     expect(
       stateNamespaceFor("@brains/email-workflows", "classification-attempts"),

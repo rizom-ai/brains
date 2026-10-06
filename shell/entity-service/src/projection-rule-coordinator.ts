@@ -77,7 +77,9 @@ export class ProjectionRuleCoordinator {
         status: "pending",
         changedTargets: [],
       }));
-    await this.db.insert(projectionWaveRules).values(values);
+    await this.transactions.run(async (transaction) => {
+      await transaction.insert(projectionWaveRules).values(values);
+    });
   }
 
   public async listWaveRules(waveId: string): Promise<ProjectionWaveRule[]> {
@@ -97,17 +99,19 @@ export class ProjectionRuleCoordinator {
     const parsedWaveId = parseWaveId(waveId);
     const parsedRuleId = parseRuleId(ruleId);
     const parsedJobId = parseJobId(jobId);
-    const updated = await this.db
-      .update(projectionWaveRules)
-      .set({ status: "queued", jobId: parsedJobId })
-      .where(
-        and(
-          eq(projectionWaveRules.waveId, parsedWaveId),
-          eq(projectionWaveRules.ruleId, parsedRuleId),
-          eq(projectionWaveRules.status, "pending"),
-        ),
-      )
-      .returning();
+    const updated = await this.transactions.run(async (transaction) =>
+      transaction
+        .update(projectionWaveRules)
+        .set({ status: "queued", jobId: parsedJobId })
+        .where(
+          and(
+            eq(projectionWaveRules.waveId, parsedWaveId),
+            eq(projectionWaveRules.ruleId, parsedRuleId),
+            eq(projectionWaveRules.status, "pending"),
+          ),
+        )
+        .returning(),
+    );
     const queued = updated[0];
     if (queued) return parseWaveRule(queued);
 

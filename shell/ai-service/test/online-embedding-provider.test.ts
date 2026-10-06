@@ -1,7 +1,12 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { OnlineEmbeddingProvider } from "../src/online-embedding-provider";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  guestTurnSettlement,
+  priceOpenAiGuestTurn,
+  withEmbeddingUsage,
+} from "../src/openai-guest-pricing";
+import { createSilentLogger, caughtError } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 /** The part of an OpenAI embeddings request the fake answers from. */
@@ -134,6 +139,261 @@ describe("OnlineEmbeddingProvider", () => {
       expect(measured).toEqual([
         { model: "text-embedding-3-small", tokens: 7 },
         { model: "text-embedding-3-small", tokens: 14 },
+      ]);
+    });
+  });
+
+  describe("input over the model's limit", () => {
+    // OpenAI's limits, with one token per UTF-8 byte: the most a byte-level
+    // tokenizer can produce, so passing here passes against the real API.
+    const MAX_INPUT_TOKENS = 8_191;
+    const MAX_REQUEST_TOKENS = 300_000;
+    const MAX_REQUEST_INPUTS = 2_048;
+    const bytes = (text: string): number => Buffer.byteLength(text, "utf8");
+    // A distinct direction per input, so a combination is checkable.
+    const vectorOf = (text: string): number[] => [(bytes(text) % 7) + 1, 1];
+
+    function fakeOpenAi(): { fetch: typeof fetch; requests: string[][] } {
+      const requests: string[][] = [];
+      const respond = async (
+        _input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        const { input } = requestSchema.parse(JSON.parse(String(init?.body)));
+        requests.push(input);
+        const tooLong = input.findIndex(
+          (text) => bytes(text) > MAX_INPUT_TOKENS,
+        );
+        const total = input.reduce((sum, text) => sum + bytes(text), 0);
+        if (
+          tooLong >= 0 ||
+          total > MAX_REQUEST_TOKENS ||
+          input.length > MAX_REQUEST_INPUTS
+        ) {
+          return new Response(
+            JSON.stringify({
+              error: {
+                message: `Invalid 'input[${Math.max(tooLong, 0)}]': maximum input length is 8192 tokens.`,
+                type: "invalid_request_error",
+                param: null,
+                code: null,
+              },
+            }),
+            { status: 400, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            object: "list",
+            data: input.map((text, index) => ({
+              object: "embedding",
+              index,
+              embedding: vectorOf(text),
+            })),
+            model: "text-embedding-3-small",
+            usage: { prompt_tokens: total, total_tokens: total },
+          }),
+          { headers: { "content-type": "application/json" } },
+        );
+      };
+      return {
+        fetch: Object.assign(respond, {
+          preconnect: globalThis.fetch.preconnect,
+        }),
+        requests,
+      };
+    }
+
+    function providerFor(api: {
+      fetch: typeof fetch;
+    }): OnlineEmbeddingProvider {
+      return OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        dimensions: 2,
+        logger: createSilentLogger(),
+        fetch: api.fetch,
+      });
+    }
+
+    const paragraph = (index: number): string =>
+      `Paragraph ${index} ${"about a long note on new institutions ".repeat(40)}`.trim();
+    const longNote = Array.from({ length: 40 }, (_, index) =>
+      paragraph(index),
+    ).join("\n\n");
+
+    const normalize = (vector: number[]): number[] => {
+      const norm = Math.hypot(...vector);
+      return vector.map((value) => value / norm);
+    };
+    const withoutWhitespace = (text: string): string =>
+      text.replace(/\s+/gu, "");
+
+    test("sends input within the limit unchanged, in one request", async () => {
+      const api = fakeOpenAi();
+      await providerFor(api).generateEmbedding("a short query");
+      expect(api.requests).toEqual([["a short query"]]);
+    });
+
+    test("embeds a note longer than the limit from every part of it", async () => {
+      expect(bytes(longNote)).toBeGreaterThan(4 * MAX_INPUT_TOKENS);
+      const api = fakeOpenAi();
+
+      const { embedding } = await providerFor(api).generateEmbedding(longNote);
+
+      const chunks = api.requests.flat();
+      expect(chunks.length).toBeGreaterThan(1);
+      for (const chunk of chunks) {
+        expect(bytes(chunk)).toBeLessThanOrEqual(MAX_INPUT_TOKENS);
+      }
+      // Nothing is dropped: the chunks hold the whole note, in order.
+      expect(withoutWhitespace(chunks.join(""))).toBe(
+        withoutWhitespace(longNote),
+      );
+      const expected = normalize(
+        chunks.reduce(
+          (sum, chunk) => {
+            const vector = vectorOf(chunk);
+            return [
+              (sum[0] ?? 0) + bytes(chunk) * (vector[0] ?? 0),
+              (sum[1] ?? 0) + bytes(chunk) * (vector[1] ?? 0),
+            ];
+          },
+          [0, 0],
+        ),
+      );
+      expect(embedding.length).toBe(2);
+      expect(embedding[0]).toBeCloseTo(expected[0] ?? 0, 5);
+      expect(embedding[1]).toBeCloseTo(expected[1] ?? 0, 5);
+    });
+
+    test("splits at paragraph boundaries when the paragraphs fit", async () => {
+      const api = fakeOpenAi();
+      await providerFor(api).generateEmbedding(longNote);
+
+      for (const chunk of api.requests.flat()) {
+        expect(chunk).toMatch(/^Paragraph \d+ /u);
+        expect(chunk).toMatch(/institutions$/u);
+      }
+    });
+
+    test("splits one oversized run of text without breaking a character", async () => {
+      const run = "é🌍".repeat(5_000);
+      const api = fakeOpenAi();
+
+      await providerFor(api).generateEmbedding(run);
+
+      const chunks = api.requests.flat();
+      for (const chunk of chunks) {
+        expect(bytes(chunk)).toBeLessThanOrEqual(MAX_INPUT_TOKENS);
+        expect(chunk).not.toContain("\uFFFD");
+        expect(Buffer.from(chunk, "utf8").toString("utf8")).toBe(chunk);
+      }
+      expect(chunks.join("")).toBe(run);
+    });
+
+    test("keeps every request within the per-request limits", async () => {
+      const huge = Array.from({ length: 900 }, (_, index) =>
+        paragraph(index),
+      ).join("\n\n");
+      expect(bytes(huge)).toBeGreaterThan(MAX_REQUEST_TOKENS);
+      const api = fakeOpenAi();
+
+      const { usage } = await providerFor(api).generateEmbedding(huge);
+
+      expect(api.requests.length).toBeGreaterThan(1);
+      const sent = api.requests.flat();
+      expect(usage.tokens).toBe(
+        sent.reduce((sum, chunk) => sum + bytes(chunk), 0),
+      );
+    });
+
+    test("returns one embedding per text, in order, those within the limit as given", async () => {
+      const api = fakeOpenAi();
+
+      const { embeddings } = await providerFor(api).generateEmbeddings([
+        "first",
+        longNote,
+        "third",
+      ]);
+
+      expect(embeddings).toHaveLength(3);
+      expect(Array.from(embeddings[0] ?? [])).toEqual(vectorOf("first"));
+      expect(Array.from(embeddings[2] ?? [])).toEqual(vectorOf("third"));
+    });
+
+    test("retains completed request usage when a later embedding request fails", async () => {
+      const usage = EmbeddingUsageMeter.createFresh();
+      const api = fakeOpenAi();
+      let calls = 0;
+      const respond = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        calls++;
+        return calls === 1
+          ? api.fetch(input, init)
+          : new Response(
+              JSON.stringify({
+                error: { message: "Refused", type: "invalid_request_error" },
+              }),
+              { status: 400, headers: { "content-type": "application/json" } },
+            );
+      };
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        dimensions: 2,
+        logger: createSilentLogger(),
+        usage,
+        fetch: Object.assign(respond, {
+          preconnect: globalThis.fetch.preconnect,
+        }),
+      });
+      const huge = Array.from({ length: 900 }, (_, index) =>
+        paragraph(index),
+      ).join("\n\n");
+      const measured = await usage.measure(async () => {
+        expect(
+          await provider.generateEmbedding(huge).catch(caughtError),
+        ).toBeInstanceOf(Error);
+      });
+      expect(calls).toBe(2);
+      const completed = bytes(api.requests.flat().join(""));
+      expect(completed).toBeGreaterThan(0);
+      expect(measured.usage).toEqual([
+        { model: "text-embedding-3-small", tokens: completed },
+        { model: "text-embedding-3-small", tokens: 0, incomplete: true },
+      ]);
+      const settled = withEmbeddingUsage(
+        guestTurnSettlement([], priceOpenAiGuestTurn),
+        measured.usage,
+      );
+      expect(settled.usage.embeddingTokens).toBe(completed);
+      expect(settled.cost).toEqual({
+        state: "unknown",
+        reason: "missing-usage",
+      });
+    });
+
+    test("reports a chunked call's tokens once, as the sum of its requests", async () => {
+      const usage = EmbeddingUsageMeter.createFresh();
+      const api = fakeOpenAi();
+      const provider = OnlineEmbeddingProvider.createFresh({
+        apiKey: "test-key",
+        dimensions: 2,
+        logger: createSilentLogger(),
+        usage,
+        fetch: api.fetch,
+      });
+
+      const { usage: measured } = await usage.measure(() =>
+        provider.generateEmbedding(longNote),
+      );
+
+      expect(measured).toEqual([
+        {
+          model: "text-embedding-3-small",
+          tokens: bytes(api.requests.flat().join("")),
+        },
       ]);
     });
   });

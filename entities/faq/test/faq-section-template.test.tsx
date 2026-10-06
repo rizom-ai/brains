@@ -13,6 +13,7 @@ describe("FaqSection", () => {
             question: "How do I publish a draft?",
             answer: "Choose **Publish** in Studio.",
             asked: 3,
+            sources: [],
           },
         ]}
       />,
@@ -33,6 +34,7 @@ describe("FaqSection", () => {
             id: "unsafe",
             asked: 1,
             question: '<img src=x onerror="alert(1)">',
+            sources: [],
             answer:
               '<script>alert(1)</script><a href="javascript:alert(1)">link</a><img src="https://example.test/image.png" onerror="alert(1)">',
           },

@@ -26,6 +26,7 @@ import {
   type AnyInterfaceRouteDefinition,
 } from "@brains/sdk/interfaces";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
+import { askedBeforeSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { deferred } from "@brains/utils/deferred";
 import {
@@ -612,6 +613,14 @@ export class GuestHttpHandlers {
           for (const card of getGuestSourceCards(response.cards)) {
             writer.write({ type: "data-sources", id: card.id, data: card });
           }
+          // A FAQ answered in the model's place: the box says so by the answer.
+          if (response.askedBefore) {
+            writer.write({
+              type: "data-asked-before",
+              id: "asked-before",
+              data: { faqId: response.askedBefore.faqId },
+            });
+          }
           writeTextPart(writer, randomUUID(), response.text);
           writer.write({ type: "finish", finishReason: "stop" });
         } finally {
@@ -650,12 +659,18 @@ export class GuestHttpHandlers {
     });
     await this.owned(request, id, policy);
     const history = chatMessagesResponseSchema.parse({
-      messages: messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        cards: getGuestSourceCards(message.metadata["cards"]),
-      })),
+      messages: messages.map((message) => {
+        const askedBefore = askedBeforeSchema.safeParse(
+          message.metadata["askedBefore"],
+        );
+        return {
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          cards: getGuestSourceCards(message.metadata["cards"]),
+          ...(askedBefore.success ? { askedBefore: askedBefore.data } : {}),
+        };
+      }),
     });
     return Response.json(
       submissionId === null

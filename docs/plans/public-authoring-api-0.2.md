@@ -65,6 +65,8 @@ explicit stable approvals below remain separate.
 
 ### Remaining stable nomination gates
 
+Stable `0.2.0` also requires [durable binary asset storage](durable-binary-assets.md) through bridge removal on main, a fresh declarative integration, and updating the authoring contract so `binaryStorage: "data-url"` no longer names Image/PDF as consumers. The intended candidate must pass approved canary deployment, app-managed site rebuild and zero second-pass generated drift, the approved soak, and `yeehaa.io` validation with migrated assets. These are release gates, not authorization to deploy or publish. Historical registry evidence does not certify the current unpublished integration.
+
 1. **Nominate the final alpha.** Merge the intended stable source, publish its Brain alpha, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun all nine exact-version registry packages with the compatible published site SDK. The `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer candidate.
 2. **Run and record the final evidence protocol.** Execute the complete repository, packed, credentialed live harness, and zero-failure personal/team eval sweep against the same final alpha. Record versions, models, durations, and CI artifacts in `docs/public-release/evidence/AUTHORING_0.2.md` without secrets or private content.
 3. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.

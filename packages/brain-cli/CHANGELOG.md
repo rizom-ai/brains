@@ -1,5 +1,73 @@
 # @rizom/brain
 
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [`fdca4f8`](https://github.com/rizom-ai/brains/commit/fdca4f8d5e98f222fed1743ab55a74b6acc52169) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain complete auth HTTP handlers and facade operations before runtime shutdown. Keep independent requests concurrent, allow admitted handlers to finish nested auth calls, and defer later callers until cleanup settles. Track nested operations independently, give admitted background callbacks the same owner while skipping new scheduled ticks during shutdown, reject self-close instead of deadlocking, and prevent detached continuations from reusing completed request scopes.
+
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- [#504](https://github.com/rizom-ai/brains/pull/504) [`ec15b37`](https://github.com/rizom-ai/brains/commit/ec15b37f5004d2fbdae5ab907277cb300ce858b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask room: the atlas kit now carries one runtime and one set of styles for a page that presents the Ask box beside a drawing of what an answer may cite, shared by the atlas sites and rizom.ai. The room matches an answer's sources to the drawing's marks, draws the leads between the listed sources and their marks, lends the drawing to a phone's open conversation and brings a cited source into view from its mark; the atlas keeps only what is the map's own, its turn towards the cited pieces and its names.
+
+## 0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- [#499](https://github.com/rizom-ai/brains/pull/499) [`45aa372`](https://github.com/rizom-ai/brains/commit/45aa3720eafc0829adbb33ccbbcf7a7f1eaee0da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest Ask box that mounts with nothing to show above its composer no longer takes more room than the composer its host showed before it: the empty welcome area loses its padding and fade, and the composer keeps no gap or divider above it, until a welcome, an answer or a notice arrives. On rizom.ai the composer used to drop a row the moment it was focused.
+
+## 0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- [#495](https://github.com/rizom-ai/brains/pull/495) [`c5d4d2f`](https://github.com/rizom-ai/brains/commit/c5d4d2fd949357353b4e4f42186a0d105fe5c6a1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain start` boots in the instance directory even when launched from elsewhere with `INIT_CWD`, as the dev start scripts do. The supervising process ran migrations against `./data` relative to where it was launched while its web and worker processes opened the instance's own `data/`, so a fresh instance failed to start (`Unable to open connection to local database ./data/runtime-state.db`) and an existing one ran on unmigrated stores.
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`760a0bb`](https://github.com/rizom-ai/brains/commit/760a0bb09722929829ebb8db17fd30fc19026a23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An answer's source can name the brain whose published memory it came from. The citation and the Ask box's `ask:sources` event carry it, and the box's source rows show the brain and who answered — "Rizom, with Becca and Jo" — so a host page can show whose memory answered.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`934ebe5`](https://github.com/rizom-ai/brains/commit/934ebe5cc8707c8a0c2569c57dcc560aea198776) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A question asked before is answered before the model. A FAQ captured from a visitor's reply keeps the sources the answer drew on; a visitor's question is first put to the published FAQs over a new shell channel, and a hit answers the turn from the FAQ, with its kept sources, counting one more asking and calling no model. The box says "Asked before" above such an answer, in the live reply and in history, while still naming the brains whose memory it drew on. The FAQ datasource carries each FAQ's sources for pages to show.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`afeef92`](https://github.com/rizom-ai/brains/commit/afeef92134464dd8af977005564674bc359ea1cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The network index learns a connected brain's ATProto repository from its home when the directory holds none: an approved agent without a repository DID is asked at its well-known address once per sync, the DID is kept on the agent, and its published pieces are indexed from then on. Every connected brain with a repository is indexed, each piece keyed and cited to its own.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`eecbdea`](https://github.com/rizom-ai/brains/commit/eecbdea7dc0467b0df76f0c9ecb2a6e4265c284e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain keeps the connected brains' published pieces as `network-piece` entities: for every approved agent with an ATProto repository, each projected collection is read on the directory's daily cadence and kept keyed by brain and record — created, left alone when unchanged, deleted when withdrawn, kept when the repository cannot be reached. The pieces are public, searchable and citable to their brain, never this brain's site pages and never re-published. A visitor's answer cites such a piece at its origin, naming the brain.
+
+- [#493](https://github.com/rizom-ai/brains/pull/493) [`4d887da`](https://github.com/rizom-ai/brains/commit/4d887da17558420fbe2580f0cdd918215b2e6245) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every projected ATProto record names its page: the atproto plugin hands each projection the entity's page on this brain's site, when the site gives the type one, and the projection writes it as `canonicalUrl` (an essay first published elsewhere keeps that address). The deck, project, note, link, series, topic and social-post lexicons declare the optional field. A brain that keeps another's records can now send a reader to the piece itself.
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#472](https://github.com/rizom-ai/brains/pull/472) [`99f6c6b`](https://github.com/rizom-ai/brains/commit/99f6c6b28bef79a39b083142d4c7717f3452fdf9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup verifies embedding databases whether or not they still carry the retired libSQL vector index. Before, it read the index's shadow table unconditionally and failed once the index was dropped. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- [#490](https://github.com/rizom-ai/brains/pull/490) [`d3d8e82`](https://github.com/rizom-ai/brains/commit/d3d8e8299d7262666a2e0f4f4ac90d730f32100f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a touch screen, the first tap on the atlas legend's "Latest" opens the latest piece's card instead of following its link.
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- [#487](https://github.com/rizom-ai/brains/pull/487) [`d823d75`](https://github.com/rizom-ai/brains/commit/d823d7572fb84bd745772062bebf59ce50de4479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage rings the most recently published piece and names it "Latest" in the legend, which opens its card; marks keep clear of the legend along the map's foot.
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`673f737`](https://github.com/rizom-ai/brains/commit/673f73756990cdd82b5e4bc48b242c2ccce07681) Thanks [@yeehaa123](https://github.com/yeehaa123)! - FAQ answers on the atlas homepage are set in the FAQ band's own type, one size below the question, instead of blog-post prose sizes that made paragraphs larger than the question on phones.
+
+- [#483](https://github.com/rizom-ai/brains/pull/483) [`0f327b4`](https://github.com/rizom-ai/brains/commit/0f327b42a64aac7ce1a9d0bea61431b87b3005f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An owner can rank FAQs: an optional `rank` in a FAQ's frontmatter puts it first on a site, in rank order; unranked FAQs follow, most asked first and newest first on a tie. Entity listings can sort NULLs last with `nullsLast`.
+
 ## 0.2.0-alpha.473
 
 ### Patch Changes

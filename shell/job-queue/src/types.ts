@@ -353,7 +353,10 @@ export interface IJobQueueService {
   /** Settle once nothing is in flight and nothing new has arrived. */
   waitForIdle(options?: JobQueueIdleOptions): Promise<void>;
 
-  /** Read durable processing and terminal updates for web-owned publication. */
+  /**
+   * Read one durable update page after the cursor for web-owned publication.
+   * Limit must be an integer from 0 to 1,000 (default 1,000); zero returns no rows.
+   */
   getRuntimeUpdates(
     cursor: JobRuntimeUpdateCursor,
     limit?: number,

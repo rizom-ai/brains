@@ -2,47 +2,17 @@ import {
   permissionToVisibilityScope,
   sdkErrorSchema,
   type ContentVisibility,
-  type EntityInput,
-  type Message,
-  type OwnedMutationReceipt,
 } from "@brains/sdk/entities";
+import { getGuestSourceCards } from "@brains/contracts/chat";
+import { countAskedBefore } from "./count-asked-before";
 import { slugify } from "@brains/utils/string-utils";
 import type { FaqEntity, FaqFrontmatter } from "../schemas/faq";
-import type {
-  FaqCaptureJobData,
-  FaqCaptureResult,
-  FaqClassification,
-} from "../schemas/capture";
+import type { FaqCaptureJobData, FaqCaptureResult } from "../schemas/capture";
 import type { FaqReconcileEdit } from "./reconcile-faq";
 import { createFaqContent, faqMetadata, parseFaqContent } from "./faq-content";
 import { prepareFaqMerge } from "./faq-merge";
 
-export interface FaqCaptureOperation<TEdit extends FaqReconcileEdit> {
-  get(): Promise<OwnedMutationReceipt | null>;
-  complete(
-    proposal:
-      | { operation: "none" }
-      | { operation: "create"; entity: EntityInput<FaqEntity> }
-      | { operation: "update"; edit: TEdit; entity: FaqEntity },
-  ): Promise<OwnedMutationReceipt>;
-}
-
-/** Capture operates on admitted edits/receipts; it cannot select a native namespace. */
-export interface FaqCaptureWork<TEdit extends FaqReconcileEdit> {
-  wasClaimed(replyId: string): Promise<boolean>;
-  operation(replyId: string): FaqCaptureOperation<TEdit>;
-  messages(
-    conversationId: string,
-    range: { start: number; end: number },
-  ): Promise<Message[]>;
-  classify(question: string, answer: string): Promise<FaqClassification>;
-  findSame(request: {
-    content: string;
-    visibility: ContentVisibility;
-  }): Promise<FaqEntity | undefined>;
-  read(id: string, visibility: ContentVisibility): Promise<TEdit | null>;
-  idTaken(id: string): Promise<boolean>;
-}
+import type { FaqCaptureOperation, FaqCaptureWork } from "./capture-work";
 
 /** Readable question slug, with the same fallback and length as native captures. */
 export function faqSlug(question: string): string {
@@ -117,14 +87,32 @@ async function capture<TEdit extends FaqReconcileEdit>(
     .reverse()
     .find((message) => message.role === "user");
   if (!question) return { captured: false, reason: "no-question" };
+  if (
+    answer.metadata["askedBefore"] !== undefined &&
+    data.userPermissionLevel !== "public"
+  )
+    return { captured: false, reason: "not-reusable" };
+  const counted = await countAskedBefore(deps, answer, operation);
+  if (counted !== undefined)
+    return counted
+      ? { captured: true, ...counted }
+      : { captured: false, reason: "not-reusable" };
   const classification = await deps.classify(question.content, answer.content);
   if (!classification.reusable)
     return { captured: false, reason: "not-reusable" };
   const visibility = permissionToVisibilityScope(data.userPermissionLevel);
+  const sources = getGuestSourceCards(answer.metadata["cards"]).flatMap(
+    (card) =>
+      card.sources.map((source) => ({
+        ...source,
+        title: source.title ?? source.id,
+      })),
+  );
   const frontmatter: FaqFrontmatter = {
     question: classification.question,
     status: "draft",
     asked: 1,
+    ...(sources.length ? { sources } : {}),
   };
   const content = createFaqContent(frontmatter, classification.answer);
   const match = await deps.findSame({ content, visibility });

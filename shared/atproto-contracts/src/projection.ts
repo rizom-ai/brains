@@ -79,6 +79,12 @@ export interface AtprotoProjectionBuildInput {
   client?: AtprotoPdsClientLike;
   topics?: string[];
   dryRun?: boolean;
+  /**
+   * The entity's page on this brain's site, when the site gives it one, so
+   * the record can name where it lives (`canonicalUrl`) and another brain
+   * that keeps the record can send a reader there.
+   */
+  pageUrl?: string;
 }
 
 export type AtprotoProjectedPostRecord = AtprotoBrainPostRecord;

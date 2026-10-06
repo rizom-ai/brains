@@ -48,6 +48,26 @@ describe("topic ATProto projection", () => {
     });
   });
 
+  it("names its page when the site gives the topic one, and nothing otherwise", async () => {
+    const projection = createTopicAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("topics");
+    const placed = await projection.buildRecord({
+      entity: topic,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/topics/topic-1",
+    });
+    expect(placed.canonicalUrl).toBe(
+      "https://brain.example.com/topics/topic-1",
+    );
+    const unplaced = await projection.buildRecord({
+      entity: topic,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the topic projection when the topics package registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-topic-atproto" });
     const plugins = instantiatePluginPackageDefinition(

@@ -15,6 +15,7 @@ import {
   type AtprotoAnnouncer,
   type AtprotoConfigInput,
   type AtprotoPublisher,
+  type AtprotoPublisherInput,
   type AtprotoServiceDeps,
 } from "../../src";
 import type { JetstreamRuntime } from "../../src/jetstream-consumer";
@@ -71,12 +72,14 @@ export function publisherFor(
   shell: MockShell,
   config: AtprotoConfigInput = {},
   deps: AtprotoServiceDeps = {},
+  pageUrl?: AtprotoPublisherInput["pageUrl"],
 ): AtprotoPublisher {
   const context = createServicePluginContext(shell, "atproto");
   return createAtprotoPublisher({
     config: atprotoConfigSchema.parse(config),
     brain: context,
     entities: context.entityService,
+    pageUrl,
     logger: context.logger,
     deps,
   });

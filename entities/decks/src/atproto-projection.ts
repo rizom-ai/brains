@@ -10,6 +10,7 @@ import { deckFrontmatterSchema, deckSchema } from "./schemas/deck";
 export async function buildDeckAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainDeckRecord> {
   const deck = deckSchema.parse(entity);
   const parsed = parseMarkdownWithFrontmatter(
@@ -30,6 +31,7 @@ export async function buildDeckAtprotoRecord({
     ...(frontmatter.publishedAt && { publishedAt: frontmatter.publishedAt }),
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "deck",
     sourceEntityId: deck.id,
     createdAt: deck.created,

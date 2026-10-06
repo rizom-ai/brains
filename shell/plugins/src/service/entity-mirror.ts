@@ -170,7 +170,10 @@ export function createEntityMirror(
     },
     deleteEntity: (request) => entities().deleteEntity(request),
     runBulkMutation: (input, mutation) =>
-      entities().runBulkMutation(input, mutation),
+      entities().runBulkMutation(
+        { ...input, source: options.pluginId },
+        mutation,
+      ),
     serializeEntity: (entity) => entities().serializeEntity(entity),
     deserializeEntity: (markdown, entityType) =>
       entities().deserializeEntity(markdown, entityType),

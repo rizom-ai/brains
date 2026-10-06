@@ -25,6 +25,8 @@ export interface IFileOperations {
   readEntity(filePath: string): Promise<RawEntity>;
   parseEntityFromPath(filePath: string): { entityType: string; id: string };
   fileExists(filePath: string): Promise<boolean>;
+  /** Every file an entity can be written to, in preference order. */
+  getEntityDeletePaths(entityType: string, entityId: string): string[];
 }
 
 /**

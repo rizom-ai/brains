@@ -62,6 +62,69 @@ describe("DirectoryDeleteJobHandler", () => {
       );
     });
 
+    it("keeps an entity another of its files still holds, importing that file", async () => {
+      const mockContext = await hostFor(createMockShell());
+      const deleteEntity = spyOn(
+        mockContext.mirror,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+      const importEntities = mock(async () => ({
+        imported: 1,
+        skipped: 0,
+        failed: 0,
+        quarantined: 0,
+        quarantinedFiles: [],
+        errors: [],
+        jobIds: [],
+      }));
+      const completePendingDelete = mock(() => {});
+      const base = createMockDirectorySync();
+      const directorySync = createMockDirectorySync({
+        importEntities,
+        completePendingDelete,
+        fileOps: {
+          ...base.fileOps,
+          getEntityDeletePaths: (): string[] => [
+            "/sync/image/cover.png",
+            "/sync/image/cover.jpg",
+            "/sync/image/cover.md",
+          ],
+          fileExists: mock(
+            async (path: string) => path === "/sync/image/cover.png",
+          ),
+        },
+      });
+      const handler = new DirectoryDeleteJobHandler(
+        logger,
+        mockContext,
+        directorySync,
+      );
+
+      const result = await handler.process(
+        {
+          entityId: "cover",
+          entityType: "image",
+          filePath: "/sync/image/cover.jpg",
+        },
+        jobId,
+        createMockProgressReporter(),
+      );
+
+      expect(deleteEntity).not.toHaveBeenCalled();
+      expect(importEntities).toHaveBeenCalledWith(["/sync/image/cover.png"]);
+      expect(completePendingDelete).toHaveBeenCalledWith(
+        "image",
+        "cover",
+        "/sync/image/cover.jpg",
+      );
+      expect(result).toEqual({
+        deleted: false,
+        entityId: "cover",
+        entityType: "image",
+        filePath: "/sync/image/cover.jpg",
+      });
+    });
+
     it("deletes a targeted batch in one job", async () => {
       const mockContext = await hostFor(createMockShell());
       const deleteEntity = spyOn(

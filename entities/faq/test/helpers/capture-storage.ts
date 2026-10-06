@@ -30,6 +30,7 @@ export async function openCaptureStorage(
     classify?: () => Promise<void>;
     targetId?: string;
     classification?: FaqClassification;
+    replyMetadata?: Message["metadata"];
   } = {},
 ): Promise<CaptureFixture> {
   const logger = createSilentLogger();
@@ -55,7 +56,7 @@ export async function openCaptureStorage(
       role: "assistant",
       content: "An example service.",
       timestamp: new Date().toISOString(),
-      metadata: {},
+      metadata: options.replyMetadata ?? {},
     },
   ];
   const deps = {

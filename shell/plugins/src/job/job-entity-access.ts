@@ -56,7 +56,7 @@ export function createJobEntityAccess(
    * restricted memory — and omitted for a job acting for the brain itself.
    */
   visibilityScope?: ContentVisibility,
-  /** Issued only by the installed background job runtime, never caller data. */
+  /** Issued by installed background jobs or subscription deliveries, never caller data. */
   mutationOwner?: OwnedMutationOwner,
 ): JobEntityAccess {
   // A requested scope may narrow a caller's access, never widen it. An

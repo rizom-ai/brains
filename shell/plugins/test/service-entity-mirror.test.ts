@@ -335,6 +335,7 @@ describe("the records as a mirror keeps them", () => {
   it("holds the export ledger and the coordination a sweep runs under", async () => {
     const mirror = await install();
     expect(await mirror.hasPendingEntityExports()).toBe(false);
+    const bulk = spyOn(harness.getEntityService(), "runBulkMutation");
 
     const batch = await mirror.coordination.beginDurableBulkMutation({
       rootJobId: "sweep-1",
@@ -361,6 +362,13 @@ describe("the records as a mirror keeps them", () => {
         ),
     );
 
+    expect(bulk).toHaveBeenCalledWith(
+      {
+        source: "@fixture/directory-sync:directory-sync",
+        operationId: "sweep-1",
+      },
+      expect.any(Function),
+    );
     expect(batch.rootJobId).toBe("sweep-1");
     expect(written).toBe("done");
     expect(mirror.getEntityTypes()).toContain("note");

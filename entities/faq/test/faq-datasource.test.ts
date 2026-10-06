@@ -97,18 +97,21 @@ describe.each(["mock", "sqlite"] as const)(
             question: "Question thrice?",
             answer: "Answer **thrice**.",
             asked: 3,
+            sources: [],
           },
           {
             id: "draft",
             question: "Question draft?",
             answer: "Answer **draft**.",
             asked: 2,
+            sources: [],
           },
           {
             id: "once",
             question: "Question once?",
             answer: "Answer **once**.",
             asked: 1,
+            sources: [],
           },
         ],
       });

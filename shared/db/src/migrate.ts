@@ -74,8 +74,10 @@ export function resolveMigrationsFolder(
   bundledSubpath: string,
 ): string {
   const isBundled = moduleUrl.includes("/dist/");
+  // Split bundles live one level below the distribution's migration assets.
+  const prefix = moduleUrl.includes("/dist/chunks/") ? ".." : ".";
   return isBundled
-    ? new URL(`./migrations/${bundledSubpath}`, moduleUrl).pathname
+    ? new URL(`${prefix}/migrations/${bundledSubpath}`, moduleUrl).pathname
     : new URL("../drizzle", moduleUrl).pathname;
 }
 

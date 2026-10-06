@@ -10,6 +10,7 @@ import { socialPostSchema } from "./schemas/social-post";
 export async function buildSocialPostAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainSocialPostRecord> {
   const socialPost = socialPostSchema.parse(entity);
   const frontmatter = socialPostAdapter.parsePostFrontmatter(socialPost);
@@ -34,6 +35,7 @@ export async function buildSocialPostAtprotoRecord({
     }),
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "social-post",
     sourceEntityId: socialPost.id,
     createdAt: socialPost.created,

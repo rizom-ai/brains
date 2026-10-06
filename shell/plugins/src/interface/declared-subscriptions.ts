@@ -1,4 +1,5 @@
-import { toSdkError, type SdkErrorCode } from "@brains/contracts";
+import type { IEntityAINamespace } from "../entity/ai-types";
+import { SdkError, toSdkError, type SdkErrorCode } from "@brains/contracts";
 import { createRequester } from "../internal/requester";
 import { createIdentityReader } from "../internal/authoring-readers";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
@@ -22,6 +23,9 @@ export function registerDeclaredSubscriptions(input: {
   readonly subscriptions: readonly AnySubscriptionDefinition[];
   /** A service supplies its owned access; interfaces default to write refusals. */
   readonly entities?: EntityAccess;
+  /** Only an installed service issues owned background edits for this delivery. */
+  readonly backgroundEntities?: (signal: AbortSignal) => EntityAccess;
+  readonly ai?: Pick<IEntityAINamespace, "generateObject">;
   readonly context: Pick<
     InterfacePluginContext,
     "messaging" | "entityService" | "identity"
@@ -46,14 +50,38 @@ export function registerDeclaredSubscriptions(input: {
         ? context.messaging.subscribeExecution
         : context.messaging.subscribe;
     subscribe(subscription.topic, async (message) => {
+      const lifetime = new AbortController();
+      const active = (): void => {
+        if (lifetime.signal.aborted) throw new SdkError("cancelled");
+      };
       let fallback: SdkErrorCode = "invalid_input";
       try {
         const payload = subscription.payload.parse(message.payload);
         fallback = "handler_failed";
         const answered = await subscription.handle({
           payload,
+          messageId: message.id,
+          ai: {
+            generateObject: async (prompt, schema, signal) => {
+              try {
+                active();
+                if (!input.ai) throw new SdkError("permission_denied");
+                const result = await input.ai.generateObject(
+                  prompt,
+                  schema,
+                  signal
+                    ? AbortSignal.any([signal, lifetime.signal])
+                    : lifetime.signal,
+                );
+                active();
+                return result;
+              } catch (cause) {
+                throw toSdkError(cause);
+              }
+            },
+          },
           source: message.source,
-          entities,
+          entities: input.backgroundEntities?.(lifetime.signal) ?? entities,
           identity: createIdentityReader(context.identity),
           messaging: {
             request: createRequester((outbound) =>
@@ -77,6 +105,8 @@ export function registerDeclaredSubscriptions(input: {
       } catch (error) {
         const failure = toSdkError(error, fallback);
         return { success: false, code: failure.code, error: failure.message };
+      } finally {
+        lifetime.abort();
       }
     });
   }

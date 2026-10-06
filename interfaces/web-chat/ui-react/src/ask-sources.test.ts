@@ -43,3 +43,30 @@ describe("Ask sources detail", () => {
     ).toEqual({ sources: [] });
   });
 });
+
+describe("Ask sources detail, with the brain a source came from", () => {
+  it("carries the brain through when a citation has one", () => {
+    const brain = { name: "Becca", url: "https://becca.rizom.ai" };
+    const detail = askSourcesDetail([
+      card([
+        source("post", "hiding", "Hiding"),
+        {
+          id: "network-piece:becca/post/handoffs",
+          entityType: "network-piece",
+          entityId: "becca/post/handoffs",
+          source: "network-piece",
+          title: "Handoffs",
+          brain,
+        },
+      ]),
+    ]);
+    expect(askSourcesDetailSchema.parse(detail).sources).toEqual([
+      { id: "post:hiding", title: "Hiding" },
+      {
+        id: "network-piece:becca/post/handoffs",
+        title: "Handoffs",
+        brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+      },
+    ]);
+  });
+});

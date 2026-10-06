@@ -76,7 +76,7 @@ describe("caller-bound entity reads", () => {
           visibilityScope: expected,
         });
         await reader.find(definition.type, "missing");
-        expect(service.getEntity).toHaveBeenLastCalledWith({
+        expect(service.getEntityRaw).toHaveBeenLastCalledWith({
           entityType: definition.type,
           id: "missing",
           visibilityScope: cap,

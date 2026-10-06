@@ -49,4 +49,24 @@ describe("series ATProto projection", () => {
       updatedAt: "2026-05-28T11:00:00.000Z",
     });
   });
+
+  it("names its page when the site gives the series one, and nothing otherwise", async () => {
+    const projection = createSeriesAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("series");
+    const placed = await projection.buildRecord({
+      entity: series,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/seriess/series-1",
+    });
+    expect(placed.canonicalUrl).toBe(
+      "https://brain.example.com/seriess/series-1",
+    );
+    const unplaced = await projection.buildRecord({
+      entity: series,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
 });

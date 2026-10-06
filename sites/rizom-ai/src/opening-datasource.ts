@@ -8,7 +8,7 @@ import { createInterfaceAvailabilityReader } from "@brains/plugins/internal/inte
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
 import { homepageChatAvailable, loadAskContent } from "@brains/site-atlas";
 
-const MAP_SOURCE_ID = "@brains/agent-discovery:agent:proximity-map";
+const MAP_SOURCE_ID = "@brains/agent-discovery:proximity-map";
 
 /** Where the opening's data comes from, read with the plugin's runtime. */
 export interface OpeningLoaders {

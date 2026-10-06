@@ -1,9 +1,26 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { brainOrganism } from "../../src/story/brain-organism";
+import { livingOrganism } from "../../src/story/living-organism";
 import { workOrganism } from "../../src/story/work-organism";
 
 describe("the room drawings", () => {
+  test("the homepage drawing grows its first team out of the centre point, where the opening's network gathers", () => {
+    const css = livingOrganism.css();
+    // Before the science, the team waits at the centre, unseen; the science
+    // sends it out to its corners, so the pyramid opens from the point the
+    // network drew into. Back up the page, it closes into the point again.
+    expect(css).toContain(
+      '.living-org[data-stage="0"] #living-org-n-T1 { cx: 300px; cy: 300px; r: 0px; opacity: 0; }',
+    );
+    expect(css).toContain(
+      '.living-org[data-stage="0"] #living-org-n-T3 { cx: 300px; cy: 300px; r: 0px; opacity: 0; }',
+    );
+    expect(css).toContain(
+      '.living-org[data-stage="1"] #living-org-n-T1 { cx: 300px; cy: 165px; r: 6px; opacity: 1; }',
+    );
+  });
+
   test("the Brain's drawing grows from one lantern through six stages", () => {
     expect(brainOrganism.stageCount).toBe(6);
     const svg = renderToStaticMarkup(brainOrganism.svg());

@@ -39,8 +39,12 @@ export function stateNamespaceFor(
   // reading that exact store during the declaration port; never replay or
   // age out a claim. Tracked as faq-ambiguous-capture-claims. Old writers must
   // stop before rollout; no mixed-version or downgrade guarantee is implied.
-  if (owner === "@brains/faq" && namespace === "faq.captured-replies") {
-    return "faq.captured-replies";
+  if (
+    owner === "@brains/faq" &&
+    (namespace === "faq.captured-replies" ||
+      namespace === "faq.source-withdrawals")
+  ) {
+    return namespace;
   }
   if (simpleScopedPackage.test(owner)) {
     return `${owner.slice(1).replace("/", ".")}.${namespace}`;

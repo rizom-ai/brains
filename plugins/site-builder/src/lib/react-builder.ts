@@ -86,10 +86,6 @@ export class ReactBuilder implements StaticSiteBuilder {
     );
     if (rejectedRoute) throw rejectedRoute.reason;
 
-    // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
-    reportProgress("Processing Tailwind CSS");
-    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
-
     // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
     await this.writePublicAssets(preparedBuild.publicAssets, signal);
@@ -100,6 +96,12 @@ export class ReactBuilder implements StaticSiteBuilder {
     // keyed by output path, values are file contents as strings. On a path
     // collision the SitePackage wins.
     await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
+    signal.throwIfAborted();
+
+    // Styles come last: Tailwind scans the emitted pages and the runtime
+    // scripts that toggle classes on them, so both must be on disk.
+    reportProgress("Processing Tailwind CSS");
+    await this.processStyles(preparedBuild.themeCSS ?? "", signal);
     signal.throwIfAborted();
 
     reportProgress("React build complete");

@@ -28,6 +28,18 @@ The default package declares the `capture` service. Its job types are `@brains/f
 
 Capture subscriptions run in the interactive app. Embedding-readiness reconciliation also runs in workers. Disabling capture stops automatic capture and reconciliation enqueueing; declared handlers and explicit evals remain available, as do previously queued jobs. Registration makes no model calls. Evals use restricted fixtures and bounded matching; run them against isolated evaluation data because resetting FAQ fixtures removes existing FAQs.
 
+## Answered-before replies and source withdrawal
+
+A public, published FAQ without a review marker can answer a visitor after semantic confirmation. Its complete canonical revision is re-read after that asynchronous check; changed eligibility yields no hit. This read never increments `asked`. The persisted assistant reply records the confirmed FAQ question, and its normal `faq.capture` receipt owns the increment. Capture checks the same public question and answer with full-revision CAS, without classifying an approved answer again.
+
+Older fast-path replies lack capture provenance and may already have incremented without a receipt. Their pending capture jobs require manual reconciliation, not another count or a silent completion. Existing claims and receipts are not expired or reset. Stop old web and worker writers before this one-way rollout; mixed versions and downgrade are unsupported.
+
+Confirmation generation and embeddings belong to guest settlement even on a miss or failed check. Unreported, unfinished, uninstrumented or unpriced work makes cost unknown, not known zero. Auxiliary attempts share the request lifetime; measured requests disable hidden SDK retries. These are accounting and cancellation guarantees, not provider-spend ceilings or bounded-total-scan guarantees.
+
+Delivered network-piece deletions first record pending work in `faq.source-withdrawals`, then enqueue `@brains/faq:capture:faq-source-review`. Daily maintenance resumes enqueue failures and failed/pruned jobs with the same delivered message identity. Pending work has no expiry and is removed only after durable completion. Per-FAQ `faq.source-review` receipts preserve an owner's later keep decision across replay. Full-revision contention gets three attempts; exhaustion retains pending work. A full 1,000-row citation page requires manual reconciliation rather than silently acknowledging completion. There is no transactional outbox for deletion notifications that never reach the subscriber.
+
+The host preserves these exact state and receipt namespaces only for their installed FAQ owner. Migration `0007_scope_faq_source_review` upgrades `faq:faq-source-review` jobs only when both source and metadata owner are `faq`, preserving payloads, withdrawal IDs, attempts and leases. Missing or different ownership is untouched. Service subscriptions receive delivery-lifetime owned edits and structured confirmation; interfaces and caller-bound tools do not acquire that background authority.
+
 ## Visibility
 
 The FAQ takes the visibility of the turn that produced the answer:
@@ -43,11 +55,11 @@ The answer could only draw on content visible at that level, so the FAQ is never
 
 ## Entity
 
-Frontmatter holds only `question`, `status` (`draft` | `published`), `asked` (how many chat replies asked it), and an optional `rank` the owner sets to place it on a site (1 first). The body is markdown: the answer, then any alternative answers under `## Alternative answers`, one `### Alternative N` section each. The answer is only the text above that heading, so sites never show alternatives. Internal completion receipts track decided replies; they are never part of the FAQ document.
+Frontmatter holds `question`, `status` (`draft` | `published`), `asked` (how many chat replies asked it), optional kept `sources`, an optional `review: source-withdrawn` marker, and an optional `rank` the owner sets to place it on a site (1 first). The body is markdown: the answer, then any alternative answers under `## Alternative answers`, one `### Alternative N` section each. The answer is only the text above that heading, so sites never show alternatives. Internal completion receipts track decided replies; they are never part of the FAQ document.
 
 ## Reviewing alternative answers
 
-A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is appended to the body under `## Alternative answers` as its own `###` section, with its own headings nested one level below (reconciliation carries a folded duplicate's answer the same way), where the owner can read and edit it in Studio's editor like any other markdown. Such a FAQ appears in the owner's Inbox, with the current answer and each alternative in its detail. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either removes the alternatives from the body and writes only over the version it read.
+A merge keeps the FAQ's answer. When the merging reply's rewritten answer differs, it is appended to the body under `## Alternative answers` as its own `###` section, with its own headings nested one level below (reconciliation carries a folded duplicate's answer the same way), where the owner can read and edit it in Studio's editor like any other markdown. Such a FAQ appears in the owner's Inbox, with the current answer and each alternative in its detail. **Use alternative N** makes that alternative the answer; **Keep current answer** keeps it. Either removes the alternatives from the body and writes only over the version it read. Choosing an alternative clears the previous answer's source attribution: alternatives currently carry text, not independent source provenance. Withdrawn sources also put published FAQs in the Inbox, where the owner can keep the answer or unpublish it.
 
 ## Publishing and sites
 
@@ -62,7 +74,7 @@ The FAQ declaration provides the local `entities` datasource and `faq-section` t
 ```yaml
 plugins:
   faq:
-    enabled: false # default true; off stops automatic capture/reconciliation
+    enabled: false # default true; off stops capture/reconciliation enqueueing and answered-before lookup; source review and queued jobs remain active
     sameQuestionDistance: 0.25 # shortlist distance; an AI check confirms each candidate
 ```
 

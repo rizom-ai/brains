@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. Posture—from private personal use to public professional publishing or shared team memory—is configuration, not a separate product.</p>
-      <div class="updated">Last updated: 2026-09-21 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-10-02 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -165,6 +165,14 @@
           <div class="card-desc">the broader private durable operator/security tier beyond shipped auth state.</div>
           <div class="card-file">operator-runtime-db.md</div>
         </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Onboarding emails</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">one renderer for the anchor setup email and the invitation: text and HTML parts, brain and inviter names, readable expiry; the <code>setupEmail</code> copy override is removed.</div>
+          <div class="card-file">onboarding-emails.md</div>
+        </div>
         </div>
       </details>
       <details class="group" open>
@@ -177,6 +185,14 @@
           </div>
           <div class="card-desc">make <code>--push-to bitwarden</code> on the bootstrap commands store the secret in Bitwarden and map it in <code>.env.schema</code>, instead of pushing to GitHub.</div>
           <div class="card-file">bootstrap-secrets-bitwarden.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Pilot content repositories on Cloudflare Artifacts</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">move pilot content repositories from GitHub to Cloudflare Artifacts, with a repo-scoped token per brain and Studio clone access for each user.</div>
+          <div class="card-file">artifacts-content-repos.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -302,6 +318,14 @@
         </div>
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">Durable Binary Asset Storage Plan</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">**P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut <code>yeehaa.io</code> over, soak, and remove the legacy bridge before stable <code>0.2.0</code>.</div>
+          <div class="card-file">durable-binary-assets.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -353,14 +377,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Durable Binary Asset Storage Plan</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">move image bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, then validate a production cutover.</div>
-          <div class="card-file">durable-binary-assets.md</div>
-        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">HTTP route registry hardening</span>

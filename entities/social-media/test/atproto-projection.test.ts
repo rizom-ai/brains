@@ -64,6 +64,26 @@ describe("social-post ATProto projection", () => {
     });
   });
 
+  it("names its page when the site gives the social post one, and nothing otherwise", async () => {
+    const projection = createSocialPostAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("social-media");
+    const placed = await projection.buildRecord({
+      entity: socialPost,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/social-posts/socialPost-1",
+    });
+    expect(placed.canonicalUrl).toBe(
+      "https://brain.example.com/social-posts/socialPost-1",
+    );
+    const unplaced = await projection.buildRecord({
+      entity: socialPost,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the social-post projection when the social media plugin registers", async () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-social-post-atproto",

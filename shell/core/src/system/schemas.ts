@@ -94,7 +94,7 @@ const createUploadInputSchema: z.ZodObject<{
   id: z.string().min(1).describe("Upload ID"),
 });
 
-const createUserMessageSourceInputSchema: StrictObjectSchema<{
+export const userMessageSourceInputSchema: StrictObjectSchema<{
   kind: z.ZodLiteral<"user-message">;
   messageId: z.ZodOptional<z.ZodString>;
   boundaryMode: z.ZodOptional<
@@ -108,7 +108,7 @@ const createUserMessageSourceInputSchema: StrictObjectSchema<{
     kind: z
       .literal("user-message")
       .describe(
-        "Save verbatim text already supplied by the user. The server reads the stored message; do not copy its body into tool arguments.",
+        "Use verbatim text already supplied by the user. The server reads the stored message; do not copy its body into tool arguments.",
       ),
     messageId: z
       .string()
@@ -153,7 +153,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
       kind: z.ZodLiteral<"text">;
       content: z.ZodString;
     }>,
-    typeof createUserMessageSourceInputSchema,
+    typeof userMessageSourceInputSchema,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"url">;
       url: z.ZodString;
@@ -188,7 +188,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         ),
     })
     .strict(),
-  createUserMessageSourceInputSchema,
+  userMessageSourceInputSchema,
   z
     .object({
       kind: z
@@ -511,6 +511,7 @@ export const updateInputSchema: z.ZodObject<{
   fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   content: z.ZodOptional<z.ZodString>;
   edits: z.ZodOptional<z.ZodArray<typeof contentEditSchema>>;
+  source: z.ZodOptional<typeof userMessageSourceInputSchema>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
@@ -527,7 +528,7 @@ export const updateInputSchema: z.ZodObject<{
     .string()
     .optional()
     .describe(
-      "Full markdown content replacement only. For small changes, use edits instead of regenerating the whole document. Do not combine content with edits or fields.",
+      "Full replacement text you wrote yourself. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use source instead of copying it here. For small changes, use edits instead of regenerating the whole document.",
     ),
   edits: z
     .array(contentEditSchema)
@@ -535,7 +536,12 @@ export const updateInputSchema: z.ZodObject<{
     .max(50)
     .optional()
     .describe(
-      "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Omit content and fields when using edits. Unchanged text is preserved without regeneration.",
+      "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
+    ),
+  source: userMessageSourceInputSchema
+    .optional()
+    .describe(
+      "Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
     ),
   confirmed: z.literal(true).optional().describe("Confirm the update"),
   confirmationToken: z

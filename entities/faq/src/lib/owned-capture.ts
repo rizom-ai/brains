@@ -5,7 +5,8 @@ import type {
 import { faq } from "../faq-entity";
 import type { FaqEntity } from "../schemas/faq";
 import type { FaqCaptureJobData, FaqCaptureResult } from "../schemas/capture";
-import { captureFaq, type FaqCaptureWork } from "./capture-faq";
+import { captureFaq } from "./capture-faq";
+import type { FaqCaptureWork } from "./capture-work";
 
 export type OwnedFaqCaptureWork = Omit<
   FaqCaptureWork<OwnedEntityEdit<FaqEntity>>,

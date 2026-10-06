@@ -50,6 +50,7 @@ function createLexicon(id: string): AtprotoLexicon {
             body: { type: "string" },
             format: { type: "string" },
             url: { type: "string", format: "uri" },
+            canonicalUrl: { type: "string", format: "uri" },
             topics: { type: "array", items: { type: "string" } },
             brainDid: { type: "string", format: "did" },
             anchorDid: { type: "string", format: "did" },
@@ -70,7 +71,7 @@ function registerTestPostProjection(): void {
     collection: "ai.rizom.brain.post",
     lexicon: createLexicon("ai.rizom.brain.post"),
     validate: false,
-    buildRecord: async ({ entity, config, topics }) => ({
+    buildRecord: async ({ entity, config, topics, pageUrl }) => ({
       $type: "ai.rizom.brain.post",
       title: "Distributed Brains",
       body: entity.content,
@@ -78,6 +79,7 @@ function registerTestPostProjection(): void {
       ...(config.brainDid && { brainDid: config.brainDid }),
       ...(config.anchorDid && { anchorDid: config.anchorDid }),
       ...(topics && topics.length > 0 && { topics }),
+      ...(pageUrl && { canonicalUrl: pageUrl }),
       sourceEntityType: "post",
       sourceEntityId: entity.id,
       createdAt: entity.created,
@@ -126,6 +128,37 @@ describe("AT Protocol post publishing", () => {
   beforeEach(() => {
     AtprotoProjectionRegistry.resetInstance();
     registerTestPostProjection();
+  });
+
+  it("hands the projection the host-resolved page, including a custom route", async () => {
+    const pageUrl = mock(
+      () => "https://brain.example.com/essays/distributed-brains",
+    );
+    const publisher = publisherFor(
+      createShell(),
+      { pdsEndpoint: "https://pds.example.com" },
+      {},
+      pageUrl,
+    );
+    const result = await publisher.publishPost({
+      slug: "distributed-brains",
+      dryRun: true,
+    });
+    expect(result.record.canonicalUrl).toBe(
+      "https://brain.example.com/essays/distributed-brains",
+    );
+    expect(pageUrl).toHaveBeenCalledWith(createPost());
+  });
+
+  it("hands no page for a type the site gives none", async () => {
+    const publisher = publisherFor(createShell(), {
+      pdsEndpoint: "https://pds.example.com",
+    });
+    const result = await publisher.publishPost({
+      slug: "distributed-brains",
+      dryRun: true,
+    });
+    expect(result.record.canonicalUrl).toBeUndefined();
   });
 
   it("dry-runs a post record by slug without writing to the PDS", async () => {

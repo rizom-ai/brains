@@ -95,3 +95,39 @@ describe("guest source projection", () => {
     }
   });
 });
+
+describe("a guest source's brain", () => {
+  const cited = (brain: unknown): unknown[] => [
+    {
+      kind: "sources",
+      id: "sources:tool-results",
+      sources: [
+        {
+          id: "network-piece:becca/post/handoffs",
+          source: "network-piece",
+          entityType: "network-piece",
+          entityId: "becca/post/handoffs",
+          title: "Handoffs",
+          brain,
+        },
+      ],
+    },
+  ];
+  it("carries the brain through, with its address vetted like a source's", () => {
+    expect(
+      getGuestSourceCards(
+        cited({ name: "Becca", url: "https://becca.rizom.ai" }),
+      )[0]?.sources[0]?.brain,
+    ).toEqual({ name: "Becca", url: "https://becca.rizom.ai/" });
+    expect(
+      getGuestSourceCards(
+        cited({ name: "Becca", url: "http://becca.rizom.ai" }),
+      )[0]?.sources[0]?.brain,
+    ).toEqual({ name: "Becca" });
+  });
+  it("leaves a source without a brain as it was", () => {
+    expect(
+      getGuestSourceCards(cited(undefined))[0]?.sources[0],
+    ).not.toHaveProperty("brain");
+  });
+});

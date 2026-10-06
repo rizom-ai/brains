@@ -58,45 +58,48 @@ it("keeps definition arguments separate from read options and sanitizes malforme
   expect(JSON.stringify(error)).not.toContain("Private");
 });
 
-it("pins the installed package and declaration separately for receipt identity", async () => {
-  const record = defineEntity({
-    type: "faq",
-    purpose: "Namespace fixture",
-    metadata: z.object({}),
-  });
-  const service = createMockEntityService(createMockEntityStore());
-  await service.applyEntityMutationOnce({
-    receipt: { namespace: "faq.capture", key: "native" },
-    operation: "none",
-  });
-  const owner = { packageName: "@brains/faq", declarationId: "capture" };
-  const original = createJobEntityAccess(
-    service,
-    new Set(["faq"]),
-    "not-authority",
-    undefined,
-    owner,
-  ).mutations;
-  owner.packageName = "@fixture/other";
-  owner.declarationId = "other";
-  expect(await original.once(record, "capture", "native").get()).toEqual({
-    operation: "none",
-  });
-  for (const identity of [
-    { packageName: "@brains/faq", declarationId: "other" },
-    { packageName: "@fixture/other", declarationId: "capture" },
-    { packageName: "@brains/faq:capture", declarationId: "capture" },
-  ]) {
-    const other = createJobEntityAccess(
+for (const operation of ["capture", "source-review"] as const)
+  it(`pins the installed package and declaration separately for ${operation} receipt identity`, async () => {
+    const namespace =
+      operation === "capture" ? "faq.capture" : "faq.source-review";
+    const record = defineEntity({
+      type: "faq",
+      purpose: "Namespace fixture",
+      metadata: z.object({}),
+    });
+    const service = createMockEntityService(createMockEntityStore());
+    await service.applyEntityMutationOnce({
+      receipt: { namespace, key: "native" },
+      operation: "none",
+    });
+    const owner = { packageName: "@brains/faq", declarationId: "capture" };
+    const original = createJobEntityAccess(
       service,
       new Set(["faq"]),
-      "@brains/faq",
+      "not-authority",
       undefined,
-      identity,
+      owner,
     ).mutations;
-    expect(await other.once(record, "capture", "native").get()).toBeNull();
-  }
-});
+    owner.packageName = "@fixture/other";
+    owner.declarationId = "other";
+    expect(await original.once(record, operation, "native").get()).toEqual({
+      operation: "none",
+    });
+    for (const identity of [
+      { packageName: "@brains/faq", declarationId: "other" },
+      { packageName: "@fixture/other", declarationId: "capture" },
+      { packageName: "@brains/faq:capture", declarationId: "capture" },
+    ]) {
+      const other = createJobEntityAccess(
+        service,
+        new Set(["faq"]),
+        "@brains/faq",
+        undefined,
+        identity,
+      ).mutations;
+      expect(await other.once(record, operation, "native").get()).toBeNull();
+    }
+  });
 
 it("refuses previously issued edits and operation objects after job cancellation", async () => {
   const record = defineEntity({
@@ -152,7 +155,7 @@ it("refuses previously issued edits and operation objects after job cancellation
   expect((await fresh.read(record, "one"))?.entity.content).toBe("one");
 });
 
-it("issues mutation ownership from the installed background job, not an ordinary callback", async () => {
+it("issues mutation ownership from the installed background job, not a caller-bound tool", async () => {
   const record = defineEntity({
     type: "faq",
     purpose: "Receipt identity fixture",

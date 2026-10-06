@@ -1,6 +1,7 @@
 import {
   AIService,
   EmbeddingUsageMeter,
+  GenerationUsageMeter,
   OnlineEmbeddingProvider,
 } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
@@ -87,7 +88,9 @@ export function createShellServices(options: {
 
   // Tells a guest turn what its embeddings cost: the provider reports each
   // call, the agent measures each turn.
-  const embeddingUsage = EmbeddingUsageMeter.createFresh();
+  const embeddingUsage = EmbeddingUsageMeter.createFresh(
+    !dependencies?.embeddingService,
+  );
   const embeddingService =
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
@@ -95,9 +98,10 @@ export function createShellServices(options: {
       logger,
       usage: embeddingUsage,
     });
+  const generationUsage = GenerationUsageMeter.createFresh();
   const aiService =
     dependencies?.aiService ??
-    AIService.createFresh(createAIModelConfig(config), logger);
+    AIService.createFresh(createAIModelConfig(config), logger, generationUsage);
   const entityRegistry =
     dependencies?.entityRegistry ?? EntityRegistry.createFresh(logger);
   const messageBus =
@@ -319,6 +323,7 @@ export function createShellServices(options: {
     entityService,
     embeddingService,
     embeddingUsage,
+    ...(!dependencies?.aiService ? { generationUsage } : {}),
     entityRegistry,
     logger,
     messageBus,

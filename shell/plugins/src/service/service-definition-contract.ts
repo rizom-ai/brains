@@ -1177,6 +1177,10 @@ interface ServiceDefinitionHeader<
         readonly plugins: Pick<IPluginsNamespace, "has">;
         readonly http: { isConfigured(): boolean };
         readonly siteUrl: string | undefined;
+        /** Host-resolved canonical page on the installed site; no route registry. Named consumer: ATProto. */
+        readonly sitePageUrl: (
+          entity: Readonly<BaseEntity>,
+        ) => string | undefined;
         /**
          * Where the brain's own pages are addressed, for a package that
          * renders them.

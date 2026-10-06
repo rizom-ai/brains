@@ -246,6 +246,66 @@ describe("FAQ owned capture", () => {
     });
   }
 
+  it("keeps the reply's sources, so the answer can still show whose memory it drew on", async () => {
+    const sourced: Message = {
+      ...message("m4", "assistant", "Open it in Studio and choose Publish."),
+      metadata: {
+        cards: [
+          {
+            kind: "sources",
+            id: "sources:tool-results",
+            sources: [
+              {
+                id: "network-piece:plc-peer--post--3kabc",
+                source: "network-piece",
+                entityType: "network-piece",
+                entityId: "plc-peer--post--3kabc",
+                title: "Handoffs between teams",
+                url: "https://becca.rizom.ai/essays/handoffs",
+                excerpt:
+                  "Before anyone leaves a task we write three things down.",
+                brain: { name: "Becca", url: "https://becca.rizom.ai" },
+              },
+              {
+                id: "post:publishing",
+                source: "post",
+                entityType: "post",
+                entityId: "publishing",
+                title: "Publishing from Studio",
+                url: "https://rizom.ai/essays/publishing",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = await capture(
+      createHandler([...transcript.slice(0, 3), sourced]),
+      "public",
+    );
+    expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
+    const [faq] = await context.entityService.listEntities(
+      { entityType: "faq", options: { filter: { visibilityScope: "public" } } },
+      faqSchema,
+    );
+    expect(
+      faqAdapter.parseFaqContent(faq?.content ?? "").frontmatter.sources,
+    ).toEqual([
+      {
+        id: "network-piece:plc-peer--post--3kabc",
+        title: "Handoffs between teams",
+        url: "https://becca.rizom.ai/essays/handoffs",
+        excerpt: "Before anyone leaves a task we write three things down.",
+        brain: { name: "Becca", url: "https://becca.rizom.ai/" },
+      },
+      {
+        id: "post:publishing",
+        title: "Publishing from Studio",
+        url: "https://rizom.ai/essays/publishing",
+      },
+    ]);
+  });
+
   it("classifies the answer against the nearest preceding user message", async () => {
     await capture(createHandler(), "admin");
 

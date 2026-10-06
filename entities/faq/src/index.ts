@@ -52,3 +52,4 @@ export { findSameFaq } from "./lib/faq-matching";
 export { faqInbox } from "./lib/faq-inbox-source";
 export { capturedReplyStore } from "./lib/captured-replies";
 export type { CapturedReply, CapturedReplyStore } from "./lib/captured-replies";
+export { answerAskedBefore } from "./lib/asked-before";

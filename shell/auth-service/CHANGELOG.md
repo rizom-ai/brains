@@ -1,5 +1,130 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.484
+
+### Patch Changes
+
+- [`fdca4f8`](https://github.com/rizom-ai/brains/commit/fdca4f8d5e98f222fed1743ab55a74b6acc52169) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drain complete auth HTTP handlers and facade operations before runtime shutdown. Keep independent requests concurrent, allow admitted handlers to finish nested auth calls, and defer later callers until cleanup settles. Track nested operations independently, give admitted background callbacks the same owner while skipping new scheduled ticks during shutdown, reject self-close instead of deadlocking, and prevent detached continuations from reusing completed request scopes.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.484
+  - @brains/contracts@0.2.0-alpha.484
+  - @brains/db@0.2.0-alpha.484
+  - @brains/utils@0.2.0-alpha.484
+  - @brains/plugins@0.2.0-alpha.484
+
+## 0.2.0-alpha.483
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.483
+  - @brains/contracts@0.2.0-alpha.483
+  - @brains/db@0.2.0-alpha.483
+  - @brains/utils@0.2.0-alpha.483
+  - @brains/plugins@0.2.0-alpha.483
+
+## 0.2.0-alpha.482
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.482
+  - @brains/contracts@0.2.0-alpha.482
+  - @brains/db@0.2.0-alpha.482
+  - @brains/utils@0.2.0-alpha.482
+  - @brains/plugins@0.2.0-alpha.482
+
+## 0.2.0-alpha.481
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.481
+  - @brains/notifications@0.2.0-alpha.481
+  - @brains/contracts@0.2.0-alpha.481
+  - @brains/db@0.2.0-alpha.481
+  - @brains/utils@0.2.0-alpha.481
+
+## 0.2.0-alpha.480
+
+### Patch Changes
+
+- Updated dependencies [[`6b1190b`](https://github.com/rizom-ai/brains/commit/6b1190b3b7f5f7274d54e4255a50a45d85fbeb78)]:
+  - @brains/db@0.2.0-alpha.480
+  - @brains/plugins@0.2.0-alpha.480
+  - @brains/notifications@0.2.0-alpha.480
+  - @brains/contracts@0.2.0-alpha.480
+  - @brains/utils@0.2.0-alpha.480
+
+## 0.2.0-alpha.479
+
+### Patch Changes
+
+- Updated dependencies [[`48e2464`](https://github.com/rizom-ai/brains/commit/48e2464c5531d6b9b9ee9e3b69b44f1c5df5805c)]:
+  - @brains/db@0.2.0-alpha.479
+  - @brains/plugins@0.2.0-alpha.479
+  - @brains/notifications@0.2.0-alpha.479
+  - @brains/contracts@0.2.0-alpha.479
+  - @brains/utils@0.2.0-alpha.479
+
+## 0.2.0-alpha.478
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.478
+  - @brains/contracts@0.2.0-alpha.478
+  - @brains/db@0.2.0-alpha.478
+  - @brains/utils@0.2.0-alpha.478
+  - @brains/plugins@0.2.0-alpha.478
+
+## 0.2.0-alpha.477
+
+### Patch Changes
+
+- [#471](https://github.com/rizom-ai/brains/pull/471) [`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Disable native SQLite busy waiting on application-thread connections, including local auth replicas. Retry refused BEGIN acquisition asynchronously for non-replica local clients within a two-second budget, covering auth, conversation and entity transactions without replaying callbacks or commits. Reset only refused local BEGIN connections so libSQL's retained failed statements cannot poison a later commit. Embedded replicas retain SDK-owned transaction acquisition and reconnect behavior. Route formerly unguarded export acknowledgements and projection-rule scheduling writes through BEGIN-only transaction retries, avoiding libSQL's retained stale snapshots after refused implicit writes. Preserve foreign keys, FULL synchronization, automatic checkpoints and replica configuration.
+
+- Updated dependencies [[`93832d8`](https://github.com/rizom-ai/brains/commit/93832d829d34bf719587b10c3d3d206cfb020b49)]:
+  - @brains/db@0.2.0-alpha.477
+  - @brains/plugins@0.2.0-alpha.477
+  - @brains/notifications@0.2.0-alpha.477
+  - @brains/contracts@0.2.0-alpha.477
+  - @brains/utils@0.2.0-alpha.477
+
+## 0.2.0-alpha.476
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.476
+  - @brains/contracts@0.2.0-alpha.476
+  - @brains/db@0.2.0-alpha.476
+  - @brains/utils@0.2.0-alpha.476
+  - @brains/plugins@0.2.0-alpha.476
+
+## 0.2.0-alpha.475
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.475
+  - @brains/contracts@0.2.0-alpha.475
+  - @brains/db@0.2.0-alpha.475
+  - @brains/utils@0.2.0-alpha.475
+  - @brains/plugins@0.2.0-alpha.475
+
+## 0.2.0-alpha.474
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.474
+  - @brains/contracts@0.2.0-alpha.474
+  - @brains/db@0.2.0-alpha.474
+  - @brains/utils@0.2.0-alpha.474
+  - @brains/plugins@0.2.0-alpha.474
+
 ## 0.2.0-alpha.473
 
 ### Patch Changes

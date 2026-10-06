@@ -46,6 +46,12 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 setBootFn(async (cwd, definition, flags) => {
+  // Data, cache and dist paths default relative to the process, and the
+  // supervised children already run in the instance directory. Boot there
+  // too, or a CLI launched elsewhere (dev scripts set INIT_CWD) migrates and
+  // reads stores the children never open.
+  if (process.cwd() !== cwd) process.chdir(cwd);
+
   const {
     resolve,
     parseInstanceOverrides,

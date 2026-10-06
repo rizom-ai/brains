@@ -1,11 +1,13 @@
 import { beforeEach, afterEach, describe, expect, it, spyOn } from "bun:test";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
+  type z,
   CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/sdk/services";
 import { createPluginHarness } from "@brains/plugins/test";
-import definition from "../src";
+import definition, { createFaqContent, faqMetadata, faqSchema } from "../src";
+import { GUEST_ASKED_BEFORE_CHANNEL } from "@brains/contracts";
 import type { FaqConfigInput } from "../src/schemas/config";
 
 const metadata = { name: "@brains/faq", version: "0.0.0-test" };
@@ -53,6 +55,67 @@ describe("canonical FAQ package", () => {
   it("registers the faq entity type without tools", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("faq");
     expect(harness.getCapabilities().tools).toHaveLength(0);
+  });
+  it("answers through the installed subscription without counting and rechecks eligibility after confirmation", async () => {
+    const service = harness.getEntityService();
+    const frontmatter = {
+      question: "What is memory?",
+      status: "published",
+      asked: 3,
+    } as const;
+    await service.createEntity({
+      entity: {
+        id: "memory",
+        entityType: "faq",
+        visibility: "public",
+        content: createFaqContent(frontmatter, "Kept words."),
+        metadata: faqMetadata(frontmatter),
+      },
+    });
+    service.searchWithDistances = async (): ReturnType<
+      typeof service.searchWithDistances
+    > => [{ entityType: "faq", entityId: "memory", distance: 0.01 }];
+    let withdraw = false;
+    harness.getMockShell().generateObject = async <T>(
+      _prompt: string,
+      schema: z.ZodType<T>,
+    ): Promise<{ object: T }> => {
+      if (withdraw) {
+        const current = await service.getEntity(
+          { entityType: "faq", id: "memory" },
+          faqSchema,
+        );
+        if (!current) throw new Error("Missing FAQ");
+        await service.updateEntity({
+          entity: {
+            ...current,
+            metadata: { ...current.metadata, status: "draft" },
+          },
+        });
+      }
+      return { object: schema.parse({ same: true }) };
+    };
+    expect(
+      await harness.sendMessage(GUEST_ASKED_BEFORE_CHANNEL, {
+        question: "What is memory?",
+      }),
+    ).toMatchObject({
+      hit: {
+        faqId: "memory",
+        faqQuestion: "What is memory?",
+        answer: "Kept words.",
+      },
+    });
+    expect(
+      (await service.getEntity({ entityType: "faq", id: "memory" }, faqSchema))
+        ?.metadata.asked,
+    ).toBe(3);
+    withdraw = true;
+    const response: unknown = await harness.sendMessage(
+      GUEST_ASKED_BEFORE_CHANNEL,
+      { question: "What is memory?" },
+    );
+    expect(response).toEqual({});
   });
   it("queues an assistant reply with its recorded permission and committed position, never a later count", async () => {
     const count = spyOn(

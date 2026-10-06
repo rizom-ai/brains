@@ -8,12 +8,17 @@
  * and stays a thin orchestration façade.
  */
 
-import { withEmbeddingUsage } from "./openai-guest-pricing";
-import type { AgentContextItem } from "@brains/contracts";
+import {
+  guestTurnSettlement,
+  sumGuestSettlements,
+  withEmbeddingUsage,
+} from "./openai-guest-pricing";
+import type { AgentContextItem, AskedBefore } from "@brains/contracts";
 import {
   guestInterfaceType,
   getGuestSourceCards,
   type GuestExecutionPolicy,
+  type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import {
   assertGuestPermission,
@@ -36,6 +41,7 @@ import type {
   ChatAttachment,
   ChatContext,
   StructuredChatCard,
+  AskedBeforeAnswer,
 } from "./agent-types";
 import {
   emptyUsage,
@@ -96,7 +102,9 @@ export interface TurnProcessorDeps {
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
   guestAnswerSources: AgentConfig["guestAnswerSources"];
+  guestAskedBefore: AgentConfig["guestAskedBefore"];
   embeddingUsage: AgentConfig["embeddingUsage"];
+  generationUsage: AgentConfig["generationUsage"];
 }
 
 /** A turn that passed admission: who is asking, and under which limits. */
@@ -135,9 +143,56 @@ export class TurnProcessor {
     if (input.message.trim().length === 0 && input.attachments.length > 0)
       return this.answerAttachmentsOnly(turn);
 
+    const run = (): Promise<AgentResponse> =>
+      this.processAdmittedTurn(turn, signal);
+    const meter = this.deps.embeddingUsage;
+    if (!turn.guest || !meter) return run();
+    // One scope includes preflight misses/failures, preparation and answer sources.
+    const { value: response, usage } = await meter.measure(run, signal);
+    return response.guestSettlement
+      ? {
+          ...response,
+          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+        }
+      : response;
+  }
+
+  private async processAdmittedTurn(
+    turn: AdmittedTurn,
+    signal?: AbortSignal,
+  ): Promise<AgentResponse> {
+    signal?.throwIfAborted();
+    const { input } = turn;
+    let preflight: GuestTurnSettlement | undefined;
+    if (turn.guest && this.deps.guestAskedBefore) {
+      const check = (): Promise<AskedBeforeAnswer | undefined> =>
+        this.findAskedBefore(turn, input.message);
+      const meter = this.deps.generationUsage;
+      const found = meter
+        ? await meter.measure(check, signal)
+        : {
+            value: await check(),
+            settlement: guestTurnSettlement([], undefined),
+          };
+      preflight = found.settlement;
+      signal?.throwIfAborted();
+      if (found.value)
+        return this.recordAskedBefore(
+          turn,
+          input.message,
+          found.value,
+          preflight,
+          signal,
+        );
+    }
+
     const prepared = await this.prepareModelTurn(turn, signal);
     this.logAvailableTools(turn);
-    await this.recordQuestion(turn, prepared);
+    await this.recordQuestion(
+      turn,
+      prepared.effectiveMessage,
+      prepared.effectiveAttachments,
+    );
 
     const answer = async (): Promise<AgentResponse> => {
       const result = await this.deps.getAgent(input.interfaceType).generate({
@@ -148,15 +203,14 @@ export class TurnProcessor {
       signal?.throwIfAborted();
       return this.recordResponse(turn, prepared, result, signal);
     };
-    const meter = this.deps.embeddingUsage;
-    if (!turn.guest || !meter) return answer();
-    // A visitor's answer is charged for its embeddings too: its searches and
-    // the search that found its sources.
-    const { value: response, usage } = await meter.measure(answer);
-    return response.guestSettlement
+    const response = await answer();
+    return preflight
       ? {
           ...response,
-          guestSettlement: withEmbeddingUsage(response.guestSettlement, usage),
+          guestSettlement: sumGuestSettlements(
+            preflight,
+            response.guestSettlement ?? guestTurnSettlement([], undefined),
+          ),
         }
       : response;
   }
@@ -351,18 +405,19 @@ export class TurnProcessor {
 
   private async recordQuestion(
     turn: AdmittedTurn,
-    prepared: PreparedTurn,
+    message: string,
+    attachments: ChatAttachment[],
   ): Promise<void> {
     const { conversationId, source, userPermissionLevel } = turn.input;
     await this.deps.conversationService.addMessage({
       conversationId,
       role: "user",
-      content: prepared.effectiveMessage,
+      content: message,
       ...(await this.messageMetadata({
         actor: turn.attributedActor,
         source,
         userPermissionLevel,
-        attachments: prepared.effectiveAttachments,
+        attachments,
         actorAlreadyEnriched: true,
         guest: turn.guest,
       })),
@@ -403,6 +458,70 @@ export class TurnProcessor {
         ? { agentContextInstructions: prepared.agentContextInstructions }
         : {}),
     });
+  }
+
+  /** A visitor's question a published FAQ already answers, when one does. */
+  private async findAskedBefore(
+    turn: AdmittedTurn,
+    question: string,
+  ): Promise<AskedBeforeAnswer | undefined> {
+    const find = this.deps.guestAskedBefore;
+    if (!turn.guest || !find || question.trim().length === 0) return undefined;
+    try {
+      return await find({ question });
+    } catch (error) {
+      // The model answers as it would have.
+      this.deps.logger.warn("Asked-before check unavailable", {
+        error: getErrorMessage(error),
+      });
+      return undefined;
+    }
+  }
+
+  /** The FAQ's answer stands as the turn's reply, with the sources it kept. */
+  private async recordAskedBefore(
+    turn: AdmittedTurn,
+    question: string,
+    hit: AskedBeforeAnswer,
+    settlement: GuestTurnSettlement,
+    signal?: AbortSignal,
+  ): Promise<AgentResponse> {
+    const { conversationId, channelId, channelName, userPermissionLevel } =
+      turn.input;
+    signal?.throwIfAborted();
+    await this.recordQuestion(turn, question, []);
+    signal?.throwIfAborted();
+    const cards = withAnswerSources([], hit.sources);
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content: hit.answer,
+      ...(await this.messageMetadata({
+        actor: null,
+        source: this.buildAssistantSource(channelId, channelName),
+        userPermissionLevel,
+        cards,
+        entityMemoryRefs: [],
+        agentContactCandidates: [],
+        guest: true,
+        askedBefore: { faqId: hit.faqId },
+        faqCapture: { faqId: hit.faqId, question: hit.faqQuestion },
+      })),
+    });
+    return {
+      text: hit.answer,
+      toolResults: [],
+      ...(cards.length > 0 ? { cards } : {}),
+      usage: {
+        promptTokens: settlement.usage.inputTokens,
+        completionTokens: settlement.usage.outputTokens,
+        totalTokens:
+          settlement.usage.inputTokens + settlement.usage.outputTokens,
+      },
+      // No main answer generation, but the confirmation still consumes usage.
+      guestSettlement: settlement,
+      askedBefore: { faqId: hit.faqId },
+    };
   }
 
   /** A visitor's sources are the public pages closest to the answer, when found. */
@@ -760,6 +879,9 @@ export class TurnProcessor {
     agentContactCandidates?: AgentContactCandidate[];
     actorAlreadyEnriched?: boolean;
     guest?: boolean;
+    /** The FAQ that gave a visitor's reply in the model's place. */
+    askedBefore?: AskedBefore;
+    faqCapture?: { faqId: string; question: string };
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
     if (params.guest) {
       const cards = getGuestSourceCards(params.cards);
@@ -767,6 +889,8 @@ export class TurnProcessor {
         metadata: {
           userPermissionLevel: "public",
           ...(cards.length ? { cards } : {}),
+          ...(params.askedBefore ? { askedBefore: params.askedBefore } : {}),
+          ...(params.faqCapture ? { faqCapture: params.faqCapture } : {}),
         },
       };
     }

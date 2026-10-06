@@ -6,12 +6,15 @@ import {
   priceOpenAiGuestTurn,
   type ChatAttachment,
   type EmbeddingUsageMeter,
+  type GenerationUsageMeter,
   type ChatAttachmentSource,
   type IAgentService,
   type IAIService,
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
+  GUEST_ASKED_BEFORE_CHANNEL,
+  firstAskedBeforeHit,
   ENTITY_CHANNELS,
   parseAgentContextItems,
   type AgentContextRequest,
@@ -53,6 +56,7 @@ export interface IdentityAndAgentServiceOptions {
   embeddingService: IEmbeddingService;
   /** Where the embedding provider reports usage; guest turns are measured. */
   embeddingUsage?: EmbeddingUsageMeter;
+  generationUsage?: GenerationUsageMeter;
   entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
@@ -246,6 +250,9 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      ...(options.generationUsage
+        ? { generationUsage: options.generationUsage }
+        : {}),
       ...(options.embeddingUsage
         ? { embeddingUsage: options.embeddingUsage }
         : {}),
@@ -266,6 +273,20 @@ export function initializeIdentityAndAgentServices(
         : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
+      // A visitor's question a published FAQ already answers, asked of the
+      // plugins that keep FAQs; the hit's data is an answer only when it parses.
+      guestAskedBefore: async (request) => {
+        const responses = await messageBus.collect({
+          type: GUEST_ASKED_BEFORE_CHANNEL,
+          sender: "shell:agent-service",
+          payload: request,
+        });
+        return firstAskedBeforeHit(
+          responses.flatMap((response) =>
+            "noop" in response || !response.success ? [] : [response.data],
+          ),
+        );
+      },
       agentContextProvider: async (request: AgentContextRequest) => {
         const responses = await messageBus.collect({
           type: AGENT_CONTEXT_REQUEST_CHANNEL,

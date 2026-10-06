@@ -1,6 +1,10 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @plugin "@tailwindcss/typography";
+/* Only what the build emits: pages, and the runtime scripts that toggle
+   classes on them. Never the instance directory, whose content and stores
+   would leak stray utilities into every site. */
 @source "./**/*.html";
+@source "./**/*.js";
 
 /* Base layer - minimal setup for font fallbacks */
 @layer base {

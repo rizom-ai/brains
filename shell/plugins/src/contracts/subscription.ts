@@ -1,3 +1,4 @@
+import type { IEntityAINamespace } from "../entity/ai-types";
 import type { SchemaReturn } from "../internal/schema-return";
 import type { SdkErrorCode } from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
@@ -89,6 +90,10 @@ export interface SubscriptionDefinition<
   readonly execution?: "all-roles" | undefined;
   handle(context: {
     readonly payload: z.output<TPayloadSchema>;
+    /** Host-issued delivery identity, stable across handling retries; not a caller credential. */
+    readonly messageId: string;
+    /** Structured confirmation for a saved answer. Named consumer: FAQ. */
+    readonly ai: Pick<IEntityAINamespace, "generateObject">;
     /**
      * Definition-typed reads and ownership-scoped writes, shared with tools
      * and jobs. Services may write their declared/stewarded types; interfaces

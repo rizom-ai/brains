@@ -28,7 +28,10 @@ export {
 } from "./lib/image-resolver";
 
 // Markdown image utilities
-export { extractMarkdownImages } from "./lib/markdown-images";
+export {
+  extractMarkdownImages,
+  mapMarkdownImageUrls,
+} from "./lib/markdown-images";
 export type { ExtractedImage } from "./lib/markdown-images";
 
 // Image utilities

@@ -1,10 +1,13 @@
 import {
+  ASK_AIMED_EVENT,
   ASK_BOX_ATTRIBUTE,
-  ASK_DOCK_ATTRIBUTE,
+  ASK_CITED_EVENT,
+  ASK_DRAWING_ATTRIBUTE,
+  ASK_LENT_EVENT,
   ASK_SHEET_ATTRIBUTE,
   ASK_SOURCE_ATTRIBUTE,
-  ASK_SOURCES_EVENT,
 } from "@brains/contracts";
+import { ASK_ROOM_SCRIPT } from "./ask-room-script";
 
 export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
 
@@ -13,6 +16,8 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *
  * - Touch screens have no hover, so the first tap on a mark opens its title
  *   card and the second follows the link. Tapping elsewhere or Escape closes.
+ * - The legend's "Latest" opens the latest piece's card: while hovered or
+ *   focused, and on a touch screen at the first tap, the second following it.
  *   Marks crowd on a phone and their hit targets overlap, so a tap in the map
  *   resolves to the nearest mark within a fingertip, not the one on top.
  * - With guest chat docked, a topic fills the chat draft instead of opening
@@ -20,12 +25,12 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *   or unavailable), the topic stays a link to the contact form.
  * - The contact form runs no script, so it cannot read the visitor's theme
  *   choice: the links to it carry the current theme, and follow a change.
- * - An answer's sources (the shared box's source event) light up on the map
- *   and the map turns towards them, zooming only as far as keeps each in
- *   view; an answer without sources lets go. On desktop a dotted lead runs
- *   from each source the answer lists (or its list's summary, while closed)
- *   to its mark, following the map as it turns and the conversation as it
- *   scrolls. Phones stack the map above the opening, so they get no leads.
+ * - The atlas is an Ask room (the room script runs first; see
+ *   @brains/contracts ask-box): the room lights the marks an answer cites,
+ *   draws the leads to them, lends the map to a phone's conversation and
+ *   brings a cited source into view from its mark's card. The atlas turns
+ *   the map towards the cited marks, zooming only as far as keeps each in
+ *   view, and lets go for an answer without sources.
  * - Territory names are placed by their rendered size, largest territory
  *   first: each takes the nearest spot to its server placement, within a reach
  *   in proportion to the map, that stays inside the map and clear of marks and
@@ -36,7 +41,9 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  * - The terrain's drift pauses (data-still) while the map is off screen and
  *   while the tab is hidden; reduced motion keeps it still throughout.
  */
-export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
+export const HOMEPAGE_ATLAS_SCRIPT: string =
+  ASK_ROOM_SCRIPT +
+  `(function () {
   var roots = document.querySelectorAll("[data-atlas]");
   if (!roots.length) return;
 
@@ -239,79 +246,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       field.setAttribute("data-focused", "");
     }
 
-    var leads = root.querySelector("[data-atlas-leads]");
-    var SVG = "http://www.w3.org/2000/svg";
-    var TURN = 1000; // the map's turn towards its sources, and a frame
-    var GAP = 6; // between a listed source and its lead
-    var GLYPH = 9; // a lead stops short of the mark it points at
-    var citedMarks = [];
-    // Every scrolling box between an anchor and the atlas must show it.
-    function shown(element, middle) {
-      var parent = element.parentElement;
-      if (!parent || parent === root) return true;
-      var overflow = window.getComputedStyle(parent).overflowY;
-      if (overflow === "auto" || overflow === "scroll") {
-        var area = parent.getBoundingClientRect();
-        if (middle < area.top || middle > area.bottom) return false;
-      }
-      return shown(parent, middle);
-    }
-    // The latest answer's listing of a source, or its list's summary while closed.
-    function anchor(key) {
-      var listed = Array.prototype.filter.call(
-        root.querySelectorAll("[${ASK_BOX_ATTRIBUTE}] [${ASK_SOURCE_ATTRIBUTE}]"),
-        function (item) { return item.getAttribute("${ASK_SOURCE_ATTRIBUTE}") === key; }
-      ).pop();
-      if (!listed) return null;
-      var list = listed.closest("details");
-      var from = list && !list.open ? list.querySelector("summary") || list : listed;
-      var box = from.getBoundingClientRect();
-      return box.height && shown(from, box.top + box.height / 2) ? box : null;
-    }
-    function drawLeads() {
-      if (!leads) return;
-      leads.replaceChildren();
-      if (narrow.matches) return;
-      var frame = root.getBoundingClientRect();
-      leads.setAttribute("viewBox", "0 0 " + frame.width + " " + frame.height);
-      citedMarks.forEach(function (mark) {
-        var key = mark.getAttribute("data-atlas-key");
-        var from = anchor(key);
-        if (!from) return;
-        var to = mark.getBoundingClientRect();
-        var x1 = from.right + GAP - frame.left;
-        var y1 = from.top + from.height / 2 - frame.top;
-        var toward = to.left + to.width / 2 - frame.left;
-        var x2 = toward > x1 ? toward - GLYPH : toward + GLYPH;
-        var y2 = to.top + to.height / 2 - frame.top;
-        var bend = Math.max(40, Math.abs(x2 - x1) / 2);
-        var lead = document.createElementNS(SVG, "path");
-        lead.setAttribute("data-lead", key);
-        lead.setAttribute("d", "M" + x1 + " " + y1 + " C" + (x1 + bend) + " " + y1 + " " + (x2 - bend) + " " + y2 + " " + x2 + " " + y2);
-        leads.append(lead);
-      });
-    }
-    var pending = 0;
-    function scheduleLeads() {
-      if (pending || !citedMarks.length) return;
-      pending = window.requestAnimationFrame(function () { pending = 0; drawLeads(); });
-    }
-    // While the map turns, its marks move under the leads every frame.
-    function followLeads(until) {
-      drawLeads();
-      if (citedMarks.length && Date.now() < until)
-        window.requestAnimationFrame(function () { followLeads(until); });
-    }
-    if (leads) {
-      window.addEventListener("resize", scheduleLeads);
-      // Scrolling the box or the conversation column moves the listed sources.
-      document.addEventListener("scroll", scheduleLeads, true);
-      // Opening or closing a source list moves where its leads start.
-      root.addEventListener("toggle", scheduleLeads, true);
-      if (narrow.addEventListener) narrow.addEventListener("change", scheduleLeads);
-      var host = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
-      if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
-    }
+    var TURN = 1000; // the map's turn towards its sources
 
     // In a phone's open conversation the map sits under its header, as tall
     // as the page's at the top and shrinking to a strip as the answer scrolls
@@ -374,45 +309,14 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         flag(piece, "data-atlas-pulse", 2400);
         return;
       }
-      var cited = target.closest("[data-atlas-cited]");
-      var from = cited ? cited.closest("[data-atlas-mark]") : null;
-      if (!from || !scroller) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      var key = from.getAttribute("data-atlas-key");
-      var listed = Array.prototype.filter.call(
-        scroller.querySelectorAll("[${ASK_SOURCE_ATTRIBUTE}]"),
-        function (item) { return item.getAttribute("${ASK_SOURCE_ATTRIBUTE}") === key; }
-      ).pop();
-      close();
-      if (!listed) return;
-      var at = listed.getBoundingClientRect();
-      var area = scroller.getBoundingClientRect();
-      // Its source in the middle of the conversation, flashing.
-      glide(scroller, scroller.scrollTop + at.top - area.top - scroller.clientHeight / 2 + at.height / 2);
-      flag(listed, "data-atlas-flash", 1500);
     }, true);
-    // While it is open, the map is lent to the conversation's dock, the first
-    // item of its scroll: it scrolls up with the answer until only a strip is
-    // left, which the phone sheet's styles pin. A slot holds its place on the
-    // page meanwhile, and it goes back when the conversation closes.
-    var lent = root.querySelector("[data-atlas-map]");
-    var slot = null;
-    function lend() {
-      var dock = askHost.querySelector("[${ASK_DOCK_ATTRIBUTE}]");
-      if (!lent || !dock || lent.parentElement === dock) return;
-      slot = document.createElement("div");
-      slot.className = "atlas__map-slot";
-      slot.setAttribute("aria-hidden", "true");
-      lent.replaceWith(slot);
-      dock.append(lent);
-      follow(conversation());
-    }
-    function giveBack() {
-      if (!slot) return;
-      slot.replaceWith(lent);
-      slot = null;
-    }
+    // While it is open, the map is lent    }, true);
+    // The room lends the map to the open conversation's dock; the atlas then
+    // follows how far the answer has scrolled, and closes an open card when
+    // the room brings a cited source into view from it.
+    var lent = root.querySelector("[${ASK_DRAWING_ATTRIBUTE}]");
+    root.addEventListener("${ASK_LENT_EVENT}", function () { follow(conversation()); });
+    root.addEventListener("${ASK_AIMED_EVENT}", function () { close(); });
     // Each source the box lists is named as the legend names its kind, from
     // its mark, and whenever the box renders the list.
     function nameSources() {
@@ -424,31 +328,48 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       });
     }
     if (askHost && typeof MutationObserver === "function")
-      // The box mounts, and so its dock appears, after the sheet has opened.
-      new MutationObserver(function () {
-        if (sheetOpen()) lend();
-        else giveBack();
-        nameSources();
-      }).observe(askHost, { attributes: true, attributeFilter: ["${ASK_SHEET_ATTRIBUTE}"], childList: true, subtree: true });
+      // The box renders its list after the sheet has opened.
+      new MutationObserver(nameSources).observe(askHost, { childList: true, subtree: true });
 
-    root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
-      var sources = (event.detail && event.detail.sources) || [];
-      var ids = sources.map(function (source) { return source.id; });
-      var cited = [];
-      root.querySelectorAll("[data-atlas-mark]").forEach(function (mark) {
-        if (ids.indexOf(mark.getAttribute("data-atlas-key")) >= 0) {
-          mark.setAttribute("data-cited", "");
-          cited.push(mark);
-        } else mark.removeAttribute("data-cited");
-      });
-      turnTowards(cited);
-      citedMarks = cited;
+    root.addEventListener("${ASK_CITED_EVENT}", function (event) {
+      var marks = (event.detail && event.detail.marks) || [];
+      turnTowards(marks.filter(function (mark) { return field && field.contains(mark); }));
       nameSources();
-      followLeads(Date.now() + TURN);
     });
+
+    var latestKey = root.querySelector("[data-atlas-latest]");
+    var latestMark = latestKey
+      ? root.querySelector('[data-atlas-key="' + latestKey.getAttribute("data-atlas-latest") + '"]')
+      : null;
+    function openLatest() {
+      if (!latestMark || open === latestMark) return;
+      close();
+      open = latestMark;
+      latestMark.setAttribute("data-open", "");
+    }
+    // A touch browser emulates hover and focus before a tap's click; there the tap alone opens it.
+    function previewLatest() {
+      if (!touch.matches) openLatest();
+    }
+    function endPreview() {
+      if (!touch.matches && open === latestMark) close();
+    }
+    if (latestKey && latestMark) {
+      latestKey.addEventListener("mouseenter", previewLatest);
+      latestKey.addEventListener("focus", previewLatest);
+      latestKey.addEventListener("mouseleave", endPreview);
+      latestKey.addEventListener("blur", endPreview);
+    }
 
     root.addEventListener("click", function (event) {
       var target = event.target;
+      // A first tap on "Latest" opens the latest piece's card; the next follows the link.
+      if (latestMark && touch.matches && target && target.closest && target.closest("[data-atlas-latest]")) {
+        if (open === latestMark) return;
+        event.preventDefault();
+        openLatest();
+        return;
+      }
       var fill = target && target.closest ? target.closest("[data-atlas-fill]") : null;
       if (fill) {
         var draft = liveDraft();

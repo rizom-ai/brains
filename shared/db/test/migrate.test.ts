@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ConsoleLogger, LogLevel, type Logger } from "@brains/utils/logger";
-import { runPackageMigrations } from "../src/migrate";
+import { runPackageMigrations, resolveMigrationsFolder } from "../src/migrate";
 import type { PragmaClient } from "../src/sqlite";
 
 /**
@@ -52,6 +52,22 @@ async function createMigrationsFolder(sql: string): Promise<string> {
   );
   return dir;
 }
+
+describe("resolveMigrationsFolder", () => {
+  it.each([
+    [
+      "file:///repo/shell/auth-service/src/runtime-db.ts",
+      "/repo/shell/auth-service/drizzle",
+    ],
+    ["file:///package/dist/brain.js", "/package/dist/migrations/auth-service"],
+    [
+      "file:///package/dist/chunks/index-abcd.js",
+      "/package/dist/migrations/auth-service",
+    ],
+  ])("resolves assets from %s", (moduleUrl, expected) => {
+    expect(resolveMigrationsFolder(moduleUrl, "auth-service")).toBe(expected);
+  });
+});
 
 describe("runPackageMigrations", () => {
   it("applies migrations and closes the client", async () => {

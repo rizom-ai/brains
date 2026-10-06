@@ -5,6 +5,8 @@ import {
 import { z } from "@brains/sdk/entities";
 import { computeContentHash } from "@brains/utils/hash";
 import { agent } from "./agent-entity";
+import { networkPiece } from "./network-piece-entity";
+import { networkPiecesCheck } from "./lib/network-pieces-check";
 import { skill } from "./skill-entity";
 import { agentConnectTool } from "./tools/agent-connect";
 import { agentScanDirectoriesTool } from "./tools/agent-scan-directories";
@@ -68,7 +70,7 @@ export const agentDiscovery: ServicePackageDefinition<
     // scope to the same plugin name as the entity plugin the package installs.
     id: "agents",
     config: agentDiscoveryConfigSchema,
-    entities: [agent, skill],
+    entities: [agent, skill, networkPiece],
   },
   {
     tools: () => [
@@ -83,6 +85,7 @@ export const agentDiscovery: ServicePackageDefinition<
       config.enableSkillDerivation ? [createSkillProjectionRule()] : [],
     evals: () => skillEvalHandlers(),
     checks: ({ config }) => [
+      networkPiecesCheck(),
       {
         id: "directory-scan",
         cadence: "daily",

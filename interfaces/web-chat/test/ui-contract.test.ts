@@ -60,6 +60,37 @@ describe("Web chat UI contract", () => {
         readFileSync(join(packageRoot, "dist", "ui", asset), "utf-8"),
       ).toContain(`[${ASK_STYLED_ATTRIBUTE}]`);
   });
+  it("mounts a box with nothing to show in the room its host's composer took", () => {
+    const source = readFileSync(
+      join(packageRoot, "ui-react", "src", "guest-box.css"),
+      "utf-8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    // Selectors are compared without their line breaks and indentation.
+    const rules = Array.from(
+      source.matchAll(/([^{};]+)\{([^{}]*)\}/g),
+      (match) => ({
+        selector: (match[1] ?? "").replace(/\s+/g, ""),
+        body: match[2] ?? "",
+      }),
+    );
+    // An empty welcome area: no padding under nothing, no fade over nothing.
+    const scroll = rules.find(
+      (rule) =>
+        rule.selector.includes(".brain-box-scroll.is-welcome:not(:has(") &&
+        rule.body.includes("padding-bottom: 0"),
+    );
+    expect(scroll?.body).toContain("mask-image: none");
+    // And no divider or gap above the composer until there is something above it.
+    const bottom = rules.find(
+      (rule) =>
+        rule.selector.includes(".brain-box-bottom") &&
+        rule.selector.includes(".is-welcome:not(:has(") &&
+        rule.body.includes("margin-top: 0"),
+    );
+    expect(bottom?.body).toContain("padding-top: 0");
+    expect(bottom?.selector).toContain(":not(.is-sheet)");
+  });
+
   it("publishes the built UI asset directory", () => {
     const packageJson = webChatPackageJsonSchema.parse(
       JSON.parse(readFileSync(packageJsonPath, "utf-8")),

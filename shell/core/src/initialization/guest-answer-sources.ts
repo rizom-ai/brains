@@ -33,6 +33,22 @@ function metadataString(
     : undefined;
 }
 
+function httpsString(value: unknown): string | undefined {
+  return typeof value === "string" && value.startsWith("https://")
+    ? value
+    : undefined;
+}
+
+/** The brain a piece came from, as the citation names it: its name and address. */
+function brainOf(value: unknown): { name: string; url?: string } | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const fields = new Map(Object.entries(value));
+  const name = fields.get("name");
+  if (typeof name !== "string" || !name) return undefined;
+  const url = httpsString(fields.get("url"));
+  return { name, ...(url ? { url } : {}) };
+}
+
 function toCitation(
   { entity }: SearchResult,
   deps: GuestAnswerSourcesDeps,
@@ -45,9 +61,14 @@ function toCitation(
   const domain = deps.siteBaseUrl
     ?.replace(/^https?:\/\//, "")
     .replace(/\/+$/, "");
-  const url = domain
-    ? new URL(deps.urlFor(entity.entityType, slug), `https://${domain}`).href
-    : undefined;
+  // A piece from another brain lives at its origin, and names that brain.
+  const origin = httpsString(entity.metadata["origin"]);
+  const brain = brainOf(entity.metadata["brain"]);
+  const url =
+    origin ??
+    (domain
+      ? new URL(deps.urlFor(entity.entityType, slug), `https://${domain}`).href
+      : undefined);
   return {
     id: `${entity.entityType}:${entity.id}`,
     ...(title ? { title } : {}),
@@ -55,6 +76,7 @@ function toCitation(
     entityType: entity.entityType,
     entityId: entity.id,
     ...(url ? { url } : {}),
+    ...(brain ? { brain } : {}),
   };
 }
 

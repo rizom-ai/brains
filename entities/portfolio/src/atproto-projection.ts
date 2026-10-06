@@ -10,6 +10,7 @@ import { projectFrontmatterSchema, projectSchema } from "./schemas/project";
 export async function buildProjectAtprotoRecord({
   entity,
   config,
+  pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainProjectRecord> {
   const project = projectSchema.parse(entity);
   const parsed = parseMarkdownWithFrontmatter(
@@ -30,6 +31,7 @@ export async function buildProjectAtprotoRecord({
     ...(frontmatter.publishedAt && { publishedAt: frontmatter.publishedAt }),
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    ...(pageUrl && { canonicalUrl: pageUrl }),
     sourceEntityType: "project",
     sourceEntityId: project.id,
     createdAt: project.created,

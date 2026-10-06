@@ -29,6 +29,7 @@ import {
   type Template,
   type TemplateDataSchema,
 } from "@brains/templates";
+import { sitePageUrl } from "../internal/site-page-url";
 import { registerDeclaredSubscriptions } from "../interface/declared-subscriptions";
 import { createRequester } from "../internal/requester";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
@@ -724,6 +725,7 @@ class DeclarativeServicePlugin<
           plugins: context.plugins,
           http: context.http,
           siteUrl: context.siteUrl,
+          sitePageUrl: (entity) => sitePageUrl(context.siteUrl, entity),
           domain: context.domain,
           previewUrl: context.previewUrl,
           localSiteUrl: context.localSiteUrl,
@@ -820,16 +822,24 @@ class DeclarativeServicePlugin<
         jobs: this.jobs(),
       }) ?? [];
     registerDeclaredSubscriptions({
+      ai: context.ai,
       label: `Service "${this.definition.id}"`,
       subscriptions,
       context,
-      entities: createAuthoringEntityAccess(
-        createJobEntityAccess(
-          context.entityService,
-          this.ownedTypeNames(),
-          this.publicId,
+      backgroundEntities: (signal) =>
+        createAuthoringEntityAccess(
+          createJobEntityAccess(
+            context.entityService,
+            this.ownedTypeNames(),
+            this.publicId,
+            undefined,
+            {
+              packageName: this.packageName,
+              declarationId: this.definition.id,
+              signal,
+            },
+          ),
         ),
-      ),
     });
 
     const templates = this.templateFormatter(context);

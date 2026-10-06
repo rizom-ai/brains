@@ -27,12 +27,13 @@ async function install(
 }
 
 describe("agent discovery package", () => {
-  it("registers the two directory types", async () => {
+  it("registers directory types and their read-only network pieces", async () => {
     const harness = await install();
 
     const types = harness.getEntityService().getEntityTypes();
     expect(types).toContain("agent");
     expect(types).toContain("skill");
+    expect(types).toContain("network-piece");
 
     // An agent is evidence a skill is derived from; a skill is the end of
     // that chain and sources nothing further.

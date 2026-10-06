@@ -47,6 +47,24 @@ async function readOutputSnapshot(
   );
 }
 
+/** Records whether the build's scripts exist when styles are compiled. */
+class ScriptAwareCSSProcessor extends MockCSSProcessor {
+  public scriptOnDisk = false;
+
+  override async process(
+    ...args: Parameters<MockCSSProcessor["process"]>
+  ): Promise<void> {
+    const outputDir = args[3];
+    this.scriptOnDisk = await fs
+      .access(join(outputDir, "scripts", "page.js"))
+      .then(
+        () => true,
+        () => false,
+      );
+    return super.process(...args);
+  }
+}
+
 function count(text: string, value: string): number {
   return text.split(value).length - 1;
 }
@@ -275,11 +293,12 @@ describe("ReactBuilder behavioral baseline", () => {
     });
 
     const progress: string[] = [];
+    const cssProcessor = new ScriptAwareCSSProcessor();
     const builder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir,
       workingDir,
-      cssProcessor: new MockCSSProcessor(),
+      cssProcessor,
     });
 
     await builder.build(
@@ -317,6 +336,9 @@ describe("ReactBuilder behavioral baseline", () => {
     );
 
     const firstOutputSnapshot = await readOutputSnapshot(outputDir);
+    // Utilities toggled by runtime scripts are only found if the scripts are
+    // on disk when Tailwind scans the output.
+    expect(cssProcessor.scriptOnDisk).toBe(true);
 
     for (const html of [home, writing, list, detail, prose, canvas]) {
       expect(
@@ -378,8 +400,8 @@ describe("ReactBuilder behavioral baseline", () => {
         lifecycle: progress.filter((message) =>
           [
             "Starting React build",
-            "Processing Tailwind CSS",
             "Copying static assets",
+            "Processing Tailwind CSS",
             "React build complete",
           ].includes(message),
         ),
@@ -435,8 +457,8 @@ describe("ReactBuilder behavioral baseline", () => {
       progress: {
         lifecycle: [
           "Starting React build",
-          "Processing Tailwind CSS",
           "Copying static assets",
+          "Processing Tailwind CSS",
           "React build complete",
         ],
         routes: [

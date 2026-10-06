@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { verifyRuntimeImage } from "./image-inventory";
 import type { RequiredImage } from "./image-types";
 export type { RequiredImage } from "./image-types";
@@ -7,13 +8,41 @@ import {
   type RunCommand,
 } from "@brains/deploy-support/run-subprocess";
 
+/** The longest tag a container registry accepts. */
+const TAG_LIMIT = 128;
+
 /**
- * Resolve the immutable runtime image shared by every fleet instance on one
- * Brain version. Build and Deploy both import this function so their tags can
- * never disagree.
+ * Name the immutable runtime image for a Brain version and the exact site
+ * packages installed into it: `brain-<version>` for an instance without site
+ * pins, else that followed by each pin, sorted, in registry-safe spelling
+ * (`@rizom/site-x@1.2.3` → `rizom-site-x-1.2.3`), plus an identity digest.
+ * Readable spelling is lossy, so even short names require the digest. A pin
+ * set too long to spell out uses only that digest. Every instance with the same Brain
+ * version and pins shares one image; a change of pins is a new image, so a
+ * site can move on its own. Build and Deploy both import this function so
+ * their tags can never disagree.
  */
-export function runtimeImageTag(brainVersion: string): string {
-  return `brain-${brainVersion}`;
+export function runtimeImageTag(
+  brainVersion: string,
+  sitePackages: readonly string[] = [],
+): string {
+  const base = `brain-${brainVersion}`;
+  const pins = [...new Set(sitePackages)].sort();
+  if (pins.length === 0) return base;
+  const spelled = `${base}--${pins
+    .map((spec) =>
+      spec
+        .replace(/^@/, "")
+        .replace("/", "-")
+        .replace(/@(?=[^@]*$)/, "-"),
+    )
+    .join("--")}`;
+  const digest = createHash("sha256")
+    .update(JSON.stringify([brainVersion, ...pins]))
+    .digest("hex")
+    .slice(0, 12);
+  const suffix = `--s${digest}`;
+  return `${spelled.length + suffix.length <= TAG_LIMIT ? spelled : base}${suffix}`;
 }
 
 /**
@@ -47,31 +76,34 @@ export interface ImageRequirementSource {
 }
 
 /**
- * Derive one immutable image per effective Brain version. Each image contains
- * the union of exact site/theme package pins across the entire fleet, including
- * instances still on older Brain versions. Promotion must not change an image.
+ * Derive one immutable image per effective Brain version and site pin set:
+ * every instance runs the image named by its own version and pins, so a
+ * site's pin change builds that site's image and no other, and promoting an
+ * instance to a version keeps whatever image already carries its pins there.
  */
 export function requiredImages(
   users: ImageRequirementSource[],
 ): RequiredImage[] {
-  const sitePackages = fleetSitePackages(users);
-  const byVersion = new Map<string, RequiredImage>();
+  const byTag = new Map<string, RequiredImage>();
   for (const user of users) {
-    byVersion.set(user.brainVersion, {
-      tag: runtimeImageTag(user.brainVersion),
-      brainVersion: user.brainVersion,
-      sitePackages: [...sitePackages],
-    });
+    const sitePackages = [
+      ...new Set(sitePackagesFor(user.siteOverride)),
+    ].sort();
+    const tag = runtimeImageTag(user.brainVersion, sitePackages);
+    const existing = byTag.get(tag);
+    if (
+      existing &&
+      (existing.brainVersion !== user.brainVersion ||
+        !Bun.deepEquals(existing.sitePackages, sitePackages))
+    ) {
+      throw new Error(
+        `Image tag collision for distinct runtime requirements: ${tag}`,
+      );
+    }
+    byTag.set(tag, { tag, brainVersion: user.brainVersion, sitePackages });
   }
-  return [...byVersion.values()].sort((left, right) =>
+  return [...byTag.values()].sort((left, right) =>
     left.tag.localeCompare(right.tag),
-  );
-}
-
-function fleetSitePackages(users: ImageRequirementSource[]): string[] {
-  return mergeExactPackagePins(
-    [],
-    users.flatMap((user) => sitePackagesFor(user.siteOverride)),
   );
 }
 
@@ -99,9 +131,9 @@ export interface ResolveImageBuildsOptions {
   users: ImageRequirementSource[];
   /**
    * Explicit dispatch override — the manual/backfill path. When set, exactly
-   * this one version is built with the fleet union plus explicit extra pins. Published
-   * tags stay immutable: a same-tag rebuild from a newer Dockerfile can
-   * strand the tag boot-broken, so rebuilding needs allowTagOverwrite.
+   * one image is built: this version with exactly the dispatched pins.
+   * Published tags stay immutable: a same-tag rebuild from a newer Dockerfile
+   * can strand the tag boot-broken, so rebuilding needs allowTagOverwrite.
    */
   brainVersionInput?: string | undefined;
   sitePackagesInput?: string | undefined;
@@ -122,10 +154,10 @@ export async function resolveImageBuilds(
   const versionInput = options.brainVersionInput?.trim() ?? "";
   if (versionInput) {
     const sitePackages = mergeExactPackagePins(
-      fleetSitePackages(options.users),
+      [],
       (options.sitePackagesInput ?? "").split(/\s+/).filter(Boolean),
     );
-    const tag = runtimeImageTag(versionInput);
+    const tag = runtimeImageTag(versionInput, sitePackages);
     if (!options.allowTagOverwrite && (await options.imageExists(tag))) {
       throw new Error(
         `Image tag ${tag} already exists; published tags are immutable. ` +
@@ -147,16 +179,9 @@ export async function resolveImageBuilds(
     if (!(await options.imageExists(image.tag))) {
       missing.push(image);
     } else {
-      // Older images need only serve their current adopters. New images are
-      // fleet-complete; promotion expands this check before reuse is allowed.
-      await options.verifyImage({
-        ...image,
-        sitePackages: fleetSitePackages(
-          options.users.filter(
-            (user) => user.brainVersion === image.brainVersion,
-          ),
-        ),
-      });
+      // An image is named by what it holds; reuse is allowed once it is
+      // proven to hold exactly that.
+      await options.verifyImage(image);
     }
   }
   return missing;

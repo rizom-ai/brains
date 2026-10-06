@@ -15,6 +15,7 @@ import { foundationOrganism } from "../../story/foundation-organism";
 import { livingOrganism } from "../../story/living-organism";
 import { workOrganism } from "../../story/work-organism";
 import { storyRuntimeScript } from "../../story/runtime";
+import { ASK_ROOM_STYLES } from "@brains/site-atlas";
 
 export type { RizomRuntimeConfig } from "../contracts";
 
@@ -61,6 +62,7 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
   // The story pages: the page shape, the drawings and the reading thread.
   "/styles/story.css":
     storyStyles +
+    ASK_ROOM_STYLES +
     livingOrganism.css() +
     brainOrganism.css() +
     workOrganism.css() +

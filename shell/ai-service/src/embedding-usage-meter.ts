@@ -1,40 +1,97 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-/** One embedding call's reported usage. */
+/** One embedding request's reported usage, or an unfinished/unreported attempt. */
 export interface EmbeddingUsage {
   model: string;
   tokens: number;
+  incomplete?: boolean;
 }
 
-/** Where an embedding provider reports what each call used. */
 export interface EmbeddingUsageRecorder {
-  record(model: string, tokens: number): void;
+  currentSignal(): AbortSignal | undefined;
+  begin(model: string): { finish: (tokens: number) => void } | undefined;
 }
 
-/**
- * What a piece of work spent on embeddings, however deep in it they were
- * made: a turn's own searches, or the search that finds its sources. The
- * embedding provider records each call; work measured here sees only its own
- * calls, and a call made outside any measurement counts toward nothing.
- */
-export class EmbeddingUsageMeter implements EmbeddingUsageRecorder {
-  private readonly storage = new AsyncLocalStorage<EmbeddingUsage[]>();
+interface Measurement {
+  usage: EmbeddingUsage[];
+  signal: AbortSignal;
+  active: boolean;
+}
 
-  public static createFresh(): EmbeddingUsageMeter {
-    return new EmbeddingUsageMeter();
+/** Host-owned per-turn embedding usage and lifetime, including auxiliary searches. */
+export class EmbeddingUsageMeter implements EmbeddingUsageRecorder {
+  private readonly storage = new AsyncLocalStorage<Measurement>();
+
+  private readonly instrumented: boolean;
+
+  public static createFresh(instrumented = true): EmbeddingUsageMeter {
+    return new EmbeddingUsageMeter(instrumented);
   }
 
-  private constructor() {}
+  private constructor(instrumented: boolean) {
+    this.instrumented = instrumented;
+  }
 
-  public record(model: string, tokens: number): void {
-    this.storage.getStore()?.push({ model, tokens });
+  public currentSignal(): AbortSignal | undefined {
+    return this.storage.getStore()?.signal;
+  }
+
+  public begin(
+    model: string,
+  ): { finish: (tokens: number) => void } | undefined {
+    const scope = this.storage.getStore();
+    if (!scope) return undefined;
+    scope.signal.throwIfAborted();
+    const call: EmbeddingUsage = { model, tokens: 0, incomplete: true };
+    scope.usage.push(call);
+    return {
+      finish: (tokens): void => {
+        if (!scope.active) return;
+        call.tokens = tokens;
+        delete call.incomplete;
+      },
+    };
+  }
+
+  public record(model: string, tokens: number, incomplete?: boolean): void {
+    const scope = this.storage.getStore();
+    if (scope?.active)
+      scope.usage.push({
+        model,
+        tokens,
+        ...(incomplete ? { incomplete } : {}),
+      });
   }
 
   public async measure<T>(
     work: () => Promise<T>,
+    signal?: AbortSignal,
   ): Promise<{ value: T; usage: EmbeddingUsage[] }> {
-    const usage: EmbeddingUsage[] = [];
-    const value = await this.storage.run(usage, work);
-    return { value, usage };
+    const controller = new AbortController();
+    const scope: Measurement = {
+      // An injected provider outside this recorder cannot establish zero spend.
+      usage: this.instrumented
+        ? []
+        : [
+            {
+              model: "unmetered-embedding-provider",
+              tokens: 0,
+              incomplete: true,
+            },
+          ],
+      active: true,
+      signal: signal
+        ? AbortSignal.any([signal, controller.signal])
+        : controller.signal,
+    };
+    try {
+      scope.signal.throwIfAborted();
+      const value = await this.storage.run(scope, work);
+      scope.signal.throwIfAborted();
+      return { value, usage: scope.usage.map((call) => ({ ...call })) };
+    } finally {
+      scope.active = false;
+      controller.abort();
+    }
   }
 }

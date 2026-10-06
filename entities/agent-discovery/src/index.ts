@@ -6,6 +6,14 @@ export {
 } from "./agent-discovery";
 export { agent } from "./agent-entity";
 export { skill } from "./skill-entity";
+export { networkPiece } from "./network-piece-entity";
+export { networkPieceId } from "./lib/network-piece-id";
+export {
+  NETWORK_PIECE_ENTITY_TYPE,
+  networkPieceSchema,
+  type NetworkPieceEntity,
+  type NetworkPieceMetadata,
+} from "./schemas/network-piece";
 export { default } from "./agent-discovery";
 
 export {

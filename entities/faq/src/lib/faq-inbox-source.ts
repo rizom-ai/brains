@@ -51,6 +51,17 @@ function toItem({ entity, frontmatter, alternatives }: ParsedFaq): InboxItem[] {
         ],
       },
     ];
+  if (frontmatter.review === "source-withdrawn")
+    return [
+      {
+        ...base,
+        summary: `A cited piece left the network. ${asked(frontmatter.asked)}`,
+        actions: [
+          { id: "keep-published", label: "Keep the answer" },
+          { id: "unpublish", label: "Take it down", confirm: true },
+        ],
+      },
+    ];
   if (alternatives.length === 0) return [];
   const actions: InboxAction[] = [
     ...alternatives.slice(0, MAX_ALTERNATIVES).map((_alternative, index) => ({
@@ -111,6 +122,7 @@ export const faqInbox: EntityInboxDeclaration = {
     signal.throwIfAborted();
     if (!row) throw new Error("FAQ not found");
     const { frontmatter, answer, alternatives } = parse(row);
+    const sources = frontmatter.sources ?? [];
     const sections = [
       frontmatter.question,
       `${frontmatter.status === "draft" ? "Drafted answer" : "Current answer"}:\n${answer}`,
@@ -118,6 +130,17 @@ export const faqInbox: EntityInboxDeclaration = {
         (alternative, index) =>
           `Alternative ${index + 1}:\n${alternative.answer}`,
       ),
+      ...(sources.length > 0
+        ? [
+            `Sources:\n${sources
+              .map((source) =>
+                [source.brain?.name, source.title, source.url]
+                  .filter(Boolean)
+                  .join(" — "),
+              )
+              .join("\n")}`,
+          ]
+        : []),
     ];
     return { kind: "plain", text: sections.join("\n\n"), truncated: false };
   },
@@ -132,10 +155,28 @@ export const faqInbox: EntityInboxDeclaration = {
       await context.edits.delete(faq, edit);
       return;
     }
+    if (actionId === "keep-published" || actionId === "unpublish") {
+      if (value.frontmatter.review !== "source-withdrawn")
+        throw new Error("Invalid FAQ inbox action");
+      const { review: _review, ...rest } = value.frontmatter;
+      const settled: FaqFrontmatter = {
+        ...rest,
+        status: actionId === "unpublish" ? "draft" : rest.status,
+      };
+      await context.edits.replace(faq, edit, {
+        ...edit.entity,
+        content: createFaqContent(settled, value.answer, value.alternatives),
+        metadata: faqMetadata(settled),
+      });
+      return;
+    }
     const chosen = chosenAnswer(value, actionId);
     const frontmatter: FaqFrontmatter = {
       ...value.frontmatter,
       status: actionId === "publish" ? "published" : value.frontmatter.status,
+      // Historical alternatives carry no provenance; never attribute a different
+      // answer to the original answer's sources.
+      ...(USE_ALTERNATIVE.test(actionId) ? { sources: [] } : {}),
     };
     await context.edits.replace(faq, edit, {
       ...edit.entity,

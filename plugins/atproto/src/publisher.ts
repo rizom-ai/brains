@@ -102,6 +102,8 @@ export interface AtprotoPublisherInput {
   /** How the brain presents itself, for the card. */
   readonly brain: AtprotoBrainSource;
   readonly entities: AtprotoEntityReads;
+  readonly pageUrl?:
+    ((entity: Readonly<BaseEntity>) => string | undefined) | undefined;
   readonly logger: LoggerContract;
   readonly deps?: AtprotoServiceDeps | undefined;
 }
@@ -290,8 +292,10 @@ export function createAtprotoPublisher(
       );
     }
 
+    const pageUrl = input.pageUrl?.(entity);
     if (options.dryRun) {
       const record = await projection.buildRecord({
+        ...(pageUrl && { pageUrl }),
         entity,
         context: projectionContext,
         config,
@@ -308,6 +312,7 @@ export function createAtprotoPublisher(
 
     const { client, repo } = await openSession();
     const record = await projection.buildRecord({
+      ...(pageUrl && { pageUrl }),
       entity,
       context: projectionContext,
       config,

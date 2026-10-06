@@ -32,6 +32,23 @@ function yearOf(publishedAt: string | undefined): number | null {
   return Number.isFinite(year) ? year : null;
 }
 
+/** The key of the most recently published entity, if any has a date. */
+function latestPublished(entities: Map<string, BaseEntity>): string | null {
+  const dated = [...entities].flatMap(([key, entity]) => {
+    const metadata = atlasMetadataSchema.safeParse(entity.metadata);
+    const time = metadata.success
+      ? Date.parse(metadata.data.publishedAt ?? "")
+      : NaN;
+    return Number.isFinite(time) ? [{ key, time }] : [];
+  });
+  return (
+    dated.reduce<{ key: string; time: number } | null>(
+      (newest, entry) => (!newest || entry.time > newest.time ? entry : newest),
+      null,
+    )?.key ?? null
+  );
+}
+
 /**
  * The projection spreads the whole corpus; the atlas shows a published
  * subset, so fit that subset back into the unit square, keeping its shape.
@@ -80,6 +97,7 @@ export async function loadHomepageAtlas(
         .map((entity) => [`${entity.entityType}:${entity.id}`, entity]),
     );
 
+    const newest = latestPublished(published);
     const items: AtlasItem[] = map.points.flatMap((point) => {
       const entityType = atlasEntityTypeSchema.safeParse(point.entityType);
       const metadata = atlasMetadataSchema.safeParse(
@@ -99,6 +117,7 @@ export async function loadHomepageAtlas(
           zoneId: point.zoneId,
           url: null,
           typeLabel: null,
+          latest: `${point.entityType}:${point.id}` === newest,
         },
       ];
     });

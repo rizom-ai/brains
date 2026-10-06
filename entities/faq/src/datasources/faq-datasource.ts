@@ -5,22 +5,54 @@ import {
   z,
 } from "@brains/sdk/entities";
 import { parseFaqContent } from "../lib/faq-content";
-import { faqSchema } from "../schemas/faq";
+import { faqSchema, type FaqSource } from "../schemas/faq";
 
 /** Local declaration id; the host qualifies it for the installed package. */
 export const FAQ_DATASOURCE_ID = "entities" as const;
+
+type FaqItemSourceSchema = z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  url: z.ZodNullable<z.ZodString>;
+  excerpt: z.ZodNullable<z.ZodString>;
+  brain: z.ZodNullable<
+    z.ZodObject<{ name: z.ZodString; url: z.ZodNullable<z.ZodString> }>
+  >;
+}>;
+/** JSON presentation uses null, never undefined or persistence metadata. */
+export const faqItemSourceSchema: FaqItemSourceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  url: z.string().nullable(),
+  excerpt: z.string().nullable(),
+  brain: z.object({ name: z.string(), url: z.string().nullable() }).nullable(),
+});
+export type FaqItemSource = z.output<typeof faqItemSourceSchema>;
+function itemSource(source: FaqSource): FaqItemSource {
+  return {
+    id: source.id,
+    title: source.title,
+    url: source.url ?? null,
+    excerpt: source.excerpt ?? null,
+    brain: source.brain
+      ? { name: source.brain.name, url: source.brain.url ?? null }
+      : null,
+  };
+}
 
 type FaqItemSchema = z.ZodObject<{
   id: z.ZodString;
   question: z.ZodString;
   answer: z.ZodString;
   asked: z.ZodNumber;
+  sources: z.ZodArray<FaqItemSourceSchema>;
 }>;
 export const faqItemSchema: FaqItemSchema = z.object({
   id: z.string(),
   question: z.string(),
   answer: z.string(),
   asked: z.number().int(),
+  sources: z.array(faqItemSourceSchema),
 });
 export type FaqItem = z.output<typeof faqItemSchema>;
 export const faqSectionSchema: z.ZodObject<{
@@ -63,6 +95,9 @@ export async function loadPublicFaqs(
     question: entity.metadata.question,
     answer: parseFaqContent(entity.content).answer,
     asked: entity.metadata.asked,
+    sources: (parseFaqContent(entity.content).frontmatter.sources ?? []).map(
+      itemSource,
+    ),
   }));
 }
 

@@ -14,9 +14,15 @@ import {
   applyUpdateOperation,
   buildUpdateDiff,
   requiredUpdateAction,
+  resolveReplacementContent,
   validateUpdateOperation,
   type UpdateOperation,
 } from "./entity-update-operation";
+import {
+  freezeUserMessageSource,
+  resolveConversationMessageContent,
+  type UserMessageSource,
+} from "./conversation-message-source";
 import type { SystemServices } from "./types";
 import {
   buildEntityMutationEventContext,
@@ -37,19 +43,28 @@ function failure(error: string): ToolFailure {
   return { success: false, error };
 }
 
+interface NormalizedOperation {
+  operation: UpdateOperation;
+  /** A user-message source pinned to the text it resolved to. */
+  source?: UserMessageSource;
+}
+
 /**
  * Checks the request's shape and turns it into one operation: edits applied
- * to the current content, or normalized fields or content.
+ * to the current content, normalized fields, or replacement text written by
+ * the caller or read verbatim from a user message.
  */
-function normalizeOperation(
+async function normalizeOperation(
+  services: SystemServices,
   input: UpdateInput,
   entity: BaseEntity,
-): UpdateOperation | ToolFailure {
-  if (
-    input.edits !== undefined &&
-    (input.content !== undefined || input.fields !== undefined)
-  )
-    return failure("Provide only one of 'edits', 'content', or 'fields'.");
+  context: ToolContext,
+): Promise<NormalizedOperation | ToolFailure> {
+  const requested = [input.fields, input.content, input.edits, input.source];
+  if (requested.filter((value) => value !== undefined).length > 1)
+    return failure(
+      "Provide only one of 'fields', 'content', 'edits', or 'source'.",
+    );
   if (
     input.confirmed &&
     input.contentHash &&
@@ -58,22 +73,43 @@ function normalizeOperation(
     return failure(
       "Entity was modified since you reviewed the changes. Please try again.",
     );
+  if (input.edits !== undefined)
+    return {
+      operation: { content: applyContentEdits(entity.content, input.edits) },
+    };
 
-  const operation: UpdateOperation =
-    input.edits !== undefined
-      ? { content: applyContentEdits(entity.content, input.edits) }
-      : normalizeUpdateInput({
-          ...(input.fields !== undefined ? { fields: input.fields } : {}),
-          ...(input.content !== undefined ? { content: input.content } : {}),
-        });
-
-  if (operation.content !== undefined && operation.fields !== undefined)
-    return failure("Provide either 'content' or 'fields', not both");
-  if (!operation.content && !operation.fields)
-    return failure(
-      "Provide 'content' (full replacement) or 'fields' (partial update)",
+  let source: UserMessageSource | undefined;
+  let operation: UpdateOperation;
+  if (input.source !== undefined) {
+    const resolved = await resolveConversationMessageContent(
+      services,
+      input.source,
+      context,
     );
-  return operation;
+    if (!resolved.success) return resolved;
+    source = freezeUserMessageSource(input.source, resolved);
+    operation = { content: resolved.content };
+  } else {
+    operation = normalizeUpdateInput({
+      ...(input.fields !== undefined ? { fields: input.fields } : {}),
+      ...(input.content !== undefined ? { content: input.content } : {}),
+    });
+  }
+
+  if (operation.content === undefined) {
+    return operation.fields
+      ? { operation }
+      : failure(
+          "Provide 'content' (full replacement) or 'fields' (partial update)",
+        );
+  }
+  const content = resolveReplacementContent(
+    entity,
+    operation.content,
+    services.entityRegistry,
+  );
+  if (typeof content !== "string") return content;
+  return { operation: { content }, ...(source ? { source } : {}) };
 }
 
 export function createEntityUpdateTool(services: SystemServices): Tool {
@@ -97,6 +133,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       !input.confirmationToken ||
       input.edits !== undefined ||
       input.fields !== undefined ||
+      input.source !== undefined ||
       input.content?.trim()
     )
       return { input, replayed: false };
@@ -171,11 +208,17 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
   const proposeUpdate = (
     input: UpdateInput,
     entity: BaseEntity,
-    operation: UpdateOperation,
+    { operation, source }: NormalizedOperation,
   ): ToolResponse => {
     // Approval must replay the normalized operation, not the JSON content
-    // that may have been interpreted as a field update.
-    const { fields: _fields, content: _content, ...confirmationInput } = input;
+    // that may have been interpreted as a field update. A user-message source
+    // replays as its pinned reference, so approval re-reads the same text.
+    const {
+      fields: _fields,
+      content: _content,
+      source: _source,
+      ...confirmationInput
+    } = input;
     return {
       needsConfirmation: true,
       toolName: "system_update",
@@ -184,7 +227,11 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       preview: buildUpdateDiff(entity, operation, entityRegistry),
       args: confirmationGate.buildArgs((confirmationToken) => ({
         ...confirmationInput,
-        ...(input.edits !== undefined ? { edits: input.edits } : operation),
+        ...(input.edits !== undefined
+          ? { edits: input.edits }
+          : source
+            ? { source }
+            : operation),
         id: entity.id,
         confirmed: true,
         confirmationToken,
@@ -195,7 +242,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "update",
-    "Update an entity's fields or content. For small content changes, fetch the entity and use edits with exact oldText/newText pairs instead of regenerating the whole document. Use only one of fields, content, or edits. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
+    "Update an entity's fields or content. For small content changes, fetch the entity and use edits with exact oldText/newText pairs instead of regenerating the whole document. For a large rewrite whose text the user supplied, use source with exact user-message boundaries instead of copying it into content. Use only one of fields, content, edits, or source. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
     updateInputSchema,
     async (request, context) => {
       const resolved = await resolveEntityOrError(
@@ -213,8 +260,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if ("success" in recovered) return recovered;
       const { input, replayed } = recovered;
 
-      const operation = normalizeOperation(input, entity);
-      if ("success" in operation) return operation;
+      const normalized = await normalizeOperation(
+        services,
+        input,
+        entity,
+        context,
+      );
+      if ("success" in normalized) return normalized;
+      const { operation } = normalized;
 
       const invalid = validateUpdateOperation(
         entity,
@@ -234,7 +287,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
       return input.confirmed
         ? commitUpdate(input, entity, operation, replayed, context)
-        : proposeUpdate(input, entity, operation);
+        : proposeUpdate(input, entity, normalized);
     },
     { visibility: "trusted", sideEffects: "writes" },
   );

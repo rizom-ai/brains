@@ -96,9 +96,9 @@ function receiptNamespace(
     owner.packageName === "@brains/faq" &&
     owner.declarationId === "capture" &&
     type === "faq" &&
-    operation === "capture"
+    (operation === "capture" || operation === "source-review")
   )
-    return "faq.capture";
+    return operation === "capture" ? "faq.capture" : "faq.source-review";
   return `owned-entity:${sha256Hex(JSON.stringify([owner.packageName, owner.declarationId, type, operation]))}`;
 }
 

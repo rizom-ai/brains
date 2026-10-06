@@ -50,6 +50,13 @@
       "when": 1790869149573,
       "tag": "0006_scope_faq_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790869149574,
+      "tag": "0007_scope_faq_source_review",
+      "breakpoints": true
     }
   ]
 }

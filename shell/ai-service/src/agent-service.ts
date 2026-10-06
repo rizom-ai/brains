@@ -165,7 +165,9 @@ export class AgentService implements IAgentService {
       agentContextProvider: config.agentContextProvider,
       uploadAttachmentResolver: config.uploadAttachmentResolver,
       guestAnswerSources: config.guestAnswerSources,
+      guestAskedBefore: config.guestAskedBefore,
       embeddingUsage: config.embeddingUsage,
+      generationUsage: config.generationUsage,
     });
     this.conversationActors = new ConversationActorRegistry({
       createActor: (): ConversationActor => {

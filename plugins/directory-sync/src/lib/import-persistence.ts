@@ -10,7 +10,7 @@ import { computeContentHash } from "@brains/utils/hash";
 import type { ImportResult, RawEntity } from "../types";
 
 import { resolveInSyncPath } from "./path-utils";
-import { recordImportIssue } from "./import-result";
+import { recordImportIssue, recordSkippedImport } from "./import-result";
 
 export interface ImportPersistenceDeps {
   entityService: Pick<EntityMirrorClient, "serializeEntity" | "upsertEntity">;
@@ -120,6 +120,19 @@ export async function persistImportEntity(
       throw new Error(
         "Directory import adapter changed the admitted destination",
       );
+
+    // A file that is not in canonical form (a missing final newline, say)
+    // hashes differently from the stored row on every sync, yet parses to
+    // exactly what is stored. Writing it again would only move `updated`
+    // and queue derived work, so leave it.
+    if (
+      existing?.contentHash === entity.contentHash &&
+      existing.visibility === entity.visibility &&
+      Bun.deepEquals(existing.metadata, entity.metadata)
+    ) {
+      recordSkippedImport(result);
+      return;
+    }
     const options = {
       persistenceOrigin: "directory-sync" as const,
       conditionalWrite: { expectedRevision: snapshot?.revision ?? null },

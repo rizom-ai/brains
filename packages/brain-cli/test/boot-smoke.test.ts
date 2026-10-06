@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { runProcess } from "@brains/utils/run-process";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -129,6 +129,9 @@ describe("built binary boot smoke", () => {
       const tail = outcome.log.split("\n").slice(-40).join("\n");
 
       expect(outcome.listening, `boot log tail:\n${tail}`).toBe(true);
+      expect(outcome.log).not.toContain(
+        "Failed to initialize plugin auth-service:",
+      );
       expect(outcome.log).not.toContain("snapshot provider is not bound");
       expect(outcome.log).not.toContain("failed to start");
 
@@ -139,6 +142,64 @@ describe("built binary boot smoke", () => {
       proc.kill();
       await proc.exited;
       rmSync(instanceDir, { recursive: true, force: true });
+    }
+  }, 240_000);
+
+  it("boots a fresh instance started from another directory", async () => {
+    // The dev start scripts run the CLI from its package directory and name
+    // the instance through INIT_CWD, as package managers do.
+    const instanceDir = mkdtempSync(join(tmpdir(), "brain-init-cwd-"));
+    const launchDir = mkdtempSync(join(tmpdir(), "brain-launch-dir-"));
+    const productionPort = freePort();
+    writeFileSync(
+      join(instanceDir, "brain.yaml"),
+      [
+        "brain: brain",
+        "bundleContract: capability-bundles-v1",
+        "anchor: person",
+        "kind: professional",
+        "bundles:",
+        "  - core",
+        "  - web",
+        "plugins:",
+        "  onboarding:",
+        "    enabled: false",
+        `port: ${productionPort}`,
+        "http:",
+        "  preview: false",
+        "",
+      ].join("\n"),
+    );
+
+    const proc = Bun.spawn(
+      ["bun", join(packageDir, "dist", "brain.js"), "start"],
+      {
+        cwd: launchDir,
+        env: {
+          ...process.env,
+          INIT_CWD: instanceDir,
+          NODE_ENV: "production",
+          AI_API_KEY: "placeholder-boot-smoke",
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+    try {
+      const outcome = await waitForListening(proc, 90_000);
+      const tail = outcome.log.split("\n").slice(-40).join("\n");
+
+      expect(outcome.listening, `boot log tail:\n${tail}`).toBe(true);
+      expect(outcome.log).not.toContain(
+        "Failed to initialize plugin auth-service:",
+      );
+      expect(existsSync(join(instanceDir, "data", "brain.db"))).toBe(true);
+      expect(existsSync(join(launchDir, "data"))).toBe(false);
+    } finally {
+      proc.kill();
+      await proc.exited;
+      rmSync(instanceDir, { recursive: true, force: true });
+      rmSync(launchDir, { recursive: true, force: true });
     }
   }, 240_000);
 

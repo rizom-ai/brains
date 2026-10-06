@@ -335,7 +335,7 @@ const plcDocumentSchema = z.object({
     .optional(),
 });
 
-async function resolvePdsEndpoint(
+export async function resolvePdsEndpoint(
   repoDid: string,
   fetchFn: AtprotoCardFetch,
   signal?: AbortSignal,

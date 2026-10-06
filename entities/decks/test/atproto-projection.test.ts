@@ -57,6 +57,24 @@ describe("deck ATProto projection", () => {
     });
   });
 
+  it("names its page when the site gives the deck one, and nothing otherwise", async () => {
+    const projection = createDeckAtprotoProjection();
+    const context = createPluginHarness().getServiceContext("decks");
+    const placed = await projection.buildRecord({
+      entity: deck,
+      context,
+      config: {},
+      pageUrl: "https://brain.example.com/decks/deck-1",
+    });
+    expect(placed.canonicalUrl).toBe("https://brain.example.com/decks/deck-1");
+    const unplaced = await projection.buildRecord({
+      entity: deck,
+      context,
+      config: {},
+    });
+    expect(unplaced.canonicalUrl).toBeUndefined();
+  });
+
   it("registers the deck projection when the decks plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-deck-atproto" });
     await harness.installPlugin(deckEntityPlugin());

@@ -13,6 +13,7 @@
           "title": { "type": "string", "maxLength": 300 },
           "slug": { "type": "string" },
           "description": { "type": "string", "maxLength": 10000 },
+          "canonicalUrl": { "type": "string", "format": "uri" },
           "brainDid": { "type": "string" },
           "anchorDid": { "type": "string" },
           "sourceEntityType": { "type": "string" },

@@ -59,14 +59,20 @@ test("upgrades exact persisted FAQ dispatch identities without replaying, rewrit
       requestedByActor: { kind: "user", userId: "operator" },
       note: "preserve attribution",
     };
-    for (const type of ["faq:faq-capture", "faq:faq-reconcile"]) {
+    for (const type of [
+      "faq:faq-capture",
+      "faq:faq-reconcile",
+      "faq:faq-source-review",
+    ]) {
       for (const status of ["pending", "processing", "completed", "failed"]) {
         await client.execute({
           sql: "INSERT INTO job_queue (id,type,data,metadata,status,createdAt,scheduledFor,retryCount,maxRetries,attemptId,workerSessionId,leaseExpiresAt,lastErrorCode,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
           args: [
             `${type}-${status}`,
             type,
-            payload,
+            type === "faq:faq-source-review"
+              ? '{ "sourceId":"network-piece:peer", "withdrawalId":"exact-delivery" }'
+              : payload,
             JSON.stringify(originalMetadata),
             status,
             100,
@@ -89,6 +95,19 @@ test("upgrades exact persisted FAQ dispatch identities without replaying, rewrit
       ["foreign-source", "faq:faq-capture", '{"pluginId":"faq"}', "another"],
       ["missing-source", "faq:faq-capture", '{"pluginId":"faq"}', null],
       ["other-job", "faq:another", '{"pluginId":"faq"}', "faq"],
+      [
+        "foreign-review-owner",
+        "faq:faq-source-review",
+        '{"pluginId":"another"}',
+        "faq",
+      ],
+      [
+        "foreign-review-source",
+        "faq:faq-source-review",
+        '{"pluginId":"faq"}',
+        "another",
+      ],
+      ["malformed-review-owner", "faq:faq-source-review", "not json", "faq"],
       [
         "already-qualified",
         "@brains/faq:capture:faq-capture",
@@ -127,6 +146,9 @@ test("upgrades exact persisted FAQ dispatch identities without replaying, rewrit
     // Also safe when the data statement committed but its migration acknowledgement did not.
     const sql = await Bun.file(join(source, "0006_scope_faq_jobs.sql")).text();
     await client.execute(sql);
+    await client.execute(
+      await Bun.file(join(source, "0007_scope_faq_source_review.sql")).text(),
+    );
     expect(
       (await client.execute("SELECT * FROM job_queue ORDER BY id")).rows,
     ).toEqual(after);

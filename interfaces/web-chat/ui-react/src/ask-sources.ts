@@ -12,7 +12,13 @@ export function askSourcesDetail(cards: unknown[]): AskSourcesDetail {
       if (seen.has(source.id)) return [];
       seen.add(source.id);
       // The shared card normalizer names an untitled source by its entity id.
-      return [{ id: source.id, title: source.title ?? source.id }];
+      return [
+        {
+          id: source.id,
+          title: source.title ?? source.id,
+          ...(source.brain ? { brain: source.brain } : {}),
+        },
+      ];
     }),
   };
 }
