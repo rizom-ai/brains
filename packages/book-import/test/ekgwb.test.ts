@@ -92,6 +92,10 @@ describe("parseEkgwbBook", () => {
 
     expect(unit?.paragraphs).toEqual([
       "Ein *gespro*\\<*chenes*\\> Wort, dann *zusammen* und ein Stern \\* hier.",
+      // An editor's correction wraps a word; it still touches its neighbour.
+      "Wie in einem *gleichnissartigen Traumbilde*, sichtbar.",
+      // Space at a span's edge stays outside the emphasis.
+      "Das *„Übermass*“ endet *hier* und dort.",
     ]);
   });
 

@@ -70,30 +70,49 @@ function escapeText(node: Node): void {
   Array.from(node.childNodes).forEach(escapeText);
 }
 
-/** Emphasised spans that touch are one emphasis, as when a word is split. */
+/** The text below a node, in reading order. */
+function textNodesOf(node: Node): Node[] {
+  return node.nodeType === TEXT_NODE
+    ? [node]
+    : Array.from(node.childNodes).flatMap(textNodesOf);
+}
+
+/**
+ * Emphasised spans that touch are one emphasis, as when a word is split or an
+ * editor's correction wraps part of it: no text lies between them in reading
+ * order, whatever elements enclose them. Later spans fold into earlier ones,
+ * so a run of touching spans becomes the first.
+ */
 function mergeTouchingEmphasis(copy: Element): void {
-  Array.from(copy.querySelectorAll("span.bold"))
+  const owners = textNodesOf(copy)
+    .filter((text) => text.textContent.length > 0)
+    .map((text) => text.parentElement?.closest("span.bold") ?? null);
+  owners
+    .slice(0, -1)
+    .map((owner, index) => [owner, owners[index + 1] ?? null] as const)
     .reverse()
-    .forEach((span) => {
-      const next = span.nextElementSibling;
-      // Touching: the next node is the next element, with no text between.
-      if (
-        span.nextSibling !== null &&
-        span.nextSibling === next &&
-        next.matches("span.bold")
-      ) {
+    .forEach(([span, next]) => {
+      if (span && next && span !== next) {
         span.textContent = span.textContent + next.textContent;
-        next.remove();
+        next.textContent = "";
       }
     });
 }
 
-/** Spaced emphasis on the page becomes markdown emphasis, its text escaped. */
+/**
+ * Spaced emphasis on the page becomes markdown emphasis, its text escaped.
+ * Space at a span's edges stays outside the markers, between the words.
+ */
 function markEmphasis(copy: Element): void {
   escapeText(copy);
   mergeTouchingEmphasis(copy);
   copy.querySelectorAll("span.bold").forEach((span) => {
-    span.textContent = `*${normalise(span.textContent)}*`;
+    const text = span.textContent;
+    const word = text.trim();
+    if (word.length === 0) return;
+    const lead = text.slice(0, text.length - text.trimStart().length);
+    const trail = text.slice(text.trimEnd().length);
+    span.textContent = `${lead}*${normalise(word)}*${trail}`;
   });
 }
 
