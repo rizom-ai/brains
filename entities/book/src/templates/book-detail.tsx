@@ -8,26 +8,30 @@ export interface BookDetailProps {
   book: BookWithData;
   prev: BookWithData | null;
   next: BookWithData | null;
+  /** Sections in the book, not counting its title entry. */
+  total: number;
 }
 
 const BookDetails = ({ book }: { book: BookWithData }): JSX.Element => (
   <dl className="m-0 mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm text-theme-muted">
     {book.frontmatter.author && (
       <>
-        <dt className={bookClasses.label}>Autor</dt>
+        <dt className={bookClasses.label}>Author</dt>
         <dd className="m-0">{book.frontmatter.author}</dd>
       </>
     )}
     {book.frontmatter.year !== null && (
       <>
-        <dt className={bookClasses.label}>Jahr</dt>
+        <dt className={bookClasses.label}>Year</dt>
         <dd className="m-0">{book.frontmatter.year}</dd>
       </>
     )}
     {book.frontmatter.edition && (
       <>
-        <dt className={bookClasses.label}>Ausgabe</dt>
-        <dd className="m-0">{book.frontmatter.edition}</dd>
+        <dt className={bookClasses.label}>Edition</dt>
+        <dd className="m-0" lang="de">
+          {book.frontmatter.edition}
+        </dd>
       </>
     )}
   </dl>
@@ -42,7 +46,10 @@ const Source = ({
 }): JSX.Element => {
   const license = licenseLabel(book);
   return (
-    <p className="m-0 mt-12 text-[13px] text-theme-muted">
+    <p
+      className={`${bookClasses.rule} m-0 mt-12 pt-4 font-mono text-[13px] leading-relaxed text-theme-light`}
+    >
+      Source:{" "}
       <a href={entry.frontmatter.source} className={bookClasses.link}>
         {book.frontmatter.attribution ?? entry.frontmatter.source}
       </a>
@@ -50,6 +57,18 @@ const Source = ({
     </p>
   );
 };
+
+/** Where a link leads: the section's own title, with its siglum. */
+const PagerLabel = ({ target }: { target: BookWithData }): JSX.Element => (
+  <>
+    <span lang="de">{target.metadata.title}</span>
+    {target.metadata.section && (
+      <span className="book-siglum ml-2 text-theme-light">
+        {target.metadata.section}
+      </span>
+    )}
+  </>
+);
 
 const Pager = ({
   prev,
@@ -59,55 +78,90 @@ const Pager = ({
   next: BookWithData | null;
 }): JSX.Element => (
   <nav
-    className={`${bookClasses.rule} mt-16 flex justify-between gap-6 pt-6 text-sm`}
+    className="mt-10 flex justify-between gap-6 font-mono text-sm"
+    aria-label="Sections"
   >
     {prev ? (
       <a href={bookHref(prev)} rel="prev" className={bookClasses.link}>
-        ← {prev.metadata.section ?? prev.metadata.title}
+        ← <PagerLabel target={prev} />
       </a>
     ) : (
       <span />
     )}
     {next && (
       <a href={bookHref(next)} rel="next" className={bookClasses.link}>
-        {next.metadata.section ?? next.metadata.title} →
+        <PagerLabel target={next} /> →
       </a>
     )}
   </nav>
 );
 
-export const BookDetailTemplate = ({
+const TitleView = ({
   entry,
   book,
   prev,
   next,
-}: BookDetailProps): JSX.Element => {
-  const isTitle = entry.metadata.order === 0;
-  return (
-    <article className={bookClasses.page}>
-      <header className="mb-10">
-        {isTitle ? (
-          <p className={`${bookClasses.label} m-0`}>
-            {book.frontmatter.author}
-          </p>
-        ) : (
-          <p className={`${bookClasses.label} m-0`}>
-            <a href={bookHref(book)} className={bookClasses.link}>
-              {book.metadata.title}
-            </a>
-            {entry.metadata.section && <span> · {entry.metadata.section}</span>}
-          </p>
-        )}
-        <h1 className="m-0 mt-4 text-4xl leading-tight font-medium text-heading md:text-5xl">
-          {entry.metadata.title}
-        </h1>
-        {isTitle && <BookDetails book={book} />}
-      </header>
-
+}: BookDetailProps): JSX.Element => (
+  <article className={bookClasses.page}>
+    <header className="mb-10">
+      <p className={`${bookClasses.label} m-0`}>{book.frontmatter.author}</p>
+      <h1
+        className="m-0 mt-4 text-4xl leading-tight font-medium text-heading md:text-5xl"
+        lang="de"
+      >
+        {entry.metadata.title}
+      </h1>
+      <BookDetails book={book} />
+    </header>
+    <div className="book-text" lang="de">
       <MarkdownContent markdown={entry.body} />
+    </div>
+    <Source entry={entry} book={book} />
+    <Pager prev={prev} next={next} />
+  </article>
+);
 
+/** A section set for reading: siglum and place in the margin, text alone. */
+const SectionView = ({
+  entry,
+  book,
+  prev,
+  next,
+  total,
+}: BookDetailProps): JSX.Element => (
+  <article className="mx-auto grid w-full max-w-[76rem] gap-x-14 gap-y-8 px-4 py-14 md:grid-cols-[13rem_minmax(0,40rem)] md:py-20">
+    <aside className="md:pt-3">
+      <p className="book-siglum m-0 text-3xl leading-none text-heading md:text-4xl">
+        {entry.metadata.section ?? entry.metadata.order}
+      </p>
+      <p className="m-0 mt-4 font-mono text-xs leading-relaxed text-theme-muted">
+        <a href={bookHref(book)} className={bookClasses.link} lang="de">
+          {book.metadata.title}
+        </a>
+        <br />
+        {book.frontmatter.year !== null && `${book.frontmatter.year} · `}
+        section {entry.metadata.order} of {total}
+      </p>
+    </aside>
+    <div className="min-w-0">
+      <h1
+        className="m-0 mb-8 text-5xl leading-none font-normal text-heading md:text-6xl"
+        lang="de"
+      >
+        {entry.metadata.title}
+      </h1>
+      <div className="book-text" lang="de">
+        <MarkdownContent markdown={entry.body} />
+      </div>
       <Source entry={entry} book={book} />
       <Pager prev={prev} next={next} />
-    </article>
+    </div>
+  </article>
+);
+
+export const BookDetailTemplate = (props: BookDetailProps): JSX.Element =>
+  props.entry.metadata.order === 0 ? (
+    <TitleView {...props} />
+  ) : (
+    <SectionView {...props} />
   );
-};

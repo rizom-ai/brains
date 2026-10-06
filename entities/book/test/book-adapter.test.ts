@@ -42,6 +42,7 @@ describe("BookAdapter", () => {
       book: "der-antichrist",
       order: 1,
       slug: "der-antichrist/1",
+      pageTitle: "AC-1",
     });
   });
 
@@ -63,6 +64,7 @@ describe("BookAdapter", () => {
       book: "der-antichrist",
       order: 0,
       slug: "der-antichrist",
+      pageTitle: "Der Antichrist",
     });
   });
 
@@ -101,6 +103,7 @@ Text.
         book: "der-antichrist",
         order: 0,
         slug: "der-antichrist",
+        pageTitle: "Der Antichrist",
       },
     });
     const reparsed = bookAdapter.fromMarkdown(markdown);

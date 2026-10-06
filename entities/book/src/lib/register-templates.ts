@@ -33,6 +33,7 @@ const bookDetailSchema = z.object({
   book: bookEntryDisplaySchema,
   prev: bookEntryDisplaySchema.nullable(),
   next: bookEntryDisplaySchema.nullable(),
+  total: z.number().int().min(0),
 });
 
 export function getTemplates(): Record<string, Template> {

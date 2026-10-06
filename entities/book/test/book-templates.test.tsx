@@ -30,7 +30,14 @@ function entry(
     created: "2026-10-06T00:00:00.000Z",
     updated: "2026-10-06T00:00:00.000Z",
     visibility: "public",
-    metadata: { title, section, book, order, slug },
+    metadata: {
+      title,
+      section,
+      book,
+      order,
+      slug,
+      pageTitle: section ?? title,
+    },
     frontmatter: {
       title,
       book,
@@ -76,6 +83,7 @@ describe("BookDetailTemplate", () => {
         book={erstes}
         prev={entry("erstes", 1, "Anfang")}
         next={entry("erstes", 3, "Ende")}
+        total={3}
       />,
     );
 
@@ -90,6 +98,25 @@ describe("BookDetailTemplate", () => {
     expect(html).toContain('href="/books/erstes/3"');
   });
 
+  test("sets a section for reading: siglum margin, place in the book, German text", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={entry("erstes", 1, "Anfang")}
+        next={entry("erstes", 3, "Ende")}
+        total={3}
+      />,
+    );
+
+    expect(html).toContain('class="book-siglum');
+    expect(html).toContain("section 2 of 3");
+    expect(html).toMatch(/class="book-text[^"]*" lang="de"/);
+    expect(html).toContain("Source");
+    expect(html).toContain("Anfang");
+    expect(html).toContain("Ende");
+  });
+
   test("opens a book on its title page with the first section next", () => {
     const html = render(
       <BookDetailTemplate
@@ -97,6 +124,7 @@ describe("BookDetailTemplate", () => {
         book={erstes}
         prev={null}
         next={entry("erstes", 1, "Anfang")}
+        total={3}
       />,
     );
 

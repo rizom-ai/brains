@@ -86,13 +86,24 @@ export class BookDataSource extends BaseEntityDataSource<
       await this.lookupEntity(params.query.id, entityService),
     );
     const { book, order } = entry.metadata;
-    const [title, prev, next] = await Promise.all([
+    const [title, prev, next, entries] = await Promise.all([
       order === 0 ? entry : this.findEntry(book, 0, entityService),
       order === 0 ? null : this.findEntry(book, order - 1, entityService),
       this.findEntry(book, order + 1, entityService),
+      entityService.countEntities({
+        entityType: "book",
+        options: { filter: { metadata: { book } } },
+      }),
     ]);
 
-    return outputSchema.parse({ entry, book: title ?? entry, prev, next });
+    return outputSchema.parse({
+      entry,
+      book: title ?? entry,
+      prev,
+      next,
+      // The title entry is not a section.
+      total: Math.max(0, entries - 1),
+    });
   }
 
   private async findEntry(

@@ -34,6 +34,10 @@ export class BookAdapter extends BaseEntityAdapter<
         book: frontmatter.book,
         order: frontmatter.order,
         slug: bookEntrySlug(frontmatter.book, frontmatter.order),
+        pageTitle:
+          frontmatter.order === 0
+            ? frontmatter.title
+            : (frontmatter.section ?? frontmatter.title),
       },
     };
   }

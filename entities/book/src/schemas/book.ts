@@ -57,12 +57,15 @@ export const bookMetadataSchema: z.ZodObject<{
   book: z.ZodString;
   order: z.ZodNumber;
   slug: z.ZodString;
+  pageTitle: z.ZodString;
 }> = z.object({
   title: z.string(),
   section: z.string().nullable(),
   book: z.string(),
   order: z.number().int(),
   slug: z.string(),
+  /** What a page and a search result call this entry: its siglum, or its title. */
+  pageTitle: z.string(),
 });
 
 export type BookMetadata = z.output<typeof bookMetadataSchema>;

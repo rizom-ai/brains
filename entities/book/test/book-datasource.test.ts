@@ -40,6 +40,7 @@ Erfundener Text ${order}.
       book,
       order,
       slug: book,
+      pageTitle: title,
     },
   };
 }
@@ -90,6 +91,7 @@ describe("BookDataSource", () => {
         book: z.any(),
         prev: z.any(),
         next: z.any(),
+        total: z.number(),
       }),
       context,
     );
@@ -100,6 +102,7 @@ describe("BookDataSource", () => {
     expect(result.book.frontmatter.author).toBe("Erfundener Autor");
     expect(result.prev.metadata.slug).toBe("erstes/1");
     expect(result.next.metadata.slug).toBe("erstes/3");
+    expect(result.total).toBe(3);
   });
 
   it("opens a book on its title entry with the first section next", async () => {
