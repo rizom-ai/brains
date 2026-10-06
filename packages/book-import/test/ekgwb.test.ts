@@ -69,6 +69,24 @@ describe("parseEkgwbBook", () => {
     expect(book.units[0]?.paragraphs).toEqual(["Ein Satz, der weitergeht."]);
   });
 
+  it("finds parts the page marks by siglum and by a leading heading", async () => {
+    const book = parseEkgwbBook(await fixture("ekgwb-implicit-parts.html"));
+
+    expect(
+      book.units.map((unit) => [unit.section, unit.parents, unit.title]),
+    ).toEqual([
+      ["IB-[Titel]", [], "Titel"],
+      ["IB-[Motto]", [], "IB-[Motto]"],
+      ["IB-Vorrede-1", ["Vorrede"], "1"],
+      ["IB-Vorrede-2", ["Vorrede"], "2"],
+      ["IB-1", ["Erstes Hauptstück"], "1"],
+      ["IB-2", ["Erstes Hauptstück"], "2"],
+      ["IB-II-[Motto]", ["Zweites Buch"], "Motto"],
+      ["IB-II-3", ["Zweites Buch"], "3"],
+      ["IB-III-4", ["Drittes Buch"], "4"],
+    ]);
+  });
+
   it("files sections under their parts", async () => {
     const book = parseEkgwbBook(await fixture("ekgwb-parts.html"));
 

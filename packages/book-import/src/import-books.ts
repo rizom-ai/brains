@@ -61,7 +61,7 @@ export async function importBooks(
   return manifest.books.reduce<Promise<ImportResult[]>>(async (done, entry) => {
     const results = await done;
     const html = await fetchText(`${EKGWB_BASE}${entry.siglum}/print`);
-    const { title, units } = parseEkgwbBook(html);
+    const { title, units } = parseEkgwbBook(html, entry.siglum);
     if (units.length === 0) {
       throw new Error(`No sections found for ${entry.siglum}`);
     }

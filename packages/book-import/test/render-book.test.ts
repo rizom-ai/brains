@@ -102,6 +102,15 @@ describe("renderBook", () => {
     );
   });
 
+  it("files each section under its top-level part", () => {
+    const [, vorrede, first] = renderBook(source);
+
+    expect(frontmatterOf(vorrede?.markdown ?? "")["part"]).toBeNull();
+    expect(frontmatterOf(first?.markdown ?? "")["part"]).toBe(
+      "Erstes Hauptstück",
+    );
+  });
+
   it("splits a unit over 8,000 bytes at paragraph boundaries", () => {
     const paragraph = "Wort ".repeat(700).trim();
     const files = renderBook({

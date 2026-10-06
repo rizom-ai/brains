@@ -186,6 +186,7 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
       order: entry.order,
       section: entry.unit.section,
       page: entry.unit.page,
+      part: entry.unit.parents[0] ?? null,
       source: entry.unit.source,
     }),
   }));
