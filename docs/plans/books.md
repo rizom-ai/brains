@@ -43,6 +43,8 @@ It follows the domain-plugin model in `docs/architecture-overview.md` (multi-tar
 Every entry:
 
 - `title` — section heading, or the book title on the title entry
+- `book` — the book's slug
+- `order` — reading order within the book, 0 for the title entry
 - `section` — the author's or edition's own citation unit where it exists (aphorism number, `§`, eKGWB siglum such as `FW-125`), else null
 - `page` — source page reference, else null
 - `source` — URL of the source for this entry
@@ -72,7 +74,7 @@ The plugin ships `book-list` and `book-detail` templates and a `book:entities` d
 - `projectionSourceRole: "excluded"` — no topic extraction.
 - `defaultSort`: `id` ascending — reading order for `system_list`.
 
-Phase 1 verifies that directory-sync import is not blocked by `actionPolicy: never`; if it is, `create` becomes `admin`.
+Action policy is enforced in the `system_*` tools, Studio and the operator surface, not in the entity service, so directory-sync writes books unhindered.
 
 ## Brain identity
 
