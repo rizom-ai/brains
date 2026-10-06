@@ -1488,6 +1488,14 @@
   .net-layer > * {
     width: min(100%, var(--strip-h));
   }
+  /* The strip is small: the names would collide, so they wait until an
+     answer lights them. */
+  .net-name {
+    opacity: 0;
+  }
+  .net-layer.has-replies .net-name.is-lit {
+    opacity: 1;
+  }
   /* About a third of the screen for the strip, and the opening's type at
      phone sizes, so the box lands on the first screen under the title. */
   .story {
