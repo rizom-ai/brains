@@ -126,7 +126,7 @@ describe("the Ask room on /ask", () => {
     );
     // Each reply carries its own clock: its breath, its phase and its turn on the shared cycle.
     expect(html).toContain(
-      '<g class="net-reply" data-brain="team" style="--net-breath:8.6s;--net-phase:-3.4s;--net-turn:10.4s">',
+      '<g class="net-reply" data-brain="team" style="--net-breath:8.6s;--net-phase:-3.4s;--net-turn:10.4s;--net-slot:2">',
     );
     expect(html).toMatch(
       /<g class="net-dust"><circle cx="[0-9.-]+" cy="[0-9.-]+" r="[0-9.]+" style="--net-breath:16s;--net-phase:0s"><\/circle>/,
