@@ -74,6 +74,8 @@ Book brains get a purpose-built reading site, not the default site with books ad
 
 Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` is a book's score on its title entry and the reading page on a section. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode. Title entries gain `published`, `length` and `sections`; sections gain `part`; the importer writes them.
 
+Topics are named in the author's own terms: each book brain's content carries a `prompt` entry targeting `topics:extraction` that asks for the author's concepts in the source language (Mitleid, Ressentiment, Wille zur Macht), at the level of a concept, and no topic named after the author or a whole book's subject. A section's margin lists its nearest topics by stored embedding.
+
 Build slices, one PR each:
 
 1. theme and site skeleton, and the reading page;
