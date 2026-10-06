@@ -53,9 +53,6 @@ const BooksLayout = ({
             </a>
           ))}
       </nav>
-      <a className="books-ask" href="/ask">
-        Ask {siteInfo.title}
-      </a>
     </header>
     <main className="books-main">{sections}</main>
     <footer className="books-foot">{siteInfo.copyright}</footer>
@@ -70,8 +67,6 @@ const layoutCSS = `
 .books-nav { display: flex; gap: 1.75rem; font-family: var(--font-mono); font-size: var(--text-label-md); }
 .books-nav a { color: var(--color-text-muted); text-decoration: none; padding-bottom: 3px; }
 .books-nav a[aria-current="page"] { color: var(--color-text); border-bottom: 1.5px solid var(--color-accent); }
-.books-ask { font-family: var(--font-mono); font-size: var(--text-label-md); color: var(--color-text); border: 1px solid var(--color-text); border-radius: 999px; padding: 0.4rem 0.9rem 0.35rem; text-decoration: none; }
-.books-ask::before { content: "? "; color: var(--color-accent); font-weight: 700; }
 .books-main { flex: 1; }
 .books-foot { font-family: var(--font-mono); font-size: var(--text-label-sm); color: var(--color-text-light); padding: 2.5rem clamp(1rem, 4vw, 3rem); border-top: 1px solid var(--color-rule-strong); margin-top: 4rem; }
 `;

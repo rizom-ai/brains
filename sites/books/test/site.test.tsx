@@ -52,7 +52,8 @@ describe("@rizom/site-books", () => {
     expect(html).toContain("Friedrich");
     expect(html).toContain('href="/"');
     expect(html).toContain("Work");
-    expect(html).toContain("Ask Friedrich");
+    // The Ask page arrives with its own slice; no link to it before then.
+    expect(html).not.toContain("/ask");
     expect(html).toContain("<main");
     expect(html).toContain("Abschnitt");
     expect(html).toContain("Text: eKGWB, Nietzsche Source");
