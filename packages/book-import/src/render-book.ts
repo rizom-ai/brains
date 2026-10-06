@@ -143,7 +143,7 @@ function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
     },
     { seen: new Set(), lines: [] },
   ).lines;
-  return `## Inhalt\n\n${lines.join("\n")}\n`;
+  return `## Contents\n\n${lines.join("\n")}\n`;
 }
 
 /** Render a book's entries as markdown files, deterministically. */

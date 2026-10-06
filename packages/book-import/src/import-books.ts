@@ -39,7 +39,7 @@ export function parseManifest(yaml: string): Manifest {
 const EKGWB_EDITION =
   "Digitale Kritische Gesamtausgabe Werke und Briefe (eKGWB), nach der Kritischen Gesamtausgabe von Giorgio Colli und Mazzino Montinari";
 const EKGWB_ATTRIBUTION =
-  "Nietzsche Source, eKGWB, hg. von Paolo D'Iorio (nietzschesource.org)";
+  "Nietzsche Source, eKGWB, ed. Paolo D'Iorio (nietzschesource.org)";
 
 export interface ImportResult {
   slug: string;
