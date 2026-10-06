@@ -150,7 +150,6 @@ Plans:
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — in-flight opportunity capture, ranking, focus, and state suggestions.
 - [lead-management.md](./plans/lead-management.md) — inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.
 - [rizom-ai-story-site.md](./plans/rizom-ai-story-site.md) — rizom.ai as one story: the live network and Ask on the homepage, one drawing language across Brain, Work and Foundation, Writing as an archive, one bar and a reading thread; Network and About dropped.
-- [rizom-ask-network.md](./plans/rizom-ask-network.md) — the live network on /ask as a bioluminescent sky: tendrils instead of spokes, layered breathing lights, dust for the brains not yet in reach, an answer that flares the cited brains.
 
 ### 7. Keep the framework sustainable
 
