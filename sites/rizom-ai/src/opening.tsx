@@ -249,6 +249,7 @@ export function NetworkLayer({
               "--net-breath": `${+(6 + (i % 4) * 1.3).toFixed(1)}s`,
               "--net-phase": `${+(-(i * 1.7)).toFixed(1)}s`,
               "--net-turn": `${+((i % 9) * 5.2).toFixed(1)}s`,
+              "--net-slot": `${i % 9}`,
             });
             return (
               <g

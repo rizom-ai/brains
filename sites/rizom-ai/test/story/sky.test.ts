@@ -173,3 +173,63 @@ describe("the sky's motion", () => {
     );
   });
 });
+
+describe("the sky on the scroll", () => {
+  // Where the browser can drive an animation from the scroll, the scroll is
+  // the sky's timeline: it wheels, the dust and the boundary move at their
+  // own rates for depth, and each brain's bead travels over its own slice of
+  // the page. Time keeps the breathing, the seep, the embers and the answer.
+  const scroll = css.slice(
+    css.indexOf("@supports (animation-timeline: scroll())"),
+  );
+  const inScroll = (selector: string): string =>
+    (
+      scroll.match(new RegExp(`\\n  ${escape(selector)} \\{([^}]*)\\}`))?.[1] ??
+      ""
+    ).replace(/\s+/g, " ");
+
+  test("wheels a few degrees over the page, with the dust and the boundary at other rates", () => {
+    expect(inScroll(".net-sky")).toMatch(
+      /animation: net-wheel linear both; animation-timeline: scroll\(root\);/,
+    );
+    expect(scroll).toMatch(
+      /@keyframes net-wheel \{[^}]*rotate\(-4deg\)[^}]*\}[^}]*rotate\(4deg\)/,
+    );
+    expect(scroll).toMatch(
+      /\.net-dust,\n\s*\.net-boundary \{[^}]*animation: net-wheel-slow linear both;[^}]*animation-timeline: scroll\(root\);/,
+    );
+  });
+
+  test("sends each brain's bead over its own slice of the scroll, its ripple and rim swelling as it arrives", () => {
+    expect(inScroll(".net-bead")).toMatch(
+      /animation: net-travel-scroll linear both; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10%\) calc\(var\(--net-slot, 0\) \* 10% \+ 20%\);/,
+    );
+    expect(inScroll(".net-ripple")).toMatch(
+      /animation: net-ripple-scroll linear both; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10% \+ 14%\) calc\(var\(--net-slot, 0\) \* 10% \+ 26%\);/,
+    );
+    expect(inScroll(".net-rim")).toMatch(
+      /animation: net-swell-scroll linear both; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10% \+ 14%\) calc\(var\(--net-slot, 0\) \* 10% \+ 30%\);/,
+    );
+    expect(scroll).toMatch(
+      /@keyframes net-travel-scroll \{[^}]*offset-distance: 0%/,
+    );
+  });
+
+  test("no longer pauses under the leads or an open Asked-before question: it moves only when the reader does", () => {
+    expect(scroll).toMatch(
+      /\.net-layer\.has-replies \.net-sky,\n\s*\.net-layer\.has-replies \.net-reply:not\(\.is-lit\) \.net-bead,\n\s*\.net-layer\.has-replies \.net-reply:not\(\.is-lit\) \.net-ripple,\n\s*\.net-layer\.has-replies \.net-reply:not\(\.is-lit\) \.net-rim \{\n\s*animation-play-state: running;/,
+    );
+    // After the Asked-before pause itself, so it wins there.
+    const pause = css.indexOf(
+      ".story.is-asked .net-sky,\n.story.is-asked .net-seep,",
+    );
+    const lifted = css.indexOf(
+      "@supports (animation-timeline: scroll()) {\n  .story.is-asked .net-sky,",
+    );
+    expect(pause).toBeGreaterThan(-1);
+    expect(lifted).toBeGreaterThan(pause);
+    expect(css.slice(lifted)).toMatch(
+      /\.story\.is-asked \.net-sky,\n\s*\.story\.is-asked \.net-reply:not\(\.is-lit\) \.net-bead,\n\s*\.story\.is-asked \.net-reply:not\(\.is-lit\) \.net-ripple,\n\s*\.story\.is-asked \.net-reply:not\(\.is-lit\) \.net-rim \{\n\s*animation-play-state: running;/,
+    );
+  });
+});

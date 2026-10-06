@@ -1224,6 +1224,104 @@
 .net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
   animation-play-state: paused;
 }
+/* Where the browser can drive an animation from the scroll, the scroll is the
+   sky's timeline: scrolling wheels the sky a few degrees, the dust and the
+   boundary turn at a slower rate for depth, and each brain's bead travels its
+   tendril over its own slice of the page, its ripple and rim swelling as it
+   arrives. Time keeps the breathing, the seep, the embers and the answer. The
+   room redraws its leads on every scroll, so nothing needs to pause under
+   them. Elsewhere the clocks above stand. */
+@supports (animation-timeline: scroll()) {
+  .net-sky {
+    animation: net-wheel linear both;
+    animation-timeline: scroll(root);
+  }
+  .net-dust,
+  .net-boundary {
+    transform-origin: 50px 50px;
+    animation: net-wheel-slow linear both;
+    animation-timeline: scroll(root);
+  }
+  .net-bead {
+    animation: net-travel-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10%)
+      calc(var(--net-slot, 0) * 10% + 20%);
+  }
+  .net-ripple {
+    animation: net-ripple-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 26%);
+  }
+  .net-rim {
+    animation: net-swell-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 30%);
+  }
+  /* Scroll-driven motion moves only when the reader does, so neither the
+     leads nor an open Asked-before question need it paused. */
+  .net-layer.has-replies .net-sky,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-bead,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-ripple,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
+    animation-play-state: running;
+  }
+  @keyframes net-wheel {
+    from {
+      transform: rotate(-4deg);
+    }
+    to {
+      transform: rotate(4deg);
+    }
+  }
+  @keyframes net-wheel-slow {
+    from {
+      transform: rotate(-1.5deg);
+    }
+    to {
+      transform: rotate(1.5deg);
+    }
+  }
+  @keyframes net-travel-scroll {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    88% {
+      opacity: 1;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+  }
+  @keyframes net-ripple-scroll {
+    0% {
+      opacity: 0.7;
+      transform: scale(0.3);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
+  @keyframes net-swell-scroll {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
 [data-ask-source][data-ask-hot] {
   background: rgb(from var(--color-accent) r g b / 0.12);
 }
@@ -1686,6 +1784,17 @@
 .story.is-asked .net-reply:not(.is-lit) .net-ripple,
 .story.is-asked .net-reply:not(.is-lit) .net-rim {
   animation-play-state: paused;
+}
+/* Under the scroll timeline the sky, the beads, the ripples and the rims move
+   only when the reader does, so an open question needs none of them paused;
+   the seep and the embers keep their rest. */
+@supports (animation-timeline: scroll()) {
+  .story.is-asked .net-sky,
+  .story.is-asked .net-reply:not(.is-lit) .net-bead,
+  .story.is-asked .net-reply:not(.is-lit) .net-ripple,
+  .story.is-asked .net-reply:not(.is-lit) .net-rim {
+    animation-play-state: running;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
