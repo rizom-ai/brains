@@ -20,7 +20,7 @@ describe("BookPlugin", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("book");
   });
 
-  it("keeps books read-only, out of topic extraction, in reading order", async () => {
+  it("keeps books read-only, in reading order, as canonical topic sources", async () => {
     await harness.installPlugin(new BookPlugin());
 
     expect(
@@ -28,8 +28,7 @@ describe("BookPlugin", () => {
     ).toMatchObject({
       classification: "content",
       includeInBroadSearch: true,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
+      projectionSourceRole: "canonical",
       defaultSort: [{ field: "id", direction: "asc" }],
       actionPolicy: {
         create: "never",
@@ -39,5 +38,13 @@ describe("BookPlugin", () => {
         publish: "never",
       },
     });
+  });
+
+  it("lets topic extraction read books", async () => {
+    await harness.installPlugin(new BookPlugin());
+
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("book").projectionSource,
+    ).not.toBe(false);
   });
 });

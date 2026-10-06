@@ -28,10 +28,8 @@ export class BookPlugin extends EntityPlugin<
     return {
       classification: "content",
       includeInBroadSearch: true,
-      // Thousands of sections would flood topic extraction; books are read,
-      // not derived from.
-      projectionSource: false,
-      projectionSourceRole: "excluded",
+      // A book brain's books are its primary texts; its topics map their themes.
+      projectionSourceRole: "canonical",
       // Ids carry zero-padded reading order.
       defaultSort: [{ field: "id", direction: "asc" }],
       // The importer writes books through directory-sync; no one edits them.
