@@ -24,6 +24,17 @@ interface BookListData {
 
 type EntityServiceClient = BaseDataSourceContext["entityService"];
 
+/** One section in a book's score: enough to draw and link it. */
+export interface ScoreEntry {
+  slug: string;
+  title: string;
+  section: string | null;
+  order: number;
+  part: string | null;
+  /** Bytes of the section's text. */
+  length: number;
+}
+
 export function parseBookData(entity: Book): BookWithData {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
@@ -86,7 +97,7 @@ export class BookDataSource extends BaseEntityDataSource<
       await this.lookupEntity(params.query.id, entityService),
     );
     const { book, order } = entry.metadata;
-    const [title, prev, next, entries] = await Promise.all([
+    const [title, prev, next, entries, score] = await Promise.all([
       order === 0 ? entry : this.findEntry(book, 0, entityService),
       order === 0 ? null : this.findEntry(book, order - 1, entityService),
       this.findEntry(book, order + 1, entityService),
@@ -94,6 +105,7 @@ export class BookDataSource extends BaseEntityDataSource<
         entityType: "book",
         options: { filter: { metadata: { book } } },
       }),
+      order === 0 ? this.scoreOf(book, entityService) : [],
     ]);
 
     return outputSchema.parse({
@@ -103,7 +115,37 @@ export class BookDataSource extends BaseEntityDataSource<
       next,
       // The title entry is not a section.
       total: Math.max(0, entries - 1),
+      score,
     });
+  }
+
+  /** Every section of a book in reading order, measured. */
+  private async scoreOf(
+    book: string,
+    entityService: EntityServiceClient,
+  ): Promise<ScoreEntry[]> {
+    const entities = await entityService.listEntities(
+      {
+        entityType: "book",
+        options: {
+          filter: { metadata: { book } },
+          sortFields: [{ field: "order", direction: "asc" }],
+          limit: 100000,
+        },
+      },
+      bookSchema,
+    );
+    return entities
+      .map((entity) => this.transformEntity(entity))
+      .filter((entry) => entry.metadata.order > 0)
+      .map((entry) => ({
+        slug: entry.metadata.slug,
+        title: entry.metadata.title,
+        section: entry.metadata.section,
+        order: entry.metadata.order,
+        part: entry.frontmatter.part,
+        length: Buffer.byteLength(entry.body.trim(), "utf8"),
+      }));
   }
 
   private async findEntry(

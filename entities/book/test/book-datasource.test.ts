@@ -123,6 +123,37 @@ describe("BookDataSource", () => {
     expect(result.next.metadata.slug).toBe("erstes/1");
   });
 
+  it("scores a book on its title page: every section in order with its length", async () => {
+    const result = await datasource.fetch(
+      { entityType: "book", query: { id: "erstes" } },
+      z.object({ score: z.array(z.any()) }),
+      context,
+    );
+
+    expect(result.score.map((s: { slug: string }) => s.slug)).toEqual([
+      "erstes/1",
+      "erstes/2",
+      "erstes/3",
+    ]);
+    expect(result.score[0]).toMatchObject({
+      title: "Anfang",
+      section: "S-1",
+      order: 1,
+      part: null,
+    });
+    expect(result.score[0].length).toBeGreaterThan(0);
+  });
+
+  it("has no score on a section page", async () => {
+    const result = await datasource.fetch(
+      { entityType: "book", query: { id: "erstes/2" } },
+      z.object({ score: z.array(z.any()) }),
+      context,
+    );
+
+    expect(result.score).toEqual([]);
+  });
+
   it("has no next entry after the last section", async () => {
     const result = await datasource.fetch(
       { entityType: "book", query: { id: "erstes/3" } },

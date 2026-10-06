@@ -50,6 +50,18 @@ describe("BookAdapter", () => {
     });
   });
 
+  it("reads the part a section belongs to", () => {
+    const frontmatter = bookAdapter.parseFrontMatter(
+      sectionMarkdown.replace(
+        "section: AC-1",
+        "section: AC-1\npart: Erstes Hauptstück",
+      ),
+      bookAdapter.frontmatterSchema,
+    );
+
+    expect(frontmatter["part"]).toBe("Erstes Hauptstück");
+  });
+
   it("parses the title entry's book details", () => {
     const frontmatter = bookAdapter.parseFrontMatter(
       titleMarkdown,

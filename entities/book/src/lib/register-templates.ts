@@ -34,6 +34,16 @@ const bookDetailSchema = z.object({
   prev: bookEntryDisplaySchema.nullable(),
   next: bookEntryDisplaySchema.nullable(),
   total: z.number().int().min(0),
+  score: z.array(
+    z.object({
+      slug: z.string(),
+      title: z.string(),
+      section: z.string().nullable(),
+      order: z.number().int(),
+      part: z.string().nullable(),
+      length: z.number().int().min(0),
+    }),
+  ),
 });
 
 export function getTemplates(): Record<string, Template> {

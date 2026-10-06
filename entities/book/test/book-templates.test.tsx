@@ -44,6 +44,7 @@ function entry(
       order,
       section,
       page: null,
+      part: null,
       source: `https://example.org/${slug}`,
       author: null,
       year: null,
@@ -172,6 +173,7 @@ describe("BookDetailTemplate", () => {
         prev={entry("erstes", 1, "Anfang")}
         next={entry("erstes", 3, "Ende")}
         total={3}
+        score={[]}
       />,
     );
 
@@ -194,6 +196,7 @@ describe("BookDetailTemplate", () => {
         prev={entry("erstes", 1, "Anfang")}
         next={entry("erstes", 3, "Ende")}
         total={3}
+        score={[]}
       />,
     );
 
@@ -205,6 +208,67 @@ describe("BookDetailTemplate", () => {
     expect(html).toContain("Ende");
   });
 
+  const score = [
+    {
+      slug: "erstes/1",
+      title: "Vorrede",
+      section: "S-1",
+      order: 1,
+      part: null,
+      length: 100,
+    },
+    {
+      slug: "erstes/2",
+      title: "Mitte",
+      section: "S-2",
+      order: 2,
+      part: "Erster Teil",
+      length: 400,
+    },
+    {
+      slug: "erstes/3",
+      title: "Ende",
+      section: "S-3",
+      order: 3,
+      part: "Erster Teil",
+      length: 200,
+    },
+  ];
+
+  test("scores a book: one stroke per section, as tall as its text", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={erstes}
+        book={erstes}
+        prev={null}
+        next={entry("erstes", 1, "Vorrede")}
+        total={3}
+        score={score}
+      />,
+    );
+
+    expect(html).toMatch(/href="\/books\/erstes\/2"[^>]*style="height:46px"/);
+    expect(html).toMatch(/href="\/books\/erstes\/3"[^>]*style="height:23px"/);
+    expect(html).toContain('title="S-2 · Mitte"');
+    expect(html).toContain("3 sections");
+  });
+
+  test("groups the score by part, each part opening at its first section", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={erstes}
+        book={erstes}
+        prev={null}
+        next={entry("erstes", 1, "Vorrede")}
+        total={3}
+        score={score}
+      />,
+    );
+
+    expect(html).toMatch(/href="\/books\/erstes\/2"[^>]*>Erster Teil</);
+    expect(html).toMatch(/href="\/books\/erstes\/1"[^>]*>Vorrede</);
+  });
+
   test("opens a book on its title page with the first section next", () => {
     const html = render(
       <BookDetailTemplate
@@ -213,6 +277,7 @@ describe("BookDetailTemplate", () => {
         prev={null}
         next={entry("erstes", 1, "Anfang")}
         total={3}
+        score={[]}
       />,
     );
 

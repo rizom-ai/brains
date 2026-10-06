@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { BookWithData } from "../schemas/book";
+import type { ScoreEntry } from "../datasources/book-datasource";
 import { bookClasses, bookHref, licenseLabel } from "./book-design";
 
 export interface BookDetailProps {
@@ -10,6 +11,8 @@ export interface BookDetailProps {
   next: BookWithData | null;
   /** Sections in the book, not counting its title entry. */
   total: number;
+  /** On a book's title page, every section in reading order. */
+  score: ScoreEntry[];
 }
 
 const BookDetails = ({ book }: { book: BookWithData }): JSX.Element => (
@@ -96,28 +99,103 @@ const Pager = ({
   </nav>
 );
 
+/** The tallest stroke in a book's score; every other is to scale. */
+const TALLEST_STROKE = 46;
+
+interface ScorePart {
+  /** The part's name, or its first section's title where it has none. */
+  label: string;
+  first: ScoreEntry;
+  sections: ScoreEntry[];
+}
+
+/** Consecutive sections of the same part form one row of the score. */
+function partsOf(score: ScoreEntry[]): ScorePart[] {
+  return score.reduce<ScorePart[]>((parts, section) => {
+    const last = parts.at(-1);
+    if (last && section.part !== null && last.first.part === section.part) {
+      last.sections.push(section);
+      return parts;
+    }
+    return [
+      ...parts,
+      {
+        label: section.part ?? section.title,
+        first: section,
+        sections: [section],
+      },
+    ];
+  }, []);
+}
+
+const Score = ({ score }: { score: ScoreEntry[] }): JSX.Element => {
+  const longest = Math.max(1, ...score.map((section) => section.length));
+  return (
+    <div>
+      <p className={`${bookClasses.label} m-0 mb-6`}>
+        Score — one stroke per section, as tall as its text
+      </p>
+      {partsOf(score).map((part) => (
+        <div
+          key={part.first.slug}
+          className={`${bookClasses.rule} grid gap-x-6 gap-y-2 py-4 md:grid-cols-[13rem_1fr_3rem] md:items-end`}
+        >
+          <a
+            href={`/books/${part.first.slug}`}
+            className={`${bookClasses.link} font-heading text-lg italic`}
+            lang="de"
+          >
+            {part.label}
+          </a>
+          <div className="flex flex-wrap items-end gap-x-[1px] gap-y-2">
+            {part.sections.map((section) => (
+              <a
+                key={section.slug}
+                href={`/books/${section.slug}`}
+                title={[section.section, section.title]
+                  .filter(Boolean)
+                  .join(" · ")}
+                style={{
+                  height: `${Math.max(4, Math.round((section.length / longest) * TALLEST_STROKE))}px`,
+                }}
+                className="block w-[2px] bg-[var(--color-heading)] opacity-85 hover:bg-brand hover:opacity-100"
+              />
+            ))}
+          </div>
+          <span className="font-mono text-xs text-theme-light md:text-right">
+            {part.sections.length}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** A book's title page: its details beside the score of its sections. */
 const TitleView = ({
   entry,
   book,
-  prev,
   next,
+  total,
+  score,
 }: BookDetailProps): JSX.Element => (
-  <article className={bookClasses.page}>
-    <header className="mb-10">
+  <article className="mx-auto grid w-full max-w-[76rem] gap-x-16 gap-y-12 px-4 py-14 md:grid-cols-[22rem_minmax(0,1fr)] md:py-20">
+    <header>
       <p className={`${bookClasses.label} m-0`}>{book.frontmatter.author}</p>
       <h1
-        className="m-0 mt-4 text-4xl leading-tight font-medium text-heading md:text-5xl"
+        className="m-0 mt-5 font-heading text-5xl leading-[0.95] font-normal tracking-[-0.02em] text-heading md:text-6xl"
         lang="de"
       >
         {entry.metadata.title}
       </h1>
       <BookDetails book={book} />
+      <p className="m-0 mt-2 font-mono text-sm text-theme-muted">
+        {total} sections
+      </p>
+      <Source entry={entry} book={book} />
+      <Pager prev={null} next={next} />
     </header>
-    <div className="book-text" lang="de">
-      <MarkdownContent markdown={entry.body} />
-    </div>
-    <Source entry={entry} book={book} />
-    <Pager prev={prev} next={next} />
+    <Score score={score} />
   </article>
 );
 
