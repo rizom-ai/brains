@@ -34,12 +34,24 @@ function normalise(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/** A copy without apparatus, its line breaks read as spaces. */
+function cleanCopy(element: Element): Element {
+  const copy = element.cloneNode(true);
+  copy.querySelectorAll(APPARATUS).forEach((node) => node.remove());
+  copy.querySelectorAll("br").forEach((br) => br.replaceWith(" "));
+  return copy;
+}
+
 /** Headings end in a full stop on the page; the label does not need it. */
+function labelText(element: Element): string {
+  return normalise(cleanCopy(element).textContent).replace(/\.$/, "");
+}
+
 function headingOf(element: Element): string | null {
   const heading = Array.from(element.children).find((child) =>
     HEADING.test(child.tagName),
   );
-  return heading ? normalise(heading.textContent).replace(/\.$/, "") : null;
+  return heading ? labelText(heading) : null;
 }
 
 /**
@@ -47,8 +59,7 @@ function headingOf(element: Element): string | null {
  * corrected readings kept, spaced emphasis as markdown emphasis.
  */
 function blockText(block: Element): string {
-  const copy = block.cloneNode(true);
-  copy.querySelectorAll(APPARATUS).forEach((node) => node.remove());
+  const copy = cleanCopy(block);
   copy.querySelectorAll("span.bold").forEach((span) => {
     span.textContent = `*${normalise(span.textContent)}*`;
   });
@@ -115,9 +126,7 @@ export function parseEkgwbBook(html: string): EkgwbBook {
       .filter((unit): unit is BookUnit => unit !== null);
 
     return {
-      title: titleHeading
-        ? normalise(titleHeading.textContent).replace(/\.$/, "")
-        : "",
+      title: titleHeading ? labelText(titleHeading) : "",
       units,
     };
   } finally {

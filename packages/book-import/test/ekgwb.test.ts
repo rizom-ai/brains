@@ -55,6 +55,14 @@ describe("parseEkgwbBook", () => {
     ]);
   });
 
+  it("reads line breaks as spaces in titles, headings and prose", async () => {
+    const book = parseEkgwbBook(await fixture("ekgwb-breaks.html"));
+
+    expect(book.title).toBe("Ueber erfundene Dinge");
+    expect(book.units[0]?.title).toBe("Erstes Stück");
+    expect(book.units[0]?.paragraphs).toEqual(["Ein Satz, der weitergeht."]);
+  });
+
   it("files sections under their parts", async () => {
     const book = parseEkgwbBook(await fixture("ekgwb-parts.html"));
 

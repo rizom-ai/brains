@@ -70,6 +70,29 @@ describe("importBooks", () => {
     expect(title).toContain("Nietzsche Source");
   });
 
+  it("titles a book from the manifest when it names one", async () => {
+    await importBooks(
+      parseManifest(
+        manifestYaml.replace(
+          "slug: erfundenes-buch",
+          "slug: erfundenes-buch\n    title: Ein genauerer Titel",
+        ),
+      ),
+      brainData,
+      fetchFixture,
+    );
+    const title = await readFile(
+      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      "utf8",
+    );
+
+    expect(
+      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema)[
+        "title"
+      ],
+    ).toBe("Ein genauerer Titel");
+  });
+
   it("rejects a manifest entry without a siglum", () => {
     expect(() =>
       parseManifest(

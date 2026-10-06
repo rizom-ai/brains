@@ -8,12 +8,15 @@ import { writeBook } from "./write-book";
 const manifestBookSchema: z.ZodObject<{
   siglum: z.ZodString;
   slug: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
   author: z.ZodString;
   year: z.ZodNumber;
   kind: typeof bookKindSchema;
 }> = z.object({
   siglum: z.string().min(1),
   slug: z.string().min(1),
+  /** The work's own title, where the page heads it with a series title. */
+  title: z.string().min(1).optional(),
   author: z.string().min(1),
   year: z.number().int(),
   kind: bookKindSchema,
@@ -59,7 +62,7 @@ export async function importBooks(
     const files = renderBook({
       book: {
         slug: entry.slug,
-        title,
+        title: entry.title ?? title,
         author: entry.author,
         year: entry.year,
         kind: entry.kind,
