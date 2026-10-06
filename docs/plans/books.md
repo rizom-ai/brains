@@ -18,7 +18,7 @@ Asking a brain about an idea returns an answer grounded in book sections, quotin
 
 ## Non-goals
 
-- No site; these are chat/MCP brains (`core`, `web`, `chat`).
+- No site of their own yet beyond the book templates; the site that serves a brain's books is chosen per brain in its rollout phase.
 - No Studio changes; books use Studio's existing id-path folders.
 - No topic extraction over book sections.
 - No translations produced by the brain; books hold only published German texts.
@@ -32,11 +32,11 @@ It follows the domain-plugin model in `docs/architecture-overview.md` (multi-tar
 
 ### Id path
 
-`brain-data/book/<book>/<nnnn>-<slug>.md` → id `<book>:<nnnn>-<slug>`; nested parts add segments, e.g. `traumdeutung:0006-die-traumarbeit:0003-die-darstellungsmittel-des-traums`.
+`brain-data/book/<book>/<nnnnn>-<slug>.md` → id `<book>:<nnnnn>-<slug>`; parts become folders named after the order of their first entry, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`.
 
 - `<book>` — the book's slug, one folder per book in Studio
-- `<nnnn>` — zero-padded reading order, so id order is reading order
-- `<book>:0000-titel` — the title entry: the book's own description and table of contents
+- `<nnnnn>` — five-digit reading order within the book, so id order is reading order
+- `<book>:00000-titel` — the title entry: the book's details and table of contents
 
 ### Frontmatter
 
@@ -61,6 +61,10 @@ Body: the author's text, unchanged except for markdown conversion.
 3. two units are never merged.
 
 8,000 bytes keeps each entry inside one embedding input (`MAX_INPUT_TOKENS` in `shell/ai-service/src/online-embedding-provider.ts`), so every entry has its own vector and a search hit is the text to quote.
+
+### Reading on a site
+
+The plugin ships `book-list` and `book-detail` templates and a `book:entities` datasource. Generated routes: `/books` lists title entries; `/books/<book>` is the title page; `/books/<book>/<order>` is an entry with its citation, source attribution and prev/next in reading order. Every entry carries `book`, `order` and a derived `slug` in metadata, so each page is four indexed lookups regardless of book length. The site serving books sets `entityDisplay.book.paginate: false`, since the index lists books, not entries. The site-engine route generator pages through all entities, so books past 1,000 entries get every route.
 
 ### Entity type config
 
