@@ -37,6 +37,7 @@ function entry(
       order,
       slug,
       pageTitle: section ?? title,
+      citable: order !== 0,
     },
     frontmatter: {
       title,
@@ -355,6 +356,24 @@ describe("BookDetailTemplate", () => {
     );
 
     expect(html).not.toContain("Themes in this section");
+  });
+
+  test("offers to ask about the section, its siglum already in the question", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toMatch(
+      /href="\/ask\?q=About%20S-2%3A%20"[^>]*>Ask about S-2/,
+    );
   });
 
   test("opens a book on its title page with the first section next", () => {

@@ -47,6 +47,7 @@ describe("BookAdapter", () => {
       order: 1,
       slug: "der-antichrist/1",
       pageTitle: "AC-1",
+      citable: true,
     });
   });
 
@@ -85,6 +86,8 @@ describe("BookAdapter", () => {
       order: 0,
       slug: "der-antichrist",
       pageTitle: "Der Antichrist",
+      // A book's contents are no source in themselves; answers cite sections.
+      citable: false,
     });
   });
 
@@ -124,6 +127,7 @@ Text.
         order: 0,
         slug: "der-antichrist",
         pageTitle: "Der Antichrist",
+        citable: false,
       },
     });
     const reparsed = bookAdapter.fromMarkdown(markdown);

@@ -157,7 +157,7 @@ describe("@rizom/site-books package boundary", () => {
         tempDir,
       );
 
-      expect(output.trim()).toBe("home");
+      expect(output.trim()).toBe("home,ask");
 
       const sourceDocsManifest = JSON.parse(
         await readFile(join(packageDir, "package.json"), "utf8"),

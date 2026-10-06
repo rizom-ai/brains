@@ -15,7 +15,7 @@ const siteInfo = {
 
 describe("@rizom/site-books", () => {
   test("opens on the book index", () => {
-    expect(site.routes.map((route) => route.id)).toEqual(["home"]);
+    expect(site.routes.map((route) => route.id)).toEqual(["home", "ask"]);
     expect(site.routes[0]?.path).toBe("/");
     expect(site.routes[0]?.sections).toEqual([
       {
@@ -24,6 +24,24 @@ describe("@rizom/site-books", () => {
         dataQuery: { entityType: "book", query: {} },
       },
     ]);
+  });
+
+  test("asks the brain on its own page, in the menu", () => {
+    const ask = site.routes.find((route) => route.id === "ask");
+    expect(ask?.path).toBe("/ask");
+    expect(ask?.navigation).toMatchObject({ show: true, label: "Ask" });
+    expect(ask?.sections).toEqual([
+      { id: "ask", template: "book:ask", dataQuery: {} },
+    ]);
+  });
+
+  test("cites only book sections in answers", () => {
+    expect(site.entityDisplay["book"]?.citable).toBe(true);
+    expect(
+      Object.entries(site.entityDisplay)
+        .filter(([, display]) => display.citable === true)
+        .map(([type]) => type),
+    ).toEqual(["book"]);
   });
 
   test("lists books on one page and keeps the generated index out of the menu", () => {
@@ -61,11 +79,26 @@ describe("@rizom/site-books", () => {
     expect(html).toContain("Friedrich");
     expect(html).toContain('href="/"');
     expect(html).toContain("Work");
-    // The Ask page arrives with its own slice; no link to it before then.
-    expect(html).not.toContain("/ask");
+    expect(html).toMatch(/href="\/ask"[^>]*>Ask Friedrich</);
     expect(html).toContain("<main");
     expect(html).toContain("Abschnitt");
     expect(html).toContain("Text: eKGWB, Nietzsche Source");
+  });
+
+  test("drops the Ask pill on the Ask page itself", () => {
+    const Layout = site.layouts["default"];
+    if (!Layout) throw new Error("no default layout");
+    const html = render(
+      <Layout
+        sections={[]}
+        title="Ask"
+        description=""
+        path="/ask"
+        siteInfo={siteInfo}
+      />,
+    );
+
+    expect(html).not.toContain(">Ask Friedrich<");
   });
 
   test("turns pages with the arrow keys, but not while typing", () => {

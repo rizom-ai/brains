@@ -202,6 +202,16 @@ const TitleView = ({
   </article>
 );
 
+/** Asking the brain about a section starts the question with its siglum. */
+const AskAbout = ({ siglum }: { siglum: string }): JSX.Element => (
+  <a
+    href={`/ask?q=${encodeURIComponent(`About ${siglum}: `)}`}
+    className={`${bookClasses.link} block border-t-[1.5px] border-[var(--color-heading)] pt-3 font-heading text-lg italic text-theme-muted`}
+  >
+    Ask about {siglum} →
+  </a>
+);
+
 /** A section set for reading: siglum and place in the margin, text alone. */
 const SectionView = ({
   entry,
@@ -238,25 +248,28 @@ const SectionView = ({
       <Source entry={entry} book={book} />
       <Pager prev={prev} next={next} />
     </div>
-    {themes.length > 0 && (
-      <aside className="md:col-start-2 lg:col-start-3 lg:pt-3">
-        <p className={`${bookClasses.label} m-0 mb-3`}>
-          Themes in this section
-        </p>
-        <ul className="m-0 list-none p-0">
-          {themes.map((theme) => (
-            <li key={theme.id} className={`${bookClasses.rule} py-2`}>
-              <a
-                href={`/topics/${theme.id}`}
-                className={`${bookClasses.link} font-heading text-xl italic`}
-              >
-                {theme.title}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </aside>
-    )}
+    <aside className="md:col-start-2 lg:col-start-3 lg:pt-3">
+      {themes.length > 0 && (
+        <>
+          <p className={`${bookClasses.label} m-0 mb-3`}>
+            Themes in this section
+          </p>
+          <ul className="m-0 mb-8 list-none p-0">
+            {themes.map((theme) => (
+              <li key={theme.id} className={`${bookClasses.rule} py-2`}>
+                <a
+                  href={`/topics/${theme.id}`}
+                  className={`${bookClasses.link} font-heading text-xl italic`}
+                >
+                  {theme.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <AskAbout siglum={entry.metadata.pageTitle} />
+    </aside>
   </article>
 );
 

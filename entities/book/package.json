@@ -4,7 +4,9 @@
   "version": "0.2.0-alpha.487",
   "description": "Book entity type — published books as read-only, citable sections",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-atlas": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -15,6 +17,7 @@
     "@brains/typescript-config": "workspace:*",
     "@types/react": "^19.2.17",
     "bun-types": "^1.4.0",
+    "happy-dom": "^20.10.6",
     "typescript": "^7.0.2"
   },
   "exports": {

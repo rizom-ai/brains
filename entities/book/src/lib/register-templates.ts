@@ -3,6 +3,7 @@ import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
 import { bookFrontmatterSchema, bookMetadataSchema } from "../schemas/book";
+import { BookAskTemplate, type BookAskProps } from "../templates/book-ask";
 import { BookListTemplate, type BookListProps } from "../templates/book-list";
 import {
   BookDetailTemplate,
@@ -47,6 +48,18 @@ const bookDetailSchema = z.object({
       order: z.number().int(),
       part: z.string().nullable(),
       length: z.number().int().min(0),
+    }),
+  ),
+});
+
+const bookAskSchema = z.object({
+  name: z.string(),
+  askBox: z.boolean(),
+  books: z.array(
+    z.object({
+      book: z.string(),
+      title: z.string(),
+      year: z.number().nullable(),
     }),
   ),
 });
@@ -103,6 +116,14 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "book:theme",
       requiredPermission: "public",
       layout: { component: BookThemeTemplate },
+    }),
+    ask: createTemplate<z.output<typeof bookAskSchema>, BookAskProps>({
+      name: "ask",
+      description: "Asking a book brain, with the passages its answer cites",
+      schema: bookAskSchema,
+      dataSourceId: "book:ask",
+      requiredPermission: "public",
+      layout: { component: BookAskTemplate },
     }),
   };
 }

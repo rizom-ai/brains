@@ -72,6 +72,7 @@ export const bookMetadataSchema: z.ZodObject<{
   order: z.ZodNumber;
   slug: z.ZodString;
   pageTitle: z.ZodString;
+  citable: z.ZodBoolean;
 }> = z.object({
   title: z.string(),
   section: z.string().nullable(),
@@ -80,6 +81,8 @@ export const bookMetadataSchema: z.ZodObject<{
   slug: z.string(),
   /** What a page and a search result call this entry: its siglum, or its title. */
   pageTitle: z.string(),
+  /** A title entry is the book's contents, no source in itself: answers cite sections. */
+  citable: z.boolean(),
 });
 
 export type BookMetadata = z.output<typeof bookMetadataSchema>;

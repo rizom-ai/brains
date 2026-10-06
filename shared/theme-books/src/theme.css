@@ -231,3 +231,112 @@
   font-family: var(--font-mono);
   letter-spacing: -0.01em;
 }
+
+/* Asking the brain: the guest box ruled in ink, as a form on paper. Web Chat
+   mounts its conversation in the host and marks it ready. */
+.book-ask__ask:not([data-ask-ready]) {
+  display: none;
+}
+
+.book-ask__ask-status {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-label-sm);
+  color: var(--color-text-light);
+}
+
+.book-ask__ask-status:empty {
+  display: none;
+}
+
+.book-ask__composer,
+.book-ask__ask .prompt-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--color-heading);
+  background: var(--color-bg);
+}
+
+.book-ask__composer textarea,
+.book-ask__ask .prompt-row textarea {
+  flex: 1;
+  resize: none;
+  border: 0;
+  border-bottom: 1px solid var(--color-rule-strong);
+  background: none;
+  color: var(--color-text);
+  font: 1.2rem/1.45 var(--font-body);
+  padding: 0.25rem 0 0.6rem;
+}
+
+.book-ask__composer textarea:focus,
+.book-ask__ask .prompt-row textarea:focus {
+  outline: none;
+  border-bottom-color: var(--color-accent);
+}
+
+.book-ask__composer textarea::placeholder,
+.book-ask__ask .prompt-row textarea::placeholder {
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+.book-ask__send,
+.book-ask__ask .send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  background: var(--color-heading);
+  color: var(--color-bg);
+  cursor: pointer;
+}
+
+.book-ask__send:disabled,
+.book-ask__ask .send:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.book-ask__send svg,
+.book-ask__ask .send svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.book-ask__passages a {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--color-rule-strong);
+  color: inherit;
+  text-decoration: none;
+}
+
+.book-ask__sig {
+  font-family: var(--font-mono);
+  font-size: var(--text-label-md);
+  color: var(--color-accent);
+}
+
+.book-ask__title {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+}
+
+.book-ask__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-label-sm);
+  color: var(--color-text-muted);
+}
+
+.book-ask__passages a:hover .book-ask__title {
+  color: var(--color-accent);
+}

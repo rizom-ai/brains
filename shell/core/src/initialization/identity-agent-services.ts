@@ -239,6 +239,10 @@ export function initializeIdentityAndAgentServices(
   });
   const assistantAgentId = createBrainAgentId(config.name);
 
+  // Answer sources read entity links here. A site-builder bundled apart from
+  // core configures a copy of its own, so core configures the one it reads.
+  EntityUrlGenerator.getInstance().configure(config.entityDisplay);
+
   const agentService = AgentService.createFresh(
     mcpService,
     conversationService,

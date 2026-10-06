@@ -7,6 +7,8 @@ import type {
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { bookSchema, type Book } from "./schemas/book";
 import { bookAdapter, type BookAdapter } from "./adapters/book-adapter";
+import { homepageChatAvailable } from "@brains/site-atlas";
+import { BookAskDataSource } from "./datasources/book-ask-datasource";
 import { BookDataSource } from "./datasources/book-datasource";
 import { BookThemeDataSource } from "./datasources/book-theme-datasource";
 import { getTemplates } from "./lib/register-templates";
@@ -44,6 +46,16 @@ export class BookPlugin extends EntityPlugin<
     };
   }
 
+  protected override async getInstructions(): Promise<string> {
+    return [
+      "Books (entityType \"book\") hold an author's texts, one entry per section; an entry's `section` is its siglum.",
+      'When a question concerns the author\'s ideas or texts, search the books first: system_search with scope { kind: "type", entityType: "book" }.',
+      "Ground every claim in sections you found, and cite each section by its siglum and its book's title.",
+      "Quote the text verbatim, in the language of the text, even when you answer in another language.",
+      "When the books hold nothing on the question, say that the books do not address it instead of answering from general knowledge.",
+    ].join("\n");
+  }
+
   protected override getTemplates(): Record<string, Template> {
     return getTemplates();
   }
@@ -52,6 +64,12 @@ export class BookPlugin extends EntityPlugin<
     return [
       new BookDataSource(this.logger.child("BookDataSource")),
       new BookThemeDataSource(this.logger.child("BookThemeDataSource")),
+      new BookAskDataSource(this.logger.child("BookAskDataSource"), {
+        // The box is named for whom the site speaks, as on the homepage.
+        name: (): string => this.getContext().identity.getProfile().name,
+        chatAvailable: (buildContext): Promise<boolean> =>
+          homepageChatAvailable(buildContext, this.getContext()),
+      }),
     ];
   }
 }

@@ -22,6 +22,15 @@ const routes: RouteDefinitionInput[] = [
       },
     ],
   },
+  {
+    id: "ask",
+    path: "/ask",
+    title: "Ask",
+    description: "Answers from the work, citing every passage",
+    layout: "default",
+    navigation: { show: true, label: "Ask", slot: "primary", priority: 30 },
+    sections: [{ id: "ask", template: "book:ask", dataQuery: {} }],
+  },
 ];
 
 /** A menu entry is current on its own page and, below the root, its subpages. */
@@ -53,6 +62,11 @@ const BooksLayout = ({
             </a>
           ))}
       </nav>
+      {path !== "/ask" && (
+        <a className="books-ask" href="/ask">
+          Ask {siteInfo.title}
+        </a>
+      )}
     </header>
     <main className="books-main">{sections}</main>
     <footer className="books-foot">{siteInfo.copyright}</footer>
@@ -67,6 +81,10 @@ const layoutCSS = `
 .books-nav { display: flex; flex-wrap: wrap; column-gap: 1.75rem; row-gap: 0.5rem; font-family: var(--font-mono); font-size: var(--text-label-md); }
 .books-nav a { color: var(--color-text-muted); text-decoration: none; padding-bottom: 3px; }
 .books-nav a[aria-current="page"] { color: var(--color-text); border-bottom: 1.5px solid var(--color-accent); }
+.books-ask { font-family: var(--font-mono); font-size: var(--text-label-md); color: var(--color-bg); background: var(--color-heading); padding: 0.45rem 0.9rem; text-decoration: none; }
+.books-ask::before { content: "? "; color: var(--color-accent); font-weight: 700; }
+.books-ask:hover { background: var(--color-accent); }
+.books-ask:hover::before { color: var(--color-bg); }
 .books-main { flex: 1; }
 .books-foot { font-family: var(--font-mono); font-size: var(--text-label-sm); color: var(--color-text-light); padding: 2.5rem clamp(1rem, 4vw, 3rem); border-top: 1px solid var(--color-rule-strong); margin-top: 4rem; }
 `;
@@ -94,6 +112,8 @@ export const booksSite: SiteDefinition = {
       layout: "default",
       paginate: false,
       navigation: { show: false },
+      // Answers cite book sections, and nothing else.
+      citable: true,
     },
     // A topic's page is its theme traced across the books; paths stay /topics.
     topic: {

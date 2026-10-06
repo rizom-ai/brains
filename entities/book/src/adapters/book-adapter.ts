@@ -38,6 +38,7 @@ export class BookAdapter extends BaseEntityAdapter<
           frontmatter.order === 0
             ? frontmatter.title
             : (frontmatter.section ?? frontmatter.title),
+        citable: frontmatter.order !== 0,
       },
     };
   }

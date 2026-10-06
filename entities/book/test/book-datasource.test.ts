@@ -45,6 +45,7 @@ Erfundener Text ${order}.
       order,
       slug: book,
       pageTitle: title,
+      citable: order !== 0,
     },
   };
 }
