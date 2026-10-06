@@ -1,0 +1,8 @@
+# Friedrich: Nietzsche's works from eKGWB (nietzschesource.org), CC BY-NC-ND 4.0.
+source: ekgwb
+books:
+  - siglum: AC
+    slug: der-antichrist
+    author: Friedrich Nietzsche
+    year: 1888
+    kind: work

@@ -1,0 +1,112 @@
+import { Window, type Element } from "happy-dom";
+import type { BookUnit } from "../render-book";
+
+/** Every eKGWB unit is addressed by its siglum below this base. */
+export const EKGWB_BASE = "http://www.nietzschesource.org/eKGWB/";
+
+export interface EkgwbBook {
+  title: string;
+  units: BookUnit[];
+}
+
+const HEADING = /^H[1-6]$/;
+/** Editors' notes, footnotes and links that only exist on the page. */
+const APPARATUS = ".popup, .footnotes, .no_print";
+
+/** Sections and the parts containing them carry their siglum as their id. */
+function isSiglumBlock(element: Element): boolean {
+  return element.tagName === "DIV" && element.id.startsWith("eKGWB/");
+}
+
+function isParagraph(element: Element): boolean {
+  return (
+    (element.tagName === "DIV" && element.className === "p") ||
+    element.tagName === "P"
+  );
+}
+
+function normalise(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/** Headings end in a full stop on the page; the label does not need it. */
+function headingOf(element: Element): string | null {
+  const heading = Array.from(element.children).find((child) =>
+    HEADING.test(child.tagName),
+  );
+  return heading ? normalise(heading.textContent).replace(/\.$/, "") : null;
+}
+
+/**
+ * The author's text of one paragraph: apparatus removed, the edition's
+ * corrected readings kept, spaced emphasis as markdown emphasis.
+ */
+function paragraphText(paragraph: Element): string {
+  const copy = paragraph.cloneNode(true);
+  copy.querySelectorAll(APPARATUS).forEach((node) => node.remove());
+  copy.querySelectorAll("span.bold").forEach((span) => {
+    span.textContent = `*${normalise(span.textContent)}*`;
+  });
+  return normalise(copy.textContent);
+}
+
+function parentsOf(element: Element): string[] {
+  const parent = element.parentElement;
+  if (!parent) return [];
+  const above = parentsOf(parent);
+  if (!isSiglumBlock(parent)) return above;
+  const heading = headingOf(parent);
+  return heading ? [...above, heading] : above;
+}
+
+function unitOf(block: Element): BookUnit | null {
+  const paragraphs = Array.from(block.children)
+    .filter(isParagraph)
+    .map(paragraphText)
+    .filter((text) => text.length > 0);
+  if (paragraphs.length === 0) return null;
+
+  const section = block.id.replace(/^eKGWB\//, "");
+  return {
+    parents: parentsOf(block),
+    title: headingOf(block) ?? section,
+    section,
+    page: null,
+    source: `${EKGWB_BASE}${section}`,
+    paragraphs,
+  };
+}
+
+/**
+ * The page writes empty anchors XML-style (`<a name="…"/>`); HTML reads that
+ * as an anchor left open, which swallows the section that follows.
+ */
+function closeEmptyAnchors(html: string): string {
+  return html.replace(/<a ([^>]*?)\s*\/>/g, "<a $1></a>");
+}
+
+/** Parse an eKGWB print page into the book's title and units, in reading order. */
+export function parseEkgwbBook(html: string): EkgwbBook {
+  const window = new Window();
+  try {
+    const document = window.document;
+    document.write(closeEmptyAnchors(html));
+
+    const titleHeading =
+      document.querySelector(".titel h1") ?? document.querySelector("h1");
+    const units = Array.from(document.querySelectorAll("div"))
+      .filter(isSiglumBlock)
+      .map(unitOf)
+      .filter((unit): unit is BookUnit => unit !== null);
+
+    return {
+      title: titleHeading
+        ? normalise(titleHeading.textContent).replace(/\.$/, "")
+        : "",
+      units,
+    };
+  } finally {
+    // Closing only releases the window's timers; parsing is already done.
+    void window.happyDOM.close();
+  }
+}

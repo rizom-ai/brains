@@ -6,7 +6,9 @@
   "dependencies": {
     "@brains/book": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "happy-dom": "^20.10.6",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",
