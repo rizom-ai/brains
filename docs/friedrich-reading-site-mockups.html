@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Friedrich — Reading Site Mockup · rev 1</title>
+<title>Friedrich — Reading Site Mockup · rev 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
@@ -321,195 +321,195 @@
 
 <header class="sheet-head">
   <div>
-    <h1>Friedrich — eine Lese-Site · Mockup rev 1</h1>
+    <h1>Friedrich — a reading site · Mockup rev 2</h1>
     <p>Purpose-built reading site for the <code>friedrich</code> brain. Six screens: the work as one horizon, a book, a section, a theme across the works, asking Friedrich, and reading on a phone. Spine heights and section counts are the measured eKGWB import; theme counts and the answer text are illustrative.</p>
   </div>
-  <button class="toggle" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">Hell / Dunkel</button>
+  <button class="toggle" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">Light / Dark</button>
 </header>
 
 <!-- ═══════════════ 01 · DAS WERK ═══════════════ -->
-<div class="frame-label"><b>01 · Das Werk</b><span>/ — the home page is the whole work, 1869–1889, as one horizon</span></div>
+<div class="frame-label"><b>01 · The Work</b><span>/ — the home page is the whole work, 1869–1889, as one horizon</span></div>
 <section class="frame">
   <div class="bar">
-    <div class="mark">Friedrich <small>NIETZSCHE · WERKE</small></div>
-    <nav class="nav"><a class="on" href="#">Werk</a><a href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
-    <button class="ask-pill">Frag Friedrich</button>
+    <div class="mark">Friedrich <small>NIETZSCHE · COLLECTED WORKS</small></div>
+    <nav class="nav"><a class="on" href="#">Work</a><a href="#">Themes</a><a href="#">Ask</a><a href="#">Search</a></nav>
+    <button class="ask-pill">Ask Friedrich</button>
   </div>
 
   <div class="werk-head">
-    <h2>Das <em>Werk</em><span class="years">1869<i class="dash"></i>1889</span></h2>
+    <h2>The <em>Work</em><span class="years">1869<i class="dash"></i>1889</span></h2>
     <div class="werk-facts">
-      <b>33 Bücher</b> · 3.705 Abschnitte<br />
-      jeder Rücken so hoch wie sein Text lang ist<br />
-      über der Linie: veröffentlicht &amp; Privatdrucke<br />
-      unter der Linie: nachgelassene Schriften<br />
-      Text: Digitale Kritische Gesamtausgabe (eKGWB)
+      <b>33 books</b> · 3,705 sections<br />
+      each spine as tall as its text is long<br />
+      above the line: published works &amp; private prints<br />
+      below the line: posthumous writings<br />
+      text: <span lang="de">Digitale Kritische Gesamtausgabe</span> (eKGWB)
     </div>
   </div>
 
   <div class="horizon" id="horizon">
     <div class="axis"></div>
     <div class="axis-break" style="left:1180px"></div>
-    <div class="axis-break-label" style="left:1062px">Turin<br />3. Januar 1889<br />↓</div>
-    <div class="legend"><div>veröffentlicht <i class="s"></i></div><div>nachgelassen <i class="h"></i></div></div>
+    <div class="axis-break-label" style="left:1062px">Turin<br />3 January 1889<br />↓</div>
+    <div class="legend"><div>published <i class="s"></i></div><div>posthumous <i class="h"></i></div></div>
   </div>
 
   <div class="werk-foot">
     <div class="today">
-      <span class="sig">HEUTE AUFGESCHLAGEN · FW-125</span>
-      Der tolle Mensch, am hellen Vormittage, mit der Laterne auf dem Markt — „Gott ist todt! Gott bleibt todt! Und wir haben ihn getödtet!“ <a href="#">weiterlesen</a>
+      <span class="sig">OPEN TODAY · FW-125</span>
+      The madman runs into the market with his lantern in the bright morning: <span lang="de">„Gott ist todt! Gott bleibt todt! Und wir haben ihn getödtet!“</span> <a href="#">read on</a>
     </div>
     <div class="askbox">
-      <label>FRAG FRIEDRICH — antwortet aus dem Werk, mit Stellenangaben</label>
-      <div class="field">Was meint er mit der ewigen Wiederkunft?</div>
-      <div class="chips"><span class="chip">Mitleid</span><span class="chip">Ressentiment</span><span class="chip">Wille zur Macht</span><span class="chip">Übermensch</span><span class="chip">Wagner</span></div>
+      <label>ASK FRIEDRICH — answers from the work, citing every passage</label>
+      <div class="field">What does he mean by <span lang="de">ewige Wiederkunft</span>?</div>
+      <div class="chips" lang="de"><span class="chip">Mitleid</span><span class="chip">Ressentiment</span><span class="chip">Wille zur Macht</span><span class="chip">Übermensch</span><span class="chip">Wagner</span></div>
     </div>
   </div>
 </section>
 <p class="note">Every spine links to its book. The 1888 burst — Der Fall Wagner, Götzen-Dämmerung, Der Antichrist, Ecce homo, Nietzsche contra Wagner, the Dithyrambs — reads at a glance; the line breaks at Turin. Places along the top mark where he wrote.</p>
 
 <!-- ═══════════════ 02 · BUCH ═══════════════ -->
-<div class="frame-label"><b>02 · Ein Buch</b><span>/books/die-froehliche-wissenschaft — title page as a score of its sections</span></div>
+<div class="frame-label"><b>02 · A book</b><span>/books/die-froehliche-wissenschaft — title page as a score of its sections</span></div>
 <section class="frame">
   <div class="bar">
     <div class="mark">Friedrich</div>
-    <nav class="nav"><a class="on" href="#">Werk</a><a href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
-    <button class="ask-pill">Frag Friedrich</button>
+    <nav class="nav"><a class="on" href="#">Work</a><a href="#">Themes</a><a href="#">Ask</a><a href="#">Search</a></nav>
+    <button class="ask-pill">Ask Friedrich</button>
   </div>
   <div class="buch">
     <div class="buch-title">
       <div class="sig">FW · 1882 / 1887</div>
       <h2>Die <em>fröhliche</em> Wissenschaft</h2>
-      <p class="motto">„la gaya scienza“ — vier Bücher 1882, das fünfte Buch und die Lieder des Prinzen Vogelfrei 1887.</p>
+      <p class="motto">“la gaya scienza” — four books in 1882; the fifth book and the <span lang="de">Lieder des Prinzen Vogelfrei</span> in 1887.</p>
       <dl>
-        <dt>Abschnitte</dt><dd>467</dd>
-        <dt>Ausgabe</dt><dd>eKGWB, nach Colli / Montinari</dd>
-        <dt>Lizenz</dt><dd>CC BY-NC-ND 4.0 · Nietzsche Source</dd>
-        <dt>Quelle</dt><dd>nietzschesource.org/eKGWB/FW</dd>
+        <dt>Sections</dt><dd>467</dd>
+        <dt>Edition</dt><dd>eKGWB, after Colli / Montinari</dd>
+        <dt>Licence</dt><dd>CC BY-NC-ND 4.0 · Nietzsche Source</dd>
+        <dt>Source</dt><dd>nietzschesource.org/eKGWB/FW</dd>
       </dl>
     </div>
     <div class="partitur">
-      <h3><span>PARTITUR — JEDER STRICH EIN ABSCHNITT, SO HOCH WIE ER LANG IST</span><span>GELESEN: 126 / 467</span></h3>
-      <div id="score"></div>
-      <div class="hint">Rot: schon gelesen. Ein Strich öffnet seinen Abschnitt; <b>FW-125</b> ist markiert.</div>
+      <h3><span>SCORE — ONE STROKE PER SECTION, AS TALL AS THE SECTION IS LONG</span><span>READ: 126 / 467</span></h3>
+      <div id="score" lang="de"></div>
+      <div class="hint">Red: already read. A stroke opens its section; <b>FW-125</b> is marked.</div>
     </div>
   </div>
 </section>
 
 <!-- ═══════════════ 03 · LESEN ═══════════════ -->
-<div class="frame-label"><b>03 · Lesen</b><span>/books/der-antichrist/3 — one section, cited by its siglum</span></div>
+<div class="frame-label"><b>03 · Reading</b><span>/books/der-antichrist/3 — one section, cited by its siglum</span></div>
 <section class="frame">
   <div class="bar">
     <div class="mark">Friedrich</div>
-    <nav class="nav"><a href="#">Werk</a><a href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
-    <button class="ask-pill">Frag Friedrich</button>
+    <nav class="nav"><a href="#">Work</a><a href="#">Themes</a><a href="#">Ask</a><a href="#">Search</a></nav>
+    <button class="ask-pill">Ask Friedrich</button>
   </div>
   <div class="lesen">
-    <div class="crumbs"><a href="#">Werk</a> &nbsp;/&nbsp; <a href="#">Der Antichrist</a> &nbsp;/&nbsp; 2</div>
+    <div class="crumbs"><a href="#">Work</a> &nbsp;/&nbsp; <a href="#">Der Antichrist</a> &nbsp;/&nbsp; 2</div>
     <aside class="margin-l">
       <div class="siglum">AC<span>-</span>2</div>
-      <div class="where">Der Antichrist<br />Fluch auf das Christenthum<br />1888 · Abschnitt 3 von 64</div>
+      <div class="where"><span lang="de">Der Antichrist<br />Fluch auf das Christenthum</span><br />1888 · section 3 of 65</div>
       <div class="progress"></div>
     </aside>
-    <article class="text">
+    <article class="text" lang="de">
       <h2>2.</h2>
       <p class="lead">Was ist <span class="gesperrt">gut</span>? — Alles, was das Gefühl der Macht, den Willen zur Macht, die Macht selbst im Menschen erhöht.</p>
       <p>Was ist <span class="gesperrt">schlecht</span>? — Alles, was aus der Schwäche stammt.</p>
       <p>Was ist <span class="gesperrt">Glück</span>? — Das Gefühl davon, dass die Macht <em>wächst</em>, dass ein Widerstand überwunden wird.</p>
       <p>Nicht Zufriedenheit, sondern mehr Macht; nicht Friede überhaupt, sondern Krieg; nicht Tugend, sondern Tüchtigkeit (Tugend im Renaissance-Stile, <i>virtù</i>, moralinfreie Tugend).</p>
       <div class="source">
-        Quelle: <a href="#">nietzschesource.org/eKGWB/AC-2</a> · Digitale Kritische Gesamtausgabe, hg. von Paolo D’Iorio, nach Colli / Montinari · CC BY-NC-ND 4.0
+        <span lang="en">Source: <a href="#">nietzschesource.org/eKGWB/AC-2</a> · <span lang="de">Digitale Kritische Gesamtausgabe</span>, ed. Paolo D’Iorio, after Colli / Montinari · CC BY-NC-ND 4.0</span>
       </div>
-      <div class="pager"><a href="#">← Vorwort / 1</a><span style="color:var(--ink-50)"><kbd>←</kbd>blättern<kbd>→</kbd></span><a href="#">3 →</a></div>
+      <div class="pager"><a href="#">← Vorwort / 1</a><span style="color:var(--ink-50)"><kbd>←</kbd>page<kbd>→</kbd></span><a href="#">3 →</a></div>
     </article>
     <aside class="margin-r">
-      <div class="themes">
-        <h4>Themen dieses Abschnitts</h4>
+      <div class="themes" lang="de">
+        <h4>Themes in this section</h4>
         <a href="#">Wille zur Macht <small>238</small></a>
         <a href="#">Mitleid <small>212</small></a>
         <a href="#">Umwertung <small>97</small></a>
       </div>
       <div>
-        <h4>Anklänge</h4>
-        <div class="echo"><b>GD-Streifzüge-38</b>Was ist Freiheit? Dass man den Willen zur Selbstverantwortlichkeit hat …</div>
-        <div class="echo"><b>JGB-13</b>Etwas Lebendiges will vor Allem seine Kraft auslassen …</div>
+        <h4>Echoes</h4>
+        <div class="echo" lang="de"><b>GD-Streifzüge-38</b>Was ist Freiheit? Dass man den Willen zur Selbstverantwortlichkeit hat …</div>
+        <div class="echo" lang="de"><b>JGB-13</b>Etwas Lebendiges will vor Allem seine Kraft auslassen …</div>
       </div>
-      <div class="margin-ask">Frag Friedrich zu AC-2 …</div>
+      <div class="margin-ask">Ask Friedrich about AC-2 …</div>
     </aside>
   </div>
 </section>
 <p class="note">Spaced emphasis prints as Sperrsatz (letter-spacing), the way the first editions set it, not as italics. Sigla and sources sit in the margin so the text column stays clean; ← → page through the book.</p>
 
 <!-- ═══════════════ 04 · THEMA ═══════════════ -->
-<div class="frame-label"><b>04 · Ein Thema</b><span>/themen/mitleid — a topic traced across the work</span></div>
+<div class="frame-label"><b>04 · A theme</b><span>/themen/mitleid — a topic traced across the work</span></div>
 <section class="frame">
   <div class="bar">
     <div class="mark">Friedrich</div>
-    <nav class="nav"><a href="#">Werk</a><a class="on" href="#">Themen</a><a href="#">Gespräch</a><a href="#">Suche</a></nav>
-    <button class="ask-pill">Frag Friedrich</button>
+    <nav class="nav"><a href="#">Work</a><a class="on" href="#">Themes</a><a href="#">Ask</a><a href="#">Search</a></nav>
+    <button class="ask-pill">Ask Friedrich</button>
   </div>
   <div class="thema">
     <div class="thema-head">
       <div>
-        <div class="kicker">THEMA · IN 14 BÜCHERN · 212 ABSCHNITTE</div>
-        <h2>Mitleid</h2>
+        <div class="kicker">THEME · IN 14 BOOKS · 212 SECTIONS</div>
+        <h2 lang="de">Mitleid</h2>
       </div>
-      <p>Vom Lob Schopenhauers über die Kritik in der Morgenröthe bis zum Fluch im Antichrist — wo und wie oft Nietzsche über das Mitleid schreibt.</p>
+      <p>From praising Schopenhauer, through the critique in <i lang="de">Morgenröthe</i>, to the curse in <i lang="de">Der Antichrist</i> — where and how often Nietzsche writes about <i lang="de">Mitleid</i>.</p>
     </div>
     <div class="strand" id="strand"></div>
     <div class="stellen">
-      <div class="stelle"><div class="sig">AC-7</div><h5>Der Antichrist</h5><p><q>Man nennt das Christenthum die Religion des Mitleidens.</q></p></div>
-      <div class="stelle"><div class="sig">FW-338</div><h5>Der Wille zum Leiden und die Mitleidigen</h5><p>Aus dem vierten Buch der Fröhlichen Wissenschaft.</p></div>
-      <div class="stelle"><div class="sig">Za-IV</div><h5>Also sprach Zarathustra IV</h5><p>Zarathustras letzte Versuchung: das Mitleiden mit dem höheren Menschen.</p></div>
+      <div class="stelle"><div class="sig">AC-7</div><h5>Der Antichrist</h5><p><q lang="de">Man nennt das Christenthum die Religion des Mitleidens.</q></p></div>
+      <div class="stelle"><div class="sig">FW-338</div><h5 lang="de">Der Wille zum Leiden und die Mitleidigen</h5><p>From the fourth book of <i lang="de">Die fröhliche Wissenschaft</i>.</p></div>
+      <div class="stelle"><div class="sig">Za-IV</div><h5>Also sprach Zarathustra IV</h5><p>Zarathustra’s last temptation: <i lang="de">Mitleiden</i> with the higher man.</p></div>
     </div>
   </div>
 </section>
-<p class="note">Topics come from the brain's topic extraction over the books (books are canonical topic sources). The strand reuses the Werk horizon's time axis, so a theme's rise and fall reads against the life. Counts here are illustrative.</p>
+<p class="note">Topics come from the brain's topic extraction over the books (books are canonical topic sources). The strand reuses the Work horizon's time axis, so a theme's rise and fall reads against the life. Counts here are illustrative.</p>
 
 <!-- ═══════════════ 05 · GESPRÄCH ═══════════════ -->
-<div class="frame-label"><b>05 · Frag Friedrich</b><span>/gespraech — answers from the work, every claim cited</span></div>
+<div class="frame-label"><b>05 · Ask Friedrich</b><span>/gespraech — answers from the work, every claim cited</span></div>
 <section class="frame">
   <div class="bar">
     <div class="mark">Friedrich</div>
-    <nav class="nav"><a href="#">Werk</a><a href="#">Themen</a><a class="on" href="#">Gespräch</a><a href="#">Suche</a></nav>
-    <button class="ask-pill">Frag Friedrich</button>
+    <nav class="nav"><a href="#">Work</a><a href="#">Themes</a><a class="on" href="#">Ask</a><a href="#">Search</a></nav>
+    <button class="ask-pill">Ask Friedrich</button>
   </div>
   <div class="gespraech">
     <div class="thread">
-      <div class="q"><small>DU</small>Warum lehnt Nietzsche das Mitleid ab?</div>
+      <div class="q"><small>YOU</small>Why does Nietzsche reject <i lang="de">Mitleid</i>?</div>
       <div class="a">
         <div class="who">Friedrich</div>
-        <p>Nietzsche sieht im Mitleid eine Kraft, die das Leiden vermehrt statt es zu überwinden: Es erhält, was zu Grunde gehen will, und macht die Schwäche zum Maßstab <a class="cite" href="#">AC-7</a>. Im Antichrist wird es zum Kern seiner Christentumskritik — das Christentum heißt dort die Religion des Mitleidens.</p>
-        <blockquote>„Man nennt das Christenthum die Religion des Mitleidens.“<footer>Der Antichrist · AC-7</footer></blockquote>
-        <p>Früher, in der Fröhlichen Wissenschaft, fragt er nach dem Willen hinter dem Mitleiden: Wer hilft, will oft sich selbst etwas beweisen <a class="cite" href="#">FW-338</a>. Zarathustras letzte Versuchung ist eben das Mitleiden mit dem höheren Menschen <a class="cite" href="#">Za-IV</a>.</p>
+        <p>For Nietzsche, <i lang="de">Mitleid</i> multiplies suffering instead of overcoming it: it preserves what is ready to perish and makes weakness the measure of value <a class="cite" href="#">AC-7</a>. In <i lang="de">Der Antichrist</i> it becomes the core of his critique of Christianity, which he calls the religion of pity.</p>
+        <blockquote><span lang="de">„Man nennt das Christenthum die Religion des Mitleidens.“</span><footer>Der Antichrist · AC-7</footer></blockquote>
+        <p>Earlier, in <i lang="de">Die fröhliche Wissenschaft</i>, he asks what will drives the pitying: the helper often wants to prove something to himself <a class="cite" href="#">FW-338</a>. And Zarathustra’s last temptation is precisely <i lang="de">Mitleiden</i> with the higher man <a class="cite" href="#">Za-IV</a>.</p>
       </div>
-      <div class="composer">Weiterfragen … <b>↵ senden</b></div>
+      <div class="composer">Ask a follow-up … <b>↵ send</b></div>
     </div>
     <aside class="sources-rail">
-      <h4>Stellen in dieser Antwort</h4>
-      <div class="src"><div class="sig">AC-7</div><div class="t">Der Antichrist</div><div class="b">1888 · lesen →</div></div>
-      <div class="src"><div class="sig">FW-338</div><div class="t">Die fröhliche Wissenschaft</div><div class="b">1882 · lesen →</div></div>
-      <div class="src"><div class="sig">Za-IV</div><div class="t">Also sprach Zarathustra IV</div><div class="b">1885 · lesen →</div></div>
-      <p class="disclaimer">Friedrich antwortet aus Nietzsches Texten in der eKGWB und nennt jede Stelle. Er spricht über Nietzsche, nicht als Nietzsche. Was nicht im Werk steht, sagt er auch so.</p>
+      <h4>Passages in this answer</h4>
+      <div class="src"><div class="sig">AC-7</div><div class="t">Der Antichrist</div><div class="b">1888 · read →</div></div>
+      <div class="src"><div class="sig">FW-338</div><div class="t">Die fröhliche Wissenschaft</div><div class="b">1882 · read →</div></div>
+      <div class="src"><div class="sig">Za-IV</div><div class="t">Also sprach Zarathustra IV</div><div class="b">1885 · read →</div></div>
+      <p class="disclaimer">Friedrich answers from Nietzsche’s texts in the eKGWB and cites every passage. He speaks about Nietzsche, not as Nietzsche. When the work has nothing on a question, he says so.</p>
     </aside>
   </div>
 </section>
 <p class="note">Answer text is illustrative; the behaviour is the brain-character from the plan: answer in the user's language, quote the German, cite by siglum, never speak as Nietzsche.</p>
 
 <!-- ═══════════════ 06 · MOBIL ═══════════════ -->
-<div class="frame-label"><b>06 · Mobil</b><span>the horizon becomes a year list; reading keeps one column</span></div>
+<div class="frame-label"><b>06 · Mobile</b><span>the horizon becomes a year list; reading keeps one column</span></div>
 <section class="frame">
   <div class="mobile-row">
     <div class="phone">
-      <div class="phone-bar"><span class="mark">Friedrich</span><span class="sig">WERK</span></div>
+      <div class="phone-bar"><span class="mark">Friedrich</span><span class="sig">WORK</span></div>
       <div class="mini-horizon">
-        <h2>Das Werk<span>1869 <i class="dash"></i> 1889</span></h2>
+        <h2>The Work<span>1869 <i class="dash"></i> 1889</span></h2>
         <div class="vlist" id="vlist"></div>
       </div>
     </div>
     <div class="phone">
       <div class="phone-bar"><span class="mark">Friedrich</span><span class="sig">AC-2</span></div>
-      <div class="phone-body">
+      <div class="phone-body" lang="de">
         <h2>2.</h2>
         <p>Was ist <span class="gesperrt">gut</span>? — Alles, was das Gefühl der Macht, den Willen zur Macht, die Macht selbst im Menschen erhöht.</p>
         <p>Was ist <span class="gesperrt">schlecht</span>? — Alles, was aus der Schwäche stammt.</p>
