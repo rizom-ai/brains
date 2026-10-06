@@ -87,6 +87,14 @@ describe("parseEkgwbBook", () => {
     ]);
   });
 
+  it("keeps emphasis to its words: touching spans merge, markdown characters escape", async () => {
+    const [unit] = parseEkgwbBook(await fixture("ekgwb-emphasis.html")).units;
+
+    expect(unit?.paragraphs).toEqual([
+      "Ein *gespro*\\<*chenes*\\> Wort, dann *zusammen* und ein Stern \\* hier.",
+    ]);
+  });
+
   it("files sections under their parts", async () => {
     const book = parseEkgwbBook(await fixture("ekgwb-parts.html"));
 

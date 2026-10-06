@@ -1,4 +1,6 @@
-import { Window, type Element } from "happy-dom";
+import { Window, type Element, type Node } from "happy-dom";
+
+const TEXT_NODE = 3;
 import type { BookUnit } from "../render-book";
 
 /** Every eKGWB unit is addressed by its siglum below this base. */
@@ -53,8 +55,43 @@ function headingsOf(element: Element): string[] {
     .map(labelText);
 }
 
-/** Spaced emphasis on the page becomes markdown emphasis. */
+/** Characters markdown would read as markup; the text keeps them literal. */
+const MARKDOWN_SPECIAL = /[\\`*_<>]/g;
+
+/** Escape markdown characters in every text node, so the text stays text. */
+function escapeText(node: Node): void {
+  if (node.nodeType === TEXT_NODE) {
+    node.textContent = node.textContent.replace(
+      MARKDOWN_SPECIAL,
+      (character) => `\\${character}`,
+    );
+    return;
+  }
+  Array.from(node.childNodes).forEach(escapeText);
+}
+
+/** Emphasised spans that touch are one emphasis, as when a word is split. */
+function mergeTouchingEmphasis(copy: Element): void {
+  Array.from(copy.querySelectorAll("span.bold"))
+    .reverse()
+    .forEach((span) => {
+      const next = span.nextElementSibling;
+      // Touching: the next node is the next element, with no text between.
+      if (
+        span.nextSibling !== null &&
+        span.nextSibling === next &&
+        next.matches("span.bold")
+      ) {
+        span.textContent = span.textContent + next.textContent;
+        next.remove();
+      }
+    });
+}
+
+/** Spaced emphasis on the page becomes markdown emphasis, its text escaped. */
 function markEmphasis(copy: Element): void {
+  escapeText(copy);
+  mergeTouchingEmphasis(copy);
   copy.querySelectorAll("span.bold").forEach((span) => {
     span.textContent = `*${normalise(span.textContent)}*`;
   });
