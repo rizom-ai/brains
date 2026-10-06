@@ -45,6 +45,16 @@ describe("parseEkgwbBook", () => {
     expect(text).not.toContain("Korrekturen");
   });
 
+  it("keeps verse: stanzas as paragraphs, lines as hard breaks", async () => {
+    const book = parseEkgwbBook(await fixture("ekgwb-verse.html"));
+
+    expect(book.units.map((unit) => unit.section)).toEqual(["VB-Lied"]);
+    expect(book.units[0]?.paragraphs).toEqual([
+      "Erste erfundene Zeile,  \nzweite *erfundene* Zeile.",
+      "Dritte Zeile  \nund vierte.",
+    ]);
+  });
+
   it("files sections under their parts", async () => {
     const book = parseEkgwbBook(await fixture("ekgwb-parts.html"));
 

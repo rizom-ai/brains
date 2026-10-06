@@ -18,10 +18,15 @@ function isSiglumBlock(element: Element): boolean {
   return element.tagName === "DIV" && element.id.startsWith("eKGWB/");
 }
 
+function isStanza(element: Element): boolean {
+  return element.tagName === "DIV" && element.className === "lg";
+}
+
 function isParagraph(element: Element): boolean {
   return (
     (element.tagName === "DIV" && element.className === "p") ||
-    element.tagName === "P"
+    element.tagName === "P" ||
+    isStanza(element)
   );
 }
 
@@ -41,13 +46,23 @@ function headingOf(element: Element): string | null {
  * The author's text of one paragraph: apparatus removed, the edition's
  * corrected readings kept, spaced emphasis as markdown emphasis.
  */
-function paragraphText(paragraph: Element): string {
-  const copy = paragraph.cloneNode(true);
+function blockText(block: Element): string {
+  const copy = block.cloneNode(true);
   copy.querySelectorAll(APPARATUS).forEach((node) => node.remove());
   copy.querySelectorAll("span.bold").forEach((span) => {
     span.textContent = `*${normalise(span.textContent)}*`;
   });
   return normalise(copy.textContent);
+}
+
+/** A stanza keeps its lines, as markdown hard breaks. */
+function paragraphText(paragraph: Element): string {
+  if (!isStanza(paragraph)) return blockText(paragraph);
+  return Array.from(paragraph.children)
+    .filter((line) => line.className === "l")
+    .map(blockText)
+    .filter((line) => line.length > 0)
+    .join("  \n");
 }
 
 function parentsOf(element: Element): string[] {
