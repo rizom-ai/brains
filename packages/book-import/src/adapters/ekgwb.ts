@@ -58,22 +58,39 @@ function headingOf(element: Element): string | null {
  * The author's text of one paragraph: apparatus removed, the edition's
  * corrected readings kept, spaced emphasis as markdown emphasis.
  */
-function blockText(block: Element): string {
-  const copy = cleanCopy(block);
+/** Spaced emphasis on the page becomes markdown emphasis. */
+function markEmphasis(copy: Element): void {
   copy.querySelectorAll("span.bold").forEach((span) => {
     span.textContent = `*${normalise(span.textContent)}*`;
   });
+}
+
+function blockText(block: Element): string {
+  const copy = cleanCopy(block);
+  markEmphasis(copy);
   return normalise(copy.textContent);
 }
 
-/** A stanza keeps its lines, as markdown hard breaks. */
-function paragraphText(paragraph: Element): string {
-  if (!isStanza(paragraph)) return blockText(paragraph);
-  return Array.from(paragraph.children)
-    .filter((line) => line.className === "l")
-    .map(blockText)
+/** Marks where a verse line ends; never occurs in the page's text. */
+const LINE_END = "\u2028";
+
+/**
+ * A stanza keeps its lines, as markdown hard breaks. Lines can hold further
+ * lines, so every line ends where its element does, at any depth.
+ */
+function stanzaText(stanza: Element): string {
+  const copy = cleanCopy(stanza);
+  markEmphasis(copy);
+  copy.querySelectorAll("div.l").forEach((line) => line.after(LINE_END));
+  return copy.textContent
+    .split(LINE_END)
+    .map(normalise)
     .filter((line) => line.length > 0)
     .join("  \n");
+}
+
+function paragraphText(paragraph: Element): string {
+  return isStanza(paragraph) ? stanzaText(paragraph) : blockText(paragraph);
 }
 
 function parentsOf(element: Element): string[] {

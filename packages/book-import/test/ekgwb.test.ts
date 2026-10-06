@@ -48,10 +48,16 @@ describe("parseEkgwbBook", () => {
   it("keeps verse: stanzas as paragraphs, lines as hard breaks", async () => {
     const book = parseEkgwbBook(await fixture("ekgwb-verse.html"));
 
-    expect(book.units.map((unit) => unit.section)).toEqual(["VB-Lied"]);
+    expect(book.units.map((unit) => unit.section)).toEqual([
+      "VB-Lied",
+      "VB-Geschachtelt",
+    ]);
     expect(book.units[0]?.paragraphs).toEqual([
       "Erste erfundene Zeile,  \nzweite *erfundene* Zeile.",
       "Dritte Zeile  \nund vierte.",
+    ]);
+    expect(book.units[1]?.paragraphs).toEqual([
+      "Innen eins  \ninnen zwei  \nNoch eine Zeile  \n*Ausruf*",
     ]);
   });
 
