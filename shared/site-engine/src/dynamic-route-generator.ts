@@ -48,6 +48,8 @@ export interface DynamicRouteGeneratorOptions {
   publishedOnly?: boolean;
 }
 
+const ROUTE_LISTING_PAGE_SIZE = 1000;
+
 export type DynamicRouteEntityDisplayMap = Record<string, EntityDisplayEntry>;
 
 /**
@@ -83,6 +85,29 @@ export class DynamicRouteGenerator {
         filter: { ...filter, visibilityScope: scope },
       }),
     };
+  }
+
+  /**
+   * Every entity of a type, one listing page at a time, so static generation
+   * covers types larger than a single page. Id order keeps pages stable.
+   */
+  private async listAllEntities(
+    entityType: string,
+    offset = 0,
+    listed: DynamicRouteEntity[] = [],
+  ): Promise<DynamicRouteEntity[]> {
+    const page = await this.services.entityService.listEntities({
+      entityType,
+      options: this.listOptions({
+        limit: ROUTE_LISTING_PAGE_SIZE,
+        offset,
+        sortFields: [{ field: "id", direction: "asc" }],
+      }),
+    });
+    const all = [...listed, ...page];
+    return page.length < ROUTE_LISTING_PAGE_SIZE
+      ? all
+      : this.listAllEntities(entityType, offset + page.length, all);
   }
 
   /**
@@ -237,10 +262,7 @@ export class DynamicRouteGenerator {
     if (detailTemplateName) {
       try {
         const entities = this.filterVisibleEntities(
-          await this.services.entityService.listEntities({
-            entityType,
-            options: this.listOptions({ limit: 1000 }),
-          }), // Get all entities for static generation
+          await this.listAllEntities(entityType),
           entityType,
         );
 
@@ -313,10 +335,7 @@ export class DynamicRouteGenerator {
   ): Promise<void> {
     // Get total entity count
     const entities = this.filterVisibleEntities(
-      await this.services.entityService.listEntities({
-        entityType,
-        options: this.listOptions({ limit: 1000 }),
-      }),
+      await this.listAllEntities(entityType),
       entityType,
     );
     const totalItems = entities.length;

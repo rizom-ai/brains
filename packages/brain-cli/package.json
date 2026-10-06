@@ -45,6 +45,7 @@
     "@brains/atproto-registry": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/blog": "workspace:*",
+    "@brains/book": "workspace:*",
     "@brains/build-tools": "workspace:*",
     "@brains/chat": "workspace:*",
     "@brains/contact": "workspace:*",
