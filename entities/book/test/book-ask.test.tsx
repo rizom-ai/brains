@@ -124,6 +124,8 @@ describe("BookAskTemplate script", () => {
         detail: {
           sources: [
             { id: "book:spaet:00007-7", title: "SPAET-7" },
+            // A book with parts files each section under its part's folder.
+            { id: "book:spaet:00009-ii:00012-11", title: "SPAET-II-11" },
             { id: "topic:mitleid", title: "Mitleid" },
             {
               id: "book:spaet:00000-ein-spaetes-buch",
@@ -139,6 +141,7 @@ describe("BookAskTemplate script", () => {
     );
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/books/spaet/7",
+      "/books/spaet/12",
       "/books/spaet",
     ]);
     expect(links[0]?.textContent).toContain("SPAET-7");

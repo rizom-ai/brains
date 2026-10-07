@@ -15,8 +15,9 @@ const PASSAGES_ATTRIBUTE = "data-book-passages";
 /**
  * Fills the rail with the passages an answer drew on, each linked to its
  * page and named by its siglum, book and year; starts the question a reading
- * page asked for. Book entry ids are `<book>:<nnnnn>-<slug>`; order 0 is the
- * book's title page.
+ * page asked for. Book entry ids are `<book>:<nnnnn>-<slug>`, with a part's
+ * folder between in a book with parts (`<book>:<part>:<nnnnn>-<slug>`); the
+ * entry's order is its last segment's number, and order 0 is the title page.
  */
 const askScript = `(function () {
   var rail = document.querySelector("[${PASSAGES_ATTRIBUTE}]");
@@ -27,7 +28,7 @@ const askScript = `(function () {
     var sources = (event.detail && event.detail.sources) || [];
     list.textContent = "";
     sources.forEach(function (source) {
-      var match = /^book:([^:]+):0*(\\d+)/.exec(source.id);
+      var match = /^book:([^:]+):(?:[^:]+:)*0*(\\d+)-[^:]*$/.exec(source.id);
       if (!match) return;
       var book = books[match[1]] || { title: match[1], year: null };
       var link = document.createElement("a");
