@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`.
 
 ## Goal
 
@@ -75,7 +75,9 @@ Book brains get a purpose-built reading site, not the default site with books ad
 
 Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` is a book's score on its title entry and the reading page on a section. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode. Title entries gain `published`, `length` and `sections`; sections gain `part`; the importer writes them.
 
-Topics are named in the author's own terms: each book brain's content carries a `prompt` entry targeting `topics:extraction` that asks for the author's concepts in the source language (Mitleid, Ressentiment, Wille zur Macht), at the level of a concept, and no topic named after the author or a whole book's subject. A section's margin lists its nearest topics by stored embedding.
+Topics are named in the author's own terms: each book brain's content carries a `prompt` entry targeting `topics:extraction` that asks for the author's concepts in the source language (Mitleid, Ressentiment, Wille zur Macht), at the level of a concept, and no topic named after the author or a whole book's subject. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `book:theme` through `entityDisplay.topic.detailTemplate`). Both read related entries with `nearestToEntity`, one store query by cosine distance from an entry's stored vector, so a full build stays linear: Nietzsche's 3,738 sections build in about a minute and a half.
+
+Ask lives at `/ask` (`book:ask`): the guest box under the site's name, and a rail listing the passages an answer cites by siglum, book and year. A reading page offers "Ask about AC-2", which starts the question with the siglum. The books site marks only `book` citable; a title entry (a book's contents) carries `citable: false` and is never a source; a cited section is titled by its siglum (`pageTitle`). The book plugin's instructions tell the agent to search the books first, cite by siglum and book, quote verbatim, and say when the books do not address a question. Turning Ask on for a deployed brain is the owner's budgeted switch in Studio.
 
 Build slices, one PR each:
 
@@ -161,6 +163,8 @@ bun packages/book-import/src/cli.ts <manifest> <content-repo>/brain-data
 - one shared writer applies the splitting rule, validates every entry against `@brains/book`'s schema, writes `book/<book>/…`, and removes stale entries of that book
 - deterministic: rerunning on the same sources yields byte-identical files
 - downloads are cached locally and never committed
+- emphasis (Sperrsatz) becomes markdown emphasis; spans that touch in reading order merge, also across an editor's correction wrapped around a word, and space at a span's edge stays outside the markers
+- file and entry slugs transliterate letters (ü → ue, ß → ss, é → e) instead of dropping them
 
 Flow per book:
 
