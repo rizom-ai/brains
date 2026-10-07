@@ -30,6 +30,10 @@ export function mcpServerName(address: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+function shellArgument(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
 function json(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
@@ -82,7 +86,7 @@ export function aiToolClients(address: string): readonly AiToolClient[] {
       lead: [["Add the server in your terminal:"]],
       snippet: {
         label: "Claude Code command",
-        code: `claude mcp add --transport http ${name} ${address}`,
+        code: `claude mcp add --transport http ${name} ${shellArgument(address)}`,
       },
       after: [
         [

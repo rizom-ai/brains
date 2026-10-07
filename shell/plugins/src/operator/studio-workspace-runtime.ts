@@ -11,10 +11,11 @@ import type { AnyAccountSettingsDefinition } from "./account-settings-definition
 import type { AccountSettingsRegistration } from "./account-settings-registry";
 import { meetsPermission } from "./contract-assertions";
 import { createOperatorContext } from "./operator-context-runtime";
+import { workspaceCaller } from "./workspace-actor";
+import { routeCallerSignal } from "../internal/route-caller-authority";
 import type {
   OperatorBaseContext,
   OperatorBindingContext,
-  OperatorCaller,
   OperatorQueryReader,
   OperatorSchema,
 } from "./operator-context-contract";
@@ -138,14 +139,6 @@ function validationDetail(
     .join("; ");
 }
 
-function operatorCaller(actor: StudioWorkspaceActor): OperatorCaller {
-  return Object.freeze({
-    actor: Object.freeze({ id: actor.userId }),
-    permission: actor.userPermissionLevel,
-    isAnchor: actor.isAnchor,
-  });
-}
-
 function requestSignal(
   runtimeSignal: AbortSignal,
   signal: AbortSignal | undefined,
@@ -169,13 +162,6 @@ function parseWorkspaceData<TSchema extends z.ZodType<unknown, unknown>>(
   return parsed.data;
 }
 
-function parseActionInput<TSchema extends z.ZodType<unknown, unknown>>(
-  schema: TSchema,
-  input: unknown,
-): z.output<TSchema> {
-  return schema.parse(input);
-}
-
 async function prepareActionBinding<
   TDefinition extends AnyWorkspaceActionDefinition,
   TConfig,
@@ -184,19 +170,14 @@ async function prepareActionBinding<
 >(
   binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  input: unknown,
+  input: z.output<TDefinition["input"]>,
 ): Promise<z.output<typeof preparedConfirmationSchema>> {
-  const parsedInput = parseActionInput<TDefinition["input"]>(
-    binding.definition.input,
-    input,
-  );
+  // Admission already validated this value; callbacks consume parsed output.
   const prepare = getWorkspaceActionExecutor(binding).prepare;
   if (!prepare) {
     throw new Error("Prepared confirmation callback is unavailable");
   }
-  return preparedConfirmationSchema.parse(
-    await prepare({ ...context, input: parsedInput }),
-  );
+  return preparedConfirmationSchema.parse(await prepare({ ...context, input }));
 }
 
 async function executeActionBinding<
@@ -207,16 +188,9 @@ async function executeActionBinding<
 >(
   binding: BoundWorkspaceAction<TDefinition, TConfig, TState, TAccountSettings>,
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  input: unknown,
+  input: z.output<TDefinition["input"]>,
 ): Promise<unknown> {
-  const parsedInput = parseActionInput<TDefinition["input"]>(
-    binding.definition.input,
-    input,
-  );
-  return getWorkspaceActionExecutor(binding).execute({
-    ...context,
-    input: parsedInput,
-  });
+  return getWorkspaceActionExecutor(binding).execute({ ...context, input });
 }
 
 export function createDeclarativeStudioWorkspaceRegistration<
@@ -265,6 +239,20 @@ export function createDeclarativeStudioWorkspaceRegistration<
   }
   const preparedConfirmations = new Map<string, PreparedConfirmationRecord>();
 
+  function signalFor(
+    actor: StudioWorkspaceActor,
+    signal?: AbortSignal,
+  ): AbortSignal {
+    const caller = workspaceCaller(actor, input.context.auth);
+    return requestSignal(
+      AbortSignal.any([
+        input.runtimeSignal,
+        routeCallerSignal(caller, input.context.auth),
+      ]),
+      signal,
+    );
+  }
+
   async function contextFor(
     actor: StudioWorkspaceActor,
     signal: AbortSignal,
@@ -280,7 +268,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
       ...(input.accountSettingsRegistration
         ? { accountSettingsRegistration: input.accountSettingsRegistration }
         : {}),
-      provider: { caller: operatorCaller(actor), signal },
+      provider: { caller: workspaceCaller(actor, input.context.auth), signal },
       context: input.context,
     });
     return Object.freeze({
@@ -293,13 +281,17 @@ export function createDeclarativeStudioWorkspaceRegistration<
     actor: StudioWorkspaceActor,
     signal: AbortSignal,
   ): Promise<boolean> {
-    if (!meetsPermission(actor.userPermissionLevel, definition.permission)) {
+    const caller = workspaceCaller(actor, input.context.auth);
+    const combinedSignal = signalFor(actor, signal);
+    combinedSignal.throwIfAborted();
+    if (!meetsPermission(caller.permission, definition.permission)) {
       return false;
     }
     if (!executor.authorize) return true;
     const allowed = await executor.authorize(
-      await contextFor(actor, signal, undefined),
+      await contextFor(actor, combinedSignal, undefined),
     );
+    combinedSignal.throwIfAborted();
     if (typeof allowed !== "boolean") {
       throw runtimeError(
         identity,
@@ -320,12 +312,13 @@ export function createDeclarativeStudioWorkspaceRegistration<
     ...(input.aliases ? { aliases: input.aliases } : {}),
     entityTypes: listEntityTypes
       ? async (actor): Promise<string[]> => {
-          if (!(await admitted(actor, input.runtimeSignal))) return [];
-          return entityTypeCatalogSchema.parse(
-            await listEntityTypes(
-              await contextFor(actor, input.runtimeSignal, undefined),
-            ),
+          const signal = signalFor(actor);
+          if (!(await admitted(actor, signal))) return [];
+          const types = await listEntityTypes(
+            await contextFor(actor, signal, undefined),
           );
+          signal.throwIfAborted();
+          return entityTypeCatalogSchema.parse(types);
         }
       : (definition.entities ?? []).map((entity) => entity.type),
     accessHandler: (actor) => admitted(actor, input.runtimeSignal),
@@ -334,7 +327,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
       rawQuery,
       signal,
     ): Promise<RuntimeStudioWorkspaceData> {
-      const combinedSignal = requestSignal(input.runtimeSignal, signal);
+      const combinedSignal = signalFor(actor, signal);
       combinedSignal.throwIfAborted();
       if (!(await admitted(actor, combinedSignal))) {
         throw runtimeError(
@@ -393,7 +386,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
       });
     },
     async actionHandler(rawRequest, actor, signal): Promise<JsonValue> {
-      const combinedSignal = requestSignal(input.runtimeSignal, signal);
+      const combinedSignal = signalFor(actor, signal);
       combinedSignal.throwIfAborted();
       if (!(await admitted(actor, combinedSignal))) {
         throw runtimeError(
@@ -424,7 +417,10 @@ export function createDeclarativeStudioWorkspaceRegistration<
           `action "${action.name}" was requested below its minimum permission`,
         );
       }
-      const parsedInput = action.input.safeParse(request.data.input);
+      const parsedInput = z.safeParse<TDefinition["actions"][number]["input"]>(
+        action.input,
+        request.data.input,
+      );
       if (!parsedInput.success) {
         throw runtimeError(
           identity,
@@ -461,6 +457,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
           runtimeContext,
           parsedInput.data,
         );
+        combinedSignal.throwIfAborted();
         const now = Date.now();
         for (const [token, record] of preparedConfirmations) {
           if (record.expiresAt <= now) preparedConfirmations.delete(token);
@@ -517,6 +514,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
             `action "${action.name}" prepared confirmation is invalid or stale`,
           );
         }
+        combinedSignal.throwIfAborted();
         if (current.revision !== record.revision) {
           throw runtimeError(
             identity,
@@ -537,6 +535,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
         }
         throw runtimeError(identity, `action "${action.name}" failed`);
       }
+      combinedSignal.throwIfAborted();
       const parsedOutput = action.output.safeParse(rawOutput);
       if (!parsedOutput.success) {
         throw runtimeError(
@@ -559,13 +558,14 @@ export function createDeclarativeStudioWorkspaceRegistration<
           badgeProvider: async (
             actor: StudioWorkspaceActor,
           ): Promise<number> => {
-            const signal = input.runtimeSignal;
+            const signal = signalFor(actor);
             if (!(await admitted(actor, signal))) return 0;
             const data = parseWorkspaceData(
               definition.data,
               await executor.load(await contextFor(actor, signal, undefined)),
               identity,
             );
+            signal.throwIfAborted();
             const badge = definition.badge?.({ data }) ?? 0;
             if (!Number.isInteger(badge) || badge < 0 || badge > 999_999) {
               throw runtimeError(

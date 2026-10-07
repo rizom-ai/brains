@@ -21,6 +21,10 @@ find . -type d -perm 700 ! -path "./.git/*" ! -path "*/node_modules/*" -exec chm
 echo "🔍 Checking dependency versions..."
 bun run deps:check
 
+# A cast past the granted context compiles, so nothing else reports it.
+echo "🚧 Checking boundary casts..."
+bun run casts:check
+
 # Keep every active legacy compatibility path owned and time-bounded.
 echo "🏷️  Checking legacy code inventory..."
 bun run legacy:check

@@ -1,12 +1,10 @@
-import { EntityRegistry } from "@brains/entity-service";
-import { createSilentLogger } from "@brains/test-utils";
-import { describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createMockShell } from "@brains/plugins/test";
 import type {
   RegisteredWebRoute,
   ResolvedInboxFollowUp,
 } from "@brains/plugins";
-import { studioPlugin } from "../src";
+import { instantiate as studioPlugin } from "./helpers/install";
 import { STUDIO_CHAT_ROUTE_PATH } from "../src/chat-workspace";
 import { createStudioChatHandoffState } from "../src/chat-handoff-contract";
 
@@ -14,13 +12,10 @@ describe("Studio owns operator Chat navigation", () => {
   for (const chatFirst of [false, true]) {
     it(`registers Chat regardless of route initialization order (chatFirst=${chatFirst})`, async () => {
       const shell = createMockShell();
-      spyOn(shell, "getEntityRegistry").mockReturnValue(
-        EntityRegistry.createFresh(createSilentLogger()),
-      );
       const studio = studioPlugin({ routePath: "/authoring" });
       // Production catalogs every configured plugin before initializing any.
-      shell.addPlugin({
-        id: "web-chat",
+      shell.registerPlugin({
+        id: "@brains/web-chat:web-chat",
         version: "0.0.0-test",
         type: "interface",
         packageName: "@brains/web-chat",
@@ -29,7 +24,7 @@ describe("Studio owns operator Chat navigation", () => {
       const addChat = (): void => {
         shell.getPluginWebRoutes = (): RegisteredWebRoute[] =>
           ["/api/talk", "/api/talk/actions"].map((path) => ({
-            pluginId: "web-chat",
+            pluginId: "@brains/web-chat:web-chat",
             fullPath: path,
             definition: {
               path,
@@ -47,13 +42,14 @@ describe("Studio owns operator Chat navigation", () => {
       if (!chatFirst) addChat();
       // Production freezes follow-ups before plugin finalization.
       shell.getInboxFollowUpRegistry().finalize();
-      await studio.finalizeRegistration();
+      await studio.finalizeRegistration?.();
+      await studio.ready?.();
       expect(
         shell.listInteractions().filter((entry) => entry.label === "Chat"),
       ).toEqual([
         expect.objectContaining({
           id: "chat",
-          pluginId: "studio",
+          pluginId: "@brains/studio:studio",
           href: STUDIO_CHAT_ROUTE_PATH,
           visibility: "trusted",
           requiresActiveSession: true,
@@ -63,7 +59,7 @@ describe("Studio owns operator Chat navigation", () => {
         shell.listEndpoints().filter((entry) => entry.label === "Chat"),
       ).toEqual([
         expect.objectContaining({
-          pluginId: "studio",
+          pluginId: "@brains/studio:studio",
           url: STUDIO_CHAT_ROUTE_PATH,
         }),
       ]);
@@ -139,13 +135,11 @@ describe("Studio owns operator Chat navigation", () => {
 
   it("registers neither Chat nor its follow-up without web-chat", async () => {
     const shell = createMockShell();
-    spyOn(shell, "getEntityRegistry").mockReturnValue(
-      EntityRegistry.createFresh(createSilentLogger()),
-    );
     const studio = studioPlugin();
     await studio.register(shell);
     shell.getInboxFollowUpRegistry().finalize();
-    await studio.finalizeRegistration();
+    await studio.finalizeRegistration?.();
+    await studio.ready?.();
     expect(
       shell.listInteractions().some((entry) => entry.label === "Chat"),
     ).toBe(false);

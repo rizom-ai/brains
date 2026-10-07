@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { TOPIC_TITLES_MESSAGE } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ContentVisibility } from "@brains/plugins";
-import { TopicsPlugin } from "../src";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import topicsPackage from "../src";
 
 // Other plugins ask what the brain's public work is about, for example to
 // screen a site visitor's question: the titles of its public topics.
@@ -14,7 +15,15 @@ describe("public topic titles", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-topic-titles-${randomUUID()}`,
     });
-    await harness.installPlugin(new TopicsPlugin());
+    for (const plugin of instantiatePluginPackageDefinition(
+      topicsPackage,
+      {},
+      {
+        name: "@brains/topics",
+        version: "0.0.0-test",
+      },
+    ))
+      await harness.installPlugin(plugin);
     for (const [title, visibility] of topics)
       await harness.getEntityService().createEntity({
         entity: {
@@ -33,11 +42,19 @@ describe("public topic titles", () => {
       ["Ecosystem Architecture", "public"],
       ["Trust Networks", "public"],
       ["Private Plans", "restricted"],
+      ["Shared Plans", "shared"],
     ]);
     const response = await harness.sendMessage(TOPIC_TITLES_MESSAGE, {});
     expect(response).toEqual({
       titles: ["Ecosystem Architecture", "Trust Networks"],
     });
+    const stored = await harness.getEntityService().getEntity({
+      entityType: "topic",
+      id: "ecosystem-architecture",
+      visibilityScope: "public",
+    });
+    expect(stored?.metadata).toEqual({});
+    expect(stored?.content).toContain("title: Ecosystem Architecture");
   });
 
   it("answers with at most twenty", async () => {

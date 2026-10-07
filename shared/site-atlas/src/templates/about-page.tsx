@@ -4,7 +4,7 @@ import {
   LinkButton,
   MarkdownContent,
   tagVariants,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 /** One fact about the owner: a sentence, a set of tags, or a list of lines. */
 export type AboutFact =

@@ -1,18 +1,27 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type Conversation,
-  type EntityPluginContext,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { summarySchema, type SummaryEntity } from "../../schemas/summary";
+  defineEntityDashboardWidget,
+  z,
+  type EntityConversationSurvey,
+  type EntityDashboardWidgetDeclaration,
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
+import type { SummaryEntity } from "../../schemas/summary";
+import { summarySchema } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummarySourceReader } from "../summary-source-reader";
 import { evaluateSummaryEligibility } from "../summary-space-eligibility";
 
 const MAX_RECENT_SUMMARY_ITEMS = 6;
+/**
+ * How many summaries a single render will hash-check.
+ *
+ * Staleness is the only figure here that costs a read per conversation, and
+ * a dashboard tile has no business walking the whole corpus to produce it.
+ * Above this the count is reported over the newest summaries and labelled.
+ */
+const MAX_STALENESS_CHECKS = 25;
 const COVERAGE_WIDGET_ID = "coverage";
 
 interface SummaryWidgetItem {
@@ -80,13 +89,6 @@ function getSummaryLabel(summary: SummaryEntity): string {
   return summary.metadata.channelId;
 }
 
-function hasConfiguredSpace(
-  conversation: Conversation,
-  spaces: string[],
-): boolean {
-  return evaluateSummaryEligibility({ conversation, spaces }).eligible;
-}
-
 function summarizeCoverageStatus(params: {
   eligibleCount: number;
   summarizedCount: number;
@@ -97,12 +99,14 @@ function summarizeCoverageStatus(params: {
 }
 
 export async function buildSummaryCoverageData(params: {
-  context: EntityPluginContext;
+  entities: JobEntityAccess;
+  conversations: EntityConversationSurvey;
+  spaces: readonly string[];
   config: SummaryConfig;
 }): Promise<SummaryDashboardData> {
-  const { context, config } = params;
+  const { entities, conversations: reader, spaces, config } = params;
 
-  const summaries = await context.entityService.listEntities(
+  const summaries = await entities.listEntities(
     {
       entityType: SUMMARY_ENTITY_TYPE,
       options: {
@@ -112,7 +116,7 @@ export async function buildSummaryCoverageData(params: {
     summarySchema,
   );
 
-  if (context.spaces.length === 0) {
+  if (spaces.length === 0) {
     return {
       items: [
         {
@@ -131,46 +135,50 @@ export async function buildSummaryCoverageData(params: {
     };
   }
 
-  const sourceReader = new SummarySourceReader(context, config);
-  const conversations = await context.conversations.list();
+  const sourceReader = new SummarySourceReader(reader, config);
+  const conversations = await reader.list();
   const summariesByConversationId = new Map(
     summaries.map((summary) => [summary.metadata.conversationId, summary]),
   );
 
-  let eligibleCount = 0;
-  let summarizedCount = 0;
-  let staleCount = 0;
-  let unsummarizedCount = 0;
-  const recentSummaryItems: SummaryWidgetItem[] = [];
-
-  const candidateConversations = conversations.filter((conversation) =>
-    hasConfiguredSpace(conversation, context.spaces),
+  // Eligibility and the counts derived from it need only what the survey
+  // already returned. Reading each conversation back by id, and reading the
+  // messages of ones with no summary to compare against, is what made this
+  // widget cost a query per conversation for a producer that is switched off.
+  const eligible = conversations.filter(
+    (conversation) =>
+      evaluateSummaryEligibility({ conversation, spaces }).eligible,
   );
-  const sources = await Promise.all(
-    candidateConversations.map((conversation) =>
-      sourceReader.readConversation(conversation.id),
+  const summarized = eligible.flatMap((conversation) => {
+    const summary = summariesByConversationId.get(conversation.id);
+    return summary ? [{ conversation, summary }] : [];
+  });
+
+  const eligibleCount = eligible.length;
+  const summarizedCount = summarized.length;
+  const unsummarizedCount = eligibleCount - summarizedCount;
+
+  // Staleness is the one thing that needs the messages, because it means
+  // "does this summary still hash to its source". Bounded: a dashboard tile
+  // must not read the whole corpus, and the newest summaries are the ones
+  // the widget can surface.
+  const scanned = [...summarized]
+    .sort((left, right) =>
+      right.summary.updated.localeCompare(left.summary.updated),
+    )
+    .slice(0, MAX_STALENESS_CHECKS);
+  const scannedSources = await Promise.all(
+    scanned.map(({ conversation }) =>
+      sourceReader.readKnownConversation(conversation),
     ),
   );
 
-  for (let index = 0; index < candidateConversations.length; index += 1) {
-    const conversation = candidateConversations[index];
-    const source = sources[index];
-    if (!conversation || !source) continue;
+  let staleCount = 0;
+  const recentSummaryItems: SummaryWidgetItem[] = [];
+  for (const [index, { summary }] of scanned.entries()) {
+    const source = scannedSources[index];
+    if (!source) continue;
 
-    const eligibility = evaluateSummaryEligibility({
-      conversation: source.conversation,
-      spaces: context.spaces,
-    });
-    if (!eligibility.eligible) continue;
-
-    eligibleCount += 1;
-    const summary = summariesByConversationId.get(conversation.id);
-    if (!summary) {
-      unsummarizedCount += 1;
-      continue;
-    }
-
-    summarizedCount += 1;
     const stale = summary.metadata.sourceHash !== source.sourceHash;
     if (stale) staleCount += 1;
 
@@ -188,7 +196,7 @@ export async function buildSummaryCoverageData(params: {
     {
       id: "spaces",
       name: "Configured spaces",
-      count: context.spaces.length,
+      count: spaces.length,
       status: "active",
     },
     {
@@ -201,7 +209,15 @@ export async function buildSummaryCoverageData(params: {
       id: "stale-summaries",
       name: "Stale summaries",
       count: staleCount,
-      status: staleCount === 0 ? "current" : "stale",
+      // A capped scan says so. Reporting a partial count with the same words
+      // as a whole one is how "0 stale" comes to mean "0 of the 25 I looked
+      // at" without anyone being told.
+      status:
+        scanned.length < summarizedCount
+          ? `${staleCount === 0 ? "current" : "stale"} in ${scanned.length} newest`
+          : staleCount === 0
+            ? "current"
+            : "stale",
     },
     {
       id: "unsummarized-conversations",
@@ -215,23 +231,23 @@ export async function buildSummaryCoverageData(params: {
   return { items };
 }
 
-export function registerSummaryCoverageWidget(params: {
-  context: EntityPluginContext;
-  config: SummaryConfig;
-}): void {
-  const { context, config } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: summaryCoverageWidget,
-        load: ({ signal }) => {
-          signal.throwIfAborted();
-          return buildSummaryCoverageData({ context, config });
-        },
+/**
+ * Coverage is a question about every conversation, not one — which is why
+ * the widget context carries a survey the job context deliberately does not.
+ */
+export function summaryCoverageWidgetDeclaration(
+  config: SummaryConfig,
+): EntityDashboardWidgetDeclaration {
+  return defineEntityDashboardWidget(
+    summaryCoverageWidget,
+    ({ entities, conversations, spaces, signal }) => {
+      signal.throwIfAborted();
+      return buildSummaryCoverageData({
+        entities,
+        conversations,
+        spaces,
+        config,
       });
-      return { success: true };
     },
   );
 }

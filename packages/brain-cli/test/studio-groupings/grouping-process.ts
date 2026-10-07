@@ -1,13 +1,12 @@
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { createServicePluginContext } from "@brains/plugins";
+import { installContributors } from "./contributors";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { registerGroupingDefinitions } from "@brains/studio/test";
+import { installStudio } from "@brains/studio/test";
 
 const commandSchema = z.object({
   id: z.number(),
@@ -21,7 +20,6 @@ const logger = createSilentLogger();
 const dbConfig = { url: `file:${dir}/entities.db` };
 await migrateEntities(dbConfig, logger);
 const registry = EntityRegistry.createFresh(logger);
-registry.registerEntityType("note", noteSchema, noteAdapter);
 const shell = createMockShell();
 const service = EntityService.createFresh({
   dbConfig,
@@ -42,7 +40,10 @@ const service = EntityService.createFresh({
 });
 shell.getEntityRegistry = (): EntityRegistry => registry;
 shell.getEntityService = (): EntityService => service;
-registerGroupingDefinitions(createServicePluginContext(shell, "studio"));
+await service.initialize();
+const closeContributors = await installContributors(shell, ["note"]);
+const { plugin } = await installStudio(shell);
+await plugin.finalizeRegistration?.();
 await service.reprojectRegisteredGroupings();
 let paused = false;
 const project = registry.projectStoredMetadata.bind(registry);
@@ -69,6 +70,8 @@ async function execute(
   command: z.output<typeof commandSchema>,
 ): Promise<unknown> {
   if (command.action === "close") {
+    await plugin.shutdown?.();
+    await closeContributors();
     service.close();
     return null;
   }

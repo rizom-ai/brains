@@ -44,6 +44,7 @@ import type {
   IIdentityNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
+  InboxRegistrationNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
@@ -110,7 +111,7 @@ export function createOperationalHealthNamespace(
 export function createInboxNamespace(
   shell: IShell,
   pluginId: string,
-): IInboxNamespace {
+): InboxRegistrationNamespace {
   const registry = shell.getInboxRegistry();
   return {
     registerSource: (source): void => {
@@ -118,6 +119,14 @@ export function createInboxNamespace(
     },
     listSources: () => registry.listSources(),
     getSource: (sourceId) => registry.getSource(sourceId),
+  };
+}
+
+/** Extension callbacks read sources; only declarations register them. */
+export function createInboxReader(inbox: IInboxNamespace): IInboxNamespace {
+  return {
+    listSources: () => inbox.listSources(),
+    getSource: (id) => inbox.getSource(id),
   };
 }
 
@@ -273,6 +282,19 @@ export function createConversationsNamespace(
       );
       return messages.map(toPublicMessage);
     },
+    getManyWithMessages: async (
+      request,
+    ): Promise<
+      readonly { conversation: Conversation; messages: readonly Message[] }[]
+    > => {
+      const batches = await shell
+        .getConversationService()
+        .getManyWithMessages(request);
+      return batches.map(({ conversation, messages }) => ({
+        conversation: toPublicConversation(conversation),
+        messages: messages.map(toPublicMessage),
+      }));
+    },
     countMessages: async (conversationId: string): Promise<number> => {
       return shell.getConversationService().countMessages(conversationId);
     },
@@ -287,6 +309,8 @@ export function createEvalNamespace(
     registerHandler: (handlerId: string, handler: EvalHandler): void => {
       shell.registerEvalHandler(pluginId, handlerId, handler);
     },
+    runProjectionRule: (rule, options) =>
+      shell.runProjectionRule(rule, options),
   };
 }
 

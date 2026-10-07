@@ -1,7 +1,14 @@
 import { escapeHtml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
-const pathSchema: z.ZodString = z.string().startsWith("/");
+// URL parsing treats doubled slashes/backslashes as authorities and strips
+// tabs/newlines. Admit only a local absolute path before resolving its origin.
+const pathSchema: z.ZodString = z
+  .string()
+  .regex(
+    /^\/(?![\\/])[^\r\n\t]*$/,
+    "Onboarding links must stay on the setup origin",
+  );
 
 /**
  * Where the brain serves the surfaces the email points to, as paths resolved

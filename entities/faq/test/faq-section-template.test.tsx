@@ -23,6 +23,29 @@ describe("FaqSection", () => {
     expect(html).toContain("<summary");
     expect(html).toContain("How do I publish a draft?");
     expect(html).toContain("<strong>Publish</strong>");
+    expect(html).not.toMatch(/<details[^>]*\bopen\b/);
+  });
+
+  it("escapes questions and sanitizes authored answers through public UI", () => {
+    const html = render(
+      <FaqSection
+        faqs={[
+          {
+            id: "unsafe",
+            asked: 1,
+            question: '<img src=x onerror="alert(1)">',
+            sources: [],
+            answer:
+              '<script>alert(1)</script><a href="javascript:alert(1)">link</a><img src="https://example.test/image.png" onerror="alert(1)">',
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain("&lt;img");
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toMatch(/<img[^>]*onerror/);
+    expect(html).toContain("https://example.test/image.png");
   });
 
   it("renders nothing without FAQs", () => {

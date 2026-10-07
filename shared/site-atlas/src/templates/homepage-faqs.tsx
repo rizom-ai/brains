@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { useMarkdownToHtml } from "@brains/ui-library";
+import { useMarkdownToHtml } from "@rizom/brain-ui";
 import type { HomepageFaq } from "../schemas/homepage-faqs";
 import { homepageFaqsStyles } from "./homepage-faqs-styles";
 

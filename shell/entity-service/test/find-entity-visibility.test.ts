@@ -32,6 +32,9 @@ function createCapturedService(): CapturedService {
     ): Promise<T | null> {
       return null;
     },
+    async getEntities(): Promise<BaseEntity[]> {
+      return [];
+    },
     async getEntityRaw<T extends BaseEntity>(
       request: GetEntityRawRequest,
     ): Promise<T | null> {

@@ -250,9 +250,9 @@ describe("contact admission", () => {
       const token = await issue(working);
       let attempts = 0;
       const failing: IRuntimeStateNamespace = {
-        scoped: <T>(
-          options: RuntimeStateScopeOptions<T>,
-        ): IRuntimeStateStore<T> => {
+        scoped: <T, TInput = T>(
+          options: RuntimeStateScopeOptions<T, TInput>,
+        ): IRuntimeStateStore<T, TInput> => {
           const store = backing.scoped(options);
           return {
             ...store,

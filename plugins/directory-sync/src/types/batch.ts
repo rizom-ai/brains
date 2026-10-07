@@ -1,7 +1,13 @@
-import type { BatchOperation } from "@brains/plugins";
+import type { DirectorySyncJobType } from "./jobs";
+
+/** One job a sweep files: which declared job, and what it runs on. */
+export interface DirectoryBatchOperation {
+  type: DirectorySyncJobType;
+  data: Record<string, unknown>;
+}
 
 export interface BatchOperationResult {
-  operations: BatchOperation[];
+  operations: DirectoryBatchOperation[];
   exportOperationsCount: number;
   importOperationsCount: number;
   totalFiles: number;

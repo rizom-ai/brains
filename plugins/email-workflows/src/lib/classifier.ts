@@ -1,5 +1,5 @@
 import type { InboundEmail } from "@brains/contracts";
-import type { IEntityAINamespace } from "@brains/plugins";
+import type { IEntityAINamespace } from "@brains/sdk/entities";
 import { sha256Hex } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import {

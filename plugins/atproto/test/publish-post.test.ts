@@ -1,16 +1,13 @@
 import { createMockShell } from "@brains/plugins/test";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { createServicePluginContext } from "@brains/plugins";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { caughtError } from "@brains/test-utils";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import {
-  AtprotoPlugin,
   AtprotoProjectionRegistry,
-  atprotoPlugin,
   type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
+import { instantiate, publisherFor, type MockShell } from "./helpers/install";
 
 function createPost(
   input: { visibility?: "public" | "restricted" } = {},
@@ -90,42 +87,74 @@ function registerTestPostProjection(): void {
   });
 }
 
-function createContext(
+function createShell(
   post: BaseEntity = createPost(),
   extraEntities: BaseEntity[] = [],
-): ServicePluginContext {
+): MockShell {
   const shell = createMockShell({ domain: "brain.example.com" });
   shell.addEntities([post, ...extraEntities]);
-  return createServicePluginContext(shell, "atproto");
+  return shell;
 }
+
+function sessionFor(did: string): AtprotoPdsClientLike["createSession"] {
+  return mock(async () => ({
+    did,
+    handle: "brain.example.com",
+    accessJwt: "access-token",
+    refreshJwt: "refresh-token",
+  }));
+}
+
+const invalidTitleLexicon: AtprotoLexicon = {
+  lexicon: 1,
+  id: "ai.rizom.brain.post",
+  defs: {
+    main: {
+      type: "record",
+      key: "tid",
+      record: {
+        type: "object",
+        required: ["title", "createdAt"],
+        properties: {
+          title: { type: "string" },
+          createdAt: { type: "string", format: "datetime" },
+        },
+      },
+    },
+  },
+};
 
 describe("AT Protocol post publishing", () => {
   beforeEach(() => {
     AtprotoProjectionRegistry.resetInstance();
-    EntityUrlGenerator.resetInstance();
     registerTestPostProjection();
   });
 
-  it("hands the projection the entity's page on this brain's site", async () => {
-    EntityUrlGenerator.getInstance().configure({ post: { label: "Essay" } });
-    const plugin = new AtprotoPlugin({
-      pdsEndpoint: "https://pds.example.com",
-    });
-    const result = await plugin.publishPost(createContext(), {
+  it("hands the projection the host-resolved page, including a custom route", async () => {
+    const pageUrl = mock(
+      () => "https://brain.example.com/essays/distributed-brains",
+    );
+    const publisher = publisherFor(
+      createShell(),
+      { pdsEndpoint: "https://pds.example.com" },
+      {},
+      pageUrl,
+    );
+    const result = await publisher.publishPost({
       slug: "distributed-brains",
       dryRun: true,
     });
     expect(result.record.canonicalUrl).toBe(
       "https://brain.example.com/essays/distributed-brains",
     );
+    expect(pageUrl).toHaveBeenCalledWith(createPost());
   });
 
   it("hands no page for a type the site gives none", async () => {
-    EntityUrlGenerator.getInstance().configure({ deck: { label: "Deck" } });
-    const plugin = new AtprotoPlugin({
+    const publisher = publisherFor(createShell(), {
       pdsEndpoint: "https://pds.example.com",
     });
-    const result = await plugin.publishPost(createContext(), {
+    const result = await publisher.publishPost({
       slug: "distributed-brains",
       dryRun: true,
     });
@@ -137,7 +166,8 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -146,18 +176,13 @@ describe("AT Protocol post publishing", () => {
       },
       {
         createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:repo",
-            handle: "brain.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
+          createSession: sessionFor("did:plc:repo"),
           createRecord,
         }),
       },
     );
 
-    const result = await plugin.publishPost(createContext(), {
+    const result = await publisher.publishPost({
       slug: "distributed-brains",
       dryRun: true,
     });
@@ -172,7 +197,8 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -183,18 +209,13 @@ describe("AT Protocol post publishing", () => {
       },
       {
         createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:repo",
-            handle: "brain.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
+          createSession: sessionFor("did:plc:repo"),
           createRecord,
         }),
       },
     );
 
-    const result = await plugin.publishPost(createContext(), {
+    const result = await publisher.publishPost({
       entityId: "post-123",
       topics: ["protocols"],
       dryRun: true,
@@ -236,26 +257,6 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/link",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
-      {
-        pdsEndpoint: "https://pds.example.com",
-        identifier: "brain.example.com",
-        appPassword: "secret",
-      },
-      {
-        projectionRegistry: registry,
-        createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:session-repo",
-            handle: "brain.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
-          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
-          putRecord,
-        }),
-      },
-    );
     const link: BaseEntity = {
       id: "link-123",
       entityType: "link",
@@ -266,14 +267,27 @@ describe("AT Protocol post publishing", () => {
       contentHash: "hash",
       metadata: { title: "Example Link" },
     };
-
-    const result = await plugin.publishEntity(
-      createContext(createPost(), [link]),
+    const publisher = publisherFor(
+      createShell(createPost(), [link]),
       {
-        entityType: "link",
-        entityId: "link-123",
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        projectionRegistry: registry,
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: sessionFor("did:plc:session-repo"),
+          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
+          putRecord,
+        }),
       },
     );
+
+    const result = await publisher.publishEntity({
+      entityType: "link",
+      entityId: "link-123",
+    });
 
     expect(result.uri).toBe("at://repo/link");
     expect(buildRecord).toHaveBeenCalledWith(
@@ -313,7 +327,8 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/custom-post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -322,21 +337,14 @@ describe("AT Protocol post publishing", () => {
       {
         projectionRegistry: registry,
         createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:session-repo",
-            handle: "brain.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
+          createSession: sessionFor("did:plc:session-repo"),
           createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
           putRecord,
         }),
       },
     );
 
-    const result = await plugin.publishPost(createContext(), {
-      entityId: "post-123",
-    });
+    const result = await publisher.publishPost({ entityId: "post-123" });
 
     expect(result.uri).toBe("at://repo/custom-post");
     expect(buildRecord).toHaveBeenCalledWith(
@@ -362,29 +370,56 @@ describe("AT Protocol post publishing", () => {
     );
   });
 
+  it("hands a projection the brain's reads and refuses writes on its behalf", async () => {
+    // The service owns no entity types. A projection declared on an entity
+    // is bound to its own package's writes by the runtime; one registered
+    // straight onto the registry gets reads and a clear refusal, not a way
+    // into another package's records.
+    const registry = AtprotoProjectionRegistry.createFresh();
+    let writeError: string | undefined;
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      validate: false,
+      buildRecord: async ({ entity, context }) => {
+        const found = await context.entityService.getEntity({
+          entityType: "post",
+          id: entity.id,
+        });
+        try {
+          await context.entityService.updateEntity({ entity });
+        } catch (error) {
+          writeError = caughtError(error).message;
+        }
+        return {
+          $type: "ai.rizom.brain.post",
+          title: String(found?.metadata["title"]),
+          createdAt: entity.created,
+        };
+      },
+    });
+    const publisher = publisherFor(
+      createShell(),
+      { pdsEndpoint: "https://pds.example.com" },
+      { projectionRegistry: registry },
+    );
+
+    const result = await publisher.publishPost({
+      entityId: "post-123",
+      dryRun: true,
+    });
+
+    expect(result.record.title).toBe("Distributed Brains");
+    expect(writeError).toContain("owns no entity types");
+  });
+
   it("rejects locally invalid projected records during dry-runs", async () => {
     const registry = AtprotoProjectionRegistry.createFresh();
     registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
-      lexicon: {
-        lexicon: 1,
-        id: "ai.rizom.brain.post",
-        defs: {
-          main: {
-            type: "record",
-            key: "tid",
-            record: {
-              type: "object",
-              required: ["title", "createdAt"],
-              properties: {
-                title: { type: "string" },
-                createdAt: { type: "string", format: "datetime" },
-              },
-            },
-          },
-        },
-      },
+      lexicon: invalidTitleLexicon,
       validate: false,
       buildRecord: async () => ({
         $type: "ai.rizom.brain.post",
@@ -392,16 +427,14 @@ describe("AT Protocol post publishing", () => {
         createdAt: "2026-05-28T10:00:00.000Z",
       }),
     });
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createShell(),
       { pdsEndpoint: "https://pds.example.com" },
       { projectionRegistry: registry },
     );
 
     try {
-      await plugin.publishPost(createContext(), {
-        entityId: "post-123",
-        dryRun: true,
-      });
+      await publisher.publishPost({ entityId: "post-123", dryRun: true });
       throw new Error("Expected invalid dry-run record publish to fail");
     } catch (error) {
       expect(caughtError(error).message).toContain(
@@ -415,24 +448,7 @@ describe("AT Protocol post publishing", () => {
     registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
-      lexicon: {
-        lexicon: 1,
-        id: "ai.rizom.brain.post",
-        defs: {
-          main: {
-            type: "record",
-            key: "tid",
-            record: {
-              type: "object",
-              required: ["title", "createdAt"],
-              properties: {
-                title: { type: "string" },
-                createdAt: { type: "string", format: "datetime" },
-              },
-            },
-          },
-        },
-      },
+      lexicon: invalidTitleLexicon,
       validate: false,
       buildRecord: async () => ({
         $type: "ai.rizom.brain.post",
@@ -444,7 +460,8 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -453,19 +470,14 @@ describe("AT Protocol post publishing", () => {
       {
         projectionRegistry: registry,
         createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:session-repo",
-            handle: "brain.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
+          createSession: sessionFor("did:plc:session-repo"),
           createRecord,
         }),
       },
     );
 
     try {
-      await plugin.publishPost(createContext(), { entityId: "post-123" });
+      await publisher.publishPost({ entityId: "post-123" });
       throw new Error("Expected invalid record publish to fail");
     } catch (error) {
       expect(caughtError(error).message).toContain(
@@ -476,17 +488,13 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("publishes a post record to the configured PDS repo", async () => {
-    const createSession = mock(async () => ({
-      did: "did:plc:session-repo",
-      handle: "brain.example.com",
-      accessJwt: "access-token",
-      refreshJwt: "refresh-token",
-    }));
+    const createSession = sessionFor("did:plc:session-repo");
     const putRecord = mock(async () => ({
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -502,9 +510,7 @@ describe("AT Protocol post publishing", () => {
       },
     );
 
-    const result = await plugin.publishPost(createContext(), {
-      entityId: "post-123",
-    });
+    const result = await publisher.publishPost({ entityId: "post-123" });
 
     expect(result.dryRun).toBe(false);
     expect(result.repo).toBe("did:plc:session-repo");
@@ -519,20 +525,17 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("refuses to publish private posts", async () => {
-    const plugin = atprotoPlugin({
-      pdsEndpoint: "https://pds.example.com",
-      identifier: "brain.example.com",
-      appPassword: "secret",
-    });
+    const publisher = publisherFor(
+      createShell(createPost({ visibility: "restricted" })),
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+    );
 
     try {
-      await plugin.publishPost(
-        createContext(createPost({ visibility: "restricted" })),
-        {
-          entityId: "post-123",
-          dryRun: true,
-        },
-      );
+      await publisher.publishPost({ entityId: "post-123", dryRun: true });
       throw new Error("Expected private post publish to fail");
     } catch (error) {
       expect(caughtError(error).message).toContain(
@@ -541,53 +544,33 @@ describe("AT Protocol post publishing", () => {
     }
   });
 
-  it("refuses to publish entities their projection does not deem publishable", async () => {
+  it("refuses non-publishable projections before building records or opening a PDS session", async () => {
     const registry = AtprotoProjectionRegistry.createFresh();
-    const buildRecord = mock(async ({ entity }: { entity: BaseEntity }) => ({
-      $type: "ai.rizom.brain.post",
-      title: "Distributed Brains",
-      createdAt: entity.created,
-    }));
+    const buildRecord = mock(async () => ({ $type: "ai.rizom.brain.post" }));
     registry.register({
       entityType: "post",
       collection: "ai.rizom.brain.post",
       lexicon: createLexicon("ai.rizom.brain.post"),
       validate: false,
-      buildRecord,
       isPublishable: () => false,
+      buildRecord,
     });
-    const putRecord = mock(async () => ({
-      uri: "at://repo/post",
-      cid: "cid",
-    }));
-    const plugin = new AtprotoPlugin(
+    const createPdsClient = mock((): AtprotoPdsClientLike => {
+      throw new Error("PDS must not be opened for drafts");
+    });
+    const publisher = publisherFor(
+      createShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
         appPassword: "secret",
       },
-      {
-        projectionRegistry: registry,
-        createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:session-repo",
-            handle: "brain.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
-          createRecord: mock(async () => ({ uri: "unused", cid: "unused" })),
-          putRecord,
-        }),
-      },
+      { projectionRegistry: registry, createPdsClient },
     );
-
     for (const dryRun of [true, false]) {
       try {
-        await plugin.publishPost(createContext(), {
-          entityId: "post-123",
-          dryRun,
-        });
-        throw new Error("Expected unpublishable post publish to fail");
+        await publisher.publishPost({ entityId: "post-123", dryRun });
+        throw new Error("Expected draft refusal");
       } catch (error) {
         expect(caughtError(error).message).toContain(
           "Cannot publish non-publishable post",
@@ -595,67 +578,33 @@ describe("AT Protocol post publishing", () => {
       }
     }
     expect(buildRecord).not.toHaveBeenCalled();
-    expect(putRecord).not.toHaveBeenCalled();
+    expect(createPdsClient).not.toHaveBeenCalled();
   });
 
-  it("does not expose publish-entity as an agent tool", async () => {
-    const shell = createMockShell({ domain: "brain.example.com" });
-    shell.addEntities([createPost()]);
-    const plugin = atprotoPlugin({
+  it("does not expose publish-entity or publish-post as agent tools", async () => {
+    const shell = createShell();
+    const config = {
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
-    });
-    const capabilities = await plugin.register(shell);
+    };
+    const capabilities = await instantiate(config).register(shell);
 
     expect(capabilities.tools).toEqual([]);
-    const result = await plugin.publishEntity(createContext(), {
-      entityType: "post",
-      entityId: "post-123",
-      dryRun: true,
-    });
-    expect(result).toMatchObject({
+    const publisher = publisherFor(shell, config);
+    expect(
+      await publisher.publishEntity({
+        entityType: "post",
+        entityId: "post-123",
+        dryRun: true,
+      }),
+    ).toMatchObject({
       dryRun: true,
       record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
     });
-  });
-
-  it("does not expose publish-post as an agent tool", async () => {
-    const shell = createMockShell({ domain: "brain.example.com" });
-    shell.addEntities([createPost()]);
-    const plugin = atprotoPlugin({
-      pdsEndpoint: "https://pds.example.com",
-      identifier: "brain.example.com",
-      brainDid: "did:web:brain.example.com",
-    });
-    const capabilities = await plugin.register(shell);
-
-    expect(capabilities.tools).toEqual([]);
-    const result = await plugin.publishPost(createContext(), {
-      slug: "distributed-brains",
-      dryRun: true,
-    });
-    expect(result).toMatchObject({
-      dryRun: true,
-      record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
-    });
-  });
-
-  it("keeps publish-post available as an internal plugin method", async () => {
-    const shell = createMockShell({ domain: "brain.example.com" });
-    shell.addEntities([createPost()]);
-    const plugin = atprotoPlugin({
-      pdsEndpoint: "https://pds.example.com",
-      identifier: "brain.example.com",
-      brainDid: "did:web:brain.example.com",
-    });
-    await plugin.register(shell);
-
-    const result = await plugin.publishPost(createContext(), {
-      entityId: "post-123",
-      dryRun: true,
-    });
-    expect(result).toMatchObject({
+    expect(
+      await publisher.publishPost({ slug: "distributed-brains", dryRun: true }),
+    ).toMatchObject({
       dryRun: true,
       record: { $type: "ai.rizom.brain.post", sourceEntityId: "post-123" },
     });

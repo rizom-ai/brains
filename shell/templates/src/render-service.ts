@@ -39,13 +39,17 @@ export class RenderService implements IViewTemplateRegistry {
       viewTemplate.fullscreen = template.layout.fullscreen;
     }
     if (template.runtimeScripts && template.runtimeScripts.length > 0) {
-      viewTemplate.runtimeScripts = template.runtimeScripts;
+      viewTemplate.runtimeScripts = template.runtimeScripts.map((script) => ({
+        src: script.src,
+        ...(script.defer === undefined ? {} : { defer: script.defer }),
+        ...(script.module === undefined ? {} : { module: script.module }),
+      }));
     }
     if (
       template.staticAssets &&
       Object.keys(template.staticAssets).length > 0
     ) {
-      viewTemplate.staticAssets = template.staticAssets;
+      viewTemplate.staticAssets = { ...template.staticAssets };
     }
 
     return viewTemplate;

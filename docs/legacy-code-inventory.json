@@ -20,34 +20,24 @@
     {
       "id": "faq-ambiguous-capture-claims",
       "paths": [
-        "entities/faq/src/handlers/faq-capture-handler.ts",
-        "entities/faq/src/lib/captured-replies.ts"
+        "entities/faq/src/lib/capture-faq.ts",
+        "entities/faq/src/lib/captured-replies.ts",
+        "shell/plugins/src/internal/state-namespace.ts",
+        "shell/plugins/src/internal/owned-entity-mutations.ts"
       ],
-      "symbol": "capturedReplyStore legacy claim guard",
+      "symbol": "capturedReplyStore legacy claim guard and receiptNamespace",
       "owner": "@brains/faq",
       "class": "durable-data-compatibility",
-      "behavior": "Preserves timestamp-only capture claims without automatically replaying them; new captures use atomic entity mutation receipts.",
-      "currentConsumers": "Persisted faq.captured-replies entries that cannot distinguish completed captures from interrupted attempts.",
-      "removalPrerequisite": "Explicitly reconcile all existing claims into verified durable dispositions or retire them with owner approval, and stop all old claim writers. Age alone cannot prove completion.",
+      "behavior": "Preserves timestamp-only capture claims without automatically replaying them; new captures use atomic entity mutation receipts. The host pins only @brains/faq's faq.captured-replies declaration scope to its exact native store. Its installed capture service's faq/capture operation retains the exact faq.capture receipt namespace and reply key. Other package, declaration, entity, operation and interface scopes remain isolated.",
+      "currentConsumers": "Persisted faq.captured-replies entries that cannot distinguish completed captures from interrupted attempts, and faq.capture terminal receipts including those whose entities have since been edited, folded or deleted.",
+      "removalPrerequisite": "Explicitly reconcile all existing claims into verified durable dispositions or retire them with owner approval, and stop all old claim writers. Age alone cannot prove completion. Removing the receipt mapping additionally requires explicit migration of every durable faq.capture receipt; deleting claims or entities is insufficient.",
       "rollbackDependency": "Retain existing claims to avoid counting historical completed captures twice. New receipts are not understood by older runtimes; rolling back capture code requires disabling capture or a separately verified downgrade plan.",
       "targetRelease": "0.3.0-or-later, after explicit claim reconciliation"
     },
     {
-      "id": "image-handler-alias",
-      "paths": ["entities/image/src/image-plugin.ts"],
-      "symbol": "image-generate handler alias",
-      "owner": "@brains/image-plugin",
-      "class": "runtime-compatibility",
-      "behavior": "Registers the retired image generation handler name alongside the canonical handler.",
-      "currentConsumers": "Older queued jobs or callers that persisted the retired handler name.",
-      "removalPrerequisite": "Observe zero queued or invoked jobs using the retired handler name across the minimum supported upgrade source.",
-      "rollbackDependency": "Old queued jobs must drain or be migrated before removing the alias.",
-      "targetRelease": "0.3.0-or-later"
-    },
-    {
       "id": "topic-entity-shape",
       "paths": [
-        "entities/topics/src/lib/topic-adapter.ts",
+        "entities/topics/src/lib/topic-body.ts",
         "entities/topics/src/schemas/topic.ts"
       ],
       "symbol": "topic stored-shape compatibility",
@@ -58,18 +48,6 @@
       "removalPrerequisite": "Rewrite supported topic stores to the canonical schema and observe zero old fields or Sources sections.",
       "rollbackDependency": "Prior topic entities remain readable until the rewrite has passed its rollback window.",
       "targetRelease": "0.3.0-or-later"
-    },
-    {
-      "id": "a2a-removed-token-config-errors",
-      "paths": ["interfaces/a2a/src/a2a-interface.ts"],
-      "symbol": "trustedTokens/outboundTokens rejection",
-      "owner": "@brains/a2a",
-      "class": "rejection-only-compatibility",
-      "behavior": "Rejects removed token configuration with an actionable error.",
-      "currentConsumers": "Operators upgrading configurations that predate signed A2A trust.",
-      "removalPrerequisite": "The minimum supported upgrade source no longer documents or accepts either removed field.",
-      "rollbackDependency": "None; the fields are already rejected.",
-      "targetRelease": "0.3.0"
     },
     {
       "id": "public-brain-config-migration",

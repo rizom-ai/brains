@@ -5,7 +5,7 @@ import {
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
   type ConversationMessageActor,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import {
   getChannelName,
   getThreadIdParts,

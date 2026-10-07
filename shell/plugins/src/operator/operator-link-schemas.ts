@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import type { OperatorLinkableEntity } from "./operator-view-contract";
 import type { OperatorEntityCatalogDefinition } from "./operator-view-contract";
 import {
   operatorIdentifierSchema as identifierSchema,
@@ -27,7 +27,7 @@ const safeExternalUrlSchema = z
     { message: "External operator links must use http or https" },
   );
 
-function isEntityDefinition(value: unknown): value is AnyEntityDefinition {
+function isEntityDefinition(value: unknown): value is OperatorLinkableEntity {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -39,7 +39,7 @@ function isEntityDefinition(value: unknown): value is AnyEntityDefinition {
   );
 }
 
-const entityDefinitionSchema = z.custom<AnyEntityDefinition>(
+const entityDefinitionSchema = z.custom<OperatorLinkableEntity>(
   isEntityDefinition,
   { message: "Expected an imported entity definition" },
 );
@@ -71,7 +71,7 @@ function externalLinkTarget(input: {
 }
 
 function entityLinkTarget(input: {
-  readonly entity: AnyEntityDefinition;
+  readonly entity: OperatorLinkableEntity;
   readonly id: string;
 }): RuntimeOperatorLinkTarget {
   return { kind: "entity", entityType: input.entity.type, id: input.id };

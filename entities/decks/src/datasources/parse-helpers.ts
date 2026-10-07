@@ -1,4 +1,4 @@
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import {
   deckFrontmatterSchema,
   type DeckEntity,

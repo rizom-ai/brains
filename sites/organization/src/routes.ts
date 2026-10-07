@@ -18,7 +18,7 @@ export const routes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "homepage",
-        template: "organization-site:homepage",
+        template: "@brains/site-organization:organization-site:homepage",
         dataQuery: {},
       },
     ],
@@ -38,7 +38,7 @@ export const routes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "about",
-        template: "organization-site:about",
+        template: "@brains/site-organization:organization-site:about",
         dataQuery: {},
       },
     ],

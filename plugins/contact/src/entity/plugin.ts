@@ -1,48 +1,46 @@
 import {
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-  type EntityPluginContext,
-  type EntityTypeConfig,
-} from "@brains/plugins";
-import packageJson from "../../package.json";
-import { contactRequestAdapter, type ContactRequestAdapter } from "./adapter";
-import { contactRequestSchema, type ContactRequest } from "./schema";
+  defineEntity,
+  generateMarkdownWithFrontmatter,
+  type EntityDefinition,
+} from "@brains/sdk/entities";
+import { contactRequestAdapter } from "./adapter";
+import { contactFrontmatterSchema, contactMetadataSchema } from "./schema";
 
-/** Entity half of the contact feature. Installing it alone does not expose intake. */
-export class ContactRequestPlugin extends EntityPlugin<
-  ContactRequest,
-  Record<string, never>,
-  Record<string, never>
-> {
-  readonly entityType = "contact-request" as const;
-  readonly schema: typeof contactRequestSchema = contactRequestSchema;
-  readonly adapter: ContactRequestAdapter = contactRequestAdapter;
-
-  constructor() {
-    super("contact-request", packageJson, {}, emptyEntityPluginConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig {
-    return {
-      embeddable: false,
-      fullTextSearchable: false,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    };
-  }
-
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    context.entities.registerPersistValidator(
-      this.entityType,
-      async (entity) => {
-        if (entity.visibility !== "restricted") {
-          throw new Error("Contact requests must have restricted visibility");
-        }
-        contactRequestAdapter.parseContent(entity.content);
-      },
-    );
-  }
-}
+/** Installing this declaration alone never exposes intake or public knowledge. */
+export const contactRequest: EntityDefinition<
+  "contact-request",
+  typeof contactMetadataSchema
+> = defineEntity({
+  type: "contact-request",
+  purpose:
+    "A restricted contact request for the owner. Never public knowledge or model input.",
+  metadata: contactMetadataSchema,
+  config: {
+    embeddable: false,
+    fullTextSearchable: false,
+    projectionSource: false,
+    projectionSourceRole: "excluded",
+  },
+  validatePersist: (entity) => {
+    if (entity.visibility !== "restricted") {
+      throw new Error("Contact requests must have restricted visibility");
+    }
+    contactRequestAdapter.parseContent(entity.content);
+  },
+  markdown: {
+    frontmatter: contactFrontmatterSchema,
+    decode: ({ content, frontmatter }) => {
+      const markdown = generateMarkdownWithFrontmatter(content, {
+        ...frontmatter,
+      });
+      return {
+        content: markdown,
+        metadata: contactRequestAdapter.fromMarkdown(markdown).metadata ?? {},
+      };
+    },
+    encode: ({ content }) => {
+      const parsed = contactRequestAdapter.parseContent(content);
+      return { content: parsed.message, frontmatter: parsed.frontmatter };
+    },
+  },
+});

@@ -70,10 +70,14 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
     const added =
       typeof MutationObserver === "function"
         ? new MutationObserver((records) => {
-            for (const record of records)
+            for (const record of records) {
+              record.removedNodes.forEach((node) => {
+                if (isElement(node)) observer.unobserve(node);
+              });
               record.addedNodes.forEach((node) => {
                 if (isElement(node)) observer.observe(node);
               });
+            }
           })
         : undefined;
     added?.observe(scroll, { childList: true });

@@ -1,4 +1,4 @@
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntityParserSchema as baseEntitySchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 /**

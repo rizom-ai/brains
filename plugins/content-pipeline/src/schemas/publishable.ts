@@ -1,4 +1,4 @@
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -48,15 +48,18 @@ export type PublishableMetadataInput = z.input<
 >;
 
 /**
- * Read schema for any entity flowing through the publish pipeline. Loose on
- * metadata: providers receive the full metadata record, so foreign keys must
- * survive the parse.
+ * Read schema for any entity flowing through the publish pipeline.
+ *
+ * Every type here belongs to another package, so this reads one through the
+ * runtime's own entity parser and narrows only the metadata publishing acts
+ * on. Loose on that metadata: providers receive the full record, so foreign
+ * keys must survive the parse.
  */
 export const publishableEntitySchema: ReturnType<
-  typeof baseEntitySchema.extend<{
+  typeof baseEntityParserSchema.extend<{
     metadata: PublishableMetadataSchema;
   }>
-> = baseEntitySchema.extend({
+> = baseEntityParserSchema.extend({
   metadata: publishableMetadataSchema,
 });
 

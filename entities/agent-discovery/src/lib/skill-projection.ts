@@ -1,22 +1,27 @@
 import {
+  PROJECTION_ABSTAINED,
   ProjectionJsonObjectSchema,
   defineProjectionRule,
   scopedDerivedId,
   type ProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+  type ProjectionAbstention,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { SkillAdapter } from "../adapters/skill-adapter";
+import { createSkillContent } from "./directory-markdown";
+
 import { agentEntitySchema } from "../schemas/agent";
-import { skillEntitySchema, skillFrontmatterSchema } from "../schemas/skill";
+import { skillFrontmatterSchema, skillEntitySchema } from "../schemas/skill";
 import { skillDerivationTemplate } from "../templates/skill-derivation-template";
 import {
   SKILL_DERIVATION_PROJECTION_ID,
   SKILL_DERIVATION_TEMPLATE_REF,
   SKILL_ENTITY_TYPE,
 } from "./constants";
-import { buildSkillPrompt } from "./skill-deriver";
+import { buildSkillPrompt } from "./skill-prompt";
 import { buildTagVocabulary } from "./tag-vocabulary";
 
 const topicMetadataSchema = z.looseObject({ name: z.string().optional() });
@@ -58,7 +63,7 @@ function topicTitle(topic: {
 }
 
 async function selectSkillInput(
-  context: Parameters<ProjectionRule["selectInput"]>[1],
+  context: ProjectionInputContext,
 ): Promise<SkillProjectionInput> {
   const targetVisibility = "public" as const;
   const [topics, agents, existingSkills, appInfo, templatePrompt] =
@@ -131,9 +136,12 @@ async function selectSkillInput(
 
 async function deriveSkillIntents(
   input: SkillProjectionInput,
-  context: Parameters<ProjectionRule["derive"]>[1],
-): Promise<readonly ProjectionWriteIntent[]> {
-  if (input.topicTitles.length === 0) return [];
+  context: ProjectionExecutionContext,
+): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> {
+  // No topics is not "no skills": it is normal during initial sync, before
+  // extraction has run. Returning an empty set here would tell the runtime
+  // every derived skill should be removed.
+  if (input.topicTitles.length === 0) return PROJECTION_ABSTAINED;
 
   const generated = await context.ai.generate(
     {
@@ -150,7 +158,7 @@ async function deriveSkillIntents(
       skill,
     ]),
   );
-  const adapter = new SkillAdapter();
+  // A skill someone authored is not this derivation's to overwrite.
   const authoredIds = new Set(
     input.existingSkills
       .filter((skill) => !skill.projectionOwned)
@@ -163,20 +171,11 @@ async function deriveSkillIntents(
       entity: {
         id,
         entityType: SKILL_ENTITY_TYPE,
-        content: adapter.createSkillContent(skill),
+        content: createSkillContent(skill),
         metadata: skill,
         visibility: input.targetVisibility,
       },
     }));
-  for (const existing of input.existingSkills) {
-    if (existing.projectionOwned && !desired.has(existing.id)) {
-      intents.push({
-        operation: "delete",
-        entityType: SKILL_ENTITY_TYPE,
-        id: existing.id,
-      });
-    }
-  }
   return intents;
 }
 
@@ -189,6 +188,8 @@ export function createSkillProjectionRule(): ProjectionRule {
       { kind: "entity", types: ["agent"] },
     ],
     targetType: SKILL_ENTITY_TYPE,
+    // The latest derivation is the whole truth about public skills.
+    targets: { authority: "exclusive", visibility: "public" },
     inputSchema: skillProjectionInputSchema,
     selectInput: async (_trigger, context) => selectSkillInput(context),
     derive: deriveSkillIntents,

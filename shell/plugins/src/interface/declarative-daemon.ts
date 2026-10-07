@@ -130,8 +130,16 @@ export function createDeclarativeDaemon(
       }
     },
 
-    healthCheck(): Promise<DaemonHealth> {
-      return Promise.resolve({ ...health, lastCheck: new Date() });
+    async healthCheck(): Promise<DaemonHealth> {
+      // A running daemon that can answer for itself is the authority: the
+      // pushed status is a record of the last transition, not of now. Once it
+      // has stopped, the recorded outcome stands — a daemon that failed to
+      // shut down must not be able to report itself healthy afterwards.
+      if (definition.check && controller) {
+        const report = await definition.check();
+        return { ...report, lastCheck: new Date() };
+      }
+      return { ...health, lastCheck: new Date() };
     },
   };
 }

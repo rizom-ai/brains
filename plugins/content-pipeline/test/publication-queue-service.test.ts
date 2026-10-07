@@ -1,33 +1,36 @@
+import type { PipelineRuntime } from "../src/runtime";
 import { describe, expect, it } from "bun:test";
 import {
   baseEntitySchema,
   createMockShell,
-  createServicePluginContext,
   createTestEntityAdapter,
+  type MockShell,
 } from "@brains/plugins/test";
+import { runtimeFor } from "./helpers/install";
 import { QueueManager } from "../src/queue-manager";
 import { PublicationQueueService } from "../src/publication-queue-service";
 
 async function createFixture(): Promise<{
-  context: ReturnType<typeof createServicePluginContext>;
+  context: PipelineRuntime;
+  shell: MockShell;
   queueManager: QueueManager;
   service: PublicationQueueService;
 }> {
-  const context = createServicePluginContext(
-    createMockShell(),
-    "content-pipeline",
-  );
-  context.entities.register(
-    "social-post",
-    baseEntitySchema,
-    createTestEntityAdapter("social-post"),
-  );
+  const shell = createMockShell();
+  const context = runtimeFor(shell, { delegated: ["social-post"] });
+  shell
+    .getEntityRegistry()
+    .registerEntityType(
+      "social-post",
+      baseEntitySchema,
+      createTestEntityAdapter("social-post"),
+    );
   for (const [id, title] of [
     ["first", "First post"],
     ["second", "Second post"],
     ["third", "Third post"],
   ] as const) {
-    await context.entityService.createEntity({
+    await shell.getEntityService().createEntity({
       entity: {
         id,
         entityType: "social-post",
@@ -39,6 +42,7 @@ async function createFixture(): Promise<{
   const queueManager = QueueManager.createFresh();
   return {
     context,
+    shell,
     queueManager,
     service: new PublicationQueueService(context, queueManager),
   };
@@ -63,7 +67,7 @@ describe("PublicationQueueService", () => {
         position: 1,
       }),
     ]);
-    const entity = await context.entityService.getEntity({
+    const entity = await context.entities.getEntity({
       entityType: "social-post",
       id: "first",
     });
@@ -91,7 +95,7 @@ describe("PublicationQueueService", () => {
     await service.enqueue("social-post", "first");
     await service.enqueue("social-post", "second");
     await service.enqueue("social-post", "third");
-    const before = await context.entityService.getEntity({
+    const before = await context.entities.getEntity({
       entityType: "social-post",
       id: "third",
     });
@@ -111,7 +115,7 @@ describe("PublicationQueueService", () => {
       { id: "first", rank: 2048 },
       { id: "second", rank: 3072 },
     ]);
-    const after = await context.entityService.getEntity({
+    const after = await context.entities.getEntity({
       entityType: "social-post",
       id: "third",
     });
@@ -132,7 +136,7 @@ describe("PublicationQueueService", () => {
     expect(await service.listStored("social-post")).toEqual([
       expect.objectContaining({ entityId: "second", rank: 1024 }),
     ]);
-    const entity = await context.entityService.getEntity({
+    const entity = await context.entities.getEntity({
       entityType: "social-post",
       id: "first",
     });
@@ -141,14 +145,14 @@ describe("PublicationQueueService", () => {
   });
 
   it("cleans operational state after successful publication", async () => {
-    const { context, queueManager, service } = await createFixture();
+    const { context, shell, queueManager, service } = await createFixture();
     await service.enqueue("social-post", "first");
-    const entity = await context.entityService.getEntity({
+    const entity = await context.entities.getEntity({
       entityType: "social-post",
       id: "first",
     });
     if (!entity) throw new Error("fixture entity missing");
-    await context.entityService.updateEntity({
+    await shell.getEntityService().updateEntity({
       entity: {
         ...entity,
         metadata: { ...entity.metadata, status: "published" },
@@ -170,7 +174,7 @@ describe("PublicationQueueService", () => {
 
     expect(await service.listStored("social-post")).toEqual([]);
     expect(await queueManager.list("social-post")).toEqual([]);
-    const entity = await context.entityService.getEntity({
+    const entity = await context.entities.getEntity({
       entityType: "social-post",
       id: "first",
     });
@@ -206,19 +210,19 @@ describe("PublicationQueueService", () => {
   });
 
   it("repairs missing and orphaned runtime records from entity intent", async () => {
-    const { context, queueManager, service } = await createFixture();
+    const { context, shell, queueManager, service } = await createFixture();
     await service.enqueue("social-post", "first");
     await service.enqueue("social-post", "second");
 
     // Simulate recoverable runtime-state loss for one queued entity.
     await service.deleteStored("social-post", "second");
     // Simulate an entity transition committed before stale queue cleanup.
-    const first = await context.entityService.getEntity({
+    const first = await context.entities.getEntity({
       entityType: "social-post",
       id: "first",
     });
     if (!first) throw new Error("fixture entity missing");
-    await context.entityService.updateEntity({
+    await shell.getEntityService().updateEntity({
       entity: {
         ...first,
         metadata: { ...first.metadata, status: "draft" },

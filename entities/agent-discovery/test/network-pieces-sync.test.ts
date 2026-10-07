@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createMockShell } from "@brains/plugins/test";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
-import { NetworkPiecePlugin } from "../src/plugins/network-piece-plugin";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { defineServicePlugin, z } from "@brains/sdk/services";
+import { createAgentContent } from "../src/lib/agent-content";
+import { agent } from "../src/agent-entity";
+import { networkPiece } from "../src/network-piece-entity";
+import { networkPiecesCheck } from "../src/lib/network-pieces-check";
 import { networkPieceSchema } from "../src/schemas/network-piece";
 import { agentEntitySchema, type AgentEntity } from "../src/schemas/agent";
 import type { AtprotoCardFetch } from "../src/lib/atproto-card-events";
@@ -113,36 +117,57 @@ async function brain(
       return (): void => {};
     },
   });
-  await new AgentDiscoveryPlugin().register(shell);
-  await new NetworkPiecePlugin(
-    {},
+  const definition = defineServicePlugin(
+    { id: "agents", config: z.object({}), entities: [agent, networkPiece] },
     {
-      fetchFn,
-      resolveHostname: async (): Promise<string[]> => [resolvedAddress],
+      checks: () => [
+        networkPiecesCheck({
+          fetchFn,
+          resolveHostname: async () => [resolvedAddress],
+        }),
+      ],
     },
-  ).register(shell);
+  );
+  for (const plugin of instantiatePluginPackageDefinition(
+    definition,
+    {},
+    { name: "@brains/agent-discovery", version: "0.0.0-test" },
+  ))
+    await plugin.register(shell);
   const entities = shell.getEntityService();
   for (const agent of agents) {
+    const entity = agentEntitySchema.parse({
+      id: agent.id,
+      entityType: "agent",
+      content: `# ${agent.id}`,
+      contentHash: "",
+      created: "2026-09-01T00:00:00.000Z",
+      updated: "2026-09-01T00:00:00.000Z",
+      visibility: "public",
+      metadata: {
+        name: agent.id === "becca.rizom.ai" ? "Becca" : agent.id,
+        kind: "person",
+        brainName: agent.id,
+        url: `https://${agent.id}/a2a`,
+        status: agent.status,
+        discoveredAt: "2026-09-01T00:00:00.000Z",
+        slug: agent.id,
+        ...(agent.repoDid ? { repoDid: agent.repoDid } : {}),
+      },
+    });
     await entities.createEntity({
-      entity: agentEntitySchema.parse({
-        id: agent.id,
-        entityType: "agent",
-        content: `# ${agent.id}`,
-        contentHash: "",
-        created: "2026-09-01T00:00:00.000Z",
-        updated: "2026-09-01T00:00:00.000Z",
-        visibility: "public",
-        metadata: {
-          name: agent.id === "becca.rizom.ai" ? "Becca" : agent.id,
+      entity: {
+        ...entity,
+        content: createAgentContent({
+          ...entity.metadata,
           kind: "person",
           brainName: agent.id,
-          url: `https://${agent.id}/a2a`,
-          status: agent.status,
           discoveredAt: "2026-09-01T00:00:00.000Z",
-          slug: agent.id,
-          ...(agent.repoDid ? { repoDid: agent.repoDid } : {}),
-        },
-      }),
+          about: "",
+          skills: [],
+          notes: "",
+        }),
+      },
     });
   }
   const check = checks.find((c) => c.id === "network-pieces-sync");

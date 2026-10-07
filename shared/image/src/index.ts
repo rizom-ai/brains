@@ -12,9 +12,9 @@ export {
   type ResolvedImage,
 } from "./schemas/image";
 
-// Image entity adapter
-export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
-export type { CreateImageInput } from "./adapters/image-adapter";
+// Deriving an image's own metadata from its bytes. Named consumers:
+// @brains/image-plugin, @brains/stock-photo.
+export { imageMetadataFor, imageDataUrl } from "./lib/image-metadata";
 
 // Image resolver utilities
 export {
@@ -24,6 +24,7 @@ export {
   setCoverImageId,
   extractOgImageId,
   setOgImageId,
+  type ImageEntityReader,
 } from "./lib/image-resolver";
 
 // Markdown image utilities

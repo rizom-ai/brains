@@ -560,18 +560,24 @@ describe("the contact page inside the site's own page", () => {
     expect(slot?.html).not.toContain("<html");
   });
 
-  it("lets the site's page load its own styles, fonts and scripts, and keeps the form's guards", async () => {
+  it("allows local presentation assets but blocks scripts and remote assets around private form data", async () => {
     const response = await (
       await handlers()
     ).handle(new Request(`${origin}/contact`), { remoteAddress: peer });
     const policy = response.headers.get("Content-Security-Policy") ?? "";
     for (const directive of [
-      "default-src 'self'",
+      "default-src 'none'",
+      "script-src 'none'",
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:",
+      "img-src 'self' data:",
       "form-action 'self'",
       "base-uri 'none'",
       "frame-ancestors 'none'",
     ])
       expect(policy).toContain(directive);
+    expect(policy).not.toContain("https:");
+    expect(policy).not.toContain("script-src 'self'");
     expect(response.headers.get("Cache-Control")).toContain("no-store");
   });
 });

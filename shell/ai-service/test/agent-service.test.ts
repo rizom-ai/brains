@@ -125,9 +125,12 @@ const createMockConversationService = (): IConversationService => ({
   startConversation: mock(() => Promise.resolve("test-conversation-id")),
   addMessage: mock(() => Promise.resolve()),
   getMessages: mock(() => Promise.resolve([])),
+  getManyWithMessages: mock(() => Promise.resolve([])),
   countMessages: mock(() => Promise.resolve(0)),
   getConversation: mock(() => Promise.resolve(null)),
   listConversations: mock(() => Promise.resolve([])),
+  listConversationsUpdatedSince: mock(async () => []),
+  getConversationChangeHead: mock(async () => null),
   searchConversations: mock(() => Promise.resolve([])),
   updateConversationMetadata: mock(() => Promise.resolve(false)),
   deleteConversation: mock(() => Promise.resolve(false)),
@@ -3678,13 +3681,11 @@ describe("AgentService", () => {
       );
 
       expect(response.text).not.toContain('"success": false');
-      expect(response.text).toContain(
-        "Tool delete_note returned an invalid response shape",
-      );
+      expect(response.text).toContain("Invalid response");
       expect(response.cards?.[0]).toEqual(
         expect.objectContaining({
           state: "output-error",
-          error: "Tool delete_note returned an invalid response shape",
+          error: "Invalid response",
         }),
       );
     });
@@ -4316,7 +4317,7 @@ describe("AgentService", () => {
           {
             toolCalls: [
               {
-                toolName: "playbook_manage",
+                toolName: "playbooks_manage",
                 toolCallId: "call1",
                 input: {
                   action: "start",
@@ -4327,7 +4328,7 @@ describe("AgentService", () => {
             ],
             toolResults: [
               {
-                toolName: "playbook_manage",
+                toolName: "playbooks_manage",
                 toolCallId: "call1",
                 output: {
                   success: true,

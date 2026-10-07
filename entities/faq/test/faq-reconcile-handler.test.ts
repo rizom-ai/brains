@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
 import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
+  createPluginHarness,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
+import { reconcileFaq } from "../src/lib/reconcile-faq";
+import { findSameFaq } from "../src/lib/faq-matching";
+import { faq } from "../src/faq-entity";
+import * as faqAdapter from "../src/lib/faq-content";
 import {
-  FaqPlugin,
-  FaqReconcileHandler,
-  type FaqReconcileDeps,
-  faqAdapter,
+  faqPackage,
   faqMetadata,
   faqSchema,
   type FaqEntity,
@@ -24,38 +25,45 @@ interface DistanceResult {
   distance: number;
 }
 
-describe("FaqReconcileHandler", () => {
+describe("FAQ owned reconciliation", () => {
   let context: EntityPluginContext;
   let distances: DistanceResult[];
   let sameVerdict: boolean;
 
-  function handler(
-    entityService: FaqReconcileDeps["entityService"] = context.entityService,
-  ): FaqReconcileHandler {
-    return new FaqReconcileHandler(createSilentLogger(), {
-      entityService,
-      sameQuestionDistance: 0.2,
-      searchWithDistances: async (): Promise<DistanceResult[]> => distances,
-      ai: {
-        generateObject: async <T>(
-          _prompt: string,
-          schema: { parse(value: unknown): T },
-        ): Promise<{ object: T }> => ({
-          object: schema.parse({ same: sameVerdict }),
-        }),
-      },
-    });
-  }
-
   function reconcile(
     entityId: string,
-    entityService?: FaqReconcileDeps["entityService"],
-  ): ReturnType<FaqReconcileHandler["process"]> {
-    return handler(entityService).process(
-      { entityId },
-      "job-1",
-      createMockProgressReporter(),
-    );
+    entityService: EntityPluginContext["entityService"] = context.entityService,
+  ): ReturnType<typeof reconcileFaq> {
+    entityService.searchWithDistances = async (): Promise<DistanceResult[]> =>
+      distances;
+    const { mutations, nearest } = createTestEntityAccess({
+      entityService,
+      ownedTypes: ["faq"],
+      owner: "@brains/faq",
+      declarationId: "capture",
+    });
+    return reconcileFaq(entityId, {
+      read: (id, visibilityScope) =>
+        mutations.read(faq, id, { visibilityScope }),
+      findSame: (request) =>
+        findSameFaq(
+          {
+            nearest,
+            sameQuestionDistance: 0.2,
+            ai: {
+              generateObject: async <T>(
+                _prompt: string,
+                schema: { parse(value: unknown): T },
+              ): Promise<{ object: T }> => ({
+                object: schema.parse({ same: sameVerdict }),
+              }),
+            },
+          },
+          request,
+        ),
+      fold: (source, target, entity) =>
+        mutations.fold(faq, source, target, entity),
+    });
   }
 
   async function seed(
@@ -106,7 +114,12 @@ describe("FaqReconcileHandler", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-reconcile-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of instantiatePluginPackageDefinition(
+      faqPackage,
+      {},
+      { name: "@brains/faq", version: "0.0.0-test" },
+    ))
+      await harness.installPlugin(plugin);
     context = harness.getEntityContext("faq");
     distances = [];
     sameVerdict = true;
@@ -198,7 +211,7 @@ describe("FaqReconcileHandler", () => {
     near("newer", "older");
     // A capture counts another asking on the duplicate after reconcile read
     // it, just before reconcile removes it.
-    const askedMeanwhile: FaqReconcileDeps["entityService"] = {
+    const askedMeanwhile: EntityPluginContext["entityService"] = {
       ...context.entityService,
       foldEntity: async (request) => {
         const current = await context.entityService.getEntity(
@@ -248,7 +261,7 @@ describe("FaqReconcileHandler", () => {
     await seed("older", { created: "2026-09-01T00:00:00.000Z" });
     await seed("newer", { created: "2026-09-02T00:00:00.000Z", asked: 2 });
     near("newer", "older");
-    const vanishingTarget: FaqReconcileDeps["entityService"] = {
+    const vanishingTarget: EntityPluginContext["entityService"] = {
       ...context.entityService,
       foldEntity: async (request) => {
         await context.entityService.deleteEntity({

@@ -35,10 +35,6 @@ export const publishingBundleConfig: BundleConfigContribution[] = [
       },
     },
   },
-  {
-    member: "social-media",
-    value: { autoGenerateOnBlogPublish: true },
-  },
 ];
 
 export const publishingAgentInstructions: string[] = [

@@ -22,6 +22,10 @@ const declarationInlinePackages = [
   { name: "@brains/site-composition", dir: "shared/site-composition" },
   { name: "@brains/theme-base", dir: "shared/theme-base" },
   { name: "@brains/plugins", dir: "shell/plugins" },
+  // Layer 1 authoring surface. The public entries under src/entries are thin
+  // re-exports of this package, so its declarations must inline or the leak
+  // guard rejects the resulting `@brains/sdk` import.
+  { name: "@brains/sdk", dir: "packages/brain-sdk" },
 ];
 
 // Subpaths that exist for runtime/tooling reasons but must not be inlined into
@@ -74,8 +78,12 @@ const aliases = buildAliases();
 
 export default {
   cwd: packageDir,
-  input: process.env.INPUT,
-  output: { dir: process.env.OUTPUT_DIR, format: "es" },
+  input: JSON.parse(process.env.INPUTS),
+  output: {
+    dir: process.env.OUTPUT_DIR,
+    format: "es",
+    chunkFileNames: "declarations/[name]-[hash].d.ts",
+  },
   // Rolldown's JS transform should not try to discover tsconfigs for virtual
   // declaration modules; declaration generation uses the plugin tsconfig below.
   tsconfig: false,

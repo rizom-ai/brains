@@ -39,166 +39,14 @@ function createMockProject(overrides: Partial<Project> = {}): Project {
   });
 }
 
+// What is left of ProjectAdapter after the conversion: the structured-body
+// half the markdown codec does not own. Its frontmatter round-trips are
+// asserted against the runtime adapter in plugin.test.ts.
 describe("ProjectAdapter", () => {
   let adapter: ProjectAdapter;
 
   beforeEach(() => {
     adapter = new ProjectAdapter();
-  });
-
-  describe("schema", () => {
-    it("should have correct entity type", () => {
-      expect(adapter.entityType).toBe("project");
-      expect(adapter.purpose).toContain("case study");
-    });
-
-    it("should have a valid zod schema", () => {
-      expect(adapter.schema).toBeDefined();
-    });
-  });
-
-  describe("fromMarkdown", () => {
-    it("should parse frontmatter and extract metadata", () => {
-      const markdown = `---
-title: My Portfolio Project
-status: published
-description: A cool project I built
-year: 2023
-coverImageId: hero-image
-url: https://example.com
----
-
-## Context
-
-Some context here.`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.entityType).toBe("project");
-      expect(result.metadata?.title).toBe("My Portfolio Project");
-      expect(result.metadata?.status).toBe("published");
-      expect(result.metadata?.year).toBe(2023);
-    });
-
-    it("should auto-generate slug from title", () => {
-      const markdown = `---
-title: My Amazing Project
-status: draft
-description: Description here
-year: 2024
----
-
-Content`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.slug).toBe("my-amazing-project");
-    });
-
-    it("should use provided slug if present", () => {
-      const markdown = `---
-title: My Project
-slug: custom-slug
-status: draft
-description: Description
-year: 2024
----
-
-Content`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.slug).toBe("custom-slug");
-    });
-  });
-
-  describe("toMarkdown", () => {
-    it("should preserve frontmatter when present", () => {
-      const content = `---
-title: Test Project
-status: draft
-description: Test description
-year: 2024
----
-
-## Context
-
-Content here`;
-
-      const entity = createMockProject({ content });
-      const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toContain("title: Test Project");
-      expect(markdown).toContain("## Context");
-    });
-
-    it("should merge auto-generated slug into frontmatter", () => {
-      const content = `---
-title: New Project
-status: draft
-description: Description
-year: 2024
----
-
-Body`;
-
-      const entity = createMockProject({
-        content,
-        metadata: {
-          title: "New Project",
-          slug: "new-project",
-          status: "draft",
-          year: 2024,
-        },
-      });
-      const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toContain("slug: new-project");
-    });
-  });
-
-  describe("extractMetadata", () => {
-    it("should return entity metadata", () => {
-      const entity = createMockProject({
-        metadata: {
-          title: "Extracted Title",
-          slug: "extracted-slug",
-          status: "published",
-          year: 2023,
-          publishedAt: "2023-06-15T00:00:00.000Z",
-        },
-      });
-
-      const metadata = adapter.extractMetadata(entity);
-
-      expect(metadata.title).toBe("Extracted Title");
-      expect(metadata.slug).toBe("extracted-slug");
-      expect(metadata.status).toBe("published");
-      expect(metadata.year).toBe(2023);
-    });
-  });
-
-  describe("parseProjectFrontmatter", () => {
-    it("should parse frontmatter from entity", () => {
-      const content = `---
-title: Parsed Project
-status: published
-description: A parsed description
-year: 2022
-url: https://example.com/project
----
-
-Body content`;
-
-      const entity = createMockProject({ content });
-      const frontmatter = adapter.parseProjectFrontmatter(entity);
-
-      expect(frontmatter.title).toBe("Parsed Project");
-      expect(frontmatter.status).toBe("published");
-      expect(frontmatter.description).toBe("A parsed description");
-      expect(frontmatter.year).toBe(2022);
-      expect(frontmatter.url).toBe("https://example.com/project");
-    });
   });
 
   describe("parseStructuredContent", () => {
@@ -280,46 +128,6 @@ Just context, no other sections.`;
       expect(markdown).toContain("The approach");
       expect(markdown).toContain("## Outcome");
       expect(markdown).toContain("The results");
-    });
-  });
-
-  describe("roundtrip", () => {
-    it("should preserve content through fromMarkdown -> toMarkdown", () => {
-      const original = `---
-title: Roundtrip Project
-slug: roundtrip-project
-status: published
-description: A project for testing roundtrip
-year: 2023
----
-
-## Context
-
-Context content.
-
-## Problem
-
-Problem content.
-
-## Solution
-
-Solution content.
-
-## Outcome
-
-Outcome content.`;
-
-      const parsed = adapter.fromMarkdown(original);
-      const entity = createMockProject({
-        content: original,
-        ...(parsed.metadata && { metadata: parsed.metadata }),
-      });
-      const output = adapter.toMarkdown(entity);
-
-      expect(output).toContain("title: Roundtrip Project");
-      expect(output).toContain("slug: roundtrip-project");
-      expect(output).toContain("## Context");
-      expect(output).toContain("## Outcome");
     });
   });
 });

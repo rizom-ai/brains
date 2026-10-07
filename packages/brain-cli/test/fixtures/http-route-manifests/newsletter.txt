@@ -1,1 +1,1 @@
-buttondown|tool|POST|/api/buttondown/subscribe|exact|true
+@brains/newsletter:delivery|handler|POST|/api/newsletter/subscribe|exact|true

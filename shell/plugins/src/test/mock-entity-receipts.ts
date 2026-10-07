@@ -3,11 +3,11 @@ import {
   entityRevision,
   EntityWriteConflictError,
   normalizeContentVisibility,
+  validatePersist,
   type BaseEntity,
   type IEntityService,
   type EntityMutationReceipt,
 } from "@brains/entity-service";
-import { computeContentHash } from "@brains/utils/hash";
 import type { MockEntityStore } from "./mock-entity-store";
 
 type ReceiptMethods = Pick<
@@ -67,10 +67,12 @@ export function createMockReceiptMethods(
         created: proposed.created ?? now,
         updated: now,
       };
-      const canonical = store.serialize(entity);
-      Object.assign(entity, canonical, {
-        contentHash: computeContentHash(canonical.content),
-      });
+      await store.registry.ensureGroupingsCurrent();
+      const assertGroupingsCurrent = store.registry.captureGroupingWriteGuard(
+        entity.entityType,
+      );
+      const { source, ...canonical } = store.materialize(entity);
+      Object.assign(entity, canonical);
       const assertCurrent = (): void => {
         const current = store.entities.get(entity.id);
         if (
@@ -88,7 +90,13 @@ export function createMockReceiptMethods(
         }
       };
       assertCurrent();
-      await options.beforeWrite?.(structuredClone(entity));
+      await validatePersist(store.registry, entity, operation);
+      await options.beforeWrite?.({
+        ...structuredClone(entity),
+        content: source,
+      });
+      options.signal?.throwIfAborted();
+      await assertGroupingsCurrent();
       options.signal?.throwIfAborted();
       // A competing attempt may have committed while the guard was suspended.
       const winner = store.mutationReceipts.get(storageKey);
@@ -99,6 +107,7 @@ export function createMockReceiptMethods(
         entityType: entity.entityType,
         entityId: entity.id,
       };
+      store.sources.set(entity.id, source);
       store.entities.set(entity.id, structuredClone(entity));
       store.types.add(entity.entityType);
       store.markExportIntent(

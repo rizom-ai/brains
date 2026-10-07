@@ -5,9 +5,8 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import { createClient } from "@libsql/client";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { noteAdapter, noteSchema } from "@brains/note";
-import { blogPostAdapter, blogPostSchema } from "@brains/blog";
-import { imageAdapter, imageSchema } from "@brains/image";
+import { installContributors } from "./contributors";
+import { imageMetadataFor } from "@brains/image";
 import {
   PermissionService,
   type EntityActionPolicyRule,
@@ -15,8 +14,11 @@ import {
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
-import { studioPlugin } from "@brains/studio";
-import type { GroupingDefinitionsFrontmatter } from "@brains/studio/test";
+import { z } from "@brains/utils/zod";
+import {
+  instantiate,
+  type GroupingDefinitionsFrontmatter,
+} from "@brains/studio/test";
 import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 
 const type = "grouping-definitions";
@@ -92,18 +94,16 @@ async function fixture(): Promise<{
     const session = await auth.getService().createAuthSession(user.userId);
     cookies.set(role, session.cookie);
   }
-  const plugin = studioPlugin({ routePath: base });
+  const plugin = instantiate({ routePath: base });
   await plugin.register(shell);
   cleanups.push(async (): Promise<void> => {
-    await plugin.shutdown();
+    await plugin.shutdown?.();
   });
   // Contributors may register after Studio, but before the finalization barrier.
-  registry.registerEntityType("note", noteSchema, noteAdapter);
-  registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
-  registry.registerEntityType("image", imageSchema, imageAdapter);
-  await plugin.finalizeRegistration();
+  cleanups.push(await installContributors(shell, ["note", "post", "image"]));
+  await plugin.finalizeRegistration?.();
   await service.reprojectRegisteredGroupings();
-  const routes = plugin.getWebRoutes();
+  const routes = plugin.getWebRoutes?.() ?? [];
   const dispatch = async (
     request: Request,
     role: string,
@@ -150,7 +150,9 @@ test("preview image reads require a session and cannot widen its visibility scop
     entity: {
       id: "private-image",
       visibility: "public",
-      ...imageAdapter.createImageEntity({ dataUrl, title: "Private image" }),
+      entityType: "image",
+      content: dataUrl,
+      metadata: imageMetadataFor(dataUrl, { title: "Private image" }),
     },
   });
   // Set the fixture row's system visibility without rewriting binary content
@@ -208,7 +210,9 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
   await runtime.service.createEntity({
     entity: {
       id: "reference",
-      ...imageAdapter.createImageEntity({ dataUrl, title: "Reference" }),
+      entityType: "image",
+      content: dataUrl,
+      metadata: imageMetadataFor(dataUrl, { title: "Reference" }),
       visibility: "public",
     },
   });
@@ -306,9 +310,22 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
     });
     expect(saved).not.toBeNull();
     if (!saved) throw new Error("Missing preview-edited member");
-    expect(
-      parseMarkdown(saved.content, { cache: false }).frontmatter["title"],
-    ).toBe("Preview-safe edit");
+    // The declarative Note codec separates owned title metadata from content.
+    // Check both its canonical field and the actual persisted Markdown.
+    expect(saved.metadata["title"]).toBe("Preview-safe edit");
+    const database = createClient({ url: runtime.databaseUrl });
+    try {
+      const result = await database.execute({
+        sql: "SELECT content FROM entities WHERE entityType = ? AND id = ?",
+        args: ["note", "literal-member"],
+      });
+      const storedSource = z.string().parse(result.rows[0]?.["content"]);
+      expect(
+        parseMarkdown(storedSource, { cache: false }).frontmatter["title"],
+      ).toBe("Preview-safe edit");
+    } finally {
+      database.close();
+    }
     expect(parseMarkdown(saved.content, { cache: false }).content).toBe(body);
     expect(
       parseMarkdown(saved.content, { cache: false }).frontmatter["clients"],

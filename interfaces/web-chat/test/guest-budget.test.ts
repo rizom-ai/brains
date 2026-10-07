@@ -96,7 +96,9 @@ async function answer(
 
 describe("an owner-set monthly budget for guest chat", () => {
   it("does not take a budget from product configuration", () => {
-    expect(webChatConfigSchema.parse({}).guest).toBe(false);
+    // Omission permits owner activation; explicit false disables it.
+    expect(webChatConfigSchema.parse({}).guest).toBeUndefined();
+    expect(webChatConfigSchema.parse({ guest: false }).guest).toBe(false);
     for (const guest of [
       { origin: "https://preview.brain.test", budgeted: true },
       { origin: "https://preview.brain.test", monthlyUsd: 10 },

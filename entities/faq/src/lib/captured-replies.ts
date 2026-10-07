@@ -1,7 +1,7 @@
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 
 const capturedReplySchema: z.ZodObject<{ claimedAt: z.ZodString }> = z.object({

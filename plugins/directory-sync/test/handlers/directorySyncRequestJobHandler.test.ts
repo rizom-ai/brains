@@ -1,4 +1,5 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
 import { describe, expect, it, mock } from "bun:test";
 import {
   createMockProgressReporter,
@@ -78,7 +79,7 @@ describe("DirectorySyncRequestJobHandler", () => {
     });
     const recordPendingPullDeletes = mock(async () => {});
     const suppressWatchPaths = mock(() => {});
-    const context = createMockServicePluginContext();
+    const context = await hostFor(createMockShell());
     const handler = new DirectorySyncRequestJobHandler(
       createSilentLogger("test"),
       context,
@@ -132,7 +133,7 @@ describe("DirectorySyncRequestJobHandler", () => {
   it("reports no queued batch when pulled content has no sync changes", async () => {
     const handler = new DirectorySyncRequestJobHandler(
       createSilentLogger("test"),
-      createMockServicePluginContext(),
+      await hostFor(createMockShell()),
       () => createMockDirectorySync({ queueSyncBatch: mock(async () => null) }),
       () => createMockGitSync({ pull: mock(async () => ({ files: [] })) }),
       createReconciliation(),

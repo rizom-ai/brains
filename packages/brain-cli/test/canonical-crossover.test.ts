@@ -148,7 +148,7 @@ describe("single canonical crossover", () => {
   test("removes runtime preset contracts and eval preset selection", () => {
     for (const path of [
       "shell/app/src/brain-definition.ts",
-      "shell/app/src/contracts/brain-definition.ts",
+      "packages/brain-sdk/src/brain-definition.ts",
       "shell/app/src/brain-resolver.ts",
       "shell/app/src/instance-overrides.ts",
       "shell/ai-evaluation/src/cli-options.ts",

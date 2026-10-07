@@ -494,7 +494,51 @@ export async function buildAndPackFixturePackage(
   await runCommand(["bun", "install", "--ignore-scripts"], packageDirectory, {
     timeoutMs: 120_000,
   });
-  await writeFile(manifestPath, originalManifest);
+  // These are private candidate fixtures, not a claim of compatibility with
+  // the source manifest's historical pin. Pack the exact SDK metadata we just
+  // installed and will compile against, including after release versioning.
+  const packedDependencies = stringRecord(
+    parsedManifest["dependencies"] ?? {},
+    "dependencies",
+  );
+  const packedPeers = stringRecord(
+    parsedManifest["peerDependencies"] ?? {},
+    "peerDependencies",
+  );
+  for (const name of ["@rizom/brain", "@rizom/site"]) {
+    if (!dependencyTarballs.has(name) && registryVersions[name] === undefined)
+      continue;
+    if (!(name in packedDependencies) && !(name in packedPeers)) continue;
+    const resolved = await readManifestDocument(
+      join(packageDirectory, "node_modules", name),
+    );
+    const version = resolved["version"];
+    if (
+      typeof version !== "string" ||
+      !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(version)
+    ) {
+      throw new Error(`Fixture SDK ${name} must have an exact version`);
+    }
+    if (!dependencyTarballs.has(name) && version !== registryVersions[name]) {
+      throw new Error(
+        `Fixture SDK ${name} resolved ${version}, expected ${registryVersions[name]}`,
+      );
+    }
+    if (name in packedDependencies) packedDependencies[name] = version;
+    if (name in packedPeers) packedPeers[name] = version;
+  }
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify(
+      {
+        ...parsedManifest,
+        dependencies: packedDependencies,
+        peerDependencies: packedPeers,
+      },
+      null,
+      2,
+    )}\n`,
+  );
   await runCommand(
     ["bun", "x", "tsc", "-p", "tsconfig.json"],
     packageDirectory,

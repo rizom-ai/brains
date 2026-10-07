@@ -3,22 +3,23 @@ import type {
   InboxActor,
   InboxItem,
   InboxItemDetail,
-  InboxSource,
-  ServicePluginContext,
-} from "@brains/plugins";
+  EntityInboxDeclaration,
+  EntityReader,
+  InboxEntityEdits,
+} from "@brains/sdk/entities";
+import type { IPermissionsNamespace } from "@brains/sdk/services";
 import { contactRequestAdapter } from "./entity/adapter";
+import { contactRequest } from "./entity/plugin";
 import {
   contactRequestSchema,
   type ContactFrontmatter,
   type ContactRequest,
 } from "./entity/schema";
 
-type ContactInboxContext = Pick<ServicePluginContext, "entityService"> & {
-  permissions: Pick<
-    ServicePluginContext["permissions"],
-    "assertEntityActionAllowed"
-  >;
-};
+interface ContactInboxContext {
+  entityService: Pick<EntityReader, "getEntity" | "listEntities">;
+  permissions: Pick<IPermissionsNamespace, "assertEntityActionAllowed">;
+}
 interface ParsedRequest {
   entity: ContactRequest;
   frontmatter: ContactFrontmatter;
@@ -41,7 +42,7 @@ function parseRequest(entity: BaseEntity | null, now: number): ParsedRequest {
 /** Registry listing is an internal pull operation; all user surfaces enforce the
  * Inbox admin floor. Details and mutations also check the actor here.
  */
-export class ContactInboxSource implements InboxSource {
+export class ContactInboxSource {
   readonly sourceId: string = "contact-requests";
   readonly displayName: string = "Contact requests";
   private readonly context: ContactInboxContext;
@@ -129,6 +130,7 @@ export class ContactInboxSource implements InboxSource {
     itemId: string,
     actionId: string,
     actor: InboxActor,
+    edits: InboxEntityEdits,
   ): Promise<void> {
     requireAdmin(actor);
     if (actionId !== "mark-handled")
@@ -139,16 +141,10 @@ export class ContactInboxSource implements InboxSource {
       { userPermissionLevel: actor.permissionLevel },
     );
     try {
-      const current = await this.context.entityService.getEntity(
-        {
-          entityType: "contact-request",
-          id: itemId,
-          visibilityScope: "restricted",
-        },
-        contactRequestSchema,
-      );
+      const edit = await edits.read(contactRequest, itemId);
+      if (!edit) throw new Error("Contact request unavailable");
       const { entity, frontmatter, message } = parseRequest(
-        current,
+        edit.entity,
         this.now(),
       );
       if (frontmatter.status === "handled") return;
@@ -156,17 +152,34 @@ export class ContactInboxSource implements InboxSource {
         { ...frontmatter, status: "handled" },
         message,
       );
-      const result = await this.context.entityService.updateEntity({
-        entity: {
-          ...entity,
-          content,
-          metadata: { ...entity.metadata, status: "handled" },
-        },
-        options: { expectedContentHash: entity.contentHash },
+      await edits.replace(contactRequest, edit, {
+        ...entity,
+        content,
+        metadata: { ...entity.metadata, status: "handled" },
       });
-      if (result.skipped) throw new Error("Contact request unavailable");
-    } catch {
-      throw new Error("Contact request unavailable");
+    } catch (cause) {
+      throw new Error("Contact request unavailable", { cause });
     }
   }
 }
+
+/** Each callback receives fresh host-scoped reads; only actions receive edits. */
+export const contactInbox: EntityInboxDeclaration = {
+  sourceId: "contact-requests",
+  displayName: "Contact requests",
+  list: (context) =>
+    new ContactInboxSource({
+      entityService: context.entities,
+      permissions: context.permissions,
+    }).list(),
+  resolveDetail: (context, id, actor, signal) =>
+    new ContactInboxSource({
+      entityService: context.entities,
+      permissions: context.permissions,
+    }).resolveDetail(id, actor, signal),
+  act: (context, id, action, actor) =>
+    new ContactInboxSource({
+      entityService: context.entities,
+      permissions: context.permissions,
+    }).act(id, action, actor, context.edits),
+};

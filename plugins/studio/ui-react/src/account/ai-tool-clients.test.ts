@@ -29,8 +29,31 @@ describe("aiToolClients", () => {
 
   it("gives Claude Code a command that adds this brain under its own name", () => {
     expect(byId.get("claude-code")?.snippet?.code).toBe(
-      "claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp",
+      "claude mcp add --transport http becca-rizom-ai 'https://becca.rizom.ai/mcp'",
     );
+  });
+
+  it("copies the address as one literal shell argument, including quotes and metacharacters", () => {
+    const literal =
+      "https://becca.rizom.ai/mcp?label='quoted'&home=$HOME;value=literal";
+    const command = aiToolClients(literal).find(
+      (client) => client.id === "claude-code",
+    )?.snippet?.code;
+    if (!command) throw new Error("Missing CLI snippet");
+    const result = Bun.spawnSync([
+      "sh",
+      "-c",
+      `claude() { printf '%s\\n' "$@"; }; ${command}`,
+    ]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toString().trim().split("\n")).toEqual([
+      "mcp",
+      "add",
+      "--transport",
+      "http",
+      "becca-rizom-ai",
+      literal,
+    ]);
   });
 
   it("gives configuration snippets that are valid JSON for this brain", () => {

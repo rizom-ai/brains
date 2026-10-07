@@ -113,20 +113,30 @@ describe("canonical team bundle", () => {
 
     expect(resolved.profileKind).toBe("team");
     const ids = pluginIds(resolved);
-    for (const id of ["conversation-memory", "docs", "site-builder", "mcp"]) {
+    // Declarative entity packages register scoped plugin ids, so docs is
+    // "@brains/doc:doc" rather than the capability id "docs".
+    for (const id of [
+      "@brains/conversation-memory:conversation-memory",
+      "@brains/doc:doc",
+      "@brains/site-builder-plugin:site-builder",
+      "@brains/mcp:mcp",
+    ]) {
       expect(ids).toContain(id);
     }
-    expect(ids).toContain("organization-site");
+    expect(ids).toContain("@brains/site-organization:organization-site");
     expect(ids).not.toContain("professional-site");
-    expect(pluginConfig(resolved, "topics")).toMatchObject({
+    // Topics remains an installed, qualified declarative service.
+    expect(pluginConfig(resolved, "@brains/topics:topics")).toMatchObject({
       extractableStatuses: ["published", "draft"],
     });
-    expect(pluginConfig(resolved, "conversation-memory")).toMatchObject({
+    expect(
+      pluginConfig(resolved, "@brains/conversation-memory:conversation-memory"),
+    ).toMatchObject({
       memoryVisibility: "shared",
     });
-    expect(pluginConfig(resolved, "conversation-memory")).not.toHaveProperty(
-      "enableProjection",
-    );
+    expect(
+      pluginConfig(resolved, "@brains/conversation-memory:conversation-memory"),
+    ).not.toHaveProperty("enableProjection");
     expect(resolved.agentInstructions).toEqual(
       teamBundle.agentInstructions ?? [],
     );
@@ -144,8 +154,10 @@ describe("canonical team bundle", () => {
       },
     );
 
-    expect(pluginIds(resolved)).not.toContain("conversation-memory");
-    expect(pluginIds(resolved)).not.toContain("docs");
+    expect(pluginIds(resolved)).not.toContain(
+      "@brains/conversation-memory:conversation-memory",
+    );
+    expect(pluginIds(resolved)).not.toContain("@brains/doc:doc");
     expect(
       resolved.permissions?.rules?.some((rule) =>
         rule.pattern.startsWith("docs:"),

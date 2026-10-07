@@ -21,8 +21,8 @@ export interface RouteScriptContext {
  * Walk a route's sections, look up each template, accumulate its
  * `runtimeScripts` declarations, dedupe by `src`, and render them as
  * ready-to-inject <script> tag strings. A src the build serves from
- * `assets` carries a fingerprint of that content, so a changed script is
- * never answered from a browser or CDN cache.
+ * `assets` carries a fingerprint of that content, changing the requested URL
+ * when those bytes change. Cache behavior still depends on the serving host.
  */
 export function collectRouteScripts(
   route: RouteDefinition,
@@ -35,7 +35,9 @@ export function collectRouteScripts(
     if (!template?.runtimeScripts) continue;
     for (const script of template.runtimeScripts) {
       if (seen.has(script.src)) continue;
-      const content = assets[script.src];
+      const content = Object.hasOwn(assets, script.src)
+        ? assets[script.src]
+        : undefined;
       const src =
         content === undefined
           ? script.src

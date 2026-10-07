@@ -1,5 +1,6 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_CLOSING_ATTRIBUTE,
   ASK_COVER_ATTRIBUTE,
   ASK_COVER_STYLE,
   ASK_PAGE_LOCK_ATTRIBUTE,
@@ -132,7 +133,7 @@ export function askBoxBootScript(version: string): string {
     // Once the sheet has risen over the page, the page goes out of sight (as
     // the box's page-lock does once mounted, and undoes on close).
     function cover() {
-      if (!host.hasAttribute("${ASK_SHEET_ATTRIBUTE}")) return;
+      if (!host.hasAttribute("${ASK_SHEET_ATTRIBUTE}") || host.hasAttribute("${ASK_CLOSING_ATTRIBUTE}")) return;
       document.body.style.visibility = "hidden";
       host.style.visibility = "visible";
       if (document.querySelector("style[${ASK_COVER_ATTRIBUTE}]")) return;

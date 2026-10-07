@@ -1,10 +1,11 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import type {
-  BaseEntity,
-  ProjectionExecutionContext,
-  ProjectionInputContext,
+import {
+  type BaseEntity,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+  PROJECTION_ABSTAINED,
 } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { createSeriesProjectionRule } from "../src/lib/series-projection";
@@ -38,6 +39,12 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
   });
   return {
     entities: service,
+    spaces: [],
+    conversations: {
+      get: async () => null,
+      getMessages: async () => [],
+      getManyWithMessages: async () => [],
+    },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async (): Promise<never> => {
       throw new Error("not used");
@@ -64,7 +71,9 @@ function executionContext(description = "A connected body of work."): {
 
 describe("series projection rule", () => {
   it("selects all series members and derives one series per distinct name", async () => {
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
@@ -114,10 +123,12 @@ describe("series projection rule", () => {
     expect(generate).toHaveBeenCalledTimes(2);
   });
 
-  it("preserves described series and deletes every orphan without a model call", async () => {
+  it("preserves a described series without a model call", async () => {
     const describedContent =
       "---\ntitle: Systems\nslug: systems\n---\n\n## Description\n\nExisting description.";
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
@@ -156,8 +167,89 @@ describe("series projection rule", () => {
           visibility: "public",
         },
       },
-      { operation: "delete", entityType: "series", id: "orphan" },
     ]);
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Which series the rule is allowed to remove.
+ *
+ * It no longer removes any itself — the runtime does, from what the rule
+ * declares. That declaration is the whole guard now: exclusive over public
+ * series and nothing else. It was a hand-written diff that selected its
+ * comparison set unscoped, so a public derivation deleted `shared` series.
+ */
+describe("what a series derivation may delete", () => {
+  it("claims authority over public series only", () => {
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
+
+    expect(rule.targets).toEqual({
+      authority: "exclusive",
+      visibility: "public",
+    });
+  });
+
+  it("emits no deletions of its own", async () => {
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
+    const signal = new AbortController().signal;
+    const selected = await rule.selectInput(
+      { waveId: "wave-scope", inputs: [] },
+      inputContext([
+        entity({
+          id: "post-1",
+          entityType: "post",
+          metadata: { seriesName: "Alpha", title: "First" },
+        }),
+        entity({
+          id: "alpha",
+          entityType: "series",
+          content: "# Alpha\n\n## Description\n\nA public series.\n",
+          metadata: { title: "Alpha", slug: "alpha" },
+        }),
+      ]),
+      signal,
+    );
+
+    const { context } = executionContext();
+    const intents = await rule.derive(selected, context, signal);
+    if (!Array.isArray(intents)) {
+      throw new Error("Expected the rule to derive rather than abstain");
+    }
+
+    expect(intents.filter((intent) => intent.operation === "delete")).toEqual(
+      [],
+    );
+  });
+
+  it("abstains rather than claiming every series should go", async () => {
+    // Nothing indexed yet is not "no content belongs to any series". Read as
+    // an empty desired set it would remove every series the brain has.
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
+    const signal = new AbortController().signal;
+    const selected = await rule.selectInput(
+      { waveId: "wave-empty", inputs: [] },
+      inputContext([
+        entity({
+          id: "alpha",
+          entityType: "series",
+          content: "# Alpha\n\n## Description\n\nA public series.\n",
+          metadata: { title: "Alpha", slug: "alpha" },
+        }),
+      ]),
+      signal,
+    );
+
+    const { context } = executionContext();
+
+    expect(await rule.derive(selected, context, signal)).toBe(
+      PROJECTION_ABSTAINED,
+    );
   });
 });

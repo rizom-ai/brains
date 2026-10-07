@@ -1,4 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
+import type { ContactFormDiscovery } from "@brains/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
@@ -27,6 +28,23 @@ function entity(
     updated: "2026-09-21T10:00:00.000Z",
   };
 }
+function advertise(
+  runtime: ServicePluginContext,
+  changes: Partial<ContactFormDiscovery> = {},
+): void {
+  spyOn(runtime.messaging, "send").mockResolvedValue({
+    success: true,
+    data: {
+      origin,
+      routes: [
+        { path: "/contact", method: "GET", public: true, preview: true },
+        { path: "/contact", method: "POST", public: true, preview: true },
+      ],
+      ...changes,
+    },
+  });
+}
+
 function context(record: BaseEntity | null = entity()): ServicePluginContext {
   const context = createMockServicePluginContext({
     returns: { entityService: { getEntity: record } },
@@ -42,6 +60,7 @@ function context(record: BaseEntity | null = entity()): ServicePluginContext {
       handler: (): Response => new Response(),
     },
   }));
+  advertise(context);
   return {
     ...context,
     siteUrl: origin,
@@ -142,6 +161,7 @@ describe("authored opening", () => {
   it("uses the local site URL for a local preview, not the deployment's HTTPS domain", async () => {
     const runtime = context();
     const localOrigin = "http://127.0.0.1:3000";
+    advertise(runtime, { origin: localOrigin });
     const appInfo = await runtime.identity.getAppInfo();
     const local = {
       ...runtime,
@@ -183,21 +203,20 @@ describe("authored opening", () => {
 
   it("keeps the authored opening, without a door, where the form is not reachable", async () => {
     const runtime = context();
-    const routes = runtime.webRoutes.getRoutes();
     // A form that does not serve preview cannot back a preview door.
-    runtime.webRoutes.getRoutes = mock(() =>
-      routes.map((route) => ({
-        ...route,
-        definition: { ...route.definition, preview: false },
-      })),
-    );
+    advertise(runtime, {
+      routes: [
+        { path: "/contact", method: "GET", public: true, preview: false },
+        { path: "/contact", method: "POST", public: true, preview: false },
+      ],
+    });
     const preview = await loadHomepageOpening(
       { entityService: runtime.entityService, publishedOnly: false },
       runtime,
     );
     expect(preview?.title).toBe("A different opening");
     expect(preview?.contactUrl).toBeNull();
-    runtime.webRoutes.getRoutes = mock(() => []);
+    advertise(runtime, { routes: [] });
     const production = await loadHomepageOpening(
       { entityService: runtime.entityService },
       runtime,
@@ -212,6 +231,7 @@ describe("authored opening", () => {
     // Endpoint advertisement is registered by the web process only.
     const worker = {
       ...runtime,
+      webRoutes: { getRoutes: mock(() => []) },
       identity: {
         ...runtime.identity,
         getAppInfo: async (): ReturnType<

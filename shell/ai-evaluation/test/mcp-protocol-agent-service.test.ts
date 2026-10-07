@@ -41,7 +41,7 @@ function createTransport(options: { extraTool?: boolean } = {}): {
   function createServer(extraTool: boolean): McpServer {
     const server = new McpServer({ name: "eval-test", version: "1.0.0" });
     server.registerTool(
-      "chat",
+      "mcp_chat",
       {
         inputSchema: {
           message: z.string(),
@@ -81,7 +81,7 @@ function createTransport(options: { extraTool?: boolean } = {}): {
       },
     );
     server.registerTool(
-      "confirm",
+      "mcp_confirm",
       {
         inputSchema: {
           approvalId: z.string(),
@@ -170,7 +170,7 @@ describe("MCPProtocolAgentService", () => {
   test("rejects a basic protocol surface containing raw tools", async () => {
     const { transport } = createTransport({ extraTool: true });
     expect(MCPProtocolAgentService.connect(transport)).rejects.toThrow(
-      "Basic MCP protocol must expose exactly chat and confirm at public; received: chat, confirm, system_search",
+      "Basic MCP protocol must expose exactly chat and confirm at public; received: mcp_chat, mcp_confirm, system_search",
     );
   });
 });

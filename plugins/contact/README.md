@@ -2,17 +2,17 @@
 
 A contact form for a brain's site. The package is available in the canonical
 catalog for explicit addition but belongs to no default bundle: a brain that adds
-`contact` gets the form on its own policy, with no configuration. `contactPlugin()`
-composes the private entity and service. There are no public tools.
+`contact` gets the form on its own policy, with no configuration. Its declarative
+service package composes the private entity and service. There are no public tools.
 
 ## Implemented
 
-- `ContactRequestPlugin` registers restricted Markdown records. Contact details
+- The `contactRequest` entity declaration registers restricted Markdown records. Contact details
   stay in the body/frontmatter, not query metadata. Persistence rejects public or
   shared visibility. Embedding, full-text indexing and projection sourcing are off.
 - Each record requires an explicit expiry after receipt and within a 90-day safety
   ceiling. That ceiling is not a default or approved production retention policy.
-- `ContactPlugin` registers a pull-based Inbox source. Lists contain generic
+- The service declares a pull-based Inbox source. Lists contain generic
   summaries; admin-only plain-text detail contains the name, address and message.
   Expired records are hidden. The Done action guards against concurrent content
   updates; hiding an expired record is **not** deletion or retention enforcement.
@@ -45,7 +45,7 @@ composes the private entity and service. There are no public tools.
   it is not a bound on database/WAL files or backups. Unknown writes keep their
   capacity reserved rather than guessing that a timeout rolled them back.
 - The entity's notification-pending marker survives failure between persistence
-  and enqueue. The plugin enqueues a durable `contact:notify` job containing only
+  and enqueue. The plugin enqueues a durable `@brains/contact:contact:notify` job containing only
   the request ID, with a stable deduplication key. Nothing is sent inline in POST.
   Queue deduplication suppresses pending duplicates; a CAS delivery lease also
   prevents concurrent workers from initiating the same attempt.
@@ -53,10 +53,16 @@ composes the private entity and service. There are no public tools.
   pass: re-enqueue pending notifications and delete expired intake-owned records,
   releasing capacity only after confirmed deletion. It reports unresolved writes
   and enqueue failures without personal details. The plugin runs it at startup
-  and through shell-owned daily recurring checks, with shutdown cancellation and
-  draining. Physical deletion can lag expiry until the next successful pass.
-  The form states only the configured retention period; it makes no claims
-  about deletion timing or backups the owner has not set.
+  and through a declared daily recurring check, with shutdown cancellation and
+  draining. Separate workers execute the same check; an owned shared-state
+  timestamp/failure flag supplies the web process's freshness gate. There is no
+  second process-local maintenance timer. Physical deletion can lag expiry until
+  the next successful pass. The form states only the configured retention period;
+  it makes no claims about deletion timing or backups the owner has not set.
+- Per-request form markup can fill a generated site page's named slot, retaining
+  admission, status and no-store headers. Contact's CSP blocks all scripts and
+  remote assets, even in a site layout; local styles, fonts and images are allowed.
+  The slot template and bounded route contributions are available to worker builds.
 
 The form and opt-in professional homepage have a theme-based first visual pass,
 but neither is approved from a running-app preview. No hosted calls, site rebuilds
@@ -96,8 +102,12 @@ visitor's fields.
   can include an unconfirmed provider outcome.
 - Notifications contain only a generic alert and the authenticated Inbox link,
   with secret sensitivity. The notifications plugin registers its internal
-  subscription in execution-only workers too. Workers register delivery handlers,
-  but no contact routes, Inbox projections or recurring checks.
+  subscription in execution-only workers too. Workers register execution
+  dependencies and maintenance checks, but expose no HTTP handlers or ready hooks.
+  A schema-validated `contact:form-discovery` subscription advertises at most three
+  route metadata records in both roles, using the same route list as HTTP
+  registration. Site builds require matching origin, GET/POST, public access and
+  preview opt-in. Discovery conveys neither live readiness nor admission authority.
 - A known acknowledgement is recorded before projecting status onto the entity.
   Failed or conflicting entity updates can be repaired without sending again.
   Success for the visitor still means **saved**, not necessarily emailed.

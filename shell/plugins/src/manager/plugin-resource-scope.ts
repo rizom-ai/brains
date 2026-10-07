@@ -1,5 +1,5 @@
 import type { IMessageBus, MessageHandler } from "@brains/messaging-service";
-import type { IAttachmentsNamespace } from "../service/attachment-registry";
+import type { AttachmentRegistrationNamespace } from "../service/attachment-registry";
 import { Cause, Effect, Exit, Scope } from "@brains/utils/effect";
 import type { IShell } from "../interfaces";
 import { forwardHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
@@ -283,7 +283,7 @@ export function createPluginScopedShell(
   };
 
   const attachments = shell.getAttachmentRegistry();
-  const scopedAttachments: IAttachmentsNamespace = {
+  const scopedAttachments: AttachmentRegistrationNamespace = {
     ...attachments,
     register: (sourceEntityType, attachmentType, provider): (() => void) =>
       resources.acquire(
@@ -382,7 +382,7 @@ export function createPluginScopedShell(
         return (): IMessageBus => scopedMessageBus;
       }
       if (property === "getAttachmentRegistry") {
-        return (): IAttachmentsNamespace => scopedAttachments;
+        return (): AttachmentRegistrationNamespace => scopedAttachments;
       }
       if (property === "getEntityRegistry") {
         return () => scopedEntityRegistry;

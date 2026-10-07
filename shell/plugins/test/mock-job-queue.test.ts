@@ -15,7 +15,7 @@ describe("createMockJobQueue", () => {
     });
   });
 
-  it("serializes job data that is not already a string", async () => {
+  it("serializes every job payload, including strings, as JSON", async () => {
     const { jobQueueService } = createMockJobQueue();
     const structured = await jobQueueService.enqueue({
       type: "sync",
@@ -27,7 +27,9 @@ describe("createMockJobQueue", () => {
     });
 
     expect((await jobQueueService.getStatus(structured))?.data).toBe('{"a":1}');
-    expect((await jobQueueService.getStatus(raw))?.data).toBe("already text");
+    expect((await jobQueueService.getStatus(raw))?.data).toBe(
+      JSON.stringify("already text"),
+    );
   });
 
   it("roots a job at itself when no root is given", async () => {

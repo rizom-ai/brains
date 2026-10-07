@@ -1,66 +1,20 @@
-import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
-import {
-  agentToolsConfigSchema,
-  agentToolsPlugin,
-} from "./plugins/agent-tools-plugin";
-import { skillPlugin } from "./plugins/skill-plugin";
-import { networkPiecePlugin } from "./plugins/network-piece-plugin";
-
 export {
-  AgentDiscoveryPlugin,
-  agentDiscoveryPlugin,
-} from "./plugins/agent-plugin";
+  agentDiscovery,
+  agentDiscoveryConfigSchema,
+  type AgentDiscoveryConfig,
+  type AgentDiscoveryConfigInput,
+} from "./agent-discovery";
+export { agent } from "./agent-entity";
+export { skill } from "./skill-entity";
+export { networkPiece } from "./network-piece-entity";
+export { networkPieceId } from "./lib/network-piece-id";
 export {
-  AgentToolsPlugin,
-  agentToolsConfigSchema,
-  agentToolsPlugin,
-  type AgentToolsConfig,
-  type AgentToolsConfigInput,
-} from "./plugins/agent-tools-plugin";
-
-/** Composite config for the agent-discovery feature. */
-export const agentDiscoveryCompositeConfigSchema: z.ZodType<
-  { notifyOnNewAgents: boolean; enableSkillDerivation: boolean },
-  {
-    notifyOnNewAgents?: boolean | undefined;
-    enableSkillDerivation?: boolean | undefined;
-  }
-> = agentToolsConfigSchema.extend({
-  enableSkillDerivation: z
-    .boolean()
-    .default(true)
-    .describe("Derive skills from topic and agent evidence using AI"),
-});
-
-export type AgentDiscoveryCompositeConfig = z.output<
-  typeof agentDiscoveryCompositeConfigSchema
->;
-export type AgentDiscoveryCompositeConfigInput = z.input<
-  typeof agentDiscoveryCompositeConfigSchema
->;
-
-/**
- * Composite factory: returns the agent and skill entity plugins from a single
- * capability entry.
- *
- * Assessment/SWOT is intentionally separate. Add `assessment` as its own
- * capability when the brain should derive assessment outputs from the
- * agent/skill evidence.
- */
-export function agentDiscovery(
-  config: AgentDiscoveryCompositeConfigInput = {},
-): Plugin[] {
-  const { enableSkillDerivation, ...agentToolsConfig } =
-    agentDiscoveryCompositeConfigSchema.parse(config);
-  return [
-    agentDiscoveryPlugin(),
-    agentToolsPlugin(agentToolsConfig),
-    skillPlugin({ enableSkillDerivation }),
-    networkPiecePlugin(),
-  ];
-}
+  NETWORK_PIECE_ENTITY_TYPE,
+  networkPieceSchema,
+  type NetworkPieceEntity,
+  type NetworkPieceMetadata,
+} from "./schemas/network-piece";
+export { default } from "./agent-discovery";
 
 export {
   agentEntitySchema,
@@ -79,25 +33,6 @@ export {
   type TemplateAgent,
 } from "./schemas/agent";
 
-export { AgentAdapter } from "./adapters/agent-adapter";
-export {
-  NetworkPiecePlugin,
-  networkPiecePlugin,
-  NETWORK_PIECES_PLUGIN_ID,
-} from "./plugins/network-piece-plugin";
-export {
-  NetworkPieceAdapter,
-  networkPieceId,
-} from "./adapters/network-piece-adapter";
-export {
-  NETWORK_PIECE_ENTITY_TYPE,
-  networkPieceSchema,
-  type NetworkPieceEntity,
-  type NetworkPieceMetadata,
-} from "./schemas/network-piece";
-export { syncNetworkPieces } from "./lib/network-pieces-sync";
-export { AgentDataSource } from "./datasources/agent-datasource";
-export { ProximityMapDataSource } from "./datasources/proximity-map-datasource";
 export { AgentProximityMapTemplate } from "./templates/proximity-map-template";
 export { ProximityMap, proximityMapScript } from "./widgets/proximity-map";
 export {
@@ -118,14 +53,6 @@ export {
 } from "./lib/tag-vocabulary";
 
 export {
-  SkillPlugin,
-  skillPlugin,
-  skillPluginConfigSchema,
-  type SkillPluginConfig,
-  type SkillPluginConfigInput,
-} from "./plugins/skill-plugin";
-
-export {
   skillFrontmatterSchema,
   skillMetadataSchema,
   skillEntitySchema,
@@ -133,5 +60,3 @@ export {
   type SkillMetadata,
   type SkillEntity,
 } from "./schemas/skill";
-
-export { SkillAdapter } from "./adapters/skill-adapter";

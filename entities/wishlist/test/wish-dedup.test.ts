@@ -25,8 +25,8 @@ function createMockWish(overrides: Partial<WishEntity> = {}): WishEntity {
 function near(
   wish: WishEntity,
   distance: number,
-): Array<{ entityId: string; entityType: string; distance: number }> {
-  return [{ entityId: wish.id, entityType: "wish", distance }];
+): Array<{ entity: WishEntity; distance: number }> {
+  return [{ entity: wish, distance }];
 }
 
 function createDeps(
@@ -34,7 +34,7 @@ function createDeps(
   overrides: Partial<WishSearchDeps> = {},
 ): WishSearchDeps {
   return {
-    searchWithDistances: async () => [],
+    nearest: async () => [],
     getEntity: async (request) =>
       wishes.find((wish) => wish.id === request.id) ?? null,
     maxDistance: 0.3,
@@ -75,7 +75,7 @@ describe("findExistingWish", () => {
   it("should return a wish within the distance", async () => {
     const existing = createMockWish();
     const deps = createDeps([existing], {
-      searchWithDistances: async () => near(existing, 0.19),
+      nearest: async () => near(existing, 0.19),
     });
 
     expect(await findExistingWish(deps, incoming)).toBe(existing);
@@ -84,7 +84,7 @@ describe("findExistingWish", () => {
   it("should ignore a wish beyond the distance", async () => {
     const existing = createMockWish();
     const deps = createDeps([existing], {
-      searchWithDistances: async () => near(existing, 0.36),
+      nearest: async () => near(existing, 0.36),
     });
 
     expect(
@@ -110,7 +110,7 @@ describe("findExistingWish", () => {
     const semanticMatch = createMockWish({ id: "gcal-sync" });
     const slugMatch = createMockWish({ id: "calendar-integration" });
     const deps = createDeps([semanticMatch, slugMatch], {
-      searchWithDistances: async () => near(semanticMatch, 0.1),
+      nearest: async () => near(semanticMatch, 0.1),
     });
 
     const result = await findExistingWish(deps, {
@@ -124,7 +124,7 @@ describe("findExistingWish", () => {
   it("should use a custom distance", async () => {
     const existing = createMockWish();
     const deps = createDeps([existing], {
-      searchWithDistances: async () => near(existing, 0.4),
+      nearest: async () => near(existing, 0.4),
       maxDistance: 0.45,
     });
 
@@ -134,7 +134,7 @@ describe("findExistingWish", () => {
   it("should measure the new wish's markdown, the form wishes are embedded in", async () => {
     const queries: string[] = [];
     const deps = createDeps([], {
-      searchWithDistances: async ({ query }) => {
+      nearest: async ({ query }) => {
         queries.push(query);
         return [];
       },
@@ -148,7 +148,7 @@ describe("findExistingWish", () => {
   it("skips a close wish the check says asks for something else", async () => {
     const existing = createMockWish({ id: "send-emails" });
     const deps = createDeps([existing], {
-      searchWithDistances: async () => near(existing, 0.2),
+      nearest: async () => near(existing, 0.2),
     });
     sameVerdict = false;
 

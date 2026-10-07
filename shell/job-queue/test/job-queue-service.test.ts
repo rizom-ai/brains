@@ -17,6 +17,7 @@ import { createId } from "@brains/utils/id";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
+import { SdkError } from "@brains/contracts";
 import { access, writeFile } from "node:fs/promises";
 /**
  * This double is registered for several job types and ignores its payload,
@@ -207,6 +208,58 @@ describe("JobQueueService", () => {
     });
   });
   describe("Job enqueueing", () => {
+    it("stores wire input so a fresh worker can parse transforms and defaults", async () => {
+      const schema = z.object({
+        n: z.string().transform(Number),
+        label: z.string().default("default"),
+      });
+      const validator = {
+        validateAndParse: (raw: unknown): z.output<typeof schema> | null => {
+          const result = schema.safeParse(raw);
+          return result.success ? result.data : null;
+        },
+        process: async (input: z.output<typeof schema>): Promise<number> =>
+          input.n + 1,
+      };
+      service.registerHandler("transform", validator);
+      const id = await service.enqueue({
+        type: "transform",
+        data: { n: "7" },
+        options: enqueueOpts(),
+      });
+      const stored = await service.getStatus(id);
+      expect(JSON.parse(stored?.data ?? "null")).toEqual({ n: "7" });
+      const parsed = validator.validateAndParse(
+        JSON.parse(stored?.data ?? "null"),
+      );
+      expect(parsed).toEqual({ n: 7, label: "default" });
+      if (!parsed) throw new Error("Persisted input did not validate");
+      expect(await validator.process(parsed)).toBe(8);
+    });
+
+    it("rejects data whose JSON round-trip does not match its input contract", async () => {
+      service.registerHandler("date", {
+        validateAndParse: (raw) => {
+          const result = z.date().safeParse(raw);
+          return result.success ? result.data : null;
+        },
+        process: async () => undefined,
+      });
+      expect(
+        service.enqueue({
+          type: "date",
+          data: new Date(),
+          options: enqueueOpts(),
+        }),
+      ).rejects.toThrow("Invalid job data");
+      expect(
+        service.enqueue({
+          type: "date",
+          data: undefined,
+          options: enqueueOpts(),
+        }),
+      ).rejects.toThrow("JSON-serializable");
+    });
     beforeEach(() => {
       service.registerHandler("shell:embedding", testHandler);
     });
@@ -639,10 +692,14 @@ describe("JobQueueService", () => {
         options: defaultEnqueueOptions,
       });
       await service.fail(jobId, new Error("Temporary failure"));
+      expect((await service.getStatus(jobId))?.lastErrorCode).toBe(
+        "handler_failed",
+      );
       await service.complete(jobId, { success: true });
       const job = await service.getStatus(jobId);
       expect(job?.status).toBe("completed");
       expect(job?.lastError).toBeNull();
+      expect(job?.lastErrorCode).toBeNull();
     });
     it("should handle job failure with retry", async () => {
       const jobId = await service.enqueue({
@@ -654,7 +711,8 @@ describe("JobQueueService", () => {
       const job = await service.getStatus(jobId);
       expect(job?.status).toBe("pending");
       expect(job?.retryCount).toBe(1);
-      expect(job?.lastError).toBe("Test error");
+      expect(job?.lastErrorCode).toBe("handler_failed");
+      expect(job?.lastError).toBe("The operation failed");
     });
     it("should mark job as permanently failed when max retries exceeded", async () => {
       const jobId = await service.enqueue({
@@ -685,12 +743,16 @@ describe("JobQueueService", () => {
         data: testEntity,
         options: enqueueOpts({ maxRetries: 0 }),
       });
-      await service.fail(jobId, new Error("Terminal failure"));
+      await service.fail(
+        jobId,
+        new SdkError("permission_denied", { message: "Terminal failure" }),
+      );
 
       expect(await service.complete(jobId, { stale: true })).toBe(false);
       expect(await service.getStatus(jobId)).toMatchObject({
         status: "failed",
-        lastError: "Terminal failure",
+        lastErrorCode: "permission_denied",
+        lastError: "Permission denied",
       });
     });
   });
@@ -1003,7 +1065,8 @@ describe("JobQueueService", () => {
       const failedEmbeddings = await service.getFailedJobs(["shell:embedding"]);
 
       expect(failedEmbeddings.map((job) => job.id)).toEqual([embeddingId]);
-      expect(failedEmbeddings[0]?.lastError).toBe("embedding failed");
+      expect(failedEmbeddings[0]?.lastErrorCode).toBe("handler_failed");
+      expect(failedEmbeddings[0]?.lastError).toBe("The operation failed");
       expect(failedEmbeddings.some((job) => job.id === activeId)).toBe(false);
     });
   });

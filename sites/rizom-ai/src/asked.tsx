@@ -4,7 +4,7 @@ import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
 import { answeredBy } from "@brains/contracts";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { createTemplate, type Template } from "@brains/templates";
-import { MarkdownContent } from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
 import { z } from "@rizom/site";
 
 /**

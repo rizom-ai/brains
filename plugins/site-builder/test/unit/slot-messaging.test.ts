@@ -1,21 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { SiteBuilderPlugin } from "../../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import { installSiteBuilder } from "../helpers/install";
+import type { UISlotRegistry } from "@brains/site-engine";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createTestConfig } from "../test-helpers";
 
 describe("Site-builder slot messaging", () => {
-  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
-  let plugin: SiteBuilderPlugin;
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
+  let slotRegistry: UISlotRegistry;
 
   beforeEach(async () => {
-    harness = createPluginHarness<SiteBuilderPlugin>();
-    plugin = new SiteBuilderPlugin(
-      createTestConfig({
-        previewOutputDir: "/tmp/test-output",
-        productionOutputDir: "/tmp/test-output-production",
-      }),
-    );
-    await harness.installPlugin(plugin);
+    harness = createPluginHarness<Plugin>();
+    slotRegistry = (
+      await installSiteBuilder(
+        harness,
+        createTestConfig({
+          previewOutputDir: "/tmp/test-output",
+          productionOutputDir: "/tmp/test-output-production",
+        }),
+      )
+    ).slots;
   });
 
   afterEach(async () => {
@@ -32,9 +36,7 @@ describe("Site-builder slot messaging", () => {
       });
 
       // Get the slot registry from site-builder
-      const slotRegistry = plugin.getSlotRegistry();
-      expect(slotRegistry).toBeDefined();
-      expect(slotRegistry?.hasSlot("footer-top")).toBe(true);
+      expect(slotRegistry.hasSlot("footer-top")).toBe(true);
     });
 
     it("should collect multiple slot registrations", async () => {
@@ -51,8 +53,7 @@ describe("Site-builder slot messaging", () => {
         priority: 100,
       });
 
-      const slotRegistry = plugin.getSlotRegistry();
-      const footerSlots = slotRegistry?.getSlot("footer-top");
+      const footerSlots = slotRegistry.getSlot("footer-top");
       expect(footerSlots).toHaveLength(2);
     });
 
@@ -71,12 +72,11 @@ describe("Site-builder slot messaging", () => {
         priority: 100,
       });
 
-      const slotRegistry = plugin.getSlotRegistry();
-      const footerSlots = slotRegistry?.getSlot("footer-top");
+      const footerSlots = slotRegistry.getSlot("footer-top");
 
       // Higher priority should come first
-      expect(footerSlots?.[0]?.pluginId).toBe("high-priority");
-      expect(footerSlots?.[1]?.pluginId).toBe("low-priority");
+      expect(footerSlots[0]?.pluginId).toBe("high-priority");
+      expect(footerSlots[1]?.pluginId).toBe("low-priority");
     });
 
     it("should handle registrations for different slots", async () => {
@@ -92,11 +92,10 @@ describe("Site-builder slot messaging", () => {
         render: (): null => null,
       });
 
-      const slotRegistry = plugin.getSlotRegistry();
-      expect(slotRegistry?.hasSlot("footer-top")).toBe(true);
-      expect(slotRegistry?.hasSlot("sidebar")).toBe(true);
-      expect(slotRegistry?.getSlot("footer-top")).toHaveLength(1);
-      expect(slotRegistry?.getSlot("sidebar")).toHaveLength(1);
+      expect(slotRegistry.hasSlot("footer-top")).toBe(true);
+      expect(slotRegistry.hasSlot("sidebar")).toBe(true);
+      expect(slotRegistry.getSlot("footer-top")).toHaveLength(1);
+      expect(slotRegistry.getSlot("sidebar")).toHaveLength(1);
     });
   });
 });

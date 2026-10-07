@@ -1,15 +1,13 @@
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import type { Message } from "@brains/plugins";
-import {
-  createSilentLogger,
-  createMockProgressReporter,
-} from "@brains/test-utils";
-import {
-  FaqCaptureHandler,
-  type FaqClassification,
-} from "../../src/handlers/faq-capture-handler";
-import { SAME_QUESTION_CHECK } from "../../src/lib/faq-store";
+import { createSilentLogger } from "@brains/test-utils";
+import { createTestEntityAccess } from "@brains/plugins/test";
+import type { FaqClassification } from "../../src/schemas/capture";
+import { captureOwnedFaq } from "../../src/lib/owned-capture";
+import { classifyExchange } from "../../src/lib/faq-classification";
+import { findSameFaq } from "../../src/lib/faq-matching";
+import { SAME_QUESTION_CHECK } from "../../src/lib/faq-question";
 import { capturedReplyStore } from "../../src/lib/captured-replies";
 import { openFoldStorage } from "./fold-storage";
 import type { EntityService } from "@brains/entity-service";
@@ -23,7 +21,7 @@ export const captureData = {
 export interface CaptureFixture {
   service: EntityService;
   replies: ReturnType<typeof capturedReplyStore>;
-  process: () => ReturnType<FaqCaptureHandler["process"]>;
+  process: () => ReturnType<typeof captureOwnedFaq>;
   close: () => void;
 }
 export async function openCaptureStorage(
@@ -32,6 +30,7 @@ export async function openCaptureStorage(
     classify?: () => Promise<void>;
     targetId?: string;
     classification?: FaqClassification;
+    replyMetadata?: Message["metadata"];
   } = {},
 ): Promise<CaptureFixture> {
   const logger = createSilentLogger();
@@ -57,11 +56,10 @@ export async function openCaptureStorage(
       role: "assistant",
       content: "An example service.",
       timestamp: new Date().toISOString(),
-      metadata: {},
+      metadata: options.replyMetadata ?? {},
     },
   ];
-  const handler = new FaqCaptureHandler(logger, {
-    replies,
+  const deps = {
     entityService: service,
     sameQuestionDistance: 0.2,
     searchWithDistances: async (): ReturnType<
@@ -70,7 +68,6 @@ export async function openCaptureStorage(
       options.targetId
         ? [{ entityId: options.targetId, entityType: "faq", distance: 0.01 }]
         : [],
-    conversations: { getMessages: async (): Promise<Message[]> => messages },
     ai: {
       generateObject: async <T>(
         _prompt: string,
@@ -90,12 +87,35 @@ export async function openCaptureStorage(
         };
       },
     },
+  };
+  // Deterministic candidate scores; entity lookups and mutations still use SQLite.
+  service.searchWithDistances = deps.searchWithDistances;
+  const { mutations, nearest } = createTestEntityAccess({
+    entityService: service,
+    ownedTypes: ["faq"],
+    owner: "@brains/faq",
+    declarationId: "capture",
   });
   return {
     replies,
     service,
     process: () =>
-      handler.process(captureData, "capture-job", createMockProgressReporter()),
+      captureOwnedFaq(captureData, {
+        mutations,
+        wasClaimed: (key) => replies.has(key),
+        messages: async () => messages,
+        classify: (question, answer) =>
+          classifyExchange(deps.ai, question, answer),
+        findSame: (request) =>
+          findSameFaq(
+            {
+              nearest,
+              ai: deps.ai,
+              sameQuestionDistance: deps.sameQuestionDistance,
+            },
+            request,
+          ),
+      }),
     close: (): void => {
       service.close();
       state.close();

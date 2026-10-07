@@ -16,6 +16,7 @@ const expectedCatalogIds = [
   "link",
   "wishlist",
   "topics",
+  "knowledge-map",
   "decks",
   "directory-sync",
   "atproto-registry",
@@ -24,7 +25,6 @@ const expectedCatalogIds = [
   "auth-service",
   "notifications",
   "contact",
-  "playbook",
   "playbooks",
   "onboarding",
   "studio",
@@ -50,7 +50,6 @@ const expectedCatalogIds = [
   "unified-inbox",
   "mcp",
   "email",
-  "webserver",
   "web-chat",
   "chat",
   "a2a",
@@ -108,7 +107,7 @@ describe("canonical brain core", () => {
     expect(canonicalBrain.agentInstructions).toBeUndefined();
   });
 
-  test("offers contact only through explicit addition, with intake still default-off", () => {
+  test("offers contact only through explicit addition, with bounded intake enabled by default", () => {
     expect(
       canonicalBrain.bundles?.some((bundle) =>
         bundle.members.includes("contact"),
@@ -120,15 +119,20 @@ describe("canonical brain core", () => {
         {},
         { bundleContract, bundles: ["core"], add: ["contact"] },
       ).plugins ?? [];
-    expect(plugins.map((plugin) => plugin.id)).toContain("contact-request");
-    const contact = plugins.find((plugin) => plugin.id === "contact");
+    expect(plugins.map((plugin) => plugin.id)).toContain(
+      "@brains/contact:contact-request",
+    );
+    const contact = plugins.find(
+      (plugin) => plugin.id === "@brains/contact:contact",
+    );
     expect(contact).toBeDefined();
-    if (
-      contact &&
-      "getWebRoutes" in contact &&
-      typeof contact.getWebRoutes === "function"
-    )
-      expect(contact.getWebRoutes()).toEqual([]);
+    expect(contact).toHaveProperty("config", {});
+    expect(contact?.dependencies).toEqual([
+      "@brains/contact:contact-request",
+      "@brains/notifications:notifications",
+      "@brains/studio:studio",
+      "@brains/unified-inbox:unified-inbox",
+    ]);
   });
 
   test("is the sole bundled definition", () => {
@@ -147,12 +151,16 @@ describe("canonical brain core", () => {
 
   test("resolves a self-contained headless core without hidden site policy", () => {
     expect(pluginConfig("dashboard")).toBeUndefined();
-    expect(pluginConfig("directory-sync")).toMatchObject({
-      seedContent: true,
-      seedContentPath: "./seed-content",
-      initialSync: true,
+    expect(pluginConfig("@brains/directory-sync:directory-sync")).toMatchObject(
+      {
+        seedContent: true,
+        seedContentPath: "./seed-content",
+        initialSync: true,
+      },
+    );
+    expect(pluginConfig("@brains/mcp:mcp")).toMatchObject({
+      transport: "stdio",
     });
-    expect(pluginConfig("mcp")).toMatchObject({ transport: "stdio" });
     expect(pluginConfig("profile")).not.toHaveProperty(
       "starterIdentity.anchorKind",
     );
@@ -164,25 +172,33 @@ describe("canonical brain core", () => {
         { bundleContract, bundles: ["core"] },
       ).plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
-      "prompt",
-      "profile",
-      "style-guide",
-      "ask-content",
-      "note",
-      "link",
-      "topics",
-      "directory-sync",
-      "agent-discovery",
-      "agent",
-      "skill",
-      "network-pieces",
-      "unified-inbox",
-      "mcp",
-      "a2a",
+      "@brains/prompt:prompt",
+      "@brains/profile:profile",
+      "@brains/style-guide:style-guide",
+      "@brains/ask-content:ask-content",
+      "@brains/note:note-capture",
+      "@brains/note:note",
+      "@brains/link:capture",
+      "@brains/link:link",
+      "@brains/topics:topics",
+      "@brains/topics:topic",
+      "@brains/directory-sync:directory-sync",
+      "@brains/agent-discovery:agents",
+      "@brains/agent-discovery:agent",
+      "@brains/agent-discovery:skill",
+      "@brains/agent-discovery:network-piece",
+      "@brains/unified-inbox:unified-inbox",
+      "@brains/mcp:mcp",
+      "@brains/a2a:a2a",
     ]);
-    expect(resolvedIds).toContain("unified-inbox");
+    expect(resolvedIds).toContain("@brains/unified-inbox:unified-inbox");
     expect(resolvedIds).not.toContain("webserver");
     expect(resolvedIds).not.toContain("notifications");
+    expect(resolvedIds).not.toContain("@brains/atproto:atproto");
+    expect(resolvedIds).not.toContain(
+      "@brains/site-builder-plugin:site-builder",
+    );
+    expect(resolvedIds).not.toContain("email-workflows");
   });
 
   test("keeps posture-independent permissions on the definition", () => {

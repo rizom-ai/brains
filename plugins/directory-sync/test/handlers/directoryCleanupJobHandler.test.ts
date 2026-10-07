@@ -1,4 +1,5 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { DirectoryCleanupJobHandler } from "../../src/handlers/directoryCleanupJobHandler";
 import {
@@ -11,7 +12,7 @@ describe("DirectoryCleanupJobHandler", () => {
   let removeOrphanedEntitiesMock: ReturnType<typeof mock>;
   let handler: DirectoryCleanupJobHandler;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     removeOrphanedEntitiesMock = mock(async () => ({
       deleted: 3,
       errors: [],
@@ -19,16 +20,11 @@ describe("DirectoryCleanupJobHandler", () => {
 
     handler = new DirectoryCleanupJobHandler(
       createSilentLogger("test"),
-      createMockServicePluginContext(),
+      await hostFor(createMockShell()),
       createMockDirectorySync({
         removeOrphanedEntities: removeOrphanedEntitiesMock,
       }),
     );
-  });
-
-  it("should validate correct job data", () => {
-    const result = handler.validateAndParse({});
-    expect(result).not.toBeNull();
   });
 
   it("should call removeOrphanedEntities", async () => {

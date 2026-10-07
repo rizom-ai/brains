@@ -1,19 +1,16 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import {
-  analyticsConfigSchema,
-  type AnalyticsConfig,
-  type AnalyticsConfigInput,
-} from "./config";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { analyticsConfigSchema } from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
 import {
   CloudflareClient,
-  type CloudflareClientDeps,
+  type CloudflareFetch,
 } from "./lib/cloudflare-client";
 import { createTrafficOverviewInsight } from "./insights/traffic-overview";
-import packageJson from "../package.json";
 
 /**
  * Analytics plugin for querying website metrics from Cloudflare
@@ -28,74 +25,63 @@ import packageJson from "../package.json";
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
-export class AnalyticsPlugin extends ServicePlugin<
-  AnalyticsConfig,
-  AnalyticsConfigInput
-> {
-  private cloudflareClient: CloudflareClient | undefined;
+/**
+ * What this package reaches the outside world through.
+ *
+ * Only one thing, and only for a test: the Cloudflare client binds the global
+ * fetch, so a test asserting what was requested would otherwise have to
+ * reassign `globalThis.fetch` before installing the plugin and put it back
+ * afterwards. Production passes nothing.
+ */
+export interface AnalyticsDependencies {
+  fetch?: CloudflareFetch | undefined;
+}
 
-  private deps: CloudflareClientDeps;
+export function analyticsService(
+  dependencies: AnalyticsDependencies = {},
+): ServicePackageDefinition<typeof analyticsConfigSchema> {
+  return defineServicePlugin(
+    {
+      id: "analytics",
+      config: analyticsConfigSchema,
 
-  constructor(
-    config: AnalyticsConfigInput = {},
-    deps: CloudflareClientDeps = {},
-  ) {
-    super("analytics", packageJson, config, analyticsConfigSchema);
-    this.deps = deps;
-  }
+      setup: ({ config }) => ({
+        client: config.cloudflare
+          ? new CloudflareClient(config.cloudflare, dependencies)
+          : undefined,
+      }),
+    },
+    {
+      insights: ({ state }) => ({
+        "traffic-overview": createTrafficOverviewInsight(state.client),
+      }),
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.cloudflareClient = this.config.cloudflare
-      ? new CloudflareClient(this.config.cloudflare, this.deps)
-      : undefined;
+      tools: ({ state }) => createAnalyticsTools(state.client),
 
-    context.insights.register(
-      "traffic-overview",
-      createTrafficOverviewInsight(this.cloudflareClient),
-    );
-  }
+      // The beacon reaches site builds through the head-script channel, and
+      // site-builder's subscription only exists once every plugin has
+      // registered — which is what `ready` is for.
+      ready: async ({ config, messaging }) => {
+        const siteTag = config.cloudflare?.siteTag;
+        if (!siteTag) return;
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const siteTag = this.config.cloudflare?.siteTag;
-    if (!siteTag) return;
-
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.headScriptRegister,
-      payload: {
-        pluginId: this.id,
-        script: generateCloudflareBeaconScript(siteTag),
+        await messaging.request({
+          type: SITE_BUILDER_CHANNELS.headScriptRegister,
+          payload: {
+            pluginId: "analytics",
+            script: generateCloudflareBeaconScript(siteTag),
+          },
+        });
       },
-    });
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return createAnalyticsTools(
-      this.id,
-      this.getContext(),
-      this.cloudflareClient,
-    );
-  }
+    },
+  );
 }
 
-/**
- * Create an analytics plugin instance
- */
-export function createAnalyticsPlugin(
-  config: AnalyticsConfigInput = {},
-  deps: CloudflareClientDeps = {},
-): AnalyticsPlugin {
-  return new AnalyticsPlugin(config, deps);
-}
+/** The package as a deployment installs it: no injected dependencies. */
+const analyticsPackage: ServicePackageDefinition<typeof analyticsConfigSchema> =
+  analyticsService();
 
-/**
- * Convenience function matching other plugin patterns
- */
-export const analyticsPlugin: typeof createAnalyticsPlugin =
-  createAnalyticsPlugin;
+export default analyticsPackage;
 
 // Export types and schemas
 export type {

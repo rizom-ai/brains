@@ -13,6 +13,7 @@
 import {
   writeFileSync,
   readFileSync,
+  readdirSync,
   mkdirSync,
   cpSync,
   existsSync,
@@ -59,10 +60,17 @@ function findMonorepoRoot(): string {
 }
 
 const monorepoRoot = findMonorepoRoot();
+// Never rebuild dependency-owned assets in place: their tests may be reading
+// them. Keep staging outside published dist, at the same depth for source maps.
+const uiBuildDirectory = mkdtempSync(join(packageDir, ".ui-build-"));
+process.once("exit", () =>
+  rmSync(uiBuildDirectory, { recursive: true, force: true }),
+);
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
+const webChatUiDirectory = join(uiBuildDirectory, "web-chat");
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
-const studioUiDirectory = join(studioPackageDir, "dist", "ui");
+const studioUiDirectory = join(uiBuildDirectory, "studio");
 const studioUiManifestPath = join(
   studioUiDirectory,
   "studio-asset-manifest.json",
@@ -85,22 +93,28 @@ const sharedInstanceTsConfigPath = join(
 cpSync(sharedInstanceTsConfigPath, packageInstanceTsConfigPath);
 
 console.log("Building bundled web chat UI...");
-const webChatBuildResult = await Bun.spawn(["bun", "run", "build"], {
-  cwd: webChatPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-}).exited;
+const webChatBuildResult = await Bun.spawn(
+  ["bun", "run", "build", "--outdir", webChatUiDirectory],
+  {
+    cwd: webChatPackageDir,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+).exited;
 if (webChatBuildResult !== 0) {
   console.error("Web chat UI build failed");
   process.exit(1);
 }
 
 console.log("Building bundled Studio editor UI...");
-const studioBuildResult = await Bun.spawn(["bun", "run", "build"], {
-  cwd: studioPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-}).exited;
+const studioBuildResult = await Bun.spawn(
+  ["bun", "run", "build", "--outdir", studioUiDirectory],
+  {
+    cwd: studioPackageDir,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+).exited;
 if (studioBuildResult !== 0) {
   console.error("Studio editor UI build failed");
   process.exit(1);
@@ -224,6 +238,10 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
   },
   {
+    name: "testing",
+    source: join(import.meta.dir, "..", "src", "entries", "testing.ts"),
+  },
+  {
     name: "deploy",
     source: join(import.meta.dir, "..", "src", "entries", "deploy.ts"),
   },
@@ -287,43 +305,47 @@ async function bundleLibraries(): Promise<void> {
 async function emitLibraryDeclarations(): Promise<void> {
   const declarationOutDir = mkdtempSync(join(tmpdir(), "brain-cli-dts-"));
   try {
-    await Promise.all(
-      libraryEntries.map(async (entry) => {
-        const proc = Bun.spawn(
-          [
-            "bun",
-            "x",
-            "rolldown",
-            "-c",
-            join(import.meta.dir, "bundle-declarations.mjs"),
-          ],
-          {
-            cwd: packageDir,
-            env: {
-              ...process.env,
-              INPUT: entry.source,
-              OUTPUT_DIR: declarationOutDir,
-            },
-            stdout: "inherit",
-            stderr: "inherit",
+    // One declaration graph preserves private nominal identities (opaque edits)
+    // across entities, services and interfaces instead of cloning each brand.
+    // The canonical runtime model is not an authoring entry. Keep its native
+    // implementation types out of shared authoring chunks.
+    for (const entries of [
+      libraryEntries.filter((entry) => entry.name !== "model"),
+      libraryEntries.filter((entry) => entry.name === "model"),
+    ]) {
+      const proc = Bun.spawn(
+        [
+          "bun",
+          "x",
+          "rolldown",
+          "-c",
+          join(import.meta.dir, "bundle-declarations.mjs"),
+        ],
+        {
+          cwd: packageDir,
+          env: {
+            ...process.env,
+            INPUTS: JSON.stringify(
+              Object.fromEntries(
+                entries.map((entry) => [entry.name, entry.source]),
+              ),
+            ),
+            OUTPUT_DIR: declarationOutDir,
           },
-        );
-        const exitCode = await proc.exited;
+          stdout: "inherit",
+          stderr: "inherit",
+        },
+      );
+      if ((await proc.exited) !== 0) {
+        console.error("Declaration generation failed");
+        process.exit(1);
+      }
+    }
 
-        if (exitCode !== 0) {
-          console.error(`Declaration generation failed for '${entry.name}'`);
-          process.exit(1);
-        }
-
-        cpSync(
-          join(declarationOutDir, `${entry.name}.d.ts`),
-          join(outdir, `${entry.name}.d.ts`),
-        );
-      }),
-    );
-
-    for (const entry of libraryEntries) {
-      const declarationPath = join(outdir, `${entry.name}.d.ts`);
+    // Validate shared chunks too, before publishing any generated declaration.
+    for (const file of readdirSync(declarationOutDir, { recursive: true })) {
+      if (!file.endsWith(".d.ts")) continue;
+      const declarationPath = join(declarationOutDir, file);
       const declaration = readFileSync(declarationPath, "utf8");
       const leakedImports = findInternalDeclarationImports(declaration, {
         internalPrefixes: ["@brains/"],
@@ -343,6 +365,9 @@ async function emitLibraryDeclarations(): Promise<void> {
         process.exit(1);
       }
     }
+    // Only this declaration build owns this directory; runtime/UI outputs stay intact.
+    rmSync(join(outdir, "declarations"), { recursive: true, force: true });
+    cpSync(declarationOutDir, outdir, { recursive: true });
   } finally {
     rmSync(declarationOutDir, { recursive: true, force: true });
   }
@@ -408,10 +433,7 @@ for (const asset of [
   "dashboard.js",
   "dashboard.css",
 ]) {
-  cpSync(
-    join(webChatPackageDir, "dist", "ui", asset),
-    join(bundledWebChatUiDir, asset),
-  );
+  cpSync(join(webChatUiDirectory, asset), join(bundledWebChatUiDir, asset));
 }
 for (const retiredUiAsset of [
   "app.js",

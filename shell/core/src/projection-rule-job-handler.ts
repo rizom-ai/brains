@@ -151,6 +151,44 @@ export class ProjectionRuleJobHandler implements JobHandler<
     this.now = options.now;
   }
 
+  /**
+   * Remove what an exclusive rule stopped mentioning.
+   *
+   * Computed here rather than inside `derive` for two reasons. A memo hit
+   * replays cached write intents, so deletions baked into a derivation would
+   * be frozen against a target set that can drift independently of the input
+   * fingerprint — reading live state keeps the operation idempotent. And a
+   * rule that hand-writes this diff has to remember to scope it, which is a
+   * silent mistake in both directions.
+   */
+  private async withReconciledDeletions(
+    rule: ProjectionRule,
+    writeIntents: readonly ProjectionWriteIntent[],
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    if (rule.targets.authority !== "exclusive") return writeIntents;
+
+    const mentioned = new Set(
+      writeIntents.flatMap((intent) =>
+        intent.operation === "upsert" ? [intent.entity.id] : [],
+      ),
+    );
+    const existing = await this.inputContext.entities.listEntities({
+      entityType: rule.targetType,
+      options: { filter: { visibilityScope: rule.targets.visibility } },
+    });
+
+    return [
+      ...writeIntents,
+      ...existing
+        .filter((entity) => !mentioned.has(entity.id))
+        .map((entity): ProjectionWriteIntent => ({
+          operation: "delete",
+          entityType: rule.targetType,
+          id: entity.id,
+        })),
+    ];
+  }
+
   public validateAndParse(data: unknown): ProjectionRuleJobData | null {
     const parsed = projectionRuleJobDataSchema.safeParse(data);
     return parsed.success ? parsed.data : null;
@@ -286,6 +324,9 @@ export class ProjectionRuleJobHandler implements JobHandler<
 
     let writeIntents: readonly ProjectionWriteIntent[];
     if (memo) {
+      // Already reconciled when it was stored, so replaying it must not
+      // reconcile again — and an abstention memoized as no intents would
+      // otherwise replay as "delete everything this rule owns".
       writeIntents = memo.writeIntents;
     } else {
       await this.recordDiagnostic({
@@ -294,11 +335,17 @@ export class ProjectionRuleJobHandler implements JobHandler<
         memoHit: false,
       });
       try {
-        writeIntents = await rule.derive(
+        const derived = await rule.derive(
           selectedInput,
           this.executionContext,
           signal,
         );
+        // Abstaining is not an empty desired set. The rule had nothing to
+        // derive from, so it has no opinion about what should exist and its
+        // targets are left exactly as they are.
+        writeIntents = Array.isArray(derived)
+          ? await this.withReconciledDeletions(rule, derived)
+          : [];
         await this.recordDiagnostic({
           ...selectedDiagnostic,
           event: "derive-completed",

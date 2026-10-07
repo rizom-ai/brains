@@ -5,6 +5,22 @@ import {
 } from "../src/onboarding-emails";
 
 const setupUrl = "https://team.brain.test/setup?token=setup_abc";
+
+it.each([
+  "//outside.example/chat",
+  "/\\\\outside.example/chat",
+  "/\n/outside.example/chat",
+  "//[",
+])("refuses an onboarding path that escapes or cannot resolve: %s", (chat) => {
+  expect(() =>
+    renderOnboardingEmail({
+      kind: "anchor-setup",
+      setupUrl,
+      expiresAt: 2_000_000_000,
+      links: { chat },
+    }),
+  ).toThrow();
+});
 const anchorSetupUrl = "https://yeehaa.brain.test/setup?token=setup_xyz";
 const links = {
   chat: "/chat",

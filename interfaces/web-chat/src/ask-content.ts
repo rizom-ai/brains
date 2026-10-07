@@ -1,5 +1,5 @@
 import { parseAskContent, type AskContent } from "@brains/contracts";
-import type { InterfacePluginContext } from "@brains/plugins";
+import type { InterfaceEntityReader } from "@brains/sdk/interfaces";
 
 export function publicAskContent(
   entity: { visibility: string; content: string } | null,
@@ -15,12 +15,13 @@ export function publicAskContent(
 
 /** Optional public copy: absence, private content and invalid authoring fail closed. */
 export async function loadAskContent(
-  entities: InterfacePluginContext["entityService"],
+  entities: Pick<InterfaceEntityReader, "getEntity">,
 ): Promise<AskContent | undefined> {
   try {
     const entity = await entities.getEntity({
       entityType: "ask-content",
       id: "ask-content",
+      visibilityScope: "public",
     });
     return publicAskContent(entity);
   } catch {

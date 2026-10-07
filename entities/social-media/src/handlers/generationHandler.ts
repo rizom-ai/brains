@@ -1,44 +1,15 @@
-import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
-import { GENERATE_CHANNELS, IMAGE_CHANNELS } from "@brains/contracts";
-import type { GeneratedContent } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import { ensureUniqueTitle } from "@brains/sdk/entities";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import { generationResultSchema } from "@brains/contracts";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
+import { z } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import { getTemplateName } from "../templates";
 
-/** Shape the social generation templates produce; ai.generate parses through it. */
-export const generatedPostSchema: z.ZodObject<{
-  title: z.ZodString;
-  content: z.ZodString;
-}> = z.object({
-  title: z.string(),
-  content: z.string(),
-});
-
 /**
  * Input schema for social post generation job
  */
-interface CoverImageJobOptions {
-  generate?: boolean | undefined;
-  prompt?: string | undefined;
-}
-
-type CoverImageJobData = boolean | CoverImageJobOptions;
-
-const coverImageJobSchema: z.ZodType<CoverImageJobData> = z.union([
-  z.boolean(),
-  z.object({
-    generate: z.boolean().optional(),
-    prompt: z.string().optional(),
-  }),
-]);
-
 export interface GenerationJobData {
   prompt?: string | undefined;
   platform?: "linkedin" | undefined;
@@ -47,8 +18,6 @@ export interface GenerationJobData {
   title?: string | undefined;
   content?: string | undefined;
   addToQueue?: boolean | undefined;
-  generateImage?: boolean | undefined;
-  coverImage?: CoverImageJobData | undefined;
 }
 
 export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
@@ -62,53 +31,29 @@ export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
     .describe("Required when content is provided directly"),
   content: z.string().optional(),
   addToQueue: z.boolean().optional(),
-  generateImage: z
-    .boolean()
-    .optional()
-    .describe("Auto-generate cover image for post"),
-  coverImage: coverImageJobSchema
-    .optional()
-    .describe("Generic cover image generation request"),
 });
 
-export const socialMediaGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    slug: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
-  slug: z.string().optional(),
-});
+/**
+ * Social post generation, declared.
+ *
+ * Four ways in: content with a title needs no AI at all, content without one
+ * is shaped by AI, a source entity is promoted, and a bare prompt is written
+ * from scratch.
+ */
+export const socialPostGeneration: EntityGenerationDeclaration<
+  typeof generationJobSchema
+> = {
+  input: generationJobSchema,
+  generate: async ({ input, ai, logger, entities, progress }) => {
+    const platform = input.platform ?? "linkedin";
+    const addToQueue = input.addToQueue ?? false;
+    const { prompt, sourceEntityType, sourceEntityId } = input;
+    let { content, title } = input;
 
-export type GenerationResult = z.output<
-  typeof socialMediaGenerationResultSchema
->;
-
-export class GenerationJobHandler extends BaseGenerationJobHandler<
-  GenerationJobData,
-  GenerationResult
-> {
-  constructor(logger: Logger, context: EntityPluginContext) {
-    super(logger, context, {
-      schema: generationJobSchema,
-      jobTypeName: "social-post-generation",
-      entityType: "social-post",
-    });
-  }
-
-  protected async generate(
-    data: GenerationJobData,
-    progressReporter: ProgressReporter,
-  ): Promise<GeneratedContent> {
-    const platform = data.platform ?? "linkedin";
-    const addToQueue = data.addToQueue ?? false;
-    const { prompt, sourceEntityType, sourceEntityId } = data;
-    let { content, title } = data;
     const voiceGuidance =
       content && title
         ? ""
-        : formatVoiceGuidance(
-            await fetchStyleGuide(this.context.entityService),
-          );
+        : formatVoiceGuidance(await fetchStyleGuide(entities));
     const styleContext = {
       representedIdentity: "anchor" as const,
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
@@ -116,55 +61,61 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
     // Case 1: Direct content with title (no AI needed)
     if (content && title) {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
+        total: 100,
         message: "Using provided content",
       });
     }
-    // Case 1b: Content without title — pass through AI to shape and generate title
+    // Case 1b: Content without title — pass through AI to shape and title it
     else if (content && !title) {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 10,
+        total: 100,
         message: "Shaping content with AI",
       });
 
-      const generated = await this.context.ai.generate(
+      const generated = await ai.generate(
         {
           prompt: content,
           templateName: getTemplateName(platform),
           ...styleContext,
         },
-        generatedPostSchema,
+        z.object({ title: z.string(), content: z.string() }),
       );
 
       title = generated.title;
       content = generated.content;
 
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
+        total: 100,
         message: "Social post shaped from content",
       });
     }
     // Case 2: Generate from source entity
     else if (sourceEntityId && sourceEntityType) {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 10,
+        total: 100,
         message: `Fetching source ${sourceEntityType}`,
       });
 
-      const sourceEntity = await this.context.entityService.getEntity({
+      const sourceEntity = await entities.getEntity({
         entityType: sourceEntityType,
         id: sourceEntityId,
       });
 
       if (!sourceEntity) {
-        this.failEarly(
-          `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
-        );
+        return {
+          success: false,
+          error: `Source entity not found: ${sourceEntityType}/${sourceEntityId}`,
+        };
       }
 
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 30,
+        total: 100,
         message: "Generating social post from source content",
       });
 
@@ -172,7 +123,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
       const parsed = slugSchema.safeParse(sourceEntity.metadata);
       const slug = parsed.success ? parsed.data.slug : sourceEntityId;
 
-      const generated = await this.context.ai.generate(
+      const generated = await ai.generate(
         {
           prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
 
@@ -182,53 +133,56 @@ ${sourceEntity.content}`,
           templateName: getTemplateName(platform),
           ...styleContext,
         },
-        generatedPostSchema,
+        z.object({ title: z.string(), content: z.string() }),
       );
 
       title = generated.title;
       content = generated.content;
 
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
+        total: 100,
         message: "Social post generated from source",
       });
     }
     // Case 3: Generate from prompt
     else if (prompt) {
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 10,
+        total: 100,
         message: "Generating social post with AI",
       });
 
-      const generated = await this.context.ai.generate(
+      const generated = await ai.generate(
         {
           prompt,
           templateName: getTemplateName(platform),
           ...styleContext,
         },
-        generatedPostSchema,
+        z.object({ title: z.string(), content: z.string() }),
       );
 
       title = generated.title;
       content = generated.content;
 
-      await this.reportProgress(progressReporter, {
+      await progress.report({
         progress: 50,
+        total: 100,
         message: "Social post generated",
       });
     } else {
-      this.failEarly(
-        "No content source provided (prompt, sourceEntityId, or content)",
-      );
+      return {
+        success: false,
+        error:
+          "No content source provided (prompt, sourceEntityId, or content)",
+      };
     }
 
     if (!content || !title) {
-      this.failEarly("Content or title was not generated");
+      return { success: false, error: "Content or title was not generated" };
     }
 
     const status = addToQueue ? "queued" : "draft";
-
-    // Create frontmatter
     const frontmatter: SocialPostFrontmatter = {
       title,
       platform,
@@ -241,110 +195,44 @@ ${sourceEntity.content}`,
       frontmatter,
       content,
     );
-    const partial = socialPostAdapter.fromMarkdown(postContent);
-    const metadata = partial.metadata;
+    // deriveMetadata parses or throws; the old adapter returned a partial
+    // entity whose metadata could be absent, which this used to guard.
+    const metadata = socialPostAdapter.deriveMetadata(postContent);
 
-    if (!metadata) {
-      this.failEarly("Failed to parse social post metadata");
-    }
-
-    // Ensure title doesn't collide
+    // A post is stored under `<platform>-<slug>`, so a colliding title would
+    // collide as an id too.
     const finalTitle = await ensureUniqueTitle({
       entityType: "social-post",
       title,
-      deriveId: (t) => `${platform}-${slugify(t)}`,
+      deriveId: (candidate) => `${platform}-${slugify(candidate)}`,
       regeneratePrompt:
         "Generate a different social media post title on the same topic.",
-      context: this.context,
+      context: { entityService: entities, ai, logger },
     });
 
     let finalContent = postContent;
     if (finalTitle !== title) {
       metadata.title = finalTitle;
       metadata.slug = `${platform}-${slugify(finalTitle)}`;
-      // Rebuild content with updated title in frontmatter
-      const updatedFrontmatter: SocialPostFrontmatter = {
-        ...frontmatter,
-        title: finalTitle,
-      };
       finalContent = socialPostAdapter.createPostContent(
-        updatedFrontmatter,
+        { ...frontmatter, title: finalTitle },
         content,
       );
     }
 
+    await progress.report({
+      progress: 100,
+      total: 100,
+      message: `Wrote social post: "${finalTitle}"`,
+    });
+    // Content, not an entity: the runtime decides whether this fills in a
+    // pre-allocated post or creates a new one.
     return {
+      success: true,
       id: metadata.slug,
       content: finalContent,
       metadata,
-      title: finalTitle,
       resultExtras: { slug: metadata.slug },
-      createOptions: { deduplicateId: true },
     };
-  }
-
-  protected override async onGenerationFailure(
-    _data: GenerationJobData,
-    error: string,
-  ): Promise<void> {
-    await this.context.messaging.send({
-      type: GENERATE_CHANNELS.reportFailure,
-      payload: {
-        entityType: "social-post",
-        error,
-      },
-    });
-  }
-
-  protected override async afterCreate(
-    data: GenerationJobData,
-    entityId: string,
-    progressReporter: ProgressReporter,
-    generated: GeneratedContent,
-  ): Promise<void> {
-    // Queue image generation if requested
-    if (data.generateImage) {
-      await this.reportProgress(progressReporter, {
-        progress: 90,
-        message: "Queueing image generation",
-      });
-
-      const title = generated.title ?? "Social Post";
-      await this.context.jobs.enqueue({
-        type: IMAGE_CHANNELS.generate,
-        data: {
-          prompt: `Social media graphic for: ${title}`,
-          title: `${title} Image`,
-          aspectRatio: "16:9",
-          targetEntityType: "social-post",
-          targetEntityId: entityId,
-        },
-        toolContext: {
-          interfaceType: "job",
-          actor: { kind: "service", serviceId: "social-media-generation" },
-        },
-      });
-    }
-
-    await this.context.messaging.send({
-      type: GENERATE_CHANNELS.reportSuccess,
-      payload: {
-        entityType: "social-post",
-        entityId,
-      },
-    });
-  }
-
-  protected override summarizeDataForLog(
-    data: GenerationJobData,
-  ): Record<string, unknown> {
-    return {
-      platform: data.platform ?? "linkedin",
-      hasPrompt: !!data.prompt,
-      sourceEntityType: data.sourceEntityType,
-      addToQueue: data.addToQueue ?? false,
-      generateImage: data.generateImage ?? false,
-      coverImage: !!data.coverImage,
-    };
-  }
-}
+  },
+};

@@ -136,9 +136,9 @@ describe("guest credential issuance", () => {
     const began = deferred<void>();
     const release = deferred<void>();
     const delayed: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const store = state.scoped(options);
         if (options.namespace !== "web-chat.guest-visitors") return store;
         return {
@@ -184,9 +184,9 @@ describe("guest credential issuance", () => {
       () => start,
     ).issue(request());
     const failing: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const store = state.scoped(options);
         return options.namespace !== "web-chat.guest-visitors"
           ? store
@@ -242,9 +242,9 @@ describe("guest credential issuance", () => {
   it("keeps ambiguous credential writes charged without promoting existing rows", async () => {
     const state = createMemoryRuntimeStateNamespace();
     const failing: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const store = state.scoped(options);
         return options.namespace !== "web-chat.guest-visitors"
           ? store
@@ -278,9 +278,9 @@ describe("guest credential issuance", () => {
   it("holds an ambiguously committed reservation even when no credential was materialized", async () => {
     const state = createMemoryRuntimeStateNamespace();
     const failing: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const store = state.scoped(options);
         return options.namespace !== guestIssuanceNamespace
           ? store
@@ -324,9 +324,9 @@ describe("guest credential issuance", () => {
     await new GuestVisitorStore(state, policy, () => start).issue(request());
     let attempts = 0;
     const busy: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const store = state.scoped(options);
         return options.namespace !== guestIssuanceNamespace
           ? store

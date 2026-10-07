@@ -7,6 +7,9 @@ on:
   push:
     branches: ["main"]
     paths:
+      - "scripts/lib/release-*.ts"
+      - "scripts/verify-release-ci.ts"
+      - "scripts/release-workflow.test.ts"
       - "sites/docs/**"
       - "sites/rizom/**"
       - "sites/rizom-ai/**"
@@ -32,6 +35,9 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
+      - "scripts/lib/release-*.ts"
+      - "scripts/verify-release-ci.ts"
+      - "scripts/release-workflow.test.ts"
       - "sites/docs/**"
       - "sites/rizom/**"
       - "sites/rizom-ai/**"
@@ -111,6 +117,9 @@ jobs:
 
       - name: Test release tooling
         run: bun --filter @brains/build-tools test
+
+      - name: Test release orchestration
+        run: bun test scripts/release-workflow.test.ts scripts/lib/release-ci.test.ts scripts/lib/release-context.test.ts
 
       - name: Test site and theme packages
         run: bunx turbo run test --filter='@rizom/site*' --filter='@rizom/theme*'

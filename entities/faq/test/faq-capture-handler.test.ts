@@ -1,24 +1,28 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import type {
   ContentVisibility,
   EntityPluginContext,
   Message,
   UserPermissionLevel,
 } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
 import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
+  createPluginHarness,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
+import { captureOwnedFaq } from "../src/lib/owned-capture";
+import { classifyExchange } from "../src/lib/faq-classification";
+import { findSameFaq } from "../src/lib/faq-matching";
+import type { EntityConversationReader } from "@brains/sdk/entities";
+import * as faqAdapter from "../src/lib/faq-content";
 import {
-  FaqCaptureHandler,
-  FaqPlugin,
+  faqPackage,
   capturedReplyStore,
-  faqAdapter,
   faqMetadata,
   faqSchema,
   type FaqClassification,
+  type FaqCaptureJobData,
   type FaqEntity,
   SAME_QUESTION_CHECK,
 } from "../src";
@@ -60,33 +64,42 @@ const accepted: FaqClassification = {
   answer: "Open the post in Studio and choose Publish.",
 };
 
-describe("FaqCaptureHandler", () => {
+interface CaptureHandler {
+  process(data: FaqCaptureJobData): ReturnType<typeof captureOwnedFaq>;
+}
+
+describe("FAQ owned capture", () => {
   let context: EntityPluginContext;
   let prompts: string[];
   let checks: string[];
   let sameVerdict: boolean;
   let classification: FaqClassification;
   let searches: string[];
-  let fetches: Array<
-    { limit?: number; range?: { start: number; end: number } } | undefined
-  >;
+  let fetches: Array<Parameters<EntityConversationReader["getMessages"]>[1]>;
   let distances: DistanceResult[];
 
   function createHandler(
     messages: Message[] = transcript,
     sameQuestionDistance = 0.2,
-  ): FaqCaptureHandler {
-    return new FaqCaptureHandler(createSilentLogger(), {
+  ): CaptureHandler {
+    const deps = {
       entityService: context.entityService,
       replies: capturedReplyStore(context.runtimeState),
       sameQuestionDistance,
-      searchWithDistances: async (request): Promise<DistanceResult[]> => {
+      searchWithDistances: async (
+        request: Parameters<
+          EntityPluginContext["entityService"]["searchWithDistances"]
+        >[0],
+      ): Promise<DistanceResult[]> => {
         searches.push(request.query);
         return distances;
       },
       conversations: {
         // Honours range and limit the way the conversation store does.
-        getMessages: async (_id, options): Promise<Message[]> => {
+        getMessages: async (
+          _id: string,
+          options: Parameters<EntityConversationReader["getMessages"]>[1],
+        ): Promise<Message[]> => {
           fetches.push(options);
           const range = options?.range;
           if (range) return messages.slice(range.start - 1, range.end);
@@ -106,25 +119,44 @@ describe("FaqCaptureHandler", () => {
           return { object: schema.parse(classification) };
         },
       },
+    };
+    context.entityService.searchWithDistances = deps.searchWithDistances;
+    const { mutations, nearest } = createTestEntityAccess({
+      entityService: context.entityService,
+      ownedTypes: ["faq"],
+      owner: "@brains/faq",
+      declarationId: "capture",
     });
+    return {
+      process: (data) =>
+        captureOwnedFaq(data, {
+          mutations,
+          wasClaimed: (key) => deps.replies.has(key),
+          messages: (id, range) =>
+            deps.conversations.getMessages(id, { range }),
+          classify: (question, answer) =>
+            classifyExchange(deps.ai, question, answer),
+          findSame: (request) =>
+            findSameFaq(
+              { nearest, ai: deps.ai, sameQuestionDistance },
+              request,
+            ),
+        }),
+    };
   }
 
   function capture(
-    handler: FaqCaptureHandler,
+    handler: CaptureHandler,
     userPermissionLevel: UserPermissionLevel,
     messageId = "m4",
     position = 4,
-  ): ReturnType<FaqCaptureHandler["process"]> {
-    return handler.process(
-      {
-        conversationId: CONVERSATION_ID,
-        messageId,
-        userPermissionLevel,
-        position,
-      },
-      "job-1",
-      createMockProgressReporter(),
-    );
+  ): ReturnType<typeof captureOwnedFaq> {
+    return handler.process({
+      conversationId: CONVERSATION_ID,
+      messageId,
+      userPermissionLevel,
+      position,
+    });
   }
 
   async function capturedFaqs(): Promise<FaqEntity[]> {
@@ -176,7 +208,12 @@ describe("FaqCaptureHandler", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of instantiatePluginPackageDefinition(
+      faqPackage,
+      {},
+      { name: "@brains/faq", version: "0.0.0-test" },
+    ))
+      await harness.installPlugin(plugin);
     context = harness.getEntityContext("faq");
     prompts = [];
     checks = [];

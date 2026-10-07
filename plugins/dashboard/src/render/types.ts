@@ -1,4 +1,4 @@
-import type { AppInfo, EntityCount } from "@brains/plugins";
+import type { AppInfo, EntityCount } from "@brains/sdk/services";
 import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 

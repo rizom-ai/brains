@@ -4,26 +4,27 @@ import {
   emailSourceReadRequestSchema,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  MailItemPlugin,
-  MailTriageInboxSource,
-  MailTriageOperatorService,
-  createMailItemProjection,
-} from "../src";
+import { createMailItemProjection } from "../src";
 import { EmailWorkflowsSourceReader } from "../src/source-read";
+import {
+  inboxSource,
+  installMailItem,
+  operatorFor,
+  reaction,
+} from "./helpers/install";
 
 const sourceRef = `imap:${"a".repeat(64)}`;
 
 interface SourceReadFixture {
   harness: ReturnType<typeof createPluginHarness>;
-  operator: MailTriageOperatorService;
+  operator: ReturnType<typeof operatorFor>;
   reader: EmailWorkflowsSourceReader;
   itemId: string;
 }
 
 async function createFixture(): Promise<SourceReadFixture> {
   const harness = createPluginHarness();
-  await harness.installPlugin(new MailItemPlugin());
+  await installMailItem(harness);
   const projection = createMailItemProjection(
     {
       messageId: "<private-message-id@example.com>",
@@ -52,11 +53,9 @@ async function createFixture(): Promise<SourceReadFixture> {
       updated: "2026-08-05T09:00:00.000Z",
     },
   });
-  const operator = new MailTriageOperatorService(
-    harness.getServiceContext("email-workflows"),
-  );
+  const operator = operatorFor(harness);
   const reader = new EmailWorkflowsSourceReader(
-    harness.getServiceContext("email-workflows"),
+    reaction(harness).messaging,
     operator,
   );
   return { harness, operator, reader, itemId: created.entityId };
@@ -107,11 +106,7 @@ describe("EmailWorkflowsSourceReader", () => {
     expect(request.actor).toEqual({ permissionLevel: "admin" });
     expect(request.signal).toBeInstanceOf(AbortSignal);
     expect(
-      await new MailTriageInboxSource(
-        fixture.operator,
-        undefined,
-        fixture.reader,
-      ).resolveDetail(
+      await inboxSource(fixture.harness).resolveDetail(
         fixture.itemId,
         { permissionLevel: "admin" },
         new AbortController().signal,

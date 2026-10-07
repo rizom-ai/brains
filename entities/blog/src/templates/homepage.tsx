@@ -1,8 +1,8 @@
 import type { JSX } from "react";
-import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/templates";
+import { z } from "@brains/sdk/entities";
+import { createTemplate } from "@brains/sdk/entities";
 import { BlogPostTemplate } from "./blog-post";
-import { Head, useMarkdownToHtml } from "@brains/ui-library";
+import { Head, useMarkdownToHtml } from "@rizom/brain-ui";
 import { blogViewSchema, type BlogPostView } from "./blog-view-schema";
 
 export interface HomepagePostContent {
@@ -93,7 +93,7 @@ export const homepageTemplate: ReturnType<
   name: "homepage",
   description: "Homepage showing latest blog post or fallback content",
   schema: homepageSchema,
-  dataSourceId: "blog:homepage",
+  dataSourceId: "latest",
   requiredPermission: "public",
   layout: {
     component: HomepageTemplate,

@@ -1,65 +1,59 @@
-import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import {
-  parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { computeContentHash } from "@brains/utils/hash";
+  parseMarkdownWithFrontmatter,
+  z,
+  computeContentHash,
+  type EntityJobDeclaration,
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
+
+import { seriesSchema } from "../schemas/series";
 import {
-  seriesSchema,
   seriesFrontmatterSchema,
   createSeriesBodyFormatter,
 } from "../schemas/series";
 
-const seriesGenerationJobSchema: z.ZodObject<{
-  prompt: z.ZodOptional<z.ZodString>;
-  title: z.ZodOptional<z.ZodString>;
-  seriesId: z.ZodOptional<z.ZodString>;
-}> = z.object({
+interface SeriesGenerationJobData {
+  prompt?: string | undefined;
+  title?: string | undefined;
+  seriesId?: string | undefined;
+}
+
+const seriesGenerationJobSchema: z.ZodType<SeriesGenerationJobData> = z.object({
   prompt: z.string().optional(),
   title: z.string().optional(),
   seriesId: z.string().optional(),
 });
 
-type SeriesGenerationJobData = z.output<typeof seriesGenerationJobSchema>;
-
-/** Shape the series description template returns. */
-export const generatedSeriesDescriptionSchema: z.ZodObject<{
-  description: z.ZodString;
-}> = z.object({ description: z.string() });
-
 /** Member fields used to build the description prompt. */
-const memberSummarySchema: z.ZodObject<{
-  title: z.ZodOptional<z.ZodString>;
-  excerpt: z.ZodOptional<z.ZodString>;
-}> = z.object({
+interface MemberSummary {
+  title?: string | undefined;
+  excerpt?: string | undefined;
+}
+
+const memberSummarySchema: z.ZodType<MemberSummary> = z.object({
   title: z.string().optional(),
   excerpt: z.string().optional(),
 });
 
 /**
- * Generation handler for series entities.
- * Generates AI descriptions from the series' member entities.
+ * Rewrite a series' description from the entities it indexes.
+ *
+ * A declared job rather than a generation: it edits a series that already
+ * exists, where a generation produces content for the runtime to persist as
+ * a new or pre-allocated entity.
  */
-export class SeriesGenerationHandler implements JobHandler<
-  string,
-  SeriesGenerationJobData
-> {
-  private readonly logger: Logger;
-  private readonly context: EntityPluginContext;
-  constructor(logger: Logger, context: EntityPluginContext) {
-    this.logger = logger;
-    this.context = context;
-  }
-
-  async process(data: SeriesGenerationJobData): Promise<unknown> {
+export const seriesDescriptionJob: EntityJobDeclaration<
+  typeof seriesGenerationJobSchema
+> = {
+  input: seriesGenerationJobSchema,
+  handle: async ({ input: data, ai, entities, template }) => {
     const seriesId = data.seriesId ?? data.title;
     if (!seriesId) {
       return { success: false, error: "seriesId or title required" };
     }
 
-    const series = await this.context.entityService.getEntity(
+    const series = await entities.getEntity(
       {
         entityType: "series",
         id: seriesId,
@@ -71,7 +65,10 @@ export class SeriesGenerationHandler implements JobHandler<
     }
 
     // Gather member content summaries across all entity types
-    const summaries = await this.gatherMemberSummaries(series.metadata.title);
+    const summaries = await gatherMemberSummaries(
+      series.metadata.title,
+      entities,
+    );
     if (summaries.length === 0) {
       return {
         success: false,
@@ -83,13 +80,13 @@ export class SeriesGenerationHandler implements JobHandler<
       data.prompt ??
       `Series name: ${series.metadata.title}\n\nContent in this series:\n${summaries.join("\n")}`;
 
-    const generated = await this.context.ai.generate(
+    const generated = await ai.generate(
       {
         prompt,
-        templateName: "series:description",
+        templateName: template("description"),
         representedIdentity: "none",
       },
-      generatedSeriesDescriptionSchema,
+      z.object({ description: z.string() }),
     );
 
     if (!generated.description) {
@@ -108,16 +105,12 @@ export class SeriesGenerationHandler implements JobHandler<
       parsed.metadata,
     );
 
-    await this.context.entities.update({
+    await entities.update({
       ...series,
       content: finalContent,
       contentHash: computeContentHash(finalContent),
       updated: new Date().toISOString(),
     });
-
-    this.logger.info(
-      `Enhanced series "${series.metadata.title}" with description`,
-    );
 
     return {
       success: true,
@@ -126,35 +119,33 @@ export class SeriesGenerationHandler implements JobHandler<
       description: generated.description,
       memberCount: summaries.length,
     };
-  }
+  },
+};
 
-  validateAndParse(data: unknown): SeriesGenerationJobData | null {
-    const result = seriesGenerationJobSchema.safeParse(data);
-    return result.success ? result.data : null;
-  }
+async function gatherMemberSummaries(
+  seriesName: string,
+  entities: JobEntityAccess,
+): Promise<string[]> {
+  const summaries: string[] = [];
+  const types = entities.getEntityTypes();
 
-  private async gatherMemberSummaries(seriesName: string): Promise<string[]> {
-    const summaries: string[] = [];
-    const types = this.context.entityService.getEntityTypes();
-
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await this.context.entityService.listEntities({
-        entityType: type,
-        options: {
-          filter: { metadata: { seriesName } },
-          // Deliberate cap: these summaries feed an AI prompt, so bound the
-          // context size rather than walk every member of a huge series.
-          limit: 100,
-        },
-      });
-      for (const entity of entities) {
-        const parsed = memberSummarySchema.safeParse(entity.metadata);
-        const { title, excerpt } = parsed.success ? parsed.data : {};
-        summaries.push(`- "${title ?? entity.id}": ${excerpt ?? ""}`);
-      }
+  for (const type of types) {
+    if (type === "series") continue;
+    const found = await entities.listEntities({
+      entityType: type,
+      options: {
+        filter: { metadata: { seriesName } },
+        // Deliberate cap: these summaries feed an AI prompt, so bound the
+        // context size rather than walk every member of a huge series.
+        limit: 100,
+      },
+    });
+    for (const entity of found) {
+      const parsed = memberSummarySchema.safeParse(entity.metadata);
+      const { title, excerpt } = parsed.success ? parsed.data : {};
+      summaries.push(`- "${title ?? entity.id}": ${excerpt ?? ""}`);
     }
-
-    return summaries;
   }
+
+  return summaries;
 }

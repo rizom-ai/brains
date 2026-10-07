@@ -23,7 +23,7 @@ describe("tool status helpers", () => {
 
   it("formats tool labels", () => {
     expect(formatToolStatusLabel("system_create-note")).toBe("create note");
-    expect(formatToolStatusLabel("playbook_manage")).toBe("playbook");
+    expect(formatToolStatusLabel("playbooks_manage")).toBe("playbook");
     expect(formatToolStatusLabel("customToolName")).toBe("custom tool name");
   });
 

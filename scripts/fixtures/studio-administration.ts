@@ -6,7 +6,7 @@ import {
   AuthRuntimeDatabase,
   AuthUserStore,
 } from "@brains/auth-service";
-import { createMockShell } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import {
   captureAdminWorkspaces,
@@ -29,7 +29,8 @@ export async function createAdministrationFixture(
   const directory = await mkdtemp(
     join(tmpdir(), "studio-administration-visual-"),
   );
-  const shell = createMockShell({ domain: "brain.test" });
+  const harness = createPluginHarness({ domain: "brain.test" });
+  const shell = harness.getMockShell();
   shell.getProfile = (): ReturnType<typeof shell.getProfile> => ({
     name: "Rover collective",
     description: "Visual fixture Anchor",
@@ -100,7 +101,7 @@ export async function createAdministrationFixture(
       isAnchor: false,
     };
     const workspace = workspaceByLabel(
-      await captureAdminWorkspaces(shell),
+      await captureAdminWorkspaces(harness),
       "Administration",
     );
     if (state !== "empty") {

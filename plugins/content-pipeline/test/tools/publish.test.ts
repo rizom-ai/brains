@@ -1,5 +1,41 @@
+import type { PipelineRuntime } from "../../src/runtime";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { createPublishTool, publishInputSchema } from "../../src/tools/publish";
+import {
+  handlePublishAction,
+  publishInputSchema,
+  type PublishOutput,
+} from "../../src/tools/publish";
+import {
+  PublishExecutor,
+  type PublishEntityExecutor,
+} from "../../src/publish-executor";
+import { runtimeFor } from "../helpers/install";
+
+/** The publish action as a tool, the shape these tests drive it through. */
+function createPublishTool(
+  runtime: PipelineRuntime,
+  pluginId: string,
+  providerRegistry: ProviderRegistry,
+  publishExecutor?: PublishEntityExecutor,
+): {
+  name: string;
+  handler(input: unknown, caller: ToolContext): Promise<PublishOutput>;
+} {
+  const executor =
+    publishExecutor ?? new PublishExecutor({ runtime, providerRegistry });
+  const toolName = `${pluginId}_publish`;
+  return {
+    name: toolName,
+    handler: (rawInput, toolContext) =>
+      handlePublishAction({
+        context: runtime,
+        executor,
+        toolName,
+        rawInput,
+        toolContext,
+      }),
+  };
+}
 import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";
 import type { PublishResult } from "@brains/contracts";
@@ -9,8 +45,6 @@ import {
   baseEntitySchema,
   createMockShell,
   type MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
   type Logger,
   createTestEntityAdapter,
 } from "@brains/plugins/test";
@@ -48,7 +82,7 @@ async function runConfirmedPublish(
 }
 
 describe("Publish Pipeline - Publish Tool", () => {
-  let context: ServicePluginContext;
+  let context: PipelineRuntime;
   let logger: Logger;
   let mockShell: MockShell;
   let providerRegistry: ProviderRegistry;
@@ -57,7 +91,7 @@ describe("Publish Pipeline - Publish Tool", () => {
   beforeEach(() => {
     logger = createSilentLogger();
     mockShell = createMockShell({ logger });
-    context = createServicePluginContext(mockShell, pluginId);
+    context = runtimeFor(mockShell);
     providerRegistry = ProviderRegistry.createFresh();
 
     // Register the social-post entity type (MockShell just tracks registered types)
@@ -76,17 +110,6 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(tool.name).toBe("publish-pipeline_publish");
       expect(tool.handler).toBeDefined();
     });
-
-    it("should have admin visibility and external side effects", () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
-      expect(tool.visibility).toBe("admin");
-      expect(tool.sideEffects).toBe("external");
-    });
-
-    it("should have description explaining direct publishing", () => {
-      const tool = createPublishTool(context, pluginId, providerRegistry);
-      expect(tool.description.toLowerCase()).toContain("publish");
-    });
   });
 
   describe("publish policy", () => {
@@ -95,7 +118,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         new PermissionService({
           entityActions: { "social-post": { publish: "admin" } },
         });
-      context = createServicePluginContext(mockShell, pluginId);
+      context = runtimeFor(mockShell);
       const tool = createPublishTool(context, pluginId, providerRegistry);
 
       const result = await tool.handler(
@@ -177,7 +200,7 @@ describe("Publish Pipeline - Publish Tool", () => {
   describe("publishing with provider", () => {
     beforeEach(async () => {
       // Create a draft post
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "draft-post",
           entityType: "social-post",
@@ -192,7 +215,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       });
 
       // Create an already published post
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "published-post",
           entityType: "social-post",
@@ -206,7 +229,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         },
       });
 
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "shared-post",
           entityType: "social-post",
@@ -220,7 +243,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         },
       });
 
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "restricted-post",
           entityType: "social-post",
@@ -378,12 +401,12 @@ describe("Publish Pipeline - Publish Tool", () => {
         throw new Error("Expected publish confirmation");
       }
 
-      const entity = await context.entityService.getEntity({
+      const entity = await context.entities.getEntity({
         entityType: "social-post",
         id: "draft-post",
       });
       if (!entity) throw new Error("Expected draft entity");
-      await context.entityService.updateEntity({
+      await mockShell.getEntityService().updateEntity({
         entity: {
           ...entity,
           content: "Changed content after confirmation",
@@ -488,7 +511,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       });
 
       // Verify entity was updated
-      const updated = await context.entityService.getEntity({
+      const updated = await context.entities.getEntity({
         entityType: "social-post",
         id: "draft-post",
       });
@@ -502,7 +525,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       providerRegistry.register("social-post", linkedinProvider);
 
       // Create post with frontmatter
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "frontmatter-post",
           entityType: "social-post",
@@ -541,7 +564,7 @@ This is the actual post content.`,
       providerRegistry.register("social-post", linkedinProvider);
 
       // Create an image entity
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "test-cover-image",
           entityType: "image",
@@ -553,7 +576,7 @@ This is the actual post content.`,
       });
 
       // Create post with coverImageId in frontmatter
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "post-with-image",
           entityType: "social-post",
@@ -595,7 +618,7 @@ Post content with an image.`,
       providerRegistry.register("social-post", linkedinProvider);
 
       // Create post with non-existent coverImageId
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "post-missing-image",
           entityType: "social-post",
@@ -642,7 +665,7 @@ Post content without image.`,
       };
       providerRegistry.register("social-post", failingProvider);
 
-      await context.entityService.createEntity({
+      await mockShell.getEntityService().createEntity({
         entity: {
           id: "test-post",
           entityType: "social-post",

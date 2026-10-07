@@ -82,7 +82,6 @@ export const NavigationSlots: readonly NavigationSlot[] = [
   "secondary",
 ];
 
-/** Display and behavior metadata for an entity type. */
 export interface SectionDefinitionInput {
   id: string;
   template: string;
@@ -469,6 +468,7 @@ export const entityDisplaySchema: Strict<{
     })
     .optional(),
 });
+/** Display and behavior metadata for an entity type. */
 export type EntityDisplayEntry = z.output<typeof entityDisplaySchema>;
 
 const sectionDefinitionSchema: Strict<{

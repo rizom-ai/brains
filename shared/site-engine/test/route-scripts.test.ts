@@ -108,6 +108,25 @@ describe("collectRouteScripts", () => {
     expect(collectRouteScripts(route, ctx, {})).toEqual([]);
   });
 
+  it("fingerprints empty owned assets but ignores inherited property names", () => {
+    const route = makeRoute(["map"]);
+    const ctx = makeContext({
+      map: makeTemplate([
+        { src: "/empty.js" },
+        { src: "toString" },
+        { src: "https://example.test/external.js" },
+      ]),
+    });
+    const scripts = collectRouteScripts(route, ctx, { "/empty.js": "" });
+    expect(scripts[0]).toMatch(
+      /^<script src="\/empty\.js\?v=[0-9a-f]{12}"><\/script>$/,
+    );
+    expect(scripts[1]).toBe('<script src="toString"></script>');
+    expect(scripts[2]).toBe(
+      '<script src="https://example.test/external.js"></script>',
+    );
+  });
+
   it("fingerprints a script src with the content of the asset served at it", () => {
     const route = makeRoute(["map"]);
     const ctx = makeContext({

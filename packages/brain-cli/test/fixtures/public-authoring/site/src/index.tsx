@@ -61,9 +61,10 @@ export default defineSite({
     bookmark: {
       label: "Bookmark",
       pluralName: "Bookmarks",
+      citable: true,
       navigation: { show: true, slot: "primary", priority: 20 },
     },
-    "reading-digest": { label: "Reading digest" },
+    "reading-digest": { label: "Reading digest", citable: false },
   },
 
   themeOverride: `

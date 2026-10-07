@@ -1,4 +1,5 @@
 import type { EmbeddingUsageMeter } from "./embedding-usage-meter";
+import type { GenerationUsageMeter } from "./generation-usage-meter";
 import {
   actorRefSchema,
   type AgentContextItem,
@@ -210,6 +211,8 @@ export interface AgentConfig {
    * measured, and the embeddings it made join its settlement.
    */
   embeddingUsage?: EmbeddingUsageMeter;
+  /** Same meter as the auxiliary AI service. Absent instrumentation leaves preflight cost unknown. */
+  generationUsage?: GenerationUsageMeter;
   /** Idle TTL before stopping and removing an unused conversation actor. */
   conversationActorIdleTtlMs?: number;
 }
@@ -217,6 +220,7 @@ export interface AgentConfig {
 /** A published FAQ's answer to a question asked before, with what it drew on. */
 export interface AskedBeforeAnswer {
   faqId: string;
+  faqQuestion: string;
   answer: string;
   sources: SourceCitation[];
 }

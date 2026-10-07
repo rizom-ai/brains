@@ -1,5 +1,5 @@
 import type { Adapter, Thread } from "chat";
-import type { ScopedRuntimeUploadStore } from "@brains/plugins";
+import type { ScopedRuntimeUploadStore } from "@brains/sdk/interfaces";
 
 /**
  * A thread with opaque per-thread state. This package never reads or

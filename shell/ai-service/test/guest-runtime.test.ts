@@ -14,6 +14,7 @@ import type {
 import { createSilentLogger } from "@brains/test-utils";
 import { AgentService } from "../src/agent-service";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
+import { GenerationUsageMeter } from "../src/generation-usage-meter";
 import {
   openAiEmbeddingPricingRevision,
   openAiGuestPricingRevision,
@@ -92,6 +93,7 @@ function harness(
   stored: Conversation | null = conversation,
   history: Message[] = [],
   config: Partial<AgentConfig> = {},
+  meterAuxiliary = true,
 ): GuestRuntimeHarness {
   const generate = mock<BrainAgent["generate"]>(async () => ({
     text: "Public answer",
@@ -139,6 +141,9 @@ function harness(
       agentContextProvider,
       uploadAttachmentResolver,
       canonicalIdentityResolver,
+      ...(meterAuxiliary
+        ? { generationUsage: GenerationUsageMeter.createFresh() }
+        : {}),
       ...config,
     },
   );
@@ -437,6 +442,34 @@ describe("guest runtime boundary", () => {
       expect(stored).not.toContain("social-post:announcement");
     });
 
+    it("does not persist an answer cancelled during source discovery", async () => {
+      const started = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<Array<typeof essay>>();
+      const h = harness(conversation, [], {
+        guestAnswerSources: async () => {
+          started.resolve();
+          return release.promise;
+        },
+      });
+      const answer = "Cancelled answer should not persist.";
+      h.generate.mockResolvedValue({
+        text: answer,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        steps: lookupSteps,
+      });
+      const controller = new AbortController();
+      const pending = h.service
+        .chat("Question", conversation.id, guestContext, controller.signal)
+        .catch((error: unknown) => error);
+      await started.promise;
+      controller.abort(new Error("Caller cancelled"));
+      release.resolve([essay]);
+      expect(await pending).toBeInstanceOf(Error);
+      expect(
+        JSON.stringify(h.conversations.addMessage.mock.calls),
+      ).not.toContain(answer);
+    });
+
     it("keeps the lookups' sources when the closest pages cannot be found", async () => {
       const guestAnswerSources = mock(async () => {
         throw new Error("index unavailable");
@@ -486,6 +519,7 @@ describe("guest runtime boundary", () => {
       );
     const askedBefore = {
       faqId: "how-does-rizom-keep-memory",
+      faqQuestion: "How does Rizom keep memory?",
       answer: "Rizom keeps memory in the brains of the people who hold it.",
       sources: [
         {
@@ -550,6 +584,88 @@ describe("guest runtime boundary", () => {
         askedBefore: { faqId: "how-does-rizom-keep-memory" },
       });
     });
+    it.each(["hit", "miss", "error"] as const)(
+      "settles confirmation and preflight embeddings on a %s",
+      async (outcome) => {
+        const generationUsage = GenerationUsageMeter.createFresh();
+        const embeddingUsage = EmbeddingUsageMeter.createFresh();
+        const h = harness(conversation, [], {
+          generationUsage,
+          embeddingUsage,
+          guestAskedBefore: async () => {
+            embeddingUsage.record("text-embedding-3-small", 1200);
+            const call = generationUsage.begin("gpt-5.6-luna");
+            if (!call) throw new Error("Missing generation measurement");
+            if (outcome === "error")
+              throw new Error("Provider failed without usage");
+            call.finish({
+              inputTokens: 10,
+              outputTokens: 3,
+              totalTokens: 13,
+              inputTokenDetails: {
+                noCacheTokens: 10,
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+              },
+              outputTokenDetails: { textTokens: 3, reasoningTokens: 0 },
+            });
+            return outcome === "hit" ? askedBefore : undefined;
+          },
+        });
+        h.generate.mockImplementation(async () => ({
+          text: "Public answer",
+          steps: [],
+          usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+          guestSettlement: {
+            usage: {
+              modelCalls: 1,
+              inputTokens: 10,
+              outputTokens: 4,
+              cachedInputTokens: 0,
+              reasoningTokens: 0,
+              embeddingTokens: 0,
+            },
+            cost: { state: "known", microUsd: 9, pricing: "test-revision" },
+          },
+        }));
+        const response = await h.service.chat(
+          "How does memory work?",
+          conversation.id,
+          guestContext,
+        );
+        expect(response.guestSettlement?.usage).toEqual({
+          modelCalls: outcome === "hit" ? 1 : 2,
+          inputTokens: outcome === "miss" ? 20 : 10,
+          outputTokens: outcome === "hit" ? 3 : outcome === "miss" ? 7 : 4,
+          cachedInputTokens: 0,
+          reasoningTokens: 0,
+          embeddingTokens: 1200,
+        });
+        expect(response.guestSettlement?.cost).toMatchObject(
+          outcome === "error"
+            ? { state: "unknown", reason: "missing-usage" }
+            : { state: "known", microUsd: outcome === "hit" ? 30 : 39 },
+        );
+        expect(h.generate).toHaveBeenCalledTimes(outcome === "hit" ? 0 : 1);
+      },
+    );
+
+    it("does not call an uninstrumented check free", async () => {
+      const h = harness(
+        conversation,
+        [],
+        { guestAskedBefore: async () => askedBefore },
+        false,
+      );
+      const response = await h.service.chat(
+        "Memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(response.guestSettlement?.cost.state).toBe("unknown");
+      expect(h.generate).not.toHaveBeenCalled();
+    });
+
     it("charges the check's own embedding to the turn", async () => {
       const embeddingUsage = EmbeddingUsageMeter.createFresh();
       const guestAskedBefore = mock(async () => {

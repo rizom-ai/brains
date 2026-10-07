@@ -5,6 +5,7 @@ import {
   integer,
   primaryKey,
   check,
+  index,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
 import type {
@@ -127,6 +128,13 @@ export const entities: EntitiesTable = sqliteTable(
       visibilityCheck: check(
         "entities_visibility_check",
         sql`${table.visibility} IN ('public', 'shared', 'restricted')`,
+      ),
+      sourceSummaryPartitionIdx: index(
+        "entities_type_visibility_source_summary_idx",
+      ).on(
+        table.entityType,
+        table.visibility,
+        sql`json_extract(${table.metadata}, '$.sourceSummaryId')`,
       ),
     };
   },

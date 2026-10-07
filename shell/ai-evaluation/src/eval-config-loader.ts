@@ -154,7 +154,9 @@ export function resolveEvalConfig(
   const evalConfig = resolveConfig(brainDefinition, env, overrides);
   if (!includeMcp) return evalConfig;
 
-  let mcpPlugin = evalConfig.plugins?.find(({ id }) => id === "mcp");
+  let mcpPlugin = evalConfig.plugins?.find(
+    ({ id }) => id === "@brains/mcp:mcp",
+  );
   if (!mcpPlugin) {
     // Consult the selected composition for its protocol provider, not for a
     // hosted interface to transplant with its dependencies missing.
@@ -164,7 +166,7 @@ export function resolveEvalConfig(
       brainDefinition,
       env,
       regularOverrides,
-    ).plugins?.find(({ id }) => id === "mcp");
+    ).plugins?.find(({ id }) => id === "@brains/mcp:mcp");
   }
   if (!mcpPlugin) {
     throw new Error(
@@ -178,7 +180,11 @@ export function resolveEvalConfig(
     );
   }
   const protocolPlugin = mcpPlugin.createProtocolPlugin();
-  if (protocolPlugin.id !== mcpPlugin.id) {
+  if (
+    protocolPlugin.id !== mcpPlugin.id ||
+    protocolPlugin.packageName !== mcpPlugin.packageName ||
+    protocolPlugin.version !== mcpPlugin.version
+  ) {
     throw new Error(
       "MCP protocol-only registration must preserve its plugin identity.",
     );
@@ -187,7 +193,9 @@ export function resolveEvalConfig(
   return {
     ...evalConfig,
     plugins: [
-      ...(evalConfig.plugins ?? []).filter(({ id }) => id !== "mcp"),
+      ...(evalConfig.plugins ?? []).filter(
+        ({ id }) => id !== "@brains/mcp:mcp",
+      ),
       protocolPlugin,
     ],
   };

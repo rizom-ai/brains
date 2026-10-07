@@ -1,6 +1,5 @@
-import { ContactPlugin } from "./plugin";
-import { ContactRequestPlugin } from "./entity/plugin";
-import type { ContactPluginConfig } from "./config";
+export { default, contactService } from "./plugin";
+export { contactRequest } from "./entity/plugin";
 
 export { ContactHttpHandlers, contactHttpPolicySchema } from "./http";
 export { ContactDelivery, contactDeliveryPolicySchema } from "./delivery";
@@ -27,7 +26,6 @@ export type {
 } from "./intake";
 export { contactStoragePolicySchema } from "./storage-slots";
 export type { ContactStoragePolicy } from "./storage-slots";
-export { ContactPlugin, ContactRequestPlugin };
 export { ContactInboxSource } from "./inbox-source";
 export { ContactAdmission } from "./admission";
 export type {
@@ -37,7 +35,7 @@ export type {
 } from "./admission";
 export { contactAdmissionPolicySchema } from "./admission-state";
 export type { ContactAdmissionPolicy } from "./admission-state";
-export { ContactRequestAdapter, contactRequestAdapter } from "./entity/adapter";
+export { contactRequestAdapter } from "./entity/adapter";
 export {
   contactSubmissionSchema,
   contactFrontmatterSchema,
@@ -50,10 +48,3 @@ export type {
   ContactMetadata,
   ContactRequest,
 } from "./entity/schema";
-
-/** Explicit compound composition; no site or default bundle activates intake. */
-export function contactPlugin(
-  config: ContactPluginConfig = {},
-): [ContactRequestPlugin, ContactPlugin] {
-  return [new ContactRequestPlugin(), new ContactPlugin(config)];
-}

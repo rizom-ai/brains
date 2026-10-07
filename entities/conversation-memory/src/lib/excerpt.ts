@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
 
 export function buildFallbackExcerpt(entity: BaseEntity): string {
   return (

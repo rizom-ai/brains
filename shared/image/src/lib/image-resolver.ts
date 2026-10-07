@@ -1,4 +1,4 @@
-import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
+import type { BaseEntity, EntitySchema } from "@brains/entity-service";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
@@ -10,6 +10,22 @@ const FRONTMATTER_BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 /**
+ * The one read image resolution needs, named structurally so a caller with
+ * a narrow reader — a declarative data source, say — can satisfy it without
+ * holding the entity service.
+ */
+export interface ImageEntityReader {
+  getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+}
+
+/**
  * Resolve an image entity by ID and return display-ready data
  *
  * @param imageId - The image entity ID to resolve
@@ -18,7 +34,7 @@ const frontmatterRecordSchema = z.record(z.string(), z.unknown());
  */
 export async function resolveImage(
   imageId: string,
-  entityService: ICoreEntityService,
+  entityService: ImageEntityReader,
 ): Promise<ResolvedImage | undefined> {
   const image = await entityService.getEntity(
     { entityType: "image", id: imageId },
@@ -112,7 +128,7 @@ export function setOgImageId<T extends { content: string }>(
  */
 export async function resolveEntityCoverImage(
   entity: BaseEntity,
-  entityService: ICoreEntityService,
+  entityService: ImageEntityReader,
 ): Promise<ResolvedImage | undefined> {
   const coverImageId = extractCoverImageId(entity);
   if (!coverImageId) {

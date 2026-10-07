@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
-import { migrateEntities } from "@brains/entity-service/migrate";
+import type { EntityService } from "@brains/entity-service";
 import { internalFullScope, type ContentVisibility } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
-import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
-import { mergeIntoFaq } from "../src/lib/faq-store";
+import { createTestEntityAccess } from "@brains/plugins/test";
+import { createTestDirectory } from "@brains/test-utils";
+import * as faqAdapter from "../src/lib/faq-content";
+import { faqMetadata } from "../src/lib/faq-content";
+import { captureOwnedFaq } from "../src/lib/owned-capture";
+import { openFoldStorage } from "./helpers/fold-storage";
 import {
   faqSchema,
   type FaqEntity,
@@ -18,30 +19,7 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
 
   beforeEach(async () => {
     directory = await createTestDirectory("faq-merge-eligibility");
-    const logger = createSilentLogger();
-    const dbConfig = { url: `file:${directory.dir}/entities.db` };
-    await migrateEntities(dbConfig, logger);
-    const registry = EntityRegistry.createFresh(logger);
-    registry.registerEntityType("faq", faqSchema, faqAdapter, {
-      publish: { publishStatuses: ["published"] },
-    });
-    service = EntityService.createFresh({
-      dbConfig,
-      embeddingDbConfig: { url: `file:${directory.dir}/embeddings.db` },
-      entityRegistry: registry,
-      logger,
-      jobQueueService: createMockShell().getJobQueueService(),
-      embeddingsEnabled: false,
-      embeddingService: {
-        dimensions: 1536,
-        generateEmbedding: async () => {
-          throw new Error("Unexpected provider call");
-        },
-        generateEmbeddings: async () => {
-          throw new Error("Unexpected provider call");
-        },
-      },
-    });
+    service = await openFoldStorage(directory.dir);
   });
 
   afterEach(async () => {
@@ -100,21 +78,62 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
     return read();
   }
 
-  function merge(entity: FaqEntity): Promise<boolean> {
-    return mergeIntoFaq(
+  async function merge(entity: FaqEntity): Promise<boolean> {
+    const { mutations } = createTestEntityAccess({
+      entityService: service,
+      ownedTypes: ["faq"],
+      owner: "@brains/faq",
+      declarationId: "capture",
+    });
+    const result = await captureOwnedFaq(
       {
-        entityService: service,
-        searchWithDistances: async () => [],
-        sameQuestionDistance: 0.25,
-        ai: {
-          generateObject: async () => {
-            throw new Error("Unexpected provider call");
-          },
-        },
+        conversationId: "conversation",
+        messageId: "reply",
+        position: 2,
+        userPermissionLevel:
+          entity.visibility === "public"
+            ? "public"
+            : entity.visibility === "shared"
+              ? "trusted"
+              : "admin",
       },
-      entity,
-      { asks: 1, alternatives: [{ answer: "PRIVATE_MERGE_TEST_MARKER" }] },
+      {
+        mutations,
+        wasClaimed: async () => false,
+        messages: async () => [
+          {
+            id: "question",
+            role: "user",
+            content: entity.metadata.question,
+            conversationId: "conversation",
+            timestamp: "2026-09-01T00:00:00.000Z",
+            metadata: {},
+          },
+          {
+            id: "reply",
+            role: "assistant",
+            content: "PRIVATE_MERGE_TEST_MARKER",
+            conversationId: "conversation",
+            timestamp: "2026-09-01T00:00:01.000Z",
+            metadata: {},
+          },
+        ],
+        classify: async () => ({
+          reusable: true,
+          question: entity.metadata.question,
+          answer: "PRIVATE_MERGE_TEST_MARKER",
+        }),
+        findSame: async () => entity,
+      },
     );
+    if (!result.captured) throw new Error("Expected captured answer");
+    const destination = await service.getEntity(
+      { entityType: "faq", id: result.entityId, visibilityScope: "restricted" },
+      faqSchema,
+    );
+    expect(destination?.visibility).toBe(entity.visibility);
+    if (!result.merged) expect(result.entityId).not.toBe(entity.id);
+    return result.merged;
   }
 
   it.each([

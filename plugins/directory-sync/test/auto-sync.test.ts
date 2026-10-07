@@ -3,7 +3,9 @@ import {
   createTestEntity,
 } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import type { DirectorySyncState } from "../src";
+import { instantiate } from "./helpers/install";
 import { normalizeDirectorySyncOptions } from "../src/lib/directory-options";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
@@ -20,7 +22,8 @@ import { MockEntityAdapter } from "./fixtures";
 
 describe("DirectorySync AutoSync", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: DirectorySyncPlugin;
+  let plugin: Plugin;
+  let state: () => DirectorySyncState;
   let testDir: string;
 
   beforeEach(async () => {
@@ -31,11 +34,11 @@ describe("DirectorySync AutoSync", () => {
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
 
-    plugin = new DirectorySyncPlugin({
+    ({ plugin, state } = instantiate({
       syncPath: testDir,
       autoSync: true,
       initialSync: false,
-    });
+    }));
   });
 
   afterEach(async () => {
@@ -46,7 +49,7 @@ describe("DirectorySync AutoSync", () => {
   });
 
   function getDirectorySyncOrFail(): DirectorySync {
-    const dirSync = plugin.getDirectorySync();
+    const dirSync = state().directorySync;
     if (!dirSync) throw new Error("DirectorySync not initialized");
     return dirSync;
   }
@@ -147,7 +150,7 @@ describe("DirectorySync AutoSync", () => {
     });
 
     it("should not setup handlers when autoSync is false", async () => {
-      const noAutoPlugin = new DirectorySyncPlugin({
+      const { plugin: noAutoPlugin, state: noAutoState } = instantiate({
         syncPath: testDir,
         autoSync: false,
         initialSync: false,
@@ -155,7 +158,7 @@ describe("DirectorySync AutoSync", () => {
 
       await harness.installPlugin(noAutoPlugin);
 
-      const dirSync = noAutoPlugin.getDirectorySync();
+      const dirSync = noAutoState().directorySync;
       expect(dirSync).toBeDefined();
 
       expect(existsSync(join(testDir, "test-entity.md"))).toBe(false);
@@ -190,7 +193,8 @@ describe("DirectorySync AutoSync", () => {
 
 describe("Export echo suppression", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: DirectorySyncPlugin;
+  let plugin: Plugin;
+  let state: () => DirectorySyncState;
   let testDir: string;
 
   beforeEach(async () => {
@@ -199,12 +203,12 @@ describe("Export echo suppression", () => {
     harness
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
-    plugin = new DirectorySyncPlugin({
+    ({ plugin, state } = instantiate({
       syncPath: testDir,
       autoSync: true,
       initialSync: false,
       commitDebounce: 100,
-    });
+    }));
     await harness.installPlugin(plugin);
   });
 
@@ -216,7 +220,7 @@ describe("Export echo suppression", () => {
   });
 
   function dirSyncOrFail(): DirectorySync {
-    const dirSync = plugin.getDirectorySync();
+    const dirSync = state().directorySync;
     if (!dirSync) throw new Error("DirectorySync not initialized");
     return dirSync;
   }

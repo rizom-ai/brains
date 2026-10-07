@@ -70,7 +70,10 @@ export class MessageBus implements IMessageBus {
     const response = await this.dispatchWithProvenance(request, (message) =>
       this.publisher.publish(message, request.broadcast),
     );
-    return toMessageResponse<R>(request.type, response);
+    // Broadcasts deliberately have no reply, including without listeners.
+    return request.broadcast === true
+      ? { noop: true }
+      : toMessageResponse<R>(request.type, response);
   }
 
   /** Collect one response from every matching handler in registration order. */

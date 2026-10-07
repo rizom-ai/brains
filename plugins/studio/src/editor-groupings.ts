@@ -1,26 +1,21 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { StudioRuntime } from "./runtime";
 import {
   GROUPING_PAGE_LIMIT,
   GROUPING_MAX_PAGE_LIMIT,
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
-} from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
+} from "@brains/sdk/services";
+import { decodeEntityIdPath } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
-import { getTypeCapabilities } from "./editor-access";
-import type {
-  EditorRouteOptions,
-  StudioRequestAccess,
-} from "./editor-contracts";
+import type { StudioRequestAccess } from "./editor-contracts";
 import { splitEntityContent } from "./editor-content";
-import { entityDisplayTitle } from "./editor-entities";
+import { getTypeCapabilities } from "./editor-access";
 import { jsonResponse } from "./editor-response";
 import type {
   GroupingDefinitionsFrontmatter,
   StudioGrouping,
 } from "./grouping-definitions-contract";
-import { isGroupingContributorType } from "./grouping-definitions";
 import { studioGroupingUsageQuerySchema } from "./grouping-query";
 
 const querySchema = studioGroupingUsageQuerySchema.extend({
@@ -64,11 +59,10 @@ export function studioGroupDescriptors(
 }
 
 export async function handleGroupingRead(
-  context: ServicePluginContext,
+  context: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
   mode: "catalog" | "members" | "usage",
-  getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const query = querySchema.safeParse({
@@ -77,27 +71,7 @@ export async function handleGroupingRead(
   });
   if (!query.success || (mode === "members" && query.data.value === undefined))
     return jsonResponse({ error: "Invalid grouping query" }, 400);
-  await context.entities.ensureGroupingsCurrent();
-  const definitions = getDefinitions?.().groupings ?? {};
-  const grouping = Object.hasOwn(definitions, query.data.grouping)
-    ? definitions[query.data.grouping]
-    : undefined;
-  if (!grouping) return jsonResponse({ error: "Unknown grouping" }, 404);
-  const admitted = new Set<string>();
-  for (const type of context.entityService.getEntityTypes()) {
-    if (
-      isGroupingContributorType(context, type) &&
-      !grouping.excludeTypes?.includes(type) &&
-      (await getTypeCapabilities(context, type, access))
-    )
-      admitted.add(type);
-  }
-  const descriptor = studioGroupDescriptors(
-    { [query.data.grouping]: grouping },
-    admitted,
-  )[0];
-  if (!descriptor) return jsonResponse({ error: "Unknown grouping" }, 404);
-  if (!(await context.entityService.ensureGroupingsReady())) {
+  if (!(await context.groupings.ensureReady(access.caller))) {
     const response = jsonResponse(
       { code: "groupings_initializing", error: "Collections are initializing" },
       503,
@@ -105,39 +79,54 @@ export async function handleGroupingRead(
     response.headers.set("Retry-After", "1");
     return response;
   }
+  const grouping = (await context.groupings.definitions(access.caller)).find(
+    (candidate) => candidate.key === query.data.grouping,
+  );
+  if (!grouping) return jsonResponse({ error: "Unknown grouping" }, 404);
+  const definition = context.groupingDefinitions().groupings[grouping.key];
+  if (!definition) return jsonResponse({ error: "Unknown grouping" }, 404);
+  const admitted = new Set<string>();
+  for (const type of grouping.types) {
+    if (await getTypeCapabilities(context, type, access)) admitted.add(type);
+  }
+  const descriptor = studioGroupDescriptors(
+    { [grouping.key]: definition },
+    admitted,
+  )[0];
+  if (!descriptor) return jsonResponse({ error: "Unknown grouping" }, 404);
   const input = {
     grouping: descriptor.key,
     entityTypes: descriptor.types.filter(
       (type) => !query.data.type || query.data.type === type,
     ),
-    visibilityScope: access.visibilityScope,
     signal: request.signal,
   };
-  if (mode === "usage") {
+  if (mode === "usage")
     return jsonResponse(
-      await context.entityService.queryGroupingUsage({
-        ...input,
-        values: query.data.values,
-      }),
+      await context.groupings.usage(
+        { ...input, values: query.data.values },
+        access.caller,
+      ),
     );
-  }
   const pagination = { offset: query.data.offset, limit: query.data.limit };
-  if (mode === "catalog") {
+  if (mode === "catalog")
     return jsonResponse({
       grouping: descriptor,
-      ...(await context.entityService.queryGroupingCatalog({
-        ...input,
-        ...pagination,
-      })),
+      ...(await context.groupings.catalog(
+        { ...input, ...pagination },
+        access.caller,
+      )),
     });
-  }
-  const page = await context.entityService.queryGroupingMembers({
-    ...input,
-    ...pagination,
-    value: query.data.value ?? "",
-    q: query.data.q,
-    sort: query.data.sort,
-  });
+  const page = await context.groupings.members(
+    {
+      ...input,
+      ...pagination,
+      value: query.data.value ?? "",
+      q: query.data.q,
+      sort: query.data.sort,
+    },
+    access.caller,
+  );
   return jsonResponse({
     grouping: descriptor,
     total: page.total,
@@ -150,7 +139,7 @@ export async function handleGroupingRead(
           .frontmatter,
         visibility: entity.visibility,
       },
-      displayTitle: entityDisplayTitle(context, entity),
+      displayTitle: context.shapes.displayTitle(entity),
       updated: entity.updated,
     })),
   });

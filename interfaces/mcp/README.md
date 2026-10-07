@@ -13,7 +13,7 @@ This package provides transport protocols (stdio and HTTP) for the Model Context
 - **Transport-specific logging**: stderr for STDIO, console for HTTP
 - **Session management**: For HTTP connections
 - **Transport-based permissions**: Automatic permission level based on transport type
-- **CQRS tool exposure**: Raw read tools stay composable; mutations route through agent-backed `chat`/`confirm`
+- **Conversational basic mode**: Reads and mutations route through agent-backed `mcp_chat`/`mcp_confirm`; raw tools default to debug-only
 
 ## Installation
 
@@ -23,44 +23,41 @@ bun add @brains/mcp
 
 ## Usage
 
-### As an Interface Plugin
+### As an installed interface
 
-```typescript
-import { MCPInterface } from "@brains/mcp";
+The package exports a declarative interface, not a plugin class. Configure the
+installed `mcp` member in `brain.yaml`:
 
-// For STDIO transport
-const stdioInterface = new MCPInterface({
-  transport: "stdio",
-  mode: "basic", // default: chat/confirm only
-});
-
-// For authenticated HTTP transport
-const httpInterface = new MCPInterface({
-  transport: "http",
-  httpPort: 3333,
-  authToken: process.env.MCP_AUTH_TOKEN,
-});
-
-// Register with shell
-await shell.registerPlugin(stdioInterface);
+```yaml
+plugins:
+  mcp:
+    transport: http
+    mode: basic
+    authToken: ${MCP_AUTH_TOKEN}
 ```
+
+Use `transport: stdio` for local process clients. Basic mode exposes only
+`mcp_chat` and `mcp_confirm`.
 
 ### Protocol registration without a transport host
 
-`MCPInterface` implements `ProtocolPluginProvider`. Its `createProtocolPlugin()`
-returns a fresh `MCPProtocol` plugin with the same identity, protocol mode, and
-shared `chat`/`confirm` handlers, but no HTTP routes, endpoint advertisements, or
-listener daemon. Install either the hosted interface or its protocol plugin, not
-both under the same `mcp` identity.
+The MCP declaration supplies the bounded `protocol` selector on `defineInterface`.
+It receives validated configuration only and returns a mode and tool definitions.
+The native installed instance implements `ProtocolPluginProvider`; its
+`createProtocolPlugin()` returns a fresh registration with the same installed
+package/plugin identity and mode, using the shared `mcp_chat`/`mcp_confirm`
+handlers. Host configuration, setup, routes, endpoint advertisements and listener
+daemons are not carried over. Install either the hosted interface or its protocol
+registration, not both under the same `@brains/mcp:mcp` identity.
 
 The embedding connects SDK transports to permission-scoped servers created by the
 shell's MCP service. It owns connection cleanup and must supply trusted caller
 context; protocol-only registration is not an authentication bypass for remote
-clients. Hosted HTTP still requires webserver and retains its authentication and
-debug-mode checks.
+clients. Hosted HTTP still uses the runtime HTTP host and retains its authentication
+and Admin-gated debug-mode checks.
 
 The evaluator uses this registration path for `--mcp-basic`. It does not change
-transport configuration, restore a production webserver, or open stdio. From
+transport configuration, restore a production host, or open stdio. From
 `packages/brain-cli`, run the protocol-specific regression with:
 
 ```bash
@@ -191,17 +188,17 @@ interface MCPConfig {
 }
 ```
 
-`basic` mode is the default and is suitable for remote callers. It exposes only
-the conversational adapters:
+`basic` mode is the default and is suitable for remote callers. Its built-in
+conversational adapters use these protocol names:
 
-- `chat` — routes commands/reasoned requests through the brain agent
-- `confirm` — resolves pending confirmations returned by `chat`
+- `mcp_chat` — routes commands/reasoned requests through the brain agent
+- `mcp_confirm` — resolves pending confirmations returned by `mcp_chat`
 
-Every request — reads included — goes through `chat` so the brain's system
+Every request — reads included — goes through `mcp_chat` so the brain's system
 prompt, context, permissions, and confirmation flow stay in the loop. Successful
-`chat`/`confirm` responses include the agent text and may include `toolResults`
+`mcp_chat`/`mcp_confirm` responses include the agent text and may include `toolResults`
 and `readYourWrites` handles with entity IDs and job IDs. In basic mode, ask
-through `chat` to retrieve or poll those results. For non-public saves, ask for
+through `mcp_chat` to retrieve or poll those results. For non-public saves, ask for
 team/shared visibility or private/Admin-only
 visibility explicitly; the agent maps those requests to the canonical
 `system_create.visibility` field while basic mode continues to hide raw tools.
@@ -286,12 +283,13 @@ describe("StreamableHTTPServer", () => {
 
 ## MCP Tools
 
-In `basic` mode, the interface exposes only the MCP interface tools:
+In `basic` mode, the interface exposes its conversational tools:
 
-- `chat` - Route commands and reasoned requests through the brain agent
-- `confirm` - Confirm or deny a pending action returned by `chat`
+- `mcp_chat` - Route commands and reasoned requests through the brain agent
+- `mcp_confirm` - Confirm or deny a pending action returned by `mcp_chat`
 
-Raw tools — reads and writes alike — are not advertised in `basic` mode. Use
+Ordinary tools — reads and writes alike — default to debug-only unless explicitly
+opted into basic exposure. Agent availability is independent of direct exposure. Use
 `debug` mode only for local/operator inspection when you intentionally need raw
 tool access (raw reads such as `system_search`, `system_get`, `system_list`, and
 `system_job_status` included).

@@ -11,6 +11,6 @@ export function isGroupingContributor(
     !!adapter?.frontmatterSchema &&
     !adapter.isSingleton &&
     config.classification !== "system" &&
-    config.binaryStorage !== "asset"
+    config.binaryStorage === undefined
   );
 }

@@ -1,39 +1,15 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
-import { SeriesListTemplate } from "../templates/series-list";
-import { SeriesDetailTemplate } from "../templates/series-detail";
-
-const seriesFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-  coverImageId: z.string().nullable().default(null),
-});
-
-const seriesMetadataSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-});
-
-const seriesListItemSchema = z.object({
-  id: z.string(),
-  // The list component reads this as the literal "series"; the schema has to
-  // prove that rather than let any entity type through.
-  entityType: z.literal("series"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: seriesMetadataSchema,
-  contentHash: z.string(),
-  frontmatter: seriesFrontmatterSchema,
-  description: z.string().nullable().default(null),
-  postCount: z.number(),
-  coverImageUrl: z.string().nullable().default(null),
-  coverImageWidth: z.number().nullable().default(null),
-  coverImageHeight: z.number().nullable().default(null),
-});
+import { createTemplate, paginationInfoSchema } from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import {
+  SeriesListTemplate,
+  type SeriesListProps,
+} from "../templates/series-list";
+import {
+  SeriesDetailTemplate,
+  type SeriesDetailProps,
+} from "../templates/series-detail";
+import { seriesListItemSchema } from "../schemas/series";
 
 const seriesListSchema = z.object({
   series: z.array(seriesListItemSchema),
@@ -64,21 +40,27 @@ const seriesDetailSchema = z.object({
 
 export function getTemplates(): Record<string, Template> {
   return {
-    "series-list": createTemplate<z.output<typeof seriesListSchema>>({
+    "series-list": createTemplate<
+      z.output<typeof seriesListSchema>,
+      SeriesListProps
+    >({
       name: "series-list",
       description: "Series list page template",
       schema: seriesListSchema,
-      dataSourceId: "series:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: {
         component: SeriesListTemplate,
       },
     }),
-    "series-detail": createTemplate<z.output<typeof seriesDetailSchema>>({
+    "series-detail": createTemplate<
+      z.output<typeof seriesDetailSchema>,
+      SeriesDetailProps
+    >({
       name: "series-detail",
       description: "Series detail page template",
       schema: seriesDetailSchema,
-      dataSourceId: "series:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: {
         component: SeriesDetailTemplate,

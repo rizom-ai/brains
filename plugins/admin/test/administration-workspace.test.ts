@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+import { createPluginHarness, createTempDataDir } from "@brains/plugins/test";
 
 import { z } from "@brains/utils/zod";
 import {
@@ -102,7 +102,8 @@ function tabIds(value: unknown): string[] {
 
 describe("Admin-owned Studio Administration workspace", () => {
   it("loads only the selected tab and aggregates administration attention", async () => {
-    const shell = createMockShell({ domain: "brain.test" });
+    const harness = createPluginHarness({ domain: "brain.test" });
+    const shell = harness.getMockShell();
     shell.getChannelRegistry().registerDescriptor("test", {
       type: "manual-test",
       displayName: "Manual test",
@@ -153,7 +154,7 @@ describe("Admin-owned Studio Administration workspace", () => {
     };
 
     const workspace = workspaceByLabel(
-      await captureAdminWorkspaces(shell),
+      await captureAdminWorkspaces(harness),
       "Administration",
     );
     expect(await workspace.accessHandler(actor)).toBe(true);

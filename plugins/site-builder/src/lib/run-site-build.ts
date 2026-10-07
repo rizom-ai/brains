@@ -1,4 +1,4 @@
-import { SITE_CHANNELS } from "@brains/contracts";
+import { SITE_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { ProgressCallback } from "@brains/utils/progress";
 import { CallbackProgressReporter } from "@brains/utils/progress";
@@ -36,6 +36,7 @@ import {
 } from "./preflight-site-build";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
 import { writeSiteBuildSeoFiles } from "./seo-file-handler";
+import { writeSiteBuildFeeds } from "./feed-file-handler";
 import {
   TransactionalSiteBuildOutput,
   type SiteBuildOutputLifecycle,
@@ -83,6 +84,13 @@ export async function runSiteBuild(
     });
     options.signal.throwIfAborted();
 
+    // Read installed contributions in this process before resolving routes.
+    // Workers do not run web-only ready hooks and cannot inherit its registry.
+    await options.pipelineContext.services.publishMessage({
+      topic: SITE_BUILDER_CHANNELS.routesCollect,
+      data: {},
+    });
+    options.signal.throwIfAborted();
     await generateSiteRoutes({
       pipelineContext: options.pipelineContext,
       publishedOnly: parsedOptions.environment === "production",
@@ -172,7 +180,7 @@ export async function runSiteBuild(
       layouts: parsedOptions.layouts,
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      sendMessage: options.pipelineContext.services.sendMessage,
+      publishMessage: options.pipelineContext.services.publishMessage,
       rendererIdentity: options.rendererIdentity ?? RENDERER_PROCESS_IDENTITY,
     });
     const currentManifest = await outputLifecycle.getCurrentManifest?.(
@@ -245,10 +253,9 @@ export async function runSiteBuild(
         stagingFailures.push(detail);
       },
     };
-    await options.pipelineContext.services.sendMessage({
-      type: SITE_CHANNELS.buildStaging,
-      payload: stagingPayload,
-      broadcast: true,
+    await options.pipelineContext.services.publishMessage({
+      topic: SITE_CHANNELS.buildStaging,
+      data: stagingPayload,
     });
     options.signal.throwIfAborted();
     if (stagingFailures.length > 0) {
@@ -273,6 +280,18 @@ export async function runSiteBuild(
       preparedBuild: preparation.preparedBuild,
       logger: options.pipelineContext.logger,
       siteUrl: baseUrl,
+      signal: options.signal,
+    });
+
+    await writeSiteBuildFeeds({
+      outputDir: outputTarget.generationDir,
+      entityService: options.pipelineContext.services.entityService,
+      environment: preparation.preparedBuild.environment,
+      siteTitle: preparation.preparedBuild.site.title,
+      siteDescription: preparation.preparedBuild.site.description,
+      siteUrl: baseUrl,
+      generateEntityUrl: stagingPayload.generateEntityUrl,
+      logger: options.pipelineContext.logger,
       signal: options.signal,
     });
 

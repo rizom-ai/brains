@@ -1,6 +1,6 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { markdownToHtml } from "@brains/ui-library";
+import { markdownToHtml } from "@rizom/brain-ui";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";

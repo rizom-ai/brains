@@ -1,29 +1,33 @@
-import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { LoggerContract } from "@brains/utils/logger";
+import type { ProgressContract } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
-import { LinkAdapter } from "../adapters/link-adapter";
+import { PROGRESS_STEPS, JobResult } from "@brains/sdk/services";
+import type { IEntityAINamespace, EntityAccess } from "@brains/sdk/entities";
+import { createLinkContent, parseLinkContent } from "../lib/link-content";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
-import {
-  linkStatusSchema,
-  readLinkStatus,
-  type LinkSource,
-} from "../schemas/link";
+import type { LinkSource, LinkStatus } from "../schemas/link";
+import { linkStatusSchema, linkEntityReference } from "../schemas/link";
+
 import { linkExtractionSchema } from "../templates/extraction-template";
 
 /**
  * Input schema for link capture job
  */
-const linkCaptureMetadataSchema: z.ZodObject<{
-  interfaceId: z.ZodOptional<z.ZodString>;
-  userId: z.ZodOptional<z.ZodString>;
-  channelId: z.ZodOptional<z.ZodString>;
-  channelName: z.ZodOptional<z.ZodString>;
-  timestamp: z.ZodOptional<z.ZodString>;
-}> = z.object({
+export interface LinkCaptureMetadata {
+  interfaceId?: string | undefined;
+  userId?: string | undefined;
+  channelId?: string | undefined;
+  channelName?: string | undefined;
+  timestamp?: string | undefined;
+}
+
+export interface LinkCaptureJobData {
+  url: string;
+  metadata?: LinkCaptureMetadata | undefined;
+}
+
+const linkCaptureMetadataSchema: z.ZodType<LinkCaptureMetadata> = z.object({
   interfaceId: z.string().optional(),
   userId: z.string().optional(),
   channelId: z.string().optional(),
@@ -31,38 +35,31 @@ const linkCaptureMetadataSchema: z.ZodObject<{
   timestamp: z.string().optional(),
 });
 
-export type LinkCaptureMetadata = z.output<typeof linkCaptureMetadataSchema>;
-
-export const linkCaptureJobSchema: z.ZodObject<{
-  url: z.ZodURL;
-  metadata: z.ZodOptional<typeof linkCaptureMetadataSchema>;
-}> = z.object({
+export const linkCaptureJobSchema: z.ZodType<LinkCaptureJobData> = z.object({
   url: z.url(),
   metadata: linkCaptureMetadataSchema.optional(),
 });
 
-export type LinkCaptureJobData = z.output<typeof linkCaptureJobSchema>;
-
 /**
  * Result schema for link capture job
  */
-export const linkCaptureResultSchema: z.ZodObject<{
-  success: z.ZodBoolean;
-  entityId: z.ZodOptional<z.ZodString>;
-  title: z.ZodOptional<z.ZodString>;
-  url: z.ZodOptional<z.ZodString>;
-  status: z.ZodOptional<typeof linkStatusSchema>;
-  error: z.ZodOptional<z.ZodString>;
-}> = z.object({
+export interface LinkCaptureResult {
+  success: boolean;
+  entityId?: string | undefined;
+  title?: string | undefined;
+  url?: string | undefined;
+  status?: LinkStatus | undefined;
+  error?: string | undefined;
+}
+
+export const linkCaptureResultSchema: z.ZodType<LinkCaptureResult> = z.object({
   success: z.boolean(),
   entityId: z.string().optional(),
   title: z.string().optional(),
   url: z.string().optional(),
-  status: linkStatusSchema.optional(),
+  status: z.enum(["pending", "draft", "published"]).optional(),
   error: z.string().optional(),
 });
-
-export type LinkCaptureResult = z.output<typeof linkCaptureResultSchema>;
 
 export interface LinkCaptureJobHandlerOptions {
   jinaApiKey?: string;
@@ -71,26 +68,28 @@ export interface LinkCaptureJobHandlerOptions {
 /**
  * Job handler for link capture with AI extraction
  */
-export class LinkCaptureJobHandler extends BaseJobHandler<
-  "link-capture",
-  LinkCaptureJobData,
-  LinkCaptureResult
-> {
-  private readonly context: EntityPluginContext;
-  private linkAdapter: LinkAdapter;
+export class LinkCaptureJobHandler {
+  private readonly logger: LoggerContract;
+  private readonly entities: Pick<EntityAccess, "getEntity" | "saveProcessed">;
+  private readonly ai: IEntityAINamespace;
+  private readonly extractionTemplate: string;
   private urlFetcher: UrlFetcher;
 
   constructor(
-    logger: Logger,
-    context: EntityPluginContext,
+    logger: LoggerContract,
+    deps: {
+      entities: Pick<EntityAccess, "getEntity" | "saveProcessed">;
+      ai: IEntityAINamespace;
+      // Resolved by the runtime: only it knows the scope templates register
+      // under, and a name written here silently stops resolving if it moves.
+      extractionTemplate: string;
+    },
     options?: LinkCaptureJobHandlerOptions,
   ) {
-    super(logger, {
-      schema: linkCaptureJobSchema,
-      jobTypeName: "link-capture",
-    });
-    this.context = context;
-    this.linkAdapter = new LinkAdapter();
+    this.logger = logger;
+    this.entities = deps.entities;
+    this.ai = deps.ai;
+    this.extractionTemplate = deps.extractionTemplate;
     this.urlFetcher = new UrlFetcher(
       options?.jinaApiKey ? { jinaApiKey: options.jinaApiKey } : undefined,
     );
@@ -99,7 +98,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
   async process(
     data: LinkCaptureJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<LinkCaptureResult> {
     const { url, metadata } = data;
 
@@ -119,16 +118,19 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: "Checking for existing link",
       });
 
-      const existingEntity = await this.context.entityService.getEntity({
+      const existingEntity = await this.entities.getEntity({
         entityType: "link",
         id: entityId,
       });
 
       if (existingEntity) {
-        const { frontmatter } = this.linkAdapter.parseLinkContent(
-          existingEntity.content,
+        const { frontmatter } = parseLinkContent(existingEntity.content);
+        // Parsed, not asserted: the stored metadata is a record, and a link
+        // written under an older shape must not read back as a valid status.
+        const parsedStatus = linkStatusSchema.safeParse(
+          existingEntity.metadata["status"],
         );
-        const status = readLinkStatus(existingEntity.metadata);
+        const status = parsedStatus.success ? parsedStatus.data : undefined;
 
         if (status !== "pending") {
           this.logger.info("Link already captured, returning existing", {
@@ -174,7 +176,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           });
           const title = new URL(url).hostname;
           const error = `Could not capture link: ${fetchResult.error}`;
-          const content = this.linkAdapter.createLinkContent({
+          const content = createLinkContent({
             status: "pending",
             title,
             url,
@@ -184,14 +186,10 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
             capturedAt,
             source,
           });
-          await saveProcessedEntity({
-            entityService: this.context.entityService,
-            entity: {
-              id: entityId,
-              entityType: "link",
-              content,
-              metadata: { status: "pending", title, capturedAt },
-            },
+          await this.entities.saveProcessed(linkEntityReference, {
+            id: entityId,
+            content,
+            metadata: { status: "pending", title, capturedAt },
           });
           return {
             success: false,
@@ -211,9 +209,9 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: "Extracting content with AI",
       });
 
-      const extractionResult = await this.context.ai.generate(
+      const extractionResult = await this.ai.generate(
         {
-          templateName: "link:extraction",
+          templateName: this.extractionTemplate,
           prompt: fetchResult.success
             ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
             : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
@@ -251,7 +249,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           message: "Saving link as pending",
         });
 
-        const content = this.linkAdapter.createLinkContent({
+        const content = createLinkContent({
           status: "pending",
           title,
           url,
@@ -262,14 +260,10 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           source,
         });
 
-        const entity = await saveProcessedEntity({
-          entityService: this.context.entityService,
-          entity: {
-            id: entityId,
-            entityType: "link",
-            content,
-            metadata: { status: "pending", title, capturedAt },
-          },
+        const entity = await this.entities.saveProcessed(linkEntityReference, {
+          id: entityId,
+          content,
+          metadata: { status: "pending", title, capturedAt },
         });
 
         await progressReporter.report({
@@ -280,7 +274,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
         return {
           success: true,
-          entityId: entity.entityId,
+          entityId: entity.id,
           title,
           url,
           status: "pending",
@@ -294,7 +288,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: `Saving link: "${extractionResult.title}"`,
       });
 
-      const content = this.linkAdapter.createLinkContent({
+      const content = createLinkContent({
         status: "draft",
         title: extractionResult.title,
         url,
@@ -305,17 +299,13 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         source,
       });
 
-      const entity = await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: {
-          id: entityId,
-          entityType: "link",
-          content,
-          metadata: {
-            status: "draft",
-            title: extractionResult.title,
-            capturedAt,
-          },
+      const entity = await this.entities.saveProcessed(linkEntityReference, {
+        id: entityId,
+        content,
+        metadata: {
+          status: "draft",
+          title: extractionResult.title,
+          capturedAt,
         },
       });
 
@@ -327,7 +317,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
       return {
         success: true,
-        entityId: entity.entityId,
+        entityId: entity.id,
         title: extractionResult.title,
         url,
         status: "draft",
@@ -361,15 +351,6 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
     return {
       ref: `${interfaceId}:local`,
       label: interfaceId.toUpperCase(),
-    };
-  }
-
-  protected override summarizeDataForLog(
-    data: LinkCaptureJobData,
-  ): Record<string, unknown> {
-    return {
-      url: data.url,
-      interfaceId: data.metadata?.interfaceId,
     };
   }
 }

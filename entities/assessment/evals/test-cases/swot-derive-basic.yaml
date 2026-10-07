@@ -6,7 +6,7 @@ tags:
   - agent-discovery
   - swot
   - core
-plugin: assessment
+plugin: "@brains/assessment:swot"
 handler: deriveSwot
 
 input:

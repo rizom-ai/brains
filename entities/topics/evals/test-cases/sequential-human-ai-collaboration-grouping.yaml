@@ -10,7 +10,7 @@ tags:
   - grouping
   - canonicalization
   - collaboration
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: extractSequentially
 
 input:

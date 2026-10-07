@@ -22,6 +22,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | Package                      | Purpose                                                                 |
 | ---------------------------- | ----------------------------------------------------------------------- |
 | `shell/core`                 | Plugin lifecycle, daemon registry, initialization                       |
+| `shell/http-host`            | Runtime-owned HTTP listener, static files, routes and health endpoints  |
 | `shell/app`                  | Brain resolver, CLI runner, brain.yaml parsing                          |
 | `shell/plugins`              | Base plugin classes, context types, test harnesses                      |
 | `shell/entity-service`       | Entity CRUD, search, vector embeddings, frontmatter                     |
@@ -103,15 +104,15 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Interfaces
 
-| Package                | Purpose                                                                                             |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                                     |
-| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                                           |
-| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                                   |
-| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                                               |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                       |
-| `interfaces/webserver` | In-process Hono server: site pages, dashboard/Studio routes, API routes, and split health endpoints |
-| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                                            |
+| Package                | Purpose                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                               |
+| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                     |
+| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport             |
+| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                         |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs |
+
+| `interfaces/a2a` | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks) |
 
 ## Sites
 

@@ -1,5 +1,5 @@
 import { describe, expect, it as bunIt } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
@@ -126,6 +126,23 @@ describe("public authoring Phase 4 packed site contract", () => {
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(consumerFixture, consumerDirectory, tarballs);
+      await runCommand(
+        [
+          "bun",
+          "-e",
+          `import assert from "node:assert/strict";
+          import site from "@fixture/reading-site";
+          import { defineSite, entityDisplaySchema } from "@rizom/site";
+          assert.deepEqual(entityDisplaySchema.parse({ label: "Excluded", citable: false }), { label: "Excluded", citable: false });
+          assert.throws(() => entityDisplaySchema.parse({ label: "Invalid", citable: "false" }));
+          assert.throws(() => entityDisplaySchema.parse({ label: "Typo", citabel: false }));
+          assert.equal(site.entityDisplay.bookmark.citable, true);
+          assert.equal(site.entityDisplay["reading-digest"].citable, false);
+          const excluded = defineSite({ ...site, entityDisplay: { bookmark: { label: "Bookmark", citable: false } } });
+          assert.equal(excluded.entityDisplay.bookmark.citable, false);`,
+        ],
+        consumerDirectory,
+      );
 
       const generatedSourceDirectory = join(consumerDirectory, "generated");
       await runCommand(
@@ -156,6 +173,13 @@ describe("public authoring Phase 4 packed site contract", () => {
         generatedSourceDirectory,
         generatedConsumerDirectory,
         tarballs,
+      );
+      // Advanced export probe stays outside the stable-only golden package.
+      await writeFile(
+        join(generatedConsumerDirectory, "src/entity-display-canary.ts"),
+        `import { entityDisplaySchema, type EntityDisplayEntry } from "@rizom/site";
+         export const parsed: EntityDisplayEntry = entityDisplaySchema.parse({ label: "Excluded", citable: false });
+         export const citable: boolean | undefined = parsed.citable;`,
       );
       await runCommand(
         ["bun", "x", "tsc", "--noEmit"],
@@ -194,7 +218,7 @@ describe("public authoring Phase 4 packed site contract", () => {
           { cause: error },
         );
       }
-      expect(request).toContain("Site build requested for preview");
+      expect(request).toContain('"requested": "preview"');
       await waitForAdditionalBuildSettlement(runtime, settledBuilds);
 
       const outputDirectory = join(consumerDirectory, "dist", "site-preview");
@@ -226,6 +250,67 @@ describe("public authoring Phase 4 packed site contract", () => {
       runtime = undefined;
       expect(shutdown).not.toContain("missed its worker heartbeat");
       expect(shutdown).not.toContain("api.openai.com");
+
+      // Exercise the built-in declarative Organization composition in the same
+      // isolated packed app, with an explicit rebuild on the running worker.
+      const configPath = join(consumerDirectory, "brain.yaml");
+      const config = await readFile(configPath, "utf8");
+      if (!config.includes('package: "@fixture/reading-site"'))
+        throw new Error("Missing fixture site selection");
+      await writeFile(
+        configPath,
+        config
+          .replace(
+            'package: "@fixture/reading-site"',
+            'package: "@brains/site-organization"',
+          )
+          .replace("add: [mcp]", "add: [mcp, agents]")
+          .replace(
+            "plugins:\n",
+            "plugins:\n  agents:\n    enableSkillDerivation: false\n",
+          ),
+      );
+      runtime = startRuntime(consumerDirectory);
+      await runtime.waitForOutput("Brain worker runtime ready", 60_000);
+      const organizationBuilds = buildSettlementCount(runtime);
+      await runCommand(
+        [
+          "bun",
+          "run",
+          "brain",
+          "build-site",
+          "--environment",
+          "preview",
+          "--remote",
+          "http://127.0.0.1:8085",
+          "--token",
+          remoteToken,
+        ],
+        consumerDirectory,
+        { env: runtimeEnv, timeoutMs: 90_000 },
+      );
+      await waitForAdditionalBuildSettlement(runtime, organizationBuilds);
+      const organizationHtml = await waitForBuiltFile(
+        join(outputDirectory, "index.html"),
+        'data-atlas=""',
+        runtime,
+      );
+      expect(organizationHtml).not.toContain("Read with intention");
+      const atlasScript = /\/scripts\/homepage-atlas\.[a-f0-9]{12}\.js/u.exec(
+        organizationHtml,
+      )?.[0];
+      expect(atlasScript).toBeDefined();
+      if (!atlasScript)
+        throw new Error("Missing site-owned deferred atlas script");
+      expect(organizationHtml).toContain(
+        `<script src="${atlasScript}" defer></script>`,
+      );
+      expect(
+        await readFile(join(outputDirectory, atlasScript.slice(1)), "utf8"),
+      ).toContain("data-atlas");
+      const organizationShutdown = await stopRuntime(runtime);
+      runtime = undefined;
+      expect(organizationShutdown).not.toContain("api.openai.com");
     } finally {
       if (runtime) await stopRuntime(runtime);
       await rm(temporaryDirectory, { recursive: true, force: true });

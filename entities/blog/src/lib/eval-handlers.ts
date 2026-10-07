@@ -1,6 +1,6 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import type { EntityEvalDeclaration } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 
 const generatePostInputSchema = z.object({
   prompt: z.string(),
@@ -12,43 +12,34 @@ const generateExcerptInputSchema = z.object({
   content: z.string(),
 });
 
-type GeneratePostInput = z.output<typeof generatePostInputSchema>;
-type GenerateExcerptInput = z.output<typeof generateExcerptInputSchema>;
-
-export function registerEvalHandlers(context: EntityPluginContext): void {
-  context.eval.registerHandler("generatePost", async (input: unknown) => {
-    const parsed: GeneratePostInput = generatePostInputSchema.parse(input);
-    const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(context.entityService),
-    );
-    return context.ai.generate(
+/**
+ * Eval handlers, keyed by the `handler:` name their test cases use. These
+ * run the same prompts and templates generation does, so a drift in either
+ * surfaces here rather than only in production.
+ */
+export const blogEvals: EntityEvalDeclaration = {
+  generatePost: async (input, { ai, entities, template }) => {
+    const parsed = generatePostInputSchema.parse(input);
+    const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
+    return ai.generate(
       {
-        prompt: generationPrompt,
-        templateName: "blog:generation",
+        prompt: `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`,
+        templateName: template("generation"),
         representedIdentity: "anchor",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       },
-      z.object({
-        title: z.string(),
-        content: z.string(),
-        excerpt: z.string(),
-      }),
+      z.object({ title: z.string(), content: z.string(), excerpt: z.string() }),
     );
-  });
-
-  context.eval.registerHandler("generateExcerpt", async (input: unknown) => {
-    const parsed: GenerateExcerptInput =
-      generateExcerptInputSchema.parse(input);
-
-    return context.ai.generate(
+  },
+  generateExcerpt: async (input, { ai, template }) => {
+    const parsed = generateExcerptInputSchema.parse(input);
+    return ai.generate(
       {
         prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-        templateName: "blog:excerpt",
+        templateName: template("excerpt"),
         representedIdentity: "none",
       },
       z.object({ excerpt: z.string() }),
     );
-  });
-}
+  },
+};

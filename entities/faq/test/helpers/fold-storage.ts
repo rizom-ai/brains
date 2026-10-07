@@ -1,22 +1,26 @@
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { createMockShell } from "@brains/plugins/test";
-import {
-  createSilentLogger,
-  createMockProgressReporter,
-} from "@brains/test-utils";
-import { faqAdapter, faqMetadata } from "../../src/adapters/faq-adapter";
+import { createMockShell, createTestEntityAccess } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { createFaqContent, faqMetadata } from "../../src/lib/faq-content";
+import { faqEntityHarness } from "./faq-entity-harness";
 import { faqSchema, type FaqEntity } from "../../src/schemas/faq";
-import { FaqReconcileHandler } from "../../src/handlers/faq-reconcile-handler";
+import { reconcileFaq } from "../../src/lib/reconcile-faq";
+import { findSameFaq } from "../../src/lib/faq-matching";
+import { faq } from "../../src/faq-entity";
 
 export async function openFoldStorage(dir: string): Promise<EntityService> {
   const logger = createSilentLogger();
   const dbConfig = { url: `file:${dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const registry = EntityRegistry.createFresh(logger);
-  registry.registerEntityType("faq", faqSchema, faqAdapter, {
-    publish: { publishStatuses: ["published"] },
-  });
+  const installed = (await faqEntityHarness()).getEntityRegistry();
+  registry.registerEntityType(
+    "faq",
+    faqSchema,
+    installed.getAdapter("faq"),
+    installed.getEntityTypeConfig("faq"),
+  );
   return EntityService.createFresh({
     dbConfig,
     embeddingDbConfig: { url: `file:${dir}/embeddings.db` },
@@ -52,7 +56,7 @@ export async function seedFold(service: EntityService): Promise<void> {
         entityType: "faq",
         visibility: "restricted",
         created,
-        content: faqAdapter.createFaqContent(fields, `Answer ${id}`),
+        content: createFaqContent(fields, `Answer ${id}`),
         metadata: faqMetadata(fields),
       },
     });
@@ -61,27 +65,37 @@ export async function seedFold(service: EntityService): Promise<void> {
 
 export function reconcileFold(
   service: EntityService,
-): ReturnType<FaqReconcileHandler["process"]> {
-  const handler = new FaqReconcileHandler(createSilentLogger(), {
+): ReturnType<typeof reconcileFaq> {
+  service.searchWithDistances = async (): ReturnType<
+    EntityService["searchWithDistances"]
+  > => [{ entityId: "target", entityType: "faq", distance: 0.01 }];
+  const { mutations, nearest } = createTestEntityAccess({
     entityService: service,
-    sameQuestionDistance: 0.2,
-    searchWithDistances: async (): Promise<
-      { entityId: string; entityType: string; distance: number }[]
-    > => [{ entityId: "target", entityType: "faq", distance: 0.01 }],
-    ai: {
-      generateObject: async <T>(
-        _prompt: string,
-        schema: { parse(value: unknown): T },
-      ): Promise<{ object: T }> => ({
-        object: schema.parse({ same: true }),
-      }),
-    },
+    ownedTypes: ["faq"],
+    owner: "@brains/faq",
+    declarationId: "capture",
   });
-  return handler.process(
-    { entityId: "source" },
-    "fold-job",
-    createMockProgressReporter(),
-  );
+  return reconcileFaq("source", {
+    read: (id, visibilityScope) => mutations.read(faq, id, { visibilityScope }),
+    findSame: (request) =>
+      findSameFaq(
+        {
+          nearest,
+          sameQuestionDistance: 0.2,
+          ai: {
+            generateObject: async <T>(
+              _prompt: string,
+              schema: { parse(value: unknown): T },
+            ): Promise<{ object: T }> => ({
+              object: schema.parse({ same: true }),
+            }),
+          },
+        },
+        request,
+      ),
+    fold: (source, target, entity) =>
+      mutations.fold(faq, source, target, entity),
+  });
 }
 
 export function readFold(

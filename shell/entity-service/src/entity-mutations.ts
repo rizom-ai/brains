@@ -842,7 +842,38 @@ export class EntityMutations {
    * Delete an entity by type and ID
    */
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
-    const { entityType, id, options } = request;
+    const { entityType, id } = request;
+    const options = request.options
+      ? {
+          ...request.options,
+          ...(request.options.conditionalWrite
+            ? { conditionalWrite: { ...request.options.conditionalWrite } }
+            : {}),
+          ...(request.options.eventContext
+            ? { eventContext: structuredClone(request.options.eventContext) }
+            : {}),
+        }
+      : undefined;
+    options?.signal?.throwIfAborted();
+    const condition = options?.conditionalWrite;
+    if (
+      (condition &&
+        (condition.expectedRevision === null ||
+          options.expectedContentHash !== undefined)) ||
+      (options?.beforeWrite && !condition)
+    )
+      throw new Error(
+        "Conditional deletion requires a revision, and guards require a conditional deletion",
+      );
+    const snapshot = condition
+      ? await this.entityQueries.getEntityWriteSnapshot({
+          entityType,
+          id,
+          visibilityScope: "restricted",
+        })
+      : null;
+    if (condition && snapshot?.revision !== condition.expectedRevision)
+      throw new EntityWriteConflictError(entityType, id);
 
     // Fetch prior entity so subscribers can gate on its metadata (e.g. the
     // `seriesName` field that drives the series projection). Without this,
@@ -856,9 +887,12 @@ export class EntityMutations {
       id,
       "restricted",
     );
-    const prior = priorData
-      ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
-      : undefined;
+    const prior =
+      snapshot?.entity ??
+      (priorData
+        ? ((await this.entitySerializer.convertToEntity(priorData)) ??
+          undefined)
+        : undefined);
 
     if (priorData) {
       await this.mutationAdmission?.assertMutationAdmission({
@@ -868,7 +902,10 @@ export class EntityMutations {
       });
     }
 
-    if (!priorData) return false;
+    if (!priorData) {
+      if (condition) throw new EntityWriteConflictError(entityType, id);
+      return false;
+    }
     const expectedContentHash = options?.expectedContentHash;
     if (
       expectedContentHash !== undefined &&
@@ -879,21 +916,33 @@ export class EntityMutations {
 
     // Embeddings live in another database and are recoverable by backfill; the
     // entity row, FTS row, and scheduler journal share one atomic transaction.
-    await this.embeddingIndex.deleteEmbedding(entityType, id);
     try {
       await this.projectionStore.withDirtyInput(
         {
           sourceType: entityType,
           sourceId: id,
-          revision: `deleted:${entityRevision({
-            contentHash: priorData.contentHash,
-            metadata: priorData.metadata,
-            visibility: priorData.visibility,
-          })}`,
+          revision: `deleted:${
+            condition?.expectedRevision ??
+            entityRevision({
+              contentHash: priorData.contentHash,
+              metadata: priorData.metadata,
+              visibility: priorData.visibility,
+            })
+          }`,
           operation: "delete",
           markedAt: this.projectionNow(),
         },
         async (transaction) => {
+          if (condition)
+            await assertEntityWriteCondition(
+              transaction,
+              { ...condition, entityType, entityId: id },
+              { entityType, id },
+            );
+          if (snapshot)
+            await options?.beforeWrite?.(structuredClone(snapshot.entity));
+          options?.signal?.throwIfAborted();
+          // From here onward the row and its journals commit or roll back together.
           const deleteResult = await transaction
             .delete(entities)
             .where(
@@ -906,9 +955,10 @@ export class EntityMutations {
               ),
             );
           if (
-            expectedContentHash !== undefined &&
+            (condition || expectedContentHash !== undefined) &&
             Number(deleteResult.rowsAffected) === 0
           ) {
+            if (condition) throw new EntityWriteConflictError(entityType, id);
             throw new StaleEntityUpdateError();
           }
           await transaction.run(
@@ -923,13 +973,13 @@ export class EntityMutations {
       );
     } catch (error) {
       if (!(error instanceof StaleEntityUpdateError)) throw error;
-      // Changed between the check and the write: nothing was deleted. Its
-      // embedding comes back through backfill.
+      // Changed between the check and the write: no entity, index or journal effect.
       this.logger.debug(
         `Skipping concurrently stale delete for ${entityType}:${id}`,
       );
       return false;
     }
+    await this.embeddingIndex.deleteEmbedding(entityType, id);
     await this.notifyProjectionScheduler();
 
     await this.emitEntityEvent(

@@ -1,8 +1,8 @@
+import type { DirectorySyncHost } from "../host";
 import {
   SerializedStatusStore,
   type IRuntimeStateNamespace,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import type {
   BatchMetadata,
@@ -31,7 +31,7 @@ export interface GitReconciliationResult {
 interface QueueReconciliationOptions {
   gitSync: IGitSync;
   directorySync: IDirectorySync;
-  context: ServicePluginContext;
+  context: DirectorySyncHost;
   source: string;
   metadata?: BatchMetadata | undefined;
   signal?: AbortSignal | undefined;

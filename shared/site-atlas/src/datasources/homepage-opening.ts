@@ -1,47 +1,77 @@
-import type {
-  BaseDataSourceContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { parseAskContent, type AskContent } from "@brains/contracts";
+import type { BaseDataSourceContext } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import {
+  parseAskContent,
+  contactFormDiscoveryRequest,
+  type AskContent,
+} from "@brains/contracts";
 
-type OpeningRuntime = Pick<
-  ServicePluginContext,
-  "webRoutes" | "siteUrl" | "previewUrl" | "localSiteUrl" | "preferLocalUrls"
->;
+interface OpeningContext {
+  entityService: Pick<BaseDataSourceContext["entityService"], "getEntity">;
+  publishedOnly?: boolean | undefined;
+}
+interface OpeningRuntime {
+  messaging: {
+    send(message: {
+      type: string;
+      payload: Record<string, never>;
+    }): Promise<unknown>;
+  };
+  siteUrl: string | undefined;
+  previewUrl: string | undefined;
+  localSiteUrl: string | undefined;
+  preferLocalUrls: boolean;
+}
 
 export type HomepageOpeningData = AskContent & { contactUrl: string | null };
 
 /**
  * Where the door leads: the contact form, when a matching public form route
  * serves where this build is served (for a preview build, on preview, where
- * the door leads to the preview host). Routes are declared in every process;
- * endpoint advertisement is not, and a separate worker runs site builds.
+ * the door leads to the preview host). The owner supplies bounded discovery in
+ * every process; neither raw route registries nor endpoint advertisements are
+ * available in separate workers. This is presentation, not live admission.
  */
-function contactUrl(
-  context: BaseDataSourceContext,
+async function contactUrl(
+  context: OpeningContext,
   runtime: OpeningRuntime,
-): string | null {
-  const preview = context.publishedOnly === false;
-  const siteOrigin = runtime.preferLocalUrls
-    ? runtime.localSiteUrl
-    : runtime.siteUrl;
-  const origin =
-    preview && !runtime.preferLocalUrls ? runtime.previewUrl : siteOrigin;
-  if (!siteOrigin || !origin) return null;
-  const routes = runtime.webRoutes
-    .getRoutes()
-    .filter(
+): Promise<string | null> {
+  try {
+    const preview = context.publishedOnly === false;
+    const siteOrigin = runtime.preferLocalUrls
+      ? runtime.localSiteUrl
+      : runtime.siteUrl;
+    const origin =
+      preview && !runtime.preferLocalUrls ? runtime.previewUrl : siteOrigin;
+    if (!siteOrigin || !origin) return null;
+    const response = await runtime.messaging.send({
+      type: contactFormDiscoveryRequest.topic,
+      payload: {},
+    });
+    const envelope = z
+      .object({
+        success: z.literal(true),
+        data: contactFormDiscoveryRequest.response,
+      })
+      .safeParse(response);
+    if (!envelope.success) return null;
+    const discovered = envelope.data.data;
+    if (discovered.origin !== new URL(siteOrigin).origin) return null;
+    const routes = discovered.routes.filter(
       (route) =>
-        route.pluginId === "contact" &&
-        route.fullPath === "/contact" &&
-        route.definition.public &&
-        (!preview || route.definition.preview),
+        route.path === "/contact" &&
+        route.public &&
+        (!preview || route.preview),
     );
-  return ["GET", "POST"].every((method) =>
-    routes.some((route) => (route.definition.method ?? "GET") === method),
-  )
-    ? new URL("/contact", origin).href
-    : null;
+    return ["GET", "POST"].every((method) =>
+      routes.some((route) => route.method === method),
+    )
+      ? new URL("/contact", origin).href
+      : null;
+  } catch {
+    // Unreadable discovery cannot advertise a live door. Never log private copy.
+    return null;
+  }
 }
 
 /**
@@ -50,7 +80,7 @@ function contactUrl(
  * or generation. For a page that docks the box itself and needs no door.
  */
 export async function loadAskContent(
-  context: Pick<BaseDataSourceContext, "entityService">,
+  context: Pick<OpeningContext, "entityService">,
 ): Promise<AskContent | null> {
   try {
     const entity = await context.entityService.getEntity({
@@ -74,11 +104,11 @@ export async function loadAskContent(
  * contact form can receive it, so a page without one never shows a dead door.
  */
 export async function loadHomepageOpening(
-  context: BaseDataSourceContext,
+  context: OpeningContext,
   runtime: OpeningRuntime,
 ): Promise<HomepageOpeningData | null> {
   const content = await loadAskContent(context);
   return content
-    ? { ...content, contactUrl: contactUrl(context, runtime) }
+    ? { ...content, contactUrl: await contactUrl(context, runtime) }
     : null;
 }

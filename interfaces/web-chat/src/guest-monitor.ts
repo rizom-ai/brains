@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
+import type {
+  BoundStudioWorkspace,
+  AnyStudioWorkspaceDefinition,
+} from "@brains/sdk/interfaces";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
-  type InterfacePluginContext,
-} from "@brains/plugins";
+  type OperatorBindingContext,
+} from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
 import {
-  NOTE_CAPTURE_MESSAGE,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "@brains/contracts";
@@ -469,12 +471,11 @@ export interface GuestMonitorDeps {
   configuredOpen: () => boolean;
   /** Keeps the Ask box's availability in step after a switch. */
   afterSwitch: () => Promise<void>;
+  canSaveQuestions: () => boolean;
+  capture: (request: NoteCaptureRequest) => Promise<NoteCaptureResponse>;
 }
 
-async function load(
-  deps: GuestMonitorDeps,
-  context: InterfacePluginContext,
-): Promise<MonitorData> {
+async function load(deps: GuestMonitorDeps): Promise<MonitorData> {
   const { record, bounds, control } = deps;
   const now = new Date(deps.now());
   const today = Date.UTC(
@@ -562,7 +563,7 @@ async function load(
       maxStoredBytes: bounds.maxStoredBytes,
       retentionDays: Math.ceil(bounds.retentionSeconds / 86_400),
     },
-    canSaveQuestions: context.entityService.hasEntityType("note"),
+    canSaveQuestions: deps.canSaveQuestions(),
   };
 }
 
@@ -576,86 +577,77 @@ function digest(text: string): string {
  * Admin only. Reading it never saves anything; a question becomes a note only
  * through its own confirmed action.
  */
-export async function registerGuestMonitor(
-  context: InterfacePluginContext,
+export function bindGuestMonitor<TConfig, TState extends object>(
+  binding: OperatorBindingContext<TConfig, TState, undefined>,
   deps: GuestMonitorDeps,
-): Promise<void> {
-  await registerBuiltInStudioWorkspace({
-    context,
-    definition: guestMonitor,
-    bind: (binding) =>
-      guestMonitor.bind(binding, {
-        load: () => load(deps, context),
-        actions: [
-          switchOnAction.bind(
-            binding,
-            async ({ input }) => {
-              const switched = await deps.control?.switchOn(
-                Math.round(input.monthlyUsd * 1_000_000),
-              );
-              if (switched !== "on")
-                throw new Error(
-                  switched === "not-ready"
-                    ? "Guest profile unavailable"
-                    : "Guest chat cannot be switched here",
-                );
-              await deps.afterSwitch();
-              return { open: true };
-            },
-            async ({ input }) => {
-              const status = await deps.control?.status();
-              if (!status)
-                throw new Error("Guest chat cannot be switched here");
-              const budget = Math.round(input.monthlyUsd * 1_000_000);
-              return {
-                summary: `Open guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
-                revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
-              };
-            },
-          ),
-          switchOffAction.bind(binding, async () => {
-            if ((await deps.control?.switchOff()) !== "off")
-              throw new Error("Guest chat cannot be switched here");
-            await deps.afterSwitch();
-            return { open: false };
-          }),
-          saveQuestionAction.bind(
-            binding,
-            async ({ input }) => {
-              const event = await deps.record.get(input.recordId);
-              if (!event?.question)
-                throw new Error("This record kept no question text");
-              // Notes are the note plugin's to write; it keeps them private.
-              const response = await context.messaging.send<
-                NoteCaptureRequest,
-                NoteCaptureResponse
-              >({
-                type: NOTE_CAPTURE_MESSAGE,
-                payload: {
-                  id: `visitor-question-${input.recordId.slice(0, 16)}`,
-                  title: "Visitor question",
-                  body: event.question,
-                },
-              });
-              if ("noop" in response || !response.success || !response.data)
-                throw new Error("Notes are unavailable");
-              return { noteId: response.data.noteId };
-            },
-            async ({ input }) => {
-              const event = await deps.record.get(input.recordId);
-              if (!event?.question)
-                throw new Error("This record kept no question text");
-              const shown =
-                event.question.length > 300
-                  ? `${event.question.slice(0, 300)}…`
-                  : event.question;
-              return {
-                summary: `Save this visitor question as a private note? “${shown}”`,
-                revision: digest(event.question),
-              };
-            },
-          ),
-        ],
+): BoundStudioWorkspace<
+  AnyStudioWorkspaceDefinition,
+  TConfig,
+  TState,
+  undefined
+> {
+  return guestMonitor.bind(binding, {
+    load: () => load(deps),
+    actions: [
+      switchOnAction.bind(
+        binding,
+        async ({ input }) => {
+          const switched = await deps.control?.switchOn(
+            Math.round(input.monthlyUsd * 1_000_000),
+          );
+          if (switched !== "on")
+            throw new Error(
+              switched === "not-ready"
+                ? "Guest profile unavailable"
+                : "Guest chat cannot be switched here",
+            );
+          await deps.afterSwitch();
+          return { open: true };
+        },
+        async ({ input }) => {
+          const status = await deps.control?.status();
+          if (!status) throw new Error("Guest chat cannot be switched here");
+          const budget = Math.round(input.monthlyUsd * 1_000_000);
+          return {
+            summary: `Open guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
+            revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
+          };
+        },
+      ),
+      switchOffAction.bind(binding, async () => {
+        if ((await deps.control?.switchOff()) !== "off")
+          throw new Error("Guest chat cannot be switched here");
+        await deps.afterSwitch();
+        return { open: false };
       }),
+      saveQuestionAction.bind(
+        binding,
+        async ({ input }) => {
+          const event = await deps.record.get(input.recordId);
+          if (!event?.question)
+            throw new Error("This record kept no question text");
+          // Notes are the note plugin's to write; it keeps them private.
+          const response = await deps.capture({
+            id: `visitor-question-${input.recordId.slice(0, 16)}`,
+            title: "Visitor question",
+            body: event.question,
+          });
+          return { noteId: response.noteId };
+        },
+        async ({ input }) => {
+          const event = await deps.record.get(input.recordId);
+          if (!event?.question)
+            throw new Error("This record kept no question text");
+          const shown =
+            event.question.length > 300
+              ? `${event.question.slice(0, 300)}…`
+              : event.question;
+          return {
+            summary: `Save this visitor question as a private note? “${shown}”`,
+            revision: digest(event.question),
+          };
+        },
+      ),
+    ],
   });
 }

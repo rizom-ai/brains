@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Head } from "@brains/ui-library";
+import { Head } from "@rizom/brain-ui";
 import { HomepageAtlas } from "@brains/site-atlas";
 import type { OrganizationHomepageData } from "../schemas/homepage";
 import { AgentRadarMap } from "./agent-radar";

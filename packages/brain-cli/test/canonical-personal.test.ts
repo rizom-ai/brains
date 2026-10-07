@@ -35,22 +35,30 @@ describe("canonical personal posture", () => {
     const ids = pluginIds(resolved);
 
     for (const id of [
-      "image",
-      "document",
-      "webserver",
-      "dashboard",
-      "web-chat",
-      "conversation-memory",
-      "faq",
+      "@brains/image-plugin:image",
+      "@brains/document-plugin:document",
+      "@brains/dashboard:dashboard",
+      "@brains/web-chat:web-chat",
+      "@brains/conversation-memory:conversation-memory",
+      "@brains/faq:faq",
     ]) {
       expect(ids).toContain(id);
     }
-    for (const id of ["site-builder", "blog", "onboarding", "atproto"]) {
+    for (const id of [
+      "@brains/site-builder-plugin:site-builder",
+      "blog",
+      "onboarding",
+      "@brains/atproto:atproto",
+    ]) {
       expect(ids).not.toContain(id);
     }
-    expect(pluginConfig(resolved, "mcp")).toMatchObject({ transport: "http" });
-    expect(pluginConfig(resolved, "dashboard")).toMatchObject({
-      routePath: "/",
+    expect(pluginConfig(resolved, "@brains/mcp:mcp")).toMatchObject({
+      transport: "http",
     });
+    expect(pluginConfig(resolved, "@brains/dashboard:dashboard")).toMatchObject(
+      {
+        routePath: "/",
+      },
+    );
   });
 });

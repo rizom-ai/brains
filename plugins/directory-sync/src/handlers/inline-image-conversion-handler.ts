@@ -1,12 +1,10 @@
+import type { DirectorySyncHost } from "../host";
 import { readFile, writeFile } from "fs/promises";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { BaseJobHandler } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import { fetchImageAsBase64 } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { PROGRESS_STEPS } from "@brains/contracts";
-import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";
 import { MarkdownImageConverter } from "../lib/markdown-image-converter";
 import type { ImageFetcher } from "../lib/frontmatter-image-converter";
@@ -29,24 +27,29 @@ export interface InlineImageConversionResult {
  * 4. Replaces URLs with entity://image/{id} references
  * 5. Writes updated content back to file
  */
-export class InlineImageConversionJobHandler extends BaseJobHandler<
-  "inline-image-convert",
-  InlineImageConversionJobData,
-  InlineImageConversionResult
-> {
+export class InlineImageConversionJobHandler {
+  protected readonly logger: Logger;
+
+  private async reportProgress(
+    reporter: ProgressContract,
+    step: { progress: number; total?: number; message: string },
+  ): Promise<void> {
+    await reporter.report({
+      progress: step.progress,
+      total: step.total ?? 100,
+      message: step.message,
+    });
+  }
   private readonly converter: MarkdownImageConverter;
 
   constructor(
-    context: ServicePluginContext,
+    context: DirectorySyncHost,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
-    super(logger, {
-      schema: inlineImageConversionJobSchema,
-      jobTypeName: "inline-image-convert",
-    });
+    this.logger = logger;
     this.converter = new MarkdownImageConverter(
-      context.entityService,
+      context.mirror,
       logger,
       fetcher,
     );
@@ -55,7 +58,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
   async process(
     data: InlineImageConversionJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<InlineImageConversionResult> {
     const { filePath, postSlug } = data;
 
@@ -157,14 +160,5 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       });
       return { success: false, error: message };
     }
-  }
-
-  protected override summarizeDataForLog(
-    data: InlineImageConversionJobData,
-  ): Record<string, unknown> {
-    return {
-      filePath: data.filePath,
-      postSlug: data.postSlug,
-    };
   }
 }

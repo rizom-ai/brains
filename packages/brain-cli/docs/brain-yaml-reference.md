@@ -43,6 +43,20 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
 ```
 
+## Runtime HTTP hosting
+
+`port: 8080` is the single production listener setting. The shell starts the host when finalized plugin routes or configured static output need serving; no `webserver` plugin is selected. Preview shares this port and is selected by hostname, never by a second listener.
+
+```yaml
+port: 9000
+http:
+  preview: true
+```
+
+Preview defaults on when site-builder declares output, otherwise off. Site-builder's `productionOutputDir`, `previewOutputDir` and `sharedImagesDir` are authoritative serving paths. For externally built sites, set `http.productionDistDir`, `http.previewDistDir` and `http.imagesDir` instead. Conflicting builder/HTTP paths fail before startup; default placeholder directories alone do not activate hosting.
+
+`plugins.webserver`, `http.previewPort` and `http.apiPort` are rejected. Worker, eval, register-only and startup-check execution never starts a listener. Set `plugins.mcp.transport` or `plugins.a2a.inbound` explicitly to override composition defaults; adding an unrelated site or webhook never switches MCP transport.
+
 ## Canonical selection
 
 ### `brain`
@@ -73,10 +87,10 @@ The contract is separate from the bundle IDs because names such as `core` and `s
 
 Required for the canonical definition. Select one or more fixed bundles:
 
-- `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
+- `core` — identity, markdown knowledge, Inbox, MCP stdio, outbound-only A2A, and agent discovery;
 - `media` — documents and images;
 - `automation` — playbooks and onboarding;
-- `web` — HTTP, auth, account/admin, Dashboard, and CMS;
+- `web` — auth, account/admin, Dashboard, Studio, MCP HTTP and inbound A2A defaults;
 - `chat` — platform chat, web chat, email, notifications, and conversation memory;
 - `site` — site metadata, content, building, and analytics;
 - `publishing` — blog, series, portfolio, decks, pipeline, newsletter, and social publishing;

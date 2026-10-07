@@ -107,7 +107,7 @@ The initial call proposes changes without writing them. Approve through the conf
 
 ### Studio
 
-When the `studio` plugin and `webserver` interface are active, the web surface exposes a Studio for editing configured entity types. Start the brain and open the local web host:
+When the `studio` plugin is active, its routes activate the runtime HTTP host and the web surface exposes a Studio for editing configured entity types. Start the brain and open the local web host:
 
 ```bash
 brain start

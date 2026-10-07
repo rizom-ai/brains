@@ -1,8 +1,8 @@
 import { createPluginHarness } from "@brains/plugins/test";
+import { instantiate, contactEntities } from "./helpers";
 import {
   ContactAdmission,
   ContactIntake,
-  ContactRequestPlugin,
   type ContactAdmissionPolicy,
 } from "../src";
 
@@ -44,12 +44,12 @@ export async function intakeFixture(
   let enqueueFails = false;
   const queued = new Set<string>();
   const harness = createPluginHarness();
-  await harness.installPlugin(new ContactRequestPlugin());
+  await harness.installPlugin(instantiate().entity);
   const state = harness.getMockShell().getRuntimeState();
   const admission = new ContactAdmission(state, admissionPolicy, () => now);
   const intake = new ContactIntake({
     admission,
-    entities: harness.getEntityService(),
+    entities: contactEntities(harness.getEntityService()),
     state,
     policy: {
       retentionSeconds: 86400,

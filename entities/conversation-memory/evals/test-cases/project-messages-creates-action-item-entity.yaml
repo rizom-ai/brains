@@ -6,7 +6,7 @@ tags:
   - conversation-memory
   - projection
   - action-items
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: projectMessages
 
 input:

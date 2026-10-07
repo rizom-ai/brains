@@ -169,7 +169,9 @@ describe("Shell service construction", () => {
     const constructionError = new Error("shell wiring failed");
     let runtimeStateCloseCalls = 0;
     let jobQueueCloseCalls = 0;
-    const inboxRegistry = new InboxRegistry();
+    const inboxRegistry = new InboxRegistry(
+      createMockShell().getAuthRegistry(),
+    );
 
     const jobQueueService = createMockJobQueueService();
     spyOn(jobQueueService, "close").mockImplementation(() => {
@@ -199,7 +201,7 @@ describe("Shell service construction", () => {
       },
       runtimeStateService: {
         initialize: async (): Promise<void> => {},
-        scoped: <T>(): IRuntimeStateStore<T> => ({
+        scoped: <T, TInput = T>(): IRuntimeStateStore<T, TInput> => ({
           get: async (): Promise<T | null> => null,
           has: async (): Promise<boolean> => false,
           set: async (): Promise<void> => {},

@@ -1,8 +1,11 @@
 import type {
+  BaseEntity,
   ContentVisibility,
+  EntitySchema,
   ICoreEntityService,
   ListOptions,
 } from "./types";
+import { getVisibleContentVisibilities } from "./types";
 
 /** What a scoped read view limits every read to. */
 export interface EntityReadScope {
@@ -20,7 +23,8 @@ type ScopedReads = Pick<
   | "search"
   | "getEntityCounts"
   | "getEntityTypes"
->;
+> &
+  Partial<Pick<ICoreEntityService, "searchWithDistances">>;
 
 /**
  * A read view of an entity service for people who may see only part of a
@@ -28,6 +32,8 @@ type ScopedReads = Pick<
  * search all apply the scope; the configured values win over a caller's, so
  * code handed the view cannot widen it. Explicit status filters intersect the
  * publish gate; a conflicting filter returns no records rather than bypassing it.
+ * Other methods pass through unchanged: this is a trusted runtime adapter,
+ * not an author-facing capability boundary.
  */
 export function scopeEntityReads<T extends ScopedReads>(
   base: T,
@@ -36,10 +42,22 @@ export function scopeEntityReads<T extends ScopedReads>(
   const { publishedOnly, visibilityScope } = scope;
   if (!publishedOnly && !visibilityScope) return base;
 
+  const scopeFor = (
+    requested?: ContentVisibility,
+  ): ContentVisibility | undefined =>
+    visibilityScope === undefined
+      ? requested
+      : requested !== undefined &&
+          getVisibleContentVisibilities(visibilityScope).includes(requested)
+        ? requested
+        : visibilityScope;
+
   const scopedFilter = (
     filter: ListOptions["filter"] | undefined,
   ): ListOptions["filter"] | undefined =>
-    visibilityScope ? { ...filter, visibilityScope } : filter;
+    visibilityScope
+      ? { ...filter, visibilityScope: scopeFor(filter?.visibilityScope) }
+      : filter;
 
   const scopedListOptions = (options: ListOptions | undefined): ListOptions => {
     const filter = scopedFilter(options?.filter);
@@ -53,11 +71,18 @@ export function scopeEntityReads<T extends ScopedReads>(
   return new Proxy(base, {
     get(target, prop, receiver): unknown {
       if (prop === "listEntities") {
-        return (request: Parameters<ScopedReads["listEntities"]>[0]) =>
-          target.listEntities({
+        return (
+          request: Parameters<ScopedReads["listEntities"]>[0],
+          schema?: EntitySchema<BaseEntity>,
+        ) => {
+          const scopedRequest = {
             entityType: request.entityType,
             options: scopedListOptions(request.options),
-          });
+          };
+          return schema
+            ? target.listEntities(scopedRequest, schema)
+            : target.listEntities(scopedRequest);
+        };
       }
       if (prop === "countEntities") {
         return (request: Parameters<ScopedReads["countEntities"]>[0]) =>
@@ -67,29 +92,60 @@ export function scopeEntityReads<T extends ScopedReads>(
           });
       }
       if (prop === "getEntity") {
-        return (request: Parameters<ScopedReads["getEntity"]>[0]) =>
-          // The configured scope always replaces the caller's; unset, the
-          // store fails closed to public.
-          target.getEntity({
+        return (
+          request: Parameters<ScopedReads["getEntity"]>[0],
+          schema?: EntitySchema<BaseEntity>,
+        ) => {
+          // Preserve narrower requests; without a configured scope, this
+          // lookup view continues to fail closed to public.
+          const scopedRequest = {
             ...request,
-            visibilityScope,
+            visibilityScope: visibilityScope
+              ? scopeFor(request.visibilityScope)
+              : undefined,
             ...(publishedOnly && { publishedOnly: true }),
-          });
+          };
+          return schema
+            ? target.getEntity(scopedRequest, schema)
+            : target.getEntity(scopedRequest);
+        };
       }
       if (prop === "search") {
-        return (request: Parameters<ScopedReads["search"]>[0]) =>
-          target.search({
+        return (
+          request: Parameters<ScopedReads["search"]>[0],
+          schema?: EntitySchema<BaseEntity>,
+        ) => {
+          const scopedRequest = {
             ...request,
             options: {
               ...request.options,
-              ...(visibilityScope && { visibilityScope }),
+              ...(visibilityScope && {
+                visibilityScope: scopeFor(request.options?.visibilityScope),
+              }),
               ...(publishedOnly && { publishedOnly: true }),
             },
+          };
+          return schema
+            ? target.search(scopedRequest, schema)
+            : target.search(scopedRequest);
+        };
+      }
+      if (prop === "searchWithDistances" && target.searchWithDistances) {
+        const search = target.searchWithDistances.bind(target);
+        return (
+          request: Parameters<ICoreEntityService["searchWithDistances"]>[0],
+        ) =>
+          search({
+            ...request,
+            visibilityScope: visibilityScope
+              ? scopeFor(request.visibilityScope)
+              : "public",
+            ...(publishedOnly && { publishedOnly: true }),
           });
       }
       if (prop === "getEntityCounts") {
         return async (callerScope?: ContentVisibility) => {
-          const countScope = visibilityScope ?? callerScope;
+          const countScope = scopeFor(callerScope);
           if (!publishedOnly) return target.getEntityCounts(countScope);
           const counts = await Promise.all(
             target.getEntityTypes().map(async (entityType) => ({

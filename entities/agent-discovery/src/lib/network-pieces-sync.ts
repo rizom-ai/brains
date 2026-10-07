@@ -1,10 +1,17 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import type { EntityAccess } from "@brains/sdk/entities";
+import type { LoggerContract } from "@brains/utils/logger";
+import { agent as agentDefinition } from "../agent-entity";
+import { networkPiece } from "../network-piece-entity";
+interface NetworkPieceContext {
+  readonly entities: EntityAccess;
+  readonly logger: LoggerContract;
+}
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
 import { stripMarkdown } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
-import { networkPieceId } from "../adapters/network-piece-adapter";
-import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
+import { networkPieceId } from "./network-piece-id";
+import type { AgentEntity } from "../schemas/agent";
 import {
   NETWORK_PIECE_COLLECTIONS,
   NETWORK_PIECE_ENTITY_TYPE,
@@ -204,7 +211,7 @@ function pieceOf(
  * learned, the directory keeps it.
  */
 async function learnRepoDid(
-  context: EntityPluginContext,
+  context: NetworkPieceContext,
   fetchFn: AtprotoCardFetch,
   agent: AgentEntity,
   signal: AbortSignal,
@@ -215,14 +222,15 @@ async function learnRepoDid(
   if (!response.ok) return undefined;
   const did = (await response.text()).trim();
   if (!DID.test(did)) return undefined;
-  await context.entityService.updateEntity({
-    entity: { ...agent, metadata: { ...agent.metadata, repoDid: did } },
+  await context.entities.update(agentDefinition, {
+    ...agent,
+    metadata: { ...agent.metadata, repoDid: did },
   });
   return did;
 }
 
 export async function syncNetworkPieces(
-  context: EntityPluginContext,
+  context: NetworkPieceContext,
   fetchFn: AtprotoCardFetch,
   signal: AbortSignal,
   now: string = new Date().toISOString(),
@@ -235,17 +243,11 @@ export async function syncNetworkPieces(
     unchanged: 0,
     unreachable: [],
   };
-  const agents = await context.entityService.listEntities(
-    {
-      entityType: "agent",
-      options: { limit: 500, filter: { metadata: { status: "approved" } } },
-    },
-    agentEntitySchema,
-  );
-  const kept = await context.entityService.listEntities(
-    { entityType: NETWORK_PIECE_ENTITY_TYPE, options: { limit: 10_000 } },
-    networkPieceSchema,
-  );
+  const agents = await context.entities.list(agentDefinition, {
+    limit: 500,
+    filter: { metadata: { status: "approved" } },
+  });
+  const kept = await context.entities.list(networkPiece, { limit: 10_000 });
   const keptById = new Map(kept.map((piece) => [piece.id, piece]));
 
   for (const agent of agents) {
@@ -272,13 +274,14 @@ export async function syncNetworkPieces(
           seen.add(piece.id);
           const existing = keptById.get(piece.id);
           if (!existing) {
-            await context.entityService.createEntity({ entity: piece });
+            await context.entities.create(networkPiece, piece);
             report.created += 1;
           } else if (existing.metadata.cid === record.cid) {
             report.unchanged += 1;
           } else {
-            await context.entityService.updateEntity({
-              entity: { ...piece, created: existing.created },
+            await context.entities.update(networkPiece, {
+              ...piece,
+              created: existing.created,
             });
             report.updated += 1;
           }
@@ -289,10 +292,7 @@ export async function syncNetworkPieces(
         if (piece.metadata.brain.did !== repoDid || seen.has(piece.id)) {
           continue;
         }
-        await context.entityService.deleteEntity({
-          entityType: NETWORK_PIECE_ENTITY_TYPE,
-          id: piece.id,
-        });
+        await context.entities.delete(networkPiece, piece.id);
         report.deleted += 1;
       }
     } catch (error) {

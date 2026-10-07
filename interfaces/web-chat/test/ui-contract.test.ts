@@ -134,6 +134,16 @@ describe("Web chat UI contract", () => {
         .sort(),
     );
     expect(buildScript).toContain("createStylexBunTransform");
+    expect(buildScript).toMatch(
+      /writeBuildFileAtomically\s*\(\s*join\(outdir,\s*`\$\{assetName\}\.css`\)/,
+    );
+    expect(buildScript).toContain('["guest-box", "guest"]');
+    expect(buildScript).toContain("outdir: staging");
+    const css = readFileSync(
+      join(packageRoot, "dist", "ui", "guest.css"),
+      "utf-8",
+    );
+    expect(css).not.toContain("insertRule");
   });
 
   it("dedupes React entrypoints in the UI build config", () => {

@@ -44,9 +44,9 @@ test("metadata is validated by its entity definition exactly once", () => {
     type: "edition",
     purpose: "Edition",
     metadata: z.object({
-      edition: z.string().transform((value) => {
+      edition: z.coerce.number<string>().refine(() => {
         parses++;
-        return Number(value);
+        return true;
       }),
     }),
   });

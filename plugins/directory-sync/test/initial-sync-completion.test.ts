@@ -1,15 +1,16 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import { instantiate } from "./helpers/install";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdirSync, writeFileSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
 
-describe("DirectorySyncPlugin - Initial Sync Completion", () => {
-  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
+describe("Plugin - Initial Sync Completion", () => {
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
   let testRoot: string;
   let syncPath: string;
   let seedContentPath: string;
@@ -21,7 +22,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     mkdirSync(syncPath, { recursive: true });
     mkdirSync(join(seedContentPath, "note"), { recursive: true });
 
-    harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
+    harness = createPluginHarness({ dataDir: syncPath });
 
     const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
@@ -52,7 +53,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
       return { success: true };
     });
 
-    const plugin = new DirectorySyncPlugin({
+    const { plugin } = instantiate({
       syncPath,
       seedContent: config.seedContent,
       initialSync: true,

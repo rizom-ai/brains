@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { instantiate } from "./helpers";
 import {
-  ContactRequestPlugin,
   contactRequestAdapter,
   contactSubmissionSchema,
+  contactFrontmatterSchema,
 } from "../src";
+import { SdkError } from "@brains/sdk/entities";
 
 const frontmatter = {
   name: "Ada",
@@ -85,6 +87,55 @@ describe("contact request records", () => {
     }
   });
 
+  it("re-imports its restricted export through the registered declarative adapter", async () => {
+    const harness = createPluginHarness();
+    try {
+      await harness.installPlugin(instantiate().entity);
+      const adapter = harness.getEntityRegistry().getAdapter("contact-request");
+      const markdown = contactRequestAdapter
+        .createContent(frontmatter, "Private message")
+        .replace(/^---\n/, "---\nvisibility: restricted\n");
+      const parsed = adapter.fromMarkdown(markdown);
+      expect(parsed.metadata).toEqual(
+        contactRequestAdapter.fromMarkdown(markdown).metadata,
+      );
+      expect(contactRequestAdapter.parseContent(parsed.content ?? "")).toEqual({
+        frontmatter,
+        message: "Private message",
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("does not leak malformed private YAML through registered parser errors", async () => {
+    const harness = createPluginHarness();
+    try {
+      await harness.installPlugin(instantiate().entity);
+      const adapter = harness.getEntityRegistry().getAdapter("contact-request");
+      const malformed = "---\nname: [private@example.com\n---\nPrivate message";
+      for (const read of [
+        (): unknown => adapter.fromMarkdown(malformed),
+        (): unknown =>
+          adapter.parseFrontMatter(malformed, contactFrontmatterSchema),
+      ]) {
+        let failure: unknown;
+        try {
+          read();
+        } catch (error) {
+          failure = error;
+        }
+        expect(failure).toBeInstanceOf(SdkError);
+        expect(String(failure)).not.toContain("private@example.com");
+        expect(JSON.stringify(failure)).not.toContain("private@example.com");
+        if (failure instanceof SdkError)
+          expect(failure.code).toBe("invalid_input");
+      }
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("registers a restricted, non-indexed, non-projection entity and no public surface", async () => {
     const harness = createPluginHarness();
     const registry = harness.getEntityRegistry();
@@ -93,9 +144,7 @@ describe("contact request records", () => {
     registry.registerPersistValidator = (type, candidate): void => {
       if (type === "contact-request") validator = candidate;
     };
-    const capabilities = await harness.installPlugin(
-      new ContactRequestPlugin(),
-    );
+    const capabilities = await harness.installPlugin(instantiate().entity);
     expect(registry.getEntityTypeConfig("contact-request")).toMatchObject({
       embeddable: false,
       fullTextSearchable: false,

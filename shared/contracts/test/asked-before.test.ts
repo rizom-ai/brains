@@ -11,6 +11,7 @@ import { chatHistoryMessageSchema, chatProtocolEventSchema } from "../src/chat";
 describe("a question asked before", () => {
   const hit = {
     faqId: "how-does-rizom-keep-memory",
+    faqQuestion: "How does Rizom keep memory?",
     answer: "In the brains of the people who hold it.",
     sources: [
       {
@@ -35,7 +36,7 @@ describe("a question asked before", () => {
     expect(askedBeforeResponseSchema.parse({})).toEqual({});
     expect(
       askedBeforeResponseSchema.parse({
-        hit: { faqId: "x", answer: "An answer." },
+        hit: { faqId: "x", faqQuestion: "Question?", answer: "An answer." },
       }).hit?.sources,
     ).toEqual([]);
   });

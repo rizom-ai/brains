@@ -23,8 +23,6 @@ export interface RizomRuntimeHooks {
   contentNamespace: string;
   templates?: Record<string, unknown>;
   dataSources?: unknown[];
-  /** Datasources that need the plugin's runtime, built when it registers. */
-  dataSourceFactories?: Array<(shell: IShell) => unknown>;
 }
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
@@ -100,11 +98,12 @@ function buildTemplateGroups(options: CreateRizomSiteOptions): TemplateGroup[] {
 
 function createRuntimePlugin(
   options: CreateRizomSiteOptions,
+  dataSourceFactories: Array<(shell: IShell) => unknown>,
 ): SitePackage["plugin"] {
   if (
     !options.runtime?.templates &&
     !options.runtime?.dataSources?.length &&
-    !options.runtime?.dataSourceFactories?.length
+    !dataSourceFactories.length
   ) {
     return undefined;
   }
@@ -115,12 +114,20 @@ function createRuntimePlugin(
       config ?? {},
       buildTemplateGroups(options),
       options.runtime?.dataSources,
-      options.runtime?.dataSourceFactories,
+      dataSourceFactories,
     );
 }
 
 export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
-  const plugin = createRuntimePlugin(options);
+  return createInternalRizomSite(options);
+}
+
+/** Package-local runtime wiring; deliberately absent from the public barrel. */
+export function createInternalRizomSite(
+  options: CreateRizomSiteOptions,
+  dataSourceFactories: Array<(shell: IShell) => unknown> = [],
+): SitePackage {
+  const plugin = createRuntimePlugin(options, dataSourceFactories);
 
   return extendSite(rizomBaseSite, {
     layouts: { default: options.layout },

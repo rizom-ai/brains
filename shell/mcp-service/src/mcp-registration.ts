@@ -22,6 +22,7 @@ import type {
   Tool,
 } from "./types";
 import { normalizeToolExecutionMessageResponse } from "./tool-response-validation";
+import { toSdkError } from "@brains/contracts";
 
 const MCP_SERVER_INFO = {
   name: "brain-mcp",
@@ -275,7 +276,14 @@ export function registerToolOnServer(
           },
         );
 
+        const failed =
+          "success" in normalizedResponse &&
+          (!normalizedResponse.success ||
+            (normalizedResponse.data !== undefined &&
+              "success" in normalizedResponse.data &&
+              !normalizedResponse.data.success));
         return {
+          ...(failed ? { isError: true } : {}),
           content: [
             {
               type: "text" as const,
@@ -284,8 +292,23 @@ export function registerToolOnServer(
           ],
         };
       } catch (error) {
-        logger.error(`Tool execution error for ${tool.name}`, error);
-        throw error;
+        const failure = toSdkError(error);
+        logger.error(`Tool execution error for ${tool.name}`, {
+          code: failure.code,
+        });
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text" as const,
+              text: serializeMessageResponse({
+                success: false,
+                error: failure.message,
+                code: failure.code,
+              }),
+            },
+          ],
+        };
       }
     },
   );

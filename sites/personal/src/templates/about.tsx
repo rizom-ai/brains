@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import type { PersonalProfile } from "../schemas";
-import { Head, MarkdownContent } from "@brains/ui-library";
+import { Head, MarkdownContent } from "@rizom/brain-ui";
 
 export interface AboutPageData {
   profile: PersonalProfile;

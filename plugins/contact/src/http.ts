@@ -1,8 +1,4 @@
-import {
-  SitePageResponse,
-  type WebRouteDefinition,
-  type WebRouteTransportContext,
-} from "@brains/plugins";
+import { SitePageResponse } from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
 import type { ContactAdmission, ContactDenialReason } from "./admission";
 import type { ContactIntake } from "./intake";
@@ -77,8 +73,10 @@ export const contactHttpPolicyShape: z.ZodObject<
   readTimeoutMs: z.number().int().min(100).max(30000),
   trustForwardedProto: z.boolean().optional(),
 });
-export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
-  contactHttpPolicyShape;
+export const contactHttpPolicySchema: z.ZodType<
+  ContactHttpPolicy,
+  ContactHttpPolicy
+> = contactHttpPolicyShape;
 export interface ContactHttpOptions {
   themeCSS?: string | undefined;
   /** The deployment's preview origin, served alongside the policy origin. */
@@ -108,11 +106,10 @@ const headers = {
   // preserves the origin check while still suppressing cross-site referrers.
   "Referrer-Policy": "same-origin",
   "X-Content-Type-Options": "nosniff",
-  // The page is the site's own contact page with the form in it, so the
-  // site's styles, fonts and scripts load; the form still posts only here and
-  // the page cannot be framed.
+  // The site supplies presentation, not permission to read private drafts or
+  // tokens. Allow local styles/fonts/images, but no scripts or remote assets.
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' https: data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    "default-src 'none'; script-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
 };
 
 /** A contact page: the section fills the site's own page, or stands in the fallback page. */
@@ -200,7 +197,7 @@ export class ContactHttpHandlers {
    * replaces the plain http it forwards on; nothing else is taken from headers. */
   private visitorUrl(
     request: Request,
-    transport?: WebRouteTransportContext,
+    transport?: { readonly remoteAddress?: string },
   ): URL {
     const url = new URL(request.url);
     if (
@@ -211,19 +208,6 @@ export class ContactHttpHandlers {
     )
       url.protocol = "https:";
     return url;
-  }
-
-  routes(preview = false): WebRouteDefinition[] {
-    return [
-      { path: "/contact", method: "GET" as const },
-      { path: "/contact", method: "POST" as const },
-      { path: "/contact/thanks", method: "GET" as const },
-    ].map((route) => ({
-      ...route,
-      public: true,
-      preview,
-      handler: (request, transport) => this.handle(request, transport),
-    }));
   }
 
   private presentation(request: Request): ContactPresentation {
@@ -244,7 +228,7 @@ export class ContactHttpHandlers {
 
   async handle(
     request: Request,
-    transport?: WebRouteTransportContext,
+    transport?: { readonly remoteAddress?: string },
   ): Promise<Response> {
     const presentation = this.presentation(request);
     let token = "";

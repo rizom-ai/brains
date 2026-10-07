@@ -65,7 +65,7 @@ export class RizomWritingDataSource implements DataSource {
 export function writingDataSource(shell: IShell): DataSource {
   const registry = shell.getDataSourceRegistry();
   return new RizomWritingDataSource({
-    posts: () => registry.get("blog:entities"),
-    decks: () => registry.get("decks:entities"),
+    posts: () => registry.get("@brains/blog:post:entities"),
+    decks: () => registry.get("@brains/decks:deck:entities"),
   });
 }

@@ -129,7 +129,8 @@ export function useAskSheet(
     // sheet the boot opened may have risen already.
     let live = true;
     const cover = (): void => {
-      if (live) coverPage(element);
+      if (live && !element.hasAttribute(ASK_CLOSING_ATTRIBUTE))
+        coverPage(element);
     };
     const rising = "getAnimations" in element ? element.getAnimations() : [];
     if (rising.length === 0) cover();

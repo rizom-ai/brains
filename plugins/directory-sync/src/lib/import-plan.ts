@@ -1,10 +1,11 @@
-import { internalFullScope, type EntityServiceClient } from "@brains/plugins";
+import { internalFullScope } from "@brains/sdk/entities";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import type { DirectoryImportPlan } from "../types/jobs";
 import type { IFileOperations } from "../types/interfaces";
 
 /** Capture before queueing/reading files, never when retrying stale work. */
 export async function captureImportPlan(
-  entityService: Pick<EntityServiceClient, "getEntityWriteSnapshot">,
+  entityService: Pick<EntityMirrorClient, "getEntityWriteSnapshot">,
   fileOperations: Pick<IFileOperations, "parseEntityFromPath">,
   paths: readonly string[],
 ): Promise<DirectoryImportPlan> {

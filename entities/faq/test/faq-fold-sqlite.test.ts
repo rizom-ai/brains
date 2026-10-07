@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { EntityService } from "@brains/entity-service";
 import { createTestDirectory } from "@brains/test-utils";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import * as faqAdapter from "../src/lib/faq-content";
+import { faqMetadata } from "../src/lib/faq-content";
 import {
   openFoldStorage,
   readFold,
@@ -159,7 +160,10 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
     });
     expect(
       await reconcileFold(service).catch((error: unknown) => error),
-    ).toMatchObject({ message: "Lost acknowledgement after commit" });
+    ).toMatchObject({
+      code: "handler_failed",
+      cause: { message: "Lost acknowledgement after commit" },
+    });
     expect(await readFold(service, "source")).toBeNull();
     expect((await readFold(service, "target"))?.metadata.asked).toBe(5);
     expect(await reconcileFold(service)).toEqual({ outcome: "gone" });
@@ -181,7 +185,10 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
     );
     expect(
       await reconcileFold(service).catch((error: unknown) => error),
-    ).toMatchObject({ message: "Write refused" });
+    ).toMatchObject({
+      code: "handler_failed",
+      cause: { message: "Write refused" },
+    });
     expect(await readFold(service, "source")).toEqual(before);
     expect((await readFold(service, "target"))?.metadata.asked).toBe(3);
     expect(await reconcileFold(service)).toEqual({

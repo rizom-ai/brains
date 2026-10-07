@@ -1,11 +1,15 @@
 import { expect, test } from "bun:test";
+import { SdkError } from "@brains/sdk/entities";
 import { fileURLToPath } from "node:url";
 import { createTestDirectory, waitUntil } from "@brains/test-utils";
 import {
   openCaptureStorage,
   type CaptureFixture,
 } from "./helpers/capture-storage";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import * as faqAdapter from "../src/lib/faq-content";
+import { faqMetadata } from "../src/lib/faq-content";
+import { prepareFaqMerge } from "../src/lib/faq-merge";
+import { faqSchema } from "../src/schemas/faq";
 
 async function seedTarget(fixture: CaptureFixture): Promise<void> {
   const fields = {
@@ -33,6 +37,65 @@ async function counts(fixture: CaptureFixture): Promise<number[]> {
   );
 }
 const receipt = { namespace: "faq.capture", key: "reply" };
+
+test("owned capture bounds CAS retries without replaying classification or consuming the receipt", async () => {
+  const directory = await createTestDirectory("faq-capture-contention");
+  let classifications = 0;
+  const fixture = await openCaptureStorage(directory.dir, {
+    targetId: "target",
+    classify: async (): Promise<void> => {
+      classifications++;
+    },
+  });
+  await seedTarget(fixture);
+  const apply = fixture.service.applyEntityMutationOnce.bind(fixture.service);
+  let attempts = 0;
+  fixture.service.applyEntityMutationOnce = async (
+    input,
+  ): ReturnType<typeof apply> => {
+    if (input.operation === "update") {
+      attempts++;
+      const current = await fixture.service.getEntity(
+        { entityType: "faq", id: "target" },
+        faqSchema,
+      );
+      if (!current) throw new Error("Missing target");
+      await fixture.service.updateEntity({
+        entity: prepareFaqMerge(current, { asks: 1 }),
+      });
+    }
+    return apply(input);
+  };
+  try {
+    const error = await fixture
+      .process()
+      .catch((cause: unknown): unknown => cause);
+    expect(error).toMatchObject({
+      message: "FAQ target kept changing during merge",
+      cause: { code: "conflict" },
+    });
+    expect(attempts).toBe(3);
+    expect(classifications).toBe(1);
+    expect(await fixture.service.getEntityMutationReceipt(receipt)).toBeNull();
+    expect(await counts(fixture)).toEqual([7]);
+    fixture.service.applyEntityMutationOnce = apply;
+    expect(await fixture.process()).toEqual({
+      captured: true,
+      entityId: "target",
+      merged: true,
+    });
+    expect(await counts(fixture)).toEqual([8]);
+    expect(classifications).toBe(2);
+    expect(await fixture.process()).toEqual({
+      captured: false,
+      reason: "already-captured",
+    });
+    expect(classifications).toBe(2);
+  } finally {
+    fixture.close();
+    await directory.cleanup();
+  }
+});
 
 for (const merge of [false, true]) {
   for (const checkpoint of ["before-classify", "before-write", "after-write"]) {
@@ -307,9 +370,15 @@ for (const merge of [false, true]) {
       expect(outcomes.some((outcome) => outcome.status === "fulfilled")).toBe(
         true,
       );
-      for (const outcome of outcomes)
-        if (outcome.status === "rejected")
-          expect(String(outcome.reason)).toContain("SQLITE_BUSY");
+      for (const outcome of outcomes) {
+        if (outcome.status !== "rejected") continue;
+        expect(outcome.reason).toBeInstanceOf(SdkError);
+        if (!(outcome.reason instanceof SdkError))
+          throw new Error("Expected SDK failure");
+        expect(outcome.reason.code).toBe("handler_failed");
+        expect(String(outcome.reason.cause)).toContain("SQLITE_BUSY");
+        expect(JSON.stringify(outcome.reason)).not.toContain("SQLITE_BUSY");
+      }
       // A refused SQLite writer can retry; classification callbacks are never
       // replayed by the transaction runner itself.
       expect(await left.process()).toEqual({

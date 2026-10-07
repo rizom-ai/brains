@@ -1,3 +1,6 @@
+import { toSdkError } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
+
 export const WebRouteMethods = [
   "GET",
   "POST",
@@ -34,27 +37,35 @@ export interface WebRouteDefinition {
   handler: WebRouteHandler;
 }
 
+const sitePageResponseBrand = Symbol.for("@rizom/brain/site-page-response/v1");
+
 /** The element in a generated site page that a route fills: `<div data-site-slot="name"></div>`. */
 export const SITE_SLOT_ATTRIBUTE = "data-site-slot";
 
-/** A route's markup for the slot of the same name in its generated site page. */
+/** Trusted route markup, not untrusted text. The name is a 1–100 character identifier. */
 export interface SitePageSlot {
-  name: string;
-  html: string;
+  readonly name: string;
+  readonly html: string;
 }
+
+const sitePageSlotSchema = z.strictObject({
+  name: z.string().regex(/^[A-Za-z][A-Za-z0-9:_-]{0,99}$/),
+  html: z.string(),
+});
 
 /**
  * An admitted public page whose presentation belongs to the installed site.
  * The host may use its generated page at the same path; this response is the
- * fallback for apps without that site page. Denials and redirects never delegate.
- * APIs and authenticated pages use ordinary Responses, not this opt-in.
+ * fallback for apps without that site page. Without a slot, only successful
+ * public GET pages delegate. APIs/authenticated pages use ordinary Responses.
  *
- * With a slot, the route renders per request inside the site's page: the host
- * fills the page's slot with the markup, whatever the method or status, and
- * falls back to this response where the page or its slot is missing.
+ * With a slot, the route renders per request inside the site's page, including
+ * POST results and error pages. Status and request-owned headers are preserved;
+ * missing pages/slots use the fallback. This presentation opt-in grants no
+ * admission or read/write authority. Scripts must be governed by the route's CSP.
  */
 export class SitePageResponse extends Response {
-  public readonly slot: SitePageSlot | undefined;
+  declare readonly slot: SitePageSlot | undefined;
 
   constructor(
     body?: BodyInit | null,
@@ -62,7 +73,23 @@ export class SitePageResponse extends Response {
   ) {
     const { slot, ...responseInit } = init;
     super(body, responseInit);
-    this.slot = slot;
+    const parsed =
+      slot === undefined ? undefined : sitePageSlotSchema.safeParse(slot);
+    if (parsed && !parsed.success)
+      throw toSdkError(parsed.error, "invalid_input");
+    Object.defineProperty(this, "slot", {
+      value: parsed?.success ? Object.freeze(parsed.data) : undefined,
+      enumerable: true,
+    });
+    Object.defineProperty(this, sitePageResponseBrand, { value: true });
+  }
+
+  /** Constructor identity is not shared by independently bundled SDK consumers. */
+  static is(value: unknown): value is SitePageResponse {
+    return (
+      value instanceof Response &&
+      Reflect.get(value, sitePageResponseBrand) === true
+    );
   }
 }
 

@@ -1,10 +1,12 @@
-import { describe, expect, test, spyOn } from "bun:test";
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { describe, expect, test, spyOn, mock } from "bun:test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "./helpers/install";
 import { createMockEntityService } from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 import { BatchOperationsManager } from "../src/lib/batch-operations";
 import { directoryImportJobSchema } from "../src/types/jobs";
+import { jobDefinitionFor } from "../src/jobs";
 
 const entity: BaseEntity = {
   id: "grouping-definitions",
@@ -25,7 +27,12 @@ describe("queued import admission", () => {
           ? { entity, revision: "before-sync" }
           : null,
     );
-    const context = createMockServicePluginContext({ entityService: service });
+    const host = await hostFor(createMockShell({ entityService: service }));
+    const enqueueBatch = mock(host.jobs.enqueueBatch).mockResolvedValue({
+      id: "batch",
+      status: async () => null,
+    });
+    const context = { ...host, jobs: { ...host.jobs, enqueueBatch } };
     const manager = new BatchOperationsManager({
       logger: createSilentLogger(),
       syncPath: "/tmp/import-plan",
@@ -39,10 +46,13 @@ describe("queued import admission", () => {
     const operations = context.jobs.enqueueBatch.mock.calls[0]?.[0];
     if (!operations) throw new Error("Batch was not queued");
     const imports = operations
-      .filter((operation) => operation.type === "directory-import")
+      .filter(
+        (operation) =>
+          operation.definition === jobDefinitionFor("directory-import"),
+      )
       .map((operation) =>
         directoryImportJobSchema.parse(
-          JSON.parse(JSON.stringify(operation.data)),
+          JSON.parse(JSON.stringify(operation.input)),
         ),
       );
     expect(read).toHaveBeenCalledTimes(51);
@@ -66,14 +76,18 @@ describe("queued import admission", () => {
         expectedRevision: "before-sync",
       },
     ]);
-    expect(operations.at(-1)?.type).toBe("directory-cleanup");
+    expect(operations.at(-1)?.definition).toBe(
+      jobDefinitionFor("directory-cleanup"),
+    );
   });
   test("does not enqueue unguarded work when snapshot capture fails", async () => {
     const service = createMockEntityService();
     spyOn(service, "getEntityWriteSnapshot").mockRejectedValue(
       new Error("Database unavailable"),
     );
-    const context = createMockServicePluginContext({ entityService: service });
+    const host = await hostFor(createMockShell({ entityService: service }));
+    const enqueueBatch = mock(host.jobs.enqueueBatch);
+    const context = { ...host, jobs: { ...host.jobs, enqueueBatch } };
     const manager = new BatchOperationsManager({
       logger: createSilentLogger(),
       syncPath: "/tmp/import-plan",
@@ -82,7 +96,8 @@ describe("queued import admission", () => {
     const failure = await manager
       .queueSyncBatch(context, "test", ["note/a.md"])
       .catch((error: unknown) => error);
-    expect(failure).toMatchObject({ message: "Database unavailable" });
+    expect(failure).toMatchObject({ code: "handler_failed" });
+    expect(JSON.stringify(failure)).not.toContain("Database unavailable");
     expect(context.jobs.enqueueBatch).not.toHaveBeenCalled();
   });
 });

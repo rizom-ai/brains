@@ -1,19 +1,21 @@
-export { FaqPlugin, faqPlugin } from "./plugin";
-export type { FaqConfig, FaqConfigInput } from "./plugin";
-export { FaqAdapter, faqAdapter, faqMetadata } from "./adapters/faq-adapter";
+export { default, faqPackage } from "./definition";
+export type { FaqConfig, FaqConfigInput } from "./schemas/config";
 export {
-  FaqCaptureHandler,
-  classifyExchange,
+  createFaqContent,
+  parseFaqContent,
+  faqMetadata,
+} from "./lib/faq-content";
+export { classifyExchange } from "./lib/faq-classification";
+export { faqSlug } from "./lib/capture-faq";
+export {
   faqCaptureJobSchema,
   faqClassificationSchema,
-  faqSlug,
-} from "./handlers/faq-capture-handler";
+} from "./schemas/capture";
 export type {
-  FaqCaptureDeps,
   FaqCaptureJobData,
   FaqCaptureResult,
   FaqClassification,
-} from "./handlers/faq-capture-handler";
+} from "./schemas/capture";
 export {
   faqFrontmatterSchema,
   faqMetadataSchema,
@@ -31,31 +33,23 @@ export type {
 } from "./schemas/faq";
 export {
   FAQ_DATASOURCE_ID,
-  FaqDataSource,
+  faqDataSource,
   faqItemSchema,
   faqSectionSchema,
   loadPublicFaqs,
 } from "./datasources/faq-datasource";
 export type { FaqItem, FaqSectionData } from "./datasources/faq-datasource";
 export { FaqSection } from "./templates/faq-section";
-export {
-  FaqReconcileHandler,
-  faqReconcileJobSchema,
-} from "./handlers/faq-reconcile-handler";
-export type {
-  FaqReconcileDeps,
-  FaqReconcileJobData,
-  FaqReconcileResult,
-} from "./handlers/faq-reconcile-handler";
+export { faqReconcileJobSchema } from "./jobs/reconcile";
+export type { FaqReconcileJobData } from "./jobs/reconcile";
+export type { FaqReconcileResult } from "./lib/reconcile-faq";
 export {
   SAME_QUESTION_CHECK,
   SAME_QUESTION_DISTANCE,
-  findSameFaq,
   isSameQuestion,
-  mergeIntoFaq,
-} from "./lib/faq-store";
-export type { FaqStoreDeps } from "./lib/faq-store";
-export { FaqInboxSource } from "./lib/faq-inbox-source";
+} from "./lib/faq-question";
+export { findSameFaq } from "./lib/faq-matching";
+export { faqInbox } from "./lib/faq-inbox-source";
 export { capturedReplyStore } from "./lib/captured-replies";
 export type { CapturedReply, CapturedReplyStore } from "./lib/captured-replies";
 export { answerAskedBefore } from "./lib/asked-before";

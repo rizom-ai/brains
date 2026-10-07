@@ -4,10 +4,11 @@ import type {
   DataSourceSchema,
   IShell,
 } from "@brains/plugins";
+import { createInterfaceAvailabilityReader } from "@brains/plugins/internal/interface-availability";
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
 import { homepageChatAvailable, loadAskContent } from "@brains/site-atlas";
 
-const MAP_SOURCE_ID = "agent-discovery:proximity-map";
+const MAP_SOURCE_ID = "@brains/agent-discovery:proximity-map";
 
 /** Where the opening's data comes from, read with the plugin's runtime. */
 export interface OpeningLoaders {
@@ -72,7 +73,11 @@ export class RizomOpeningDataSource implements DataSource {
 
 /** The datasource on the brain's shell, built when the site's plugin registers. */
 export function openingDataSource(shell: IShell): DataSource {
-  const runtime = { runtimeState: shell.getRuntimeState() };
+  const runtime = {
+    interfaceAvailability: createInterfaceAvailabilityReader(
+      shell.getRuntimeState(),
+    ),
+  };
   return new RizomOpeningDataSource({
     mapSource: () => shell.getDataSourceRegistry().get(MAP_SOURCE_ID),
     loadOpening: loadAskContent,

@@ -1,4 +1,5 @@
 import {
+  applyEntityDelete,
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
@@ -34,6 +35,9 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         };
       }
 
+      // Asked before offering a confirmation, so a caller is not invited to
+      // approve a deletion that will be refused. The shared core asks again
+      // when the deletion is actually made.
       const policyError = assertEntityActionAllowed(
         services,
         input.entityType,
@@ -50,6 +54,9 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       );
       if (unregisteredError) return unregisteredError;
 
+      // Before the confirmation gate, not only inside it: a fabricated
+      // confirmed call must be refused too, and the gate would answer it
+      // with a missing-token error that says nothing about singletons.
       if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {
         return {
           success: false,
@@ -77,18 +84,44 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
           input,
         );
         if (gateError) return gateError;
+        let outcome;
         try {
-          await entityService.deleteEntity({
-            entityType: input.entityType,
-            id: entity.id,
-          });
+          outcome = await applyEntityDelete(
+            {
+              entities: entityService,
+              registry: {
+                isRegistered: (entityType) =>
+                  entityRegistry.hasEntityType(entityType),
+                isSingleton: (entityType) =>
+                  entityRegistry.getAdapter(entityType).isSingleton === true,
+              },
+              assertAllowed: (entityType, action, permission) =>
+                services.permissionService.assertEntityActionAllowed(
+                  entityType,
+                  action,
+                  permission,
+                ),
+            },
+            { entityType: input.entityType, id: entity.id },
+            { permission: context.userPermissionLevel },
+          );
         } catch (error) {
           return {
             success: false,
             error: getErrorMessage(error, "Failed to delete entity"),
           };
         }
-        return { success: true, data: { deleted: entity.id } };
+        switch (outcome.kind) {
+          case "deleted":
+            return { success: true, data: { deleted: entity.id } };
+          case "not-found":
+            return {
+              success: false,
+              error: `Entity not found: ${input.entityType}/${entity.id}`,
+            };
+          case "denied":
+            return { success: false, error: outcome.message };
+        }
       }
 
       const label = getEntityDisplayLabel(entity);

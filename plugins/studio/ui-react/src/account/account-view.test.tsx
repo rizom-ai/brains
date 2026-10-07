@@ -288,8 +288,15 @@ describe("Account surface", () => {
         "Claude Code, Cursor, VS Code and any other MCP client",
       );
       expect(visible).toMatch(/<details(?![^>]*\bopen\b)[^>]*>/);
-      expect(visible).toContain(
-        "claude mcp add --transport http becca-rizom-ai https://becca.rizom.ai/mcp",
+      expect(
+        withDocument(
+          visible,
+          (document) =>
+            document.querySelector('pre[aria-label="Claude Code command"]')
+              ?.textContent,
+        ),
+      ).toBe(
+        "claude mcp add --transport http becca-rizom-ai 'https://becca.rizom.ai/mcp'",
       );
     });
   });

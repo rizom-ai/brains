@@ -1,5 +1,5 @@
 import {
-  canWriteVisibility,
+  applyEntityEdit,
   permissionToVisibilityScope,
   resolveEntityOrError,
 } from "@brains/entity-service";
@@ -166,31 +166,43 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (gateError) return gateError;
     }
     const updated = applyUpdateOperation(entity, operation, entityRegistry);
-    if (
-      updated.visibility !== entity.visibility &&
-      !canWriteVisibility(context.userPermissionLevel, updated.visibility)
-    )
-      return failure(
-        `Cannot set entity visibility to "${updated.visibility}" — caller permission "${context.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
-      );
-
     try {
       const eventContext = buildEntityMutationEventContext(context);
-      const result = await entityService.updateEntity({
-        entity: updated,
-        options: {
-          expectedContentHash: entity.contentHash,
+      const outcome = await applyEntityEdit(
+        {
+          entities: entityService,
+          registry: entityRegistry,
+          assertAllowed: (entityType, action, permission) =>
+            services.permissionService.assertEntityActionAllowed(
+              entityType,
+              action,
+              permission,
+            ),
+        },
+        {
+          entityType: entity.entityType,
+          id: entity.id,
+          next: updated,
+          baseContentHash: input.contentHash ?? entity.contentHash,
           ...(eventContext ? { eventContext } : {}),
         },
-      });
-      if (result.skipReason === "content-conflict")
-        return failure(
-          "Entity was modified before the update could be saved. Please request and confirm the update again.",
-        );
+        { permission: context.userPermissionLevel },
+      );
+      switch (outcome.kind) {
+        case "updated":
+          return { success: true, data: { updated: entity.id } };
+        case "not-found":
+          return failure(`Entity not found: ${entity.entityType}/${entity.id}`);
+        case "conflict":
+          return failure(
+            "Entity was modified before the update could be saved. Please request and confirm the update again.",
+          );
+        case "denied":
+          return failure(outcome.message);
+      }
     } catch (error) {
       return failure(getErrorMessage(error, "Failed to update entity"));
     }
-    return { success: true, data: { updated: entity.id } };
   };
 
   const proposeUpdate = (

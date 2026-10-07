@@ -410,8 +410,11 @@ export function normalizeActionControls(
           })),
         );
       } else {
-        const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-        if (!jsonInput.success) {
+        // The browser sends schema input, not transformed output. Admission
+        // supplies callbacks with the parsed value; both must be JSON-native.
+        const jsonInput = jsonValueSchema.safeParse(control.input);
+        const parsedJsonInput = jsonValueSchema.safeParse(parsedInput.data);
+        if (!jsonInput.success || !parsedJsonInput.success) {
           issues.push({
             path: [...actionPath, "input"],
             message: "Workspace action input must be JSON-native",

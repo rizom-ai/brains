@@ -1,8 +1,8 @@
-import type {
-  WorkspaceActionFormFieldDefinition,
-  WorkspaceActionResultDefinition,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  z,
+  type WorkspaceActionFormFieldDefinition,
+  type WorkspaceActionResultDefinition,
+} from "@brains/sdk/services";
 
 /** An action that reports only how it went. */
 export const statusResultSchema: z.ZodObject<

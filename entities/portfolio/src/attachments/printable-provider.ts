@@ -3,7 +3,7 @@ import {
   preferredSlug,
   type PrintableProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/sdk/entities";
 import type { Project } from "../schemas/project";
 import { projectFrontmatterSchema, projectSchema } from "../schemas/project";
 import {
@@ -11,6 +11,8 @@ import {
   projectPrintableTemplate,
   type ProjectPrintableTemplateData,
 } from "./printable-template";
+
+export { PROJECT_PRINTABLE_ATTACHMENT_TYPE };
 
 export const createProjectPrintableProvider: PrintableProviderFactory =
   createPrintableProvider<Project, ProjectPrintableTemplateData>({

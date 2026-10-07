@@ -17,7 +17,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory_sync
+    - toolName: directory-sync_sync
       shouldBeCalled: true
       argsContain:
         action: sync

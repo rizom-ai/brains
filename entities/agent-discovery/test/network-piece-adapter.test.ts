@@ -1,10 +1,19 @@
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { createMockShell } from "@brains/plugins/test";
-import { NetworkPiecePlugin } from "../src/plugins/network-piece-plugin";
-import {
-  NetworkPieceAdapter,
-  networkPieceId,
-} from "../src/adapters/network-piece-adapter";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { defineEntityPackage } from "@brains/sdk/entities";
+import { networkPiece } from "../src/network-piece-entity";
+import { networkPieceId } from "../src/lib/network-piece-id";
+async function install(): Promise<ReturnType<typeof createMockShell>> {
+  const shell = createMockShell();
+  for (const plugin of instantiatePluginPackageDefinition(
+    defineEntityPackage({ id: "network", entities: [networkPiece] }),
+    {},
+    { name: "@brains/agent-discovery", version: "0.0.0-test" },
+  ))
+    await plugin.register(shell);
+  return shell;
+}
 import type { NetworkPieceEntity } from "../src/schemas/network-piece";
 
 // A network piece is another brain's published record, kept in Rizom's own
@@ -38,7 +47,16 @@ const piece: NetworkPieceEntity = {
 };
 
 describe("the network piece adapter", () => {
-  const adapter = new NetworkPieceAdapter();
+  let adapter: ReturnType<
+    ReturnType<
+      ReturnType<typeof createMockShell>["getEntityRegistry"]
+    >["getAdapter"]
+  >;
+  let shell: Awaited<ReturnType<typeof install>>;
+  beforeEach(async () => {
+    shell = await install();
+    adapter = shell.getEntityRegistry().getAdapter("network-piece");
+  });
 
   it("keys a piece by its brain, kind and record, file-safely", () => {
     expect(networkPieceId("did:plc:peer", "ai.rizom.brain.post", "3kabc")).toBe(
@@ -49,7 +67,7 @@ describe("the network piece adapter", () => {
     ).toBe("plc-x--social-post--3k-odd");
   });
 
-  it("round-trips through markdown with the brain and the record in front matter", () => {
+  it("round-trips through markdown and storage with the brain and record intact", async () => {
     const markdown = adapter.toMarkdown(piece);
     expect(markdown).toContain("title: Handoffs between teams");
     expect(markdown).toContain("name: Becca");
@@ -59,7 +77,15 @@ describe("the network piece adapter", () => {
     expect(markdown).toContain("Before anyone leaves a task");
     const back = adapter.fromMarkdown(markdown);
     expect(back.metadata).toEqual(piece.metadata);
-    expect(back.entityType).toBe("network-piece");
+    await shell
+      .getEntityService()
+      .createEntity({ entity: { ...piece, ...back } });
+    const stored = await shell
+      .getEntityService()
+      .getEntity({ entityType: "network-piece", id: piece.id });
+    expect(stored?.entityType).toBe("network-piece");
+    expect(stored?.metadata).toEqual(piece.metadata);
+    expect(stored && adapter.toMarkdown(stored)).toBe(markdown);
   });
 
   it("is published, so a visitor's answer may cite it", () => {
@@ -69,8 +95,7 @@ describe("the network piece adapter", () => {
 
 describe("a network piece in this brain", () => {
   it("is another brain's work: read, searched and cited here, never written by hand or republished", async () => {
-    const shell = createMockShell();
-    await new NetworkPiecePlugin().register(shell);
+    const shell = await install();
     const config = shell
       .getEntityRegistry()
       .getEntityTypeConfig("network-piece");

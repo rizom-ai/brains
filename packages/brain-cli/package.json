@@ -42,6 +42,7 @@
     "@brains/ask-content": "workspace:*",
     "@brains/assessment": "workspace:*",
     "@brains/atproto": "workspace:*",
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/atproto-registry": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/blog": "workspace:*",
@@ -64,8 +65,10 @@
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/faq": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",
+    "@brains/knowledge-map": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/mcp-service": "workspace:*",
@@ -80,6 +83,7 @@
     "@brains/portfolio": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
@@ -101,7 +105,6 @@
     "@brains/unified-inbox": "workspace:*",
     "@brains/utils": "workspace:*",
     "@brains/web-chat": "workspace:*",
-    "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*",
     "@libsql/client": "^0.17.4",
     "@rizom/theme-default": "workspace:*",
@@ -147,6 +150,10 @@
     "./templates": {
       "types": "./dist/templates.d.ts",
       "import": "./dist/templates.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
     },
     "./deploy": {
       "types": "./dist/deploy.d.ts",

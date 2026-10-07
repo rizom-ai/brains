@@ -71,22 +71,25 @@ export interface ContactIntakeOverrides {
   storage?: Overridable<ContactStoragePolicy> | undefined;
   delivery?: Overridable<ContactDeliveryPolicy> | undefined;
 }
-const intakeOverridesSchema: z.ZodType<ContactIntakeOverrides> = z.strictObject(
-  {
-    http: contactHttpPolicyShape
-      .omit({ origin: true, trustForwardedProto: true })
-      .partial()
-      .optional(),
-    admission: contactAdmissionPolicyShape.partial().optional(),
-    storage: contactStoragePolicyShape.partial().optional(),
-    delivery: contactDeliveryPolicyShape.partial().optional(),
-  },
-);
+const intakeOverridesSchema: z.ZodType<
+  ContactIntakeOverrides,
+  ContactIntakeOverrides
+> = z.strictObject({
+  http: contactHttpPolicyShape
+    .omit({ origin: true, trustForwardedProto: true })
+    .partial()
+    .optional(),
+  admission: contactAdmissionPolicyShape.partial().optional(),
+  storage: contactStoragePolicyShape.partial().optional(),
+  delivery: contactDeliveryPolicyShape.partial().optional(),
+});
 export interface ContactPluginConfig {
   intake?: ContactIntakeOverrides | undefined;
 }
-export const contactPluginConfigSchema: z.ZodType<ContactPluginConfig> =
-  z.strictObject({ intake: intakeOverridesSchema.optional() });
+export const contactPluginConfigSchema: z.ZodType<
+  ContactPluginConfig,
+  ContactPluginConfig
+> = z.strictObject({ intake: intakeOverridesSchema.optional() });
 
 /** The policy the intake runs on the given origin: defaults under the
  * overrides, each held to its bounds. Behind a TLS-terminating proxy, which is

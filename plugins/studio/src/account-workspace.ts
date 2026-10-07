@@ -1,4 +1,4 @@
-import type { UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/services";
 
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "@brains/contracts";
 

@@ -6,6 +6,46 @@ import { createMockEntityService } from "../src/test/mock-entity-service";
 // visitor's insight. Every read it offers applies the scope it was made with,
 // and a caller cannot widen it.
 describe("scopeEntityReads", () => {
+  it("preserves narrower visibility on every scoped read", async () => {
+    const base = createMockEntityService({ entityTypes: ["post"] });
+    const view = scopeEntityReads(base, {
+      publishedOnly: true,
+      visibilityScope: "restricted",
+    });
+    await view.getEntity({
+      entityType: "post",
+      id: "a",
+      visibilityScope: "public",
+    });
+    expect(base.getEntity).toHaveBeenCalledWith({
+      entityType: "post",
+      id: "a",
+      visibilityScope: "public",
+      publishedOnly: true,
+    });
+    await view.search({
+      query: "memory",
+      options: { visibilityScope: "public" },
+    });
+    expect(base.search).toHaveBeenCalledWith({
+      query: "memory",
+      options: { visibilityScope: "public", publishedOnly: true },
+    });
+    const request = {
+      entityType: "post",
+      options: {
+        filter: { visibilityScope: "public" as const },
+        publishedOnly: true,
+      },
+    };
+    await view.listEntities(request);
+    expect(base.listEntities).toHaveBeenCalledWith(request);
+    await view.countEntities(request);
+    expect(base.countEntities).toHaveBeenLastCalledWith(request);
+    await view.getEntityCounts("public");
+    expect(base.countEntities).toHaveBeenLastCalledWith(request);
+  });
+
   it("returns the service itself when there is nothing to scope", () => {
     const base = createMockEntityService();
     expect(scopeEntityReads(base, {})).toBe(base);

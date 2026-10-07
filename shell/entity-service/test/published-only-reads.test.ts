@@ -12,6 +12,7 @@ import {
 import { createTestEntity } from "../src/test/index";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 import { scopeEntityReads } from "../src/scoped-entity-reads";
+import { baseEntitySchema } from "../src/types";
 
 // Reads for people who may only see published work (a site's visitors)
 // apply the same publish gate as a published-only listing: each type's
@@ -119,6 +120,112 @@ describe("publishedOnly reads", () => {
       expect(await preview.countEntities(request)).toBe(1);
       expect(request.options.publishedOnly).toBe(false);
     }
+  });
+
+  test("scoped reads preserve schema parsing and cancellation", async () => {
+    ctx = await seed(false);
+    const view = scopeEntityReads(ctx.entityService, {
+      publishedOnly: true,
+      visibilityScope: "public",
+    });
+    const schema = baseEntitySchema.transform((entity) => ({
+      ...entity,
+      metadata: { ...entity.metadata, parsed: true },
+    }));
+    const request = {
+      entityType: "post",
+      id: "post-published",
+      publishedOnly: false,
+    };
+    expect((await view.getEntity(request, schema))?.metadata.parsed).toBe(true);
+    const listed = await view.listEntities({ entityType: "post" }, schema);
+    expect(listed.map((entity) => entity.metadata.parsed)).toEqual([
+      true,
+      true,
+    ]);
+    const searched = await view.search(
+      { query: "Institutional memory", options: { publishedOnly: false } },
+      schema,
+    );
+    expect(searched.map((result) => result.entity.metadata.parsed)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    const controller = new AbortController();
+    const reason = new Error("cancelled test read");
+    controller.abort(reason);
+    expect(
+      await view
+        .getEntity({ ...request, signal: controller.signal })
+        .catch((error: unknown) => error),
+    ).toBe(reason);
+    expect(
+      await view
+        .listEntities({
+          entityType: "post",
+          options: { signal: controller.signal },
+        })
+        .catch((error: unknown) => error),
+    ).toBe(reason);
+    expect(
+      await view
+        .search({ query: "memory", options: { signal: controller.signal } })
+        .catch((error: unknown) => error),
+    ).toBe(reason);
+  });
+
+  test("raw reads and revision snapshots honor publication without changing source or revision", async () => {
+    ctx = await seed(false);
+    const request = { entityType: "post", id: "post-published" };
+    const before = await ctx.entityService.getEntityRaw(request);
+    expect(before).not.toBeNull();
+    const snapshot = await ctx.entityService.getEntityWriteSnapshot(request);
+    expect(snapshot?.entity.content).toBe(before?.content);
+    expect(
+      await ctx.entityService.getEntityWriteSnapshot({
+        ...request,
+        publishedOnly: true,
+      }),
+    ).toEqual(snapshot);
+    expect(
+      await ctx.entityService.getEntityWriteSnapshot({
+        entityType: "post",
+        id: "post-draft",
+        publishedOnly: true,
+      }),
+    ).toBeNull();
+    expect(
+      await ctx.entityService.getEntityWriteSnapshot({
+        entityType: "peer",
+        id: "peer-statusless",
+        publishedOnly: true,
+      }),
+    ).toBeNull();
+    expect(
+      await ctx.entityService.getEntityWriteSnapshot({
+        entityType: "peer",
+        id: "peer-approved",
+        publishedOnly: true,
+      }),
+    ).not.toBeNull();
+    expect(
+      await ctx.entityService.getEntityRaw({ ...request, publishedOnly: true }),
+    ).toEqual(before);
+    expect(
+      await ctx.entityService.getEntityRaw({
+        entityType: "post",
+        id: "post-draft",
+        publishedOnly: true,
+      }),
+    ).toBeNull();
+    expect(
+      await ctx.entityService.getEntityRaw({
+        entityType: "peer",
+        id: "peer-statusless",
+        publishedOnly: true,
+      }),
+    ).toBeNull();
   });
 
   test("get: finds a published entity and hides a draft", async () => {

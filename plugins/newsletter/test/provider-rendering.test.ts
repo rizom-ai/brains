@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { ButtondownNewsletterProvider } from "../src/provider/buttondown-provider";
-import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
-import { ResendNewsletterProvider } from "../src/provider/resend/resend-provider";
+import { ButtondownNewsletterProvider } from "../src/buttondown-provider";
+import type { ButtondownFetch } from "../src/lib/buttondown-client";
+import { ResendNewsletterProvider } from "../src/resend/resend-provider";
 
 const logger = createSilentLogger("newsletter-provider-rendering-test");
 const requestBodySchema = z.record(z.string(), z.unknown());

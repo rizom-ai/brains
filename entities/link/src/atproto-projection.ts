@@ -1,10 +1,10 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/sdk/entities";
 import type {
   AtprotoBrainLinkRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto-contracts";
-import { linkAdapter } from "./adapters/link-adapter";
+} from "@brains/sdk/entities";
+import { parseLinkContent } from "./lib/link-content";
 import { linkSchema } from "./schemas/link";
 
 export async function buildLinkAtprotoRecord({
@@ -13,7 +13,7 @@ export async function buildLinkAtprotoRecord({
   pageUrl,
 }: AtprotoProjectionBuildInput): Promise<AtprotoBrainLinkRecord> {
   const link = linkSchema.parse(entity);
-  const { frontmatter, summary } = linkAdapter.parseLinkContent(link.content);
+  const { frontmatter, summary } = parseLinkContent(link.content);
 
   return {
     $type: "ai.rizom.brain.link",

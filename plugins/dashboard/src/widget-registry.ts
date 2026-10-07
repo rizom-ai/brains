@@ -4,7 +4,7 @@ import {
   UserPermissionLevelSchema,
   type DashboardDigestLine,
   type DashboardWidgetProviderContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";

@@ -30,18 +30,16 @@ export interface SerializedStatusStoreOptions<T> {
  */
 export class SerializedStatusStore<T> {
   private readonly store: IRuntimeStateStore<T>;
-  private readonly schema: RuntimeStateValueSchema<T>;
   private readonly createEmpty: () => T;
   private readonly key: string;
   private readonly queue = new SerialQueue();
   private statePromise: Promise<T> | undefined;
 
   constructor(options: SerializedStatusStoreOptions<T>) {
-    this.store = options.runtimeState.scoped<T>({
+    this.store = options.runtimeState.scoped<T, unknown>({
       namespace: options.namespace,
       schema: options.schema,
     });
-    this.schema = options.schema;
     this.createEmpty = options.createEmpty;
     this.key = options.key ?? DEFAULT_KEY;
   }
@@ -49,14 +47,19 @@ export class SerializedStatusStore<T> {
   /**
    * Apply `mutation` to the current state and persist the result, returning
    * whatever the mutation returned. Mutations run one at a time in call order;
-   * an async mutation holds the queue until it settles, so the persisted state
-   * always reflects everything it wrote.
+   * an async mutation holds the queue until it settles. Failed mutations or
+   * writes leave the committed cache unchanged; external callback side effects
+   * are not rolled back.
    */
   mutate<R>(mutation: (state: T) => R | Promise<R>): Promise<R> {
     return this.queue.run(async () => {
-      const state = await this.load();
-      const result = await mutation(state);
-      await this.persist(state);
+      const draft = structuredClone(await this.load());
+      const result = await mutation(draft);
+      // Capture before awaiting persistence: neither a retained draft nor a
+      // returned value may mutate the write or the subsequently committed cache.
+      const committed = structuredClone(draft);
+      await this.persist(committed);
+      this.statePromise = Promise.resolve(committed);
       return result;
     });
   }
@@ -73,13 +76,21 @@ export class SerializedStatusStore<T> {
   }
 
   private load(): Promise<T> {
-    this.statePromise ??= this.store
-      .get(this.key)
-      .then((stored) => stored ?? this.createEmpty());
+    if (!this.statePromise) {
+      const pending: Promise<T> = this.store
+        .get(this.key)
+        .then((stored) => stored ?? this.createEmpty())
+        .catch((error: unknown) => {
+          // Coalesce the in-flight read, but never memoize a failed load.
+          if (this.statePromise === pending) this.statePromise = undefined;
+          throw error;
+        });
+      this.statePromise = pending;
+    }
     return this.statePromise;
   }
 
   private async persist(state: T): Promise<void> {
-    await this.store.set(this.key, this.schema.parse(state));
+    await this.store.set(this.key, state);
   }
 }

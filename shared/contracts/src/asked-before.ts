@@ -18,12 +18,14 @@ export type AskedBeforeRequest = z.output<typeof askedBeforeRequestSchema>;
 
 type AskedBeforeHitSchema = z.ZodObject<{
   faqId: z.ZodString;
+  faqQuestion: z.ZodString;
   answer: z.ZodString;
   sources: z.ZodDefault<z.ZodArray<typeof SourceCitationSchema>>;
 }>;
 
 export const askedBeforeHitSchema: AskedBeforeHitSchema = z.object({
   faqId: z.string().min(1),
+  faqQuestion: z.string().min(1),
   answer: z.string().trim().min(1),
   sources: z.array(SourceCitationSchema).default([]),
 });

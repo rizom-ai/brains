@@ -1,10 +1,8 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
 import { truncateText } from "@brains/utils/string-utils";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
 import type { TopicSummary } from "../templates/topic-list/schema";
-import { TopicAdapter } from "./topic-adapter";
-
-const adapter = new TopicAdapter();
+import { parseTopicBody } from "./topic-body";
 
 export interface TopicContentProjection {
   id: string;
@@ -17,14 +15,14 @@ export interface TopicContentProjectionWithMetadata extends TopicContentProjecti
 }
 
 export function getTopicTitle(entity: BaseEntity): string {
-  return adapter.parseTopicBody(entity.content).title;
+  return parseTopicBody(entity.content).title;
 }
 
 export function toTopicSummary(
   entity: BaseEntity,
   summaryLength = 200,
 ): TopicSummary {
-  const parsed = adapter.parseTopicBody(entity.content);
+  const parsed = parseTopicBody(entity.content);
   return {
     id: entity.id,
     title: parsed.title,
@@ -35,7 +33,7 @@ export function toTopicSummary(
 }
 
 export function toTopicDetail(entity: BaseEntity): TopicDetailData {
-  const parsed = adapter.parseTopicBody(entity.content);
+  const parsed = parseTopicBody(entity.content);
   return {
     id: entity.id,
     title: parsed.title,
@@ -48,7 +46,7 @@ export function toTopicDetail(entity: BaseEntity): TopicDetailData {
 export function toTopicContentProjection(
   entity: BaseEntity,
 ): TopicContentProjection {
-  const parsed = adapter.parseTopicBody(entity.content);
+  const parsed = parseTopicBody(entity.content);
   return {
     id: entity.id,
     title: parsed.title,

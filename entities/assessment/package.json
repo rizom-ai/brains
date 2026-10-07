@@ -4,9 +4,8 @@
   "version": "0.2.0-alpha.487",
   "description": "Assessment outputs and capability-profile analysis",
   "dependencies": {
-    "@brains/contracts": "workspace:*",
-    "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
   },

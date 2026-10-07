@@ -58,7 +58,7 @@ Common capabilities include:
 - outbound-capable A2A and agent-card construction;
 - saved and discovered agents and skills.
 
-A core-only brain is headless and private. It can call approved peers, but it serves no HTTP routes. Recurring-check failures remain visible through `inbox_list` even without a notification channel.
+A core-only brain is headless and private. It can call approved peers, but it serves no HTTP routes. Recurring-check failures remain visible through `unified-inbox_list` even without a notification channel.
 
 ## Media and automation
 
@@ -127,19 +127,19 @@ The team recipe explicitly adds `docs`; assessment, decks, and other optional pr
 
 ## Shared system tools
 
-| Tool                | Purpose                                          |
-| ------------------- | ------------------------------------------------ |
-| `system_search`     | Semantic search across selected content types    |
-| `system_get`        | Retrieve one item by ID, slug, or title          |
-| `system_list`       | List a known content type with filters           |
-| `system_create`     | Save text, a URL, an upload, or a prior response |
-| `system_generate`   | Generate content or media artifacts              |
-| `system_update`     | Change fields, visibility, status, or content    |
-| `system_delete`     | Delete an item when the caller has permission    |
-| `system_insights`   | Return aggregate content or plugin reports       |
-| `system_job_status` | Check background-job progress and results        |
-| `system_status`     | Report brain and service status                  |
-| `inbox_list`        | Read the live operator-attention projection      |
+| Tool                 | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| `system_search`      | Semantic search across selected content types    |
+| `system_get`         | Retrieve one item by ID, slug, or title          |
+| `system_list`        | List a known content type with filters           |
+| `system_create`      | Save text, a URL, an upload, or a prior response |
+| `system_generate`    | Generate content or media artifacts              |
+| `system_update`      | Change fields, visibility, status, or content    |
+| `system_delete`      | Delete an item when the caller has permission    |
+| `system_insights`    | Return aggregate content or plugin reports       |
+| `system_job_status`  | Check background-job progress and results        |
+| `system_status`      | Report brain and service status                  |
+| `unified-inbox_list` | Read the live operator-attention projection      |
 
 State-changing actions use confirmation and permission checks. Reads and writes are visibility-aware.
 

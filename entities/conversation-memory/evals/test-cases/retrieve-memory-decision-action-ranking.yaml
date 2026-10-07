@@ -7,7 +7,7 @@ tags:
   - retrieval
   - decisions
   - action-items
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: retrieveMemory
 
 input:

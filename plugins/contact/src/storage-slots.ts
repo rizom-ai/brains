@@ -1,7 +1,7 @@
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 
 export interface ContactStoragePolicy {
@@ -25,8 +25,10 @@ export const contactStoragePolicyShape: z.ZodObject<
   maxRecords: z.number().int().min(1).max(1000),
   maxBytes: z.number().int().min(1024).max(32_000_000),
 });
-export const contactStoragePolicySchema: z.ZodType<ContactStoragePolicy> =
-  contactStoragePolicyShape;
+export const contactStoragePolicySchema: z.ZodType<
+  ContactStoragePolicy,
+  ContactStoragePolicy
+> = contactStoragePolicyShape;
 export type ContactDeliveryStatus = "pending" | "sent" | "failed";
 interface DeliveryState {
   attempts: number;

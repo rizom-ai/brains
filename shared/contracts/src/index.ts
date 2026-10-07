@@ -12,8 +12,6 @@ export {
   ASK_CLOSING_ATTRIBUTE,
   ASK_DOCK_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
   ASK_PAGE_LOCK_ATTRIBUTE,
@@ -160,6 +158,15 @@ export {
 } from "./generation-result";
 export { JobResult } from "./job-result";
 export {
+  SdkError,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  toSdkError,
+  sdkErrorHttpStatus,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "./sdk-error";
+export {
   jsonObjectSchema,
   jsonValueSchema,
   type IsJsonValue,
@@ -183,7 +190,6 @@ export {
   DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,
   GENERATE_CHANNELS,
-  IMAGE_CHANNELS,
   JOB_CHANNELS,
   NEWSLETTER_CHANNELS,
   PLUGIN_CHANNELS,
@@ -214,6 +220,7 @@ export {
   formatVisualGuidance,
   formatVoiceGuidance,
   parseStyleGuideContent,
+  styleGuideFromEntity,
   type StyleGuideEntityReader,
   styleGuideFrontmatterSchema,
   styleGuideMessagingSchema,
@@ -279,12 +286,6 @@ export {
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "./note-capture";
-export type {
-  HeadCollectorInterface,
-  HeadProps,
-  ImageRenderer,
-  RenderedImageRef,
-} from "./render";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
 export {
@@ -294,3 +295,17 @@ export {
   STUDIO_INTERACTION_ID,
   studioAiToolsHref,
 } from "./studio-links";
+export { ASK_BOX_AVAILABILITY_OWNER } from "./ask-box-availability";
+export { interfaceAvailabilitySchema } from "./interface-availability";
+export type {
+  InterfaceAvailability,
+  InterfaceAvailabilityOwner,
+  InterfaceAvailabilityReader,
+  InterfaceAvailabilityWriter,
+} from "./interface-availability";
+export { inboxWorkspaceRequest } from "./inbox-workspace";
+export {
+  contactFormDiscoveryRequest,
+  contactFormDiscoverySchema,
+} from "./contact-form-discovery";
+export type { ContactFormDiscovery } from "./contact-form-discovery";

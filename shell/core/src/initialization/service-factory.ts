@@ -1,6 +1,7 @@
 import {
   AIService,
   EmbeddingUsageMeter,
+  GenerationUsageMeter,
   OnlineEmbeddingProvider,
 } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
@@ -25,13 +26,13 @@ import { MessageBus } from "@brains/messaging-service";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
   OperationalHealthRegistry,
   PluginManager,
   RuntimeUploadRegistry,
-  createScheduledMaintenanceDaemon,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
 import {
@@ -46,6 +47,7 @@ import {
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import { OperationContext } from "@brains/operation-context";
 
 import { DaemonRegistry } from "../daemon-registry";
@@ -86,7 +88,9 @@ export function createShellServices(options: {
 
   // Tells a guest turn what its embeddings cost: the provider reports each
   // call, the agent measures each turn.
-  const embeddingUsage = EmbeddingUsageMeter.createFresh();
+  const embeddingUsage = EmbeddingUsageMeter.createFresh(
+    !dependencies?.embeddingService,
+  );
   const embeddingService =
     dependencies?.embeddingService ??
     OnlineEmbeddingProvider.createFresh({
@@ -94,9 +98,10 @@ export function createShellServices(options: {
       logger,
       usage: embeddingUsage,
     });
+  const generationUsage = GenerationUsageMeter.createFresh();
   const aiService =
     dependencies?.aiService ??
-    AIService.createFresh(createAIModelConfig(config), logger);
+    AIService.createFresh(createAIModelConfig(config), logger, generationUsage);
   const entityRegistry =
     dependencies?.entityRegistry ?? EntityRegistry.createFresh(logger);
   const messageBus =
@@ -131,7 +136,9 @@ export function createShellServices(options: {
     new ProfileKindRegistry(config.profileKind);
   const channelRegistry =
     dependencies?.channelRegistry ?? new ChannelRegistry();
-  const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
+  const authRegistry = AuthRegistry.createFresh();
+  const inboxRegistry =
+    dependencies?.inboxRegistry ?? new InboxRegistry(authRegistry);
   const inboxFollowUpRegistry =
     dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry(logger);
   const operationalHealthRegistry =
@@ -316,6 +323,7 @@ export function createShellServices(options: {
     entityService,
     embeddingService,
     embeddingUsage,
+    ...(!dependencies?.aiService ? { generationUsage } : {}),
     entityRegistry,
     logger,
     messageBus,
@@ -355,6 +363,7 @@ export function createShellServices(options: {
     profileService,
     canonicalIdentityService,
     profileKindRegistry,
+    authRegistry,
     channelRegistry,
     inboxRegistry,
     inboxFollowUpRegistry,

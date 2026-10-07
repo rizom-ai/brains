@@ -1,25 +1,71 @@
 import { describe, expect, it } from "bun:test";
 import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
-import { agentEntitySchema } from "../src/schemas/agent";
-import { AgentSightingsInboxSource } from "../src/inbox-source";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
+import { parseAgentEntity } from "../src/lib/agent-content";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { agentSightingsInbox } from "../src/inbox-source";
+import agentDiscovery from "../src";
 import { createTestAgent } from "./fixtures/agent";
 
-const agentAdapter = new AgentAdapter();
-
+/**
+ * The declaration, bound to a context the way the runtime binds it.
+ *
+ * The declaration is a plain object; binding is all a caller has to do.
+ */
 async function createSource(): Promise<{
   harness: ReturnType<typeof createPluginHarness<Plugin>>;
-  source: AgentSightingsInboxSource;
+  source: {
+    list: () => ReturnType<typeof agentSightingsInbox.list>;
+    resolveDetail: (
+      ...args: Parameters<
+        NonNullable<typeof agentSightingsInbox.resolveDetail>
+      > extends [unknown, ...infer TRest]
+        ? TRest
+        : never
+    ) => ReturnType<NonNullable<typeof agentSightingsInbox.resolveDetail>>;
+    act: (
+      ...args: Parameters<typeof agentSightingsInbox.act> extends [
+        unknown,
+        ...infer TRest,
+      ]
+        ? TRest
+        : never
+    ) => ReturnType<typeof agentSightingsInbox.act>;
+  };
 }> {
   const harness = createPluginHarness<Plugin>();
-  await harness.installPlugin(new AgentDiscoveryPlugin());
+  const plugins = instantiatePluginPackageDefinition(
+    agentDiscovery,
+    {},
+    {
+      name: "@brains/agent-discovery",
+      version: "0.1.0",
+    },
+  );
+  for (const plugin of plugins) await harness.installPlugin(plugin);
+  await harness.finalizeRegistration();
+  const installed = harness
+    .getMockShell()
+    .getInboxRegistry()
+    .getSource(agentSightingsInbox.sourceId);
+  const resolveDetail = installed?.resolveDetail;
+  if (!installed || !resolveDetail)
+    throw new Error("The sightings inbox resolves no detail");
   return {
     harness,
-    source: new AgentSightingsInboxSource(
-      harness.getServiceContext("agent-discovery"),
-    ),
+    source: {
+      list: () => installed.list(),
+      resolveDetail: (itemId, actor, signal) =>
+        harness.withCaller(
+          (caller) => resolveDetail(itemId, actor, signal, caller),
+          { permission: actor.permissionLevel, signal },
+        ),
+      act: (itemId, actionId, actor) =>
+        harness.withCaller(
+          (caller) => installed.act(itemId, actionId, actor, caller),
+          { permission: actor.permissionLevel },
+        ),
+    },
   };
 }
 
@@ -121,29 +167,22 @@ describe("agent sightings Inbox source", () => {
       permissionLevel: "admin",
     });
 
-    const connected = await harness.getEntityService().getEntity(
-      {
-        entityType: "agent",
-        id: "connect.example",
-      },
-      agentEntitySchema,
-    );
-    const dismissed = await harness.getEntityService().getEntity(
-      {
-        entityType: "agent",
-        id: "dismiss.example",
-      },
-      agentEntitySchema,
-    );
+    const connected = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "connect.example",
+    });
+    const dismissed = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "dismiss.example",
+    });
     expect(connected?.metadata["status"]).toBe("approved");
     expect(dismissed?.metadata["status"]).toBe("archived");
     if (!connected || !dismissed) throw new Error("Expected saved agents");
-    const connectedFrontmatter =
-      agentAdapter.parseEntity(connected).frontmatter;
+    const connectedFrontmatter = parseAgentEntity(connected).frontmatter;
     expect(connectedFrontmatter.status).toBe("approved");
     expect(connectedFrontmatter.introducedBy).toBeUndefined();
     expect(connectedFrontmatter.hops).toBeUndefined();
-    expect(agentAdapter.parseEntity(dismissed).frontmatter).toMatchObject({
+    expect(parseAgentEntity(dismissed).frontmatter).toMatchObject({
       status: "archived",
       introducedBy: ["kai.brain"],
       hops: 2,

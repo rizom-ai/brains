@@ -556,7 +556,11 @@ describe("MCPService", () => {
       };
       const responses = [
         { success: true as const, data: { value: "ok" }, message: "Done" },
-        { success: false as const, error: "Nope", code: "NOPE" },
+        {
+          success: false as const,
+          error: "Permission denied",
+          code: "permission_denied",
+        },
         {
           needsConfirmation: true as const,
           toolName: "confirm_tool",
@@ -617,7 +621,8 @@ describe("MCPService", () => {
           ),
         ).toEqual({
           success: false,
-          error: `Tool invalid_tool_${index} returned an invalid response shape`,
+          error: "Invalid response",
+          code: "invalid_response",
         });
       }
 
@@ -627,7 +632,7 @@ describe("MCPService", () => {
         expect.objectContaining({
           pluginId: "invalid-plugin",
           toolName: "invalid_tool_0",
-          issues: expect.any(Array),
+          issueCodes: expect.any(Array),
         }),
       );
     });

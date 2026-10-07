@@ -1,15 +1,14 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { randomUUID } from "node:crypto";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
+import { faqEntityHarness } from "./helpers/faq-entity-harness";
+import { faqAccess } from "./helpers/owned-access";
+import * as faqAdapter from "../src/lib/faq-content";
+import type { AskedBeforeDeps } from "../src/lib/asked-before";
 import {
-  FaqPlugin,
   SAME_QUESTION_CHECK,
   answerAskedBefore,
-  faqAdapter,
   faqMetadata,
   faqSchema,
-  type FaqStoreDeps,
 } from "../src";
 
 // A visitor's question a published FAQ already answers is answered from it,
@@ -36,14 +35,10 @@ describe("answering a question asked before", () => {
     },
   ];
 
-  function deps(): FaqStoreDeps {
+  function deps(): AskedBeforeDeps {
     return {
-      entityService: context.entityService,
+      entities: faqAccess(context.entityService),
       sameQuestionDistance: 0.25,
-      searchWithDistances: async (request): Promise<Distance[]> => {
-        queries.push(request.query);
-        return distances;
-      },
       ai: {
         generateObject: async <T>(
           prompt: string,
@@ -94,18 +89,21 @@ describe("answering a question asked before", () => {
   }
 
   beforeEach(async () => {
-    const harness = createPluginHarness({
-      dataDir: `/tmp/test-faq-asked-${randomUUID()}`,
-    });
-    await harness.installPlugin(new FaqPlugin());
+    const harness = await faqEntityHarness();
     context = harness.getEntityContext("faq");
+    context.entityService.searchWithDistances = async (
+      request,
+    ): Promise<Distance[]> => {
+      queries.push(request.query);
+      return distances;
+    };
     distances = [];
     sameVerdict = true;
     checks = [];
     queries = [];
   });
 
-  it("answers from the published FAQ, with its sources, and counts the ask", async () => {
+  it("answers from the published FAQ with its sources, leaving the count to persisted capture", async () => {
     await seed("how-does-rizom-keep-memory", "published");
     const response = await answerAskedBefore(deps(), {
       question: "how does rizom remember things?",
@@ -115,6 +113,7 @@ describe("answering a question asked before", () => {
     expect(response).toEqual({
       hit: {
         faqId: "how-does-rizom-keep-memory",
+        faqQuestion: "How does Rizom keep memory?",
         answer: "In the brains of the people who hold it.",
         sources: [
           {
@@ -130,7 +129,7 @@ describe("answering a question asked before", () => {
         ],
       },
     });
-    expect(await asked("how-does-rizom-keep-memory")).toBe(4);
+    expect(await asked("how-does-rizom-keep-memory")).toBe(3);
   });
 
   it("never answers from a draft, and asks the model nothing about one", async () => {

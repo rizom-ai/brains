@@ -13,7 +13,7 @@ import {
   createSiteImageRenderer,
   type SiteImageLookup,
 } from "@brains/site-engine";
-import { markdownToHtml } from "@brains/ui-library";
+import { markdownToHtml } from "@rizom/brain-ui";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 

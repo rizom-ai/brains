@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { createPluginHarness } from "@brains/plugins/test";
-import { WishlistPlugin } from "../src";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import wishlist from "../src";
 
-describe("WishlistPlugin evals", () => {
+describe("declared wishlist evals", () => {
   it("registers the sameWish eval handler", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-wishlist-evals-${randomUUID()}`,
@@ -16,8 +17,13 @@ describe("WishlistPlugin evals", () => {
       registrations.push(`${pluginId}:${handlerId}`);
     };
 
-    await harness.installPlugin(new WishlistPlugin());
+    for (const plugin of instantiatePluginPackageDefinition(
+      wishlist,
+      {},
+      { name: "@brains/wishlist", version: "0.0.0-test" },
+    ))
+      await harness.installPlugin(plugin);
 
-    expect(registrations).toEqual(["wishlist:sameWish"]);
+    expect(registrations).toEqual(["@brains/wishlist:wish:sameWish"]);
   });
 });

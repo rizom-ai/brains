@@ -1,117 +1,131 @@
-import type {
-  Plugin,
-  Resource,
-  ServicePluginContext,
-  Tool,
-} from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { defineDataSource } from "@brains/sdk/entities";
 import {
-  HOMEPAGE_ATLAS_SCRIPT,
-  HOMEPAGE_ATLAS_SCRIPT_PATH,
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import { fetchAnchorProfileData } from "@brains/profile";
+import { contactFormDiscoveryRequest } from "@brains/contracts";
+import {
   homepageChatAvailable,
+  homepageOpeningSchema,
   loadHomepageOpening,
 } from "@brains/site-atlas";
-import { createTemplate } from "@brains/templates";
-import { z } from "@brains/utils/zod";
 import {
   organizationSiteConfigSchema,
-  type OrganizationSiteConfig,
   type OrganizationSiteConfigInput,
 } from "./config";
-import { OrganizationAboutDataSource } from "./datasources/about-datasource";
-import { OrganizationHomepageDataSource } from "./datasources/homepage-datasource";
+import { organizationHomepageData } from "./datasources/homepage-datasource";
+import { loadAgentRadar } from "./datasources/agent-radar";
 import { organizationProfileSchema } from "./schemas/organization-profile";
-import {
-  OrganizationAbout,
-  type OrganizationAboutData,
-} from "./templates/about";
-import {
-  organizationHomepageSchema,
-  type OrganizationHomepageData,
-} from "./schemas/homepage";
+import { organizationHomepageSchema } from "./schemas/homepage";
+import { OrganizationAbout } from "./templates/about";
 import { OrganizationHomepage } from "./templates/homepage";
 import packageJson from "../package.json";
 
-/**
- * Organization Site Plugin
- * Provides the radar homepage and its datasource
- */
-export class OrganizationSitePlugin extends ServicePlugin<
-  OrganizationSiteConfig,
-  OrganizationSiteConfigInput
-> {
-  public readonly dependencies: string[] = ["agent-discovery"];
-
-  constructor(config: OrganizationSiteConfigInput) {
-    super(
-      "organization-site",
-      packageJson,
-      config,
-      organizationSiteConfigSchema,
-    );
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    context.entities.registerDataSource(
-      new OrganizationHomepageDataSource({
-        loadOpening: (buildContext): ReturnType<typeof loadHomepageOpening> =>
-          loadHomepageOpening(buildContext, context),
-        chatAvailable: (buildContext): Promise<boolean> =>
-          homepageChatAvailable(buildContext, context),
+export const organizationSiteDefinition: ServicePackageDefinition<
+  typeof organizationSiteConfigSchema
+> = defineServicePlugin(
+  {
+    id: "organization-site",
+    config: organizationSiteConfigSchema,
+    dependsOn: ["@brains/agent-discovery:agents"],
+    setup: ({
+      messaging,
+      interfaceAvailability,
+      siteUrl,
+      previewUrl,
+      localSiteUrl,
+      preferLocalUrls,
+    }) => ({
+      interfaceAvailability,
+      siteUrl,
+      previewUrl,
+      localSiteUrl,
+      preferLocalUrls,
+      // Bridge the atlas's bounded discovery envelope, not a route registry.
+      messaging: {
+        send: async (): Promise<unknown> => {
+          const response = await messaging.request(
+            contactFormDiscoveryRequest,
+            {},
+          );
+          return response.ok
+            ? { success: true, data: response.data }
+            : { success: false };
+        },
+      },
+    }),
+  },
+  {
+    dataSources: ({ state }) => [
+      defineDataSource({
+        id: "homepage",
+        name: "Organization Homepage",
+        description: "Scoped profile, opening and agent radar",
+        fetch: async (_query, entities, context) => {
+          const [profile, map, authored, askBox] = await Promise.all([
+            fetchAnchorProfileData(entities, organizationProfileSchema),
+            loadAgentRadar({
+              entityService: entities,
+              semantic: { project: (request) => entities.project(request) },
+            }),
+            loadHomepageOpening({ ...context, entityService: entities }, state),
+            homepageChatAvailable(context, state),
+          ]);
+          return organizationHomepageData({
+            profile,
+            map,
+            authored: homepageOpeningSchema.parse(authored),
+            askBox,
+          });
+        },
       }),
-    );
-
-    context.entities.registerDataSource(new OrganizationAboutDataSource());
-
-    context.templates.register({
-      homepage: createTemplate<OrganizationHomepageData>({
-        name: "homepage",
-        description:
-          "Organization homepage: the opening over the radar of the agent network",
+      defineDataSource({
+        id: "about",
+        name: "Organization About",
+        description: "Scoped organization profile",
+        fetch: async (_query, entities) => ({
+          profile: await fetchAnchorProfileData(
+            entities,
+            organizationProfileSchema,
+          ),
+        }),
+      }),
+    ],
+    templates: {
+      homepage: {
         schema: organizationHomepageSchema,
-        dataSourceId: "organization:homepage",
-        requiredPermission: "public",
-        // Touch title cards, the door's theme and motion pausing for the frame.
-        runtimeScripts: [{ src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true }],
-        staticAssets: { [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT },
-        layout: { component: OrganizationHomepage },
-      }),
-      about: createTemplate<OrganizationAboutData>({
-        name: "about",
-        description:
-          "About page: the team or organization from its anchor profile",
+        permission: "public",
+        dataSourceId: "@brains/site-organization:homepage",
+        render: OrganizationHomepage,
+        description: "Organization opening and agent radar",
+      },
+      about: {
         schema: z.object({ profile: organizationProfileSchema }),
-        dataSourceId: "organization:about",
-        requiredPermission: "public",
-        layout: { component: OrganizationAbout },
-      }),
-    });
+        permission: "public",
+        dataSourceId: "@brains/site-organization:about",
+        render: OrganizationAbout,
+        description: "About the organization",
+      },
+    },
+  },
+);
 
-    this.logger.info("Organization site plugin registered successfully");
-  }
-
-  /**
-   * No tools needed for this plugin
-   */
-  protected override async getTools(): Promise<Tool[]> {
-    return [];
-  }
-
-  /**
-   * No resources needed for this plugin
-   */
-  protected override async getResources(): Promise<Resource[]> {
-    return [];
-  }
-}
-
-/**
- * Factory function to create the plugin
- */
-export function organizationSitePlugin(
-  config?: OrganizationSiteConfigInput,
+/** Internal conventional-site adapter; all behavior is declared above. */
+export function createOrganizationRuntime(
+  config: OrganizationSiteConfigInput = {},
 ): Plugin {
-  return new OrganizationSitePlugin(config ?? {});
+  const [plugin] = instantiatePluginPackageDefinition(
+    organizationSiteDefinition,
+    config,
+    packageJson,
+  );
+  if (!plugin)
+    throw new Error("Organization site declaration produced no runtime");
+  return plugin;
 }

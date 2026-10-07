@@ -3,7 +3,7 @@ import {
   preferredSlug,
   type OgImageProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/sdk/entities";
 import type { DeckEntity } from "../schemas/deck";
 import { deckFrontmatterSchema, deckSchema } from "../schemas/deck";
 import {
@@ -11,6 +11,8 @@ import {
   deckOgImageTemplate,
   type DeckOgImageTemplateData,
 } from "./og-image-template";
+
+export { DECK_OG_IMAGE_ATTACHMENT_TYPE };
 
 export const createDeckOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<DeckEntity, DeckOgImageTemplateData>({

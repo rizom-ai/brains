@@ -3,6 +3,7 @@ import { z } from "@brains/utils/zod";
 import { describe, expect, it } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { Script } from "node:vm";
 
 import {
   imageTagExists,
@@ -14,6 +15,51 @@ import {
 } from "../src/images";
 
 describe("runtimeImageTag", () => {
+  it("refuses a forced digest collision rather than dropping a requirement", () => {
+    // Isolate the planner with a colliding tag function, without mocking crypto
+    // globally or adding a production-only injection seam.
+    const plan = new Script(`(${requiredImages.toString()})(users)`);
+    expect(() =>
+      plan.runInNewContext({
+        Bun,
+        sitePackagesFor,
+        runtimeImageTag: () => "forced-collision",
+        users: [
+          {
+            brainVersion: "1.0.0",
+            siteOverride: { package: "@acme/site-one", version: "1.0.0" },
+          },
+          {
+            brainVersion: "1.0.0",
+            siteOverride: { package: "@acme-site/one", version: "1.0.0" },
+          },
+        ],
+      }),
+    ).toThrow("Image tag collision for distinct runtime requirements");
+  });
+  it("distinguishes lossy spellings of short scoped package names", () => {
+    const brainVersion = "0.2.0-alpha.485";
+    const left = "@acme/site-one";
+    const right = "@acme-site/one";
+    expect(runtimeImageTag(brainVersion, [`${left}@1.0.0`])).not.toBe(
+      runtimeImageTag(brainVersion, [`${right}@1.0.0`]),
+    );
+    const images = requiredImages([
+      { brainVersion, siteOverride: { package: left, version: "1.0.0" } },
+      { brainVersion, siteOverride: { package: right, version: "1.0.0" } },
+    ]);
+    expect(images).toHaveLength(2);
+    expect(images.flatMap((image) => image.sitePackages).sort()).toEqual(
+      [`${right}@1.0.0`, `${left}@1.0.0`].sort(),
+    );
+  });
+
+  it("uses a normalized set identity, independent of order and duplicate pins", () => {
+    const pins = ["@acme/site@1.0.0", "@acme/theme@1.0.0"];
+    expect(runtimeImageTag("1.0.0", [...pins, ...pins])).toBe(
+      runtimeImageTag("1.0.0", [...pins].reverse()),
+    );
+  });
   it("uses one plain tag for every instance on a Brain version without site pins", () => {
     expect(runtimeImageTag("0.2.0-alpha.350")).toBe("brain-0.2.0-alpha.350");
     expect(runtimeImageTag("0.2.0-alpha.350", [])).toBe(
@@ -27,7 +73,7 @@ describe("runtimeImageTag", () => {
       "@rizom/site-rizom-ai@0.2.0-alpha.264",
     ];
     expect(runtimeImageTag("0.2.0-alpha.483", pins)).toBe(
-      "brain-0.2.0-alpha.483--rizom-site-rizom-ai-0.2.0-alpha.264--rizom-theme-rizom-ai-0.2.0-alpha.235",
+      "brain-0.2.0-alpha.483--rizom-site-rizom-ai-0.2.0-alpha.264--rizom-theme-rizom-ai-0.2.0-alpha.235--sf2b834569bea",
     );
     expect(runtimeImageTag("0.2.0-alpha.483", [...pins].reverse())).toBe(
       runtimeImageTag("0.2.0-alpha.483", pins),
@@ -138,7 +184,7 @@ describe("requiredImages", () => {
         sitePackages: [],
       },
       {
-        tag: "brain-0.2.0-alpha.167--rizom-site-rizom-ai-0.2.0-alpha.167--rizom-theme-rizom-ai-0.2.0-alpha.165",
+        tag: "brain-0.2.0-alpha.167--rizom-site-rizom-ai-0.2.0-alpha.167--rizom-theme-rizom-ai-0.2.0-alpha.165--s3401f560f13a",
         brainVersion: "0.2.0-alpha.167",
         sitePackages: [
           "@rizom/site-rizom-ai@0.2.0-alpha.167",
@@ -178,7 +224,7 @@ describe("requiredImages", () => {
         sitePackages: [],
       },
       {
-        tag: "brain-0.2.0-alpha.350--rizom-site-docs-0.2.0-alpha.237--rizom-theme-rizom-ai-0.2.0-alpha.234",
+        tag: "brain-0.2.0-alpha.350--rizom-site-docs-0.2.0-alpha.237--rizom-theme-rizom-ai-0.2.0-alpha.234--s59776d6ed86e",
         brainVersion: "0.2.0-alpha.350",
         sitePackages: [
           "@rizom/site-docs@0.2.0-alpha.237",
@@ -186,7 +232,7 @@ describe("requiredImages", () => {
         ],
       },
       {
-        tag: "brain-0.2.0-alpha.350--rizom-site-rizom-ai-0.2.0-alpha.238--rizom-theme-rizom-ai-0.2.0-alpha.234",
+        tag: "brain-0.2.0-alpha.350--rizom-site-rizom-ai-0.2.0-alpha.238--rizom-theme-rizom-ai-0.2.0-alpha.234--s9b66fad5b48d",
         brainVersion: "0.2.0-alpha.350",
         sitePackages: [
           "@rizom/site-rizom-ai@0.2.0-alpha.238",
@@ -327,7 +373,7 @@ describe("resolveImageBuilds", () => {
 
     expect(builds).toEqual([
       {
-        tag: "brain-0.2.0-alpha.169--rizom-theme-rizom-ai-0.2.0-alpha.169",
+        tag: "brain-0.2.0-alpha.169--rizom-theme-rizom-ai-0.2.0-alpha.169--s9de4a9c76d20",
         brainVersion: "0.2.0-alpha.169",
         sitePackages: ["@rizom/theme-rizom-ai@0.2.0-alpha.169"],
       },
@@ -434,7 +480,7 @@ members:
       .parse(JSON.parse(outputs["images_json"] ?? "[]"));
     expect(matrix).toEqual([
       {
-        tag: "brain-0.2.0-alpha.167--rizom-site-rizom-ai-0.2.0-alpha.167--rizom-theme-rizom-ai-0.2.0-alpha.165",
+        tag: "brain-0.2.0-alpha.167--rizom-site-rizom-ai-0.2.0-alpha.167--rizom-theme-rizom-ai-0.2.0-alpha.165--s3401f560f13a",
         brain_version: "0.2.0-alpha.167",
         site_packages:
           "@rizom/site-rizom-ai@0.2.0-alpha.167 @rizom/theme-rizom-ai@0.2.0-alpha.165",
@@ -486,7 +532,7 @@ discord:
 
     expect(builds).toHaveLength(1);
     expect(builds[0]?.tag).toBe(
-      "brain-0.2.0-alpha.169--rizom-site-rizom-ai-0.2.0-alpha.169",
+      "brain-0.2.0-alpha.169--rizom-site-rizom-ai-0.2.0-alpha.169--s5cde5f9ce1f4",
     );
     expect(builds[0]?.sitePackages).toEqual([
       "@rizom/site-rizom-ai@0.2.0-alpha.169",

@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Head, formatDate } from "@brains/ui-library";
+import { Head, formatDate } from "@rizom/brain-ui";
 import type { AgentSkill } from "../schemas/agent";
 import type { AgentView } from "./agent-view";
 import {

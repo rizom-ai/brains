@@ -69,7 +69,10 @@ export class ProfessionalSitePlugin extends ServicePlugin<
   ProfessionalSiteConfig,
   ProfessionalSiteConfigInput
 > {
-  public readonly dependencies: string[] = ["blog", "decks"];
+  public readonly dependencies: string[] = [
+    "@brains/blog:post",
+    "@brains/decks:deck",
+  ];
 
   constructor(config: ProfessionalSiteConfigInput) {
     super(
@@ -114,7 +117,9 @@ export class ProfessionalSitePlugin extends ServicePlugin<
             chatAvailable: (buildContext): Promise<boolean> =>
               homepageChatAvailable(buildContext, context),
             loadFaqs: (buildContext): ReturnType<typeof loadPublicFaqs> =>
-              loadPublicFaqs(buildContext, HOMEPAGE_FAQ_LIMIT, context.logger),
+              loadPublicFaqs(buildContext.entityService, HOMEPAGE_FAQ_LIMIT, {
+                publishedOnly: buildContext.publishedOnly,
+              }),
           }
         : {},
     );

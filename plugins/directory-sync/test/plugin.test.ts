@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import {
+  DIRECTORY_SYNC_PLUGIN_ID,
+  instantiate,
+  scopedStateNamespace,
+  SYNC_TOOL,
+} from "./helpers/install";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { StudioWorkspaceRegistration } from "@brains/plugins";
@@ -16,9 +22,9 @@ import { startGitBrokerHost } from "../src/lib/broker/host";
 import { gitBrokerSocketPath } from "../src/lib/broker/server";
 import { getGitRemoteFingerprint } from "../src/lib/git-options";
 
-describe("DirectorySyncPlugin", () => {
-  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
-  let plugin: DirectorySyncPlugin;
+describe("Plugin", () => {
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
   let syncPath: string;
   let workspaceRegistration: StudioWorkspaceRegistration | undefined;
@@ -26,7 +32,7 @@ describe("DirectorySyncPlugin", () => {
   beforeEach(async () => {
     syncPath = mkdtempSync(join(tmpdir(), "test-directory-sync-"));
 
-    harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
+    harness = createPluginHarness({ dataDir: syncPath });
     workspaceRegistration = undefined;
     harness.subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
       "studio:register-workspace",
@@ -51,14 +57,15 @@ describe("DirectorySyncPlugin", () => {
       new MockEntityAdapter("topic"),
     );
 
-    plugin = new DirectorySyncPlugin({
+    ({ plugin } = instantiate({
       syncPath,
       autoSync: false,
       initialSync: false,
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
-    await plugin.ready();
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
   });
 
   afterEach(async () => {
@@ -77,19 +84,19 @@ describe("DirectorySyncPlugin", () => {
 
     it("should provide expected tools", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toEqual(["directory_sync"]);
+      expect(toolNames).toEqual([SYNC_TOOL]);
     });
 
     it("should register templates", () => {
       const templates = harness.getTemplates();
-      expect(templates.has("directory-sync:status")).toBe(true);
+      expect(templates.has(`${DIRECTORY_SYNC_PLUGIN_ID}:status`)).toBe(true);
     });
 
     it("should register request-driven Git progress health", async () => {
       expect(
         await harness.getMockShell().getOperationalHealthRegistry().getChecks(),
       ).toContainEqual({
-        name: "directory-sync:git-progress",
+        name: `${DIRECTORY_SYNC_PLUGIN_ID}:git-progress`,
         status: "healthy",
         message: "No stale directory Git pull",
       });
@@ -97,8 +104,8 @@ describe("DirectorySyncPlugin", () => {
 
     it("should register the optional Studio Sync workspace", () => {
       expect(workspaceRegistration).toMatchObject({
-        id: "directory-sync:sync",
-        pluginId: "directory-sync",
+        id: `${DIRECTORY_SYNC_PLUGIN_ID}:sync`,
+        pluginId: DIRECTORY_SYNC_PLUGIN_ID,
         label: "Content sync",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 50,
@@ -115,9 +122,7 @@ describe("DirectorySyncPlugin", () => {
 
     it("should handle sync operation", async () => {
       // Sync using the tool
-      const syncTool = capabilities.tools.find(
-        (t) => t.name === "directory_sync",
-      );
+      const syncTool = capabilities.tools.find((t) => t.name === SYNC_TOOL);
       expect(syncTool).toBeDefined();
       if (!syncTool) throw new Error("Sync tool not found");
 
@@ -248,14 +253,15 @@ describe("DirectorySyncPlugin", () => {
       // checkpoint. Plugin registration must replay through reads, open
       // admission, and only then perform mutating initialization.
       owner = await startGitBrokerHost(hostOptions);
-      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+      const localHarness = createPluginHarness({
         dataDir: checkout,
         gitBrokerSocket: socketPath,
         gitBrokerCheckout: checkout,
       });
-      const localPlugin = new DirectorySyncPlugin(pluginConfig);
+      const { plugin: localPlugin } = instantiate(pluginConfig);
 
       await localHarness.installPlugin(localPlugin);
+      await localHarness.finalizeRegistration();
       const statusConnection = await BrokerConnection.connect(socketPath);
       const status = await statusConnection.status();
       expect(status.admitsMutations).toBe(true);
@@ -270,12 +276,12 @@ describe("DirectorySyncPlugin", () => {
 
     it("records an interrupted unlinked pull instead of silently clearing it", async () => {
       const path = mkdtempSync(join(tmpdir(), "test-interrupted-pull-"));
-      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+      const localHarness = createPluginHarness({
         dataDir: path,
       });
       const runtimeState = localHarness.getMockShell().getRuntimeState();
       const statusStore = runtimeState.scoped<unknown>({
-        namespace: "directory-sync.operation-status",
+        namespace: scopedStateNamespace("directory-sync.operation-status"),
         schema: z.unknown(),
       });
       await statusStore.set("current", {
@@ -295,7 +301,7 @@ describe("DirectorySyncPlugin", () => {
         issues: [],
       });
 
-      const localPlugin = new DirectorySyncPlugin({
+      const { plugin: localPlugin } = instantiate({
         syncPath: path,
         autoSync: false,
         initialSync: false,
@@ -347,10 +353,10 @@ describe("DirectorySyncPlugin", () => {
 
     it("should not enable git when git block has no repo and no gitUrl", async () => {
       const path = mkdtempSync(join(tmpdir(), "test-no-git-"));
-      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+      const localHarness = createPluginHarness({
         dataDir: path,
       });
-      const localPlugin = new DirectorySyncPlugin({
+      const { plugin: localPlugin, state: localState } = instantiate({
         syncPath: path,
         autoSync: false,
         initialSync: false,
@@ -359,7 +365,7 @@ describe("DirectorySyncPlugin", () => {
 
       // Should not throw — git is silently disabled when no repo/gitUrl provided
       await localHarness.installPlugin(localPlugin);
-      expect(localPlugin.hasGitSync()).toBe(false);
+      expect(localState().hasGitSync()).toBe(false);
 
       await localHarness.reset();
       if (existsSync(path)) {
@@ -369,10 +375,10 @@ describe("DirectorySyncPlugin", () => {
 
     it("should not enable git when git block has only authToken (no repo/gitUrl)", async () => {
       const path = mkdtempSync(join(tmpdir(), "test-no-git-token-"));
-      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+      const localHarness = createPluginHarness({
         dataDir: path,
       });
-      const localPlugin = new DirectorySyncPlugin({
+      const { plugin: localPlugin, state: localState } = instantiate({
         syncPath: path,
         autoSync: false,
         initialSync: false,
@@ -380,7 +386,7 @@ describe("DirectorySyncPlugin", () => {
       });
 
       await localHarness.installPlugin(localPlugin);
-      expect(localPlugin.hasGitSync()).toBe(false);
+      expect(localState().hasGitSync()).toBe(false);
 
       await localHarness.reset();
       if (existsSync(path)) {

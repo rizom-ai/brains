@@ -18,7 +18,7 @@ import type {
 /** The projection plus the build's scoped agent reads; nothing else. */
 export interface AgentRadarSource {
   semantic: ProximityMapDataContext["semantic"];
-  entityService: ProximityMapDataContext["entityService"] & {
+  entityService: ProximityMapDataContext["entities"] & {
     listEntities(request: { entityType: string }): Promise<BaseEntity[]>;
   };
 }
@@ -160,7 +160,7 @@ export async function loadAgentRadar(
     const neighbours: SemanticSpaceNeighbor[] = [];
     const [map, listed] = await Promise.all([
       buildProximityMapData({
-        entityService: source.entityService,
+        entities: source.entityService,
         semantic: {
           project: async (request) => {
             const projection = await source.semantic.project({

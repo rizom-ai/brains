@@ -3,10 +3,10 @@ import { randomUUID } from "node:crypto";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { EntityPluginContext, InboxActor } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import * as faqAdapter from "../src/lib/faq-content";
 import {
-  FaqInboxSource,
-  FaqPlugin,
-  faqAdapter,
+  faqPackage,
   faqMetadata,
   faqSchema,
   type FaqFrontmatter,
@@ -51,18 +51,30 @@ describe("a FAQ whose cited piece left the network", () => {
     return faqAdapter.parseFaqContent(faq.content).frontmatter;
   }
 
-  function withdraw(entityId: string): Promise<unknown> {
-    return harness.sendMessage(ENTITY_CHANNELS.deleted, {
-      entityType: "network-piece",
-      entityId,
-    });
+  async function withdraw(entityId: string): Promise<void> {
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: ENTITY_CHANNELS.deleted,
+        payload: { entityType: "network-piece", entityId },
+        sender: "test",
+      });
+    expect(response).toMatchObject({ success: true });
   }
 
   beforeEach(async () => {
     harness = createPluginHarness({
       dataDir: `/tmp/test-faq-stale-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    await harness.installPlugins(
+      instantiatePluginPackageDefinition(
+        faqPackage,
+        {},
+        { name: "@brains/faq", version: "0.0.0-test" },
+      ),
+    );
+    await harness.finalizeRegistration();
     context = harness.getEntityContext("faq");
     await seed("cites-becca", [
       {
@@ -102,7 +114,33 @@ describe("a FAQ whose cited piece left the network", () => {
 
   it("reaches the Inbox, where the owner keeps the answer or takes it down", async () => {
     await withdraw("plc-peer--post--3kabc");
-    const inbox = new FaqInboxSource(context);
+    const registered = harness
+      .getMockShell()
+      .getInboxRegistry()
+      .getSource("faq");
+    const resolve = registered?.resolveDetail;
+    if (!registered || !resolve) throw new Error("Missing FAQ inbox");
+    const inbox = {
+      list: (): ReturnType<typeof registered.list> => registered.list(),
+      resolveDetail: (
+        id: string,
+        actor: InboxActor,
+        signal: AbortSignal,
+      ): ReturnType<typeof resolve> =>
+        harness.withCaller((caller) => resolve(id, actor, signal, caller), {
+          permission: actor.permissionLevel,
+          signal,
+        }),
+      act: (
+        id: string,
+        action: string,
+        actor: InboxActor,
+      ): ReturnType<typeof registered.act> =>
+        harness.withCaller(
+          (caller) => registered.act(id, action, actor, caller),
+          { permission: actor.permissionLevel },
+        ),
+    };
     const items = await inbox.list();
     const item = items.find((entry) => entry.id === "cites-becca");
     expect(item?.summary).toContain("left the network");

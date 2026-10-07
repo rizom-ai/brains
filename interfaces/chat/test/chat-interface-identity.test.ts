@@ -1,39 +1,40 @@
 import { describe, it, expect, mock } from "bun:test";
+import type { AuthPrincipal } from "@brains/plugins";
 import { PermissionService } from "@brains/plugins/test";
 import {
   MockChatSdk,
-  authState,
   createMessage,
   createPlugin,
   createThread,
   discordExternalIdentity,
   setupChatInterfaceTest,
+  type ResolveIdentityAccessMock,
 } from "./harness/chat-interface-harness";
 
-describe("ChatInterface identity and permissions", () => {
+const resolved = (principal: AuthPrincipal): ResolveIdentityAccessMock =>
+  mock(async () => ({ state: "resolved" as const, principal }));
+
+describe("chat identity and permissions", () => {
   const suite = setupChatInterfaceTest();
 
   it("uses linked auth principal permissions for Discord users", async () => {
-    authState.resolveIdentityAccess = mock(async () => ({
-      state: "resolved" as const,
-      principal: {
-        userId: "usr_mira",
-        personId: "per_mira",
-        displayName: "Mira",
-        role: "trusted" as const,
-        status: "active" as const,
-        permissionLevel: "trusted" as const,
-        isAnchor: true,
-        canonicalId: "user:mira",
-      },
-    }));
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    const identity = resolved({
+      userId: "usr_mira",
+      personId: "per_mira",
+      displayName: "Mira",
+      role: "trusted",
+      status: "active",
+      permissionLevel: "trusted",
+      isAnchor: true,
+      canonicalId: "user:mira",
+    });
+    suite.bindIdentity(identity);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(createThread(), createMessage());
 
-    expect(authState.resolveIdentityAccess).toHaveBeenCalledWith({
+    expect(identity).toHaveBeenCalledWith({
       type: "discord",
       subject: "user-789",
     });
@@ -52,6 +53,7 @@ describe("ChatInterface identity and permissions", () => {
           displayName: "Mira",
         }),
       }),
+      expect.anything(),
     );
   });
 
@@ -62,20 +64,18 @@ describe("ChatInterface identity and permissions", () => {
         anchors: ["discord:user-789"],
       }),
     );
-    authState.resolveIdentityAccess = mock(async () => ({
-      state: "resolved" as const,
-      principal: {
+    suite.bindIdentity(
+      resolved({
         userId: "usr_member",
         personId: "per_member",
         displayName: "Member",
-        role: "public" as const,
-        status: "active" as const,
-        permissionLevel: "public" as const,
+        role: "public",
+        status: "active",
+        permissionLevel: "public",
         isAnchor: false,
-      },
-    }));
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+      }),
+    );
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(createThread(), createMessage());
@@ -91,11 +91,8 @@ describe("ChatInterface identity and permissions", () => {
         rules: [{ pattern: "discord:*", level: "trusted" }],
       }),
     );
-    authState.resolveIdentityAccess = mock(async () => ({
-      state: "denied" as const,
-    }));
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    suite.bindIdentity(mock(async () => ({ state: "denied" as const })));
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(createThread(), createMessage());
@@ -110,11 +107,8 @@ describe("ChatInterface identity and permissions", () => {
         rules: [{ pattern: "discord:*", level: "trusted" }],
       }),
     );
-    authState.resolveIdentityAccess = mock(async () => ({
-      state: "unbound" as const,
-    }));
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    suite.bindIdentity(mock(async () => ({ state: "unbound" as const })));
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(createThread(), createMessage());
@@ -128,8 +122,7 @@ describe("ChatInterface identity and permissions", () => {
     suite.harness.setPermissionService(
       new PermissionService({ anchors: ["discord:user-789"] }),
     );
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(createThread(), createMessage());

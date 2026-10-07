@@ -1,9 +1,7 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import {
-  directoryExportJobSchema,
   type ExportResult,
   type DirectoryExportJobData,
   type IDirectorySync,
@@ -11,25 +9,19 @@ import {
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import { getErrorMessage } from "@brains/utils/error";
 
-export class DirectoryExportJobHandler extends BaseJobHandler<
-  "directory-export",
-  DirectoryExportJobData,
-  ExportResult
-> {
+export class DirectoryExportJobHandler {
+  protected readonly logger: Logger;
   private directorySync: IDirectorySync;
   private readonly operationStatus:
     DirectorySyncOperationStatusService | undefined;
 
   constructor(
     logger: Logger,
-    _context: ServicePluginContext,
+    _context: DirectorySyncHost,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
   ) {
-    super(logger, {
-      schema: directoryExportJobSchema,
-      jobTypeName: "directory-export",
-    });
+    this.logger = logger;
     this.directorySync = directorySync;
     this.operationStatus = operationStatus;
   }
@@ -37,7 +29,7 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
   public async process(
     data: DirectoryExportJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<ExportResult> {
     this.logger.debug("Processing directory export job", { jobId, data });
 
@@ -67,14 +59,5 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
       });
       throw error;
     }
-  }
-
-  protected override summarizeDataForLog(
-    data: DirectoryExportJobData,
-  ): Record<string, unknown> {
-    return {
-      entityTypes: data.entityTypes ?? "all",
-      batchSize: data.batchSize,
-    };
   }
 }

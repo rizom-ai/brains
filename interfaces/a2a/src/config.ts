@@ -2,7 +2,7 @@ import { z } from "@brains/utils/zod";
 
 type A2AConfigSchema = z.ZodObject<
   {
-    port: z.ZodDefault<z.ZodNumber>;
+    inbound: z.ZodDefault<z.ZodBoolean>;
     organization: z.ZodOptional<z.ZodString>;
     requestTimeoutMs: z.ZodDefault<z.ZodNumber>;
     streamIdleTimeoutMs: z.ZodDefault<z.ZodNumber>;
@@ -16,8 +16,8 @@ type A2AConfigSchema = z.ZodObject<
  */
 export const a2aConfigSchema: A2AConfigSchema = z
   .object({
-    /** Port for the A2A HTTP server */
-    port: z.number().default(3334),
+    /** Publish inbound routes; outbound tools remain available when false. */
+    inbound: z.boolean().default(false),
 
     /** Organization name for the Agent Card provider field */
     organization: z.string().optional(),

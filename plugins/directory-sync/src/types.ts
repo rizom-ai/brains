@@ -8,6 +8,7 @@ export type {
   BatchMetadata,
   BatchOperationResult,
   BatchResult,
+  DirectoryBatchOperation,
 } from "./types/batch";
 
 export type {
@@ -28,11 +29,15 @@ export type {
 } from "./types/results";
 
 export {
+  durableBulkMutationChildRefSchema,
+  type DurableBulkMutationChildRef,
+} from "@brains/sdk/entities";
+
+export {
   coverImageConversionJobSchema,
   directoryDeleteJobSchema,
   directoryExportJobSchema,
   directoryImportJobSchema,
-  directoryProjectionBatchRefSchema,
   directorySyncJobSchema,
   directorySyncRequestJobSchema,
   inlineImageConversionJobSchema,
@@ -41,9 +46,9 @@ export {
   type DirectoryDeleteTarget,
   type DirectoryExportJobData,
   type DirectoryImportJobData,
-  type DirectoryProjectionBatchRef,
   type DirectorySyncJobData,
   type DirectorySyncRequestJobData,
+  type DirectorySyncJobType,
   type InlineImageConversionJobData,
   type JobRequest,
 } from "./types/jobs";

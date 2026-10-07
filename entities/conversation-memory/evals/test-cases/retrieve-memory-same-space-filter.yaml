@@ -6,7 +6,7 @@ tags:
   - conversation-memory
   - retrieval
   - spaces
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: retrieveMemory
 
 input:

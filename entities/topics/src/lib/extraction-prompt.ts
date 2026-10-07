@@ -1,35 +1,6 @@
-import type { ContentVisibility, IEntityService } from "@brains/plugins";
-import { TOPIC_ENTITY_TYPE } from "./constants";
-import { getTopicTitle } from "./topic-presenter";
-
+/** How many existing titles extraction is shown, so it reuses canonical
+ * names instead of inventing near-duplicates without flooding the prompt. */
 const MAX_EXISTING_TOPIC_TITLES = 40;
-
-/**
- * Fetch a small set of existing topic titles so extraction can reuse
- * canonical names instead of inventing near-duplicates.
- */
-export async function listExistingTopicTitles(
-  entityService: IEntityService,
-  limit: number = MAX_EXISTING_TOPIC_TITLES,
-  targetVisibility?: ContentVisibility,
-): Promise<string[]> {
-  const topics = await entityService.listEntities({
-    entityType: TOPIC_ENTITY_TYPE,
-    options:
-      targetVisibility === undefined
-        ? { limit }
-        : { filter: { visibilityScope: targetVisibility } },
-  });
-
-  return topics
-    .filter(
-      (topic) =>
-        targetVisibility === undefined || topic.visibility === targetVisibility,
-    )
-    .map(getTopicTitle)
-    .filter((title): title is string => title.trim().length > 0)
-    .slice(0, limit);
-}
 
 /**
  * Build the extraction prompt with canonicalization guidance.

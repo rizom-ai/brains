@@ -1,18 +1,18 @@
-import { createMockEntityService } from "@brains/entity-service/test";
-import { createMockEntityPluginContext } from "@brains/plugins/test";
+import { PROJECTION_ABSTAINED } from "@brains/plugins";
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
   ProjectionExecutionContext,
   ProjectionInputContext,
 } from "@brains/plugins";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { SkillAdapter } from "../src/adapters/skill-adapter";
+import { createSkillContent } from "../src/lib/directory-markdown";
 import { createSkillProjectionRule } from "../src/lib/skill-projection";
 import type { SkillFrontmatter } from "../src/schemas/skill";
 
 const now = "2026-04-30T00:00:00.000Z";
-const adapter = new SkillAdapter();
 
 function entity(input: {
   id: string;
@@ -33,7 +33,7 @@ function skill(id: string, metadata: SkillFrontmatter): BaseEntity {
   return entity({
     id,
     entityType: "skill",
-    content: adapter.createSkillContent(metadata),
+    content: createSkillContent(metadata),
     metadata,
   });
 }
@@ -53,6 +53,12 @@ function inputContext(
   }): Promise<boolean> => entityType === "skill" && projectionOwnedIds.has(id);
   return {
     entities: service,
+    spaces: [],
+    conversations: {
+      get: async () => null,
+      getMessages: async () => [],
+      getManyWithMessages: async () => [],
+    },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async () => ({
       version: "0.0.0",
@@ -104,7 +110,7 @@ function executionContext(generatedSkills: SkillFrontmatter[]): {
 }
 
 describe("skill projection rule", () => {
-  it("derives desired skills, deletes stale projection outputs, and preserves authored skills", async () => {
+  it("derives desired skills and preserves authored ones", async () => {
     const existing = {
       name: "Existing",
       description: "Old description",
@@ -153,12 +159,11 @@ describe("skill projection rule", () => {
         entity: {
           id: "systems-design",
           entityType: "skill",
-          content: adapter.createSkillContent(desired),
+          content: createSkillContent(desired),
           metadata: desired,
           visibility: "public",
         },
       },
-      { operation: "delete", entityType: "skill", id: "stale" },
     ]);
   });
 
@@ -195,7 +200,17 @@ describe("skill projection rule", () => {
     expect(await rule.derive(selected, context, signal)).toEqual([]);
   });
 
-  it("does not call the model or delete outputs when no topics exist", async () => {
+  // Removal is the runtime's, from what the rule declares — not a diff the
+  // rule writes. Hand-written, the same diff in series selected its
+  // comparison set unscoped and deleted entities at other visibilities.
+  it("claims authority over public skills only", () => {
+    expect(createSkillProjectionRule().targets).toEqual({
+      authority: "exclusive",
+      visibility: "public",
+    });
+  });
+
+  it("abstains without calling the model when no topics exist", async () => {
     const existing = {
       name: "Existing",
       description: "Keep this",
@@ -211,7 +226,11 @@ describe("skill projection rule", () => {
     );
     const { context, generate } = executionContext([]);
 
-    expect(await rule.derive(selected, context, signal)).toEqual([]);
+    // Not an empty desired set: no topics is normal during initial sync,
+    // and claiming "no skills should exist" would delete every one.
+    expect(await rule.derive(selected, context, signal)).toBe(
+      PROJECTION_ABSTAINED,
+    );
     expect(generate).not.toHaveBeenCalled();
   });
 });

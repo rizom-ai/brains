@@ -3,17 +3,15 @@ import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   InboxRegistry,
+  AuthRegistry,
   type StudioWorkspaceRegistration,
   type DashboardWidgetRegistration,
   type InboxItem,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  InboxDataSource,
-  UnifiedInboxPlugin,
-  inboxProjectionSchema,
-} from "../src";
+import { InboxDataSource, inboxProjectionSchema } from "../src";
+import { createUnifiedInboxPlugin } from "./install";
 
 function item(
   id: string,
@@ -31,7 +29,7 @@ function item(
 
 describe("InboxDataSource", () => {
   it("aggregates all sources by urgency then recency", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("alpha-plugin", {
       sourceId: "alpha",
       displayName: "Alpha",
@@ -67,7 +65,7 @@ describe("InboxDataSource", () => {
   });
 
   it("isolates a failing source without exposing its exception", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("healthy-plugin", {
       sourceId: "healthy",
       displayName: "Healthy",
@@ -102,7 +100,7 @@ describe("InboxDataSource", () => {
 
   it("coalesces concurrent projections into one source fan-out", async () => {
     let lists = 0;
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.registerSource("alpha-plugin", {
       sourceId: "alpha",
       displayName: "Alpha",
@@ -128,7 +126,7 @@ describe("InboxDataSource", () => {
   });
 
   it("returns a stable empty projection", async () => {
-    const registry = new InboxRegistry();
+    const registry = new InboxRegistry(AuthRegistry.createFresh());
     registry.finalize();
 
     expect(await new InboxDataSource(registry).getInboxData()).toEqual({
@@ -138,7 +136,7 @@ describe("InboxDataSource", () => {
   });
 
   it("registers the digest execution dependency before worker ready hooks", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       domain: "brain.test",
       logContext: "unified-inbox-worker-registration-test",
     });
@@ -155,7 +153,7 @@ describe("InboxDataSource", () => {
       },
     });
 
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     await plugin.register(shell, { executionOnly: true });
 
     expect(check).toMatchObject({
@@ -167,7 +165,7 @@ describe("InboxDataSource", () => {
   });
 
   it("keeps Dashboard semantic while handing the Studio destination to interactions and digest", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       domain: "brain.test",
       logContext: "unified-inbox-order-test",
     });
@@ -215,10 +213,10 @@ describe("InboxDataSource", () => {
       act: async () => undefined,
     });
 
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(events).toEqual(["digest", "workspace", "dashboard"]);
     if (!widget || !check)
@@ -229,7 +227,7 @@ describe("InboxDataSource", () => {
       description: "Review source-owned items that need operator attention.",
       href: "/studio/workspaces/inbox",
       kind: "admin",
-      pluginId: "unified-inbox",
+      pluginId: "@brains/unified-inbox:unified-inbox",
       priority: 20,
       visibility: "admin",
       status: "available",
@@ -282,7 +280,7 @@ describe("InboxDataSource", () => {
   });
 
   it("does not advertise or forward an invalid Studio workspace target", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       logContext: "unified-inbox-invalid-target-test",
     });
     const shell = harness.getMockShell();
@@ -306,10 +304,10 @@ describe("InboxDataSource", () => {
         },
       );
 
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect((await shell.getAppInfo()).interactions).not.toContainEqual(
       expect.objectContaining({ id: "unified-inbox" }),
@@ -328,7 +326,7 @@ describe("InboxDataSource", () => {
   });
 
   it("answers the headless tool without webserver, Studio, or Dashboard plugins", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       logContext: "unified-inbox-test",
     });
     harness
@@ -342,13 +340,16 @@ describe("InboxDataSource", () => {
         ],
         act: async () => undefined,
       });
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(
-      harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
+      harness
+        .getMockShell()
+        .getDataSourceRegistry()
+        .has("@brains/unified-inbox:inbox"),
     ).toBe(true);
     expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
     expect(harness.getMockShell().hasPlugin("studio")).toBe(false);
@@ -356,14 +357,16 @@ describe("InboxDataSource", () => {
     expect(
       (await harness.getMockShell().getAppInfo()).interactions,
     ).not.toContainEqual(expect.objectContaining({ id: "unified-inbox" }));
-    expect(capabilities.tools.map((tool) => tool.name)).toEqual(["inbox_list"]);
-    expect(await harness.executeTool("inbox_list", {})).toMatchObject({
+    expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+      "unified-inbox_list",
+    ]);
+    expect(await harness.executeTool("unified-inbox_list", {})).toMatchObject({
       success: true,
       data: {
         total: 1,
         entries: [{ item: { title: "Attention mail-high" } }],
       },
     });
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(plugin.getWebRoutes?.()).toEqual([]);
   });
 });

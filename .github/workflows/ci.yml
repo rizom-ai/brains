@@ -98,6 +98,9 @@ jobs:
       - name: Lint core packages
         run: bun scripts/lint.mjs --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
+      - name: Check boundary casts
+        run: bun run casts:check
+
       - name: Check legacy code inventory
         run: bun run legacy:check
 
@@ -195,6 +198,9 @@ jobs:
 
       - name: Test core packages
         run: bunx turbo run test --concurrency="$(nproc)" --filter='!@rizom/site*' --filter='!@rizom/theme*'
+
+      - name: Test release orchestration
+        run: bun test scripts/release-workflow.test.ts scripts/lib/release-ci.test.ts scripts/lib/release-context.test.ts
 
   build:
     name: Build

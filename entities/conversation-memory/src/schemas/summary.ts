@@ -2,9 +2,9 @@ import {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
-} from "@brains/contracts";
-import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+} from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 
 export const summaryTimeRangeSchema: z.ZodObject<{
   start: z.ZodString;
@@ -172,3 +172,18 @@ export const summarySchema: ReturnType<
 });
 
 export type SummaryEntity = z.output<typeof summarySchema>;
+
+/**
+ * Bring a stored summary's participants up to the current actor shape, so the
+ * same person appearing under two interface ids is one participant.
+ */
+export function migrateSummaryMetadata(stored: unknown): unknown {
+  if (!isRecord(stored)) return stored;
+  const participants = stored["participants"];
+  return Array.isArray(participants)
+    ? {
+        ...stored,
+        participants: participants.map(normalizeLegacySummaryParticipant),
+      }
+    : stored;
+}

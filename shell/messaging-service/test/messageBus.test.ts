@@ -8,6 +8,7 @@ import { deferred } from "@brains/utils/deferred";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
+import { SdkError } from "@brains/contracts";
 
 /** What the predicate below reads off a message it is asked to filter. */
 const prioritizedPayloadSchema = z.looseObject({
@@ -402,7 +403,26 @@ describe("MessageBus", () => {
 
       expect(errorHandler1).toHaveBeenCalled();
       expect(errorHandler2).toHaveBeenCalled();
-      expect("success" in result && result.success).toBe(false);
+      expect(result).toMatchObject({ success: false, code: "handler_failed" });
+    });
+
+    it("skips no-op replies rather than treating them as an empty success", async () => {
+      messageBus.subscribe("noop", () => ({ noop: true }));
+      expect(
+        await messageBus.send({ type: "noop", payload: {}, sender: "test" }),
+      ).toMatchObject({ success: false, code: "no_handler" });
+      messageBus.subscribe("noop", () => ({ success: true, data: 7 }));
+      expect(
+        await messageBus.send({ type: "noop", payload: {}, sender: "test" }),
+      ).toEqual({ success: true, data: 7 });
+    });
+
+    it("reports an invalid envelope instead of claiming nobody was listening", async () => {
+      // @ts-expect-error Exercise an invalid JavaScript provider at the runtime boundary.
+      messageBus.subscribe("invalid", () => ({ invalid: true }));
+      expect(
+        await messageBus.send({ type: "invalid", payload: {}, sender: "test" }),
+      ).toMatchObject({ success: false, code: "invalid_response" });
     });
 
     it("should continue to the next handler after an invalid response", async () => {
@@ -900,12 +920,14 @@ describe("MessageBus", () => {
       expect(await collection).toEqual([
         {
           success: false,
+          code: "handler_failed",
           error:
             "Message handler failed for message type: test.collect.failures",
         },
         { success: true, data: "acknowledged" },
         {
           success: false,
+          code: "handler_failed",
           error:
             "Message handler failed for message type: test.collect.failures",
         },
@@ -924,11 +946,44 @@ describe("MessageBus", () => {
       expect(responses).toEqual([
         {
           success: false,
+          code: "invalid_response",
           error:
             "Message handler failed for message type: test.collect.invalid",
         },
         { success: true, data: undefined },
       ]);
+    });
+
+    it("preserves coded failures and no-op slots without exposing exception text", async () => {
+      messageBus.subscribe("test.collect.codes", (): never => {
+        throw new SdkError("permission_denied", {
+          message: "PRIVATE exception detail",
+        });
+      });
+      messageBus.subscribe("test.collect.codes", () => ({ noop: true }));
+      messageBus.subscribe("test.collect.codes", () => ({
+        success: true,
+        data: "ack",
+      }));
+      const responses = await messageBus.collect({
+        type: "test.collect.codes",
+        payload: {},
+        sender: "sender",
+      });
+      expect(responses).toEqual([
+        {
+          success: false,
+          code: "permission_denied",
+          error: "Message handler failed for message type: test.collect.codes",
+        },
+        {
+          success: false,
+          code: "handler_failed",
+          error: "Message handler failed for message type: test.collect.codes",
+        },
+        { success: true, data: "ack" },
+      ]);
+      expect(JSON.stringify(responses)).not.toContain("PRIVATE");
     });
 
     it("returns an empty list when no handlers match", async () => {
@@ -965,8 +1020,8 @@ describe("MessageBus", () => {
       expect(handler2).toHaveBeenCalledTimes(1);
       expect(handler3).toHaveBeenCalledTimes(1);
 
-      // Broadcast messages don't return responses
-      expect("success" in result && result.success).toBe(false);
+      // Broadcast messages don't return responses, not even a missing-handler failure.
+      expect(result).toEqual({ noop: true });
     });
 
     it("should continue broadcast delivery after an invalid response", async () => {
@@ -990,7 +1045,7 @@ describe("MessageBus", () => {
       expect(invalidHandler).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(1);
       expect(handler3).toHaveBeenCalledTimes(1);
-      expect("success" in result && result.success).toBe(false);
+      expect(result).toEqual({ noop: true });
     });
 
     it("should await all handlers for broadcast messages before returning", async () => {

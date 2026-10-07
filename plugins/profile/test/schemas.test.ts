@@ -132,9 +132,12 @@ describe("a stored profile whose content is invalid", () => {
       }
     })();
     expect(refusal).toMatchObject({
-      name: "EntityValidationError",
-      entityType: "anchor-profile",
-      phase: "schema",
+      name: "SdkError",
+      code: "invalid_input",
+    });
+    expect(JSON.parse(JSON.stringify(refusal))).toEqual({
+      code: "invalid_input",
+      message: "Invalid input",
     });
     expect(() =>
       validateProfileEntity("---\nname: Rizom\n---\n"),

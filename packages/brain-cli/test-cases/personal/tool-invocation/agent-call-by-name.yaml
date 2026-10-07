@@ -1,6 +1,6 @@
 id: tool-invocation-agent-call-by-name
 name: Call Saved Agent by Domain
-description: Tests permission-aware use of agent_call with a saved agent domain from the local directory
+description: Tests permission-aware use of a2a_call with a saved agent domain from the local directory
 type: tool_invocation
 setup:
   interfaceType: evaluation
@@ -20,14 +20,14 @@ successCriteria: {}
 permissions:
   public:
     expectedTools:
-      - toolName: agent_call
+      - toolName: a2a_call
         shouldBeCalled: false
     responseNotContains:
       - "yeehaa.io says"
       - "according to yeehaa.io"
   trusted:
     expectedTools:
-      - toolName: agent_call
+      - toolName: a2a_call
         shouldBeCalled: true
         argsContain:
           agent: "yeehaa.io"
@@ -38,7 +38,7 @@ permissions:
       - "Add it first"
   admin:
     expectedTools:
-      - toolName: agent_call
+      - toolName: a2a_call
         shouldBeCalled: true
         argsContain:
           agent: "yeehaa.io"

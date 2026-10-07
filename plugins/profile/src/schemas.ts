@@ -1,10 +1,10 @@
 import {
   anchorProfileBodySchema,
-  EntityValidationError,
-  parseMarkdownWithFrontmatter,
+  SdkError,
   type ProfileCategory,
   type ProfileKindDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 export interface CommonProfileExtension {
@@ -277,6 +277,8 @@ export function validateProfileEntity(
   try {
     validateProfileContent(content, selection);
   } catch (error) {
-    throw new EntityValidationError("anchor-profile", error);
+    // Explicit source-invalid classification through the existing public SDK;
+    // a live persist-policy refusal remains a different, retryable failure.
+    throw new SdkError("invalid_input", { cause: error });
   }
 }

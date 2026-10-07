@@ -17,6 +17,7 @@ import {
   activateProjectionRuntime,
   type ProjectionRuntimeControls,
 } from "../projection-runtime";
+import { createConversationSourcePoller } from "../conversation-source-poller";
 import {
   runtimeRoleProfile,
   type RuntimeProcessRole,
@@ -27,9 +28,18 @@ const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({
-    operationId: z.string().min(1),
+    rootJobId: z.string().min(1),
     childKey: z.string().min(1),
   }),
+});
+
+const conversationPollerStateSchema = z.object({
+  cursor: z
+    .object({
+      updated: z.string().datetime(),
+      id: z.string().min(1),
+    })
+    .nullable(),
 });
 
 /**
@@ -53,7 +63,9 @@ export interface ShellBootloaderOptions {
 export interface ShellBootloaderHooks {
   registerCoreDataSources(): void;
   finalizeHttpRoutes(): void;
-  registerSystemCapabilities(): void;
+  startHttpHost(): Promise<void>;
+  registerSystemJobHandlers(): void;
+  registerSystemCapabilities(options: { resumeBackfill: boolean }): void;
   createProjectionInputContext(): ProjectionInputContext;
   createProjectionExecutionContext(): ProjectionExecutionContext;
   projectionRuntime?: ProjectionRuntimeControls | undefined;
@@ -141,13 +153,32 @@ export class ShellBootloader {
     );
 
     if (options?.mode === undefined) {
+      const projectionStore = this.services.entityService.getProjectionStore();
+      const projectionRules =
+        this.services.pluginManager.getProjectionRulesSnapshot();
+      const hasConversationRule = projectionRules.some((rule) =>
+        rule.sources.some((source) => source.kind === "conversation"),
+      );
+      const conversationPollerState = this.services.runtimeStateService.scoped({
+        namespace: "projection.conversation-source",
+        schema: conversationPollerStateSchema,
+      });
+      const pollConversationSources = hasConversationRule
+        ? createConversationSourcePoller({
+            conversations: this.services.conversationService,
+            markDirty: (input) => projectionStore.markDirty(input),
+            readState: () => conversationPollerState.get("live"),
+            writeState: (state) => conversationPollerState.set("live", state),
+            now: this.hooks.projectionRuntime?.now ?? Date.now,
+          })
+        : undefined;
       const projectionRuntime = await activateProjectionRuntime({
-        store: this.services.entityService.getProjectionStore(),
+        store: projectionStore,
         queue: this.services.jobQueueService,
         setWakeup: (wakeup) =>
           this.services.entityService.setProjectionWakeup(wakeup),
         graph: this.services.pluginManager.getProjectionGraphSnapshot(),
-        rules: this.services.pluginManager.getProjectionRulesSnapshot(),
+        rules: projectionRules,
         inputContext: this.hooks.createProjectionInputContext(),
         executionContext: this.hooks.createProjectionExecutionContext(),
         reconcileTargets: (targets) =>
@@ -189,9 +220,10 @@ export class ShellBootloader {
         ...(this.hooks.projectionRuntime?.sweepIntervalMs !== undefined && {
           sweepIntervalMs: this.hooks.projectionRuntime.sweepIntervalMs,
         }),
+        ...(pollConversationSources && { pollConversationSources }),
         reconcileBatches: () =>
           this.services.entityService.recoverProjectionBatches(
-            async (rootJobId, operationId) => {
+            async (rootJobId) => {
               const jobs =
                 await this.services.jobQueueService.getJobsByRootJobId(
                   rootJobId,
@@ -202,7 +234,7 @@ export class ShellBootloader {
                 );
                 if (
                   !parsed.success ||
-                  parsed.data.projectionBatch.operationId !== operationId
+                  parsed.data.projectionBatch.rootJobId !== rootJobId
                 ) {
                   return [];
                 }
@@ -222,11 +254,14 @@ export class ShellBootloader {
       this.services.disposables.push(() => projectionRuntime.dispose());
     }
 
+    this.hooks.registerSystemJobHandlers();
     this.services.jobQueueService.finalizeHandlerRegistrations();
 
     this.hooks.registerCoreDataSources();
     if (this.role.serves) {
-      this.hooks.registerSystemCapabilities();
+      this.hooks.registerSystemCapabilities({
+        resumeBackfill: options?.mode === undefined,
+      });
     }
 
     if (options?.mode === "register-only") {
@@ -243,7 +278,7 @@ export class ShellBootloader {
     }
 
     if (options?.mode !== "startup-check") {
-      await this.startEarlyWebserver();
+      await this.hooks.startHttpHost();
 
       // Run initial sync (driven by pluginsRegistered subscribers) before
       // materializing ready-state defaults. Singleton defaults must not be
@@ -274,14 +309,6 @@ export class ShellBootloader {
     await this.startIndexReadinessMonitor();
 
     this.services.logger.debug("Shell boot complete");
-  }
-
-  private async startEarlyWebserver(): Promise<void> {
-    const webserverDaemonName = "webserver:webserver";
-    if (!this.services.daemonRegistry.has(webserverDaemonName)) return;
-
-    await this.services.daemonRegistry.start(webserverDaemonName);
-    this.services.logger.debug("Started webserver before initial sync");
   }
 
   private async emitPluginsRegistered(): Promise<void> {

@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { LayoutSlots } from "@brains/site-engine";
 import type { SiteLayoutInfo } from "@brains/site-composition";
-import { Header, ThemeToggle } from "@brains/ui-library";
+import { Header, ThemeToggle } from "@rizom/brain-ui";
 
 export interface PersonalLayoutProps {
   sections: ReactNode[];

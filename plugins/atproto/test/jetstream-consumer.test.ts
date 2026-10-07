@@ -1,6 +1,6 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { createServicePluginContext } from "@brains/plugins";
+import { jetstreamRuntimeFor } from "./helpers/install";
 
 import { atprotoConfigSchema } from "../src/config";
 import {
@@ -114,7 +114,7 @@ describe("JetstreamConsumer", () => {
     const sockets: Array<{ url: string; socket: FakeSocket }> = [];
     const discover = mock(async () => discoveredOutcome(true));
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover,
@@ -147,7 +147,7 @@ describe("JetstreamConsumer", () => {
     const shell = createMockShell();
     const discover = mock(async () => discoveredOutcome());
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover,
@@ -181,7 +181,7 @@ describe("JetstreamConsumer", () => {
     const event = commitEvent({ timeUs: 1_750_000_000_123_456 });
 
     const first = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover,
@@ -198,7 +198,7 @@ describe("JetstreamConsumer", () => {
 
     const urls: string[] = [];
     const second = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover,
@@ -225,7 +225,7 @@ describe("JetstreamConsumer", () => {
     const initialNow = 1_750_000_000_000;
     const event = commitEvent({ timeUs: initialNow * 1000 });
     const first = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover: mock(async () => discoveredOutcome()),
@@ -243,7 +243,7 @@ describe("JetstreamConsumer", () => {
     const reportGap = mock(async () => {});
     const urls: string[] = [];
     const second = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover: mock(async () => discoveredOutcome()),
@@ -273,7 +273,7 @@ describe("JetstreamConsumer", () => {
     const discover = mock(async () => discoveredOutcome());
     const markUnavailable = mock(async () => {});
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover,
@@ -312,7 +312,7 @@ describe("JetstreamConsumer", () => {
         }),
     );
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig({
         concurrency: 2,
         queueLimit: 1,
@@ -365,7 +365,7 @@ describe("JetstreamConsumer", () => {
         }),
     );
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig({
         concurrency: 1,
         queueLimit: 4,
@@ -408,7 +408,7 @@ describe("JetstreamConsumer", () => {
     const fetchShell = createMockShell();
     const fetchOptions: Array<{ allowNewCandidate: boolean }> = [];
     const fetchConsumer = new JetstreamConsumer({
-      context: createServicePluginContext(fetchShell, "atproto"),
+      runtime: jetstreamRuntimeFor(fetchShell),
       config: createConfig({
         concurrency: 1,
         perDidCooldownSeconds: 0,
@@ -438,7 +438,7 @@ describe("JetstreamConsumer", () => {
     const creationShell = createMockShell();
     const creationOptions: Array<{ allowNewCandidate: boolean }> = [];
     const creationConsumer = new JetstreamConsumer({
-      context: createServicePluginContext(creationShell, "atproto"),
+      runtime: jetstreamRuntimeFor(creationShell),
       config: createConfig({
         concurrency: 1,
         perDidCooldownSeconds: 0,
@@ -476,7 +476,7 @@ describe("JetstreamConsumer", () => {
     const shell = createMockShell();
     let attempts = 0;
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig({ retryAttempts: 2, perDidCooldownSeconds: 0 }),
       callbacks: {
         discover: mock(async () => {
@@ -509,7 +509,7 @@ describe("JetstreamConsumer", () => {
     const shell = createMockShell();
     const sockets: FakeSocket[] = [];
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig(),
       callbacks: {
         discover: mock(async () => discoveredOutcome()),
@@ -541,7 +541,7 @@ describe("JetstreamConsumer", () => {
       heartbeatIntervalHours: 0.000001,
     };
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config,
       callbacks: {
         discover: mock(async () => discoveredOutcome()),
@@ -562,7 +562,7 @@ describe("JetstreamConsumer", () => {
     const shell = createMockShell();
     const discover = mock(async () => discoveredOutcome());
     const consumer = new JetstreamConsumer({
-      context: createServicePluginContext(shell, "atproto"),
+      runtime: jetstreamRuntimeFor(shell),
       config: createConfig({ denyDids: ["did:plc:peer"] }),
       callbacks: {
         discover,

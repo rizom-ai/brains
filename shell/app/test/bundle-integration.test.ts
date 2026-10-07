@@ -254,7 +254,7 @@ describe("bundle resolver integration", () => {
       interfaces: [
         [
           "web",
-          TestInterface,
+          (config): Plugin => new TestInterface(config),
           (): PluginConfig => ({
             nested: { baseOnly: true, shared: "base" },
           }),

@@ -1,8 +1,10 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { waitForEmbeddingsToDrain } from "@brains/plugins";
+import {
+  generateMarkdownWithFrontmatter,
+  type EntityEvalDeclaration,
+} from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { WishAdapter } from "../adapters/wish-adapter";
+import { wish } from "../wish-entity";
 import { wishSchema } from "../schemas/wish";
 import { findExistingWish } from "./wish-dedup";
 
@@ -10,47 +12,36 @@ const wishInputSchema = z.object({
   title: z.string(),
   description: z.string(),
 });
-
 const sameWishInputSchema = z.object({
   stored: wishInputSchema,
   incoming: wishInputSchema,
 });
-
 const EVAL_STORED_ID = "eval-stored-wish";
-
-const adapter = new WishAdapter();
-
-/** The markdown a new wish is stored and embedded as. */
-function wishMarkdown(wish: z.output<typeof wishInputSchema>): string {
-  return adapter.createWishContent(
-    { title: wish.title, status: "new", priority: "medium", requested: 1 },
-    wish.description,
-  );
+function wishMarkdown(input: z.output<typeof wishInputSchema>): string {
+  return generateMarkdownWithFrontmatter(input.description, {
+    title: input.title,
+    status: "new",
+    priority: "medium",
+    requested: 1,
+  });
 }
 
-/**
- * Eval hook for the embedding distance that decides whether two wishes ask
- * for the same thing, run against the real embedding model.
- */
-export function registerWishlistEvalHandlers(params: {
-  context: EntityPluginContext;
-  sameWishDistance: number;
-}): void {
-  const { context, sameWishDistance } = params;
-
-  context.eval.registerHandler("sameWish", async (input: unknown) => {
-    const { stored, incoming } = sameWishInputSchema.parse(input);
-    const existing = await context.entityService.listEntities({
-      entityType: "wish",
-    });
-    await Promise.all(
-      existing.map((wish) =>
-        context.entityService.deleteEntity({ entityType: "wish", id: wish.id }),
-      ),
-    );
-
-    await context.entityService.createEntity({
-      entity: {
+/** Explicit eval only: no provider calls during registration. */
+export function wishlistEvalHandlers(
+  sameWishDistance: number,
+): EntityEvalDeclaration {
+  return {
+    sameWish: async (
+      input,
+      { fixtures, entities, ai },
+    ): Promise<{
+      distance: number;
+      shortlisted: boolean;
+      sameWish: boolean;
+    }> => {
+      const { stored, incoming } = sameWishInputSchema.parse(input);
+      await fixtures.reset();
+      await fixtures.seed({
         id: EVAL_STORED_ID,
         entityType: "wish",
         content: wishMarkdown(stored),
@@ -61,35 +52,38 @@ export function registerWishlistEvalHandlers(params: {
           requested: 1,
           slug: slugify(stored.title),
         },
-      },
-    });
-    await waitForEmbeddingsToDrain(context.jobs);
-
-    const query = wishMarkdown(incoming);
-    const distances = await context.entityService.searchWithDistances({
-      query,
-    });
-    const distance = distances.find(
-      (result) => result.entityId === EVAL_STORED_ID,
-    )?.distance;
-    if (distance === undefined) {
-      throw new Error("The stored wish was not embedded");
-    }
-    // The full production decision: distance shortlist, then the check.
-    const match = await findExistingWish(
-      {
-        searchWithDistances: async (): Promise<typeof distances> => distances,
-        getEntity: (request) =>
-          context.entityService.getEntity(request, wishSchema),
-        maxDistance: sameWishDistance,
-        ai: context.ai,
-      },
-      { title: incoming.title, content: query },
-    );
-    return {
-      distance,
-      shortlisted: distance <= sameWishDistance,
-      sameWish: match?.id === EVAL_STORED_ID,
-    };
-  });
+      });
+      await fixtures.settleEmbeddings();
+      const query = wishMarkdown(incoming);
+      const distances = await entities.nearest(wish, query, {
+        visibility: "public",
+        maxDistance: 2,
+        limit: 1,
+      });
+      const distance = distances.find(
+        (result) => result.entity.id === EVAL_STORED_ID,
+      )?.distance;
+      if (distance === undefined)
+        throw new Error("The stored wish was not embedded");
+      const match = await findExistingWish(
+        {
+          nearest: ({ query: text, ...options }) =>
+            entities.nearest(wish, text, options),
+          getEntity: (request) =>
+            entities.getEntity(
+              { ...request, visibilityScope: "public" },
+              wishSchema,
+            ),
+          maxDistance: sameWishDistance,
+          ai,
+        },
+        { title: incoming.title, content: query },
+      );
+      return {
+        distance,
+        shortlisted: distance <= sameWishDistance,
+        sameWish: match?.id === EVAL_STORED_ID,
+      };
+    },
+  };
 }

@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { CSSProperties, JSX } from "react";
-import { WidgetEmptyState } from "@brains/ui-library";
-import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
+import { WidgetEmptyState, operatorViewStylexCSS } from "@rizom/brain-ui";
+import widgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
   proximityCenterLabel,
   proximityMapDataSchema,
@@ -15,7 +15,8 @@ import {
   proximityReach,
 } from "../lib/proximity-map";
 export { proximityMapScript } from "./proximity-map-script";
-export { proximityMapWidgetStyles };
+// Standalone hosts need the shared empty-state styles as well as the map CSS.
+export const proximityMapWidgetStyles: string = `${widgetStyles}\n${operatorViewStylexCSS}`;
 
 const WIDTH = 1000;
 const HEIGHT = 520;

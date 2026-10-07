@@ -182,7 +182,11 @@ describe("JobQueueRepository fenced attempts", () => {
     "retry",
   ] as const) {
     it(`waits asynchronously for an enqueue transaction before ${operation}`, async () => {
-      const job = createTestJob({ maxRetries: operation === "retry" ? 3 : 0 });
+      const job = createTestJob({
+        maxRetries: operation === "retry" ? 3 : 0,
+        lastError: "Earlier failure",
+        lastErrorCode: "rate_limited",
+      });
       const pending = createTestJob();
       const claim = claimOptions();
       await repository.insert(job);
@@ -267,19 +271,25 @@ describe("JobQueueRepository fenced attempts", () => {
       else expect(result.value).toBe(true);
       const persisted = await repository.getStatus(job.id);
       if (operation === "complete")
-        expect(persisted?.status).toBe(JOB_STATUS.COMPLETED);
+        expect(persisted).toMatchObject({
+          status: JOB_STATUS.COMPLETED,
+          lastError: null,
+          lastErrorCode: null,
+        });
       if (operation === "fail")
         expect(persisted).toMatchObject({
           status: JOB_STATUS.FAILED,
           retryCount: 0,
-          lastError: "handler failed",
+          lastError: "The operation failed",
+          lastErrorCode: "handler_failed",
         });
       if (operation === "retry")
         expect(persisted).toMatchObject({
           status: JOB_STATUS.PENDING,
           retryCount: 1,
           attemptId: null,
-          lastError: "handler failed",
+          lastError: "The operation failed",
+          lastErrorCode: "handler_failed",
         });
       if (operation === "progress")
         expect(persisted?.progress).toMatchObject({ progress: 50 });

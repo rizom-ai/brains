@@ -1,8 +1,8 @@
 import { chatJobStatusSchema } from "@brains/contracts/chat";
-import type { InterfacePluginContext } from "@brains/plugins";
+import type { InterfaceJobs } from "@brains/sdk/interfaces";
 
 type AuthSessionResolver = (request: Request) => Promise<boolean>;
-type JobService = InterfacePluginContext["jobs"];
+type JobService = Pick<InterfaceJobs, "getStatus">;
 
 interface JobStatusHandlerDeps {
   resolveAuthSession: AuthSessionResolver;

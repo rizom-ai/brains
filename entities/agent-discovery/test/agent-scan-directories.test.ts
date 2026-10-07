@@ -1,15 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
-import type { Plugin } from "@brains/plugins";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
-import {
-  AgentToolsPlugin,
-  type AgentToolsConfigInput,
-} from "../src/plugins/agent-tools-plugin";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import type { Plugin, Tool } from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import agentDiscovery, { type AgentDiscoveryConfigInput } from "../src";
+import { parseAgentEntity } from "../src/lib/agent-content";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
+
 import { agentEntitySchema } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
+import { useNetwork } from "./fixtures/agent-network";
 
 interface MockHost {
   directory?: unknown;
@@ -73,12 +72,58 @@ function directoryOf(...urls: string[]): unknown {
   return { agents: urls.map((url) => ({ name: url, url })) };
 }
 
+const PACKAGE_METADATA = {
+  name: "@brains/agent-discovery",
+  version: "0.1.0",
+};
+
+// A package installs several plugins and `getCapabilities` reports the last
+// one, so the tools have to be collected as they are registered.
+const toolsByHarness = new WeakMap<object, Tool[]>();
+
+async function installPackage(
+  harness: ReturnType<typeof createPluginHarness<Plugin>>,
+  config: AgentDiscoveryConfigInput = {},
+): Promise<void> {
+  const plugins = instantiatePluginPackageDefinition(
+    agentDiscovery,
+    config,
+    PACKAGE_METADATA,
+  );
+  const tools: Tool[] = [];
+  for (const plugin of plugins) {
+    tools.push(...(await harness.installPlugin(plugin)).tools);
+  }
+  toolsByHarness.set(harness, tools);
+}
+
+function toolsOf(
+  harness: ReturnType<typeof createPluginHarness<Plugin>>,
+): Tool[] {
+  return toolsByHarness.get(harness) ?? [];
+}
+
+/** Run one of the package's tools as an admin. */
+async function runTool(
+  harness: ReturnType<typeof createPluginHarness<Plugin>>,
+  name: string,
+  input: Record<string, unknown> = {},
+): Promise<Awaited<ReturnType<Tool["handler"]>>> {
+  const tool = toolsOf(harness).find((candidate) => candidate.name === name);
+  if (!tool) throw new Error(`${name} not registered`);
+  return tool.handler(input, {
+    interfaceType: "test",
+    actor: { kind: "user", userId: "operator" },
+    userPermissionLevel: "admin",
+  });
+}
+
 async function setupHarness(network: {
   fetch: FetchFn;
 }): Promise<ReturnType<typeof createPluginHarness<Plugin>>> {
+  useNetwork(network.fetch);
   const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
-  await harness.installPlugin(new AgentDiscoveryPlugin());
-  await harness.installPlugin(new AgentToolsPlugin(network.fetch));
+  await installPackage(harness);
   return harness;
 }
 
@@ -92,31 +137,35 @@ type CapturedRecurringCheck = Parameters<
 
 async function setupRecurringCheck(
   network: { fetch: FetchFn },
-  config: AgentToolsConfigInput = {},
+  config: AgentDiscoveryConfigInput = {},
 ): Promise<{
   harness: AgentDiscoveryTestHarness;
   check: CapturedRecurringCheck;
 }> {
+  useNetwork(network.fetch);
   const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
   const shell = harness.getMockShell();
-  const registered: { check?: CapturedRecurringCheck } = {};
+  // The package declares two: the agent type refreshes known cards, and the
+  // service scans peer directories. Selected by id rather than by which
+  // registered last.
+  const registered: CapturedRecurringCheck[] = [];
   shell.getRecurringChecks = (): ReturnType<
     typeof shell.getRecurringChecks
   > => ({
     register: (definition): (() => void) => {
-      registered.check = definition;
+      registered.push(definition);
       return () => {};
     },
   });
 
-  await harness.installPlugin(new AgentDiscoveryPlugin());
-  await harness.installPlugin(new AgentToolsPlugin(network.fetch, config));
-  const check = registered.check;
+  await installPackage(harness, config);
+  // Scoped to the service that declared it.
+  const check = registered.find(({ id }) => id.endsWith("directory-scan"));
   if (!check) throw new Error("Directory recurring check was not registered");
   return { harness, check };
 }
 
-describe("agent_scan_directories", () => {
+describe("agents_scan-directories", () => {
   it("reports new agents while suppressing notification delivery by default", async () => {
     const network = createMockNetwork({
       "kai.brain": {
@@ -199,9 +248,9 @@ describe("agent_scan_directories", () => {
     const network = createMockNetwork({});
     const harness = await setupHarness(network);
 
-    const tool = harness
-      .getCapabilities()
-      .tools.find((candidate) => candidate.name === "agent_scan_directories");
+    const tool = toolsOf(harness).find(
+      (candidate) => candidate.name === "agents_scan-directories",
+    );
     expect(tool?.visibility).toBe("trusted");
     expect(tool?.sideEffects).toBe("external");
     expect(tool?.description).toContain("/.well-known/agent-directory.json");
@@ -229,10 +278,10 @@ describe("agent_scan_directories", () => {
     await harness.getEntityService().createEntity({
       entity: createTestAgent({ id: "kai.brain", status: "approved" }),
     });
-    const tool = harness
-      .getCapabilities()
-      .tools.find((candidate) => candidate.name === "agent_scan_directories");
-    if (!tool) throw new Error("agent_scan_directories not registered");
+    const tool = toolsOf(harness).find(
+      (candidate) => candidate.name === "agents_scan-directories",
+    );
+    if (!tool) throw new Error("agents_scan-directories not registered");
     const run = tool.handler(
       {},
       {
@@ -246,8 +295,13 @@ describe("agent_scan_directories", () => {
 
     controller.abort(abortReason);
 
-    expect(run).rejects.toBe(abortReason);
-    await run.catch(() => undefined);
+    // Cancellation is identified by the signal, even for a plain Error reason.
+    // The arbitrary abort diagnostic stays private.
+    expect(await run).toMatchObject({
+      success: false,
+      code: "cancelled",
+      error: "The operation was cancelled",
+    });
     await harness.reset();
   });
 
@@ -288,7 +342,7 @@ describe("agent_scan_directories", () => {
       entity: createTestAgent({ id: "noor.brain", status: "discovered" }),
     });
 
-    const result = await harness.executeTool("agent_scan_directories", {});
+    const result = await runTool(harness, "agents_scan-directories");
 
     expectSuccess(result);
     expect(result.data).toMatchObject({
@@ -310,8 +364,8 @@ describe("agent_scan_directories", () => {
     expect(sighted?.metadata.status).toBe("discovered");
     expect(sighted?.metadata.name).toBe("Vale");
     expect(sighted?.visibility).toBe("public");
-    if (!sighted) throw new Error("Expected sighted agent");
-    const parsed = new AgentAdapter().parseEntity(sighted);
+    if (!sighted) throw new Error("Expected the sighted agent to exist");
+    const parsed = parseAgentEntity(sighted);
     // Sighting provenance rides on the agent entity.
     expect(parsed.frontmatter.introducedBy).toEqual([
       "kai.brain",
@@ -368,7 +422,7 @@ describe("agent_scan_directories", () => {
       }),
     });
 
-    const result = await harness.executeTool("agent_scan_directories", {});
+    const result = await runTool(harness, "agents_scan-directories");
 
     expectSuccess(result);
     expect(result.data).toMatchObject({ created: 0, updated: 1 });
@@ -380,8 +434,8 @@ describe("agent_scan_directories", () => {
       },
       agentEntitySchema,
     );
-    if (!sighted) throw new Error("Expected sighted agent");
-    const parsed = new AgentAdapter().parseEntity(sighted);
+    if (!sighted) throw new Error("Expected the sighted agent to exist");
+    const parsed = parseAgentEntity(sighted);
     expect(parsed.frontmatter.introducedBy).toEqual([
       "kai.brain",
       "lumen.brain",
@@ -413,7 +467,7 @@ describe("agent_scan_directories", () => {
       entity: createTestAgent({ id: "noor.brain", status: "discovered" }),
     });
 
-    const result = await harness.executeTool("agent_scan_directories", {});
+    const result = await runTool(harness, "agents_scan-directories");
 
     expectSuccess(result);
     expect(result.data).toMatchObject({
@@ -429,8 +483,8 @@ describe("agent_scan_directories", () => {
       },
       agentEntitySchema,
     );
-    if (!noor) throw new Error("Expected noor agent");
-    const parsed = new AgentAdapter().parseEntity(noor);
+    if (!noor) throw new Error("Expected the scanned agent to exist");
+    const parsed = parseAgentEntity(noor);
     expect(parsed.frontmatter.introducedBy).toBeUndefined();
 
     await harness.reset();
@@ -466,7 +520,7 @@ describe("agent_scan_directories", () => {
       },
       agentEntitySchema,
     );
-    const result = await harness.executeTool("agent_scan_directories", {});
+    const result = await runTool(harness, "agents_scan-directories");
 
     expectSuccess(result);
     expect(result.data).toMatchObject({ created: 0, updated: 0 });
@@ -479,8 +533,8 @@ describe("agent_scan_directories", () => {
       agentEntitySchema,
     );
     expect(after?.updated).toBe(before?.updated ?? "");
-    if (!after) throw new Error("Expected agent after rescan");
-    const parsed = new AgentAdapter().parseEntity(after);
+    if (!after) throw new Error("Expected the rescanned agent to exist");
+    const parsed = parseAgentEntity(after);
     expect(parsed.frontmatter.introducedBy).toEqual(["kai.brain"]);
 
     await harness.reset();

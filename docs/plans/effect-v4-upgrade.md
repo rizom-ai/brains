@@ -4,7 +4,7 @@
 
 **Proposed; implementation has not started.** Effect `4.0.0` was released on 2026-10-01; `4.0.1` is `latest`. The repository runs `effect@3.22.0` behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). No workspace imports `effect` directly.
 
-66 TypeScript files import the boundary. 56 of them (33 source, 23 test) use an API that v4 renames or removes; the remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Schedule`, `Cause.squash`, `TestClock.adjust`, …) is unchanged.
+The incoming-main survey counted 66 TypeScript files importing the boundary, with 56 (33 source, 23 test) using an API that v4 renames or removes. Recompute that inventory against the declarative branch before implementation; the remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Schedule`, `Cause.squash`, `TestClock.adjust`, …) is unchanged.
 
 ## Goal
 
@@ -30,10 +30,10 @@ Further verified on `4.0.1`:
 ## Decisions
 
 - **One atomic upgrade PR for Phase 1.** The boundary package pins a single `effect` version and every consumer compiles against it, so the bump and the renames cannot be sliced per package.
-- **Keep the curated boundary.** Consumers keep importing `@brains/utils/effect`; only the boundary's export list changes. `Either` is replaced by `Result`.
+- **Keep the curated boundary.** Consumers keep importing `@brains/utils/effect`; only the boundary's export list changes. `Either` is replaced by `Result`. Keep Effect internals out of public authoring contracts; preserve caller authority, request/delivery lifetimes, coded public errors and local causes.
 - **Pin `effect` and `@effect/platform-bun` to an exact version.** `effect/rpc` and the socket layers are `@stability unstable` and may break in minor releases; bumps are deliberate PRs.
 - **Effect Schema is confined to the broker wire contract.** `effect/rpc` accepts only Effect Schema (no Zod or Standard Schema input). Zod stays the source of truth everywhere else; the broker's `gitOperationSchema` moves to Effect Schema with the transport.
-- **Not adopted:** `effect/http-api` (plugin `apiRoutes` contracts are Zod across the plugin surface), `effect/ai` and its `McpServer` (the AI SDK drives Studio streaming through `@ai-sdk/react`; MCP runs on `@modelcontextprotocol/server` v2), `effect/cli` (`packages/brain-cli/src/parse-args.ts` is 20 lines), `effect/workflow`/`cluster`/`sql` (would replace the working job queue and Drizzle/libSQL), `ErrorReporter` (reports only inside explicit `withErrorReporting` boundaries, verified; supervisors run as independent roots with injected loggers), `LayerRef`, `Redactable` (applies to Effect's logger, which the repository does not use), and the `startImmediately` fork option (all 38 `Effect.yieldNow` calls are in tests).
+- **Not adopted:** `effect/http-api` (declarative route contracts are Zod across the plugin surface), `effect/ai` and its `McpServer` (the AI SDK drives Studio streaming through `@ai-sdk/react`; MCP runs on `@modelcontextprotocol/server` v2), `effect/cli` (`packages/brain-cli/src/parse-args.ts` is 20 lines), `effect/workflow`/`cluster`/`sql` (would replace the working job queue and Drizzle/libSQL), `ErrorReporter` (reports only inside explicit `withErrorReporting` boundaries, verified; supervisors run as independent roots with injected loggers), `LayerRef`, `Redactable` (applies to Effect's logger, which the repository does not use), and the `startImmediately` fork option (all 38 `Effect.yieldNow` calls are in tests).
 
 ## Phases
 

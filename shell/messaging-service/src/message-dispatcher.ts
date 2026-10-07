@@ -1,7 +1,9 @@
+import { toSdkError } from "@brains/contracts";
+import { toInternalResponse } from "./message-factory";
+import type { SdkErrorCode } from "./base-types";
 import type { Logger } from "@brains/utils/logger";
 import type { InternalMessageResponse, MessageWithPayload } from "./types";
 import type { HandlerEntry } from "./handler-registry";
-import { toInternalResponse } from "./message-factory";
 
 export async function publishBroadcast(
   message: MessageWithPayload<unknown>,
@@ -22,14 +24,24 @@ export async function publishRequest(
   handlers: HandlerEntry[],
   logger: Logger,
 ): Promise<InternalMessageResponse | null> {
-  // For regular messages, call handlers until one returns a response
+  // Preserve fallback order, but distinguish failed handlers from no answer.
+  const failures: SdkErrorCode[] = [];
   for (const entry of handlers) {
-    const response = await invokeHandler(entry, message, logger);
+    const response = await invokeHandler(entry, message, logger, (code) => {
+      failures.push(code);
+    });
     if (response) {
       return response;
     }
   }
-  return null;
+  const code = failures[0];
+  return code
+    ? toInternalResponse(message.id, {
+        success: false,
+        code,
+        error: `Message request failed: ${code}`,
+      })
+    : null;
 }
 
 /** Invoke every matching request handler and preserve registration order. */
@@ -38,19 +50,29 @@ export async function collectHandlerResponses(
   handlers: HandlerEntry[],
   logger: Logger,
 ): Promise<InternalMessageResponse[]> {
-  const responses = await Promise.all(
-    handlers.map((entry) => invokeHandler(entry, message, logger)),
-  );
   // Collection is an acknowledgement barrier, not best-effort broadcast.
-  // Keep failures in their registration slots so one success cannot hide a
-  // subscriber that threw or returned an invalid response.
-  return responses.map(
-    (response) =>
-      response ??
-      toInternalResponse(message.id, {
+  // Keep failures in their registration slots and retain public error codes;
+  // neither a successful subscriber nor an exception may erase an ack slot.
+  return Promise.all(
+    handlers.map(async (entry): Promise<InternalMessageResponse> => {
+      let code: SdkErrorCode = "handler_failed";
+      const response = await invokeHandler(
+        entry,
+        message,
+        logger,
+        (failure) => {
+          code = failure;
+        },
+      );
+      if (response) return response;
+      const failure = toInternalResponse(message.id, {
         success: false,
+        code,
         error: `Message handler failed for message type: ${message.type}`,
-      }),
+      });
+      if (!failure) throw new Error("Missing failed acknowledgement");
+      return failure;
+    }),
   );
 }
 
@@ -58,11 +80,16 @@ async function invokeHandler(
   entry: HandlerEntry,
   message: MessageWithPayload<unknown>,
   logger: Logger,
+  onFailure?: (code: SdkErrorCode) => void,
 ): Promise<InternalMessageResponse | null> {
   try {
     return await entry.handler(message);
   } catch (error) {
-    logger.error(`Error in message handler for ${message.type}`, error);
+    const { code } = toSdkError(error);
+    // A generic dispatcher cannot know whether an exception embeds credentials
+    // or private request data. Handlers may log their own sanitized diagnostics.
+    logger.error(`Error in message handler for ${message.type}`, { code });
+    onFailure?.(code);
     return null;
   }
 }

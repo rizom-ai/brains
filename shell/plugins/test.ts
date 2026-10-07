@@ -2,6 +2,7 @@
  * Test utilities for plugin development
  * Import from "@brains/plugins/test" instead of deep paths
  */
+export { createRequester } from "./src/internal/requester";
 export { createTestEntityAdapter } from "@brains/entity-service/test";
 export {
   createMemoryRuntimeStateNamespace,
@@ -18,6 +19,7 @@ export {
 } from "./src/test/mock-service-plugin-context";
 export {
   createMockEntityPluginContext,
+  type MockEntityPluginContext,
   type MockEntityPluginContextOptions,
 } from "./src/test/mock-entity-plugin-context";
 export {
@@ -34,6 +36,7 @@ export {
   createTempDataDirSync,
   removeTrackedTempDataDirs,
 } from "./src/test/temp-dir";
+export { expectTemplateDataSourcesResolve } from "./src/test/template-data-sources";
 
 // Re-export commonly used types and schemas for test convenience
 export type {
@@ -64,3 +67,17 @@ export {
   PluginError,
   PermissionService,
 } from "./src/index";
+export { createTestEntityAccess } from "./src/test/entity-access";
+export { createTestAppInfo } from "./src/test/app-info";
+export {
+  createStubAuth,
+  createTestPrincipal,
+  type StubAuthOptions,
+} from "./src/test/stub-auth";
+export { createTestJobContext, runServiceJob } from "./src/test/job-context";
+export { declaredToolLocalName } from "./src/service/tool-runtime";
+export {
+  fetchable,
+  type FetchableDataSource,
+} from "./src/test/fetchable-data-source";
+export { coverTakingType } from "./src/test/cover-taking-type";

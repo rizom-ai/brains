@@ -36,7 +36,7 @@ const promoted = users.map((user) => ({
 const DOCS =
   "rizom-site-docs-0.2.0-alpha.239--rizom-theme-rizom-ai-0.2.0-alpha.235";
 const CANARY =
-  "rizom-site-smoke-canary-0.2.0-alpha.236--rizom-theme-signal-0.2.0-alpha.233";
+  "rizom-site-smoke-canary-0.2.0-alpha.236--rizom-theme-signal-0.2.0-alpha.233--s92ec6796eac5";
 
 function canaryImage(): RequiredImage {
   const image = requiredImages(users).find(
@@ -68,7 +68,7 @@ describe("smoke-to-fleet promotion", () => {
     });
     expect(builds.map((build) => build.tag)).toEqual([
       "brain-0.2.0-alpha.371",
-      `brain-0.2.0-alpha.371--${DOCS}`,
+      `brain-0.2.0-alpha.371--${DOCS}--sd41fec07a690`,
     ]);
     expect(verified).toEqual([image]);
   });
@@ -101,7 +101,7 @@ describe("smoke-to-fleet promotion", () => {
       },
     });
     expect(builds.map((build) => build.tag)).toEqual([
-      `brain-0.2.0-alpha.368--${DOCS}`,
+      `brain-0.2.0-alpha.368--${DOCS}--s1a6079dc757a`,
       `brain-0.2.0-alpha.371--${CANARY}`,
     ]);
     expect(verified).toEqual([
@@ -132,7 +132,7 @@ describe("smoke-to-fleet promotion", () => {
       images.filter((image) => !image.tag.includes("site-docs"));
     expect(untouched(after)).toEqual(untouched(before));
     expect(after.find((image) => image.tag.includes("site-docs"))?.tag).toBe(
-      "brain-0.2.0-alpha.368--rizom-site-docs-0.2.0-alpha.240--rizom-theme-rizom-ai-0.2.0-alpha.235",
+      "brain-0.2.0-alpha.368--rizom-site-docs-0.2.0-alpha.240--rizom-theme-rizom-ai-0.2.0-alpha.235--sf61f94777e75",
     );
   });
 });

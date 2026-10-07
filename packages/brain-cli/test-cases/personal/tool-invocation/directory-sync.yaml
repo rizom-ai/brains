@@ -21,7 +21,7 @@ successCriteria: {}
 permissions:
   public:
     expectedTools:
-      - toolName: directory_sync
+      - toolName: directory-sync_sync
         shouldBeCalled: false
         argsContain:
           action: sync
@@ -29,7 +29,7 @@ permissions:
       - "done"
   trusted:
     expectedTools:
-      - toolName: directory_sync
+      - toolName: directory-sync_sync
         shouldBeCalled: false
         argsContain:
           action: sync
@@ -37,7 +37,7 @@ permissions:
       - "done"
   admin:
     expectedTools:
-      - toolName: directory_sync
+      - toolName: directory-sync_sync
         shouldBeCalled: true
         argsContain:
           action: sync

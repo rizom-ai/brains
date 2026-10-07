@@ -169,9 +169,8 @@ describe("runSiteBuild preflight", () => {
             return resolutionOptions?.fallback;
           },
         );
-        pipelineContext.services.sendMessage = mock(async (request) => {
-          if (request.type === "site:build:staging") events.push("staging");
-          return { success: true };
+        pipelineContext.services.publishMessage = mock(async (message) => {
+          if (message.topic === "site:build:staging") events.push("staging");
         });
       },
     );

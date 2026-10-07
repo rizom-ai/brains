@@ -1,23 +1,27 @@
-import type {
-  AppendAuthAuditEventInput,
-  AuthPrincipal,
-} from "@brains/auth-service";
 import type { ActorRef } from "@brains/contracts";
 import type {
   ContentVisibility,
-  ServicePluginContext,
   EntityTypeClassification,
-} from "@brains/plugins";
-import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
-import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
-import type { StudioWorkspaceRegistry } from "./workspace-registry";
+} from "@brains/sdk/entities";
+import type {
+  AppendAuthAuditEventInput,
+  InterfaceCaller,
+} from "@brains/sdk/services";
+import type { StudioTypeHierarchy } from "./config";
 
 export const STUDIO_ENTITY_PAGE_LIMIT = 25;
 
+/**
+ * What a request may see and do, read off the caller the runtime resolved.
+ *
+ * The runtime verified the session and read the person's role out of the
+ * brain's own user store; nothing here was decided by this package. The
+ * visibility scope is a function of the permission level, as everywhere.
+ */
 export interface StudioRequestAccess {
-  principal: AuthPrincipal;
+  caller: InterfaceCaller;
   actor: Extract<ActorRef, { kind: "user" }>;
-  permissionLevel: AuthPrincipal["permissionLevel"];
+  permissionLevel: InterfaceCaller["permission"];
   visibilityScope: ContentVisibility;
   isAnchor: boolean;
 }
@@ -32,6 +36,10 @@ export interface StudioTypeCapabilities {
   canAssist: boolean;
 }
 
+/** The audit trail a console keeps of what an operator asked for. */
+export type StudioAuditRecorder =
+  ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
+
 /** One entity type in Studio's type list. */
 export interface StudioEntityTypeInfo {
   entityType: string;
@@ -43,21 +51,3 @@ export interface StudioEntityTypeInfo {
   capabilities: StudioTypeCapabilities;
   hierarchy: StudioTypeHierarchy;
 }
-
-export interface EditorRouteOptions {
-  /** Base route the editor is served from, e.g. "/studio". */
-  routePath: string;
-  getContext: () => ServicePluginContext;
-  resolveAuthPrincipal: (
-    request: Request,
-  ) => Promise<AuthPrincipal | undefined>;
-  getEntityDisplay: () => StudioEntityDisplayMap | undefined;
-  workspaceRegistry: StudioWorkspaceRegistry;
-  getGroupingDefinitions?: () => GroupingDefinitionsSnapshot;
-  recordAuditEvent?:
-    ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
-}
-
-export type StudioRequestAccessResolution =
-  | { state: "allowed"; access: StudioRequestAccess }
-  | { state: "unauthenticated" };

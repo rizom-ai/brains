@@ -87,7 +87,6 @@ describe("built binary boot smoke", () => {
   it("boots the canonical model and serves HTTP", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-boot-smoke-"));
     const productionPort = freePort();
-    const apiPort = freePort();
     writeFileSync(
       join(instanceDir, "brain.yaml"),
       [
@@ -105,10 +104,9 @@ describe("built binary boot smoke", () => {
         "plugins:",
         "  onboarding:",
         "    enabled: false",
-        "  webserver:",
-        "    enablePreview: false",
-        `    productionPort: ${productionPort}`,
-        `    apiPort: ${apiPort}`,
+        `port: ${productionPort}`,
+        "http:",
+        "  preview: false",
         "",
       ].join("\n"),
     );
@@ -131,6 +129,9 @@ describe("built binary boot smoke", () => {
       const tail = outcome.log.split("\n").slice(-40).join("\n");
 
       expect(outcome.listening, `boot log tail:\n${tail}`).toBe(true);
+      expect(outcome.log).not.toContain(
+        "Failed to initialize plugin auth-service:",
+      );
       expect(outcome.log).not.toContain("snapshot provider is not bound");
       expect(outcome.log).not.toContain("failed to start");
 
@@ -150,7 +151,6 @@ describe("built binary boot smoke", () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-init-cwd-"));
     const launchDir = mkdtempSync(join(tmpdir(), "brain-launch-dir-"));
     const productionPort = freePort();
-    const apiPort = freePort();
     writeFileSync(
       join(instanceDir, "brain.yaml"),
       [
@@ -164,10 +164,9 @@ describe("built binary boot smoke", () => {
         "plugins:",
         "  onboarding:",
         "    enabled: false",
-        "  webserver:",
-        "    enablePreview: false",
-        `    productionPort: ${productionPort}`,
-        `    apiPort: ${apiPort}`,
+        `port: ${productionPort}`,
+        "http:",
+        "  preview: false",
         "",
       ].join("\n"),
     );
@@ -191,6 +190,9 @@ describe("built binary boot smoke", () => {
       const tail = outcome.log.split("\n").slice(-40).join("\n");
 
       expect(outcome.listening, `boot log tail:\n${tail}`).toBe(true);
+      expect(outcome.log).not.toContain(
+        "Failed to initialize plugin auth-service:",
+      );
       expect(existsSync(join(instanceDir, "data", "brain.db"))).toBe(true);
       expect(existsSync(join(launchDir, "data"))).toBe(false);
     } finally {

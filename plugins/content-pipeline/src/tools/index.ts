@@ -16,7 +16,7 @@ export {
 } from "./publish";
 
 export {
-  createPublishingManageTool,
+  handlePublishingManage,
   publishingManageInputSchema,
   publishingManageOutputSchema,
   type PublishingManageInput,

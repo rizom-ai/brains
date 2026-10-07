@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 
 /**
  * LinkedIn provider configuration
@@ -27,28 +27,14 @@ export const linkedinConfigSchema: LinkedinConfigSchema = z.object({
  */
 type SocialMediaConfigSchema = z.ZodObject<{
   linkedin: z.ZodOptional<LinkedinConfigSchema>;
-  publishInterval: z.ZodDefault<z.ZodNumber>;
-  enabled: z.ZodDefault<z.ZodBoolean>;
-  defaultPrompt: z.ZodDefault<z.ZodString>;
-  maxRetries: z.ZodDefault<z.ZodNumber>;
-  autoGenerateOnBlogPublish: z.ZodDefault<z.ZodBoolean>;
 }>;
 
+// publishInterval, enabled, defaultPrompt, and maxRetries were also declared
+// here. Nothing read any of them; credentials are the only configuration
+// this package has.
 export const socialMediaConfigSchema: SocialMediaConfigSchema = z.object({
   /** LinkedIn provider configuration */
   linkedin: linkedinConfigSchema.optional(),
-  /** Interval between publish checks in milliseconds (default: 1 hour) */
-  publishInterval: z.number().default(3600000),
-  /** Enable automatic publishing (default: true) */
-  enabled: z.boolean().default(true),
-  /** Default prompt for generating social posts */
-  defaultPrompt: z
-    .string()
-    .default("Create an engaging social media post that drives engagement"),
-  /** Maximum retry attempts before marking post as failed (default: 3) */
-  maxRetries: z.number().default(3),
-  /** Auto-generate social post when a blog post is published (default: false) */
-  autoGenerateOnBlogPublish: z.boolean().default(false),
 });
 
 /**

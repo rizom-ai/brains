@@ -1,43 +1,27 @@
-import { BaseEntityAdapter } from "@brains/plugins";
 import {
-  swotEntitySchema,
-  swotFrontmatterSchema,
-  type SwotEntity,
-  type SwotFrontmatter,
-  type SwotMetadata,
-} from "../schemas/swot";
+  generateMarkdownWithFrontmatter,
+  parseMarkdown,
+} from "@brains/sdk/entities";
+import { swotFrontmatterSchema, type SwotFrontmatter } from "../schemas/swot";
 
-export class SwotAdapter extends BaseEntityAdapter<SwotEntity, SwotMetadata> {
-  constructor() {
-    super({
-      entityType: "swot",
-      purpose:
-        "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
-      schema: swotEntitySchema,
-      frontmatterSchema: swotFrontmatterSchema,
-    });
-  }
-
-  public fromMarkdown(markdown: string): Partial<SwotEntity> {
-    const frontmatter = this.parseFrontMatter(markdown, swotFrontmatterSchema);
-
-    return {
-      content: markdown,
-      entityType: "swot",
-      metadata: {
-        derivedAt: frontmatter.derivedAt,
-      },
-    };
-  }
-
+/**
+ * Reads and writes the markdown a SWOT is stored as.
+ *
+ * This used to be a full `BaseEntityAdapter`. The declarative entity builds
+ * its adapter from the `markdown` codec on `swot`, so the class's
+ * `toMarkdown`/`fromMarkdown` stopped running once the package converted.
+ * The analysis lives entirely in frontmatter, so both directions are one
+ * call.
+ */
+export class SwotAdapter {
   public createSwotContent(input: SwotFrontmatter): string {
-    return this.buildMarkdown("", input);
+    return generateMarkdownWithFrontmatter("", input);
   }
 
   public parseSwotContent(content: string): { frontmatter: SwotFrontmatter } {
     return {
       frontmatter: swotFrontmatterSchema.parse(
-        this.parseFrontMatter(content, swotFrontmatterSchema),
+        parseMarkdown(content).frontmatter,
       ),
     };
   }

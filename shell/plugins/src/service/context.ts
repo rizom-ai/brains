@@ -1,3 +1,4 @@
+import type { UserPermissionLevel } from "@brains/templates";
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
@@ -6,6 +7,8 @@ import type {
 } from "../public/types";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IWebRoutesNamespace } from "../interface/context";
+import type { InterfaceAvailabilityReader } from "@brains/contracts";
+import { createInterfaceAvailabilityReader } from "../internal/interface-availability";
 import { createAINamespace } from "../entity/context";
 import type {
   IEntitiesNamespace,
@@ -17,9 +20,10 @@ import {
   createPromptsNamespace,
 } from "../entity/namespaces";
 import type {
+  EntityBulkCoordination,
   EntityServiceClient,
-  DurableBulkMutationCoordinator,
 } from "@brains/entity-service";
+import { createEntityBulkCoordination } from "@brains/entity-service";
 import {
   scopeTemplateName,
   type ContentGenerationBatchResult,
@@ -64,6 +68,19 @@ export interface IServiceTemplatesNamespace {
   resolve: (
     templateName: string,
     options?: ResolutionOptions,
+  ) => Promise<unknown>;
+
+  /**
+   * Generate content from a template, parsed against that template's own
+   * schema. The registry supplies the prompt and the schema, because the
+   * template is what knows both. Named consumer: @brains/site-content.
+   */
+  generate: (
+    templateName: string,
+    context?: {
+      prompt?: string | undefined;
+      data?: Record<string, unknown> | undefined;
+    },
   ) => Promise<unknown>;
 
   /** Get capabilities of a template */
@@ -122,6 +139,15 @@ export interface IServiceRuntimePermissionsNamespace {
   getConfiguredPrincipalSeeds(): ConfiguredPrincipalSeeds;
   /** Replace exact-principal runtime projection after loading auth.db. */
   replaceRuntimePrincipalState(state: RuntimeInterfacePrincipalState): void;
+  /**
+   * Permission level for a user on this declaration.
+   *
+   * A service that serves an authenticated route resolves its caller exactly
+   * the way an interface does — one permission service answers both. Named
+   * consumer: declarative service routes.
+   */
+  getUserLevel(declarationId: string, userId: string): UserPermissionLevel;
+  isAnchor(declarationId: string, userId: string): boolean;
 }
 
 export type ServiceEntityService = EntityServiceClient;
@@ -143,11 +169,11 @@ export interface ServicePluginContext
   readonly entityService: ServiceEntityService;
 
   /**
-   * Durable bulk-mutation coordination, for plugins that own a projection and
-   * must enqueue and settle their own batches. Deliberately separate from
-   * entityService, which omits these.
+   * Durable bulk-mutation coordination, bound to this plugin's id as the
+   * mutation source. The only route to the durable-batch lifecycle;
+   * `entityService` deliberately excludes it.
    */
-  readonly bulkMutations: DurableBulkMutationCoordinator;
+  readonly entityCoordination: EntityBulkCoordination;
 
   /** Entity management namespace */
   readonly entities: IEntitiesNamespace;
@@ -170,6 +196,8 @@ export interface ServicePluginContext
    * (e.g. the dashboard deriving console surface links from what is mounted).
    */
   readonly webRoutes: IWebRoutesNamespace;
+  /** Public hints only, available to site-build workers without interface registration. */
+  readonly interfaceAvailability: InterfaceAvailabilityReader;
 
   /** AI generation namespace */
   readonly ai: IEntityAINamespace;
@@ -205,14 +233,21 @@ export function createServicePluginContext(
         permissionService.getConfiguredPrincipalSeeds(),
       replaceRuntimePrincipalState: (state): void =>
         permissionService.replaceRuntimePrincipalState(state),
+      getUserLevel: (declarationId, userId): UserPermissionLevel =>
+        permissionService.determineUserLevel(declarationId, userId),
+      isAnchor: (declarationId, userId): boolean =>
+        permissionService.isAnchor(declarationId, userId),
     },
 
     entityService,
 
-    bulkMutations: entityService,
+    entityCoordination: createEntityBulkCoordination(entityService, pluginId),
 
     entities: createEntitiesNamespace(shell),
 
+    interfaceAvailability: createInterfaceAvailabilityReader(
+      shell.getRuntimeState(),
+    ),
     webRoutes: {
       getRoutes: () => shell.getPluginWebRoutes(),
     },
@@ -294,6 +329,25 @@ export function createServicePluginContext(
         options?: ResolutionOptions,
       ): Promise<unknown> =>
         contentService.resolveContent(templateName, options, pluginId),
+      generate: async (
+        templateName: string,
+        generationContext?: {
+          prompt?: string | undefined;
+          data?: Record<string, unknown> | undefined;
+        },
+      ): Promise<unknown> =>
+        contentService.generateContent(
+          templateName,
+          {
+            ...(generationContext?.prompt !== undefined
+              ? { prompt: generationContext.prompt }
+              : {}),
+            ...(generationContext?.data !== undefined
+              ? { data: generationContext.data }
+              : {}),
+          },
+          { pluginId },
+        ),
       getCapabilities: (
         templateName: string,
       ): {

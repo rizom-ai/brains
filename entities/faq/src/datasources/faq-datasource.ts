@@ -1,15 +1,14 @@
-import { BaseEntityDataSource } from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { faqAdapter } from "../adapters/faq-adapter";
-import { faqSchema, type FaqEntity, type FaqSource } from "../schemas/faq";
+import {
+  defineDataSource,
+  type DataSourceDefinition,
+  type EntityQueryReader,
+  z,
+} from "@brains/sdk/entities";
+import { parseFaqContent } from "../lib/faq-content";
+import { faqSchema, type FaqSource } from "../schemas/faq";
 
-export const FAQ_DATASOURCE_ID = "faq:entities" as const;
+/** Local declaration id; the host qualifies it for the installed package. */
+export const FAQ_DATASOURCE_ID = "entities" as const;
 
 type FaqItemSourceSchema = z.ZodObject<{
   id: z.ZodString;
@@ -20,8 +19,7 @@ type FaqItemSourceSchema = z.ZodObject<{
     z.ZodObject<{ name: z.ZodString; url: z.ZodNullable<z.ZodString> }>
   >;
 }>;
-
-/** A kept source as a page receives it: every field present, absent as null. */
+/** JSON presentation uses null, never undefined or persistence metadata. */
 export const faqItemSourceSchema: FaqItemSourceSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -29,9 +27,7 @@ export const faqItemSourceSchema: FaqItemSourceSchema = z.object({
   excerpt: z.string().nullable(),
   brain: z.object({ name: z.string(), url: z.string().nullable() }).nullable(),
 });
-
 export type FaqItemSource = z.output<typeof faqItemSourceSchema>;
-
 function itemSource(source: FaqSource): FaqItemSource {
   return {
     id: source.id,
@@ -51,99 +47,68 @@ type FaqItemSchema = z.ZodObject<{
   asked: z.ZodNumber;
   sources: z.ZodArray<FaqItemSourceSchema>;
 }>;
-
 export const faqItemSchema: FaqItemSchema = z.object({
   id: z.string(),
   question: z.string(),
   answer: z.string(),
   asked: z.number().int(),
-  /** What the answer drew on when it was first given; a page may show them. */
   sources: z.array(faqItemSourceSchema),
 });
-
 export type FaqItem = z.output<typeof faqItemSchema>;
-
 export const faqSectionSchema: z.ZodObject<{
   faqs: z.ZodArray<FaqItemSchema>;
 }> = z.object({ faqs: z.array(faqItemSchema) });
-
 export type FaqSectionData = z.output<typeof faqSectionSchema>;
 
-/**
- * Supplies the FAQ section with public FAQs: the owner's ranked ones in rank
- * order, then the rest most asked first, newest first on a tie. A FAQ drawn
- * from shared or restricted content never reaches a site, whatever the
- * build's visibility scope; drafts stay out of published-only builds.
- */
-export class FaqDataSource extends BaseEntityDataSource<
-  FaqEntity,
-  FaqItem,
-  FaqSectionData
-> {
-  readonly id: typeof FAQ_DATASOURCE_ID = FAQ_DATASOURCE_ID;
-  readonly name = "FAQ Entity DataSource";
-  readonly description = "Fetches public FAQs for the FAQ section";
+const querySchema = z.object({
+  query: z
+    .object({ limit: z.number().int().positive().max(1000).default(100) })
+    .default({ limit: 100 }),
+});
 
-  protected readonly config: EntityDataSourceConfig<FaqEntity> = {
-    entityType: "faq",
-    entitySchema: faqSchema,
-    defaultSort: [
-      { field: "rank", direction: "asc", nullsLast: true },
-      { field: "asked", direction: "desc" },
-      { field: "created", direction: "desc" },
-    ],
-    defaultLimit: 100,
-    lookupField: "id",
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-  }
-
-  protected transformEntity(entity: FaqEntity): FaqItem {
-    const { answer, frontmatter } = faqAdapter.parseFaqContent(entity.content);
-    return {
-      id: entity.id,
-      question: entity.metadata.question,
-      answer,
-      asked: entity.metadata.asked,
-      sources: (frontmatter.sources ?? []).map(itemSource),
-    };
-  }
-
-  protected buildListResult(items: FaqItem[]): FaqSectionData {
-    return { faqs: items };
-  }
-
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params = this.parseQuery(query);
-    const list = await this.fetchList(params.query, context.entityService, {
-      filter: { visibility: "public" },
-      ...(context.publishedOnly && { publishedOnly: true }),
-    });
-    return outputSchema.parse(this.buildListResult(list.items));
-  }
-}
-
-/**
- * The first public FAQs in the section's order, for a site that shows them
- * beside its other content, under the build's publish rule; none where the
- * brain does not capture FAQs.
- */
+/** Public FAQ presentation never includes shared/restricted content or alternatives. */
 export async function loadPublicFaqs(
-  context: BaseDataSourceContext,
+  entities: Pick<EntityQueryReader, "getEntityTypes" | "listEntities">,
   limit: number,
-  logger: Logger,
+  context: { readonly publishedOnly?: boolean | undefined },
 ): Promise<FaqItem[]> {
-  if (!context.entityService.hasEntityType("faq")) return [];
-  const section = await new FaqDataSource(logger).fetch(
-    { query: { limit } },
-    faqSectionSchema,
-    context,
+  const boundedLimit = querySchema.shape.query.parse({ limit }).limit;
+  if (!entities.getEntityTypes().includes("faq")) return [];
+  const faqs = await entities.listEntities(
+    {
+      entityType: "faq",
+      options: {
+        limit: boundedLimit,
+        sortFields: [
+          { field: "rank", direction: "asc", nullsLast: true },
+          { field: "asked", direction: "desc" },
+          { field: "created", direction: "desc" },
+        ],
+        filter: { visibility: "public", visibilityScope: "public" },
+        ...(context.publishedOnly && { publishedOnly: true }),
+      },
+    },
+    faqSchema,
   );
-  return section.faqs;
+  return faqs.map((entity) => ({
+    id: entity.id,
+    question: entity.metadata.question,
+    answer: parseFaqContent(entity.content).answer,
+    asked: entity.metadata.asked,
+    sources: (parseFaqContent(entity.content).frontmatter.sources ?? []).map(
+      itemSource,
+    ),
+  }));
 }
+
+export const faqDataSource: DataSourceDefinition = defineDataSource({
+  id: FAQ_DATASOURCE_ID,
+  name: "FAQ Entity DataSource",
+  description: "Fetches public FAQs for the FAQ section",
+  async fetch(query, entities, context): Promise<FaqSectionData> {
+    const params = querySchema.parse(query);
+    return {
+      faqs: await loadPublicFaqs(entities, params.query.limit, context),
+    };
+  },
+});

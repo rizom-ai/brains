@@ -3,64 +3,66 @@ import type {
   AskedBeforeResponse,
   SourceCitation,
 } from "@brains/contracts";
-import { findNearestEntity } from "@brains/plugins";
-import { faqAdapter } from "../adapters/faq-adapter";
-import { faqSchema, type FaqSource } from "../schemas/faq";
-import { isSameQuestion, mergeIntoFaq, type FaqStoreDeps } from "./faq-store";
+import type { EntityAccess, IEntityAINamespace } from "@brains/sdk/entities";
+import { faq } from "../faq-entity";
+import { parseFaqContent } from "./faq-content";
+import { isSameQuestion } from "./faq-question";
+import type { FaqEntity, FaqSource } from "../schemas/faq";
 
-/** A kept source as the answer cites it: its key names its type and entity. */
 function citationOf(source: FaqSource): SourceCitation {
   const separator = source.id.indexOf(":");
   const entityType = separator > 0 ? source.id.slice(0, separator) : "faq";
   const entityId = separator > 0 ? source.id.slice(separator + 1) : source.id;
-  return {
-    id: source.id,
-    source: entityType,
-    entityType,
-    entityId,
-    title: source.title,
-    ...(source.url ? { url: source.url } : {}),
-    ...(source.excerpt ? { excerpt: source.excerpt } : {}),
-    ...(source.brain ? { brain: source.brain } : {}),
-  };
+  return { ...source, source: entityType, entityType, entityId };
 }
-
-/**
- * A visitor's question a published public FAQ already answers. The nearest
- * published FAQ within the same-question distance is confirmed with the one
- * check the capture uses; a hit answers with the FAQ's own answer and the
- * sources it kept, and counts as one more asking. Drafts never answer, nor
- * does a FAQ awaiting the owner's review: the model answers meanwhile.
- */
+export interface AskedBeforeDeps {
+  readonly entities: Pick<EntityAccess, "nearest" | "mutations">;
+  readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  readonly sameQuestionDistance: number;
+}
+function eligible(entity: Readonly<FaqEntity>): boolean {
+  const { frontmatter } = parseFaqContent(entity.content);
+  return (
+    entity.visibility === "public" &&
+    entity.metadata.status === "published" &&
+    frontmatter.status === "published" &&
+    !frontmatter.review
+  );
+}
+/** Read-only admission: bounded candidates, then full canonical version recheck. */
 export async function answerAskedBefore(
-  deps: FaqStoreDeps,
+  deps: AskedBeforeDeps,
   request: AskedBeforeRequest,
 ): Promise<AskedBeforeResponse> {
-  const faq = await findNearestEntity(
-    {
-      searchWithDistances: deps.searchWithDistances,
-      getEntity: (getRequest) =>
-        deps.entityService.getEntity(getRequest, faqSchema),
-    },
-    {
-      query: request.question,
-      entityType: "faq",
-      maxDistance: deps.sameQuestionDistance,
-      visibility: "public",
-      confirm: async (candidate) =>
-        candidate.metadata.status === "published" &&
-        !faqAdapter.parseFaqContent(candidate.content).frontmatter.review &&
-        (await isSameQuestion(deps.ai, request.question, candidate.content)),
-    },
-  );
-  if (!faq) return {};
-  const { frontmatter, answer } = faqAdapter.parseFaqContent(faq.content);
-  await mergeIntoFaq(deps, faq, { asks: 1 });
-  return {
-    hit: {
-      faqId: faq.id,
-      answer,
-      sources: (frontmatter.sources ?? []).map(citationOf),
-    },
-  };
+  const candidates = await deps.entities.nearest(faq, request.question, {
+    visibility: "public",
+    maxDistance: deps.sameQuestionDistance,
+    limit: 20,
+  });
+  for (const candidate of candidates) {
+    const before = await deps.entities.mutations.read(
+      faq,
+      candidate.entity.id,
+      { visibilityScope: "public" },
+    );
+    if (!before || !eligible(before.entity)) continue;
+    if (
+      !(await isSameQuestion(deps.ai, request.question, before.entity.content))
+    )
+      continue;
+    const after = await deps.entities.mutations.read(faq, candidate.entity.id, {
+      visibilityScope: "public",
+    });
+    if (after?.version !== before.version || !eligible(after.entity)) return {};
+    const { frontmatter, answer } = parseFaqContent(after.entity.content);
+    return {
+      hit: {
+        faqId: after.entity.id,
+        faqQuestion: frontmatter.question,
+        answer,
+        sources: (frontmatter.sources ?? []).map(citationOf),
+      },
+    };
+  }
+  return {};
 }

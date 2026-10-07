@@ -1,5 +1,7 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { findNearestEntity, type NearestEntityDeps } from "@brains/plugins";
+import type {
+  EntityCreateContext,
+  OwnedNearestOptions,
+} from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { WishEntity } from "../schemas/wish";
@@ -23,7 +25,7 @@ const sameWishVerdictSchema = z.object({
 
 /** One short AI call: would delivering one wish fulfil the other? */
 export async function isSameWish(
-  ai: Pick<EntityPluginContext["ai"], "generateObject">,
+  ai: Pick<EntityCreateContext["ai"], "generateObject">,
   incoming: string,
   stored: string,
 ): Promise<boolean> {
@@ -44,9 +46,16 @@ export async function isSameWish(
   return object.same;
 }
 
-export interface WishSearchDeps extends NearestEntityDeps<WishEntity> {
+export interface WishSearchDeps {
+  nearest(
+    request: OwnedNearestOptions & { query: string },
+  ): Promise<ReadonlyArray<{ entity: WishEntity; distance: number }>>;
+  getEntity(request: {
+    entityType: "wish";
+    id: string;
+  }): Promise<WishEntity | null>;
   maxDistance: number;
-  ai: Pick<EntityPluginContext["ai"], "generateObject">;
+  ai: Pick<EntityCreateContext["ai"], "generateObject">;
 }
 
 /**
@@ -58,18 +67,24 @@ export async function findExistingWish(
   deps: WishSearchDeps,
   input: { title: string; content: string },
 ): Promise<WishEntity | null> {
-  const nearest = await findNearestEntity(deps, {
+  const candidates = await deps.nearest({
     query: input.content,
-    entityType: "wish",
     maxDistance: deps.maxDistance,
     visibility: "public",
-    confirm: (candidate) =>
-      isSameWish(deps.ai, input.content, candidate.content),
+    limit: 20,
   });
-  if (nearest) return nearest;
+  for (const { entity, distance } of candidates) {
+    if (
+      entity.visibility === "public" &&
+      distance <= deps.maxDistance &&
+      (await isSameWish(deps.ai, input.content, entity.content))
+    )
+      return entity;
+  }
 
-  return deps.getEntity({
+  const slugMatch = await deps.getEntity({
     entityType: "wish",
     id: slugify(input.title),
   });
+  return slugMatch?.visibility === "public" ? slugMatch : null;
 }

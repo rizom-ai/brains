@@ -87,7 +87,6 @@ function createShell(
         "dashboard",
         "admin",
         "mcp",
-        "webserver",
         "web-chat",
         "chat",
         "a2a",

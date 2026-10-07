@@ -9,7 +9,7 @@ import type { Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { ServiceEntityService } from "@brains/plugins";
+import type { SiteEntityReads } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 const entityWithSlugSchema: z.ZodObject<
@@ -214,7 +214,7 @@ function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {
 
 async function resolveCoverImage(
   imageId: string | undefined,
-  entityService: ServiceEntityService,
+  entityService: SiteEntityReads,
 ): Promise<
   | {
       url: string;
@@ -250,7 +250,7 @@ async function resolveCoverImage(
  * prepared.
  */
 export async function collectAllImageIds(
-  entityService: ServiceEntityService,
+  entityService: SiteEntityReads,
   logger: Logger,
 ): Promise<string[]> {
   const imageIds = new Set<string>();

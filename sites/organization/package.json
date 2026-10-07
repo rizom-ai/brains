@@ -5,13 +5,14 @@
   "description": "Organization site composition package: the atlas homepage drawn from the agent network",
   "dependencies": {
     "@brains/agent-discovery": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-atlas": "workspace:*",
     "@brains/site-composition": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {
