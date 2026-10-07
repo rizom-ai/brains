@@ -45,6 +45,7 @@ const expectedCatalogIds = [
   "conversation-memory",
   "faq",
   "docs",
+  "book",
   "obsidian-vault",
   "email-workflows",
   "unified-inbox",

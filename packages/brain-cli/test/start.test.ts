@@ -334,6 +334,13 @@ describe("resolveRunnerType", () => {
     expect(resolveRunnerType(import.meta.dir)).toBe("monorepo");
   });
 
+  // The bundled CLI runs the one module graph production runs; mixing the
+  // source shell with a bundled model held two copies of every module.
+  it("boots the bundled definition even inside the repo", () => {
+    setCanonicalDefinition(definition);
+    expect(resolveRunnerType(import.meta.dir)).toBe("builtin");
+  });
+
   it("should pass startup-check mode through to builtin boot without requiring AI_API_KEY", async () => {
     const previousApiKey = process.env["AI_API_KEY"];
     delete process.env["AI_API_KEY"];

@@ -5,7 +5,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
-import type { SiteBuilderConfig } from "../config";
+import type { EntityDisplayMap, SiteBuilderConfig } from "../config";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
@@ -32,6 +32,8 @@ import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
+  /** The site's entity display as the shell resolved it, for entity URLs. */
+  entityDisplay?: EntityDisplayMap | undefined;
   layouts: Record<string, LayoutComponent>;
   defaultSiteConfig: SiteBuilderConfig["siteInfo"];
   sharedImagesDir: string;
@@ -237,7 +239,10 @@ export class SiteBuildJobHandler extends BaseJobHandler<
               url: siteUrl,
             },
             generateEntityUrl: (entityType: string, slug: string) =>
-              EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+              new EntityUrlGenerator(this.cfg.entityDisplay).generateUrl(
+                entityType,
+                slug,
+              ),
           },
           broadcast: true,
         });

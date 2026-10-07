@@ -239,6 +239,9 @@ export function initializeIdentityAndAgentServices(
   });
   const assistantAgentId = createBrainAgentId(config.name);
 
+  // Entity links and citability, read from the site display the shell resolved.
+  const entityUrls = new EntityUrlGenerator(config.entityDisplay);
+
   const agentService = AgentService.createFresh(
     mcpService,
     conversationService,
@@ -258,10 +261,9 @@ export function initializeIdentityAndAgentServices(
             // A visitor's sources are found by meaning, so only with embeddings.
             guestAnswerSources: createGuestAnswerSources({
               entityService,
-              isCitable: (entityType) =>
-                EntityUrlGenerator.getInstance().isCitable(entityType),
+              isCitable: (entityType) => entityUrls.isCitable(entityType),
               urlFor: (entityType, slug) =>
-                EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+                entityUrls.generateUrl(entityType, slug),
               siteBaseUrl: config.siteBaseUrl,
             }),
           }

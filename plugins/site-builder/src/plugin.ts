@@ -157,7 +157,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
       this.routeRegistry,
       this.profileService,
       undefined,
-      this.config.entityDisplay,
+      context.entityDisplay,
     );
 
     // Register site-build job handler
@@ -168,6 +168,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
         context.messaging.send,
         {
           siteBuilder: this.siteBuilder,
+          entityDisplay: context.entityDisplay,
           layouts: this.layouts,
           defaultSiteConfig: this.config.siteInfo,
           sharedImagesDir: this.config.sharedImagesDir,

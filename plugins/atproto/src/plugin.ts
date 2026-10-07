@@ -559,7 +559,7 @@ export class AtprotoPlugin extends ServicePlugin<
     context: ServicePluginContext,
     entity: BaseEntity,
   ): string | undefined {
-    const routes = EntityUrlGenerator.getInstance();
+    const routes = new EntityUrlGenerator(context.entityDisplay);
     if (!context.siteUrl || !routes.hasRoute(entity.entityType)) {
       return undefined;
     }

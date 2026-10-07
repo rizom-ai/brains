@@ -102,8 +102,10 @@ test("deployable site and theme inventory declares brain compatibility", async (
 
   expect(deployablePackages.map(({ packageJson }) => packageJson.name)).toEqual(
     [
+      "@rizom/site-books",
       "@rizom/site-docs",
       "@rizom/site-rizom-ai",
+      "@rizom/theme-books",
       "@rizom/theme-default",
       "@rizom/theme-rizom-ai",
     ],
