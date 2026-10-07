@@ -1,7 +1,9 @@
 import { describe, it, expect } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { StructuredContentFormatter } from "./structured-content";
 import type { FieldMapping } from "./structured-content";
+import type { ContentFormatter } from "../types";
 import {
   SourceListFormatter,
   sourceReferenceSchema,
@@ -650,6 +652,64 @@ not-a-number
     it("keeps present optional fields", () => {
       const data = { title: "Hello", note: "world" };
       expect(formatter.parse(formatter.format(data))).toEqual(data);
+    });
+  });
+
+  describe("codec", () => {
+    const formatter = new StructuredContentFormatter(simpleSchema, {
+      title: "Simple Configuration",
+      mappings: simpleMappings,
+    });
+
+    it("rejects data that violates the schema at format time", () => {
+      // Callers holding untyped data reach format through ContentFormatter<unknown>.
+      const untyped: ContentFormatter<unknown> = formatter;
+      const invalid = { title: "Hello", description: "Test", count: "many" };
+
+      let caught: unknown;
+      try {
+        untyped.format(invalid);
+      } catch (error) {
+        caught = error;
+      }
+
+      if (!(caught instanceof Error))
+        throw new Error(`Expected an Error, got: ${String(caught)}`);
+      expect(caught.message).toContain("Failed to format structured content");
+      expect(caught.message).toContain("count");
+      expect(caught.cause).toBeInstanceOf(z.ZodError);
+    });
+
+    it("round-trips decoded bodies through format and parse", () => {
+      expectBodyRoundTrip(formatter, {
+        title: "Hello",
+        description: "Test",
+        count: 3,
+      });
+    });
+
+    it("exposes the codec that parse and format run through", () => {
+      const data = { title: "Hello", description: "Test", count: 3 };
+      const markdown = z.encode(formatter.codec, data);
+
+      expect(markdown).toBe(formatter.format(data));
+      expect(z.decode(formatter.codec, markdown)).toEqual(
+        formatter.parse(markdown),
+      );
+    });
+
+    it("fails at format time when the schema contains a one-way transform", () => {
+      const transforming = new StructuredContentFormatter(
+        z.object({ title: z.string().transform((value) => value.trim()) }),
+        {
+          title: "Doc",
+          mappings: [{ key: "title", label: "Title", type: "string" }],
+        },
+      );
+
+      expect(() => transforming.format({ title: "Hello" })).toThrow(
+        /unidirectional transform/,
+      );
     });
   });
 });

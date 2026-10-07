@@ -52,13 +52,20 @@ export interface FormatterConfig {
  * to convert between structured data and human-readable markdown.
  */
 export class StructuredContentFormatter<T> implements ContentFormatter<T> {
-  private schema: StructuredContentSchema<T>;
+  /**
+   * Markdown ↔ typed body. `parse` decodes and `format` encodes through it,
+   * so a write is validated against the same schema a read is.
+   */
+  public readonly codec: z.ZodCodec<z.ZodString, StructuredContentSchema<T>>;
   private config: FormatterConfig;
   private processor = remark();
 
   constructor(schema: StructuredContentSchema<T>, config: FormatterConfig) {
-    this.schema = schema;
     this.config = config;
+    this.codec = z.codec(z.string(), schema, {
+      decode: (markdown) => this.readSections(markdown),
+      encode: (data) => this.render(data),
+    });
   }
 
   /**
@@ -96,13 +103,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    */
   public format(data: T): string {
     try {
-      const lines: string[] = [`# ${this.config.title}`, ""];
-
-      for (const mapping of this.config.mappings) {
-        this.formatField(data, mapping, lines, 2);
-      }
-
-      return lines.join("\n");
+      return z.encode(this.codec, data);
     } catch (error) {
       throw new Error(
         `Failed to format structured content: ${this.describeError(error)}`,
@@ -116,16 +117,31 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    */
   public parse(content: string): T {
     try {
-      const tree = this.processor.parse(content);
-      const sections = this.extractSections(tree, 2);
-      const data = this.buildDataFromSections(sections, this.config.mappings);
-      return this.schema.parse(data);
+      return z.decode(this.codec, content);
     } catch (error) {
       throw new Error(
         `Failed to parse structured content: ${this.describeError(error)}`,
         { cause: error },
       );
     }
+  }
+
+  /** Render already-validated data as markdown (the codec's encode side). */
+  private render(data: unknown): string {
+    const lines: string[] = [`# ${this.config.title}`, ""];
+
+    for (const mapping of this.config.mappings) {
+      this.formatField(data, mapping, lines, 2);
+    }
+
+    return lines.join("\n");
+  }
+
+  /** Build unvalidated data from markdown sections (the codec's decode side). */
+  private readSections(markdown: string): Record<string, unknown> {
+    const tree = this.processor.parse(markdown);
+    const sections = this.extractSections(tree, 2);
+    return this.buildDataFromSections(sections, this.config.mappings);
   }
 
   /**
