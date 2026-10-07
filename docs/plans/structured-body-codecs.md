@@ -2,14 +2,11 @@
 
 ## Status
 
-**Phase 1 complete; Phases 2–3 remain.** `StructuredContentFormatter` (`shared/content-formatters/src/formatters/structured-content.ts`) parses and formats through a Zod codec it exposes as `codec`, so a write is validated against the same body schema a read is. `expectBodyRoundTrip` in `@brains/test-utils` is the shared round-trip contract; `shared/content-formatters` and `plugins/playbooks` assert it.
+**Phases 1–2 complete; Phase 3 remains.** `StructuredContentFormatter` (`shared/content-formatters/src/formatters/structured-content.ts`) parses and formats through a Zod codec it exposes as `codec`, so a write is validated against the same body schema a read is. `expectBodyRoundTrip` in `@brains/test-utils` is the shared round-trip contract.
 
-Still open:
+Every structured body production writes is formatted and parsed, and asserts the contract: playbook bodies, series bodies, portfolio project bodies, the A2A agent body, and the professional `about-highlights` section. The remaining formatters are read-only — schema-first site sections (`sectionToTemplate`, `createSiteContentTemplate`) and overlay copy formatters parse authored `site-content` markdown and are never formatted — so they carry no write contract. Datasource-backed list and detail page templates have no formatter.
 
-- Formatter packages other than content-formatters and playbooks have no shared round-trip assertion; their coverage is per-package and uneven.
-- The FAQ adapter (`faqBody` / `parseFaqBody` in `entities/faq/src/adapters/faq-adapter.ts`) and the summary adapter (`createContentBody` / `parseBody` in `entities/conversation-memory/src/adapters/summary-adapter.ts`) are hand-written pairs with no body schema in either direction.
-
-`StructuredContentFormatter` is the base for every schema-first site section (`sectionToTemplate` in `shared/site-composition/src/section-templates.ts`), five other direct instantiations (agent-discovery templates, series, the A2A agent body, site-composition content definitions, the professional site), and eight subclasses across conversation-memory, decks, link, portfolio, topics, and playbooks.
+Still open: the FAQ adapter (`faqBody` / `parseFaqBody` in `entities/faq/src/adapters/faq-adapter.ts`) and the summary adapter (`createContentBody` / `parseBody` in `entities/conversation-memory/src/adapters/summary-adapter.ts`) are hand-written pairs with no body schema in either direction.
 
 ## Goal
 
@@ -31,12 +28,6 @@ Every structured body has one Zod codec — markdown string ↔ typed body — s
 
 ## Phases
 
-### Phase 2 — Round-trip contract across formatter packages
-
-Tests only, one decoded fixture per formatter, asserted with `expectBodyRoundTrip`: conversation-memory (both), decks, link, portfolio, topics (both), series, agent-discovery templates, the A2A agent body, site-composition content definitions and section templates, and the professional site. A formatter whose fixture fails the contract gets its rendering or schema fixed in this phase.
-
-Validation: the affected packages' tests, `bun run typecheck`.
-
 ### Phase 3 — FAQ and summary bodies as codecs
 
 Tests first: round trip and encode-time rejection for each body.
@@ -48,4 +39,4 @@ Validation: `entities/faq` and `entities/conversation-memory` tests, `bun run ty
 
 ## Completion
 
-Every formatter package asserts the shared round-trip contract, no body schema contains a one-way transform, and the FAQ and summary bodies are codecs. Delete this plan when that holds.
+Every body production writes asserts the shared round-trip contract, no body schema contains a one-way transform, and the FAQ and summary bodies are codecs. Delete this plan when that holds.
