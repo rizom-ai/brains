@@ -167,6 +167,43 @@ describe("applySqlitePragmas under contention", () => {
     }
   });
 
+  it("does not restart a managed client's exhausted pragma budget", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sqlite-pragma-single-budget-"));
+    const url = `file:${join(dir, "db.sqlite")}`;
+    const holder = createSqliteClient({ url });
+    const opener = createSqliteClient({ url }, { contentionRetryBudgetMs: 0 });
+    const execute = spyOn(opener, "execute");
+    try {
+      await holder.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY)");
+      const held = await holder.transaction("write");
+      try {
+        await held.execute("INSERT INTO probe VALUES (1)");
+        await rejects(applySqlitePragmas(opener, url), (error: unknown) => {
+          expect(error instanceof LibsqlError && error.code).toMatch(
+            /^SQLITE_(BUSY|LOCKED)$/u,
+          );
+          return true;
+        });
+        expect(execute.mock.calls.map(([statement]) => statement)).toEqual([
+          "PRAGMA busy_timeout = 0",
+          "PRAGMA journal_mode = WAL",
+        ]);
+      } finally {
+        held.close();
+      }
+      // The refusal did not poison the connection or consume an outer retry.
+      await applySqlitePragmas(opener, url);
+      expect(
+        (await opener.execute("PRAGMA journal_mode")).rows[0]?.["journal_mode"],
+      ).toBe("wal");
+    } finally {
+      execute.mockRestore();
+      opener.close();
+      holder.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 10_000);
+
   it("still reports a lock held past the retry budget", async () => {
     const dir = await mkdtemp(join(tmpdir(), "sqlite-pragma-contention-"));
     const url = `file:${join(dir, "db.sqlite")}`;

@@ -64,6 +64,8 @@ export function resolveAuthToken(options: {
 const CONTENTION_RETRY_BUDGET_MS = 5_000;
 const ACQUISITION_RETRY_BASE_DELAY_MS = 5;
 const ACQUISITION_RETRY_MAX_DELAY_MS = 40;
+// Pragma setup must not restart the retry budget of a client we already manage.
+const contentionManagedClients = new WeakSet<PragmaClient>();
 
 /** A statement the database refused because another connection held a lock. */
 function isContention(error: unknown): error is LibsqlError {
@@ -176,6 +178,7 @@ export function createSqliteClient(
       retryContention(() => rawMigrate(stmts), reopening);
     client.transaction = (mode?: TransactionMode): Promise<Transaction> =>
       retryContention(() => begin(mode), reopening);
+    contentionManagedClients.add(client);
   }
   return client;
 }
@@ -217,6 +220,11 @@ export async function applySqlitePragmas(
   if (!url.startsWith("file:")) return;
 
   const isClosed = (): boolean => client.closed === true;
-  for (const pragma of ["PRAGMA busy_timeout = 0", "PRAGMA journal_mode = WAL"])
-    await retryContention(() => client.execute(pragma), { isClosed });
+  for (const pragma of [
+    "PRAGMA busy_timeout = 0",
+    "PRAGMA journal_mode = WAL",
+  ]) {
+    if (contentionManagedClients.has(client)) await client.execute(pragma);
+    else await retryContention(() => client.execute(pragma), { isClosed });
+  }
 }
