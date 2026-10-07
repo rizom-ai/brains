@@ -2,9 +2,9 @@
 
 ## Status
 
-**Proposed; implementation has not started.** Effect `4.0.0` was released on 2026-10-01; `4.0.1` is `latest`. The repository runs `effect@3.22.0` behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). No workspace imports `effect` directly.
+**Proposed; reviewed against `998010644d`; implementation has not started.** The reviewed target is `effect@4.0.1`. The repository resolves `effect@3.22.0` from `shared/utils`'s `^3.21.4` dependency behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). Workspace consumers do not import `effect` directly; only the boundary does.
 
-66 TypeScript files import the boundary. 56 of them (33 source, 23 test) use an API that v4 renames or removes; the remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Schedule`, `Cause.squash`, `TestClock.adjust`, …) is unchanged.
+At the reviewed base, 64 TypeScript files import the boundary. 54 of them (31 source, 23 test) use an API that v4 renames or removes; the remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Schedule`, `Cause.squash`, `TestClock.adjust`, …) retains its API. Refresh the inventory before implementation if the base advances.
 
 ## Goal
 
@@ -25,84 +25,107 @@ Further verified on `4.0.1`:
 - `Effect.runPromise` rejects with the original failure value for `fail`, `tryPromise`, and `die`; the v3 `FiberFailure` wrapper no longer exists.
 - Extracting the test clock with `TestClock.testClockWith(Effect.succeed)` under `TestClock.layer()` and injecting it with `Effect.provideService(Clock.Clock, clock)` drives sleepers in a separate run, so the existing "test owns the clock, production code receives it" pattern carries over.
 - Fiber keep-alive does not hold the process open where v3 exited; the only divergence is v3 holding the process on `Effect.never`, which the repository does not use.
-- `effect/rpc` with `@effect/platform-bun@4.0.1` over a Unix socket round-trips request/response, typed errors as class instances (`Schema.TaggedError`), streamed progress, and client interruption that reaches the server-side stream.
+- `effect/rpc` with `@effect/platform-bun@4.0.1` over a Unix socket round-trips request/response, typed errors as class instances (`Schema.TaggedError`), streamed progress, and client interruption that reaches the server-side stream. This is transport cancellation, not permission to cancel broker-owned Git work.
+
+Independent review probes on `4.0.1` confirm original failure identity, extracted test-clock injection, isolated root layer scopes, and sibling finalization after a cleanup failure. They also confirm that stock NDJSON counts string code units rather than UTF-8 bytes, silently skips malformed JSON lines, and does not cap outbound frames. Nested `parseOptions` annotations do not enforce strict payloads. Carry these probes into repository regressions; stock NDJSON is not a drop-in replacement for the broker's framing contract.
+
+The measurements above are microbenchmarks, not evidence of packaged Brain size or startup improvements. Measure those separately on the built artifact.
 
 ## Decisions
 
-- **One atomic upgrade PR for Phase 1.** The boundary package pins a single `effect` version and every consumer compiles against it, so the bump and the renames cannot be sliced per package.
-- **Keep the curated boundary.** Consumers keep importing `@brains/utils/effect`; only the boundary's export list changes. `Either` is replaced by `Result`.
-- **Pin `effect` and `@effect/platform-bun` to an exact version.** `effect/rpc` and the socket layers are `@stability unstable` and may break in minor releases; bumps are deliberate PRs.
-- **Effect Schema is confined to the broker wire contract.** `effect/rpc` accepts only Effect Schema (no Zod or Standard Schema input). Zod stays the source of truth everywhere else; the broker's `gitOperationSchema` moves to Effect Schema with the transport.
+- **One atomic upgrade PR for Phase 1.** The boundary package pins a single `effect` version and every consumer compiles against it, so the bump and the renames cannot be sliced per package. Phase 2 removes redundant glue after that migration. Phases 1–2 may ship independently; Phase 3 is a separately reviewed and gated transport change, not a prerequisite for the v4 upgrade.
+- **Keep the curated boundary.** Production consumers keep importing `@brains/utils/effect`; `Either` is replaced by `Result`. Test services remain on `/effect/test`, without a v3 compatibility facade. Phase 3 adds private `@brains/utils/effect/rpc` and `/effect/bun` subpaths, exporting only the required RPC, Schema, stream/queue, and Bun socket modules; do not broaden the root boundary or import Effect independently in the broker. Keep Effect types out of published authoring declarations.
+- **Pin dependencies at adoption.** Pin `effect` to `4.0.1` in Phase 1 and add exact `@effect/platform-bun@4.0.1` only in Phase 3, both owned by `shared/utils`. Commit the lockfile; review resolved platform dependencies when upgrading. RPC and socket APIs are unstable, so bumps are deliberate PRs.
+- **Effect Schema is confined to the private broker wire contract.** `effect/rpc` requires Effect Schema. Phase 3 moves the broker's operation payload schema to that boundary while preserving existing operation shapes and domain/result validation. Zod remains the source of truth for configuration, entities, public contracts, and existing result schemas; do not introduce parallel domain models. Update [the architecture overview](../architecture-overview.md#effect-runtime-boundary) in the Phase 3 PR to document this narrow exception to its current no-Effect-Schema rule. No schema-policy change is needed for Phases 1–2.
 - **Not adopted:** `effect/http-api` (plugin `apiRoutes` contracts are Zod across the plugin surface), `effect/ai` and its `McpServer` (the AI SDK drives Studio streaming through `@ai-sdk/react`; MCP runs on `@modelcontextprotocol/server` v2), `effect/cli` (`packages/brain-cli/src/parse-args.ts` is 20 lines), `effect/workflow`/`cluster`/`sql` (would replace the working job queue and Drizzle/libSQL), `ErrorReporter` (reports only inside explicit `withErrorReporting` boundaries, verified; supervisors run as independent roots with injected loggers), `LayerRef`, `Redactable` (applies to Effect's logger, which the repository does not use), and the `startImmediately` fork option (all 38 `Effect.yieldNow` calls are in tests).
 
 ## Phases
 
 ### Phase 1 — Upgrade and rename
 
-Tests first: update `shared/utils/test/effect.test.ts` for the v4 boundary (`scopedServiceLayer` built on `Layer.effect`, a `withOptionalClock` helper, the v4 test layer) before changing the boundary.
+Tests first: update `shared/utils/test/effect.test.ts` before changing the boundary. Pin `scopedServiceLayer` ownership and exact-once release using `Layer.effect`, `withOptionalClock` with and without an injected clock, original failure identity, and an extracted `TestClock` driving a separately started fiber. Exercise independent root scopes and finalization after a sibling cleanup failure.
 
-1. Bump `shared/utils` to `effect@4.0.1` (exact).
-2. Boundary exports: replace `Either` with `Result`; `effect-test.ts` exports `TestClock` from `effect/testing` and a test layer equal to `TestClock.layer()`, replacing `TestContext.TestContext`.
+1. Bump `shared/utils` to `effect@4.0.1` (exact) and update the lockfile.
+2. Boundary exports: replace `Either` with `Result`; `effect-test.ts` exports `TestClock` from `effect/testing`. Consumers use `TestClock.layer()` instead of `TestContext.TestContext`, with no compatibility alias.
 3. Add `withOptionalClock(effect, clock?)` to the boundary and replace the 17 `clock ? Effect.withClock(x, clock) : x` ternaries with it (`Effect.withClock` is removed in v4; the replacement is `Effect.provideService(Clock.Clock, clock)`).
-4. Apply the renames:
+4. Apply the API migrations:
 
-| v3                                               | v4                                                       |
-| ------------------------------------------------ | -------------------------------------------------------- |
-| `Context.GenericTag` / `Context.Tag`             | `Context.Service`                                        |
-| `Effect.catchAll`                                | `Effect.catch`                                           |
-| `Effect.either` / `Either.isLeft`                | `Effect.result` / `Result.isFailure`                     |
-| `Effect.async`                                   | `Effect.callback`                                        |
-| `Effect.fork`                                    | `Effect.forkChild`                                       |
-| `Effect.timeoutFail`                             | `Effect.timeoutOrElse`                                   |
-| `Effect.acquireReleaseInterruptible`             | `Effect.acquireRelease(…, { interruptible: true })`      |
-| `Fiber.RuntimeFiber`                             | `Fiber.Fiber`                                            |
-| `Fiber.interruptFork(f)`                         | `f.interruptUnsafe()`                                    |
-| `FiberMap.unsafeSet` / `unsafeHas` / `unsafeGet` | `setUnsafe` / `hasUnsafe` / `getUnsafe`                  |
-| `FiberSet.unsafeAdd`                             | `FiberSet.addUnsafe`                                     |
-| `Scope.CloseableScope`                           | `Scope.Closeable`                                        |
-| `Scope.extend`                                   | `Scope.provide`                                          |
-| `Layer.scoped` / `Layer.scopedContext`           | `Layer.effect` / `Layer.effectContext`                   |
-| `Cause.failureOption`                            | `Cause.findErrorOption`                                  |
-| `Clock.make`                                     | a plain `Clock.Clock` value (adds `monotonicTimeNanos*`) |
-| `clock.unsafeCurrentTimeMillis()`                | `clock.currentTimeMillisUnsafe()`                        |
-| `TestClock.testClock()`                          | `TestClock.testClockWith(Effect.succeed)`                |
-| `Effect.provide(TestContext.TestContext)`        | `Effect.provide(TestClock.layer())`                      |
+| v3                                               | v4                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| `Context.GenericTag` / `Context.Tag`             | `Context.Service`                                                  |
+| `Effect.catchAll`                                | `Effect.catch`                                                     |
+| `Effect.either` / `Either.isLeft`                | `Effect.result` / `Result.isFailure`                               |
+| `Effect.async`                                   | `Effect.callback`                                                  |
+| `Effect.fork`                                    | `Effect.forkChild`                                                 |
+| `Effect.timeoutFail`                             | `Effect.timeoutOrElse` with a failing `orElse` Effect              |
+| `Effect.acquireReleaseInterruptible`             | `Effect.acquireRelease(acquire, release, { interruptible: true })` |
+| `Fiber.RuntimeFiber`                             | `Fiber.Fiber`                                                      |
+| `Fiber.interruptFork(f)`                         | `f.interruptUnsafe()`                                              |
+| `FiberMap.unsafeSet` / `unsafeHas` / `unsafeGet` | `setUnsafe` / `hasUnsafe` / `getUnsafe`                            |
+| `FiberSet.unsafeAdd`                             | `FiberSet.addUnsafe`                                               |
+| `Scope.CloseableScope`                           | `Scope.Closeable`                                                  |
+| `Scope.extend`                                   | `Scope.provide`                                                    |
+| `Layer.scoped` / `Layer.scopedContext`           | `Layer.effect` / `Layer.effectContext`                             |
+| `Cause.failureOption`                            | `Cause.findErrorOption`                                            |
+| `Clock.make()`                                   | `Effect.runSync(Clock.Clock)` for the default live clock           |
+| `clock.unsafeCurrentTimeMillis()`                | `clock.currentTimeMillisUnsafe()`                                  |
+| `TestClock.testClock()`                          | `TestClock.testClockWith(Effect.succeed)`                          |
+| `Effect.provide(TestContext.TestContext)`        | `Effect.provide(TestClock.layer())`                                |
 
-5. v4 shares layer memoization across `Effect.provide` calls. Tests that provide the same layer twice and expect independent instances use `Layer.fresh` or `Effect.provide(layer, { local: true })`; the full suite identifies them.
+For timeouts, preserve lazy failure construction with `orElse: () => Effect.fail(onTimeout())`; this is not a method-name-only rename. Obtain the production clock from the runtime rather than hand-building a wall-clock substitute; custom clocks must implement the v4 monotonic-time members too.
 
-Validation: `bun run typecheck`, `bun scripts/lint.mjs --force`, `bun run test` (the boundary is a shared contract, so the full suite runs). Then `bun start:personal` from `packages/brain-cli` and confirm the job worker, recurring checks, and directory-sync watcher start and complete one cycle.
+5. Check memoization at each owning scope, not by assuming all `Effect.provide` calls share globally. Pin independent shell/database lifetimes and rollback isolation. Use `Layer.fresh` or `Effect.provide(layer, { local: true })` only where independent acquisition is intentional; do not adjust tests to accept accidental sharing.
+
+Validation: targeted boundary and lifecycle suites first, then `bun run typecheck`, `bun run lint --force`, and `bun run test` (the boundary is a shared contract, so the full suite runs). Run `bun run arch:check`, `bun run changeset:check`, and `bun run docs:check`; add a `core--` changeset for the affected release closure. Force a fresh `bun run build --filter=@rizom/brain --force`, then `bun run surface:check` to verify declarations remain Effect-free and the packaged CLI boots. Record bundle size and fresh-process startup alongside the v3 baseline; do not infer them from the microbenchmarks. Finally, run `bun start:personal` from `packages/brain-cli` and confirm the job worker, recurring checks, and directory-sync watcher start and complete one cycle.
 
 ### Phase 2 — Remove `runEffectPromise`
 
-Tests first: in `shell/core/test/shell-lifecycle.test.ts`, assert that a failing phase rejects with the original error class, not a wrapper.
+Tests first: in `shell/core/test/shell-lifecycle.test.ts` and focused phase-runner tests, assert original failure identity, not merely the error class. Pin that a failed sibling cannot return before an admitted sibling settles, that declaration-order failure selection is unchanged, and that concurrent shutdown callers join cleanup even when it fails.
 
 1. Replace the call sites in `shell/core/src/daemon-registry.ts`, `initialization/job-services.ts`, and `initialization/shell-lifecycle.ts` with `Effect.runPromise`.
-2. Delete `runEffectPromise`; `runConcurrentPhase` in `shell/core/src/effect-runtime.ts` keeps its behavior on `Effect.result`.
+2. Delete `runEffectPromise`; `runConcurrentPhase` in `shell/core/src/effect-runtime.ts` keeps its all-siblings-settled behavior on `Effect.result` and reads the original failure value from `Result`.
 
-Validation: `bun run typecheck` and `bun test` in `shell/core`.
+Validation: core tests and targeted typecheck/lint first, then the shared-contract checks and fresh package/boot gates from Phase 1 before releasing the upgrade.
 
-### Phase 3 — Git broker transport on `effect/rpc`
+### Phase 3 — Git broker transport on `effect/rpc` (separately gated)
 
-Scope: replace the transport in `plugins/directory-sync/src/lib/broker/` — framing in `protocol.ts`, `client.ts`, `connect.ts`, `socket-writer.ts`, `active-requests.ts`, and the transport half of `server.ts` (≈1,100 lines). Checkout ownership, `journal.ts`, `host.ts`, `health.ts`, `operations.ts`, and replacement-after-process-group-exit semantics are unchanged.
+Scope: replace transport plumbing in `plugins/directory-sync/src/lib/broker/protocol.ts`, `client.ts`, `connect.ts`, `socket-writer.ts`, and the transport portions of `server.ts`. Keep `ActiveRequests`, checkout executors, the request ledger, journal, health/recovery policy, and process-group ownership as broker behavior, not RPC bookkeeping. Wire schema declarations in `operations.ts` change as needed; operation behavior and existing result validation do not. Adapt host lifecycle wiring only to preserve its current guarantees. This phase does not promise removal of every framing or ownership helper.
 
-Tests first, against the new transport:
+#### Ownership and replay invariants
 
-- an `execute-operation` payload carrying an unknown key (an `argv` vector) is rejected, not stripped;
-- a frame above `MAX_FRAME_BYTES` is rejected without buffering it;
-- progress frames stream during a long operation;
-- client interruption ends the server-side operation stream;
-- a Git failure arrives as a typed error class;
-- a client on a different protocol version is refused at `register-checkout`.
+- A caller abort or socket loss stops waiting/stream observation; an admitted Git operation remains broker-owned until its real terminal result and durable settlement. RPC request fibers may be interrupted, but must not own the mutation's lifetime, cancel it, release its checkout turn, or clear activity early.
+- Preserve caller-chosen stable operation IDs in the request payload, separate from RPC transport IDs. Deduplicate across clients and reconnects, binding each ID to the exact checkout and operation arguments. Publish ownership before execution; retain mutation results for the generation and the bounded read replay window.
+- Keep queued-versus-executing activity and progress-age semantics. Status reads remain read-only. A replacement stays mutation-closed until role-side reconciliation opens admission; a lost mutation acknowledgement is never permission to re-execute intent against a new owner.
+- RPC stream backpressure must not block or fail broker execution/journal settlement. Bound per-peer outbound buffering and disconnect an undraining observer without disowning its work. Broker shutdown and safe replacement still depend on the owner/process group, not completion of an RPC stream.
 
-Design:
+#### Tests first
 
-1. One `RpcGroup` with `RegisterCheckout` and a streaming `ExecuteOperation` whose stream carries progress and ends with the result.
-2. Serialization: `RpcSerialization.layerNdjsonWith({ maxBufferSize: MAX_FRAME_BYTES })`.
-3. Strict payloads: `RpcServer` exposes no parse options, and a schema-level `parseOptions` annotation is ignored for nested structs (verified on `4.0.1`). The broker contract therefore wraps each payload in a pre-decode exact-keys check, so unknown keys fail before decoding.
-4. Transport: `BunSocketServer.layer({ path })` and `BunSocket.layerNet({ path })`. These are Node `net` adapters, replacing `Bun.listen`/`Bun.connect`, so the change is gated on the broker soak.
+Retain the existing broker regressions and add deterministic gates for:
 
-Validation: the directory-sync test suite, `bun run test:git-broker-process-inventory` (100-cycle soak), and `bun run test:git-broker-recovery`. Then `bun start:personal` with a Git-backed directory sync, confirming an entity edit produces an `Auto-sync` commit.
+- strict top-level and nested payloads, including rejection of an `argv` vector and malformed JSON with a visible correlated failure or connection close rather than silent omission;
+- inbound and outbound `MAX_FRAME_BYTES` enforcement in UTF-8 bytes, including multibyte text, split headers/bodies, and oversized declared lengths rejected before retaining their body;
+- `MAX_PAYLOAD_BYTES` enforcement before a terminal result is retained, and bounded output under a slow/non-draining peer;
+- progress during a blocked operation, independent status queries, and a terminal result event;
+- abort/disconnect after admission: the observer settles, Git retains its turn, activity remains accurate, journal settlement completes, and same-ID replay does not execute twice;
+- duplicate IDs across independent clients/reconnects, rejection of ID reuse for different work, and retained mutation replay after the read window rolls over;
+- read-only status, fail-closed inherited generations, and reopening only after explicit reconciliation;
+- typed Git failures without credential leakage and operation-specific result validation;
+- protocol-version mismatch that fails promptly rather than leaving registration pending;
+- owner-only socket permissions, stale/live socket handling, long-path placement, transport cleanup, and replacement only after the old process group exits.
+
+#### Design
+
+1. One `RpcGroup` with `RegisterCheckout`, `QueryStatus`, `OpenAdmission`, and streaming `ExecuteOperation`. The execute payload includes the stable operation ID; stream events are explicitly discriminated progress and terminal result values. Carry the existing broker ID, activity, ambiguity/evidence, and admission fields in status responses. Preserve Promise-based `BrokerConnection` / `BrokerGitSync` contracts and cancellation reasons.
+2. Separate RPC observation scopes from broker-owned execution and replay. The ledger joins the actual operation Promise/fiber, not a subscriber stream. A reconnect observes/replays the same operation; stream cancellation removes only the observer. Do not replace `ActiveRequests` with RPC client/request fiber maps.
+3. Use a private `RpcSerialization` adapter retaining bounded length-prefixed byte framing for RPC envelopes. Check inbound declared lengths before retaining bodies and outbound encoded lengths before sending; preserve payload and pending-output limits. Stock `layerNdjsonWith({ maxBufferSize })` is insufficient: it counts code units after decoding, skips malformed lines, and leaves encoding unbounded. Fail malformed traffic visibly and keep failures from wedging unrelated callers or losing terminal results.
+4. Strict payloads: `RpcServer` exposes no decode parse options, and nested schema annotations are insufficient on `4.0.1`. Apply exact-key validation to the encoded payload before decoding at every relevant nesting level, including each operation variant. Keep field/value constraints and existing result validation; do not rely on a post-decode check after unknown keys have been stripped.
+5. Add the curated `/effect/rpc` and `/effect/bun` exports described above, with exact dependencies and the documented private Schema exception. Adopt only the modules required by this transport, not the broad platform barrel or public Effect APIs.
+6. Use `BunSocketServer.layer({ path })` and `BunSocket.layerNet({ path })` behind that boundary. These are Node `net` adapters, so retain live-owner probing, safe stale-socket cleanup, path derivation, `0700` runtime-directory and `0600` socket permissions, and owned teardown. Bump `BROKER_PROTOCOL_VERSION` for the new RPC envelope and update both endpoints atomically; refuse mismatches promptly, without a legacy fallback.
+
+Validation: directory-sync tests, targeted typecheck/lint, architecture/docs/changeset checks, a fresh forced Brain build, and `bun run surface:check`. Run `bun run test:git-broker-process-inventory` (100-cycle soak) and `bun run test:git-broker-recovery` against the fresh packaged broker; exercise abort/disconnect while Git is held and verify replay/health/recovery invariants. Then run `bun start:personal` from `packages/brain-cli` with the canonical local Git remote, confirming an entity edit produces an `Auto-sync` commit. Phase 3 remains unmerged if any ownership, framing, permissions, process-inventory, or recovery gate fails; Phase 1–2 releases do not depend on it.
 
 ## Completion
 
-All three phases are merged and released, `@brains/utils/effect` exports only v4 APIs, `runEffectPromise` is gone, and the broker transport runs on `effect/rpc` with the soak and recovery gates green. Delete this plan when that holds.
+Phases 1–2 complete the independently releasable v4 upgrade: the curated boundary uses v4 APIs, `runEffectPromise` is gone, and shared-contract, lifecycle, declaration, and packaged boot gates pass. That does not mark Phase 3 complete.
+
+Delete this plan only when all three phases are merged and released: the separately gated broker RPC transport must also preserve ownership, stable-ID replay, recovery admission, bounded framing/output, and socket permissions, with the soak and packaged recovery gates green.
