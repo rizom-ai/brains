@@ -1,0 +1,15 @@
+# Sigmund Freud's works from the Gesammelte Werke (Imago, London 1940–52),
+# read from the Internet Archive's scans. The author's text is in the public
+# domain (author †1939); the editors' apparatus is left out.
+source: archive-ocr
+books:
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 3
+    lastPage: 69
+    slug: jenseits-des-lustprinzips
+    title: Jenseits des Lustprinzips
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1920
+    kind: work

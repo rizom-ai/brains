@@ -136,3 +136,84 @@ describe("importBooks", () => {
     ).toThrow();
   });
 });
+
+describe("importBooks from scanned volumes", () => {
+  const ocrManifest = `
+source: archive-ocr
+books:
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 3
+    lastPage: 10
+    slug: jenseits-des-lustprinzips
+    title: Jenseits des Lustprinzips
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+`;
+  let brainData: string;
+  const requested: string[] = [];
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-ocr-"));
+    requested.length = 0;
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  async function fetchArchive(url: string): Promise<string> {
+    requested.push(url);
+    if (url === "https://archive.org/metadata/freud-1940-gw-13") {
+      return JSON.stringify({
+        metadata: { title: "Gesammelte Werke. XIII. Band", date: "1940" },
+        files: [
+          { name: "Freud_1940_GW_13_djvu.txt", format: "DjVuTXT" },
+          { name: "Freud_1940_GW_13_hocr.html", format: "hOCR" },
+        ],
+      });
+    }
+    return readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+  }
+
+  it("reads a work from its volume's hOCR, found through the item's metadata", async () => {
+    const results = await importBooks(
+      parseManifest(ocrManifest),
+      brainData,
+      fetchArchive,
+    );
+
+    expect(requested).toEqual([
+      "https://archive.org/metadata/freud-1940-gw-13",
+      "https://archive.org/download/freud-1940-gw-13/Freud_1940_GW_13_hocr.html",
+    ]);
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+  });
+
+  it("credits the edition and the scan on the title entry", async () => {
+    await importBooks(parseManifest(ocrManifest), brainData, fetchArchive);
+    const title = await readFile(
+      join(brainData, "book/jenseits-des-lustprinzips/00000-titel.md"),
+      "utf8",
+    );
+
+    expect(
+      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
+    ).toMatchObject({
+      title: "Jenseits des Lustprinzips",
+      author: "Sigmund Freud",
+      year: 1920,
+      license: "public-domain",
+      edition: "Gesammelte Werke, Bd. XIII (Imago, London 1940)",
+      source: "https://archive.org/details/freud-1940-gw-13",
+    });
+    expect(title).toContain("Internet Archive");
+  });
+});
