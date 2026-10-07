@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#539](https://github.com/rizom-ai/brains/pull/539) [`860ba1b`](https://github.com/rizom-ai/brains/commit/860ba1b7b769a1619daecd3efc0965cc1ba0f69b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves more with the scroll and keeps its names level: the sky wheels ten degrees either way while the dust and the boundary turn against it, each name turns back to stay upright, and a brain's bead is bigger and brighter, lighting its tendril as it passes and flashing the core as it arrives.
+
 ## 0.2.0-alpha.275
 
 ### Patch Changes
