@@ -1,6 +1,4 @@
 ---
-"@rizom/site-books": minor
-"@rizom/theme-books": minor
 "@rizom/brain": patch
 ---
 
