@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
   defineRoute,
+  PermissionService,
   requireSameOriginJson,
   requireSameOriginRequest,
   verbatim,
@@ -9,7 +10,8 @@ import {
   type InterfaceCaller,
 } from "@brains/sdk/services";
 import { canWriteVisibility } from "@brains/sdk/entities";
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
+import { issuerFromRequest } from "@brains/sdk/interfaces";
 import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
@@ -255,6 +257,18 @@ export function createEditorRoutes(
       .surfaces({ permissionLevel: caller.permission, hasActiveSession: true })
       .find((surface) => surface.id === "dashboard")?.href;
     const profileName = runtime.identity.getProfile().name.trim();
+    // Discovery failure hides the optional connection instructions, not account access.
+    const appInfo = await runtime.identity.getAppInfo().catch(() => undefined);
+    const mcp = appInfo?.interactions.find(
+      (interaction) =>
+        interaction.id === MCP_INTERACTION_ID &&
+        interaction.href.startsWith("/") &&
+        PermissionService.hasPermission(
+          caller.permission,
+          interaction.visibility,
+        ),
+    );
+    const mcpUrl = mcp ? `${issuerFromRequest(request)}${mcp.href}` : undefined;
     let manifest: z.output<typeof studioAssetManifestSchema>;
     try {
       manifest = await readStudioAssetManifest();
@@ -274,6 +288,7 @@ export function createEditorRoutes(
         dashboardHref: `${dashboardHref ?? "/dashboard"}?view=public`,
         brandName: profileName || "Brain",
         themeCSS: runtime.themeCSS,
+        mcpUrl,
         principal: {
           displayName: caller.actor.displayName ?? "",
           role: caller.permission,

@@ -544,6 +544,43 @@ describe("AT Protocol post publishing", () => {
     }
   });
 
+  it("refuses non-publishable projections before building records or opening a PDS session", async () => {
+    const registry = AtprotoProjectionRegistry.createFresh();
+    const buildRecord = mock(async () => ({ $type: "ai.rizom.brain.post" }));
+    registry.register({
+      entityType: "post",
+      collection: "ai.rizom.brain.post",
+      lexicon: createLexicon("ai.rizom.brain.post"),
+      validate: false,
+      isPublishable: () => false,
+      buildRecord,
+    });
+    const createPdsClient = mock((): AtprotoPdsClientLike => {
+      throw new Error("PDS must not be opened for drafts");
+    });
+    const publisher = publisherFor(
+      createShell(),
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      { projectionRegistry: registry, createPdsClient },
+    );
+    for (const dryRun of [true, false]) {
+      try {
+        await publisher.publishPost({ entityId: "post-123", dryRun });
+        throw new Error("Expected draft refusal");
+      } catch (error) {
+        expect(caughtError(error).message).toContain(
+          "Cannot publish non-publishable post",
+        );
+      }
+    }
+    expect(buildRecord).not.toHaveBeenCalled();
+    expect(createPdsClient).not.toHaveBeenCalled();
+  });
+
   it("does not expose publish-entity or publish-post as agent tools", async () => {
     const shell = createShell();
     const config = {

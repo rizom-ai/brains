@@ -1,5 +1,62 @@
 # @brains/app
 
+## 0.2.0-alpha.487
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.487
+  - @brains/contracts@0.2.0-alpha.487
+  - @brains/site-composition@0.2.0-alpha.487
+  - @brains/theme-base@0.2.0-alpha.487
+  - @brains/utils@0.2.0-alpha.487
+  - @brains/conversation-service@0.2.0-alpha.487
+  - @brains/core@0.2.0-alpha.487
+  - @brains/entity-service@0.2.0-alpha.487
+  - @brains/job-queue@0.2.0-alpha.487
+  - @brains/mcp-service@0.2.0-alpha.487
+  - @brains/plugins@0.2.0-alpha.487
+  - @brains/runtime-state@0.2.0-alpha.487
+  - @brains/templates@0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/core@0.2.0-alpha.486
+  - @brains/site-composition@0.2.0-alpha.486
+  - @brains/conversation-service@0.2.0-alpha.486
+  - @brains/entity-service@0.2.0-alpha.486
+  - @brains/job-queue@0.2.0-alpha.486
+  - @brains/mcp-service@0.2.0-alpha.486
+  - @brains/plugins@0.2.0-alpha.486
+  - @brains/templates@0.2.0-alpha.486
+  - @brains/chat-repl@0.2.0-alpha.486
+  - @brains/theme-base@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+  - @brains/runtime-state@0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/site-composition@0.2.0-alpha.485
+  - @brains/theme-base@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/conversation-service@0.2.0-alpha.485
+  - @brains/core@0.2.0-alpha.485
+  - @brains/entity-service@0.2.0-alpha.485
+  - @brains/job-queue@0.2.0-alpha.485
+  - @brains/mcp-service@0.2.0-alpha.485
+  - @brains/plugins@0.2.0-alpha.485
+  - @brains/runtime-state@0.2.0-alpha.485
+  - @brains/templates@0.2.0-alpha.485
+
 ## 0.2.0-alpha.484
 
 ### Patch Changes

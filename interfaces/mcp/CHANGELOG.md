@@ -1,5 +1,40 @@
 # @brains/mcp
 
+## 0.2.0-alpha.487
+
+### Patch Changes
+
+- Updated dependencies [[`a7d655f`](https://github.com/rizom-ai/brains/commit/a7d655f9e2aed518961bed39ff84c2110f41b8fe)]:
+  - @brains/auth-service@0.2.0-alpha.487
+  - @brains/contracts@0.2.0-alpha.487
+  - @brains/utils@0.2.0-alpha.487
+  - @brains/mcp-service@0.2.0-alpha.487
+  - @brains/plugins@0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- [#514](https://github.com/rizom-ai/brains/pull/514) [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's Account workspace gains an AI tools tab when the brain serves MCP over HTTP and the person's role can use it. It shows the brain's MCP address and how to connect Claude and ChatGPT, with Claude Code, Cursor, VS Code and any other OAuth MCP client in a collapsed developer section. Commands and configuration snippets name the server after the brain's host and copy exactly as shown. `?section=ai-tools` opens the tab directly.
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/auth-service@0.2.0-alpha.486
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/mcp-service@0.2.0-alpha.486
+  - @brains/plugins@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies [[`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74), [`46c7739`](https://github.com/rizom-ai/brains/commit/46c773981cdd998539a0ef65b71339b5978ac136)]:
+  - @brains/auth-service@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/mcp-service@0.2.0-alpha.485
+  - @brains/plugins@0.2.0-alpha.485
+
 ## 0.2.0-alpha.484
 
 ### Patch Changes

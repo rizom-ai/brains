@@ -168,7 +168,10 @@ async function reconcileProjectedEntity(
     return;
   }
 
-  if (entity?.visibility === "public") {
+  if (
+    entity?.visibility === "public" &&
+    (projection.isPublishable?.(entity) ?? true)
+  ) {
     await tasks.runTrigger(
       announce,
       { operation: "upsert-record", ...details },

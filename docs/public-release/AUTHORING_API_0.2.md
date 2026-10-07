@@ -257,6 +257,8 @@ Service subscription handlers also receive a host-issued `messageId` (delivery i
 
 Service setup supplies `sitePageUrl(entity)` for host-resolved canonical page addresses. It returns no address without a configured site/type route and exposes no routing registry; ATProto projections use it rather than guessing paths from entity types.
 
+An entity's `atproto` projection may define `isPublishable(entity)` to narrow public-entity eligibility (for example, excluding draft posts). False refuses manual publication, including dry runs, before record construction or PDS access; automatic reconciliation deletes a previously projected record instead of upserting it. Omitting the predicate retains eligibility for public entities. This does not bypass visibility checks or change the installed ownership of projection callbacks.
+
 Service `dependsOn` may derive its dependency list from parsed config, keeping optional integrations genuinely optional. Request subscriptions may explicitly declare `execution: "all-roles"` when job workers must answer them (Notifications, or Contact's bounded form-discovery metadata for worker site builds); ordinary subscriptions remain scheduler-only. Workers do not run service ready hooks or expose declared HTTP routes. Recurring-check execution definitions remain available to workers; scheduler-owned maintenance instead uses an owned lifecycle that cancels and drains before shutdown.
 
 `frontmatterInContent` builds the markdown codec for a type whose files keep

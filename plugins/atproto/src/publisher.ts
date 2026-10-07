@@ -292,6 +292,11 @@ export function createAtprotoPublisher(
       );
     }
 
+    if (!(projection.isPublishable?.(entity) ?? true)) {
+      throw new Error(
+        `Cannot publish non-publishable ${options.entityType}: ${identifier}`,
+      );
+    }
     const pageUrl = input.pageUrl?.(entity);
     if (options.dryRun) {
       const record = await projection.buildRecord({

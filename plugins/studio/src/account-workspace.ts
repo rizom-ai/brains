@@ -1,6 +1,8 @@
 import type { UserPermissionLevel } from "@brains/sdk/services";
 
-export const STUDIO_ACCOUNT_WORKSPACE_ID = "studio:account";
+import { STUDIO_ACCOUNT_WORKSPACE_ID } from "@brains/contracts";
+
+export { STUDIO_ACCOUNT_WORKSPACE_ID };
 export const STUDIO_ACCOUNT_WORKSPACE_RENDERER = "StudioAccountWorkspace";
 
 interface StudioAccountWorkspaceDefinition {

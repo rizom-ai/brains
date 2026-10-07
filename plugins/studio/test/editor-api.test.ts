@@ -1,3 +1,4 @@
+import { MCP_INTERACTION_ID } from "@brains/contracts";
 import { studioAssetManifestSchema } from "../src/ui-assets";
 
 async function readAssetManifest(): Promise<
@@ -215,6 +216,17 @@ async function seedPost(
     },
   });
   return id;
+}
+
+function mcpInteraction(): Parameters<MockShell["registerInteraction"]>[0] {
+  return {
+    id: MCP_INTERACTION_ID,
+    pluginId: "mcp",
+    label: "MCP",
+    href: "/mcp",
+    kind: "protocol",
+    visibility: "trusted",
+  };
 }
 
 async function createSessionCookie(shell: MockShell): Promise<string> {
@@ -481,6 +493,84 @@ describe("studio editor shell", () => {
       'data-studio-principal-name="Public account holder"',
     );
     expect(html).toContain('data-studio-principal-role="public"');
+  });
+
+  it("gives the Account view the brain's MCP address when MCP serves over HTTP", async () => {
+    const shell = createEditorTestShell();
+    shell.registerInteraction(mcpInteraction());
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      apiRequest("/studio/workspaces/studio%3Aaccount", { cookie }),
+    );
+
+    expect(await response.text()).toContain(
+      'data-studio-mcp-url="https://yeehaa.io/mcp"',
+    );
+  });
+
+  it("builds the MCP address from the forwarded public origin", async () => {
+    const shell = createEditorTestShell();
+    shell.registerInteraction(mcpInteraction());
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+    const request = new Request(
+      "http://internal:8080/studio/workspaces/studio%3Aaccount",
+      {
+        headers: {
+          Cookie: cookie,
+          "X-Forwarded-Proto": "https",
+          "X-Forwarded-Host": "yeehaa.io",
+        },
+      },
+    );
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      request,
+    );
+
+    expect(await response.text()).toContain(
+      'data-studio-mcp-url="https://yeehaa.io/mcp"',
+    );
+  });
+
+  it("omits the MCP address without an HTTP MCP interface", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      apiRequest("/studio/workspaces/studio%3Aaccount", { cookie }),
+    );
+
+    expect(await response.text()).not.toContain("data-studio-mcp-url");
+  });
+
+  it("omits the MCP address for a person whose role cannot use it", async () => {
+    const shell = createEditorTestShell();
+    shell.registerInteraction(mcpInteraction());
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await createTempDataDir("brains-studio-account-mcp-"),
+    });
+    await authPlugin.register(shell);
+    const person = await authPlugin.getService().createUser({
+      displayName: "Public account holder",
+      role: "public",
+      status: "active",
+    });
+    const session = await authPlugin
+      .getService()
+      .createAuthSession(person.userId);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      apiRequest("/studio/workspaces/studio%3Aaccount", {
+        cookie: session.cookie,
+      }),
+    );
+
+    expect(await response.text()).not.toContain("data-studio-mcp-url");
   });
 
   it("serves the authenticated shell for a deep entity route", async () => {

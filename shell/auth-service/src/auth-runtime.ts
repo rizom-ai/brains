@@ -36,6 +36,8 @@ import {
 } from "./passkey-setup-coordinator";
 import { PersonExternalPeerStore } from "./person-external-peer-store";
 import { resolveProfileDisplayNameSafely } from "./profile-display-name";
+import type { OnboardingContext } from "./invitation-service";
+import type { OnboardingDetails } from "./onboarding-emails";
 import { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 import { AuthPrincipalService } from "./principal-service";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
@@ -69,10 +71,18 @@ export interface AuthRuntimeOptions {
     profileEntityId: string,
   ) => Promise<string | undefined>;
   setupTokenTtlSeconds?: number;
+  /**
+   * Whether this process issues and logs the first-passkey setup link at
+   * startup. Only a process that serves `/setup` should: a token issued by
+   * another process replaces the one whose link was already logged.
+   */
+  issuesSetupLinks?: boolean;
   getInvitationDeliveryProvider?: (
     channelType: string,
   ) => ChannelDeliveryProvider | undefined;
   getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined;
+  /** The brain's purpose and links for onboarding emails. */
+  getOnboardingDetails?: () => Promise<OnboardingDetails>;
   isChannelTypeRegistered?: (channelType: string) => boolean;
   autoStartInvitationDeliveryRecovery?: boolean;
   invitationDeliveryRecoveryIntervalMs?: number;
@@ -105,6 +115,9 @@ export class AuthRuntime {
   private readonly anchor: AuthBrainAnchorConfigKind;
   private readonly anchorProfileEntityId: string;
   private readonly setupTokenTtlSeconds: number;
+  private readonly issuesSetupLinks: boolean;
+  private readonly getOnboardingDetails:
+    (() => Promise<OnboardingDetails>) | undefined;
   private readonly getInvitationDeliveryProvider:
     ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
   private readonly getChannelDescriptor:
@@ -147,7 +160,9 @@ export class AuthRuntime {
     this.anchorProfileEntityId = options.anchorProfileEntityId;
     this.setupTokenTtlSeconds =
       options.setupTokenTtlSeconds ?? DEFAULT_SETUP_TOKEN_TTL_SECONDS;
+    this.issuesSetupLinks = options.issuesSetupLinks ?? true;
     this.getInvitationDeliveryProvider = options.getInvitationDeliveryProvider;
+    this.getOnboardingDetails = options.getOnboardingDetails;
     this.getChannelDescriptor = options.getChannelDescriptor;
     this.isChannelTypeRegistered = options.isChannelTypeRegistered;
     this.autoStartInvitationDeliveryRecovery =
@@ -349,6 +364,17 @@ export class AuthRuntime {
       ...(this.getChannelDescriptor
         ? { getChannelDescriptor: this.getChannelDescriptor }
         : {}),
+      getOnboardingContext: async (): Promise<OnboardingContext> => {
+        const [brainName, details] = await Promise.all([
+          this.profileDisplayName(this.anchorProfileEntityId),
+          this.getOnboardingDetails?.(),
+        ]);
+        return {
+          links: details?.links ?? {},
+          ...(details?.purpose ? { purpose: details.purpose } : {}),
+          ...(brainName ? { brainName } : {}),
+        };
+      },
     });
     this.invitationDeliverySupervisor = new InvitationDeliverySupervisor(
       this.invitationDeliveryRecoveryIntervalMs,
@@ -540,7 +566,10 @@ export class AuthRuntime {
     await this.loadSigningKeys();
     this.logger?.debug("Auth service signing keys loaded");
 
-    if (!(await this.passkeyService.hasCredentials())) {
+    if (
+      this.issuesSetupLinks &&
+      !(await this.passkeyService.hasCredentials())
+    ) {
       await this.setupFlow.ensureSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {

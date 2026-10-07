@@ -125,12 +125,12 @@ describe("the Asked-before chapter", () => {
     expect(second?.querySelector(".asked__by")).toBe(null);
   });
 
-  test("draws the live network beside the questions, keyed by brain", () => {
+  test("draws no network of its own: the page's drawing serves, lit by the open question", () => {
     const document = render();
-    const marks = Array.from(
-      document.querySelectorAll("#asked .net-layer .net-mark[data-brain]"),
-    ).map((mark) => mark.getAttribute("data-brain"));
-    expect(marks.sort()).toEqual(["becca.rizom.ai", "jo.rizom.ai"]);
+    expect(document.querySelector("#asked .net-layer")).toBe(null);
+    expect(
+      document.querySelector("#asked")?.hasAttribute("data-lights-network"),
+    ).toBe(true);
   });
 
   test("speaks the owner's authored words when the content gives them, its own otherwise", () => {

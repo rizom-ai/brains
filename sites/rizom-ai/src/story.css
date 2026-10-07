@@ -45,6 +45,11 @@
   min-height: calc(100svh - var(--bar-height, 4.6rem));
   max-width: var(--words);
 }
+/* The opening (and the Ask room's first chapter, which follows its drawing in
+   the column) is the words' width, so the drawing has its room beside it. */
+.chapter--opening {
+  max-width: var(--words);
+}
 /* A chapter's eyebrow is the site's label: mono, small, tracked, in the room's accent. */
 .chapter .eyebrow {
   margin: 0 0 1.4rem;
@@ -117,16 +122,21 @@
   font-style: italic;
   font-size: 1.05rem;
 }
-.parts {
+/* The chapters' lists: the science's dimensions and the parts of the organism,
+   the arc and the rooms are one kind of list. A part that is a room is a door. */
+.parts,
+.dims {
   margin: 2rem 0 0;
   display: grid;
   gap: 1.2rem;
 }
-.parts div {
+.parts div,
+.dims div {
   padding-left: 1.1rem;
   border-left: 1px solid rgb(from var(--color-accent) r g b / 0.35);
 }
-.parts dt {
+.parts dt,
+.dims dt {
   font-family: var(--font-display);
   font-size: 1.2rem;
   line-height: 1.3;
@@ -135,11 +145,24 @@
     "SOFT" 70,
     "opsz" 24;
 }
-.parts dd {
+.parts dd,
+.dims dd {
   margin: 0.3rem 0 0;
   font-size: 0.98rem;
   line-height: 1.65;
   color: var(--color-text-muted);
+}
+.parts dt a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgb(from var(--color-accent) r g b / 0.5);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.parts dt a:hover,
+.parts dt a:focus-visible {
+  color: var(--color-accent);
+  text-decoration-color: currentColor;
 }
 .status {
   display: block;
@@ -784,21 +807,20 @@
   width: min(100%, calc(100svh - var(--bar-height, 4.6rem) - 2rem));
   aspect-ratio: 1;
 }
-/* On a wide screen the opening's drawing holds the figure's place: it stands
-   before the opening in the chapters column and sticks at the figure's centre
-   line down the whole story (the story is a size container, so nothing in it
-   can be fixed to the screen). It stays while the opening is read, an answer
-   included, and the words scroll past it. Once the reading has moved the
-   figure on, it draws into its centre point and the figure's first drawing
-   opens out of that same point; back up the page, the other way round. */
+/* The Ask room page (/ask, told as a story without a figure) brings its own
+   drawing: it stands before the words in the chapters column and sticks at
+   the figure's centre line down the page (the story is a size container, so
+   nothing in it can be fixed to the screen), while the words scroll within
+   the screen beside it. The homepage's opening keeps its drawing in the
+   opening (the rule above), which leaves with it. */
 @media not all and (max-width: 60rem) {
   /* The words are the room's column (the kit scrolls it within the screen);
-     the bar and the opening's 4rem of padding above and below stay clear, so
+     the bar and the chapter's 4rem of padding above and below stay clear, so
      the composer is on the first screen. */
   .chapter--opening .opening__words {
     --ask-column-clear: calc(8rem + var(--bar-height, 4.6rem));
   }
-  :where(.chapters) > .net-layer {
+  .story--room :where(.chapters) > .net-layer {
     position: sticky;
     top: calc(
       var(--bar-height, 4.6rem) + (100svh - var(--bar-height, 4.6rem)) / 2
@@ -811,165 +833,161 @@
       100cqi - max(0px, (100cqi - 80rem) / 2) - clamp(1rem, 5vw, 5rem) -
         var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem)
     );
-    /* Back from the point, lit at once. */
-    transition: opacity 0.3s ease;
   }
-  :where(.chapters) > .net-layer > * {
+  .story--room :where(.chapters) > .net-layer > * {
     translate: 0 -50%;
-    transition: scale 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
   }
-  .story:has(.figure:not([data-stage="0"])) :where(.chapters) > .net-layer > * {
-    scale: 0;
-  }
-  .story:has(.figure:not([data-stage="0"])) :where(.chapters) > .net-layer,
-  .story:has(.figure:not([data-stage="0"])) .net-leads {
-    opacity: 0;
-  }
-  /* Lit while it draws in; out at the point. */
-  .story:has(.figure:not([data-stage="0"])) :where(.chapters) > .net-layer {
-    transition: opacity 0.6s ease 0.6s;
-  }
-  .net-leads {
-    transition: opacity 0.6s ease;
-  }
+}
+/* The sky (docs/plans/rizom-ask-network.md): the drawing, the marks and the
+   names in one frame, so they drift as one. Its colours beyond the theme's. */
+.net-layer {
+  --net-ember: #ff8b3d;
+  --net-violet: #6b2fa0;
+  --net-violet-deep: #4b2a63;
+  --net-lilac: #8c82c8;
+  --net-glow: #ffe9a8;
+  --net-flame: #fff6d6;
+}
+[data-theme="light"] .net-layer {
+  --net-ember: #b8410c;
+  --net-violet: #4b2a63;
+  --net-violet-deep: #4b2a63;
+  --net-lilac: #6b5fb0;
+  --net-glow: #e8cc6a;
+  --net-flame: #fffaf0;
+}
+.net-sky {
+  position: relative;
+  display: grid;
+  transform-origin: center;
+  animation: net-drift 140s ease-in-out infinite alternate;
+}
+.net-sky > * {
+  grid-area: 1 / 1;
 }
 .net-svg {
   overflow: visible;
 }
-.net-ring {
+/* The substrate: the boundary's purple where the network meets the wider
+   directory, Rizom's amber wash, the dust of the brains not yet in reach. */
+.net-boundary {
+  fill: url(#net-boundary);
+  transform-origin: 50px 50px;
+  animation: net-weather 37s ease-in-out infinite alternate;
+}
+.net-wash {
+  fill: url(#net-wash);
+  transform-origin: 50px 50px;
+  animation: net-breathe-wash 9s ease-in-out infinite;
+}
+.net-dust circle {
+  fill: var(--net-lilac);
+  opacity: 0.22;
+  animation: net-dust var(--net-breath, 20s) ease-in-out var(--net-phase, 0s)
+    infinite alternate;
+}
+/* Tendrils: a trunk leaves Rizom and forks toward neighbouring brains, thin
+   and dim where it arrives; a seep of light runs the trunk. */
+.net-trunk {
   fill: none;
-  stroke: var(--color-text);
-  stroke-opacity: 0.12;
-  stroke-dasharray: 0.6 1.6;
-  vector-effect: non-scaling-stroke;
+  stroke: var(--color-accent);
+  stroke-width: 0.55;
+  stroke-opacity: 0.28;
+  stroke-linecap: round;
 }
 .net-thread {
+  fill: none;
   stroke: var(--color-accent);
-  stroke-width: 1;
-  stroke-opacity: 0.4;
-  vector-effect: non-scaling-stroke;
+  stroke-width: 0.28;
+  stroke-opacity: 0.2;
+  stroke-linecap: round;
+  transition:
+    stroke-opacity 0.6s ease,
+    stroke 0.6s ease;
 }
-/* A constellation: brains whose work has drifted close, joined by a dashed
-   thread that reads at a glance and still sits under the spokes. */
+.net-seep {
+  fill: none;
+  stroke: var(--color-accent-bright);
+  stroke-width: 0.3;
+  stroke-opacity: 0.35;
+  stroke-linecap: round;
+  stroke-dasharray: 0.6 7;
+  animation: net-seep 26s linear infinite;
+}
+/* Kin: brains whose work has drifted together share one faint thread. */
 .net-kin {
   stroke: var(--color-accent);
-  stroke-width: 1.6;
-  stroke-opacity: 0.9;
-  stroke-dasharray: 3 3;
+  stroke-width: 0.9;
+  stroke-opacity: 0.35;
   vector-effect: non-scaling-stroke;
-  animation: net-kin 9s linear infinite;
+  animation: net-kin 11s ease-in-out infinite;
 }
-@keyframes net-kin {
-  to {
-    stroke-dashoffset: -100;
-  }
+/* A light: a wide amber halo, an ember rim where it meets the dark, a ripple
+   and a bead on its route; the mark above it is the core. */
+.net-reply {
+  transition: opacity 0.7s ease;
 }
-.net-corona {
+.net-rim {
+  fill: url(#net-rim);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-swell 46.8s ease-out var(--net-turn, 0s) infinite;
+}
+.net-halo {
+  fill: url(#net-halo);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-breathe var(--net-breath, 7s) ease-in-out var(--net-phase, 0s)
+    infinite;
+}
+.net-ripple {
   fill: none;
-  stroke: var(--color-accent);
-  stroke-opacity: 0.4;
-  stroke-width: 1;
-  stroke-dasharray: 0.6 2.2;
+  stroke: var(--color-accent-bright);
+  stroke-width: 0.25;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: net-ripple 46.8s linear var(--net-turn, 0s) infinite;
+}
+.net-bead {
+  fill: var(--net-flame);
+  opacity: 0;
+  filter: drop-shadow(0 0 1.2px var(--color-accent-bright))
+    drop-shadow(0 0 3px var(--net-ember));
+  offset-rotate: 0deg;
+  animation: net-travel 46.8s linear var(--net-turn, 0s) infinite;
+}
+/* Rizom: the densest light. */
+.net-corona {
+  fill: url(#net-corona);
   transform-origin: 50px 50px;
-  vector-effect: non-scaling-stroke;
-  animation: net-corona 40s linear infinite;
+  animation: net-breathe-wash 6.5s ease-in-out infinite;
 }
-.net-corona--outer {
-  stroke-opacity: 0.18;
-  stroke-dasharray: 0.3 3.4;
-  animation-duration: 70s;
-  animation-direction: reverse;
+.net-embers {
+  transform-origin: 50px 50px;
+  animation: net-turn 90s linear infinite;
 }
-@keyframes net-corona {
-  to {
-    transform: rotate(360deg);
-  }
+.net-embers circle {
+  fill: var(--color-accent-bright);
+  opacity: 0.55;
+  animation: net-ember 5s ease-in-out var(--net-phase, 0s) infinite;
 }
 .net-lantern {
-  fill: #fff3cf;
-  stroke: var(--color-accent);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 6px var(--color-accent));
+  fill: var(--net-flame);
+  filter: drop-shadow(0 0 2.4px var(--color-accent-bright))
+    drop-shadow(0 0 7px var(--net-ember));
+  transform-origin: 50px 50px;
   animation: net-lantern 4.5s ease-in-out infinite;
 }
-@keyframes net-lantern {
-  50% {
-    stroke-width: 2.2;
-  }
+.net-grain {
+  fill: url(#net-grain-fill);
+  opacity: 0.045;
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
-/* One pulse from Rizom every seven seconds; each brain replies as it is reached: a flare, an echo ring, a spark back. */
-.net-pulse {
-  fill: none;
-  stroke: var(--color-accent);
-  stroke-width: 1.5;
-  opacity: 0;
-  transform-origin: 50px 50px;
-  transform: scale(0);
-  vector-effect: non-scaling-stroke;
-  animation: net-pulse 7s linear infinite;
-}
-@keyframes net-pulse {
-  0% {
-    transform: scale(0);
-    opacity: 0.8;
-  }
-  65% {
-    opacity: 0.1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0;
-  }
-}
-.net-echo {
-  fill: none;
-  stroke: var(--color-accent);
-  stroke-width: 1.2;
-  opacity: 0;
-  transform: scale(0.25);
-  vector-effect: non-scaling-stroke;
-  animation: net-echo 7s linear infinite;
-}
-@keyframes net-echo {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.25);
-  }
-  16% {
-    opacity: 0;
-    transform: scale(1.35);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.35);
-  }
-}
-.net-spark {
-  stroke: #fff3cf;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 0.05 0.95;
-  stroke-dashoffset: 0;
-  opacity: 0;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 5px var(--color-accent));
-  animation: net-spark 7s linear infinite;
-}
-@keyframes net-spark {
-  0% {
-    opacity: 1;
-    stroke-dashoffset: 0.05;
-  }
-  20% {
-    opacity: 1;
-    stroke-dashoffset: 1;
-  }
-  21%,
-  100% {
-    opacity: 0;
-    stroke-dashoffset: 1;
-  }
+[data-theme="light"] .net-grain {
+  mix-blend-mode: multiply;
+  opacity: 0.08;
 }
 .net-marks {
   list-style: none;
@@ -978,46 +996,51 @@
   position: relative;
 }
 /* The network answers: a brain whose published memory an answer drew on
-   lights with the drawing's own echo and spark; the rest dim; the center
+   lights, its thread carries the light, and the rest withdraw; the center
    stays lit when Rizom's own pieces are cited. The story runtime sets the
    classes from the Ask box's ask:sources event. */
-.net-layer .net-thread,
 .net-layer .net-mark,
+.net-layer .net-name,
 .net-layer .net-lantern {
   transition:
     opacity 0.6s ease,
     stroke-opacity 0.6s ease;
 }
 .net-layer.has-replies .net-thread:not(.is-lit) {
-  stroke-opacity: 0.12;
+  stroke-opacity: 0.07;
+}
+.net-layer.has-replies .net-trunk {
+  stroke-opacity: 0.14;
+}
+.net-layer.has-replies .net-reply:not(.is-lit) {
+  opacity: 0.22;
 }
 .net-layer.has-replies .net-mark:not(.is-lit),
 .net-layer.has-replies .net-name:not(.is-lit) {
   opacity: 0.3;
 }
+.net-layer.has-replies .net-name.is-lit {
+  color: var(--color-heading);
+}
 .net-layer .net-thread.is-lit {
+  stroke: var(--color-accent-bright);
   stroke-opacity: 0.9;
+  filter: drop-shadow(0 0 1.2px rgb(from var(--net-ember) r g b / 0.8));
 }
 .net-layer .net-thread.is-hot {
   stroke-opacity: 1;
-  stroke-width: 1.6;
-}
-.net-layer .net-reply.is-lit .net-echo {
-  animation: net-echo 2.4s linear 2;
-}
-.net-layer .net-reply.is-lit .net-spark {
-  animation: net-spark 2.4s linear 2;
+  stroke-width: 0.5;
 }
 .net-layer .net-mark.is-lit i,
 .net-layer .net-mark.is-hot i {
-  background: #fff3cf;
+  background: var(--net-flame);
   box-shadow:
-    0 0 0 3px var(--color-bg),
+    0 0 0 2px var(--color-bg),
     0 0 10px 3px var(--color-accent);
 }
 .net-layer .net-mark.is-hot i {
   box-shadow:
-    0 0 0 3px var(--color-bg),
+    0 0 0 2px var(--color-bg),
     0 0 16px 5px var(--color-accent);
 }
 .net-layer.has-replies:not(.is-rizom) .net-lantern {
@@ -1025,17 +1048,285 @@
   filter: none;
 }
 .net-layer.is-rizom .net-lantern {
-  filter: drop-shadow(0 0 12px var(--color-accent)) drop-shadow(0 0 4px #fff3cf);
+  filter: drop-shadow(0 0 12px var(--color-accent))
+    drop-shadow(0 0 4px var(--net-flame));
+}
+/* The sky's motion. Lights come on, they don't pop: every light breathes on
+   its own clock, the sky drifts, light seeps along the trunks, and on a
+   shared cycle of nine slots a bead travels one brain's route (5.1% of the
+   cycle, 2.4 s) and the brain's ripple and rim swell as it arrives. */
+@keyframes net-drift {
+  from {
+    transform: rotate(-1.1deg);
+  }
+  to {
+    transform: rotate(1.1deg);
+  }
+}
+@keyframes net-weather {
+  from {
+    transform: scale(0.96) rotate(0deg);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.04) rotate(6deg);
+    opacity: 1;
+  }
+}
+@keyframes net-breathe-wash {
+  50% {
+    transform: scale(1.07);
+    opacity: 0.88;
+  }
+}
+@keyframes net-breathe {
+  50% {
+    transform: scale(1.18);
+    opacity: 0.75;
+  }
+}
+@keyframes net-dust {
+  to {
+    opacity: 0.5;
+    transform: translate(0.6px, -0.4px);
+  }
+}
+@keyframes net-seep {
+  to {
+    stroke-dashoffset: -152;
+  }
+}
+@keyframes net-kin {
+  50% {
+    stroke-opacity: 0.12;
+  }
+}
+@keyframes net-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  0.6% {
+    opacity: 1;
+  }
+  4.6% {
+    opacity: 1;
+  }
+  5.1%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes net-ripple {
+  0%,
+  5% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  5.3% {
+    opacity: 0.7;
+  }
+  9.8%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes net-swell {
+  0%,
+  5% {
+    transform: scale(1);
+  }
+  7% {
+    transform: scale(1.9);
+  }
+  10.7%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes net-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes net-ember {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes net-lantern {
+  50% {
+    transform: scale(1.1);
+  }
+}
+/* An answer: the cited brains flare and their bead runs once; while the leads
+   hold, the sky holds still under them. */
+.net-layer .net-reply.is-lit .net-halo {
+  animation:
+    net-answer 2.4s ease-out 1 both,
+    net-breathe 5s ease-in-out 2.4s infinite;
+}
+.net-layer .net-reply.is-lit .net-rim {
+  animation:
+    net-answer 2.4s ease-out 0.1s 1 both,
+    net-breathe 5s ease-in-out 2.5s infinite;
+}
+.net-layer .net-reply.is-lit .net-bead {
+  animation: net-travel-once 1.6s ease-out 1 both;
+}
+.net-layer .net-reply.is-lit .net-ripple {
+  animation: net-ripple-once 2.2s ease-out 1.6s 1 both;
+}
+@keyframes net-answer {
+  0% {
+    transform: scale(0.8);
+  }
+  35% {
+    transform: scale(2.3);
+  }
+  100% {
+    transform: scale(1.5);
+  }
+}
+@keyframes net-travel-once {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes net-ripple-once {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.net-layer.has-replies .net-sky,
+.net-layer.has-replies .net-seep,
+.net-layer.has-replies .net-embers,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-bead,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-ripple,
+.net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
+  animation-play-state: paused;
+}
+/* Where the browser can drive an animation from the scroll, the scroll is the
+   sky's timeline: scrolling wheels the sky a few degrees, the dust and the
+   boundary turn at a slower rate for depth, and each brain's bead travels its
+   tendril over its own slice of the page, its ripple and rim swelling as it
+   arrives. Time keeps the breathing, the seep, the embers and the answer. The
+   room redraws its leads on every scroll, so nothing needs to pause under
+   them. Elsewhere the clocks above stand. */
+@supports (animation-timeline: scroll()) {
+  .net-sky {
+    animation: net-wheel linear both;
+    animation-timeline: scroll(root);
+  }
+  .net-dust,
+  .net-boundary {
+    transform-origin: 50px 50px;
+    animation: net-wheel-slow linear both;
+    animation-timeline: scroll(root);
+  }
+  .net-bead {
+    animation: net-travel-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10%)
+      calc(var(--net-slot, 0) * 10% + 20%);
+  }
+  .net-ripple {
+    animation: net-ripple-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 26%);
+  }
+  .net-rim {
+    animation: net-swell-scroll linear both;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 30%);
+  }
+  /* Scroll-driven motion moves only when the reader does, so neither the
+     leads nor an open Asked-before question need it paused. */
+  .net-layer.has-replies .net-sky,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-bead,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-ripple,
+  .net-layer.has-replies .net-reply:not(.is-lit) .net-rim {
+    animation-play-state: running;
+  }
+  @keyframes net-wheel {
+    from {
+      transform: rotate(-4deg);
+    }
+    to {
+      transform: rotate(4deg);
+    }
+  }
+  @keyframes net-wheel-slow {
+    from {
+      transform: rotate(-1.5deg);
+    }
+    to {
+      transform: rotate(1.5deg);
+    }
+  }
+  @keyframes net-travel-scroll {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    12% {
+      opacity: 1;
+    }
+    88% {
+      opacity: 1;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+  }
+  @keyframes net-ripple-scroll {
+    0% {
+      opacity: 0.7;
+      transform: scale(0.3);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
+  @keyframes net-swell-scroll {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 }
 [data-ask-source][data-ask-hot] {
   background: rgb(from var(--color-accent) r g b / 0.12);
 }
-@media (prefers-reduced-motion: reduce) {
-  .net-layer .net-reply.is-lit .net-echo,
-  .net-layer .net-reply.is-lit .net-spark {
-    animation: none;
-  }
-}
+/* The mark: the brain's core, its hit target and the lead anchor. Its kind is
+   its shape: a person filled, a team a ring, an organisation a dotted ring. */
 .net-mark {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1054,33 +1345,29 @@
   height: 7px;
   border-radius: 50%;
   background: var(--color-text);
-  box-shadow:
-    0 0 0 3px var(--color-bg),
-    0 0 0 4px rgb(from var(--color-accent) r g b / 0.22);
-  animation: net-flare 7s linear infinite;
+  box-shadow: 0 0 0 2px var(--color-bg);
+  transition:
+    background 0.5s ease,
+    box-shadow 0.5s ease;
 }
-@keyframes net-flare {
-  0% {
-    background: #fff3cf;
-    transform: scale(1.5);
-    box-shadow:
-      0 0 0 3px var(--color-bg),
-      0 0 12px 4px var(--color-accent);
-  }
-  14%,
-  100% {
-    background: var(--color-text);
-    transform: none;
-    box-shadow:
-      0 0 0 3px var(--color-bg),
-      0 0 0 4px rgb(from var(--color-accent) r g b / 0.22);
-  }
+.net-mark[data-kind="team"] i {
+  width: 9px;
+  height: 9px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-text);
+}
+.net-mark[data-kind="organization"] i {
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-text);
+  border-style: dotted;
 }
 .net-mark a:hover i,
 .net-mark a:focus-visible i {
-  background: #fff3cf;
+  background: var(--net-flame);
   box-shadow:
-    0 0 0 3px var(--color-bg),
+    0 0 0 2px var(--color-bg),
     0 0 10px 3px var(--color-accent);
 }
 .net-mark a:focus-visible {
@@ -1093,29 +1380,27 @@
   padding: 0;
   position: relative;
 }
+/* The names: one quiet layer under the sky, lowercase, each below its light. */
 .net-name {
   position: absolute;
   white-space: nowrap;
-  font-family: var(--font-display);
-  font-size: 0.92rem;
+  text-transform: lowercase;
+  transform: translate(-50%, 0.9rem);
+  font-family: var(--font-label, var(--font-body));
+  font-size: 0.74rem;
   line-height: 1;
-  color: var(--color-text-muted);
-  font-variation-settings:
-    "SOFT" 70,
-    "opsz" 14;
+  letter-spacing: 0.02em;
+  color: var(--color-text-light);
   text-shadow:
     0 0 0.45rem var(--color-bg),
     0 0 0.2rem var(--color-bg),
     0 0 0.1rem var(--color-bg);
 }
-.net-name--right {
-  transform: translate(0.8rem, -50%);
+.net-name--start {
+  transform: translate(-0.5rem, 0.9rem);
 }
-.net-name--left {
-  transform: translate(calc(-100% - 0.8rem), -50%);
-}
-.net-name--above {
-  transform: translate(-50%, calc(-100% - 0.7rem));
+.net-name--end {
+  transform: translate(calc(-100% + 0.5rem), 0.9rem);
 }
 
 /* The Ask box, docked under the opening. */
@@ -1301,11 +1586,24 @@
   .net-layer > * {
     width: min(100%, var(--strip-h));
   }
+  /* The strip is small: the names would collide, so they wait until an
+     answer lights them. */
+  .net-name,
+  .net-layer.has-replies .net-name:not(.is-lit) {
+    opacity: 0;
+  }
+  .net-layer.has-replies .net-name.is-lit {
+    opacity: 1;
+  }
   /* About a third of the screen for the strip, and the opening's type at
      phone sizes, so the box lands on the first screen under the title. */
   .story {
     --words: 34rem;
     --strip-h: 34svh;
+  }
+  /* The room page has no figure to hold the strip's height in the flow. */
+  .story--room .chapters {
+    padding-top: var(--strip-h);
   }
   .chapter.chapter--opening {
     min-height: auto;
@@ -1318,9 +1616,6 @@
   .chapter--opening .lede {
     font-size: 1.05rem;
     margin-top: 1rem;
-  }
-  .living-org[data-stage="0"] {
-    background: none;
   }
   .story:has(.figure:not([data-stage="0"])) .net-layer {
     opacity: 0;
@@ -1449,22 +1744,6 @@
   color: var(--color-text-muted);
   quotes: "“" "”";
 }
-/* The chapter's drawing stands where the organism stood, beside the words,
-   and the organism steps aside while the chapter is read. */
-.asked .net-layer {
-  top: 50%;
-  translate: 0 -50%;
-  left: calc(100% + var(--words-gap));
-  right: auto;
-  width: min(
-    calc(100svh - var(--bar-height, 4.6rem) - 2rem),
-    calc(100cqi - var(--words) - var(--words-gap) - clamp(1rem, 6vw, 7rem))
-  );
-}
-.story.is-asked .figure {
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
 /* The Ask room's lead layer (the room script draws into it; the kit styles
    the leads): leads join words to the drawing across the page, so the
    viewport is their frame. On a phone the opening's drawing joins the open
@@ -1495,41 +1774,46 @@
     border-bottom: 1px solid var(--color-border);
   }
 }
-/* The chapter's drawing is the network at rest: no pulse travels it and no
-   brain blinks on its own; only the open question's brains answer. */
-.asked .net-pulse,
-.asked .net-reply:not(.is-lit) .net-echo,
-.asked .net-reply:not(.is-lit) .net-spark {
-  display: none;
+/* While the Asked-before questions are read, the page's drawing is the
+   network at rest: no pulse travels it and no brain blinks on its own; only
+   the open question's brains answer. */
+.story.is-asked .net-sky,
+.story.is-asked .net-seep,
+.story.is-asked .net-embers,
+.story.is-asked .net-reply:not(.is-lit) .net-bead,
+.story.is-asked .net-reply:not(.is-lit) .net-ripple,
+.story.is-asked .net-reply:not(.is-lit) .net-rim {
+  animation-play-state: paused;
 }
-.asked .net-mark i {
-  animation: none;
-}
-@media (max-width: 60rem) {
-  /* On a phone the chapter's drawing takes the strip while the chapter is read. */
-  .asked .net-layer {
-    top: var(--bar-height, 4.6rem);
-    translate: none;
-    left: 0;
-    right: 0;
-    width: auto;
-  }
-  .story.is-asked .asked .net-layer {
-    opacity: 1;
-    z-index: 3;
+/* Under the scroll timeline the sky, the beads, the ripples and the rims move
+   only when the reader does, so an open question needs none of them paused;
+   the seep and the embers keep their rest. */
+@supports (animation-timeline: scroll()) {
+  .story.is-asked .net-sky,
+  .story.is-asked .net-reply:not(.is-lit) .net-bead,
+  .story.is-asked .net-reply:not(.is-lit) .net-ripple,
+  .story.is-asked .net-reply:not(.is-lit) .net-rim {
+    animation-play-state: running;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .net-sky,
+  .net-boundary,
+  .net-wash,
+  .net-dust circle,
+  .net-seep,
   .net-kin,
+  .net-rim,
+  .net-halo,
+  .net-ripple,
   .net-corona,
-  .net-lantern,
-  .net-mark i {
+  .net-embers,
+  .net-embers circle,
+  .net-lantern {
     animation: none !important;
   }
-  .net-pulse,
-  .net-echo,
-  .net-spark {
+  .net-bead {
     display: none;
   }
 }

@@ -1,5 +1,50 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.487
+
+### Patch Changes
+
+- [#510](https://github.com/rizom-ai/brains/pull/510) [`a7d655f`](https://github.com/rizom-ai/brains/commit/a7d655f9e2aed518961bed39ff84c2110f41b8fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The first-passkey setup link works in a multi-process runtime. The worker no longer issues a setup token at startup, which replaced the token whose link the web process had just logged, and the Admin setup-link tool no longer hands out a token another process has replaced: it issues a fresh one instead.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.487
+  - @brains/contracts@0.2.0-alpha.487
+  - @brains/db@0.2.0-alpha.487
+  - @brains/utils@0.2.0-alpha.487
+  - @brains/plugins@0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- [#516](https://github.com/rizom-ai/brains/pull/516) [`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Onboarding emails are shorter and personal. The anchor setup email greets a person anchor by name, and invitations say what the brain is for. Instead of listing MCP connection steps, both point to Studio → Account → AI tools. Chat, Studio and AI tools links come from the interactions the brain registers, and a sentence is left out when its page is not served. The chat, Studio and Account AI tools ids and link builder are shared contracts.
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/notifications@0.2.0-alpha.486
+  - @brains/plugins@0.2.0-alpha.486
+  - @brains/db@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Minor Changes
+
+- [#508](https://github.com/rizom-ai/brains/pull/508) [`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Breaking: `auth-service.setupEmail` now takes only the recipient address. The `{ to, subject, body }` form and its `{{setupUrl}}`, `{{expiresAt}}` and `{{origin}}` placeholders are removed; a brain.yaml that still uses them fails config validation. Regenerate pilot brain.yaml files with `brains-ops reconcile` before pinning this release.
+
+  The anchor setup email and the invitation now share one onboarding body after their own opening: a first save-and-ask in chat, Studio, and how to connect AI tools over MCP (the brain's `/mcp` address, the Claude Code command, Claude Desktop custom connectors, OAuth sign-in with the passkey). Both have text and HTML parts. brains-ops no longer writes Rover-specific setup email copy.
+
+### Patch Changes
+
+- [#507](https://github.com/rizom-ai/brains/pull/507) [`46c7739`](https://github.com/rizom-ai/brains/commit/46c773981cdd998539a0ef65b71339b5978ac136) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render invitation emails with a text and an HTML part that name the inviter, the brain (from the anchor profile, falling back to the host) and the invited role, print the expiry as a readable UTC date, and explain passkeys and the next steps. Invitations are now sent with secret sensitivity.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/db@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/plugins@0.2.0-alpha.485
+
 ## 0.2.0-alpha.484
 
 ### Patch Changes

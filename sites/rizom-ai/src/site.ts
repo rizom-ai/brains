@@ -12,7 +12,7 @@ import { writingDataSource } from "./writing-datasource";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
-import { publicAskSections } from "./public-ask";
+import { askRoomTemplate } from "./ask-room";
 
 export const rizomAiSite: SitePackage = createInternalRizomSite(
   {
@@ -27,6 +27,7 @@ export const rizomAiSite: SitePackage = createInternalRizomSite(
         opening: openingTemplate,
         writing: writingTemplate,
         asked: askedTemplate,
+        "ask-room": askRoomTemplate,
       },
     },
     // Every page is authored schema-first (see ./living-memory, ./brain,
@@ -34,7 +35,6 @@ export const rizomAiSite: SitePackage = createInternalRizomSite(
     sections: [
       livingMemorySections,
       brainSections,
-      publicAskSections,
       workSections,
       foundationSections,
     ],

@@ -16,7 +16,12 @@ import type {
   StudioOverviewContributionRegistration,
   StudioWorkspaceRegistration,
 } from "@brains/sdk/plugins";
-import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
+import {
+  ENTITY_CHANNELS,
+  JOB_CHANNELS,
+  CHAT_INTERACTION_ID,
+  STUDIO_INTERACTION_ID,
+} from "@brains/contracts";
 import {
   studioConfigSchema,
   parseEntityDisplay,
@@ -314,7 +319,7 @@ export function studioService(
         ...(state.runtime.plugins.has("@brains/web-chat:web-chat")
           ? [
               {
-                id: "chat",
+                id: CHAT_INTERACTION_ID,
                 label: "Chat",
                 description: "Chat with this brain in the browser.",
                 href: STUDIO_CHAT_ROUTE_PATH,
@@ -327,7 +332,7 @@ export function studioService(
             ]
           : []),
         {
-          id: "studio",
+          id: STUDIO_INTERACTION_ID,
           label: "Studio",
           description: "Edit and manage content through the browser Studio.",
           href: config.routePath,

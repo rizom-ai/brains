@@ -287,6 +287,14 @@ export {
   type NoteCaptureResponse,
 } from "./note-capture";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export { MCP_INTERACTION_ID } from "./mcp";
+export {
+  CHAT_INTERACTION_ID,
+  STUDIO_ACCOUNT_WORKSPACE_ID,
+  STUDIO_AI_TOOLS_SECTION,
+  STUDIO_INTERACTION_ID,
+  studioAiToolsHref,
+} from "./studio-links";
 export { ASK_BOX_AVAILABILITY_OWNER } from "./ask-box-availability";
 export { interfaceAvailabilitySchema } from "./interface-availability";
 export type {

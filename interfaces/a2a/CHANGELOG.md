@@ -1,5 +1,41 @@
 # @brains/a2a
 
+## 0.2.0-alpha.487
+
+### Patch Changes
+
+- Updated dependencies [[`a7d655f`](https://github.com/rizom-ai/brains/commit/a7d655f9e2aed518961bed39ff84c2110f41b8fe)]:
+  - @brains/auth-service@0.2.0-alpha.487
+  - @brains/contracts@0.2.0-alpha.487
+  - @brains/http-signatures@0.2.0-alpha.487
+  - @brains/utils@0.2.0-alpha.487
+  - @brains/plugins@0.2.0-alpha.487
+  - @brains/templates@0.2.0-alpha.487
+
+## 0.2.0-alpha.486
+
+### Patch Changes
+
+- Updated dependencies [[`284bc37`](https://github.com/rizom-ai/brains/commit/284bc3738665e4e452fabb6af41d161292cd8a76), [`f513b77`](https://github.com/rizom-ai/brains/commit/f513b779dfcbba13ff48bec3f0ba373855f030e3)]:
+  - @brains/auth-service@0.2.0-alpha.486
+  - @brains/contracts@0.2.0-alpha.486
+  - @brains/plugins@0.2.0-alpha.486
+  - @brains/templates@0.2.0-alpha.486
+  - @brains/http-signatures@0.2.0-alpha.486
+  - @brains/utils@0.2.0-alpha.486
+
+## 0.2.0-alpha.485
+
+### Patch Changes
+
+- Updated dependencies [[`ed1b85b`](https://github.com/rizom-ai/brains/commit/ed1b85b34e73683d864bc764eddd7a0b7f26ab74), [`46c7739`](https://github.com/rizom-ai/brains/commit/46c773981cdd998539a0ef65b71339b5978ac136)]:
+  - @brains/auth-service@0.2.0-alpha.485
+  - @brains/contracts@0.2.0-alpha.485
+  - @brains/http-signatures@0.2.0-alpha.485
+  - @brains/utils@0.2.0-alpha.485
+  - @brains/plugins@0.2.0-alpha.485
+  - @brains/templates@0.2.0-alpha.485
+
 ## 0.2.0-alpha.484
 
 ### Patch Changes

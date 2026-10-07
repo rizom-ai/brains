@@ -55,6 +55,9 @@ function run(): void {
 
 function scrollTo(next: number[]): void {
   tops = next;
+  // The first chapter starts at the top of the page, so its top says how far
+  // the page has scrolled.
+  Reflect.set(globalThis, "scrollY", Math.max(0, -(next[0] ?? 0)));
   window.dispatchEvent(new window.Event("scroll"));
 }
 
