@@ -165,6 +165,27 @@ describe("shell config", () => {
     expect(config.entityDisplay).toEqual({ note: { label: "Note" } });
   });
 
+  // The site's entity display reaches every reader whole from here: the site
+  // builder, answer sources and entity links read this one map.
+  it("keeps every entity display setting the site declares", () => {
+    const entityDisplay = {
+      post: {
+        label: "Essay",
+        citable: true,
+        paginate: true,
+        detailTemplate: "blog:essay",
+        navigation: { slot: "primary" as const, priority: 10 },
+      },
+      topic: { label: "Topic", navigation: { slot: "secondary" as const } },
+    };
+    const config = createShellConfig({
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      entityDisplay,
+    });
+
+    expect(config.entityDisplay).toEqual(entityDisplay);
+  });
+
   it("carries runtime objects through by reference", () => {
     const permissions = { rules: [] };
     const identity = {

@@ -1,9 +1,12 @@
 import { createMockShell } from "@brains/plugins/test";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  PluginRegistrationContext,
+  ServicePluginContext,
+} from "@brains/plugins";
 import { caughtError } from "@brains/test-utils";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import {
   AtprotoPlugin,
   AtprotoProjectionRegistry,
@@ -93,25 +96,31 @@ function registerTestPostProjection(): void {
 function createContext(
   post: BaseEntity = createPost(),
   extraEntities: BaseEntity[] = [],
+  entityDisplay?: PluginRegistrationContext["entityDisplay"],
 ): ServicePluginContext {
   const shell = createMockShell({ domain: "brain.example.com" });
   shell.addEntities([post, ...extraEntities]);
-  return createServicePluginContext(shell, "atproto");
+  return createServicePluginContext(
+    shell,
+    "atproto",
+    entityDisplay ? { entityDisplay } : undefined,
+  );
 }
 
 describe("AT Protocol post publishing", () => {
   beforeEach(() => {
     AtprotoProjectionRegistry.resetInstance();
-    EntityUrlGenerator.resetInstance();
     registerTestPostProjection();
   });
 
   it("hands the projection the entity's page on this brain's site", async () => {
-    EntityUrlGenerator.getInstance().configure({ post: { label: "Essay" } });
     const plugin = new AtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
     });
-    const result = await plugin.publishPost(createContext(), {
+    const context = createContext(createPost(), [], {
+      post: { label: "Essay" },
+    });
+    const result = await plugin.publishPost(context, {
       slug: "distributed-brains",
       dryRun: true,
     });
@@ -121,11 +130,13 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("hands no page for a type the site gives none", async () => {
-    EntityUrlGenerator.getInstance().configure({ deck: { label: "Deck" } });
     const plugin = new AtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
     });
-    const result = await plugin.publishPost(createContext(), {
+    const context = createContext(createPost(), [], {
+      deck: { label: "Deck" },
+    });
+    const result = await plugin.publishPost(context, {
       slug: "distributed-brains",
       dryRun: true,
     });

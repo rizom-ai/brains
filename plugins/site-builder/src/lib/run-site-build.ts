@@ -240,7 +240,9 @@ export async function runSiteBuild(
         url: baseUrl,
       },
       generateEntityUrl: (entityType, slug) =>
-        EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+        new EntityUrlGenerator(
+          options.pipelineContext.entityDisplay,
+        ).generateUrl(entityType, slug),
       reportFailure: (detail) => {
         stagingFailures.push(detail);
       },

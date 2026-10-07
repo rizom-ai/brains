@@ -20,7 +20,6 @@ import {
 } from "@brains/recurring-checks";
 import { BunSchedulerBackend } from "@brains/scheduler";
 import { RuntimeStateService } from "@brains/runtime-state";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import type { ShellConfigInput } from "../src/config";
@@ -182,13 +181,12 @@ describe("Shell service ownership", () => {
     // outlives shutdown and leaks between tests, so the ban is repo-wide
     // rather than a grep over three known files.
     //
-    // Logger, AtprotoProjectionRegistry, EntityUrlGenerator, and
-    // EvalHandlerRegistry are deliberate ambient registries with real
-    // production callers; they are not shell-owned services.
+    // Logger, AtprotoProjectionRegistry, and EvalHandlerRegistry are
+    // deliberate ambient registries with real production callers; they are
+    // not shell-owned services.
     const allowed = new Set([
       "shared/utils/src/logger.ts",
       "shared/atproto-contracts/src/projection-registry.ts",
-      "shared/site-composition/src/entity-url-generator.ts",
       "shell/ai-evaluation/src/eval-handler-registry.ts",
     ]);
     const declaring = (
@@ -201,27 +199,6 @@ describe("Shell service ownership", () => {
       .filter(Boolean);
 
     expect(declaring.filter((file: string) => !allowed.has(file))).toEqual([]);
-  });
-
-  it("configures the entity links core reads from the shell's site display", async () => {
-    // Core's answer sources read this registry; a plugin bundled apart from
-    // core can hold a copy of its own, so core configures the one it reads.
-    EntityUrlGenerator.resetInstance();
-    const directory = await createDirectory();
-    await migrateTestDatabases(directory.dir);
-    const shell = Shell.createFresh(
-      {
-        ...createTestConfig(directory.dir),
-        entityDisplay: { book: { label: "Book", citable: true } },
-      },
-      defaultDependencies(),
-    );
-    shells.push(shell);
-    await shell.initialize({ mode: "register-only" });
-
-    expect(EntityUrlGenerator.getInstance().isCitable("book")).toBe(true);
-    expect(EntityUrlGenerator.getInstance().isCitable("topic")).toBe(false);
-    EntityUrlGenerator.resetInstance();
   });
 
   it("audits every ShellDependencies override without ignored services", () => {

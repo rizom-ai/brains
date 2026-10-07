@@ -1385,7 +1385,7 @@ describe("resolve with site package", () => {
     expect(getConfig(dashboardRoot)["routePath"]).toBe("/");
   });
 
-  test("should inject routes and entityDisplay into site-builder", () => {
+  test("should inject routes into site-builder and the site's entity display into the shell", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("personal-site", {
       routes: [
@@ -1408,7 +1408,8 @@ describe("resolve with site package", () => {
     const sbConfig = getConfig(siteBuilder);
 
     expect(sbConfig["routes"]).toHaveLength(2);
-    expect(sbConfig["entityDisplay"]).toEqual({ post: { label: "Essay" } });
+    // The shell holds the one entity display every reader takes.
+    expect(sbConfig["entityDisplay"]).toBeUndefined();
     expect(config.shellConfig?.entityDisplay).toEqual({
       post: { label: "Essay" },
     });
@@ -1469,7 +1470,7 @@ describe("resolve with site package", () => {
       { id: "home", path: "/", title: "App Home" },
       { id: "archive", path: "/archive", title: "Archive" },
     ]);
-    expect(siteBuilderConfig["entityDisplay"]).toEqual({
+    expect(config.shellConfig?.entityDisplay).toEqual({
       post: { label: "Essay" },
       note: { label: "Note" },
     });
