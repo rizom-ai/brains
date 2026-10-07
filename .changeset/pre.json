@@ -130,7 +130,11 @@
     "@brains/contact": "0.2.0-alpha.400",
     "@brains/site-atlas": "0.2.0-alpha.418",
     "@brains/site-organization": "0.2.0-alpha.418",
-    "@brains/faq": "0.2.0-alpha.447"
+    "@brains/faq": "0.2.0-alpha.447",
+    "@brains/book": "0.2.0-alpha.487",
+    "@brains/book-import": "0.2.0-alpha.487",
+    "@rizom/theme-books": "0.2.0-alpha.0",
+    "@rizom/site-books": "0.2.0-alpha.0"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -861,6 +865,10 @@
     "show-account-contact-details",
     "site--ask-page-bundle",
     "site--authoring-brand-contract-boundary",
+    "site--books-ask",
+    "site--books-horizon",
+    "site--books-reading-site",
+    "site--books-theme-pages",
     "site--brain-chat-runtime-module-url",
     "site--brain-landing-local-network",
     "site--citable-false-exclusion",

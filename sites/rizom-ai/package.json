@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.274",
+  "version": "0.2.0-alpha.275",
   "description": "Consolidated Rizom brand site, runtime, layouts, and chrome",
   "type": "module",
   "exports": {
@@ -32,7 +32,7 @@
     "prepublishOnly": "bun scripts/build.ts"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.238",
+    "@rizom/site": "0.2.0-alpha.239",
     "clsx": "^2.1.0",
     "tailwind-merge": "^3.6.0"
   },
