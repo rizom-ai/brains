@@ -5,6 +5,7 @@ import {
   type ContentVisibility,
   type SearchResult,
   type SearchOptions,
+  type NearestToEntityRequest,
   type ProjectSemanticSpaceRequest,
   type SemanticSpaceProjection,
 } from "./types";
@@ -12,7 +13,7 @@ import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
+import { sql, and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 import { publishedAcrossTypesCondition } from "./published-condition";
 import {
@@ -419,22 +420,29 @@ export class EntitySearch {
       request.types && request.types.length > 0
         ? new Set(request.types)
         : undefined;
-    const queryTypes = pointTypes ? new Set(pointTypes) : undefined;
-    if (queryTypes && request.origin) {
-      queryTypes.add(request.origin.entityType);
-    }
 
     const embeddings = await this.readEmbeddings(
-      queryTypes ? Array.from(queryTypes) : undefined,
+      pointTypes ? Array.from(pointTypes) : undefined,
       request.visibilityScope,
     );
     const originReference = request.origin;
+    // An origin of a type outside the points is read alone: reading its whole
+    // type to find one vector makes a page per entry quadratic.
     const origin = originReference
-      ? embeddings.find(
+      ? (embeddings.find(
           (embedding) =>
             embedding.entityId === originReference.entityId &&
             embedding.entityType === originReference.entityType,
-        )
+        ) ??
+        (pointTypes?.has(originReference.entityType) === false
+          ? (
+              await this.readEmbeddings(
+                [originReference.entityType],
+                request.visibilityScope,
+                originReference.entityId,
+              )
+            )[0]
+          : undefined))
       : undefined;
     const points = embeddings.filter((embedding) => {
       const matchesPointType = pointTypes?.has(embedding.entityType) ?? true;
@@ -456,10 +464,14 @@ export class EntitySearch {
   private async readEmbeddings(
     types?: string[],
     visibilityScope?: ContentVisibility,
+    entityId?: string,
   ): Promise<SemanticEmbedding[]> {
     const conditions = this.buildVisibilityConditions(visibilityScope);
     if (types && types.length > 0) {
       conditions.push(inArray(entities.entityType, types));
+    }
+    if (entityId !== undefined) {
+      conditions.push(eq(entities.id, entityId));
     }
 
     const embeddingExpr = sql<Float32Array>`emb_e.embedding`.mapWith({
@@ -500,6 +512,53 @@ export class EntitySearch {
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(entities.entityType), asc(entities.id));
+  }
+
+  /**
+   * Visible entities of the given types nearest an entity's stored embedding,
+   * closest first. The origin is read alone and within the same scope; an
+   * origin out of scope or without an embedding has no neighbours.
+   */
+  public async nearestToEntity(
+    request: NearestToEntityRequest,
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    if (!this.embeddingsEnabled) {
+      throw new Error("Semantic indexing is disabled for this Brain instance");
+    }
+    const [origin] = await this.readEmbeddings(
+      [request.origin.entityType],
+      request.visibilityScope,
+      request.origin.entityId,
+    );
+    if (!origin || request.types.length === 0) return [];
+
+    const originVector = JSON.stringify(Array.from(origin.embedding));
+    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${originVector}))`;
+    const query = this.db
+      .select({
+        entityId: entities.id,
+        entityType: entities.entityType,
+        distance: distanceExpr,
+      })
+      .from(entities)
+      .innerJoin(
+        sql`emb.embeddings AS emb_e`,
+        sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .where(
+        and(
+          ...this.buildVisibilityConditions(request.visibilityScope),
+          inArray(entities.entityType, request.types),
+          sql`NOT (${entities.id} = ${request.origin.entityId} AND ${entities.entityType} = ${request.origin.entityType})`,
+          request.maxDistance !== undefined
+            ? sql`${distanceExpr} <= ${request.maxDistance}`
+            : undefined,
+        ),
+      )
+      .orderBy(sql`${distanceExpr} ASC`);
+    return request.limit !== undefined ? query.limit(request.limit) : query;
   }
 
   /**

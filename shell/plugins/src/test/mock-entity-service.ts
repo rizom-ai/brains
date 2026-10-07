@@ -352,6 +352,7 @@ export function createMockEntityService(
     listEntities: listEntitiesFake,
     search: async () => [],
     searchWithDistances: async () => [],
+    nearestToEntity: async () => [],
     getEntityTypes: () => Array.from(store.types),
     hasEntityType: (type: string) => store.types.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),

@@ -1,22 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
-  ProjectSemanticSpaceRequest,
-  SemanticSpacePoint,
-  SemanticSpaceProjection,
+  NearestToEntityRequest,
 } from "@brains/entity-service";
 import { createMockShell } from "../src/test/mock-shell";
 import { findRelatedEntities } from "../src/service/related-entities";
 
-const centre: [number, number] = [0, 0];
-
-function point(entityId: string, distanceToOrigin: number): SemanticSpacePoint {
-  return {
-    entityId,
-    entityType: "note",
-    coordinates: centre,
-    distanceToOrigin,
-  };
+function near(
+  entityId: string,
+  distance: number,
+): { entityId: string; entityType: string; distance: number } {
+  return { entityId, entityType: "note", distance };
 }
 
 function note(
@@ -36,17 +30,8 @@ function note(
   };
 }
 
-function projectionOf(points: SemanticSpacePoint[]): SemanticSpaceProjection {
-  return {
-    origin: { kind: "entity", entityType: "topic", entityId: "thema" },
-    points,
-    neighbors: [],
-    distanceRange: { min: 0, max: 1 },
-  };
-}
-
 describe("findRelatedEntities", () => {
-  it("returns the nearest entries within the cutoff, closest first, up to the limit", async () => {
+  it("asks the store for the nearest entries within the cutoff and limit, and names them", async () => {
     const shell = createMockShell();
     shell.addEntities([
       note("a", { title: "Erste Notiz", slug: "erste" }),
@@ -54,18 +39,13 @@ describe("findRelatedEntities", () => {
       note("c", {}),
       note("d", { title: "Ferne Notiz" }),
     ]);
-    const requests: ProjectSemanticSpaceRequest[] = [];
+    const requests: NearestToEntityRequest[] = [];
     const related = await findRelatedEntities(
       {
         ...shell.getEntityService(),
-        projectSemanticSpace: async (request) => {
+        nearestToEntity: async (request) => {
           requests.push(request);
-          return projectionOf([
-            point("d", 0.9),
-            point("c", 0.4),
-            point("a", 0.1),
-            point("b", 0.3),
-          ]);
+          return [near("a", 0.1), near("b", 0.3)];
         },
       },
       {
@@ -77,7 +57,12 @@ describe("findRelatedEntities", () => {
     );
 
     expect(requests).toEqual([
-      { types: ["note"], origin: { entityType: "topic", entityId: "thema" } },
+      {
+        origin: { entityType: "topic", entityId: "thema" },
+        types: ["note"],
+        maxDistance: 0.5,
+        limit: 2,
+      },
     ]);
     expect(
       related.map((r) => [r.entity.id, r.title, r.slug, r.distance]),
@@ -93,7 +78,7 @@ describe("findRelatedEntities", () => {
     const [related] = await findRelatedEntities(
       {
         ...shell.getEntityService(),
-        projectSemanticSpace: async () => projectionOf([point("c", 0.2)]),
+        nearestToEntity: async () => [near("c", 0.2)],
       },
       {
         origin: { entityType: "topic", entityId: "thema" },
@@ -112,8 +97,7 @@ describe("findRelatedEntities", () => {
     const related = await findRelatedEntities(
       {
         ...shell.getEntityService(),
-        projectSemanticSpace: async () =>
-          projectionOf([point("weg", 0.1), point("a", 0.2)]),
+        nearestToEntity: async () => [near("weg", 0.1), near("a", 0.2)],
       },
       {
         origin: { entityType: "topic", entityId: "thema" },
@@ -131,7 +115,7 @@ describe("findRelatedEntities", () => {
     const related = await findRelatedEntities(
       {
         ...shell.getEntityService(),
-        projectSemanticSpace: async () => {
+        nearestToEntity: async () => {
           throw new Error(
             "Semantic indexing is disabled for this Brain instance",
           );

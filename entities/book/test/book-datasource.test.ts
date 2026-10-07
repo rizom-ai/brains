@@ -1,15 +1,12 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import type {
-  BaseDataSourceContext,
-  BaseEntity,
-  SemanticSpacePoint,
-} from "@brains/plugins";
+import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { BookDataSource } from "../src/datasources/book-datasource";
 import { bookAdapter } from "../src/adapters/book-adapter";
 import type { Book } from "../src/schemas/book";
+import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 
 function entry(
   id: string,
@@ -170,28 +167,18 @@ describe("BookDataSource", () => {
       visibility: "public",
       metadata: {},
     });
-    const centre: [number, number] = [0, 0];
-    const near = (
-      entityId: string,
-      distanceToOrigin: number,
-    ): SemanticSpacePoint => ({
+    const near = (entityId: string, distance: number): NearestMatch => ({
       entityId,
       entityType: "topic",
-      coordinates: centre,
-      distanceToOrigin,
+      distance,
     });
-    const projection = {
-      origin: { kind: "centroid" as const },
-      neighbors: [],
-      distanceRange: { min: 0, max: 1 },
-      points: [
-        near("fern", 0.7),
-        near("mitleid", 0.3),
-        near("macht", 0.55),
-        near("leben", 0.5),
-        near("schwaeche", 0.58),
-      ],
-    };
+    const nearestToEntity = nearestStore([
+      near("fern", 0.7),
+      near("mitleid", 0.3),
+      near("macht", 0.55),
+      near("leben", 0.5),
+      near("schwaeche", 0.58),
+    ]);
     const themeSchema = z.object({
       themes: z.array(z.object({ id: z.string(), title: z.string() })),
     });
@@ -211,7 +198,7 @@ describe("BookDataSource", () => {
         {
           entityService: {
             ...shell.getEntityService(),
-            projectSemanticSpace: async () => projection,
+            nearestToEntity,
           },
         },
       );
@@ -230,7 +217,7 @@ describe("BookDataSource", () => {
         {
           entityService: {
             ...shell.getEntityService(),
-            projectSemanticSpace: async () => projection,
+            nearestToEntity,
           },
         },
       );
@@ -245,7 +232,7 @@ describe("BookDataSource", () => {
         {
           entityService: {
             ...shell.getEntityService(),
-            projectSemanticSpace: async () => {
+            nearestToEntity: async () => {
               throw new Error(
                 "Semantic indexing is disabled for this Brain instance",
               );

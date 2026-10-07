@@ -27,7 +27,7 @@ export interface RelatedEntity {
 /** The two reads the lookup needs; datasource contexts provide both. */
 export type RelatedEntityReader = Pick<
   IEntityService,
-  "projectSemanticSpace" | "getEntity"
+  "nearestToEntity" | "getEntity"
 >;
 
 function slugOf(entity: BaseEntity): string | null {
@@ -44,28 +44,28 @@ export async function findRelatedEntities(
   entityService: RelatedEntityReader,
   query: RelatedEntitiesQuery,
 ): Promise<RelatedEntity[]> {
-  const projection = await entityService
-    .projectSemanticSpace({ types: query.types, origin: query.origin })
+  const nearest = await entityService
+    .nearestToEntity({
+      origin: query.origin,
+      types: query.types,
+      maxDistance: query.maxDistance,
+      limit: query.limit,
+    })
     // A brain without embeddings has nothing related; callers render without.
-    .catch(() => null);
-  if (!projection) return [];
+    .catch(() => []);
 
-  const nearest = projection.points
-    .filter((point) => point.distanceToOrigin <= query.maxDistance)
-    .sort((a, b) => a.distanceToOrigin - b.distanceToOrigin)
-    .slice(0, query.limit);
   const entries = await Promise.all(
-    nearest.map(async (point) => {
+    nearest.map(async (match) => {
       const entity = await entityService.getEntity({
-        entityType: point.entityType,
-        id: point.entityId,
+        entityType: match.entityType,
+        id: match.entityId,
       });
       return entity
         ? {
             entity,
             title: entityTitle(entity) ?? entity.id,
             slug: slugOf(entity),
-            distance: point.distanceToOrigin,
+            distance: match.distance,
           }
         : null;
     }),

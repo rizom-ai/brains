@@ -2,17 +2,13 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import type {
-  BaseDataSourceContext,
-  BaseEntity,
-  SemanticSpacePoint,
-  SemanticSpaceProjection,
-} from "@brains/plugins";
+import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { bookAdapter } from "../src/adapters/book-adapter";
 import { BookThemeDataSource } from "../src/datasources/book-theme-datasource";
 import { BookThemeTemplate } from "../src/templates/book-theme";
+import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 
 function bookEntry(
   book: string,
@@ -59,25 +55,11 @@ const topic: BaseEntity = {
   metadata: {},
 };
 
-const centre: [number, number] = [0, 0];
-const near = (
-  entityId: string,
-  distanceToOrigin: number,
-): SemanticSpacePoint => ({
+const near = (entityId: string, distance: number): NearestMatch => ({
   entityId,
   entityType: "book",
-  coordinates: centre,
-  distanceToOrigin,
+  distance,
 });
-
-function projectionOf(points: SemanticSpacePoint[]): SemanticSpaceProjection {
-  return {
-    origin: { kind: "entity", entityType: "topic", entityId: "mitleid" },
-    points,
-    neighbors: [],
-    distanceRange: { min: 0, max: 1 },
-  };
-}
 
 describe("BookThemeDataSource", () => {
   let shell: MockShell;
@@ -103,15 +85,14 @@ describe("BookThemeDataSource", () => {
     context = {
       entityService: {
         ...shell.getEntityService(),
-        projectSemanticSpace: async (): Promise<SemanticSpaceProjection> =>
-          projectionOf([
-            near("spaet:00002", 0.2),
-            near("frueh:00001", 0.25),
-            near("spaet:00001", 0.3),
-            near("nach:00003", 0.45),
-            near("frueh:00000", 0.5),
-            near("weit:00001", 0.9),
-          ]),
+        nearestToEntity: nearestStore([
+          near("spaet:00002", 0.2),
+          near("frueh:00001", 0.25),
+          near("spaet:00001", 0.3),
+          near("nach:00003", 0.45),
+          near("frueh:00000", 0.5),
+          near("weit:00001", 0.9),
+        ]),
       },
     };
   });
@@ -199,12 +180,11 @@ describe("BookThemeDataSource with long sections", () => {
     const context: BaseDataSourceContext = {
       entityService: {
         ...shell.getEntityService(),
-        projectSemanticSpace: async (): Promise<SemanticSpaceProjection> =>
-          projectionOf([
-            near("spaet:00002", 0.2),
-            near("spaet:00001", 0.25),
-            near("spaet:00003", 0.3),
-          ]),
+        nearestToEntity: nearestStore([
+          near("spaet:00002", 0.2),
+          near("spaet:00001", 0.25),
+          near("spaet:00003", 0.3),
+        ]),
       },
     };
 
