@@ -163,7 +163,6 @@ Active cleanup and infrastructure plans:
 - [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — move the shell's Effect boundary to v4, drop `runEffectPromise`, and put the Git broker transport on `effect/rpc`.
-- [structured-body-codecs.md](./plans/structured-body-codecs.md) — make every structured body a Zod codec so writes validate like reads, with one shared round-trip contract.
 
 Research probes (parked):
 

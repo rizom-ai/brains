@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import type { SummaryEntry } from "../../src/schemas/summary";
+import { expectBodyRoundTrip } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
+import type { SummaryBody, SummaryEntry } from "../../src/schemas/summary";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 const entry: SummaryEntry = {
@@ -62,5 +64,37 @@ describe("SummaryAdapter", () => {
     expect(parsed.entityType).toBe("summary");
     expect(parsed.visibility).toBe(entity.visibility);
     expect(parsed.metadata?.conversationId).toBe("test-conv");
+  });
+});
+
+describe("SummaryAdapter body codec", () => {
+  const adapter = new SummaryAdapter();
+  const formatter = {
+    format: (body: SummaryBody): string => z.encode(adapter.bodyCodec, body),
+    parse: (markdown: string): SummaryBody =>
+      z.decode(adapter.bodyCodec, markdown),
+  };
+
+  it("round-trips summary entries", () => {
+    expectBodyRoundTrip(formatter, {
+      entries: [entry, { ...entry, title: "Next Steps", keyPoints: [] }],
+    });
+  });
+
+  it("skips an entry that violates the summary schema when reading, so the rest can be written back", () => {
+    const body = adapter
+      .createContentBody([entry, { ...entry, title: "Next Steps" }])
+      .replace("Time: 2026-01-01T00:00:00.000Z", "Time: yesterday");
+
+    const { entries } = adapter.parseBody(body);
+
+    expect(entries.map((parsed) => parsed.title)).toEqual(["Next Steps"]);
+    expect(() => adapter.createContentBody(entries)).not.toThrow();
+  });
+
+  it("rejects entries that violate the summary schema when writing", () => {
+    expect(() => adapter.createContentBody([{ ...entry, title: "" }])).toThrow(
+      z.ZodError,
+    );
   });
 });

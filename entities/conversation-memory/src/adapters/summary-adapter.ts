@@ -5,6 +5,8 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
+  summaryBodySchema,
+  summaryEntrySchema,
   summarySchema,
   summaryMetadataSchema,
   type SummaryBody,
@@ -30,7 +32,18 @@ export class SummaryAdapter extends BaseEntityAdapter<
     });
   }
 
+  /** Markdown body ↔ summary entries; a write is validated like a read. */
+  public readonly bodyCodec: z.ZodCodec<z.ZodString, typeof summaryBodySchema> =
+    z.codec(z.string(), summaryBodySchema, {
+      decode: (body) => ({ entries: this.readEntries(body) }),
+      encode: ({ entries }) => this.renderEntries(entries),
+    });
+
   public createContentBody(entries: SummaryEntry[]): string {
+    return z.encode(this.bodyCodec, { entries });
+  }
+
+  private renderEntries(entries: SummaryEntry[]): string {
     const lines: string[] = ["# Conversation Summary", ""];
 
     for (const entry of entries) {
@@ -61,11 +74,16 @@ export class SummaryAdapter extends BaseEntityAdapter<
     const body = content.startsWith("---")
       ? this.extractBody(content)
       : content;
-    const sections = body.split(/^##\s+/m).slice(1);
-    const entries = sections.map((section) => this.parseEntry(section));
-    return {
-      entries: entries.filter((entry): entry is SummaryEntry => entry !== null),
-    };
+    return z.decode(this.bodyCodec, body);
+  }
+
+  /** Entries in a body; a section that does not read as an entry is skipped. */
+  private readEntries(body: string): SummaryEntry[] {
+    return body
+      .split(/^##\s+/m)
+      .slice(1)
+      .map((section) => this.parseEntry(section))
+      .filter((entry): entry is SummaryEntry => entry !== null);
   }
 
   public override toMarkdown(entity: SummaryEntity): string {
@@ -118,7 +136,10 @@ export class SummaryAdapter extends BaseEntityAdapter<
 
     if (!summary) return null;
 
-    return {
+    // An entry the summary schema rejects (e.g. a hand-edited time) is
+    // skipped like any other unreadable section, so the rest still loads and
+    // can be written back.
+    const parsed = summaryEntrySchema.safeParse({
       title,
       summary,
       timeRange: {
@@ -127,7 +148,8 @@ export class SummaryAdapter extends BaseEntityAdapter<
       },
       sourceMessageCount: Number(countMatch[1]),
       keyPoints: this.parseList(text, "Key Points"),
-    };
+    });
+    return parsed.success ? parsed.data : null;
   }
 
   private parseList(text: string, title: string): string[] {
