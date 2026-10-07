@@ -1,5 +1,43 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- [#529](https://github.com/rizom-ai/brains/pull/529) [`34bb01e`](https://github.com/rizom-ai/brains/commit/34bb01eae026663aa7a7476932b9b3a4309b4486) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves with the scroll where the browser can drive it: the page wheels the sky a few degrees, the dust and the boundary turn slower for depth, and each brain's bead travels its tendril over its own slice of the page. Time keeps the breathing, the seep, the embers and the answer; elsewhere the clocks stand.
+
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- [#528](https://github.com/rizom-ai/brains/pull/528) [`fb497e9`](https://github.com/rizom-ai/brains/commit/fb497e9dda80e21721cbfbde7b8077f74fad7620) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the un-lit brains' names hidden in the phone strip while an answer is shown.
+
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- [#526](https://github.com/rizom-ai/brains/pull/526) [`f4accd8`](https://github.com/rizom-ai/brains/commit/f4accd8f1ce52331b8d94a971ece2a00dd3c605b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask keeps the brains' names out of the phone strip until an answer lights them.
+
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- [#524](https://github.com/rizom-ai/brains/pull/524) [`6c58043`](https://github.com/rizom-ai/brains/commit/6c580434e630f4156da2c691ec6da9ddd2cbd177) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sets the brains' names as one quiet layer under the sky: lowercase, below every light, aligned inward at the drawing's edges.
+
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- [#522](https://github.com/rizom-ai/brains/pull/522) [`93621cf`](https://github.com/rizom-ai/brains/commit/93621cf7f4655381479fe399f9311ff380e9084a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask draws the live network as a night sky: Rizom the densest light, tendrils forking outward toward the brains and thinning as they reach, every brain a layered light that breathes on its own clock, energy travelling a tendril to a brain now and then, the brains not yet in reach as dust at the edge, grain in the substrate. An answer flares the cited brains while the rest withdraw. The rings, spokes, pulse and sparks are gone.
+
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`abeaf35`](https://github.com/rizom-ai/brains/commit/abeaf350dc738b4d030e93210a7fb913f5311cf1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's science chapter lists its three dimensions in the same form as the organism's parts, a left accent rule, display-face titles and muted text; a part that is one of the site's rooms shows as a door, underlined in the accent. A stray closing brace at the end of the story stylesheet is gone.
+
+- [#518](https://github.com/rizom-ai/brains/pull/518) [`ead43fa`](https://github.com/rizom-ai/brains/commit/ead43fa3798715dfa709f7dd692aeb64ddffd671) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's figure opens on the whole organism at rest, the brain, the practice and the network joined, beside the opening's words; the science then pulls the team's pyramid out of it and every stage follows from the last, back and forth with the reading. The opening carries no separate picture.
+
 ## 0.2.0-alpha.268
 
 ### Patch Changes
