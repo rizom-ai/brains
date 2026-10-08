@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { essentialHeadTags, iconHeadPaths } from "../src/essential-head";
+import {
+  DEFAULT_FAVICON_SVG,
+  essentialHeadTags,
+  iconHeadPaths,
+  withDefaultIcon,
+} from "../src/essential-head";
 import { HeadCollector } from "../src/head-collector";
 import { createHTMLShell } from "../src/html-generator";
 
@@ -46,5 +51,36 @@ describe("the icons a page links", () => {
     );
     expect(shell).toContain('href="/favicon.svg"');
     expect(shell).not.toContain("favicon.png");
+  });
+});
+
+describe("the default icon", () => {
+  // Every brain is a light: a build that brings no icon of its own gets the
+  // lantern, so no tab is blank and no page links an icon it does not have.
+  test("is the lantern, one light on night", () => {
+    expect(DEFAULT_FAVICON_SVG).toMatch(
+      /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 64 64">/,
+    );
+    expect(DEFAULT_FAVICON_SVG).toContain('fill="#14132b"');
+    expect(DEFAULT_FAVICON_SVG).toContain('stroke="#d4af37"');
+  });
+
+  test("joins a build's static assets when neither an SVG nor a PNG icon is there", () => {
+    const assets = withDefaultIcon({ "/boot.js": "x" }, []);
+    expect(assets["/favicon.svg"]).toBe(DEFAULT_FAVICON_SVG);
+    expect(assets["/boot.js"]).toBe("x");
+    expect(iconHeadPaths(Object.keys(assets)).faviconSvgHref).toBe(
+      "/favicon.svg",
+    );
+  });
+
+  test("steps aside for a site's own icon, static or public, SVG or PNG", () => {
+    const own = withDefaultIcon({ "/favicon.svg": "<svg/>" }, []);
+    expect(own["/favicon.svg"]).toBe("<svg/>");
+    expect(withDefaultIcon({}, ["favicon.png"])).toEqual({});
+    expect(withDefaultIcon({}, ["/favicon.svg"])).toEqual({});
+    expect(withDefaultIcon({ "favicon.svg": "<svg/>" }, [])).toEqual({
+      "favicon.svg": "<svg/>",
+    });
   });
 });

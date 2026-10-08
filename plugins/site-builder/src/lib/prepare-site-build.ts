@@ -14,6 +14,7 @@ import {
   type PreparedSiteBuild,
   type SiteImageLookup,
   type SiteImageMap,
+  withDefaultIcon,
 } from "@brains/site-engine";
 import { getErrorMessage } from "@brains/utils/error";
 import { pLimit } from "@brains/utils/p-limit";
@@ -83,10 +84,14 @@ export async function prepareSiteBuild(
     diagnostics.push(diagnostic);
   }
 
-  const staticAssets = {
-    ...collectRouteAssets(options.routes, { getViewTemplate }),
-    ...options.buildOptions.staticAssets,
-  };
+  // Every brain is a light: a build that brings no icon gets the lantern.
+  const staticAssets = withDefaultIcon(
+    {
+      ...collectRouteAssets(options.routes, { getViewTemplate }),
+      ...options.buildOptions.staticAssets,
+    },
+    Object.keys(publicAssets),
+  );
   const limit = pLimit(4);
   const settledRouteResults = await Promise.allSettled(
     options.routes.map((route) =>
