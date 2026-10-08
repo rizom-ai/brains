@@ -44,6 +44,25 @@ describe("renderDashboardPageHtml", () => {
     ).toMatchSnapshot();
   });
 
+  it("links the brain's icon, which the webserver answers with the lantern when the brain has no other", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
+      authAccess: {
+        loginUrl: "/login?return_to=%2Fdashboard",
+        logoutUrl: "/logout?return_to=%2Fdashboard",
+      },
+    };
+    const html = renderDashboardPageHtml(input);
+    expect(html).toContain(
+      '<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>',
+    );
+  });
+
   it("keeps the public page independent of any supplied session identity", () => {
     const input: DashboardRenderInput = {
       title: "Test Brain",

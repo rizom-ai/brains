@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { DEFAULT_FAVICON_PATH } from "@brains/contracts";
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
@@ -58,6 +59,7 @@ export function DashboardDocument({
           content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
         <title>{input.title}</title>
+        <link rel="icon" type="image/svg+xml" href={DEFAULT_FAVICON_PATH} />
         <script dangerouslySetInnerHTML={{ __html: CONSOLE_CLIMATE_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

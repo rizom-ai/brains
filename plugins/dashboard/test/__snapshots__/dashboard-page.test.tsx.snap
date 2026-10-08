@@ -72,6 +72,26 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
               "attributes": [
                 [
                   "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "href",
                   "https://fonts.googleapis.com",
                 ],
                 [

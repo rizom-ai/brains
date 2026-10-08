@@ -294,3 +294,5 @@ export {
   STUDIO_INTERACTION_ID,
   studioAiToolsHref,
 } from "./studio-links";
+
+export { DEFAULT_FAVICON_PATH, DEFAULT_FAVICON_SVG } from "./favicon";
