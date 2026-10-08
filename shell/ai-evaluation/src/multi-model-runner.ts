@@ -126,6 +126,8 @@ export function exitCodeForModelRuns(
 ): number {
   if (outcomes.length === 0) return 1;
   if (outcomes.some((outcome) => outcome.error !== undefined)) return 1;
+  // A model that ran no tests verified nothing, as on the single-model path.
+  if (outcomes.some((outcome) => outcome.summary?.totalTests === 0)) return 1;
   return outcomes.some(
     (outcome) =>
       outcome.summary !== undefined &&
