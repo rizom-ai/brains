@@ -10,6 +10,10 @@ import type {
   StructuredChatCard,
 } from "./agent-types";
 import type { AgentContactCandidate, EntityMemoryRef } from "./agent-results";
+import {
+  ASSISTANT_TURN_METADATA_KEY,
+  type AssistantTurn,
+} from "@brains/contracts";
 
 /**
  * The metadata shape the agent writes onto conversation messages.
@@ -23,6 +27,8 @@ export interface AgentMessageMetadata extends ConversationMessageMetadata {
   cards?: StructuredChatCard[];
   entityMemoryRefs?: EntityMemoryRef[];
   agentContactCandidates?: AgentContactCandidate[];
+  /** Host facts about a completed reply's turn. */
+  assistantTurn?: AssistantTurn;
   /** Legacy metadata key from older builds. Do not write new values. */
   entityMemoryNote?: string;
 }
@@ -54,6 +60,7 @@ export async function buildMessageMetadata(params: {
   cards?: StructuredChatCard[];
   entityMemoryRefs?: EntityMemoryRef[];
   agentContactCandidates?: AgentContactCandidate[];
+  assistantTurn?: AssistantTurn | undefined;
   canonicalIdentityResolver?: ActorEnricher;
 }): Promise<AgentMessageMetadata> {
   const {
@@ -64,6 +71,7 @@ export async function buildMessageMetadata(params: {
     cards = [],
     entityMemoryRefs = [],
     agentContactCandidates = [],
+    assistantTurn,
     canonicalIdentityResolver,
   } = params;
   const enrichedActor = actor
@@ -83,6 +91,7 @@ export async function buildMessageMetadata(params: {
     ...(cards.length > 0 ? { cards } : {}),
     ...(entityMemoryRefs.length > 0 ? { entityMemoryRefs } : {}),
     ...(agentContactCandidates.length > 0 ? { agentContactCandidates } : {}),
+    ...(assistantTurn ? { [ASSISTANT_TURN_METADATA_KEY]: assistantTurn } : {}),
   };
 }
 

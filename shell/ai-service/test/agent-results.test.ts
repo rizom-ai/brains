@@ -5,8 +5,47 @@ import {
   buildAgentContactCandidates,
   buildEntityMemoryContext,
   buildEntityMemoryRefs,
+  buildRetrievedEntityRefs,
   extractToolResults,
 } from "../src/agent-results";
+
+describe("buildRetrievedEntityRefs", () => {
+  const entity = (id: string): Record<string, unknown> => ({
+    id,
+    entityType: "note",
+    content: "Body",
+  });
+
+  it("records entities that successful reads returned, once each", () => {
+    expect(
+      buildRetrievedEntityRefs([
+        { toolName: "system_get", data: { entity: entity("seed") } },
+        {
+          toolName: "system_search",
+          data: {
+            results: [{ entity: entity("seed") }, { entity: entity("b") }],
+          },
+        },
+      ]),
+    ).toEqual([
+      { entityType: "note", entityId: "seed" },
+      { entityType: "note", entityId: "b" },
+    ]);
+  });
+
+  it("ignores failed reads and non-read tools", () => {
+    expect(
+      buildRetrievedEntityRefs([
+        {
+          toolName: "system_get",
+          error: { code: "not_found", message: "Missing" },
+        },
+        { toolName: "system_create", data: { entityId: "new" } },
+        { toolName: "system_list", data: { entities: [entity("x")] } },
+      ]),
+    ).toEqual([]);
+  });
+});
 
 describe("extractToolResults", () => {
   it("omits cached duplicate read results from extracted metrics records", () => {

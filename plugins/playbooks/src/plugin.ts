@@ -26,7 +26,11 @@ import type {
   ToolContext,
   ToolResponse,
 } from "@brains/plugins";
-import { ServicePlugin, permissionToVisibilityScope } from "@brains/plugins";
+import {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  ServicePlugin,
+  permissionToVisibilityScope,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import packageJson from "../package.json";
@@ -407,6 +411,16 @@ export class PlaybooksPlugin extends ServicePlugin<
       },
     );
 
+    context.messaging.subscribe<unknown, { recorded: boolean }>(
+      CONVERSATION_MESSAGE_ADDED_CHANNEL,
+      async (message) => ({
+        success: true,
+        data: await this.runs.recordAssistantReplyEvidence(
+          message.source,
+          message.payload,
+        ),
+      }),
+    );
     context.messaging.subscribe<Record<string, unknown>, { recorded: boolean }>(
       ENTITY_CHANNELS.created,
       async (message) => ({
@@ -1010,7 +1024,7 @@ function sanitizeEvidenceData(
   data: Record<string, unknown>,
 ): Record<string, unknown> {
   return Object.fromEntries(
-    ["entityType", "entityId", "operation"].flatMap((key) =>
+    ["entityType", "entityId", "operation", "messageId"].flatMap((key) =>
       data[key] !== undefined ? [[key, data[key]]] : [],
     ),
   );
@@ -1138,6 +1152,19 @@ function buildGoalCheckMaterial(
 }
 
 function formatEvidence(index: number, evidence: PlaybookRunEvidence): string {
+  if (evidence.kind === "assistant_reply") {
+    const retrieved = Array.isArray(evidence.data["retrieved"])
+      ? safeJson(evidence.data["retrieved"])
+      : "[]";
+    const reply =
+      typeof evidence.data["reply"] === "string" ? evidence.data["reply"] : "";
+    return [
+      `${index}. assistant_reply at ${evidence.observedAt}: the saved reply of a turn in this step. It proves only what its text shows; saved changes need entity_event evidence.`,
+      `Entities this turn read: ${retrieved}`,
+      "Reply:",
+      reply,
+    ].join("\n");
+  }
   return `${index}. ${evidence.kind} at ${evidence.observedAt}: ${safeJson(evidence.data)}`;
 }
 

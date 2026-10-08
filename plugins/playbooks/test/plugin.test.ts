@@ -229,6 +229,166 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
+  describe("assistant reply evidence", () => {
+    const transformState: PlaybookBody["states"][number] = {
+      id: "welcome",
+      title: "Transform",
+      instructions: ["Transform the retrieved note in chat."],
+      requiredDetails: [],
+      doneWhen: ["The saved note has been retrieved and transformed in chat."],
+      provenBy: ["reply"],
+      transitions: [{ event: "NEXT", target: "complete" }],
+    };
+
+    async function setup(
+      state: PlaybookBody["states"][number] = transformState,
+    ): Promise<{
+      harness: PluginHarness;
+      runId: string;
+      evaluate: ReturnType<typeof mock<GoalCheck["evaluate"]>>;
+    }> {
+      const evaluate = mock<GoalCheck["evaluate"]>(async () => ({
+        met: true,
+        reason: "The outline was delivered in chat.",
+      }));
+      const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+      await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+      addPlaybookEntity(harness, {
+        ...playbookBody,
+        states: [state, completeState],
+      });
+      const runId = await startRun(harness, "reply-evidence");
+      return { harness, runId, evaluate };
+    }
+
+    async function reply(
+      harness: PluginHarness,
+      options: {
+        startedAt: string;
+        sender?: string;
+        role?: string;
+        assistantTurn?: boolean;
+      },
+    ): Promise<void> {
+      await harness.sendMessage(
+        "conversation:messageAdded",
+        {
+          conversationId: "reply-evidence",
+          messageId: "reply-1",
+          role: options.role ?? "assistant",
+          content: "1. Problem\n2. Approach\n3. Next step",
+          metadata:
+            options.assistantTurn === false
+              ? {}
+              : {
+                  assistantTurn: {
+                    startedAt: options.startedAt,
+                    retrieved: [{ entityType: "note", entityId: "seed" }],
+                  },
+                },
+          timestamp: new Date().toISOString(),
+        },
+        options.sender ?? "conversation-service",
+        true,
+      );
+    }
+
+    async function runState(
+      harness: PluginHarness,
+      runId: string,
+    ): Promise<z.output<typeof playbookRunSchema>> {
+      const status = await harness.executeTool("playbook_manage", {
+        action: "status",
+        runId,
+      });
+      expectSuccess(status);
+      return playbookRunSchema.parse(
+        parsePlaybookToolData(status.data).activeRun,
+      );
+    }
+
+    it("proves a reply-proven step with a later turn's saved reply", async () => {
+      const { harness, runId, evaluate } = await setup();
+      await reply(harness, {
+        startedAt: new Date(Date.now() + 1000).toISOString(),
+      });
+
+      expect(evaluate).toHaveBeenCalledTimes(1);
+      const evidence = evaluate.mock.calls[0]?.[0].evidence ?? [];
+      expect(evidence).toHaveLength(1);
+      expect(evidence[0]).toMatchObject({
+        kind: "assistant_reply",
+        stateId: "welcome",
+        data: {
+          conversationId: "reply-evidence",
+          messageId: "reply-1",
+          retrieved: [{ entityType: "note", entityId: "seed" }],
+          reply: "1. Problem\n2. Approach\n3. Next step",
+        },
+      });
+      const run = await runState(harness, runId);
+      expect(run.currentState).toBe("complete");
+      expect(run.evidence.map((item) => item.data)).toEqual([
+        { messageId: "reply-1" },
+      ]);
+    });
+
+    it("records when each step was entered", async () => {
+      const { harness, runId } = await setup({
+        ...transformState,
+        provenBy: undefined,
+        doneWhen: [],
+      });
+      const started = await runState(harness, runId);
+      expect(started.stateEnteredAt).toBeDefined();
+      const advanced = await harness.executeTool("playbook_manage", {
+        action: "send-event",
+        runId,
+        event: "NEXT",
+        fromState: "welcome",
+      });
+      expectSuccess(advanced);
+      const completed = await runState(harness, runId);
+      expect(completed.currentState).toBe("complete");
+      expect(
+        (completed.stateEnteredAt ?? "") >= (started.stateEnteredAt ?? ""),
+      ).toBe(true);
+      expect(completed.stateEnteredAt).not.toBe(started.stateEnteredAt);
+    });
+
+    it("does not credit the reply of the turn that entered the step", async () => {
+      const { harness, runId, evaluate } = await setup();
+      await reply(harness, { startedAt: "2020-01-01T00:00:00.000Z" });
+      expect(evaluate).not.toHaveBeenCalled();
+      expect((await runState(harness, runId)).evidence).toEqual([]);
+    });
+
+    it("does not credit replies on steps that do not declare Proven by: reply", async () => {
+      const { harness, runId, evaluate } = await setup({
+        ...transformState,
+        provenBy: undefined,
+      });
+      await reply(harness, {
+        startedAt: new Date(Date.now() + 1000).toISOString(),
+      });
+      expect(evaluate).not.toHaveBeenCalled();
+      expect((await runState(harness, runId)).evidence).toEqual([]);
+    });
+
+    it.each([{ sender: "test" }, { role: "user" }, { assistantTurn: false }])(
+      "ignores a message that is not a host-recorded reply: %j",
+      async (options) => {
+        const { harness, runId, evaluate } = await setup();
+        await reply(harness, {
+          startedAt: new Date(Date.now() + 1000).toISOString(),
+          ...options,
+        });
+        expect(evaluate).not.toHaveBeenCalled();
+        expect((await runState(harness, runId)).evidence).toEqual([]);
+      },
+    );
+  });
+
   it("registers a generic goalCheck eval handler", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     type RegisterEvalHandler = typeof harness.getMockShell extends () => infer T

@@ -11,6 +11,11 @@
 import { getErrorMessage } from "@brains/utils/error";
 import { createPrefixedId } from "@brains/utils/id";
 import { isPlainRecord } from "@brains/utils/predicates";
+import {
+  ASSISTANT_TURN_METADATA_KEY,
+  assistantTurnSchema,
+} from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import type { PlaybookBody, PlaybookState } from "../entity";
 import {
   createPlaybookRun,
@@ -83,6 +88,16 @@ function upsertGateVerdicts(
 function gateVerdictKey(verdict: PlaybookGateVerdict): string {
   return [verdict.stateId, ...verdict.goal].join("\u0000");
 }
+
+const MAX_REPLY_EVIDENCE_CHARACTERS = 4000;
+
+const assistantReplySchema = z.object({
+  conversationId: z.string().min(1),
+  messageId: z.string().min(1),
+  role: z.literal("assistant"),
+  content: z.string(),
+  metadata: z.object({ [ASSISTANT_TURN_METADATA_KEY]: assistantTurnSchema }),
+});
 
 function stringFromPayload(
   payload: Record<string, unknown>,
@@ -247,6 +262,47 @@ export class RunEngine {
       },
     };
     const updatedRun = await this.deps.store.appendEvidence(run.id, evidence);
+    await this.evaluateGateAfterEvidence(updatedRun.id);
+    return { recorded: true };
+  }
+
+  /**
+   * A saved assistant reply proves a step only when the step declares
+   * `Proven by: reply`, the host recorded the reply's turn, and that turn
+   * began after the run entered the step. The reply of the turn that moved
+   * the run into a step never counts toward it.
+   */
+  public async recordAssistantReplyEvidence(
+    sender: string,
+    payload: unknown,
+  ): Promise<{ recorded: boolean }> {
+    if (sender !== "conversation-service") return { recorded: false };
+    const reply = assistantReplySchema.safeParse(payload);
+    if (!reply.success) return { recorded: false };
+    const { conversationId, messageId, content, metadata } = reply.data;
+    const turn = metadata[ASSISTANT_TURN_METADATA_KEY];
+
+    const run = await this.deps.store.findActiveByConversation(conversationId);
+    if (run?.status !== "active") return { recorded: false };
+    if (!run.stateEnteredAt || run.stateEnteredAt > turn.startedAt)
+      return { recorded: false };
+    const playbook = await this.deps.getPlaybook(run.playbookId);
+    if (run.playbookVersion !== playbook?.version) return { recorded: false };
+    const state = getState(playbook.body, run.currentState);
+    if (!state?.provenBy?.includes("reply")) return { recorded: false };
+
+    const updatedRun = await this.deps.store.appendEvidence(run.id, {
+      id: createPrefixedId("playbook_evidence"),
+      kind: "assistant_reply",
+      stateId: run.currentState,
+      observedAt: new Date().toISOString(),
+      data: {
+        conversationId,
+        messageId,
+        retrieved: turn.retrieved,
+        reply: content.slice(0, MAX_REPLY_EVIDENCE_CHARACTERS),
+      },
+    });
     await this.evaluateGateAfterEvidence(updatedRun.id);
     return { recorded: true };
   }
