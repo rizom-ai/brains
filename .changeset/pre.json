@@ -331,6 +331,7 @@
     "core--chat-repl-typed-system-messages",
     "core--chat-stream-completion",
     "core--checkout-in-place",
+    "core--checkout-tracks-upstream",
     "core--citation-publication-floors",
     "core--cli-tool-register-only",
     "core--cloudflare-dns-upsert-response",

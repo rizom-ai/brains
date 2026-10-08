@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- [#556](https://github.com/rizom-ai/brains/pull/556) [`81128b8`](https://github.com/rizom-ai/brains/commit/81128b892d6ff553e91a2bc4e69a2aa13a3d3431) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content repository checked out in place now tracks `origin` as a clone would, and a checkout without an upstream gets one on its next start; the pre-deploy backup resolves `@{upstream}` and refused a checkout that had none.
+
 ## 0.2.0-alpha.493
 
 ## 0.2.0-alpha.492
