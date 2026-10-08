@@ -1,5 +1,4 @@
 import { expect, it } from "bun:test";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import { createTestEntity } from "@brains/entity-service/test";
 import type { BaseEntity } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
@@ -10,9 +9,15 @@ import {
 import { sitePageUrl } from "../src/internal/site-page-url";
 import { createPluginHarness } from "../src/test/harness";
 
-it("resolves projection pages through the installed host's live site routes, not guessed type paths", async () => {
-  EntityUrlGenerator.resetInstance();
-  const harness = createPluginHarness({ domain: "brain.example.com" });
+it("resolves projection pages through the installed host's site routes, not guessed type paths", async () => {
+  const entityDisplay = {
+    post: { label: "Essay" },
+    "network-piece": { label: "Piece", citable: false },
+  };
+  const harness = createPluginHarness({
+    domain: "brain.example.com",
+    entityDisplay,
+  });
   let page: ((entity: Readonly<BaseEntity>) => string | undefined) | undefined;
   const definition = defineServicePlugin({
     id: "publisher",
@@ -35,11 +40,14 @@ it("resolves projection pages through the installed host's live site routes, not
       id: "record",
       metadata: { slug: "saved-slug" },
     });
-    expect(page(post)).toBeUndefined();
-    EntityUrlGenerator.getInstance().configure({
-      post: { label: "Essay" },
-      "network-piece": { label: "Piece", citable: false },
-    });
+    expect(
+      sitePageUrl("https://other.example", post, undefined),
+    ).toBeUndefined();
+    expect(
+      sitePageUrl("https://other.example", post, {
+        post: { label: "Article" },
+      }),
+    ).toBe("https://other.example/articles/saved-slug");
     expect(page(post)).toBe("https://brain.example.com/essays/saved-slug");
     expect(page({ ...post, metadata: {} })).toBe(
       "https://brain.example.com/essays/record",
@@ -49,9 +57,8 @@ it("resolves projection pages through the installed host's live site routes, not
       "https://brain.example.com/pieces/saved-slug",
     );
     expect(page({ ...post, entityType: "unrouted" })).toBeUndefined();
-    expect(sitePageUrl(undefined, post)).toBeUndefined();
+    expect(sitePageUrl(undefined, post, entityDisplay)).toBeUndefined();
   } finally {
     await harness.reset();
-    EntityUrlGenerator.resetInstance();
   }
 });

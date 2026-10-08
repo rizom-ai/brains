@@ -66,13 +66,25 @@ export function interpolateEnv(
   return data;
 }
 
+/** German letters as German writes them without umlauts or ß. */
+const GERMAN_LETTERS: Record<string, string> = {
+  ä: "ae",
+  ö: "oe",
+  ü: "ue",
+  ß: "ss",
+};
+
 /**
- * Convert a string to a URL-safe slug
+ * Convert a string to a URL-safe slug. Letters are transliterated, not
+ * dropped: German umlauts and ß as German writes them, other accents bare.
  */
 export function slugify(text: string): string {
   return text
     .toLowerCase()
     .trim()
+    .replace(/[äöüß]/g, (letter) => GERMAN_LETTERS[letter] ?? letter)
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "") // Drop accents left by decomposition
     .replace(/[^\w\s-]/g, "") // Remove non-word chars
     .replace(/[\s_-]+/g, "-") // Replace spaces, underscores, hyphens with single hyphen
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens

@@ -9,7 +9,7 @@ import type {
   IEntityService,
   ListEntitiesRequest,
 } from "@brains/entity-service";
-import { isVisibleWithinScope } from "@brains/entity-service";
+import { entityTitle, isVisibleWithinScope } from "@brains/entity-service";
 import { readString } from "@brains/utils/record-fields";
 import { type Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
@@ -17,7 +17,7 @@ import type { RouteRegistry } from "./route-registry";
 
 export type DynamicRouteEntity = Pick<
   BaseEntity,
-  "id" | "metadata" | "visibility"
+  "id" | "metadata" | "visibility" | "content"
 >;
 
 export interface DynamicRouteEntityService extends Pick<
@@ -47,6 +47,8 @@ export interface DynamicRouteGeneratorOptions {
    */
   publishedOnly?: boolean;
 }
+
+const ROUTE_LISTING_PAGE_SIZE = 1000;
 
 export type DynamicRouteEntityDisplayMap = Record<string, EntityDisplayEntry>;
 
@@ -83,6 +85,29 @@ export class DynamicRouteGenerator {
         filter: { ...filter, visibilityScope: scope },
       }),
     };
+  }
+
+  /**
+   * Every entity of a type, one listing page at a time, so static generation
+   * covers types larger than a single page. Id order keeps pages stable.
+   */
+  private async listAllEntities(
+    entityType: string,
+    offset = 0,
+    listed: DynamicRouteEntity[] = [],
+  ): Promise<DynamicRouteEntity[]> {
+    const page = await this.services.entityService.listEntities({
+      entityType,
+      options: this.listOptions({
+        limit: ROUTE_LISTING_PAGE_SIZE,
+        offset,
+        sortFields: [{ field: "id", direction: "asc" }],
+      }),
+    });
+    const all = [...listed, ...page];
+    return page.length < ROUTE_LISTING_PAGE_SIZE
+      ? all
+      : this.listAllEntities(entityType, offset + page.length, all);
   }
 
   /**
@@ -150,8 +175,12 @@ export class DynamicRouteGenerator {
     const logger = this.services.logger;
 
     // Try to find matching templates from any plugin
-    const { listTemplateName, detailTemplateName } =
-      this.findTemplatesForEntityType(entityType);
+    const found = this.findTemplatesForEntityType(entityType);
+    const listTemplateName = found.listTemplateName;
+    // A site can render a type's pages with a template of its choosing.
+    const detailTemplateName =
+      this.entityDisplay?.[entityType]?.detailTemplate ??
+      found.detailTemplateName;
 
     if (!listTemplateName && !detailTemplateName) {
       logger.debug(
@@ -237,10 +266,7 @@ export class DynamicRouteGenerator {
     if (detailTemplateName) {
       try {
         const entities = this.filterVisibleEntities(
-          await this.services.entityService.listEntities({
-            entityType,
-            options: this.listOptions({ limit: 1000 }),
-          }), // Get all entities for static generation
+          await this.listAllEntities(entityType),
           entityType,
         );
 
@@ -258,7 +284,11 @@ export class DynamicRouteGenerator {
           const detailRoute: RouteDefinitionInput = {
             id: `${entityType}-${entity.id}`,
             path: `/${pluralName}/${urlSlug}`,
-            title: `${this.capitalize(entityType)}: ${urlSlug}`,
+            // An entry can name its page; otherwise its title, then the type and slug.
+            title:
+              readString(entity.metadata, "pageTitle") ??
+              entityTitle(entity) ??
+              `${this.capitalize(entityType)}: ${urlSlug}`,
             description: `View ${entityType} details`,
             ...(layout && { layout }),
             sections: [
@@ -313,10 +343,7 @@ export class DynamicRouteGenerator {
   ): Promise<void> {
     // Get total entity count
     const entities = this.filterVisibleEntities(
-      await this.services.entityService.listEntities({
-        entityType,
-        options: this.listOptions({ limit: 1000 }),
-      }),
+      await this.listAllEntities(entityType),
       entityType,
     );
     const totalItems = entities.length;

@@ -111,8 +111,8 @@ describe("canonical unified inbox test app", () => {
   });
 
   test("provides a canonical start posture", () => {
-    expect(packageJson.scripts["start:unified-inbox"]).toContain(
-      "test-apps/unified-inbox",
+    expect(packageJson.scripts["start:unified-inbox"]).toBe(
+      "sh scripts/start-test-app.sh unified-inbox",
     );
   });
 });

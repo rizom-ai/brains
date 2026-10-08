@@ -1,7 +1,6 @@
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
-  entityDisplaySchema,
   RouteDefinitionSchema,
   siteMetadataSchema,
   type EntityDisplayEntry,
@@ -34,9 +33,6 @@ type SiteBuilderConfigSchema = z.ZodObject<{
   >;
   autoRebuild: z.ZodDefault<z.ZodBoolean>;
   rebuildDebounce: z.ZodDefault<z.ZodNumber>;
-  entityDisplay: z.ZodOptional<
-    z.ZodRecord<z.ZodString, typeof entityDisplaySchema>
-  >;
   staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
 }>;
 
@@ -101,12 +97,6 @@ export const siteBuilderConfigSchema: SiteBuilderConfigSchema = z.object({
       "Debounce time in ms before triggering site rebuild after content changes",
     )
     .default(5000),
-  entityDisplay: z
-    .record(z.string(), entityDisplaySchema)
-    .optional()
-    .describe(
-      "Display metadata per entity type — label, plural name, layout, pagination, navigation slot. Consulted when auto-generating routes for active entity plugins.",
-    ),
   staticAssets: z
     .record(z.string(), z.string())
     .optional()

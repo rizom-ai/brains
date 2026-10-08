@@ -17,6 +17,7 @@ import {
 import type {
   Plugin,
   PluginCapabilities,
+  PluginRegistrationContext,
   PluginType,
   ToolResponse,
   ToolConfirmation,
@@ -71,6 +72,7 @@ import {
 } from "../entity/context";
 
 export interface HarnessOptions {
+  entityDisplay?: PluginRegistrationContext["entityDisplay"];
   logger?: Logger;
   logContext?: string;
   dataDir?: string;
@@ -205,6 +207,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     try {
       const capabilities = await plugin.register(
         createPluginScopedShell(shell, resources),
+        this.options.entityDisplay
+          ? { entityDisplay: this.options.entityDisplay }
+          : undefined,
       );
       shell.addPlugin(plugin);
       this.plugin = plugin;

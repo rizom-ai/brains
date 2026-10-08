@@ -13,6 +13,11 @@ import type {
   SortField,
 } from "@brains/entity-service";
 import type { LoggerContract } from "@brains/utils/logger";
+import {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+} from "../service/related-entities";
 import { z } from "@brains/utils/zod";
 import {
   BaseEntityDataSource,
@@ -202,6 +207,13 @@ export interface EntityReads {
 }
 
 export interface EntityQueryReader extends EntityReads {
+  /** Bounded stored-vector neighbors for book sections and theme pages. */
+  related(request: RelatedEntitiesQuery): Promise<RelatedEntity[]>;
+  /** Count through the same visibility/publication floor as the other reads. */
+  count(request: {
+    entityType: string;
+    options?: Pick<ListOptions, "publishedOnly" | "filter">;
+  }): Promise<number>;
   /** Entity types currently registered, for sources that span them. */
   getEntityTypes(): string[];
   /**
@@ -315,6 +327,8 @@ function entityQueryReader(entityService: {
   getEntity: IEntityService["getEntity"];
   getEntityTypes: IEntityService["getEntityTypes"];
   projectSemanticSpace: IEntityService["projectSemanticSpace"];
+  nearestToEntity: IEntityService["nearestToEntity"];
+  countEntities: IEntityService["countEntities"];
 }): EntityQueryReader {
   async function listEntities(request: {
     entityType: string;
@@ -362,6 +376,8 @@ function entityQueryReader(entityService: {
   return {
     listEntities,
     getEntity,
+    related: (request) => findRelatedEntities(entityService, request),
+    count: (request) => entityService.countEntities(request),
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
     project: (
       request: ProjectSemanticSpaceRequest,

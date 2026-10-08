@@ -30,6 +30,7 @@ import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
 import docPackage from "@brains/doc";
+import bookPackage from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailPackage from "@brains/email";
 import emailWorkflowsPackage from "@brains/email-workflows";
@@ -236,6 +237,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ),
     packageCapability("faq", "@brains/faq", faqPackage),
     packageCapability("docs", "@brains/doc", docPackage),
+    packageCapability("book", "@brains/book", bookPackage),
 
     // autoSync was never a config key the schema accepted — it was silently
     // stripped and the plugin always synced on ready. Dropped rather than

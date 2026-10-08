@@ -1,27 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
   EntityUrlGenerator,
   entityDisplaySchema,
 } from "@brains/site-composition";
+import { SiteBuilder } from "../../src/lib/site-builder";
 import { installSiteBuilder } from "../helpers/install";
 
-// The actual installation path parses config before SiteBuilder configures the
-// shared selector used by guest answer sources. Testing the selector alone
-// cannot catch a builder schema that strips the site's citation metadata.
+// The host supplies one display map; the builder must not read a second config copy.
 describe("installed site citation metadata", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-  beforeEach(() => {
-    EntityUrlGenerator.resetInstance();
-    harness = createPluginHarness();
-  });
-  afterEach(async () => {
-    await harness.reset();
-    EntityUrlGenerator.resetInstance();
-  });
-
   for (const mode of ["selection", "fallback", "excluded"] as const) {
-    it(`preserves ${mode} policy through config parsing and builder setup`, async () => {
+    it(`preserves ${mode} policy through host registration and builder setup`, async () => {
       const entityDisplay = {
         post: entityDisplaySchema.parse({ label: "Post", citable: false }),
         topic: entityDisplaySchema.parse({
@@ -37,23 +26,31 @@ describe("installed site citation metadata", () => {
               : {}),
         }),
       };
-      await installSiteBuilder(harness, { autoRebuild: false, entityDisplay });
-      const urls = EntityUrlGenerator.getInstance();
-      expect(
-        ["post", "topic", "deck", "unknown"].filter((type) =>
-          urls.isCitable(type),
-        ),
-      ).toEqual(
-        mode === "selection"
-          ? ["deck"]
-          : mode === "fallback"
-            ? ["topic", "deck"]
-            : [],
-      );
-      // Opt-out changes source selection, never page routing or permissions.
-      expect(urls.hasRoute("post")).toBe(true);
-      expect(urls.generateUrl("post", "example")).toBe("/posts/example");
-      expect(entityDisplay.post.citable).toBe(false);
+      const harness = createPluginHarness({ entityDisplay });
+      const create = spyOn(SiteBuilder, "createFresh");
+      try {
+        await installSiteBuilder(harness, { autoRebuild: false });
+        expect(create).toHaveBeenCalledTimes(1);
+        const display = create.mock.calls[0]?.[5];
+        expect(display).toEqual(entityDisplay);
+        const urls = new EntityUrlGenerator(display);
+        expect(
+          ["post", "topic", "deck", "unknown"].filter((type) =>
+            urls.isCitable(type),
+          ),
+        ).toEqual(
+          mode === "selection"
+            ? ["deck"]
+            : mode === "fallback"
+              ? ["topic", "deck"]
+              : [],
+        );
+        expect(urls.hasRoute("post")).toBe(true);
+        expect(urls.generateUrl("post", "example")).toBe("/posts/example");
+      } finally {
+        create.mockRestore();
+        await harness.reset();
+      }
     });
   }
 });

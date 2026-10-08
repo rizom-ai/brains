@@ -10,7 +10,6 @@ import { createReactBuilder } from "./react-builder";
 import type { RouteRegistry } from "@brains/site-engine";
 
 import type { EntityDisplayMap } from "../config";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { runSiteBuild } from "./run-site-build";
@@ -79,9 +78,6 @@ export class SiteBuilder implements ISiteBuilder {
     };
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
     this.outputLifecycle = outputLifecycle;
-
-    // Configure the shared EntityUrlGenerator singleton
-    EntityUrlGenerator.getInstance().configure(entityDisplay);
   }
 
   async build(

@@ -53,7 +53,9 @@ function toCitation(
   { entity }: SearchResult,
   deps: GuestAnswerSourcesDeps,
 ): SourceCitation {
+  // An entry that names its page is cited by that name, as a section by its siglum.
   const title =
+    metadataString(entity.metadata, "pageTitle") ??
     metadataString(entity.metadata, "title") ??
     metadataString(entity.metadata, "name");
   const slug = metadataString(entity.metadata, "slug") ?? entity.id;
@@ -98,8 +100,12 @@ export function createGuestAnswerSources(
         publishedOnly: true,
       },
     });
-    const citable = results.filter((result) =>
-      deps.isCitable(result.entity.entityType),
+    // A type the site cites can still hold entries that are no source in
+    // themselves, as a book's contents; those say so in their metadata.
+    const citable = results.filter(
+      (result) =>
+        deps.isCitable(result.entity.entityType) &&
+        result.entity.metadata["citable"] !== false,
     );
     const closest = Math.max(...citable.map((result) => result.score));
     return citable

@@ -228,6 +228,8 @@ for explicit publication selection. The native scoped-service proxy is not a
 public author capability. Fixture search applies the same publication eligibility
 before pagination but does not simulate SQL or vector ranking.
 
+Datasource `EntityQueryReader` also provides `count(request)` and `related({ origin: { entityType, entityId }, types, maxDistance, limit })`. Books uses these for reading navigation and related themes without a native service handle. Related lookup uses stored vectors, not provider calls or a whole-space projection. Both the origin and candidates honor the bound visibility/publication floors before limiting; subsequent entity reads retain those floors. Cosine distance is 0–2, limit is 1–2000 and at most 100 nonempty type names are accepted. Disabled semantic indexing yields no related entries; other failures propagate. These are read snapshots, not mutation credentials or a concurrent-withdrawal transaction.
+
 Entity and service insights receive `projectionSourceTypes`: a frozen, detached list of installed type names whose projection sourcing is enabled. It contains no registry or configuration objects and grants no extra read authority. Named consumer: Topics uses this classification with its configured include/exclude rules and visibility/publication-floored counts to explain why visible source content has no extracted topics yet.
 
 An entity may declare `validatePersist({ content, visibility })` to enforce a persistence invariant even when installed without a service. The callback receives a frozen, detached view; throwing rejects the write. Contact uses this to require restricted visibility and validate private Markdown without exposing submitted details in errors. Registered Markdown parsers strip the system-owned visibility envelope before domain validation and return sanitized coded failures rather than raw YAML errors containing source buffers.
@@ -771,6 +773,10 @@ summary and replay arguments; it is not a failure. Package installation rolls
 back all newly installed children on failure, without resetting earlier packages.
 
 ## `@rizom/site`
+
+Service setup receives a detached `entityDisplay` snapshot. Changing its labels,
+navigation or citation flags cannot alter host-resolved `sitePageUrl` routes or
+another service's snapshot. Named consumers: Studio and Site Builder.
 
 `entityDisplay[type].citable?: boolean` selects answer-source candidates, not
 permissions or proof of grounding. Explicit `false` always excludes a type. If

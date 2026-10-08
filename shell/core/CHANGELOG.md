@@ -1,5 +1,21 @@
 # @brains/core
 
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.488
+  - @brains/image@0.2.0-alpha.488
+  - @brains/operation-context@0.2.0-alpha.488
+  - @brains/site-composition@0.2.0-alpha.488
+  - @brains/utils@0.2.0-alpha.488
+  - @brains/plugins@0.2.0-alpha.488
+  - @brains/recurring-checks@0.2.0-alpha.488
+  - @brains/runtime-state@0.2.0-alpha.488
+  - @brains/scheduler@0.2.0-alpha.488
+  - @brains/templates@0.2.0-alpha.488
+
 ## 0.2.0-alpha.487
 
 ### Patch Changes

@@ -6,11 +6,9 @@ import { writeSiteBuildFeeds } from "../../src/lib/feed-file-handler";
 
 beforeEach(() => {
   FeedRegistry.resetInstance();
-  EntityUrlGenerator.resetInstance();
 });
 afterEach(() => {
   FeedRegistry.resetInstance();
-  EntityUrlGenerator.resetInstance();
 });
 
 test.each(["essays", "default"])(
@@ -44,8 +42,7 @@ test.each(["essays", "default"])(
           publishedAt: entity.created,
         }),
       });
-      const urls = EntityUrlGenerator.getInstance();
-      urls.configure(
+      const urls = new EntityUrlGenerator(
         route === "default"
           ? undefined
           : { post: { label: "Essay", pluralName: route } },

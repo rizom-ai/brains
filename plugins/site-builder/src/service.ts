@@ -116,6 +116,7 @@ export function siteBuilderService(
         previewUrl,
         localSiteUrl,
         preferLocalUrls,
+        entityDisplay,
       }): Promise<SiteBuilderState> => {
         const routes = deps.routes ?? new RouteRegistry(logger);
         const slots = deps.slots ?? new UISlotRegistry();
@@ -148,7 +149,7 @@ export function siteBuilderService(
           routes,
           { getProfile: () => identity.getProfile() },
           undefined,
-          config.entityDisplay,
+          entityDisplay,
         );
 
         const rebuilds = new RebuildManager(config, jobs, logger, status);
@@ -174,6 +175,7 @@ export function siteBuilderService(
 
         const build = handleSiteBuild({
           siteBuilder: builder,
+          entityDisplay,
           messaging,
           logger: logger.child("SiteBuildJob"),
           layouts: config.layouts ?? {},

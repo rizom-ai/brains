@@ -5,7 +5,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
 import type { ISiteBuilder } from "../types/site-builder-types";
-import type { SiteBuilderConfig } from "../config";
+import type { EntityDisplayMap, SiteBuilderConfig } from "../config";
 import { siteBuildJob } from "../lib/site-build-job";
 import type { SiteBuildJobResult } from "../types/job-types";
 import { resolveSiteMetadata } from "../lib/site-metadata";
@@ -27,6 +27,7 @@ export type BuildStatusRecorder = Pick<
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
+  entityDisplay?: EntityDisplayMap | undefined;
   messaging: ServicePublisher;
   logger: LoggerContract;
   layouts: Record<string, LayoutComponent>;
@@ -168,7 +169,10 @@ export function handleSiteBuild(
             routesBuilt: result.routesBuilt,
             siteConfig: { ...siteConfig, url: siteUrl },
             generateEntityUrl: (entityType: string, slug: string): string =>
-              EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+              new EntityUrlGenerator(cfg.entityDisplay).generateUrl(
+                entityType,
+                slug,
+              ),
           },
         });
       }

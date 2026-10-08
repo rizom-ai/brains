@@ -181,7 +181,7 @@ describe("Shell service ownership", () => {
     // outlives shutdown and leaks between tests, so the ban is repo-wide
     // rather than a grep over three known files.
     //
-    // Logger, AtprotoProjectionRegistry, EntityUrlGenerator, FeedRegistry,
+    // Logger, AtprotoProjectionRegistry, FeedRegistry,
     // EvalHandlerRegistry and PublishDelegationRegistry are deliberate
     // ambient registries with real production callers; they are not
     // shell-owned services. FeedRegistry and PublishDelegationRegistry are
@@ -191,7 +191,6 @@ describe("Shell service ownership", () => {
     const allowed = new Set([
       "shared/utils/src/logger.ts",
       "shared/atproto-contracts/src/projection-registry.ts",
-      "shared/site-composition/src/entity-url-generator.ts",
       "shared/site-composition/src/feed-registry.ts",
       "shell/ai-evaluation/src/eval-handler-registry.ts",
       "shell/plugins/src/service/publish-delegation-registry.ts",

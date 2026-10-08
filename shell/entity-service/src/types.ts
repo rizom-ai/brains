@@ -846,6 +846,20 @@ export interface SemanticEntityReference {
   entityType: string;
 }
 
+export interface NearestToEntityRequest {
+  /** The entity whose stored embedding the others are measured from. */
+  origin: SemanticEntityReference;
+  /** Entity types to consider; the origin itself is never returned. */
+  types: string[];
+  /** Only entries at most this cosine distance from the origin. */
+  maxDistance?: number | undefined;
+  limit?: number | undefined;
+  /** Undefined fails closed to public-only visibility, origin included. */
+  visibilityScope?: ContentVisibility | undefined;
+  /** Apply the registered publication gate to both origin and candidates. */
+  publishedOnly?: boolean | undefined;
+}
+
 export interface ProjectSemanticSpaceRequest {
   /** Entity types to include as projected points. Empty or omitted includes all types. */
   types?: string[];
@@ -853,6 +867,8 @@ export interface ProjectSemanticSpaceRequest {
   origin?: SemanticEntityReference;
   /** Include pairwise neighbors at or below this cosine distance. */
   maxNeighborDistance?: number;
+  /** Apply the registered publication gate to both origin and points. */
+  publishedOnly?: boolean | undefined;
   /** Undefined fails closed to public-only visibility. */
   visibilityScope?: ContentVisibility | undefined;
 }
@@ -1046,6 +1062,15 @@ export interface ICoreEntityService {
   /** Return embedded entities with raw cosine distance to a query. */
   searchWithDistances(
     request: SearchWithDistancesRequest,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+
+  /**
+   * Visible entities of the given types nearest an entity's stored embedding,
+   * closest first, by raw cosine distance. It reads one vector and asks the
+   * store for the rest, so it costs no API call and stays linear.
+   */
+  nearestToEntity(
+    request: NearestToEntityRequest,
   ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
 
   /** Project visible entities into a provider-independent semantic space. */

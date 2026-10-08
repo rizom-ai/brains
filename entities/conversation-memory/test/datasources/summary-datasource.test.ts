@@ -87,6 +87,8 @@ describe("summary data source", () => {
           getEntity: async () => null,
           listEntities: async () => [],
           getEntityTypes: () => [],
+          related: async () => [],
+          count: async () => 0,
           project: async () => ({
             origin: { kind: "centroid" as const },
             points: [],

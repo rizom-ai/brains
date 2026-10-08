@@ -1,7 +1,6 @@
 import type { ContentVisibility } from "@brains/sdk/entities";
 import type { SectionDefinition } from "@brains/site-composition";
 import { normalizeJsonValue, type SiteImageLookup } from "@brains/site-engine";
-import { EntityUrlGenerator } from "@brains/site-composition";
 import { enrichWithUrls } from "./content-enrichment";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { BuildPipelineContext } from "./build-pipeline-context";
@@ -60,6 +59,5 @@ export async function resolveSiteSectionContent(
     pipelineContext: options.pipelineContext,
     imageBuildService: options.imageBuildService,
     siteUrl: options.siteUrl,
-    urlGenerator: EntityUrlGenerator.getInstance(),
   });
 }

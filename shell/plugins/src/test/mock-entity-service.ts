@@ -615,6 +615,7 @@ export function createMockEntityService(
       embeddableEntities: 0,
       embeddedEntities: 0,
     }),
+    nearestToEntity: async () => [],
     projectSemanticSpace: async () => ({
       origin: { kind: "centroid" as const },
       points: [],

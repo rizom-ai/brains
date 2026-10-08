@@ -286,6 +286,7 @@ export function createMockEntityService(
     countEmbeddings: mock(() => Promise.resolve(0)),
     storeEmbedding: mock(() => Promise.resolve()),
     searchWithDistances: mock(() => Promise.resolve([])),
+    nearestToEntity: mock(() => Promise.resolve([])),
     projectSemanticSpace: mock(() =>
       Promise.resolve({
         origin: { kind: "centroid" as const },

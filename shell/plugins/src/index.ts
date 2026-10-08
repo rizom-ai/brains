@@ -643,6 +643,7 @@ export type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -706,6 +707,12 @@ export {
   type NavigationResult,
   type SortField,
 } from "./service/base-entity-datasource";
+export {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+  type RelatedEntityReader,
+} from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
 
 // ============================================================================

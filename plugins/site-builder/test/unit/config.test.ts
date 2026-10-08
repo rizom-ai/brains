@@ -1,9 +1,10 @@
 import { describe, test, expect } from "bun:test";
 import { siteBuilderConfigSchema } from "../../src/config";
+import { entityDisplaySchema } from "@brains/site-composition";
+import { z } from "@brains/utils/zod";
 
 describe("siteBuilderConfigSchema", () => {
-  // The site's entity display reaches the builder whole: the builder takes
-  // the site contract's schema instead of a copy that drops what it lacks.
+  // Display metadata is validated by the site's shared contract, not a second builder copy.
   test("keeps every entity display setting the site declares", () => {
     const entityDisplay = {
       post: {
@@ -15,8 +16,12 @@ describe("siteBuilderConfigSchema", () => {
       topic: { label: "Topic", navigation: { slot: "secondary" as const } },
       note: { label: "Note", citable: false },
     };
-    const result = siteBuilderConfigSchema.parse({ entityDisplay });
-    expect(result.entityDisplay).toEqual(entityDisplay);
+    expect(
+      z.record(z.string(), entityDisplaySchema).parse(entityDisplay),
+    ).toEqual(entityDisplay);
+    expect(siteBuilderConfigSchema.parse({ entityDisplay })).not.toHaveProperty(
+      "entityDisplay",
+    );
   });
 
   test("rejects invalid or unknown entity display fields instead of silently stripping them", () => {
@@ -26,10 +31,7 @@ describe("siteBuilderConfigSchema", () => {
       { label: "Post", pageSize: 1.5 },
       { label: "" },
     ]) {
-      expect(
-        siteBuilderConfigSchema.safeParse({ entityDisplay: { post: entry } })
-          .success,
-      ).toBe(false);
+      expect(entityDisplaySchema.safeParse(entry).success).toBe(false);
     }
   });
 

@@ -725,7 +725,8 @@ class DeclarativeServicePlugin<
           plugins: context.plugins,
           http: context.http,
           siteUrl: context.siteUrl,
-          sitePageUrl: (entity) => sitePageUrl(context.siteUrl, entity),
+          sitePageUrl: (entity) =>
+            sitePageUrl(context.siteUrl, entity, context.entityDisplay),
           domain: context.domain,
           previewUrl: context.previewUrl,
           localSiteUrl: context.localSiteUrl,
@@ -760,7 +761,10 @@ class DeclarativeServicePlugin<
             }),
           ),
           readiness: () => context.readiness(),
-          entityDisplay: context.entityDisplay,
+          entityDisplay:
+            context.entityDisplay === undefined
+              ? undefined
+              : structuredClone(context.entityDisplay),
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,

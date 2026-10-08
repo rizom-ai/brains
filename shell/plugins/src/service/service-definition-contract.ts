@@ -1234,7 +1234,9 @@ interface ServiceDefinitionHeader<
         /**
          * How the brain labels its entity types, when it says. A console
          * shows a type the way the brain names it rather than by its
-         * identifier. Named consumer: @brains/studio.
+         * identifier. This detached snapshot cannot change host routes or
+         * another service's citation policy. Named consumers: @brains/studio
+         * and @brains/site-builder-plugin.
          */
         readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
         /**

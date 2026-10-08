@@ -251,6 +251,110 @@ describe("DynamicRouteGenerator", () => {
   });
 
   describe("visibilityScope", () => {
+    test("generates a detail route for every entity beyond one listing page", async () => {
+      entityTypes.push("book");
+      const books = Array.from({ length: 2500 }, (_, index) =>
+        createMockEntity(`b${index}`, "book", `b${index}`),
+      );
+      templates.push(
+        { name: "book:book-list", pluginId: "book" },
+        { name: "book:book-detail", pluginId: "book" },
+      );
+
+      const pagedGenerator = new DynamicRouteGenerator(
+        {
+          ...services,
+          entityService: {
+            getEntityTypes: (): string[] => entityTypes,
+            listEntities: async (
+              req: ListEntitiesRequest,
+            ): Promise<BaseEntity[]> => {
+              const offset = req.options?.offset ?? 0;
+              return books.slice(offset, offset + (req.options?.limit ?? 0));
+            },
+          },
+        },
+        routeRegistry,
+      );
+
+      await pagedGenerator.generateEntityRoutes();
+
+      const detailRoutes = routeRegistry
+        .list()
+        .filter((route) => route.id.startsWith("book-b"));
+      expect(detailRoutes).toHaveLength(2500);
+      expect(routeRegistry.get("/books/b2499")).toBeDefined();
+      expect(routeRegistry.get("/books/page/250")).toBeDefined();
+    });
+
+    test("titles a detail page by its pageTitle, then its title", async () => {
+      entityTypes.push("book");
+      entities.set("book", [
+        {
+          ...createMockEntity("b1", "book", "b/1"),
+          metadata: { slug: "b/1", title: "1", pageTitle: "B-1" },
+        },
+        {
+          ...createMockEntity("b0", "book", "b"),
+          metadata: { slug: "b", title: "Ein Buch" },
+        },
+        createMockEntity("b2", "book", "b/2"),
+        {
+          ...createMockEntity("b3", "book", "b/3"),
+          content: "---\ntitle: Aus der Vorrede\n---\n\nText.",
+        },
+      ]);
+      templates.push({ name: "book:book-detail", pluginId: "book" });
+
+      await generator.generateEntityRoutes();
+
+      expect(routeRegistry.get("/books/b/1")?.title).toBe("B-1");
+      expect(routeRegistry.get("/books/b")?.title).toBe("Ein Buch");
+      expect(routeRegistry.get("/books/b/3")?.title).toBe("Aus der Vorrede");
+      expect(routeRegistry.get("/books/b/2")?.title).toBe("Book: b/2");
+    });
+
+    test("renders an entity type's pages with the template its site names", async () => {
+      entityTypes.push("topic");
+      entities.set("topic", [createMockEntity("mitleid", "topic")]);
+      templates.push(
+        { name: "topics:topic-list", pluginId: "topics" },
+        { name: "topics:topic-detail", pluginId: "topics" },
+        { name: "book:theme", pluginId: "book" },
+      );
+      const sited = new DynamicRouteGenerator(services, routeRegistry, {
+        topic: {
+          label: "Theme",
+          pluralName: "topics",
+          detailTemplate: "book:theme",
+        },
+      });
+
+      await sited.generateEntityRoutes();
+
+      expect(routeRegistry.get("/topics/mitleid")?.sections[0]?.template).toBe(
+        "book:theme",
+      );
+      expect(routeRegistry.get("/topics")?.sections[0]?.template).toBe(
+        "topics:topic-list",
+      );
+    });
+
+    test("keeps the plugin's own detail template when the site names none", async () => {
+      entityTypes.push("topic");
+      entities.set("topic", [createMockEntity("mitleid", "topic")]);
+      templates.push(
+        { name: "topics:topic-detail", pluginId: "topics" },
+        { name: "book:theme", pluginId: "book" },
+      );
+
+      await generator.generateEntityRoutes();
+
+      expect(routeRegistry.get("/topics/mitleid")?.sections[0]?.template).toBe(
+        "topics:topic-detail",
+      );
+    });
+
     test("passes configured visibilityScope to listEntities for detail routes", async () => {
       entityTypes.push("post");
       entities.set("post", [createMockEntity("p1", "post", "p1")]);

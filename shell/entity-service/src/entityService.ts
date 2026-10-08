@@ -49,6 +49,7 @@ import type {
   ApplyEntityMutationOnceRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
   CreateEntityRequest,
@@ -1090,6 +1091,15 @@ export class EntityService implements IEntityService {
       limit: request.limit,
       signal: request.signal,
     });
+  }
+
+  public async nearestToEntity(
+    request: NearestToEntityRequest,
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    await this.initialize();
+    return this.entitySearch.nearestToEntity(request);
   }
 
   public async projectSemanticSpace(

@@ -24,7 +24,12 @@ type ScopedReads = Pick<
   | "getEntityCounts"
   | "getEntityTypes"
 > &
-  Partial<Pick<ICoreEntityService, "searchWithDistances">>;
+  Partial<
+    Pick<
+      ICoreEntityService,
+      "searchWithDistances" | "nearestToEntity" | "projectSemanticSpace"
+    >
+  >;
 
 /**
  * A read view of an entity service for people who may see only part of a
@@ -140,6 +145,28 @@ export function scopeEntityReads<T extends ScopedReads>(
             visibilityScope: visibilityScope
               ? scopeFor(request.visibilityScope)
               : "public",
+            ...(publishedOnly && { publishedOnly: true }),
+          });
+      }
+      if (prop === "nearestToEntity" && target.nearestToEntity) {
+        const nearest = target.nearestToEntity.bind(target);
+        return (
+          request: Parameters<ICoreEntityService["nearestToEntity"]>[0],
+        ) =>
+          nearest({
+            ...request,
+            visibilityScope: scopeFor(request.visibilityScope) ?? "public",
+            ...(publishedOnly && { publishedOnly: true }),
+          });
+      }
+      if (prop === "projectSemanticSpace" && target.projectSemanticSpace) {
+        const project = target.projectSemanticSpace.bind(target);
+        return (
+          request: Parameters<ICoreEntityService["projectSemanticSpace"]>[0],
+        ) =>
+          project({
+            ...request,
+            visibilityScope: scopeFor(request.visibilityScope) ?? "public",
             ...(publishedOnly && { publishedOnly: true }),
           });
       }
