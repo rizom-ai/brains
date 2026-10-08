@@ -8,7 +8,10 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, stubMethod, waitUntil } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
+import { InMemoryTemplateRegistry } from "@brains/templates";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import type { BootMode } from "../src/initialization/shellBootloader";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellRuntimeOptions } from "../src/runtime-process-role";
@@ -162,6 +165,124 @@ describe("HTTP route finalization during shell boot", () => {
     expect(shell.isHttpHostConfigured()).toBe(true);
     await shell.shutdown();
     expect(shell.getHttpHostStatus()?.running).toBe(false);
+  });
+
+  it("serves while import is pending and preserves imported identity before defaults", async () => {
+    shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        http: { port: 0, productionDistDir: `${testDirectory.dir}/production` },
+        plugins: [routePlugin("pending-host", "/during-import")],
+      }),
+      dependencies,
+    );
+    const bus = shell.getMessageBus();
+    bus.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => ({
+      success: true,
+      data: { initialSyncPending: true },
+    }));
+    let settled = 0;
+    bus.subscribe(SYSTEM_CHANNELS.startupContentSettled, async () => {
+      settled += 1;
+      return { success: true };
+    });
+    await shell.initialize();
+    const url = shell.getHttpHostStatus()?.productionUrl;
+    expect(url).toBeDefined();
+    expect(await (await fetch(`${url}/during-import`)).text()).toBe(
+      "pending-host",
+    );
+    const entities = shell.getEntityService();
+    expect(
+      await entities.getEntity({
+        entityType: "brain-character",
+        id: "brain-character",
+      }),
+    ).toBeNull();
+    expect(settled).toBe(0);
+    await entities.createEntity({
+      entity: {
+        entityType: "brain-character",
+        id: "brain-character",
+        metadata: {},
+        content:
+          "---\nname: Imported Author\nrole: Knowledge companion\npurpose: Preserve authored identity\nvalues:\n  - fidelity\n---\n",
+      },
+    });
+    await bus.send({
+      type: SYSTEM_CHANNELS.initialSyncCompleted,
+      payload: { success: true },
+      sender: "directory-sync",
+      broadcast: true,
+    });
+    await waitUntil(() => settled === 1, "startup content to settle");
+    const character = await entities.getEntity({
+      entityType: "brain-character",
+      id: "brain-character",
+    });
+    expect(character?.content).toContain("Imported Author");
+    await bus.send({
+      type: SYSTEM_CHANNELS.initialSyncCompleted,
+      payload: { success: true },
+      sender: "directory-sync",
+      broadcast: true,
+    });
+    expect(settled).toBe(1);
+  });
+
+  it("does not continue pending startup defaults after shell shutdown", async () => {
+    const registry = InMemoryTemplateRegistry.createFresh();
+    const list = registry.list.bind(registry);
+    let stopped = false;
+    let lateReads = 0;
+    registry.list = (): ReturnType<typeof registry.list> => {
+      if (stopped) lateReads += 1;
+      return list();
+    };
+    shell = Shell.createFresh(createTestShellConfig(testDirectory.dir), {
+      ...dependencies,
+      templateRegistry: registry,
+    });
+    const bus = shell.getMessageBus();
+    bus.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => ({
+      success: true,
+      data: { initialSyncPending: true },
+    }));
+    const entered = deferred();
+    const release = deferred();
+    let finished = 0;
+    let settled = 0;
+    bus.subscribe(SYSTEM_CHANNELS.startupContentSettled, async () => {
+      settled += 1;
+      return { success: true };
+    });
+    stubMethod(shell.getEntityService(), "createEntity", async () => {
+      entered.resolve();
+      await release.promise;
+      finished += 1;
+      throw new Error("Interrupted fixture default write");
+    });
+    await shell.initialize();
+    expect(settled).toBe(0);
+    try {
+      await bus.send({
+        type: SYSTEM_CHANNELS.initialSyncCompleted,
+        payload: { success: true },
+        sender: "directory-sync",
+        broadcast: true,
+      });
+      await entered.promise;
+      await shell.shutdown();
+      stopped = true;
+    } finally {
+      release.resolve();
+    }
+    await waitUntil(
+      () => finished === 2,
+      "both identity default attempts to return",
+    );
+    await Bun.sleep(0);
+    expect(lateReads).toBe(0);
+    expect(settled).toBe(0);
   });
 
   it("collects site output once and owns endpoint advertisements without a plugin", async () => {

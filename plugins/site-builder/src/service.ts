@@ -3,6 +3,7 @@ import {
   defineServicePlugin,
   defineSubscription,
   defineTool,
+  SYSTEM_CHANNELS,
   z,
   type ServicePackageDefinition,
   type StaticSiteOutput,
@@ -15,6 +16,8 @@ import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SITE_METADATA_UPDATED_CHANNEL } from "@brains/site-composition";
 import { RouteRegistry, UISlotRegistry } from "@brains/site-engine";
 import type { SlotRegistration } from "@brains/site-engine";
+import { access } from "node:fs/promises";
+import { join } from "node:path";
 import { siteBuilderConfigSchema } from "./config";
 import { navigationFor } from "./datasources/navigation-datasource";
 import { handleSiteBuild } from "./handlers/siteBuildJobHandler";
@@ -223,8 +226,27 @@ export function siteBuilderService(
 
       // Routes, slots and head scripts all arrive from the packages that own
       // what they render. The payload schema is the boundary.
-      subscriptions: ({ state }) => [
+      subscriptions: ({ config, state }) => [
         ...routeSubscriptions(state.routes),
+        defineSubscription({
+          topic: SYSTEM_CHANNELS.startupContentSettled,
+          payload: z.looseObject({}),
+          handle: async () => {
+            const outputs = [
+              ["production", config.productionOutputDir],
+              ["preview", config.previewOutputDir],
+            ] as const;
+            for (const [environment, directory] of outputs) {
+              if (!directory) continue;
+              const exists = await access(join(directory, "index.html")).then(
+                () => true,
+                () => false,
+              );
+              if (exists) state.rebuilds.requestBuild(environment);
+            }
+            return { success: true };
+          },
+        }),
         defineSubscription({
           topic: SITE_BUILDER_CHANNELS.slotRegister,
           payload: slotRegistrationPayload,

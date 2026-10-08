@@ -171,6 +171,8 @@ describe("declarative service ready", () => {
     await harness.finalizeRegistration();
 
     await plugin.ready?.();
+    expect(created).toHaveLength(0);
+    await harness.sendMessage("system:startup-content:settled", {});
     expect(created).toHaveLength(1);
     expect(created[0]).toMatchObject({
       entityType: "playbook",
@@ -179,7 +181,7 @@ describe("declarative service ready", () => {
 
     // Second dispatch: the entity exists, so nothing loads and nothing writes.
     const existing = created.length;
-    await plugin.ready?.();
+    await harness.sendMessage("system:startup-content:settled", {});
     expect(created).toHaveLength(existing);
     expect(loads).toBe(1);
   });

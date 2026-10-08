@@ -4,10 +4,16 @@ import {
   SYSTEM_CHANNELS,
   type AnySubscriptionDefinition,
 } from "@brains/sdk/services";
-import type { Logger } from "@brains/utils/logger";
+import { JOB_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import type { Logger } from "@brains/utils/logger";
 import type { DirectorySyncHost } from "../host";
-import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
+import type {
+  BatchResult,
+  DirectorySyncConfig,
+  IDirectorySync,
+  IGitSync,
+} from "../types";
 import type { GitReconciliationService } from "./git-reconciliation";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 import { copySeedContentIfNeeded } from "./seed-content";
@@ -20,121 +26,178 @@ export interface InitialSyncRecovery {
 }
 
 export interface InitialSyncOptions {
-  context: Pick<DirectorySyncHost, "dataDir" | "mirror" | "messaging">;
+  context: DirectorySyncHost;
   getDirectorySync: () => IDirectorySync;
   config: DirectorySyncConfig;
   logger: Logger;
   gitSync?: IGitSync | undefined;
-  reconciliation?:
-    | Pick<GitReconciliationService, "captureCurrent" | "saveCheckpoint">
-    | undefined;
+  reconciliation?: Pick<GitReconciliationService, "pullAndQueue"> | undefined;
   recovery?: InitialSyncRecovery | undefined;
   operationStatus?:
-    Pick<DirectorySyncOperationStatusService, "addImportResult"> | undefined;
+    | Pick<
+        DirectorySyncOperationStatusService,
+        "startRun" | "attachBatch" | "completeRun" | "failRun" | "getSnapshot"
+      >
+    | undefined;
 }
 
-/**
- * Initial-sync orchestration, declared: once every plugin has registered,
- * optionally copy seed content, import files synchronously, then announce
- * SYSTEM_CHANNELS.initialSyncCompleted.
+type InitialSyncOutcome = { success: true } | { success: false; error: string };
+const INITIAL_SYNC_SOURCE = "initial-sync";
+
+/** Queue startup work, then follow only this installed package's durable batches.
+ * Both listeners are declarations: the host installs and removes them together.
+ * Progress messages are wakeups, not evidence that a batch actually completed.
  */
-export function initialSyncSubscription(
+export function initialSyncSubscriptions(
   options: InitialSyncOptions,
-): AnySubscriptionDefinition {
+): readonly AnySubscriptionDefinition[] {
+  const { context, config, logger, gitSync } = options;
+  let started = false;
+  let pending = false;
+  const remaining = new Set<string>();
+  const errors: string[] = [];
+
+  const sendCompleted = async (outcome: InitialSyncOutcome): Promise<void> => {
+    await context.messaging.publish({
+      topic: SYSTEM_CHANNELS.initialSyncCompleted,
+      data: outcome,
+    });
+  };
+  const checkBatch = async (id: string): Promise<void> => {
+    if (!remaining.has(id)) return;
+    // A transient read failure is not a terminal import result. Keep waiting;
+    // a later progress notification can retry the authoritative scoped read.
+    const status = await context.jobs.batchStatus(id);
+    if (status && status.status !== "completed" && status.status !== "failed")
+      return;
+    if (!remaining.delete(id)) return;
+    if (!status) errors.push(`Initial sync batch ${id} was not found`);
+    else if (status.status === "failed") {
+      errors.push(
+        ...(status.errors.length
+          ? status.errors.map((error) => error.message)
+          : [`Initial sync batch ${id} failed`]),
+      );
+    }
+    if (remaining.size) return;
+    pending = false;
+    await sendCompleted(
+      errors.length
+        ? { success: false, error: errors.join("; ") }
+        : { success: true },
+    );
+  };
+
+  return [
+    defineSubscription({
+      topic: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: z.looseObject({}),
+      handle: async () => {
+        if (started) return { initialSyncPending: pending };
+        started = true;
+        pending = true;
+        let batchIds: string[];
+        try {
+          if (config.seedContent) {
+            const syncPath = config.syncPath ?? context.dataDir;
+            await copySeedContentIfNeeded(
+              syncPath,
+              logger,
+              config.seedContentPath,
+              gitSync,
+            );
+            if (config.strictSeedEntityTypes)
+              await validateSeedContentEntityTypes(syncPath, context.mirror);
+          }
+          batchIds = await queueStartupBatches(options);
+        } catch (error) {
+          pending = false;
+          logger.error("Initial sync failed", error);
+          await options.recovery?.onGitRecoveryFailed(error);
+          await sendCompleted({
+            success: false,
+            error: getErrorMessage(error),
+          });
+          return { initialSyncPending: false };
+        }
+        if (!batchIds.length) {
+          pending = false;
+          await sendCompleted({ success: true });
+        } else {
+          for (const id of batchIds) remaining.add(id);
+          // Closes the race with completion while queueing, including an old
+          // batch whose terminal notification preceded this process entirely.
+          for (const id of remaining) {
+            try {
+              await checkBatch(id);
+            } catch (error) {
+              logger.error("Unable to read initial sync batch", error);
+            }
+          }
+        }
+        return { initialSyncPending: pending };
+      },
+    }),
+    defineSubscription({
+      topic: JOB_CHANNELS.progress,
+      payload: z.looseObject({ type: z.string(), id: z.string() }),
+      handle: async ({ payload }) => {
+        if (payload.type === "batch") await checkBatch(payload.id);
+        return { success: true };
+      },
+    }),
+  ];
+}
+
+/** An unfinished earlier batch and a full repair sweep, never inline import. */
+async function queueStartupBatches(
+  options: InitialSyncOptions,
+): Promise<string[]> {
   const {
-    context: host,
+    context,
     getDirectorySync,
-    config,
-    logger,
     gitSync,
     reconciliation,
     recovery,
     operationStatus,
   } = options;
-  let initialSyncStarted = false;
-
-  const runInitialSync = async (): Promise<void> => {
-    if (initialSyncStarted) return;
-    initialSyncStarted = true;
-
-    const directorySync = getDirectorySync();
-
-    if (config.seedContent) {
-      const syncPath = config.syncPath ?? host.dataDir;
-      await copySeedContentIfNeeded(
-        syncPath,
-        logger,
-        config.seedContentPath,
+  const directorySync = getDirectorySync();
+  const unfinished = (await operationStatus?.getSnapshot())?.activeRun?.batchId;
+  const runId = await operationStatus?.startRun(
+    "startup",
+    gitSync ? "pulling" : "scanning",
+  );
+  let batch: BatchResult | null;
+  try {
+    if (gitSync && reconciliation) {
+      recovery?.onGitProgress();
+      const reconciled = await reconciliation.pullAndQueue({
         gitSync,
+        directorySync,
+        context,
+        source: INITIAL_SYNC_SOURCE,
+        full: true,
+        ...(recovery ? { onGitProgress: recovery.onGitProgress } : {}),
+      });
+      batch = reconciled.batch;
+    } else {
+      batch = await directorySync.queueSyncBatch(context, INITIAL_SYNC_SOURCE);
+    }
+  } catch (error) {
+    if (runId)
+      await operationStatus?.failRun(
+        runId,
+        getErrorMessage(error, "Initial sync failed"),
+        gitSync ? "git" : "source",
       );
-      if (config.strictSeedEntityTypes) {
-        await validateSeedContentEntityTypes(syncPath, host.mirror);
-      }
-    }
-
-    try {
-      // Pull remote changes before importing
-      if (gitSync) {
-        logger.debug("Git enabled — pulling before import");
-        recovery?.onGitProgress();
-        const pullResult = await gitSync.pull(
-          undefined,
-          recovery?.onGitProgress,
-        );
-        await directorySync.recordPendingPullDeletes(
-          pullResult.deletedFiles ?? [],
-        );
-        if (pullResult.files.length > 0) {
-          logger.info("Pulled changes from remote", {
-            filesChanged: pullResult.files.length,
-          });
-        }
-      }
-
-      logger.debug("Starting initial sync");
-      const result = await directorySync.sync();
-      logger.debug("Initial sync completed", {
-        imported: result.import.imported,
-        failed: result.import.failed,
-        duration: result.duration,
-      });
-      await operationStatus?.addImportResult(result.import);
-      if (gitSync && reconciliation) {
-        const gitResult = await gitSync.commitAndPush();
-        if (gitResult.pushed && !gitResult.checkpoint) {
-          throw new Error(
-            "Initial directory sync push did not return a confirmed checkpoint",
-          );
-        }
-        if (gitResult.checkpoint) {
-          await reconciliation.saveCheckpoint(gitResult.checkpoint);
-        } else {
-          await reconciliation.captureCurrent(gitSync);
-        }
-      }
-      await recovery?.onGitRecoverySucceeded();
-
-      await host.messaging.publish({
-        topic: SYSTEM_CHANNELS.initialSyncCompleted,
-        data: { success: true },
-      });
-    } catch (error) {
-      logger.error("Initial sync failed", error);
-      await recovery?.onGitRecoveryFailed(error);
-      await host.messaging.publish({
-        topic: SYSTEM_CHANNELS.initialSyncCompleted,
-        data: { success: false, error: getErrorMessage(error) },
-      });
-    }
-  };
-
-  return defineSubscription({
-    topic: SYSTEM_CHANNELS.pluginsRegistered,
-    payload: z.unknown(),
-    handle: async () => {
-      logger.debug("Plugins registered, starting initial sync");
-      await runInitialSync();
-      return {};
-    },
-  });
+    throw error;
+  }
+  await recovery?.onGitRecoverySucceeded();
+  if (runId) {
+    if (batch) await operationStatus?.attachBatch(runId, batch.batchId);
+    else await operationStatus?.completeRun(runId, "No files to import");
+  }
+  return [unfinished, batch?.batchId].filter(
+    (id): id is string => id !== undefined,
+  );
 }

@@ -30,6 +30,9 @@ export class SiteBuilder implements ISiteBuilder {
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private outputLifecycle: SiteBuildOutputLifecycle | undefined;
   private readonly activeBuilds = new Map<string, ActiveSiteBuild>();
+  // Environments have separate outputs, but share mutable route registrations.
+  // Serialize their pipelines so one cannot clear/repopulate another's routes.
+  private buildTail: Promise<void> = Promise.resolve();
 
   /**
    * Set the default static site builder factory for all instances
@@ -94,14 +97,22 @@ export class SiteBuilder implements ISiteBuilder {
     const signal = options.signal
       ? AbortSignal.any([controller.signal, options.signal])
       : controller.signal;
-    const promise = runSiteBuild({
-      buildOptions: options,
-      progress,
-      pipelineContext: this.pipelineContext,
-      staticSiteBuilderFactory: this.staticSiteBuilderFactory,
-      ...(this.outputLifecycle && { outputLifecycle: this.outputLifecycle }),
-      signal,
-    });
+    const promise = this.buildTail.then(() =>
+      runSiteBuild({
+        buildOptions: options,
+        progress,
+        pipelineContext: this.pipelineContext,
+        staticSiteBuilderFactory: this.staticSiteBuilderFactory,
+        ...(this.outputLifecycle && { outputLifecycle: this.outputLifecycle }),
+        signal,
+      }),
+    );
+    // The caller still observes failure; a rejected build must not poison the
+    // queue or prevent later builds and shutdown from settling.
+    this.buildTail = promise.then(
+      () => undefined,
+      () => undefined,
+    );
     const activeBuild = { controller, promise };
     this.activeBuilds.set(environment, activeBuild);
 

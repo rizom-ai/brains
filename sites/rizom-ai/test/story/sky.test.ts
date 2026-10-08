@@ -188,21 +188,45 @@ describe("the sky on the scroll", () => {
       ""
     ).replace(/\s+/g, " ");
 
-  test("wheels a few degrees over the page, with the dust and the boundary at other rates", () => {
+  test("wheels ten degrees over the page, the dust and the boundary turning against it, the names staying upright", () => {
     expect(inScroll(".net-sky")).toMatch(
       /animation: net-wheel linear both; animation-timeline: scroll\(root\);/,
     );
     expect(scroll).toMatch(
-      /@keyframes net-wheel \{[^}]*rotate\(-4deg\)[^}]*\}[^}]*rotate\(4deg\)/,
+      /@keyframes net-wheel \{[^}]*rotate\(-10deg\)[^}]*\}[^}]*rotate\(10deg\)/,
     );
     expect(scroll).toMatch(
-      /\.net-dust,\n\s*\.net-boundary \{[^}]*animation: net-wheel-slow linear both;[^}]*animation-timeline: scroll\(root\);/,
+      /\.net-dust,\n\s*\.net-boundary \{[^}]*animation: net-wheel-against linear both;[^}]*animation-timeline: scroll\(root\);/,
+    );
+    expect(scroll).toMatch(
+      /@keyframes net-wheel-against \{[^}]*rotate\(4deg\)[^}]*\}[^}]*rotate\(-4deg\)/,
+    );
+    expect(inScroll(".net-sky .net-name > span")).toMatch(
+      /animation: net-upright linear both; animation-timeline: scroll\(root\);/,
+    );
+    expect(scroll).toMatch(
+      /@keyframes net-upright \{[^}]*rotate: 10deg[^}]*\}[^}]*rotate: -10deg/,
     );
   });
 
-  test("sends each brain's bead over its own slice of the scroll, its ripple and rim swelling as it arrives", () => {
+  test("keeps the names upright under the time-based drift as well", () => {
+    expect(rule(".net-name > span")).toMatch(
+      /display: inline-block;[^}]*animation: net-drift-back 140s ease-in-out infinite alternate/,
+    );
+    expect(frames("net-drift-back")).toMatch(
+      /rotate: 1\.1deg[^}]*\}[^}]*rotate: -1\.1deg/,
+    );
+  });
+
+  test("sends each brain's bead over its own slice of the scroll: the tendril lights as it passes, the ripple, rim and core flare as it arrives", () => {
     expect(inScroll(".net-bead")).toMatch(
       /animation: net-travel-scroll linear both; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10%\) calc\(var\(--net-slot, 0\) \* 10% \+ 20%\);/,
+    );
+    expect(scroll).toMatch(
+      /@keyframes net-travel-scroll \{[^}]*offset-distance: 0%/,
+    );
+    expect(inScroll(".net-thread")).toMatch(
+      /animation: net-thread-scroll linear; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10%\) calc\(var\(--net-slot, 0\) \* 10% \+ 24%\);/,
     );
     expect(inScroll(".net-ripple")).toMatch(
       /animation: net-ripple-scroll linear both; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10% \+ 14%\) calc\(var\(--net-slot, 0\) \* 10% \+ 26%\);/,
@@ -210,9 +234,10 @@ describe("the sky on the scroll", () => {
     expect(inScroll(".net-rim")).toMatch(
       /animation: net-swell-scroll linear both; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10% \+ 14%\) calc\(var\(--net-slot, 0\) \* 10% \+ 30%\);/,
     );
-    expect(scroll).toMatch(
-      /@keyframes net-travel-scroll \{[^}]*offset-distance: 0%/,
+    expect(inScroll(".net-mark i")).toMatch(
+      /animation: net-core-scroll linear; animation-timeline: scroll\(root\); animation-range: calc\(var\(--net-slot, 0\) \* 10% \+ 14%\) calc\(var\(--net-slot, 0\) \* 10% \+ 28%\);/,
     );
+    expect(rule(".net-bead")).toMatch(/r: 1\.1px/);
   });
 
   test("no longer pauses under the leads or an open Asked-before question: it moves only when the reader does", () => {
@@ -231,5 +256,35 @@ describe("the sky on the scroll", () => {
     expect(css.slice(lifted)).toMatch(
       /\.story\.is-asked \.net-sky,\n\s*\.story\.is-asked \.net-reply:not\(\.is-lit\) \.net-bead,\n\s*\.story\.is-asked \.net-reply:not\(\.is-lit\) \.net-ripple,\n\s*\.story\.is-asked \.net-reply:not\(\.is-lit\) \.net-rim \{\n\s*animation-play-state: running;/,
     );
+  });
+});
+
+describe("the sky in daylight", () => {
+  // On paper the sky is lights, not night: no grain, no boundary, no ember
+  // rims; the wash and the corona faint; the lantern and the beads in brass.
+  const light = (selector: string): string =>
+    rule(`[data-theme="light"] ${selector}`);
+
+  test("drops the substrate that only reads against the dark", () => {
+    expect(
+      rule(
+        '[data-theme="light"] .net-grain,\n[data-theme="light"] .net-boundary,\n[data-theme="light"] .net-rim',
+      ),
+    ).toMatch(/display: none/);
+    expect(css).not.toMatch(
+      /\[data-theme="light"\] \.net-grain \{[^}]*mix-blend-mode: multiply/,
+    );
+    expect(light(".net-wash")).toMatch(/opacity: 0\.5/);
+    expect(light(".net-corona")).toMatch(/opacity: 0\.45/);
+    expect(light(".net-halo")).toMatch(
+      /filter: saturate\(0\.8\) opacity\(0\.55\)/,
+    );
+  });
+
+  test("lights the lantern, the beads and the tendrils in brass on paper", () => {
+    expect(light(".net-lantern")).toMatch(/fill: var\(--color-accent\)/);
+    expect(light(".net-bead")).toMatch(/fill: var\(--color-accent\)/);
+    expect(light(".net-trunk")).toMatch(/stroke-opacity: 0\.4/);
+    expect(light(".net-thread")).toMatch(/stroke-opacity: 0\.3/);
   });
 });

@@ -262,7 +262,7 @@ export const directorySyncWorkspace: StudioWorkspaceDefinition<
         empty: "No directory sync runs have completed yet.",
         items: data.recentRuns.map((run) => ({
           id: run.id,
-          title: `${{ manual: "Manual sync", periodic: "Periodic sync", watcher: "Watch sync", save: "Save sync" }[run.source]} · ${run.outcome}`,
+          title: `${{ manual: "Manual sync", periodic: "Periodic sync", watcher: "Watch sync", save: "Save sync", startup: "Startup sync" }[run.source]} · ${run.outcome}`,
           description: run.summary,
           tone:
             run.outcome === "succeeded"

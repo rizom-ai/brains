@@ -17,7 +17,8 @@ const runSourceSchema: z.ZodEnum<{
   periodic: "periodic";
   watcher: "watcher";
   save: "save";
-}> = z.enum(["manual", "periodic", "watcher", "save"]);
+  startup: "startup";
+}> = z.enum(["manual", "periodic", "watcher", "save", "startup"]);
 export type DirectorySyncRunSource = z.output<typeof runSourceSchema>;
 
 const runStateSchema: z.ZodEnum<{

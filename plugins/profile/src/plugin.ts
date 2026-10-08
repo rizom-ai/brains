@@ -68,14 +68,14 @@ const seedStarterIdentityJob = defineJob({
 });
 
 /**
- * Both signals the starter flow waits on.
+ * The starter flow waits for imported content, shell defaults and readiness.
  *
- * The identity is derived from imported content, so it must not run before
- * the initial sync has landed; and it writes through the shell, so it must
- * not run before every plugin is up. Whichever arrives second enqueues.
+ * It derives identity from the import, must not race the shell's defaults,
+ * and writes only once every plugin is up. The last gate to arrive enqueues.
  */
 interface StarterGate {
   initialSyncSucceeded: boolean;
+  startupContentSettled: boolean;
   registrationComplete: boolean;
   enqueued: boolean;
 }
@@ -89,6 +89,7 @@ const profilePackage: ServicePackageDefinition<typeof profileConfigSchema> =
       setup: (): { gate: StarterGate } => ({
         gate: {
           initialSyncSucceeded: false,
+          startupContentSettled: false,
           registrationComplete: false,
           enqueued: false,
         },
@@ -189,7 +190,27 @@ const profilePackage: ServicePackageDefinition<typeof profileConfigSchema> =
                 handle: async ({ payload }) => {
                   if (payload.success !== true) return { success: true };
                   state.gate.initialSyncSucceeded = true;
-                  if (state.gate.registrationComplete && !state.gate.enqueued) {
+                  if (
+                    state.gate.registrationComplete &&
+                    state.gate.startupContentSettled &&
+                    !state.gate.enqueued
+                  ) {
+                    state.gate.enqueued = true;
+                    await jobs.enqueue(seedStarterIdentityJob, {});
+                  }
+                  return { success: true };
+                },
+              }),
+              defineSubscription({
+                topic: SYSTEM_CHANNELS.startupContentSettled,
+                payload: z.looseObject({}),
+                handle: async () => {
+                  state.gate.startupContentSettled = true;
+                  if (
+                    state.gate.initialSyncSucceeded &&
+                    state.gate.registrationComplete &&
+                    !state.gate.enqueued
+                  ) {
                     state.gate.enqueued = true;
                     await jobs.enqueue(seedStarterIdentityJob, {});
                   }
@@ -202,7 +223,11 @@ const profilePackage: ServicePackageDefinition<typeof profileConfigSchema> =
       ready: async ({ config, state, jobs }) => {
         if (!config.starterIdentity.enabled) return;
         state.gate.registrationComplete = true;
-        if (state.gate.initialSyncSucceeded && !state.gate.enqueued) {
+        if (
+          state.gate.initialSyncSucceeded &&
+          state.gate.startupContentSettled &&
+          !state.gate.enqueued
+        ) {
           state.gate.enqueued = true;
           await jobs.enqueue(seedStarterIdentityJob, {});
         }

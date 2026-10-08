@@ -950,10 +950,11 @@
   animation: net-ripple 46.8s linear var(--net-turn, 0s) infinite;
 }
 .net-bead {
+  r: 1.1px;
   fill: var(--net-flame);
   opacity: 0;
-  filter: drop-shadow(0 0 1.2px var(--color-accent-bright))
-    drop-shadow(0 0 3px var(--net-ember));
+  filter: drop-shadow(0 0 1.6px var(--color-accent-bright))
+    drop-shadow(0 0 4px var(--net-ember));
   offset-rotate: 0deg;
   animation: net-travel 46.8s linear var(--net-turn, 0s) infinite;
 }
@@ -985,9 +986,36 @@
   mix-blend-mode: screen;
   pointer-events: none;
 }
-[data-theme="light"] .net-grain {
-  mix-blend-mode: multiply;
-  opacity: 0.08;
+/* Daylight: on paper the sky is lights, not night. The grain, the boundary
+   and the ember rims only read against the dark; the wash and the corona go
+   faint; the lantern and the beads are brass; the tendrils hold a little more. */
+[data-theme="light"] .net-grain,
+[data-theme="light"] .net-boundary,
+[data-theme="light"] .net-rim {
+  display: none;
+}
+[data-theme="light"] .net-wash {
+  opacity: 0.5;
+}
+[data-theme="light"] .net-corona {
+  opacity: 0.45;
+}
+[data-theme="light"] .net-halo {
+  filter: saturate(0.8) opacity(0.55);
+}
+[data-theme="light"] .net-lantern {
+  fill: var(--color-accent);
+  filter: drop-shadow(0 0 2px var(--color-accent-bright));
+}
+[data-theme="light"] .net-bead {
+  fill: var(--color-accent);
+  filter: drop-shadow(0 0 2px var(--color-accent-bright));
+}
+[data-theme="light"] .net-trunk {
+  stroke-opacity: 0.4;
+}
+[data-theme="light"] .net-thread {
+  stroke-opacity: 0.3;
 }
 .net-marks {
   list-style: none;
@@ -1239,7 +1267,7 @@
   .net-dust,
   .net-boundary {
     transform-origin: 50px 50px;
-    animation: net-wheel-slow linear both;
+    animation: net-wheel-against linear both;
     animation-timeline: scroll(root);
   }
   .net-bead {
@@ -1247,6 +1275,35 @@
     animation-timeline: scroll(root);
     animation-range: calc(var(--net-slot, 0) * 10%)
       calc(var(--net-slot, 0) * 10% + 20%);
+  }
+  /* After the base rule in specificity, since it comes before it in the file. */
+  .net-sky .net-name > span {
+    animation: net-upright linear both;
+    animation-timeline: scroll(root);
+  }
+  /* The tendril lights as the bead passes and the core flares as it arrives;
+     no fill, so a lit, hot or hovered brain keeps its own light. */
+  .net-thread {
+    animation: net-thread-scroll linear;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10%)
+      calc(var(--net-slot, 0) * 10% + 24%);
+  }
+  .net-mark i {
+    animation: net-core-scroll linear;
+    animation-timeline: scroll(root);
+    animation-range: calc(var(--net-slot, 0) * 10% + 14%)
+      calc(var(--net-slot, 0) * 10% + 28%);
+  }
+  .net-layer .net-thread.is-lit,
+  .net-layer .net-thread.is-hot,
+  .net-layer.has-replies .net-thread:not(.is-lit),
+  .net-layer .net-mark.is-lit i,
+  .net-layer .net-mark.is-hot i,
+  .net-layer.has-replies .net-mark:not(.is-lit) i,
+  .net-mark a:hover i,
+  .net-mark a:focus-visible i {
+    animation: none;
   }
   .net-ripple {
     animation: net-ripple-scroll linear both;
@@ -1270,18 +1327,52 @@
   }
   @keyframes net-wheel {
     from {
-      transform: rotate(-4deg);
+      transform: rotate(-10deg);
     }
     to {
-      transform: rotate(4deg);
+      transform: rotate(10deg);
     }
   }
-  @keyframes net-wheel-slow {
+  @keyframes net-wheel-against {
     from {
-      transform: rotate(-1.5deg);
+      transform: rotate(4deg);
     }
     to {
-      transform: rotate(1.5deg);
+      transform: rotate(-4deg);
+    }
+  }
+  @keyframes net-upright {
+    from {
+      rotate: 10deg;
+    }
+    to {
+      rotate: -10deg;
+    }
+  }
+  @keyframes net-thread-scroll {
+    0%,
+    100% {
+      stroke: var(--color-accent);
+      stroke-opacity: 0.2;
+      stroke-width: 0.28;
+    }
+    50% {
+      stroke: var(--color-accent-bright);
+      stroke-opacity: 0.95;
+      stroke-width: 0.5;
+    }
+  }
+  @keyframes net-core-scroll {
+    0%,
+    100% {
+      box-shadow: 0 0 0 2px var(--color-bg);
+      transform: none;
+    }
+    45% {
+      box-shadow:
+        0 0 0 2px var(--color-bg),
+        0 0 14px 5px var(--color-accent);
+      transform: scale(1.4);
     }
   }
   @keyframes net-travel-scroll {
@@ -1315,7 +1406,7 @@
       transform: scale(1);
     }
     40% {
-      transform: scale(1.9);
+      transform: scale(2.4);
     }
     100% {
       transform: scale(1);
@@ -1401,6 +1492,19 @@
 }
 .net-name--end {
   transform: translate(calc(-100% + 0.5rem), 0.9rem);
+}
+/* The name's text turns back against the sky's drift, so it stays upright. */
+.net-name > span {
+  display: inline-block;
+  animation: net-drift-back 140s ease-in-out infinite alternate;
+}
+@keyframes net-drift-back {
+  from {
+    rotate: 1.1deg;
+  }
+  to {
+    rotate: -1.1deg;
+  }
 }
 
 /* The Ask box, docked under the opening. */

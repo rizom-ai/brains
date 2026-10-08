@@ -6,6 +6,8 @@ import {
 } from "@brains/contracts";
 import {
   defineServicePlugin,
+  defineSubscription,
+  SYSTEM_CHANNELS,
   z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
@@ -93,17 +95,26 @@ const onboardingPackage: ServicePackageDefinition<
           }))
         : [],
 
-    // The lifecycle starters, announced once every plugin is registered.
-    ready: async ({ config, messaging }) => {
-      if (!config.enabled) return;
-      for (const playbook of bundledPlaybooks) {
-        if (!playbook.starter) continue;
-        await messaging.request({
-          type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-          payload: playbook.starter,
-        });
-      }
-    },
+    // Announce only after imported content and host-owned defaults settle.
+    subscriptions: ({ config }) =>
+      config.enabled
+        ? [
+            defineSubscription({
+              topic: SYSTEM_CHANNELS.startupContentSettled,
+              payload: z.looseObject({}),
+              handle: async ({ messaging }) => {
+                for (const playbook of bundledPlaybooks) {
+                  if (!playbook.starter) continue;
+                  await messaging.request({
+                    type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+                    payload: playbook.starter,
+                  });
+                }
+                return { success: true };
+              },
+            }),
+          ]
+        : [],
   },
 );
 

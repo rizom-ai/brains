@@ -1381,8 +1381,9 @@ interface ServiceDefinitionBehavior<
    * holds: a seeder *declares* what should exist and the runtime performs
    * the write, once, only when nothing with that id exists at any
    * visibility. The markdown loads lazily, so a seed that is already
-   * satisfied costs no file read. Dispatched before `ready`, ordered behind
-   * `dependsOn`. Named consumer: @brains/onboarding, which seeds playbooks.
+   * satisfied costs no file read. Dispatched when startup content settles,
+   * after any queued import, with types registered through `dependsOn`.
+   * Named consumer: @brains/onboarding, which seeds playbooks.
    */
   readonly seeds?:
     | ((context: {
@@ -1436,10 +1437,10 @@ interface ServiceDefinitionBehavior<
    * Work that runs once, after every plugin has registered.
    *
    * `setup` runs during this package's own registration, when the types it
-   * wants to read may not exist yet. A seeder asks "is the playbook already
-   * there?" and that question has no answer until the playbook package has
-   * registered its type. The runtime dispatches this after registration
-   * completes, ordered behind `dependsOn`. Named consumer: @brains/onboarding.
+   * wants to read may not exist yet. The runtime dispatches this after
+   * registration completes, ordered behind `dependsOn`, but a queued startup
+   * import may still be pending. Content-dependent work also waits for
+   * startupContentSettled. Named consumer: @brains/profile.
    */
   readonly ready?:
     | ((context: {

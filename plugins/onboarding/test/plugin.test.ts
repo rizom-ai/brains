@@ -2,11 +2,23 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import playbooksPackage from "@brains/playbooks";
 import {
+  SYSTEM_CHANNELS,
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { onboardingPlugin } from "./helpers/install";
+
+async function settleStartupContent(
+  harness: ReturnType<typeof createPluginHarness>,
+): Promise<void> {
+  await harness.sendMessage(
+    SYSTEM_CHANNELS.startupContentSettled,
+    {},
+    "shell",
+    true,
+  );
+}
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-onboarding-");
@@ -34,6 +46,7 @@ describe("onboarding service", () => {
     const plugin = onboardingPlugin({});
     await harness.installPlugin(plugin);
     await plugin.ready?.();
+    await settleStartupContent(harness);
 
     const setup = await harness.getEntityService().getEntity({
       entityType: "playbook",
@@ -64,6 +77,14 @@ describe("onboarding service", () => {
     await plugin.ready?.();
 
     const entityService = harness.getEntityService();
+    expect(
+      await entityService.getEntity({
+        entityType: "playbook",
+        id: "onboarding",
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+    await settleStartupContent(harness);
     const setup = await entityService.getEntity({
       entityType: "playbook",
       id: "onboarding",
@@ -102,6 +123,7 @@ describe("onboarding service", () => {
     const plugin = onboardingPlugin({ enabled: true });
     await harness.installPlugin(plugin);
     await plugin.ready?.();
+    await settleStartupContent(harness);
 
     const setup = await harness.getEntityService().getEntity({
       entityType: "playbook",
@@ -118,6 +140,7 @@ describe("onboarding service", () => {
     const plugin = onboardingPlugin({ enabled: true });
     await harness.installPlugin(plugin);
     await plugin.ready?.();
+    await settleStartupContent(harness);
 
     const response = await harness.sendMessage<
       {

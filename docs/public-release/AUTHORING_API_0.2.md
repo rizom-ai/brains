@@ -301,6 +301,8 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 
 ## `@rizom/brain/services`
 
+Service `seeds` are host-owned defaults, not general-purpose foreign write authority. They run on `SYSTEM_CHANNELS.startupContentSettled`, after any queued startup import, rather than in `ready`. Existing entities at any visibility are preserved. A service's `ready` hook may run while startup import is pending; subscribe to the settled-content signal for work that needs imported content and shell defaults. Workers do not seed defaults.
+
 The MCP server defaults to **basic mode**, whose built-in chat and confirm tools use the protocol names `mcp_chat` and `mcp_confirm`. Basic-mode clients ask `mcp_chat` to search or retrieve content through the brain. A tool's direct exposure is a separate setting: ordinary tools default to debug-only unless explicitly opted into basic exposure; being read-only does not opt them in. Internal agent availability remains separate. Enabling debug mode requires Admin access, and individual tool permissions still apply.
 
 Definitions and schema vocabulary:

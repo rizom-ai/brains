@@ -1,5 +1,17 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- [#540](https://github.com/rizom-ai/brains/pull/540) [`574b94b`](https://github.com/rizom-ai/brains/commit/574b94b1fa4c63d10eb4363fae3d219407a3330f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky in daylight: on paper it is lights, not night. The grain, the purple boundary and the ember rims only read against the dark and go; the wash and the corona go faint; the lantern and the beads are brass; the tendrils hold a little more.
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#539](https://github.com/rizom-ai/brains/pull/539) [`860ba1b`](https://github.com/rizom-ai/brains/commit/860ba1b7b769a1619daecd3efc0965cc1ba0f69b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's /ask sky moves more with the scroll and keeps its names level: the sky wheels ten degrees either way while the dust and the boundary turn against it, each name turns back to stay upright, and a brain's bead is bigger and brighter, lighting its tendril as it passes and flashing the core as it arrives.
+
 ## 0.2.0-alpha.275
 
 ### Patch Changes

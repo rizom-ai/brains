@@ -206,7 +206,12 @@ export {
   type InboxSourceMetadata,
 } from "./inbox-registry";
 
-export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
+export {
+  SYSTEM_CHANNELS,
+  pluginsRegisteredAnswerSchema,
+  type PluginsRegisteredAnswer,
+  type SystemChannelName,
+} from "./system-channels";
 export { defineChannel, type Channel } from "./utils/channels";
 export {
   createAdminListTool,

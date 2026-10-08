@@ -50,7 +50,7 @@ import {
   InlineImageConversionJobHandler,
 } from "./handlers";
 import { entityActivitySubscriptions, setupFileWatcher } from "./lib/auto-sync";
-import { initialSyncSubscription } from "./lib/initial-sync";
+import { initialSyncSubscriptions } from "./lib/initial-sync";
 import { validateSeedContentEntityTypes } from "./lib/file-discovery";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { DurableEntityExportDispatcher } from "./lib/durable-entity-export-dispatcher";
@@ -667,7 +667,7 @@ async function bringUp(
 /** The recovery an interrupted pull is told about while initial sync runs. */
 function initialSyncRecovery(
   state: DirectorySyncState,
-): Parameters<typeof initialSyncSubscription>[0]["recovery"] {
+): Parameters<typeof initialSyncSubscriptions>[0]["recovery"] {
   const interruptedPull = state.interruptedPull;
   if (!interruptedPull || !state.gitSync) return undefined;
   const { operationStatus } = state;
@@ -889,20 +889,18 @@ export function directorySyncService(
             config.entityTypes,
           ),
           ...(config.initialSync
-            ? [
-                initialSyncSubscription({
-                  context: host,
-                  getDirectorySync: () => state.requireDirectorySync(),
-                  config: config,
-                  logger: logger,
-                  gitSync: state.gitSync,
-                  reconciliation: state.gitSync
-                    ? state.gitReconciliation
-                    : undefined,
-                  recovery: initialSyncRecovery(state),
-                  operationStatus: operationStatus,
-                }),
-              ]
+            ? initialSyncSubscriptions({
+                context: host,
+                getDirectorySync: () => state.requireDirectorySync(),
+                config: config,
+                logger: logger,
+                gitSync: state.gitSync,
+                reconciliation: state.gitSync
+                  ? state.gitReconciliation
+                  : undefined,
+                recovery: initialSyncRecovery(state),
+                operationStatus: operationStatus,
+              })
             : []),
         ];
       },

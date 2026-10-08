@@ -12,6 +12,8 @@ import {
 } from "@brains/core";
 import { importResultSchema } from "@brains/directory-sync";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { deferred } from "@brains/utils/deferred";
 import { OperationContext } from "@brains/operation-context";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -232,10 +234,19 @@ describe("projection burst causal evidence", () => {
         },
       );
       const runningShell = shell;
+      // The startup sync is queued; its defaults follow once it settles.
+      const startupContent = deferred();
+      runningShell
+        .getMessageBus()
+        .subscribe(SYSTEM_CHANNELS.startupContentSettled, async () => {
+          startupContent.resolve();
+          return { success: true };
+        });
       await runningShell.initialize();
       const queue = runningShell.getJobQueueService();
 
       // Settle any startup ingress before collecting phase evidence.
+      await startupContent.promise;
       await clock.advanceBy(TOPIC_BATCH_DELAY_MS + 1);
       await queue.waitForIdle({ quietMs: QUIET_MS, timeoutMs: TIMEOUT_MS });
       const baseline = tracker.snapshot();

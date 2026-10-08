@@ -524,10 +524,9 @@ class DeclarativeServicePlugin<
     return this.routePermissions;
   }
 
-  protected override async onReady(
+  private async seedStartupContent(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (context.executionOnly) return;
     const seeds =
       this.definition.seeds?.({
         config: this.config,
@@ -551,7 +550,12 @@ class DeclarativeServicePlugin<
         },
       });
     }
+  }
 
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (context.executionOnly) return;
     // Validate the complete detached batch before publishing either projection.
     // Native registration supplies ownership and shares the plugin's resource lifecycle.
     const interactions = serviceInteractionsSchema.parse(
@@ -816,6 +820,18 @@ class DeclarativeServicePlugin<
       : emptyPluginState<TState>();
 
     this.routePermissions = context.permissions;
+
+    // Defaults must not race a queued content import. The host owns seeding;
+    // declaring a seed grants no general-purpose foreign entity write access.
+    if (!context.executionOnly && this.definition.seeds) {
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.startupContentSettled,
+        async () => {
+          await this.seedStartupContent(context);
+          return { success: true };
+        },
+      );
+    }
 
     const subscriptions =
       this.definition.subscriptions?.({

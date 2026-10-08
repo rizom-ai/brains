@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { deferred } from "@brains/utils/deferred";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
@@ -24,6 +25,108 @@ describe("SiteBuilder cancellation", () => {
 
   afterEach(async () => {
     await fs.rm(testDir, { recursive: true, force: true });
+  });
+
+  it("serializes environments sharing a route registry without superseding either", async () => {
+    let active = 0;
+    let maximum = 0;
+    const factory: StaticSiteBuilderFactory = (options) => ({
+      clean: async () => undefined,
+      build: async (): Promise<void> => {
+        active += 1;
+        maximum = Math.max(maximum, active);
+        try {
+          await Bun.sleep(30);
+          await fs.mkdir(options.outputDir, { recursive: true });
+          await fs.writeFile(join(options.outputDir, "index.html"), "complete");
+        } finally {
+          active -= 1;
+        }
+      },
+    });
+    const pipeline = createPipelineContext();
+    const builder = SiteBuilder.createFresh(
+      pipeline.logger,
+      pipeline.services,
+      pipeline.routeRegistry,
+      pipeline.profileService,
+      factory,
+      undefined,
+      createTestSiteBuildOutputLifecycle(),
+    );
+    const results = await Promise.all(
+      (["production", "preview"] as const).map((environment) =>
+        builder.build({
+          environment,
+          outputDir: join(testDir, environment),
+          sharedImagesDir: join(testDir, "images"),
+          enableContentGeneration: false,
+          cleanBeforeBuild: true,
+          siteConfig: {
+            title: "Concurrent startup",
+            description: "Shared route registry",
+          },
+          siteUrl: "https://startup.example",
+          layouts: { default: TestLayout },
+        }),
+      ),
+    );
+    expect(results.map((result) => result.success)).toEqual([true, true]);
+    expect(maximum).toBe(1);
+  });
+
+  it("cancels and drains queued environments without starting their renderer", async () => {
+    const started = deferred();
+    let factoryCalls = 0;
+    const factory: StaticSiteBuilderFactory = () => {
+      factoryCalls += 1;
+      return {
+        clean: async () => undefined,
+        build: async (_context, _progress, signal): Promise<void> => {
+          started.resolve();
+          await new Promise<never>((_resolve, reject) => {
+            if (signal.aborted) reject(signal.reason);
+            else
+              signal.addEventListener("abort", () => reject(signal.reason), {
+                once: true,
+              });
+          });
+        },
+      };
+    };
+    const pipeline = createPipelineContext();
+    const builder = SiteBuilder.createFresh(
+      pipeline.logger,
+      pipeline.services,
+      pipeline.routeRegistry,
+      pipeline.profileService,
+      factory,
+      undefined,
+      createTestSiteBuildOutputLifecycle(),
+    );
+    const options = {
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      siteConfig: { title: "Shutdown", description: "Queued environment" },
+      siteUrl: "https://startup.example",
+      layouts: { default: TestLayout },
+    };
+    const first = builder.build({
+      ...options,
+      environment: "production",
+      outputDir: join(testDir, "production"),
+    });
+    await started.promise;
+    const second = builder.build({
+      ...options,
+      environment: "preview",
+      outputDir: join(testDir, "preview"),
+    });
+    await builder.cancelActiveBuilds();
+    expect(
+      (await Promise.all([first, second])).map((result) => result.cancelled),
+    ).toEqual([true, true]);
+    expect(factoryCalls).toBe(1);
   });
 
   it("cancels and cleans a superseded build before publishing the newer build", async () => {

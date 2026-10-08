@@ -1,5 +1,50 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- [#544](https://github.com/rizom-ai/brains/pull/544) [`fff4599`](https://github.com/rizom-ai/brains/commit/fff4599817d39017b5327224fc01617d3a604894) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder's rebuild at start waits until the brain's startup content has settled, so a brain whose startup import is still queued no longer renders its site before that content is in.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/image@0.2.0-alpha.491
+  - @brains/site-composition@0.2.0-alpha.491
+  - @brains/site-engine@0.2.0-alpha.491
+  - @brains/ui-library@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/plugins@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- [#543](https://github.com/rizom-ai/brains/pull/543) [`fd206b4`](https://github.com/rizom-ai/brains/commit/fd206b451602eb7ff06768b625509b3dc78f7370) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain builds its site again when it starts: every environment that already has an output (production, and preview where configured) is requested once the site builder is ready, so a restart or an upgrade that brings new renderer code reaches the served site without an operator asking. An environment never built stays untouched; a build whose inputs and renderer are unchanged still skips rendering.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/image@0.2.0-alpha.490
+  - @brains/site-composition@0.2.0-alpha.490
+  - @brains/site-engine@0.2.0-alpha.490
+  - @brains/ui-library@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/plugins@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- [#542](https://github.com/rizom-ai/brains/pull/542) [`3f684eb`](https://github.com/rizom-ai/brains/commit/3f684ebfcc28d24e09dcfa39eef0069306a8dd46) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every brain's site gets an icon: a build that brings no `/favicon.svg` or `/favicon.png` of its own, in its static or public assets, gets the lantern, one light on night, and links it. A site's own icon is left alone.
+
+- Updated dependencies [[`3f684eb`](https://github.com/rizom-ai/brains/commit/3f684ebfcc28d24e09dcfa39eef0069306a8dd46)]:
+  - @brains/site-engine@0.2.0-alpha.489
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/image@0.2.0-alpha.489
+  - @brains/site-composition@0.2.0-alpha.489
+  - @brains/ui-library@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/plugins@0.2.0-alpha.489
+
 ## 0.2.0-alpha.488
 
 ### Patch Changes

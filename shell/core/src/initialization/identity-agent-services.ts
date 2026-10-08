@@ -188,17 +188,16 @@ export function initializeIdentityAndAgentServices(
     config.identity,
   );
 
-  if (!executionOnly) {
-    disposables.push(
-      ...subscribeToEntityCacheInvalidation(
-        messageBus,
-        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-        () => identityService.refreshCache(),
-        logger,
-      ),
-    );
-  }
+  // Both roles follow the stored character: the worker imports it at startup.
+  disposables.push(
+    ...subscribeToEntityCacheInvalidation(
+      messageBus,
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      () => identityService.refreshCache(),
+      logger,
+    ),
+  );
 
   const profileService = AnchorProfileService.createFresh(
     entityService,
@@ -307,17 +306,17 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
-  if (!executionOnly) {
-    disposables.push(
-      ...subscribeToEntityCacheInvalidation(
-        messageBus,
-        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-        () => profileService.refreshCache(),
-        logger,
-      ),
-    );
+  disposables.push(
+    ...subscribeToEntityCacheInvalidation(
+      messageBus,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+      () => profileService.refreshCache(),
+      logger,
+    ),
+  );
 
+  if (!executionOnly) {
     // Invalidate cached agent when identity or profile changes.
     // Next conversation will rebuild with fresh data.
     for (const entityType of [

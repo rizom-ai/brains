@@ -1,5 +1,41 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/site-composition@0.2.0-alpha.491
+  - @brains/site-engine@0.2.0-alpha.491
+  - @brains/ui-library@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/plugins@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/site-composition@0.2.0-alpha.490
+  - @brains/site-engine@0.2.0-alpha.490
+  - @brains/ui-library@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/plugins@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- Updated dependencies [[`3f684eb`](https://github.com/rizom-ai/brains/commit/3f684ebfcc28d24e09dcfa39eef0069306a8dd46)]:
+  - @brains/site-engine@0.2.0-alpha.489
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/site-composition@0.2.0-alpha.489
+  - @brains/ui-library@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/plugins@0.2.0-alpha.489
+
 ## 0.2.0-alpha.488
 
 ### Patch Changes

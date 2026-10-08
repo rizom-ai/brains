@@ -33,6 +33,8 @@ interface QueueReconciliationOptions {
   directorySync: IDirectorySync;
   context: DirectorySyncHost;
   source: string;
+  /** Queue every file rather than the delta since the durable checkpoint. */
+  full?: boolean | undefined;
   metadata?: BatchMetadata | undefined;
   signal?: AbortSignal | undefined;
   onGitProgress?: (() => void) | undefined;
@@ -68,12 +70,6 @@ export class GitReconciliationService {
     });
   }
 
-  /** Capture HEAD after a synchronous full initial sync has completed. */
-  async captureCurrent(gitSync: IGitSync): Promise<void> {
-    const delta = await gitSync.getReconciliationDelta(undefined);
-    await this.saveCheckpoint(delta.checkpoint);
-  }
-
   /** Pull, derive all work since the durable checkpoint, queue, then advance. */
   async pullAndQueue(
     options: QueueReconciliationOptions,
@@ -100,7 +96,7 @@ export class GitReconciliationService {
     // gone, so refusing is this method's job: nothing below is worth starting
     // once the caller has given up on it.
     options.signal?.throwIfAborted();
-    const previous = await this.getCheckpoint();
+    const previous = options.full ? undefined : await this.getCheckpoint();
     const delta = await options.gitSync.getReconciliationDelta(previous);
 
     if (delta.mode === "full") {

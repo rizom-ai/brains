@@ -82,6 +82,7 @@ export function NetworkLayer({
 }): JSX.Element | null {
   if (brains.length === 0) return null;
   const byId = new Map(brains.map((brain) => [brain.id, brain]));
+  const slots = new Map(brains.map((brain, i) => [brain.id, `${i % 9}`]));
   const routes = new Map(
     tendrils.flatMap((tendril) =>
       tendril.branches.map((branch) => [branch.id, branch.route] as const),
@@ -219,6 +220,9 @@ export function NetworkLayer({
                     className="net-thread"
                     data-brain={branch.id}
                     d={branch.path}
+                    style={clocks({
+                      "--net-slot": slots.get(branch.id) ?? "0",
+                    })}
                   />
                 ))}
               </Fragment>
@@ -317,7 +321,11 @@ export function NetworkLayer({
               data-brain={brain.id}
               {...{ [ASK_MARK_ATTRIBUTE]: brain.id }}
               data-kind={brain.kind}
-              style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
+              style={{
+                left: `${brain.x}%`,
+                top: `${brain.y}%`,
+                ...clocks({ "--net-slot": slots.get(brain.id) ?? "0" }),
+              }}
             >
               <a href={`/agents/${brain.id}`} aria-label={brain.name}>
                 <i />
@@ -337,7 +345,7 @@ export function NetworkLayer({
               data-brain={brain.id}
               style={{ left: `${brain.x}%`, top: `${brain.y}%` }}
             >
-              {brain.name}
+              <span>{brain.name}</span>
             </li>
           ))}
         </ol>

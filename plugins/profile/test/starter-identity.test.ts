@@ -536,6 +536,8 @@ describe("the starter identity boot gate", () => {
     expect(enqueued).toEqual([]);
 
     await plugin.ready?.();
+    expect(enqueued).toEqual([]);
+    await harness.sendMessage("system:startup-content:settled", {}, "shell");
     expect(
       enqueued.filter((type) => type.includes("seed-starter-identity")).length,
     ).toBe(1);
@@ -548,6 +550,7 @@ describe("the starter identity boot gate", () => {
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     await plugin.ready?.();
+    await harness.sendMessage("system:startup-content:settled", {}, "shell");
     expect(enqueued).toEqual([]);
 
     await harness.sendMessage(
@@ -579,6 +582,9 @@ describe("the starter identity boot gate", () => {
       "directory-sync",
     );
 
+    expect(enqueued).toEqual([]);
+    await harness.sendMessage("system:startup-content:settled", {}, "shell");
+    await harness.sendMessage("system:startup-content:settled", {}, "shell");
     expect(
       enqueued.filter((type) => type.includes("seed-starter-identity")).length,
     ).toBe(1);
@@ -597,6 +603,7 @@ describe("the starter identity boot gate", () => {
       { success: false },
       "directory-sync",
     );
+    await harness.sendMessage("system:startup-content:settled", {}, "shell");
 
     expect(enqueued).toEqual([]);
   });

@@ -3,7 +3,12 @@ export type { CSSProcessor } from "./css-processor";
 export { UISlotRegistry } from "./ui-slot-registry";
 export type { SlotRegistration } from "./ui-slot-registry";
 export { HeadCollector } from "./head-collector";
-export { iconHeadPaths, type EssentialHeadPaths } from "./essential-head";
+export {
+  DEFAULT_FAVICON_SVG,
+  iconHeadPaths,
+  withDefaultIcon,
+  type EssentialHeadPaths,
+} from "./essential-head";
 export type {
   LayoutComponent,
   LayoutSlots,
