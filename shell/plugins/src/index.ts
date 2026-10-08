@@ -153,7 +153,12 @@ export {
   type InboxSourceMetadata,
 } from "./inbox-registry";
 
-export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
+export {
+  SYSTEM_CHANNELS,
+  pluginsRegisteredAnswerSchema,
+  type PluginsRegisteredAnswer,
+  type SystemChannelName,
+} from "./system-channels";
 export { defineChannel, type Channel } from "./utils/channels";
 export {
   createAdminListTool,
@@ -441,6 +446,7 @@ export type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
+  NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -501,6 +507,12 @@ export {
   type NavigationResult,
   type SortField,
 } from "./service/base-entity-datasource";
+export {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+  type RelatedEntityReader,
+} from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
 
 // ============================================================================

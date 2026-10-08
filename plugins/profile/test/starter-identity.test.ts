@@ -77,10 +77,12 @@ function createTestProfilePlugin(
   return new TestProfilePlugin(options);
 }
 
+/** Startup content has settled (shell defaults exist) and the shell is ready. */
 async function signalShellReady(
   harness: ReturnType<typeof createHarness>,
 ): Promise<void> {
   await harness.finalizeRegistration();
+  await harness.sendMessage("system:startup-content:settled", {}, "shell");
   await harness.sendMessage("system:shell:ready", {}, "shell");
 }
 
@@ -315,7 +317,7 @@ describe("legacy default fingerprints", () => {
 });
 
 describe("starter identity lifecycle", () => {
-  test("waits for shell readiness after successful initial sync", async () => {
+  test("waits for shell readiness and settled startup content after successful initial sync", async () => {
     const harness = createHarness();
     let generationCalls = 0;
     await harness.installPlugin(
@@ -342,6 +344,10 @@ describe("starter identity lifecycle", () => {
     ).toBeNull();
 
     await harness.sendMessage("system:shell:ready", {}, "shell");
+
+    expect(generationCalls).toBe(0);
+
+    await harness.sendMessage("system:startup-content:settled", {}, "shell");
 
     expect(generationCalls).toBe(1);
     expect(

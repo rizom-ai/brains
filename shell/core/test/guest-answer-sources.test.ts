@@ -99,6 +99,30 @@ describe("a visitor's answer's sources", () => {
     });
   });
 
+  it("carry the title an entry gives its page, as a book section's siglum", async () => {
+    const { find } = sources([
+      result("post", "aphorism", 0.6, {
+        title: "57",
+        pageTitle: "AC-57",
+        slug: "der-antichrist/58",
+      }),
+    ]);
+    const [first] = await find({ answer: "Mittelmässigkeit" });
+    expect(first?.title).toBe("AC-57");
+  });
+
+  it("leave out an entry that is not itself a source, as a book's contents", async () => {
+    const { find } = sources([
+      result("post", "contents", 0.62, {
+        title: "Der Antichrist",
+        citable: false,
+      }),
+      result("post", "aphorism", 0.59, { title: "7", pageTitle: "AC-7" }),
+    ]);
+    const cited = await find({ answer: "Mitleid" });
+    expect(cited.map((source) => source.id)).toEqual(["post:aphorism"]);
+  });
+
   it("reach the site over https whether its domain is written with a scheme or not", async () => {
     for (const baseUrl of [
       "yeehaa.io",

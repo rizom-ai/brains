@@ -1,0 +1,56 @@
+{
+  "name": "@rizom/site-books",
+  "version": "0.2.0-alpha.1",
+  "description": "Reading site for book brains — the work as one horizon, each book and section set for reading",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "prepack": "publish-manifest prepare"
+  },
+  "dependencies": {
+    "@rizom/site": "0.2.0-alpha.239"
+  },
+  "publishPeerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@brains/build-tools": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
+    "eslint": "^10.5.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizom-ai/brains.git",
+    "directory": "sites/books"
+  },
+  "license": "AGPL-3.0-only",
+  "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/sites/books#readme",
+  "bugs": {
+    "url": "https://github.com/rizom-ai/brains/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.3"
+  }
+}

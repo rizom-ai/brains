@@ -73,7 +73,7 @@ Conversation actor registries close terminally: queued operations receive the li
 
 ### Layer adoption
 
-Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only four deliberate ambient registries keep a singleton accessor — `Logger`, `AtprotoProjectionRegistry`, `EntityUrlGenerator`, and `EvalHandlerRegistry` — and they are allow-listed there by name.
+Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only three deliberate ambient registries keep a singleton accessor — `Logger`, `AtprotoProjectionRegistry`, and `EvalHandlerRegistry` — and they are allow-listed there by name. Entity URLs and citability are a plain value built from the one entity display the shell resolves.
 
 The first layer-owned slice is the job-service stack. The private `@brains/job-queue/effect` subpath owns its `Context.Tag` contracts and scoped queue/runtime layers; core composes those layers across the package boundary instead of rebuilding job-queue lifecycle ownership locally. Separate runtime and database scopes preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public authoring boundary.
 

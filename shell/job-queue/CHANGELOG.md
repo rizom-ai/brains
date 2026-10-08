@@ -1,5 +1,73 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.493
+
+### Patch Changes
+
+- [#554](https://github.com/rizom-ai/brains/pull/554) [`3995f49`](https://github.com/rizom-ai/brains/commit/3995f49ca6d7fa9e3459da20e3725018b998939e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job's execution deadline now catches a stuck job rather than a long one: each progress report that advances the job starts the full window again, while a repeated report such as a heartbeat does not. The site build reports progress as it prepares each route as well as when it renders it, so a large site builds instead of being failed at the default five minutes.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.493
+  - @brains/db@0.2.0-alpha.493
+  - @brains/operation-context@0.2.0-alpha.493
+  - @brains/utils@0.2.0-alpha.493
+  - @brains/mcp-service@0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- Updated dependencies [[`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a)]:
+  - @brains/contracts@0.2.0-alpha.492
+  - @brains/operation-context@0.2.0-alpha.492
+  - @brains/mcp-service@0.2.0-alpha.492
+  - @brains/db@0.2.0-alpha.492
+  - @brains/utils@0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/db@0.2.0-alpha.491
+  - @brains/operation-context@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/mcp-service@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/db@0.2.0-alpha.490
+  - @brains/operation-context@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/mcp-service@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/db@0.2.0-alpha.489
+  - @brains/operation-context@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/mcp-service@0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.488
+  - @brains/db@0.2.0-alpha.488
+  - @brains/operation-context@0.2.0-alpha.488
+  - @brains/utils@0.2.0-alpha.488
+  - @brains/mcp-service@0.2.0-alpha.488
+
 ## 0.2.0-alpha.487
 
 ### Patch Changes

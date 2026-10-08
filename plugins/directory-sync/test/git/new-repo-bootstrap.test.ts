@@ -6,6 +6,7 @@ import {
   rmSync,
   readFileSync,
   mkdtempSync,
+  statSync,
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -139,5 +140,56 @@ describe("GitSync new-repo bootstrap regression", () => {
     expect(await listTracked(dataDir)).toEqual(["post/remote.md"]);
     expect(existsSync(join(dataDir, "default.md"))).toBe(false);
     expect(existsSync(join(dataDir, "post", "remote.md"))).toBe(true);
+  });
+
+  async function seedRemote(): Promise<string> {
+    const seedDir = join(testDir, "seed");
+    await runGit(["clone", remoteDir, seedDir], testDir);
+    await runGit(["config", "user.name", "Seed"], seedDir);
+    await runGit(["config", "user.email", "seed@example.com"], seedDir);
+    mkdirSync(join(seedDir, "post"), { recursive: true });
+    writeFileSync(join(seedDir, "post", "remote.md"), "# Remote");
+    await runGit(["add", "-A"], seedDir);
+    await runGit(["commit", "-m", "seed remote"], seedDir);
+    await runGit(["push"], seedDir);
+    return (await runGit(["rev-parse", "HEAD"], seedDir)).trim();
+  }
+
+  it("checks out a remote with history in place, without an unrelated root", async () => {
+    const remoteHead = await seedRemote();
+    writeDefault();
+    // A deployed data directory is a mount point: it can be written into,
+    // never replaced. Its inode stays the same across the bootstrap.
+    const inodeBefore = statSync(dataDir).ino;
+
+    const gs = await createGitSync();
+    await gs.initialize();
+
+    expect(statSync(dataDir).ino).toBe(inodeBefore);
+    expect((await runGit(["rev-parse", "HEAD"], dataDir)).trim()).toBe(
+      remoteHead,
+    );
+    expect(
+      (await runGit(["rev-list", "--max-parents=0", "HEAD"], dataDir)).trim(),
+    ).toBe(remoteHead);
+    expect(await listTracked(dataDir)).toEqual(["post/remote.md"]);
+    expect(existsSync(join(dataDir, "default.md"))).toBe(false);
+  });
+
+  it("completes a bootstrap a crash left unfinished", async () => {
+    const remoteHead = await seedRemote();
+    await runGit(["init", "--initial-branch=main"], dataDir);
+    writeFileSync(join(dataDir, ".git", "brains-checkout-in-progress"), "");
+
+    const gs = await createGitSync();
+    await gs.initialize();
+
+    expect((await runGit(["rev-parse", "HEAD"], dataDir)).trim()).toBe(
+      remoteHead,
+    );
+    expect(existsSync(join(dataDir, "post", "remote.md"))).toBe(true);
+    expect(
+      existsSync(join(dataDir, ".git", "brains-checkout-in-progress")),
+    ).toBe(false);
   });
 });

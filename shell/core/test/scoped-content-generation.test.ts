@@ -36,6 +36,7 @@ import {
   type ContentGenerationTargetInput,
 } from "@brains/content-service";
 import { resetPromptCache } from "@brains/plugins";
+import { EntityUrlGenerator } from "@brains/site-composition";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 
 // Real SQLite entity reads/FTS/persistence; only the external AI provider is mocked.
@@ -114,6 +115,7 @@ describe("scoped durable content generation", () => {
       templates,
       ambientIdentity,
       ambientProfile,
+      new EntityUrlGenerator(),
     );
     const sources = InMemoryDataSourceRegistry.createFresh(logger);
     sources.register(datasource);

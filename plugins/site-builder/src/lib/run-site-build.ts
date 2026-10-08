@@ -138,6 +138,9 @@ export async function runSiteBuild(
       sharedImagesDir: parsedOptions.sharedImagesDir,
       signal: options.signal,
     });
+    const preparationReporter = reporter?.createSub({
+      scale: { start: 25, end: 50 },
+    });
     const preparation = await prepareSiteBuild({
       buildId: randomUUID(),
       preparedAt: new Date().toISOString(),
@@ -149,6 +152,11 @@ export async function runSiteBuild(
       siteMetadata: parsedOptions.siteConfig,
       publicDir: join(process.cwd(), "public"),
       signal: options.signal,
+      onProgress: (notification) => {
+        preparationReporter?.report(notification).catch(() => {
+          // Ignore progress reporting errors
+        });
+      },
     });
     diagnostics.push(...preparation.diagnostics);
     const preparationWarnings = preparation.diagnostics.filter(
@@ -240,7 +248,9 @@ export async function runSiteBuild(
         url: baseUrl,
       },
       generateEntityUrl: (entityType, slug) =>
-        EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+        new EntityUrlGenerator(
+          options.pipelineContext.entityDisplay,
+        ).generateUrl(entityType, slug),
       reportFailure: (detail) => {
         stagingFailures.push(detail);
       },

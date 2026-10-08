@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { App, resolveBundleSelection } from "@brains/app";
-import { caughtError } from "@brains/test-utils";
+import { caughtError, waitUntil } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
   resolveEvalSelection,
@@ -28,6 +28,17 @@ import { canonicalBundles } from "../src/model/canonical-bundles";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 const manifestPath = join(import.meta.dir, "..", "brain.eval.yaml");
+
+/** Boot, then let the queued startup import finish, as the eval runner does. */
+async function initializeImported(app: App): Promise<void> {
+  await app.initialize();
+  const jobs = app.getShell().getJobQueueService();
+  await waitUntil(
+    async () => (await jobs.getActiveJobs()).length === 0,
+    "the startup import to finish",
+    { timeoutMs: 60_000, intervalMs: 50 },
+  );
+}
 const packageDirectory = join(import.meta.dir, "..");
 const testCasesDirectory = join(packageDirectory, "test-cases");
 // Loose: resolveEvalSelection reads manifest keys beyond the ones asserted here.
@@ -271,7 +282,7 @@ describe("canonical eval recipe ladder", () => {
         seedDirectory,
       );
       try {
-        await app.initialize();
+        await initializeImported(app);
         const shell = app.getShell();
         const entityService = shell.getEntityService();
         for (const entityType of seededEntityTypes(seedDirectory)) {
@@ -360,7 +371,7 @@ describe("canonical eval recipe ladder", () => {
         seedContentPath(selection),
       );
       try {
-        await app.initialize();
+        await initializeImported(app);
         const shell = app.getShell();
         const service = shell.getEntityService();
         const id = "long-note-update-title-and-body";
@@ -443,7 +454,7 @@ describe("canonical eval recipe ladder", () => {
     );
     expect(Buffer.byteLength(content)).toBe(17_000);
     try {
-      await app.initialize();
+      await initializeImported(app);
       const shell = app.getShell();
       const conversations = shell.getConversationService();
       const conversationId = await conversations.startConversation({
@@ -556,7 +567,7 @@ describe("canonical eval recipe ladder", () => {
       "utf8",
     ).replace("---\n\n", "---\n");
     try {
-      await app.initialize();
+      await initializeImported(app);
       const shell = app.getShell();
       const conversations = shell.getConversationService();
       const conversationId = await conversations.startConversation({
@@ -650,7 +661,7 @@ describe("canonical eval recipe ladder", () => {
       );
 
       try {
-        await app.initialize();
+        await initializeImported(app);
         const mcpService = app.getShell().getMCPService();
 
         for (const level of ["public", "trusted", "admin"] as const) {
@@ -690,7 +701,7 @@ describe("canonical eval recipe ladder", () => {
     const { app } = createSuiteApp("headless", selection, seedDirectory);
     let initializationError: unknown;
     try {
-      await app.initialize();
+      await initializeImported(app);
     } catch (error) {
       initializationError = error;
     } finally {

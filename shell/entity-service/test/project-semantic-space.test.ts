@@ -137,6 +137,40 @@ describe("projectSemanticSpace", () => {
     ]);
   });
 
+  test("measures points from an origin of another type, within the scope", async () => {
+    await seedEmbedding({ id: "origin", values: [1, 0] });
+    await seedEmbedding({ id: "other", values: [0, 1] });
+    await seedEmbedding({ id: "near", entityType: "image", values: [1, 0] });
+    await seedEmbedding({ id: "far", entityType: "image", values: [0, 1] });
+    await seedEmbedding({
+      id: "hidden",
+      visibility: "restricted",
+      values: [1, 0],
+    });
+
+    const result = await ctx.entityService.projectSemanticSpace({
+      types: ["image"],
+      origin: { entityId: "origin", entityType: "test" },
+    });
+    const distance = (id: string): number | undefined =>
+      result.points.find(({ entityId }) => entityId === id)?.distanceToOrigin;
+
+    expect(result.origin).toEqual({
+      kind: "entity",
+      entityId: "origin",
+      entityType: "test",
+    });
+    expect(distance("near")).toBeCloseTo(0);
+    expect(distance("far")).toBeCloseTo(1);
+
+    // An origin outside the caller's scope is not used.
+    const hidden = await ctx.entityService.projectSemanticSpace({
+      types: ["image"],
+      origin: { entityId: "hidden", entityType: "test" },
+    });
+    expect(hidden.origin).toEqual({ kind: "centroid" });
+  });
+
   test("fails closed to public visibility and allows explicit scope widening", async () => {
     await seedEmbedding({ id: "public-entity", values: [1, 0] });
     await seedEmbedding({

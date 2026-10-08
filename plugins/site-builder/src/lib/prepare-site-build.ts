@@ -14,8 +14,10 @@ import {
   type PreparedSiteBuild,
   type SiteImageLookup,
   type SiteImageMap,
+  withDefaultIcon,
 } from "@brains/site-engine";
 import { getErrorMessage } from "@brains/utils/error";
+import type { ProgressNotification } from "@brains/utils/progress";
 import { pLimit } from "@brains/utils/p-limit";
 import { z } from "@brains/utils/zod";
 import type {
@@ -44,6 +46,8 @@ export interface PrepareSiteBuildOptions {
   siteMetadata: SiteMetadata;
   publicDir: string;
   signal: AbortSignal;
+  /** Called as each route is prepared; a build job's deadline follows it. */
+  onProgress?: ((notification: ProgressNotification) => void) | undefined;
 }
 
 export interface PrepareSiteBuildResult {
@@ -83,16 +87,22 @@ export async function prepareSiteBuild(
     diagnostics.push(diagnostic);
   }
 
-  const staticAssets = {
-    ...collectRouteAssets(options.routes, { getViewTemplate }),
-    ...options.buildOptions.staticAssets,
-  };
+  // Every brain is a light: a build that brings no icon gets the lantern.
+  const staticAssets = withDefaultIcon(
+    {
+      ...collectRouteAssets(options.routes, { getViewTemplate }),
+      ...options.buildOptions.staticAssets,
+    },
+    Object.keys(publicAssets),
+  );
   const limit = pLimit(4);
+  const total = options.routes.length;
+  let prepared = 0;
   const settledRouteResults = await Promise.allSettled(
     options.routes.map((route) =>
-      limit(() => {
+      limit(async () => {
         options.signal.throwIfAborted();
-        return prepareRoute({
+        const result = await prepareRoute({
           route,
           siteTitle: options.siteMetadata.title,
           publishedOnly,
@@ -103,6 +113,13 @@ export async function prepareSiteBuild(
           siteUrl: options.siteMetadata.url,
           signal: options.signal,
         });
+        prepared++;
+        options.onProgress?.({
+          message: `Prepared ${prepared} of ${total} routes`,
+          progress: prepared,
+          total,
+        });
+        return result;
       }),
     ),
   );

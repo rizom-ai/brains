@@ -115,10 +115,14 @@ describe("the Ask room on /ask", () => {
     );
     // Tendrils: a trunk with its seep, then a branch per brain that the runtime lights as the brain's thread.
     expect(html).toMatch(
-      /<g class="net-tendrils"><path class="net-trunk" d="M50 50 Q[^"]+"><\/path><path class="net-seep" d="M50 50 Q[^"]+"><\/path><path class="net-thread" data-brain="[^"]+" d="M[^"]+"><\/path>/,
+      /<g class="net-tendrils"><path class="net-trunk" d="M50 50 Q[^"]+"><\/path><path class="net-seep" d="M50 50 Q[^"]+"><\/path><path class="net-thread" data-brain="[^"]+" d="M[^"]+" style="--net-slot:[0-8]"><\/path>/,
+    );
+    // The thread and the mark carry the brain's slot too, so they can light as its bead passes.
+    expect(html).toMatch(
+      /<path class="net-thread" data-brain="becca" d="M[^"]+" style="--net-slot:0"><\/path>/,
     );
     expect(html).toMatch(
-      /<path class="net-thread" data-brain="becca" d="M[^"]+"><\/path>/,
+      /<li class="net-mark" data-brain="becca" data-ask-mark="becca" data-kind="person" style="left:[0-9.]+%;top:[0-9.]+%;--net-slot:0">/,
     );
     // A light per brain: an ember rim, a halo sized by nearness, a ripple and a bead on its route from Rizom.
     expect(html).toMatch(
@@ -162,10 +166,10 @@ describe("the Ask room on /ask", () => {
     );
     // Names carry no glyph; the shape does. Each sits below its light, aligned inward at the edges.
     expect(html).toMatch(
-      /<li class="net-name" data-brain="becca"[^>]*>Becca<\/li>/,
+      /<li class="net-name" data-brain="becca"[^>]*><span>Becca<\/span><\/li>/,
     );
     expect(html).toMatch(
-      /<li class="net-name net-name--start" data-brain="org"[^>]*>Mindinn<\/li>/,
+      /<li class="net-name net-name--start" data-brain="org"[^>]*><span>Mindinn<\/span><\/li>/,
     );
     // The radar is gone.
     for (const old of [

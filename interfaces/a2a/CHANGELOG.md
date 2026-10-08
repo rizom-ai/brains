@@ -1,5 +1,77 @@
 # @brains/a2a
 
+## 0.2.0-alpha.493
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.493
+  - @brains/auth-service@0.2.0-alpha.493
+  - @brains/contracts@0.2.0-alpha.493
+  - @brains/http-signatures@0.2.0-alpha.493
+  - @brains/utils@0.2.0-alpha.493
+  - @brains/templates@0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- Updated dependencies [[`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a)]:
+  - @brains/contracts@0.2.0-alpha.492
+  - @brains/auth-service@0.2.0-alpha.492
+  - @brains/plugins@0.2.0-alpha.492
+  - @brains/templates@0.2.0-alpha.492
+  - @brains/http-signatures@0.2.0-alpha.492
+  - @brains/utils@0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/http-signatures@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/auth-service@0.2.0-alpha.491
+  - @brains/plugins@0.2.0-alpha.491
+  - @brains/templates@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/http-signatures@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/auth-service@0.2.0-alpha.490
+  - @brains/plugins@0.2.0-alpha.490
+  - @brains/templates@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/http-signatures@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/auth-service@0.2.0-alpha.489
+  - @brains/plugins@0.2.0-alpha.489
+  - @brains/templates@0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.488
+  - @brains/http-signatures@0.2.0-alpha.488
+  - @brains/utils@0.2.0-alpha.488
+  - @brains/auth-service@0.2.0-alpha.488
+  - @brains/plugins@0.2.0-alpha.488
+  - @brains/templates@0.2.0-alpha.488
+
 ## 0.2.0-alpha.487
 
 ### Patch Changes

@@ -652,6 +652,94 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Job deadlines", () => {
+    // The deadline catches a stuck job, not a long one: each report that
+    // advances the job's progress renews it.
+    it("renews the deadline while the handler reports advancing progress", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 40;
+      handler.process.mockImplementation(
+        async (_data: unknown, _jobId: string, reporter: ProgressReporter) => {
+          for (const step of Array.from({ length: 8 }, (_, index) => index)) {
+            await Bun.sleep(15);
+            await reporter.report({ progress: step + 1, total: 8 });
+          }
+          return { success: true };
+        },
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      const fail = spyOn(mockService, "fail");
+      let signalCompleted: () => void = () => undefined;
+      const completed = new Promise<void>((resolve) => {
+        signalCompleted = resolve;
+      });
+      spyOn(mockService, "complete").mockImplementation(async () => {
+        signalCompleted();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await completed;
+
+      expect(fail).not.toHaveBeenCalled();
+      expect(worker.getStats().isHealthy).toBe(true);
+    });
+
+    it("does not renew the deadline for a report that repeats the last one", async () => {
+      const handler = createMockHandler();
+      handler.executionTimeoutMs = 40;
+      handler.process.mockImplementation(
+        async (
+          _data: unknown,
+          _jobId: string,
+          reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) => {
+          const repeat = async (): Promise<{ success: true }> => {
+            if (signal.aborted) return { success: true };
+            await reporter.report({ progress: 1, total: 8, message: "busy" });
+            await Bun.sleep(10);
+            return repeat();
+          };
+          return repeat();
+        },
+      );
+      const result = createWorkerWithSingleJob(handler);
+      mockService = result.mockService;
+      let signalFailed: () => void = () => undefined;
+      const failed = new Promise<void>((resolve) => {
+        signalFailed = resolve;
+      });
+      const fail = spyOn(mockService, "fail").mockImplementation(async () => {
+        signalFailed();
+        return true;
+      });
+      worker = JobQueueWorker.createFresh(
+        mockService,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { pollInterval: 5, cancellationGraceMs: 30 },
+      );
+
+      await worker.start();
+      await failed;
+
+      expect(fail).toHaveBeenCalledWith(
+        testJob.id,
+        expect.objectContaining({
+          message: expect.stringContaining("deadline"),
+        }),
+        testJob.attemptId,
+      );
+      expect(mockService.complete).not.toHaveBeenCalled();
+    });
+
     it("passes an AbortSignal and fails a cooperative timed-out attempt only after it settles", async () => {
       const handler = createMockHandler();
       handler.executionTimeoutMs = 15;

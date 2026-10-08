@@ -141,6 +141,7 @@ Some text
         queryGroupingUsage: createMockEntityService().queryGroupingUsage,
         search: mock(() => Promise.resolve([])),
         searchWithDistances: mock(() => Promise.resolve([])),
+        nearestToEntity: mock(() => Promise.resolve([])),
         projectSemanticSpace: mock(() =>
           Promise.resolve({
             origin: { kind: "centroid" as const },
