@@ -1,11 +1,14 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
-import { basename, join } from "path";
+import { mkdir, readFile, rm, writeFile } from "fs/promises";
+import { join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "../fs-utils";
 import { MANAGED_GIT_CONFIG_ARGS } from "./git-credentials";
 import { runGitCommandWithStallTimeout } from "./git-stall";
+
+/** Present in `.git` while a bootstrap checkout is unfinished. */
+const CHECKOUT_IN_PROGRESS = "brains-checkout-in-progress";
 
 /** Every local Git process here runs under the managed rules. */
 function managedGit(dataDir: string): SimpleGit {
@@ -44,7 +47,12 @@ export async function prepareGitRepository(
 
   await mkdir(dataDir, { recursive: true });
 
-  if (!(await pathExists(gitDir))) {
+  // A fresh directory is built; so is a checkout whose bootstrap a crash
+  // interrupted, which still carries its marker.
+  if (
+    !(await pathExists(gitDir)) ||
+    (await pathExists(join(gitDir, CHECKOUT_IN_PROGRESS)))
+  ) {
     if (remoteUrl) {
       await prepareRepositoryFromRemote({
         logger,
@@ -93,14 +101,8 @@ async function prepareRepositoryFromRemote(options: {
     signal,
   } = options;
 
-  const initLocally = async (
-    reason: string,
-    cleanupDir?: string,
-  ): Promise<void> => {
+  const initLocally = async (reason: string): Promise<void> => {
     logger.info(reason, { gitUrl: remoteUrl });
-    if (cleanupDir) {
-      await rm(cleanupDir, { recursive: true, force: true });
-    }
     await gitInit(dataDir, branch);
   };
 
@@ -126,32 +128,39 @@ async function prepareRepositoryFromRemote(options: {
     return initLocally("Remote is empty, initializing locally");
   }
 
-  logger.info("Cloning repository", { gitUrl: remoteUrl });
-  const parentDir = join(dataDir, "..");
-  const cloneDir = await mkdtemp(
-    join(parentDir, `${basename(dataDir)}-clone-`),
-  );
-
+  // Built in place: a deployed data directory is a mount point, which can
+  // be written into but never removed or renamed onto. Git's own state makes
+  // this resumable — until the checkout below names a commit, the next start
+  // builds it again.
+  logger.info("Checking out repository", { gitUrl: remoteUrl });
+  await gitInit(dataDir, branch);
+  const marker = join(dataDir, ".git", CHECKOUT_IN_PROGRESS);
+  await writeFile(marker, "");
   try {
     await runGitCommandWithStallTimeout(
       {
-        baseDir: parentDir,
+        baseDir: dataDir,
         timeoutMs,
         credentialEnv,
         ...(onProgress ? { onProgress } : {}),
       },
-      ["clone", remoteUrl, cloneDir],
+      ["fetch", "--no-tags", remoteUrl, branch],
       signal,
     );
-    await rm(dataDir, { recursive: true, force: true });
-    await rename(cloneDir, dataDir);
-  } catch {
-    if (signal?.aborted) {
-      await rm(cloneDir, { recursive: true, force: true });
-      throw signal.reason;
-    }
-    await initLocally("Clone failed, initializing locally", cloneDir);
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason;
+    logger.error("Fetching the repository failed", {
+      gitUrl: remoteUrl,
+      error,
+    });
+    throw error;
   }
+  const git = managedGit(dataDir);
+  // The remote's content replaces whatever the directory held before it was
+  // a checkout.
+  await git.raw(["checkout", "-f", "-B", branch, "FETCH_HEAD"]);
+  await git.raw(["clean", "-fd"]);
+  await rm(marker);
 }
 
 async function gitInit(dataDir: string, branch: string): Promise<void> {
