@@ -29,11 +29,11 @@ One book per title as printed, with its parts as printed. A work whose title pag
 
 - tests first: a manifest book with `parts` imports one book whose entries are numbered across its parts in manifest order; each unit's outermost parent is its part's title; a siglum's own divisions follow it; citations keep their siglum; the contents group by part
 - manifest schema and importer as above; `nietzsche.yaml` joins `Za-I`…`Za-IV`, `MA-I`/`MA-II` and `DS`/`HL`/`SE`/`WB`
-- regenerate Friedrich's corpus and replace the content repo's `book/` tree; verify locally (26 books, the parts in each contents, a section page, a cited answer); release; redeploy `friedrich`
+- regenerate Friedrich's corpus from the content repo itself (`--from-corpus`, which reads a rendered book back into the units it was rendered from) and replace its `book/` tree; verify locally (26 books, the parts in each contents, a section page, a cited answer); release; redeploy `friedrich`
 
 ### Phase 2 — books and sections as two types
 
-- tests first: the importer writes a `book` per work and a `book-section` per section; the book plugin registers both; the book page lists its sections by part; a section page shows its book and part; Ask searches sections and cites book and siglum; a theme traces sections across books; entity counts read 26 books and 3,705 sections
+- tests first: the importer writes a `book` per work and a `book-section` per section; a section carries its full heading path, so the corpus reader reads every level back; the book plugin registers both; the book page lists its sections by part; a section page shows its book and part; Ask searches sections and cites book and siglum; a theme traces sections across books; entity counts read 26 books and 3,705 sections
 - implementation as above
 - regenerate Friedrich's corpus in the new layout, replace the content repo tree; verify locally; release; redeploy `friedrich`; the dashboard reads 26 books and 3,705 sections
 
