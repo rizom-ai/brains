@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`205f50c`](https://github.com/rizom-ai/brains/commit/205f50c0a65228c259206b2ac8ebd7d28db807ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the obsolete Effect v3 Promise-failure wrapper and use Effect v4's native Promise runner for shell, daemon, and job-runtime ownership. Preserve original failure values, all-siblings-settled startup phases, declaration-order failure selection, and shared cleanup barriers for concurrent shutdown callers.
+
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/image@0.2.0-alpha.495
+  - @brains/site-composition@0.2.0-alpha.495
+  - @brains/plugins@0.2.0-alpha.495
+  - @brains/recurring-checks@0.2.0-alpha.495
+  - @brains/runtime-state@0.2.0-alpha.495
+  - @brains/scheduler@0.2.0-alpha.495
+  - @brains/templates@0.2.0-alpha.495
+  - @brains/operation-context@0.2.0-alpha.495
+
 ## 0.2.0-alpha.494
 
 ### Patch Changes
