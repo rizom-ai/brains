@@ -1,5 +1,20 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- [#544](https://github.com/rizom-ai/brains/pull/544) [`fff4599`](https://github.com/rizom-ai/brains/commit/fff4599817d39017b5327224fc01617d3a604894) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder's rebuild at start waits until the brain's startup content has settled, so a brain whose startup import is still queued no longer renders its site before that content is in.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/image@0.2.0-alpha.491
+  - @brains/site-composition@0.2.0-alpha.491
+  - @brains/site-engine@0.2.0-alpha.491
+  - @brains/ui-library@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/plugins@0.2.0-alpha.491
+
 ## 0.2.0-alpha.490
 
 ### Patch Changes
