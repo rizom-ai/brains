@@ -30,7 +30,6 @@ successCriteria:
     - toolName: system_update
       shouldBeCalled: false
   responseNotContains:
-    - "updated"
     - "blog"
     - "newsletter"
     - "I cannot"
@@ -38,6 +37,7 @@ successCriteria:
   minInstructionFollowingScore: 4
   responseCriteria:
     - "Summarizes the prompt's guidance: extract concise team-knowledge topics, prefer concrete collaboration concepts, and do not invent future plugin entities."
+    - "Does not claim that anything was updated."
 
 efficiency:
   maxToolCalls: 3

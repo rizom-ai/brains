@@ -23,8 +23,8 @@ permissions:
     expectedTools:
       - toolName: system_update
         shouldBeCalled: false
-    responseNotContains:
-      - "done"
+    responseCriteria:
+      - "Does not claim the request is done."
   trusted:
     expectedTools:
       - toolName: system_update
@@ -32,8 +32,8 @@ permissions:
         argsContain:
           entityType: link
           id: green-software-foundation
-    responseNotContains:
-      - "done"
+    responseCriteria:
+      - "Does not claim the request is done."
   admin:
     expectedTools:
       - toolName: system_update

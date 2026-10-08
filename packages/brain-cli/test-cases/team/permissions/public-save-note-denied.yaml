@@ -23,13 +23,13 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: false
   responseNotContains:
-    - "saved"
-    - "created"
     - "captured"
     - "I saved"
     - "I created"
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Does not claim that anything was saved or created."
 
 efficiency:
   maxToolCalls: 2

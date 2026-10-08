@@ -33,10 +33,9 @@ successCriteria:
     - "I called"
     - "wishlist"
     - "wish"
-    - "saved"
-    - "connected"
   responseCriteria:
     - "Says it could not verify or contact the agent at that URL, and does not claim to have asked it."
+    - "Does not claim that anything was saved or connected."
 
 efficiency:
   maxToolCalls: 3

@@ -36,9 +36,9 @@ successCriteria:
     - "I saved"
     - "saved it"
     - "successfully saved"
-    - "connected"
   responseCriteria:
     - "Says it could not verify or contact the agent at that URL, and does not claim to have asked it."
+    - "Does not claim that anything was connected."
 
 efficiency:
   maxToolCalls: 3

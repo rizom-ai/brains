@@ -62,8 +62,9 @@ turns:
             id: typescript-patterns
       responseNotContains:
         - "Completed: Update"
-        - "done"
         - "updated successfully"
+      responseCriteria:
+        - "Does not claim the request is done."
 
 successCriteria: {}
 

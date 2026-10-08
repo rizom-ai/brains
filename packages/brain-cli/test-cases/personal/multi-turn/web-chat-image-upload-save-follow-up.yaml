@@ -51,8 +51,8 @@ turns:
             - from
             - fromUpload
             - sourceAttachment
-      responseNotContains:
-        - "generated"
+      responseCriteria:
+        - "Does not claim that anything was generated."
 
 successCriteria:
   expectedTools:
@@ -73,8 +73,8 @@ successCriteria:
       shouldBeCalled: false
     - toolName: system_delete
       shouldBeCalled: false
-  responseNotContains:
-    - "generated"
+  responseCriteria:
+    - "Does not claim that anything was generated."
 
 efficiency:
   maxToolCalls: 1

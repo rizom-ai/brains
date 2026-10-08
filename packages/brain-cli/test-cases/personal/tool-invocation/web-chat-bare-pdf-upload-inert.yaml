@@ -39,9 +39,9 @@ successCriteria:
     - toolName: system_delete
       shouldBeCalled: false
   responseNotContains:
-    - "created"
-    - "saved"
     - "deck"
+  responseCriteria:
+    - "Does not claim that anything was created or saved."
 
 efficiency:
   maxToolCalls: 0

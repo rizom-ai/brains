@@ -56,10 +56,8 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: false
-      responseNotContains:
-        - "Created"
-        - "saved"
-        - "done"
+      responseCriteria:
+        - "Does not claim that anything was created or saved, or that the request is done."
 
 successCriteria: {}
 

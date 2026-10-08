@@ -31,14 +31,13 @@ successCriteria:
   responseContains:
     - "peer-brain"
   responseNotContains:
-    - "created"
-    - "updated"
     - "blog"
     - "newsletter"
   minHelpfulnessScore: 3
   minInstructionFollowingScore: 4
   responseCriteria:
     - "Reminds what the saved POC memory says about capture, summaries, and peer-brain coordination."
+    - "Does not claim that anything was created or updated."
 
 efficiency:
   maxToolCalls: 6

@@ -78,7 +78,8 @@ successCriteria:
   responseNotContains:
     - "couldn’t save"
     - "couldn't save"
-    - "generated"
+  responseCriteria:
+    - "Does not claim that anything was generated."
 
 efficiency:
   maxToolCalls: 1
