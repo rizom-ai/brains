@@ -476,14 +476,16 @@ turns:
           argsContain:
             entityType: note
             id: long-note-update-14kb
-            edits:
-              &patch [
-                {
-                  "oldText": "Review cadence: monthly.",
-                  "newText": "Review cadence: weekly.",
-                },
-              ]
-          argsAbsent: [fields, content, confirmed]
+            operation:
+              kind: edits
+              edits:
+                &patch [
+                  {
+                    "oldText": "Review cadence: monthly.",
+                    "newText": "Review cadence: weekly.",
+                  },
+                ]
+          argsAbsent: ["operation.fields", "operation.content", "confirmed"]
           resultContains:
             needsConfirmation: true
       responseContains: [Confirmation required]
@@ -510,8 +512,10 @@ turns:
           argsContain:
             entityType: note
             id: long-note-update-14kb
-            edits: *patch
-          argsAbsent: [fields, content]
+            operation:
+              kind: edits
+              edits: *patch
+          argsAbsent: ["operation.fields", "operation.content"]
           resultContains:
             success: true
             data.updated: long-note-update-14kb

@@ -185,15 +185,16 @@ turns:
           argsContain:
             entityType: note
             id: mcp-verbatim-update
-            source.kind: user-message
-            source.boundaryMode: lines
-            source.startAfter: BEGIN EXACT CONTENT
-            source.endBefore: END EXACT CONTENT
-            source.contentHash: e92bb4adc6060be129b9598284e6b061a2443533e69910a761d94740127b4d5b
+            operation.kind: source
+            operation.source.kind: user-message
+            operation.source.boundaryMode: lines
+            operation.source.startAfter: BEGIN EXACT CONTENT
+            operation.source.endBefore: END EXACT CONTENT
+            operation.source.contentHash: e92bb4adc6060be129b9598284e6b061a2443533e69910a761d94740127b4d5b
           argsAbsent:
-            - content
-            - edits
-            - fields
+            - operation.content
+            - operation.edits
+            - operation.fields
             - confirmed
           resultContains:
             needsConfirmation: true

@@ -45,13 +45,16 @@ describe("long-note agent eval coverage", () => {
       expect(criteria?.expectedTools?.[0]?.argsContain).toEqual({
         entityType: "note",
         id,
-        edits: [
-          { oldText: "# Working Plan", newText: "# Approved Plan" },
-          {
-            oldText: "Review cadence: monthly.",
-            newText: "Review cadence: weekly.",
-          },
-        ],
+        operation: {
+          kind: "edits",
+          edits: [
+            { oldText: "# Working Plan", newText: "# Approved Plan" },
+            {
+              oldText: "Review cadence: monthly.",
+              newText: "Review cadence: weekly.",
+            },
+          ],
+        },
       });
       expect(criteria?.expectedTools?.[0]?.resultContains).toEqual({
         needsConfirmation: true,
@@ -116,18 +119,21 @@ describe("long-note agent eval coverage", () => {
         expect(proposal?.argsContain).toMatchObject({
           entityType: "note",
           id,
-          edits: [
-            ...(combined
-              ? [{ oldText: "# Working Plan", newText: "# Approved Plan" }]
-              : []),
-            {
-              oldText: "Review cadence: monthly.",
-              newText: "Review cadence: weekly.",
-            },
-          ],
+          operation: {
+            kind: "edits",
+            edits: [
+              ...(combined
+                ? [{ oldText: "# Working Plan", newText: "# Approved Plan" }]
+                : []),
+              {
+                oldText: "Review cadence: monthly.",
+                newText: "Review cadence: weekly.",
+              },
+            ],
+          },
         });
-        expect(proposal?.argsAbsent).toContain("fields");
-        expect(proposal?.argsAbsent).toContain("content");
+        expect(proposal?.argsAbsent).toContain("operation.fields");
+        expect(proposal?.argsAbsent).toContain("operation.content");
         expect(proposal?.resultContains).toEqual({ needsConfirmation: true });
       }
       const cancelledRead =

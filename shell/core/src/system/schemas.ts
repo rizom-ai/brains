@@ -505,54 +505,107 @@ export const contentEditSchema: z.ZodObject<{
 
 export type ContentEdit = z.output<typeof contentEditSchema>;
 
-export const updateInputSchema: z.ZodObject<{
+type UpdateOperationInputSchema = z.ZodDiscriminatedUnion<
+  [
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"fields">;
+      fields: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"content">;
+      content: z.ZodString;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"edits">;
+      edits: z.ZodArray<typeof contentEditSchema>;
+    }>,
+    StrictObjectSchema<{
+      kind: z.ZodLiteral<"source">;
+      source: typeof userMessageSourceInputSchema;
+    }>,
+  ],
+  "kind"
+>;
+
+export const updateOperationInputSchema: UpdateOperationInputSchema =
+  z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z
+          .literal("fields")
+          .describe("Update partial frontmatter or metadata fields"),
+        fields: z
+          .record(z.string(), z.unknown())
+          .describe(
+            "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("content").describe("Replace the stored Markdown"),
+        content: z
+          .string()
+          .describe(
+            "Full replacement text you wrote yourself, stored literally. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use the source operation instead of copying it here. For small changes, use the edits operation instead of regenerating the whole document.",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z
+          .literal("edits")
+          .describe("Apply exact text replacements to the stored Markdown"),
+        edits: z
+          .array(contentEditSchema)
+          .min(1)
+          .max(50)
+          .describe(
+            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
+          ),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z
+          .literal("source")
+          .describe("Replace the stored Markdown with user-supplied text"),
+        source: userMessageSourceInputSchema.describe(
+          "Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
+        ),
+      })
+      .strict(),
+  ]);
+
+export type UpdateOperationInput = z.output<typeof updateOperationInputSchema>;
+
+export const updateInputSchema: StrictObjectSchema<{
   entityType: z.ZodString;
   id: z.ZodString;
-  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-  content: z.ZodOptional<z.ZodString>;
-  edits: z.ZodOptional<z.ZodArray<typeof contentEditSchema>>;
-  source: z.ZodOptional<typeof userMessageSourceInputSchema>;
+  operation: typeof updateOperationInputSchema;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  entityType: z.string().describe("Entity type"),
-  id: z.string().describe("Entity ID, slug, or title"),
-  fields: z
-    .record(z.string(), z.unknown())
-    .optional()
-    .describe(
-      "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, update fields.coverImageId to that image id. To remove or clear a cover image, set fields.coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require full markdown content replacement via content.",
+}> = z
+  .object({
+    entityType: z.string().describe("Entity type"),
+    id: z.string().describe("Entity ID, slug, or title"),
+    operation: updateOperationInputSchema.describe(
+      "Exactly one update operation",
     ),
-  content: z
-    .string()
-    .optional()
-    .describe(
-      "Full replacement text you wrote yourself. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use source instead of copying it here. For small changes, use edits instead of regenerating the whole document.",
-    ),
-  edits: z
-    .array(contentEditSchema)
-    .min(1)
-    .max(50)
-    .optional()
-    .describe(
-      "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Unchanged text is preserved without regeneration.",
-    ),
-  source: userMessageSourceInputSchema
-    .optional()
-    .describe(
-      "Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
-    ),
-  confirmed: z.literal(true).optional().describe("Confirm the update"),
-  confirmationToken: z
-    .string()
-    .optional()
-    .describe("Internal confirmation token returned by the confirmation flow"),
-  contentHash: z
-    .string()
-    .optional()
-    .describe("Content hash for optimistic concurrency"),
-});
+    confirmed: z.literal(true).optional().describe("Confirm the update"),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe(
+        "Internal confirmation token returned by the confirmation flow",
+      ),
+    contentHash: z
+      .string()
+      .optional()
+      .describe("Content hash for optimistic concurrency"),
+  })
+  .strict();
 
 export const deleteInputSchema: z.ZodObject<{
   entityType: z.ZodString;

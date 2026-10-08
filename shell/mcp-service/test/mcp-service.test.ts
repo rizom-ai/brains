@@ -1130,6 +1130,98 @@ describe("MCPService", () => {
       }
     });
 
+    it("enforces strict operation branches and root fields over the real protocol", async () => {
+      mcpService.registerTool("test", {
+        name: "typed_update",
+        description: "Typed update",
+        visibility: "public",
+        directMcpExposure: "basic",
+        inputSchema: {
+          id: z.string(),
+          operation: z.discriminatedUnion("kind", [
+            z
+              .object({
+                kind: z.literal("fields"),
+                fields: z.record(z.string(), z.unknown()),
+              })
+              .strict(),
+            z
+              .object({ kind: z.literal("content"), content: z.string() })
+              .strict(),
+          ]),
+        },
+        handler: async () => ({ success: true, data: { updated: "plan" } }),
+      });
+      const client = new Client({ name: "schema-test", version: "1.0.0" });
+      const server = mcpService.createMcpServer("public");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        const listed = await client.listTools();
+        expect(listed.tools[0]?.inputSchema).toMatchObject({
+          additionalProperties: false,
+          properties: {
+            operation: {
+              oneOf: [
+                {
+                  additionalProperties: false,
+                  properties: { fields: { additionalProperties: {} } },
+                },
+                { additionalProperties: false },
+              ],
+            },
+          },
+        });
+        for (const args of [
+          {
+            id: "plan",
+            operation: { kind: "fields", fields: {}, content: "mixed" },
+          },
+          {
+            id: "plan",
+            operation: { kind: "fields", fields: {} },
+            content: "flat",
+          },
+        ]) {
+          const rejected = await client
+            .callTool({ name: "typed_update", arguments: args })
+            .then(
+              (result) => result.isError === true,
+              () => true,
+            );
+          expect(rejected).toBe(true);
+          expect(mockMessageBus.send).not.toHaveBeenCalled();
+        }
+        const result = await client.callTool({
+          name: "typed_update",
+          arguments: {
+            id: "plan",
+            operation: { kind: "fields", fields: { customExtension: "value" } },
+          },
+        });
+        expect(result.isError).not.toBe(true);
+        expect(mockMessageBus.send).toHaveBeenCalledTimes(1);
+        expect(mockMessageBus.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              args: {
+                id: "plan",
+                operation: {
+                  kind: "fields",
+                  fields: { customExtension: "value" },
+                },
+              },
+            }),
+          }),
+        );
+      } finally {
+        await client.close();
+        await server.close();
+      }
+    });
+
     it("forwards request _meta through a protocol client call", async () => {
       const tool: Tool = {
         name: "client_metadata",
