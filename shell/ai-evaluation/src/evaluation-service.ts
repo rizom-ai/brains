@@ -16,13 +16,13 @@ import type {
   PluginTestCase,
   EvaluationResult,
   EvaluationSummary,
-  QualityScores,
 } from "./schemas";
 import { TestRunner } from "./test-runner";
 import { LLMJudge } from "./llm-judge";
 import { PluginLLMJudge } from "./plugin-llm-judge";
 import { YAMLLoader } from "./loaders/yaml-loader";
 import { PluginRunner } from "./plugin-runner";
+import { summarizeResults } from "./sample-aggregation";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 
@@ -132,7 +132,7 @@ export class EvaluationService implements IEvaluationService {
       ? await this.runParallelTests(runnableTestCases, options)
       : await this.runTestsInOrder(runnableTestCases, options);
 
-    const summary = this.generateSummary(results);
+    const summary = summarizeResults(results);
     await this.report(summary);
 
     return summary;
@@ -410,67 +410,6 @@ export class EvaluationService implements IEvaluationService {
     );
     if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
     return exit.value;
-  }
-
-  /**
-   * Generate summary from results
-   */
-  private generateSummary(results: EvaluationResult[]): EvaluationSummary {
-    const passedTests = results.filter((r) => r.passed).length;
-    const failedTests = results.length - passedTests;
-
-    // Calculate average metrics
-    const avgMetrics = {
-      totalTokens:
-        results.reduce((sum, r) => sum + r.totalMetrics.totalTokens, 0) /
-        Math.max(results.length, 1),
-      toolCallCount:
-        results.reduce((sum, r) => sum + r.totalMetrics.toolCallCount, 0) /
-        Math.max(results.length, 1),
-      durationMs:
-        results.reduce((sum, r) => sum + r.totalMetrics.durationMs, 0) /
-        Math.max(results.length, 1),
-    };
-
-    // Calculate average quality scores
-    const resultsWithScores = results.filter((r) => r.qualityScores);
-    let avgQualityScores: QualityScores | undefined;
-
-    if (resultsWithScores.length > 0) {
-      avgQualityScores = {
-        helpfulness:
-          resultsWithScores.reduce(
-            (sum, r) => sum + (r.qualityScores?.helpfulness ?? 0),
-            0,
-          ) / resultsWithScores.length,
-        accuracy:
-          resultsWithScores.reduce(
-            (sum, r) => sum + (r.qualityScores?.accuracy ?? 0),
-            0,
-          ) / resultsWithScores.length,
-        instructionFollowing:
-          resultsWithScores.reduce(
-            (sum, r) => sum + (r.qualityScores?.instructionFollowing ?? 0),
-            0,
-          ) / resultsWithScores.length,
-        appropriateToolUse:
-          resultsWithScores.reduce(
-            (sum, r) => sum + (r.qualityScores?.appropriateToolUse ?? 0),
-            0,
-          ) / resultsWithScores.length,
-      };
-    }
-
-    return {
-      timestamp: new Date().toISOString(),
-      totalTests: results.length,
-      passedTests,
-      failedTests,
-      passRate: results.length > 0 ? passedTests / results.length : 0,
-      avgMetrics,
-      avgQualityScores,
-      results,
-    };
   }
 
   private async report(summary: EvaluationSummary): Promise<void> {
