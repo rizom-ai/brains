@@ -3,6 +3,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createMockMessageBus } from "@brains/messaging-service/test";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
+import type { Tool } from "@brains/mcp-service";
 import { AIService } from "../src/aiService";
 import { createBrainAgentFactory } from "../src/brain-agent";
 import { testGuestExecution } from "./fixtures/guest-execution";
@@ -34,7 +35,10 @@ const requestSchema = z.discriminatedUnion("model", [
 const fetchSpy = spyOn(globalThis, "fetch");
 afterEach(() => fetchSpy.mockReset());
 
-function captureRequests(text: string): Array<z.output<typeof requestSchema>> {
+function captureRequests(
+  text: string,
+  readThenAnswer = false,
+): Array<z.output<typeof requestSchema>> {
   const requests: Array<z.output<typeof requestSchema>> = [];
   const fetchRequest = async (
     _input: Parameters<typeof fetch>[0],
@@ -50,18 +54,29 @@ function captureRequests(text: string): Array<z.output<typeof requestSchema>> {
       created_at: 0,
       model: request.model,
       status: "completed",
-      output: [
-        {
-          type: "message",
-          id: "msg_test",
-          role: "assistant",
-          content: [{ type: "output_text", text, annotations: [] }],
-        },
-      ],
+      output:
+        readThenAnswer && requests.length === 1
+          ? [
+              {
+                type: "function_call",
+                id: "fc_read",
+                call_id: "call_read",
+                name: "system_get",
+                arguments: JSON.stringify({ entityType: "note", id: "plan" }),
+              },
+            ]
+          : [
+              {
+                type: "message",
+                id: "msg_test",
+                role: "assistant",
+                content: [{ type: "output_text", text, annotations: [] }],
+              },
+            ],
       usage: {
-        input_tokens: 10,
+        input_tokens: readThenAnswer && requests.length === 2 ? 20 : 10,
         input_tokens_details: { cached_tokens: 0 },
-        output_tokens: 5,
+        output_tokens: readThenAnswer && requests.length === 2 ? 7 : 5,
         output_tokens_details: { reasoning_tokens: 2 },
       },
     });
@@ -178,4 +193,80 @@ for (const guest of [false, true]) {
       }
     });
   }
+}
+
+for (const guest of [false, true]) {
+  it(`reports usage across every model step of a turn (guest=${guest})`, async () => {
+    const requests = captureRequests("Answer", true);
+    const read: Tool = {
+      name: "system_get",
+      description: "Read a public note",
+      visibility: "public",
+      sideEffects: "none",
+      inputSchema: { entityType: z.string(), id: z.string() },
+      handler: async () => ({
+        success: true,
+        data: {
+          entity: {
+            id: "plan",
+            entityType: "note",
+            content: "# Plan\n",
+            metadata: { title: "Plan" },
+            created: "2026-10-01T00:00:00Z",
+            updated: "2026-10-01T00:00:00Z",
+            visibility: "public",
+          },
+        },
+      }),
+    };
+    const service = AIService.createFresh(
+      { apiKey: "test-key", model: "gpt-6-luna" },
+      createSilentLogger(),
+    );
+    const agent = createBrainAgentFactory({
+      model: service.getModel(),
+      modelId: "gpt-6-luna",
+      reasoningEffort: "low",
+      messageBus: createMockMessageBus(),
+    })({
+      identity: {
+        name: "Brain",
+        role: "Assistant",
+        purpose: "Help",
+        values: [],
+      },
+      tools: [read],
+      getToolsForPermission: () => [read],
+    });
+    const result = await agent.generate({
+      messages: [{ role: "user", content: "Read the plan." }],
+      options: {
+        conversationId: "usage-test",
+        userPermissionLevel: "public",
+        isAnchor: false,
+        interfaceType: guest ? guestInterfaceType : "evaluation",
+        ...(guest ? { guestExecution: testGuestExecution } : {}),
+      },
+    });
+    expect(requests).toHaveLength(2);
+    expect(result.steps).toHaveLength(2);
+    // The turn's usage is both model calls, not only the final answer's.
+    expect(result.usage).toMatchObject({
+      inputTokens: 30,
+      outputTokens: 12,
+      totalTokens: 42,
+    });
+    expect(result.steps[1]?.usage).toMatchObject({
+      inputTokens: 20,
+      outputTokens: 7,
+      totalTokens: 27,
+    });
+    if (guest)
+      expect(result.guestSettlement?.usage).toMatchObject({
+        modelCalls: 2,
+        inputTokens: 30,
+        outputTokens: 12,
+      });
+    else expect(result.guestSettlement).toBeUndefined();
+  });
 }
