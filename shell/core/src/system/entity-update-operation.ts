@@ -14,6 +14,7 @@ import { setCoverImageId, setOgImageId } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { SystemServices } from "./types";
+import { FRONTMATTER_BLOCK } from "./markdown-body";
 import type { UpdateOperationInput } from "./schemas";
 
 /**
@@ -312,8 +313,6 @@ function validateFieldUpdatePersistence(
       "Provide full markdown with frontmatter via 'content' instead.",
   };
 }
-
-const FRONTMATTER_BLOCK = /^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/;
 
 /**
  * Turns replacement text into the full document it stands for. Text with its
