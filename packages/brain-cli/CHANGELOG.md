@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- [#548](https://github.com/rizom-ai/brains/pull/548) [`5c4b107`](https://github.com/rizom-ai/brains/commit/5c4b107f4448fbbe479f45d0dd4314002bd03614) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new brain whose content repo already has history now checks it out in place: the data directory is a mount point in a deployed brain, and the old clone-then-rename failed there silently, falling back to a local repository merged with the remote as an unrelated history. A Git command whose output passes the retention ceiling now runs to completion instead of being killed, which had failed the startup sync of large repositories. After a failed startup sync no identity or prompt defaults are created, so they can no longer be exported over content the sync never imported.
+
 ## 0.2.0-alpha.491
 
 ## 0.2.0-alpha.490

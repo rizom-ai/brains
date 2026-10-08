@@ -1,5 +1,20 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- [#546](https://github.com/rizom-ai/brains/pull/546) [`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every brain's pages carry the lantern as their icon. The default icon lives in the contracts; the console page links it; the webserver answers `/favicon.svg` with it when the served output has no icon of its own, and no longer stamps a year's immutable caching on a 404 for an image or icon path, which had let an edge hide the file long after it existed.
+
+- Updated dependencies [[`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a)]:
+  - @brains/contracts@0.2.0-alpha.492
+  - @brains/ui-library@0.2.0-alpha.492
+  - @brains/auth-service@0.2.0-alpha.492
+  - @brains/plugins@0.2.0-alpha.492
+  - @brains/operator-view-react@0.2.0-alpha.492
+  - @brains/console-theme@0.2.0-alpha.492
+  - @brains/utils@0.2.0-alpha.492
+
 ## 0.2.0-alpha.491
 
 ### Patch Changes
