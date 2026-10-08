@@ -27,6 +27,8 @@ import {
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
+const initialSyncOutcomeSchema = z.object({ success: z.boolean() });
+
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({
     operationId: z.string().min(1),
@@ -257,12 +259,15 @@ export class ShellBootloader {
       // for initialSyncCompleted: they must never be created before a content
       // repo's own identity and prompts are imported. Subscribed first, so a
       // completion sent while the answers are collected is not missed.
-      const initialSync = deferred();
+      const initialSync = deferred<boolean>();
       this.services.disposables.push(
         this.services.messageBus.subscribe(
           SYSTEM_CHANNELS.initialSyncCompleted,
-          async () => {
-            initialSync.resolve();
+          async (message) => {
+            initialSync.resolve(
+              initialSyncOutcomeSchema.safeParse(message.payload).data
+                ?.success === true,
+            );
             return { success: true };
           },
         ),
@@ -280,7 +285,15 @@ export class ShellBootloader {
 
       if (initialSyncPending) {
         pendingStartupContent = initialSync.promise
-          .then(() => this.settleStartupContent())
+          .then(async (succeeded) => {
+            // After a failed sync, content it never imported may still be on
+            // disk; a default would be exported over it. The next start
+            // syncs again.
+            if (succeeded) return this.settleStartupContent();
+            this.services.logger.warn(
+              "Initial sync failed; ready-state defaults are not created",
+            );
+          })
           .catch((error: unknown) => {
             this.services.logger.error(
               "Failed to settle startup content",

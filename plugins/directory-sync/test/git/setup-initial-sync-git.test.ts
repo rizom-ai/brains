@@ -359,7 +359,7 @@ describe("setupInitialSync", () => {
     expect(onGitRecoveryFailed).not.toHaveBeenCalled();
   });
 
-  it("completes with success:false when the pull fails", async () => {
+  it("keeps defaults waiting and completes with success:false when the pull fails", async () => {
     const context = createMockContext();
     const onGitRecoveryFailed = mock(async () => {});
 
@@ -382,7 +382,7 @@ describe("setupInitialSync", () => {
     });
 
     expect(await registerPlugins(context)).toEqual([
-      { initialSyncPending: false },
+      { initialSyncPending: true },
     ]);
     expect(onGitRecoveryFailed).toHaveBeenCalledTimes(1);
     expect(completions(context)).toEqual([
