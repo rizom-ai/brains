@@ -1,11 +1,11 @@
 import { describe, expect, it, jest } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { BunSchedulerBackend } from "../src";
 import { TestSchedulerBackend } from "../src/test";
 
 function yieldToFibers(): Effect.Effect<void> {
-  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+  return Effect.yieldNow.pipe(Effect.andThen(Effect.yieldNow));
 }
 
 describe("TestSchedulerBackend", () => {
@@ -30,7 +30,7 @@ describe("TestSchedulerBackend", () => {
   it("uses Effect TestClock as its single injected time source", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const scheduler = new TestSchedulerBackend({ clock });
         let runs = 0;
         scheduler.scheduleInterval(1_000, () => {
@@ -44,8 +44,8 @@ describe("TestSchedulerBackend", () => {
         yield* TestClock.adjust(1);
         yield* Effect.promise(() => scheduler.runDue());
         expect(runs).toBe(1);
-        expect(scheduler.now().getTime()).toBe(clock.unsafeCurrentTimeMillis());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+        expect(scheduler.now().getTime()).toBe(clock.currentTimeMillisUnsafe());
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
@@ -356,7 +356,7 @@ describe("BunSchedulerBackend lifecycle", () => {
   it("uses the injected clock and waits one interval before the first cycle", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const scheduler = new BunSchedulerBackend({ clock });
         let calls = 0;
         const job = scheduler.scheduleInterval(100, () => {
@@ -372,14 +372,14 @@ describe("BunSchedulerBackend lifecycle", () => {
         expect(calls).toBe(1);
 
         yield* Effect.promise(() => job.stop());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("skips overlapping cycles and drains the active cycle on stop", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         let releaseFirst: (() => void) | undefined;
         const firstCycle = new Promise<void>((resolve) => {
           releaseFirst = resolve;
@@ -420,7 +420,7 @@ describe("BunSchedulerBackend lifecycle", () => {
         yield* TestClock.adjust(500);
         yield* yieldToFibers();
         expect(calls).toBe(1);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

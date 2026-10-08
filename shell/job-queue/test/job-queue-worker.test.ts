@@ -31,7 +31,7 @@ import type {
 } from "@brains/utils/progress";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { OperationContext } from "@brains/operation-context";
 import type { ResettableAmbientScope } from "../src/job-queue-worker";
 
@@ -895,7 +895,7 @@ describe("JobQueueWorker", () => {
   describe("Job processing integration", () => {
     it("should poll on schedule and stop polling when stopped", async () => {
       const program = Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         worker = createWorkerWithClock(
           mockService,
           mockProgressMonitor,
@@ -905,25 +905,25 @@ describe("JobQueueWorker", () => {
 
         try {
           yield* Effect.promise(() => worker.start());
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(49);
           expect(mockService.dequeue).not.toHaveBeenCalled();
 
           yield* TestClock.adjust(1);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(mockService.dequeue).toHaveBeenCalledTimes(1);
 
           yield* Effect.promise(() => worker.stop());
           yield* TestClock.adjust(500);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(mockService.dequeue).toHaveBeenCalledTimes(1);
         } finally {
           if (worker.isWorkerRunning()) {
             yield* Effect.promise(() => worker.stop());
           }
         }
-      }).pipe(Effect.provide(TestContext.TestContext));
+      }).pipe(Effect.provide(TestClock.layer()));
 
       await Effect.runPromise(program);
     });

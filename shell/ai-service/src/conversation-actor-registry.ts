@@ -14,10 +14,10 @@
 import {
   Effect,
   Exit,
-  Fiber,
   FiberMap,
   Option,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
@@ -48,7 +48,7 @@ function raceWithSignal<T>(
 }
 
 interface EvictionSupervisor {
-  scope: Scope.CloseableScope;
+  scope: Scope.Closeable;
   fibers: FiberMap.FiberMap<string, void, never>;
 }
 
@@ -207,12 +207,10 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
         }),
       ),
     );
-    const eviction = this.clock
-      ? Effect.withClock(timedEviction, this.clock)
-      : timedEviction;
+    const eviction = withOptionalClock(timedEviction, this.clock);
 
     const fiber = Effect.runFork(eviction);
-    FiberMap.unsafeSet(this.evictionSupervisor.fibers, conversationId, fiber);
+    FiberMap.setUnsafe(this.evictionSupervisor.fibers, conversationId, fiber);
   }
 
   /** Terminally stop admission, drain operations, and stop every actor. */
@@ -260,12 +258,12 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     const revision = (this.evictionRevisions.get(conversationId) ?? 0) + 1;
     this.evictionRevisions.set(conversationId, revision);
 
-    const fiber = FiberMap.unsafeGet(
+    const fiber = FiberMap.getUnsafe(
       this.evictionSupervisor.fibers,
       conversationId,
     );
     if (Option.isSome(fiber)) {
-      Effect.runSync(Fiber.interruptFork(fiber.value));
+      fiber.value.interruptUnsafe();
     }
     return revision;
   }
@@ -277,7 +275,7 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   private createEvictionSupervisor(): EvictionSupervisor {
     const scope = Effect.runSync(Scope.make());
     const fibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), scope),
+      Scope.provide(FiberMap.make<string, void, never>(), scope),
     );
     return { scope, fibers };
   }

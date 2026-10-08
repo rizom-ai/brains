@@ -10,7 +10,7 @@ import { runEffectPromise } from "../effect-runtime";
  * Effect is an internal lifecycle implementation detail.
  */
 export class ShellLifecycle {
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private closePromise: Promise<void> | null = null;
   private closed = false;
 

@@ -14,7 +14,7 @@ import { PluginError } from "../errors";
 import { PluginLifecycle } from "./plugin-lifecycle";
 import { DependencyResolver } from "./dependency-resolver";
 import { CapabilityRegistrar } from "./capability-registrar";
-import { Effect, Either } from "@brains/utils/effect";
+import { Effect, Result } from "@brains/utils/effect";
 import {
   ProjectionRegistry,
   type ProjectionGraph,
@@ -27,7 +27,7 @@ async function runConcurrentPhase(
   const results = await Effect.runPromise(
     Effect.all(
       operations.map((operation) =>
-        Effect.either(
+        Effect.result(
           Effect.tryPromise({
             try: operation,
             catch: (error) => error,
@@ -37,8 +37,8 @@ async function runConcurrentPhase(
       { concurrency: "unbounded" },
     ),
   );
-  const firstFailure = results.find(Either.isLeft);
-  if (firstFailure) throw firstFailure.left;
+  const firstFailure = results.find(Result.isFailure);
+  if (firstFailure) throw firstFailure.failure;
 }
 
 // Re-export enums for convenience

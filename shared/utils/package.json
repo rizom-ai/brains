@@ -3,7 +3,7 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.487",
   "dependencies": {
-    "effect": "^3.21.4",
+    "effect": "4.0.1",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.2.0",
     "mdast-util-to-string": "^4.0.0",

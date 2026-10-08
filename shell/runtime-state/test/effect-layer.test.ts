@@ -15,7 +15,7 @@ import { RuntimeStateService } from "../src/runtime-state-service";
 const logger = createSilentLogger("runtime-state-effect-layer");
 const stringSchema = z.string();
 
-function closeScope(scope: Scope.CloseableScope): void {
+function closeScope(scope: Scope.Closeable): void {
   Effect.runSync(Scope.close(scope, Exit.void));
 }
 
