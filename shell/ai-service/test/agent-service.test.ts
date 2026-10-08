@@ -4308,6 +4308,130 @@ describe("AgentService", () => {
     });
   });
 
+  describe("assistant turn facts", () => {
+    const readSeed = (): BrainAgentResult => ({
+      text: "Here is the outline.",
+      steps: [
+        {
+          toolCalls: [
+            {
+              toolName: "system_get",
+              toolCallId: "read-1",
+              input: { entityType: "note", id: "seed" },
+            },
+          ],
+          toolResults: [
+            {
+              toolName: "system_get",
+              toolCallId: "read-1",
+              output: {
+                success: true,
+                data: {
+                  entity: { id: "seed", entityType: "note", content: "Seed" },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
+    });
+
+    it("records when a completed turn started and what it read", async () => {
+      mockAgentGenerateResult = readSeed();
+      const savedMessages: unknown[] = [];
+      mockConversationService.addMessage = mock(async (request) => {
+        savedMessages.push(request);
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const before = new Date().toISOString();
+      await service.chat("Outline my seed note", "test-conversation");
+      const after = new Date().toISOString();
+
+      expect(mockConversationService.addMessage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          role: "assistant",
+          content: "Here is the outline.",
+          metadata: expect.objectContaining({
+            assistantTurn: {
+              startedAt: expect.any(String),
+              retrieved: [{ entityType: "note", entityId: "seed" }],
+            },
+          }),
+        }),
+      );
+      const saved = z
+        .object({
+          role: z.string(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
+        })
+        .parse(savedMessages.at(-1));
+      const startedAt = z
+        .object({ assistantTurn: z.object({ startedAt: z.string() }) })
+        .parse(saved.metadata).assistantTurn.startedAt;
+      expect(startedAt >= before && startedAt <= after).toBe(true);
+    });
+
+    it("records no turn facts on a reply that awaits confirmation", async () => {
+      mockAgentGenerateResult = {
+        ...readSeed(),
+        steps: [
+          ...readSeed().steps,
+          {
+            toolCalls: [
+              {
+                toolName: "system_update",
+                toolCallId: "update-1",
+                input: { entityType: "note", id: "seed" },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "system_update",
+                toolCallId: "update-1",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "system_update",
+                  summary: "Update seed?",
+                  args: { entityType: "note", id: "seed", confirmed: true },
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const savedMessages: unknown[] = [];
+      mockConversationService.addMessage = mock(async (request) => {
+        savedMessages.push(request);
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      await service.chat("Update my seed note", "test-conversation");
+
+      const saved = z
+        .object({
+          role: z.string(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
+        })
+        .parse(savedMessages.at(-1));
+      expect(saved.role).toBe("assistant");
+      expect(saved.metadata ?? {}).not.toHaveProperty("assistantTurn");
+    });
+  });
+
   describe("toolResults in response", () => {
     it("uses a tool-result state prompt when a terminal tool call returns no model text", async () => {
       mockAgentGenerateResult = {
