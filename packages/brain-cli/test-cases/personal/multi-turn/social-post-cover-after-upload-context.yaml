@@ -37,8 +37,8 @@ turns:
     successCriteria:
       toolCountRange:
         max: 0
-      responseContains:
-        - "ecosystem"
+      responseCriteria:
+        - "Describes the uploaded image and relates it to ecosystems."
 
   - userMessage: "can you generate a social post about this for me?"
     successCriteria:

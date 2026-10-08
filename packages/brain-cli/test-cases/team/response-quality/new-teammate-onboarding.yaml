@@ -45,21 +45,7 @@ successCriteria:
     - toolName: system_search
       shouldBeCalled: true
   responseContains:
-    - "searched saved Team Brain memory"
     - "Team Brain"
-    - "team"
-    - "peer"
-    - "operating"
-    - "synthesis"
-    - "notes"
-    - "links"
-    - "summar"
-    - "topics"
-    - "agent"
-    - "decks"
-  responseContainsAny:
-    - - "docs"
-      - "documents"
   responseNotContains:
     - "blog platform"
     - "newsletter pipeline"
@@ -68,6 +54,11 @@ successCriteria:
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Begins by saying it searched saved Team Brain memory."
+    - "Explains that Team Brain coordinates shared team memory, synthesis, and peer-brain coordination."
+    - "Recommends reading the saved operating model and related saved titles first."
+    - "Lists the supported workflows from saved memory: notes and links capture, conversation summaries, topics, the peer-brain directory, and docs and decks."
 
 efficiency:
   maxToolCalls: 8

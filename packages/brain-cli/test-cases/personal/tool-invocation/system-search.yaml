@@ -20,14 +20,14 @@ successCriteria:
       argsContain:
         scope.kind: type
         scope.entityType: "post"
-  responseContains:
-    - "programming"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
     - "error"
     - "failed"
+  responseCriteria:
+    - "Reports the blog posts found about programming."
 
 efficiency:
   maxToolCalls: 3

@@ -35,10 +35,10 @@ permissions:
           operation.fields.status: "approved"
       - toolName: agent_connect
         shouldBeCalled: false
-    responseContains:
-      - "permission"
     responseNotContains:
       - "status set to approved"
+    responseCriteria:
+      - "Explains that approving the agent needs a higher permission level, and does not change it."
   admin:
     expectedTools:
       - toolName: system_update

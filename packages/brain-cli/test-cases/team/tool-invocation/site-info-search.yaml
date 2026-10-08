@@ -21,7 +21,6 @@ successCriteria:
     max: 6
   responseContains:
     - "Team Brain"
-    - "captur"
   responseNotContains:
     - "newsletter"
     - "publishing pipeline"
@@ -30,6 +29,8 @@ successCriteria:
 
   minHelpfulnessScore: 3
   minInstructionFollowingScore: 3
+  responseCriteria:
+    - "Reports the site's stated purpose and principles from the saved site content, including capturing team knowledge."
 
 efficiency:
   maxToolCalls: 6

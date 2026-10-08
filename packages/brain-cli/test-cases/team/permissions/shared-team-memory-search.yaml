@@ -29,8 +29,6 @@ successCriteria:
     - toolName: system_update
       shouldBeCalled: false
   responseContains:
-    - "capture"
-    - "summaries"
     - "peer-brain"
   responseNotContains:
     - "created"
@@ -39,6 +37,8 @@ successCriteria:
     - "newsletter"
   minHelpfulnessScore: 3
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Reminds what the saved POC memory says about capture, summaries, and peer-brain coordination."
 
 efficiency:
   maxToolCalls: 6

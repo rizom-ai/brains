@@ -29,14 +29,14 @@ successCriteria:
       shouldBeCalled: false
       argsContain:
         action: sync
-  responseContains:
-    - "sync"
   responseNotContains:
     - "started a sync"
     - "backup complete"
     - "I cannot"
     - "I don't have access"
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Reports the current content sync and git status, including any pending changes, without starting a sync."
 
 efficiency:
   maxToolCalls: 3

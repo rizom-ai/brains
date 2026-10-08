@@ -33,11 +33,8 @@ successCriteria:
       shouldBeCalled: false
   responseContains:
     - "Core"
-    - "private team memory"
     - "Default"
-    - "minimal public site"
     - "Full"
-    - "existing team-knowledge"
   responseNotContains:
     - "Neptune waiver"
     - "tangerine kiosk"
@@ -46,6 +43,8 @@ successCriteria:
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Describes the presets in the memory's own terms: private team memory, a minimal public site, and existing team-knowledge surfaces."
 
 efficiency:
   maxToolCalls: 0

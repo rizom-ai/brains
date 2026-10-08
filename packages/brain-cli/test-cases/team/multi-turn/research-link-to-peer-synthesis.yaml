@@ -43,11 +43,12 @@ turns:
           shouldBeCalled: true
       responseContains:
         - "MCP"
-        - "peer"
       responseNotContains:
         - "I don't have access"
         - "meeting-notes"
         - "decision-record"
+      responseCriteria:
+        - "Explains how the saved MCP reference should shape the team's peer-brain and A2A handoff plan."
 
 successCriteria:
   expectedTools:
@@ -57,8 +58,6 @@ successCriteria:
         entityType: "link"
     - toolName: system_search
       shouldBeCalled: true
-  responseContains:
-    - "handoff"
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4

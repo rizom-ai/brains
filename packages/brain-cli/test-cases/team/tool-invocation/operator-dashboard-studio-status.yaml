@@ -32,7 +32,6 @@ successCriteria:
     - "Studio"
     - "/dashboard"
     - "/studio"
-    - "core"
   responseNotContains:
     - "site-builder is required"
     - "enable the public site"
@@ -41,6 +40,8 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Says the dashboard and Studio are core web/admin surfaces that do not require the public site builder."
 
 efficiency:
   maxToolCalls: 3

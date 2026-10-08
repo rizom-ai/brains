@@ -42,8 +42,8 @@ turns:
     successCriteria:
       toolCountRange:
         max: 0
-      responseContains:
-        - "ecosystem"
+      responseCriteria:
+        - "Relates the uploaded image to ecosystems."
 
   - userMessage: "can you save this as a note for me?"
     successCriteria:

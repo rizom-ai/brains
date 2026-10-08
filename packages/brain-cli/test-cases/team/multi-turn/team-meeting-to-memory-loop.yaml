@@ -48,13 +48,14 @@ turns:
       responseContains:
         - "Customer Alpha"
         - "MCP"
-        - "unassigned"
         - "Daniel"
         - "Mira"
       responseNotContains:
         - "blog"
         - "newsletter"
         - "I don't have access"
+      responseCriteria:
+        - "Labels the owner of every action without a captured owner as unassigned, and does not invent owners."
 
 successCriteria:
   expectedTools:

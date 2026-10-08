@@ -47,12 +47,12 @@ turns:
           shouldBeCalled: true
       responseContains:
         - "Beta Ops"
-        - "summar"
-        - "topic"
       responseNotContains:
         - "blog"
         - "newsletter"
         - "meeting-notes"
+      responseCriteria:
+        - "Bases the triage note on the related Team Brain memory it retrieved, summarizing that context and naming the product area or topic it concerns."
 
 successCriteria:
   expectedTools:

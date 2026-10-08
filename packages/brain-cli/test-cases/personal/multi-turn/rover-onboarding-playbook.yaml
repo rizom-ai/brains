@@ -44,12 +44,12 @@ turns:
   - userMessage: "Approve saving that brain identity."
     confirmPendingAction: true
     successCriteria:
-      responseContains:
-        - "brain"
       responseNotContains:
         - 'Completed: Update "'
         - "I cannot"
         - "I don't have access"
+      responseCriteria:
+        - "Confirms the brain identity was saved."
 
   - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
     successCriteria:
@@ -84,11 +84,11 @@ turns:
           argsContain:
             action: start
             playbookId: first-knowledge-loop
-      responseContains:
-        - "idea"
       responseNotContains:
         - "I cannot"
         - "I don't have access"
+      responseCriteria:
+        - "Asks the operator for a first rough idea, note, link, or fragment to save."
 
   - userMessage: "Save this first idea: resilient software is a climate strategy because systems that fail less waste less energy and operator attention."
     successCriteria:
@@ -152,18 +152,6 @@ turns:
       responseContains:
         - "resilient software"
         - "climate"
-      responseContainsAny:
-        - - "saved a seed"
-          - "saved the seed"
-          - "saved as a note"
-          - "saved note"
-          - "durable knowledge"
-        - - "retrieved"
-          - "retrieval"
-          - "found the saved note"
-        - - "transformed"
-          - "outline"
-          - "useful working material"
       responseNotContains:
         - "I'll turn"
         - "I’ll turn"
@@ -172,6 +160,9 @@ turns:
         - "transformation stage"
         - "I cannot"
         - "I don't have access"
+      responseCriteria:
+        - "Shows the saved note as an outline in chat."
+        - "Says the loop is complete: a seed was saved, retrieved, and transformed into useful working material."
 
   - userMessage: "Thanks."
     successCriteria:

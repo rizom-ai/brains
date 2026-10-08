@@ -29,9 +29,6 @@ successCriteria:
       shouldBeCalled: false
     - toolName: system_get
       shouldBeCalled: false
-  responseContains:
-    - "team memory"
-    - "default"
   responseNotContains:
     - "I don't have access"
     - "permission"
@@ -39,6 +36,8 @@ successCriteria:
   minHelpfulnessScore: 4
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Summarizes the injected POC context about team memory and peer-brain coordination, including what it says about the default preset."
 
 efficiency:
   maxToolCalls: 0
