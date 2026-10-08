@@ -179,6 +179,24 @@ describe("exitCodeForModelRuns", () => {
     expect(exitCodeForModelRuns([])).toBe(1);
   });
 
+  it("fails when a model ran no tests", () => {
+    // A filter that matches nothing must not read as a pass, as on the
+    // single-model path.
+    expect(
+      exitCodeForModelRuns([
+        {
+          model: "sonnet",
+          summary: summary({
+            totalTests: 0,
+            passedTests: 0,
+            failedTests: 0,
+            results: [],
+          }),
+        },
+      ]),
+    ).toBe(1);
+  });
+
   it("judges sampled tests by their pass rate", () => {
     const sampled = summary({
       totalTests: 5,
