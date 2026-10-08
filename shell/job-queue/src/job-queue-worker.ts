@@ -22,6 +22,11 @@ import {
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { OperationContext } from "@brains/operation-context";
+import {
+  createRenewableDeadline,
+  renewOnAdvance,
+  type RenewableDeadline,
+} from "./progress-deadline";
 
 /**
  * Anything that can force its own ambient async context to empty for the
@@ -652,11 +657,17 @@ export class JobQueueWorker {
     }
   }
 
+  /**
+   * Run `operation` until it settles or its deadline passes. A renewable
+   * deadline is pushed back by the job's progress, so it catches a stuck job
+   * rather than a long one.
+   */
   private async executeWithDeadline<T>(
     jobType: string,
     timeoutMs: number,
     controller: AbortController,
     operation: () => Promise<T>,
+    deadline: RenewableDeadline = createRenewableDeadline(timeoutMs),
   ): Promise<T> {
     const outcome: Promise<OperationOutcome<T>> = Promise.resolve()
       .then(operation)
@@ -668,7 +679,9 @@ export class JobQueueWorker {
         }),
       );
 
-    const first = await this.raceOutcome(outcome, timeoutMs);
+    const first = await Promise.race([outcome, deadline.expired]).finally(() =>
+      deadline.cancel(),
+    );
     if (first.kind !== "timeout") {
       if (first.kind === "failure") throw first.error;
       return first.value;
@@ -768,6 +781,7 @@ export class JobQueueWorker {
       );
       const timeoutMs =
         handler.executionTimeoutMs ?? this.config.defaultExecutionTimeoutMs;
+      const deadline = createRenewableDeadline(timeoutMs);
       const result = await this.executeWithDeadline(
         job.type,
         timeoutMs,
@@ -776,9 +790,10 @@ export class JobQueueWorker {
           handler.process(
             parsedData,
             job.id,
-            progressReporter,
+            renewOnAdvance(progressReporter, deadline.renew),
             controller.signal,
           ),
+        deadline,
       );
 
       await stopHeartbeat();
