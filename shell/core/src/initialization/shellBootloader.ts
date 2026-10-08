@@ -1,6 +1,8 @@
 import { PROJECTION_CHANNELS } from "@brains/contracts";
+import { deferred } from "@brains/utils/deferred";
 import {
   materializePrompts,
+  pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
@@ -235,21 +237,37 @@ export class ShellBootloader {
     }
 
     if (!this.role.serves) {
-      await this.initializeIdentityServices();
+      // The worker imports startup content, so it never creates defaults:
+      // it reads what exists and follows what its imports bring.
+      await this.loadIdentityServices();
       this.services.jobProgressMonitor.start();
       await this.services.jobQueueWorker.start();
       this.services.logger.debug("Shell boot complete (worker process)");
       return;
     }
 
+    // Settles once a pending initial import is in place; until then the
+    // knowledge base stays gated, since an empty index reads as ready.
+    let pendingStartupContent: Promise<void> | undefined;
     if (options?.mode !== "startup-check") {
       await this.startEarlyWebserver();
 
-      // Run initial sync (driven by pluginsRegistered subscribers) before
-      // materializing ready-state defaults. Singleton defaults must not be
-      // created while a directory import may still populate existing markdown
-      // from brain-data into the entity DB.
-      await this.emitPluginsRegistered();
+      // A pluginsRegistered subscriber may queue the initial import for the
+      // worker and answer that it is pending. Ready-state defaults then wait
+      // for initialSyncCompleted: they must never be created before a content
+      // repo's own identity and prompts are imported. Subscribed first, so a
+      // completion sent while the answers are collected is not missed.
+      const initialSync = deferred();
+      this.services.disposables.push(
+        this.services.messageBus.subscribe(
+          SYSTEM_CHANNELS.initialSyncCompleted,
+          async () => {
+            initialSync.resolve();
+            return { success: true };
+          },
+        ),
+      );
+      const initialSyncPending = await this.emitPluginsRegistered();
 
       const backfillResult =
         await this.services.entityService.backfillMissingEmbeddings();
@@ -259,9 +277,22 @@ export class ShellBootloader {
       });
       // Existing membership becomes queryable before grouping reads are admitted.
       await this.services.entityService.reprojectRegisteredGroupings();
-    }
 
-    await this.prepareReadyState();
+      if (initialSyncPending) {
+        pendingStartupContent = initialSync.promise
+          .then(() => this.settleStartupContent())
+          .catch((error: unknown) => {
+            this.services.logger.error(
+              "Failed to settle startup content",
+              error,
+            );
+          });
+      } else {
+        await this.settleStartupContent();
+      }
+    } else {
+      await this.prepareReadyState();
+    }
 
     await this.services.pluginManager.readyPlugins();
 
@@ -271,7 +302,18 @@ export class ShellBootloader {
     }
 
     await this.startRuntimeServices();
-    await this.startIndexReadinessMonitor();
+    if (pendingStartupContent) {
+      void pendingStartupContent
+        .then(() => this.startIndexReadinessMonitor())
+        .catch((error: unknown) => {
+          this.services.logger.warn(
+            "Semantic index readiness monitor did not start",
+            error,
+          );
+        });
+    } else {
+      await this.startIndexReadinessMonitor();
+    }
 
     this.services.logger.debug("Shell boot complete");
   }
@@ -284,17 +326,45 @@ export class ShellBootloader {
     this.services.logger.debug("Started webserver before initial sync");
   }
 
-  private async emitPluginsRegistered(): Promise<void> {
-    await this.services.messageBus.send({
+  /** Emit pluginsRegistered; true when a subscriber's initial sync is pending. */
+  private async emitPluginsRegistered(): Promise<boolean> {
+    const responses = await this.services.messageBus.collect({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {
         timestamp: new Date().toISOString(),
         pluginCount: this.services.pluginManager.getAllPluginIds().length,
       },
       sender: "shell",
-      broadcast: true,
     });
     this.services.logger.debug("Emitted plugins registered event");
+    return responses.some(
+      (response) =>
+        "data" in response &&
+        pluginsRegisteredAnswerSchema.safeParse(response.data).data
+          ?.initialSyncPending === true,
+    );
+  }
+
+  /** Create ready-state defaults, then announce that startup content settled. */
+  private async settleStartupContent(): Promise<void> {
+    await this.prepareReadyState();
+    await this.services.messageBus.send({
+      type: SYSTEM_CHANNELS.startupContentSettled,
+      payload: { timestamp: new Date().toISOString() },
+      sender: "shell",
+      broadcast: true,
+    });
+    this.services.logger.debug("Emitted startup content settled event");
+  }
+
+  private async loadIdentityServices(): Promise<void> {
+    await runConcurrentPhase([
+      (): Promise<void> => this.services.identityService.refreshCache(),
+      (): Promise<void> => this.services.profileService.refreshCache(),
+      (): Promise<void> =>
+        this.services.canonicalIdentityService.refreshCache(),
+    ]);
+    this.services.logger.debug("Identity services loaded");
   }
 
   private async initializeIdentityServices(): Promise<void> {

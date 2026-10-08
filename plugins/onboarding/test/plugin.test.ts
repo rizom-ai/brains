@@ -2,10 +2,18 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { createPluginHarness } from "@brains/plugins/test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { onboardingPlugin } from "../src";
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-onboarding-");
+}
+
+/** The shell announces settled startup content once the import is in place. */
+async function settleStartupContent(
+  harness: ReturnType<typeof createPluginHarness>,
+): Promise<void> {
+  await harness.sendMessage(SYSTEM_CHANNELS.startupContentSettled, {});
 }
 
 async function installHarness(): Promise<
@@ -23,6 +31,7 @@ describe("OnboardingPlugin", () => {
     const plugin = onboardingPlugin({});
     await harness.installPlugin(plugin);
     await plugin.ready?.();
+    await settleStartupContent(harness);
 
     const setup = await harness.getEntityService().getEntity({
       entityType: "playbook",
@@ -46,13 +55,22 @@ describe("OnboardingPlugin", () => {
     expect(response?.starters).toEqual([]);
   });
 
-  it("seeds bundled onboarding playbooks when missing", async () => {
+  it("seeds bundled onboarding playbooks once startup content has settled", async () => {
     const harness = await installHarness();
     const plugin = onboardingPlugin({ enabled: true });
     await harness.installPlugin(plugin);
     await plugin.ready?.();
 
     const entityService = harness.getEntityService();
+    expect(
+      await entityService.getEntity({
+        entityType: "playbook",
+        id: "onboarding",
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+
+    await settleStartupContent(harness);
     const setup = await entityService.getEntity({
       entityType: "playbook",
       id: "onboarding",
@@ -91,6 +109,7 @@ describe("OnboardingPlugin", () => {
     const plugin = onboardingPlugin({ enabled: true });
     await harness.installPlugin(plugin);
     await plugin.ready?.();
+    await settleStartupContent(harness);
 
     const setup = await harness.getEntityService().getEntity({
       entityType: "playbook",
@@ -107,6 +126,7 @@ describe("OnboardingPlugin", () => {
     const plugin = onboardingPlugin({ enabled: true });
     await harness.installPlugin(plugin);
     await plugin.ready?.();
+    await settleStartupContent(harness);
 
     const response = await harness.sendMessage<
       {

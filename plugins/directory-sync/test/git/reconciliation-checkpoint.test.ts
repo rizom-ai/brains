@@ -196,6 +196,44 @@ describe("GitReconciliationService", () => {
     expect(await service.getCheckpoint()).toEqual(TARGET);
   });
 
+  it("queues every file past an existing checkpoint when asked for a full reconciliation", async () => {
+    const context = createContext();
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE);
+    const getReconciliationDelta = mock(
+      async (
+        checkpoint?: GitReconciliationCheckpoint,
+      ): Promise<GitReconciliationDelta> =>
+        checkpoint
+          ? incremental()
+          : { mode: "full", checkpoint: TARGET, reason: "missing-checkpoint" },
+    );
+    const queueSyncBatch = mock(async () => ({
+      batchId: "full-batch",
+      operationCount: 2,
+      exportOperationsCount: 0,
+      importOperationsCount: 1,
+      totalFiles: 1,
+    }));
+
+    const result = await service.pullAndQueue({
+      gitSync: createMockGitSync({ getReconciliationDelta }),
+      directorySync: createMockDirectorySync({ queueSyncBatch }),
+      context,
+      source: "initial-sync",
+      full: true,
+    });
+
+    expect(getReconciliationDelta).toHaveBeenCalledWith(undefined);
+    expect(queueSyncBatch).toHaveBeenCalledWith(
+      context,
+      "initial-sync",
+      undefined,
+    );
+    expect(result.mode).toBe("full");
+    expect(await service.getCheckpoint()).toEqual(TARGET);
+  });
+
   it("advances a no-change checkpoint without allocating a batch", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
@@ -280,7 +318,9 @@ describe("GitReconciliationService", () => {
         runtimeState,
       };
       const beforeCrash = new GitReconciliationService(runtimeState);
-      await beforeCrash.captureCurrent(gitSync);
+      await beforeCrash.saveCheckpoint(
+        (await gitSync.getReconciliationDelta(undefined)).checkpoint,
+      );
 
       await runGit(["clone", remoteDir, writerDir], root);
       writeFileSync(join(writerDir, "remote-after-checkpoint.md"), "# Remote");
@@ -332,22 +372,5 @@ describe("GitReconciliationService", () => {
       await gitSync.cleanup();
       rmSync(root, { recursive: true, force: true });
     }
-  });
-
-  it("captures current Git state only after a completed full initial sync", async () => {
-    const context = createContext();
-    const service = new GitReconciliationService(context.runtimeState);
-    const getReconciliationDelta = mock(
-      async (): Promise<GitReconciliationDelta> => ({
-        mode: "full",
-        checkpoint: TARGET,
-        reason: "missing-checkpoint",
-      }),
-    );
-
-    await service.captureCurrent(createMockGitSync({ getReconciliationDelta }));
-
-    expect(getReconciliationDelta).toHaveBeenCalledWith(undefined);
-    expect(await service.getCheckpoint()).toEqual(TARGET);
   });
 });
