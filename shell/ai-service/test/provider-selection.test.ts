@@ -74,6 +74,8 @@ describe("supportsTemperature", () => {
   it("should disable temperature for OpenAI reasoning models", () => {
     expect(supportsTemperature("gpt-5.4-mini")).toBe(false);
     expect(supportsTemperature("openai:gpt-5.4-mini")).toBe(false);
+    expect(supportsTemperature("gpt-6-luna")).toBe(false);
+    expect(supportsTemperature("openai:gpt-6-luna")).toBe(false);
     expect(supportsTemperature("o3-mini")).toBe(false);
   });
 });
