@@ -75,6 +75,7 @@ export async function prepareGitRepository(
 
   if (remoteUrl) {
     await configureRemote(git, remoteUrl);
+    await ensureUpstream(git, branch);
   }
 
   return git;
@@ -134,6 +135,7 @@ async function prepareRepositoryFromRemote(options: {
   // builds it again.
   logger.info("Checking out repository", { gitUrl: remoteUrl });
   await gitInit(dataDir, branch);
+  await configureRemote(managedGit(dataDir), remoteUrl);
   const marker = join(dataDir, ".git", CHECKOUT_IN_PROGRESS);
   await writeFile(marker, "");
   try {
@@ -144,7 +146,7 @@ async function prepareRepositoryFromRemote(options: {
         credentialEnv,
         ...(onProgress ? { onProgress } : {}),
       },
-      ["fetch", "--no-tags", remoteUrl, branch],
+      ["fetch", "--no-tags", "origin", branch],
       signal,
     );
   } catch (error) {
@@ -158,9 +160,30 @@ async function prepareRepositoryFromRemote(options: {
   const git = managedGit(dataDir);
   // The remote's content replaces whatever the directory held before it was
   // a checkout.
-  await git.raw(["checkout", "-f", "-B", branch, "FETCH_HEAD"]);
+  await git.raw([
+    "checkout",
+    "-f",
+    "-B",
+    branch,
+    "--track",
+    `origin/${branch}`,
+  ]);
   await git.raw(["clean", "-fd"]);
   await rm(marker);
+}
+
+/**
+ * The branch tracks origin, as a clone would set it up: pulls and the
+ * pre-deploy backup both resolve `@{upstream}`. A checkout built without
+ * one gets it here on its next start.
+ */
+async function ensureUpstream(git: SimpleGit, branch: string): Promise<void> {
+  const merge = await git
+    .raw(["config", "--get", `branch.${branch}.merge`])
+    .catch(() => "");
+  if (merge.trim()) return;
+  await git.raw(["config", `branch.${branch}.remote`, "origin"]);
+  await git.raw(["config", `branch.${branch}.merge`, `refs/heads/${branch}`]);
 }
 
 async function gitInit(dataDir: string, branch: string): Promise<void> {
