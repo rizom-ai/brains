@@ -95,8 +95,11 @@ wait, lease relaxation, schema change, or execution-deadline change is introduce
 - `onUnhealthy` notifies the owning runtime when safe execution is no longer
   possible.
 
-A handler can override the default deadline with `executionTimeoutMs`. Every
-handler receives an `AbortSignal`. If a timed-out handler does not settle during
+A handler can override the default deadline with `executionTimeoutMs`. The
+deadline catches a stuck job, not a long one: every progress report that
+advances the job — a changed progress value, total or message — starts the full
+window again. A report that repeats the previous one, such as a reporter's own
+heartbeat, does not. Every handler receives an `AbortSignal`. If a timed-out handler does not settle during
 the cancellation grace period, the worker becomes unhealthy and stops claiming
 jobs without releasing that attempt for an in-process retry. External process
 supervision must replace such a worker. The shell runtime treats this state as
