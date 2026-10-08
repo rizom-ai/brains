@@ -63,7 +63,7 @@
     {
       "label": "Pin the private Effect runtime; upgrades are deliberate",
       "packages": ["@brains/utils"],
-      "dependencies": ["effect"],
+      "dependencies": ["effect", "@effect/platform-bun"],
       "dependencyTypes": ["prod"],
       "range": ""
     },
