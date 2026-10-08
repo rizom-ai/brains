@@ -155,7 +155,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly guestHttpOptions: GuestHttpOptions;
-  private readonly guestPolicy: GuestPolicy;
+  /** Closed until registration resolves the preset against the runtime model. */
+  private guestPolicy: GuestPolicy = { enabled: false };
+  private readonly injectedGuestPolicy: GuestPolicy | undefined;
+  /** Known from configuration, so routes are declared before registration. */
+  private readonly guestConfigured: boolean;
   private guestHttp: GuestHttpHandlers | undefined;
   private guestControl: GuestAccessControl | undefined;
   private askBoxAvailability:
@@ -171,10 +175,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.runtimeGuestActivationAllowed =
       config.guest === undefined && deps.guestPolicy === undefined;
-    this.guestPolicy =
+    this.injectedGuestPolicy =
       deps.guestPolicy === undefined
-        ? resolveGuestPreset(this.config.guest)
+        ? undefined
         : guestPolicySchema.parse(deps.guestPolicy);
+    this.guestConfigured =
+      this.injectedGuestPolicy?.enabled ?? this.config.guest !== false;
     this.resolveAuthPrincipal =
       deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
@@ -189,6 +195,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   protected override async onRegister(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
+    const model = (await context.identity.getAppInfo()).ai.model;
+    this.guestPolicy =
+      this.injectedGuestPolicy ?? resolveGuestPreset(this.config.guest, model);
     await super.onRegister(context);
     // Hosted guest access requires an owner-set budget.
     // Other injected HTTPS policies remain closed without explicit readiness.
@@ -201,6 +210,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       (request) => this.resolveBrowserAccess(request),
       () => context.agent.guestReady === true,
       this.runtimeGuestActivationAllowed,
+      model,
       this.guestHttpOptions.now,
     );
     const managedPolicy = this.guestControl.policy;
@@ -305,7 +315,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   /** Guest chat is configured or managed: its pages and assets are declared (each request is still authorized). */
   private declaresGuestAssets(): boolean {
-    return this.guestPolicy.enabled || this.guestControl?.policy !== undefined;
+    return this.guestConfigured || this.guestControl?.policy !== undefined;
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -601,7 +611,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private get authenticatedRoutePath(): string {
-    return this.guestPolicy.enabled || this.guestControl?.policy
+    return this.guestConfigured || this.guestControl?.policy
       ? `${this.config.routePath.replace(/\/+$/, "")}/authenticated`
       : this.config.routePath;
   }
