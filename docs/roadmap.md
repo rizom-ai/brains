@@ -162,7 +162,7 @@ Active cleanup and infrastructure plans:
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
-- [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
+- [topics-ranked-selection.md](./plans/topics-ranked-selection.md) — topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — move the shell's Effect boundary to v4, drop `runEffectPromise`, and put the Git broker transport on `effect/rpc`.
 - [structured-body-codecs.md](./plans/structured-body-codecs.md) — make every structured body a Zod codec so writes validate like reads, with one shared round-trip contract.
