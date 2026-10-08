@@ -405,7 +405,9 @@ describe("Shell initialization order", () => {
       );
     });
 
-    it("creates defaults after a failed initial sync", async () => {
+    it("creates no defaults after a failed initial sync, and opens the knowledge base", async () => {
+      // Content the sync never imported may still be on disk; a default
+      // would be exported over it.
       const config = createTestShellConfig(testDir.dir);
       config.plugins = [initialSyncPlugin()];
       shell = Shell.createFresh(config, deps);
@@ -413,9 +415,13 @@ describe("Shell initialization order", () => {
       await shell.initialize();
 
       await completeInitialSync(false);
-      await waitUntil(() => record.settled, "startup content to settle");
+      await waitUntil(
+        () => shell.getEntityService().isIndexReady(),
+        "the knowledge base to open after the failed sync",
+      );
 
-      expect(record.withDefaults).toBe(true);
+      expect(record.settled).toBe(false);
+      expect(await hasDefaultCharacter()).toBe(false);
     });
 
     it("creates defaults when the initial sync completes while plugins-registered is answered", async () => {

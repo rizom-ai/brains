@@ -136,6 +136,8 @@ const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
   "content-sync-completed": DIRECTORY_SYNC_CHANNELS.initialCompleted,
 };
 
+const successfulSeedTriggerSchema = z.object({ success: z.literal(true) });
+
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 const projectionEnvelopeSchema = z.object({
@@ -1337,7 +1339,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     context.messaging.subscribe(
       SEED_TRIGGER_CHANNELS[seed.on],
-      async (): Promise<{ success: true }> => {
+      async (message): Promise<{ success: true }> => {
+        // A failed import may have left authored files unimported on disk.
+        // Creating a default in the empty database could export over them.
+        if (!successfulSeedTriggerSchema.safeParse(message.payload).success)
+          return { success: true };
         // Create-if-absent: a seed must never overwrite authored content.
         const existing = await context.entityService.getEntity({
           entityType: this.entityType,

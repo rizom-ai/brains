@@ -3222,9 +3222,18 @@ describe("declarative entity seeding", () => {
     await harness.reset();
   });
 
-  it("creates the entity when the signal fires", async () => {
+  for (const outcome of [{ success: false }, {}]) {
+    it(`does not seed after an unsuccessful outcome ${JSON.stringify(outcome)}`, async () => {
+      const harness = await installSeeded();
+      await harness.sendMessage("sync:initial:completed", outcome);
+      expect(await readSeed(harness)).toBeNull();
+      await harness.reset();
+    });
+  }
+
+  it("creates the entity when the successful signal fires", async () => {
     const harness = await installSeeded();
-    await harness.sendMessage("sync:initial:completed", {});
+    await harness.sendMessage("sync:initial:completed", { success: true });
 
     const entity = await readSeed(harness);
     expect(entity).toMatchObject({
@@ -3247,7 +3256,7 @@ describe("declarative entity seeding", () => {
       },
     });
 
-    await harness.sendMessage("sync:initial:completed", {});
+    await harness.sendMessage("sync:initial:completed", { success: true });
 
     const entity = await readSeed(harness);
     expect(entity?.content).toContain("Authored by a human.");
@@ -3273,7 +3282,7 @@ describe("declarative entity seeding", () => {
     });
     await harness.installPlugin(plugin);
 
-    await harness.sendMessage("sync:initial:completed", {});
+    await harness.sendMessage("sync:initial:completed", { success: true });
     expect(
       await harness
         .getEntityService()

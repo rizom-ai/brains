@@ -309,3 +309,9 @@ export {
   contactFormDiscoverySchema,
 } from "./contact-form-discovery";
 export type { ContactFormDiscovery } from "./contact-form-discovery";
+
+export {
+  DEFAULT_FAVICON_HREF,
+  DEFAULT_FAVICON_PATH,
+  DEFAULT_FAVICON_SVG,
+} from "./favicon";

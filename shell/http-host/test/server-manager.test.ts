@@ -315,6 +315,42 @@ describe("ServerManager (in-process)", () => {
     expect(status.productionUrl).toBeUndefined();
   });
 
+  it("answers a missing image path with a 404 that no edge may keep", async () => {
+    // An immutable 404 for /favicon.svg would hide the icon for a year once
+    // the site has it; a miss carries no caching.
+    const m = setup();
+    mkdirSync(join(testDir, "dist", "production"), { recursive: true });
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+    const res = await fetch(`${url}/missing.png`);
+    expect(res.status).toBe(404);
+    expect(res.headers.get("cache-control")).toBe("no-cache");
+  });
+
+  it("serves the lantern at /favicon.svg when the output has no icon, and the output's own when it has", async () => {
+    const m = setup();
+    const prodDir = join(testDir, "dist", "production");
+    mkdirSync(prodDir, { recursive: true });
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+    const lantern = await fetch(`${url}/favicon.svg`);
+    expect(lantern.status).toBe(200);
+    expect(lantern.headers.get("content-type")).toBe(
+      "image/svg+xml; charset=utf-8",
+    );
+    expect(lantern.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect(await lantern.text()).toContain('stroke="#d4af37"');
+
+    writeFileSync(join(prodDir, "favicon.svg"), "<svg>own</svg>");
+    const own = await fetch(`${url}/favicon.svg`);
+    expect(own.status).toBe(200);
+    expect(await own.text()).toBe("<svg>own</svg>");
+  });
+
   it("should serve 404 for missing pages", async () => {
     const m = setup();
     await m.start();

@@ -229,6 +229,45 @@ describe("HTTP route finalization during shell boot", () => {
     expect(settled).toBe(1);
   });
 
+  for (const early of [false, true]) {
+    it(`does not seed after a ${early ? "synchronous" : "deferred"} failed initial sync`, async () => {
+      shell = Shell.createFresh(
+        createTestShellConfig(testDirectory.dir),
+        dependencies,
+      );
+      const bus = shell.getMessageBus();
+      const fail = async (): Promise<void> => {
+        await bus.send({
+          type: SYSTEM_CHANNELS.initialSyncCompleted,
+          payload: { success: false, error: "Import unavailable" },
+          sender: "directory-sync",
+          broadcast: true,
+        });
+      };
+      bus.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+        if (early) await fail();
+        return { success: true, data: { initialSyncPending: true } };
+      });
+      let settled = 0;
+      bus.subscribe(SYSTEM_CHANNELS.startupContentSettled, async () => {
+        settled += 1;
+        return { success: true };
+      });
+      await shell.initialize();
+      if (!early) await fail();
+      const entities = shell.getEntityService();
+      await waitUntil(() => entities.isIndexReady(), "failed import readiness");
+      expect(settled).toBe(0);
+      for (const entityType of [
+        "brain-character",
+        "anchor-profile",
+        "prompt",
+      ]) {
+        expect(await entities.countEntities({ entityType })).toBe(0);
+      }
+    });
+  }
+
   it("does not continue pending startup defaults after shell shutdown", async () => {
     const registry = InMemoryTemplateRegistry.createFresh();
     const list = registry.list.bind(registry);

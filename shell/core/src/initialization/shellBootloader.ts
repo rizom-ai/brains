@@ -27,6 +27,7 @@ import {
 } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
+const initialSyncOutcomeSchema = z.object({ success: z.boolean() });
 
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({
@@ -283,7 +284,7 @@ export class ShellBootloader {
 
     // Settles once a pending initial import is in place; until then the
     // knowledge base stays gated, since an empty index reads as ready.
-    let pendingStartupContent: Promise<void> | undefined;
+    let pendingStartupContent: Promise<boolean> | undefined;
     if (options?.mode !== "startup-check") {
       await this.hooks.startHttpHost();
 
@@ -292,12 +293,15 @@ export class ShellBootloader {
       // for initialSyncCompleted: they must never be created before a content
       // repo's own identity and prompts are imported. Subscribed first, so a
       // completion sent while the answers are collected is not missed.
-      const initialSync = deferred();
+      const initialSync = deferred<boolean>();
       this.services.disposables.push(
         this.services.messageBus.subscribe(
           SYSTEM_CHANNELS.initialSyncCompleted,
-          async () => {
-            initialSync.resolve();
+          async (message) => {
+            initialSync.resolve(
+              initialSyncOutcomeSchema.safeParse(message.payload).data
+                ?.success === true,
+            );
             return { success: true };
           },
         ),
@@ -338,9 +342,17 @@ export class ShellBootloader {
       await this.lifecycle.fork(
         Effect.tryPromise({
           try: async (signal) => {
-            await startupContent;
+            const succeeded = await startupContent;
             signal.throwIfAborted();
-            await this.settleStartupContent(signal);
+            if (succeeded) {
+              await this.settleStartupContent(signal);
+            } else {
+              // Unimported authored files may still exist on disk. Never
+              // export defaults over them after a failed startup import.
+              this.services.logger.warn(
+                "Initial sync failed; ready-state defaults are not created",
+              );
+            }
           },
           catch: (error) => error,
         }).pipe(

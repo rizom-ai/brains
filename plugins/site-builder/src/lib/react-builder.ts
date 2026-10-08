@@ -4,6 +4,7 @@ import type {
   StaticSiteBuilderOptions,
   BuildContext,
 } from "./static-site-builder";
+import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -148,10 +149,16 @@ export class ReactBuilder implements StaticSiteBuilder {
     const siteLayoutInfo = preparedBuild.site;
 
     // Create head collector for SSR, linking only the icons the build has.
-    const headPaths = iconHeadPaths([
-      ...Object.keys(preparedBuild.staticAssets),
-      ...Object.keys(preparedBuild.publicAssets),
-    ]);
+    const icon =
+      preparedBuild.staticAssets["/favicon.svg"] ??
+      preparedBuild.staticAssets["/favicon.png"];
+    const headPaths = iconHeadPaths(
+      [
+        ...Object.keys(preparedBuild.staticAssets),
+        ...Object.keys(preparedBuild.publicAssets),
+      ],
+      icon === undefined ? undefined : sha256Hex(icon).slice(0, 12),
+    );
     const headCollector = new HeadCollector(
       preparedBuild.site.title,
       headPaths,

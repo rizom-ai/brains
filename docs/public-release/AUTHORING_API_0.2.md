@@ -301,7 +301,9 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 
 ## `@rizom/brain/services`
 
-Service `seeds` are host-owned defaults, not general-purpose foreign write authority. They run on `SYSTEM_CHANNELS.startupContentSettled`, after any queued startup import, rather than in `ready`. Existing entities at any visibility are preserved. A service's `ready` hook may run while startup import is pending; subscribe to the settled-content signal for work that needs imported content and shell defaults. Workers do not seed defaults.
+Service `seeds` are host-owned defaults, not general-purpose foreign write authority. They run on `SYSTEM_CHANNELS.startupContentSettled`, after any queued startup import, rather than in `ready`. Existing entities at any visibility are preserved. A service's `ready` hook may run while startup import is pending; subscribe to the settled-content signal for work that needs imported content and shell defaults. Workers do not seed defaults. Failed startup imports do not create defaults or announce settled content, including batches already failed or missing when first followed; a later restart retries the import. Entity `seed` declarations triggered by `content-sync-completed` likewise require an explicitly successful completion, not a failed or malformed signal.
+
+Job deadlines are inactivity windows, not total execution or spending limits. A changed progress value, total, or message renews the window; an identical consecutive notification or a reporter's automatic heartbeat does not. Cancellation and attempt fencing still apply.
 
 The MCP server defaults to **basic mode**, whose built-in chat and confirm tools use the protocol names `mcp_chat` and `mcp_confirm`. Basic-mode clients ask `mcp_chat` to search or retrieve content through the brain. A tool's direct exposure is a separate setting: ordinary tools default to debug-only unless explicitly opted into basic exposure; being read-only does not opt them in. Internal agent availability remains separate. Enabling debug mode requires Admin access, and individual tool permissions still apply.
 

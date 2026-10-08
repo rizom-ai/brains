@@ -236,6 +236,19 @@ describe("declared initial sync", () => {
     ]);
     expect(f.completed).toEqual([{ success: true }]);
   });
+  it("requires the failed outcome even when a batch failed before it was followed", async () => {
+    const f = await fixture();
+    f.statuses.set("initial-batch", status("initial-batch", "failed"));
+    expect(await f.register()).toEqual([
+      { success: true, data: { initialSyncPending: true } },
+    ]);
+    expect(await f.register()).toEqual([
+      { success: true, data: { initialSyncPending: true } },
+    ]);
+    expect(f.completed).toEqual([
+      { success: false, error: "Initial sync batch initial-batch failed" },
+    ]);
+  });
   it("completes immediately with no import work", async () => {
     const f = await fixture({ reconciliation: reconciliation(null) });
     expect(await f.register()).toEqual([
@@ -313,7 +326,10 @@ describe("declared initial sync", () => {
       },
     });
     expect(await f.register()).toEqual([
-      { success: true, data: { initialSyncPending: false } },
+      { success: true, data: { initialSyncPending: true } },
+    ]);
+    expect(await f.register()).toEqual([
+      { success: true, data: { initialSyncPending: true } },
     ]);
     expect(operations.failRun).toHaveBeenCalledWith(
       "startup-run",
@@ -325,7 +341,9 @@ describe("declared initial sync", () => {
   it("fails visibly for a missing followed batch", async () => {
     const f = await fixture();
     f.statuses.set("initial-batch", null);
-    await f.register();
+    expect(await f.register()).toEqual([
+      { success: true, data: { initialSyncPending: true } },
+    ]);
     expect(f.completed).toEqual([
       {
         success: false,

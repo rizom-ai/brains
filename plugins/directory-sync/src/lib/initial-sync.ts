@@ -93,7 +93,8 @@ export function initialSyncSubscriptions(
       topic: SYSTEM_CHANNELS.pluginsRegistered,
       payload: z.looseObject({}),
       handle: async () => {
-        if (started) return { initialSyncPending: pending };
+        if (started)
+          return { initialSyncPending: pending || errors.length > 0 };
         started = true;
         pending = true;
         let batchIds: string[];
@@ -111,14 +112,13 @@ export function initialSyncSubscriptions(
           }
           batchIds = await queueStartupBatches(options);
         } catch (error) {
-          pending = false;
           logger.error("Initial sync failed", error);
           await options.recovery?.onGitRecoveryFailed(error);
           await sendCompleted({
             success: false,
             error: getErrorMessage(error),
           });
-          return { initialSyncPending: false };
+          return { initialSyncPending: true };
         }
         if (!batchIds.length) {
           pending = false;
@@ -135,7 +135,9 @@ export function initialSyncSubscriptions(
             }
           }
         }
-        return { initialSyncPending: pending };
+        // Even an already-terminal failed batch requires the shell to consume
+        // its failed outcome; false would admit defaults over unimported files.
+        return { initialSyncPending: pending || errors.length > 0 };
       },
     }),
     defineSubscription({

@@ -38,7 +38,9 @@ describe("style guide entity definition", () => {
         .getEntity({ entityType: "style-guide", id: "style-guide" });
 
     expect(await read()).toBeNull();
-    await harness.sendMessage("sync:initial:completed", {});
+    await harness.sendMessage("sync:initial:completed", { success: false });
+    expect(await read()).toBeNull();
+    await harness.sendMessage("sync:initial:completed", { success: true });
     expect(await read()).toMatchObject({ id: "style-guide" });
 
     await harness.reset();
@@ -55,7 +57,7 @@ describe("style guide entity definition", () => {
       },
     });
 
-    await harness.sendMessage("sync:initial:completed", {});
+    await harness.sendMessage("sync:initial:completed", { success: true });
 
     const entity = await harness
       .getEntityService()
