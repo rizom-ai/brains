@@ -27,7 +27,7 @@ successCriteria:
     - "error"
     - "failed"
   responseCriteria:
-    - "Reports the blog posts found about programming."
+    - "Reports the result of the blog-post search for programming: names the posts it found, or says that none matched."
 
 efficiency:
   maxToolCalls: 3
