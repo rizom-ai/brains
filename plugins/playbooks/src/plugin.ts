@@ -43,10 +43,16 @@ import {
 import {
   LifecycleStarterRegistry,
   lifecycleConfigSchema,
-  type LifecyclePlaybookConfig,
   type LifecycleStarterRegistrationResponse,
   type LifecycleStartersResponse,
 } from "./lib/lifecycle-starters";
+
+import {
+  playbookManageOutputSchema,
+  playbookStatusResponseSchema,
+  type PlaybookStatusResponse,
+  type PlaybookSummary,
+} from "./lib/status";
 
 import {
   RunEngine,
@@ -219,19 +225,7 @@ export interface ParsedPlaybook {
   version: string;
 }
 
-export interface PlaybookStatusResponse {
-  runs: PlaybookRun[];
-  activeRun?: PlaybookRun | undefined;
-  playbook?: PlaybookEntity | undefined;
-  body?: PlaybookBody | undefined;
-  currentState?: PlaybookState | undefined;
-  validEvents?: PlaybookTransition[] | undefined;
-  operatorActions?: PlaybookTransition[] | undefined;
-  blockedEvents?: PlaybookTransition[] | undefined;
-  guidance?: string | undefined;
-  cards?: ActionsCard[] | undefined;
-  lifecycle: Record<string, LifecyclePlaybookConfig>;
-}
+export type { PlaybookStatusResponse } from "./lib/status";
 
 const goalCheckResultSchema = z
   .object({
@@ -434,8 +428,9 @@ export class PlaybooksPlugin extends ServicePlugin<
       {
         name: "playbook_manage",
         description:
-          "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+          "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on. For the full authored workflow, use system_get with entityType=playbook and the returned playbook.id.",
         inputSchema: manageInputSchema,
+        outputSchema: playbookManageOutputSchema,
         visibility: "admin",
         sideEffects: "writes",
         handler: async (
@@ -800,13 +795,14 @@ export class PlaybooksPlugin extends ServicePlugin<
           })
         : undefined;
 
-    return {
+    return playbookStatusResponseSchema.parse({
       runs: (input.conversationId ? conversationRuns : runs).map(
         sanitizeRunForModelOutput,
       ),
       ...(activeRun ? { activeRun: sanitizeRunForModelOutput(activeRun) } : {}),
-      ...(parsedPlaybook ? { playbook: parsedPlaybook.entity } : {}),
-      ...(parsedPlaybook ? { body: parsedPlaybook.body } : {}),
+      ...(parsedPlaybook
+        ? { playbook: summarizePlaybook(parsedPlaybook) }
+        : {}),
       ...(currentState ? { currentState } : {}),
       ...(validEvents.length > 0 ? { validEvents } : {}),
       ...(operatorActions.length > 0 ? { operatorActions } : {}),
@@ -814,7 +810,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       ...(guidance ? { guidance } : {}),
       ...(actionsCard ? { cards: [actionsCard] } : {}),
       lifecycle: this.config.lifecycle,
-    };
+    });
   }
 
   /**
@@ -971,6 +967,22 @@ export class PlaybooksPlugin extends ServicePlugin<
       playbookTitle: playbook.entity.metadata.title,
     });
   }
+}
+
+/** A reference to the definition; the engine keeps the full source. */
+function summarizePlaybook(playbook: ParsedPlaybook): PlaybookSummary {
+  const initialState = getState(playbook.body, playbook.body.initialState);
+  return {
+    id: playbook.entity.id,
+    entityType: "playbook",
+    title: playbook.entity.metadata.title,
+    status: playbook.entity.metadata.status,
+    audience: playbook.entity.metadata.audience,
+    version: playbook.version,
+    ...(initialState
+      ? { initialState: { id: initialState.id, title: initialState.title } }
+      : {}),
+  };
 }
 
 function withOperatorActionGuidance(

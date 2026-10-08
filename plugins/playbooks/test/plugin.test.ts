@@ -18,6 +18,8 @@ import {
 import {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   playbookRunSchema,
+  playbookManageOutputSchema,
+  playbookStatusResponseSchema,
   playbooksPlugin,
   type GoalCheck,
   type GoalCheckInput,
@@ -179,7 +181,9 @@ const playbookToolDataSchema = z
 function parsePlaybookToolData(
   input: unknown,
 ): z.output<typeof playbookToolDataSchema> {
-  return playbookToolDataSchema.parse(input);
+  return playbookToolDataSchema.parse(
+    playbookStatusResponseSchema.parse(input),
+  );
 }
 
 function goalCheck(evaluate: GoalCheck["evaluate"]): {
@@ -341,6 +345,137 @@ describe("PlaybooksPlugin", () => {
     });
   });
 
+  it.each(["active", "draft", "archived"] as const)(
+    "returns a definition summary without a run for an %s playbook",
+    async (status) => {
+      const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+      const capabilities = await harness.installPlugin(playbooksPlugin({}));
+      addPlaybookEntity(harness, playbookBody, "rover-onboarding", { status });
+      const source = await harness
+        .getEntityService()
+        .getEntity({ entityType: "playbook", id: "rover-onboarding" });
+      if (!source) throw new Error("Missing playbook fixture");
+
+      const response = await harness.executeTool("playbook_manage", {
+        action: "status",
+        playbookId: "rover-onboarding",
+      });
+      expectSuccess(response);
+      const data = playbookStatusResponseSchema.parse(response.data);
+      expect(data.runs).toEqual([]);
+      expect(data.activeRun).toBeUndefined();
+      expect(data.currentState).toBeUndefined();
+      expect(data.playbook).toEqual({
+        id: "rover-onboarding",
+        entityType: "playbook",
+        title: "Rover Onboarding",
+        status,
+        audience: "admin",
+        version: expect.any(String),
+        initialState: { id: "welcome", title: "Welcome" },
+      });
+      expect(data).not.toHaveProperty("body");
+      expect(data.playbook).not.toHaveProperty("content");
+      expect(data.playbook).not.toHaveProperty("metadata");
+      expect(data.playbook).not.toHaveProperty("states");
+      expect(
+        playbookStatusResponseSchema.safeParse({ ...data, body: playbookBody })
+          .success,
+      ).toBe(false);
+      expect(
+        playbookStatusResponseSchema.safeParse({
+          ...data,
+          playbook: { ...data.playbook, content: source.content },
+        }).success,
+      ).toBe(false);
+      const manageTool = capabilities.tools.find(
+        (tool) => tool.name === "playbook_manage",
+      );
+      expect(manageTool?.outputSchema).toBe(playbookManageOutputSchema);
+      expect(playbookManageOutputSchema.safeParse(response).success).toBe(true);
+      expect(manageTool?.description).toContain(
+        "system_get with entityType=playbook",
+      );
+      expect(
+        await harness
+          .getEntityService()
+          .getEntity({ entityType: "playbook", id: "rover-onboarding" }),
+      ).toEqual(source);
+    },
+  );
+
+  it("omits future definitions but retains them for execution and stored-source retrieval", async () => {
+    const harness = await installHarness();
+    const futureInstructions = "Future-step source must remain intact. "
+      .repeat(400)
+      .trim();
+    const futureState = {
+      ...completeState,
+      instructions: [futureInstructions],
+    };
+    const body = {
+      ...playbookBody,
+      states: [welcomeState, seedState, futureState],
+    };
+    addPlaybookEntity(harness, body);
+    const source = await harness
+      .getEntityService()
+      .getEntity({ entityType: "playbook", id: "rover-onboarding" });
+    if (!source) throw new Error("Missing playbook fixture");
+    expect(source.content.length).toBeGreaterThan(15000);
+
+    const runId = await startRun(harness, "compact-full-engine");
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
+    expectSuccess(status);
+    const data = playbookStatusResponseSchema.parse(status.data);
+    expect(data.currentState).toEqual(welcomeState);
+    expect(JSON.stringify(data)).not.toContain(
+      "Future-step source must remain intact.",
+    );
+    expect(JSON.stringify(data).length).toBeLessThan(6000);
+
+    for (const fromState of ["welcome", "seed"]) {
+      const advanced = await harness.executeTool("playbook_manage", {
+        action: "send-event",
+        runId,
+        event: "NEXT",
+        fromState,
+      });
+      expectSuccess(advanced);
+    }
+    const completed = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
+    expectSuccess(completed);
+    const completedData = playbookStatusResponseSchema.parse(completed.data);
+    expect(completedData.activeRun?.status).toBe("completed");
+    expect(completedData.currentState).toEqual(futureState);
+    expect(completedData.guidance).toContain(futureInstructions);
+    expect(
+      await harness
+        .getEntityService()
+        .getEntity({ entityType: "playbook", id: "rover-onboarding" }),
+    ).toEqual(source);
+  });
+
+  it("returns an absent definition rather than inventing an initial step", async () => {
+    const harness = await installHarness();
+    const response = await harness.executeTool("playbook_manage", {
+      action: "status",
+      playbookId: "missing-playbook",
+    });
+    expectSuccess(response);
+    const data = playbookStatusResponseSchema.parse(response.data);
+    expect(data.playbook).toBeUndefined();
+    expect(data.activeRun).toBeUndefined();
+    expect(data.currentState).toBeUndefined();
+    expect(data.runs).toEqual([]);
+  });
+
   it("routes status, start, and send-event through playbook_manage", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
@@ -354,6 +489,17 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(started);
     const startedData = parsePlaybookToolData(started.data);
     expect(startedData.activeRun.currentState).toBe("welcome");
+    const startedSummary = playbookStatusResponseSchema.parse(started.data);
+    expect(startedSummary.currentState).toEqual(welcomeState);
+    expect(startedSummary.operatorActions).toEqual(welcomeState.transitions);
+    expect(startedSummary.cards?.[0]?.actions).toEqual([
+      expect.objectContaining({ event: "NEXT", fromState: "welcome" }),
+      expect.objectContaining({ event: "SKIP", fromState: "welcome" }),
+    ]);
+    expect(startedSummary.playbook?.initialState).toEqual({
+      id: "welcome",
+      title: "Welcome",
+    });
 
     const status = await harness.executeTool(
       "playbook_manage",
@@ -379,6 +525,19 @@ describe("PlaybooksPlugin", () => {
     expect(parsePlaybookToolData(advanced.data).activeRun.currentState).toBe(
       "seed",
     );
+    const advancedSummary = playbookStatusResponseSchema.parse(advanced.data);
+    expect(advancedSummary.currentState).toEqual(seedState);
+    expect(advancedSummary.validEvents).toEqual(seedState.transitions);
+    expect(advancedSummary.cards).toBeUndefined();
+    expect(advancedSummary.activeRun?.status).toBe("active");
+    expect(advancedSummary.playbook?.version).toBe(
+      startedSummary.playbook?.version,
+    );
+    for (const response of [started, status, advanced]) {
+      expect(playbookManageOutputSchema.safeParse(response).success).toBe(true);
+      expect(response.data).not.toHaveProperty("body");
+      expect(JSON.stringify(response.data)).not.toContain("Teach by doing.");
+    }
   });
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
