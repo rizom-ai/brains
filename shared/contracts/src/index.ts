@@ -295,4 +295,8 @@ export {
   studioAiToolsHref,
 } from "./studio-links";
 
-export { DEFAULT_FAVICON_PATH, DEFAULT_FAVICON_SVG } from "./favicon";
+export {
+  DEFAULT_FAVICON_HREF,
+  DEFAULT_FAVICON_PATH,
+  DEFAULT_FAVICON_SVG,
+} from "./favicon";

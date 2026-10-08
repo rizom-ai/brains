@@ -59,7 +59,7 @@ describe("renderDashboardPageHtml", () => {
     };
     const html = renderDashboardPageHtml(input);
     expect(html).toContain(
-      '<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>',
+      '<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=lantern"/>',
     );
   });
 

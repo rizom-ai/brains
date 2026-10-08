@@ -72,7 +72,7 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
               "attributes": [
                 [
                   "href",
-                  "/favicon.svg",
+                  "/favicon.svg?v=lantern",
                 ],
                 [
                   "rel",
