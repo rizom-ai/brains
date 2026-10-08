@@ -394,17 +394,19 @@ describe("canonical eval recipe ladder", () => {
           {
             entityType: "note",
             id,
-            ...(mode === "content"
-              ? { content: expected }
-              : {
-                  edits: [
-                    { oldText: "# Working Plan", newText: "# Approved Plan" },
-                    {
-                      oldText: "Review cadence: monthly.",
-                      newText: "Review cadence: weekly.",
-                    },
-                  ],
-                }),
+            operation:
+              mode === "content"
+                ? { kind: "content", content: expected }
+                : {
+                    kind: "edits",
+                    edits: [
+                      { oldText: "# Working Plan", newText: "# Approved Plan" },
+                      {
+                        oldText: "Review cadence: monthly.",
+                        newText: "Review cadence: weekly.",
+                      },
+                    ],
+                  },
           },
           context,
         );
@@ -611,11 +613,14 @@ describe("canonical eval recipe ladder", () => {
         {
           entityType: "note",
           id: "mcp-verbatim-update",
-          source: {
-            kind: "user-message",
-            boundaryMode: "lines",
-            startAfter,
-            endBefore,
+          operation: {
+            kind: "source",
+            source: {
+              kind: "user-message",
+              boundaryMode: "lines",
+              startAfter,
+              endBefore,
+            },
           },
         },
         context,
@@ -627,9 +632,12 @@ describe("canonical eval recipe ladder", () => {
         })
         .parse(proposal);
       expect(approval.args).toMatchObject({
-        source: { contentHash: computeContentHash(content) },
+        operation: {
+          kind: "source",
+          source: { contentHash: computeContentHash(content) },
+        },
       });
-      expect(approval.args).not.toHaveProperty("content");
+      expect(approval.args).not.toHaveProperty(["operation", "content"]);
       await conversations.addMessage({
         conversationId,
         role: "user",

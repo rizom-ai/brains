@@ -63,18 +63,20 @@ function pasted(body: string): string {
 }
 
 function input(): Record<string, unknown> {
-  return { entityType: "note", id: "working-plan", source };
+  return {
+    entityType: "note",
+    id: "working-plan",
+    operation: { kind: "source", source },
+  };
 }
 
 describe("system_update user-message source", () => {
   test("describes source as the path for user-supplied rewrites", () => {
     const { tool } = fixture([]);
     expect(tool.description).toContain(
-      "For a large rewrite whose text the user supplied, use source with exact user-message boundaries instead of copying it into content.",
+      "For a large rewrite whose text the user supplied, use the source operation with exact user-message boundaries instead of copying it into content.",
     );
-    expect(tool.description).toContain(
-      "Use only one of fields, content, edits, or source.",
-    );
+    expect(tool.description).toContain("exactly one typed operation");
   });
 
   test("replaces the body verbatim through a compact, pinned approval", async () => {
@@ -93,13 +95,16 @@ describe("system_update user-message source", () => {
       entityType: "note",
       id: "working-plan",
       contentHash: "hash-working-plan",
-      source: {
-        ...source,
-        messageId: "user-source",
-        contentHash: computeContentHash(body),
+      operation: {
+        kind: "source",
+        source: {
+          ...source,
+          messageId: "user-source",
+          contentHash: computeContentHash(body),
+        },
       },
     });
-    expect(args).not.toHaveProperty("content");
+    expect(JSON.stringify(args)).not.toContain("**Markdown**");
     expect(JSON.stringify(args).length).toBeLessThan(1000);
     expect(services.getLastUpdateRequest()).toBeUndefined();
 
@@ -119,7 +124,7 @@ describe("system_update user-message source", () => {
     expect(services.getLastUpdateRequest()?.entity.content).toBe(document);
   });
 
-  test("replays the stored source when a confirmation omits the operation", async () => {
+  test("rejects a confirmation that omits the operation", async () => {
     const { services, tool } = fixture([message(pasted("New body.\n"))]);
     const args = confirmationSchema.parse(
       expectConfirmationArgs(await tool.handler(input(), context)),
@@ -134,10 +139,11 @@ describe("system_update user-message source", () => {
         },
         context,
       ),
-    ).toMatchObject({ success: true });
-    expect(services.getLastUpdateRequest()?.entity.content).toBe(
-      `${frontmatter}New body.\n`,
-    );
+    ).toMatchObject({
+      success: false,
+      error: expect.stringContaining("Invalid input"),
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
   });
 
   test("fails rather than writing other text when the source message changed", async () => {
@@ -169,11 +175,17 @@ describe("system_update user-message source", () => {
     { content: "Model text" },
     { edits: [{ oldText: "Old body.", newText: "New body." }] },
     { fields: { title: "Renamed" } },
-  ])("rejects combining source with %j", async (operation) => {
-    const { tool } = fixture([message(pasted("Body.\n"))]);
-    expect(await tool.handler({ ...input(), ...operation }, context)).toEqual({
-      success: false,
-      error: "Provide only one of 'fields', 'content', 'edits', or 'source'.",
-    });
+  ])("rejects combining source with %j", async (extra) => {
+    const { services, tool } = fixture([message(pasted("Body.\n"))]);
+    for (const request of [
+      { ...input(), ...extra },
+      { ...input(), operation: { kind: "source", source, ...extra } },
+    ]) {
+      expect(await tool.handler(request, context)).toMatchObject({
+        success: false,
+        error: expect.stringContaining("Invalid input"),
+      });
+    }
+    expect(services.getLastUpdateRequest()).toBeUndefined();
   });
 });

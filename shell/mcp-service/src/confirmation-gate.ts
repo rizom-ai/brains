@@ -13,12 +13,6 @@ export interface ConfirmationGate {
   ): ToolResponse | undefined;
   /** Mint a token and build the args the interface replays on approval. */
   buildArgs<TArgs>(build: (confirmationToken: string) => TArgs): TArgs;
-  /**
-   * Consume the pending approval behind a token and return its stored
-   * args, tolerating a mangled replay. Callers must verify the stored
-   * args target the same operation before honoring the confirmation.
-   */
-  takePending(confirmationToken: string | undefined): unknown;
 }
 
 /**
@@ -54,9 +48,6 @@ export function createConfirmationGate(options: {
     },
     buildArgs<TArgs>(build: (confirmationToken: string) => TArgs): TArgs {
       return store.create(build);
-    },
-    takePending(confirmationToken): unknown {
-      return store.take(confirmationToken);
     },
   };
 }

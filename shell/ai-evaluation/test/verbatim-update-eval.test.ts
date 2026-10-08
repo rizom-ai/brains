@@ -48,13 +48,19 @@ describe("verbatim update MCP eval contract", () => {
       expect(proposal?.argsContain).toEqual({
         entityType: "note",
         id,
-        "source.kind": "user-message",
-        "source.boundaryMode": "lines",
-        "source.startAfter": startAfter,
-        "source.endBefore": endBefore,
-        "source.contentHash": computeContentHash(content),
+        "operation.kind": "source",
+        "operation.source.kind": "user-message",
+        "operation.source.boundaryMode": "lines",
+        "operation.source.startAfter": startAfter,
+        "operation.source.endBefore": endBefore,
+        "operation.source.contentHash": computeContentHash(content),
       });
-      for (const absent of ["content", "edits", "fields", "confirmed"])
+      for (const absent of [
+        "operation.content",
+        "operation.edits",
+        "operation.fields",
+        "confirmed",
+      ])
         expect(proposal?.argsAbsent).toContain(absent);
       expect(proposal?.resultContains).toEqual({ needsConfirmation: true });
     }
