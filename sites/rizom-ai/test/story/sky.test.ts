@@ -258,3 +258,33 @@ describe("the sky on the scroll", () => {
     );
   });
 });
+
+describe("the sky in daylight", () => {
+  // On paper the sky is lights, not night: no grain, no boundary, no ember
+  // rims; the wash and the corona faint; the lantern and the beads in brass.
+  const light = (selector: string): string =>
+    rule(`[data-theme="light"] ${selector}`);
+
+  test("drops the substrate that only reads against the dark", () => {
+    expect(
+      rule(
+        '[data-theme="light"] .net-grain,\n[data-theme="light"] .net-boundary,\n[data-theme="light"] .net-rim',
+      ),
+    ).toMatch(/display: none/);
+    expect(css).not.toMatch(
+      /\[data-theme="light"\] \.net-grain \{[^}]*mix-blend-mode: multiply/,
+    );
+    expect(light(".net-wash")).toMatch(/opacity: 0\.5/);
+    expect(light(".net-corona")).toMatch(/opacity: 0\.45/);
+    expect(light(".net-halo")).toMatch(
+      /filter: saturate\(0\.8\) opacity\(0\.55\)/,
+    );
+  });
+
+  test("lights the lantern, the beads and the tendrils in brass on paper", () => {
+    expect(light(".net-lantern")).toMatch(/fill: var\(--color-accent\)/);
+    expect(light(".net-bead")).toMatch(/fill: var\(--color-accent\)/);
+    expect(light(".net-trunk")).toMatch(/stroke-opacity: 0\.4/);
+    expect(light(".net-thread")).toMatch(/stroke-opacity: 0\.3/);
+  });
+});
