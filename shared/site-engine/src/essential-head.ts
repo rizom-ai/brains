@@ -13,6 +13,35 @@ export interface EssentialHeadPaths {
   faviconPngHref?: string | null | undefined;
 }
 
+/**
+ * The icon a build gets when it brings none of its own: the lantern, one
+ * light on night, the mark every brain's drawings use for a brain.
+ */
+export const DEFAULT_FAVICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#14132b"/><circle cx="32" cy="32" r="21" fill="#d4af37" opacity=".18"/><circle cx="32" cy="32" r="12" fill="#fff3cf" stroke="#d4af37" stroke-width="5"/></svg>\n';
+
+const ICON_PATHS = ["/favicon.svg", "/favicon.png"];
+const rooted = (path: string): string =>
+  path.startsWith("/") ? path : `/${path}`;
+
+/**
+ * A build's static assets with the default icon added when neither the
+ * static assets nor the app's public assets bring an SVG or PNG icon; a site's
+ * own icon, under either name, is left alone.
+ */
+export function withDefaultIcon(
+  staticAssets: Record<string, string>,
+  publicAssetPaths: Iterable<string>,
+): Record<string, string> {
+  const has = new Set([
+    ...Object.keys(staticAssets).map(rooted),
+    ...Array.from(publicAssetPaths, rooted),
+  ]);
+  return ICON_PATHS.some((path) => has.has(path))
+    ? staticAssets
+    : { ...staticAssets, "/favicon.svg": DEFAULT_FAVICON_SVG };
+}
+
 /** The icons a build has, so a page links those and no missing ones. */
 export function iconHeadPaths(
   assetPaths: Iterable<string>,

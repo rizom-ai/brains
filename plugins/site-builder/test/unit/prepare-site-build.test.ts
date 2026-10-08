@@ -2,6 +2,7 @@ import { createMockServicePluginContext } from "@brains/plugins/test";
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
+  DEFAULT_FAVICON_SVG,
   RouteRegistry,
   type JsonObject,
   type ResolvedSiteImage,
@@ -494,5 +495,45 @@ describe("prepareSiteBuild", () => {
         path: publicDir,
       }),
     ]);
+  });
+
+  it("gives a build that brings no icon the lantern, and leaves a site's own icon alone", async () => {
+    const routes = [createRoute({ heading: "Prepared heading" })];
+    const prepare = (
+      staticAssets: Record<string, string>,
+    ): ReturnType<typeof prepareSiteBuild> =>
+      prepareSiteBuild({
+        buildId: "icon-build",
+        preparedAt: "2026-07-22T00:00:00.000Z",
+        routes,
+        publicDir: missingPublicDir,
+        signal: new AbortController().signal,
+        parsedOptions: {
+          environment: "preview",
+          siteConfig: {
+            title: "Fixture Site",
+            description: "Fixture description",
+            themeMode: "dark",
+          },
+        },
+        buildOptions: { staticAssets },
+        pipelineContext: createPipelineContext(routes),
+        imageBuildService,
+        siteMetadata: {
+          title: "Fixture Site",
+          description: "Fixture description",
+          themeMode: "dark",
+        },
+      });
+
+    const bare = await prepare({});
+    expect(bare.preparedBuild.staticAssets["/favicon.svg"]).toBe(
+      DEFAULT_FAVICON_SVG,
+    );
+
+    const own = await prepare({ "/favicon.svg": "<svg>own</svg>" });
+    expect(own.preparedBuild.staticAssets["/favicon.svg"]).toBe(
+      "<svg>own</svg>",
+    );
   });
 });
