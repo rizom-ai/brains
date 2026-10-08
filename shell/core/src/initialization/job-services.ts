@@ -27,7 +27,6 @@ import {
   Layer,
   Scope,
 } from "@brains/utils/effect";
-import { runEffectPromise } from "../effect-runtime";
 import type { ShellDependencies } from "../types/shell-types";
 import { OperationContext } from "@brains/operation-context";
 import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
@@ -163,7 +162,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       jobQueueWorker,
       closeRuntime: (): Promise<void> => {
         runtimeClosed = true;
-        runtimeClosePromise ??= runEffectPromise(
+        runtimeClosePromise ??= Effect.runPromise(
           Scope.close(acquiredRuntimeScope, Exit.void),
         );
         return runtimeClosePromise;

@@ -146,11 +146,10 @@ describe("DaemonRegistry", () => {
     releaseStop.resolve();
     const results = await Promise.allSettled([firstStop, secondStop]);
 
-    expect(
-      results.map((result) =>
-        result.status === "rejected" ? result.reason : undefined,
-      ),
-    ).toEqual([stopError, stopError]);
+    for (const result of results) {
+      expect(result.status).toBe("rejected");
+      if (result.status === "rejected") expect(result.reason).toBe(stopError);
+    }
     expect(stopCalls).toBe(1);
     expect(registry.get("test-daemon")?.status).toBe("error");
 
