@@ -1,5 +1,49 @@
 # @brains/plugins
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/content-formatters@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/site-composition@0.2.0-alpha.495
+  - @brains/ai-service@0.2.0-alpha.495
+  - @brains/content-service@0.2.0-alpha.495
+  - @brains/conversation-service@0.2.0-alpha.495
+  - @brains/entity-service@0.2.0-alpha.495
+  - @brains/identity-service@0.2.0-alpha.495
+  - @brains/job-queue@0.2.0-alpha.495
+  - @brains/mcp-service@0.2.0-alpha.495
+  - @brains/messaging-service@0.2.0-alpha.495
+  - @brains/recurring-checks@0.2.0-alpha.495
+  - @brains/runtime-state@0.2.0-alpha.495
+  - @brains/scheduler@0.2.0-alpha.495
+  - @brains/templates@0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.494
+  - @brains/contracts@0.2.0-alpha.494
+  - @brains/site-composition@0.2.0-alpha.494
+  - @brains/utils@0.2.0-alpha.494
+  - @brains/ai-service@0.2.0-alpha.494
+  - @brains/content-service@0.2.0-alpha.494
+  - @brains/conversation-service@0.2.0-alpha.494
+  - @brains/entity-service@0.2.0-alpha.494
+  - @brains/identity-service@0.2.0-alpha.494
+  - @brains/job-queue@0.2.0-alpha.494
+  - @brains/mcp-service@0.2.0-alpha.494
+  - @brains/messaging-service@0.2.0-alpha.494
+  - @brains/recurring-checks@0.2.0-alpha.494
+  - @brains/runtime-state@0.2.0-alpha.494
+  - @brains/scheduler@0.2.0-alpha.494
+  - @brains/templates@0.2.0-alpha.494
+
 ## 0.2.0-alpha.493
 
 ### Patch Changes

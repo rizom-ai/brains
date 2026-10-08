@@ -174,6 +174,33 @@ describe("GitSync new-repo bootstrap regression", () => {
     ).toBe(remoteHead);
     expect(await listTracked(dataDir)).toEqual(["post/remote.md"]);
     expect(existsSync(join(dataDir, "default.md"))).toBe(false);
+    // Tracks the remote the way a clone would; the pre-deploy backup and
+    // every pull rely on the upstream.
+    expect(
+      (
+        await runGit(["rev-parse", "--abbrev-ref", "@{upstream}"], dataDir)
+      ).trim(),
+    ).toBe("origin/main");
+  });
+
+  it("restores the upstream of a checkout that lacks one", async () => {
+    await seedRemote();
+    // A checkout built by fetching the remote URL rather than origin.
+    await runGit(["init", "--initial-branch=main"], dataDir);
+    await runGit(["fetch", remoteDir, "main"], dataDir);
+    await runGit(["checkout", "-f", "-B", "main", "FETCH_HEAD"], dataDir);
+
+    const gs = await createGitSync();
+    await gs.initialize();
+    // A pull through origin creates the remote-tracking ref, as the
+    // periodic sync does on a running brain.
+    await gs.pull();
+
+    expect(
+      (
+        await runGit(["rev-parse", "--abbrev-ref", "@{upstream}"], dataDir)
+      ).trim(),
+    ).toBe("origin/main");
   });
 
   it("completes a bootstrap a crash left unfinished", async () => {

@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-10-02
+Last updated: 2026-10-08
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
@@ -165,13 +165,13 @@ Active cleanup and infrastructure plans:
 - [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
 - [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
-- [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — move the shell's Effect boundary to v4, drop `runEffectPromise`, and put the Git broker transport on `effect/rpc`.
+- [effect-v4-upgrade.md](./plans/effect-v4-upgrade.md) — implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.
 - [structured-body-codecs.md](./plans/structured-body-codecs.md) — make every structured body a Zod codec so writes validate like reads, with one shared round-trip contract.
+- [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.
 
 Research probes (parked):
 
 - [alternative-site-renderer-spike.md](./plans/alternative-site-renderer-spike.md) — whether a renderer other than React earns its place at the prepared-build boundary.
-- [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
 
 ## Product direction
 

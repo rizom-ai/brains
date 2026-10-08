@@ -1,5 +1,24 @@
 # @rizom/brain
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+
+- [`205f50c`](https://github.com/rizom-ai/brains/commit/205f50c0a65228c259206b2ac8ebd7d28db807ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the obsolete Effect v3 Promise-failure wrapper and use Effect v4's native Promise runner for shell, daemon, and job-runtime ownership. Preserve original failure values, all-siblings-settled startup phases, declaration-order failure selection, and shared cleanup barriers for concurrent shutdown callers.
+
+- [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade the private Effect control-plane boundary to exactly 4.0.1, migrate service layers and supervised work to v4 APIs, and retain Promise-based public contracts and AbortSignal cancellation. Centralize optional clock injection and add regressions for failure identity, resource ownership, cleanup barriers, and deterministic timing.
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- [#556](https://github.com/rizom-ai/brains/pull/556) [`81128b8`](https://github.com/rizom-ai/brains/commit/81128b892d6ff553e91a2bc4e69a2aa13a3d3431) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content repository checked out in place now tracks `origin` as a clone would, and a checkout without an upstream gets one on its next start; the pre-deploy backup resolves `@{upstream}` and refused a checkout that had none.
+
 ## 0.2.0-alpha.493
 
 ## 0.2.0-alpha.492

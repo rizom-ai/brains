@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit } from "@brains/utils/effect";
+import { Cause, Effect, Exit, withOptionalClock } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
 interface InterruptibleTimeoutOptions<E> {
@@ -43,14 +43,12 @@ export async function runWithInterruptibleTimeout<A, E>(
     },
     catch: (error) => error,
   }).pipe(
-    Effect.timeoutFail({
+    Effect.timeoutOrElse({
       duration: Math.max(0, options.timeoutMs),
-      onTimeout: options.onTimeout,
+      orElse: () => Effect.fail(options.onTimeout()),
     }),
   );
-  const timedEffect = options.clock
-    ? Effect.withClock(operationEffect, options.clock)
-    : operationEffect;
+  const timedEffect = withOptionalClock(operationEffect, options.clock);
 
   try {
     const exit = await Effect.runPromiseExit(

@@ -9,6 +9,7 @@ import {
   FiberSet,
   Schedule,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
@@ -21,7 +22,7 @@ interface BatchJobManagerOptions {
 }
 
 interface CleanupSupervisor {
-  scope: Scope.CloseableScope;
+  scope: Scope.Closeable;
   fibers: FiberSet.FiberSet<void, never>;
 }
 
@@ -65,7 +66,7 @@ export class BatchJobManager {
   // Fiber that sweeps terminal batches older than the retention window. Runs
   // independently of enqueue activity so the map stays bounded even when no
   // new batches are arriving.
-  private cleanupFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private cleanupFiber: Fiber.Fiber<void, never> | null = null;
   private cleanupSupervisor: CleanupSupervisor | null = null;
   private readonly inFlightCleanups = new Set<Promise<number>>();
   private activeTransition: BatchManagerTransition | null = null;
@@ -111,16 +112,14 @@ export class BatchJobManager {
       Effect.schedule(Schedule.spaced(intervalMs)),
       Effect.asVoid,
     );
-    return this.clock
-      ? Effect.withClock(scheduledCleanup, this.clock)
-      : scheduledCleanup;
+    return withOptionalClock(scheduledCleanup, this.clock);
   }
 
   private scheduleTerminalBatchCleanup(): void {
     if (!this.acceptingCleanup) return;
     this.cleanupSupervisor ??= this.createCleanupSupervisor();
     const fiber = Effect.runFork(this.cleanupTerminalBatchMetadata());
-    FiberSet.unsafeAdd(this.cleanupSupervisor.fibers, fiber);
+    FiberSet.addUnsafe(this.cleanupSupervisor.fibers, fiber);
   }
 
   private async stopCleanup(): Promise<void> {
@@ -203,7 +202,7 @@ export class BatchJobManager {
   private createCleanupSupervisor(): CleanupSupervisor {
     const scope = Effect.runSync(Scope.make());
     const fibers = Effect.runSync(
-      Scope.extend(FiberSet.make<void, never>(), scope),
+      Scope.provide(FiberSet.make<void, never>(), scope),
     );
     return { scope, fibers };
   }
@@ -222,7 +221,7 @@ export class BatchJobManager {
       catch: (error) => error,
     }).pipe(
       Effect.asVoid,
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         Effect.sync(() => {
           this.logger.warn("Failed to clean up terminal batch metadata", {
             error,

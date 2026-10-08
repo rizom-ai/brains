@@ -1,5 +1,33 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/content-formatters@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/image@0.2.0-alpha.495
+  - @brains/entity-service@0.2.0-alpha.495
+  - @brains/plugins@0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.494
+  - @brains/contracts@0.2.0-alpha.494
+  - @brains/image@0.2.0-alpha.494
+  - @brains/utils@0.2.0-alpha.494
+  - @brains/entity-service@0.2.0-alpha.494
+  - @brains/plugins@0.2.0-alpha.494
+
 ## 0.2.0-alpha.493
 
 ### Patch Changes

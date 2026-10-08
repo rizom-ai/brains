@@ -6,7 +6,7 @@ import {
 import { Effect } from "@brains/utils/effect";
 import { deferred } from "@brains/utils/deferred";
 import type { Clock } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
 import type {
   IRuntimeStateNamespace,
@@ -317,7 +317,7 @@ describe("RecurringCheckService", () => {
   it("shares Effect TestClock time with the scheduler and persisted run state", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const { service, scheduler, queue, state } = createService({ clock });
         service.namespace("agent").register({
           id: "directory-scan",
@@ -332,7 +332,7 @@ describe("RecurringCheckService", () => {
           "agent:directory-scan",
           "daily",
         );
-        const start = clock.unsafeCurrentTimeMillis();
+        const start = clock.currentTimeMillisUnsafe();
         const previous = getPreviousOccurrence(new Date(start), schedule);
         const next = previous.getTime() + schedule.periodMs;
         yield* TestClock.adjust(next - start);
@@ -345,7 +345,7 @@ describe("RecurringCheckService", () => {
           checkId: "agent:directory-scan",
           at: new Date(next).toISOString(),
         });
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
