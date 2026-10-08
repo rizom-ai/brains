@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "fs/promises";
+import { readFile } from "fs/promises";
+import { writeFileAtomic } from "../lib/atomic-write";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
@@ -236,7 +237,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       const updatedContent = generateMarkdown(newFrontmatter, parsed.content);
 
       try {
-        await writeFile(filePath, updatedContent, "utf-8");
+        await writeFileAtomic(filePath, updatedContent);
       } catch (error) {
         this.logger.error("Failed to write file", {
           filePath,

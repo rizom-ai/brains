@@ -7,6 +7,7 @@ import {
   writeFileSync,
   existsSync,
   readFileSync,
+  readdirSync,
   statSync,
   mkdtempSync,
   utimesSync,
@@ -45,6 +46,47 @@ describe("FileOperations", () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+  });
+
+  describe("writing entity files", () => {
+    it("never lets a reader see an exported note before it is complete", async () => {
+      // A plain write creates the file before its content lands; a reader
+      // polling for the file (the watcher, Git, a test) could see it empty.
+      const entities = Array.from({ length: 200 }, (_, index) =>
+        createTestEntity("note", {
+          id: `exported-${index}`,
+          content: "The new body.",
+        }),
+      );
+      const expected = new Map(
+        entities.map((entity) => [
+          fileOps.getFilePath(entity.id, entity.entityType),
+          mockEntityService.serializeEntity(entity),
+        ]),
+      );
+      let done = false;
+      const incomplete = new Set<string>();
+      const observe = async (): Promise<void> => {
+        for (const [path, content] of expected)
+          if (existsSync(path) && readFileSync(path, "utf-8") !== content)
+            incomplete.add(path);
+        if (done) return;
+        await new Promise((resolve) => setImmediate(resolve));
+        return observe();
+      };
+      const writes = Promise.all(
+        entities.map((entity) => fileOps.writeEntity(entity)),
+      ).finally(() => {
+        done = true;
+      });
+
+      await Promise.all([writes, observe()]);
+
+      expect([...incomplete]).toEqual([]);
+      expect(
+        readdirSync(testDir).filter((name) => name.startsWith(".")),
+      ).toEqual([]);
+    });
   });
 
   describe("Entity ID Reconstruction from Path", () => {
