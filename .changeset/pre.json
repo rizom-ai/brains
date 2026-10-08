@@ -366,6 +366,7 @@
     "core--dashboard-theme-asset-route",
     "core--dashboard-widget-namespace",
     "core--declarative-dashboard-runtime",
+    "core--default-favicon-lantern",
     "core--delete-email-contracts",
     "core--directory-import-parent-batch",
     "core--directory-quarantine-recovery",
