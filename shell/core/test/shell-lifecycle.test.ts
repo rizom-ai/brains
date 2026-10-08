@@ -12,13 +12,13 @@ function deferred(): { promise: Promise<void>; resolve(): void } {
 
 describe("ShellLifecycle", () => {
   it("owns scoped layers for the shell lifetime", () => {
-    const ServiceTag = Context.GenericTag<"test/Service", { value: string }>(
+    const ServiceTag = Context.Service<"test/Service", { value: string }>(
       "test/Service",
     );
     let releases = 0;
     const lifecycle = new ShellLifecycle();
     const context = lifecycle.buildLayer(
-      Layer.scoped(
+      Layer.effect(
         ServiceTag,
         Effect.acquireRelease(Effect.succeed({ value: "owned" }), () =>
           Effect.sync(() => {
@@ -36,7 +36,7 @@ describe("ShellLifecycle", () => {
   });
 
   it("preserves synchronous layer acquisition error identity", () => {
-    const ServiceTag = Context.GenericTag<"test/Failure", { value: string }>(
+    const ServiceTag = Context.Service<"test/Failure", { value: string }>(
       "test/Failure",
     );
     const failure = new Error("layer acquisition failed");

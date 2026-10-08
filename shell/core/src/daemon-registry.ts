@@ -30,7 +30,7 @@ interface DaemonTransitionQueue {
  */
 export class DaemonRegistry {
   private daemons: Map<string, DaemonInfo> = new Map();
-  private daemonScopes: Map<string, Scope.CloseableScope> = new Map();
+  private daemonScopes: Map<string, Scope.Closeable> = new Map();
   private daemonTransitions = new Map<string, DaemonTransitionQueue>();
   private logger: Logger;
 
@@ -105,7 +105,7 @@ export class DaemonRegistry {
     );
 
     try {
-      await runEffectPromise(Scope.extend(daemonResource, scope));
+      await runEffectPromise(Scope.provide(daemonResource, scope));
       this.daemonScopes.set(name, scope);
     } catch (error) {
       await runEffectPromise(Scope.close(scope, Exit.fail(error)));

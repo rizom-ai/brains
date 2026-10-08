@@ -2,9 +2,9 @@
 
 ## Status
 
-**Proposed; reviewed against `998010644d`; implementation has not started.** The reviewed target is `effect@4.0.1`. The repository resolves `effect@3.22.0` from `shared/utils`'s `^3.21.4` dependency behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). Workspace consumers do not import `effect` directly; only the boundary does.
+**In progress; Phase 1 implemented. Phases 2–3 have not started.** The reviewed target is `effect@4.0.1`, now pinned by `shared/utils` behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). At the reviewed base (`998010644d`), the repository resolved `effect@3.22.0` from `^3.21.4`. Workspace consumers do not import `effect` directly; only the boundary does.
 
-At the reviewed base, 64 TypeScript files import the boundary. 54 of them (31 source, 23 test) use an API that v4 renames or removes; the remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Schedule`, `Cause.squash`, `TestClock.adjust`, …) retains its API. Refresh the inventory before implementation if the base advances.
+At the reviewed base, 64 TypeScript files import the boundary. Implementation corrected the migration inventory to 55 consumers (32 source, 23 test), including `Schedule.upTo`'s options-object change. The remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Cause.squash`, `TestClock.adjust`, …) retains its API. Refresh the inventory when the base advances.
 
 ## Goal
 
@@ -29,7 +29,18 @@ Further verified on `4.0.1`:
 
 Independent review probes on `4.0.1` confirm original failure identity, extracted test-clock injection, isolated root layer scopes, and sibling finalization after a cleanup failure. They also confirm that stock NDJSON counts string code units rather than UTF-8 bytes, silently skips malformed JSON lines, and does not cap outbound frames. Nested `parseOptions` annotations do not enforce strict payloads. Carry these probes into repository regressions; stock NDJSON is not a drop-in replacement for the broker's framing contract.
 
-The measurements above are microbenchmarks, not evidence of packaged Brain size or startup improvements. Measure those separately on the built artifact.
+The measurements above are microbenchmarks, not evidence of packaged Brain size or startup improvements.
+
+Phase 1 packaged measurements on Bun 1.4.0, against the same source baseline:
+
+| Built artifact / measure         | v3.22.0          | v4.0.1           |
+| -------------------------------- | ---------------- | ---------------- |
+| `dist/brain.js`                  | 11,681,243 bytes | 11,537,996 bytes |
+| CLI gzip                         | 3,518,312 bytes  | 3,471,397 bytes  |
+| `dist/git-broker.js`             | 1,058,597 bytes  | 937,701 bytes    |
+| Fresh-process `--version` median | 1,092 ms         | 1,080 ms         |
+
+Startup uses 30 interleaved samples per version after three warmups, with a warm filesystem cache. The roughly 1% timing difference is not evidence of a meaningful startup improvement; the bundle reductions are measured artifact differences.
 
 ## Decisions
 
@@ -57,6 +68,8 @@ Tests first: update `shared/utils/test/effect.test.ts` before changing the bound
 | `Effect.either` / `Either.isLeft`                | `Effect.result` / `Result.isFailure`                               |
 | `Effect.async`                                   | `Effect.callback`                                                  |
 | `Effect.fork`                                    | `Effect.forkChild`                                                 |
+| `Effect.yieldNow()`                              | `Effect.yieldNow` (an Effect value)                                |
+| `Schedule.upTo(duration)`                        | `Schedule.upTo({ duration })`                                      |
 | `Effect.timeoutFail`                             | `Effect.timeoutOrElse` with a failing `orElse` Effect              |
 | `Effect.acquireReleaseInterruptible`             | `Effect.acquireRelease(acquire, release, { interruptible: true })` |
 | `Fiber.RuntimeFiber`                             | `Fiber.Fiber`                                                      |
@@ -77,6 +90,13 @@ For timeouts, preserve lazy failure construction with `orElse: () => Effect.fail
 5. Check memoization at each owning scope, not by assuming all `Effect.provide` calls share globally. Pin independent shell/database lifetimes and rollback isolation. Use `Layer.fresh` or `Effect.provide(layer, { local: true })` only where independent acquisition is intentional; do not adjust tests to accept accidental sharing.
 
 Validation: targeted boundary and lifecycle suites first, then `bun run typecheck`, `bun run lint --force`, and `bun run test` (the boundary is a shared contract, so the full suite runs). Run `bun run arch:check`, `bun run changeset:check`, and `bun run docs:check`; add a `core--` changeset for the affected release closure. Force a fresh `bun run build --filter=@rizom/brain --force`, then `bun run surface:check` to verify declarations remain Effect-free and the packaged CLI boots. Record bundle size and fresh-process startup alongside the v3 baseline; do not infer them from the microbenchmarks. Finally, run `bun start:personal` from `packages/brain-cli` and confirm the job worker, recurring checks, and directory-sync watcher start and complete one cycle.
+
+#### Phase 1 validation record
+
+- Nine new boundary regressions pass alongside the migrated lifecycle/clock suites: original failure identity, independent roots, exact-once release, sibling finalization, and optional/extracted clocks. No memoization compatibility shim was needed. The A2A cancellation regression now checks reason preservation and exact-once release without assuming interruption defers finalization to another microtask.
+- Full types, forced lint, tests, script checks, architecture, docs, and changeset checks pass. Fresh public-surface validation passes 51 tests; packaged boot passes three tests.
+- Additional broker checks pass: 100 soak cycles / 300 Git operations, zero lost completions and zero zombies; all four packaged recovery tests pass. Recovery initially exposed a v3-baseline fixture mismatch: an embedding-disabled fixture ran semantic wishlist creation. The separate test-only fix (`c6e04209cb`) uses the existing non-AI markdown-upload job and retains durable export, remote commit, live-role, and recurring-check assertions.
+- Canonical `bun start:personal` boots and serves HTTP/MCP; the worker completes recurring-check jobs, initial directory sync completes, and the watcher/periodic Git schedule start. Temporary local overrides were restored and owned processes stopped. This is lifecycle verification with embeddings disabled and a dummy provider key; AI projection jobs fail with that key, so it does not claim provider-backed content verification.
 
 ### Phase 2 — Remove `runEffectPromise`
 

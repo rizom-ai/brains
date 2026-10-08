@@ -61,6 +61,13 @@
       "range": ""
     },
     {
+      "label": "Pin the private Effect runtime; upgrades are deliberate",
+      "packages": ["@brains/utils"],
+      "dependencies": ["effect"],
+      "dependencyTypes": ["prod"],
+      "range": ""
+    },
+    {
       "label": "Use caret ranges for all dependencies",
       "dependencies": ["**"],
       "dependencyTypes": ["dev", "prod", "peer"],

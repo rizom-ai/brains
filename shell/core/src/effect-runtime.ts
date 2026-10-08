@@ -1,4 +1,4 @@
-import { Cause, Effect, Either, Exit } from "@brains/utils/effect";
+import { Cause, Effect, Result, Exit } from "@brains/utils/effect";
 
 /**
  * Run an internal Effect through a Promise API without exposing FiberFailure.
@@ -22,7 +22,7 @@ export async function runConcurrentPhase(
   const results = await runEffectPromise(
     Effect.all(
       operations.map((operation) =>
-        Effect.either(
+        Effect.result(
           Effect.tryPromise({
             try: operation,
             catch: (error) => error,
@@ -32,6 +32,6 @@ export async function runConcurrentPhase(
       { concurrency: "unbounded" },
     ),
   );
-  const firstFailure = results.find(Either.isLeft);
-  if (firstFailure) throw firstFailure.left;
+  const firstFailure = results.find(Result.isFailure);
+  if (firstFailure) throw firstFailure.failure;
 }

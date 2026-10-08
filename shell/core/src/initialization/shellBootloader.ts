@@ -360,7 +360,7 @@ export class ShellBootloader {
           }
         }),
       ),
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         Effect.sync(() => {
           logger.warn("Semantic index readiness monitor stopped", error);
         }),

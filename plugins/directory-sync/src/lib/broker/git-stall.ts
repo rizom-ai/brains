@@ -1,5 +1,5 @@
 import { readdir, readFile } from "fs/promises";
-import { Effect, Fiber } from "@brains/utils/effect";
+import { Effect, Fiber, withOptionalClock } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
 /** Identifies the baseDir + stall timeout for a network git operation. */
@@ -43,7 +43,7 @@ export async function runGitCommandWithStallTimeout(
   signal?.throwIfAborted();
 
   const { baseDir, timeoutMs } = net;
-  let timerFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  let timerFiber: Fiber.Fiber<void, never> | null = null;
   let onStall = (): void => {};
   let onAbort = (): void => {};
   let closed = false;
@@ -67,7 +67,7 @@ export async function runGitCommandWithStallTimeout(
   });
   const cancelStallTimer = (): void => {
     if (!timerFiber) return;
-    Effect.runSync(Fiber.interruptFork(timerFiber));
+    timerFiber.interruptUnsafe();
     timerFiber = null;
   };
   const armStall = (): void => {
@@ -76,7 +76,7 @@ export async function runGitCommandWithStallTimeout(
     const delay = Effect.sleep(timeoutMs).pipe(
       Effect.andThen(Effect.sync(() => onStall())),
     );
-    const ownedDelay = net.clock ? Effect.withClock(delay, net.clock) : delay;
+    const ownedDelay = withOptionalClock(delay, net.clock);
     timerFiber = Effect.runFork(ownedDelay);
   };
   const settleStallTimer = async (): Promise<void> => {

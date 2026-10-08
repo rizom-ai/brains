@@ -72,7 +72,7 @@ export function createFatalJobWorkerHandler(
   };
 }
 
-function closeScopeSync(scope: Scope.CloseableScope): void {
+function closeScopeSync(scope: Scope.Closeable): void {
   const exit = Effect.runSyncExit(Scope.close(scope, Exit.void));
   if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
 }
@@ -86,7 +86,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
   const operationContext =
     options.operationContext ?? OperationContext.createFresh();
   const databaseScope = Effect.runSync(Scope.make());
-  let runtimeScope: Scope.CloseableScope | undefined;
+  let runtimeScope: Scope.Closeable | undefined;
   let runtimeLayerHandle: JobQueueRuntimeLayerHandle | undefined;
 
   try {
