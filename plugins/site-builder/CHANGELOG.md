@@ -1,5 +1,20 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- [#543](https://github.com/rizom-ai/brains/pull/543) [`fd206b4`](https://github.com/rizom-ai/brains/commit/fd206b451602eb7ff06768b625509b3dc78f7370) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain builds its site again when it starts: every environment that already has an output (production, and preview where configured) is requested once the site builder is ready, so a restart or an upgrade that brings new renderer code reaches the served site without an operator asking. An environment never built stays untouched; a build whose inputs and renderer are unchanged still skips rendering.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/image@0.2.0-alpha.490
+  - @brains/site-composition@0.2.0-alpha.490
+  - @brains/site-engine@0.2.0-alpha.490
+  - @brains/ui-library@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/plugins@0.2.0-alpha.490
+
 ## 0.2.0-alpha.489
 
 ### Patch Changes
