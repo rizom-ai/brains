@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Implemented in `work/topics-ranked-selection`; release, cohort bump, and verification on `friedrich` remain pending.
 
 ## Problem
 
@@ -21,11 +21,11 @@ A brain's topics are the best-supported subjects across all of its content, at m
 
 1. **Votes per source.** A `topics:extract` job reads up to four sources per AI call. The prompt lists the current topics and the leading challengers by title (each list at most the cap). For each source the AI returns the listed titles the source supports, with relevance, and at most one new title with a one-paragraph description when nothing listed fits. Votes below `minRelevanceScore` are dropped.
 2. **Vote store.** Votes live in the runtime-state namespace `topics.votes`, keyed `<entityType>:<id>`, with the source's `contentHash`, its supported slugs with relevance, and its proposal. One row per eligible source; topic content is never touched by extraction.
-3. **Bounded, resumable jobs.** A job takes the eligible sources whose stored vote is missing or has a different `contentHash`, drops votes of sources that no longer exist or are no longer eligible, makes at most 10 AI calls (about 90 seconds), stores the votes, runs selection, and enqueues the next job (deduplicated) while stale sources remain. Eligibility is unchanged: include and exclude types, `extractionVisibility`, `extractableStatuses`, source-role policy. Every AI call receives the job's abort signal.
+3. **Bounded, resumable jobs.** A job takes the eligible sources whose stored vote is missing or has a different `contentHash`, drops votes of sources that no longer exist or are no longer eligible, makes at most 10 AI calls (about 90 seconds), stores the votes, runs selection, and enqueues the next job (deduplicated) while stale sources remain. Eligibility is unchanged: include and exclude types, `extractionVisibility`, `extractableStatuses`, source-role policy. Every AI call receives the job's abort signal. Jobs scan sources by page and keep only keys and hashes; full content is loaded for the sources in a prompt. A source whose call fails or goes unanswered is retried alone; after three failures, counted only in jobs where the provider answered a call, it receives an empty vote until its content changes.
 4. **Tally.** Selection reads all votes and computes each slug's support: the sum over voting sources of role weight × relevance, for supported titles and proposals alike. Computing from the votes keeps the tally exact with no counters to drift; it reads one row per source and makes no AI call.
 5. **Selection.** The cap is `topicSoftCeiling` over the full eligible-source count.
    - Below the cap, the best-supported challenger whose relevance clears `createRelevanceThreshold` becomes a topic.
-   - At the cap, the best-supported challenger replaces the weakest topic when its support exceeds the weakest topic's by more than 25%. The margin keeps near-equal topics from swapping on small edits.
+   - At the cap, the best-supported challenger replaces the weakest topic when its support exceeds the weakest topic's by more than 25%. The margin keeps near-equal topics from swapping on small edits. Replacement waits until every eligible source has been read once.
    - Selection repeats until no challenger qualifies.
    - An entering topic's description is written by one AI call from the proposals that support it. A replaced topic is deleted; its site page and ATProto record follow the existing deletion paths.
    - Topic ids stay `scopedDerivedId(generateIdFromText(title), visibility)`, so a topic keeps its id and URL while it stays in the set.
@@ -43,7 +43,7 @@ A brain's topics are the best-supported subjects across all of its content, at m
 | Entering topic          | 1 AI call                        | 1 AI call                                               |
 | Prompt size             | at most 48 titles plus 4 sources | at most 48 titles plus 4 sources                        |
 
-Existing topics start without votes. The first full pass gives them real support; until then challengers can only enter below the cap or by outranking them.
+Existing topics start without votes. Replacement waits for the first full pass, which gives them real support; below the cap, challengers enter as soon as they qualify.
 
 ## Trade-off
 
@@ -63,6 +63,17 @@ Sources read early saw an earlier list, so they cannot vote for a challenger tha
 - implementation as above; the projection rule and its tests are removed
 - local verification on `friedrich`'s corpus: the first pass completes across jobs with the worker up, the topics span the books, an edit re-reads one source
 - release; bump the `books` cohort; redeploy `friedrich`; verify the topics and theme pages
+
+## Implementation review
+
+- `SYSTEM_CHANNELS.startupContentSettled` is emitted by the shell once the queued initial import settles; extraction subscribes to it.
+- Ownership release existed only on the internal projection store. Added a narrow entity-service method and release old topic ownership across all visibility partitions before orphan reconciliation, once per brain, recorded in runtime state.
+- Pending-job deduplication permits a successor while a job is processing. A runtime-state lease serializes overlapping extraction attempts and permits recovery after a worker dies.
+- Extraction jobs start independent maintenance roots. An event from a supporting projection (such as a series) must not make the whole resumable corpus scan inherit that unrelated projection's 32-job causal budget.
+- The ten-call budget includes description synthesis, not only extraction, so selection cannot turn a bounded extraction job into another deadline failure. Pending selection continues in a successor.
+- Descriptions use at most eight strongest proposals, each bounded to 2,000 characters. Eligibility and evidence are rechecked after generation before topic writes, including visibility changes during the AI call.
+- `subscribeExecution` runs once in both web and worker processes, so a second ordinary subscription would only duplicate enqueue requests.
+- Validation is provider-free and local. The production corpus, release, books cohort bump, redeployment, and live site/ATProto deletion paths have not been verified here.
 
 ## Decisions
 
