@@ -63,9 +63,16 @@ export const searchInputSchema: z.ZodObject<{
 export const getInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
+  part: z.ZodOptional<z.ZodEnum<{ full: "full"; body: "body" }>>;
 }> = z.object({
   entityType: z.string().describe("Entity type"),
   id: z.string().describe("Entity ID, slug, or title"),
+  part: z
+    .enum(["full", "body"])
+    .optional()
+    .describe(
+      "full (default) returns the stored Markdown including frontmatter; body returns only the Markdown body, without frontmatter, for requests to show or copy the body verbatim.",
+    ),
 });
 
 export const listInputSchema: z.ZodObject<{
