@@ -18,6 +18,7 @@ import {
 } from "./guest-execution";
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
+import { openAIReasoningOptions } from "./generation-options";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -207,7 +208,10 @@ export function createBrainAgentFactory(
             providerOptions: {
               ...(capabilities.provider === "openai" &&
                 reasoningEffort && {
-                  openai: { reasoningEffort },
+                  openai: openAIReasoningOptions(
+                    reasoningEffort,
+                    capabilities.supportsTemperature,
+                  ),
                 }),
               ...(webSearch &&
                 !guest && {
