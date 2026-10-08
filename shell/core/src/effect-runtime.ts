@@ -1,16 +1,4 @@
-import { Cause, Effect, Result, Exit } from "@brains/utils/effect";
-
-/**
- * Run an internal Effect through a Promise API without exposing FiberFailure.
- * Existing shell callers continue receiving the original failure value.
- */
-export async function runEffectPromise<A, E>(
-  effect: Effect.Effect<A, E>,
-): Promise<A> {
-  const exit = await Effect.runPromiseExit(effect);
-  if (Exit.isSuccess(exit)) return exit.value;
-  throw Cause.squash(exit.cause);
-}
+import { Effect, Result } from "@brains/utils/effect";
 
 /**
  * Run sibling Promise operations concurrently, settling every operation before
@@ -19,7 +7,7 @@ export async function runEffectPromise<A, E>(
 export async function runConcurrentPhase(
   operations: ReadonlyArray<() => Promise<void>>,
 ): Promise<void> {
-  const results = await runEffectPromise(
+  const results = await Effect.runPromise(
     Effect.all(
       operations.map((operation) =>
         Effect.result(

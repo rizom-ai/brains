@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress; Phase 1 implemented. Phases 2–3 have not started.** The reviewed target is `effect@4.0.1`, now pinned by `shared/utils` behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). At the reviewed base (`998010644d`), the repository resolved `effect@3.22.0` from `^3.21.4`. Workspace consumers do not import `effect` directly; only the boundary does.
+**In progress; Phases 1–2 implemented. Phase 3 has not started.** The reviewed target is `effect@4.0.1`, now pinned by `shared/utils` behind the curated boundary `@brains/utils/effect` (`shared/utils/src/effect.ts`) and its test surface `@brains/utils/effect/test` (`shared/utils/src/effect-test.ts`). At the reviewed base (`998010644d`), the repository resolved `effect@3.22.0` from `^3.21.4`. Workspace consumers do not import `effect` directly; only the boundary does.
 
 At the reviewed base, 64 TypeScript files import the boundary. Implementation corrected the migration inventory to 55 consumers (32 source, 23 test), including `Schedule.upTo`'s options-object change. The remaining surface (`Effect.gen`, `runPromise`, `runFork`, `promise`, `tryPromise`, `Scope.make`/`close`, `Layer.buildWithScope`, `Cause.squash`, `TestClock.adjust`, …) retains its API. Refresh the inventory when the base advances.
 
@@ -106,6 +106,13 @@ Tests first: in `shell/core/test/shell-lifecycle.test.ts` and focused phase-runn
 2. Delete `runEffectPromise`; `runConcurrentPhase` in `shell/core/src/effect-runtime.ts` keeps its all-siblings-settled behavior on `Effect.result` and reads the original failure value from `Result`.
 
 Validation: core tests and targeted typecheck/lint first, then the shared-contract checks and fresh package/boot gates from Phase 1 before releasing the upgrade.
+
+#### Phase 2 validation record
+
+- Removed `runEffectPromise` and its imports; shell, daemon, job-runtime cleanup, and concurrent phases use `Effect.runPromise` directly. The phase runner still collects every sibling's `Result` before selecting a failure in declaration order.
+- Added 12 regressions for parallel admission, empty phases, asynchronous/synchronous failure draining, declaration-order selection, exact rejected values (including objects, `undefined`, and `null`), and concurrent/later callers joining failed shell/job cleanup. Existing daemon joiners now assert error identity rather than structural equality.
+- Focused regressions pass before and after removal; core tests pass 625 tests. A fail-fast mutation is rejected by the draining, declaration-order, and synchronous-admission regressions. Failure probes use an event-loop checkpoint after explicit admission gates, not elapsed-time sleeps.
+- Full types, forced lint, tests, script checks, architecture, docs, and changeset checks pass. A fresh package passes 51 public-surface tests and three boot tests; the 100-cycle / 300-operation Git soak has zero lost completions or zombies, and all four packaged recovery tests pass.
 
 ### Phase 3 — Git broker transport on `effect/rpc` (separately gated)
 
