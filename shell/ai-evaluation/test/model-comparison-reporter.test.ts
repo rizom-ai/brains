@@ -39,6 +39,29 @@ function makeSummary(opts: {
 }
 
 describe("renderModelComparison", () => {
+  it("shows per-test pass rates when a model was sampled", () => {
+    const md = renderModelComparison([
+      {
+        model: "gpt-5.6-luna",
+        summary: makeSummary({
+          passedTests: 4,
+          failedTests: 2,
+          totalTests: 6,
+          results: [
+            makeResult("flaky", true),
+            makeResult("solid", true),
+            makeResult("flaky", false),
+            makeResult("solid", true),
+            makeResult("flaky", false),
+            makeResult("solid", true),
+          ],
+        }),
+      },
+    ]);
+    expect(md).toContain("| flaky | 1/3 |");
+    expect(md).toContain("| solid | 3/3 |");
+  });
+
   it("should produce markdown with summary table", () => {
     const md = renderModelComparison([
       {

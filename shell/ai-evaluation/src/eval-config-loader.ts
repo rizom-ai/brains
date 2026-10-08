@@ -12,7 +12,11 @@ import { fromYaml, toYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import type { Plugin, ProtocolPluginProvider } from "@brains/plugins";
 
-import { parseModelsField, parseJudgeField } from "./multi-model";
+import {
+  parseModelsField,
+  parseJudgeField,
+  parseSamplesField,
+} from "./multi-model";
 import { getErrorMessage } from "@brains/utils/error";
 
 const rawYamlSchema = z.record(z.string(), z.unknown());
@@ -34,6 +38,8 @@ export interface EvalConfigResult {
   models: string[];
   /** Judge model for LLM scoring (from `judge:` field) */
   judge?: string;
+  /** Independent runs per model (from `samples:` field) */
+  samples?: number;
   /** Effective tags from the selected eval suite or CLI `--tags`. */
   tags?: string[];
   /** Brain definition for re-resolution per model (multi-model only) */
@@ -101,6 +107,7 @@ async function loadBrainEvalConfigIfPresent(
   );
   const models = parseModelsField(rawYaml);
   const judge = parseJudgeField(rawYaml);
+  const samples = parseSamplesField(rawYaml);
 
   const brainPackage = resolveBrainPackageName(overrides.brain);
   const brainModule = await import(brainPackage);
@@ -140,6 +147,7 @@ async function loadBrainEvalConfigIfPresent(
     brainModelPath: brainModulePath,
     models,
     ...(judge ? { judge } : {}),
+    ...(samples !== undefined ? { samples } : {}),
     ...(evalSelection.tags?.length ? { tags: evalSelection.tags } : {}),
     resolveConfig: freshResolve,
   };
