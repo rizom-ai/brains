@@ -119,6 +119,7 @@ type SuccessCriteriaSchema = z.ZodObject<{
   responseContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
   responseContainsAny: z.ZodOptional<z.ZodArray<z.ZodArray<z.ZodString>>>;
   responseNotContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  responseCriteria: z.ZodOptional<z.ZodArray<z.ZodString>>;
   minHelpfulnessScore: z.ZodOptional<z.ZodNumber>;
   minAccuracyScore: z.ZodOptional<z.ZodNumber>;
   minInstructionFollowingScore: z.ZodOptional<z.ZodNumber>;
@@ -138,6 +139,8 @@ export const successCriteriaSchema: SuccessCriteriaSchema = z.object({
   responseContains: z.array(z.string()).optional(),
   responseContainsAny: z.array(z.array(z.string()).min(1)).optional(),
   responseNotContains: z.array(z.string()).optional(),
+  // Requirements on what the reply conveys, judged for meaning, not wording.
+  responseCriteria: z.array(z.string().min(1)).min(1).optional(),
 
   // Quality thresholds (for LLM-as-judge)
   minHelpfulnessScore: z.number().min(0).max(5).optional(),

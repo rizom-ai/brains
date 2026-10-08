@@ -2,8 +2,18 @@ import { ConsoleLogger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { IAIService } from "@brains/ai-service";
 
-import type { ILLMJudge, LLMJudgeOptions } from "./types";
-import type { AgentTestCase, TurnResult, QualityScores } from "./schemas";
+import type {
+  ILLMJudge,
+  LLMJudgeOptions,
+  RequirementJudgeInput,
+  RequirementVerdict,
+} from "./types";
+import type {
+  AgentTestCase,
+  QualityScores,
+  ToolCallRecord,
+  TurnResult,
+} from "./schemas";
 
 /**
  * Schema for LLM judge response
@@ -39,6 +49,24 @@ const qualityEvaluationSchema = z.object({
     ),
   reasoning: z.string().describe("Brief explanation of the scores given"),
 });
+
+const requirementVerdictSchema = z.object({
+  results: z.array(
+    z.object({
+      index: z
+        .number()
+        .int()
+        .min(0)
+        .describe("Index of the requirement as numbered in the material"),
+      met: z.boolean().describe("Whether the reply meets this requirement"),
+      reason: z
+        .string()
+        .describe("One sentence citing what in the reply meets or misses it"),
+    }),
+  ),
+});
+
+const REQUIREMENT_JUDGE_INSTRUCTION = `You check one assistant reply against a numbered list of requirements. For each requirement, decide whether the reply meets it. Judge meaning, not wording: a requirement is met when the reply conveys it in any phrasing, and not met when the reply omits it or contradicts it. Use the tool calls only to understand what the assistant did; do not credit the reply with content it does not contain. Return exactly one result per requirement, by index.`;
 
 const MAX_TOOL_RESULT_STRING_LENGTH = 2000;
 const MAX_TOOL_RESULT_LENGTH = 6000;
@@ -133,6 +161,50 @@ ${this.formatToolCalls(turnResults)}`;
   }
 
   /**
+   * Judge one reply against its requirements. An incomplete or unavailable
+   * verdict returns null, so callers report the requirements as unjudged
+   * rather than met.
+   */
+  async judgeRequirements(
+    input: RequirementJudgeInput,
+  ): Promise<RequirementVerdict[] | null> {
+    const material = [
+      "## User message",
+      input.userMessage,
+      "",
+      "## Assistant reply",
+      input.response,
+      "",
+      "## Tool calls in this turn",
+      this.formatToolCallList(input.toolCalls),
+      "",
+      "## Requirements",
+      ...input.requirements.map(
+        (requirement, index) => `${index}. ${requirement}`,
+      ),
+    ].join("\n");
+    try {
+      const { verdict } = await this.aiService.judge({
+        instruction: REQUIREMENT_JUDGE_INSTRUCTION,
+        material,
+        schema: requirementVerdictSchema,
+      });
+      const verdicts = input.requirements.flatMap((requirement, index) => {
+        const result = verdict.results.find((entry) => entry.index === index);
+        return result
+          ? [{ requirement, met: result.met, reason: result.reason }]
+          : [];
+      });
+      return verdicts.length === input.requirements.length ? verdicts : null;
+    } catch (error) {
+      // An unavailable judge yields no verdict; callers report the
+      // requirements as unjudged rather than met.
+      ConsoleLogger.getInstance().error("LLM Judge failed:", error);
+      return null;
+    }
+  }
+
+  /**
    * Format conversation turns for evaluation
    */
   private formatConversation(
@@ -168,8 +240,10 @@ ${this.formatToolCalls(turnResults)}`;
    * Format tool calls for evaluation
    */
   private formatToolCalls(turnResults: TurnResult[]): string {
-    const allToolCalls = turnResults.flatMap((tr) => tr.toolCalls);
+    return this.formatToolCallList(turnResults.flatMap((tr) => tr.toolCalls));
+  }
 
+  private formatToolCallList(allToolCalls: ToolCallRecord[]): string {
     if (allToolCalls.length === 0) {
       return "No tools were called.";
     }
