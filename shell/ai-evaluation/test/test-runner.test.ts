@@ -62,6 +62,70 @@ describe("TestRunner", () => {
       expect(result.failures).toHaveLength(0);
     });
 
+    it("does not erase a rejected SDK attempt when a repaired call requests approval", async () => {
+      const bad = {
+        entityType: "note",
+        id: "plan",
+        operation: {
+          kind: "edits",
+          edits: [{ oldText: "old", newText: "new" }],
+          fields: { title: "New" },
+        },
+      };
+      mockAgentService.chat.mockResolvedValue(
+        createMockResponse({
+          text: "Confirmation required.",
+          toolResults: [
+            {
+              toolName: "system_update",
+              args: bad,
+              error: {
+                code: "invalid_tool_call",
+                message: "Mixed operation branches",
+              },
+            },
+          ],
+          pendingConfirmations: [
+            {
+              id: "approval",
+              toolName: "system_update",
+              summary: "Update plan?",
+              args: {
+                entityType: "note",
+                id: "plan",
+                operation: { kind: "edits", edits: bad.operation.edits },
+              },
+            },
+          ],
+        }),
+      );
+      const result = await testRunner.runTest({
+        id: "rejected-then-repaired",
+        name: "Rejected attempt remains red",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Edit the plan." }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_update",
+              shouldBeCalled: true,
+              argsAbsent: ["operation.fields"],
+              resultContains: { needsConfirmation: true },
+            },
+          ],
+        },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.totalMetrics.toolCallCount).toBe(2);
+      expect(result.turnResults[0]?.toolCalls).toHaveLength(2);
+      expect(result.failures.map((failure) => failure.criterion)).toContain(
+        "toolArgsAbsent",
+      );
+      expect(result.failures.map((failure) => failure.criterion)).toContain(
+        "toolResultContains",
+      );
+    });
+
     it("should default eval callers to admin permission", async () => {
       const testCase: TestCase = {
         id: "test-default-admin",

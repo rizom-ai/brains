@@ -114,6 +114,16 @@ export interface BrainAgentResult {
       toolCallId: string;
       toolName: string;
       input: unknown;
+      invalid?: boolean | undefined;
+      error?: unknown;
+    }>;
+    /** SDK execution errors live in content, not in toolResults. */
+    content?: Array<{
+      type: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      error?: unknown;
     }>;
     toolResults: Array<{
       toolCallId: string;
