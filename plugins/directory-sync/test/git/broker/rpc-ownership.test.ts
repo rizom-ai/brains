@@ -105,8 +105,10 @@ describe.skipIf(process.platform !== "linux")(
           if (mode === "abort") controller.abort(reason);
           else observer.close();
           const error = await abandoned;
-          if (mode === "abort") expect(error).toBe(reason);
-          else expect(error).toBeInstanceOf(BrokerUnavailableError);
+          if (mode === "abort") {
+            expect(error).toBe(reason);
+            expect((await observer.status()).brokerId).toBe(broker.brokerId);
+          } else expect(error).toBeInstanceOf(BrokerUnavailableError);
 
           const afterAbandon = await independent.status();
           expect(afterAbandon.activeRequestIds).toContain(operationId);

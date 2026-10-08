@@ -1,4 +1,5 @@
 import { Rpc, RpcGroup, Schema } from "@brains/utils/effect/rpc";
+import type { RpcMessage } from "@brains/utils/effect/rpc";
 import { z } from "@brains/utils/zod";
 import { gitOperationSchema } from "./operations";
 import type { GitOperation } from "./operations";
@@ -193,13 +194,16 @@ const exitSchema = z.discriminatedUnion("_tag", [
   }),
   z.strictObject({ _tag: z.literal("Failure"), cause: causeSchema }),
 ]);
-const brokerRpcMessageSchema = z.union([
+const clientMessageSchema = z.union([
   requestSchema,
   z.strictObject({ _tag: z.literal("Ack"), requestId: rpcIdSchema }),
   z.strictObject({ _tag: z.literal("Interrupt"), requestId: rpcIdSchema }),
   z.strictObject({ _tag: z.literal("Ping") }),
-  z.strictObject({ _tag: z.literal("Pong") }),
   z.strictObject({ _tag: z.literal("Eof") }),
+]);
+const brokerRpcMessageSchema = z.union([
+  clientMessageSchema,
+  z.strictObject({ _tag: z.literal("Pong") }),
   z.strictObject({
     _tag: z.literal("Chunk"),
     requestId: rpcIdSchema,
@@ -216,4 +220,19 @@ const brokerRpcMessageSchema = z.union([
 /** Run before any Effect RPC decoding can strip unknown fields. */
 export function isBrokerRpcMessage(value: unknown): boolean {
   return brokerRpcMessageSchema.safeParse(value).success;
+}
+
+/** Reject server-to-client messages on the request side too. */
+export function parseBrokerRpcRequest(
+  value: unknown,
+): RpcMessage.FromClientEncoded {
+  const message = clientMessageSchema.parse(value);
+  if (message._tag !== "Request") return message;
+  const { traceId, spanId, sampled, ...request } = message;
+  return {
+    ...request,
+    ...(traceId === undefined ? {} : { traceId }),
+    ...(spanId === undefined ? {} : { spanId }),
+    ...(sampled === undefined ? {} : { sampled }),
+  };
 }

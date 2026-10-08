@@ -4,6 +4,7 @@
 "@rizom/brain": patch
 ---
 
-Prepare private bounded Effect RPC contracts and Bun socket adapters for the Git
-broker transport migration. Preserve strict operation validation, bounded byte
-framing/output, and Promise-based public contracts.
+Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+socket adapters. Preserve strict operation validation, stable-ID replay,
+broker-owned Git work through observer cancellation, and Promise-based public
+contracts.
