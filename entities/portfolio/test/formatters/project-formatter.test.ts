@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
 import { ProjectBodyFormatter } from "../../src/formatters/project-formatter";
 
 describe("ProjectBodyFormatter", () => {
@@ -49,17 +50,12 @@ The results.
   });
 
   it("should handle roundtrip conversion", () => {
-    const data = {
+    expectBodyRoundTrip(formatter, {
       context: "The company needed a new platform.",
       problem: "Legacy system was unmaintainable.",
       solution: "Built a modern architecture with plugins.",
       outcome: "50% faster development cycles.",
-    };
-
-    const formatted = formatter.format(data);
-    const parsed = formatter.parse(formatted);
-
-    expect(parsed).toEqual(data);
+    });
   });
 
   it("should parse content without # Title heading", () => {

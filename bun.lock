@@ -1372,6 +1372,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "@types/js-yaml": "^4.0.9",
@@ -1591,6 +1592,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@rizom/site": "workspace:*",
         "@types/react": "^19.2.17",
@@ -2273,6 +2275,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "@types/react": "^19.2.17",

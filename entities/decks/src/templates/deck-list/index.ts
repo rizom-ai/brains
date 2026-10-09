@@ -5,7 +5,6 @@ import {
   type EnrichedDeckListData,
 } from "./schema";
 import { DeckListLayout } from "./layout";
-import { DeckListFormatter } from "./formatter";
 
 export const deckListTemplate: Template = createTemplate<
   DeckListSchemaData,
@@ -16,7 +15,6 @@ export const deckListTemplate: Template = createTemplate<
   schema: enrichedDeckListSchema,
   dataSourceId: "decks:entities",
   requiredPermission: "public",
-  formatter: new DeckListFormatter(),
   layout: {
     component: DeckListLayout,
   },
@@ -30,4 +28,3 @@ export {
   type DeckListSchemaData,
   type EnrichedDeckListData,
 } from "./schema";
-export { DeckListFormatter } from "./formatter";

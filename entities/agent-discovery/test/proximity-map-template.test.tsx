@@ -177,10 +177,12 @@ describe("AgentProximityMapTemplate", () => {
     if (!template) throw new Error("proximity-map template not found");
     expect(template.overlayFormatter).toBeDefined();
 
+    // Decoded copy: format writes the schema's output shape, defaults included.
     const copy = {
       kicker: "The network, live",
       headingLead: "This is what expertise looks like",
       headingAccent: "when it's alive",
+      headingLevel: null,
       lede: "Independent minds.",
       ctaLabel: "Meet the agents",
       ctaHref: "/network",
