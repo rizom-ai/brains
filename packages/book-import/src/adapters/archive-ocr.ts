@@ -1,6 +1,7 @@
 import { Window } from "happy-dom";
 import type { BookUnit } from "../render-book";
 import { unitsOfSections } from "../sections";
+import { closedBrackets } from "./brackets";
 import { sharpened, unjoined } from "./run-together";
 import {
   createSpelling,
@@ -88,6 +89,12 @@ const LINE_SELECTOR = ".ocr_line, .ocr_header, .ocr_caption, .ocr_textfloat";
 
 /** Footnotes are set smaller than the text, at most this share of its size. */
 const NOTE_SIZE = 0.8;
+/**
+ * No type is set this small: a short line the OCR measures so is a rule or
+ * an ornament read as scraps, at most this share of the text's size. A full
+ * line measured so is text on a curved page.
+ */
+const MARK_SIZE = 0.4;
 /** The notes below a rule are set smaller than the text, at most this share. */
 const FOOT_TEXT_SIZE = 0.9;
 /** Running heads sit in the top tenth of the page, */
@@ -959,6 +966,12 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         },
       ];
     }
+    if (
+      line.size < volume.textSize * MARK_SIZE &&
+      line.width < volume.column / 2
+    ) {
+      return pieces;
+    }
     const centre = line.x + line.width / 2;
     const last = pieces.at(-1);
     // A heading runs on until a line ends it.
@@ -1014,8 +1027,14 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // numbered by its place, where it is set in display type or its first
     // numbered section follows it: II. Die Grundrente. 1. Rodbertus.
     const firstSection = /^\d{1,2}\.\s+\p{Lu}/u.test(
-      headless.slice(index + 1).find((below) => /\p{L}/u.test(below.text))
-        ?.text ?? "",
+      // Past a rule or an ornament, which the OCR reads as tiny scraps.
+      headless
+        .slice(index + 1)
+        .find(
+          (below) =>
+            /\p{L}/u.test(below.text) &&
+            below.size >= volume.textSize * NOTE_SIZE,
+        )?.text ?? "",
     );
     if (
       subsection?.[1] &&
@@ -1077,8 +1096,12 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         spacedAbove) &&
       line.y < page.height * FOOT_ZONE &&
       line.size >= volume.textSize * NOTE_SIZE &&
-      // A roman label set smaller than the text is a table's.
-      (!/^[IVX]+$/u.test(subsection[1]) || line.size >= volume.textSize) &&
+      // A roman label set smaller than the text is a table's, unless space
+      // below sets it apart from the text as a title.
+      (!/^[IVX]+$/u.test(subsection[1]) ||
+        line.size >= volume.textSize ||
+        (below !== undefined &&
+          below.y - line.bottom > bodyHeight * SECTION_SPACE)) &&
       (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
       // A chapter named so (2. Kapitel) is read as one.
       headingLineOf(line.text, line.size) === null
@@ -1382,6 +1405,25 @@ function addHeading(
     heading.level === 2 &&
     /^\d+$/u.test(heading.label ?? "") &&
     path.some((step) => step.level === 2 && /^[A-H]$/u.test(step.letter ?? ""))
+  ) {
+    return addPiece(
+      state,
+      {
+        kind: "text",
+        text: [`${heading.label}.`, ...heading.title].join(" "),
+        opens: true,
+      },
+      place,
+    );
+  }
+  // Sections count up within a chapter; a number not past the last
+  // section's numbers a list's item, its number and words text.
+  const sibling = path.filter((step) => step.level === 2).at(-1)?.letter;
+  if (
+    heading.level === 2 &&
+    /^\d+$/u.test(heading.label ?? "") &&
+    /^\d+$/u.test(sibling ?? "") &&
+    Number(heading.label) <= Number(sibling)
   ) {
     return addPiece(
       state,
@@ -1732,12 +1774,15 @@ export function parseArchiveOcrWork(
       titleOf(step, namedByHeads(step, filled, volume)),
     ]),
   );
-  // A ß the OCR read as B is read as ß again, and words it ran together in
-  // letter-spaced type are parted.
+  // A ß the OCR read as B is read as ß again, words it ran together in
+  // letter-spaced type are parted, and brackets it read as marks close.
   const parted = <Block extends { text: string }>(blocks: Block[]): Block[] =>
     blocks.map((block) => ({
       ...block,
-      text: unjoined(sharpened(block.text, volume.common), volume.common),
+      text: unjoined(
+        sharpened(closedBrackets(block.text), volume.common),
+        volume.common,
+      ),
     }));
   const skipNotes = work.skipNotes ?? [];
   // A signature closes a note after a stop or space, not inside a word.

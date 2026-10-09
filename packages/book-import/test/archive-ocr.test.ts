@@ -1371,3 +1371,67 @@ describe("parseArchiveOcrWork, Kautsky's headings", () => {
     );
   });
 });
+
+describe("parseArchiveOcrWork, numbered sections in order", () => {
+  it("reads only sections numbered in order, titled without an ornament, and no list's item", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-section-order.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden03marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien III",
+        firstPage: 1,
+        lastPage: 3,
+      },
+    );
+
+    expect(units.map((unit) => [unit.parents.at(-1), unit.title])).toEqual([
+      ["I. Die Kritik.", "1. Der Wert."],
+      ["I. Die Kritik.", "2. Der Mehrwert."],
+    ]);
+  });
+
+  it("reads an appendix's roman sections set smaller than the text, where space sets them apart", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-section-order.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden03marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien III",
+        firstPage: 4,
+        lastPage: 4,
+      },
+    );
+
+    expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
+      ["Anhang.", "I. Proudhon über den Zins."],
+      ["Anhang.", "II. Luther über den Wucher."],
+    ]);
+  });
+
+  it("reads an editor's closing bracket the OCR read as an exclamation mark", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-section-order.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden03marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien III",
+        firstPage: 1,
+        lastPage: 3,
+      },
+    );
+
+    expect(units[0]?.paragraphs[0]).toBe(
+      "Der Wert der Arbeit ist der Wert [der Ware] und die Kritik der Arbeit, wie der Wert.",
+    );
+  });
+});
