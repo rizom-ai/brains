@@ -101,7 +101,12 @@ export const SITE_BUILDER_CHANNELS = {
   routeUnregister: "plugin:site-builder:route:unregister",
   routeList: "plugin:site-builder:route:list",
   routeGet: "plugin:site-builder:route:get",
-  headScriptRegister: "plugin:site-builder:head-script:register",
+  /**
+   * Collected when a site builds: each subscriber answers with one script
+   * string for every page's head. Subscribe with `subscribeExecution` in
+   * `onRegister`; builds run in the worker, which never runs the ready phase.
+   */
+  headScripts: "plugin:site-builder:head-scripts",
   slotRegister: "plugin:site-builder:slot:register",
 } as const;
 

@@ -638,6 +638,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,

@@ -8,6 +8,7 @@ import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
   SiteBuildProfile,
@@ -55,7 +56,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
   private rebuildManager?: RebuildManager;
   private buildStatusService?: SiteBuildStatusService;
   private siteWorkspaceProvider?: SiteWorkspaceProvider;
-  private headScripts = new Map<string, string>();
 
   private get routeRegistry(): RouteRegistry {
     if (!this._routeRegistry) {
@@ -76,9 +76,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
       siteBuilderConfigSchema,
     );
     this.layouts = layouts;
-    for (const [index, script] of this.config.headScripts.entries()) {
-      this.headScripts.set(`site-package:${index}`, script);
-    }
   }
 
   protected override async onRegister(
@@ -101,17 +98,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
         render,
         ...(priority !== undefined && { priority }),
       });
-      return { success: true };
-    });
-
-    // Subscribe to head script registration messages from other plugins
-    context.messaging.subscribe<
-      { pluginId: string; script: string },
-      { success: boolean }
-    >(SITE_BUILDER_CHANNELS.headScriptRegister, async (message) => {
-      const { pluginId, script } = message.payload;
-      // Use pluginId as key so re-registration replaces (no duplicates)
-      this.headScripts.set(pluginId, script);
       return { success: true };
     });
 
@@ -180,7 +166,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           preferLocalUrls: context.preferLocalUrls,
           themeCSS: this.config.themeCSS,
           slots: this._slotRegistry,
-          getHeadScripts: (): string[] => this.getRegisteredHeadScripts(),
+          getHeadScripts: (): Promise<string[]> => this.getHeadScripts(),
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
           }),
@@ -270,11 +256,21 @@ export class SiteBuilderPlugin extends ServicePlugin<
   }
 
   /**
-   * Get all head scripts registered by other plugins.
-   * Used by the build pipeline to inject scripts into the HTML <head>.
+   * The scripts for every page's head: the site package's own, then each
+   * plugin's answer, asked for at build time so it works in the worker and
+   * whatever order plugins registered in.
    */
-  public getRegisteredHeadScripts(): string[] {
-    return Array.from(this.headScripts.values());
+  public async getHeadScripts(): Promise<string[]> {
+    const answers = await this.getContext().messaging.collect({
+      type: SITE_BUILDER_CHANNELS.headScripts,
+      payload: {},
+    });
+    const contributed = answers.flatMap((answer) => {
+      const script =
+        "data" in answer ? z.string().safeParse(answer.data) : null;
+      return script?.success ? [script.data] : [];
+    });
+    return [...this.config.headScripts, ...contributed];
   }
 
   protected override async getTools(): Promise<Tool[]> {
