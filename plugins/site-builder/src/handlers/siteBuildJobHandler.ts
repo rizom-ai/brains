@@ -45,7 +45,8 @@ export interface SiteBuildJobHandlerConfig {
   preferLocalUrls?: boolean | undefined;
   themeCSS?: string | undefined;
   slots?: LayoutSlots | undefined;
-  getHeadScripts?: (() => string[]) | undefined;
+  /** Asked on every build: the site package's scripts plus plugins' answers. */
+  getHeadScripts?: (() => Promise<string[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   statusService?: BuildStatusRecorder | undefined;
@@ -133,7 +134,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           layouts: this.cfg.layouts,
           themeCSS: this.cfg.themeCSS,
           slots: this.cfg.slots,
-          headScripts: this.cfg.getHeadScripts?.(),
+          headScripts: await this.cfg.getHeadScripts?.(),
           ...(this.cfg.staticAssets && {
             staticAssets: this.cfg.staticAssets,
           }),

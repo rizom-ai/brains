@@ -55,21 +55,17 @@ export class AnalyticsPlugin extends ServicePlugin<
       "traffic-overview",
       createTrafficOverviewInsight(this.cloudflareClient),
     );
-  }
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
+    // Site builds run in the worker and ask for head scripts as they render,
+    // so the beacon answers there; that process never runs the ready phase.
     const siteTag = this.config.cloudflare?.siteTag;
-    if (!siteTag) return;
-
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.headScriptRegister,
-      payload: {
-        pluginId: this.id,
-        script: generateCloudflareBeaconScript(siteTag),
-      },
-    });
+    if (siteTag) {
+      const script = generateCloudflareBeaconScript(siteTag);
+      context.messaging.subscribeExecution(
+        SITE_BUILDER_CHANNELS.headScripts,
+        async () => ({ success: true, data: script }),
+      );
+    }
   }
 
   protected override async getTools(): Promise<Tool[]> {

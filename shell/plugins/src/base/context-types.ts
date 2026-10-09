@@ -4,6 +4,7 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
+import type { MessageCollector } from "../contracts/messaging";
 import type { Channel } from "../utils/channels";
 import type {
   GetMessagesOptions,
@@ -46,6 +47,13 @@ export type TypedMessageHandler<TPayload, TResponse = unknown> = (
 export interface IMessagingNamespace {
   /** Send a message to other plugins */
   send: MessageSender;
+
+  /**
+   * Send a message and gather one answer from every subscriber. For
+   * contributions read when they are used, such as the head scripts a site
+   * build asks for: it works in every process and in any registration order.
+   */
+  collect: MessageCollector;
 
   /**
    * Subscribe to messages on a channel
