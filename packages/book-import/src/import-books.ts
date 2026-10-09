@@ -52,6 +52,18 @@ const ekgwbBookSchema: z.ZodObject<
   title: z.string().min(1).optional(),
 });
 
+/** A printed page: its number, or its roman number in the front matter. */
+const printedPageSchema: z.ZodUnion<[z.ZodNumber, z.ZodString]> = z.union([
+  z.number().int().positive(),
+  z.string().regex(/^[IVXL]+$/),
+]);
+
+/** A note left out: on a printed page, the note that opens with these words. */
+const skippedNoteSchema: z.ZodObject<{
+  page: typeof printedPageSchema;
+  opens: z.ZodString;
+}> = z.object({ page: printedPageSchema, opens: z.string().min(1) });
+
 const archiveOcrBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -66,6 +78,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       firstChapter: z.ZodDefault<z.ZodNumber>;
       references: z.ZodOptional<z.ZodArray<z.ZodURL>>;
+      skipNotes: z.ZodDefault<z.ZodArray<typeof skippedNoteSchema>>;
     }
   >
 > = z.object({
@@ -77,11 +90,7 @@ const archiveOcrBookSchema: z.ZodObject<
   /** A Tesseract model to read the scan anew with, where the archive's text read the type wrong: frk for Fraktur. */
   ocr: z.string().min(1).optional(),
   /** The work's printed pages in the volume. */
-  firstPage: z.union([
-    z.number().int().positive(),
-    /** A roman page of the front matter. */
-    z.string().regex(/^[IVXL]+$/),
-  ]),
+  firstPage: printedPageSchema,
   lastPage: z.number().int().positive(),
   title: z.string().min(1),
   /** The printed edition the scan reproduces. */
@@ -94,6 +103,8 @@ const archiveOcrBookSchema: z.ZodObject<
   firstChapter: z.number().int().positive().default(1),
   /** Transcriptions of the work, of any edition, to check the OCR against: a text, or a web page per chapter. */
   references: z.array(z.url()).min(1).optional(),
+  /** Notes not the author's, such as an editor's or translator's, left out. */
+  skipNotes: z.array(skippedNoteSchema).default([]),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */

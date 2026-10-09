@@ -41,6 +41,14 @@ export interface ArchiveOcrWork {
   firstChapter?: number;
   /** Lines the OCR misread, fixed. */
   corrections?: OcrCorrection[];
+  /** Notes not the author's, such as an editor's, by page and opening words. */
+  skipNotes?: SkippedNote[];
+}
+
+/** A note left out: on a printed page, the note that opens with these words. */
+export interface SkippedNote {
+  page: number | string;
+  opens: string;
 }
 
 interface Line {
@@ -587,11 +595,6 @@ function isPicture(lines: Line[]): boolean {
   );
 }
 
-/**
- * One page read as heading blocks, text lines and note lines, in order. A
- * heading is a run of short centred lines: a numeral, a letter, a part's name,
- * lines in capitals, a qualifier in brackets.
- */
 /** The OCR reads a note marker, a 1 beside digits, and an i, as a dotless i. */
 function normalised(text: string): string {
   return (
@@ -838,6 +841,11 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   ];
 }
 
+/**
+ * One page read as heading blocks, text lines and note lines, in order. A
+ * heading is a run of short centred lines: a numeral, a letter, a part's name,
+ * lines in capitals, a qualifier in brackets.
+ */
 function piecesOf(page: Page, volume: Volume): Piece[] {
   const headless = volume.numberedTitles
     ? bodyLines(page, volume).flatMap((line) =>
@@ -1576,11 +1584,31 @@ export function parseArchiveOcrWork(
       ...block,
       text: unjoined(sharpened(block.text, volume.common), volume.common),
     }));
+  const skipNotes = work.skipNotes ?? [];
+  const skipped = (note: Block): boolean =>
+    skipNotes.some(
+      (skip) =>
+        String(skip.page) === note.label && note.text.startsWith(skip.opens),
+    );
+  // A note left out that names no note is stale.
+  skipNotes.forEach((skip) => {
+    const found = filled.some((section) =>
+      section.notes.some(
+        (note) =>
+          String(skip.page) === note.label && note.text.startsWith(skip.opens),
+      ),
+    );
+    if (!found) {
+      throw new Error(
+        `No note "${skip.opens}" on page ${String(skip.page)} to leave out`,
+      );
+    }
+  });
   return unitsOfSections(
     filled.map((section) => ({
       ...section,
       paragraphs: parted(section.paragraphs),
-      notes: parted(section.notes),
+      notes: parted(section.notes.filter((note) => !skipped(note))),
       titles: section.path.map((step) => titles.get(step) ?? ""),
     })),
     (start) => ({

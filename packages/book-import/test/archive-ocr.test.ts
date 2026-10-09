@@ -75,6 +75,26 @@ describe("parseArchiveOcrWork", () => {
   });
 });
 
+describe("parseArchiveOcrWork on notes left out", () => {
+  it("leaves out the notes the manifest names by page and opening, such as an editor's", async () => {
+    const [first] = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      skipNotes: [{ page: 4, opens: "¹) Vgl. Zur Psychoanalyse" }],
+    });
+
+    expect(first?.paragraphs.join("\n")).not.toContain("Kriegsneurosen");
+  });
+
+  it("stops on a note left out that names no note", async () => {
+    expect(async () =>
+      parseArchiveOcrWork(await fixture(), {
+        ...work,
+        skipNotes: [{ page: 3, opens: "¹) Vgl. Zur Psychoanalyse" }],
+      }),
+    ).toThrow('No note "¹) Vgl. Zur Psychoanalyse" on page 3 to leave out');
+  });
+});
+
 describe("parseArchiveOcrWork on pages left out", () => {
   it("leaves out the pages the manifest names, such as an editors' note", async () => {
     const units = parseArchiveOcrWork(await fixture(), {

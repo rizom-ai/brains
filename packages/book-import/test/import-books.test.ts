@@ -690,6 +690,22 @@ books:
     ]);
   });
 
+  it("names the notes of a work to leave out, by page and opening words", () => {
+    const manifest = parseManifest(
+      ocrManifest +
+        '    skipNotes:\n      - { page: 4, opens: "¹) Vgl." }\n      - { page: XXX, opens: "*) Titre" }\n',
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].skipNotes
+        : null,
+    ).toEqual([
+      { page: 4, opens: "¹) Vgl." },
+      { page: "XXX", opens: "*) Titre" },
+    ]);
+  });
+
   it("reads a corrections file by volume", () => {
     expect(
       parseCorrections(`
