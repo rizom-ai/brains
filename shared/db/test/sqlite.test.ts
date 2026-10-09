@@ -474,21 +474,30 @@ describe("local client contention contract", () => {
   }
 
   it("still reports a standalone write refused past the retry budget", async () => {
-    await withConnections(async (holder, contender) => {
-      const held = await holder.client.transaction("write");
-      try {
-        await held.execute("INSERT INTO probe VALUES (1)");
-        await rejects(
-          contender.client.execute("INSERT INTO probe VALUES (2)"),
-          (error: unknown) =>
-            error instanceof LibsqlError &&
-            /^SQLITE_(BUSY|LOCKED)$/u.test(error.code),
-        );
-      } finally {
-        held.close();
-      }
-    });
-  }, 10_000);
+    // A short budget: what is under test is giving up, not how long
+    // production waits, which real timers on a loaded machine stretch past
+    // any test timeout.
+    await withConnections(
+      async (holder, contender) => {
+        const held = await holder.client.transaction("write");
+        try {
+          await held.execute("INSERT INTO probe VALUES (1)");
+          await rejects(
+            contender.client.execute("INSERT INTO probe VALUES (2)"),
+            (error: unknown) => {
+              expect(error instanceof LibsqlError && error.code).toMatch(
+                /^SQLITE_(BUSY|LOCKED)$/u,
+              );
+              return true;
+            },
+          );
+        } finally {
+          held.close();
+        }
+      },
+      { contentionRetryBudgetMs: 200 },
+    );
+  });
 });
 
 describe("shared transaction acquisition", () => {
