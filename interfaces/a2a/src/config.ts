@@ -32,8 +32,12 @@ export const a2aConfigSchema: A2AConfigSchema = z
     /** Network attempts for transient outbound A2A failures. */
     maxNetworkAttempts: z.number().int().positive().default(2),
 
-    /** The whole budget for one peer when the network is asked (card fetch and answer). */
-    networkAskTimeoutMs: z.number().positive().default(6_000),
+    /**
+     * The whole budget for one peer when the network is asked: Agent Card
+     * fetch and answer. A brain's answer is a model turn with retrieval, which
+     * takes 15–25 s on the fleet, so a short budget asks nobody in effect.
+     */
+    networkAskTimeoutMs: z.number().positive().default(30_000),
   })
   .strict();
 

@@ -261,9 +261,9 @@ describe("A2A network ask channel", () => {
       const sent = fetchFn.mock.calls.find(
         (call) => call[1] !== undefined && call[1].method === "POST",
       );
-      expect(String(sent?.[1]?.body)).toContain(
-        "What do you know about gardens?",
-      );
+      const body = String(sent?.[1]?.body);
+      expect(body).toContain("What do you know about gardens?");
+      expect(body).toContain("Answer briefly, from your own public content");
     } finally {
       await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
     }

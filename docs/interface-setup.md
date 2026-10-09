@@ -335,7 +335,7 @@ Inbound trust is separate from outbound contact approval. Grant or revoke it wit
 
 A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agent_scan_directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
 
-`network_ask` asks the network as a whole: it picks the approved peers whose skills fit a question (at most three, or the two nearest when none fit), asks them in parallel with a 6 s budget each (`networkAskTimeoutMs`), and returns every answer with its sources attributed to the brain that gave it. It is public and side-effect free, so a site visitor's guest turn may use it; a peer answers at public level and its answer's sources travel back as a `sources` task artifact.
+`network_ask` asks the network as a whole: it picks the approved peers whose skills fit a question (at most three, or the two nearest when none fit), asks them in parallel with a 30 s budget each (`networkAskTimeoutMs`; a peer's answer is a model turn with retrieval, 15–25 s on the fleet), and returns every answer with its sources attributed to the brain that gave it. Each peer is asked for a brief answer from its own public content with citations. It is public and side-effect free, so a site visitor's guest turn may use it; a peer answers at public level and its answer's sources travel back as a `sources` task artifact.
 
 Manual smoke test:
 

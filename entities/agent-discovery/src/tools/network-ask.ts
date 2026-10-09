@@ -114,7 +114,7 @@ export function createNetworkAskTool(context: NetworkAskContext): Tool {
   return {
     name: "network_ask",
     description:
-      "Ask the connected brains a question. Picks the approved peers whose skills fit it best (at most three, or the two nearest when none fit), asks them in parallel with a short budget each, and returns every answer with its sources attributed to the brain that gave it, plus who did not answer. Use it when this brain holds little on the question or the user asks what the network thinks; pass the question as asked.",
+      "Ask the connected brains a question. Picks the approved peers whose skills fit it best (at most three, or the two nearest when none fit), asks them in parallel (each peer answers with its own model turn, so expect to wait up to half a minute), and returns every answer with its sources attributed to the brain that gave it, plus who did not answer. Use it when this brain holds little on the question or the user asks what the network thinks; pass the question as asked.",
     inputSchema: networkAskInputSchema.shape,
     visibility: "public",
     sideEffects: "none",

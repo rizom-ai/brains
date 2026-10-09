@@ -19,6 +19,15 @@ const peerAnswerSchema = z.object({
   sources: z.array(SourceCitationSchema),
 });
 
+/** How a peer is asked: the question, then what kind of answer serves a visitor. */
+export function networkAskMessage(question: string): string {
+  return [
+    question,
+    "",
+    "Asked on behalf of a visitor to another brain's site. Answer briefly, from your own public content, and cite what you draw on.",
+  ].join("\n");
+}
+
 export interface A2AMessageHandlerOptions {
   /** The whole budget for one peer: Agent Card fetch and answer, one attempt. */
   networkAskTimeoutMs: number;
@@ -44,7 +53,7 @@ export interface A2ADirectoryAgent {
 export function registerA2ACallMessageHandlers(
   context: InterfacePluginContext,
   deps: A2AClientDeps,
-  options: A2AMessageHandlerOptions = { networkAskTimeoutMs: 6_000 },
+  options: A2AMessageHandlerOptions = { networkAskTimeoutMs: 30_000 },
 ): void {
   context.messaging.subscribe(A2A_CHANNELS.askRequest, async (message) => {
     const parsed = networkAskMessageSchema.safeParse(message.payload);
@@ -60,7 +69,7 @@ export function registerA2ACallMessageHandlers(
     };
     try {
       const result = await executeAgentCall(
-        { agent, message: question },
+        { agent, message: networkAskMessage(question) },
         { ...deps, maxNetworkAttempts: 1 },
         { requireSaved: true, signal: budget },
       );
