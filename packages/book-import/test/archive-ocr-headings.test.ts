@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   createSpelling,
   headingLineOf,
+  headingOf,
   isWordy,
 } from "../src/adapters/archive-ocr-headings";
 
@@ -33,6 +34,17 @@ describe("headingLineOf", () => {
   it("reads a numbered chapter however it names itself", () => {
     expect(headingLineOf("1. KAPITEL", 80)?.kind).toBe("chapter");
     expect(headingLineOf("IX. VORLESUNG", 80)?.kind).toBe("chapter");
+  });
+});
+
+describe("headingOf", () => {
+  it("reads a lettered heading that names a part as a part", () => {
+    const heading = headingOf([
+      { kind: "letter", letter: "C" },
+      { kind: "caps", text: "THEORETISCHER TEIL", size: 80 },
+    ]);
+
+    expect(heading.level).toBe(0);
   });
 });
 

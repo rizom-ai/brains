@@ -83,6 +83,18 @@ const SUBTITLE_SIZE = 0.85;
 
 /** Read a block of heading lines as one heading. */
 export function headingOf(lines: HeadingLine[]): Heading {
+  const heading = readHeading(lines);
+  // A lettered heading that names a part stands above the chapters.
+  return heading.level === 2 &&
+    heading.title.some((line) => PART_WORD.test(line))
+    ? { ...heading, level: 0 }
+    : heading;
+}
+
+/** A part named in a heading's title: Analytischer Teil. */
+const PART_WORD = /\bteil\b/iu;
+
+function readHeading(lines: HeadingLine[]): Heading {
   return lines.reduce<Heading & { titleSize: number | null }>(
     (heading, line) => {
       switch (line.kind) {
