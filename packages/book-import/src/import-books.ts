@@ -482,30 +482,42 @@ async function loadDtaTeiBook(
   };
 }
 
+const pageNumbersSchema = z.object({ pages: z.array(z.unknown()) });
+
 /**
- * The leaves an uploaded scan serves as page images, as its scandata lists
- * them, where its metadata counts none; null where it has no scandata.
+ * The leaves a scan serves as page images: as many as its page numbers list,
+ * or its scandata puts in the access formats; the image count also counts
+ * colour cards and covers that are not served. Null where it has neither.
  */
-async function scandataLeaves(
+async function servedLeaves(
   item: string,
   metadata: z.output<typeof archiveMetadataSchema>,
   fetchText: FetchText,
 ): Promise<number | null> {
-  const scandata = metadata.files.find((file) => file.format === "Scandata");
-  if (!scandata) return null;
   // Read from the item's own server: the mirror a download is sent to may
   // fail on a file it holds.
   const folder =
     metadata.server && metadata.dir
       ? `https://${metadata.server}${metadata.dir}`
       : `${ARCHIVE}/download/${item}`;
-  const xml = await fetchText(`${folder}/${encodeURIComponent(scandata.name)}`);
+  const fileOf = (format: string): Promise<string> | null => {
+    const file = metadata.files.find((each) => each.format === format);
+    return file
+      ? fetchText(`${folder}/${encodeURIComponent(file.name)}`)
+      : null;
+  };
+  const pageNumbers = fileOf("Page Numbers JSON");
+  if (pageNumbers) {
+    return pageNumbersSchema.parse(JSON.parse(await pageNumbers)).pages.length;
+  }
+  const scandata = fileOf("Scandata");
+  if (!scandata) return null;
   return (
-    xml.match(/<addToAccessFormats>true<\/addToAccessFormats>/g)?.length ?? null
+    (await scandata).match(/<addToAccessFormats>true<\/addToAccessFormats>/g)
+      ?.length ?? null
   );
 }
 
-/** A work in a scanned volume. */
 /**
  * A scanned volume read anew, page image by page image in the scan's order,
  * with the model the work names.
@@ -519,8 +531,8 @@ export async function ocrVolumeHocr(
     JSON.parse(await fetchText(`${ARCHIVE}/metadata/${item}`)),
   );
   const count =
-    metadata.metadata?.imagecount ??
-    (await scandataLeaves(item, metadata, fetchText));
+    (await servedLeaves(item, metadata, fetchText)) ??
+    metadata.metadata?.imagecount;
   if (!count) throw new Error(`No image count for ${item}`);
   const pages = await Array.from({ length: count }, (_, leaf) => leaf).reduce<
     Promise<string[]>

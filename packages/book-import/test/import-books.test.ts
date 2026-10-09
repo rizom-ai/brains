@@ -622,6 +622,40 @@ books:
     expect(recognised).toHaveLength(3);
   });
 
+  it("reads as many pages as the page numbers file lists, which leaves out the scan's colour cards", async () => {
+    const scanned = async (url: string): Promise<string> => {
+      requested.push(url);
+      if (url === "https://archive.org/metadata/theorienberden01marxuoft") {
+        return JSON.stringify({
+          server: "ia802803.us.archive.org",
+          dir: "/3/items/theorienberden01marxuoft",
+          metadata: { title: "Theorien über den Mehrwert", imagecount: 6 },
+          files: [
+            {
+              name: "theorienberden01marxuoft_page_numbers.json",
+              format: "Page Numbers JSON",
+            },
+          ],
+        });
+      }
+      return JSON.stringify({
+        pages: [1, 2, 3, 4].map((leafNum) => ({ leafNum, pageNumber: "" })),
+      });
+    };
+    const recognised: string[] = [];
+
+    await ocrVolumeHocr("theorienberden01marxuoft", scanned, async (url) => {
+      recognised.push(url);
+      return "<html><body><div class='ocr_page' id='page_1'></div></body></html>";
+    });
+
+    expect(requested).toEqual([
+      "https://archive.org/metadata/theorienberden01marxuoft",
+      "https://ia802803.us.archive.org/3/items/theorienberden01marxuoft/theorienberden01marxuoft_page_numbers.json",
+    ]);
+    expect(recognised).toHaveLength(4);
+  });
+
   it("applies the corrections for the work's volume", async () => {
     await importBooks(parseManifest(ocrManifest), brainData, fetchArchive, {
       corrections: {
