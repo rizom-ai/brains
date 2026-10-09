@@ -383,6 +383,9 @@ const EKGWB_ATTRIBUTION =
 const ARCHIVE = "https://archive.org";
 
 const archiveMetadataSchema = z.object({
+  /** The item's own server and folder, which a mirror may serve broken. */
+  server: z.string().optional(),
+  dir: z.string().optional(),
   metadata: z
     .object({ imagecount: z.coerce.number().int().positive().optional() })
     .optional(),
@@ -485,14 +488,18 @@ async function loadDtaTeiBook(
  */
 async function scandataLeaves(
   item: string,
-  files: z.output<typeof archiveMetadataSchema>["files"],
+  metadata: z.output<typeof archiveMetadataSchema>,
   fetchText: FetchText,
 ): Promise<number | null> {
-  const scandata = files.find((file) => file.format === "Scandata");
+  const scandata = metadata.files.find((file) => file.format === "Scandata");
   if (!scandata) return null;
-  const xml = await fetchText(
-    `${ARCHIVE}/download/${item}/${encodeURIComponent(scandata.name)}`,
-  );
+  // Read from the item's own server: the mirror a download is sent to may
+  // fail on a file it holds.
+  const folder =
+    metadata.server && metadata.dir
+      ? `https://${metadata.server}${metadata.dir}`
+      : `${ARCHIVE}/download/${item}`;
+  const xml = await fetchText(`${folder}/${encodeURIComponent(scandata.name)}`);
   return (
     xml.match(/<addToAccessFormats>true<\/addToAccessFormats>/g)?.length ?? null
   );
@@ -513,7 +520,7 @@ export async function ocrVolumeHocr(
   );
   const count =
     metadata.metadata?.imagecount ??
-    (await scandataLeaves(item, metadata.files, fetchText));
+    (await scandataLeaves(item, metadata, fetchText));
   if (!count) throw new Error(`No image count for ${item}`);
   const pages = await Array.from({ length: count }, (_, leaf) => leaf).reduce<
     Promise<string[]>

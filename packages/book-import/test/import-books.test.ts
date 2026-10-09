@@ -585,7 +585,7 @@ books:
     expect(await files(join(brainData, "book"))).toEqual(fromArchive);
   });
 
-  it("counts an uploaded scan's pages in its scandata where its metadata has no image count", async () => {
+  it("counts an uploaded scan's pages in its scandata, read from the item's own server, where its metadata has no image count", async () => {
     const scandata = (leaves: boolean[]): string =>
       `<book><pageData>${leaves
         .map(
@@ -597,6 +597,8 @@ books:
       requested.push(url);
       if (url === "https://archive.org/metadata/mehring-nachlass-1") {
         return JSON.stringify({
+          server: "ia801004.us.archive.org",
+          dir: "/25/items/mehring-nachlass-1",
           metadata: { title: "Mehring Nachlass 1" },
           files: [
             { name: "Mehring Nachlass 1.pdf", format: "Image Container PDF" },
@@ -615,7 +617,7 @@ books:
 
     expect(requested).toEqual([
       "https://archive.org/metadata/mehring-nachlass-1",
-      "https://archive.org/download/mehring-nachlass-1/Mehring%20Nachlass%201_scandata.xml",
+      "https://ia801004.us.archive.org/25/items/mehring-nachlass-1/Mehring%20Nachlass%201_scandata.xml",
     ]);
     expect(recognised).toHaveLength(3);
   });
