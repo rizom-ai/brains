@@ -153,18 +153,26 @@ async function loadEkgwbBook(
   };
 }
 
-/** A work in a scanned volume; the item's metadata names its hOCR file. */
+/** A scanned volume's hOCR, the file its item's metadata names. */
+export async function fetchVolumeHocr(
+  item: string,
+  fetchText: FetchText,
+): Promise<string> {
+  const metadata = archiveMetadataSchema.parse(
+    JSON.parse(await fetchText(`${ARCHIVE}/metadata/${item}`)),
+  );
+  const hocr = metadata.files.find((file) => file.format === "hOCR");
+  if (!hocr) throw new Error(`No hOCR file in ${item}`);
+  return fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
+}
+
+/** A work in a scanned volume. */
 async function loadArchiveOcrBook(
   entry: z.output<typeof archiveOcrBookSchema>,
   fetchText: FetchText,
 ): Promise<LoadedBook> {
-  const metadata = archiveMetadataSchema.parse(
-    JSON.parse(await fetchText(`${ARCHIVE}/metadata/${entry.item}`)),
-  );
-  const hocr = metadata.files.find((file) => file.format === "hOCR");
-  if (!hocr) throw new Error(`No hOCR file in ${entry.item}`);
   const units = parseArchiveOcrWork(
-    await fetchText(`${ARCHIVE}/download/${entry.item}/${hocr.name}`),
+    await fetchVolumeHocr(entry.item, fetchText),
     entry,
   );
   return {

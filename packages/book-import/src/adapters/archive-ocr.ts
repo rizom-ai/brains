@@ -495,6 +495,52 @@ function isPicture(lines: Line[]): boolean {
  * heading is a run of short centred lines: a numeral, a letter, a part's name,
  * lines in capitals, a qualifier in brackets.
  */
+/** The OCR reads a note marker, a 1 beside digits, and an i, as a dotless i. */
+function normalised(text: string): string {
+  return text
+    .replace(OCR_NOTE_MARKER, "¹)")
+    .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
+    .replace(/ı/g, "i");
+}
+
+/** A heading's line as printed, for reading a page against its scan. */
+function headingLineText(line: HeadingLine): string {
+  switch (line.kind) {
+    case "chapter":
+      return line.numeral;
+    case "letter":
+      return line.letter;
+    default:
+      return line.text;
+  }
+}
+
+/** The scan leaf a printed page is on. */
+export function pageLeaf(hocr: string, printedPage: number): number {
+  const { pages, printed } = volumeOf(hocr);
+  const page = pages.find((each) => printed.get(each.leaf) === printedPage);
+  if (!page) throw new Error(`No page ${printedPage}`);
+  return page.leaf;
+}
+
+/**
+ * One printed page's text as the importer reads it, line by line, headings
+ * and notes included: what an OCR check holds against the scan.
+ */
+export function pageText(hocr: string, printedPage: number): string {
+  const { pages, volume } = volumeOf(hocr);
+  const leaf = pageLeaf(hocr, printedPage);
+  const page = pages.find((each) => each.leaf === leaf);
+  if (!page) throw new Error(`No page ${printedPage}`);
+  return piecesOf(page, volume)
+    .flatMap((piece) =>
+      piece.kind === "heading"
+        ? piece.lines.map(headingLineText)
+        : [normalised(piece.text)],
+    )
+    .join("\n");
+}
+
 function piecesOf(page: Page, volume: Volume): Piece[] {
   const headless = bodyLines(page, volume);
   if (isPicture(headless)) return [];
@@ -782,11 +828,7 @@ function addPiece(
     notes: [],
   };
   const rest = state.sections.length > 0 ? state.sections.slice(0, -1) : [];
-  // The OCR reads a 1 beside digits, and an i, as a dotless i.
-  const text = piece.text
-    .replace(OCR_NOTE_MARKER, "¹)")
-    .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
-    .replace(/ı/g, "i");
+  const text = normalised(piece.text);
   const section =
     piece.kind === "note"
       ? { ...current, notes: addLine(current.notes, text, piece.opens, place) }
