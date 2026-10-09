@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-books",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "description": "Reading site for book brains — the work as one horizon, each book and section set for reading",
   "type": "module",
   "exports": {
@@ -17,7 +17,7 @@
     "prepack": "publish-manifest prepare"
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.238"
+    "@rizom/site": "0.2.0-alpha.239"
   },
   "publishPeerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.136 <0.3.0",

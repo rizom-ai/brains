@@ -1,5 +1,70 @@
 # @rizom/brain
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+
+- [`205f50c`](https://github.com/rizom-ai/brains/commit/205f50c0a65228c259206b2ac8ebd7d28db807ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the obsolete Effect v3 Promise-failure wrapper and use Effect v4's native Promise runner for shell, daemon, and job-runtime ownership. Preserve original failure values, all-siblings-settled startup phases, declaration-order failure selection, and shared cleanup barriers for concurrent shutdown callers.
+
+- [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade the private Effect control-plane boundary to exactly 4.0.1, migrate service layers and supervised work to v4 APIs, and retain Promise-based public contracts and AbortSignal cancellation. Centralize optional clock injection and add regressions for failure identity, resource ownership, cleanup barriers, and deterministic timing.
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- [#556](https://github.com/rizom-ai/brains/pull/556) [`81128b8`](https://github.com/rizom-ai/brains/commit/81128b892d6ff553e91a2bc4e69a2aa13a3d3431) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content repository checked out in place now tracks `origin` as a clone would, and a checkout without an upstream gets one on its next start; the pre-deploy backup resolves `@{upstream}` and refused a checkout that had none.
+
+## 0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- [#548](https://github.com/rizom-ai/brains/pull/548) [`5c4b107`](https://github.com/rizom-ai/brains/commit/5c4b107f4448fbbe479f45d0dd4314002bd03614) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new brain whose content repo already has history now checks it out in place: the data directory is a mount point in a deployed brain, and the old clone-then-rename failed there silently, falling back to a local repository merged with the remote as an unrelated history. A Git command whose output passes the retention ceiling now runs to completion instead of being killed, which had failed the startup sync of large repositories. After a failed startup sync no identity or prompt defaults are created, so they can no longer be exported over content the sync never imported.
+
+## 0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- [#541](https://github.com/rizom-ai/brains/pull/541) [`d266269`](https://github.com/rizom-ai/brains/commit/d2662699f5e0aa2db12ccc92b250c2b6ca9bfa59) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain's startup sync no longer imports its content repo before the web process reports ready. It pulls and queues every file as import jobs for the worker, so boot time no longer depends on content size and an interrupted import resumes from the job queue. Identity, profile and prompt defaults, onboarding playbooks and the starter identity are created once that import completes or fails, never before the repo's own versions; the worker creates no defaults and follows the identity its imports bring. Chat stays behind the knowledge-base readiness gate until the startup import is in and indexed.
+
+## 0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the `book` entity plugin (catalog member `book`): published books as read-only entries whose id path is the book's structure, each cited by its section and source, with book index and reading-page templates. Books feed topic extraction as canonical sources. Generated site routes now cover every entity of a type, not only the first 1,000.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Ask page links a cited section of a book with parts to the section itself, not to its part: the order is read from the entry's own id segment.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Book brains can be asked about their work. The books site has an Ask page: the guest box under the site's name, a rail listing the passages an answer cites by siglum, book and year, each linked to its page, and a note when asking is not open. A section's reading page offers "Ask about AC-2", which starts the question with the siglum. Answers cite book sections only; a book's title entry, its contents, is never a source, and a cited entry is titled by its page title, so a section reads as its siglum. The book plugin tells the agent to search the books first, cite by siglum and book, quote the text verbatim and say when the books do not address a question. Core configures the entity links its answer sources read, so a site-builder bundled apart from core no longer leaves every source uncitable.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Book brains open on the work as one horizon: each book a spine at its year, as tall as its text, published works above the line and posthumous writings below, busy years widening so nothing overlaps; small screens get a year list. A book's title entry records whether it was published in the author's lifetime, its length, its section count and a short spine title. The books site's navigation wraps on narrow screens.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the reading site for book brains: `@rizom/site-books` (the bar with the brain's name and navigation, routes, arrow-key paging) and `@rizom/theme-books` (paper and ink with a red pencil, Didone display, a reading serif and typewriter sigla, dark mode). Book sections render as a reading page with their siglum and place in the book, spaced emphasis as letter-spacing, and their source; generated detail pages take their title from the entry.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book's title page shows the score of its sections: one stroke per section, as tall as its text and linked to it, grouped by the book's parts with each part opening at its first section, beside the book's details and section count. Book sections can record the part they belong to.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site can render an entity type's pages with a template of its choosing through `entityDisplay.<type>.detailTemplate`. The books site renders topics as theme pages: the theme's summary, a strand showing how many sections of each book stand close to it by year, and its closest passages, all found by stored embeddings without API calls. A section split across several entries counts once. Plugins share one related-entries lookup over stored embeddings, `findRelatedEntities`. Detail pages fall back to the title in an entry's frontmatter before naming it by type and slug. Book pages count one book or section in the singular.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section's reading page names its themes in the margin: the topics nearest it by their stored embeddings, at most three, linked to their topic pages. It costs no API calls, and a brain without embeddings shows none.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A `brain` CLI that carries the bundled definition boots it, inside the monorepo too: `start`, `tool` and the command listing no longer hand off to the source runner when the bundled runtime is present, so a running brain is always the one module graph a deployment runs, with the same supervised web and worker processes. The test-app posture scripts (`start:minimal|personal|publishing|team|unified-inbox`) build once and run the bundled CLI from the app's own directory, so its `.env` loads as a deployed brain's does.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity URLs and citability come from one entity display, the one the shell resolves from the site, instead of a process-wide singleton the site builder configured and core read. `EntityUrlGenerator` is a plain value built from that map: core builds one for answer sources and AI content, the site builder and AT Protocol build theirs from the plugin context. The site builder no longer takes `entityDisplay` in its own config. A brain run from the monorepo, where the site builder loads from a separate bundle, now cites the same sources as a deployed one.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity services gain `nearestToEntity`: visible entities of given types nearest an entity's stored embedding, closest first, within a distance and a limit, in one store query. Related-entry lookups (a book section's margin themes, a theme's passages) use it instead of projecting the whole semantic space for every page, which built a pairwise matrix per page and made a book brain's site build quadratic: Nietzsche's 3,738 sections now build in about a minute instead of overrunning the build deadline. A semantic projection whose origin is of another type reads that origin alone.
+
+- [#537](https://github.com/rizom-ai/brains/pull/537) [`ee47ed6`](https://github.com/rizom-ai/brains/commit/ee47ed60668af9f417e466a7820b350b5384ff1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Slugs transliterate letters instead of dropping them: German umlauts and ß as German writes them without (Übermensch → uebermensch, Größe → groesse), other accents bare (décadence → decadence). Ids already stored keep their old form; an id derived again from a title with such letters takes the new form.
+
 ## 0.2.0-alpha.487
 
 ## 0.2.0-alpha.486

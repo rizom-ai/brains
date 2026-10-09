@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { RestartingListenerSupervisor } from "../src/restarting-listener-supervisor";
 
 describe("RestartingListenerSupervisor", () => {
   it("restarts on the injected clock and stops future cycles", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         let cycles = 0;
         const supervisor = new RestartingListenerSupervisor({
           restartDelayMs: 1_000,
@@ -20,8 +20,8 @@ describe("RestartingListenerSupervisor", () => {
         });
 
         supervisor.start();
-        yield* Effect.yieldNow();
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
+        yield* Effect.yieldNow;
         expect(cycles).toBe(1);
 
         yield* TestClock.adjust(999);
@@ -32,7 +32,7 @@ describe("RestartingListenerSupervisor", () => {
         yield* Effect.promise(() => supervisor.stop());
         yield* TestClock.adjust(10_000);
         expect(cycles).toBe(2);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

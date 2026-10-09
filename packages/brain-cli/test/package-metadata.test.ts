@@ -40,10 +40,15 @@ describe("@rizom/brain package metadata", () => {
       "start:publishing",
       "start:team",
     ] as const) {
-      expect(packageJson.scripts[scriptName]).toContain(
-        "exec bun --no-orphans run",
+      expect(packageJson.scripts[scriptName]).toStartWith(
+        "sh scripts/start-test-app.sh ",
       );
     }
+    // The helper hands the shell's process to the bundled CLI, which owns
+    // the app's children.
+    expect(readPackageFile("scripts/start-test-app.sh")).toContain(
+      "exec bun --no-orphans ../../dist/brain.js start",
+    );
 
     const operateSource = readPackageFile("src/commands/operate.ts");
     expect(operateSource).toContain(

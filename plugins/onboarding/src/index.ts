@@ -5,7 +5,7 @@ import {
   type LifecycleStarterRegistration,
 } from "@brains/contracts";
 import type { Plugin, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
@@ -58,14 +58,28 @@ export class OnboardingPlugin extends ServicePlugin<
     super("onboarding", packageJson, config, onboardingConfigSchema);
   }
 
-  protected override async onReady(
+  protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    for (const playbook of bundledPlaybooks) {
-      await this.seedPlaybookIfMissing(context, playbook);
-    }
+    // Seeded once startup content settles, so a content repo's own playbooks
+    // are imported first and never preceded by the bundled ones.
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.startupContentSettled,
+      async () => {
+        for (const playbook of bundledPlaybooks) {
+          await this.seedPlaybookIfMissing(context, playbook);
+        }
+        return { success: true };
+      },
+    );
+  }
+
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.config.enabled) return;
 
     for (const playbook of bundledPlaybooks) {
       if (!playbook.starter) continue;

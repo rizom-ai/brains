@@ -1,5 +1,135 @@
 # @brains/core
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`205f50c`](https://github.com/rizom-ai/brains/commit/205f50c0a65228c259206b2ac8ebd7d28db807ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the obsolete Effect v3 Promise-failure wrapper and use Effect v4's native Promise runner for shell, daemon, and job-runtime ownership. Preserve original failure values, all-siblings-settled startup phases, declaration-order failure selection, and shared cleanup barriers for concurrent shutdown callers.
+
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/image@0.2.0-alpha.495
+  - @brains/site-composition@0.2.0-alpha.495
+  - @brains/plugins@0.2.0-alpha.495
+  - @brains/recurring-checks@0.2.0-alpha.495
+  - @brains/runtime-state@0.2.0-alpha.495
+  - @brains/scheduler@0.2.0-alpha.495
+  - @brains/templates@0.2.0-alpha.495
+  - @brains/operation-context@0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.494
+  - @brains/image@0.2.0-alpha.494
+  - @brains/operation-context@0.2.0-alpha.494
+  - @brains/site-composition@0.2.0-alpha.494
+  - @brains/utils@0.2.0-alpha.494
+  - @brains/plugins@0.2.0-alpha.494
+  - @brains/recurring-checks@0.2.0-alpha.494
+  - @brains/runtime-state@0.2.0-alpha.494
+  - @brains/scheduler@0.2.0-alpha.494
+  - @brains/templates@0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.493
+  - @brains/recurring-checks@0.2.0-alpha.493
+  - @brains/image@0.2.0-alpha.493
+  - @brains/contracts@0.2.0-alpha.493
+  - @brains/operation-context@0.2.0-alpha.493
+  - @brains/site-composition@0.2.0-alpha.493
+  - @brains/utils@0.2.0-alpha.493
+  - @brains/runtime-state@0.2.0-alpha.493
+  - @brains/scheduler@0.2.0-alpha.493
+  - @brains/templates@0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- Updated dependencies [[`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a)]:
+  - @brains/contracts@0.2.0-alpha.492
+  - @brains/operation-context@0.2.0-alpha.492
+  - @brains/site-composition@0.2.0-alpha.492
+  - @brains/plugins@0.2.0-alpha.492
+  - @brains/templates@0.2.0-alpha.492
+  - @brains/image@0.2.0-alpha.492
+  - @brains/recurring-checks@0.2.0-alpha.492
+  - @brains/utils@0.2.0-alpha.492
+  - @brains/runtime-state@0.2.0-alpha.492
+  - @brains/scheduler@0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/image@0.2.0-alpha.491
+  - @brains/operation-context@0.2.0-alpha.491
+  - @brains/site-composition@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/plugins@0.2.0-alpha.491
+  - @brains/recurring-checks@0.2.0-alpha.491
+  - @brains/runtime-state@0.2.0-alpha.491
+  - @brains/scheduler@0.2.0-alpha.491
+  - @brains/templates@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/image@0.2.0-alpha.490
+  - @brains/operation-context@0.2.0-alpha.490
+  - @brains/site-composition@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/plugins@0.2.0-alpha.490
+  - @brains/recurring-checks@0.2.0-alpha.490
+  - @brains/runtime-state@0.2.0-alpha.490
+  - @brains/scheduler@0.2.0-alpha.490
+  - @brains/templates@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/image@0.2.0-alpha.489
+  - @brains/operation-context@0.2.0-alpha.489
+  - @brains/site-composition@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/plugins@0.2.0-alpha.489
+  - @brains/recurring-checks@0.2.0-alpha.489
+  - @brains/runtime-state@0.2.0-alpha.489
+  - @brains/scheduler@0.2.0-alpha.489
+  - @brains/templates@0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.488
+  - @brains/image@0.2.0-alpha.488
+  - @brains/operation-context@0.2.0-alpha.488
+  - @brains/site-composition@0.2.0-alpha.488
+  - @brains/utils@0.2.0-alpha.488
+  - @brains/plugins@0.2.0-alpha.488
+  - @brains/recurring-checks@0.2.0-alpha.488
+  - @brains/runtime-state@0.2.0-alpha.488
+  - @brains/scheduler@0.2.0-alpha.488
+  - @brains/templates@0.2.0-alpha.488
+
 ## 0.2.0-alpha.487
 
 ### Patch Changes

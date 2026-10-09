@@ -5,10 +5,12 @@ import type { EntityServiceOptions } from "./entityService";
 import type { EntityService as IEntityService } from "./types";
 
 export type EntityServiceTag = "@brains/entity-service/EntityService";
-export const EntityServiceTag: Context.Tag<EntityServiceTag, IEntityService> =
-  Context.GenericTag<EntityServiceTag, IEntityService>(
-    "@brains/entity-service/EntityService",
-  );
+export const EntityServiceTag: Context.Service<
+  EntityServiceTag,
+  IEntityService
+> = Context.Service<EntityServiceTag, IEntityService>(
+  "@brains/entity-service/EntityService",
+);
 
 export interface EntityServiceLayerOptions extends EntityServiceOptions {
   service?: IEntityService;

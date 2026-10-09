@@ -1,5 +1,30 @@
 # @brains/utils
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+
+- [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade the private Effect control-plane boundary to exactly 4.0.1, migrate service layers and supervised work to v4 APIs, and retain Promise-based public contracts and AbortSignal cancellation. Centralize optional clock injection and add regressions for failure identity, resource ownership, cleanup barriers, and deterministic timing.
+
+## 0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
 ## 0.2.0-alpha.487
 
 ## 0.2.0-alpha.486

@@ -5,7 +5,7 @@ import {
 } from "../src/conversation-actor-registry";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 
 interface FakeActor {
   id: number;
@@ -80,14 +80,14 @@ function withRegistryTestClock(
 ): Promise<void> {
   return Effect.runPromise(
     Effect.gen(function* () {
-      const clock = yield* TestClock.testClock();
+      const clock = yield* TestClock.testClockWith(Effect.succeed);
       const { registry } = createRegistry({ idleTtlMs, clock });
       yield* Effect.acquireUseRelease(
         Effect.succeed(registry),
         run,
         (ownedRegistry) => Effect.promise(() => ownedRegistry.close()),
       );
-    }).pipe(Effect.provide(TestContext.TestContext)),
+    }).pipe(Effect.provide(TestClock.layer())),
   );
 }
 
@@ -213,7 +213,7 @@ describe("ConversationActorRegistry", () => {
           yield* Effect.promise(() =>
             registry.enqueue("conv-a", async () => "done"),
           );
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(5);
           expect(actor.stopped).toBe(true);
@@ -229,7 +229,7 @@ describe("ConversationActorRegistry", () => {
           const actor = registry.acquire("conv-a");
           const pending = registry.enqueue("conv-a", () => gate.promise);
           registry.scheduleEviction("conv-a");
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(5);
           expect(actor.stopped).toBe(false);
@@ -247,7 +247,7 @@ describe("ConversationActorRegistry", () => {
           const actor = registry.acquire("conv-a");
           actor.idle = false;
           registry.scheduleEviction("conv-a");
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(5);
           expect(actor.stopped).toBe(false);
@@ -262,7 +262,7 @@ describe("ConversationActorRegistry", () => {
           const actor = registry.acquire("conv-a");
           registry.scheduleEviction("conv-a");
           registry.acquire("conv-a");
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
 
           yield* TestClock.adjust(5);
           expect(actor.stopped).toBe(false);

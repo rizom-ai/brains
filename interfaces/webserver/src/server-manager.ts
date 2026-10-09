@@ -1,4 +1,8 @@
-import { SITE_BUILD_MANIFEST_PATH } from "@brains/contracts";
+import {
+  SITE_BUILD_MANIFEST_PATH,
+  DEFAULT_FAVICON_PATH,
+  DEFAULT_FAVICON_SVG,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
@@ -338,7 +342,14 @@ export class ServerManager {
 
     app.use("/*", async (c, next) => {
       await next();
-      if (opts.revalidateExtensions?.test(c.req.path)) {
+      // A miss is never kept: an immutable 404 for an icon or an image would
+      // hide the file for a year once it exists. A handler that set its own
+      // caching keeps it.
+      if (c.res.status >= 400) {
+        c.header("Cache-Control", "no-cache");
+      } else if (c.res.headers.has("Cache-Control")) {
+        return;
+      } else if (opts.revalidateExtensions?.test(c.req.path)) {
         c.header("Cache-Control", "no-cache");
       } else if (opts.immutableExtensions.test(c.req.path)) {
         c.header("Cache-Control", CACHE_IMMUTABLE);
@@ -358,6 +369,14 @@ export class ServerManager {
 
     app.use("/*", this.createCleanUrlMiddleware(opts.distDir));
     app.use("/*", serveStatic({ root: opts.distDir }));
+    // Every brain is a light: an output without an icon of its own gets the
+    // lantern, at a day's caching since the output may bring one later.
+    app.get(DEFAULT_FAVICON_PATH, (c) =>
+      c.body(DEFAULT_FAVICON_SVG, 200, {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+      }),
+    );
 
     app.notFound(async (c) => {
       const notFoundFile = Bun.file(join(opts.distDir, "404.html"));

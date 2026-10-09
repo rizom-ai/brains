@@ -4,7 +4,9 @@ import type {
   Resource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { access } from "node:fs/promises";
+import { join } from "node:path";
+import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
 import type {
@@ -228,6 +230,16 @@ export class SiteBuilderPlugin extends ServicePlugin<
       this.rebuildManager.setupAutoRebuild();
     }
 
+    // Rebuilt once startup content has settled, so a queued startup import
+    // is in the site before it renders.
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.startupContentSettled,
+      async () => {
+        await this.rebuildOutputsAfterStart();
+        return { success: true };
+      },
+    );
+
     // Re-register instructions when site metadata changes so the prompt stays fresh.
     context.messaging.subscribe<SiteMetadata, { success: boolean }>(
       SITE_METADATA_UPDATED_CHANNEL,
@@ -247,6 +259,31 @@ export class SiteBuilderPlugin extends ServicePlugin<
     if (!this.siteWorkspaceProvider) return;
     await this.siteWorkspaceProvider.registerStudioWorkspace();
     await registerSiteHealthWidget(context, this.siteWorkspaceProvider);
+  }
+
+  /**
+   * A start, an upgrade included, may bring new renderer code that the input
+   * fingerprint cannot see; the renderer identity is fresh per process, so a
+   * requested build renders again. Every environment that already has an
+   * output is built again; one never built stays untouched.
+   */
+  private async rebuildOutputsAfterStart(): Promise<void> {
+    const outputs = [
+      ["production", this.config.productionOutputDir],
+      ["preview", this.config.previewOutputDir],
+    ] as const;
+    const built = await Promise.all(
+      outputs.map(async ([environment, dir]) => ({
+        environment,
+        exists: await access(join(dir, "index.html")).then(
+          () => true,
+          () => false,
+        ),
+      })),
+    );
+    for (const { environment, exists } of built) {
+      if (exists) this.rebuildManager?.requestBuild(environment);
+    }
   }
 
   /**

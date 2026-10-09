@@ -1,5 +1,4 @@
 ---
-"@rizom/brain": patch
 "@rizom/site-books": patch
 "@rizom/theme-books": patch
 ---

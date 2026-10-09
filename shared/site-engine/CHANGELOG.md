@@ -1,5 +1,105 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/image@0.2.0-alpha.495
+  - @brains/site-composition@0.2.0-alpha.495
+  - @brains/ui-library@0.2.0-alpha.495
+  - @brains/entity-service@0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.494
+  - @brains/image@0.2.0-alpha.494
+  - @brains/site-composition@0.2.0-alpha.494
+  - @brains/ui-library@0.2.0-alpha.494
+  - @brains/utils@0.2.0-alpha.494
+  - @brains/entity-service@0.2.0-alpha.494
+
+## 0.2.0-alpha.493
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.493
+  - @brains/image@0.2.0-alpha.493
+  - @brains/ui-library@0.2.0-alpha.493
+  - @brains/contracts@0.2.0-alpha.493
+  - @brains/site-composition@0.2.0-alpha.493
+  - @brains/utils@0.2.0-alpha.493
+
+## 0.2.0-alpha.492
+
+### Patch Changes
+
+- [#546](https://github.com/rizom-ai/brains/pull/546) [`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every brain's pages carry the lantern as their icon. The default icon lives in the contracts; the console page links it; the webserver answers `/favicon.svg` with it when the served output has no icon of its own, and no longer stamps a year's immutable caching on a 404 for an image or icon path, which had let an edge hide the file long after it existed.
+
+- Updated dependencies [[`f3d28c7`](https://github.com/rizom-ai/brains/commit/f3d28c7e7a42182edef83b05780b16c4713e7b3a)]:
+  - @brains/contracts@0.2.0-alpha.492
+  - @brains/site-composition@0.2.0-alpha.492
+  - @brains/ui-library@0.2.0-alpha.492
+  - @brains/entity-service@0.2.0-alpha.492
+  - @brains/image@0.2.0-alpha.492
+  - @brains/utils@0.2.0-alpha.492
+
+## 0.2.0-alpha.491
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.491
+  - @brains/image@0.2.0-alpha.491
+  - @brains/site-composition@0.2.0-alpha.491
+  - @brains/ui-library@0.2.0-alpha.491
+  - @brains/utils@0.2.0-alpha.491
+  - @brains/entity-service@0.2.0-alpha.491
+
+## 0.2.0-alpha.490
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.490
+  - @brains/image@0.2.0-alpha.490
+  - @brains/site-composition@0.2.0-alpha.490
+  - @brains/ui-library@0.2.0-alpha.490
+  - @brains/utils@0.2.0-alpha.490
+  - @brains/entity-service@0.2.0-alpha.490
+
+## 0.2.0-alpha.489
+
+### Patch Changes
+
+- [#542](https://github.com/rizom-ai/brains/pull/542) [`3f684eb`](https://github.com/rizom-ai/brains/commit/3f684ebfcc28d24e09dcfa39eef0069306a8dd46) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every brain's site gets an icon: a build that brings no `/favicon.svg` or `/favicon.png` of its own, in its static or public assets, gets the lantern, one light on night, and links it. A site's own icon is left alone.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.489
+  - @brains/image@0.2.0-alpha.489
+  - @brains/site-composition@0.2.0-alpha.489
+  - @brains/ui-library@0.2.0-alpha.489
+  - @brains/utils@0.2.0-alpha.489
+  - @brains/entity-service@0.2.0-alpha.489
+
+## 0.2.0-alpha.488
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.488
+  - @brains/image@0.2.0-alpha.488
+  - @brains/site-composition@0.2.0-alpha.488
+  - @brains/ui-library@0.2.0-alpha.488
+  - @brains/utils@0.2.0-alpha.488
+  - @brains/entity-service@0.2.0-alpha.488
+
 ## 0.2.0-alpha.487
 
 ### Patch Changes
