@@ -27,7 +27,7 @@ export const bookFrontmatterSchema: z.ZodObject<{
   order: z.ZodNumber;
   section: NullableStringSchema;
   page: NullableStringSchema;
-  part: NullableStringSchema;
+  headings: z.ZodDefault<z.ZodArray<z.ZodString>>;
   source: z.ZodURL;
   author: NullableStringSchema;
   year: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
@@ -45,8 +45,11 @@ export const bookFrontmatterSchema: z.ZodObject<{
   order: z.number().int().min(0),
   section: z.string().nullable().default(null),
   page: z.string().nullable().default(null),
-  /** The top-level part of the book a section belongs to. */
-  part: z.string().nullable().default(null),
+  /**
+   * The headings a section stands under, outermost first: a book's part, then
+   * the division within it. Empty for a section directly under the book.
+   */
+  headings: z.array(z.string()).default([]),
   source: z.url(),
   author: z.string().nullable().default(null),
   year: z.number().int().nullable().default(null),

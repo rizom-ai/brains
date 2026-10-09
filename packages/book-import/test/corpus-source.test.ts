@@ -51,7 +51,7 @@ const source: BookSource = {
       paragraphs: [longParagraph, "Ein kurzer Absatz danach."],
     },
     {
-      parents: ["Zweites Hauptstück"],
+      parents: ["Zweites Hauptstück", "Ein Unterabschnitt"],
       title: "3",
       section: "EB-II-3",
       page: null,
@@ -108,20 +108,22 @@ describe("corpusReader", () => {
     expect(String(await failureOf(reader.read("XY")))).toContain("XY");
   });
 
-  it("refuses an entry nested below its part, whose heading it no longer has", async () => {
-    await writeBook(brainData, source.book.slug, renderBook(source));
-    const nested = join(
-      brainData,
-      "book/erfundenes-buch/00001-erstes-hauptstueck/00002-tief",
-    );
-    await mkdir(nested, { recursive: true });
+  it("reads a corpus that records only each section's part", async () => {
+    const dir = join(brainData, "book/erfundenes-buch");
+    await mkdir(join(dir, "00001-erstes-hauptstueck"), { recursive: true });
     await writeFile(
-      join(nested, "00009-x.md"),
-      "---\ntitle: x\nbook: erfundenes-buch\norder: 9\nsource: http://www.nietzschesource.org/eKGWB/EB-x\n---\nx\n",
+      join(dir, "00000-titel.md"),
+      "---\ntitle: Erfundenes Buch\nbook: erfundenes-buch\norder: 0\nsource: http://www.nietzschesource.org/eKGWB/EB\n---\n## Contents\n",
+    );
+    await writeFile(
+      join(dir, "00001-erstes-hauptstueck/00001-1.md"),
+      "---\ntitle: '1'\nbook: erfundenes-buch\norder: 1\nsection: EB-I-1\npart: Erstes Hauptstück\nsource: http://www.nietzschesource.org/eKGWB/EB-I-1\n---\nErster Absatz.\n",
     );
 
-    const reader = await corpusReader(brainData);
+    const read = await (await corpusReader(brainData)).read("EB");
 
-    expect(String(await failureOf(reader.read("EB")))).toContain("nested");
+    expect(read.units.map((unit) => unit.parents)).toEqual([
+      ["Erstes Hauptstück"],
+    ]);
   });
 });

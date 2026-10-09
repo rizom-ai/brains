@@ -215,11 +215,11 @@ books:
     expect(results).toEqual([{ slug: "erfundenes-werk", entries: 5 }]);
     const sections = (await entries()).slice(1);
     expect(sections.map((entry) => entry["order"])).toEqual([1, 2, 3, 4]);
-    expect(sections.map((entry) => entry["part"])).toEqual([
-      "Erster Theil",
-      "Erster Theil",
-      "Zweiter Theil",
-      "Zweiter Theil",
+    expect(sections.map((entry) => entry["headings"])).toEqual([
+      ["Erster Theil"],
+      ["Erster Theil"],
+      ["Zweiter Theil"],
+      ["Zweiter Theil"],
     ]);
     expect(sections.map((entry) => entry["section"])).toEqual([
       "EB-I-Vorwort",

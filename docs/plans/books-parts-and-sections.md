@@ -18,8 +18,8 @@ One book per title as printed, with its parts as printed. A work whose title pag
 ## Design
 
 1. **Manifest parts.** A manifest book lists either one `siglum` or `parts`: an ordered list of `{ siglum, title }`. The importer reads each part's siglum as it does a book today and joins them in manifest order into one book, numbering its entries across the parts.
-2. **Part headings.** Each unit of a part gets the part's title as its outermost parent, so `part` (the outermost parent) is the manifest part: "Zweiter Theil", "II. Vom Nutzen und Nachtheil der Historie für das Leben". A siglum's own top-level divisions — _Menschliches, Allzumenschliches_ II's _Vermischte Meinungen und Sprüche_ and _Der Wanderer und sein Schatten_ — become the next level of parents and stay in the folder structure. Citations are unchanged: each section keeps its eKGWB siglum (`Za-II-Tugendhaften`, `HL-3`).
-3. **Two entity types.** `book` is the work: title, author, year, kind, edition, license, attribution, published, length, section count, short title, and its contents. `book-section` is the text unit: title, book, order, siglum, page, part, source. The importer writes `book/<slug>.md` and `book-section/<slug>/…`. The section count, length and contents live on the book only.
+2. **Part headings.** Each unit of a part gets the part's title as its outermost parent, and each section records its full heading path as `headings`, outermost first, so its first heading is the manifest part: "Zweiter Theil", "II. Vom Nutzen und Nachtheil der Historie für das Leben". A siglum's own top-level divisions — _Menschliches, Allzumenschliches_ II's _Vermischte Meinungen und Sprüche_ and _Der Wanderer und sein Schatten_ — become the next level of parents and stay in the folder structure. Citations are unchanged: each section keeps its eKGWB siglum (`Za-II-Tugendhaften`, `HL-3`).
+3. **Two entity types.** `book` is the work: title, author, year, kind, edition, license, attribution, published, length, section count, short title, and its contents. `book-section` is the text unit: title, book, order, siglum, page, headings, source. The importer writes `book/<slug>.md` and `book-section/<slug>/…`. The section count, length and contents live on the book only.
 4. **Consumers follow the split.** The book plugin registers both types. The book and theme datasources read sections as `book-section` and the book as `book`; the Ask scope searches `book-section`; theme tracing (`findRelatedEntities`) traces `book-section`; the site's book list reads `book` and its section pages `book-section`. Embeddings cover sections, as they do today.
 5. **Friedrich's corpus is regenerated** from the manifest with parts: 26 books (Zarathustra one book of four parts, _Menschliches, Allzumenschliches_ one of two volumes, the _Unzeitgemässe Betrachtungen_ one of four pieces) and 3,705 sections. URLs change with the slugs; `friedrich` launched on 2026-10-08 and keeps no redirects.
 
@@ -33,12 +33,12 @@ One book per title as printed, with its parts as printed. A work whose title pag
 
 ### Phase 2 — books and sections as two types
 
-- tests first: the importer writes a `book` per work and a `book-section` per section; a section carries its full heading path, so the corpus reader reads every level back; the book plugin registers both; the book page lists its sections by part; a section page shows its book and part; Ask searches sections and cites book and siglum; a theme traces sections across books; entity counts read 26 books and 3,705 sections
+- tests first: the importer writes a `book` per work and a `book-section` per section; the book plugin registers both; the book page lists its sections by part; a section page shows its book and part; Ask searches sections and cites book and siglum; a theme traces sections across books; entity counts read 26 books and 3,705 sections
 - implementation as above
 - regenerate Friedrich's corpus in the new layout, replace the content repo tree; verify locally; release; redeploy `friedrich`; the dashboard reads 26 books and 3,705 sections
 
 ## Decisions
 
 - **The title page decides, not publication history.** The _Unzeitgemässe Betrachtungen_ were published separately, as were Zarathustra's parts; both name themselves numbered parts of one title.
-- **One level of part in the reading interface.** The contents group by the outermost part; deeper divisions keep their folders and headings.
+- **Parts and their divisions in the reading interface.** The contents group by the outermost part and show a part's own divisions beneath it; deeper levels keep their folders and headings.
 - **No redirects for the old URLs.** The site launched the day the problem was found.

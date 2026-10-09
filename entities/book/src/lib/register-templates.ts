@@ -46,7 +46,7 @@ const bookDetailSchema = z.object({
       title: z.string(),
       section: z.string().nullable(),
       order: z.number().int(),
-      part: z.string().nullable(),
+      headings: z.array(z.string()),
       length: z.number().int().min(0),
     }),
   ),
