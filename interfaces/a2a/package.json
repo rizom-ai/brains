@@ -10,7 +10,7 @@
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "hono": "^4.12.25"
+    "hono": "^4.13.13"
   },
   "devDependencies": {
     "@brains/entity-service": "workspace:*",
