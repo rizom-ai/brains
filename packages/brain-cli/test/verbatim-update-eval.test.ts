@@ -2,10 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { computeContentHash } from "@brains/utils/hash";
-import { YAMLLoader } from "../src/loaders/yaml-loader";
-import { evaluateCriteria } from "../src/criteria-evaluator";
+import { evaluateCriteria, YAMLLoader } from "@brains/ai-evaluation";
 
-const cli = join(import.meta.dir, "../../../packages/brain-cli");
+const cli = join(import.meta.dir, "..");
 const cases = join(cli, "test-cases/personal/multi-turn");
 const loader = YAMLLoader.createFresh({ directory: cases });
 const id = "mcp-verbatim-update";
