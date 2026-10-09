@@ -719,6 +719,7 @@
     "core--versioned-ask-assets",
     "core--web-chat-inbox-context-capsule",
     "core--web-chat-shared-session-resolution",
+    "core--web-identity-load",
     "core--widget-card-and-rizom-ui-reuse",
     "core--wishlist-distance-dedup",
     "core--worker-heartbeat-supervision",
