@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- [#566](https://github.com/rizom-ai/brains/pull/566) [`b5265b6`](https://github.com/rizom-ai/brains/commit/b5265b6985ea0cb0dac704028da8550d621fff4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep both published agent cards current with the brain's identity and skills. The A2A Agent Card is built per request, so a brain whose anchor profile, character or skills landed after startup no longer advertises "Brain is Unknown's Knowledge assistant" until restart. The AT Protocol brain card republishes on a new `system:identity:changed` signal, sent once the identity caches hold the change, and on skill creation, update and deletion; bursts of changes coalesce into one republish, and changes before the boot publish are covered by it.
+
+- [`c7614c9`](https://github.com/rizom-ai/brains/commit/c7614c957ae37e258ada6647b1090d5a6d86bf65) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep recurring-check service shutdown and plugin unregistration behind their cleanup barriers when a scheduler adapter throws synchronously from `stop()`. Cancel and drain admitted checks and catch-up enqueue work before reporting the original failure, and retain declaration-order aggregation of synchronous and asynchronous failures.
+
 ## 0.2.0-alpha.499
 
 ### Patch Changes
