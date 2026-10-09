@@ -99,7 +99,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
-    registerA2ACallMessageHandlers(context, this.createClientDeps(context));
+    registerA2ACallMessageHandlers(context, this.createClientDeps(context), {
+      networkAskTimeoutMs: this.config.networkAskTimeoutMs,
+    });
 
     if (this.hasWebserver) {
       context.endpoints.register({

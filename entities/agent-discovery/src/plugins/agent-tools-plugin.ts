@@ -14,6 +14,7 @@ import {
   scanAgentDirectories,
 } from "../tools/agent-scan-directories";
 import { createAgentSetTrustLevelTool } from "../tools/agent-set-trust-level";
+import { createNetworkAskTool } from "../tools/network-ask";
 import type { FetchFn } from "../lib/fetch-agent-card";
 import { AgentSightingsInboxSource } from "../inbox-source";
 import packageJson from "../../package.json";
@@ -221,6 +222,7 @@ export class AgentToolsPlugin extends ServicePlugin<
       createAgentConnectTool(this.getContext(), this.fetchFn),
       createAgentScanDirectoriesTool(this.getContext(), this.fetchFn),
       createAgentSetTrustLevelTool(this.getContext(), this.fetchFn),
+      createNetworkAskTool(this.getContext()),
     ];
   }
 }

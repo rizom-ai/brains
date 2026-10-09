@@ -7,6 +7,7 @@ type A2AConfigSchema = z.ZodObject<
     requestTimeoutMs: z.ZodDefault<z.ZodNumber>;
     streamIdleTimeoutMs: z.ZodDefault<z.ZodNumber>;
     maxNetworkAttempts: z.ZodDefault<z.ZodNumber>;
+    networkAskTimeoutMs: z.ZodDefault<z.ZodNumber>;
   },
   z.core.$strict
 >;
@@ -30,6 +31,9 @@ export const a2aConfigSchema: A2AConfigSchema = z
 
     /** Network attempts for transient outbound A2A failures. */
     maxNetworkAttempts: z.number().int().positive().default(2),
+
+    /** The whole budget for one peer when the network is asked (card fetch and answer). */
+    networkAskTimeoutMs: z.number().positive().default(6_000),
   })
   .strict();
 

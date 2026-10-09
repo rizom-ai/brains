@@ -1,6 +1,8 @@
 export const A2A_CHANNELS = {
   callRequest: "a2a:call:request",
   callAgents: "a2a:call:agents",
+  /** Ask one saved, approved peer a question within the network-ask budget. */
+  askRequest: "a2a:ask:request",
 } as const;
 
 export const BUTTONDOWN_CHANNELS = {
