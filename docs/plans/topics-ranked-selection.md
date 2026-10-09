@@ -91,7 +91,7 @@ Embeddings were disabled to isolate extraction cost. Semantic theme membership, 
 
 ### Integration validation
 
-Merged main at `e80179cb64` into the feature worktree; only the generated roadmap visual conflicted and was regenerated from the merged source. The integrated branch passed 2,450 targeted tests (one remote-libSQL test skipped), all 112 workspace typechecks, affected-package lint, documentation checks, and architecture checks. An initial contention-worker timing test failed during concurrent validation, then passed in isolation and in the complete targeted rerun; no check was bypassed and no unrelated runtime fix was added.
+Merged main at `e80179cb64` into the feature worktree; only the generated roadmap visual conflicted and was regenerated from the merged source. A subsequent merge incorporated main's release-metadata-only commit `9e993109c1` without changing runtime code. The integrated branch passed 2,450 targeted tests (one remote-libSQL test skipped), all 112 workspace typechecks, affected-package lint, documentation checks, and architecture checks. An initial contention-worker timing test failed during concurrent validation, then passed in isolation and in the complete targeted rerun; no check was bypassed and no unrelated runtime fix was added.
 
 ## Decisions
 
