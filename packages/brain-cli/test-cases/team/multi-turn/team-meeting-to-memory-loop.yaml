@@ -55,7 +55,7 @@ turns:
         - "newsletter"
         - "I don't have access"
       responseCriteria:
-        - "Labels the owner of every action without a captured owner as unassigned, and does not invent owners."
+        - "Labels the captured action that has no owner (the Customer Alpha MCP handoff) as unassigned, and does not assign actions to people the notes do not name."
 
 successCriteria:
   expectedTools:
