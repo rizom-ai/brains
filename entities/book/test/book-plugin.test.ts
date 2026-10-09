@@ -5,46 +5,55 @@ import {
 } from "@brains/plugins/test";
 import { BookPlugin } from "../src";
 
+const readOnly = {
+  create: "never",
+  update: "never",
+  delete: "never",
+  extract: "never",
+  publish: "never",
+};
+
 describe("BookPlugin", () => {
   let harness: PluginTestHarness<BookPlugin>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     harness = createPluginHarness<BookPlugin>({
       dataDir: "/tmp/test-datadir",
     });
+    await harness.installPlugin(new BookPlugin());
   });
 
-  it("registers the book entity type", async () => {
-    await harness.installPlugin(new BookPlugin());
-
-    expect(harness.getEntityService().getEntityTypes()).toContain("book");
+  it("registers books and their sections as two types", () => {
+    expect(harness.getEntityService().getEntityTypes()).toEqual(
+      expect.arrayContaining(["book", "book-section"]),
+    );
   });
 
-  it("keeps books read-only, in reading order, as canonical topic sources", async () => {
-    await harness.installPlugin(new BookPlugin());
-
+  it("keeps sections read-only, in reading order, as canonical topic sources", () => {
     expect(
-      harness.getEntityRegistry().getEntityTypeConfig("book"),
+      harness.getEntityRegistry().getEntityTypeConfig("book-section"),
     ).toMatchObject({
       classification: "content",
       includeInBroadSearch: true,
       projectionSourceRole: "canonical",
       defaultSort: [{ field: "id", direction: "asc" }],
-      actionPolicy: {
-        create: "never",
-        update: "never",
-        delete: "never",
-        extract: "never",
-        publish: "never",
-      },
+      actionPolicy: readOnly,
     });
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("book-section")
+        .projectionSource,
+    ).not.toBe(false);
   });
 
-  it("lets topic extraction read books", async () => {
-    await harness.installPlugin(new BookPlugin());
-
+  it("keeps books read-only and out of topic extraction: a contents list is no text", () => {
     expect(
-      harness.getEntityRegistry().getEntityTypeConfig("book").projectionSource,
-    ).not.toBe(false);
+      harness.getEntityRegistry().getEntityTypeConfig("book"),
+    ).toMatchObject({
+      classification: "content",
+      includeInBroadSearch: true,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+      actionPolicy: readOnly,
+    });
   });
 });

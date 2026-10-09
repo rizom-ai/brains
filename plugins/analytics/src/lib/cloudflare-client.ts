@@ -25,7 +25,8 @@ export interface CloudflareClientDeps {
  *
  * `data` is nullable because Cloudflare omits it when the query itself fails,
  * in which case `errors` carries the reason — so the error branch below has to
- * run before `data` is required.
+ * run before `data` is required. `errors` is nullable too: a successful
+ * response carries `errors: null`.
  */
 function cloudflareGraphQLResponseSchema<TGroup>(
   groupSchema: z.ZodType<TGroup>,
@@ -40,7 +41,7 @@ function cloudflareGraphQLResponseSchema<TGroup>(
       }
     | null
     | undefined;
-  errors?: Array<{ message: string }> | undefined;
+  errors?: Array<{ message: string }> | null | undefined;
 }> {
   return z.object({
     data: z
@@ -54,7 +55,7 @@ function cloudflareGraphQLResponseSchema<TGroup>(
         }),
       })
       .nullish(),
-    errors: z.array(z.object({ message: z.string() })).optional(),
+    errors: z.array(z.object({ message: z.string() })).nullish(),
   });
 }
 

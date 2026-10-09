@@ -150,6 +150,7 @@
         "ExtensionMetadataSchema",
         "JobProgressEvent",
         "Message",
+        "MessageCollector",
         "MessageContext",
         "MessageResponse",
         "MessageResponseSchema",

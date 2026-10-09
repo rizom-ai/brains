@@ -87,11 +87,11 @@ function skillSnapshot(
 
 async function buildA2ACard(
   shell: ReturnType<typeof createMockShell>,
-): Promise<NonNullable<ReturnType<A2AInterface["getAgentCard"]>>> {
+): Promise<NonNullable<Awaited<ReturnType<A2AInterface["getAgentCard"]>>>> {
   const a2a = new A2AInterface();
   await a2a.register(shell);
   await a2a.ready();
-  const card = a2a.getAgentCard();
+  const card = await a2a.getAgentCard();
   if (!card) throw new Error("Expected A2A Agent Card");
   return card;
 }

@@ -2,7 +2,7 @@ import { PUBLISH_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
 import { NewsletterSignup } from "@brains/ui-library";
 import type { Logger } from "@brains/utils/logger";
-import { createElement as h } from "react";
+import { createElement as h, type ReactElement } from "react";
 import type { NewsletterDeliveryProvider } from "./contracts";
 import {
   handlePublishCompleted,
@@ -37,25 +37,32 @@ export function registerNewsletterProvider(
       },
     });
 
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.slotRegister,
-      payload: {
-        pluginId: options.pluginId,
-        slotName: "footer-top",
-        render: () =>
-          h(NewsletterSignup, {
-            variant: "inline",
-            action: options.signupAction,
-            successMessage: options.signupSuccessMessage,
-          }),
-      },
-    });
-
     logger.info("Newsletter provider registered", {
       provider: provider.name,
     });
     return { success: true };
   });
+
+  // Site builds run in the worker and ask for slots as they render; that
+  // process never emits pluginsRegistered, so the signup answers there.
+  context.messaging.subscribeExecution(
+    SITE_BUILDER_CHANNELS.slots,
+    async () => ({
+      success: true,
+      data: [
+        {
+          pluginId: options.pluginId,
+          slotName: "footer-top",
+          render: (): ReactElement =>
+            h(NewsletterSignup, {
+              variant: "inline",
+              action: options.signupAction,
+              successMessage: options.signupSuccessMessage,
+            }),
+        },
+      ],
+    }),
+  );
 
   if (!options.autoSendOnPublish) return;
 
