@@ -36,7 +36,7 @@ successCriteria:
     - "I don't have access"
   minInstructionFollowingScore: 4
   responseCriteria:
-    - "Reports the current content sync and git status, including any pending changes, without starting a sync."
+    - "Reports the current content sync status, and either reports git status with any pending changes or says plainly that git status is unavailable, without starting a sync."
 
 efficiency:
   maxToolCalls: 3
