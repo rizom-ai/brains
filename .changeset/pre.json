@@ -590,6 +590,7 @@
     "core--public-authoring-definitions",
     "core--public-plugin-surface-soundness",
     "core--public-readers-published-only",
+    "core--pull-echoes-ignored",
     "core--quality-refactor-sweep",
     "core--queue-write-contention",
     "core--quiet-formatter-warning",
