@@ -784,10 +784,14 @@ function middleOf(page: Page): number {
     : page.width / 2;
 }
 
-/** A subsection's number, arabic or roman, and title set on one line: 2. Beraud über die Freudenmädchen. */
-const NUMBERED_SUBSECTION = /^(\d{1,2}|[IVX]{1,4})\.\s+(\p{Lu}.*)$/u;
-/** A line that opens with a label of its own: a. Der „Geist“ und die „Masse“. */
-const LABELLED = /^\S{1,4}[.)]\s/u;
+/**
+ * A subsection's number, arabic, roman or after a paragraph sign, and title
+ * set on one line: 2. Beraud über die Freudenmädchen; §. 2. Der Werth.
+ */
+const NUMBERED_SUBSECTION =
+  /^(\d{1,2}|[IVX]{1,4}|§\.?\s*\d{1,2})\.\s+(\p{Lu}.*)$/u;
+/** A line that opens with a label of its own (a. Der „Geist“ und die „Masse“), or a quotation, a motto below the title. */
+const LABELLED = /^(?:\S{1,4}[.)]\s|[„"»])/u;
 /** A title's second line is set this large at least, against its first. */
 const TITLE_LINE_SIZE = 0.9;
 
@@ -966,9 +970,9 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           other.size >= volume.textSize * NOTE_SIZE,
       )
       .at(-1);
+    // The page's head, its running head already read off, sets it apart too.
     const spacedAbove =
-      textAbove !== undefined &&
-      line.y - textAbove.bottom > bodyHeight &&
+      (textAbove === undefined || line.y - textAbove.bottom > bodyHeight) &&
       endsAsTitle;
     if (
       subsection?.[1] &&
@@ -976,7 +980,6 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       ((Math.abs(centre - middle) < page.width * CENTRE &&
         line.width < volume.column * HEADING_WIDTH) ||
         spacedAbove) &&
-      line.y > page.height * HEAD_ZONE &&
       line.y < page.height * FOOT_ZONE &&
       line.size >= volume.textSize * NOTE_SIZE &&
       (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
@@ -988,7 +991,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         {
           kind: "heading",
           lines: [
-            { kind: "letter", letter: subsection[1] },
+            {
+              kind: "letter",
+              letter: subsection[1].replace(/^§\.?\s*/u, "§ "),
+            },
             {
               kind: "caps",
               text: subsection[2],
@@ -1190,6 +1196,11 @@ function titleOf(step: PathStep, name: string = step.name): string {
  */
 function levelOf(heading: Heading, path: PathStep[]): number {
   if (heading.level !== null) return heading.level;
+  // A preface or an appendix belongs to the book: it stands beside its
+  // parts, or its chapters where it has none, not under the last.
+  if (SECTION_NAME.test(heading.title[0] ?? "")) {
+    return path.some((step) => step.level === 0) ? 0 : 1;
+  }
   return path.some((step) => step.level === 1 && step.numbered) ? 2 : 1;
 }
 
@@ -1274,18 +1285,19 @@ function addHeading(
           /^(?:\d+|[IVX]+)$/u.test(heading.label)
           ? heading.label
           : cased(heading.label),
-    name: heading.title
-      .map(cased)
-      // A subtitle follows its title after one full stop.
-      .reduce(
+    // A subtitle follows its title after one full stop, or after the comma
+    // it goes on from; the title is cased as a whole.
+    name: cased(
+      heading.title.reduce(
         (name, line) =>
           name === ""
             ? line
-            : /[.!?:]$/u.test(name)
+            : /[.!?:,;]$/u.test(name)
               ? `${name} ${line}`
               : `${name}. ${line}`,
         "",
       ),
+    ),
     qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,
     numbered: heading.numbered,

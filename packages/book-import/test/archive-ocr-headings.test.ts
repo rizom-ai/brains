@@ -112,3 +112,23 @@ describe("isWordy", () => {
     expect(isWordy("ST NR NREEN ES RE E", spelling)).toBe(false);
   });
 });
+
+describe("createSpelling, roman numerals", () => {
+  it("keeps a roman numeral in a title as printed", () => {
+    const { cased } = createSpelling(["Der Anhang folgt dem Text."]);
+
+    expect(cased("Anhang II.")).toBe("Anhang II.");
+    expect(cased("ANHANG III")).toBe("Anhang III");
+  });
+});
+
+describe("createSpelling, apostrophes", () => {
+  it("lowers only a possessive s after an apostrophe, not a name", () => {
+    const { cased } = createSpelling(["Die Triebe der Frau."]);
+
+    expect(cased("oder Clemence d'Harville.")).toBe(
+      "Oder Clemence d'Harville.",
+    );
+    expect(cased("FREUD'S TRÄUME")).toBe("Freud's Träume");
+  });
+});

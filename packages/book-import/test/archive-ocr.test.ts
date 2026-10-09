@@ -796,6 +796,27 @@ describe("parseArchiveOcrWork, titles set in display type", () => {
     ]);
   });
 
+  it("follows a title ending in a comma with its subtitle after a space", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 52,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "VI. Rede über den Preussen, gehalten vor der Masse.",
+    );
+  });
+
   it("joins a title's lines with one full stop between them", async () => {
     const units = parseArchiveOcrWork(
       await readFile(
@@ -1017,5 +1038,89 @@ describe("parseArchiveOcrWork, notes marked by asterisks", () => {
       "Der Titre des Geldes ist der Werth der Dinge, und dies gilt ebenso von Gold und Silber, wie von Getreide und Wein. Indess, kaum war der Betrug ruchbar geworden, als sein Geld auf den richtigen Werth reduzirt ward, wie der Werth der Dinge und des Geldes.",
       "*) Titre heisst einerseits Titel, Name, andererseits aber auch, bei Gold und Silber, deren Feingehalt.",
     ]);
+  });
+
+  it("reads a centred line of a paragraph sign, a number and a title as a section", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-star-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_14861084_000",
+        title: "Das Elend der Philosophie",
+        citation: "Elend",
+        firstPage: 70,
+        lastPage: 72,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("§ 2. Der konstituirte Werth.");
+  });
+
+  it("reads a numbered section opening a page, however high, as a section", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-star-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_14861084_000",
+        title: "Das Elend der Philosophie",
+        citation: "Elend",
+        firstPage: 70,
+        lastPage: 73,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "§ 3. Anwendung des Gesetzes der Proportionalität des Werthes.",
+    );
+  });
+
+  it("sets an appendix beside the chapters, not under the last", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Differenz der demokritischen und epikureischen Naturphilosophie",
+        citation: "Nachlass I",
+        firstPage: 71,
+        lastPage: 77,
+        corrections: [
+          {
+            page: 76,
+            from: "Hrouνοεt hεεαι und πτ%ιμια ποινεια.",
+            to: "Ἄτομοι ἀρχαί und ἄτομα στοιχεῖα.",
+          },
+        ],
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("Anhang I.");
+    expect(units.at(-1)?.parents).toEqual([]);
+  });
+
+  it("leaves a quotation below a numbered section's title to the text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-star-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_14861084_000",
+        title: "Das Elend der Philosophie",
+        citation: "Elend",
+        firstPage: 70,
+        lastPage: 74,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("§ 4. Konkurrenz und Monopol.");
+    expect(units.at(-1)?.paragraphs[0]).toStartWith("„Die Konkurrenz gehört");
   });
 });

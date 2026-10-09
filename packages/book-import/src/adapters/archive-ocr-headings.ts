@@ -93,9 +93,9 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
   return null;
 }
 
-/** A preface's or a closing section's name, a heading however it is set. */
+/** A preface's or a closing section's name, numbered or not (Anhang II), a heading however it is set. */
 export const SECTION_NAME: RegExp =
-  /^(?:vorwort|vorrede|einleitung|nachwort|nachtrag|anhang|schluß|schluss)\.?$/iu;
+  /^(?:vorwort|vorrede|einleitung|nachwort|nachtrag|anhang|schluß|schluss)(?:\s+(?:[IVX]+|\d+))?\.?$/iu;
 
 /** A subtitle is set this much smaller than the title above it. */
 const SUBTITLE_SIZE = 0.85;
@@ -225,10 +225,12 @@ export function createSpelling(texts: string[]): Spelling {
       // A word the page already spells as a word, or an initial, stays as
       // printed.
       // An s after an apostrophe is a possessive, not an initial.
-      const possessive = /['’]$/u.test(capitals.slice(0, offset));
+      const possessive =
+        /['’]$/u.test(capitals.slice(0, offset)) && /^s$/iu.test(word);
+      // A roman numeral (Anhang II) stays in capitals.
       const spelled = possessive
         ? word.toLowerCase()
-        : SPELLED.test(word) || word.length === 1
+        : SPELLED.test(word) || word.length === 1 || /^[IVXL]{2,}$/u.test(word)
           ? word
           : (spelling(word.toLowerCase()) ?? capitalised(word));
       // A title, or a subtitle after its full stop, opens with a capital.
