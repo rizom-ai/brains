@@ -222,6 +222,70 @@ books:
   });
 });
 
+describe("importBooks from Wikisource", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-wikisource-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads a work from its rendered page and credits the transcription", async () => {
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: wikisource
+books:
+  - page: Ein Briefwechsel von 1843
+    citation: Briefwechsel
+    slug: briefe-aus-den-deutsch-franzoesischen-jahrbuechern
+    title: Briefe aus den Deutsch-Französischen Jahrbüchern
+    edition: "Deutsch-Französische Jahrbücher (Paris 1844), S. 17–40"
+    author: Karl Marx
+    year: 1844
+    kind: letters
+    skipHeadings: [R. an M.]
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        const html = await readFile(
+          join(import.meta.dir, "fixtures", "wikisource-briefwechsel.html"),
+          "utf8",
+        );
+        return JSON.stringify({ parse: { text: html } });
+      },
+    );
+    const title = await readFile(
+      join(
+        brainData,
+        "book",
+        "briefe-aus-den-deutsch-franzoesischen-jahrbuechern",
+        "00000-titel.md",
+      ),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://de.wikisource.org/w/api.php?action=parse&page=Ein+Briefwechsel+von+1843&prop=text&format=json&formatversion=2",
+    ]);
+    expect(results).toEqual([
+      {
+        slug: "briefe-aus-den-deutsch-franzoesischen-jahrbuechern",
+        entries: 4,
+      },
+    ]);
+    expect(title).toContain("license: public-domain");
+    expect(title).toContain("Wikisource");
+    expect(title).toContain(
+      "source: 'https://de.wikisource.org/wiki/Ein_Briefwechsel_von_1843'",
+    );
+  });
+});
+
 describe("importBooks from scanned volumes", () => {
   const ocrManifest = `
 source: archive-ocr

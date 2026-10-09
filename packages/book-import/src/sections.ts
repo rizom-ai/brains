@@ -16,6 +16,22 @@ export interface TitledSection<Block extends PlacedText> {
   notes: Block[];
 }
 
+/** The section text goes to: the last opened, or an untitled one opening the work. */
+export function currentSection<Block extends PlacedText>(
+  sections: TitledSection<Block>[],
+): TitledSection<Block> {
+  const last = sections.at(-1);
+  if (last) return last;
+  const opening: TitledSection<Block> = {
+    path: [],
+    titles: [],
+    paragraphs: [],
+    notes: [],
+  };
+  sections.push(opening);
+  return opening;
+}
+
 /**
  * A long section's text in parts of about this many bytes, split at
  * paragraphs, leaving room for its notes within an entry's 8,000 bytes.

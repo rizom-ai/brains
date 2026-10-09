@@ -1,10 +1,19 @@
 import { Window, type Element, type Node } from "happy-dom";
 import type { BookUnit } from "../render-book";
-import { unitsOfSections, type TitledSection } from "../sections";
+import {
+  currentSection,
+  unitsOfSections,
+  type TitledSection,
+} from "../sections";
 import { sameName } from "./archive-ocr-headings";
-
-const ELEMENT_NODE = 1;
-const TEXT_NODE = 3;
+import {
+  TEXT_NODE,
+  emphasised,
+  escapeMarkdown,
+  isElement,
+  mergedEmphasis,
+  nameOf,
+} from "./markup";
 
 /** A work in the Deutsches Textarchiv. */
 export interface DtaTeiWork {
@@ -58,18 +67,8 @@ const PARAGRAPHS = new Set(["p", "item", "l", "row", "quote"]);
 const UNTITLED: Record<string, string> = { dedication: "Widmung" };
 /** Divisions that only repeat the text's headings. */
 const SKIPPED_DIVISIONS = new Set(["contents"]);
-/** Characters markdown would read as markup; the text keeps them literal. */
-const MARKDOWN_SPECIAL = /[\\`*_<>]/g;
 /** Marks where the printed line ended; never occurs in the text. */
-const LINE_END = " ";
-
-function isElement(node: Node): node is Element {
-  return node.nodeType === ELEMENT_NODE;
-}
-
-function nameOf(node: Node): string {
-  return isElement(node) ? node.localName : "";
-}
+const LINE_END = "\u2028";
 
 function childrenOf(node: Node): Node[] {
   return Array.from(node.childNodes);
@@ -97,10 +96,9 @@ function formulaText(tex: string): string {
  */
 function inlineText(node: Node, reading: Reading, notes = true): string {
   if (node.nodeType === TEXT_NODE) {
-    return node.textContent
-      .replace(/ſ/g, "s")
-      .replace(/ꝛc\./g, "etc.")
-      .replace(MARKDOWN_SPECIAL, (c) => `\\${c}`);
+    return escapeMarkdown(
+      node.textContent.replace(/ſ/g, "s").replace(/ꝛc\./g, "etc."),
+    );
   }
   if (!isElement(node)) return "";
   const element = node;
@@ -114,7 +112,7 @@ function inlineText(node: Node, reading: Reading, notes = true): string {
   if (name === "note") {
     if (!notes) return "";
     addNote(element, reading);
-    return element.getAttribute("n") ?? "";
+    return escapeMarkdown(element.getAttribute("n") ?? "");
   }
   if (name === "formula") return formulaText(element.textContent);
   if (name === "choice") {
@@ -127,13 +125,7 @@ function inlineText(node: Node, reading: Reading, notes = true): string {
   const inner = childrenOf(node)
     .map((child) => inlineText(child, reading, notes))
     .join("");
-  if (name === "hi") {
-    const word = inner.trim();
-    if (word.length === 0) return inner;
-    const lead = inner.slice(0, inner.length - inner.trimStart().length);
-    const trail = inner.slice(inner.trimEnd().length);
-    return `${lead}*${word}*${trail}`;
-  }
+  if (name === "hi") return emphasised(inner);
   if (name === "cell") return ` ${inner} |`;
   return inner;
 }
@@ -148,7 +140,7 @@ const SUSPENDED = "(?:und|oder|wie|bis|sowie|als)";
  * any other end is a space. Fraktur prints the hyphen as ¬.
  */
 function joined(text: string): string {
-  return text
+  return mergedEmphasis(text)
     .replace(new RegExp(`\\s*${LINE_END}\\s*`, "g"), LINE_END)
     .replace(
       new RegExp(
@@ -179,19 +171,6 @@ function turnPage(pb: Element, reading: Reading): void {
   };
 }
 
-function currentSection(reading: Reading): TitledSection<Block> {
-  const last = reading.sections.at(-1);
-  if (last) return last;
-  const opening: TitledSection<Block> = {
-    path: [],
-    titles: [],
-    paragraphs: [],
-    notes: [],
-  };
-  reading.sections.push(opening);
-  return opening;
-}
-
 /** A note, or its continuation joined to the note it goes on from. */
 function addNote(note: Element, reading: Reading): void {
   const text = joined(
@@ -207,21 +186,21 @@ function addNote(note: Element, reading: Reading): void {
     if (id) reading.notes.set(id, before);
     return;
   }
-  const marker = note.getAttribute("n");
+  const marker = escapeMarkdown(note.getAttribute("n") ?? "");
   const block: Block = {
     text: marker ? `${marker} ${text}` : text,
     ...reading.page,
   };
   const id = note.getAttribute("xml:id") ?? note.getAttribute("id");
   if (id) reading.notes.set(id, block);
-  currentSection(reading).notes.push(block);
+  currentSection(reading.sections).notes.push(block);
 }
 
 function addParagraph(element: Element, reading: Reading): void {
   const page = reading.page;
   const text = joined(inlineText(element, reading));
   if (text.length === 0) return;
-  currentSection(reading).paragraphs.push({ text, ...page });
+  currentSection(reading.sections).paragraphs.push({ text, ...page });
 }
 
 /** A heading as titled: its notes and page breaks left to the reading. */

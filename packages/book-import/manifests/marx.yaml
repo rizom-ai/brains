@@ -1,6 +1,10 @@
 # Karl Marx's works, read from the Deutsches Textarchiv's TEI transcriptions
-# of their first editions (the Brumaire from the second, 1869). The
-# transcriptions are under CC BY-SA 4.0, the Manifest's under CC BY-SA 2.0 DE.
+# of their first editions (the Brumaire from the second, 1869), and from
+# Wikisource's transcriptions of the Deutsch-Französische Jahrbücher (1844)
+# and of the Thesen über Feuerbach as Engels first printed them (1888). The
+# Textarchiv's transcriptions are under CC BY-SA 4.0, the Manifest's under
+# CC BY-SA 2.0 DE; Wikisource's are of public-domain texts. Of the letters the
+# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept.
 # `year` is first publication. The second and third volumes of Das Kapital
 # appeared after Marx's death, edited by Engels; Engels' prefaces to them are
 # left out. The third volume is two books, as printed, each paged on its own.
@@ -63,5 +67,45 @@ books:
     edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, zweiter Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
     author: Karl Marx
     year: 1894
+    published: false
+    kind: work
+  - source: wikisource
+    page: Ein Briefwechsel von 1843
+    citation: Briefwechsel 1843
+    slug: briefe-aus-den-deutsch-franzoesischen-jahrbuechern
+    title: Briefe aus den Deutsch-Französischen Jahrbüchern
+    shortTitle: Briefe von 1843
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 17–40
+    author: Karl Marx
+    year: 1844
+    kind: letters
+    skipHeadings: [R. an M., B. an R., R. an B., F. an R.]
+  - source: wikisource
+    page: Zur Kritik der Hegel’schen Rechtsphilosophie
+    citation: Rechtsphilosophie
+    slug: zur-kritik-der-hegelschen-rechtsphilosophie-einleitung
+    title: Zur Kritik der Hegel’schen Rechts-Philosophie. Einleitung
+    shortTitle: Zur Kritik der Hegel’schen Rechtsphilosophie
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 71–85
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: wikisource
+    page: Zur Judenfrage
+    citation: Judenfrage
+    slug: zur-judenfrage
+    title: Zur Judenfrage
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 182–214
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: wikisource
+    page: Thesen über Feuerbach
+    citation: Feuerbach-Thesen
+    slug: thesen-ueber-feuerbach
+    title: Thesen über Feuerbach
+    edition: "Anhang zu Friedrich Engels, Ludwig Feuerbach und der Ausgang der klassischen deutschen Philosophie (Stuttgart, J. H. W. Dietz, 1888), S. 69–72"
+    author: Karl Marx
+    year: 1888
     published: false
     kind: work

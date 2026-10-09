@@ -4,6 +4,7 @@ import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
+import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
 
@@ -132,7 +133,30 @@ const dtaTeiBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
-const SOURCES = ["ekgwb", "archive-ocr", "dta-tei"] as const;
+const wikisourceBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      page: z.ZodString;
+      citation: z.ZodString;
+      title: z.ZodString;
+      edition: z.ZodString;
+      skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The work's page title on de.wikisource.org: Zur Judenfrage. */
+  page: z.string().min(1),
+  /** How a citation names the work before its page: Judenfrage, 182. */
+  citation: z.string().min(1),
+  title: z.string().min(1),
+  /** The printed edition the transcription follows. */
+  edition: z.string().min(1),
+  /** Headings of sections left out, e.g. letters written by others. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
+});
+
+const SOURCES = ["ekgwb", "archive-ocr", "dta-tei", "wikisource"] as const;
 
 /** A book of the manifest, read from its source. */
 const bookSchema: z.ZodDiscriminatedUnion<
@@ -148,12 +172,18 @@ const bookSchema: z.ZodDiscriminatedUnion<
     ReturnType<
       typeof dtaTeiBookSchema.extend<{ source: z.ZodLiteral<"dta-tei"> }>
     >,
+    ReturnType<
+      typeof wikisourceBookSchema.extend<{
+        source: z.ZodLiteral<"wikisource">;
+      }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
   ekgwbBookSchema.extend({ source: z.literal("ekgwb") }),
   archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
+  wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -343,6 +373,42 @@ async function loadArchiveOcrBook(
   };
 }
 
+const WIKISOURCE_API = "https://de.wikisource.org/w/api.php";
+
+const parsedPageSchema = z.object({ parse: z.object({ text: z.string() }) });
+
+async function loadWikisourceBook(
+  entry: z.output<typeof wikisourceBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  const query = new URLSearchParams({
+    action: "parse",
+    page: entry.page,
+    prop: "text",
+    format: "json",
+    formatversion: "2",
+  });
+  const { parse } = parsedPageSchema.parse(
+    JSON.parse(await fetchText(`${WIKISOURCE_API}?${query.toString()}`)),
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "public-domain",
+      attribution: "Transcription: Wikisource (de.wikisource.org)",
+      source: wikisourcePageUrl(entry.page),
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: parseWikisourcePage(parse.text, entry),
+  };
+}
+
 function loadersOf(
   manifest: Manifest,
   fetchText: FetchText,
@@ -356,6 +422,8 @@ function loadersOf(
         return loadArchiveOcrBook(entry, fetchText, corrections);
       case "dta-tei":
         return loadDtaTeiBook(entry, fetchText);
+      case "wikisource":
+        return loadWikisourceBook(entry, fetchText);
     }
   });
 }

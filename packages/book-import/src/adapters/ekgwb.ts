@@ -1,7 +1,6 @@
 import { Window, type Element, type Node } from "happy-dom";
-
-const TEXT_NODE = 3;
 import type { BookUnit } from "../render-book";
+import { TEXT_NODE, escapeMarkdown } from "./markup";
 
 /** Every eKGWB unit is addressed by its siglum below this base. */
 export const EKGWB_BASE = "http://www.nietzschesource.org/eKGWB/";
@@ -55,16 +54,10 @@ function headingsOf(element: Element): string[] {
     .map(labelText);
 }
 
-/** Characters markdown would read as markup; the text keeps them literal. */
-const MARKDOWN_SPECIAL = /[\\`*_<>]/g;
-
 /** Escape markdown characters in every text node, so the text stays text. */
 function escapeText(node: Node): void {
   if (node.nodeType === TEXT_NODE) {
-    node.textContent = node.textContent.replace(
-      MARKDOWN_SPECIAL,
-      (character) => `\\${character}`,
-    );
+    node.textContent = escapeMarkdown(node.textContent);
     return;
   }
   Array.from(node.childNodes).forEach(escapeText);

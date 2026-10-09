@@ -60,7 +60,9 @@ describe("parseDtaTei", () => {
     const xml = `<TEI><text><body><pb n="1" facs="#f0001"/>
 <div><head>I.</head><p>Die ſogenannten bürger¬<lb/>lichen Freiheiten, die Eigenthums-<lb/>Verhältniſſe, Barrot¬<lb/>Faucher ꝛc. ꝛc.</p>
 <p>Die <hi rendition="#g">objek</hi>¬<lb/><hi rendition="#g">tiven</hi> Ge¬<lb/>schichtschreiber und ihre <hi rendition="#g">Privat</hi>-<lb/>arbeiten.</p>
-<p>Im alten Rom Silber-<lb/>und Goldmünzen, <hi rendition="#g">Hände</hi>-<lb/>oder Kopfarbeit.</p></div>
+<p>Im alten Rom Silber-<lb/>und Goldmünzen, <hi rendition="#g">Hände</hi>-<lb/>oder Kopfarbeit.</p>
+<p><hi rendition="#g">Erster <hi rendition="#i">Fall</hi>:</hi> 4000<hi rendition="#i">c</hi>.</p>
+<p>Die Herren <hi rendition="#g">V</hi><hi rendition="#aq">é</hi><hi rendition="#g">ron</hi>-<hi rendition="#g">Crevel</hi><note place="foot" n="**)"><hi rendition="#g">Th. Hobbes</hi><hi rendition="#i">:</hi> Leviathan.</note>.</p></div>
 </body></text></TEI>`;
     const { units } = parseDtaTei(xml, {
       id: "marx_bonaparte_1869",
@@ -72,6 +74,9 @@ describe("parseDtaTei", () => {
       "Die sogenannten bürgerlichen Freiheiten, die Eigenthums-Verhältnisse, Barrot-Faucher etc. etc.",
       "Die *objektiven* Geschichtschreiber und ihre *Privat*arbeiten.",
       "Im alten Rom Silber- und Goldmünzen, *Hände*- oder Kopfarbeit.",
+      "*Erster Fall:* 4000*c*.",
+      "Die Herren *Véron*-*Crevel*\\*\\*).",
+      "\\*\\*) *Th. Hobbes:* Leviathan.",
     ]);
   });
 
