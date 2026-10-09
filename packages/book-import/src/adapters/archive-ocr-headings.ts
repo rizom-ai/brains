@@ -311,23 +311,29 @@ function likeness(a: string, b: string): number {
 /** Headings this alike in their letters name the same thing. */
 const ALIKE = 0.5;
 
+/** Names this alike in their letters are one name, however each is printed. */
+const SAME = 0.8;
+
 /**
  * Whether a heading set in capitals reads as the given title, however the OCR
- * spelled it; the heading may run on into a subtitle.
+ * spelled it; the heading may run on into a subtitle. A title named to leave
+ * a section out is read closely: among a volume's many like titles, one
+ * alike in some words is another.
  */
-export function namesTitle(heading: string, title: string): boolean {
+export function namesTitle(
+  heading: string,
+  title: string,
+  closely = false,
+): boolean {
   const read = letters(heading);
   const known = letters(title);
   return (
     Math.max(
       likeness(read, known),
       likeness(read.slice(0, known.length + 2), known),
-    ) >= ALIKE
+    ) >= (closely ? SAME : ALIKE)
   );
 }
-
-/** Names this alike in their letters are one name, however each is printed. */
-const SAME = 0.8;
 
 /** Whether two printings name the same heading: a running head and a title. */
 export function sameName(a: string, b: string): boolean {

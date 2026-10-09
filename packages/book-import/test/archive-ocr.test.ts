@@ -1489,6 +1489,16 @@ describe("parseArchiveOcrWork, datelined articles", () => {
     );
   });
 
+  it("leaves out only the article a title names, not one alike in some words", async () => {
+    const units = await articles([
+      "Die Desorganisation der englischen Militärverwaltung.",
+    ]);
+
+    expect(units.map((unit) => unit.parents.at(-1))).toContain(
+      "Zum englischen Militärwesen.",
+    );
+  });
+
   it("leaves out an article and its parts by the article's title", async () => {
     const units = await articles([
       "Die Belagerung von Silistria.",

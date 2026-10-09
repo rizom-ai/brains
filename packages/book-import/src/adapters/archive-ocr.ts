@@ -898,8 +898,14 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   ];
 }
 
-/** A dateline: where and when an article was written, or the paper and day it appeared, ending in its year. */
-const DATELINE = /\p{L}.*\b1\d{3}\)?\.?$/u;
+/**
+ * A dateline: where and when an article was written, or the paper and day
+ * it appeared, ending in a day, month and year (14./16. August 1855).
+ */
+const DATELINE =
+  /\p{L}.*\b\d{1,2}\.\s*(?:\/\s*\d{1,2}\.\s*)?\p{L}+\s+1\d{3}\)?\.?$/u;
+/** A dateline is set no larger than the text, give or take the OCR's measure. */
+const DATELINE_SIZE = 1.05;
 /** A series' numeral, as Fraktur sets I and J alike, with the part's own title or none. */
 const SERIES_NUMERAL = /^([IVXJ]{1,4})\.(?:\s+(\p{Lu}.*))?$/u;
 /** Title type is set larger than the text by this much at least, where it fills the column. */
@@ -914,7 +920,7 @@ type ArticleLine =
 
 /**
  * The lines of a page's newspaper articles by their place: each dateline,
- * set in from the margin and short of the column, and the centred lines
+ * set in from the margin further than a paragraph, and the centred lines
  * above it, the article's title in title type and a series' numeral. Text
  * starts at the margin; a title is set in from it, or fills the column in
  * larger type.
@@ -955,9 +961,8 @@ function articleLinesOf(
   };
   return new Map(
     lines.flatMap((line, index): Array<[number, ArticleLine]> =>
-      line.x - margin > page.width * INDENT &&
-      line.width < volume.column * HEADING_WIDTH &&
-      line.size <= volume.textSize &&
+      line.x - margin > page.width * INDENT * 2 &&
+      line.size <= volume.textSize * DATELINE_SIZE &&
       DATELINE.test(line.text)
         ? [
             [
@@ -1627,7 +1632,7 @@ function addHeading(
     return { ...state, chapters };
   }
   // A section left out still holds its place among the chapters.
-  if (skip.some((title) => namesTitle(heading.title.join(" "), title))) {
+  if (skip.some((title) => namesTitle(heading.title.join(" "), title, true))) {
     return { ...state, chapters, skipping: level };
   }
   const step = {
