@@ -51,6 +51,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipPages: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       firstChapter: z.ZodDefault<z.ZodNumber>;
+      reference: z.ZodOptional<z.ZodURL>;
     }
   >
 > = z.object({
@@ -75,6 +76,8 @@ const archiveOcrBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
   /** The number of the work's first chapter, where it goes on from another. */
   firstChapter: z.number().int().positive().default(1),
+  /** A transcription of the work, of any edition, to check the OCR against. */
+  reference: z.url().optional(),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */

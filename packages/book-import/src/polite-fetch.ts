@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 export interface PoliteFetchOptions {
@@ -87,4 +88,15 @@ export function createPoliteFetch(options: PoliteFetchOptions): PoliteFetch {
     await writeFile(path, text);
     return text;
   };
+}
+
+/** The importer's fetch: cached in the user's cache, one request a second. */
+export function createImporterFetch(): PoliteFetch {
+  return createPoliteFetch({
+    cacheDir:
+      process.env["BOOK_IMPORT_CACHE"] ??
+      join(homedir(), ".cache", "book-import"),
+    userAgent: "rizom-brains-book-import (yeehaa@rizom.ai)",
+    minIntervalMs: 1000,
+  });
 }

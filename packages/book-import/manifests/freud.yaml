@@ -217,6 +217,7 @@ books:
     firstPage: VII
     lastPage: 626
     slug: die-traumdeutung
+    reference: https://www.gutenberg.org/cache/epub/40739/pg40739.txt
     title: Die Traumdeutung
     edition: "Gesammelte Werke, Bd. II/III (Imago, London 1942)"
     author: Sigmund Freud
@@ -237,6 +238,7 @@ books:
     firstPage: 1
     lastPage: 310
     slug: zur-psychopathologie-des-alltagslebens
+    reference: https://www.gutenberg.org/cache/epub/24429/pg24429.txt
     title: Zur Psychopathologie des Alltagslebens
     shortTitle: Psychopathologie des Alltagslebens
     edition: Gesammelte Werke, Bd. IV (Imago, London 1941)
@@ -269,6 +271,7 @@ books:
     firstPage: 27
     lastPage: 146
     slug: drei-abhandlungen-zur-sexualtheorie
+    reference: https://www.gutenberg.org/cache/epub/39938/pg39938.txt
     title: Drei Abhandlungen zur Sexualtheorie
     shortTitle: Drei Abhandlungen
     edition: Gesammelte Werke, Bd. V (Imago, London 1942)
@@ -313,6 +316,7 @@ books:
     firstPage: 1
     lastPage: 270
     slug: der-witz-und-seine-beziehung-zum-unbewussten
+    reference: https://www.gutenberg.org/cache/epub/76423/pg76423.txt
     title: Der Witz und seine Beziehung zum Unbewußten
     shortTitle: Der Witz
     edition: Gesammelte Werke, Bd. VI (Imago, London 1940)
@@ -346,6 +350,7 @@ books:
     firstPage: 29
     lastPage: 126
     slug: der-wahn-und-die-traeume-in-w-jensens-gradiva
+    reference: https://www.gutenberg.org/cache/epub/35549/pg35549.txt
     title: "Der Wahn und die Träume in W. Jensens „Gradiva“"
     shortTitle: Gradiva
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
@@ -411,6 +416,7 @@ books:
     firstPage: 211
     lastPage: 224
     slug: der-dichter-und-das-phantasieren
+    reference: https://www.gutenberg.org/cache/epub/28863/pg28863.txt
     title: Der Dichter und das Phantasieren
     shortTitle: Der Dichter
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
@@ -477,6 +483,7 @@ books:
     firstPage: 1
     lastPage: 61
     slug: ueber-psychoanalyse
+    reference: https://www.gutenberg.org/cache/epub/20613/pg20613.txt
     title: Über Psychoanalyse
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
     author: Sigmund Freud
@@ -542,6 +549,7 @@ books:
     firstPage: 127
     lastPage: 212
     slug: eine-kindheitserinnerung-des-leonardo-da-vinci
+    reference: https://www.gutenberg.org/cache/epub/75455/pg75455.txt
     title: Eine Kindheitserinnerung des Leonardo da Vinci
     shortTitle: Leonardo da Vinci
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
@@ -739,6 +747,7 @@ books:
     firstPage: 1
     lastPage: 194
     slug: totem-und-tabu
+    reference: https://www.gutenberg.org/cache/epub/37065/pg37065.txt
     title: Totem und Tabu
     edition: Gesammelte Werke, Bd. IX (Imago, London 1940)
     author: Sigmund Freud
@@ -769,6 +778,7 @@ books:
     firstPage: 23
     lastPage: 38
     slug: das-motiv-der-kaestchenwahl
+    reference: https://www.gutenberg.org/cache/epub/24017/pg24017.txt
     title: Das Motiv der Kästchenwahl
     shortTitle: Die Kästchenwahl
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -835,6 +845,7 @@ books:
     firstPage: 171
     lastPage: 202
     slug: der-moses-des-michelangelo
+    reference: https://www.gutenberg.org/cache/epub/30762/pg30762.txt
     title: Der Moses des Michelangelo
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
     author: Sigmund Freud
@@ -908,6 +919,7 @@ books:
     firstPage: 323
     lastPage: 357
     slug: zeitgemaesses-ueber-krieg-und-tod
+    reference: https://www.gutenberg.org/cache/epub/29941/pg29941.txt
     title: Zeitgemäßes über Krieg und Tod
     shortTitle: Krieg und Tod
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -919,6 +931,7 @@ books:
     firstPage: 358
     lastPage: 362
     slug: vergaenglichkeit
+    reference: https://www.gutenberg.org/cache/epub/29514/pg29514.txt
     title: Vergänglichkeit
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
     author: Sigmund Freud
@@ -929,6 +942,7 @@ books:
     firstPage: 363
     lastPage: 392
     slug: einige-charaktertypen-aus-der-psychoanalytischen-arbeit
+    reference: https://www.gutenberg.org/cache/epub/29101/pg29101.txt
     title: Einige Charaktertypen aus der psychoanalytischen Arbeit
     shortTitle: Charaktertypen
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -1016,6 +1030,7 @@ books:
     firstPage: 1
     lastPage: 14
     slug: eine-schwierigkeit-der-psychoanalyse
+    reference: https://www.gutenberg.org/cache/epub/29097/pg29097.txt
     title: Eine Schwierigkeit der Psychoanalyse
     shortTitle: Eine Schwierigkeit
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
@@ -1027,6 +1042,7 @@ books:
     firstPage: 15
     lastPage: 26
     slug: eine-kindheitserinnerung-aus-dichtung-und-wahrheit
+    reference: https://www.gutenberg.org/cache/epub/29946/pg29946.txt
     title: "Eine Kindheitserinnerung aus „Dichtung und Wahrheit“"
     shortTitle: Dichtung und Wahrheit
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
@@ -1081,6 +1097,7 @@ books:
     firstPage: 229
     lastPage: 268
     slug: das-unheimliche
+    reference: https://www.gutenberg.org/cache/epub/34222/pg34222.txt
     title: Das Unheimliche
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
     author: Sigmund Freud
@@ -1157,6 +1174,7 @@ books:
     firstPage: 1
     lastPage: 70
     slug: jenseits-des-lustprinzips
+    reference: https://www.gutenberg.org/cache/epub/28220/pg28220.txt
     title: Jenseits des Lustprinzips
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud
@@ -1167,6 +1185,7 @@ books:
     firstPage: 71
     lastPage: 162
     slug: massenpsychologie-und-ich-analyse
+    reference: https://www.gutenberg.org/cache/epub/30843/pg30843.txt
     title: Massenpsychologie und Ich-Analyse
     shortTitle: Massenpsychologie
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
@@ -1178,6 +1197,7 @@ books:
     firstPage: 163
     lastPage: 194
     slug: traum-und-telepathie
+    reference: https://www.gutenberg.org/cache/epub/31560/pg31560.txt
     title: Traum und Telepathie
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud

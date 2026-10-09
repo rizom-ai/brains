@@ -217,6 +217,17 @@ books:
     expect(texts.join("\n")).toContain("rückt ein Wort");
   });
 
+  it("names a transcription of a work to check its OCR against", () => {
+    const manifest = parseManifest(
+      ocrManifest +
+        "    reference: https://www.gutenberg.org/cache/epub/28220/pg28220.txt\n",
+    );
+
+    expect(
+      manifest.source === "archive-ocr" ? manifest.books[0]?.reference : null,
+    ).toBe("https://www.gutenberg.org/cache/epub/28220/pg28220.txt");
+  });
+
   it("reads a corrections file by volume", () => {
     expect(
       parseCorrections(`

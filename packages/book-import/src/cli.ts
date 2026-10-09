@@ -1,13 +1,7 @@
-import { access, readFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import {
-  importBooks,
-  parseCorrections,
-  parseManifest,
-  type Corrections,
-} from "./import-books";
-import { createPoliteFetch } from "./polite-fetch";
+import { readFile } from "node:fs/promises";
+import { readCorrectionsBeside } from "./corrections-file";
+import { importBooks, parseManifest } from "./import-books";
+import { createImporterFetch } from "./polite-fetch";
 
 const USAGE =
   "Usage: bun packages/book-import/src/cli.ts <manifest.yaml> <brain-data>";
@@ -19,31 +13,11 @@ if (!manifestPath || !brainData) {
 }
 
 const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-const fetchText = createPoliteFetch({
-  cacheDir:
-    process.env["BOOK_IMPORT_CACHE"] ??
-    join(homedir(), ".cache", "book-import"),
-  userAgent: "rizom-brains-book-import (yeehaa@rizom.ai)",
-  minIntervalMs: 1000,
-});
-
-/** A manifest's corrections sit beside it: freud.yaml, freud-corrections.yaml. */
-async function correctionsBeside(path: string): Promise<Corrections> {
-  const correctionsPath = path.replace(/\.ya?ml$/u, "-corrections.yaml");
-  try {
-    await access(correctionsPath);
-  } catch {
-    // A manifest without corrections imports its text as read.
-    return {};
-  }
-  return parseCorrections(await readFile(correctionsPath, "utf8"));
-}
-
 const results = await importBooks(
   manifest,
   brainData,
-  fetchText,
-  await correctionsBeside(manifestPath),
+  createImporterFetch(),
+  await readCorrectionsBeside(manifestPath),
 );
 results.forEach(({ slug, entries }) =>
   console.log(`${slug}: ${entries} entries`),

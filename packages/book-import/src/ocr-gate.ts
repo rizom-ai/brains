@@ -1,9 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { pageLeaf, pageText } from "./adapters/archive-ocr";
 import { fetchVolumeHocr, parseManifest } from "./import-books";
-import { createPoliteFetch } from "./polite-fetch";
+import { createImporterFetch } from "./polite-fetch";
 
 /** The printed pages of one work in a volume. */
 export interface PageRange {
@@ -103,13 +102,7 @@ async function main(): Promise<void> {
     console.error("The OCR gate reads archive-ocr manifests.");
     process.exit(1);
   }
-  const fetchText = createPoliteFetch({
-    cacheDir:
-      process.env["BOOK_IMPORT_CACHE"] ??
-      join(homedir(), ".cache", "book-import"),
-    userAgent: "rizom-brains-book-import (yeehaa@rizom.ai)",
-    minIntervalMs: 1000,
-  });
+  const fetchText = createImporterFetch();
   const items = [...new Set(manifest.books.map((book) => book.item))];
   await items.reduce(async (done, item) => {
     await done;
