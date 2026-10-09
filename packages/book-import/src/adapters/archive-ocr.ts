@@ -49,6 +49,8 @@ interface Line {
   width: number;
   size: number;
   text: string;
+  /** A title set on its numeral's line: the heading ends with it. */
+  ends?: boolean;
 }
 
 interface Page {
@@ -252,15 +254,22 @@ function numberedHead(page: Page): { index: number; number: number } | null {
 
 /** A front-matter head: a roman page number at its start or end. */
 const ROMAN_HEAD = /^([IVXL]+)\s+\S.*$|^.*\S\s+([IVXL]+)$/;
+/** A roman page number alone, which only the front matter's head is. */
+const LONE_ROMAN_HEAD = /^[—–-]?\s*([IVXL]+)\s*[—–-]?$/;
 
 /** The roman page number of a front-matter page's running head. */
-function romanHead(page: Page): { index: number; number: number } | null {
+function romanHead(
+  page: Page,
+  front = false,
+): { index: number; number: number } | null {
   return page.lines.reduce<{ index: number; number: number } | null>(
     (found, line, index) => {
       if (found || index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) {
         return found;
       }
-      const match = ROMAN_HEAD.exec(line.text);
+      const match =
+        ROMAN_HEAD.exec(line.text) ??
+        (front ? LONE_ROMAN_HEAD.exec(line.text) : null);
       const numeral = match?.[1] ?? match?.[2];
       return numeral === undefined
         ? null
@@ -276,7 +285,7 @@ function romanHead(page: Page): { index: number; number: number } | null {
  */
 function romanOffset(pages: Page[]): number | null {
   const counts = pages.reduce<Map<number, number>>((tally, page) => {
-    const head = romanHead(page);
+    const head = romanHead(page, true);
     if (!head) return tally;
     const offset = head.number - page.leaf;
     return tally.set(offset, (tally.get(offset) ?? 0) + 1);
@@ -301,8 +310,12 @@ const HEAD_LIKENESS = 0.6;
  * number, or else a line in the head zone worded like a numbered head of the
  * volume, whose number the OCR lost.
  */
-function runningHeadIndex(page: Page, heads: Array<Set<string>>): number {
-  const numbered = numberedHead(page) ?? romanHead(page);
+function runningHeadIndex(
+  page: Page,
+  heads: Array<Set<string>>,
+  front = false,
+): number {
+  const numbered = numberedHead(page) ?? romanHead(page, front);
   // The OCR may read a head as two lines, its number above its title; the
   // head ends with the later of them.
   return Math.max(numbered?.index ?? -1, titledHeadIndex(page, heads));
@@ -495,7 +508,7 @@ function median(values: number[]): number {
 }
 
 type Piece =
-  | { kind: "heading"; lines: HeadingLine[] }
+  | { kind: "heading"; lines: HeadingLine[]; closed?: boolean }
   | { kind: "text"; text: string; opens: boolean }
   | { kind: "note"; text: string; opens: boolean };
 
@@ -515,11 +528,17 @@ interface Volume {
   headsByLeaf: Map<number, string>;
   /** The words its text uses often, in small letters. */
   common: Set<string>;
+  /** The leaves before its first page: front matter, numbered in roman. */
+  frontLeaves: Set<number>;
+  /** Whether it sets a chapter's numeral and title on one line, never a numeral alone. */
+  numberedTitles: boolean;
 }
 
 /** Lines below the running head and the scan's noise above it. */
 function bodyLines(page: Page, volume: Volume): Line[] {
-  return page.lines.slice(runningHeadIndex(page, volume.heads) + 1);
+  return page.lines.slice(
+    runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)) + 1,
+  );
 }
 
 /** A token that reads as a word of three letters or more, with its punctuation. */
@@ -714,8 +733,41 @@ function readPage(
   );
 }
 
+/** A chapter's numeral alone is narrower than this share of the page. */
+const NUMERAL_WIDTH = 0.1;
+/** A numeral set on a line of its own. */
+const LONE_NUMERAL = /^[IVXL]+\.?$/u;
+/** A chapter's numeral and title set on one line: I. Die Schwefelbande. */
+const NUMBERED_TITLE = /^([IVXL]+\.)\s+(\p{Lu}.*)$/u;
+
+/**
+ * A centred line of a chapter's numeral and title read as the two lines a
+ * heading sets them on more often, so the heading reads them alike; in a
+ * volume that sets numerals on lines of their own, such a line is a list's.
+ */
+function numberedTitleApart(line: Line, page: Page): Line[] {
+  const match = NUMBERED_TITLE.exec(line.text);
+  const centred =
+    Math.abs(line.x + line.width / 2 - page.width / 2) < page.width * CENTRE;
+  // A line already read as a heading (I. Vorlesung) keeps its reading.
+  if (
+    !match?.[1] ||
+    !match[2] ||
+    !centred ||
+    headingLineOf(line.text, line.size) !== null
+  ) {
+    return [line];
+  }
+  return [
+    { ...line, text: match[1] },
+    { ...line, text: match[2], ends: true },
+  ];
+}
+
 function piecesOf(page: Page, volume: Volume): Piece[] {
-  const headless = bodyLines(page, volume);
+  const headless = volume.numberedTitles
+    ? bodyLines(page, volume).flatMap((line) => numberedTitleApart(line, page))
+    : bodyLines(page, volume);
   if (isPicture(headless)) return [];
   const bodySize = median(headless.map((line) => line.size));
   // The footnotes open the page's foot: at the rule above them, or at a small
@@ -753,19 +805,21 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     }
     const centre = line.x + line.width / 2;
     const last = pieces.at(-1);
+    // A heading runs on until a line ends it.
+    const open = last?.kind === "heading" && last.closed !== true;
     // A heading opens with a short or large centred line; once open, it runs
     // on through centred lines however wide.
     const centred =
       Math.abs(centre - page.width / 2) < page.width * CENTRE &&
       line.y > page.height * HEAD_ZONE &&
-      (last?.kind === "heading" ||
+      (open ||
         line.width < volume.column * HEADING_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE);
     const read = centred ? headingLineOf(line.text, line.size) : null;
     // The line after a numeral, letter or part's name is its title, even where
     // the OCR read its capitals as small letters, or set in display type
     // across the column.
-    const above = last?.kind === "heading" ? last.lines.at(-1) : undefined;
+    const above = open ? last.lines.at(-1) : undefined;
     const titles =
       above !== undefined &&
       (above.kind === "part" ||
@@ -786,19 +840,20 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         : candidate;
     if (headingLine) {
       // A qualifier only qualifies a heading; alone it is running text.
-      if (headingLine.kind !== "qualifier" || last?.kind === "heading") {
+      if (headingLine.kind !== "qualifier" || open) {
         // A numeral, letter or part's name opens the next heading.
         const continues =
-          last?.kind === "heading" &&
+          open &&
           (headingLine.kind === "caps" ||
             headingLine.kind === "qualifier" ||
             last.lines.every((above) => above.kind === "qualifier"));
+        const closed = line.ends === true;
         return continues
           ? [
               ...pieces.slice(0, -1),
-              { kind: "heading", lines: [...last.lines, headingLine] },
+              { kind: "heading", lines: [...last.lines, headingLine], closed },
             ]
-          : [...pieces, { kind: "heading", lines: [headingLine] }];
+          : [...pieces, { kind: "heading", lines: [headingLine], closed }];
       }
     }
     if (SIGNATURE.test(line.text) || isEdgeNoise(line.text)) return pieces;
@@ -1095,6 +1150,18 @@ interface ReadVolume {
 
 function readVolume(hocr: string): ReadVolume {
   const pages = readPages(hocr);
+  const printed = printedPageNumbers(pages.map(readingOf));
+  // The leaves before the first page are the front matter.
+  const firstLeaf = Math.min(
+    ...pages
+      .filter((page) => (printed.get(page.leaf) ?? 0) >= 1)
+      .map((page) => page.leaf),
+  );
+  const frontLeaves = new Set(
+    pages.filter((page) => page.leaf < firstLeaf).map((page) => page.leaf),
+  );
+  const headOf = (page: Page): number =>
+    runningHeadIndex(page, heads, frontLeaves.has(page.leaf));
   const fullLines = pages.flatMap((page) =>
     page.lines.filter((line) => line.width > page.width / 2),
   );
@@ -1110,15 +1177,13 @@ function readVolume(hocr: string): ReadVolume {
   // made of them.
   const textSpelling = createSpelling(
     pages.flatMap((page) =>
-      page.lines
-        .slice(runningHeadIndex(page, heads) + 1)
-        .map((line) => line.text),
+      page.lines.slice(headOf(page) + 1).map((line) => line.text),
     ),
   );
   const uses = pages
     .flatMap((page) =>
       page.lines
-        .slice(runningHeadIndex(page, heads) + 1)
+        .slice(headOf(page) + 1)
         .flatMap((line) => line.text.toLowerCase().match(/\p{L}{2,}/gu) ?? []),
     )
     .reduce(
@@ -1127,8 +1192,24 @@ function readVolume(hocr: string): ReadVolume {
     );
   return {
     pages,
-    printed: printedPageNumbers(pages.map(readingOf)),
+    printed,
     volume: {
+      frontLeaves,
+      // A numeral alone in the body, centred and narrow, opens a chapter; one
+      // at the head is a page number, one at the edge the scan's noise, one
+      // in the front matter its own.
+      numberedTitles: !pages.some(
+        (page) =>
+          (printed.get(page.leaf) ?? 0) >= 1 &&
+          page.lines.some(
+            (line) =>
+              LONE_NUMERAL.test(line.text) &&
+              line.y > page.height * HEAD_ZONE &&
+              line.width < page.width * NUMERAL_WIDTH &&
+              Math.abs(line.x + line.width / 2 - page.width / 2) <
+                page.width * CENTRE,
+          ),
+      ),
       common: new Set(
         [...uses]
           .filter(([, count]) => count >= COMMON_USES)
@@ -1141,7 +1222,7 @@ function readVolume(hocr: string): ReadVolume {
       textSpelling,
       headsByLeaf: new Map(
         pages.flatMap((page): Array<[number, string]> => {
-          const line = page.lines[runningHeadIndex(page, heads)];
+          const line = page.lines[headOf(page)];
           return line ? [[page.leaf, headName(line.text)]] : [];
         }),
       ),

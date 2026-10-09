@@ -579,3 +579,49 @@ describe("parseArchiveOcrWork, a running head read as two lines", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, a chapter's numeral and title on one line", () => {
+  it("reads a centred line of numeral and title as the chapter's heading", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-numbered-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "10067670bsb",
+        title: "Herr Vogt",
+        citation: "Herr Vogt",
+        firstPage: 20,
+        lastPage: 23,
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "I. Die Schwefelbande.",
+      "II. Die Bürstenheimer.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, front matter numbered by a bare roman numeral", () => {
+  it("reads a roman page number standing alone at the head of the page", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-heads.html"),
+        "utf8",
+      ),
+      {
+        item: "10067670bsb",
+        title: "Herr Vogt",
+        citation: "Herr Vogt",
+        firstPage: "III",
+        lastPage: 2,
+      },
+    );
+
+    expect(units[0]?.section).toBe("Herr Vogt, III");
+    expect(units[0]?.paragraphs[0]).toBe(
+      "Unter dem Datum veröffentlichte ich eine Erklärung. Der Prozeß wurde niedergeschlagen.",
+    );
+  });
+});
