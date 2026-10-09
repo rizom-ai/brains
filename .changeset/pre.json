@@ -245,6 +245,7 @@
     "core--agent-legacy-kinds",
     "core--agent-network-complete-tag-facets",
     "core--agent-sightings-inbox-source",
+    "core--agent-turn-promise-drain",
     "core--alert-failure-reasons",
     "core--analytics-beacon-token",
     "core--analytics-null-graphql-errors",

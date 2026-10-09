@@ -1,5 +1,12 @@
 # @brains/db
 
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.511
+
 ## 0.2.0-alpha.510
 
 ### Patch Changes
