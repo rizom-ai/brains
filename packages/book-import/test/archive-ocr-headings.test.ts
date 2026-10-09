@@ -42,10 +42,12 @@ describe("headingLineOf on a chapter named by its ordinal", () => {
     expect(headingLineOf("Erstes Kapitel.", 50)).toEqual({
       kind: "chapter",
       numeral: "Erstes",
+      named: true,
     });
     expect(headingLineOf("Siebentes Kapitel.", 50)).toEqual({
       kind: "chapter",
       numeral: "Siebentes",
+      named: true,
     });
   });
 });

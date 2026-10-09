@@ -159,6 +159,10 @@ freud-1940-gw-13:
     from: Habe ich Lei Ihnen den
     to: Habe ich bei Ihnen den
     by: reference
+  - page: 318
+    from: ki HAITZMANN
+    to: HAITZMANN
+    by: scan
 freud-1940-gw-6:
   - page: 6
     from: welches den kömisehen Kontrast erzeugt

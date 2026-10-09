@@ -1,7 +1,12 @@
 /** A centred line that can belong to a heading, as the page sets it. */
 export type HeadingLine =
   | { kind: "part"; text: string }
-  | { kind: "chapter"; numeral: string }
+  | {
+      kind: "chapter";
+      numeral: string;
+      /** Named a chapter or lecture in words (Erstes Kapitel), not by a numeral alone. */
+      named?: boolean;
+    }
   | { kind: "letter"; letter: string }
   | { kind: "caps"; text: string; size: number; misread?: boolean }
   | { kind: "qualifier"; text: string };
@@ -17,6 +22,8 @@ export interface Heading {
   numbered: boolean;
   /** The numeral as the OCR read it; chapters are numbered by place. */
   numeral: string | null;
+  /** The chapter is named so in words: no list's or example's number. */
+  named: boolean;
   /** Capitals lines, a smaller line opening a subtitle. */
   title: string[];
   /** The title came from a line the OCR read in small letters. */
@@ -66,6 +73,7 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
     return {
       kind: "chapter",
       numeral: text.replace(/\s*(?:vorlesung|kapitel)\.?$/iu, ""),
+      named: true,
     };
   }
   // A lone letter that no numeral misreads as is a subsection's.
@@ -114,6 +122,7 @@ function readHeading(lines: HeadingLine[]): Heading {
             level: 1,
             numbered: true,
             numeral: line.numeral,
+            named: line.named === true,
           };
         case "letter":
           return { ...heading, level: 2, label: line.letter };
@@ -146,6 +155,7 @@ function readHeading(lines: HeadingLine[]): Heading {
       label: null,
       numbered: false,
       numeral: null,
+      named: false,
       title: [],
       misread: false,
       qualifiers: [],

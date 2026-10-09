@@ -721,4 +721,118 @@ describe("parseArchiveOcrWork, titles set in display type", () => {
       "Rudolf, Fürst von Gerolstein, büßt in seinem Weltgang ein doppeltes Vergehen, sein persönliches Vergehen und das der Kritik.",
     ]);
   });
+
+  it("centres a title on the page's text column, which the scan may set off its middle, and runs it on through lines in title type", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 45,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "II. Das kritische jüngste Gericht der Kritik und des Preussen, oder die Kritik als Herr Bruno.",
+    );
+  });
+
+  it("reads a centred line of a number and a title as a numbered subsection", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 46,
+      },
+    );
+
+    expect(
+      units.slice(-2).map((unit) => [unit.parents.at(-1), unit.title]),
+    ).toEqual([
+      [
+        "III. Die kritische Kritik als die Ruhe des Erkennens.",
+        "1. Die Union ouvrière der Flora Tristan.",
+      ],
+      [
+        "III. Die kritische Kritik als die Ruhe des Erkennens.",
+        "2. Beraud über die Freudenmädchen.",
+      ],
+    ]);
+    expect(units.at(-1)?.paragraphs).toEqual([
+      "Herr Edgar, der nun einmal der sozialen Fragen sich erbarmt, und die Kritik des Preussen.",
+    ]);
+  });
+
+  it("joins a title's lines with one full stop between them", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 47,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "IV. Die absolute Kritik. Der Geist und die Masse.",
+    );
+  });
+
+  it("reads a numbered line inside a lettered subsection as an example in the text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 48,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("E. Die Kritik des Preussen");
+    expect(units.at(-1)?.paragraphs).toContain("5. Ein Aufstand der Weber.");
+  });
+
+  it("reads a chapter named by its number and the word as a chapter", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 49,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("V. Die Masse und der Preusse.");
+  });
 });

@@ -757,6 +757,20 @@ const FOOT_ZONE = 0.85;
 const NUMERAL_WIDTH = 0.1;
 /** A numeral set on a line of its own. */
 const LONE_NUMERAL = /^[IVXL]+\.?$/u;
+/**
+ * The middle of the page's text column, where its full lines centre: the
+ * scan may set the column off its own middle, the more so on a facing page.
+ */
+function middleOf(page: Page): number {
+  const full = page.lines.filter((line) => line.width > page.width / 2);
+  return full.length > 0
+    ? median(full.map((line) => line.x + line.width / 2))
+    : page.width / 2;
+}
+
+/** A subsection's number and title set on one line: 2. Beraud über die Freudenmädchen. */
+const NUMBERED_SUBSECTION = /^(\d{1,2})\.\s+(\p{Lu}.*)$/u;
+
 /** A chapter's numeral and title set on one line: I. Die Schwefelbande. */
 const NUMBERED_TITLE = /^([IVXL]+\.)\s+(\p{Lu}.*)$/u;
 
@@ -768,7 +782,7 @@ const NUMBERED_TITLE = /^([IVXL]+\.)\s+(\p{Lu}.*)$/u;
 function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   const match = NUMBERED_TITLE.exec(line.text);
   const centred =
-    Math.abs(line.x + line.width / 2 - page.width / 2) < page.width * CENTRE;
+    Math.abs(line.x + line.width / 2 - middleOf(page)) < page.width * CENTRE;
   // A line already read as a heading (I. Vorlesung) keeps its reading.
   if (
     !match?.[1] ||
@@ -797,6 +811,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   if (isPicture(headless)) return [];
   const bodySize = median(headless.map((line) => line.size));
   const bodyHeight = median(headless.map((line) => line.bottom - line.y));
+  const middle = middleOf(page);
   // The footnotes open the page's foot: at the rule above them, or at a small
   // line that starts with a note marker. Everything below is notes; measured
   // sizes alone mistake a body line low on a curved page for one.
@@ -840,8 +855,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     const open = last?.kind === "heading" && last.closed !== true;
     // A heading opens with a short or large centred line; once open, it runs
     // on through centred lines however wide.
+    // An open heading runs on through lines in title type wherever the
+    // OCR sets their edges, which a stray mark beside a line moves.
     const centred =
-      Math.abs(centre - page.width / 2) < page.width * CENTRE &&
+      (Math.abs(centre - middle) < page.width * CENTRE ||
+        (open && line.size > volume.textSize * HEADING_SIZE)) &&
       // A running head is no section's bare name, nor a numeral with a title.
       (line.y > page.height * HEAD_ZONE ||
         line.numbered === true ||
@@ -849,6 +867,38 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       (open ||
         line.width < volume.column * HEADING_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE);
+    // A centred line of a number and its title opens a numbered subsection,
+    // which ends with the line: 2. Beraud über die Freudenmädchen.
+    const subsection = NUMBERED_SUBSECTION.exec(line.text);
+    if (
+      subsection?.[1] &&
+      subsection[2] &&
+      Math.abs(centre - middle) < page.width * CENTRE &&
+      line.width < volume.column * HEADING_WIDTH &&
+      line.y > page.height * HEAD_ZONE &&
+      line.y < page.height * FOOT_ZONE &&
+      line.size >= volume.textSize * NOTE_SIZE &&
+      isWordy(subsection[2], volume.spelling) &&
+      // A chapter named so (2. Kapitel) is read as one.
+      headingLineOf(line.text, line.size) === null
+    ) {
+      return [
+        ...pieces,
+        {
+          kind: "heading",
+          lines: [
+            { kind: "letter", letter: subsection[1] },
+            {
+              kind: "caps",
+              text: subsection[2],
+              size: line.size,
+              misread: true,
+            },
+          ],
+          closed: true,
+        },
+      ];
+    }
     const read = centred ? headingLineOf(line.text, line.size) : null;
     // The line after a numeral, letter or part's name is its title, even where
     // the OCR read its capitals as small letters, or set in display type
@@ -1048,6 +1098,7 @@ function addHeading(
   const path = state.sections.at(-1)?.path ?? [];
   if (
     heading.numbered &&
+    !heading.named &&
     (heading.title.length === 0 || heading.misread) &&
     path.some((step) => step.level === 2)
   ) {
@@ -1055,6 +1106,23 @@ function addHeading(
       (done, line) =>
         addPiece(done, { kind: "text", text: line, opens: true }, place),
       state,
+    );
+  }
+  // Inside a lettered subsection, a numbered one is an example, its number
+  // and name text: 5. Ein Traum bei Kindern.
+  if (
+    heading.level === 2 &&
+    /^\d+$/u.test(heading.label ?? "") &&
+    path.some((step) => step.level === 2 && /^[A-H]$/u.test(step.letter ?? ""))
+  ) {
+    return addPiece(
+      state,
+      {
+        kind: "text",
+        text: [`${heading.label}.`, ...heading.title].join(" "),
+        opens: true,
+      },
+      place,
     );
   }
   // The work's own title, which the manifest already gives, opens it and
@@ -1082,7 +1150,18 @@ function addHeading(
       : heading.label === null
         ? null
         : cased(heading.label),
-    name: heading.title.map(cased).join(". "),
+    name: heading.title
+      .map(cased)
+      // A subtitle follows its title after one full stop.
+      .reduce(
+        (name, line) =>
+          name === ""
+            ? line
+            : /[.!?:]$/u.test(name)
+              ? `${name} ${line}`
+              : `${name}. ${line}`,
+        "",
+      ),
     qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,
     numbered: heading.numbered,
@@ -1259,7 +1338,7 @@ function readVolume(hocr: string): ReadVolume {
               LONE_NUMERAL.test(line.text) &&
               line.y > page.height * HEAD_ZONE &&
               line.width < page.width * NUMERAL_WIDTH &&
-              Math.abs(line.x + line.width / 2 - page.width / 2) <
+              Math.abs(line.x + line.width / 2 - middleOf(page)) <
                 page.width * CENTRE,
           ),
       ),
