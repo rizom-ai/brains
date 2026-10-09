@@ -36,6 +36,10 @@ import {
   type FetchFn,
 } from "./client";
 import { registerA2ACallMessageHandlers } from "./message-handlers";
+import {
+  RuntimePublicAskAllowance,
+  type PublicAskAllowance,
+} from "./public-asks";
 import packageJson from "../package.json";
 
 const A2A_CORS_HEADERS = {
@@ -99,7 +103,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
 
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agent;
-    registerA2ACallMessageHandlers(context, this.createClientDeps(context));
+    registerA2ACallMessageHandlers(context, this.createClientDeps(context), {
+      networkAskTimeoutMs: this.config.networkAskTimeoutMs,
+    });
 
     if (this.hasWebserver) {
       context.endpoints.register({
@@ -335,6 +341,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
             callerPermissionLevel: caller.permissionLevel,
             callerIsAnchor: caller.isAnchor,
             callerDomain: caller.callerDomain,
+            publicAsks: this.publicAsks(),
           },
         );
 
@@ -362,6 +369,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         callerPermissionLevel: caller.permissionLevel,
         callerIsAnchor: caller.isAnchor,
         callerDomain: caller.callerDomain,
+        publicAsks: this.publicAsks(),
       });
 
       return this.withCors(c.json(response));
@@ -427,6 +435,17 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       const signingKey = await authService.getA2ASigningKey();
       await signRequest(request, signingKey.privateJwk, signingKey.keyId);
     };
+  }
+
+  private publicAskAllowance: PublicAskAllowance | undefined;
+
+  /** The public callers' daily allowance, kept in this brain's runtime state. */
+  private publicAsks(): PublicAskAllowance {
+    this.publicAskAllowance ??= new RuntimePublicAskAllowance(
+      this.config.publicAsks,
+      this.getContext().runtimeState,
+    );
+    return this.publicAskAllowance;
   }
 
   private createClientDeps(context: InterfacePluginContext): A2AClientDeps {
