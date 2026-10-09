@@ -164,16 +164,34 @@ class SupervisedScheduledJob implements ScheduledJob {
 
   private async stopScheduledJob(): Promise<void> {
     this.stopped = true;
-    this.stopTrigger();
+    const errors: unknown[] = [];
+    try {
+      this.stopTrigger();
+    } catch (error) {
+      // A failed native trigger stop must not bypass admitted callback drains
+      // or scope finalizers. Preserve its failure until cleanup has settled.
+      errors.push(error);
+    }
 
     const intervalFiber = this.intervalFiber;
     this.intervalFiber = null;
-    if (intervalFiber) {
-      await Effect.runPromise(Fiber.interrupt(intervalFiber));
+    const cleanups: Effect.Effect<unknown>[] = [
+      ...(intervalFiber ? [Fiber.interrupt(intervalFiber)] : []),
+      FiberMap.awaitEmpty(this.cycles),
+      Scope.close(this.scope, Exit.void),
+    ];
+    for (const cleanup of cleanups) {
+      try {
+        await Effect.runPromise(cleanup);
+      } catch (error) {
+        // Continue through every dependency barrier before surfacing failures.
+        errors.push(error);
+      }
     }
-
-    await Effect.runPromise(FiberMap.awaitEmpty(this.cycles));
-    await Effect.runPromise(Scope.close(this.scope, Exit.void));
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) {
+      throw new AggregateError(errors, "Scheduled job cleanup failed");
+    }
   }
 }
 
