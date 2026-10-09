@@ -7,6 +7,7 @@ import {
 import {
   fetchVolumeHocr,
   parseManifest,
+  scannedBooks,
   type Corrections,
 } from "./import-books";
 import { createImporterFetch } from "./polite-fetch";
@@ -387,13 +388,10 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-  if (manifest.source !== "archive-ocr") {
-    console.error("The OCR check reads archive-ocr manifests.");
-    process.exit(1);
-  }
+  const books = scannedBooks(manifest);
   const fetchText = createImporterFetch();
   const corrections = await readCorrectionsBeside(manifestPath);
-  const items = [...new Set(manifest.books.map((book) => book.item))];
+  const items = [...new Set(books.map((book) => book.item))];
   const hocrs = new Map(
     await items.reduce<Promise<Array<[string, string]>>>(
       async (done, item) => [
@@ -403,7 +401,7 @@ async function main(): Promise<void> {
       Promise.resolve([]),
     ),
   );
-  const textOf = (book: (typeof manifest.books)[number]): PageOfText[] =>
+  const textOf = (book: (typeof books)[number]): PageOfText[] =>
     pagesOfBook(book).flatMap((page) => {
       try {
         return [
@@ -423,9 +421,7 @@ async function main(): Promise<void> {
         return [];
       }
     });
-  const texts = new Map(
-    manifest.books.map((book) => [book.slug, textOf(book)]),
-  );
+  const texts = new Map(books.map((book) => [book.slug, textOf(book)]));
   const uses = [...texts.values()]
     .flat()
     .flatMap(({ text }) => wordsOf(text))
@@ -440,7 +436,7 @@ async function main(): Promise<void> {
     accepted.has(word) ||
     (SPELLED.test(word) && (uses.get(word) ?? 0) >= REAL_USES);
 
-  const added = await manifest.books
+  const added = await books
     .filter((book) => book.reference !== undefined)
     .reduce<Promise<Corrections>>(async (done, book) => {
       const found = await done;

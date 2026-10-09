@@ -141,6 +141,86 @@ describe("importBooks", () => {
   });
 });
 
+describe("parseManifest", () => {
+  it("reads each book from its own source, the manifest's unless it names another", () => {
+    const manifest = parseManifest(`
+source: ekgwb
+books:
+  - siglum: AC
+    slug: der-antichrist
+    author: Friedrich Nietzsche
+    year: 1888
+    kind: work
+  - source: dta-tei
+    id: marx_manifestws_1848
+    citation: Manifest
+    slug: manifest-der-kommunistischen-partei
+    title: Manifest der Kommunistischen Partei
+    edition: Manifest der Kommunistischen Partei. London, 1848
+    author: Karl Marx, Friedrich Engels
+    year: 1848
+    kind: work
+`);
+
+    expect(manifest.books.map((book) => book.source)).toEqual([
+      "ekgwb",
+      "dta-tei",
+    ]);
+  });
+});
+
+describe("importBooks from the Deutsches Textarchiv", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-dta-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads a work from its TEI and credits the Textarchiv under its licence", async () => {
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: dta-tei
+books:
+  - id: marx_kapital01_1867
+    citation: Kapital I
+    slug: das-kapital-1
+    title: Das Kapital. Erster Band
+    edition: "Das Kapital. Buch I: Der Produktionsprocess des Kapitals. Hamburg: Otto Meissner, 1867"
+    author: Karl Marx
+    year: 1867
+    kind: work
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        return readFile(
+          join(import.meta.dir, "fixtures", "dta-kapital.xml"),
+          "utf8",
+        );
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "das-kapital-1", "00000-titel.md"),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://www.deutschestextarchiv.de/book/download_xml/marx_kapital01_1867",
+    ]);
+    expect(results).toEqual([{ slug: "das-kapital-1", entries: 3 }]);
+    expect(title).toContain("license: CC-BY-SA-4.0");
+    expect(title).toContain("Deutsches Textarchiv");
+    expect(title).toContain(
+      "source: 'https://www.deutschestextarchiv.de/book/show/marx_kapital01_1867'",
+    );
+  });
+});
+
 describe("importBooks from scanned volumes", () => {
   const ocrManifest = `
 source: archive-ocr
@@ -224,7 +304,9 @@ books:
     );
 
     expect(
-      manifest.source === "archive-ocr" ? manifest.books[0]?.reference : null,
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].reference
+        : null,
     ).toBe("https://www.gutenberg.org/cache/epub/28220/pg28220.txt");
   });
 

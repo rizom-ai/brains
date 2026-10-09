@@ -50,6 +50,27 @@ describe("createPoliteFetch", () => {
     expect(calls[0]?.userAgent).toBe("book-import (test@example.org)");
   });
 
+  it("sends the headers a source asks for", async () => {
+    const sent: Array<Record<string, string>> = [];
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      headersFor: (url) =>
+        url.includes("textarchiv") ? { cookie: "verified=1" } : {},
+      fetchFn: async (_, init) => {
+        sent.push(init.headers);
+        return new Response("text");
+      },
+    });
+
+    await get("https://www.deutschestextarchiv.de/book/download_xml/x");
+    await get("https://example.org/y");
+
+    expect(sent[0]?.["cookie"]).toBe("verified=1");
+    expect(sent[1]?.["cookie"]).toBeUndefined();
+  });
+
   it("keeps requests at least the minimum interval apart", async () => {
     const { calls, fetchFn } = recorder();
     const get = createPoliteFetch({

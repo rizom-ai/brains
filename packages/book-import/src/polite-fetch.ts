@@ -10,6 +10,8 @@ export interface PoliteFetchOptions {
   userAgent: string;
   /** Minimum time between two requests to the source. */
   minIntervalMs: number;
+  /** Headers a source asks for, such as the cookie of its bot check. */
+  headersFor?: (url: string) => Record<string, string>;
   /** First pause before asking again when the source is unavailable; doubles each time. */
   retryDelayMs?: number;
   fetchFn?: FetchText;
@@ -57,13 +59,25 @@ export function createPoliteFetch(options: PoliteFetchOptions): PoliteFetch {
 
   const retryDelayMs = options.retryDelayMs ?? 5000;
 
-  const request = async (url: string, retries: number): Promise<string> => {
+  // A timer may end a little early under load; the clock decides.
+  const waitTurn = async (): Promise<void> => {
     const wait = state.last + options.minIntervalMs - Date.now();
-    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-    state.last = Date.now();
-    const response = await fetchFn(url, {
-      headers: { "user-agent": options.userAgent },
+    if (wait <= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    return waitTurn();
+  };
+
+  const request = async (url: string, retries: number): Promise<string> => {
+    await waitTurn();
+    const pending = fetchFn(url, {
+      headers: {
+        "user-agent": options.userAgent,
+        ...(options.headersFor?.(url) ?? {}),
+      },
     });
+    // The interval runs from the request, not from before it.
+    state.last = Date.now();
+    const response = await pending;
     if (response.ok) return response.text();
     if (retries > 0 && isTransient(response.status)) {
       const pause = retryDelayMs * 2 ** (RETRIES - retries);
@@ -98,5 +112,10 @@ export function createImporterFetch(): PoliteFetch {
       join(homedir(), ".cache", "book-import"),
     userAgent: "rizom-brains-book-import (yeehaa@rizom.ai)",
     minIntervalMs: 1000,
+    // The Textarchiv lets a client through its bot check with this cookie.
+    headersFor: (url) =>
+      url.startsWith("https://www.deutschestextarchiv.de/")
+        ? { cookie: "verified=1" }
+        : {},
   });
 }

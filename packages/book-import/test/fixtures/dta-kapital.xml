@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc><publicationStmt><availability><licence target="https://creativecommons.org/licenses/by-sa/4.0/deed.de"><p>CC BY-SA 4.0</p></licence></availability></publicationStmt></fileDesc></teiHeader>
+<text><front><pb facs="#f0001" n="I"/><titlePage><titlePart>Das Kapital.</titlePart></titlePage></front>
+<body>
+<pb n="1" facs="#f0011"/>
+<div n="1"><head>Erstes Kapitel.<lb/>Waare und Geld.</head>
+<div n="2"><head>1. Die Waare.</head>
+<p>Der Reichthum der Gesellschaften, in welchen kapitalistische Pro-<lb/>
+duktionsweise herrscht, erscheint als eine &#x201E;ungeheure Waarensammlung&#x201C;<note place="foot" n="1)"><hi rendition="#g">Karl Marx</hi>: Zur Kritik der Politischen Oekonomie. Ber-<lb/>
+lin 1859, p. 4.</note>, die <hi rendition="#g">einzelne</hi> Waare als seine Elementarform.</p>
+<p>Die Waare ist zunächst ein äusserer Gegenstand, ein Ding, das auf <formula notation="TeX">\frac{1}{39}</formula> seines Einkommens<note place="foot" n="2)" xml:id="n2a" next="#n2b">&#x201E;Der Begriff, welcher zunächst nur</note> verzichtet.</p>
+<fw type="sig" place="bottom">Marx, Kapital I. 1</fw>
+<pb n="2" facs="#f0012"/>
+<note place="foot" xml:id="n2b" prev="#n2a">subjektiv ist, schreitet fort.&#x201C;</note>
+<p>Die Nützlichkeit eines Dings macht es zum Gebrauchswerth.</p>
+</div>
+<div n="2"><head>2. Doppelcharakter der in den Waaren dargestellten Arbeit.</head>
+<p>Ursprünglich erschien uns die Waare als ein Zwieschlächtiges.</p>
+</div></div>
+</body><back><div><p>Werke von Karl Marx im Verlag.</p></div></back></text></TEI>

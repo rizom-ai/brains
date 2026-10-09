@@ -1,8 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseManifest, type Manifest } from "./import-books";
-
-type ScannedManifest = Extract<Manifest, { source: "archive-ocr" }>;
+import { parseManifest, scannedBooks, type Manifest } from "./import-books";
 
 interface CoverageLine {
   volume: string;
@@ -24,11 +22,12 @@ function startOf(pages: string | number): number {
  * author's oeuvre by volume, in the volume's order, imported or a gap with
  * its reason.
  */
-export function renderCoverage(manifest: ScannedManifest): string {
+export function renderCoverage(manifest: Manifest): string {
+  const books = scannedBooks(manifest);
   const coverage = manifest.coverage;
   if (!coverage) throw new Error("The manifest has no coverage section.");
   const lines: CoverageLine[] = [
-    ...manifest.books.map((book) => ({
+    ...books.map((book) => ({
       volume: book.volume,
       start: startOf(book.firstPage),
       line: `- ${book.title} (${book.year}, GW ${book.volume}, ${book.firstPage}–${book.lastPage}) — imported${book.published ? "" : ", published after the author's death"}`,
@@ -49,7 +48,7 @@ export function renderCoverage(manifest: ScannedManifest): string {
   const outside = manifest.gaps
     .filter((gap) => gap.volume === undefined)
     .map((gap) => `- ${gap.title} — gap: ${gap.reason}`);
-  const volumes = [...new Set(manifest.books.map((book) => book.volume))];
+  const volumes = [...new Set(books.map((book) => book.volume))];
   const sections = volumes.map((volume) =>
     [
       `## GW ${volume}`,
@@ -84,10 +83,6 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-  if (manifest.source !== "archive-ocr") {
-    console.error("Coverage is rendered for archive-ocr manifests.");
-    process.exit(1);
-  }
   await writeFile(join(brainData, "coverage.md"), renderCoverage(manifest));
 }
 

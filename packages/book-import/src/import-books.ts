@@ -3,6 +3,7 @@ import { bookKindSchema } from "@brains/book";
 import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
+import { parseDtaTei } from "./adapters/dta-tei";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
 
@@ -108,34 +109,75 @@ const gapSchema: z.ZodObject<{
   reason: z.string().min(1),
 });
 
-const manifestSchema: z.ZodDiscriminatedUnion<
+const dtaTeiBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      id: z.ZodString;
+      citation: z.ZodString;
+      title: z.ZodString;
+      edition: z.ZodString;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The Deutsches Textarchiv's id for the text, e.g. marx_manifestws_1848. */
+  id: z.string().min(1),
+  /** How a citation names the work before its page: Kapital I, 23. */
+  citation: z.string().min(1),
+  title: z.string().min(1),
+  /** The printed edition the transcription follows. */
+  edition: z.string().min(1),
+});
+
+const SOURCES = ["ekgwb", "archive-ocr", "dta-tei"] as const;
+
+/** A book of the manifest, read from its source. */
+const bookSchema: z.ZodDiscriminatedUnion<
   [
-    z.ZodObject<{
-      source: z.ZodLiteral<"ekgwb">;
-      books: z.ZodArray<typeof ekgwbBookSchema>;
-    }>,
-    z.ZodObject<{
-      source: z.ZodLiteral<"archive-ocr">;
-      coverage: z.ZodOptional<typeof coverageSchema>;
-      gaps: z.ZodDefault<z.ZodArray<typeof gapSchema>>;
-      books: z.ZodArray<typeof archiveOcrBookSchema>;
-    }>,
+    ReturnType<
+      typeof ekgwbBookSchema.extend<{ source: z.ZodLiteral<"ekgwb"> }>
+    >,
+    ReturnType<
+      typeof archiveOcrBookSchema.extend<{
+        source: z.ZodLiteral<"archive-ocr">;
+      }>
+    >,
+    ReturnType<
+      typeof dtaTeiBookSchema.extend<{ source: z.ZodLiteral<"dta-tei"> }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
-  z.object({
-    source: z.literal("ekgwb"),
-    books: z.array(ekgwbBookSchema).min(1),
-  }),
-  z.object({
-    source: z.literal("archive-ocr"),
-    coverage: coverageSchema.optional(),
-    gaps: z.array(gapSchema).default([]),
-    books: z.array(archiveOcrBookSchema).min(1),
-  }),
+  ekgwbBookSchema.extend({ source: z.literal("ekgwb") }),
+  archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
+  dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
 ]);
 
+export type ManifestBook = z.output<typeof bookSchema>;
+
+const manifestSchema: z.ZodObject<{
+  source: z.ZodOptional<z.ZodEnum<{ [K in (typeof SOURCES)[number]]: K }>>;
+  coverage: z.ZodOptional<typeof coverageSchema>;
+  gaps: z.ZodDefault<z.ZodArray<typeof gapSchema>>;
+  books: z.ZodArray<typeof bookSchema>;
+}> = z.object({
+  /** The source of every book that names none of its own. */
+  source: z.enum(SOURCES).optional(),
+  coverage: coverageSchema.optional(),
+  gaps: z.array(gapSchema).default([]),
+  books: z.array(bookSchema).min(1),
+});
+
 export type Manifest = z.output<typeof manifestSchema>;
+
+export type ScannedBook = Extract<ManifestBook, { source: "archive-ocr" }>;
+
+/** The manifest's books read from scanned volumes. */
+export function scannedBooks(manifest: Manifest): ScannedBook[] {
+  return manifest.books.filter(
+    (book): book is ScannedBook => book.source === "archive-ocr",
+  );
+}
 
 /** A misread line fixed, and what told the right reading. */
 const correctionSchema: z.ZodObject<{
@@ -163,8 +205,18 @@ export function parseCorrections(yaml: string): Corrections {
   return correctionsSchema.parse(parseYaml(yaml) ?? {});
 }
 
+/** A book names its source, or takes the manifest's. */
+const withSources = z.looseObject({
+  source: z.string().optional(),
+  books: z.array(z.record(z.string(), z.unknown())).default([]),
+});
+
 export function parseManifest(yaml: string): Manifest {
-  return manifestSchema.parse(parseYaml(yaml));
+  const raw = withSources.parse(parseYaml(yaml));
+  return manifestSchema.parse({
+    ...raw,
+    books: raw.books.map((book) => ({ source: raw.source, ...book })),
+  });
 }
 
 const EKGWB_EDITION =
@@ -227,6 +279,39 @@ export async function fetchVolumeHocr(
   return fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
 }
 
+const DTA = "https://www.deutschestextarchiv.de/book/";
+
+/** A work transcribed by the Deutsches Textarchiv, from its TEI. */
+async function loadDtaTeiBook(
+  entry: z.output<typeof dtaTeiBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  const { units, licence } = parseDtaTei(
+    await fetchText(`${DTA}download_xml/${entry.id}`),
+    entry,
+  );
+  // CC BY-SA 2.0 lets an adaptation take a later version of the licence.
+  if (!licence?.includes("/by-sa/")) {
+    throw new Error(`${entry.id} is not under CC BY-SA: ${licence}`);
+  }
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "CC-BY-SA-4.0",
+      attribution: `Deutsches Textarchiv (deutschestextarchiv.de), ${licence}`,
+      source: `${DTA}show/${entry.id}`,
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units,
+  };
+}
+
 /** A work in a scanned volume. */
 async function loadArchiveOcrBook(
   entry: z.output<typeof archiveOcrBookSchema>,
@@ -260,11 +345,16 @@ function loadersOf(
   fetchText: FetchText,
   corrections: Corrections,
 ): Array<() => Promise<LoadedBook>> {
-  return manifest.source === "ekgwb"
-    ? manifest.books.map((entry) => () => loadEkgwbBook(entry, fetchText))
-    : manifest.books.map(
-        (entry) => () => loadArchiveOcrBook(entry, fetchText, corrections),
-      );
+  return manifest.books.map((entry) => () => {
+    switch (entry.source) {
+      case "ekgwb":
+        return loadEkgwbBook(entry, fetchText);
+      case "archive-ocr":
+        return loadArchiveOcrBook(entry, fetchText, corrections);
+      case "dta-tei":
+        return loadDtaTeiBook(entry, fetchText);
+    }
+  });
 }
 
 /** Import the manifest's books one after another into brain-data. */

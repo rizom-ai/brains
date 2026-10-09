@@ -1,5 +1,6 @@
 import { Window } from "happy-dom";
 import type { BookUnit } from "../render-book";
+import { unitsOfSections } from "../sections";
 import {
   createSpelling,
   headingLineOf,
@@ -934,30 +935,6 @@ function addPiece(
   return { ...state, sections: [...rest, section] };
 }
 
-/**
- * A long chapter's text in parts of about this many bytes, split at
- * paragraphs, leaving room for its notes within an entry's 8,000 bytes.
- */
-const ENTRY_BYTES = 6000;
-
-function bytes(text: string): number {
-  return Buffer.byteLength(text, "utf8");
-}
-
-/** Paragraphs grouped into parts, each starting where its first paragraph does. */
-function partsOf(paragraphs: Block[], entryBytes: number): Block[][] {
-  return paragraphs.reduce<Block[][]>((parts, paragraph) => {
-    const last = parts.at(-1);
-    const size = (last ?? []).reduce(
-      (sum, block) => sum + bytes(block.text),
-      0,
-    );
-    return last && last.length > 0 && size + bytes(paragraph.text) <= entryBytes
-      ? [...parts.slice(0, -1), [...last, paragraph]]
-      : [...parts, [paragraph]];
-  }, []);
-}
-
 export interface ArchiveOcrOptions {
   /** Bytes of text per part of a long chapter. */
   entryBytes?: number;
@@ -1171,40 +1148,15 @@ export function parseArchiveOcrWork(
       titleOf(step, namedByHeads(step, filled, volume)),
     ]),
   );
-  return filled.flatMap((section) => {
-    const path = section.path.map((step) => titles.get(step) ?? "");
-    // A chapter with subsections holds its opening text beside them.
-    const hasSubsections = filled.some(
-      (other) =>
-        other.path.length > section.path.length &&
-        section.path.every((step, index) => other.path[index] === step),
-    );
-    const parents = hasSubsections ? path : path.slice(0, -1);
-    const parts = partsOf(
-      section.paragraphs,
-      options.entryBytes ?? ENTRY_BYTES,
-    );
-    // A note goes with the last part that starts on or before its page.
-    const partOfNote = (note: Block): number =>
-      parts.reduce(
-        (found, part, partIndex) =>
-          (part[0]?.page ?? Infinity) <= note.page ? partIndex : found,
-        0,
-      );
-    return parts.map((part, partIndex) => {
-      const start = part[0] ?? { page: 0, leaf: 0, label: "", lastLeaf: 0 };
-      const citation = `GW ${work.volume}, ${start.label}`;
-      const notes = section.notes.filter(
-        (note) => partOfNote(note) === partIndex,
-      );
-      return {
-        parents,
-        title: path.at(-1) ?? citation,
-        section: citation,
-        page: citation,
-        source: `https://archive.org/details/${work.item}/page/n${start.leaf}`,
-        paragraphs: [...part, ...notes].map((block) => block.text),
-      };
-    });
-  });
+  return unitsOfSections(
+    filled.map((section) => ({
+      ...section,
+      titles: section.path.map((step) => titles.get(step) ?? ""),
+    })),
+    (start) => ({
+      citation: `GW ${work.volume}, ${start.label}`,
+      source: `https://archive.org/details/${work.item}/page/n${start.leaf}`,
+    }),
+    options.entryBytes,
+  );
 }
