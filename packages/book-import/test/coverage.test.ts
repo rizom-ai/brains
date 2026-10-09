@@ -14,6 +14,8 @@ gaps:
     title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
     year: 1893
     reason: written in French
+  - title: Briefe
+    reason: not in the Gesammelte Werke
 books:
   - item: freud-1952-gw-1
     volume: I
@@ -58,6 +60,10 @@ describe("renderCoverage", () => {
         "## GW XVII",
         "",
         "- Abriß der Psychoanalyse (1938, GW XVII, 63–138) — imported, published after the author's death",
+        "",
+        "## Not in the edition",
+        "",
+        "- Briefe — gap: not in the Gesammelte Werke",
         "",
       ].join("\n"),
     );

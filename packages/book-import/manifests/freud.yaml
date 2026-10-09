@@ -4,19 +4,64 @@
 # the bibliographic notes, the indexes, the note on Breuer's omitted parts in
 # Studien über Hysterie (I, 76) and the Traumdeutung's list of literature
 # (II/III, 627–642). `year` is first publication; short pieces the edition
-# prints under a collective title are one book per volume.
-#
-# Not imported, written in another language than German:
-#   I    39–56   Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques (French)
-#   I   345–354  Obsessions et phobies (French)
-#   I   405–424  L'hérédité et l'étiologie des névroses (French)
-#   XIII 437–438 Preface to J. J. Putnam, Addresses on Psycho-Analysis (English)
-#   XIII 442     Brief an Luis Lopez-Ballesteros y de Torres (Spanish)
-#   XIII 446     Zuschrift an die Zeitschrift „Le Disque Vert“ (French)
-#   XIV 297–308  Psycho-Analysis (English)
-#   XIV 556–557  To the Opening of the Hebrew University (English)
-#   XVII 139–148 Some Elementary Lessons in Psycho-Analysis (English)
+# prints under a collective title are one book per volume. The scan of GW I
+# lacks pages 74–75 (a blank page and the half-title of Studien über
+# Hysterie).
 source: archive-ocr
+coverage:
+  author: Sigmund Freud
+  edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), read from the Internet Archive's scans
+  license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
+gaps:
+  - volume: I
+    pages: 39–56
+    title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
+    year: 1893
+    reason: written in French
+  - volume: I
+    pages: 345–354
+    title: Obsessions et phobies
+    year: 1895
+    reason: written in French
+  - volume: I
+    pages: 405–424
+    title: L'hérédité et l'étiologie des névroses
+    year: 1896
+    reason: written in French
+  - volume: XIII
+    pages: 437–438
+    title: Preface to J. J. Putnam, Addresses on Psycho-Analysis
+    year: 1921
+    reason: written in English
+  - volume: XIII
+    pages: "442"
+    title: Brief an Luis Lopez-Ballesteros y de Torres
+    year: 1923
+    reason: written in Spanish
+  - volume: XIII
+    pages: "446"
+    title: Zuschrift an die Zeitschrift „Le Disque Vert“
+    year: 1924
+    reason: written in French
+  - volume: XIV
+    pages: 297–308
+    title: Psycho-Analysis
+    year: 1926
+    reason: written in English
+  - volume: XIV
+    pages: 556–557
+    title: To the Opening of the Hebrew University
+    year: 1925
+    reason: written in English
+  - volume: XVII
+    pages: 139–148
+    title: Some Elementary Lessons in Psycho-Analysis
+    year: 1938
+    reason: written in English
+  - title: Briefe
+    reason: the letters are not in the Gesammelte Werke
+  - title: Nachtragsband (Texte aus den Jahren 1885–1938)
+    reason: published in 1987 with an editorial apparatus still in copyright
 books:
   - item: freud-1952-gw-1
     volume: I

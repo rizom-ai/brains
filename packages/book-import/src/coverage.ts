@@ -33,12 +33,22 @@ export function renderCoverage(manifest: ScannedManifest): string {
       start: startOf(book.firstPage),
       line: `- ${book.title} (${book.year}, GW ${book.volume}, ${book.firstPage}–${book.lastPage}) — imported${book.published ? "" : ", published after the author's death"}`,
     })),
-    ...manifest.gaps.map((gap) => ({
-      volume: gap.volume,
-      start: startOf(gap.pages),
-      line: `- ${gap.title} (${gap.year === undefined ? "" : `${gap.year}, `}GW ${gap.volume}, ${gap.pages}) — gap: ${gap.reason}`,
-    })),
+    ...manifest.gaps.flatMap((gap) =>
+      gap.volume === undefined
+        ? []
+        : [
+            {
+              volume: gap.volume,
+              start: startOf(gap.pages ?? ""),
+              line: `- ${gap.title} (${gap.year === undefined ? "" : `${gap.year}, `}GW ${gap.volume}, ${gap.pages ?? ""}) — gap: ${gap.reason}`,
+            },
+          ],
+    ),
   ];
+  // Works the edition does not print close the note.
+  const outside = manifest.gaps
+    .filter((gap) => gap.volume === undefined)
+    .map((gap) => `- ${gap.title} — gap: ${gap.reason}`);
   const volumes = [...new Set(manifest.books.map((book) => book.volume))];
   const sections = volumes.map((volume) =>
     [
@@ -58,6 +68,9 @@ export function renderCoverage(manifest: ScannedManifest): string {
     `Every work of ${coverage.author}'s oeuvre, and whether this brain holds it. Texts come from ${coverage.edition}. ${coverage.license}`,
     "",
     ...sections,
+    ...(outside.length === 0
+      ? []
+      : [["## Not in the edition", "", ...outside, ""].join("\n")]),
   ].join("\n");
 }
 

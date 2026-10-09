@@ -91,14 +91,15 @@ const coverageSchema: z.ZodObject<{
 
 /** A work of the oeuvre the brain does not hold, and why. */
 const gapSchema: z.ZodObject<{
-  volume: z.ZodString;
-  pages: z.ZodString;
+  volume: z.ZodOptional<z.ZodString>;
+  pages: z.ZodOptional<z.ZodString>;
   title: z.ZodString;
   year: z.ZodOptional<z.ZodNumber>;
   reason: z.ZodString;
 }> = z.object({
-  volume: z.string().min(1),
-  pages: z.string().min(1),
+  /** Where the edition prints it; a work it leaves out has none. */
+  volume: z.string().min(1).optional(),
+  pages: z.string().min(1).optional(),
   title: z.string().min(1),
   year: z.number().int().optional(),
   reason: z.string().min(1),
