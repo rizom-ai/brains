@@ -355,8 +355,14 @@ function runningHeadIndex(
 ): number {
   const numbered = numberedHead(page) ?? romanHead(page, front);
   // The OCR may read a head as two lines, its number above its title; the
-  // head ends with the later of them.
-  return Math.max(numbered?.index ?? -1, titledHeadIndex(page, heads));
+  // head ends with the later of them. A numbered section's heading below the
+  // numbered head shares the head's words, not its place.
+  const titled = titledHeadIndex(page, heads);
+  const sectionBelow =
+    numbered !== null &&
+    titled > numbered.index &&
+    NUMBERED_SUBSECTION.test(page.lines[titled]?.text ?? "");
+  return Math.max(numbered?.index ?? -1, sectionBelow ? -1 : titled);
 }
 
 /** The line that reads as one of the volume's running titles, if any. */
@@ -887,10 +893,16 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     above !== undefined &&
     line.y - above.bottom > bodyHeight &&
     line.width > volume.column / 2 &&
-    !(
-      Math.abs(above.x + above.width / 2 - middle) < page.width * CENTRE &&
-      above.width < volume.column * HEADING_WIDTH
+    !isCentredShort(above) &&
+    // A heading below the gap opens a section, not the notes.
+    !isCentredShort(line) &&
+    !NUMBERED_SUBSECTION.test(line.text);
+  function isCentredShort(other: Line): boolean {
+    return (
+      Math.abs(other.x + other.width / 2 - middle) < page.width * CENTRE &&
+      other.width < volume.column * HEADING_WIDTH
     );
+  }
   const footAt = headless.findIndex(
     (line, index) =>
       line.y > page.height / 2 &&
@@ -994,6 +1006,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     const below = headless[index + 1];
     const endsAsTitle =
       below === undefined ||
+      // An arabic or paragraph number: roman ones number examples too.
+      (/^(?:\d|§)/u.test(line.text) &&
+        /[.:]["“”]?$/u.test(line.text) &&
+        below.x - margin > page.width * INDENT) ||
       below.y - line.bottom > bodyHeight ||
       (Math.abs(below.x + below.width / 2 - middle) < page.width * CENTRE &&
         below.width < volume.column * TITLE_WIDTH);
@@ -1052,13 +1068,18 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       (above.kind === "part" ||
         above.kind === "chapter" ||
         above.kind === "letter" ||
-        (above.kind === "caps" && above.misread === true)) &&
+        (above.kind === "caps" &&
+          (above.misread === true || SECTION_NAME.test(above.text)))) &&
       (line.width < volume.column * TITLE_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE ||
         // After a chapter named in words, a line short of the column is its
         // title; a numeral alone may stand above the text's first line.
         (above.kind === "chapter" &&
           above.named === true &&
+          line.width < volume.column * HEADING_WIDTH) ||
+        // A preface's or appendix's bare name takes the line below as title.
+        (above.kind === "caps" &&
+          SECTION_NAME.test(above.text) &&
           line.width < volume.column * HEADING_WIDTH) ||
         // A part's title runs on through lines larger than the text.
         (last?.kind === "heading" &&

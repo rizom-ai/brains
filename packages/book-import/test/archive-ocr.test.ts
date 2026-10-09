@@ -1221,4 +1221,49 @@ describe("parseArchiveOcrWork, lettered parts", () => {
       ],
     ]);
   });
+
+  it("reads a section's heading low on the page as a heading, not as notes", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-spaced-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 13,
+        lastPage: 13,
+        spacedNotes: true,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("3. Sir Dudley North und John Locke.");
+  });
+});
+
+describe("parseArchiveOcrWork, Kautsky's headings", () => {
+  it("reads a numbered section under the running head, a wide one that ends as a title, and an appendix with its title", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-kautsky-heads.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 66,
+        lastPage: 68,
+        spacedNotes: true,
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "10. Th. A. H. Schmalz und Graf de Buat.",
+      "11. Die für die Zirkulation erheischte Geldmenge.",
+      "Anhang zu dem Tableau.",
+      "Anhang. Der Begriff der produktiven Arbeit.",
+    ]);
+  });
 });

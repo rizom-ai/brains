@@ -95,7 +95,7 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
 
 /** A preface's or a closing section's name, numbered or not (Anhang II), a heading however it is set. */
 export const SECTION_NAME: RegExp =
-  /^(?:vorwort|vorrede|einleitung|nachwort|nachtrag|anhang|schluß|schluss)(?:\s+(?:[IVX]+|\d+))?\.?$/iu;
+  /^(?:vorwort|vorrede|einleitung|nachwort|nachtrag|anhang|schluß|schluss)(?:\s+(?:[IVX]+|\d+))?(?:\s+zu[mr]?\s+.+)?[.:]?$/iu;
 
 /** A subtitle is set this much smaller than the title above it. */
 const SUBTITLE_SIZE = 0.85;
