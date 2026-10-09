@@ -6,7 +6,7 @@
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
     "gray-matter": "^4.0.3",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^4.3.2",
     "mdast-util-to-string": "^4.0.0",
     "nanoid": "^5.0.4",
     "p-limit": "^7.3.0",
