@@ -39,6 +39,19 @@ import { siteBuilderConfigSchema } from "./config";
 
 import packageJson from "../package.json";
 
+/** One plugin's answer on SITE_BUILDER_CHANNELS.slots. */
+const slotContributionsSchema = z.array(
+  z.object({
+    pluginId: z.string(),
+    slotName: z.string(),
+    // A render function cannot be validated beyond being one.
+    render: z.custom<SlotRegistration["render"]>(
+      (value) => typeof value === "function",
+    ),
+    priority: z.number().optional(),
+  }),
+);
+
 /**
  * Site Builder Plugin
  * Provides static site generation capabilities
@@ -50,7 +63,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
   private siteBuilder?: SiteBuilder;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
-  private _slotRegistry?: UISlotRegistry;
   private profileService?: SiteBuildProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
@@ -85,21 +97,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
     // Initialize registries
     this._routeRegistry = new RouteRegistry(context.logger);
-    this._slotRegistry = new UISlotRegistry();
-
-    // Subscribe to slot registration messages from other plugins
-    context.messaging.subscribe<
-      SlotRegistration & { slotName: string },
-      { success: boolean }
-    >(SITE_BUILDER_CHANNELS.slotRegister, async (message) => {
-      const { slotName, pluginId, render, priority } = message.payload;
-      this._slotRegistry?.register(slotName, {
-        pluginId,
-        render,
-        ...(priority !== undefined && { priority }),
-      });
-      return { success: true };
-    });
 
     // Register data sources
     context.entities.registerDataSource(
@@ -165,7 +162,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
           localSiteUrl: context.localSiteUrl,
           preferLocalUrls: context.preferLocalUrls,
           themeCSS: this.config.themeCSS,
-          slots: this._slotRegistry,
+          getSlots: (): Promise<UISlotRegistry> => this.getSlots(),
           getHeadScripts: (): Promise<string[]> => this.getHeadScripts(),
           ...(this.config.staticAssets && {
             staticAssets: this.config.staticAssets,
@@ -271,6 +268,36 @@ export class SiteBuilderPlugin extends ServicePlugin<
       return script?.success ? [script.data] : [];
     });
     return [...this.config.headScripts, ...contributed];
+  }
+
+  /**
+   * The layout slots for one build, from each plugin's answer: asked for at
+   * build time, like the head scripts, so they reach the worker.
+   */
+  public async getSlots(): Promise<UISlotRegistry> {
+    const answers = await this.getContext().messaging.collect({
+      type: SITE_BUILDER_CHANNELS.slots,
+      payload: {},
+    });
+    const slots = new UISlotRegistry();
+    for (const answer of answers) {
+      const contributions =
+        "data" in answer
+          ? slotContributionsSchema.safeParse(answer.data)
+          : null;
+      for (const {
+        slotName,
+        pluginId,
+        render,
+        priority,
+      } of contributions?.success ? contributions.data : [])
+        slots.register(slotName, {
+          pluginId,
+          render,
+          ...(priority !== undefined && { priority }),
+        });
+    }
+    return slots;
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -385,10 +412,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   public getSiteBuilder(): SiteBuilder | undefined {
     return this.siteBuilder;
-  }
-
-  public getSlotRegistry(): UISlotRegistry | undefined {
-    return this._slotRegistry;
   }
 
   protected override async getInstructions(): Promise<string | undefined> {

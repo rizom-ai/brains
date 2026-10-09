@@ -107,7 +107,12 @@ export const SITE_BUILDER_CHANNELS = {
    * `onRegister`; builds run in the worker, which never runs the ready phase.
    */
   headScripts: "plugin:site-builder:head-scripts",
-  slotRegister: "plugin:site-builder:slot:register",
+  /**
+   * Collected when a site builds: each subscriber answers with its slot
+   * contributions, `{ pluginId, slotName, render, priority? }[]`. Subscribe
+   * with `subscribeExecution` in `onRegister`, as for `headScripts`.
+   */
+  slots: "plugin:site-builder:slots",
 } as const;
 
 export const SITE_CHANNELS = {
