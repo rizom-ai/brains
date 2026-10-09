@@ -45,7 +45,7 @@ function entry(
       order,
       section,
       page: null,
-      part: null,
+      headings: [],
       source: `https://example.org/${slug}`,
       author: null,
       year: null,
@@ -143,6 +143,27 @@ describe("BookListTemplate", () => {
     expect(html).toContain(">Lang</span>");
   });
 
+  test("labels a spine too short for its title just outside it", () => {
+    const html = render(
+      <BookListTemplate
+        books={[
+          ...shelf,
+          entry("klein", 0, "Ein kleines Buch", {
+            ...bookDetails,
+            year: 1876,
+            length: 1000,
+            sections: 2,
+            shortTitle: "Klein",
+          }),
+        ]}
+      />,
+    );
+
+    expect(html).toMatch(
+      /href="\/books\/klein"[^>]*aria-hidden="true"[^>]*tabindex="-1"[^>]*>(<[^>]+>)*Klein</,
+    );
+  });
+
   test("labels the last year even off the label step", () => {
     const html = render(
       <BookListTemplate
@@ -224,7 +245,7 @@ describe("BookDetailTemplate", () => {
       title: "Vorrede",
       section: "S-1",
       order: 1,
-      part: null,
+      headings: [],
       length: 100,
     },
     {
@@ -232,7 +253,7 @@ describe("BookDetailTemplate", () => {
       title: "Mitte",
       section: "S-2",
       order: 2,
-      part: "Erster Teil",
+      headings: ["Erster Teil"],
       length: 400,
     },
     {
@@ -240,7 +261,7 @@ describe("BookDetailTemplate", () => {
       title: "Ende",
       section: "S-3",
       order: 3,
-      part: "Erster Teil",
+      headings: ["Erster Teil"],
       length: 200,
     },
   ];
@@ -295,6 +316,205 @@ describe("BookDetailTemplate", () => {
 
     expect(html).toMatch(/href="\/books\/erstes\/2"[^>]*>Erster Teil</);
     expect(html).toMatch(/href="\/books\/erstes\/1"[^>]*>Vorrede</);
+  });
+
+  test("shows a part's divisions beneath it, each with its own strokes", () => {
+    const divisions = [
+      [],
+      ["Erster Teil", "Erstes Kapitel"],
+      ["Erster Teil", "Zweites Kapitel"],
+    ];
+    const parted = [
+      ...score.map((section, index) => ({
+        ...section,
+        headings: divisions[index] ?? [],
+      })),
+      {
+        slug: "erstes/4",
+        title: "Schluss",
+        section: "S-4",
+        order: 4,
+        headings: ["Zweiter Teil"],
+        length: 50,
+      },
+    ];
+    const html = render(
+      <BookDetailTemplate
+        entry={erstes}
+        book={erstes}
+        prev={null}
+        next={entry("erstes", 1, "Vorrede")}
+        total={4}
+        score={parted}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toMatch(/href="\/books\/erstes\/2"[^>]*>Erster Teil</);
+    expect(html).toMatch(/href="\/books\/erstes\/2"[^>]*>Erstes Kapitel</);
+    expect(html).toMatch(/href="\/books\/erstes\/3"[^>]*>Zweites Kapitel</);
+    expect(html).toMatch(/href="\/books\/erstes\/4"[^>]*>Zweiter Teil</);
+    expect(html.indexOf("Erster Teil")).toBeLessThan(
+      html.indexOf("Erstes Kapitel"),
+    );
+  });
+
+  test("places a section under its part and division", () => {
+    const section = entry("erstes", 2, "Mitte", {
+      headings: ["Erster Teil", "Erstes Kapitel"],
+    });
+    const html = render(
+      <BookDetailTemplate
+        entry={section}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toContain("Erster Teil · Erstes Kapitel");
+  });
+
+  test("asks about a section by its title and wraps a long siglum", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toContain("Ask about Mitte");
+    expect(html).toMatch(/class="book-siglum[^"]*overflow-wrap:anywhere/);
+  });
+
+  test("hyphenates a long German title instead of letting it overrun", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={erstes}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={0}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toMatch(/<h1 class="[^"]*hyphens-auto[^"]*" lang="de"/);
+  });
+
+  test("sets a title with a long word a size smaller", () => {
+    const long = entry(
+      "lang",
+      0,
+      "Menschliches, Allzumenschliches",
+      bookDetails,
+    );
+    const html = render(
+      <BookDetailTemplate
+        entry={long}
+        book={long}
+        prev={null}
+        next={null}
+        total={0}
+        score={[]}
+        themes={[]}
+      />,
+    );
+    const short = render(
+      <BookDetailTemplate
+        entry={erstes}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={0}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toMatch(/<h1 class="[^"]*md:text-4xl[^"]*" lang="de"/);
+    expect(short).toMatch(/<h1 class="[^"]*md:text-6xl[^"]*" lang="de"/);
+  });
+
+  test("sets a siglum with a long segment a size smaller", () => {
+    const long = {
+      ...entry("erstes", 2, "Mitte"),
+      metadata: {
+        ...entry("erstes", 2, "Mitte").metadata,
+        section: "Za-I-Verwandlungen",
+      },
+    };
+    const short = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+    const html = render(
+      <BookDetailTemplate
+        entry={long}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(short).toMatch(/class="book-siglum[^"]*md:text-4xl/);
+    expect(html).toMatch(/class="book-siglum[^"]*md:text-2xl/);
+  });
+
+  test("asks about an editorial unit by the heading it opens", () => {
+    const base = entry("erstes", 2, "Titel", { headings: ["Zweiter Theil"] });
+    const titlePage = {
+      ...base,
+      metadata: { ...base.metadata, section: "S-II-[Titel]" },
+    };
+    const html = render(
+      <BookDetailTemplate
+        entry={titlePage}
+        book={erstes}
+        prev={null}
+        next={null}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html).toContain("Ask about Zweiter Theil");
+  });
+
+  test("names a neighbour once when its title is its siglum", () => {
+    const html = render(
+      <BookDetailTemplate
+        entry={entry("erstes", 2, "Mitte")}
+        book={erstes}
+        prev={null}
+        next={entry("erstes", 3, "S-3")}
+        total={3}
+        score={[]}
+        themes={[]}
+      />,
+    );
+
+    expect(html.match(/S-3/g)?.length).toBe(1);
   });
 
   test("renders spaced emphasis only on its words, editorial brackets as text", () => {
@@ -372,7 +592,7 @@ describe("BookDetailTemplate", () => {
     );
 
     expect(html).toMatch(
-      /href="\/ask\?q=About%20S-2%3A%20"[^>]*>Ask about S-2/,
+      /href="\/ask\?q=About%20S-2%3A%20"[^>]*>Ask about Mitte/,
     );
   });
 
@@ -392,7 +612,7 @@ describe("BookDetailTemplate", () => {
     expect(html).toContain("Erstes Buch");
     expect(html).toContain("Erfundener Autor");
     expect(html).toContain("Testausgabe");
-    expect(html).toContain('href="/books/erstes/1"');
+    expect(html).toMatch(/href="\/books\/erstes\/1"[^>]*>Begin reading →</);
     expect(html).not.toContain('rel="prev"');
   });
 });
