@@ -1,7 +1,7 @@
 {
   "name": "@brains/unified-inbox",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.507",
+  "version": "0.2.0-alpha.508",
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
     "@brains/plugins": "workspace:*",
@@ -15,7 +15,7 @@
     "@brains/mcp-service": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",

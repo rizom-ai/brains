@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- [#575](https://github.com/rizom-ai/brains/pull/575) [`80c10ab`](https://github.com/rizom-ai/brains/commit/80c10abca6391eeb31203864ee2c7b3e30aa20b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serve a brain's stored identity from boot in every process. While the startup import is pending, or after it failed, the web process previously never read the brain character and anchor profile already in its database and advertised "Brain is Unknown's Knowledge assistant". Defaults are still created only after a successful startup sync.
+
 ## 0.2.0-alpha.507
 
 ### Patch Changes

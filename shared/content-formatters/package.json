@@ -1,11 +1,11 @@
 {
   "name": "@brains/content-formatters",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.507",
+  "version": "0.2.0-alpha.508",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/utils": "workspace:*",
-    "js-yaml": "^4.2.0",
+    "js-yaml": "^4.3.2",
     "remark": "^15.0.1"
   },
   "devDependencies": {
