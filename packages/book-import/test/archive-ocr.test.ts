@@ -16,6 +16,7 @@ async function fixture(): Promise<string> {
 
 const work = {
   item: "freud-1940-gw-13",
+  title: "Jenseits des Lustprinzips",
   volume: "XIII",
   firstPage: 3,
   lastPage: 10,
@@ -73,6 +74,20 @@ describe("parseArchiveOcrWork", () => {
   });
 });
 
+describe("parseArchiveOcrWork on pages left out", () => {
+  it("leaves out the pages the manifest names, such as an editors' note", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      skipPages: [4],
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(text).not.toContain("historisch festgelegten");
+    expect(text).not.toContain("Kriegsneurosen");
+    expect(text).toContain("Die Ich-Analyse beginnt hier.");
+  });
+});
+
 describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("numbers chapters in order whatever the OCR read", async () => {
     const units = parseArchiveOcrWork(await fixture(), work);
@@ -93,6 +108,7 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
 describe("parseArchiveOcrWork on headings", () => {
   const lectures = {
     item: "freud-1940-gw-11",
+    title: "Vorlesungen zur Einführung in die Psychoanalyse",
     volume: "XI",
     firstPage: 3,
     lastPage: 10,
@@ -188,7 +204,13 @@ describe("parseArchiveOcrWork on an essay's sections", () => {
         join(import.meta.dir, "fixtures", "archive-ocr-sections.html"),
         "utf8",
       ),
-      { item: "freud-1946-gw-10", volume: "X", firstPage: 20, lastPage: 22 },
+      {
+        item: "freud-1946-gw-10",
+        title: "Das Unbewußte",
+        volume: "X",
+        firstPage: 20,
+        lastPage: 22,
+      },
     );
 
     expect(units.map((unit) => [unit.title, unit.section])).toEqual([
@@ -199,6 +221,26 @@ describe("parseArchiveOcrWork on an essay's sections", () => {
     expect(units[1]?.paragraphs).toEqual([
       "Die Berechtigung, ein unbewußtes Seelisches anzunehmen, wird uns von vielen Seiten bestritten. Wir können darauf mit dem Hinweis antworten, daß die Annahme notwendig ist.",
     ]);
+  });
+});
+
+describe("parseArchiveOcrWork on a work's opening", () => {
+  it("keeps an opening heading that is not the work's title", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1952-gw-1",
+        title: "Studien über Hysterie",
+        volume: "I",
+        firstPage: 20,
+        lastPage: 22,
+      },
+    );
+
+    expect(units[0]?.title).toBe("Das Unbewußte");
   });
 });
 
@@ -249,6 +291,26 @@ describe("printedPageNumbers", () => {
       4,
       5,
     ]);
+  });
+
+  it("ignores a run of page numbers the OCR misread alike", () => {
+    // 335 and 338 both read with a 5 for the 3.
+    const pages = printedPageNumbers([
+      text(10, 330),
+      text(11, 331),
+      text(12, 332),
+      text(13, 333),
+      text(14, 334),
+      text(15, 355),
+      text(16, 336),
+      text(17, 337),
+      text(18, 358),
+      text(19, 339),
+      text(20, 340),
+      text(21, 341),
+    ]);
+
+    expect([15, 18].map((leaf) => pages.get(leaf))).toEqual([335, 338]);
   });
 
   it("ignores a page number the OCR misread", () => {

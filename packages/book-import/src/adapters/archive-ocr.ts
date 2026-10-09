@@ -4,6 +4,7 @@ import {
   createCaser,
   headingLineOf,
   headingOf,
+  namesTitle,
   type Heading,
   type HeadingLine,
 } from "./archive-ocr-headings";
@@ -12,10 +13,14 @@ import {
 export interface ArchiveOcrWork {
   /** The archive.org item, e.g. `freud-1940-gw-13`. */
   item: string;
+  /** The work's title, which its opening heading may print. */
+  title: string;
   /** The volume's roman numeral, as citations name it. */
   volume: string;
   firstPage: number;
   lastPage: number;
+  /** Pages in the range that are not the author's, such as an editors' note. */
+  skipPages?: number[];
 }
 
 interface Line {
@@ -250,6 +255,41 @@ interface Anchor {
   offset: number;
 }
 
+/** So few agreeing heads can be one misreading repeated, as 355 and 358 for 335 and 338. */
+const SHORT_RUN = 3;
+
+/** Anchors in runs of one offset, in reading order. */
+function runsOf(anchors: Anchor[]): Anchor[][] {
+  return anchors.reduce<Anchor[][]>((runs, anchor) => {
+    const last = runs.at(-1);
+    return last?.[0]?.offset === anchor.offset
+      ? [...runs.slice(0, -1), [...last, anchor]]
+      : [...runs, [anchor]];
+  }, []);
+}
+
+/**
+ * Plates only ever lower the offset between leaf and page. A short run of
+ * heads that raises it, or that differs from the runs on both its sides
+ * where those agree, is the OCR misreading the same digit twice.
+ */
+function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
+  const runs = runsOf(anchors);
+  return runs
+    .reduce<Anchor[][]>((kept, run, index) => {
+      const offset = run[0]?.offset ?? 0;
+      const before = kept.at(-1)?.[0]?.offset;
+      const after = runs[index + 1]?.[0]?.offset;
+      const misread =
+        run.length < SHORT_RUN &&
+        before !== undefined &&
+        offset !== before &&
+        (offset > before || before === after);
+      return misread ? kept : [...kept, run];
+    }, [])
+    .flat();
+}
+
 /**
  * Number the pages between two anchors whose offsets differ: the plates bound
  * in between take the leaves that read least and get no number; the other
@@ -294,12 +334,14 @@ export function printedPageNumbers(
       ? []
       : [{ leaf: reading.leaf, offset: reading.head - reading.leaf }],
   );
-  const anchors = heads.filter((head) =>
-    heads.some(
-      (other) =>
-        other !== head &&
-        other.offset === head.offset &&
-        Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
+  const anchors = withoutMisreadRuns(
+    heads.filter((head) =>
+      heads.some(
+        (other) =>
+          other !== head &&
+          other.offset === head.offset &&
+          Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
+      ),
     ),
   );
   const first = anchors[0];
@@ -585,6 +627,7 @@ function addHeading(
   read: Heading,
   cased: (capitals: string) => string,
   place: Place,
+  workTitle: string,
 ): WorkState {
   const heading = asLetter(read, state.sections.at(-1)?.path ?? []);
   // Inside a lettered subsection, a numeral without a title in capitals
@@ -605,7 +648,12 @@ function addHeading(
     (section) => section.paragraphs.length === 0,
   );
   // The work opens with its own title, which the manifest already gives.
-  if (opening && !state.titled && heading.level === null) {
+  if (
+    opening &&
+    !state.titled &&
+    heading.level === null &&
+    namesTitle(heading.title.join(" "), workTitle)
+  ) {
     return { ...state, titled: true };
   }
   const chapters = state.chapters + (heading.numbered ? 1 : 0);
@@ -719,7 +767,8 @@ export function parseArchiveOcrWork(
       const number = printed.get(page.leaf) ?? null;
       return number !== null &&
         number >= work.firstPage &&
-        number <= work.lastPage
+        number <= work.lastPage &&
+        !(work.skipPages ?? []).includes(number)
         ? [{ page, number }]
         : [];
     })
@@ -728,10 +777,13 @@ export function parseArchiveOcrWork(
         piecesOf(page, volume).reduce<WorkState>(
           (done, piece) =>
             piece.kind === "heading"
-              ? addHeading(done, headingOf(piece.lines), cased, {
-                  page: number,
-                  leaf: page.leaf,
-                })
+              ? addHeading(
+                  done,
+                  headingOf(piece.lines),
+                  cased,
+                  { page: number, leaf: page.leaf },
+                  work.title,
+                )
               : addPiece(done, piece, { page: number, leaf: page.leaf }),
           state,
         ),

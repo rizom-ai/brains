@@ -48,6 +48,7 @@ const archiveOcrBookSchema: z.ZodObject<
       lastPage: z.ZodNumber;
       title: z.ZodString;
       edition: z.ZodString;
+      skipPages: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
     }
   >
 > = z.object({
@@ -62,6 +63,8 @@ const archiveOcrBookSchema: z.ZodObject<
   title: z.string().min(1),
   /** The printed edition the scan reproduces. */
   edition: z.string().min(1),
+  /** Pages in the range that are not the author's, such as an editors' note. */
+  skipPages: z.array(z.number().int().positive()).default([]),
 });
 
 const manifestSchema: z.ZodDiscriminatedUnion<

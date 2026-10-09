@@ -187,3 +187,54 @@ export function createCaser(texts: string[]): (capitals: string) => string {
     });
   };
 }
+
+/** Letters only, in small letters, ß as ss: what two spellings share. */
+function letters(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ı/gu, "i")
+    .replace(/ß/gu, "ss")
+    .replace(/[^\p{Ll}]/gu, "");
+}
+
+function bigrams(text: string): Map<string, number> {
+  return Array.from({ length: Math.max(0, text.length - 1) }, (_, index) =>
+    text.slice(index, index + 2),
+  ).reduce(
+    (counts, pair) => counts.set(pair, (counts.get(pair) ?? 0) + 1),
+    new Map<string, number>(),
+  );
+}
+
+/** Share of letter pairs two texts have in common. */
+function likeness(a: string, b: string): number {
+  const first = bigrams(a);
+  const second = bigrams(b);
+  const shared = [...first].reduce(
+    (sum, [pair, count]) => sum + Math.min(count, second.get(pair) ?? 0),
+    0,
+  );
+  const total = [...first.values(), ...second.values()].reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  return total === 0 ? 0 : (2 * shared) / total;
+}
+
+/** Headings this alike in their letters name the same thing. */
+const ALIKE = 0.5;
+
+/**
+ * Whether a heading set in capitals reads as the given title, however the OCR
+ * spelled it; the heading may run on into a subtitle.
+ */
+export function namesTitle(heading: string, title: string): boolean {
+  const read = letters(heading);
+  const known = letters(title);
+  return (
+    Math.max(
+      likeness(read, known),
+      likeness(read.slice(0, known.length + 2), known),
+    ) >= ALIKE
+  );
+}
