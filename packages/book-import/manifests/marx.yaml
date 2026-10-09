@@ -18,6 +18,10 @@
 # Engels; Engels' prefaces to them are left out. The third volume is two
 # books, as printed, each paged on its own.
 source: dta-tei
+gaps:
+  - title: Herr Vogt
+    year: 1860
+    reason: the only scan of the first edition (London, 1860) reads below the OCR gate, 1 wrong word in 68
 books:
   - id: marx_manifestws_1848
     citation: Manifest
