@@ -1,5 +1,35 @@
 # @brains/a2a
 
+## 0.2.0-alpha.506
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.506
+  - @brains/http-signatures@0.2.0-alpha.506
+  - @brains/utils@0.2.0-alpha.506
+  - @brains/auth-service@0.2.0-alpha.506
+  - @brains/plugins@0.2.0-alpha.506
+  - @brains/templates@0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- [#572](https://github.com/rizom-ai/brains/pull/572) [`5210d61`](https://github.com/rizom-ai/brains/commit/5210d61ea733f26f8d57c0109ef67b2b32969073) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain's A2A answer now carries its source citations as a `sources` task artifact (one data part, `{ sources: SourceCitation[] }`), streamed as an `artifact-update` event before the final status on `message/stream`. The A2A client reads that artifact from task results and streams into `data.sources`, empty when the peer cites nothing, so a calling brain can attribute what a peer told it.
+
+- [#572](https://github.com/rizom-ai/brains/pull/572) [`f8bf1f0`](https://github.com/rizom-ai/brains/commit/f8bf1f08f7b70b62b56a4f83467103abfe70de03) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Being asked over A2A is bounded. Public callers answer under a daily allowance kept in runtime state (`a2a.publicAsks`): questions and answer tokens per caller domain and for all public callers together, with `enabled` as the switch that stops answering public questions at all. Unsigned callers share one anonymous allowance and trusted callers are not counted. A caller over its allowance gets a failed task that says why, and the network-ask channel treats any peer task that did not complete as no answer.
+
+- [#577](https://github.com/rizom-ai/brains/pull/577) [`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The network can be asked. `network_ask`, a public side-effect-free tool in agent-discovery, picks the approved peers whose skills fit a question (at most three, or the two nearest when none fit), asks them in parallel over a new A2A ask channel for a brief cited answer, with a 30 s budget each (`networkAskTimeoutMs`), and returns every answer with its sources attributed to the brain that gave it, plus who did not answer. Guest turns may use it and are told so; a tool's own `sources` now reach the answer's sources card, so the room lights the answering brain.
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/plugins@0.2.0-alpha.505
+  - @brains/auth-service@0.2.0-alpha.505
+  - @brains/templates@0.2.0-alpha.505
+  - @brains/http-signatures@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+
 ## 0.2.0-alpha.504
 
 ### Patch Changes
