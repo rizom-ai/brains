@@ -42,6 +42,18 @@ async function withConnections(
   }
 }
 
+/** Ids another connection reads: only what a writer actually committed. */
+async function committedIds(url: string): Promise<unknown[]> {
+  const reader = createClient({ url });
+  try {
+    return (await reader.execute("SELECT id FROM probe ORDER BY id")).rows.map(
+      (row) => row["id"],
+    );
+  } finally {
+    reader.close();
+  }
+}
+
 async function expectLocalPragmas(connection: SqliteConnection): Promise<void> {
   for (const [pragma, column, expected] of [
     ["busy_timeout", "timeout", 0],
@@ -124,11 +136,7 @@ describe("createSqliteClient", () => {
       } finally {
         next.close();
       }
-      expect(
-        (
-          await connection.client.execute("SELECT id FROM probe ORDER BY id")
-        ).rows.map((row) => row["id"]),
-      ).toEqual([1, 2, 3]);
+      expect(await committedIds(connection.url)).toEqual([1, 2, 3]);
     });
   });
 });
@@ -270,11 +278,7 @@ describe("local client contention contract", () => {
         } finally {
           held.close();
         }
-        expect(
-          (
-            await contender.client.execute("SELECT id FROM probe ORDER BY id")
-          ).rows.map((row) => row["id"]),
-        ).toEqual([1, 2]);
+        expect(await committedIds(contender.url)).toEqual([1, 2]);
       });
     });
   }
@@ -299,11 +303,7 @@ describe("local client contention contract", () => {
       } finally {
         held.close();
       }
-      expect(
-        (
-          await contender.client.execute("SELECT id FROM probe ORDER BY id")
-        ).rows.map((row) => row["id"]),
-      ).toEqual([1, 2]);
+      expect(await committedIds(contender.url)).toEqual([1, 2]);
     });
   });
 
@@ -377,11 +377,7 @@ describe("local client contention contract", () => {
         expect(await child.exited).toBe(0);
         const outcome = await pending;
         if (!outcome.ok) throw outcome.error;
-        expect(
-          (
-            await contender.client.execute("SELECT id FROM probe ORDER BY id")
-          ).rows.map((row) => row["id"]),
-        ).toEqual([1, 2]);
+        expect(await committedIds(contender.url)).toEqual([1, 2]);
       } finally {
         if (child.exitCode === null) child.kill("SIGTERM");
         await child.exited;
@@ -432,13 +428,41 @@ describe("local client contention contract", () => {
             held.close();
           }
           await writes[method](contender);
-          expect(
-            (
-              await contender.client.execute("SELECT id FROM probe ORDER BY id")
-            ).rows.map((row) => row["id"]),
-          ).toEqual([1, 2]);
+          expect(await committedIds(contender.url)).toEqual([1, 2]);
         },
         { contentionRetryBudgetMs: 0 },
+      );
+    });
+  }
+
+  for (const budget of [undefined, 0]) {
+    it(`commits every later write after a refused standalone write (budget ${budget ?? "default"})`, async () => {
+      // A refused statement once left its connection inside a transaction:
+      // later writes looked applied to their own connection, were never
+      // committed, and vanished when the connection was reopened.
+      await withConnections(
+        async (holder, contender) => {
+          const held = await holder.client.transaction("write");
+          try {
+            await held.execute("INSERT INTO probe VALUES (1)");
+            const pending = contender.client
+              .execute("INSERT INTO probe VALUES (2)")
+              .then(
+                () => ({ ok: true as const }),
+                (error: unknown) => ({ ok: false as const, error }),
+              );
+            await sleep(50);
+            await held.commit();
+            const outcome = await pending;
+            if (!outcome.ok)
+              await contender.client.execute("INSERT INTO probe VALUES (2)");
+          } finally {
+            held.close();
+          }
+          await contender.client.execute("INSERT INTO probe VALUES (3)");
+          expect(await committedIds(contender.url)).toEqual([1, 2, 3]);
+        },
+        budget === undefined ? {} : { contentionRetryBudgetMs: budget },
       );
     });
   }
@@ -485,11 +509,7 @@ describe("shared transaction acquisition", () => {
         if ("error" in outcome) throw outcome.error;
         expect(outcome.value).toBe("committed");
         expect(callbacks).toBe(1);
-        expect(
-          (
-            await contender.client.execute("SELECT id FROM probe ORDER BY id")
-          ).rows.map((row) => row["id"]),
-        ).toEqual([1, 2]);
+        expect(await committedIds(contender.url)).toEqual([1, 2]);
       } finally {
         held.close();
       }
@@ -545,11 +565,7 @@ describe("shared transaction acquisition", () => {
         if ("error" in outcome) throw outcome.error;
         expect(outcome.value).toBe("committed");
         expect(callbacks).toBe(1);
-        expect(
-          (
-            await contender.client.execute("SELECT id FROM probe ORDER BY id")
-          ).rows.map((row) => row["id"]),
-        ).toEqual([1, 2]);
+        expect(await committedIds(contender.url)).toEqual([1, 2]);
       } finally {
         if (child.exitCode === null) child.kill("SIGTERM");
         await child.exited;
@@ -856,11 +872,7 @@ describe("applySqlitePragmas", () => {
       } finally {
         transaction.close();
       }
-      expect(
-        (
-          await contender.client.execute("SELECT id FROM probe ORDER BY id")
-        ).rows.map((row) => row["id"]),
-      ).toEqual([1, 2]);
+      expect(await committedIds(contender.url)).toEqual([1, 2]);
       await expectLocalPragmas(contender);
     });
   });
