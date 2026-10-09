@@ -28,7 +28,7 @@ export interface Heading {
 const PART =
   /^(erster|zweiter|dritter|vierter|fünfter|[IVX]+\.?)\s+t\S{2,3}$/iu;
 /** A lecture's number, however the OCR read it. */
-const LECTURE = /^\S{1,8}\s*vorlesung$/iu;
+const LECTURE = /^\S{1,8}\s*(?:vorlesung|kapitel)$/iu;
 /** A roman numeral, with the OCR's usual misreadings of its strokes. */
 const NUMERAL = /^[IVXLHUlıi18Ä|vxTY3]{1,6}[.,]?$/u;
 const LETTER = /^[A-H]\.?$/u;
@@ -61,7 +61,10 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
     return { kind: "part", text: `${named} Teil` };
   }
   if (LECTURE.test(text)) {
-    return { kind: "chapter", numeral: text.replace(/\s*vorlesung$/iu, "") };
+    return {
+      kind: "chapter",
+      numeral: text.replace(/\s*(?:vorlesung|kapitel)$/iu, ""),
+    };
   }
   // A lone letter that no numeral misreads as is a subsection's.
   if (LETTER.test(text) && !/^I/u.test(text)) {
@@ -188,8 +191,11 @@ export function createSpelling(texts: string[]): Spelling {
     return capitals.replace(WORD, (word, offset: number) => {
       // A word the page already spells as a word, or an initial, stays as
       // printed.
-      const spelled =
-        SPELLED.test(word) || word.length === 1
+      // An s after an apostrophe is a possessive, not an initial.
+      const possessive = /['’]$/u.test(capitals.slice(0, offset));
+      const spelled = possessive
+        ? word.toLowerCase()
+        : SPELLED.test(word) || word.length === 1
           ? word
           : (spelling(word.toLowerCase()) ?? capitalised(word));
       // A title, or a subtitle after its full stop, opens with a capital.
@@ -279,4 +285,12 @@ export function namesTitle(heading: string, title: string): boolean {
       likeness(read.slice(0, known.length + 2), known),
     ) >= ALIKE
   );
+}
+
+/** Names this alike in their letters are one name, however each is printed. */
+const SAME = 0.8;
+
+/** Whether two printings name the same heading: a running head and a title. */
+export function sameName(a: string, b: string): boolean {
+  return likeness(letters(a), letters(b)) >= SAME;
 }

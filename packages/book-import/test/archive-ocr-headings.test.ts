@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { createSpelling, isWordy } from "../src/adapters/archive-ocr-headings";
+import {
+  createSpelling,
+  headingLineOf,
+  isWordy,
+} from "../src/adapters/archive-ocr-headings";
 
 describe("createSpelling", () => {
   it("cases each word as the text spells it, and keeps an initial a capital", () => {
@@ -12,6 +16,23 @@ describe("createSpelling", () => {
     expect(cased("MISS LUCY R., DREISSIG JAHRE")).toBe(
       "Miss Lucy R., dreißig Jahre",
     );
+  });
+});
+
+describe("createSpelling after an apostrophe", () => {
+  it("keeps a possessive s small", () => {
+    const { cased } = createSpelling([
+      "Le Bon schildert die Masse, wie Le Bon es sieht.",
+    ]);
+
+    expect(cased("LE BON’S SCHILDERUNG")).toBe("Le Bon’s Schilderung");
+  });
+});
+
+describe("headingLineOf", () => {
+  it("reads a numbered chapter however it names itself", () => {
+    expect(headingLineOf("1. KAPITEL", 80)?.kind).toBe("chapter");
+    expect(headingLineOf("IX. VORLESUNG", 80)?.kind).toBe("chapter");
   });
 });
 

@@ -6,6 +6,7 @@ import {
   headingOf,
   isWordy,
   namesTitle,
+  sameName,
   type Spelling,
   type Heading,
   type HeadingLine,
@@ -459,6 +460,10 @@ interface Volume {
   textSize: number;
   /** The volume's own spelling of its words. */
   spelling: Spelling;
+  /** The spelling of its running text alone, without the running heads. */
+  textSpelling: Spelling;
+  /** Each page's running head, without its page number or numeral. */
+  headsByLeaf: Map<number, string>;
 }
 
 /** Lines below the running head and the scan's noise above it. */
@@ -614,6 +619,8 @@ interface Block {
   leaf: number;
   /** The page as printed: its number, or its roman number in the front matter. */
   label: string;
+  /** The scan leaf the block ends on, where it runs over pages. */
+  lastLeaf: number;
 }
 
 interface Place {
@@ -630,14 +637,21 @@ function addLine(
 ): Block[] {
   const last = blocks.at(-1);
   return opens || last === undefined
-    ? [...blocks, { text: line, ...place }]
-    : [...blocks.slice(0, -1), { ...last, text: joinLine(last.text, line) }];
+    ? [...blocks, { text: line, ...place, lastLeaf: place.leaf }]
+    : [
+        ...blocks.slice(0, -1),
+        { ...last, text: joinLine(last.text, line), lastLeaf: place.leaf },
+      ];
 }
 
 /** A heading as it stands in the work: its level and its cased title. */
 interface PathStep {
   level: number;
-  title: string;
+  /** A part's name, a subsection's letter, or a chapter's numeral. */
+  label: string | null;
+  /** The heading's own words, cased. */
+  name: string;
+  qualifiers: string[];
   /** A subsection's letter. */
   letter: string | null;
   /** A chapter numbered by its numeral. */
@@ -660,19 +674,12 @@ interface WorkState {
 }
 
 /** A heading's title in the work, its words cased as the text spells them. */
-function titleOf(
-  heading: Heading,
-  place: number,
-  cased: (capitals: string) => string,
-): string {
-  const label = heading.numbered
-    ? roman(place)
-    : heading.label === null
-      ? null
-      : cased(heading.label);
-  const title = heading.title.map(cased).join(". ");
-  const named = [label, title].filter((part) => part !== null && part !== "");
-  return [named.join(". "), ...heading.qualifiers].join(" ");
+/** A heading as titled: its label, its name, and qualifiers after them. */
+function titleOf(step: PathStep, name: string = step.name): string {
+  const named = [step.label, name].filter(
+    (part): part is string => part !== null && part !== "",
+  );
+  return [named.join(". "), ...step.qualifiers].join(" ");
 }
 
 /**
@@ -739,7 +746,13 @@ function addHeading(
   const level = levelOf(heading, path);
   const step = {
     level,
-    title: titleOf(heading, chapters, cased),
+    label: heading.numbered
+      ? roman(chapters)
+      : heading.label === null
+        ? null
+        : cased(heading.label),
+    name: heading.title.map(cased).join(". "),
+    qualifiers: heading.qualifiers,
     letter: level === 2 ? heading.label : null,
     numbered: heading.numbered,
   };
@@ -813,6 +826,69 @@ export interface ArchiveOcrOptions {
   entryBytes?: number;
 }
 
+/** A running head's words: its page number, scraps and numeral taken off. */
+function headName(text: string): string {
+  return (
+    text
+      .replace(/^(?:\S{1,2}\s+)?[\dı]+[.,]?\s+/u, "")
+      .replace(/\s+[\dı]+\S{0,2}$/u, "")
+      // A roman page number in the front matter, at either end.
+      .replace(/^[IVXL]+\s+|\s+[IVXL]+$/u, "")
+      .replace(/^[IVXLvxlı1]+[.,]\s*/u, "")
+      .replace(/^[A-H][.)]\s+/u, "")
+      .trim()
+  );
+}
+
+/** Share of a name's words the work's text uses. */
+function knownShare(name: string, spelling: Spelling): number {
+  const words = name.match(/\p{L}+/gu) ?? [];
+  return words.length === 0
+    ? 0
+    : words.filter((word) => spelling.knows(word)).length / words.length;
+}
+
+/**
+ * A heading's name as its running heads print it, where they do: in proper
+ * case, which the capitals of the heading cannot tell. The head printed most
+ * often over the heading's pages, and naming the same thing, wins unless the
+ * OCR misread it where it read the heading right: the work's text must know
+ * its words as well as the heading's own.
+ */
+function namedByHeads(
+  step: PathStep,
+  sections: Section[],
+  volume: Volume,
+): string {
+  const { headsByLeaf, textSpelling: spelling } = volume;
+  if (step.name === "") return step.name;
+  const heads = sections
+    .filter((section) => section.path.includes(step))
+    .flatMap((section) =>
+      section.paragraphs.flatMap((block) =>
+        Array.from(
+          { length: block.lastLeaf - block.leaf + 1 },
+          (_, index) => block.leaf + index,
+        ),
+      ),
+    )
+    .flatMap((leaf) => {
+      const head = headsByLeaf.get(leaf);
+      return head !== undefined && sameName(head, step.name) ? [head] : [];
+    });
+  const counts = heads.reduce(
+    (tally, head) => tally.set(head, (tally.get(head) ?? 0) + 1),
+    new Map<string, number>(),
+  );
+  const head = [...counts].sort(
+    (a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1),
+  )[0]?.[0];
+  return head !== undefined &&
+    knownShare(head, spelling) >= knownShare(step.name, spelling)
+    ? head
+    : step.name;
+}
+
 /** A volume as read once for all the works it holds. */
 interface ReadVolume {
   pages: Page[];
@@ -827,21 +903,38 @@ function readVolume(hocr: string): ReadVolume {
   const fullLines = pages.flatMap((page) =>
     page.lines.filter((line) => line.width > page.width / 2),
   );
+  const heads = pages.flatMap((page) => {
+    const head = numberedHead(page);
+    const line = head ? page.lines[head.index] : undefined;
+    return line ? [new Set(headWords(line.text))] : [];
+  });
   const spelling = createSpelling(
     pages.flatMap((page) => page.lines.map((line) => line.text)),
+  );
+  // The text alone spells the words; running heads repeat whatever the OCR
+  // made of them.
+  const textSpelling = createSpelling(
+    pages.flatMap((page) =>
+      page.lines
+        .slice(runningHeadIndex(page, heads) + 1)
+        .map((line) => line.text),
+    ),
   );
   return {
     pages,
     printed: printedPageNumbers(pages.map(readingOf)),
     volume: {
-      heads: pages.flatMap((page) => {
-        const head = numberedHead(page);
-        const line = head ? page.lines[head.index] : undefined;
-        return line ? [new Set(headWords(line.text))] : [];
-      }),
+      heads,
       column: median(fullLines.map((line) => line.width)),
       textSize: median(fullLines.map((line) => line.size)),
       spelling,
+      textSpelling,
+      headsByLeaf: new Map(
+        pages.flatMap((page): Array<[number, string]> => {
+          const line = page.lines[runningHeadIndex(page, heads)];
+          return line ? [[page.leaf, headName(line.text)]] : [];
+        }),
+      ),
     },
     // Pages before the first are the front matter, numbered in roman.
     front: romanOffset(pages),
@@ -930,15 +1023,22 @@ export function parseArchiveOcrWork(
     );
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);
+  const steps = [...new Set(filled.flatMap((section) => section.path))];
+  const titles = new Map(
+    steps.map((step) => [
+      step,
+      titleOf(step, namedByHeads(step, filled, volume)),
+    ]),
+  );
   return filled.flatMap((section) => {
-    const titles = section.path.map((step) => step.title);
+    const path = section.path.map((step) => titles.get(step) ?? "");
     // A chapter with subsections holds its opening text beside them.
     const hasSubsections = filled.some(
       (other) =>
         other.path.length > section.path.length &&
         section.path.every((step, index) => other.path[index] === step),
     );
-    const parents = hasSubsections ? titles : titles.slice(0, -1);
+    const parents = hasSubsections ? path : path.slice(0, -1);
     const parts = partsOf(
       section.paragraphs,
       options.entryBytes ?? ENTRY_BYTES,
@@ -951,14 +1051,14 @@ export function parseArchiveOcrWork(
         0,
       );
     return parts.map((part, partIndex) => {
-      const start = part[0] ?? { page: 0, leaf: 0, label: "" };
+      const start = part[0] ?? { page: 0, leaf: 0, label: "", lastLeaf: 0 };
       const citation = `GW ${work.volume}, ${start.label}`;
       const notes = section.notes.filter(
         (note) => partOfNote(note) === partIndex,
       );
       return {
         parents,
-        title: titles.at(-1) ?? citation,
+        title: path.at(-1) ?? citation,
         section: citation,
         page: citation,
         source: `https://archive.org/details/${work.item}/page/n${start.leaf}`,
