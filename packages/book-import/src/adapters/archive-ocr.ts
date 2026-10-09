@@ -309,12 +309,10 @@ interface Anchor {
   offset: number;
 }
 
-/** So few agreeing heads can be one misreading repeated, as 355 and 358 for 335 and 338. */
-const SHORT_RUN = 3;
-/** A scan missing a leaf or two raises the offset that much; more is a misreading. */
+/** A scan missing a leaf or two raises the offset that much. */
 const MISSING_LEAVES = 2;
-/** A run this long is the numbering itself, however it moved. */
-const LONG_RUN = 10;
+/** Plates bound in one place lower the offset by at most this many leaves. */
+const PLATE_LEAVES = 8;
 
 /** Anchors in runs of one offset, in reading order. */
 function runsOf(anchors: Anchor[]): Anchor[][] {
@@ -326,28 +324,48 @@ function runsOf(anchors: Anchor[]): Anchor[][] {
   }, []);
 }
 
+/** Whether one run of heads can follow another in the same volume. */
+function follows(before: Anchor[], after: Anchor[]): boolean {
+  const drop = (before[0]?.offset ?? 0) - (after[0]?.offset ?? 0);
+  return drop >= -MISSING_LEAVES && drop <= PLATE_LEAVES;
+}
+
+/** The heaviest chain of runs ending at a run, and the run before it. */
+interface Chain {
+  weight: number;
+  before: number | null;
+}
+
 /**
- * Plates only ever lower the offset between leaf and page, and a missing
- * leaf raises it by one. A run of heads that raises it further, or a short
- * run that raises it at all or differs from the agreeing runs on both its
- * sides, is the OCR misreading the same digit again and again.
+ * Plates lower the offset between leaf and page a few leaves at a time and
+ * a missing leaf raises it by one; nothing moves it by a hundred. Of the
+ * runs of running heads, the chain that moves only so keeps the most heads;
+ * the rest are the OCR misreading a digit, however many pages it does so.
  */
 function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
   const runs = runsOf(anchors);
-  return runs
-    .reduce<Anchor[][]>((kept, run, index) => {
-      const offset = run[0]?.offset ?? 0;
-      const before = kept.at(-1)?.[0]?.offset;
-      const after = runs[index + 1]?.[0]?.offset;
-      const misread =
-        before !== undefined &&
-        offset !== before &&
-        ((run.length < LONG_RUN &&
-          (offset > before + MISSING_LEAVES || before === after)) ||
-          (run.length < SHORT_RUN && offset > before));
-      return misread ? kept : [...kept, run];
-    }, [])
-    .flat();
+  const chains = runs.reduce<Chain[]>((done, run) => {
+    const best = done.reduce<Chain>(
+      (found, chain, at) =>
+        follows(runs[at] ?? [], run) && chain.weight + run.length > found.weight
+          ? { weight: chain.weight + run.length, before: at }
+          : found,
+      { weight: run.length, before: null },
+    );
+    return [...done, best];
+  }, []);
+  const last = chains.reduce(
+    (top, chain, index) =>
+      chain.weight > (chains[top]?.weight ?? -1) ? index : top,
+    0,
+  );
+  const walk = (index: number | null, kept: number[]): number[] =>
+    index === null
+      ? kept
+      : walk(chains[index]?.before ?? null, [index, ...kept]);
+  return walk(runs.length > 0 ? last : null, []).flatMap(
+    (index) => runs[index] ?? [],
+  );
 }
 
 /**

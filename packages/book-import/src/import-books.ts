@@ -77,6 +77,33 @@ const archiveOcrBookSchema: z.ZodObject<
   firstChapter: z.number().int().positive().default(1),
 });
 
+/** What a coverage note says of the books' source, before it lists them. */
+const coverageSchema: z.ZodObject<{
+  author: z.ZodString;
+  edition: z.ZodString;
+  license: z.ZodString;
+}> = z.object({
+  author: z.string().min(1),
+  /** The edition the texts come from, as a sentence names it. */
+  edition: z.string().min(1),
+  license: z.string().min(1),
+});
+
+/** A work of the oeuvre the brain does not hold, and why. */
+const gapSchema: z.ZodObject<{
+  volume: z.ZodString;
+  pages: z.ZodString;
+  title: z.ZodString;
+  year: z.ZodOptional<z.ZodNumber>;
+  reason: z.ZodString;
+}> = z.object({
+  volume: z.string().min(1),
+  pages: z.string().min(1),
+  title: z.string().min(1),
+  year: z.number().int().optional(),
+  reason: z.string().min(1),
+});
+
 const manifestSchema: z.ZodDiscriminatedUnion<
   [
     z.ZodObject<{
@@ -85,6 +112,8 @@ const manifestSchema: z.ZodDiscriminatedUnion<
     }>,
     z.ZodObject<{
       source: z.ZodLiteral<"archive-ocr">;
+      coverage: z.ZodOptional<typeof coverageSchema>;
+      gaps: z.ZodDefault<z.ZodArray<typeof gapSchema>>;
       books: z.ZodArray<typeof archiveOcrBookSchema>;
     }>,
   ],
@@ -96,6 +125,8 @@ const manifestSchema: z.ZodDiscriminatedUnion<
   }),
   z.object({
     source: z.literal("archive-ocr"),
+    coverage: coverageSchema.optional(),
+    gaps: z.array(gapSchema).default([]),
     books: z.array(archiveOcrBookSchema).min(1),
   }),
 ]);

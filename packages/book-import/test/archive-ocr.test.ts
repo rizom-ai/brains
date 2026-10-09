@@ -388,6 +388,26 @@ describe("printedPageNumbers", () => {
     ]);
   });
 
+  it("ignores a long run of page numbers the OCR misread alike", () => {
+    // 317 to 329 all read with a 5 for the 3, among the right ones.
+    const heads = [
+      ...Array.from({ length: 10 }, (_, index) =>
+        text(10 + index, 307 + index),
+      ),
+      ...Array.from({ length: 13 }, (_, index) =>
+        text(20 + index, 517 + index),
+      ),
+      ...Array.from({ length: 15 }, (_, index) =>
+        text(33 + index, 330 + index),
+      ),
+    ];
+    const pages = printedPageNumbers(heads);
+
+    expect([20, 26, 32].map((leaf) => pages.get(leaf))).toEqual([
+      317, 323, 329,
+    ]);
+  });
+
   it("ignores a page number the OCR misread", () => {
     const pages = printedPageNumbers([
       text(10, 1),
