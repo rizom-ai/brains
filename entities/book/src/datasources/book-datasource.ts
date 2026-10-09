@@ -23,7 +23,9 @@ export interface ScoreEntry {
   title: string;
   section: string | null;
   order: number;
-  part: string | null;
+  /** The headings the section stands under, outermost first. */
+  headings: string[];
+  /** Bytes of the section's text. */
   length: number;
 }
 
@@ -74,7 +76,7 @@ async function scoreOf(
       title: entry.metadata.title,
       section: entry.metadata.section,
       order: entry.metadata.order,
-      part: entry.frontmatter.part,
+      headings: entry.frontmatter.headings,
       length: Buffer.byteLength(entry.body.trim(), "utf8"),
     }));
 }

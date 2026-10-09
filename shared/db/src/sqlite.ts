@@ -139,10 +139,12 @@ export function createSqliteClient(
     const rawExecute = client.execute.bind(client);
     const rawBatch = client.batch.bind(client);
     const rawMigrate = client.migrate.bind(client);
-    // libSQL 0.17 retains a refused BEGIN statement until native cleanup, and
-    // the connection then refuses every later commit. Batches, migrations and
-    // transactions each begin one, so a refusal reopens the connection, even
-    // when the budget is exhausted. Existing transaction objects own their
+    // libSQL 0.17 retains a refused statement until native cleanup. A refused
+    // BEGIN leaves the connection refusing every later commit; a refused
+    // standalone write leaves it inside a transaction that is never committed,
+    // so later writes look applied to this connection alone and vanish when it
+    // is reopened. Every refusal therefore reopens the connection, even when
+    // the budget is exhausted. Existing transaction objects own their
     // connections and remain untouched. The SDK declares void, but its local
     // reconnect returns a Promise.
     const reopening = {
@@ -165,7 +167,7 @@ export function createSqliteClient(
           typeof stmtOrSql === "string"
             ? rawExecute(stmtOrSql, args)
             : rawExecute(stmtOrSql),
-        { isClosed, budgetMs },
+        reopening,
       );
     }
     client.execute = execute;

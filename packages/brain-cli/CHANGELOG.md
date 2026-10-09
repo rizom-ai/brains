@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- [#562](https://github.com/rizom-ai/brains/pull/562) [`2e542ee`](https://github.com/rizom-ai/brains/commit/2e542ee168657d54a134f306d646313415b10f6b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local database write refused by a briefly held lock no longer leaves its connection inside an uncommitted transaction. Before, the retried write and every later write on that connection looked applied to the brain itself but were never committed, and vanished when the connection reopened — import jobs completed, then ran again against a closed projection batch and failed.
+
 ## 0.2.0-alpha.495
 
 ### Patch Changes

@@ -51,15 +51,18 @@ describe("book declaration codec", () => {
     });
   });
 
-  it("reads the part a section belongs to", () => {
+  it("reads the headings a section stands under", () => {
     const frontmatter = bookFields(
       sectionMarkdown.replace(
         "section: AC-1",
-        "section: AC-1\npart: Erstes Hauptstück",
+        "section: AC-1\nheadings:\n  - Erster Theil\n  - Erstes Hauptstück",
       ),
     );
 
-    expect(frontmatter["part"]).toBe("Erstes Hauptstück");
+    expect(frontmatter["headings"]).toEqual([
+      "Erster Theil",
+      "Erstes Hauptstück",
+    ]);
   });
 
   it("parses the title entry's book details", () => {

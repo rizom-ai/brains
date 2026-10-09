@@ -136,7 +136,7 @@ describe("BookDataSource", () => {
       title: "Anfang",
       section: "S-1",
       order: 1,
-      part: null,
+      headings: [],
     });
     expect(result.score[0].length).toBeGreaterThan(0);
   });

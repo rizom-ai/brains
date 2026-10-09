@@ -103,13 +103,34 @@ describe("renderBook", () => {
     );
   });
 
-  it("files each section under its top-level part", () => {
+  it("records each section's headings, outermost first", () => {
     const [, vorrede, first] = renderBook(source);
 
-    expect(frontmatterOf(vorrede?.markdown ?? "")["part"]).toBeNull();
-    expect(frontmatterOf(first?.markdown ?? "")["part"]).toBe(
+    expect(frontmatterOf(vorrede?.markdown ?? "")["headings"]).toEqual([]);
+    expect(frontmatterOf(first?.markdown ?? "")["headings"]).toEqual([
       "Erstes Hauptstück",
-    );
+    ]);
+  });
+
+  it("records every level of a nested section's headings", () => {
+    const [, nested] = renderBook({
+      ...source,
+      units: [
+        {
+          parents: ["Erster Theil", "Zarathustra's Vorrede"],
+          title: "1",
+          section: "EB-I-Vorrede-1",
+          page: null,
+          source: "http://www.nietzschesource.org/eKGWB/EB-I-Vorrede-1",
+          paragraphs: ["Als Zarathustra dreissig Jahr alt war."],
+        },
+      ],
+    });
+
+    expect(frontmatterOf(nested?.markdown ?? "")["headings"]).toEqual([
+      "Erster Theil",
+      "Zarathustra's Vorrede",
+    ]);
   });
 
   it("splits a unit over 8,000 bytes at paragraph boundaries", () => {
