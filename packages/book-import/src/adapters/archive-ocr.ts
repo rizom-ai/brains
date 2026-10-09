@@ -43,6 +43,8 @@ export interface ArchiveOcrWork {
   corrections?: OcrCorrection[];
   /** Notes not the author's, such as an editor's, by page and opening words. */
   skipNotes?: SkippedNote[];
+  /** An editor's signatures (K.): the notes ending in one are the editor's. */
+  skipNotesSigned?: string[];
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
@@ -129,7 +131,7 @@ const RUNNING_HEAD =
  */
 const SIGNATURE =
   /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3})\s*[IVXLl1|]+\.?[,.]?\s*\d*\s*$/u;
-const NOTE_START = /^(?:ı|\d+|\*)\)/;
+const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
@@ -1604,7 +1606,13 @@ export function parseArchiveOcrWork(
       text: unjoined(sharpened(block.text, volume.common), volume.common),
     }));
   const skipNotes = work.skipNotes ?? [];
+  // A signature closes a note after a stop or space, not inside a word.
+  const signed = (work.skipNotesSigned ?? []).map(
+    (signature) =>
+      new RegExp(`(?:^|[^\\p{Ll}])${RegExp.escape(signature)}$`, "u"),
+  );
   const skipped = (note: Block): boolean =>
+    signed.some((signature) => signature.test(note.text.trim())) ||
     skipNotes.some(
       (skip) =>
         String(skip.page) === note.label && note.text.startsWith(skip.opens),

@@ -79,6 +79,7 @@ const archiveOcrBookSchema: z.ZodObject<
       firstChapter: z.ZodDefault<z.ZodNumber>;
       references: z.ZodOptional<z.ZodArray<z.ZodURL>>;
       skipNotes: z.ZodDefault<z.ZodArray<typeof skippedNoteSchema>>;
+      skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
   >
 > = z.object({
@@ -105,6 +106,8 @@ const archiveOcrBookSchema: z.ZodObject<
   references: z.array(z.url()).min(1).optional(),
   /** Notes not the author's, such as an editor's or translator's, left out. */
   skipNotes: z.array(skippedNoteSchema).default([]),
+  /** An editor's signatures (K.): the notes ending in one are left out. */
+  skipNotesSigned: z.array(z.string().min(1)).default([]),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */

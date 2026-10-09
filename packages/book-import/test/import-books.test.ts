@@ -706,6 +706,16 @@ books:
     ]);
   });
 
+  it("names an editor's signatures, whose notes are left out", () => {
+    const manifest = parseManifest(ocrManifest + "    skipNotesSigned: [K.]\n");
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].skipNotesSigned
+        : null,
+    ).toEqual(["K."]);
+  });
+
   it("reads a corrections file by volume", () => {
     expect(
       parseCorrections(`

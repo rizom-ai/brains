@@ -1143,4 +1143,26 @@ describe("parseArchiveOcrWork, notes marked by asterisks", () => {
       "nach Herrn Proudhon der Werth",
     );
   });
+
+  it("leaves out the notes an editor signed, the author's kept", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-star-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_14861084_000",
+        title: "Das Elend der Philosophie",
+        citation: "Elend",
+        firstPage: 76,
+        lastPage: 76,
+        skipNotesSigned: ["K."],
+      },
+    );
+
+    expect(units[0]?.paragraphs).toEqual([
+      "Der Werth der Dinge ist der Werth der Arbeit und des Geldes, sagt Herr Proudhon.",
+      "**) Proudhon, Philosophie de la misère, I, p. 50.",
+    ]);
+  });
 });
