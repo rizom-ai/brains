@@ -72,16 +72,56 @@ describe("createPoliteFetch", () => {
     expect(gaps.every((gap) => gap >= 45)).toBe(true);
   });
 
-  it("fails with the URL when the source answers with an error", () => {
+  it("fails with the URL at once when the source answers with an error", async () => {
+    const statuses: number[] = [];
     const get = createPoliteFetch({
       cacheDir,
       userAgent: "book-import (test@example.org)",
       minIntervalMs: 0,
-      fetchFn: async () => new Response("nope", { status: 404 }),
+      fetchFn: async () => {
+        statuses.push(404);
+        return new Response("nope", { status: 404 });
+      },
     });
 
     expect(get("https://example.org/missing")).rejects.toThrow(
       "404 https://example.org/missing",
+    );
+    await Bun.sleep(5);
+    expect(statuses).toHaveLength(1);
+  });
+
+  it("asks again after a pause when the source is briefly unavailable", async () => {
+    const answers = [500, 429, 200];
+    const calls: number[] = [];
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      retryDelayMs: 20,
+      fetchFn: async () => {
+        calls.push(Date.now());
+        const status = answers.shift() ?? 200;
+        return new Response(status === 200 ? "at last" : "busy", { status });
+      },
+    });
+
+    expect(await get("https://example.org/busy")).toBe("at last");
+    expect(calls).toHaveLength(3);
+    expect((calls[1] ?? 0) - (calls[0] ?? 0)).toBeGreaterThanOrEqual(15);
+  });
+
+  it("gives up with the URL when the source stays unavailable", () => {
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      retryDelayMs: 1,
+      fetchFn: async () => new Response("down", { status: 503 }),
+    });
+
+    expect(get("https://example.org/down")).rejects.toThrow(
+      "503 https://example.org/down",
     );
   });
 });
