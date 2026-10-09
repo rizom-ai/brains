@@ -39,4 +39,4 @@ successCriteria:
     - "States that the Team Brain POC memory says to avoid building a team-flavored Rover."
 efficiency:
   maxToolCalls: 0
-  maxTokens: 30000
+  maxTokens: 15000
