@@ -235,6 +235,113 @@ describe("A2A Client", () => {
       expect(result.data.response).toBe("Actual text");
     });
 
+    it("reads sources from the task's sources artifact", () => {
+      const result = parseA2AResponse({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          kind: "task",
+          id: "task-1",
+          status: {
+            state: "completed",
+            message: { parts: [{ kind: "text", text: "Cited answer" }] },
+          },
+          artifacts: [
+            {
+              artifactId: "a-1",
+              name: "sources",
+              parts: [
+                {
+                  kind: "data",
+                  data: {
+                    sources: [
+                      {
+                        id: "piece-1",
+                        title: "A piece",
+                        source: "yeehaa.io",
+                        url: "https://yeehaa.io/pieces/a-piece",
+                        brain: { name: "yeehaa", url: "https://yeehaa.io" },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.response).toBe("Cited answer");
+      expect(result.data.sources).toEqual([
+        {
+          id: "piece-1",
+          title: "A piece",
+          source: "yeehaa.io",
+          url: "https://yeehaa.io/pieces/a-piece",
+          brain: { name: "yeehaa", url: "https://yeehaa.io" },
+        },
+      ]);
+    });
+
+    it("returns no sources for a task without a sources artifact", () => {
+      const result = parseA2AResponse({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          kind: "task",
+          status: {
+            state: "completed",
+            message: { parts: [{ kind: "text", text: "Plain answer" }] },
+          },
+          artifacts: [
+            {
+              artifactId: "a-2",
+              name: "notes",
+              parts: [{ kind: "data", data: { sources: "not a list" } }],
+            },
+          ],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.sources).toEqual([]);
+    });
+
+    it("drops malformed citations from a sources artifact", () => {
+      const result = parseA2AResponse({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          kind: "task",
+          status: { state: "completed" },
+          artifacts: [
+            {
+              artifactId: "a-3",
+              name: "sources",
+              parts: [
+                {
+                  kind: "data",
+                  data: {
+                    sources: [
+                      { id: "ok", source: "yeehaa.io" },
+                      { title: "missing id and source" },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      expect(result.data.sources).toEqual([{ id: "ok", source: "yeehaa.io" }]);
+    });
+
     it("should handle empty result", () => {
       const result = parseA2AResponse({
         jsonrpc: "2.0",
@@ -361,31 +468,38 @@ describe("A2A Client", () => {
   });
 
   describe("SSE streaming via message/stream", () => {
-    /** Build an SSE response body from status-update events */
-    function sseBody(
-      events: Array<{ state: string; final: boolean; text?: string }>,
-    ): ReadableStream<Uint8Array> {
+    type SseEvent =
+      | { state: string; final: boolean; text?: string }
+      | { artifact: { name: string; parts: unknown[] } };
+
+    /** Build an SSE response body from status-update and artifact-update events */
+    function sseBody(events: SseEvent[]): ReadableStream<Uint8Array> {
       const encoder = new TextEncoder();
       return new ReadableStream({
         start(controller): void {
           for (const event of events) {
-            const data = {
-              jsonrpc: "2.0",
-              id: "req-1",
-              result: {
-                kind: "status-update",
-                taskId: "task-123",
-                status: {
-                  state: event.state,
-                  ...(event.text && {
-                    message: {
-                      parts: [{ kind: "text", text: event.text }],
+            const result =
+              "artifact" in event
+                ? {
+                    kind: "artifact-update",
+                    taskId: "task-123",
+                    contextId: "ctx-1",
+                    artifact: { artifactId: "art-1", ...event.artifact },
+                  }
+                : {
+                    kind: "status-update",
+                    taskId: "task-123",
+                    status: {
+                      state: event.state,
+                      ...(event.text && {
+                        message: {
+                          parts: [{ kind: "text", text: event.text }],
+                        },
+                      }),
                     },
-                  }),
-                },
-                final: event.final,
-              },
-            };
+                    final: event.final,
+                  };
+            const data = { jsonrpc: "2.0", id: "req-1", result };
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
             );
@@ -396,7 +510,7 @@ describe("A2A Client", () => {
     }
 
     function createStreamFetch(
-      events: Array<{ state: string; final: boolean; text?: string }>,
+      events: SseEvent[],
     ): (url: string | URL | Request, init?: RequestInit) => Promise<Response> {
       return async (
         _url: string | URL | Request,
@@ -438,6 +552,54 @@ describe("A2A Client", () => {
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("data.state", "completed");
       expect(result).toHaveProperty("data.response", "Final answer");
+    });
+
+    it("collects sources from an artifact-update event", async () => {
+      const sources = [
+        {
+          id: "piece-1",
+          title: "A piece",
+          source: "remote.example.com",
+          brain: { name: "Remote", url: "https://remote.example.com" },
+        },
+      ];
+      const tool = createAgentCallTool({
+        fetch: createStreamFetch([
+          { state: "working", final: false },
+          {
+            artifact: {
+              name: "sources",
+              parts: [{ kind: "data", data: { sources } }],
+            },
+          },
+          { state: "completed", final: true, text: "Cited answer" },
+        ]),
+        entityService: createSavedAgentEntityService(),
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        testToolContext,
+      );
+
+      expect(result).toHaveProperty("data.response", "Cited answer");
+      expect(result).toHaveProperty("data.sources", sources);
+    });
+
+    it("returns empty sources when the stream carries no artifact", async () => {
+      const tool = createAgentCallTool({
+        fetch: createStreamFetch([
+          { state: "completed", final: true, text: "Plain answer" },
+        ]),
+        entityService: createSavedAgentEntityService(),
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        testToolContext,
+      );
+
+      expect(result).toHaveProperty("data.sources", []);
     });
 
     it("should handle failed task via SSE stream", async () => {

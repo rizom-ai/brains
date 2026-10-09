@@ -1,5 +1,55 @@
 # @brains/core
 
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.507
+  - @brains/image@0.2.0-alpha.507
+  - @brains/operation-context@0.2.0-alpha.507
+  - @brains/site-composition@0.2.0-alpha.507
+  - @brains/utils@0.2.0-alpha.507
+  - @brains/plugins@0.2.0-alpha.507
+  - @brains/recurring-checks@0.2.0-alpha.507
+  - @brains/runtime-state@0.2.0-alpha.507
+  - @brains/scheduler@0.2.0-alpha.507
+  - @brains/templates@0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+### Patch Changes
+
+- [#574](https://github.com/rizom-ai/brains/pull/574) [`392a783`](https://github.com/rizom-ai/brains/commit/392a7831c91f0b7a1b154eaec506b128821c1004) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The system_update replacement preview bounds its line diff by a fixed number of changed lines instead of a 100 ms clock, so the same replacement previews the same way on a loaded machine; the omitted-diff note names the bound.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.506
+  - @brains/image@0.2.0-alpha.506
+  - @brains/operation-context@0.2.0-alpha.506
+  - @brains/site-composition@0.2.0-alpha.506
+  - @brains/utils@0.2.0-alpha.506
+  - @brains/plugins@0.2.0-alpha.506
+  - @brains/recurring-checks@0.2.0-alpha.506
+  - @brains/runtime-state@0.2.0-alpha.506
+  - @brains/scheduler@0.2.0-alpha.506
+  - @brains/templates@0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/plugins@0.2.0-alpha.505
+  - @brains/operation-context@0.2.0-alpha.505
+  - @brains/site-composition@0.2.0-alpha.505
+  - @brains/templates@0.2.0-alpha.505
+  - @brains/image@0.2.0-alpha.505
+  - @brains/recurring-checks@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+  - @brains/runtime-state@0.2.0-alpha.505
+  - @brains/scheduler@0.2.0-alpha.505
+
 ## 0.2.0-alpha.504
 
 ### Patch Changes

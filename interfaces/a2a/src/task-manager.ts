@@ -6,6 +6,9 @@ const DEFAULT_TTL_MS = 60 * 60 * 1000;
 /** Default processing timeout for working tasks: 5 minutes */
 const DEFAULT_PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
 
+/** Name of the task artifact that carries an answer's source citations. */
+export const SOURCES_ARTIFACT_NAME = "sources";
+
 export const TERMINAL_STATES: Set<string> = new Set<string>([
   "completed",
   "failed",
