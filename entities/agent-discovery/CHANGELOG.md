@@ -1,5 +1,24 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- [#577](https://github.com/rizom-ai/brains/pull/577) [`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The network can be asked. `network_ask`, a public side-effect-free tool in agent-discovery, picks the approved peers whose skills fit a question (at most three, or the two nearest when none fit), asks them in parallel over a new A2A ask channel for a brief cited answer, with a 30 s budget each (`networkAskTimeoutMs`), and returns every answer with its sources attributed to the brain that gave it, plus who did not answer. Guest turns may use it and are told so; a tool's own `sources` now reach the answer's sources card, so the room lights the answering brain.
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/plugins@0.2.0-alpha.505
+  - @brains/dashboard@0.2.0-alpha.505
+  - @brains/content-formatters@0.2.0-alpha.505
+  - @brains/ui-library@0.2.0-alpha.505
+  - @brains/auth-service@0.2.0-alpha.505
+  - @brains/mcp-service@0.2.0-alpha.505
+  - @brains/templates@0.2.0-alpha.505
+  - @brains/atproto-contracts@0.2.0-alpha.505
+  - @brains/http-signatures@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+
 ## 0.2.0-alpha.504
 
 ### Patch Changes
