@@ -122,6 +122,7 @@ export type SiteBuildDiagnostic = z.output<typeof SiteBuildDiagnosticSchema>;
 export const BuildResultSchema: z.ZodObject<{
   success: z.ZodBoolean;
   cancelled: z.ZodOptional<z.ZodBoolean>;
+  superseded: z.ZodOptional<z.ZodBoolean>;
   skipped: z.ZodOptional<z.ZodBoolean>;
   outputDir: z.ZodString;
   filesGenerated: z.ZodNumber;
@@ -132,6 +133,8 @@ export const BuildResultSchema: z.ZodObject<{
 }> = z.object({
   success: z.boolean(),
   cancelled: z.boolean().optional(),
+  /** Cancelled because a newer build of the same environment replaced it. */
+  superseded: z.boolean().optional(),
   skipped: z.boolean().optional(),
   outputDir: z.string(),
   filesGenerated: z.number(),
