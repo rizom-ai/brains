@@ -716,6 +716,16 @@ books:
     ).toEqual(["K."]);
   });
 
+  it("names an edition that sets its notes as large as the text", () => {
+    const manifest = parseManifest(ocrManifest + "    spacedNotes: true\n");
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].spacedNotes
+        : null,
+    ).toBe(true);
+  });
+
   it("reads a corrections file by volume", () => {
     expect(
       parseCorrections(`

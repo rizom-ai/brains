@@ -1078,7 +1078,7 @@ describe("parseArchiveOcrWork, notes marked by asterisks", () => {
     );
   });
 
-  it("sets an appendix beside the chapters, not under the last", async () => {
+  it("sets an appendix beside the chapters, within the part, not under the last chapter", async () => {
     const units = parseArchiveOcrWork(
       await readFile(
         join(import.meta.dir, "fixtures", "archive-ocr-roman-sections.html"),
@@ -1102,7 +1102,9 @@ describe("parseArchiveOcrWork, notes marked by asterisks", () => {
     );
 
     expect(units.at(-1)?.title).toBe("Anhang I.");
-    expect(units.at(-1)?.parents).toEqual([]);
+    expect(units.at(-1)?.parents).toEqual([
+      "Zweiter Theil. Ueber die Differenz der demokritischen und epikureischen Physik im Besonderen.",
+    ]);
   });
 
   it("leaves a quotation below a numbered section's title to the text", async () => {
@@ -1163,6 +1165,31 @@ describe("parseArchiveOcrWork, notes marked by asterisks", () => {
     expect(units[0]?.paragraphs).toEqual([
       "Der Werth der Dinge ist der Werth der Arbeit und des Geldes, sagt Herr Proudhon.",
       "**) Proudhon, Philosophie de la misère, I, p. 50.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, notes set apart by space", () => {
+  it("reads full lines below a gap in the page's lower half as notes, each indented line opening one", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-spaced-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 11,
+        lastPage: 12,
+        skipNotesSigned: ["K."],
+        spacedNotes: true,
+      },
+    );
+
+    expect(units[0]?.paragraphs).toEqual([
+      "Der Handel bringt der Nation einen Überschuß, der den Profit des Landes bildet. Seine Größe steht im Verhältnis zu der Arbeit der Nation und des Landes, wie der Handel selbst.¹ Der Profit der Nation ist der Handel des Landes, und die Arbeit der Nation ist sein Wert.",
+      "„Die Arbeit des Landes ist der Wert der Nation und der Profit des Handels.“ (l. c. S. 63.)",
     ]);
   });
 });

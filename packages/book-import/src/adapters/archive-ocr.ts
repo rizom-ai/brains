@@ -45,6 +45,11 @@ export interface ArchiveOcrWork {
   skipNotes?: SkippedNote[];
   /** An editor's signatures (K.): the notes ending in one are the editor's. */
   skipNotesSigned?: string[];
+  /**
+   * The edition sets its notes as large as the text, below a rule the OCR
+   * does not read; full lines below a gap in the page's lower half are notes.
+   */
+  spacedNotes?: boolean;
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
@@ -553,6 +558,8 @@ type Piece =
 
 /** What reading a page needs to know about its volume. */
 interface Volume {
+  /** Notes set as large as the text, below a rule the OCR leaves unread. */
+  spacedNotes?: boolean;
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -870,6 +877,18 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   // line that starts with a note marker. Everything below is notes; measured
   // sizes alone mistake a body line low on a curved page for one.
   // A rule above a line set as large as the text ends a section instead.
+  // Notes set as large as the text, below a rule the OCR did not read, stand
+  // apart by the space it leaves: full lines below a gap a line high, after
+  // a line of text, not a heading's.
+  const spacedFoot = (line: Line, above: Line | undefined): boolean =>
+    volume.spacedNotes === true &&
+    above !== undefined &&
+    line.y - above.bottom > bodyHeight &&
+    line.width > volume.column / 2 &&
+    !(
+      Math.abs(above.x + above.width / 2 - middle) < page.width * CENTRE &&
+      above.width < volume.column * HEADING_WIDTH
+    );
   const footAt = headless.findIndex(
     (line, index) =>
       line.y > page.height / 2 &&
@@ -880,7 +899,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         : (line.size < bodySize * NOTE_SIZE && NOTE_START.test(line.text)) ||
           // No line of text opens with an asterisk's mark; a note may be
           // set, or measured, as large as the text.
-          STAR_NOTE_START.test(line.text)),
+          STAR_NOTE_START.test(line.text) ||
+          spacedFoot(line, headless[index - 1])),
   );
   const noteFrom = footAt < 0 ? headless.length : footAt;
   const textLines = headless.slice(0, noteFrom);
@@ -903,7 +923,16 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       }
       return [
         ...pieces,
-        { kind: "note", text: line.text, opens: NOTE_START.test(line.text) },
+        {
+          kind: "note",
+          text: line.text,
+          // A note opens with its mark; in notes set as the text is, it is
+          // set in where the OCR lost its mark.
+          opens:
+            NOTE_START.test(line.text) ||
+            (volume.spacedNotes === true &&
+              line.x - margin > page.width * INDENT),
+        },
       ];
     }
     const centre = line.x + line.width / 2;
@@ -1200,11 +1229,9 @@ function titleOf(step: PathStep, name: string = step.name): string {
  */
 function levelOf(heading: Heading, path: PathStep[]): number {
   if (heading.level !== null) return heading.level;
-  // A preface or an appendix belongs to the book: it stands beside its
-  // parts, or its chapters where it has none, not under the last.
-  if (SECTION_NAME.test(heading.title[0] ?? "")) {
-    return path.some((step) => step.level === 0) ? 0 : 1;
-  }
+  // A preface or an appendix stands beside the chapters, within the part
+  // it closes, not under the last chapter.
+  if (SECTION_NAME.test(heading.title[0] ?? "")) return 1;
   return path.some((step) => step.level === 1 && step.numbered) ? 2 : 1;
 }
 
@@ -1531,7 +1558,9 @@ export function parseArchiveOcrWork(
   work: ArchiveOcrWork,
   options: ArchiveOcrOptions = {},
 ): BookUnit[] {
-  const { pages, printed, volume, front } = volumeOf(hocr);
+  const read = volumeOf(hocr);
+  const { pages, printed, front } = read;
+  const volume = { ...read.volume, spacedNotes: work.spacedNotes === true };
   const { cased } = volume.spelling;
   const labelOf = (number: number, leaf: number): string =>
     number < 1 && front !== null ? roman(leaf + front) : String(number);
