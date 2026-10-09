@@ -1,6 +1,8 @@
 import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
+import { deferred } from "@brains/utils/deferred";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { AgentService } from "../src/agent-service";
 import type { AgentResponse } from "../src";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
@@ -405,6 +407,51 @@ describe("AgentService", () => {
           .chat("after", "test-conversation")
           .catch((error: unknown) => error),
       ).toBe(activeError);
+    });
+
+    it("drains a cancellation-ignoring model call before shutdown settles", async () => {
+      const entered = deferred();
+      const release = deferred();
+      const addMessage = mock(mockConversationService.addMessage);
+      mockConversationService.addMessage = addMessage;
+      let modelSignal: AbortSignal | undefined;
+      mockGenerate.mockImplementation(async (params) => {
+        modelSignal = params.abortSignal;
+        entered.resolve();
+        await release.promise;
+        return mockAgentGenerateResult;
+      });
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const turn = service
+        .chat("hello", "test-conversation")
+        .catch((error: unknown) => error);
+      await entered.promise;
+      const messagesBeforeShutdown = addMessage.mock.calls.length;
+      const shuttingDown = service.shutdown();
+      let settled = false;
+      const observedShutdown = shuttingDown.then(() => {
+        settled = true;
+      });
+      try {
+        expect(service.shutdown()).toBe(shuttingDown);
+        const error = await turn;
+        expect(error).toEqual(new Error("Agent service has been shut down"));
+        await nextTurn();
+        expect(modelSignal?.aborted).toBe(true);
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+        await Promise.allSettled([turn, observedShutdown]);
+      }
+      expect(settled).toBe(true);
+      expect(addMessage.mock.calls.length).toBe(messagesBeforeShutdown);
     });
 
     it("rejects messages beyond the bounded per-conversation queue", async () => {
