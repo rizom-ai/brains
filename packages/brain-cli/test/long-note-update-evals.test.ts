@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { YAMLLoader } from "../src/loaders/yaml-loader";
-import type { AgentTestCase } from "../src/schemas";
-import { evaluateCriteria } from "../src/criteria-evaluator";
+import {
+  evaluateCriteria,
+  YAMLLoader,
+  type AgentTestCase,
+} from "@brains/ai-evaluation";
 
-const cli = join(import.meta.dir, "../../../packages/brain-cli");
+const cli = join(import.meta.dir, "..");
 const cases = join(cli, "test-cases/personal/multi-turn");
 const loader = YAMLLoader.createFresh({ directory: cases });
 
