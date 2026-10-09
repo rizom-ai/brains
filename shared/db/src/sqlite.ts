@@ -215,10 +215,14 @@ export function createSqliteDatabase(
 export async function applySqlitePragmas(
   client: PragmaClient,
   url: string,
+  options: Pick<SqliteClientOptions, "contentionRetryBudgetMs"> = {},
 ): Promise<void> {
   if (!url.startsWith("file:")) return;
 
   const isClosed = (): boolean => client.closed === true;
   for (const pragma of ["PRAGMA busy_timeout = 0", "PRAGMA journal_mode = WAL"])
-    await retryContention(() => client.execute(pragma), { isClosed });
+    await retryContention(() => client.execute(pragma), {
+      isClosed,
+      budgetMs: options.contentionRetryBudgetMs,
+    });
 }

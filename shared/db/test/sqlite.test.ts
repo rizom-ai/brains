@@ -185,12 +185,18 @@ describe("applySqlitePragmas under contention", () => {
       const held = await holder.transaction("write");
       try {
         await held.execute("INSERT INTO probe VALUES (1)");
-        await rejects(applySqlitePragmas(opener, url), (error: unknown) => {
-          expect(error instanceof LibsqlError && error.code).toMatch(
-            /^SQLITE_(BUSY|LOCKED)$/u,
-          );
-          return true;
-        });
+        // A short budget: the policy under test is giving up, not the
+        // production budget's length, which real timers on a loaded machine
+        // stretch past any test timeout.
+        await rejects(
+          applySqlitePragmas(opener, url, { contentionRetryBudgetMs: 200 }),
+          (error: unknown) => {
+            expect(error instanceof LibsqlError && error.code).toMatch(
+              /^SQLITE_(BUSY|LOCKED)$/u,
+            );
+            return true;
+          },
+        );
       } finally {
         held.close();
       }
@@ -199,7 +205,7 @@ describe("applySqlitePragmas under contention", () => {
       holder.close();
       await rm(dir, { recursive: true, force: true });
     }
-  }, 10_000);
+  });
 });
 
 describe("local client contention contract", () => {
