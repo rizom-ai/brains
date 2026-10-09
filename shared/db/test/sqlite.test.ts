@@ -179,24 +179,24 @@ describe("applySqlitePragmas under contention", () => {
     const dir = await mkdtemp(join(tmpdir(), "sqlite-pragma-contention-"));
     const url = `file:${join(dir, "db.sqlite")}`;
     const holder = createSqliteClient({ url });
-    const opener = createSqliteClient({ url });
+    // The client owns the one retry budget; a short one here, since what is
+    // under test is giving up, not how long production waits, which real
+    // timers on a loaded machine stretch past any test timeout.
+    const opener = createSqliteClient(
+      { url },
+      { contentionRetryBudgetMs: 200 },
+    );
     try {
       await holder.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY)");
       const held = await holder.transaction("write");
       try {
         await held.execute("INSERT INTO probe VALUES (1)");
-        // A short budget: the policy under test is giving up, not the
-        // production budget's length, which real timers on a loaded machine
-        // stretch past any test timeout.
-        await rejects(
-          applySqlitePragmas(opener, url, { contentionRetryBudgetMs: 200 }),
-          (error: unknown) => {
-            expect(error instanceof LibsqlError && error.code).toMatch(
-              /^SQLITE_(BUSY|LOCKED)$/u,
-            );
-            return true;
-          },
-        );
+        await rejects(applySqlitePragmas(opener, url), (error: unknown) => {
+          expect(error instanceof LibsqlError && error.code).toMatch(
+            /^SQLITE_(BUSY|LOCKED)$/u,
+          );
+          return true;
+        });
       } finally {
         held.close();
       }
