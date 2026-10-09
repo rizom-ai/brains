@@ -801,6 +801,8 @@ function middleOf(page: Page): number {
  */
 const NUMBERED_SUBSECTION =
   /^(\d{1,2}|[IVX]{1,4}|§\.?\s*\d{1,2})\.\s+(\p{Lu}.*)$/u;
+/** A part's letter and title set on one line: A. Die Physiokraten. */
+const LETTERED_PART = /^([A-H])\.\s+(\p{Lu}.*)$/u;
 /** A line that opens with a label of its own (a. Der „Geist“ und die „Masse“), or a quotation, a motto below the title. */
 const LABELLED = /^(?:\S{1,4}[.)]\s|[„"»])/u;
 /** A title's second line is set this large at least, against its first. */
@@ -1057,6 +1059,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         // title; a numeral alone may stand above the text's first line.
         (above.kind === "chapter" &&
           above.named === true &&
+          line.width < volume.column * HEADING_WIDTH) ||
+        // A part's title runs on through lines larger than the text.
+        (last?.kind === "heading" &&
+          last.lines.some((heading) => heading.kind === "part") &&
+          line.size > volume.textSize &&
           line.width < volume.column * HEADING_WIDTH));
     // A title set in display type, larger than the text, need not be in
     // capitals; Fraktur's display type has none to read.
@@ -1083,11 +1090,36 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // dedication's or a list's line does not.
     const display =
       /^[[(„"]?\p{Lu}/u.test(line.text) &&
-      (apart
+      (apart ||
+      // A title line well short of the column, on a page with text: two
+      // text lines read as one fill it, and a dedication has no text.
+      (line.width < volume.column * TITLE_WIDTH &&
+        (before !== undefined || after !== undefined))
         ? line.size > volume.textSize * HEADING_SIZE
         : line.size > volume.textSize * DISPLAY_SIZE &&
           line.bottom - line.y > bodyHeight * DISPLAY_HEIGHT &&
           line.width < volume.column * HEADING_WIDTH);
+    // A lettered title on one line opens a part: A. Die Physiokraten.
+    const lettered = LETTERED_PART.exec(line.text);
+    if (
+      !open &&
+      centred &&
+      display &&
+      lettered?.[1] &&
+      lettered[2] &&
+      isWordy(lettered[2], volume.spelling)
+    ) {
+      return [
+        ...pieces,
+        {
+          kind: "heading",
+          lines: [
+            { kind: "part", text: lettered[1] },
+            { kind: "caps", text: lettered[2], size: line.size, misread: true },
+          ],
+        },
+      ];
+    }
     const candidate: HeadingLine | null =
       read ??
       (centred && (titles || display)

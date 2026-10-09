@@ -1193,3 +1193,32 @@ describe("parseArchiveOcrWork, notes set apart by space", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, lettered parts", () => {
+  it("reads a lettered title on one line as a part, its numbered sections under it", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-lettered-parts.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 1,
+        lastPage: 2,
+      },
+    );
+
+    expect(units.map((unit) => [unit.parents.at(-1), unit.title])).toEqual([
+      [
+        "A. Die Physiokraten und einige ihrer Vorgänger und Zeitgenossen.",
+        "1. Sir William Petty.",
+      ],
+      [
+        "B. Adam Smith und der Begriff der produktiven Arbeit.",
+        "1. Seine Bestimmung des Wertes durch die Arbeit.",
+      ],
+    ]);
+  });
+});
