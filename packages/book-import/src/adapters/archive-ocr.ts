@@ -1,6 +1,7 @@
 import { Window } from "happy-dom";
 import type { BookUnit } from "../render-book";
 import { unitsOfSections } from "../sections";
+import { sharpened, unjoined } from "./run-together";
 import {
   createSpelling,
   headingLineOf,
@@ -82,6 +83,9 @@ const SCRAP_TOKENS = 3;
 function isScraps(text: string): boolean {
   return !/\p{L}{3}/u.test(text) && text.split(" ").length >= SCRAP_TOKENS;
 }
+
+/** A word the text uses this often is one of its common words. */
+const COMMON_USES = 3;
 
 /** A page whose lines are mostly not words holds a picture, not text. */
 const CLEAN_LINES = 0.5;
@@ -509,6 +513,8 @@ interface Volume {
   textSpelling: Spelling;
   /** Each page's running head, without its page number or numeral. */
   headsByLeaf: Map<number, string>;
+  /** The words its text uses often, in small letters. */
+  common: Set<string>;
 }
 
 /** Lines below the running head and the scan's noise above it. */
@@ -1109,10 +1115,25 @@ function readVolume(hocr: string): ReadVolume {
         .map((line) => line.text),
     ),
   );
+  const uses = pages
+    .flatMap((page) =>
+      page.lines
+        .slice(runningHeadIndex(page, heads) + 1)
+        .flatMap((line) => line.text.toLowerCase().match(/\p{L}{2,}/gu) ?? []),
+    )
+    .reduce(
+      (seen, word) => seen.set(word, (seen.get(word) ?? 0) + 1),
+      new Map<string, number>(),
+    );
   return {
     pages,
     printed: printedPageNumbers(pages.map(readingOf)),
     volume: {
+      common: new Set(
+        [...uses]
+          .filter(([, count]) => count >= COMMON_USES)
+          .map(([word]) => word),
+      ),
       heads,
       column: median(fullLines.map((line) => line.width)),
       textSize: median(fullLines.map((line) => line.size)),
@@ -1224,9 +1245,18 @@ export function parseArchiveOcrWork(
       titleOf(step, namedByHeads(step, filled, volume)),
     ]),
   );
+  // A ß the OCR read as B is read as ß again, and words it ran together in
+  // letter-spaced type are parted.
+  const parted = <Block extends { text: string }>(blocks: Block[]): Block[] =>
+    blocks.map((block) => ({
+      ...block,
+      text: unjoined(sharpened(block.text, volume.common), volume.common),
+    }));
   return unitsOfSections(
     filled.map((section) => ({
       ...section,
+      paragraphs: parted(section.paragraphs),
+      notes: parted(section.notes),
       titles: section.path.map((step) => titles.get(step) ?? ""),
     })),
     (start) => ({
