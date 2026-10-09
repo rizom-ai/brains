@@ -996,3 +996,26 @@ describe("parseArchiveOcrWork, parts and roman sections", () => {
     expect(units.at(-1)?.title).toBe("II. Ἄτομοι ἀρχαί und ἄτομα στοιχεῖα.");
   });
 });
+
+describe("parseArchiveOcrWork, notes marked by asterisks", () => {
+  it("reads a line that opens with an asterisk low on the page as a note, though set as large as the text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-star-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_14861084_000",
+        title: "Das Elend der Philosophie",
+        citation: "Elend",
+        firstPage: 70,
+        lastPage: 71,
+      },
+    );
+
+    expect(units[0]?.paragraphs).toEqual([
+      "Der Titre des Geldes ist der Werth der Dinge, und dies gilt ebenso von Gold und Silber, wie von Getreide und Wein. Indess, kaum war der Betrug ruchbar geworden, als sein Geld auf den richtigen Werth reduzirt ward, wie der Werth der Dinge und des Geldes.",
+      "*) Titre heisst einerseits Titel, Name, andererseits aber auch, bei Gold und Silber, deren Feingehalt.",
+    ]);
+  });
+});

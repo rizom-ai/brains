@@ -130,6 +130,8 @@ const RUNNING_HEAD =
 const SIGNATURE =
   /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3})\s*[IVXLl1|]+\.?[,.]?\s*\d*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*)\)/;
+/** A note marked by asterisks: *) or **). */
+const STAR_NOTE_START = /^\*+\)/;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
 const OCR_NOTE_MARKER = /ı\)/g;
 
@@ -867,7 +869,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         ? (headless.slice(index + 1).find((below) => /\p{L}/u.test(below.text))
             ?.size ?? 0) <
           bodySize * FOOT_TEXT_SIZE
-        : line.size < bodySize * NOTE_SIZE && NOTE_START.test(line.text)),
+        : (line.size < bodySize * NOTE_SIZE && NOTE_START.test(line.text)) ||
+          // No line of text opens with an asterisk's mark; a note may be
+          // set, or measured, as large as the text.
+          STAR_NOTE_START.test(line.text)),
   );
   const noteFrom = footAt < 0 ? headless.length : footAt;
   const textLines = headless.slice(0, noteFrom);
