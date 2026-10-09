@@ -185,23 +185,6 @@ export class SiteBuilderPlugin extends ServicePlugin<
             staticAssets: this.config.staticAssets,
           }),
           statusService: this.buildStatusService,
-          onBuildStarted: (environment, jobId, inputGeneration): void => {
-            this.rebuildManager?.markBuildStarted(
-              environment,
-              jobId,
-              inputGeneration,
-            );
-          },
-          onBuildFinished: (
-            environment,
-            jobId,
-            inputGeneration,
-          ): Promise<void> =>
-            this.rebuildManager?.markBuildFinished(
-              environment,
-              jobId,
-              inputGeneration,
-            ) ?? Promise.resolve(),
         },
       ),
     );
