@@ -80,6 +80,13 @@ const CENTRE = 0.08;
 const HEADING_WIDTH = 0.9;
 /** or set at least this much larger than the text, as a part's title is. */
 const HEADING_SIZE = 1.25;
+/**
+ * Display type, a title in Fraktur, is set half again as large as the text
+ * and stands taller than the page's lines; the OCR overstates now a line's
+ * type size, now its height, but not both.
+ */
+const DISPLAY_SIZE = 1.5;
+const DISPLAY_HEIGHT = 1.4;
 /** A title the OCR misread is at most this share of the text column. */
 const TITLE_WIDTH = 0.75;
 /** So many tokens without a word among them are scraps, not a short last line. */
@@ -781,6 +788,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     : bodyLines(page, volume);
   if (isPicture(headless)) return [];
   const bodySize = median(headless.map((line) => line.size));
+  const bodyHeight = median(headless.map((line) => line.bottom - line.y));
   // The footnotes open the page's foot: at the rule above them, or at a small
   // line that starts with a note marker. Everything below is notes; measured
   // sizes alone mistake a body line low on a curved page for one.
@@ -842,9 +850,16 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         (above.kind === "caps" && above.misread === true)) &&
       (line.width < volume.column * TITLE_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE);
+    // A title set in display type, larger than the text, need not be in
+    // capitals; Fraktur's display type has none to read.
+    // Two text lines the OCR read as one are as large, but fill the column.
+    const display =
+      line.size > volume.textSize * DISPLAY_SIZE &&
+      line.bottom - line.y > bodyHeight * DISPLAY_HEIGHT &&
+      line.width < volume.column * HEADING_WIDTH;
     const candidate: HeadingLine | null =
       read ??
-      (centred && titles
+      (centred && (titles || display)
         ? { kind: "caps", text: line.text, size: line.size, misread: true }
         : null);
     // A title is made of the work's words; a picture's scraps are not.

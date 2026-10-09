@@ -626,3 +626,32 @@ describe("parseArchiveOcrWork, front matter numbered by a bare roman numeral", (
     );
   });
 });
+
+describe("parseArchiveOcrWork, titles set in display type", () => {
+  it("reads a centred line set larger than the text as a title, and the lines it runs on through", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 42,
+      },
+    );
+
+    // The work's own title opens it, and is left out as the manifest gives it.
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Nachlass II, 41",
+      "Der Aufstand der Weber.",
+    ]);
+    expect(units[0]?.paragraphs[0]).toStartWith("Die Nr. 60 des Vorwärts");
+    expect(units[1]?.paragraphs).toEqual([
+      "Zunächst erinnere man sich an das Weberlied, an diese kühne Parole des Kampfes.",
+    ]);
+  });
+});
