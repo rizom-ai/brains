@@ -479,6 +479,25 @@ async function loadDtaTeiBook(
   };
 }
 
+/**
+ * The leaves an uploaded scan serves as page images, as its scandata lists
+ * them, where its metadata counts none; null where it has no scandata.
+ */
+async function scandataLeaves(
+  item: string,
+  files: z.output<typeof archiveMetadataSchema>["files"],
+  fetchText: FetchText,
+): Promise<number | null> {
+  const scandata = files.find((file) => file.format === "Scandata");
+  if (!scandata) return null;
+  const xml = await fetchText(
+    `${ARCHIVE}/download/${item}/${encodeURIComponent(scandata.name)}`,
+  );
+  return (
+    xml.match(/<addToAccessFormats>true<\/addToAccessFormats>/g)?.length ?? null
+  );
+}
+
 /** A work in a scanned volume. */
 /**
  * A scanned volume read anew, page image by page image in the scan's order,
@@ -492,7 +511,9 @@ export async function ocrVolumeHocr(
   const metadata = archiveMetadataSchema.parse(
     JSON.parse(await fetchText(`${ARCHIVE}/metadata/${item}`)),
   );
-  const count = metadata.metadata?.imagecount;
+  const count =
+    metadata.metadata?.imagecount ??
+    (await scandataLeaves(item, metadata.files, fetchText));
   if (!count) throw new Error(`No image count for ${item}`);
   const pages = await Array.from({ length: count }, (_, leaf) => leaf).reduce<
     Promise<string[]>

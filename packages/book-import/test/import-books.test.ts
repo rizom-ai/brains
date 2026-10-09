@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { bookAdapter } from "@brains/book";
 import {
   importBooks,
+  ocrVolumeHocr,
   parseCorrections,
   parseManifest,
 } from "../src/import-books";
@@ -582,6 +583,41 @@ books:
       "frk https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg",
     );
     expect(await files(join(brainData, "book"))).toEqual(fromArchive);
+  });
+
+  it("counts an uploaded scan's pages in its scandata where its metadata has no image count", async () => {
+    const scandata = (leaves: boolean[]): string =>
+      `<book><pageData>${leaves
+        .map(
+          (access, leaf) =>
+            `<page leafNum="${leaf}"><addToAccessFormats>${access}</addToAccessFormats></page>`,
+        )
+        .join("")}</pageData></book>`;
+    const uploaded = async (url: string): Promise<string> => {
+      requested.push(url);
+      if (url === "https://archive.org/metadata/mehring-nachlass-1") {
+        return JSON.stringify({
+          metadata: { title: "Mehring Nachlass 1" },
+          files: [
+            { name: "Mehring Nachlass 1.pdf", format: "Image Container PDF" },
+            { name: "Mehring Nachlass 1_scandata.xml", format: "Scandata" },
+          ],
+        });
+      }
+      return scandata([true, true, false, true]);
+    };
+    const recognised: string[] = [];
+
+    await ocrVolumeHocr("mehring-nachlass-1", uploaded, async (url) => {
+      recognised.push(url);
+      return "<html><body><div class='ocr_page' id='page_1'></div></body></html>";
+    });
+
+    expect(requested).toEqual([
+      "https://archive.org/metadata/mehring-nachlass-1",
+      "https://archive.org/download/mehring-nachlass-1/Mehring%20Nachlass%201_scandata.xml",
+    ]);
+    expect(recognised).toHaveLength(3);
   });
 
   it("applies the corrections for the work's volume", async () => {
