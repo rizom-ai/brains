@@ -1,6 +1,7 @@
 import type { EnqueueJobRequest, JobInfo } from "@brains/job-queue";
 import { SdkError, toSdkError, type SdkErrorCode } from "@brains/contracts";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
+import { createId } from "@brains/utils/id";
 import type { AnyServiceJobDefinition } from "./service-definition-contract";
 
 interface RuntimeJobDefinition {
@@ -18,6 +19,7 @@ export function createServiceJobRequest(
   definition: RuntimeJobDefinition,
   input: unknown,
   source: string,
+  options?: { readonly delayMs?: number | undefined },
 ): EnqueueJobRequest {
   const type = getServiceJobRuntimeType(definition);
   const registered = definitions.get(definition);
@@ -33,6 +35,14 @@ export function createServiceJobRequest(
   } catch (error) {
     throw new SdkError("invalid_input", { cause: error });
   }
+  const schedule = z
+    .strictObject({
+      delayMs: z.number().int().min(0).max(86_400_000).optional(),
+    })
+    .safeParse(options ?? {});
+  if (!schedule.success) {
+    throw new SdkError("invalid_input", { cause: schedule.error });
+  }
   const pendingKey = registered.oncePending?.(parsed);
   return {
     type,
@@ -41,6 +51,12 @@ export function createServiceJobRequest(
     options: {
       source,
       metadata: { operationType: "data_processing", pluginId: source },
+      ...(registered.causality === "independent"
+        ? { rootJobId: createId() }
+        : {}),
+      ...(schedule.data.delayMs !== undefined
+        ? { delayMs: schedule.data.delayMs }
+        : {}),
       ...(registered.retry
         ? { maxRetries: registered.retry.attempts - 1 }
         : {}),

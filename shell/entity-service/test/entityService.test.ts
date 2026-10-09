@@ -373,72 +373,92 @@ describe("EntityService", (): void => {
     });
   });
 
-  test("ordinary mutations take ownership back from projection outputs", async () => {
-    entityRegistry.registerEntityType(
-      "note",
-      noteSchema,
-      new NoteSerializerAdapter(),
-    );
-    await entityService.initialize();
-    const store = entityService.getProjectionStore();
-    await store.markDirty({
-      sourceType: "document",
-      sourceId: "ownership-source",
-      revision: "ownership-source-hash",
-      operation: "upsert",
-      markedAt: 10,
-    });
-    await store.claimPendingWave({
-      waveId: "ownership-wave",
-      graphFingerprint: "graph-1",
-      startedAt: 20,
-    });
-    await store.putWaveRules("ownership-wave", [
-      { ruleId: "note-summary", targetType: "note", level: 0 },
-    ]);
-    await store.applyRuleResult({
-      waveId: "ownership-wave",
-      ruleId: "note-summary",
-      ruleVersion: "1",
-      inputFingerprint: "ownership-input",
-      writeIntents: [
-        {
-          operation: "upsert",
-          entity: {
-            id: "owned-note",
-            entityType: "note",
-            content: "# Test Note\n\nProjection-owned note",
-            metadata: { tags: [] },
-            visibility: "public",
+  test.each([false, true])(
+    "releases projection ownership through ordinary writes or retired-rule migration (migration=%s)",
+    async (migration) => {
+      entityRegistry.registerEntityType(
+        "note",
+        noteSchema,
+        new NoteSerializerAdapter(),
+      );
+      await entityService.initialize();
+      const store = entityService.getProjectionStore();
+      await store.markDirty({
+        sourceType: "document",
+        sourceId: "ownership-source",
+        revision: "ownership-source-hash",
+        operation: "upsert",
+        markedAt: 10,
+      });
+      await store.claimPendingWave({
+        waveId: "ownership-wave",
+        graphFingerprint: "graph-1",
+        startedAt: 20,
+      });
+      await store.putWaveRules("ownership-wave", [
+        { ruleId: "note-summary", targetType: "note", level: 0 },
+      ]);
+      await store.applyRuleResult({
+        waveId: "ownership-wave",
+        ruleId: "note-summary",
+        ruleVersion: "1",
+        inputFingerprint: "ownership-input",
+        writeIntents: [
+          {
+            operation: "upsert",
+            entity: {
+              id: "owned-note",
+              entityType: "note",
+              content: "# Test Note\n\nProjection-owned note",
+              metadata: { tags: [] },
+              visibility: "public",
+            },
           },
-        },
-      ],
-      completedAt: 30,
-    });
+        ],
+        completedAt: 30,
+      });
 
-    expect(
-      await entityService.isProjectionOwnedEntity({
-        entityType: "note",
-        id: "owned-note",
-      }),
-    ).toBe(true);
+      expect(
+        await entityService.isProjectionOwnedEntity({
+          entityType: "note",
+          id: "owned-note",
+        }),
+      ).toBe(true);
 
-    const updateResult = await entityService.updateEntity({
-      entity: createNote({
-        id: "owned-note",
-        content: "Projection-owned note",
-        metadata: { tags: [] },
-      }),
-    });
-
-    expect(updateResult.skipped).toBe(true);
-    expect(
-      await entityService.isProjectionOwnedEntity({
-        entityType: "note",
-        id: "owned-note",
-      }),
-    ).toBe(false);
-  });
+      if (migration) {
+        const before = await entityService.getEntity({
+          entityType: "note",
+          id: "owned-note",
+        });
+        await entityService.releaseProjectionOwnership({
+          entityType: "note",
+          ruleId: "note-summary",
+          ruleVersion: "1",
+        });
+        expect(
+          await entityService.getEntity({
+            entityType: "note",
+            id: "owned-note",
+          }),
+        ).toEqual(before);
+      } else {
+        const updateResult = await entityService.updateEntity({
+          entity: createNote({
+            id: "owned-note",
+            content: "Projection-owned note",
+            metadata: { tags: [] },
+          }),
+        });
+        expect(updateResult.skipped).toBe(true);
+      }
+      expect(
+        await entityService.isProjectionOwnedEntity({
+          entityType: "note",
+          id: "owned-note",
+        }),
+      ).toBe(false);
+    },
+  );
 
   test("checks projection admission only for persisted mutations", async () => {
     entityRegistry.registerEntityType(

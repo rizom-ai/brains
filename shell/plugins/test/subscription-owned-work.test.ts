@@ -64,7 +64,10 @@ it("binds delivery identity, owned receipts and confirmation lifetime to an inst
                 z.object({ same: z.boolean() }),
               ),
             ).toEqual({ object: { same: true } });
+            const edit = await entities.mutations.read(faq, "one");
+            if (!edit) throw new Error("Missing subscription edit");
             late.push(
+              () => entities.mutations.remove(faq, edit),
               () => operation.get(),
               () => entities.mutations.read(faq, "one"),
               () => ai.generateObject("late", z.object({ same: z.boolean() })),
@@ -84,6 +87,9 @@ it("binds delivery identity, owned receipts and confirmation lifetime to an inst
       ),
     );
     await harness.finalizeRegistration();
+    await harness.getEntityService().createEntity({
+      entity: { entityType: "faq", id: "one", content: "keep", metadata: {} },
+    });
     const response = z
       .object({ messageId: z.string().min(1) })
       .parse(
@@ -107,6 +113,9 @@ it("binds delivery identity, owned receipts and confirmation lifetime to an inst
     expect(signals[0]?.aborted).toBe(true);
     for (const call of late)
       expect(await refused(call)).toMatchObject({ code: "cancelled" });
+    expect(
+      (await store.getEntity({ entityType: "faq", id: "one" }))?.content,
+    ).toBe("keep");
     expect(signals).toHaveLength(1);
   } finally {
     await harness.reset();

@@ -3885,6 +3885,7 @@ describe("the public testing harness", () => {
               "getEntity",
               "getEntityCounts",
               "getEntityTypes",
+              "getSourcePolicy",
               "list",
               "listEntities",
               "mutations",

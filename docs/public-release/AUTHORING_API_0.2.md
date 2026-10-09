@@ -248,6 +248,7 @@ Declared background jobs and installed service subscription deliveries additiona
 
 - `read(definition, id, { visibilityScope? })` issues a frozen canonical editing view, or returns `null`. The default read scope is public.
 - `replace(definition, edit, entity)` compares the full canonical revision, including metadata and visibility. Copying an edit or moving it to another entity-access instance does not issue authority; its comparable `version` is not a writable native condition.
+- `remove(definition, edit)` deletes only the host-issued snapshot's full revision; a missing or changed entity reports `conflict`. It uses the same owner, access-instance and cancellation checks as replacement. Named consumer: ranked Topics trimming/replacement. A subsequent create is not atomic with this removal.
 - `fold(definition, sourceEdit, targetEdit, entity)` atomically replaces the destination and removes the source. Both versions must match; the pair must have the same type and visibility, and the destination visibility cannot change.
 - `once(definition, operation, key)` returns `get()` and `complete(proposal)`. A proposal is `{ operation: "none" }`, `{ operation: "create", entity }`, or `{ operation: "update", edit, entity }`. The first committed terminal result wins; a conflict does not consume the identity. Receipts expose only the operation and, for writes, the entity ID, and survive entity edits, folding and deletion.
 
@@ -302,6 +303,10 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 ## `@rizom/brain/services`
 
 Service `seeds` are host-owned defaults, not general-purpose foreign write authority. They run on `SYSTEM_CHANNELS.startupContentSettled`, after any queued startup import, rather than in `ready`. Existing entities at any visibility are preserved. A service's `ready` hook may run while startup import is pending; subscribe to the settled-content signal for work that needs imported content and shell defaults. Workers do not seed defaults. Failed startup imports do not create defaults or announce settled content, including batches already failed or missing when first followed; a later restart retries the import. Entity `seed` declarations triggered by `content-sync-completed` likewise require an explicitly successful completion, not a failed or malformed signal.
+
+Ranked maintenance can declare `causality: "independent"` in `defineJob`; the host mints a fresh root without author-supplied provenance. Independent jobs cannot join batches. `ServiceJobs.enqueue(definition, input, { delayMs })` accepts a durable integer delay from zero through 86,400,000 milliseconds, with no arbitrary scheduling or namespace authority. Ordinary job causality remains inherited.
+
+Entity readers expose `getSourcePolicy(type)` with only frozen, detached `projectionSource` and `projectionSourceRole` fields. An entity declaration can specify `retiredProjectionRules: [{ id, version }]`; the host releases exactly those rules/versions on the declaration's owned type before orphan reconciliation, without deleting content or other ownership claims. An active declared rule cannot also be retired. Stop old writers before this one-way handoff; no mixed-version/downgrade guarantee is provided. Named consumer for these capabilities: ranked Topics.
 
 Job deadlines are inactivity windows, not total execution or spending limits. A changed progress value, total, or message renews the window; an identical consecutive notification or a reporter's automatic heartbeat does not. Cancellation and attempt fencing still apply.
 

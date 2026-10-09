@@ -52,6 +52,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
           templateName: "@brains/decks:deck:description",
           representedIdentity: "none",
         }),
+        undefined,
       );
     });
   });

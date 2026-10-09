@@ -31,6 +31,58 @@ describe("owned FAQ mutations on real SQLite", () => {
     await directory.cleanup();
   });
 
+  it.each(["metadata", "visibility"] as const)(
+    "refuses conditional removal when %s changes at the native delete boundary",
+    async (field) => {
+      const mutations = access();
+      const edit = await mutations.read(faqEntity, "target", scope);
+      if (!edit) throw new Error("Missing target");
+      const remove = service.deleteEntity.bind(service);
+      spyOn(service, "deleteEntity").mockImplementationOnce(async (request) => {
+        await service.updateEntity({
+          entity: {
+            ...edit.entity,
+            ...(field === "metadata"
+              ? { metadata: { ...edit.entity.metadata, rank: 17 } }
+              : {
+                  visibility:
+                    edit.entity.visibility === "public"
+                      ? "restricted"
+                      : "public",
+                }),
+          },
+        });
+        return remove(request);
+      });
+      const result = await mutations
+        .remove(faqEntity, edit)
+        .catch((cause: unknown): unknown => cause);
+      expect(result).toMatchObject({ code: "conflict" });
+      expect(await readFold(service, "target")).not.toBeNull();
+      service.close();
+      service = await openFoldStorage(directory.dir);
+      await service.initialize();
+      expect(await readFold(service, "target")).not.toBeNull();
+    },
+  );
+
+  it("commits owned conditional removal durably without removing another entity", async () => {
+    const mutations = access();
+    const edit = await mutations.read(faqEntity, "target", scope);
+    if (!edit) throw new Error("Missing target");
+    await mutations.remove(faqEntity, edit);
+    expect(
+      await mutations
+        .remove(faqEntity, edit)
+        .catch((cause: unknown): unknown => cause),
+    ).toMatchObject({ code: "conflict" });
+    service.close();
+    service = await openFoldStorage(directory.dir);
+    await service.initialize();
+    expect(await readFold(service, "target")).toBeNull();
+    expect(await readFold(service, "source")).not.toBeNull();
+  });
+
   it("commits an update with the native receipt identity and survives deletion/reopening", async () => {
     const mutations = access();
     const edit = await mutations.read(faqEntity, "target", scope);

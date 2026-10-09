@@ -62,6 +62,137 @@ async function failed(promise: Promise<unknown>): Promise<unknown> {
 }
 
 describe("host-owned entity mutation runtime", () => {
+  it.each(["content", "metadata", "visibility"] as const)(
+    "refuses removal after a concurrent %s change",
+    async (field) => {
+      const { service, mutations } = await fixture();
+      const edit = await mutations.read(
+        { entityType: "note", id: "source" },
+        baseEntityParserSchema,
+      );
+      if (!edit) throw new Error("Missing fixture");
+      await service.updateEntity({
+        entity: {
+          ...edit.entity,
+          ...(field === "content" ? { content: "Concurrent body" } : {}),
+          ...(field === "metadata"
+            ? { metadata: { ...edit.entity.metadata, count: 2 } }
+            : {}),
+          ...(field === "visibility" ? { visibility: "restricted" } : {}),
+        },
+      });
+      expect(await failed(mutations.remove(edit))).toMatchObject({
+        code: "conflict",
+      });
+      expect(
+        await service.getEntity({
+          entityType: "note",
+          id: "source",
+          visibilityScope: "restricted",
+        }),
+      ).not.toBeNull();
+    },
+  );
+
+  it("removes only a same-access issued snapshot and treats repeated removal as conflict", async () => {
+    const { service, mutations } = await fixture();
+    const edit = await mutations.read(
+      { entityType: "note", id: "source" },
+      baseEntityParserSchema,
+    );
+    if (!edit) throw new Error("Missing fixture");
+    const remove = spyOn(service, "deleteEntity");
+    expect(await failed(mutations.remove({ ...edit }))).toMatchObject({
+      code: "invalid_input",
+    });
+    const other = hostMutations(
+      service,
+      new Set(["note"]),
+      "@fixture/other",
+    ).mutations;
+    expect(await failed(other.remove(edit))).toMatchObject({
+      code: "invalid_input",
+    });
+    expect(remove).not.toHaveBeenCalled();
+    await mutations.remove(edit);
+    expect(remove).toHaveBeenCalledWith({
+      entityType: "note",
+      id: "source",
+      options: { conditionalWrite: { expectedRevision: edit.version } },
+    });
+    expect(
+      await service.getEntity({ entityType: "note", id: "source" }),
+    ).toBeNull();
+    expect(await failed(mutations.remove(edit))).toMatchObject({
+      code: "conflict",
+    });
+    expect(
+      await service.getEntity({ entityType: "note", id: "target" }),
+    ).not.toBeNull();
+  });
+
+  it("revokes retained removal credentials when the job lifetime ends", async () => {
+    const { service } = await fixture();
+    const controller = new AbortController();
+    const mutations = createOwnedEntityMutationRuntime(
+      service,
+      new Set(["note"]),
+      {
+        packageName: "@fixture/notes",
+        declarationId: "capture",
+        signal: controller.signal,
+      },
+    );
+    const edit = await mutations.read(
+      { entityType: "note", id: "source" },
+      baseEntityParserSchema,
+    );
+    if (!edit) throw new Error("Missing fixture");
+    controller.abort();
+    const remove = spyOn(service, "deleteEntity");
+    expect(await failed(mutations.remove(edit))).toMatchObject({
+      code: "cancelled",
+    });
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("checks the definition before forwarding public removal", async () => {
+    const { service } = await fixture();
+    const access = createAccess(
+      service,
+      new Set(["note"]),
+      "capture",
+      undefined,
+      { packageName: "@fixture/notes", declarationId: "capture" },
+    );
+    const note = defineEntity({
+      type: "note",
+      purpose: "Owned fixture",
+      metadata: z.object({}),
+    });
+    const foreign = defineEntity({
+      type: "foreign",
+      purpose: "Foreign fixture",
+      metadata: z.object({}),
+    });
+    const edit = await access.mutations.read(note, "source");
+    if (!edit) throw new Error("Missing fixture");
+    expect(
+      await failed(
+        Promise.resolve(
+          Reflect.apply(access.mutations.remove, access.mutations, [
+            foreign,
+            edit,
+          ]),
+        ),
+      ),
+    ).toMatchObject({ code: "invalid_input" });
+    await access.mutations.remove(note, edit);
+    expect(
+      await service.getEntity({ entityType: "note", id: "source" }),
+    ).toBeNull();
+  });
+
   it("reads detached frozen canonical fields, not enriched display metadata", async () => {
     const { service, mutations } = await fixture();
     spyOn(service, "getEntity").mockImplementation(async () => {

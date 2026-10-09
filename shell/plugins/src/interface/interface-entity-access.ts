@@ -9,6 +9,7 @@ import type {
 } from "@brains/entity-service";
 import { SdkError } from "@brains/contracts";
 import type { JobEntityAccess } from "../job/job-context-contract";
+import { readProjectionSourcePolicy } from "../internal/projection-source-policy";
 import { parseDefinitionEntity } from "../entity/entity-schema";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 
@@ -145,6 +146,7 @@ export function createInterfaceEntityAccess(
       read: refuseOwnedAsync,
       replace: refuseOwnedAsync,
       fold: refuseOwnedAsync,
+      remove: refuseOwnedAsync,
       once: refuseOwned,
     }),
     queryEntityHierarchy: (request) =>
@@ -156,6 +158,8 @@ export function createInterfaceEntityAccess(
     getEntity,
     find,
     getEntityTypes: () => entityService.getEntityTypes(),
+    getSourcePolicy: (entityType) =>
+      readProjectionSourcePolicy(entityService, entityType),
     search,
     get: async <TDefinition extends EntityDefinitionShape>(
       definition: TDefinition,

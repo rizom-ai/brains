@@ -82,7 +82,23 @@ const definition = defineServicePlugin(
           throw new Error("Source survived fold");
         if ((await mutations.read(record, "one"))?.entity.metadata.count !== 5)
           throw new Error("Wrong folded count");
-        await entities.delete(record, "one");
+        const staleRemoval = await mutations
+          .remove(record, target)
+          .catch((error: unknown): unknown => error);
+        if (code(staleRemoval) !== "conflict")
+          throw new Error("Stale removal was accepted");
+        const current = await mutations.read(record, "one");
+        if (!current) throw new Error("Missing current snapshot");
+        await mutations.remove(record, current);
+        if (await mutations.read(record, "one"))
+          throw new Error("Conditional removal did not delete its target");
+        const policy = entities.getSourcePolicy(record.type);
+        if (
+          !Object.isFrozen(policy) ||
+          !policy.projectionSource ||
+          policy.projectionSourceRole !== "primary"
+        )
+          throw new Error("Invalid detached source policy");
         const repeated = await operation.complete({ operation: "none" });
         if (repeated.operation !== "create" || repeated.entityId !== "one")
           throw new Error("Deletion lost receipt");

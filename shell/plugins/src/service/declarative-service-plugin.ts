@@ -1502,6 +1502,7 @@ class DeclarativeServicePlugin<
       enqueue: async <TDefinition extends AnyServiceJobDefinition>(
         definition: TDefinition,
         input: z.input<TDefinition["input"]>,
+        options?: { readonly delayMs?: number | undefined },
       ): Promise<ServiceJobReference<TDefinition>> => {
         if (!this.registeredJobs.has(definition)) {
           throw new Error(
@@ -1510,7 +1511,7 @@ class DeclarativeServicePlugin<
         }
         const toolContext = this.toolContext.getStore();
         const id = await context.jobs.enqueue({
-          ...createServiceJobRequest(definition, input, this.id),
+          ...createServiceJobRequest(definition, input, this.id, options),
           ...(toolContext ? { toolContext } : {}),
         });
         return Object.freeze({
@@ -1547,6 +1548,11 @@ class DeclarativeServicePlugin<
           operations.map((operation) => {
             // A batch must own each child's completion/progress. Sharing a
             // pending job with another root cannot honor that ownership.
+            if (operation.definition.causality === "independent") {
+              throw new Error(
+                `Independent maintenance job "${operation.definition.name}" cannot join a batch`,
+              );
+            }
             if (operation.definition.oncePending) {
               throw new Error(
                 `Job "${operation.definition.name}" uses oncePending and cannot be enqueued as a batch child`,

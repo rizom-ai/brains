@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { caughtError } from "@brains/test-utils";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import {
   ProjectionBatchFencedError,
   ProjectionStore,
   type ProjectionWriteIntent,
+  type ContentVisibility,
 } from "../src";
 import { SqliteAssetRepository } from "../src/sqlite-asset-repository";
 import type { ProjectionPersistEntity } from "../src/projection-write-intent-applier";
 import { createEntityDatabase } from "../src/db";
 import { entities, type InsertEntity } from "../src/schema/entities";
+import { projectionEntityOwners } from "../src/schema/projection-state";
 import { entityExportIntents } from "../src/schema/entity-export-state";
 import {
   projectionBatchChildren,
@@ -36,6 +39,112 @@ describe("ProjectionStore", () => {
   afterEach(async () => {
     connection.client.close();
     await database.cleanup();
+  });
+
+  it("hands off only an exact retired rule/version/type without changing content or other owners", async () => {
+    const rows: Array<{
+      id: string;
+      entityType: string;
+      ruleId: string;
+      ruleVersion: string;
+      visibility: ContentVisibility;
+    }> = [
+      {
+        id: "public-old",
+        entityType: "topic",
+        ruleId: "topics-projection",
+        ruleVersion: "1",
+        visibility: "public",
+      },
+      {
+        id: "shared-old",
+        entityType: "topic",
+        ruleId: "topics-projection",
+        ruleVersion: "1",
+        visibility: "shared",
+      },
+      {
+        id: "private-old",
+        entityType: "topic",
+        ruleId: "topics-projection",
+        ruleVersion: "1",
+        visibility: "restricted",
+      },
+      {
+        id: "other-rule",
+        entityType: "topic",
+        ruleId: "other-projection",
+        ruleVersion: "1",
+        visibility: "public",
+      },
+      {
+        id: "other-version",
+        entityType: "topic",
+        ruleId: "topics-projection",
+        ruleVersion: "2",
+        visibility: "public",
+      },
+      {
+        id: "other-type",
+        entityType: "note",
+        ruleId: "topics-projection",
+        ruleVersion: "1",
+        visibility: "public",
+      },
+    ];
+    for (const row of rows) {
+      await connection.db.insert(entities).values({
+        id: row.id,
+        entityType: row.entityType,
+        visibility: row.visibility,
+        content: row.id,
+        contentHash: row.id,
+        metadata: {},
+        created: 1,
+        updated: 1,
+      });
+      await connection.db.insert(projectionEntityOwners).values({
+        entityType: row.entityType,
+        entityId: row.id,
+        ruleId: row.ruleId,
+        ruleVersion: row.ruleVersion,
+        inputFingerprint: "input",
+        claimedAt: 1,
+      });
+    }
+    await connection.db.insert(entities).values({
+      id: "authored",
+      entityType: "topic",
+      visibility: "public",
+      content: "Authored",
+      contentHash: "authored",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    });
+    const before = await connection.db.select().from(entities);
+    const request = {
+      entityType: "topic",
+      ruleId: "topics-projection",
+      ruleVersion: "1",
+    };
+    await store.releaseProjectionOwnership(request);
+    await store.releaseProjectionOwnership(request);
+    const unsafe = { ...request, id: "authored" };
+    expect(
+      await store.releaseProjectionOwnership(unsafe).catch(caughtError),
+    ).toBeInstanceOf(Error);
+    const reopened = createEntityDatabase(database.config);
+    try {
+      expect(await reopened.db.select().from(entities)).toEqual(before);
+      expect(
+        (await reopened.db.select().from(projectionEntityOwners))
+          .map((row) => row.entityId)
+          .sort(),
+      ).toEqual(["other-rule", "other-type", "other-version"]);
+    } finally {
+      reopened.client.close();
+    }
   });
 
   it("commits an entity mutation and dirty revision together", async () => {

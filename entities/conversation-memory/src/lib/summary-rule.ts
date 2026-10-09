@@ -373,8 +373,14 @@ function createCaptureEntityAccess(input: {
     mutations: {
       read: refuseOwned,
       replace: refuseOwned,
+      remove: refuseOwned,
       fold: refuseOwned,
       once: refuseOwned,
+    },
+    getSourcePolicy: (): never => {
+      throw new Error(
+        "Source policies are unavailable in summary projection captures",
+      );
     },
     queryEntityHierarchy: (): never => {
       throw new Error(

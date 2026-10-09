@@ -15,6 +15,7 @@ import type {
   ListOptions,
   SearchOptions,
   SearchResult,
+  ProjectionSourceRole,
 } from "@brains/entity-service";
 import type {
   ProfileKindDefinition,
@@ -162,6 +163,11 @@ export interface JobEntityAccess {
     schema: EntitySchema<T>,
   ): Promise<T | null>;
   getEntityTypes(): string[];
+  /** Detached source classification only, not registry/config authority. Named consumer: Topics. */
+  getSourcePolicy(entityType: string): Readonly<{
+    projectionSource: boolean;
+    projectionSourceRole: ProjectionSourceRole;
+  }>;
   search(request: {
     query: string;
     options?: SearchOptions;

@@ -214,7 +214,12 @@ export const topicsPluginConfigSchema: z.ZodObject<{
   /**
    * Delay before processing source-change batches, allowing bursts to coalesce.
    */
-  sourceChangeBatchDelayMs: z.number().int().min(0).default(1000),
+  sourceChangeBatchDelayMs: z
+    .number()
+    .int()
+    .min(0)
+    .max(86_400_000)
+    .default(1000),
 });
 
 export type TopicsPluginConfig = z.output<typeof topicsPluginConfigSchema>;

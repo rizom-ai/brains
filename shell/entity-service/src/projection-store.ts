@@ -225,16 +225,25 @@ export class ProjectionStore {
     return owners.length > 0;
   }
 
-  public async releaseProjectionOwnership(
-    input: ProjectionOwnedEntityInput,
-  ): Promise<void> {
-    const parsed = projectionOwnedEntitySchema.parse(input);
+  public async releaseProjectionOwnership(input: {
+    entityType: string;
+    ruleId: string;
+    ruleVersion: string;
+  }): Promise<void> {
+    const parsed = z
+      .strictObject({
+        entityType: z.string().min(1),
+        ruleId: z.string().min(1),
+        ruleVersion: z.string().min(1),
+      })
+      .parse(input);
     await this.db
       .delete(projectionEntityOwners)
       .where(
         and(
           eq(projectionEntityOwners.entityType, parsed.entityType),
-          eq(projectionEntityOwners.entityId, parsed.id),
+          eq(projectionEntityOwners.ruleId, parsed.ruleId),
+          eq(projectionEntityOwners.ruleVersion, parsed.ruleVersion),
         ),
       );
   }

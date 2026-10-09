@@ -15,6 +15,8 @@ import {
   topicFrontmatterSchema,
 } from "./schemas/topic";
 import { createTopicBody, parseTopicBody } from "./lib/topic-body";
+import { topicVoteTemplate } from "./templates/vote-template";
+import { topicDescriptionTemplate } from "./templates/description-template";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicDetailTemplate } from "./templates/topic-detail";
@@ -35,6 +37,7 @@ export const topic: EntityDefinition<
   type: TOPIC_ENTITY_TYPE,
   purpose: "A recurring theme or subject derived from the user's content.",
   metadata: topicMetadataSchema,
+  retiredProjectionRules: [{ id: "topics-projection", version: "1" }],
   // The title belongs to authored markdown, not query/display metadata. Keep
   // that envelope when the generic entity reader decodes stored source.
   markdown: {
@@ -57,6 +60,8 @@ export const topic: EntityDefinition<
     projectionSourceRole: "excluded",
   },
   templates: {
+    votes: topicVoteTemplate,
+    description: topicDescriptionTemplate,
     extraction: topicExtractionTemplate,
     "merge-synthesis": topicMergeSynthesisTemplate,
     "topic-list": topicListTemplate,

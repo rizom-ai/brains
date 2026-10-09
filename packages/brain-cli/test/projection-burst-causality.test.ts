@@ -5,11 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { stubMethod } from "@brains/test-utils";
 import { MigrationManager, resolve } from "@brains/app";
-import {
-  Shell,
-  type ProjectionRuleDiagnostic,
-  type ProjectionRuntimeControls,
-} from "@brains/core";
+import { Shell, type ProjectionRuntimeControls } from "@brains/core";
 import { importResultSchema } from "@brains/directory-sync";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
@@ -24,6 +20,7 @@ import {
   MockLoadAIService,
   MockLoadEmbeddingService,
   MockLoadTracker,
+  diffCounts,
 } from "./helpers/mocked-ai-load-services";
 
 const IMPORT_COUNT = 40;
@@ -103,13 +100,6 @@ async function writeNotes(dataDir: string): Promise<void> {
   );
 }
 
-function projectionCalls(
-  snapshot: ReturnType<MockLoadTracker["snapshot"]>,
-  projectionId: string,
-): number {
-  return snapshot.objectCallsByProjection[projectionId] ?? 0;
-}
-
 describe("projection burst causal evidence", () => {
   let shell: Shell | undefined;
   let tempRoot: string | undefined;
@@ -127,7 +117,7 @@ describe("projection burst causal evidence", () => {
   });
 
   it(
-    "coalesces a producer pause longer than the quiet window into one topic wave",
+    "votes once per source in an import burst split by a producer pause",
     async () => {
       tempRoot = await mkdtemp(join(tmpdir(), "projection-causality-"));
       const dataDir = join(tempRoot, "brain-data");
@@ -148,7 +138,6 @@ describe("projection burst causal evidence", () => {
       const clock = new VirtualProjectionClock();
       const operationContext = OperationContext.createFresh();
       const tracker = new MockLoadTracker();
-      const diagnostics: ProjectionRuleDiagnostic[] = [];
       const aiService = new MockLoadAIService(tracker, {
         delayMs: 0,
         getProjectionId: (): string | undefined =>
@@ -227,9 +216,6 @@ describe("projection burst causal evidence", () => {
           projectionRuntime: {
             now: clock.now,
             scheduleWakeup: clock.scheduleWakeup,
-            onDiagnostic: (diagnostic): void => {
-              diagnostics.push(diagnostic);
-            },
           },
         },
       );
@@ -250,15 +236,6 @@ describe("projection burst causal evidence", () => {
       await clock.advanceBy(TOPIC_BATCH_DELAY_MS + 1);
       await queue.waitForIdle({ quietMs: QUIET_MS, timeoutMs: TIMEOUT_MS });
       const baseline = tracker.snapshot();
-      const baselineTopicSourceCount =
-        diagnostics
-          .filter(
-            (entry) =>
-              entry.ruleId === "topics-projection" &&
-              entry.event === "input-selected",
-          )
-          .at(-1)?.selectedSourceCount ?? 0;
-      const diagnosticStart = diagnostics.length;
       await writeNotes(dataDir);
 
       // An import as another package asks for one: over the bus, answered
@@ -315,44 +292,17 @@ describe("projection burst causal evidence", () => {
       await clock.advanceBy(TOPIC_BATCH_DELAY_MS + 1);
       await queue.waitForIdle({ quietMs: QUIET_MS, timeoutMs: TIMEOUT_MS });
 
-      const phaseDiagnostics = diagnostics.slice(diagnosticStart);
-      const topicDerives = phaseDiagnostics.filter(
-        (entry) =>
-          entry.ruleId === "topics-projection" &&
-          entry.event === "derive-started",
+      const phaseReads = diffCounts(
+        baseline.sourceReads,
+        tracker.snapshot().sourceReads,
       );
-      const selectedTopicInputs = phaseDiagnostics.filter(
-        (entry) =>
-          entry.ruleId === "topics-projection" &&
-          entry.event === "input-selected",
-      );
-      const topicApplyOutcomes = phaseDiagnostics.filter(
-        (entry) =>
-          entry.ruleId === "topics-projection" &&
-          entry.event === "apply-completed",
-      );
-      const after = tracker.snapshot();
-
-      expect(new Set(topicDerives.map(({ waveId }) => waveId)).size).toBe(1);
-      expect(topicDerives.map(({ attemptNumber }) => attemptNumber)).toEqual([
-        1,
-      ]);
-      expect(
-        selectedTopicInputs.map(
-          ({ selectedSourceCount }) => selectedSourceCount,
-        ),
-      ).toEqual([baselineTopicSourceCount + IMPORT_COUNT]);
-      expect(
-        topicApplyOutcomes.map(({ applyOutcome }) => applyOutcome),
-      ).toEqual(["applied"]);
-      expect(
-        projectionCalls(after, "topics-projection") -
-          projectionCalls(baseline, "topics-projection"),
-      ).toBe(
-        selectedTopicInputs.reduce(
-          (calls, entry) =>
-            calls + Math.ceil((entry.selectedSourceCount ?? 0) / 4),
-          0,
+      // This counts algorithm vote reads, not provider retry attempts or spend.
+      expect(phaseReads).toEqual(
+        Object.fromEntries(
+          Array.from({ length: IMPORT_COUNT }, (_unused, index) => [
+            `note:projection-causality-${index.toString().padStart(4, "0")}`,
+            1,
+          ]),
         ),
       );
     },

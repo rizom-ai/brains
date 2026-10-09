@@ -391,9 +391,10 @@ export class Shell implements IShell {
    */
   public async generateContent(
     config: ContentGenerationConfig,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     this.requireInitialized("Shell content generation");
-    return generateShellContent(this.services, config);
+    return generateShellContent(this.services, config, signal);
   }
 
   public async query(

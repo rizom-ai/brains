@@ -10,6 +10,7 @@ import type {
   SearchResult,
 } from "../index";
 import type { JobEntityAccess } from "../index";
+import { readProjectionSourcePolicy } from "../internal/projection-source-policy";
 import { createOwnedEntityMutations } from "../internal/owned-entity-mutations";
 import { createOwnedEntityNearest } from "../internal/owned-entity-nearest";
 
@@ -169,6 +170,11 @@ export function createTestEntityAccess(options: {
           if (refusal !== undefined) refuse();
           return service.updateEntity(request);
         },
+        deleteEntity: (request) => {
+          options.onWrite?.();
+          if (refusal !== undefined) refuse();
+          return service.deleteEntity(request);
+        },
         foldEntity: (request) => {
           options.onWrite?.();
           if (refusal !== undefined) refuse();
@@ -189,6 +195,8 @@ export function createTestEntityAccess(options: {
     getEntity,
     find,
     getEntityTypes: () => service.getEntityTypes(),
+    getSourcePolicy: (entityType) =>
+      readProjectionSourcePolicy(service, entityType),
     search,
     get: async () => null,
     create: <T extends BaseEntity>(

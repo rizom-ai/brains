@@ -308,6 +308,10 @@ export interface EntityDefinition<
    * than from one named source. `defineProjection` pairs a single source
    * definition with a single target and cannot express that.
    */
+  /** Release only these exact retired rule/version claims on this owned type, before orphan cleanup.
+   * Content is preserved. Stop old writers before this one-way handoff. Named consumer: Topics. */
+  readonly retiredProjectionRules?:
+    readonly { readonly id: string; readonly version: string }[] | undefined;
   readonly projectionRules?:
     | readonly ProjectionRule[]
     // A function when a rule has to name a template: only the runtime knows

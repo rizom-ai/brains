@@ -136,6 +136,9 @@ it("refuses previously issued edits and operation objects after job cancellation
   const refused = (promise: Promise<unknown>): Promise<unknown> =>
     promise.catch((error: unknown): unknown => error);
   expect(await refused(operation.get())).toMatchObject({ code: "cancelled" });
+  expect(await refused(mutations.remove(record, edit))).toMatchObject({
+    code: "cancelled",
+  });
   expect(
     await refused(operation.complete({ operation: "none" })),
   ).toMatchObject({ code: "cancelled" });

@@ -22,6 +22,7 @@ export interface OwnedEntityMutationRuntime {
     edit: OwnedEntityEdit<T>,
     entity: NoInfer<T>,
   ): Promise<void>;
+  remove(edit: OwnedEntityEdit): Promise<void>;
   fold<T extends BaseEntity>(
     source: OwnedEntityEdit<T>,
     target: OwnedEntityEdit<T>,

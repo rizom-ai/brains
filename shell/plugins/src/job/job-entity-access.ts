@@ -14,6 +14,7 @@ import {
   getVisibleContentVisibilities,
 } from "@brains/entity-service";
 import type { JobEntityAccess } from "./job-context-contract";
+import { readProjectionSourcePolicy } from "../internal/projection-source-policy";
 import { createOwnedEntityNearest } from "../internal/owned-entity-nearest";
 import {
   createOwnedEntityMutations,
@@ -231,6 +232,8 @@ export function createJobEntityAccess(
     getEntity: getEntityScoped,
     find: findScoped,
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
+    getSourcePolicy: (entityType) =>
+      readProjectionSourcePolicy(entityService, entityType),
     getEntityCounts: (
       requested?: ContentVisibility,
     ): Promise<Array<{ entityType: string; count: number }>> =>

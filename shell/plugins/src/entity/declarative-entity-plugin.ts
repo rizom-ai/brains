@@ -543,6 +543,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   // Resolved at construction: the declared form may be a function, but a
   // plugin holds the rules themselves.
   private readonly projectionRules: readonly ProjectionRule[];
+  private readonly retiredProjectionRules: readonly {
+    readonly id: string;
+    readonly version: string;
+  }[];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly feed: AnyEntityDefinition["feed"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -624,6 +628,23 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         : (declared ?? [])),
       ...configuredRules,
     ];
+    this.retiredProjectionRules = Object.freeze(
+      z
+        .array(
+          z.strictObject({
+            id: z.string().trim().min(1),
+            version: z.string().trim().min(1),
+          }),
+        )
+        .max(100)
+        .parse(definition.retiredProjectionRules ?? [])
+        .map((rule) => Object.freeze(rule)),
+    );
+    for (const retired of this.retiredProjectionRules) {
+      if (this.getProjectionRules().some((rule) => rule.id === retired.id)) {
+        throw new Error(`Cannot retire active projection rule "${retired.id}"`);
+      }
+    }
     this.atproto = definition.atproto;
     this.feed = definition.feed;
   }
@@ -667,6 +688,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // Entity registration has already claimed this type for the installed owner.
+    // No author-selected entity id/type or native migration callback is exposed.
+    for (const retired of this.retiredProjectionRules) {
+      await context.entityService.releaseProjectionOwnership({
+        entityType: this.entityType,
+        ruleId: retired.id,
+        ruleVersion: retired.version,
+      });
+    }
     const validatePersist = this.validatePersist;
     if (validatePersist) {
       context.entities.registerPersistValidator(

@@ -104,6 +104,10 @@ export function defineEntity<
     | undefined;
   readonly scheduledGeneration?:
     EntityScheduledGenerationDeclaration | undefined;
+  readonly retiredProjectionRules?: EntityDefinition<
+    TType,
+    TMetadataSchema
+  >["retiredProjectionRules"];
   readonly projectionRules?:
     | readonly ProjectionRule[]
     | ((context: {

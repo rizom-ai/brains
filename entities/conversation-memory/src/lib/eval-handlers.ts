@@ -547,7 +547,16 @@ function seededEntityAccess(memory: SeededMemory[]): JobEntityAccess {
 
   return {
     nearest: refuse,
-    mutations: { read: refuse, replace: refuse, fold: refuse, once: refuse },
+    mutations: {
+      read: refuse,
+      replace: refuse,
+      remove: refuse,
+      fold: refuse,
+      once: refuse,
+    },
+    getSourcePolicy: (): never => {
+      throw new Error("Source policies are unavailable in memory evaluations");
+    },
     queryEntityHierarchy: (): never => {
       throw new Error("Hierarchy reads are unavailable in memory evaluations");
     },

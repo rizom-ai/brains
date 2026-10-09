@@ -115,6 +115,7 @@ export function createOwnedEntityMutationRuntime(
     | "getEntityMutationReceipt"
     | "applyEntityMutationOnce"
     | "updateEntity"
+    | "deleteEntity"
     | "foldEntity"
   >,
   ownedTypes: ReadonlySet<string>,
@@ -255,6 +256,19 @@ export function createOwnedEntityMutationRuntime(
           },
         });
         if (result.skipped) throw new SdkError("conflict");
+      }),
+    remove: (edit): Promise<void> =>
+      mutation(async () => {
+        const previous = held(edit);
+        const deleted = await service.deleteEntity({
+          entityType: previous.entity.entityType,
+          id: previous.entity.id,
+          options: {
+            ...(signal ? { signal } : {}),
+            conditionalWrite: { expectedRevision: previous.revision },
+          },
+        });
+        if (!deleted) throw new SdkError("conflict");
       }),
     fold: (source, target, value): Promise<void> =>
       mutation(async () => {
@@ -413,6 +427,11 @@ export function createOwnedEntityMutations(
       prepare((): Promise<void> => {
         matches(checked(name, definition.type), edit);
         return runtime.replace(edit, entity);
+      }),
+    remove: async (definition, edit) =>
+      prepare((): Promise<void> => {
+        matches(checked(name, definition.type), edit);
+        return runtime.remove(edit);
       }),
     fold: async (definition, source, target, entity) =>
       prepare((): Promise<void> => {

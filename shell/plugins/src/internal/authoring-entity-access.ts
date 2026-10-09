@@ -49,6 +49,7 @@ export function createAuthoringEntityReader(
     getEntity: native.getEntity.bind(native),
     listEntities: native.listEntities.bind(native),
     getEntityTypes: native.getEntityTypes.bind(native),
+    getSourcePolicy: native.getSourcePolicy.bind(native),
     getEntityCounts: native.getEntityCounts.bind(native),
     count: native.count.bind(native),
   } satisfies EntityReader);

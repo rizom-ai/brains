@@ -1,28 +1,25 @@
 import {
   defineServicePlugin,
   defineSubscription,
+  SYSTEM_CHANNELS,
   z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
 import { topicsPluginConfigSchema } from "./schemas/config";
 import { topic } from "./topic-entity";
-import {
-  createTopicProjectionRule,
-  includesSourceType,
-} from "./lib/topic-wave-rule";
+import { includesTopicSourceType } from "./lib/topic-source-policy";
+import { createRankedTopicJob } from "./lib/ranked-topic-extraction";
 import { topicEvalHandlers } from "./lib/eval-handlers";
 import {
+  ENTITY_CHANNELS,
   TOPIC_TITLES_MESSAGE,
   topicTitlesResponseSchema,
 } from "@brains/contracts";
 import { getTopicTitle } from "./lib/topic-presenter";
 
 /**
- * Topics: a derived entity plus the wave that derives it.
- *
- * One package rather than two because the rule and the entity are the same
- * capability seen from either end — the rule has no meaning without the
- * type it writes, and the type is never authored by hand.
+ * Topics owns its derived entity and independent ranked maintenance job.
+ * Entity events wake maintenance without inheriting a projection's budget.
  */
 export const topics: ServicePackageDefinition<typeof topicsPluginConfigSchema> =
   defineServicePlugin(
@@ -30,8 +27,16 @@ export const topics: ServicePackageDefinition<typeof topicsPluginConfigSchema> =
       id: "topics",
       config: topicsPluginConfigSchema,
       entities: [topic],
+      setup: ({ config, runtimeState, jobs }) => ({
+        extraction: createRankedTopicJob(
+          config,
+          { scoped: runtimeState },
+          jobs,
+        ),
+      }),
     },
     {
+      jobs: ({ state }) => [state.extraction],
       insights: ({ config }) => ({
         "topic-distribution": async ({
           entities,
@@ -49,7 +54,7 @@ export const topics: ServicePackageDefinition<typeof topicsPluginConfigSchema> =
           if (distribution.length > 0) return { topics: distribution };
           const counts = await Promise.all(
             projectionSourceTypes
-              .filter((type) => includesSourceType(type, config, true))
+              .filter((type) => includesTopicSourceType(type, config, {}))
               .map((entityType) =>
                 entities.count({
                   entityType,
@@ -76,7 +81,53 @@ export const topics: ServicePackageDefinition<typeof topicsPluginConfigSchema> =
           };
         },
       }),
-      subscriptions: () => [
+      subscriptions: ({ config, state, jobs }) => [
+        ...(config.enableAutoExtraction
+          ? [
+              ...[
+                ENTITY_CHANNELS.created,
+                ENTITY_CHANNELS.updated,
+                ENTITY_CHANNELS.deleted,
+              ].map((channel) =>
+                defineSubscription({
+                  topic: channel,
+                  execution: "all-roles",
+                  payload: z.unknown(),
+                  handle: async ({ payload, entities }): Promise<void> => {
+                    const event = z
+                      .object({ entityType: z.string() })
+                      .safeParse(payload);
+                    if (
+                      !event.success ||
+                      !entities.getEntityTypes().includes(event.data.entityType)
+                    )
+                      return;
+                    const type = event.data.entityType;
+                    if (
+                      includesTopicSourceType(
+                        type,
+                        config,
+                        entities.getSourcePolicy(type),
+                      )
+                    ) {
+                      await jobs.enqueue(
+                        state.extraction.definition,
+                        {},
+                        { delayMs: config.sourceChangeBatchDelayMs },
+                      );
+                    }
+                  },
+                }),
+              ),
+              defineSubscription({
+                topic: SYSTEM_CHANNELS.startupContentSettled,
+                payload: z.unknown(),
+                handle: async (): Promise<void> => {
+                  await jobs.enqueue(state.extraction.definition, {});
+                },
+              }),
+            ]
+          : []),
         defineSubscription({
           topic: TOPIC_TITLES_MESSAGE,
           payload: z.unknown(),
@@ -94,14 +145,8 @@ export const topics: ServicePackageDefinition<typeof topicsPluginConfigSchema> =
           },
         }),
       ],
-      // Extraction is opt-out, and every threshold it derives with comes from
-      // config, so whether the rule exists at all is a configured question.
-      projectionRules: ({ config, template }) =>
-        config.enableAutoExtraction
-          ? [createTopicProjectionRule(config, template("extraction"))]
-          : [],
       evals: ({ config, template }) =>
-        topicEvalHandlers(config, template("extraction")),
+        topicEvalHandlers(config, template("votes")),
     },
   );
 

@@ -154,7 +154,7 @@ export type {
   ServiceContentGenerationTargetInput,
   ServiceEntityIdPath,
 } from "./content-generation-contract";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import type {
   ProfileKindDefinition,
@@ -412,6 +412,8 @@ export interface ServiceJobDefinition<
   TOutputSchema extends ServiceSchema = ServiceSchema,
 > {
   readonly kind: "rizom-service-job";
+  /** Host-minted independent root for corpus maintenance, never a caller-selected root id. */
+  readonly causality?: "independent" | undefined;
   readonly name: TName;
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
@@ -453,6 +455,7 @@ export function defineJob<
   TOutputSchema extends ServiceSchema,
 >(definition: {
   readonly name: TName;
+  readonly causality?: "independent" | undefined;
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
   readonly retry?: { readonly attempts: number } | undefined;
@@ -472,6 +475,7 @@ export function defineJob<
     ((input: z.output<TInputSchema>) => string) | undefined;
 }): ServiceJobDefinition<TName, TInputSchema, TOutputSchema> {
   assertIdentifier(definition.name, "Job name");
+  z.literal("independent").optional().parse(definition.causality);
   if (
     definition.retry &&
     (!Number.isInteger(definition.retry.attempts) ||
@@ -677,6 +681,7 @@ export interface ServiceJobs {
   enqueue<TDefinition extends AnyServiceJobDefinition>(
     definition: TDefinition,
     input: z.input<TDefinition["input"]>,
+    options?: { readonly delayMs?: number | undefined },
   ): Promise<ServiceJobReference<TDefinition>>;
   status<TDefinition extends AnyServiceJobDefinition>(
     definition: TDefinition,

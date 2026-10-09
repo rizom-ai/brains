@@ -65,6 +65,12 @@ export interface OwnedEntityMutations {
     edit: OwnedEntityEdit<NoInfer<EntityFromDefinition<TDefinition>>>,
     entity: NoInfer<EntityFromDefinition<TDefinition>>,
   ): Promise<void>;
+  /** Remove only the exact state represented by this host-issued edit; conflicts are not deletions.
+   * Owned background work only. Named consumer: ranked Topics maintenance. */
+  remove<TDefinition extends EntityDefinitionShape>(
+    definition: TDefinition,
+    edit: OwnedEntityEdit<NoInfer<EntityFromDefinition<TDefinition>>>,
+  ): Promise<void>;
   /** Same-type, same-visibility pair; both issued versions must still match. */
   fold<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,

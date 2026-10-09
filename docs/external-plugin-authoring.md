@@ -649,6 +649,31 @@ enqueues it. Batch children retain their retry policy, but a batch refuses jobs
 with `oncePending`: sharing a child across roots cannot preserve batch
 completion/progress ownership. Validation finishes before any child is queued.
 
+Corpus maintenance can declare `causality: "independent"` on the job definition.
+The host mints a fresh causal root; authors cannot supply root IDs or bypass
+caller authority. Independent jobs cannot join batches. Service jobs accept
+`jobs.enqueue(job, input, { delayMs })`, an integer delay from zero through
+86,400,000 milliseconds, persisted by the queue rather than a local timer.
+Named consumer: ranked Topics maintenance.
+
+Entity readers expose `getSourcePolicy(type)` as detached, frozen source-enabled
+and role descriptors, not native type configuration or registry authority.
+
+Owned background callbacks can obtain a host-issued snapshot with
+`entities.mutations.read(definition, id)` and conditionally remove that exact
+state with `entities.mutations.remove(definition, edit)`. A changed/missing
+record reports `conflict`; the host retains the full revision. Copied tokens,
+other-access tokens, foreign definitions and ended callback lifetimes are
+refused. This does not grant caller-bound interfaces background mutation
+permissions, nor make a subsequent create atomic with the removal.
+
+An entity can declare `retiredProjectionRules: [{ id, version }]` for an exact
+retired rule/version on its owned type. The host releases only matching ownership
+rows during registration, before orphan reconciliation, without deleting content.
+No entity-type override or native migration callback is exposed. Stop old writers
+before this one-way handoff; mixed-version and downgrade operation are not
+supported. Named consumer: retirement of Topics' additive projection.
+
 Service, generic-interface and message-interface setup may be async. Return the
 shared client/state and register its release with `lifecycle.onCleanup()`.
 Declaration callbacks receive the resolved state, independently per instance.

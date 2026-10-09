@@ -6,9 +6,10 @@ import {
   type ServiceEvalHandler,
 } from "@brains/sdk/services";
 import type { TopicsPluginConfig } from "../schemas/config";
-import { TOPIC_ENTITY_TYPE } from "./constants";
 import { parseTopicBody } from "./topic-body";
-import { createTopicProjectionRule } from "./topic-wave-rule";
+import { evaluationTopics } from "./evaluation-topics";
+import { runRankedTopicExtraction } from "./ranked-topic-extraction";
+import { evaluationCheckpoints } from "./evaluation-checkpoints";
 
 const entityInputSchema = z.object({
   entityType: z.string(),
@@ -107,11 +108,8 @@ function getCorpusAcceptanceIssues(
 }
 
 /**
- * Seed sources, run the extraction rule, and report what it would mint.
- *
- * Nothing is persisted: the rule's write intents are the measurement, and
- * an eval that also applied them would be measuring the projection runtime
- * rather than extraction quality.
+ * Seed evaluation fixtures and drive the same ranked extraction as the job.
+ * Votes, leases and topic mutations are local to this evaluation.
  */
 async function extract(
   context: EntityEvalContext,
@@ -122,15 +120,7 @@ async function extract(
 ): Promise<MintedTopic[]> {
   await context.fixtures.reset();
 
-  await Promise.all(
-    seedTopics.map((seed, index) =>
-      context.fixtures.seed({
-        id: seed.id ?? `seed-topic-${index}`,
-        entityType: TOPIC_ENTITY_TYPE,
-        content: `---\ntitle: ${seed.title}\n---\n\n${seed.content}`,
-      }),
-    ),
-  );
+  const localTopics = evaluationTopics(seedTopics, config.extractionVisibility);
   await Promise.all(
     sources.map((source, index) =>
       context.fixtures.seed({
@@ -142,25 +132,39 @@ async function extract(
     ),
   );
 
-  const intents = await context.runProjectionRule(
-    createTopicProjectionRule(config, extractionTemplate),
-  );
-  return intents.flatMap((intent): MintedTopic[] => {
-    if (intent.operation !== "upsert") return [];
-    const parsed = parseTopicBody(intent.entity.content);
-    return [
-      { id: intent.entity.id, title: parsed.title, content: parsed.content },
-    ];
+  const state = evaluationCheckpoints();
+  let pending = true;
+  for (let pass = 0; pending && pass < 100; pass++) {
+    pending = false;
+    await runRankedTopicExtraction(
+      {
+        ...context,
+        signal: new AbortController().signal,
+        template: (name) =>
+          name === "votes" ? extractionTemplate : context.template(name),
+        ...localTopics,
+        enqueue: async () => {
+          pending = true;
+        },
+        changed: async () => {},
+      },
+      config,
+      state,
+    );
+  }
+  if (pending)
+    throw new Error("Topic evaluation did not converge within 100 jobs");
+  return (await localTopics.readTopics()).map(({ entity: entry }) => {
+    const parsed = parseTopicBody(entry.content);
+    return { id: entry.id, title: parsed.title, content: parsed.content };
   });
 }
 
 /**
  * Eval handlers for topic extraction.
  *
- * Every handler drives the projection rule that actually runs. Handlers
- * that drove a parallel extraction pipeline were removed with it — an eval
- * measuring a second copy of the logic tells you nothing about the copy
- * users get.
+ * Every handler drives the ranked algorithm that actually runs, without
+ * mutating the installed job's durable vote or lease checkpoints.
  */
 export function topicEvalHandlers(
   config: TopicsPluginConfig,

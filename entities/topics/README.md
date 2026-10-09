@@ -1,153 +1,70 @@
-# Topics Plugin
+# Topics
 
-Derived topic extraction and canonicalization for markdown-backed brain content.
+`@brains/topics` declares markdown-backed topics and a resumable ranked maintenance job. It does not expose native plugin services or its own CRUD/extraction tools.
 
-## Overview
+## Selection
 
-`@brains/topics` maintains `topic` entities derived from other entity types such as posts, notes, links, or decks. It extracts candidate topics with AI, canonicalizes them against existing topics, and can automatically merge near-duplicates into a single topic entity.
+Sources vote for listed topics or propose a subject. Role weight × relevance determines support. The soft cap is `min(24, max(5, ceil(eligibleSources / topicSoftCeilingSourceRatio)))`. At the cap, a challenger needs more than a 25% lead over the weakest topic; replacement waits until every eligible source has been read at least once.
 
-Topics are normal entities:
+Descriptions use up to eight proposals, each truncated to 2,000 characters. Retained topics keep their IDs and URLs; new IDs are visibility-scoped title slugs. The title lives in markdown frontmatter and the description in the body. Topic metadata is empty.
 
-- durable content lives in markdown
-- editable fields live in frontmatter/body
-
-## What it does
-
-- **Batch topic extraction** from configured source entity types
-- **Auto-extraction on entity changes** after initial sync completes
-- **Token-budget-aware batching** to reduce one-call-per-entity extraction overhead
-- **Canonicalization against existing topics** so new extractions reuse established titles
-- **Configurable auto-merge** with similarity scoring and merge synthesis
-- **Replace-all rebuilds** for operators who want to delete and regenerate all topics from current source content
+The job makes at most ten **algorithm-level generation calls**, including descriptions, with at most four sources per vote prompt. These are not provider-attempt, spending, total-duration, total-scan, or total-memory limits. Later jobs continue outstanding work; source bodies are paged, but all source references and saved votes are retained for selection.
 
 ## Configuration
 
-```ts
-interface TopicsPluginConfig {
-  includeEntityTypes?: string[]; // Deprecated allow-list. Default: ["*"]
-  excludeEntityTypes?: string[]; // Entity types to omit. Default: []
-  minRelevanceScore?: number; // Default: 0.5
-  createRelevanceThreshold?: number; // Default: 0.7
-  reinforceRelevanceThreshold?: number; // Default: 0.5
-  sourceRolePolicies?: Partial<
-    Record<ProjectionSourceRole, TopicSourceRolePolicy>
-  >;
-  sourceRoleOverrides?: Record<string, ProjectionSourceRole>;
-  mergeSimilarityThreshold?: number; // Default: 0.85
-  autoMerge?: boolean; // Default: true
-  extractableStatuses?: string[]; // Default: ["published"]
-  enableAutoExtraction?: boolean; // Default: true
-}
+- `enableAutoExtraction`: defaults to `true`.
+- `includeEntityTypes`: defaults to `["*"]`; `excludeEntityTypes` narrows the selection.
+- `extractionVisibility`: defaults to `public`; derived topics use that visibility.
+- `extractableStatuses`: defaults to `["published"]`. Missing/null status is eligible. Additional statuses can narrow or extend non-public extraction, but cannot lower the public publication floor.
+- `minRelevanceScore`: defaults to `0.5`; `createRelevanceThreshold` defaults to `0.7`.
+- `topicSoftCeilingSourceRatio`: defaults to `5`.
+- `maxEntitiesPerBatch`: defaults to `4`, and ranked extraction clamps it to four.
+- `sourceChangeBatchDelayMs`: defaults to `1000`; the SDK accepts integer delays from zero through one day.
+- `sourceRoleOverrides` and `sourceRolePolicies` configure weighting and minting. Defaults: canonical/primary `1`, secondary `0.8`, supporting `0.55`, ambient `0.35`, excluded `0`. Only canonical, primary and secondary can mint by default.
 
-type ProjectionSourceRole =
-  "canonical" | "primary" | "secondary" | "supporting" | "ambient" | "excluded";
+The registry's `projectionSource: false` remains an exclusion floor. Topics never source themselves. Existing `sourceWeights` and `mintableEntityTypes` config overrides also affect policy. Older merge controls do not run a separate native pipeline: ranked extraction and ranked evals use the same selection algorithm and do not perform semantic merges.
 
-interface TopicSourceRolePolicy {
-  weight: number;
-  canMint: boolean;
-}
-```
+## Installed runtime
 
-Default role policies:
+- Service: `@brains/topics:topics`
+- Entity: `@brains/topics:topic`
+- Job: `@brains/topics:topics:extract`
+- Generation templates: `@brains/topics:topic:votes` and `@brains/topics:topic:description`
 
-- `canonical`: weight `1`, can mint
-- `primary`: weight `1`, can mint
-- `secondary`: weight `0.8`, can mint
-- `supporting`: weight `0.55`, reinforce/merge only
-- `ambient`: weight `0.35`, reinforce/merge only
-- `excluded`: weight `0`, ignored
+Create/update/delete events are wakeup hints in both runtime roles. Startup recovery listens to `system:startup-content:settled`, not ready or the legacy initial-sync event. Failed initial import does not authorize that startup signal. Disabled extraction enqueues nothing, and its installed handler can drain earlier queued work without generating.
 
-### Notes
+Each job declares an independent causal root, minted by the host. Authors cannot supply root IDs. `oncePending` deduplication permits one waiting successor while another attempt is processing; delays use the durable queue, not process-local timers.
 
-- By default, all registered projection-source entity types are processed (`includeEntityTypes: ["*"]`).
-- Use `excludeEntityTypes` as the normal blacklist when a brain should omit a source type.
-- `includeEntityTypes` remains as a deprecated compatibility allow-list for constrained evals or unusual instances.
-- Entity types declare their default derivation authority via `projectionSourceRole`; the topics plugin maps roles to mint/reinforce behavior instead of knowing about package-specific entity names.
-- Brain and instance configs can adapt authority with `excludeEntityTypes`, `sourceRoleOverrides`, and `sourceRolePolicies`.
-- Legacy `sourceWeights` and `mintableEntityTypes` remain supported for compatibility, but role-based policy is preferred.
-- Topic entities themselves are never reprocessed as sources.
-- Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
-- `autoMerge` stays configurable; rebuilds do not force it on globally.
+`topics.votes`, `topics.failures` and `topics.extraction` are local names within installed runtime-state scopes. Votes record an identity covering source body hash, metadata and visibility. Sources are re-read before checkpointing and rescanned after generation. Missing, repeated or failed answers are retried separately; three counted failures produce an empty vote until its revision changes. An entirely failed provider attempt does not mark every source as abstaining.
 
-## Runtime behavior
+A durable lease serializes attempts. Cancellation, lease ownership and expiry are checked before writes; release uses one compare-and-set, never a later blind delete of the lease. The lease check and content mutation are not one cross-record transaction. Cancellation does not roll back an already-admitted write or imply a spending limit.
 
-When `enableAutoExtraction` is enabled, the plugin registers one immutable scheduler-owned `ProjectionRule`. Committed mutations to eligible source entities are coalesced into durable topological waves. One rule job selects the complete current source set, partitions it deterministically when needed, fingerprints the effective input, and returns canonical topic write intents.
+## Mutation and migration safety
 
-Topic derivation is automatic. There is no event-owned `topic:project` job or manual extract/rebuild tool.
+Topic selection retains host-issued canonical snapshots, including full revisions. Trimming and replacement use owner-scoped conditional removal: body, metadata or visibility changes after selection cause `conflict`, rather than deletion of the changed topic. Copied, foreign-access and expired-callback edit credentials are refused.
 
-## Shared system tool surface
+Descriptions are generated before deletion. **Replacement is not atomic:** interruption between delete and create leaves a vacancy that later maintenance can fill. Source rechecks are not a transaction spanning source withdrawal and topic creation.
 
-The topics package does **not** expose its own CRUD or extraction tools.
+The entity declaration retires exactly `topics-projection` version `1` for its owned `topic` type before orphan reconciliation, even when automatic extraction is disabled. The host removes only those ownership rows, preserving content and other rules, versions and types. Repeating the handoff is harmless.
 
-Use the shared read and mutation tools for direct topic access:
+**Stop old writers before upgrading.** This is a one-way handoff; no mixed-version or downgrade guarantee is provided. Native unscoped checkpoints are not imported into the new installed namespace; changed state schemas are not silently reset or replayed. Back up and reconcile old runtime state before rollout. Historical provider usage remains historical evidence, not validation of this declarative integration.
 
-- `system_get` / `system_list` / `system_search` — read topics
-- `system_update` / `system_delete` — edit or remove topics
-- `system_create` — create a topic manually
+## Tools and evaluation
 
-## Merge behavior
+Use shared `system_get`, `system_list`, `system_search`, `system_create`, `system_update` and `system_delete` tools. There is no manual extraction/rebuild tool. The topic ATProto declaration is retained; live publication/deletion acceptance is separate.
 
-When `autoMerge` is enabled, each extracted topic is checked against existing topics.
-
-If a strong candidate is found:
-
-1. similarity heuristics identify the likely canonical topic
-2. a merge synthesis step produces the merged title/content
-3. the incoming topic is absorbed into the canonical one
-
-If no candidate clears the threshold, a new topic entity is created.
-
-## Topic entity shape
-
-### Frontmatter / authored fields
-
-```yaml
----
-title: Human-AI Collaboration
----
-```
-
-The markdown body contains the topic summary/content. Metadata is empty for
-new topics; unknown legacy fields on existing entities are stripped on read.
-
-## Implementation notes
-
-- Existing topic titles are fed back into extraction prompts to reduce noisy near-duplicates.
-- Merge detection uses title/keyword similarity heuristics before synthesis.
-
-### Dependency boundary follow-up
-
-- `@brains/ui-library` and `@brains/utils` are direct workspace dependencies today.
-- Before publishing this package externally, either publish those packages too or expose the needed stable APIs through `@brains/plugins`.
-
-## Refactor notes
-
-The package is split by responsibility so `src/index.ts` only wires plugin lifecycle pieces together. Projection, eval, dashboard, presentation, and topic-domain behavior live in package-local modules under `src/lib/`.
+Eval handlers run the same ranked algorithm, using local vote/lease checkpoints and local topic mutations, without deleting live topics. Source fixtures still use the evaluation fixture capability. Evals may call providers; provider-free unit tests do not certify live model quality or spending.
 
 ## Key files
 
-- `src/index.ts` — plugin registration and package wiring
-- `src/lib/constants.ts` — package-local IDs
-- `src/lib/topic-wave-rule.ts` — scheduler-owned topic derivation
-- `src/lib/topic-presenter.ts` — shared topic presentation/projection helpers
-- `src/lib/dashboard-widget.ts` — dashboard widget registration
-- `src/lib/eval-handlers.ts` — eval harness handlers
-- `src/lib/topic-extractor.ts` — single-entity extraction
-- `src/lib/topic-batch-extractor.ts` — token-budget-aware batch extraction
-- `src/lib/topic-merge-synthesizer.ts` — AI merge/distinct verdicts and synthesis
-- `src/lib/topic-service.ts` — topic CRUD + merge helpers
+- `src/index.ts`: declarative package, jobs, subscriptions and insights
+- `src/topic-entity.ts`: codec, presentation, templates and retirement declaration
+- `src/lib/ranked-topic-extraction.ts`: checkpointed ranking engine
+- `src/lib/owned-topics.ts`: host-issued topic snapshots and conditional removal
+- `src/lib/topic-selection.ts`: weighted support and challenger selection
+- `src/lib/topic-source-policy.ts`: source eligibility
+- `src/lib/eval-handlers.ts`: ranked evaluation handlers
 
 ## Validation
 
-```bash
-cd entities/topics
-bun test
-bun run typecheck
-```
-
-For evals:
-
-```bash
-cd entities/topics
-bun run eval
-```
+From `entities/topics`, run `bun test` and `bun run typecheck`. Provider-backed evaluation and live rollout require separate authorization.

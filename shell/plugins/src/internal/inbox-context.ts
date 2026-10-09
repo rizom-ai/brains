@@ -46,6 +46,7 @@ function readerView(reader: EntityReader, active: () => void): EntityReader {
     getEntity: guard(reader.getEntity),
     listEntities: guard(reader.listEntities),
     getEntityTypes: guard(reader.getEntityTypes, false),
+    getSourcePolicy: guard(reader.getSourcePolicy, false),
     getEntityCounts: guard(reader.getEntityCounts),
     count: guard(reader.count),
   });

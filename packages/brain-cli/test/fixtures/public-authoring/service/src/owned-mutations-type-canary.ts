@@ -4,6 +4,7 @@ import { defineJob, defineServicePlugin } from "@rizom/brain/services";
 const record = defineEntity({
   type: "record",
   purpose: "Owned mutation typing",
+  retiredProjectionRules: [{ id: "old-records", version: "1" }],
   metadata: z.object({ count: z.number() }),
 });
 const other = defineEntity({
@@ -13,12 +14,29 @@ const other = defineEntity({
 });
 const job = defineJob({
   name: "fold",
+  causality: "independent",
   input: z.object({}),
   output: z.object({ ok: z.boolean() }),
 });
 
 export const ownedMutationTypes = defineServicePlugin(
-  { id: "owned-mutations", config: z.object({}), entities: [record] },
+  {
+    id: "owned-mutations",
+    config: z.object({}),
+    entities: [record],
+    setup: ({ jobs }) => {
+      const delayed = async (): Promise<void> => {
+        await jobs.enqueue(job, {}, { delayMs: 1000 });
+      };
+      const unsupported = (): void => {
+        // @ts-expect-error Causal root IDs are minted by the host, not authors.
+        void jobs.enqueue(job, {}, { rootJobId: "forged" });
+      };
+      void delayed;
+      void unsupported;
+      return {};
+    },
+  },
   {
     jobs: () => [
       job.handle(async ({ entities, conversations }) => {
@@ -38,6 +56,9 @@ export const ownedMutationTypes = defineServicePlugin(
           visibilityScope: "restricted",
         });
         if (!edit) return { ok: false };
+        const policy = entities.getSourcePolicy(record.type);
+        const enabled: boolean = policy.projectionSource;
+        void enabled;
         const count: number = edit.entity.metadata.count;
         await mutations.replace(record, edit, {
           ...edit.entity,
@@ -46,7 +67,24 @@ export const ownedMutationTypes = defineServicePlugin(
         const operation = mutations.once(record, "capture", "reply");
         await operation.get();
         await operation.complete({ operation: "none" });
+        const removal = async (): Promise<void> => {
+          await mutations.remove(record, edit);
+        };
+        void removal;
         const unsupported = (): void => {
+          // @ts-expect-error Source policy snapshots are read-only.
+          policy.projectionSource = false;
+          // @ts-expect-error Removal cannot change the definition tied to the edit.
+          void mutations.remove(other, edit);
+          // @ts-expect-error A comparable version is not an editing credential.
+          void mutations.remove(record, {
+            entity: edit.entity,
+            version: edit.version,
+          });
+          // @ts-expect-error Removal accepts no native guard or attribution override.
+          void mutations.remove(record, edit, {
+            expectedRevision: edit.version,
+          });
           // @ts-expect-error Semantic lookup requires a definition, not a native type name.
           void entities.nearest("record", "one", {
             visibility: "public",

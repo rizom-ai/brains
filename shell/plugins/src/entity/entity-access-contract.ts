@@ -1,3 +1,4 @@
+import type { JobEntityAccess } from "../job/job-context-contract";
 import type { OwnedEntityMutations } from "./owned-entity-mutations";
 import type { OwnedEntityNearest } from "./owned-entity-nearest";
 import type {
@@ -55,6 +56,8 @@ export interface EntityReader {
     schema: EntitySchema<T>,
   ): Promise<T[]>;
   getEntityTypes(): string[];
+  /** Read-only source classification; no native type configuration escapes. */
+  getSourcePolicy: JobEntityAccess["getSourcePolicy"];
   /** Corpus counts used by profile generation and bounded operator lists. */
   getEntityCounts(
     visibilityScope?: ContentVisibility,

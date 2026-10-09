@@ -68,7 +68,6 @@ describe("full preset projection resilience", () => {
       "series-projection",
       "skill-derivation",
       "swot-derivation",
-      "topics-projection",
     ]);
     expect(
       graph.projections.flatMap((projection) => projection.sources),
@@ -82,17 +81,15 @@ describe("full preset projection resilience", () => {
     const edgeCauses = new Map(
       graph.edges.map((edge) => [`${edge.from} -> ${edge.to}`, edge.causes]),
     );
-    expect(edgeCauses.get("topics-projection -> skill-derivation")).toEqual([
-      "entity:topic",
-    ]);
     expect(edgeCauses.get("skill-derivation -> swot-derivation")).toEqual([
       "entity:skill",
     ]);
-    // No projection produces social posts any more, so nothing feeds
-    // topics-projection on `entity:social-post`.
+    // Topics maintenance has independent causal roots, outside the rule graph.
     expect(
-      edgeCauses.get("social-post-generation -> topics-projection"),
-    ).toBeUndefined();
+      graph.edges.filter(({ from, to }) =>
+        [from, to].includes("topics-projection"),
+      ),
+    ).toEqual([]);
     expect(graph.unknownSourceTypes).toEqual([]);
 
     await pluginManager.shutdownPlugins();
