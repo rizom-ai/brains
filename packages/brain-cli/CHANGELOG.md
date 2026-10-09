@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- [#565](https://github.com/rizom-ai/brains/pull/565) [`9943020`](https://github.com/rizom-ai/brains/commit/9943020d6588e0ab7cfb957e91da7e63e77d1c36) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Content synced after startup reaches the site again. The web process schedules rebuilds while the worker runs them, so a rebuild queued once used to block every later one until the next restart; rebuilds now rely on the job queue, which keeps one pending build per environment. A build replaced by a newer one completes instead of failing and being retried against its replacement. A file removal seen while git rewrites a pulled file no longer deletes the entity whose file is back on disk.
+
 ## 0.2.0-alpha.498
 
 ### Patch Changes
