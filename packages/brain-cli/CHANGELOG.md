@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- [#578](https://github.com/rizom-ai/brains/pull/578) [`9d9d40d`](https://github.com/rizom-ai/brains/commit/9d9d40dd04be3a817ab53bf647f0b6ef54c6d5ef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds ask plugins for layout slots as they render, so the newsletter signup reaches the built footer; registered on `pluginsRegistered`, it never reached the worker process that builds the site.
+
 ## 0.2.0-alpha.503
 
 ### Patch Changes

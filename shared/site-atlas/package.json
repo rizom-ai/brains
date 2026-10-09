@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-atlas",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.503",
+  "version": "0.2.0-alpha.504",
   "description": "Shared atlas site kit: the atlas homepage, its terrain, labels, styles and script, the authored opening and Ask box checks, and the site layout",
   "dependencies": {
     "@brains/contracts": "workspace:*",
