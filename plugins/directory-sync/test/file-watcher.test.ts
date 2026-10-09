@@ -312,6 +312,75 @@ describe("FileWatcher lifecycle characterization", () => {
     );
   });
 
+  async function pulledBurst(
+    matchesHead: (paths: string[]) => Promise<string[]>,
+  ): Promise<ReturnType<typeof mock>> {
+    const onFileChanges = mock(async (): Promise<void> => {});
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
+        const fakeWatcher = new FSWatcher();
+        fakeWatcher.close = mock(() => Promise.resolve());
+        installWatcher(fakeWatcher);
+        const syncPath = "/tmp/file-watcher-pulled";
+        const watcher = new FileWatcher({
+          syncPath,
+          watchInterval: 100,
+          logger: createSilentLogger("file-watcher-pulled"),
+          clock,
+          onFileChanges,
+        });
+
+        yield* Effect.promise(() => startWatcher(watcher, fakeWatcher));
+        watcher.ignorePulledPaths(["pulled.md", "removed.md"], matchesHead);
+        // A polling watcher reports a pull late, once per rewrite step.
+        yield* TestClock.adjust(60_000);
+        fakeWatcher.emit("unlink", `${syncPath}/pulled.md`);
+        fakeWatcher.emit("add", `${syncPath}/pulled.md`);
+        fakeWatcher.emit("unlink", `${syncPath}/removed.md`);
+        fakeWatcher.emit("change", `${syncPath}/local.md`);
+        yield* TestClock.adjust(500);
+        yield* Effect.yieldNow;
+        yield* Effect.promise(() => watcher.stop());
+      }).pipe(Effect.provide(TestClock.layer())),
+    );
+    return onFileChanges;
+  }
+
+  it("ignores a pull's changes and removals, however late, while they match HEAD", async () => {
+    const onFileChanges = await pulledBurst(async (paths) => paths);
+
+    expect(onFileChanges).toHaveBeenCalledTimes(1);
+    expect(onFileChanges).toHaveBeenCalledWith(
+      new Map([["/tmp/file-watcher-pulled/local.md", "change"]]),
+    );
+  });
+
+  it("delivers an edit to a pulled path that no longer matches HEAD", async () => {
+    const onFileChanges = await pulledBurst(async () => ["removed.md"]);
+
+    expect(onFileChanges).toHaveBeenCalledWith(
+      new Map([
+        ["/tmp/file-watcher-pulled/pulled.md", "add"],
+        ["/tmp/file-watcher-pulled/local.md", "change"],
+      ]),
+    );
+  });
+
+  it("delivers a pull's paths when HEAD cannot be read", async () => {
+    const onFileChanges = await pulledBurst(async () => {
+      throw new Error("broker unavailable");
+    });
+
+    expect(onFileChanges).toHaveBeenCalledWith(
+      new Map([
+        ["/tmp/file-watcher-pulled/pulled.md", "add"],
+        ["/tmp/file-watcher-pulled/removed.md", "delete"],
+        ["/tmp/file-watcher-pulled/local.md", "change"],
+      ]),
+    );
+  });
+
   it("interrupts a pending batch delay during stop", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {

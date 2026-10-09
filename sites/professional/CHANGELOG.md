@@ -1,5 +1,43 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.510
+  - @brains/decks@0.2.0-alpha.510
+  - @brains/faq@0.2.0-alpha.510
+  - @brains/site-info@0.2.0-alpha.510
+  - @brains/topics@0.2.0-alpha.510
+  - @brains/profile@0.2.0-alpha.510
+  - @brains/content-formatters@0.2.0-alpha.510
+  - @brains/site-atlas@0.2.0-alpha.510
+  - @brains/site-composition@0.2.0-alpha.510
+  - @brains/ui-library@0.2.0-alpha.510
+  - @brains/utils@0.2.0-alpha.510
+  - @brains/plugins@0.2.0-alpha.510
+  - @brains/templates@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- Updated dependencies [[`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c)]:
+  - @brains/content-formatters@0.2.0-alpha.509
+  - @brains/ui-library@0.2.0-alpha.509
+  - @brains/utils@0.2.0-alpha.509
+  - @brains/decks@0.2.0-alpha.509
+  - @brains/topics@0.2.0-alpha.509
+  - @brains/site-composition@0.2.0-alpha.509
+  - @brains/plugins@0.2.0-alpha.509
+  - @brains/templates@0.2.0-alpha.509
+  - @brains/site-atlas@0.2.0-alpha.509
+  - @brains/blog@0.2.0-alpha.509
+  - @brains/faq@0.2.0-alpha.509
+  - @brains/site-info@0.2.0-alpha.509
+  - @brains/profile@0.2.0-alpha.509
+
 ## 0.2.0-alpha.508
 
 ### Patch Changes

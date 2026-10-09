@@ -12,6 +12,7 @@ import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
 import type { PullResult } from "../../src/types";
 import type { BatchResult } from "../../src/lib/batch-operations";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
+import type { MatchesHead } from "../../src/lib/file-watcher";
 
 const emptyBatchResult: BatchResult = {
   batchId: "batch-1",
@@ -60,7 +61,12 @@ function createReconciliation(): PeriodicGitSyncOptions["reconciliation"] {
         pull.files,
         pull.deletedFiles,
       );
-      if (batch) options.directorySync.suppressWatchPaths(pull.files);
+      if (batch) {
+        options.directorySync.ignorePulledWatchPaths(
+          pull.files,
+          async (paths) => paths,
+        );
+      }
       return {
         mode: "incremental",
         files: pull.files,
@@ -114,7 +120,9 @@ describe("setupPeriodicGitSync", () => {
         const queueSyncBatchMock = mock(
           async (): Promise<BatchResult | null> => emptyBatchResult,
         );
-        const suppressWatchPathsMock = mock(() => {});
+        const ignorePulledWatchPathsMock = mock(
+          (_paths: string[], _matchesHead: MatchesHead) => {},
+        );
         const recordPendingPullDeletesMock = mock(async () => {});
         const pullMock = mock(async (): Promise<PullResult> => ({
           files: ["a.md", "deleted.md"],
@@ -126,7 +134,7 @@ describe("setupPeriodicGitSync", () => {
           gitSync: createMockGitSync({ pull: pullMock }),
           directorySync: createMockDirectorySync({
             queueSyncBatch: queueSyncBatchMock,
-            suppressWatchPaths: suppressWatchPathsMock,
+            ignorePulledWatchPaths: ignorePulledWatchPathsMock,
             recordPendingPullDeletes: recordPendingPullDeletesMock,
           }),
           context,
@@ -141,7 +149,7 @@ describe("setupPeriodicGitSync", () => {
         expect(recordPendingPullDeletesMock).toHaveBeenCalledWith([
           "deleted.md",
         ]);
-        expect(suppressWatchPathsMock).toHaveBeenCalledWith([
+        expect(ignorePulledWatchPathsMock.mock.calls[0]?.[0]).toEqual([
           "a.md",
           "deleted.md",
         ]);
@@ -167,7 +175,7 @@ describe("setupPeriodicGitSync", () => {
       Effect.gen(function* () {
         const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
-        const suppressWatchPathsMock = mock(() => {});
+        const ignorePulledWatchPathsMock = mock(() => {});
 
         setupPeriodicGitSync({
           gitSync: createMockGitSync({
@@ -175,7 +183,7 @@ describe("setupPeriodicGitSync", () => {
           }),
           directorySync: createMockDirectorySync({
             queueSyncBatch: mock(async () => null),
-            suppressWatchPaths: suppressWatchPathsMock,
+            ignorePulledWatchPaths: ignorePulledWatchPathsMock,
           }),
           context: createMockServicePluginContext(),
           intervalMinutes: 0.001,
@@ -186,7 +194,7 @@ describe("setupPeriodicGitSync", () => {
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
 
-        expect(suppressWatchPathsMock).not.toHaveBeenCalled();
+        expect(ignorePulledWatchPathsMock).not.toHaveBeenCalled();
         yield* Effect.promise(() => runtime.close());
       }).pipe(Effect.provide(TestClock.layer())),
     );

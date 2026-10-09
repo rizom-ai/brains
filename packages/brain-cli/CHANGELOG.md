@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- [#583](https://github.com/rizom-ai/brains/pull/583) [`be78945`](https://github.com/rizom-ai/brains/commit/be78945758dd6b15e27271d25c042e2feb2eeedd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content pull no longer queues its work twice. The file watcher reports a large pull late, often minutes after git reconciliation has already queued the same imports and deletes, and the old ten-second, first-event-only suppression let those reports through: migrating Friedrich's corpus queued 3,731 redundant deletes and re-imported every file. The watcher now ignores a pulled path for as long as it still matches HEAD, however late or often it is reported; an edit made since still differs from HEAD and is imported.
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
 ## 0.2.0-alpha.508
 
 ### Patch Changes
