@@ -467,3 +467,20 @@ books:
     author: Karl Marx
     year: 1847
     kind: work
+  - source: archive-ocr
+    item: theorienberden01marxuoft
+    citation: Theorien I
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 428
+    # Kautsky sets his notes as large as the text and signs them K.
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-1
+    title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
+    shortTitle: Theorien über den Mehrwert I
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Erster Band, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
