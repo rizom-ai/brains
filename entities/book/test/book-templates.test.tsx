@@ -2,8 +2,12 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import type { BookWithData } from "../src/schemas/book";
+import type { BookSectionWithData } from "../src/schemas/book-section";
 import { BookListTemplate } from "../src/templates/book-list";
-import { BookDetailTemplate } from "../src/templates/book-detail";
+import {
+  BookDetailTemplate,
+  BookSectionTemplate,
+} from "../src/templates/book-detail";
 
 const bookDetails = {
   author: "Erfundener Autor",
@@ -14,38 +18,22 @@ const bookDetails = {
   attribution: "Testquelle, hg. von Niemand",
 };
 
-function entry(
-  book: string,
-  order: number,
+function book(
+  slug: string,
   title: string,
   extra: Partial<BookWithData["frontmatter"]> = {},
 ): BookWithData {
-  const slug = order === 0 ? book : `${book}/${order}`;
-  const section = order === 0 ? null : `S-${order}`;
   return {
-    id: `${book}:${String(order).padStart(4, "0")}`,
+    id: slug,
     entityType: "book",
     content: "",
     contentHash: slug,
     created: "2026-10-06T00:00:00.000Z",
     updated: "2026-10-06T00:00:00.000Z",
     visibility: "public",
-    metadata: {
-      title,
-      section,
-      book,
-      order,
-      slug,
-      pageTitle: section ?? title,
-      citable: order !== 0,
-    },
+    metadata: { title },
     frontmatter: {
       title,
-      book,
-      order,
-      section,
-      page: null,
-      headings: [],
       source: `https://example.org/${slug}`,
       author: null,
       year: null,
@@ -59,28 +47,66 @@ function entry(
       shortTitle: null,
       ...extra,
     },
+    body: "## Contents",
+  };
+}
+
+function section(
+  bookSlug: string,
+  order: number,
+  title: string,
+  extra: Partial<BookSectionWithData["frontmatter"]> = {},
+): BookSectionWithData {
+  const slug = `${bookSlug}/${order}`;
+  const siglum = `S-${order}`;
+  return {
+    id: `${bookSlug}:${String(order).padStart(4, "0")}`,
+    entityType: "book-section",
+    content: "",
+    contentHash: slug,
+    created: "2026-10-06T00:00:00.000Z",
+    updated: "2026-10-06T00:00:00.000Z",
+    visibility: "public",
+    metadata: {
+      title,
+      section: siglum,
+      book: bookSlug,
+      order,
+      slug,
+      pageTitle: siglum,
+    },
+    frontmatter: {
+      title,
+      book: bookSlug,
+      order,
+      section: siglum,
+      page: null,
+      headings: [],
+      source: `https://example.org/${slug}`,
+      ...extra,
+    },
     body: `Erfundener Text in **${title}**.`,
   };
 }
 
-const erstes = entry("erstes", 0, "Erstes Buch", bookDetails);
+const erstes = book("erstes", "Erstes Buch", bookDetails);
 
 describe("BookListTemplate", () => {
   const shelf = [
-    entry("lang", 0, "Ein langes Buch", {
+    book("lang", "Ein langes Buch", {
       ...bookDetails,
       year: 1872,
       length: 200000,
       sections: 80,
       shortTitle: "Lang",
     }),
-    entry("halb", 0, "Ein halbes Buch", {
+    book("halb", "Ein halbes Buch", {
       ...bookDetails,
       year: 1880,
       length: 100000,
       sections: 30,
     }),
-    entry("nachlass", 0, "Aus dem Nachlass", {
+    book("nachlass", "Aus dem Nachlass", {
       ...bookDetails,
       year: 1888,
       length: 50000,
@@ -100,7 +126,7 @@ describe("BookListTemplate", () => {
   });
 
   test("counts a single book and section in the singular", () => {
-    const one = entry("eins", 0, "Ein Buch", { ...bookDetails, sections: 1 });
+    const one = book("eins", "Ein Buch", { ...bookDetails, sections: 1 });
     const html = render(<BookListTemplate books={[one]} />);
 
     expect(html).toContain("1 book · 1 section<");
@@ -148,7 +174,7 @@ describe("BookListTemplate", () => {
       <BookListTemplate
         books={[
           ...shelf,
-          entry("klein", 0, "Ein kleines Buch", {
+          book("klein", "Ein kleines Buch", {
             ...bookDetails,
             year: 1876,
             length: 1000,
@@ -168,9 +194,9 @@ describe("BookListTemplate", () => {
     const html = render(
       <BookListTemplate
         books={[
-          entry("a", 0, "Anfang", { ...bookDetails, year: 1870, length: 10 }),
-          entry("m", 0, "Mitte", { ...bookDetails, year: 1880, length: 10 }),
-          entry("e", 0, "Ende", { ...bookDetails, year: 1889, length: 10 }),
+          book("a", "Anfang", { ...bookDetails, year: 1870, length: 10 }),
+          book("m", "Mitte", { ...bookDetails, year: 1880, length: 10 }),
+          book("e", "Ende", { ...bookDetails, year: 1889, length: 10 }),
         ]}
       />,
     );
@@ -193,16 +219,15 @@ describe("BookListTemplate", () => {
   });
 });
 
-describe("BookDetailTemplate", () => {
+describe("Book pages", () => {
   test("reads a section with its book, citation, source and neighbours", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
-        prev={entry("erstes", 1, "Anfang")}
-        next={entry("erstes", 3, "Ende")}
+        prev={section("erstes", 1, "Anfang")}
+        next={section("erstes", 3, "Ende")}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -220,13 +245,12 @@ describe("BookDetailTemplate", () => {
 
   test("sets a section for reading: siglum margin, place in the book, German text", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
-        prev={entry("erstes", 1, "Anfang")}
-        next={entry("erstes", 3, "Ende")}
+        prev={section("erstes", 1, "Anfang")}
+        next={section("erstes", 3, "Ende")}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -269,13 +293,9 @@ describe("BookDetailTemplate", () => {
   test("scores a book: one stroke per section, as tall as its text", () => {
     const html = render(
       <BookDetailTemplate
-        entry={erstes}
         book={erstes}
-        prev={null}
-        next={entry("erstes", 1, "Vorrede")}
-        total={3}
+        first={section("erstes", 1, "Vorrede")}
         score={score}
-        themes={[]}
       />,
     );
 
@@ -288,13 +308,9 @@ describe("BookDetailTemplate", () => {
   test("counts a one-section book in the singular", () => {
     const html = render(
       <BookDetailTemplate
-        entry={erstes}
         book={erstes}
-        prev={null}
-        next={null}
-        total={1}
+        first={null}
         score={score.slice(0, 1)}
-        themes={[]}
       />,
     );
 
@@ -304,13 +320,9 @@ describe("BookDetailTemplate", () => {
   test("groups the score by part, each part opening at its first section", () => {
     const html = render(
       <BookDetailTemplate
-        entry={erstes}
         book={erstes}
-        prev={null}
-        next={entry("erstes", 1, "Vorrede")}
-        total={3}
+        first={section("erstes", 1, "Vorrede")}
         score={score}
-        themes={[]}
       />,
     );
 
@@ -340,13 +352,9 @@ describe("BookDetailTemplate", () => {
     ];
     const html = render(
       <BookDetailTemplate
-        entry={erstes}
         book={erstes}
-        prev={null}
-        next={entry("erstes", 1, "Vorrede")}
-        total={4}
+        first={section("erstes", 1, "Vorrede")}
         score={parted}
-        themes={[]}
       />,
     );
 
@@ -360,17 +368,16 @@ describe("BookDetailTemplate", () => {
   });
 
   test("places a section under its part and division", () => {
-    const section = entry("erstes", 2, "Mitte", {
+    const placed = section("erstes", 2, "Mitte", {
       headings: ["Erster Teil", "Erstes Kapitel"],
     });
     const html = render(
-      <BookDetailTemplate
-        entry={section}
+      <BookSectionTemplate
+        section={placed}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -380,13 +387,12 @@ describe("BookDetailTemplate", () => {
 
   test("asks about a section by its title and wraps a long siglum", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -397,48 +403,19 @@ describe("BookDetailTemplate", () => {
 
   test("hyphenates a long German title instead of letting it overrun", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={erstes}
-        book={erstes}
-        prev={null}
-        next={null}
-        total={0}
-        score={[]}
-        themes={[]}
-      />,
+      <BookDetailTemplate book={erstes} first={null} score={[]} />,
     );
 
     expect(html).toMatch(/<h1 class="[^"]*hyphens-auto[^"]*" lang="de"/);
   });
 
   test("sets a title with a long word a size smaller", () => {
-    const long = entry(
-      "lang",
-      0,
-      "Menschliches, Allzumenschliches",
-      bookDetails,
-    );
+    const long = book("lang", "Menschliches, Allzumenschliches", bookDetails);
     const html = render(
-      <BookDetailTemplate
-        entry={long}
-        book={long}
-        prev={null}
-        next={null}
-        total={0}
-        score={[]}
-        themes={[]}
-      />,
+      <BookDetailTemplate book={long} first={null} score={[]} />,
     );
     const short = render(
-      <BookDetailTemplate
-        entry={erstes}
-        book={erstes}
-        prev={null}
-        next={null}
-        total={0}
-        score={[]}
-        themes={[]}
-      />,
+      <BookDetailTemplate book={erstes} first={null} score={[]} />,
     );
 
     expect(html).toMatch(/<h1 class="[^"]*md:text-4xl[^"]*" lang="de"/);
@@ -446,32 +423,30 @@ describe("BookDetailTemplate", () => {
   });
 
   test("sets a siglum with a long segment a size smaller", () => {
-    const long = {
-      ...entry("erstes", 2, "Mitte"),
+    const longSiglum = {
+      ...section("erstes", 2, "Mitte"),
       metadata: {
-        ...entry("erstes", 2, "Mitte").metadata,
+        ...section("erstes", 2, "Mitte").metadata,
         section: "Za-I-Verwandlungen",
       },
     };
     const short = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
     const html = render(
-      <BookDetailTemplate
-        entry={long}
+      <BookSectionTemplate
+        section={longSiglum}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -481,19 +456,18 @@ describe("BookDetailTemplate", () => {
   });
 
   test("asks about an editorial unit by the heading it opens", () => {
-    const base = entry("erstes", 2, "Titel", { headings: ["Zweiter Theil"] });
+    const base = section("erstes", 2, "Titel", { headings: ["Zweiter Theil"] });
     const titlePage = {
       ...base,
       metadata: { ...base.metadata, section: "S-II-[Titel]" },
     };
     const html = render(
-      <BookDetailTemplate
-        entry={titlePage}
+      <BookSectionTemplate
+        section={titlePage}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -503,13 +477,12 @@ describe("BookDetailTemplate", () => {
 
   test("names a neighbour once when its title is its siglum", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
-        next={entry("erstes", 3, "S-3")}
+        next={section("erstes", 3, "S-3")}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -518,18 +491,17 @@ describe("BookDetailTemplate", () => {
   });
 
   test("renders spaced emphasis only on its words, editorial brackets as text", () => {
-    const section = {
-      ...entry("erstes", 2, "Mitte"),
+    const emphasised = {
+      ...section("erstes", 2, "Mitte"),
       body: "Ein *gespro*\\<*chenes*\\> Wort, dann *zusammen* und ein Stern \\* hier.",
     };
     const html = render(
-      <BookDetailTemplate
-        entry={section}
+      <BookSectionTemplate
+        section={emphasised}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -541,13 +513,12 @@ describe("BookDetailTemplate", () => {
 
   test("names a section's themes in the margin, linked to their pages", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[
           { id: "mitleid", title: "Mitleid" },
           { id: "wille-zur-macht", title: "Wille zur Macht" },
@@ -564,13 +535,12 @@ describe("BookDetailTemplate", () => {
 
   test("leaves the margin empty when a section has no themes", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -580,13 +550,12 @@ describe("BookDetailTemplate", () => {
 
   test("offers to ask about the section, its siglum already in the question", () => {
     const html = render(
-      <BookDetailTemplate
-        entry={entry("erstes", 2, "Mitte")}
+      <BookSectionTemplate
+        section={section("erstes", 2, "Mitte")}
         book={erstes}
         prev={null}
         next={null}
         total={3}
-        score={[]}
         themes={[]}
       />,
     );
@@ -599,13 +568,9 @@ describe("BookDetailTemplate", () => {
   test("opens a book on its title page with the first section next", () => {
     const html = render(
       <BookDetailTemplate
-        entry={erstes}
         book={erstes}
-        prev={null}
-        next={entry("erstes", 1, "Anfang")}
-        total={3}
+        first={section("erstes", 1, "Anfang")}
         score={[]}
-        themes={[]}
       />,
     );
 

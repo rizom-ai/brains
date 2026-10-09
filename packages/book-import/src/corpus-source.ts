@@ -1,96 +1,118 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { bookFrontmatterSchema } from "@brains/book";
-import { z } from "@brains/utils/zod";
+import {
+  bookFrontmatterSchema,
+  bookSectionFrontmatterSchema,
+  type BookSectionFrontmatter,
+} from "@brains/book";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { EKGWB_BASE } from "./adapters/ekgwb";
 import type { BookRead, BookReader } from "./import-books";
-import type { BookUnit } from "./render-book";
+import { bookPaths, type BookUnit } from "./render-book";
 
-/** A book's entries as rendered under `book/<slug>`, in reading order. */
+interface CorpusSection {
+  frontmatter: BookSectionFrontmatter;
+  body: string;
+}
+
+/** A book as rendered, with its sections in reading order. */
 interface CorpusBook {
-  slug: string;
-  dir: string;
+  title: string;
+  /** The siglum its source names: its own, or its first part's. */
+  siglum: string;
+  sections: CorpusSection[];
 }
 
 /**
  * Read books back from a corpus the importer rendered, so a book's structure
- * can change without fetching its source again. A book is found by the siglum
- * its title entry's source names. Each entry becomes a unit under the
- * headings it records.
+ * can change without fetching its source again. A siglum reads the sections
+ * whose source it names, wherever they are filed: a book's own, or one part
+ * of a book printed in parts. Each section becomes a unit under the headings
+ * it records; in a book of parts the outermost of them is the part, which
+ * the importer adds again.
  */
 export async function corpusReader(brainData: string): Promise<BookReader> {
-  const books = await indexBooks(brainData);
+  const books = await readBooks(brainData);
   return {
     read: async (siglum): Promise<BookRead> => {
-      const book = books.get(siglum);
-      if (!book) throw new Error(`No book in the corpus has siglum ${siglum}`);
-      return readBook(book);
+      const parts = books.flatMap((book) => {
+        const sections = book.sections.filter((section) =>
+          names(section.frontmatter.source, siglum),
+        );
+        return sections.length > 0 ? [{ book, sections }] : [];
+      });
+      const [found, ...others] = parts;
+      if (!found) throw new Error(`No book in the corpus has siglum ${siglum}`);
+      if (others.length > 0) {
+        throw new Error(`Siglum ${siglum} is in more than one book`);
+      }
+      const ofParts = isOfParts(found.book);
+      return {
+        title: found.book.title,
+        units: found.sections.map(({ frontmatter, body }): BookUnit => ({
+          parents: ofParts
+            ? frontmatter.headings.slice(1)
+            : frontmatter.headings,
+          title: frontmatter.title,
+          section: frontmatter.section,
+          page: frontmatter.page,
+          source: frontmatter.source,
+          paragraphs: body.trim().split("\n\n"),
+        })),
+      };
     },
   };
 }
 
-async function indexBooks(brainData: string): Promise<Map<string, CorpusBook>> {
-  const root = join(brainData, "book");
-  const slugs = await readdir(root);
-  const entries = await Promise.all(
-    slugs.map(async (slug): Promise<[string, CorpusBook] | null> => {
-      const dir = join(root, slug);
-      const titles = (await readdir(dir)).filter((name) =>
-        name.startsWith("00000-"),
-      );
-      const titleFile = titles[0];
-      if (!titleFile) return null;
+/** Whether a source is the siglum's own page or one of its units. */
+function names(source: string, siglum: string): boolean {
+  const own = `${EKGWB_BASE}${siglum}`;
+  return source === own || source.startsWith(`${own}-`);
+}
+
+/** A book of parts holds sections its own siglum does not name. */
+function isOfParts(book: CorpusBook): boolean {
+  return book.sections.some(
+    (section) => !names(section.frontmatter.source, book.siglum),
+  );
+}
+
+async function readBooks(brainData: string): Promise<CorpusBook[]> {
+  const files = (await readdir(join(brainData, "book"))).filter((name) =>
+    name.endsWith(".md"),
+  );
+  const books = await Promise.all(
+    files.map(async (file): Promise<CorpusBook | null> => {
+      const paths = bookPaths(file.slice(0, -".md".length));
       const { metadata } = parseMarkdownWithFrontmatter(
-        await readFile(join(dir, titleFile), "utf8"),
+        await readFile(join(brainData, paths.book), "utf8"),
         bookFrontmatterSchema,
       );
       if (!metadata.source.startsWith(EKGWB_BASE)) return null;
-      return [metadata.source.slice(EKGWB_BASE.length), { slug, dir }];
+      return {
+        title: metadata.title,
+        siglum: metadata.source.slice(EKGWB_BASE.length),
+        sections: await readSections(join(brainData, paths.sections)),
+      };
     }),
   );
-  return new Map(entries.filter((entry) => entry !== null));
+  return books.filter((book) => book !== null);
 }
 
-/**
- * A corpus written before sections recorded their headings kept only the
- * outermost one, as `part`; it reads as a path of that one heading.
- */
-const corpusEntrySchema = bookFrontmatterSchema.extend({
-  part: z.string().nullable().optional(),
-});
-
-function headingsOf(entry: z.output<typeof corpusEntrySchema>): string[] {
-  if (entry.headings.length > 0) return entry.headings;
-  return entry.part ? [entry.part] : [];
-}
-
-async function readBook(book: CorpusBook): Promise<BookRead> {
-  const files = (await readdir(book.dir, { recursive: true })).filter((file) =>
+async function readSections(dir: string): Promise<CorpusSection[]> {
+  const files = (await readdir(dir, { recursive: true })).filter((file) =>
     file.endsWith(".md"),
   );
-  const parsed = await Promise.all(
-    files.map(async (file) =>
-      parseMarkdownWithFrontmatter(
-        await readFile(join(book.dir, file), "utf8"),
-        corpusEntrySchema,
-      ),
-    ),
+  const sections = await Promise.all(
+    files.map(async (file): Promise<CorpusSection> => {
+      const { metadata, content } = parseMarkdownWithFrontmatter(
+        await readFile(join(dir, file), "utf8"),
+        bookSectionFrontmatterSchema,
+      );
+      return { frontmatter: metadata, body: content };
+    }),
   );
-  const byOrder = parsed.sort(
-    (left, right) => left.metadata.order - right.metadata.order,
+  return sections.sort(
+    (left, right) => left.frontmatter.order - right.frontmatter.order,
   );
-  const title = byOrder[0];
-  if (title?.metadata.order !== 0) {
-    throw new Error(`${book.slug} has no title entry`);
-  }
-  const units = byOrder.slice(1).map(({ metadata, content }): BookUnit => ({
-    parents: headingsOf(metadata),
-    title: metadata.title,
-    section: metadata.section,
-    page: metadata.page,
-    source: metadata.source,
-    paragraphs: content.trim().split("\n\n"),
-  }));
-  return { title: title.metadata.title, units };
 }

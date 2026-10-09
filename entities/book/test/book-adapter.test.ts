@@ -1,24 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { bookAdapter } from "../src/adapters/book-adapter";
+import { bookSectionAdapter } from "../src/adapters/book-section-adapter";
 
-const sectionMarkdown = `---
-title: Erstes Hauptstück
-book: der-antichrist
-order: 1
-section: AC-1
-page: null
-source: http://www.nietzschesource.org/eKGWB/AC-1
----
-
-Ein erfundener Absatz für den Test.
-`;
-
-const titleMarkdown = `---
+const bookMarkdown = `---
 title: Der Antichrist
-book: der-antichrist
-order: 0
-section: null
-page: null
 source: http://www.nietzschesource.org/eKGWB/AC
 author: Friedrich Nietzsche
 year: 1888
@@ -32,47 +17,32 @@ sections: 65
 shortTitle: Antichrist
 ---
 
-Inhalt.
+## Contents
+`;
+
+const sectionMarkdown = `---
+title: Erstes Hauptstück
+book: der-antichrist
+order: 1
+section: AC-1
+page: null
+headings:
+  - Erster Theil
+  - Erstes Hauptstück
+source: http://www.nietzschesource.org/eKGWB/AC-1
+---
+
+Ein erfundener Absatz für den Test.
 `;
 
 describe("BookAdapter", () => {
-  it("parses a section entry into title and section metadata", () => {
-    const parsed = bookAdapter.fromMarkdown(sectionMarkdown);
+  it("parses a book's details, opening at its own slug", () => {
+    const parsed = bookAdapter.fromMarkdown(bookMarkdown);
 
     expect(parsed.entityType).toBe("book");
-    expect(parsed.metadata).toEqual({
-      title: "Erstes Hauptstück",
-      section: "AC-1",
-      book: "der-antichrist",
-      order: 1,
-      slug: "der-antichrist/1",
-      pageTitle: "AC-1",
-      citable: true,
-    });
-  });
-
-  it("reads the headings a section stands under", () => {
-    const frontmatter = bookAdapter.parseFrontMatter(
-      sectionMarkdown.replace(
-        "section: AC-1",
-        "section: AC-1\nheadings:\n  - Erster Theil\n  - Erstes Hauptstück",
-      ),
-      bookAdapter.frontmatterSchema,
-    );
-
-    expect(frontmatter["headings"]).toEqual([
-      "Erster Theil",
-      "Erstes Hauptstück",
-    ]);
-  });
-
-  it("parses the title entry's book details", () => {
-    const frontmatter = bookAdapter.parseFrontMatter(
-      titleMarkdown,
-      bookAdapter.frontmatterSchema,
-    );
-
-    expect(frontmatter).toMatchObject({
+    expect(
+      bookAdapter.parseFrontMatter(bookMarkdown, bookAdapter.frontmatterSchema),
+    ).toMatchObject({
       author: "Friedrich Nietzsche",
       year: 1888,
       kind: "work",
@@ -82,68 +52,84 @@ describe("BookAdapter", () => {
       sections: 65,
       shortTitle: "Antichrist",
     });
-    expect(bookAdapter.fromMarkdown(titleMarkdown).metadata).toEqual({
-      title: "Der Antichrist",
-      section: null,
-      book: "der-antichrist",
-      order: 0,
-      slug: "der-antichrist",
-      pageTitle: "Der Antichrist",
-      // A book's contents are no source in themselves; answers cite sections.
-      citable: false,
-    });
+    expect(parsed.metadata).toEqual({ title: "Der Antichrist" });
   });
 
-  it("rejects an entry without a source", () => {
+  it("rejects a book without a source", () => {
     expect(() =>
-      bookAdapter.fromMarkdown(`---
-title: Ohne Quelle
----
-
-Text.
-`),
+      bookAdapter.fromMarkdown("---\ntitle: Ohne Quelle\n---\n\nText.\n"),
     ).toThrow();
   });
 
   it("rejects an unknown license", () => {
     expect(() =>
       bookAdapter.fromMarkdown(
-        titleMarkdown.replace("CC-BY-NC-ND-4.0", "all-rights-reserved"),
+        bookMarkdown.replace("CC-BY-NC-ND-4.0", "all-rights-reserved"),
       ),
     ).toThrow();
   });
 
   it("round-trips through markdown without loss", () => {
-    const parsed = bookAdapter.fromMarkdown(titleMarkdown);
+    const parsed = bookAdapter.fromMarkdown(bookMarkdown);
     const markdown = bookAdapter.toMarkdown({
-      id: "der-antichrist:0000-titel",
+      id: "der-antichrist",
       entityType: "book",
       content: parsed.content ?? "",
       contentHash: "",
       created: "2026-10-05T00:00:00.000Z",
       updated: "2026-10-05T00:00:00.000Z",
       visibility: "restricted",
-      metadata: {
-        title: "Der Antichrist",
-        section: null,
-        book: "der-antichrist",
-        order: 0,
-        slug: "der-antichrist",
-        pageTitle: "Der Antichrist",
-        citable: false,
-      },
+      metadata: { title: "Der Antichrist" },
     });
-    const reparsed = bookAdapter.fromMarkdown(markdown);
 
-    expect(reparsed.metadata).toEqual(parsed.metadata);
+    expect(bookAdapter.fromMarkdown(markdown).metadata).toEqual(
+      parsed.metadata,
+    );
     expect(
       bookAdapter.parseFrontMatter(markdown, bookAdapter.frontmatterSchema),
     ).toEqual(
-      bookAdapter.parseFrontMatter(
-        titleMarkdown,
-        bookAdapter.frontmatterSchema,
-      ),
+      bookAdapter.parseFrontMatter(bookMarkdown, bookAdapter.frontmatterSchema),
     );
-    expect(markdown).toContain("Inhalt.");
+  });
+});
+
+describe("BookSectionAdapter", () => {
+  it("parses a section's place in its book, cited by its siglum", () => {
+    const parsed = bookSectionAdapter.fromMarkdown(sectionMarkdown);
+
+    expect(parsed.entityType).toBe("book-section");
+    expect(parsed.metadata).toEqual({
+      title: "Erstes Hauptstück",
+      section: "AC-1",
+      book: "der-antichrist",
+      order: 1,
+      slug: "der-antichrist/1",
+      pageTitle: "AC-1",
+    });
+  });
+
+  it("names a section without a siglum by its title", () => {
+    expect(
+      bookSectionAdapter.fromMarkdown(
+        sectionMarkdown.replace("section: AC-1", "section: null"),
+      ).metadata?.pageTitle,
+    ).toBe("Erstes Hauptstück");
+  });
+
+  it("reads the headings a section stands under", () => {
+    expect(
+      bookSectionAdapter.parseFrontMatter(
+        sectionMarkdown,
+        bookSectionAdapter.frontmatterSchema,
+      )["headings"],
+    ).toEqual(["Erster Theil", "Erstes Hauptstück"]);
+  });
+
+  it("rejects a section outside reading order", () => {
+    expect(() =>
+      bookSectionAdapter.fromMarkdown(
+        sectionMarkdown.replace("order: 1", "order: 0"),
+      ),
+    ).toThrow();
   });
 });

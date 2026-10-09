@@ -111,13 +111,10 @@ describe("a visitor's answer's sources", () => {
     expect(first?.title).toBe("AC-57");
   });
 
-  it("leave out an entry that is not itself a source, as a book's contents", async () => {
+  it("cite by type alone, whatever an entry's metadata says", async () => {
     const { find } = sources([
-      result("post", "contents", 0.62, {
-        title: "Der Antichrist",
-        citable: false,
-      }),
-      result("post", "aphorism", 0.59, { title: "7", pageTitle: "AC-7" }),
+      result("note", "draft", 0.62, { title: "Ein Entwurf" }),
+      result("post", "aphorism", 0.6, { title: "7", citable: false }),
     ]);
     const cited = await find({ answer: "Mitleid" });
     expect(cited.map((source) => source.id)).toEqual(["post:aphorism"]);
