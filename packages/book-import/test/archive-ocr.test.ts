@@ -244,6 +244,35 @@ describe("parseArchiveOcrWork on a work's opening", () => {
   });
 });
 
+describe("parseArchiveOcrWork on front matter", () => {
+  it("cites pages before the first by their roman numbers, and starts a work there", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-front.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1942-gw-2-3",
+        title: "Die Traumdeutung",
+        volume: "II/III",
+        firstPage: "V",
+        lastPage: 3,
+      },
+    );
+
+    expect(
+      units.map((unit) => [unit.parents, unit.title, unit.section]),
+    ).toEqual([
+      [[], "Vorbemerkung", "GW II/III, V"],
+      [[], "Vorwort zur zweiten Auflage", "GW II/III, VII"],
+      [[], "I", "GW II/III, 1"],
+    ]);
+    expect(units[1]?.paragraphs).toEqual([
+      "Daß es von diesem Buche zur zweiten Auflage kommen würde, verdanke ich nicht dem Interesse der Fachkreise.",
+    ]);
+  });
+});
+
 describe("printedPageNumbers", () => {
   /** A text page: its running head's number, or none where a chapter opens. */
   const text = (leaf: number, head: number | null): LeafReading => ({

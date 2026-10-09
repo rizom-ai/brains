@@ -17,7 +17,8 @@ export interface ArchiveOcrWork {
   title: string;
   /** The volume's roman numeral, as citations name it. */
   volume: string;
-  firstPage: number;
+  /** A printed page, or a roman page of the front matter. */
+  firstPage: number | string;
   lastPage: number;
   /** Pages in the range that are not the author's, such as an editors' note. */
   skipPages?: number[];
@@ -128,6 +129,18 @@ function roman(value: number): string {
   ).text;
 }
 
+const ROMAN_VALUES: Record<string, number> = { I: 1, V: 5, X: 10, L: 50 };
+
+/** A roman numeral's value: a smaller numeral before a larger subtracts. */
+function romanValue(numeral: string): number {
+  const values = [...numeral].map((letter) => ROMAN_VALUES[letter] ?? 0);
+  return values.reduce(
+    (sum, value, index) =>
+      sum + (value < (values[index + 1] ?? 0) ? -value : value),
+    0,
+  );
+}
+
 function numbers(title: string, key: string): number[] {
   const match = new RegExp(`${key} ([\\d. -]+)`).exec(title);
   return match?.[1] ? match[1].trim().split(/\s+/).map(Number) : [];
@@ -205,6 +218,40 @@ function numberedHead(page: Page): { index: number; number: number } | null {
   );
 }
 
+/** A front-matter head: a roman page number at its start or end. */
+const ROMAN_HEAD = /^([IVXL]+)\s+\S.*$|^.*\S\s+([IVXL]+)$/;
+
+/** The roman page number of a front-matter page's running head. */
+function romanHead(page: Page): { index: number; number: number } | null {
+  return page.lines.reduce<{ index: number; number: number } | null>(
+    (found, line, index) => {
+      if (found || index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) {
+        return found;
+      }
+      const match = ROMAN_HEAD.exec(line.text);
+      const numeral = match?.[1] ?? match?.[2];
+      return numeral === undefined
+        ? null
+        : { index, number: romanValue(numeral) };
+    },
+    null,
+  );
+}
+
+/**
+ * The offset from scan leaf to roman page in the front matter, the one most
+ * of its roman heads agree on, or null where there are none.
+ */
+function romanOffset(pages: Page[]): number | null {
+  const counts = pages.reduce<Map<number, number>>((tally, page) => {
+    const head = romanHead(page);
+    if (!head) return tally;
+    const offset = head.number - page.leaf;
+    return tally.set(offset, (tally.get(offset) ?? 0) + 1);
+  }, new Map());
+  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+
 function runningHeadNumber(page: Page): number | null {
   return numberedHead(page)?.number ?? null;
 }
@@ -223,7 +270,7 @@ const HEAD_LIKENESS = 0.6;
  * volume, whose number the OCR lost.
  */
 function runningHeadIndex(page: Page, heads: Array<Set<string>>): number {
-  const numbered = numberedHead(page);
+  const numbered = numberedHead(page) ?? romanHead(page);
   if (numbered) return numbered.index;
   return page.lines.findIndex((line, index) => {
     if (index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) return false;
@@ -546,11 +593,14 @@ interface Block {
   text: string;
   page: number;
   leaf: number;
+  /** The page as printed: its number, or its roman number in the front matter. */
+  label: string;
 }
 
 interface Place {
   page: number;
   leaf: number;
+  label: string;
 }
 
 function addLine(
@@ -571,6 +621,8 @@ interface PathStep {
   title: string;
   /** A subsection's letter. */
   letter: string | null;
+  /** A chapter numbered by its numeral. */
+  numbered: boolean;
 }
 
 /** The text under one heading, with the headings above it. */
@@ -604,10 +656,13 @@ function titleOf(
   return [named.join(". "), ...heading.qualifiers].join(" ");
 }
 
-/** A heading's level: an unnumbered one stands below an open chapter. */
+/**
+ * A heading's level: an unnumbered one stands below an open numbered
+ * chapter, and beside other unnumbered ones.
+ */
 function levelOf(heading: Heading, path: PathStep[]): number {
   if (heading.level !== null) return heading.level;
-  return path.some((step) => step.level === 1) ? 2 : 1;
+  return path.some((step) => step.level === 1 && step.numbered) ? 2 : 1;
 }
 
 /** Subsection I follows H, titled in capitals, and reads like the numeral I. */
@@ -662,6 +717,7 @@ function addHeading(
     level,
     title: titleOf(heading, chapters, cased),
     letter: level === 2 ? heading.label : null,
+    numbered: heading.numbered,
   };
   return {
     sections: [
@@ -762,11 +818,24 @@ export function parseArchiveOcrWork(
   const cased = createCaser(
     pages.flatMap((page) => page.lines.map((line) => line.text)),
   );
+  // Pages before the first are the front matter, numbered in roman.
+  const front = romanOffset(pages);
+  const labelOf = (number: number, leaf: number): string =>
+    number < 1 && front !== null ? roman(leaf + front) : String(number);
+  const firstPage =
+    typeof work.firstPage === "number"
+      ? work.firstPage
+      : front === null
+        ? null
+        : (printed.get(romanValue(work.firstPage) - front) ?? null);
+  if (firstPage === null) {
+    throw new Error(`No page ${work.firstPage} in ${work.item}`);
+  }
   const { sections } = pages
     .flatMap((page) => {
       const number = printed.get(page.leaf) ?? null;
       return number !== null &&
-        number >= work.firstPage &&
+        number >= firstPage &&
         number <= work.lastPage &&
         !(work.skipPages ?? []).includes(number)
         ? [{ page, number }]
@@ -781,10 +850,18 @@ export function parseArchiveOcrWork(
                   done,
                   headingOf(piece.lines),
                   cased,
-                  { page: number, leaf: page.leaf },
+                  {
+                    page: number,
+                    leaf: page.leaf,
+                    label: labelOf(number, page.leaf),
+                  },
                   work.title,
                 )
-              : addPiece(done, piece, { page: number, leaf: page.leaf }),
+              : addPiece(done, piece, {
+                  page: number,
+                  leaf: page.leaf,
+                  label: labelOf(number, page.leaf),
+                }),
           state,
         ),
       { sections: [], chapters: 0, titled: false },
@@ -812,8 +889,8 @@ export function parseArchiveOcrWork(
         0,
       );
     return parts.map((part, partIndex) => {
-      const start = part[0] ?? { page: 0, leaf: 0 };
-      const citation = `GW ${work.volume}, ${start.page}`;
+      const start = part[0] ?? { page: 0, leaf: 0, label: "" };
+      const citation = `GW ${work.volume}, ${start.label}`;
       const notes = section.notes.filter(
         (note) => partOfNote(note) === partIndex,
       );

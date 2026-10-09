@@ -44,7 +44,7 @@ const archiveOcrBookSchema: z.ZodObject<
     BookFields & {
       item: z.ZodString;
       volume: z.ZodString;
-      firstPage: z.ZodNumber;
+      firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       lastPage: z.ZodNumber;
       title: z.ZodString;
       edition: z.ZodString;
@@ -58,7 +58,11 @@ const archiveOcrBookSchema: z.ZodObject<
   /** The volume's roman numeral, as citations name it. */
   volume: z.string().min(1),
   /** The work's printed pages in the volume. */
-  firstPage: z.number().int().positive(),
+  firstPage: z.union([
+    z.number().int().positive(),
+    /** A roman page of the front matter. */
+    z.string().regex(/^[IVXL]+$/),
+  ]),
   lastPage: z.number().int().positive(),
   title: z.string().min(1),
   /** The printed edition the scan reproduces. */
