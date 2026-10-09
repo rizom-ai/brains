@@ -116,6 +116,7 @@ const dtaTeiBookSchema: z.ZodObject<
       citation: z.ZodString;
       title: z.ZodString;
       edition: z.ZodString;
+      skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
   >
 > = z.object({
@@ -127,6 +128,8 @@ const dtaTeiBookSchema: z.ZodObject<
   title: z.string().min(1),
   /** The printed edition the transcription follows. */
   edition: z.string().min(1),
+  /** Headings of divisions left out, e.g. an editor's preface. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
 const SOURCES = ["ekgwb", "archive-ocr", "dta-tei"] as const;

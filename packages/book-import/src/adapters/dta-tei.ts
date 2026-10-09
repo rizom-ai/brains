@@ -14,6 +14,8 @@ export interface DtaTeiWork {
   citation: string;
   /** The work's title, which the body's first heading may repeat. */
   title: string;
+  /** Headings of divisions left out with all they hold, e.g. an editor's preface. */
+  skipHeadings?: string[];
 }
 
 export interface DtaTeiText {
@@ -49,9 +51,13 @@ interface Reading {
 
 const VIEW = "https://www.deutschestextarchiv.de/book/view/";
 /** Elements that are the page's apparatus, not the author's text. */
-const SKIPPED = new Set(["fw", "figure", "milestone", "gap"]);
+const SKIPPED = new Set(["fw", "figure", "milestone", "gap", "titlePage"]);
 /** Elements read as a paragraph of their own. */
 const PARAGRAPHS = new Set(["p", "item", "l", "row", "quote"]);
+/** Divisions the text titles by their kind, having no heading of their own. */
+const UNTITLED: Record<string, string> = { dedication: "Widmung" };
+/** Divisions that only repeat the text's headings. */
+const SKIPPED_DIVISIONS = new Set(["contents"]);
 /** Characters markdown would read as markup; the text keeps them literal. */
 const MARKDOWN_SPECIAL = /[\\`*_<>]/g;
 /** Marks where the printed line ended; never occurs in the text. */
@@ -89,9 +95,12 @@ function formulaText(tex: string): string {
  * emphasis marked, a note left as its marker and gathered as a note of its
  * own, a page break moving the page on.
  */
-function inlineText(node: Node, reading: Reading): string {
+function inlineText(node: Node, reading: Reading, notes = true): string {
   if (node.nodeType === TEXT_NODE) {
-    return node.textContent.replace(MARKDOWN_SPECIAL, (c) => `\\${c}`);
+    return node.textContent
+      .replace(/ſ/g, "s")
+      .replace(/ꝛc\./g, "etc.")
+      .replace(MARKDOWN_SPECIAL, (c) => `\\${c}`);
   }
   if (!isElement(node)) return "";
   const element = node;
@@ -103,6 +112,7 @@ function inlineText(node: Node, reading: Reading): string {
     return "";
   }
   if (name === "note") {
+    if (!notes) return "";
     addNote(element, reading);
     return element.getAttribute("n") ?? "";
   }
@@ -112,10 +122,10 @@ function inlineText(node: Node, reading: Reading): string {
       Array.from(element.children).find((child) =>
         ["corr", "expan", "reg"].includes(nameOf(child)),
       ) ?? element.children[0];
-    return reading_ ? inlineText(reading_, reading) : "";
+    return reading_ ? inlineText(reading_, reading, notes) : "";
   }
   const inner = childrenOf(node)
-    .map((child) => inlineText(child, reading))
+    .map((child) => inlineText(child, reading, notes))
     .join("");
   if (name === "hi") {
     const word = inner.trim();
@@ -128,14 +138,31 @@ function inlineText(node: Node, reading: Reading): string {
   return inner;
 }
 
+/** Words after a compound's hyphen that show it stands for a word to come. */
+const SUSPENDED = "(?:und|oder|wie|bis|sowie|als)";
+
 /**
  * A line's end read: a word broken over it is one word again where it goes
- * on in small letters, through an emphasis mark; any other end is a space.
+ * on in small letters, through emphasis marks, and a compound keeps its
+ * hyphen, as does a part standing for a word to come (Silber- und Goldmünzen);
+ * any other end is a space. Fraktur prints the hyphen as ¬.
  */
 function joined(text: string): string {
   return text
     .replace(new RegExp(`\\s*${LINE_END}\\s*`, "g"), LINE_END)
-    .replace(new RegExp(`(\\p{L})-${LINE_END}(\\*?)(\\p{Ll})`, "gu"), "$1$2$3")
+    .replace(
+      new RegExp(
+        `(\\p{L})(\\*?)[-¬]${LINE_END}(?=\\*?${SUSPENDED}(?!\\p{L}))`,
+        "gu",
+      ),
+      "$1$2- ",
+    )
+    .replace(new RegExp(`(\\p{L})\\*[-¬]${LINE_END}\\*(\\p{Ll})`, "gu"), "$1$2")
+    .replace(
+      new RegExp(`(\\p{L})(\\*?)[-¬]${LINE_END}(\\*?)(\\p{Ll})`, "gu"),
+      "$1$2$3$4",
+    )
+    .replace(new RegExp(`(\\p{L})(\\*?)[-¬]${LINE_END}`, "gu"), "$1$2-")
     .replace(new RegExp(LINE_END, "g"), " ")
     .replace(/\s+/g, " ")
     .replace(/\s+([,.;:!?)])/g, "$1")
@@ -197,6 +224,21 @@ function addParagraph(element: Element, reading: Reading): void {
   currentSection(reading).paragraphs.push({ text, ...page });
 }
 
+/** A heading as titled: its notes and page breaks left to the reading. */
+function titleOf(head: Element, reading: Reading): string {
+  const aside: Reading = { ...reading, sections: [], notes: new Map() };
+  return joined(inlineText(head, aside, false)).replace(/\*/g, "");
+}
+
+/** A heading's notes and page breaks, read into the section it opens. */
+function readApparatus(node: Node, reading: Reading): void {
+  if (!isElement(node)) return;
+  const name = nameOf(node);
+  if (name === "pb") turnPage(node, reading);
+  else if (name === "note") addNote(node, reading);
+  else childrenOf(node).forEach((child) => readApparatus(child, reading));
+}
+
 /** The headings a division stands under, its own last. */
 interface Division {
   path: readonly object[];
@@ -207,7 +249,7 @@ function visit(
   node: Node,
   reading: Reading,
   division: Division,
-  workTitle: string,
+  work: DtaTeiWork,
 ): void {
   const name = nameOf(node);
   if (!isElement(node) || SKIPPED.has(name)) return;
@@ -225,58 +267,74 @@ function visit(
     return;
   }
   if (name === "div") {
+    const kind = element.getAttribute("type") ?? "";
+    if (SKIPPED_DIVISIONS.has(kind)) return;
     const head = Array.from(element.children).find(
       (child) => nameOf(child) === "head",
     );
-    const title = head
-      ? joined(inlineText(head, reading)).replace(/\*/g, "")
-      : null;
-    // The body may open with the work's own title, which the manifest gives.
-    const own =
-      title !== null &&
-      !(division.path.length === 0 && sameName(title, workTitle));
-    const inner: Division = own
-      ? {
-          path: [...division.path, element],
-          titles: [...division.titles, title],
-        }
-      : division;
-    if (own) {
-      reading.sections.push({ ...inner, paragraphs: [], notes: [] });
+    const title = head ? titleOf(head, reading) : (UNTITLED[kind] ?? null);
+    const skipped = (work.skipHeadings ?? []).some(
+      (heading) => title !== null && sameName(title, heading),
+    );
+    if (skipped) {
+      // The pages still turn, so the text after it is cited where it stands.
+      Array.from(element.getElementsByTagName("pb")).forEach((pb) =>
+        turnPage(pb, reading),
+      );
+      return;
     }
+    // The text may open under the work's own title, which the manifest
+    // gives: it titles the text before the first division, and no more.
+    const opening =
+      title !== null &&
+      division.path.length === 0 &&
+      sameName(title, work.title);
+    const inner: Division =
+      title !== null && !opening
+        ? {
+            path: [...division.path, element],
+            titles: [...division.titles, title],
+          }
+        : division;
+    if (title !== null) {
+      const own = opening ? { path: [element], titles: [title] } : inner;
+      reading.sections.push({ ...own, paragraphs: [], notes: [] });
+    }
+    if (head) readApparatus(head, reading);
     childrenOf(element)
       .filter((child) => child !== head)
-      .forEach((child) => visit(child, reading, inner, workTitle));
+      .forEach((child) => visit(child, reading, inner, work));
     return;
   }
-  childrenOf(element).forEach((child) =>
-    visit(child, reading, division, workTitle),
-  );
+  childrenOf(element).forEach((child) => visit(child, reading, division, work));
 }
 
 /**
  * Read a Deutsches Textarchiv TEI text: the body's divisions as sections
- * under their headings, paragraphs as printed with words broken over a line
+ * under their headings after the front matter's, paragraphs as printed with words broken over a line
  * joined, spaced or italic emphasis marked, the author's notes after the
- * text, each part cited by work and printed page. The title page, front and
- * back matter, running heads and signatures are left out.
+ * text, each part cited by work and printed page. The title page, back
+ * matter, running heads and signatures are left out.
  */
 export function parseDtaTei(xml: string, work: DtaTeiWork): DtaTeiText {
   const window = new Window();
   try {
+    // The header may hold character data the parser rejects; none is text.
     const document = new window.DOMParser().parseFromString(
-      xml,
+      xml.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, ""),
       "application/xml",
     );
+    const front = document.getElementsByTagName("front")[0];
     const body = document.getElementsByTagName("body")[0];
     const licence =
       document.getElementsByTagName("licence")[0]?.getAttribute("target") ??
       null;
     if (!body) return { units: [], licence };
-    // The page the body opens on is the last break before it.
+    // The page the text opens on is the last break before it.
+    const start = front ?? body;
     const breaks = Array.from(document.getElementsByTagName("pb"));
     const opening = breaks
-      .filter((pb) => (pb.compareDocumentPosition(body) & 4) === 4)
+      .filter((pb) => (pb.compareDocumentPosition(start) & 4) === 4)
       .at(-1);
     const reading: Reading = {
       page: { page: 0, label: "", facs: 0 },
@@ -284,7 +342,9 @@ export function parseDtaTei(xml: string, work: DtaTeiWork): DtaTeiText {
       notes: new Map(),
     };
     if (opening) turnPage(opening, reading);
-    visit(body, reading, { path: [], titles: [] }, work.title);
+    [front, body].forEach((part) => {
+      if (part) visit(part, reading, { path: [], titles: [] }, work);
+    });
     return {
       units: unitsOfSections(reading.sections, (start) => ({
         citation: `${work.citation}, ${start.label}`,

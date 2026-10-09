@@ -1,0 +1,67 @@
+# Karl Marx's works, read from the Deutsches Textarchiv's TEI transcriptions
+# of their first editions (the Brumaire from the second, 1869). The
+# transcriptions are under CC BY-SA 4.0, the Manifest's under CC BY-SA 2.0 DE.
+# `year` is first publication. The second and third volumes of Das Kapital
+# appeared after Marx's death, edited by Engels; Engels' prefaces to them are
+# left out. The third volume is two books, as printed, each paged on its own.
+source: dta-tei
+books:
+  - id: marx_manifestws_1848
+    citation: Manifest
+    slug: manifest-der-kommunistischen-partei
+    title: Manifest der Kommunistischen Partei
+    shortTitle: Kommunistisches Manifest
+    edition: "Manifest der Kommunistischen Partei (London: Office der „Bildungs-Gesellschaft für Arbeiter“, 1848)"
+    author: Karl Marx und Friedrich Engels
+    year: 1848
+    kind: work
+  - id: marx_bonaparte_1869
+    citation: Brumaire
+    slug: der-achtzehnte-brumaire-des-louis-bonaparte
+    title: Der achtzehnte Brumaire des Louis Bonaparte
+    shortTitle: Der achtzehnte Brumaire
+    edition: Der achtzehnte Brumaire des Louis Bonaparte, 2., überarbeitete Auflage (Hamburg, Otto Meißner, 1869)
+    author: Karl Marx
+    year: 1852
+    kind: work
+  - id: marx_kapital01_1867
+    citation: Kapital I
+    slug: das-kapital-1
+    title: "Das Kapital. Erster Band: Der Produktionsprocess des Kapitals"
+    shortTitle: Das Kapital I
+    edition: Das Kapital. Kritik der politischen Oekonomie, Erster Band (Hamburg, Otto Meissner, 1867)
+    author: Karl Marx
+    year: 1867
+    kind: work
+  - id: marx_kapital02_1885
+    citation: Kapital II
+    slug: das-kapital-2
+    title: "Das Kapital. Zweiter Band: Der Cirkulationsprocess des Kapitals"
+    shortTitle: Das Kapital II
+    edition: Das Kapital. Kritik der politischen Oekonomie, Zweiter Band, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1885)
+    author: Karl Marx
+    year: 1885
+    published: false
+    kind: work
+    skipHeadings: [Vorwort]
+  - id: marx_kapital0301_1894
+    citation: Kapital III.1
+    slug: das-kapital-3-1
+    title: "Das Kapital. Dritter Band, erster Theil: Der Gesammtprocess der kapitalistischen Produktion, Kapitel I bis XXVIII"
+    shortTitle: Das Kapital III.1
+    edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, erster Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
+    author: Karl Marx
+    year: 1894
+    published: false
+    kind: work
+    skipHeadings: [Vorwort]
+  - id: marx_kapital0302_1894
+    citation: Kapital III.2
+    slug: das-kapital-3-2
+    title: "Das Kapital. Dritter Band, zweiter Theil: Der Gesammtprocess der kapitalistischen Produktion, Kapitel XXIX bis LII"
+    shortTitle: Das Kapital III.2
+    edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, zweiter Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
+    author: Karl Marx
+    year: 1894
+    published: false
+    kind: work

@@ -194,6 +194,7 @@ books:
     author: Karl Marx
     year: 1867
     kind: work
+    skipHeadings: [Vorwort]
 `),
       brainData,
       async (url) => {
@@ -212,7 +213,7 @@ books:
     expect(requested).toEqual([
       "https://www.deutschestextarchiv.de/book/download_xml/marx_kapital01_1867",
     ]);
-    expect(results).toEqual([{ slug: "das-kapital-1", entries: 3 }]);
+    expect(results).toEqual([{ slug: "das-kapital-1", entries: 4 }]);
     expect(title).toContain("license: CC-BY-SA-4.0");
     expect(title).toContain("Deutsches Textarchiv");
     expect(title).toContain(
