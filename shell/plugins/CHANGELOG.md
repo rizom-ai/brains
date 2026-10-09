@@ -1,5 +1,27 @@
 # @brains/plugins
 
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- Updated dependencies [[`8932425`](https://github.com/rizom-ai/brains/commit/8932425101438c3eef1f60ac0f584b2974e9a465)]:
+  - @brains/scheduler@0.2.0-alpha.501
+  - @brains/recurring-checks@0.2.0-alpha.501
+  - @brains/content-formatters@0.2.0-alpha.501
+  - @brains/contracts@0.2.0-alpha.501
+  - @brains/site-composition@0.2.0-alpha.501
+  - @brains/utils@0.2.0-alpha.501
+  - @brains/ai-service@0.2.0-alpha.501
+  - @brains/content-service@0.2.0-alpha.501
+  - @brains/conversation-service@0.2.0-alpha.501
+  - @brains/entity-service@0.2.0-alpha.501
+  - @brains/identity-service@0.2.0-alpha.501
+  - @brains/job-queue@0.2.0-alpha.501
+  - @brains/mcp-service@0.2.0-alpha.501
+  - @brains/messaging-service@0.2.0-alpha.501
+  - @brains/runtime-state@0.2.0-alpha.501
+  - @brains/templates@0.2.0-alpha.501
+
 ## 0.2.0-alpha.500
 
 ### Patch Changes
