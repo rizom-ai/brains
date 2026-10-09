@@ -835,4 +835,144 @@ describe("parseArchiveOcrWork, titles set in display type", () => {
 
     expect(units.at(-1)?.title).toBe("V. Die Masse und der Preusse.");
   });
+
+  it("reads a title of two lines at a page's head as set apart, and a title in brackets", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass I",
+        firstPage: 41,
+        lastPage: 51,
+      },
+    );
+
+    expect(units.slice(-2).map((unit) => unit.title)).toEqual([
+      "Der leitende Artikel in der Zeitung des Preussen.",
+      "[Ueber Kommunismus.]",
+    ]);
+    expect(units.at(-1)?.paragraphs[0]).toStartWith("Die Zeitung des Preussen");
+  });
+
+  it("leaves out a signature whose first name ends with a full stop where more names follow", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass I",
+        firstPage: 41,
+        lastPage: 51,
+      },
+    );
+
+    expect(units.at(-1)?.paragraphs.join(" ")).not.toContain("Lassalle");
+  });
+});
+
+describe("parseArchiveOcrWork, parts and roman sections", () => {
+  it("reads a part spelled Theil, and centred lines of a roman number and a title as its sections", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Differenz der demokritischen und epikureischen Naturphilosophie",
+        citation: "Nachlass I",
+        firstPage: 71,
+        lastPage: 73,
+      },
+    );
+
+    expect(units.map((unit) => [unit.parents.at(-1), unit.title])).toEqual([
+      [
+        "Erster Theil. Differenz der demokritischen und epikureischen Naturphilosophie im Allgemeinen.",
+        "I. Gegenstand der Abhandlung.",
+      ],
+      [
+        "Erster Theil. Differenz der demokritischen und epikureischen Naturphilosophie im Allgemeinen.",
+        "II. Urtheile über das Verhältniss der demokritischen und epikureischen Physik.",
+      ],
+    ]);
+  });
+
+  it("reads a numbered line as wide as the text as a section where space above sets it apart", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Differenz der demokritischen und epikureischen Naturphilosophie",
+        citation: "Nachlass I",
+        firstPage: 71,
+        lastPage: 74,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "III. Schwierigkeiten hinsichtlich der Identität demokritischer und epikureischer Naturphilosophie.",
+    );
+  });
+
+  it("reads the centred line after a chapter named in words as its title, though wider than a misread title", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Differenz der demokritischen und epikureischen Naturphilosophie",
+        citation: "Nachlass I",
+        firstPage: 71,
+        lastPage: 75,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "I. Die Deklination des Atoms von der geraden Linie.",
+    );
+  });
+
+  it("takes a line a correction sets as known words, though in another script", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-1",
+        title:
+          "Differenz der demokritischen und epikureischen Naturphilosophie",
+        citation: "Nachlass I",
+        firstPage: 71,
+        lastPage: 76,
+        corrections: [
+          {
+            page: 76,
+            from: "Hrouνοεt hεεαι und πτ%ιμια ποινεια.",
+            to: "Ἄτομοι ἀρχαί und ἄτομα στοιχεῖα.",
+          },
+        ],
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe("II. Ἄτομοι ἀρχαί und ἄτομα στοιχεῖα.");
+  });
 });

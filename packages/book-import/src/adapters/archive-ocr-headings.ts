@@ -31,9 +31,10 @@ export interface Heading {
   qualifiers: string[];
 }
 
-/** A part's name, its word for part however the OCR read it ("Tetl"). */
+/** A part's name, its word for part however the OCR read it ("Tetl"), or as
+ * an older edition spells it (Theil). */
 const PART =
-  /^(erster|zweiter|dritter|vierter|fünfter|[IVX]+\.?)\s+t\S{2,3}$/iu;
+  /^(erster|zweiter|dritter|vierter|fünfter|[IVX]+\.?)\s+(t\S{2,3}|theil)\.?$/iu;
 /** A lecture's or chapter's number, however the OCR read it: Siebentes Kapitel. */
 const LECTURE = /^\S{1,9}\s*(?:vorlesung|kapitel)\.?$/iu;
 /** A roman numeral, with the OCR's usual misreadings of its strokes. */
@@ -67,7 +68,9 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
   if (part?.[1]) {
     const ordinal = part[1];
     const named = /^[IVX]/u.test(ordinal) ? ordinal : capitalised(ordinal);
-    return { kind: "part", text: `${named} Teil` };
+    // The edition's own spelling of the word, which the OCR may misread.
+    const word = /^theil$/iu.test(part[2] ?? "") ? "Theil" : "Teil";
+    return { kind: "part", text: `${named} ${word}` };
   }
   if (LECTURE.test(text)) {
     return {

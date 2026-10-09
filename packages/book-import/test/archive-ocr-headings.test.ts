@@ -52,6 +52,19 @@ describe("headingLineOf on a chapter named by its ordinal", () => {
   });
 });
 
+describe("headingLineOf on a part spelled the old way", () => {
+  it("reads Erster Theil as a part, and keeps its spelling", () => {
+    expect(headingLineOf("Erster Theil.", 79)).toEqual({
+      kind: "part",
+      text: "Erster Theil",
+    });
+    expect(headingLineOf("Zweiter Teil", 79)).toEqual({
+      kind: "part",
+      text: "Zweiter Teil",
+    });
+  });
+});
+
 describe("headingLineOf on a section's name", () => {
   it("reads a preface's or a closing section's name as a heading, however set", () => {
     expect(headingLineOf("Vorwort.", 50)).toEqual({

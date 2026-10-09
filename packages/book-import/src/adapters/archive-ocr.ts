@@ -54,6 +54,8 @@ interface Line {
   ends?: boolean;
   /** Read from a line of numeral and title, which no running head is. */
   numbered?: boolean;
+  /** Set by a correction: read by eye, its words are the work's. */
+  corrected?: boolean;
 }
 
 interface Page {
@@ -112,12 +114,13 @@ const RUNNING_HEAD =
   /^(?:\S{1,2}\s+)?(\d+)\s+\S.*$|^.*\S\s+(\d+)(?:\s+\S{1,2})?$|^[—–-]?\s*(\d+)\s*[—–-]?$/;
 /**
  * The printer's signature at a sheet's foot: the volume by its authors'
- * names, a comma after the first, and numeral (Freud, XIII; Marx, Engels,
- * Lassalle. II), the sheet's number after it, the numeral however misread.
- * Without the comma a word and a stray mark (Gesetz. |) are a line's end.
+ * names, a comma after the first or more names after it, and numeral
+ * (Freud, XIII; Marx, Engels, Lassalle. II), the sheet's number after it, the
+ * numeral however misread. A single word with a stop and a stray mark
+ * (Gesetz. |) is a line's end.
  */
 const SIGNATURE =
-  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3})\s*[IVXLl1|]+\.?[,.]?\s*\d*\s*$/u;
+  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3})\s*[IVXLl1|]+\.?[,.]?\s*\d*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*)\)/;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
 const OCR_NOTE_MARKER = /ı\)/g;
@@ -526,7 +529,13 @@ function median(values: number[]): number {
 }
 
 type Piece =
-  | { kind: "heading"; lines: HeadingLine[]; closed?: boolean }
+  | {
+      kind: "heading";
+      lines: HeadingLine[];
+      closed?: boolean;
+      /** A numbered subsection's, whose title may run on to a second line. */
+      subsection?: boolean;
+    }
   | { kind: "text"; text: string; opens: boolean }
   | { kind: "note"; text: string; opens: boolean };
 
@@ -710,7 +719,9 @@ function correctedLines(
       const text = (fixed[index] ?? "").trim();
       // A line a correction empties was the scan's noise.
       if (text === "") return [];
-      return [text === lines[index] ? line : { ...line, text }];
+      return [
+        text === lines[index] ? line : { ...line, text, corrected: true },
+      ];
     }),
   };
 }
@@ -768,8 +779,33 @@ function middleOf(page: Page): number {
     : page.width / 2;
 }
 
-/** A subsection's number and title set on one line: 2. Beraud über die Freudenmädchen. */
-const NUMBERED_SUBSECTION = /^(\d{1,2})\.\s+(\p{Lu}.*)$/u;
+/** A subsection's number, arabic or roman, and title set on one line: 2. Beraud über die Freudenmädchen. */
+const NUMBERED_SUBSECTION = /^(\d{1,2}|[IVX]{1,4})\.\s+(\p{Lu}.*)$/u;
+/** A line that opens with a label of its own: a. Der „Geist“ und die „Masse“. */
+const LABELLED = /^\S{1,4}[.)]\s/u;
+/** A title's second line is set this large at least, against its first. */
+const TITLE_LINE_SIZE = 0.9;
+
+/** The run of lines around one that are all alike, by the first and last index. */
+function runAround(
+  lines: Line[],
+  index: number,
+  alike: (line: Line) => boolean,
+): { first: number; end: number } {
+  const line = lines[index];
+  if (line === undefined || !alike(line)) return { first: index, end: index };
+  const unlikeBefore = lines
+    .slice(0, index)
+    .flatMap((other, at) => (alike(other) ? [] : [at]))
+    .at(-1);
+  const unlikeAfter = lines.findIndex(
+    (other, at) => at > index && !alike(other),
+  );
+  return {
+    first: unlikeBefore === undefined ? 0 : unlikeBefore + 1,
+    end: unlikeAfter < 0 ? lines.length - 1 : unlikeAfter - 1,
+  };
+}
 
 /** A chapter's numeral and title set on one line: I. Die Schwefelbande. */
 const NUMBERED_TITLE = /^([IVXL]+\.)\s+(\p{Lu}.*)$/u;
@@ -867,18 +903,70 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       (open ||
         line.width < volume.column * HEADING_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE);
+    // A numbered subsection's title runs on to a centred line in its type
+    // that numbers nothing of its own.
+    const subsectionTitle =
+      last?.kind === "heading" && last.subsection === true
+        ? last.lines.at(-1)
+        : undefined;
+    if (
+      last?.kind === "heading" &&
+      subsectionTitle?.kind === "caps" &&
+      Math.abs(centre - middle) < page.width * CENTRE &&
+      line.width < volume.column * TITLE_WIDTH &&
+      line.size >= subsectionTitle.size * TITLE_LINE_SIZE &&
+      !LABELLED.test(line.text) &&
+      (line.corrected === true || isWordy(line.text, volume.spelling))
+    ) {
+      return [
+        ...pieces.slice(0, -1),
+        {
+          ...last,
+          lines: [
+            ...last.lines.slice(0, -1),
+            {
+              ...subsectionTitle,
+              text: `${subsectionTitle.text} ${line.text}`,
+            },
+          ],
+          subsection: false,
+        },
+      ];
+    }
     // A centred line of a number and its title opens a numbered subsection,
     // which ends with the line: 2. Beraud über die Freudenmädchen.
     const subsection = NUMBERED_SUBSECTION.exec(line.text);
+    // Set as wide as the text, it stands apart by the space above it, and
+    // ends in a centred line of its own or space below; a paragraph that
+    // opens with a number (12. April.) runs on in full lines.
+    const below = headless[index + 1];
+    const endsAsTitle =
+      below === undefined ||
+      below.y - line.bottom > bodyHeight ||
+      (Math.abs(below.x + below.width / 2 - middle) < page.width * CENTRE &&
+        below.width < volume.column * TITLE_WIDTH);
+    const textAbove = headless
+      .slice(0, index)
+      .filter(
+        (other) =>
+          /\p{L}/u.test(other.text) &&
+          other.size >= volume.textSize * NOTE_SIZE,
+      )
+      .at(-1);
+    const spacedAbove =
+      textAbove !== undefined &&
+      line.y - textAbove.bottom > bodyHeight &&
+      endsAsTitle;
     if (
       subsection?.[1] &&
       subsection[2] &&
-      Math.abs(centre - middle) < page.width * CENTRE &&
-      line.width < volume.column * HEADING_WIDTH &&
+      ((Math.abs(centre - middle) < page.width * CENTRE &&
+        line.width < volume.column * HEADING_WIDTH) ||
+        spacedAbove) &&
       line.y > page.height * HEAD_ZONE &&
       line.y < page.height * FOOT_ZONE &&
       line.size >= volume.textSize * NOTE_SIZE &&
-      isWordy(subsection[2], volume.spelling) &&
+      (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
       // A chapter named so (2. Kapitel) is read as one.
       headingLineOf(line.text, line.size) === null
     ) {
@@ -896,6 +984,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
             },
           ],
           closed: true,
+          subsection: true,
         },
       ];
     }
@@ -911,19 +1000,37 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         above.kind === "letter" ||
         (above.kind === "caps" && above.misread === true)) &&
       (line.width < volume.column * TITLE_WIDTH ||
-        line.size > volume.textSize * HEADING_SIZE);
+        line.size > volume.textSize * HEADING_SIZE ||
+        // After a chapter named in words, a line short of the column is its
+        // title; a numeral alone may stand above the text's first line.
+        (above.kind === "chapter" &&
+          above.named === true &&
+          line.width < volume.column * HEADING_WIDTH));
     // A title set in display type, larger than the text, need not be in
     // capitals; Fraktur's display type has none to read.
     // Two text lines the OCR read as one are as large, but fill the column
     // between the lines around them; a title as wide stands apart from them.
-    const before = headless[index - 1];
-    const after = headless[index + 1];
+    // A title of several lines stands apart as a whole; rules and ornaments
+    // around it are not the text it stands apart from.
+    const titleType = (other: Line): boolean =>
+      other.size > volume.textSize * HEADING_SIZE;
+    const isText = (other: Line): boolean =>
+      /\p{L}/u.test(other.text) && other.size >= volume.textSize * NOTE_SIZE;
+    const { first, end } = runAround(headless, index, titleType);
+    const before = headless.slice(0, first).filter(isText).at(-1);
+    const after = headless.slice(end + 1).find(isText);
+    const top = headless[first]?.y ?? line.y;
+    const bottom = headless[end]?.bottom ?? line.bottom;
+    // A page set in large type throughout, a dedication, has no text for a
+    // title to stand apart from.
     const apart =
-      (before === undefined || line.y - before.bottom > bodyHeight) &&
-      (after === undefined || after.y - line.bottom > bodyHeight);
-    // A title opens with a capital; a dedication's or a list's line does not.
+      (before !== undefined || after !== undefined) &&
+      (before === undefined || top - before.bottom > bodyHeight) &&
+      (after === undefined || after.y - bottom > bodyHeight);
+    // A title opens with a capital, past a bracket or quotation mark; a
+    // dedication's or a list's line does not.
     const display =
-      /^\p{Lu}/u.test(line.text) &&
+      /^[[(„"]?\p{Lu}/u.test(line.text) &&
       (apart
         ? line.size > volume.textSize * HEADING_SIZE
         : line.size > volume.textSize * DISPLAY_SIZE &&
@@ -938,6 +1045,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     const headingLine =
       candidate?.kind === "caps" &&
       !SECTION_NAME.test(candidate.text) &&
+      line.corrected !== true &&
       !isWordy(candidate.text, volume.spelling)
         ? null
         : candidate;
@@ -1149,7 +1257,10 @@ function addHeading(
       ? roman(chapters)
       : heading.label === null
         ? null
-        : cased(heading.label),
+        : // A number, arabic or roman, is no word to case.
+          /^(?:\d+|[IVX]+)$/u.test(heading.label)
+          ? heading.label
+          : cased(heading.label),
     name: heading.title
       .map(cased)
       // A subtitle follows its title after one full stop.
