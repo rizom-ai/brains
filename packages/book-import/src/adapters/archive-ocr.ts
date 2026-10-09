@@ -1061,7 +1061,13 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         },
       ];
     }
-    const read = centred ? headingLineOf(line.text, line.size) : null;
+    const reading = centred ? headingLineOf(line.text, line.size) : null;
+    // A numeral read apart from its title on one line names a chapter, as a
+    // chapter named in words does: no example's number.
+    const read =
+      reading?.kind === "chapter" && line.numbered === true
+        ? { ...reading, named: true }
+        : reading;
     // The line after a numeral, letter or part's name is its title, even where
     // the OCR read its capitals as small letters, or set in display type
     // across the column.

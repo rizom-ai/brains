@@ -1266,4 +1266,25 @@ describe("parseArchiveOcrWork, Kautsky's headings", () => {
       "Anhang. Der Begriff der produktiven Arbeit.",
     ]);
   });
+
+  it("reads a roman title on one line after numbered sections as a chapter, numbered by its place, not as an example", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-lettered-parts.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 1,
+        lastPage: 4,
+      },
+    );
+
+    expect([units.at(-1)?.parents.at(-1), units.at(-1)?.title]).toEqual([
+      "I. Die Grundrente.",
+      "1. Rodbertus.",
+    ]);
+  });
 });
