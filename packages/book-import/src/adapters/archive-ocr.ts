@@ -72,7 +72,8 @@ const CLEAN_LINES = 0.5;
 /** A page number opening or closing the line, past a scrap of OCR noise. */
 const RUNNING_HEAD =
   /^(?:\S{1,2}\s+)?(\d+)\s+\S.*$|^.*\S\s+(\d+)(?:\s+\S{1,2})?$/;
-const SIGNATURE = /^Freud,?\s+[IVXL]+\.?\s*\d*\s*$/;
+/** The printer's signature at a sheet's foot, its numeral however misread. */
+const SIGNATURE = /^Freud\s*[,.]?\s*[IVXLl1|]+\.?\s*\d*\s*$/;
 const NOTE_START = /^(?:ı|\d+|\*)\)/;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
 const OCR_NOTE_MARKER = /ı\)/g;
@@ -515,10 +516,14 @@ function isPicture(lines: Line[]): boolean {
  */
 /** The OCR reads a note marker, a 1 beside digits, and an i, as a dotless i. */
 function normalised(text: string): string {
-  return text
-    .replace(OCR_NOTE_MARKER, "¹)")
-    .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
-    .replace(/ı/g, "i");
+  return (
+    text
+      // A dot the OCR set before a word inside the line is a speck.
+      .replace(/(?<=\s)\.(?=\p{Ll})/gu, "")
+      .replace(OCR_NOTE_MARKER, "¹)")
+      .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
+      .replace(/ı/g, "i")
+  );
 }
 
 /** A heading's line as printed, for reading a page against its scan. */
