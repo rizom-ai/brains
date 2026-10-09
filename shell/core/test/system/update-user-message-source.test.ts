@@ -164,11 +164,39 @@ describe("system_update user-message source", () => {
     const { services, tool } = fixture([
       message(`${pasted("Body.\n")}\nEND EXACT CONTENT`),
     ]);
-    expect(await tool.handler(input(), context)).toMatchObject({
+    expect(await tool.handler(input(), context)).toEqual({
       success: false,
-      error: expect.stringContaining("must each occur exactly once"),
+      error:
+        'User-message boundary endBefore "END EXACT CONTENT" occurs 2 times in the message; each boundary must occur exactly once. To select everything after an instruction, use boundaryMode literal with startAfter set to the instruction\'s exact text and omit endBefore.',
     });
     expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  test("names a missing boundary", async () => {
+    const { tool } = fixture([message("Replace note 'working-plan' with: x")]);
+    expect(await tool.handler(input(), context)).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        'startAfter "BEGIN EXACT CONTENT" does not occur in the message; endBefore "END EXACT CONTENT" does not occur in the message;',
+      ),
+    });
+  });
+
+  test("selects pasted frontmatter after a literal instruction prefix", async () => {
+    const instruction = "Replace note 'working-plan' with this exactly:\n\n";
+    const document = "---\ntitle: Renamed plan\n---\n# Renamed plan\n";
+    const { services, tool } = fixture([message(`${instruction}${document}`)]);
+    const prefix = {
+      entityType: "note",
+      id: "working-plan",
+      operation: {
+        kind: "source",
+        source: { kind: "user-message", startAfter: instruction },
+      },
+    };
+    const args = expectConfirmationArgs(await tool.handler(prefix, context));
+    expect(await tool.handler(args, context)).toMatchObject({ success: true });
+    expect(services.getLastUpdateRequest()?.entity.content).toBe(document);
   });
 
   test.each([
