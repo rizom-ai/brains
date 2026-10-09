@@ -94,6 +94,7 @@ describe("SiteBuilder cancellation", () => {
     expect(firstResult).toMatchObject({
       success: false,
       cancelled: true,
+      superseded: true,
       diagnostics: [expect.objectContaining({ code: "build-cancelled" })],
     });
     expect(firstResult.errors?.[0]).toContain(

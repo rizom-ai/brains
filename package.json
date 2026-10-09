@@ -45,6 +45,7 @@
     ]
   },
   "overrides": {
+    "@effect/platform-node-shared": "4.0.1",
     "@types/node": "^24.13.3",
     "zod": "^4.2.0"
   },

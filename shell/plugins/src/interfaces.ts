@@ -272,7 +272,10 @@ export interface IShell {
   getRuntimeReadiness(): Promise<RuntimeReadiness>;
 
   // High-level operations
-  generateContent(config: ContentGenerationConfig): Promise<unknown>;
+  generateContent(
+    config: ContentGenerationConfig,
+    signal?: AbortSignal,
+  ): Promise<unknown>;
   generateObject<T>(
     prompt: string,
     schema: AIGenerationSchema<T>,

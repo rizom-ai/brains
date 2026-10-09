@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { InvitationDeliverySupervisor } from "../src/invitation-delivery-supervisor";
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
@@ -15,7 +15,7 @@ describe("InvitationDeliverySupervisor", () => {
   it("runs recovery immediately, schedules without overlap, and drains shutdown", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const release = deferred();
         const recoveryTimes: number[] = [];
         const supervisor = new InvitationDeliverySupervisor(
@@ -41,20 +41,20 @@ describe("InvitationDeliverySupervisor", () => {
         void firstClose.then(() => {
           closed = true;
         });
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
         expect(closed).toBe(false);
 
         release.resolve();
         yield* Effect.promise(() => firstClose);
         expect(closed).toBe(true);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("reports recovery failures and continues", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const failure = new Error("recovery failed");
         const errors: unknown[] = [];
         let runs = 0;
@@ -72,7 +72,7 @@ describe("InvitationDeliverySupervisor", () => {
         yield* TestClock.adjust(100);
         expect(runs).toBe(2);
         yield* Effect.promise(() => supervisor.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

@@ -1,11 +1,71 @@
-import { describe, expect, it, jest } from "bun:test";
-import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { describe, expect, it, jest, spyOn } from "bun:test";
+import { setImmediate as nextTurn } from "node:timers/promises";
+import { deferred } from "@brains/utils/deferred";
+import { Effect, Scope } from "@brains/utils/effect";
+import { TestClock } from "@brains/utils/effect/test";
 import { BunSchedulerBackend } from "../src";
 import { TestSchedulerBackend } from "../src/test";
 
 function yieldToFibers(): Effect.Effect<void> {
-  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+  return Effect.yieldNow.pipe(Effect.andThen(Effect.yieldNow));
+}
+
+function failNativeCronStops(failure: unknown): {
+  readonly stopCalls: number;
+  restore(): void;
+} {
+  const originalCron = Bun.cron;
+  const crons: Array<{ cron: Bun.CronJob; stop: Bun.CronJob["stop"] }> = [];
+  let stopCalls = 0;
+  function interceptedCron(
+    expression: Bun.CronWithAutocomplete,
+    callback: (this: Bun.CronJob) => unknown,
+    options?: Bun.CronOptions,
+  ): Bun.CronJob;
+  function interceptedCron(
+    path: string,
+    expression: Bun.CronWithAutocomplete,
+    title: string,
+  ): Promise<void>;
+  function interceptedCron(
+    expression: string,
+    callback: Bun.CronWithAutocomplete | ((this: Bun.CronJob) => unknown),
+    options?: Bun.CronOptions | string,
+  ): Bun.CronJob | Promise<void> {
+    if (typeof callback !== "function") {
+      if (typeof options !== "string")
+        throw new Error("Expected a file-backed cron title");
+      return originalCron(expression, callback, options);
+    }
+    if (typeof options === "string")
+      throw new Error("Unexpected in-process cron title");
+    const cron = originalCron(expression, callback, options);
+    crons.push({ cron, stop: cron.stop });
+    cron.stop = (): never => {
+      stopCalls += 1;
+      throw failure;
+    };
+    return cron;
+  }
+  const helpers = { parse: originalCron.parse, remove: originalCron.remove };
+  const factory = spyOn(Bun, "cron").mockImplementation(
+    Object.assign(interceptedCron, helpers),
+  );
+  // Function spies discard these native helpers; schedule validation still
+  // needs the real parser, not a mock of the cron grammar.
+  Object.assign(factory, helpers);
+  return {
+    get stopCalls(): number {
+      return stopCalls;
+    },
+    restore: (): void => {
+      for (const { cron, stop } of crons) {
+        cron.stop = stop;
+        stop.call(cron);
+      }
+      factory.mockRestore();
+    },
+  };
 }
 
 describe("TestSchedulerBackend", () => {
@@ -30,7 +90,7 @@ describe("TestSchedulerBackend", () => {
   it("uses Effect TestClock as its single injected time source", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const scheduler = new TestSchedulerBackend({ clock });
         let runs = 0;
         scheduler.scheduleInterval(1_000, () => {
@@ -44,8 +104,8 @@ describe("TestSchedulerBackend", () => {
         yield* TestClock.adjust(1);
         yield* Effect.promise(() => scheduler.runDue());
         expect(runs).toBe(1);
-        expect(scheduler.now().getTime()).toBe(clock.unsafeCurrentTimeMillis());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+        expect(scheduler.now().getTime()).toBe(clock.currentTimeMillisUnsafe());
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
@@ -322,6 +382,95 @@ describe("BunSchedulerBackend lifecycle", () => {
     }
   });
 
+  it.each([
+    ["Error", new Error("Native cron stop failed")],
+    ["object", Object.freeze({ message: "Native cron stop failed" })],
+    ["undefined", undefined],
+    ["null", null],
+    ["string", "Native cron stop failed"],
+  ] as const)(
+    "drains callbacks and closes their scope before reporting a native stop failure (%s)",
+    async (_label, failure) => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-07-14T00:00:30.000Z"));
+      const native = failNativeCronStops(failure);
+      const entered = deferred();
+      const release = deferred();
+      let calls = 0;
+      const job = new BunSchedulerBackend().scheduleCron(
+        "* * * * *",
+        async () => {
+          calls += 1;
+          entered.resolve();
+          await release.promise;
+        },
+      );
+      const closeScope = spyOn(Scope, "close");
+      let observed: Promise<unknown> | undefined;
+      try {
+        jest.advanceTimersByTime(30_000);
+        await entered.promise;
+        const stopping = job.stop();
+        let settled = false;
+        const outcome = stopping
+          .then(
+            () => ({ success: true as const }),
+            (error: unknown) => ({ success: false as const, error }),
+          )
+          .finally(() => {
+            settled = true;
+          });
+        observed = outcome;
+        expect(job.stop()).toBe(stopping);
+        await nextTurn();
+        expect(settled).toBe(false);
+        // Even a native trigger that failed to stop cannot admit another cycle.
+        jest.advanceTimersByTime(60_000);
+        await nextTurn();
+        expect(calls).toBe(1);
+        release.resolve();
+        const result = await outcome;
+        expect(result.success).toBe(false);
+        if (result.success) throw new Error("Expected native stop failure");
+        expect(result.error).toBe(failure);
+        expect(closeScope).toHaveBeenCalledTimes(1);
+        expect(native.stopCalls).toBe(1);
+        expect(job.stop()).toBe(stopping);
+      } finally {
+        release.resolve();
+        await observed;
+        native.restore();
+        closeScope.mockRestore();
+        jest.useRealTimers();
+      }
+    },
+  );
+
+  it("preserves native-stop and scope-close failures in cleanup order", async () => {
+    const nativeFailure = new Error("Native stop failed");
+    const scopeFailure = new Error("Scope close failed");
+    const native = failNativeCronStops(nativeFailure);
+    const originalClose = Scope.close;
+    const closeScope = spyOn(Scope, "close").mockImplementation((scope, exit) =>
+      originalClose(scope, exit).pipe(Effect.andThen(Effect.die(scopeFailure))),
+    );
+    try {
+      const job = new BunSchedulerBackend().scheduleCron("0 0 * * *", () => {});
+      const error = await job.stop().catch((failure: unknown) => failure);
+      expect(error).toBeInstanceOf(AggregateError);
+      if (!(error instanceof AggregateError))
+        throw new Error("Expected aggregate cleanup failure");
+      expect(error.errors).toEqual([nativeFailure, scopeFailure]);
+      expect(error.errors[0]).toBe(nativeFailure);
+      expect(error.errors[1]).toBe(scopeFailure);
+      expect(closeScope).toHaveBeenCalledTimes(1);
+      expect(native.stopCalls).toBe(1);
+    } finally {
+      native.restore();
+      closeScope.mockRestore();
+    }
+  });
+
   it("reports cron callback errors without stopping later runs", async () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-07-14T00:00:30.000Z"));
@@ -356,7 +505,7 @@ describe("BunSchedulerBackend lifecycle", () => {
   it("uses the injected clock and waits one interval before the first cycle", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const scheduler = new BunSchedulerBackend({ clock });
         let calls = 0;
         const job = scheduler.scheduleInterval(100, () => {
@@ -372,14 +521,14 @@ describe("BunSchedulerBackend lifecycle", () => {
         expect(calls).toBe(1);
 
         yield* Effect.promise(() => job.stop());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("skips overlapping cycles and drains the active cycle on stop", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         let releaseFirst: (() => void) | undefined;
         const firstCycle = new Promise<void>((resolve) => {
           releaseFirst = resolve;
@@ -420,7 +569,7 @@ describe("BunSchedulerBackend lifecycle", () => {
         yield* TestClock.adjust(500);
         yield* yieldToFibers();
         expect(calls).toBe(1);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

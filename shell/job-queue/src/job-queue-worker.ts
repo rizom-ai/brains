@@ -19,6 +19,7 @@ import {
   FiberMap,
   Schedule,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { OperationContext } from "@brains/operation-context";
@@ -85,9 +86,9 @@ export class JobQueueWorker {
   private activeJobs: Set<string> = new Set();
   private stats: JobQueueWorkerStats;
   private startTime: number = 0;
-  private pollFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  private pollFiber: Fiber.Fiber<void, never> | null = null;
   private currentPoll: Promise<void> | null = null;
-  private workerScope: Scope.CloseableScope | null = null;
+  private workerScope: Scope.Closeable | null = null;
   private jobFibers: FiberMap.FiberMap<string, void, never> | null = null;
   private activeTransition: WorkerTransition | null = null;
   private readonly transitionQueue: WorkerTransition[] = [];
@@ -208,7 +209,7 @@ export class JobQueueWorker {
 
     this.workerScope = Effect.runSync(Scope.make());
     this.jobFibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.workerScope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.workerScope),
     );
 
     // Start the supervised polling fiber.
@@ -450,9 +451,7 @@ export class JobQueueWorker {
       Effect.schedule(Schedule.spaced(this.config.pollInterval)),
       Effect.asVoid,
     );
-    const loop = this.clock
-      ? Effect.withClock(scheduledPolling, this.clock)
-      : scheduledPolling;
+    const loop = withOptionalClock(scheduledPolling, this.clock);
 
     return loop.pipe(
       Effect.ensuring(

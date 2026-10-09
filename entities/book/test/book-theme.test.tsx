@@ -6,38 +6,57 @@ import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { bookAdapter } from "../src/adapters/book-adapter";
+import { bookSectionAdapter } from "../src/adapters/book-section-adapter";
 import { BookThemeDataSource } from "../src/datasources/book-theme-datasource";
 import { BookThemeTemplate } from "../src/templates/book-theme";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 
-function bookEntry(
+function bookOf(book: string, title: string, extra: string): BaseEntity {
+  const content = `---
+title: ${title}
+source: https://example.org/${book}
+${extra}---
+
+## Contents
+`;
+  return {
+    id: book,
+    entityType: "book",
+    content,
+    contentHash: book,
+    created: "2026-10-06T00:00:00.000Z",
+    updated: "2026-10-06T00:00:00.000Z",
+    visibility: "public",
+    metadata: bookAdapter.fromMarkdown(content).metadata ?? {},
+  };
+}
+
+function sectionOf(
   book: string,
   order: number,
   title: string,
-  extra = "",
   section = `${book.toUpperCase()}-${order}`,
 ): BaseEntity {
   const content = `---
 title: ${title}
 book: ${book}
 order: ${order}
-section: ${order === 0 ? "null" : section}
+section: ${section}
 page: null
 source: https://example.org/${book}/${order}
-${extra}---
+---
 
 Erfundener Text ${order}.
 `;
-  const parsed = bookAdapter.fromMarkdown(content);
   return {
     id: `${book}:${String(order).padStart(5, "0")}`,
-    entityType: "book",
+    entityType: "book-section",
     content,
     contentHash: `${book}-${order}`,
     created: "2026-10-06T00:00:00.000Z",
     updated: "2026-10-06T00:00:00.000Z",
     visibility: "public",
-    metadata: parsed.metadata ?? {},
+    metadata: bookSectionAdapter.fromMarkdown(content).metadata ?? {},
   };
 }
 
@@ -57,7 +76,7 @@ const topic: BaseEntity = {
 
 const near = (entityId: string, distance: number): NearestMatch => ({
   entityId,
-  entityType: "book",
+  entityType: "book-section",
   distance,
 });
 
@@ -74,13 +93,13 @@ describe("BookThemeDataSource", () => {
     shell = createMockShell();
     shell.addEntities([
       topic,
-      bookEntry("frueh", 0, "Ein frühes Buch", details(1872, true)),
-      bookEntry("frueh", 1, "Eins"),
-      bookEntry("spaet", 0, "Ein spätes Buch", details(1888, true)),
-      bookEntry("spaet", 1, "Eins"),
-      bookEntry("spaet", 2, "Zwei"),
-      bookEntry("nach", 0, "Ein Nachlass", details(1880, false)),
-      bookEntry("nach", 3, "Drei"),
+      bookOf("frueh", "Ein frühes Buch", details(1872, true)),
+      sectionOf("frueh", 1, "Eins"),
+      bookOf("spaet", "Ein spätes Buch", details(1888, true)),
+      sectionOf("spaet", 1, "Eins"),
+      sectionOf("spaet", 2, "Zwei"),
+      bookOf("nach", "Ein Nachlass", details(1880, false)),
+      sectionOf("nach", 3, "Drei"),
     ]);
     context = {
       entityService: {
@@ -90,7 +109,8 @@ describe("BookThemeDataSource", () => {
           near("frueh:00001", 0.25),
           near("spaet:00001", 0.3),
           near("nach:00003", 0.45),
-          near("frueh:00000", 0.5),
+          // A book is its details and contents, never a passage.
+          { entityId: "frueh", entityType: "book", distance: 0.5 },
           near("weit:00001", 0.9),
         ]),
       },
@@ -172,10 +192,10 @@ describe("BookThemeDataSource with long sections", () => {
     const shell = createMockShell();
     shell.addEntities([
       topic,
-      bookEntry("spaet", 0, "Ein spätes Buch", details(1888, true)),
-      bookEntry("spaet", 1, "Eins"),
-      bookEntry("spaet", 2, "Eins", "", "SPAET-1"),
-      bookEntry("spaet", 3, "Drei"),
+      bookOf("spaet", "Ein spätes Buch", details(1888, true)),
+      sectionOf("spaet", 1, "Eins"),
+      sectionOf("spaet", 2, "Eins", "SPAET-1"),
+      sectionOf("spaet", 3, "Drei"),
     ]);
     const context: BaseDataSourceContext = {
       entityService: {

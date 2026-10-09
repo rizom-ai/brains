@@ -3,11 +3,17 @@ import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema } from "@brains/plugins";
 import { bookFrontmatterSchema, bookMetadataSchema } from "../schemas/book";
+import {
+  bookSectionFrontmatterSchema,
+  bookSectionMetadataSchema,
+} from "../schemas/book-section";
 import { BookAskTemplate, type BookAskProps } from "../templates/book-ask";
 import { BookListTemplate, type BookListProps } from "../templates/book-list";
 import {
   BookDetailTemplate,
+  BookSectionTemplate,
   type BookDetailProps,
+  type BookSectionProps,
 } from "../templates/book-detail";
 import {
   BookThemeTemplate,
@@ -16,37 +22,53 @@ import {
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
-const bookEntryDisplaySchema = z.object({
+const displayedEntity = {
   id: z.string(),
-  entityType: z.literal("book"),
   content: z.string(),
   created: z.string(),
   updated: z.string(),
   visibility: contentVisibilitySchema,
-  metadata: bookMetadataSchema,
   contentHash: z.string(),
-  frontmatter: bookFrontmatterSchema,
   body: z.string(),
+};
+
+const bookDisplaySchema = z.object({
+  ...displayedEntity,
+  entityType: z.literal("book"),
+  metadata: bookMetadataSchema,
+  frontmatter: bookFrontmatterSchema,
+});
+
+const bookSectionDisplaySchema = z.object({
+  ...displayedEntity,
+  entityType: z.literal("book-section"),
+  metadata: bookSectionMetadataSchema,
+  frontmatter: bookSectionFrontmatterSchema,
 });
 
 const bookListSchema = z.object({
-  books: z.array(bookEntryDisplaySchema),
+  books: z.array(bookDisplaySchema),
+});
+
+const bookSectionPageSchema = z.object({
+  section: bookSectionDisplaySchema,
+  book: bookDisplaySchema,
+  prev: bookSectionDisplaySchema.nullable(),
+  next: bookSectionDisplaySchema.nullable(),
+  total: z.number().int().min(0),
+  themes: z.array(z.object({ id: z.string(), title: z.string() })),
 });
 
 const bookDetailSchema = z.object({
-  entry: bookEntryDisplaySchema,
-  book: bookEntryDisplaySchema,
-  prev: bookEntryDisplaySchema.nullable(),
-  next: bookEntryDisplaySchema.nullable(),
-  total: z.number().int().min(0),
-  themes: z.array(z.object({ id: z.string(), title: z.string() })),
+  book: bookDisplaySchema,
+  first: bookSectionDisplaySchema.nullable(),
   score: z.array(
     z.object({
       slug: z.string(),
       title: z.string(),
       section: z.string().nullable(),
       order: z.number().int(),
-      part: z.string().nullable(),
+      headings: z.array(z.string()),
       length: z.number().int().min(0),
     }),
   ),
@@ -103,11 +125,23 @@ export function getTemplates(): Record<string, Template> {
       BookDetailProps
     >({
       name: "book-detail",
-      description: "A book's title page or one of its sections",
+      description:
+        "A book's title page: its details and the score of its sections",
       schema: bookDetailSchema,
       dataSourceId: "book:entities",
       requiredPermission: "public",
       layout: { component: BookDetailTemplate },
+    }),
+    "book-section-detail": createTemplate<
+      z.output<typeof bookSectionPageSchema>,
+      BookSectionProps
+    >({
+      name: "book-section-detail",
+      description: "A section of a book, set for reading",
+      schema: bookSectionPageSchema,
+      dataSourceId: "book:entities",
+      requiredPermission: "public",
+      layout: { component: BookSectionTemplate },
     }),
     theme: createTemplate<z.output<typeof bookThemeSchema>, BookThemeProps>({
       name: "theme",

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
+import { getKind, unwrapField } from "@brains/utils/zod-introspect";
 import {
   playbookAdapter,
   playbookBodyFormatter,
+  playbookBodySchema,
+  playbookFrontmatterSchema,
   validatePlaybookBody,
 } from "../src";
 
@@ -271,8 +275,33 @@ Say: Done.
   });
 
   it("round-trips structured playbook bodies", () => {
-    const markdown = playbookBodyFormatter.format(body);
-    expect(playbookBodyFormatter.parse(markdown)).toEqual(body);
+    expectBodyRoundTrip(playbookBodyFormatter, body);
+  });
+
+  it("drops blank optional body text and writes the decoded body back", () => {
+    const decoded = playbookBodySchema.parse({
+      ...body,
+      states: body.states.map((state) => ({ ...state, prompt: "   " })),
+    });
+
+    expect(decoded.states.every((state) => state.prompt === undefined)).toBe(
+      true,
+    );
+    expectBodyRoundTrip(playbookBodyFormatter, decoded);
+  });
+
+  it("keeps frontmatter blank-text parsing and its editable string field", () => {
+    const frontmatter = playbookFrontmatterSchema.parse({
+      title: "Onboarding",
+      trigger: "  ",
+      description: "Welcome new operators.",
+    });
+
+    expect(frontmatter.trigger).toBeUndefined();
+    expect(frontmatter.description).toBe("Welcome new operators.");
+    expect(
+      getKind(unwrapField(playbookFrontmatterSchema.shape.trigger).inner),
+    ).toBe("string");
   });
 
   it("reports structural validation errors", () => {

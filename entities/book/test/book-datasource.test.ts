@@ -4,29 +4,24 @@ import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { BookDataSource } from "../src/datasources/book-datasource";
-import { bookAdapter } from "../src/adapters/book-adapter";
+import { bookSectionAdapter } from "../src/adapters/book-section-adapter";
 import type { Book } from "../src/schemas/book";
+import type { BookSection } from "../src/schemas/book-section";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 
-function entry(
-  id: string,
-  book: string,
-  order: number,
-  title: string,
-  extra = "",
-): Book {
+function book(id: string, title: string): Book {
   const content = `---
 title: ${title}
-book: ${book}
-order: ${order}
-section: ${order === 0 ? "null" : `S-${order}`}
-page: null
-source: https://example.org/${book}/${order}
-${extra}---
+source: https://example.org/${id}
+author: Erfundener Autor
+year: 1888
+kind: work
+edition: Testausgabe
+license: public-domain
+---
 
-Erfundener Text ${order}.
+## Contents
 `;
-  const parsed = bookAdapter.fromMarkdown(content);
   return {
     id,
     entityType: "book",
@@ -35,24 +30,40 @@ Erfundener Text ${order}.
     created: "2026-10-06T00:00:00.000Z",
     updated: "2026-10-06T00:00:00.000Z",
     visibility: "public",
-    metadata: parsed.metadata ?? {
-      title,
-      section: null,
-      book,
-      order,
-      slug: book,
-      pageTitle: title,
-      citable: order !== 0,
-    },
+    metadata: { title },
   };
 }
 
-const titleExtra = `author: Erfundener Autor
-year: 1888
-kind: work
-edition: Testausgabe
-license: public-domain
+function section(
+  id: string,
+  bookId: string,
+  order: number,
+  title: string,
+): BookSection {
+  const content = `---
+title: ${title}
+book: ${bookId}
+order: ${order}
+section: S-${order}
+page: null
+source: https://example.org/${bookId}/${order}
+---
+
+Erfundener Text ${order}.
 `;
+  const parsed = bookSectionAdapter.fromMarkdown(content);
+  if (!parsed.metadata) throw new Error("Expected section metadata");
+  return {
+    id,
+    entityType: "book-section",
+    content,
+    contentHash: id,
+    created: "2026-10-06T00:00:00.000Z",
+    updated: "2026-10-06T00:00:00.000Z",
+    visibility: "public",
+    metadata: parsed.metadata,
+  };
+}
 
 describe("BookDataSource", () => {
   let shell: MockShell;
@@ -64,15 +75,15 @@ describe("BookDataSource", () => {
     context = { entityService: shell.getEntityService() };
     datasource = new BookDataSource(createMockLogger());
     shell.addEntities([
-      entry("zweites:0000-titel", "zweites", 0, "Zweites Buch", titleExtra),
-      entry("erstes:0000-titel", "erstes", 0, "Erstes Buch", titleExtra),
-      entry("erstes:0001-anfang", "erstes", 1, "Anfang"),
-      entry("erstes:0002-mitte:0001-teil", "erstes", 2, "Mitte"),
-      entry("erstes:0003-ende", "erstes", 3, "Ende"),
+      book("zweites", "Zweites Buch"),
+      book("erstes", "Erstes Buch"),
+      section("erstes:0001-anfang", "erstes", 1, "Anfang"),
+      section("erstes:0002-mitte:0001-teil", "erstes", 2, "Mitte"),
+      section("erstes:0003-ende", "erstes", 3, "Ende"),
     ]);
   });
 
-  it("lists only the books' title entries, by title", async () => {
+  it("lists the books, by title", async () => {
     const result = await datasource.fetch(
       { entityType: "book" },
       z.object({ books: z.array(z.any()) }),
@@ -85,11 +96,11 @@ describe("BookDataSource", () => {
     ]);
   });
 
-  it("returns an entry with its book and reading neighbours", async () => {
+  it("returns a section with its book and reading neighbours", async () => {
     const result = await datasource.fetch(
-      { entityType: "book", query: { id: "erstes/2" } },
+      { entityType: "book-section", query: { id: "erstes/2" } },
       z.object({
-        entry: z.any(),
+        section: z.any(),
         book: z.any(),
         prev: z.any(),
         next: z.any(),
@@ -98,8 +109,8 @@ describe("BookDataSource", () => {
       context,
     );
 
-    expect(result.entry.metadata.title).toBe("Mitte");
-    expect(result.entry.body.trim()).toBe("Erfundener Text 2.");
+    expect(result.section.metadata.title).toBe("Mitte");
+    expect(result.section.body.trim()).toBe("Erfundener Text 2.");
     expect(result.book.metadata.title).toBe("Erstes Buch");
     expect(result.book.frontmatter.author).toBe("Erfundener Autor");
     expect(result.prev.metadata.slug).toBe("erstes/1");
@@ -107,22 +118,27 @@ describe("BookDataSource", () => {
     expect(result.total).toBe(3);
   });
 
-  it("opens a book on its title entry with the first section next", async () => {
+  it("opens a book on its title page, its first section where reading begins", async () => {
     const result = await datasource.fetch(
       { entityType: "book", query: { id: "erstes" } },
-      z.object({
-        entry: z.any(),
-        book: z.any(),
-        prev: z.any(),
-        next: z.any(),
-      }),
+      z.object({ book: z.any(), first: z.any() }),
       context,
     );
 
-    expect(result.entry.metadata.order).toBe(0);
-    expect(result.book.metadata.slug).toBe("erstes");
+    expect(result.book.id).toBe("erstes");
+    expect(result.book.frontmatter.author).toBe("Erfundener Autor");
+    expect(result.first.metadata.slug).toBe("erstes/1");
+  });
+
+  it("opens the first section after the book, with no section before it", async () => {
+    const result = await datasource.fetch(
+      { entityType: "book-section", query: { id: "erstes/1" } },
+      z.object({ prev: z.any(), book: z.any() }),
+      context,
+    );
+
     expect(result.prev).toBeNull();
-    expect(result.next.metadata.slug).toBe("erstes/1");
+    expect(result.book.id).toBe("erstes");
   });
 
   it("scores a book on its title page: every section in order with its length", async () => {
@@ -141,19 +157,9 @@ describe("BookDataSource", () => {
       title: "Anfang",
       section: "S-1",
       order: 1,
-      part: null,
+      headings: [],
     });
     expect(result.score[0].length).toBeGreaterThan(0);
-  });
-
-  it("has no score on a section page", async () => {
-    const result = await datasource.fetch(
-      { entityType: "book", query: { id: "erstes/2" } },
-      z.object({ score: z.array(z.any()) }),
-      context,
-    );
-
-    expect(result.score).toEqual([]);
   });
 
   describe("themes", () => {
@@ -193,7 +199,7 @@ describe("BookDataSource", () => {
 
     it("finds a section's nearest themes, closest first, three at most", async () => {
       const result = await datasource.fetch(
-        { entityType: "book", query: { id: "erstes/2" } },
+        { entityType: "book-section", query: { id: "erstes/2" } },
         themeSchema,
         {
           entityService: {
@@ -210,24 +216,9 @@ describe("BookDataSource", () => {
       ]);
     });
 
-    it("gives a book's title page no themes", async () => {
-      const result = await datasource.fetch(
-        { entityType: "book", query: { id: "erstes" } },
-        themeSchema,
-        {
-          entityService: {
-            ...shell.getEntityService(),
-            nearestToEntity,
-          },
-        },
-      );
-
-      expect(result.themes).toEqual([]);
-    });
-
     it("reads a section without themes where the brain has no embeddings", async () => {
       const result = await datasource.fetch(
-        { entityType: "book", query: { id: "erstes/2" } },
+        { entityType: "book-section", query: { id: "erstes/2" } },
         themeSchema,
         {
           entityService: {
@@ -247,8 +238,13 @@ describe("BookDataSource", () => {
 
   it("has no next entry after the last section", async () => {
     const result = await datasource.fetch(
-      { entityType: "book", query: { id: "erstes/3" } },
-      z.object({ entry: z.any(), book: z.any(), prev: z.any(), next: z.any() }),
+      { entityType: "book-section", query: { id: "erstes/3" } },
+      z.object({
+        section: z.any(),
+        book: z.any(),
+        prev: z.any(),
+        next: z.any(),
+      }),
       context,
     );
 

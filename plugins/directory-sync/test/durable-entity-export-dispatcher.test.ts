@@ -2,7 +2,7 @@ import { createTestEntity } from "@brains/entity-service/test";
 import { describe, expect, it, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import {
   DurableEntityExportDispatcher,
   type DurableEntityExportDirectory,
@@ -12,7 +12,7 @@ import type { DurableEntityExportIntent } from "../src/lib/durable-entity-export
 import { DirectorySyncRuntime } from "../src/lib/directory-sync-runtime";
 
 function yieldToFibers(): Effect.Effect<void> {
-  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+  return Effect.yieldNow.pipe(Effect.andThen(Effect.yieldNow));
 }
 
 describe("DurableEntityExportDispatcher", () => {
@@ -21,7 +21,7 @@ describe("DurableEntityExportDispatcher", () => {
     async (entityType) => {
       await Effect.runPromise(
         Effect.gen(function* () {
-          const clock = yield* TestClock.testClock();
+          const clock = yield* TestClock.testClockWith(Effect.succeed);
           const runtime = new DirectorySyncRuntime({ clock });
           const entity = createTestEntity(entityType, {
             id: entityType === "note" ? "worker-created-note" : entityType,
@@ -103,7 +103,7 @@ describe("DurableEntityExportDispatcher", () => {
           expect(pending).toEqual([]);
 
           yield* Effect.promise(() => runtime.close());
-        }).pipe(Effect.provide(TestContext.TestContext)),
+        }).pipe(Effect.provide(TestClock.layer())),
       );
     },
   );

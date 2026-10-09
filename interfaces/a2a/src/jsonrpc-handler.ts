@@ -1,12 +1,37 @@
 import { z } from "@brains/utils/zod";
-import type { AgentNamespace } from "@brains/plugins";
+import type { AgentNamespace, AgentResponse } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
-import type { Task } from "@a2a-js/sdk";
-import { TERMINAL_STATES, type TaskManager } from "./task-manager";
+import type { Artifact, Task } from "@a2a-js/sdk";
+import {
+  SOURCES_ARTIFACT_NAME,
+  TERMINAL_STATES,
+  type TaskManager,
+} from "./task-manager";
 import type { A2ATurnSupervisor } from "./turn-supervisor";
+import type { PublicAskAllowance } from "./public-asks";
 import { getErrorMessage } from "@brains/utils/error";
 
 const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
+
+/**
+ * Attach the answer's sources card to the task as a data artifact so a calling
+ * brain can attribute what it was told. Returns the artifact, or undefined when
+ * the answer cites nothing.
+ */
+function attachSourcesArtifact(
+  taskId: string,
+  agentResponse: AgentResponse,
+  taskManager: TaskManager,
+): Artifact | undefined {
+  const sources = (agentResponse.cards ?? []).flatMap((card) =>
+    card.kind === "sources" ? card.sources : [],
+  );
+  if (sources.length === 0) return undefined;
+  const record = taskManager.addArtifact(taskId, SOURCES_ARTIFACT_NAME, [
+    { kind: "data", data: { sources } },
+  ]);
+  return record?.task.artifacts?.at(-1);
+}
 
 // -- Zod schemas for request validation --
 
@@ -102,6 +127,28 @@ export interface JsonRpcHandlerContext {
   callerIsAnchor?: boolean;
   /** Verified caller domain for signed A2A requests; null/undefined for anonymous callers. */
   callerDomain?: string | null;
+  /** The daily allowance public callers answer under; absent means unbounded. */
+  publicAsks?: PublicAskAllowance;
+}
+
+/** A public caller's admission for this turn; trusted callers are not counted. */
+async function admitPublicCaller(
+  context: JsonRpcHandlerContext,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (context.callerPermissionLevel !== "public" || !context.publicAsks)
+    return { ok: true };
+  return context.publicAsks.admit(context.callerDomain ?? null);
+}
+
+async function settlePublicCaller(
+  context: JsonRpcHandlerContext,
+  agentResponse: AgentResponse,
+): Promise<void> {
+  if (context.callerPermissionLevel !== "public" || !context.publicAsks) return;
+  await context.publicAsks.settle(
+    context.callerDomain ?? null,
+    agentResponse.usage.totalTokens,
+  );
 }
 
 // -- Main handler --
@@ -174,6 +221,15 @@ async function handleSendMessage(
   const taskId = record.task.id;
   context.taskManager.updateState(taskId, "working");
 
+  const admission = await admitPublicCaller(context);
+  if (!admission.ok) {
+    context.taskManager.updateState(taskId, "failed", admission.reason);
+    const refused = context.taskManager.getTask(taskId);
+    return refused
+      ? successResponse(id, refused.task)
+      : errorResponse(id, -32603, "Internal error: task disappeared");
+  }
+
   // Fire agent processing in background, return "working" immediately.
   // Caller polls tasks/get until completion.
   processInBackground(taskId, messageText, record.conversationId, context);
@@ -210,11 +266,13 @@ function processInBackground(
         if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
           return;
         }
+        attachSourcesArtifact(taskId, agentResponse, context.taskManager);
         context.taskManager.updateState(
           taskId,
           "completed",
           agentResponse.text,
         );
+        await settlePublicCaller(context, agentResponse);
       } catch (error) {
         if (signal.aborted) return;
         const errorMessage = getErrorMessage(error, "Unknown error");
@@ -379,6 +437,22 @@ export function handleStreamMessage(
         };
       }
 
+      function artifactEvent(
+        task: Task,
+        artifact: Artifact,
+      ): Record<string, unknown> {
+        return {
+          jsonrpc: "2.0",
+          id: requestId,
+          result: {
+            kind: "artifact-update",
+            taskId: task.id,
+            contextId: task.contextId,
+            artifact,
+          },
+        };
+      }
+
       // Send initial "working" event
       const workingTask = context.taskManager.getTask(taskId);
       if (workingTask) {
@@ -389,6 +463,17 @@ export function handleStreamMessage(
         taskId,
         async (signal) => {
           try {
+            const admission = await admitPublicCaller(context);
+            if (!admission.ok) {
+              context.taskManager.updateState(
+                taskId,
+                "failed",
+                admission.reason,
+              );
+              const refused = context.taskManager.getTask(taskId);
+              if (refused) send(statusEvent(refused.task, true));
+              return;
+            }
             const agentResponse = await context.agentService.chat(
               messageText,
               record.conversationId,
@@ -402,6 +487,11 @@ export function handleStreamMessage(
             if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
               return;
             }
+            const artifact = attachSourcesArtifact(
+              taskId,
+              agentResponse,
+              context.taskManager,
+            );
             context.taskManager.updateState(
               taskId,
               "completed",
@@ -409,8 +499,12 @@ export function handleStreamMessage(
             );
             const completed = context.taskManager.getTask(taskId);
             if (completed) {
+              if (artifact) {
+                send(artifactEvent(completed.task, artifact));
+              }
               send(statusEvent(completed.task, true));
             }
+            await settlePublicCaller(context, agentResponse);
           } catch (error) {
             if (signal.aborted) return;
             const errorMessage = getErrorMessage(error, "Unknown error");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import type { OAuthClientPersistence } from "../src/client-store";
 import { OAuthClientMaintenanceSupervisor } from "../src/oauth-client-maintenance-supervisor";
 import { OAuthEndpoints } from "../src/oauth-endpoints";
@@ -24,7 +24,7 @@ describe("OAuthClientMaintenanceSupervisor", () => {
   it("runs immediately and follows the injected Effect clock", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const maintenanceTimes: number[] = [];
         const supervisor = new OAuthClientMaintenanceSupervisor(
           100,
@@ -47,14 +47,14 @@ describe("OAuthClientMaintenanceSupervisor", () => {
         yield* Effect.promise(() => supervisor.close());
         yield* TestClock.adjust(1_000);
         expect(maintenanceTimes).toEqual([0, 100, 200]);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("does not overlap maintenance and drains an admitted run on repeated close", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const release = deferred();
         let runs = 0;
         const supervisor = new OAuthClientMaintenanceSupervisor(
@@ -79,20 +79,20 @@ describe("OAuthClientMaintenanceSupervisor", () => {
         void firstClose.then(() => {
           closed = true;
         });
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
         expect(closed).toBe(false);
 
         release.resolve();
         yield* Effect.promise(() => firstClose);
         expect(closed).toBe(true);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("reports failed maintenance and continues the schedule", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const failure = new Error("prune failed");
         const errors: unknown[] = [];
         let runs = 0;
@@ -116,14 +116,14 @@ describe("OAuthClientMaintenanceSupervisor", () => {
         expect(runs).toBe(2);
 
         yield* Effect.promise(() => supervisor.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("owns OAuth endpoint maintenance through the supervised lifecycle", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const release = deferred();
         let runs = 0;
         const clientStore: OAuthClientPersistence = {
@@ -173,13 +173,13 @@ describe("OAuthClientMaintenanceSupervisor", () => {
         void firstStop.then(() => {
           stopped = true;
         });
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
         expect(stopped).toBe(false);
 
         release.resolve();
         yield* Effect.promise(() => firstStop);
         expect(stopped).toBe(true);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

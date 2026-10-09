@@ -1,85 +1,66 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createServicePluginContext } from "@brains/plugins";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SiteBuilderPlugin } from "../src/plugin";
 
-describe("Head script registration", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: SiteBuilderPlugin;
-  beforeEach(async () => {
-    harness = createPluginHarness({ dataDir: "/tmp/test-head-scripts" });
-    plugin = new SiteBuilderPlugin({});
-    await harness.installPlugin(plugin);
-  });
+// The site builds in the worker process, which registers plugins but takes
+// no ordinary subscriptions and never runs their ready phase. Head scripts
+// other plugins contribute are therefore asked for when a build runs.
+describe("Head scripts at build time", () => {
+  const harness = createPluginHarness({ dataDir: "/tmp/test-head-scripts" });
 
   afterEach(async () => {
     await harness.reset();
   });
 
-  it("should accept head script registration via message", async () => {
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script:
-          '<script defer src="https://example.com/beacon.min.js"></script>',
-        position: "end",
-      },
-      "analytics",
-    );
+  async function workerSiteBuilder(
+    headScripts: string[] = [],
+  ): Promise<SiteBuilderPlugin> {
+    const plugin = new SiteBuilderPlugin({ headScripts });
+    await plugin.register(harness.getMockShell(), { executionOnly: true });
+    return plugin;
+  }
 
-    // Accepting the message means storing it; without this the test passed
-    // whether or not the script was kept.
-    expect(plugin.getRegisteredHeadScripts()).toEqual([
-      '<script defer src="https://example.com/beacon.min.js"></script>',
+  function contribute(pluginId: string, data: unknown): void {
+    createServicePluginContext(harness.getMockShell(), pluginId, {
+      executionOnly: true,
+    }).messaging.subscribeExecution(
+      SITE_BUILDER_CHANNELS.headScripts,
+      async () => ({ success: true, data }),
+    );
+  }
+
+  it("collects contributed scripts in the worker, after the site package's own", async () => {
+    const plugin = await workerSiteBuilder([
+      '<script src="/boot.js"></script>',
+    ]);
+    contribute("analytics", '<script src="beacon.min.js"></script>');
+
+    expect(await plugin.getHeadScripts()).toEqual([
+      '<script src="/boot.js"></script>',
+      '<script src="beacon.min.js"></script>',
     ]);
   });
 
-  it("should store multiple registered head scripts", async () => {
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script: '<script src="analytics.js"></script>',
-      },
-      "analytics",
-    );
+  it("asks again on every build, so a late contributor is included", async () => {
+    const plugin = await workerSiteBuilder();
+    expect(await plugin.getHeadScripts()).toEqual([]);
 
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "newsletter",
-        script: '<script src="newsletter.js"></script>',
-      },
-      "newsletter",
-    );
+    contribute("analytics", '<script src="beacon.min.js"></script>');
 
-    const scripts = plugin.getRegisteredHeadScripts();
-    expect(scripts).toHaveLength(2);
-    expect(scripts[0]).toContain("analytics.js");
-    expect(scripts[1]).toContain("newsletter.js");
+    expect(await plugin.getHeadScripts()).toEqual([
+      '<script src="beacon.min.js"></script>',
+    ]);
   });
 
-  it("should not duplicate scripts from the same plugin", async () => {
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script: '<script src="v1.js"></script>',
-      },
-      "analytics",
-    );
+  it("skips an answer that carries no script", async () => {
+    const plugin = await workerSiteBuilder();
+    contribute("broken", { script: 42 });
+    contribute("analytics", '<script src="beacon.min.js"></script>');
 
-    await harness.sendMessage(
-      "plugin:site-builder:head-script:register",
-      {
-        pluginId: "analytics",
-        script: '<script src="v2.js"></script>',
-      },
-      "analytics",
-    );
-
-    const scripts = plugin.getRegisteredHeadScripts();
-    expect(scripts).toHaveLength(1);
-    expect(scripts[0]).toContain("v2.js");
+    expect(await plugin.getHeadScripts()).toEqual([
+      '<script src="beacon.min.js"></script>',
+    ]);
   });
 });
