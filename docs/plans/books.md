@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`.
+In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`. Sigmund's import is built (#538): 154 books from the Gesammelte Werke scans, the OCR checked against 20 Gutenberg transcriptions and corrected from them and from the scans; seeding the content repo waits on the book and book-section split (#561).
 
 ## Goal
 
