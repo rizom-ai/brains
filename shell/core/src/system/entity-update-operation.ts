@@ -22,9 +22,12 @@ import type { SystemServices } from "./types";
 /**
  * Changed lines a replacement preview still lists. Beyond it the preview says
  * the content is replaced wholesale. A count of edits, not a clock, so the
- * same replacement previews the same way on a loaded machine.
+ * same replacement previews the same way on a loaded machine; and a small
+ * one, because the diff's work grows with the document's length times this
+ * bound (two unrelated 3000-line documents took 8 s to reach 4000 on a CI
+ * runner), and a preview of more changed lines than this is not read anyway.
  */
-const MAX_PREVIEW_DIFF_EDITS = 4_000;
+const MAX_PREVIEW_DIFF_EDITS = 400;
 
 export interface UpdateOperation {
   fields?: Record<string, unknown>;

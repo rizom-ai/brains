@@ -36,7 +36,7 @@ describe("buildUpdateDiff", () => {
     Array.from({ length: count }, (_, i) => `${prefix} ${i}`).join("\n");
 
   it("lists the changed lines of a long replacement however slow the machine", () => {
-    const content = `# Working plan\n\n${lines("- step", 2_000)}\n`;
+    const content = `# Working plan\n\n${lines("- step", 300)}\n`;
     const diff = buildUpdateDiff(
       note("# Working plan\n\nOld body.\n"),
       { content },
@@ -45,7 +45,7 @@ describe("buildUpdateDiff", () => {
 
     expect(diff).toContain("- Old body.");
     expect(diff).toContain("+ - step 0");
-    expect(diff).toContain("+ - step 1999");
+    expect(diff).toContain("+ - step 299");
   });
 
   it("omits the line diff only past a fixed number of changed lines", () => {
@@ -56,7 +56,7 @@ describe("buildUpdateDiff", () => {
     );
 
     expect(diff).toBe(
-      "Full content replacement (line diff omitted: more than 4000 changed lines).",
+      "Full content replacement (line diff omitted: more than 400 changed lines).",
     );
   });
 });
