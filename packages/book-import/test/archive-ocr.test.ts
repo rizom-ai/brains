@@ -1513,3 +1513,31 @@ describe("parseArchiveOcrWork, datelined articles", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, articles opening with their dateline", () => {
+  it("opens an article at a paragraph that opens with its dateline, under a group whose title the running heads repeat", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-nrz.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-3",
+        title: "Aus dem literarischen Nachlass",
+        citation: "Nachlass III",
+        firstPage: 95,
+        lastPage: 100,
+        datelined: true,
+      },
+    );
+
+    expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
+      ["Das Ministerium Camphausen", "Köln, 3. Juni."],
+      ["Das Ministerium Camphausen", "Köln, 13. Juni."],
+      ["Die Polendebatte in Frankfurt", "Köln, 7. August."],
+    ]);
+    expect(units[0]?.paragraphs).toEqual([
+      "** Köln, 3. Juni. Die Zeiten ändern sich, wir ändern uns mit ihnen, und die Herren Camphausen und Hansemann wissen davon zu erzählen.",
+    ]);
+  });
+});

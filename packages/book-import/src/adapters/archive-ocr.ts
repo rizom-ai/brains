@@ -904,6 +904,12 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
  */
 const DATELINE =
   /\p{L}.*\b\d{1,2}\.\s*(?:\/\s*\d{1,2}\.\s*)?\p{L}+\s+1\d{3}\)?\.?$/u;
+/**
+ * A dateline a paragraph opens with, after the paper's marks for its
+ * authors: ** Köln, 3. Juni. Die Zeiten ändern sich.
+ */
+const INLINE_DATELINE =
+  /^[*⁎]*\s*(\p{Lu}[\p{L}.]*(?:\s[\p{L}.]+)?,\s*\d{1,2}\.\s*\p{L}+\.)\s/u;
 /** A dateline is set no larger than the text, give or take the OCR's measure. */
 const DATELINE_SIZE = 1.05;
 /** A series' numeral, as Fraktur sets I and J alike, with the part's own title or none. */
@@ -1136,6 +1142,26 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     }
     const article = articleLines.get(index);
     if (article !== undefined) return withArticleLine(pieces, line, article);
+    // An article without a title of its own opens with its dateline, which
+    // titles it; the paragraph keeps it.
+    const inline =
+      volume.datelined === true && line.x - margin > page.width * INDENT
+        ? INLINE_DATELINE.exec(line.text)?.[1]
+        : undefined;
+    if (inline !== undefined) {
+      return [
+        ...pieces,
+        {
+          kind: "heading",
+          lines: [
+            { kind: "article" },
+            { kind: "caps", text: inline, size: line.size, misread: true },
+          ],
+          closed: true,
+        },
+        { kind: "text", text: line.text, opens: true },
+      ];
+    }
     const centre = line.x + line.width / 2;
     const last = pieces.at(-1);
     // A heading runs on until a line ends it.
@@ -1413,11 +1439,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
               ...pieces,
               {
                 kind: "heading",
-                // Articles stand under a topic set in display type.
+                // Articles stand under a topic set in heading type.
                 lines:
                   volume.datelined === true &&
                   headingLine.kind === "caps" &&
-                  headingLine.size > volume.textSize * DISPLAY_SIZE
+                  headingLine.size > volume.textSize * HEADING_SIZE
                     ? [{ kind: "part", text: "" }, headingLine]
                     : [headingLine],
                 closed,
