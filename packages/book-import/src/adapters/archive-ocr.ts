@@ -1,10 +1,12 @@
 import { Window } from "happy-dom";
 import type { BookUnit } from "../render-book";
 import {
-  createCaser,
+  createSpelling,
   headingLineOf,
   headingOf,
+  isWordy,
   namesTitle,
+  type Spelling,
   type Heading,
   type HeadingLine,
 } from "./archive-ocr-headings";
@@ -455,6 +457,8 @@ interface Volume {
   column: number;
   /** Type size of the text, from the volume's full lines. */
   textSize: number;
+  /** The volume's own spelling of its words. */
+  spelling: Spelling;
 }
 
 /** Lines below the running head and the scan's noise above it. */
@@ -543,11 +547,16 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         above.kind === "letter" ||
         (above.kind === "caps" && above.misread === true)) &&
       line.width < volume.column * TITLE_WIDTH;
-    const headingLine: HeadingLine | null =
+    const candidate: HeadingLine | null =
       read ??
       (centred && titles
         ? { kind: "caps", text: line.text, size: line.size, misread: true }
         : null);
+    // A title is made of the work's words; a picture's scraps are not.
+    const headingLine =
+      candidate?.kind === "caps" && !isWordy(candidate.text, volume.spelling)
+        ? null
+        : candidate;
     if (headingLine) {
       // A qualifier only qualifies a heading; alone it is running text.
       if (headingLine.kind !== "qualifier" || last?.kind === "heading") {
@@ -646,8 +655,6 @@ interface WorkState {
   sections: Section[];
   /** Chapters so far, which number the next by its place. */
   chapters: number;
-  /** Whether the work's own title, its first unnumbered heading, has passed. */
-  titled: boolean;
   /** Inside a section the manifest leaves out, up to the next heading. */
   skipping: boolean;
 }
@@ -712,22 +719,22 @@ function addHeading(
       state,
     );
   }
-  const opening = state.sections.every(
-    (section) => section.paragraphs.length === 0,
-  );
-  // The work opens with its own title, which the manifest already gives.
+  // The work's own title, which the manifest already gives, opens it and
+  // may stand again on a half-title or above the text.
   if (
-    opening &&
-    !state.titled &&
     heading.level === null &&
     namesTitle(heading.title.join(" "), workTitle)
   ) {
-    return { ...state, titled: true };
+    return state;
+  }
+  // A lone digit is a note marker unless a title names its section.
+  if (/^\d+$/u.test(heading.numeral ?? "") && heading.title.length === 0) {
+    return state;
   }
   const chapters = state.chapters + (heading.numbered ? 1 : 0);
   // A section left out still holds its place among the chapters.
   if (skip.some((title) => namesTitle(heading.title.join(" "), title))) {
-    return { ...state, chapters, titled: true, skipping: true };
+    return { ...state, chapters, skipping: true };
   }
   const level = levelOf(heading, path);
   const step = {
@@ -746,7 +753,6 @@ function addHeading(
       },
     ],
     chapters,
-    titled: true,
     skipping: false,
   };
 }
@@ -775,7 +781,7 @@ function addPiece(
           ...current,
           paragraphs: addLine(current.paragraphs, text, piece.opens, place),
         };
-  return { ...state, sections: [...rest, section], titled: true };
+  return { ...state, sections: [...rest, section] };
 }
 
 /**
@@ -812,7 +818,6 @@ interface ReadVolume {
   pages: Page[];
   printed: Map<number, number | null>;
   volume: Volume;
-  cased: (capitals: string) => string;
   /** The front matter's roman offset, if it has roman heads. */
   front: number | null;
 }
@@ -821,6 +826,9 @@ function readVolume(hocr: string): ReadVolume {
   const pages = readPages(hocr);
   const fullLines = pages.flatMap((page) =>
     page.lines.filter((line) => line.width > page.width / 2),
+  );
+  const spelling = createSpelling(
+    pages.flatMap((page) => page.lines.map((line) => line.text)),
   );
   return {
     pages,
@@ -833,10 +841,8 @@ function readVolume(hocr: string): ReadVolume {
       }),
       column: median(fullLines.map((line) => line.width)),
       textSize: median(fullLines.map((line) => line.size)),
+      spelling,
     },
-    cased: createCaser(
-      pages.flatMap((page) => page.lines.map((line) => line.text)),
-    ),
     // Pages before the first are the front matter, numbered in roman.
     front: romanOffset(pages),
   };
@@ -869,7 +875,8 @@ export function parseArchiveOcrWork(
   work: ArchiveOcrWork,
   options: ArchiveOcrOptions = {},
 ): BookUnit[] {
-  const { pages, printed, volume, cased, front } = volumeOf(hocr);
+  const { pages, printed, volume, front } = volumeOf(hocr);
+  const { cased } = volume.spelling;
   const labelOf = (number: number, leaf: number): string =>
     number < 1 && front !== null ? roman(leaf + front) : String(number);
   const firstPage =
@@ -918,7 +925,6 @@ export function parseArchiveOcrWork(
       {
         sections: [],
         chapters: (work.firstChapter ?? 1) - 1,
-        titled: false,
         skipping: false,
       },
     );

@@ -1034,12 +1034,23 @@ books:
   - item: freud-1947-gw-12
     volume: XII
     firstPage: 229
-    lastPage: 304
+    lastPage: 268
     slug: das-unheimliche
     title: Das Unheimliche
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
     author: Sigmund Freud
     year: 1919
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 269
+    lastPage: 304
+    slug: ueber-die-psychogenese-eines-falles-von-weiblicher-homosexualitaet
+    title: Über die Psychogenese eines Falles von weiblicher Homosexualität
+    shortTitle: Weibliche Homosexualität
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1920
     kind: work
   - item: freud-1947-gw-12
     volume: XII
@@ -1660,7 +1671,7 @@ books:
   - item: freud-1941-gw-17
     volume: XVII
     firstPage: 149
-    lastPage: 160
+    lastPage: 152
     slug: ergebnisse-ideen-probleme
     title: Ergebnisse, Ideen, Probleme
     edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)

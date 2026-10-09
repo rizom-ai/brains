@@ -1,0 +1,33 @@
+import { describe, expect, it } from "bun:test";
+import { createSpelling, isWordy } from "../src/adapters/archive-ocr-headings";
+
+describe("createSpelling", () => {
+  it("cases each word as the text spells it, and keeps an initial a capital", () => {
+    const { cased } = createSpelling([
+      "Die Kranke war dreißig Jahre alt, als Miss Lucy kam.",
+      // The OCR leaves single small letters about the page.
+      "r u r",
+    ]);
+
+    expect(cased("MISS LUCY R., DREISSIG JAHRE")).toBe(
+      "Miss Lucy R., dreißig Jahre",
+    );
+  });
+});
+
+describe("isWordy", () => {
+  const spelling = createSpelling([
+    "Die Traumzensur entstellt den Traum; die Traumzensur ist frei.",
+    // Scraps the OCR read from a picture.
+    "Eee Free Eee",
+  ]);
+
+  it("takes a title in capitals made of the work's words", () => {
+    expect(isWordy("DIE TRAUMZENSUR", spelling)).toBe(true);
+  });
+
+  it("leaves out a picture's scraps, however often the OCR repeats them", () => {
+    expect(isWordy("RE EEE FREE EEE EEE", spelling)).toBe(false);
+    expect(isWordy("ST NR NREEN ES RE E", spelling)).toBe(false);
+  });
+});

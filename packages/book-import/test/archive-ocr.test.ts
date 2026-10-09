@@ -233,11 +233,13 @@ describe("parseArchiveOcrWork on an essay's sections", () => {
         item: "freud-1946-gw-10",
         title: "Das Unbewußte",
         volume: "X",
-        firstPage: 20,
+        firstPage: 19,
         lastPage: 22,
       },
     );
 
+    // The half-title, a picture's scraps and a stray note marker are no
+    // headings; only the numbered sections are.
     expect(units.map((unit) => [unit.title, unit.section])).toEqual([
       ["GW X, 20", "GW X, 20"],
       ["I. Die Rechtfertigung des Unbewußten", "GW X, 20"],

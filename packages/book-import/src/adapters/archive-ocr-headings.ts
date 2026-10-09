@@ -135,13 +135,22 @@ const WORD = /\p{L}+/gu;
 /** A word in small letters, or capitalised as a noun is. */
 const SPELLED = /^\p{Lu}?\p{Ll}+$/u;
 
+/** A work's own spelling of its words, learned from its running text. */
+export interface Spelling {
+  /** A heading set in capitals, cased as the text spells its words. */
+  cased: (capitals: string) => string;
+  /** Whether the text uses a word, however it is cased. */
+  knows: (word: string) => boolean;
+}
+
 /**
  * Case words set in capitals as the text itself spells them: a German noun is
  * capitalised wherever it stands, other words are not. Each word takes its
  * most frequent spelling in the running text; a word the text never uses is
- * read as a noun. Capitals print ß as SS, so that spelling is tried too.
+ * read as a noun, and a single letter is an initial. Capitals print ß as SS,
+ * so that spelling is tried too.
  */
-export function createCaser(texts: string[]): (capitals: string) => string {
+export function createSpelling(texts: string[]): Spelling {
   const counts = texts.reduce<Map<string, Map<string, number>>>(
     (tally, text) => {
       (text.replace(/ı/gu, "i").match(WORD) ?? [])
@@ -166,7 +175,7 @@ export function createCaser(texts: string[]): (capitals: string) => string {
       )[0]?.[0] ?? null
     );
   };
-  return (title) => {
+  const cased = (title: string): string => {
     // A word broken over two lines of the heading is one word where the text
     // knows it so; otherwise the hyphen joins a compound.
     const capitals = title
@@ -177,15 +186,48 @@ export function createCaser(texts: string[]): (capitals: string) => string {
           : `${head}${tail}`,
       );
     return capitals.replace(WORD, (word, offset: number) => {
-      // A word the page already spells as a word stays as printed.
-      const cased = SPELLED.test(word)
-        ? word
-        : (spelling(word.toLowerCase()) ?? capitalised(word));
+      // A word the page already spells as a word, or an initial, stays as
+      // printed.
+      const spelled =
+        SPELLED.test(word) || word.length === 1
+          ? word
+          : (spelling(word.toLowerCase()) ?? capitalised(word));
       // A title, or a subtitle after its full stop, opens with a capital.
       const opens = offset === 0 || /[.:]\s*$/u.test(capitals.slice(0, offset));
-      return opens ? cased.charAt(0).toUpperCase() + cased.slice(1) : cased;
+      return opens
+        ? spelled.charAt(0).toUpperCase() + spelled.slice(1)
+        : spelled;
     });
   };
+  return {
+    cased,
+    knows: (word) => spelling(word.toLowerCase().replace(/ı/gu, "i")) !== null,
+  };
+}
+
+/** Share of a heading's tokens that must be words of three letters or more, */
+const WORDY = 0.5;
+/** and of those, the share the work's text must use. */
+const KNOWN = 0.5;
+
+/**
+ * Whether a line read as a heading is made of words, not a picture's scraps:
+ * mostly words of three letters or more, mostly words the work itself uses.
+ */
+export function isWordy(text: string, spelling: Spelling): boolean {
+  const tokens = text.split(/\s+/u).filter((token) => token.length > 0);
+  const words = tokens.flatMap((token) => {
+    const word = /\p{L}{3,}/u.exec(token)?.[0];
+    // A word has more than one letter in it; the OCR's EEE has not.
+    return word === undefined || new Set(word.toLowerCase()).size < 2
+      ? []
+      : [word];
+  });
+  return (
+    tokens.length > 0 &&
+    words.length / tokens.length >= WORDY &&
+    words.filter((word) => spelling.knows(word)).length / words.length >= KNOWN
+  );
 }
 
 /** Letters only, in small letters, ß as ss: what two spellings share. */
