@@ -253,6 +253,79 @@ describe("JSON-RPC Handler", () => {
       expect(taskManager.getTask(task.id)).toMatchObject({ task });
     });
 
+    it("attaches the answer's sources card as a task artifact", async () => {
+      const citingService = createMockAgentService({
+        text: "Cited answer",
+        cards: [
+          {
+            kind: "sources",
+            id: "sources-1",
+            sources: [
+              {
+                id: "piece-1",
+                title: "A piece",
+                source: "yeehaa.io",
+                url: "https://yeehaa.io/pieces/a-piece",
+                brain: { name: "yeehaa", url: "https://yeehaa.io" },
+              },
+            ],
+          },
+        ],
+      });
+
+      const response = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("What do you know?")),
+        {
+          taskManager,
+          turnSupervisor,
+          agentService: citingService,
+          callerPermissionLevel: "public",
+        },
+      );
+      const task = expectSuccess(response);
+      await waitForTaskState(taskManager, task.id, "completed");
+
+      const completed = taskManager.getTask(task.id);
+      expect(completed?.task.artifacts).toEqual([
+        {
+          artifactId: expect.any(String),
+          name: "sources",
+          parts: [
+            {
+              kind: "data",
+              data: {
+                sources: [
+                  {
+                    id: "piece-1",
+                    title: "A piece",
+                    source: "yeehaa.io",
+                    url: "https://yeehaa.io/pieces/a-piece",
+                    brain: { name: "yeehaa", url: "https://yeehaa.io" },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("adds no artifact when the answer has no sources", async () => {
+      const response = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "public",
+        },
+      );
+      const task = expectSuccess(response);
+      await waitForTaskState(taskManager, task.id, "completed");
+
+      expect(taskManager.getTask(task.id)?.task.artifacts).toBeUndefined();
+    });
+
     it("should return failed task when AgentService throws", async () => {
       const failingService = createCustomAgentService({
         chat: async () => {
@@ -829,6 +902,50 @@ describe("JSON-RPC Handler", () => {
       const last = events[events.length - 1];
       expect(last).toHaveProperty("result.status.state", "completed");
       expect(last).toHaveProperty("result.final", true);
+    });
+
+    it("streams the sources artifact before the final status event", async () => {
+      const sources = [
+        {
+          id: "piece-1",
+          title: "A piece",
+          source: "yeehaa.io",
+          brain: { name: "yeehaa", url: "https://yeehaa.io" },
+        },
+      ];
+      agentService = createMockAgentService({
+        text: "Cited answer",
+        cards: [{ kind: "sources", id: "sources-1", sources }],
+      });
+
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            turnSupervisor,
+            agentService,
+            callerPermissionLevel: "public",
+          },
+        ),
+      );
+
+      const events = await collectEvents(result.stream);
+      expect(events.map((e) => e["result"])).toEqual([
+        expect.objectContaining({ kind: "status-update", final: false }),
+        {
+          kind: "artifact-update",
+          taskId: result.taskId,
+          contextId: expect.any(String),
+          artifact: {
+            artifactId: expect.any(String),
+            name: "sources",
+            parts: [{ kind: "data", data: { sources } }],
+          },
+        },
+        expect.objectContaining({ kind: "status-update", final: true }),
+      ]);
     });
 
     it("should stream failed status-update when agent throws", async () => {

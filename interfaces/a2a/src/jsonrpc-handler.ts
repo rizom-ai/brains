@@ -1,12 +1,36 @@
 import { z } from "@brains/utils/zod";
-import type { AgentNamespace } from "@brains/plugins";
+import type { AgentNamespace, AgentResponse } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
-import type { Task } from "@a2a-js/sdk";
-import { TERMINAL_STATES, type TaskManager } from "./task-manager";
+import type { Artifact, Task } from "@a2a-js/sdk";
+import {
+  SOURCES_ARTIFACT_NAME,
+  TERMINAL_STATES,
+  type TaskManager,
+} from "./task-manager";
 import type { A2ATurnSupervisor } from "./turn-supervisor";
 import { getErrorMessage } from "@brains/utils/error";
 
 const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
+
+/**
+ * Attach the answer's sources card to the task as a data artifact so a calling
+ * brain can attribute what it was told. Returns the artifact, or undefined when
+ * the answer cites nothing.
+ */
+function attachSourcesArtifact(
+  taskId: string,
+  agentResponse: AgentResponse,
+  taskManager: TaskManager,
+): Artifact | undefined {
+  const sources = (agentResponse.cards ?? []).flatMap((card) =>
+    card.kind === "sources" ? card.sources : [],
+  );
+  if (sources.length === 0) return undefined;
+  const record = taskManager.addArtifact(taskId, SOURCES_ARTIFACT_NAME, [
+    { kind: "data", data: { sources } },
+  ]);
+  return record?.task.artifacts?.at(-1);
+}
 
 // -- Zod schemas for request validation --
 
@@ -210,6 +234,7 @@ function processInBackground(
         if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
           return;
         }
+        attachSourcesArtifact(taskId, agentResponse, context.taskManager);
         context.taskManager.updateState(
           taskId,
           "completed",
@@ -379,6 +404,22 @@ export function handleStreamMessage(
         };
       }
 
+      function artifactEvent(
+        task: Task,
+        artifact: Artifact,
+      ): Record<string, unknown> {
+        return {
+          jsonrpc: "2.0",
+          id: requestId,
+          result: {
+            kind: "artifact-update",
+            taskId: task.id,
+            contextId: task.contextId,
+            artifact,
+          },
+        };
+      }
+
       // Send initial "working" event
       const workingTask = context.taskManager.getTask(taskId);
       if (workingTask) {
@@ -402,6 +443,11 @@ export function handleStreamMessage(
             if (signal.aborted || isTaskCanceled(taskId, context.taskManager)) {
               return;
             }
+            const artifact = attachSourcesArtifact(
+              taskId,
+              agentResponse,
+              context.taskManager,
+            );
             context.taskManager.updateState(
               taskId,
               "completed",
@@ -409,6 +455,9 @@ export function handleStreamMessage(
             );
             const completed = context.taskManager.getTask(taskId);
             if (completed) {
+              if (artifact) {
+                send(artifactEvent(completed.task, artifact));
+              }
               send(statusEvent(completed.task, true));
             }
           } catch (error) {
