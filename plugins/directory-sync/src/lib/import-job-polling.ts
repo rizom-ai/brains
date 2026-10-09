@@ -1,5 +1,12 @@
 import type { EntityMirrorClient } from "@brains/sdk/plugins";
-import { Cause, Clock, Effect, Exit, Schedule } from "@brains/utils/effect";
+import {
+  Cause,
+  Clock,
+  Effect,
+  Exit,
+  Schedule,
+  withOptionalClock,
+} from "@brains/utils/effect";
 import type { Clock as ClockType } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
@@ -79,9 +86,7 @@ export async function waitForImportJobs(
       }),
     );
   });
-  const ownedPolling = options.clock
-    ? Effect.withClock(polling, options.clock)
-    : polling;
+  const ownedPolling = withOptionalClock(polling, options.clock);
   const result = await Effect.runPromiseExit(ownedPolling);
   if (Exit.isFailure(result)) throw Cause.squash(result.cause);
 }

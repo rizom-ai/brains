@@ -1,9 +1,10 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.494",
+  "version": "0.2.0-alpha.495",
   "dependencies": {
-    "effect": "^3.21.4",
+    "@effect/platform-bun": "4.0.1",
+    "effect": "4.0.1",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.2.0",
     "mdast-util-to-string": "^4.0.0",
@@ -30,6 +31,8 @@
     "./deferred": "./src/deferred.ts",
     "./debounce": "./src/debounce.ts",
     "./effect": "./src/effect.ts",
+    "./effect/bun": "./src/effect-bun.ts",
+    "./effect/rpc": "./src/effect-rpc.ts",
     "./effect/test": "./src/effect-test.ts",
     "./env-schema": "./src/env-schema.ts",
     "./error": "./src/error.ts",

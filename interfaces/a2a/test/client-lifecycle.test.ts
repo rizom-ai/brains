@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { runWithInterruptibleTimeout } from "../src/client-lifecycle";
 
 class TestTimeoutError extends Error {}
@@ -9,7 +9,7 @@ describe("A2A client lifecycle", () => {
   it("uses the injected clock and aborts the timed operation", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         let operationSignal: AbortSignal | undefined;
         let settled = false;
         const pending = runWithInterruptibleTimeout(
@@ -31,7 +31,7 @@ describe("A2A client lifecycle", () => {
           settled = true;
         });
 
-        yield* Effect.yieldNow();
+        yield* Effect.yieldNow;
         yield* TestClock.adjust(999);
         expect(settled).toBe(false);
         expect(operationSignal?.aborted).toBe(false);
@@ -40,7 +40,7 @@ describe("A2A client lifecycle", () => {
         const result = yield* Effect.promise(() => outcome);
         expect(result.error).toBeInstanceOf(TestTimeoutError);
         expect(operationSignal?.aborted).toBe(true);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

@@ -642,7 +642,7 @@ export class RecurringCheckService {
 
   private currentTime(): Date {
     return this.clock
-      ? new Date(this.clock.unsafeCurrentTimeMillis())
+      ? new Date(this.clock.currentTimeMillisUnsafe())
       : this.nowFallback();
   }
 

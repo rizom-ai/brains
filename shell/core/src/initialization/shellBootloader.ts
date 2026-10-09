@@ -357,7 +357,7 @@ export class ShellBootloader {
           catch: (error) => error,
         }).pipe(
           Effect.flatMap(() => this.runIndexReadinessMonitor()),
-          Effect.catchAll((error) =>
+          Effect.catch((error) =>
             Effect.sync(() => {
               this.services.logger.error(
                 "Failed to settle startup content",
@@ -481,7 +481,7 @@ export class ShellBootloader {
           }
         }),
       ),
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         Effect.sync(() => {
           logger.warn("Semantic index readiness monitor stopped", error);
         }),

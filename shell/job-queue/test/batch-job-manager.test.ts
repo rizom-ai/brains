@@ -10,7 +10,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createId } from "@brains/utils/id";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 
 const defaultBatchOptions: JobOptions = {
   source: "test:batch-manager",
@@ -625,7 +625,7 @@ describe("BatchJobManager", () => {
   describe("lifecycle", () => {
     it("should run cleanup on schedule and stop when stopped", async () => {
       const program = Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         // createFresh takes options directly now; the overload that hid them
         // from callers is gone.
         const testManager = BatchJobManager.createFresh(
@@ -641,22 +641,22 @@ describe("BatchJobManager", () => {
 
         try {
           yield* Effect.promise(() => testManager.start(1_000));
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           yield* TestClock.adjust(999);
           expect(cleanupCalls).toBe(0);
 
           yield* TestClock.adjust(1);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(cleanupCalls).toBe(1);
 
           yield* Effect.promise(() => testManager.stop());
           yield* TestClock.adjust(5_000);
-          yield* Effect.yieldNow();
+          yield* Effect.yieldNow;
           expect(cleanupCalls).toBe(1);
         } finally {
           yield* Effect.promise(() => testManager.stop());
         }
-      }).pipe(Effect.provide(TestContext.TestContext));
+      }).pipe(Effect.provide(TestClock.layer()));
 
       await Effect.runPromise(program);
     });

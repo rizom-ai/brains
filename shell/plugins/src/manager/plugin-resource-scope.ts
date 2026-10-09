@@ -35,7 +35,7 @@ function reflectApply(
 
 /** Internal resource scope for one plugin registration. */
 export class PluginResourceScope {
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private readonly ingress = new Set<PluginIngress>();
   private closePromise: Promise<void> | null = null;
   private closed = false;

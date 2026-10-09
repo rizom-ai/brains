@@ -34,12 +34,13 @@ const LINUX = process.platform === "linux";
 const RUN_PACKAGED = process.env["RUN_GIT_BROKER_PACKAGED_RECOVERY"] === "1";
 const ENTRY = join(import.meta.dir, "..", "dist", "brain.js");
 const BROKER_ENTRY = join(import.meta.dir, "..", "dist", "git-broker.js");
+// Independent test processes must never remove one another's installed fixture.
+const WORKER_FIXTURE_PACKAGE = `@fixture/worker-mutation-${process.pid}`;
 const WORKER_FIXTURE_DIR = join(
   import.meta.dir,
   "..",
   "node_modules",
-  "@fixture",
-  "worker-mutation",
+  WORKER_FIXTURE_PACKAGE,
 );
 
 interface SpawnRecord {
@@ -303,7 +304,7 @@ async function createApp(options: { includeWishlist?: boolean } = {}): Promise<{
   const productionPort = reservePort();
   await writeFile(
     join(root, "brain.yaml"),
-    `brain: ${JSON.stringify(options.includeWishlist ? "@fixture/worker-mutation" : "brain")}
+    `brain: ${JSON.stringify(options.includeWishlist ? WORKER_FIXTURE_PACKAGE : "brain")}
 bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
@@ -394,7 +395,7 @@ function durableCheckpoint(root: string):
     const row = database
       .query<{ value: string }, []>(
         `SELECT value FROM runtime_state_records
-         WHERE namespace = 'directory-sync.git-reconciliation'
+         WHERE namespace = 'brains.directory-sync.directory-sync.git-reconciliation'
            AND key = 'current'`,
       )
       .get();
@@ -493,7 +494,7 @@ async function installWorkerMutationFixture(root: string): Promise<void> {
   await mkdir(join(root, "node_modules", "@fixture"), { recursive: true });
   await symlink(
     directory,
-    join(root, "node_modules", "@fixture", "worker-mutation"),
+    join(root, "node_modules", WORKER_FIXTURE_PACKAGE),
     "dir",
   );
   await mkdir(join(root, "node_modules", "@rizom"), { recursive: true });
@@ -505,7 +506,7 @@ async function installWorkerMutationFixture(root: string): Promise<void> {
   await writeFile(
     join(directory, "package.json"),
     JSON.stringify({
-      name: "@fixture/worker-mutation",
+      name: WORKER_FIXTURE_PACKAGE,
       version: "1.0.0",
       type: "module",
       exports: "./index.js",
@@ -529,7 +530,7 @@ const input = z.object({ title: z.string(), content: z.string() });
 export default {
   ...canonical,
   capabilities: [...canonical.capabilities, ["worker-mutation", () => ({
-    id: "worker-mutation", packageName: "@fixture/worker-mutation", type: "service", version: "1.0.0",
+    id: "worker-mutation", packageName: ${JSON.stringify(WORKER_FIXTURE_PACKAGE)}, type: "service", version: "1.0.0",
     async register(shell) {
       shell.getJobQueueService().registerHandler("worker-mutation:create", {
         validateAndParse(value) { const parsed = input.safeParse(value); return parsed.success ? parsed.data : null; },

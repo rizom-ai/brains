@@ -5,6 +5,7 @@ import {
   Exit,
   FiberSet,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock as ClockType } from "@brains/utils/effect";
 
@@ -14,7 +15,7 @@ export interface PeriodicTaskSupervisorOptions {
 }
 
 function unrefSleep(durationMs: number): Effect.Effect<void> {
-  return Effect.async<void>((resume) => {
+  return Effect.callback<void>((resume) => {
     const timer = setTimeout(() => resume(Effect.void), durationMs);
     timer.unref();
     return Effect.sync(() => clearTimeout(timer));
@@ -23,7 +24,7 @@ function unrefSleep(durationMs: number): Effect.Effect<void> {
 
 /** Runs one non-overlapping supervised task immediately and on a fixed delay. @internal */
 export class PeriodicTaskSupervisor {
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private readonly fibers: FiberSet.FiberSet<void, never>;
   private readonly intervalMs: number;
   private readonly task: (now: number) => Promise<void>;
@@ -43,7 +44,7 @@ export class PeriodicTaskSupervisor {
     this.options = options;
     this.scope = Effect.runSync(Scope.make());
     this.fibers = Effect.runSync(
-      Scope.extend(FiberSet.make<void, never>(), this.scope),
+      Scope.provide(FiberSet.make<void, never>(), this.scope),
     );
   }
 
@@ -64,7 +65,7 @@ export class PeriodicTaskSupervisor {
         try: () => this.trackTask(() => this.task(now)),
         catch: (error) => error,
       }).pipe(
-        Effect.catchAll((error) =>
+        Effect.catch((error) =>
           Effect.sync(() => {
             this.options.onError?.(error);
           }),
@@ -74,9 +75,7 @@ export class PeriodicTaskSupervisor {
   }
 
   private withClock(effect: Effect.Effect<void>): Effect.Effect<void> {
-    return this.options.clock
-      ? Effect.withClock(effect, this.options.clock)
-      : effect;
+    return withOptionalClock(effect, this.options.clock);
   }
 
   private async startSupervisor(): Promise<void> {
@@ -91,7 +90,7 @@ export class PeriodicTaskSupervisor {
       Effect.forever,
     );
     const fiber = Effect.runFork(this.withClock(schedule));
-    FiberSet.unsafeAdd(this.fibers, fiber);
+    FiberSet.addUnsafe(this.fibers, fiber);
   }
 
   private trackTask(startTask: () => Promise<void>): Promise<void> {

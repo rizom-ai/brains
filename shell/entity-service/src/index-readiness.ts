@@ -39,7 +39,7 @@ export function makeIndexReadinessPollingEffect<E>(
     const schedule =
       options.timeoutMs === undefined
         ? spaced
-        : spaced.pipe(Schedule.upTo(options.timeoutMs));
+        : spaced.pipe(Schedule.upTo({ duration: options.timeoutMs }));
 
     return attempt.pipe(
       Effect.repeat({
