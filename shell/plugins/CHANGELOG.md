@@ -1,5 +1,93 @@
 # @brains/plugins
 
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/ai-service@0.2.0-alpha.505
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/content-service@0.2.0-alpha.505
+  - @brains/content-formatters@0.2.0-alpha.505
+  - @brains/site-composition@0.2.0-alpha.505
+  - @brains/conversation-service@0.2.0-alpha.505
+  - @brains/entity-service@0.2.0-alpha.505
+  - @brains/identity-service@0.2.0-alpha.505
+  - @brains/job-queue@0.2.0-alpha.505
+  - @brains/mcp-service@0.2.0-alpha.505
+  - @brains/messaging-service@0.2.0-alpha.505
+  - @brains/templates@0.2.0-alpha.505
+  - @brains/recurring-checks@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+  - @brains/runtime-state@0.2.0-alpha.505
+  - @brains/scheduler@0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.504
+  - @brains/contracts@0.2.0-alpha.504
+  - @brains/site-composition@0.2.0-alpha.504
+  - @brains/utils@0.2.0-alpha.504
+  - @brains/ai-service@0.2.0-alpha.504
+  - @brains/content-service@0.2.0-alpha.504
+  - @brains/conversation-service@0.2.0-alpha.504
+  - @brains/entity-service@0.2.0-alpha.504
+  - @brains/identity-service@0.2.0-alpha.504
+  - @brains/job-queue@0.2.0-alpha.504
+  - @brains/mcp-service@0.2.0-alpha.504
+  - @brains/messaging-service@0.2.0-alpha.504
+  - @brains/recurring-checks@0.2.0-alpha.504
+  - @brains/runtime-state@0.2.0-alpha.504
+  - @brains/scheduler@0.2.0-alpha.504
+  - @brains/templates@0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.503
+  - @brains/contracts@0.2.0-alpha.503
+  - @brains/site-composition@0.2.0-alpha.503
+  - @brains/utils@0.2.0-alpha.503
+  - @brains/ai-service@0.2.0-alpha.503
+  - @brains/content-service@0.2.0-alpha.503
+  - @brains/conversation-service@0.2.0-alpha.503
+  - @brains/entity-service@0.2.0-alpha.503
+  - @brains/identity-service@0.2.0-alpha.503
+  - @brains/job-queue@0.2.0-alpha.503
+  - @brains/mcp-service@0.2.0-alpha.503
+  - @brains/messaging-service@0.2.0-alpha.503
+  - @brains/recurring-checks@0.2.0-alpha.503
+  - @brains/runtime-state@0.2.0-alpha.503
+  - @brains/scheduler@0.2.0-alpha.503
+  - @brains/templates@0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.502
+  - @brains/contracts@0.2.0-alpha.502
+  - @brains/site-composition@0.2.0-alpha.502
+  - @brains/utils@0.2.0-alpha.502
+  - @brains/ai-service@0.2.0-alpha.502
+  - @brains/content-service@0.2.0-alpha.502
+  - @brains/conversation-service@0.2.0-alpha.502
+  - @brains/entity-service@0.2.0-alpha.502
+  - @brains/identity-service@0.2.0-alpha.502
+  - @brains/job-queue@0.2.0-alpha.502
+  - @brains/mcp-service@0.2.0-alpha.502
+  - @brains/messaging-service@0.2.0-alpha.502
+  - @brains/recurring-checks@0.2.0-alpha.502
+  - @brains/runtime-state@0.2.0-alpha.502
+  - @brains/scheduler@0.2.0-alpha.502
+  - @brains/templates@0.2.0-alpha.502
+
 ## 0.2.0-alpha.501
 
 ### Patch Changes

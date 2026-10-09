@@ -169,6 +169,7 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
+    collect: (request) => messageBus.collect({ ...request, sender: pluginId }),
     /**
      * The channel and its handler are correlated — a Channel takes a
      * TypedMessageHandler, a name takes a MessageHandler — and the public
