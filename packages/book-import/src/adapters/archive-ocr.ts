@@ -807,38 +807,69 @@ export interface ArchiveOcrOptions {
   entryBytes?: number;
 }
 
+/** A volume as read once for all the works it holds. */
+interface ReadVolume {
+  pages: Page[];
+  printed: Map<number, number | null>;
+  volume: Volume;
+  cased: (capitals: string) => string;
+  /** The front matter's roman offset, if it has roman heads. */
+  front: number | null;
+}
+
+function readVolume(hocr: string): ReadVolume {
+  const pages = readPages(hocr);
+  const fullLines = pages.flatMap((page) =>
+    page.lines.filter((line) => line.width > page.width / 2),
+  );
+  return {
+    pages,
+    printed: printedPageNumbers(pages.map(readingOf)),
+    volume: {
+      heads: pages.flatMap((page) => {
+        const head = numberedHead(page);
+        const line = head ? page.lines[head.index] : undefined;
+        return line ? [new Set(headWords(line.text))] : [];
+      }),
+      column: median(fullLines.map((line) => line.width)),
+      textSize: median(fullLines.map((line) => line.size)),
+    },
+    cased: createCaser(
+      pages.flatMap((page) => page.lines.map((line) => line.text)),
+    ),
+    // Pages before the first are the front matter, numbered in roman.
+    front: romanOffset(pages),
+  };
+}
+
+/** The volume read last: a manifest lists a volume's works one after another. */
+const lastRead: { hocr: string | null; volume: ReadVolume | null } = {
+  hocr: null,
+  volume: null,
+};
+
+function volumeOf(hocr: string): ReadVolume {
+  if (lastRead.hocr !== hocr || lastRead.volume === null) {
+    lastRead.volume = readVolume(hocr);
+    lastRead.hocr = hocr;
+  }
+  return lastRead.volume;
+}
+
 /**
- * Parse a work from a scanned volume's hOCR: its chapters by their centred
- * numerals, paragraphs by first-line indent across pages, the author's
- * footnotes kept as notes. A long chapter is split at paragraphs into parts,
- * each cited from the page it starts on and carrying the notes of its pages.
- * Running heads, printer's signatures, rules and pages outside the work are
- * left out.
+ * Parse a work from a scanned volume's hOCR: its parts, chapters and
+ * subsections by their headings, paragraphs by first-line indent across
+ * pages, the author's footnotes kept as notes. A long section is split at
+ * paragraphs into parts, each cited from the page it starts on and carrying
+ * the notes of its pages. Running heads, printer's signatures, rules, the
+ * scan's noise and pages outside the work are left out.
  */
 export function parseArchiveOcrWork(
   hocr: string,
   work: ArchiveOcrWork,
   options: ArchiveOcrOptions = {},
 ): BookUnit[] {
-  const pages = readPages(hocr);
-  const printed = printedPageNumbers(pages.map(readingOf));
-  const fullLines = pages.flatMap((page) =>
-    page.lines.filter((line) => line.width > page.width / 2),
-  );
-  const volume: Volume = {
-    heads: pages.flatMap((page) => {
-      const head = numberedHead(page);
-      const line = head ? page.lines[head.index] : undefined;
-      return line ? [new Set(headWords(line.text))] : [];
-    }),
-    column: median(fullLines.map((line) => line.width)),
-    textSize: median(fullLines.map((line) => line.size)),
-  };
-  const cased = createCaser(
-    pages.flatMap((page) => page.lines.map((line) => line.text)),
-  );
-  // Pages before the first are the front matter, numbered in roman.
-  const front = romanOffset(pages);
+  const { pages, printed, volume, cased, front } = volumeOf(hocr);
   const labelOf = (number: number, leaf: number): string =>
     number < 1 && front !== null ? roman(leaf + front) : String(number);
   const firstPage =
