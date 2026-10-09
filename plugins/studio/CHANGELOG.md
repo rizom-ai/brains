@@ -1,5 +1,33 @@
 # @brains/studio
 
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- Updated dependencies [[`769c063`](https://github.com/rizom-ai/brains/commit/769c063b4f2fa550a6f63548df8bbfe8e98630f5)]:
+  - @brains/plugins@0.2.0-alpha.497
+  - @brains/entity-service@0.2.0-alpha.497
+  - @brains/operator-view-react@0.2.0-alpha.497
+  - @brains/auth-service@0.2.0-alpha.497
+  - @brains/app-ui-react@0.2.0-alpha.497
+  - @brains/console-theme@0.2.0-alpha.497
+  - @brains/contracts@0.2.0-alpha.497
+  - @brains/utils@0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.496
+  - @brains/console-theme@0.2.0-alpha.496
+  - @brains/contracts@0.2.0-alpha.496
+  - @brains/operator-view-react@0.2.0-alpha.496
+  - @brains/utils@0.2.0-alpha.496
+  - @brains/auth-service@0.2.0-alpha.496
+  - @brains/entity-service@0.2.0-alpha.496
+  - @brains/plugins@0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ### Patch Changes

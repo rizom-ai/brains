@@ -1,5 +1,39 @@
 # @brains/core
 
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- [#549](https://github.com/rizom-ai/brains/pull/549) [`769c063`](https://github.com/rizom-ai/brains/commit/769c063b4f2fa550a6f63548df8bbfe8e98630f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace full-corpus topic projection waves with bounded, resumable per-source voting jobs and role-weighted topic selection. Stronger challengers can replace weak topics at the cap once every source has been read, while unchanged sources avoid AI calls. A failing source is retried alone and abstains after repeated failures instead of blocking extraction. Forward job cancellation through template generation, heal stale votes on settled startup, and release retired topic projection ownership without deleting existing content.
+
+- Updated dependencies [[`769c063`](https://github.com/rizom-ai/brains/commit/769c063b4f2fa550a6f63548df8bbfe8e98630f5)]:
+  - @brains/plugins@0.2.0-alpha.497
+  - @brains/image@0.2.0-alpha.497
+  - @brains/contracts@0.2.0-alpha.497
+  - @brains/operation-context@0.2.0-alpha.497
+  - @brains/site-composition@0.2.0-alpha.497
+  - @brains/utils@0.2.0-alpha.497
+  - @brains/recurring-checks@0.2.0-alpha.497
+  - @brains/runtime-state@0.2.0-alpha.497
+  - @brains/scheduler@0.2.0-alpha.497
+  - @brains/templates@0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.496
+  - @brains/image@0.2.0-alpha.496
+  - @brains/operation-context@0.2.0-alpha.496
+  - @brains/site-composition@0.2.0-alpha.496
+  - @brains/utils@0.2.0-alpha.496
+  - @brains/plugins@0.2.0-alpha.496
+  - @brains/recurring-checks@0.2.0-alpha.496
+  - @brains/runtime-state@0.2.0-alpha.496
+  - @brains/scheduler@0.2.0-alpha.496
+  - @brains/templates@0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ### Patch Changes

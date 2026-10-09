@@ -46,9 +46,40 @@ describe("mocked feature-load services", () => {
       maxConcurrentUpdateEmbeddingCalls: 2,
       objectCalls: 1,
       objectCallsByProjection: { unattributed: 1 },
+      sourceReads: {},
       textCalls: 0,
       activeCalls: 0,
       maxConcurrentCalls: 4,
+    });
+  });
+
+  it("answers per-source vote prompts and counts each source read", async () => {
+    const tracker = new MockLoadTracker();
+    const ai = new MockLoadAIService(tracker, { delayMs: 0 });
+    const schema = z.object({
+      sources: z.array(
+        z.object({
+          sourceKey: z.string(),
+          supported: z.array(z.unknown()),
+          proposal: z.null(),
+        }),
+      ),
+    });
+
+    const generated = await ai.generateObject(
+      "system",
+      "---\nSource key: note:a\nbody\n\n---\nSource key: note:b\nbody",
+      schema,
+    );
+    await ai.generateObject("system", "---\nSource key: note:a\nedit", schema);
+
+    expect(generated.object.sources).toEqual([
+      { sourceKey: "note:a", supported: [], proposal: null },
+      { sourceKey: "note:b", supported: [], proposal: null },
+    ]);
+    expect(tracker.snapshot().sourceReads).toEqual({
+      "note:a": 2,
+      "note:b": 1,
     });
   });
 });
