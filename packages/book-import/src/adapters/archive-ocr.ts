@@ -606,27 +606,32 @@ function correctedPieces(
       ? piece
       : { ...piece, text: normalised(piece.text) },
   );
-  const stale = own.find(
-    (correction) =>
-      !read.some(
-        (piece) =>
-          piece.kind !== "heading" && piece.text.includes(correction.from),
-      ),
+  // Each correction fixes one place: the line that is its text, else the
+  // first line that holds it.
+  const texts = own.reduce<Array<string | null>>(
+    (lines, correction) => {
+      const exact = lines.indexOf(correction.from);
+      const at =
+        exact >= 0
+          ? exact
+          : lines.findIndex((line) => line?.includes(correction.from) ?? false);
+      if (at < 0) {
+        throw new Error(`No "${correction.from}" on page ${label} to correct`);
+      }
+      return lines.map((line, index) =>
+        index === at && line !== null
+          ? line.replace(correction.from, correction.to)
+          : line,
+      );
+    },
+    read.map((piece) => (piece.kind === "heading" ? null : piece.text)),
   );
-  if (stale) {
-    throw new Error(`No "${stale.from}" on page ${label} to correct`);
-  }
-  return read.map((piece) =>
-    piece.kind === "heading"
-      ? piece
-      : {
-          ...piece,
-          text: own.reduce(
-            (text, correction) => text.replace(correction.from, correction.to),
-            piece.text,
-          ),
-        },
-  );
+  return read.flatMap((piece, index): Piece[] => {
+    if (piece.kind === "heading") return [piece];
+    const text = (texts[index] ?? "").trim();
+    // A line a correction empties was the scan's noise.
+    return text === "" ? [] : [{ ...piece, text }];
+  });
 }
 
 function piecesOf(page: Page, volume: Volume): Piece[] {

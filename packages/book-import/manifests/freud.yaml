@@ -14,7 +14,7 @@ coverage:
   license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
 gaps:
   - volume: I
-    pages: 39–56
+    pages: 37–56
     title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
     year: 1893
     reason: written in French
@@ -87,7 +87,7 @@ books:
   - item: freud-1952-gw-1
     volume: I
     firstPage: 21
-    lastPage: 38
+    lastPage: 36
     slug: charcot
     title: Charcot
     edition: Gesammelte Werke, Bd. I (Imago, London 1952)

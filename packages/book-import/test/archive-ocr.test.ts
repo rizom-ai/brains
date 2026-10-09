@@ -101,6 +101,32 @@ describe("parseArchiveOcrWork with corrections", () => {
     );
   });
 
+  it("drops a line a correction empties", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      corrections: [{ page: 5, from: "nach unten.", to: "" }],
+    });
+
+    expect(units[0]?.paragraphs[3]).toBe(
+      "Ein Satz unten auf der Seite läuft weiter, und am Rand rutscht ein Wort",
+    );
+  });
+
+  it("fixes one place: the line that is the correction's text, else the first that holds it", async () => {
+    const page = pageText(await fixture(), 5, [
+      { page: 5, from: "nach unten.", to: "hinab." },
+      { page: 5, from: "e", to: "E" },
+    ]);
+
+    expect(page.split("\n")).toEqual([
+      "DiE Ich-",
+      "Analyse beginnt hier.",
+      "Ein Satz unten auf der Seite",
+      "läuft weiter, und am Rand rutscht ein Wort",
+      "hinab.",
+    ]);
+  });
+
   it("stops on a correction that finds nothing to fix", async () => {
     const hocr = await fixture();
 
