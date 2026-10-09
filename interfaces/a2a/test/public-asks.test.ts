@@ -101,7 +101,11 @@ describe("public ask allowance", () => {
   it("pools unsigned callers as one anonymous caller", async () => {
     const asks = allowance({ perCallerPerDay: 1 });
     await admitTimes(asks, null, 1);
-    expect(await asks.admit(null)).toMatchObject({ ok: false });
+    expect(await asks.admit(null)).toEqual({
+      ok: false,
+      reason:
+        "anonymous has reached today's allowance of 1 public question on this brain.",
+    });
     expect(await asks.admit("jo.example")).toEqual({ ok: true });
   });
 

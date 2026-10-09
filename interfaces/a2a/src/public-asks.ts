@@ -87,7 +87,7 @@ function refusal(
   if (total.tokens >= config.tokensPerDay)
     return "This brain has used today's allowance of answer tokens for public questions; ask again tomorrow.";
   if (own.messages >= config.perCallerPerDay)
-    return `${callerName} has reached today's allowance of ${config.perCallerPerDay} public questions on this brain.`;
+    return `${callerName} has reached today's allowance of ${config.perCallerPerDay} public ${config.perCallerPerDay === 1 ? "question" : "questions"} on this brain.`;
   if (own.tokens >= config.tokensPerCallerPerDay)
     return `${callerName} has used today's allowance of answer tokens on this brain.`;
   return undefined;
