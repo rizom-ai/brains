@@ -534,3 +534,48 @@ describe("parseArchiveOcrWork, titles in display type", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, pages numbered by a bare number", () => {
+  it("reads a page number standing alone at the head of the page", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-bare-heads.html"),
+        "utf8",
+      ),
+      {
+        item: "10067670bsb",
+        title: "Herr Vogt",
+        citation: "Herr Vogt",
+        firstPage: 20,
+        lastPage: 23,
+      },
+    );
+
+    expect(units.map((unit) => unit.section)).toEqual([
+      "Herr Vogt, 20",
+      "Herr Vogt, 22",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, a running head read as two lines", () => {
+  it("leaves out the head's title under its bare number", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-split-heads.html"),
+        "utf8",
+      ),
+      {
+        item: "dieklassenkmpf00marxuoft",
+        title: "Die Klassenkämpfe in Frankreich 1848 bis 1850",
+        citation: "Klassenkämpfe",
+        firstPage: 20,
+        lastPage: 23,
+      },
+    );
+
+    expect(units[1]?.paragraphs).toEqual([
+      "Der 25. Februar 1848 hatte Frankreich die Republik oktroyirt, der 25. Juni drang ihm die Revolution auf. Und Revolution bedeutete nach dem Juni: Umwälzung der bürgerlichen Gesellschaft.",
+    ]);
+  });
+});

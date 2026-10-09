@@ -86,9 +86,12 @@ function isScraps(text: string): boolean {
 /** A page whose lines are mostly not words holds a picture, not text. */
 const CLEAN_LINES = 0.5;
 
-/** A page number opening or closing the line, past a scrap of OCR noise. */
+/**
+ * A page number opening or closing the line, past a scrap of OCR noise, or
+ * standing alone, between dashes at most.
+ */
 const RUNNING_HEAD =
-  /^(?:\S{1,2}\s+)?(\d+)\s+\S.*$|^.*\S\s+(\d+)(?:\s+\S{1,2})?$/;
+  /^(?:\S{1,2}\s+)?(\d+)\s+\S.*$|^.*\S\s+(\d+)(?:\s+\S{1,2})?$|^[—–-]?\s*(\d+)\s*[—–-]?$/;
 /** The printer's signature at a sheet's foot, its numeral however misread. */
 const SIGNATURE = /^Freud\s*[,.]?\s*[IVXLl1|]+\.?\s*\d*\s*$/;
 const NOTE_START = /^(?:ı|\d+|\*)\)/;
@@ -236,7 +239,7 @@ function numberedHead(page: Page): { index: number; number: number } | null {
       const match = RUNNING_HEAD.exec(
         line.text.replace(/(?<=\d)ı|ı(?=\d)/g, "1"),
       );
-      const number = match?.[1] ?? match?.[2];
+      const number = match?.[1] ?? match?.[2] ?? match?.[3];
       return number === undefined ? null : { index, number: Number(number) };
     },
     null,
@@ -296,7 +299,13 @@ const HEAD_LIKENESS = 0.6;
  */
 function runningHeadIndex(page: Page, heads: Array<Set<string>>): number {
   const numbered = numberedHead(page) ?? romanHead(page);
-  if (numbered) return numbered.index;
+  // The OCR may read a head as two lines, its number above its title; the
+  // head ends with the later of them.
+  return Math.max(numbered?.index ?? -1, titledHeadIndex(page, heads));
+}
+
+/** The line that reads as one of the volume's running titles, if any. */
+function titledHeadIndex(page: Page, heads: Array<Set<string>>): number {
   return page.lines.findIndex((line, index) => {
     if (index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) return false;
     const words = headWords(line.text);
