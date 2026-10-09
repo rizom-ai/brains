@@ -13,6 +13,10 @@
 # transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
 # right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
 # apparatus and Marx's English "Value, price and profit" are left out.
+# Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
+# Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
+# of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
+# (1902), without his introductions and notes and without Engels' own pieces.
 # `year` is first publication, for letters the year of the first. The second
 # and third volumes of Das Kapital appeared after Marx's death, edited by
 # Engels; Engels' prefaces to them are left out. The third volume is two
@@ -235,4 +239,92 @@ books:
     edition: "Die Klassenkämpfe in Frankreich 1848 bis 1850, Abdruck aus der „Neuen Rheinischen Zeitung. Politisch-ökonomische Revue“, mit Einleitung von Friedrich Engels (Berlin, Vorwärts, 1895)"
     author: Karl Marx
     year: 1850
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 41
+    lastPage: 60
+    # MEW 1, Dietz 1976, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20160612182802id_/http://www.mlwerke.de/me/me01/me01_392.htm
+    slug: kritische-randglossen-zu-dem-artikel-der-koenig-von-preussen-und-die-sozialreform
+    title: "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform"
+    shortTitle: Kritische Randglossen
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 103
+    lastPage: 324
+    # MEW 2, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20000524185220id_/http://www.mlwerke.de:80/me/me02/me02_003.htm
+      - https://web.archive.org/web/20010123075700id_/http://www.mlwerke.de:80/me/me02/me02_007.htm
+      - https://web.archive.org/web/20010123081600id_/http://www.mlwerke.de:80/me/me02/me02_009.htm
+      - https://web.archive.org/web/20010123061800id_/http://www.mlwerke.de:80/me/me02/me02_012.htm
+      - https://web.archive.org/web/20010123082700id_/http://www.mlwerke.de:80/me/me02/me02_017.htm
+      - https://web.archive.org/web/20010425235247id_/http://www.mlwerke.de:80/me/me02/me02_019.htm
+      - https://web.archive.org/web/20001208130600id_/http://www.mlwerke.de:80/me/me02/me02_057.htm
+      - https://web.archive.org/web/20010123083300id_/http://www.mlwerke.de:80/me/me02/me02_082.htm
+      - https://web.archive.org/web/20001208131100id_/http://www.mlwerke.de:80/me/me02/me02_152.htm
+      - https://web.archive.org/web/20020704041655id_/http://mlwerke.de:80/me/me02/me02_172.htm
+      - https://web.archive.org/web/20010426000827id_/http://www.mlwerke.de:80/me/me02/me02_222.htm
+    slug: die-heilige-familie
+    title: Die heilige Familie oder Kritik der kritischen Kritik
+    shortTitle: Die heilige Familie
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx und Friedrich Engels
+    year: 1845
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 414
+    lastPage: 428
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20001001093635id_/http://www.mlwerke.de:80/me/me04/me04_003.htm
+    slug: zirkular-gegen-kriege
+    title: Der Volkstribun, redigirt von Hermann Kriege in New York
+    shortTitle: Zirkular gegen Kriege
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx und Friedrich Engels
+    year: 1846
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 433
+    lastPage: 445
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20010531155020id_/http://www.mlwerke.de:80/me/me04/me04_191.htm
+    slug: der-kommunismus-des-rheinischen-beobachters
+    title: Der Kommunismus des Rheinischen Beobachters
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 454
+    lastPage: 477
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20010531161251id_/http://www.mlwerke.de:80/me/me04/me04_331.htm
+    slug: die-moralisierende-kritik-und-die-kritisierende-moral
+    title: Die moralisirende Kritik und die kritische Moral
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
     kind: work
