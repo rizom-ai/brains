@@ -53,13 +53,13 @@ The boundary is intentionally narrow:
 
 - Public shell, plugin, daemon, and job APIs remain Promise-based.
 - Cancellation crosses public boundaries as standard `AbortSignal`, not Effect types.
-- Zod remains the schema and external contract system; Effect Schema is not used in parallel.
+- Zod remains the schema and external contract system. The private Git broker RPC wire contract is the sole Effect Schema exception: declarations adapt authoritative Zod operation validation, without parallel domain models or public Effect types.
 - Simple CRUD, validation, and synchronous registry operations should not be wrapped mechanically in Effect.
 - Long-running work must be attached to an owning scope or supervised fiber; detached fibers require an explicit reason.
 - Wrapping a Promise does not make its underlying operation cancellable. Cancellation-sensitive adapters must consume the signal supplied by Effect.
 - Persistent jobs drain gracefully by default so interruption cannot abandon a claimed queue row.
 
-This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Workspace packages import the curated private `@brains/utils/effect` subpath rather than depending on Effect independently; deterministic test services use `@brains/utils/effect/test`.
+This keeps Effect focused on runtime orchestration while preserving the stable authoring surface consumed by external plugins and brain packages. Workspace packages import the curated private `@brains/utils/effect` subpath rather than depending on Effect independently; deterministic test services use `@brains/utils/effect/test`. Private Git broker transport code uses the curated `/effect/rpc` and `/effect/bun` subpaths; these are not authoring APIs.
 
 The A2A interface applies the same boundary locally: its private turn supervisor owns streaming and polling fibers plus scoped SSE heartbeat schedules. Stream disconnect, explicit task cancellation, and daemon shutdown propagate through `AbortSignal`; no Effect type appears in the interface contract. Its outbound client uses a package-private Effect timeout adapter so tool cancellation reaches Agent Card requests, message POSTs, and stalled SSE reads with the caller's original reason; stream cancellation settles before the call returns. MCP HTTP similarly owns idle-session eviction through a private scoped schedule, validates before acquisition, and drains transport closes admitted by a sweep before shutdown returns.
 

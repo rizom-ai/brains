@@ -8,7 +8,7 @@ import {
 } from "@brains/utils/effect";
 
 interface TurnSupervisorRuntime {
-  scope: Scope.CloseableScope;
+  scope: Scope.Closeable;
   fibers: FiberSet.FiberSet<unknown, unknown>;
 }
 
@@ -21,7 +21,7 @@ export class ActiveTurnSupervisor {
   public constructor() {
     const scope = Effect.runSync(Scope.make());
     const fibers = Effect.runSync(
-      Scope.extend(FiberSet.make<unknown, unknown>(), scope),
+      Scope.provide(FiberSet.make<unknown, unknown>(), scope),
     );
     this.runtime = { scope, fibers };
   }
@@ -41,10 +41,10 @@ export class ActiveTurnSupervisor {
         catch: (error) => error,
       }),
     );
-    FiberSet.unsafeAdd(this.runtime.fibers, fiber);
+    FiberSet.addUnsafe(this.runtime.fibers, fiber);
 
     const interrupt = (): void => {
-      Effect.runSync(Fiber.interruptFork(fiber));
+      fiber.interruptUnsafe();
     };
     signal?.addEventListener("abort", interrupt, { once: true });
     if (signal?.aborted) interrupt();

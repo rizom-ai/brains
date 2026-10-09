@@ -5,6 +5,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { getErrorMessage } from "@brains/utils/error";
+import { SourceCitationSchema } from "@brains/contracts";
 import {
   toolConfirmationSchema,
   toolErrorSchema,
@@ -44,6 +45,10 @@ const searchToolDataSchema = z.object({
 });
 const getToolDataSchema = z.object({
   entity: sourceEntitySchema,
+});
+/** A tool that attributes its own sources, such as the network's answers. */
+const toolSourcesDataSchema = z.object({
+  sources: z.array(z.unknown()),
 });
 const structuredChatCardParserSchema = z.custom<StructuredChatCard>(
   (value) => StructuredChatCardSchema.safeParse(value).success,
@@ -304,6 +309,15 @@ function buildToolSourceCitations(params: {
         }),
       },
     ];
+  }
+
+  // A tool's own citations count like a direct read: kept whatever the answer names.
+  const own = toolSourcesDataSchema.safeParse(params.data);
+  if (own.success) {
+    return own.data.sources.flatMap((source) => {
+      const citation = SourceCitationSchema.safeParse(source);
+      return citation.success ? [{ citation: citation.data }] : [];
+    });
   }
 
   return [];

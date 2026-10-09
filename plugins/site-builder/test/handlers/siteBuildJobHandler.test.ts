@@ -113,7 +113,7 @@ describe("SiteBuildJobHandler", () => {
   });
 
   describe("slot registry", () => {
-    it("should pass slot registry to siteBuilder.build()", async () => {
+    it("should pass the slots asked for at build time to siteBuilder.build()", async () => {
       const slotRegistry = new UISlotRegistry();
       slotRegistry.register("footer-top", {
         pluginId: "newsletter",
@@ -149,7 +149,7 @@ describe("SiteBuildJobHandler", () => {
           layouts: {},
           defaultSiteConfig,
           sharedImagesDir: "./dist/images",
-          slots: slotRegistry,
+          getSlots: async (): Promise<UISlotRegistry> => slotRegistry,
         },
       );
 
@@ -165,64 +165,6 @@ describe("SiteBuildJobHandler", () => {
       expect(capturedOptions).toBeDefined();
       expect(capturedOptions?.slots).toBe(slotRegistry);
     });
-  });
-
-  it("reports dirty-generation build lifecycle around execution", async () => {
-    const lifecycle: string[] = [];
-    const lifecycleBuilder: ISiteBuilder = {
-      build: mock(async () => {
-        lifecycle.push("build");
-        return {
-          success: true,
-          outputDir: "/tmp/output",
-          filesGenerated: 1,
-          routesBuilt: 1,
-        };
-      }),
-    };
-    const { sendMessage } = createMockMessageSender();
-    const lifecycleHandler = new SiteBuildJobHandler(
-      createSilentLogger("test"),
-      sendMessage,
-      {
-        siteBuilder: lifecycleBuilder,
-        layouts: {},
-        defaultSiteConfig: {
-          represents: "anchor",
-          title: "Test Site",
-          description: "Test Description",
-        },
-        sharedImagesDir: "./dist/images",
-        onBuildStarted: (environment, jobId, generation): void => {
-          lifecycle.push(`start:${environment}:${jobId}:${generation}`);
-        },
-        onBuildFinished: async (
-          environment,
-          jobId,
-          generation,
-        ): Promise<void> => {
-          lifecycle.push(`finish:${environment}:${jobId}:${generation}`);
-        },
-      },
-    );
-    const progressReporter = CallbackProgressReporter.from(async () => {});
-    if (!progressReporter) throw new Error("Expected progress reporter");
-
-    await lifecycleHandler.process(
-      {
-        outputDir: "/tmp/output",
-        environment: "preview",
-        inputGeneration: 4,
-      },
-      "job-generation",
-      progressReporter,
-    );
-
-    expect(lifecycle).toEqual([
-      "start:preview:job-generation:4",
-      "build",
-      "finish:preview:job-generation:4",
-    ]);
   });
 
   it("records a cancelled build without emitting completion", async () => {
@@ -282,6 +224,59 @@ describe("SiteBuildJobHandler", () => {
       sentMessages.some((message) => message.type === "site:build:completed"),
     ).toBe(false);
   });
+
+  for (const [label, superseded, completes] of [
+    [
+      "completes a superseded build: the newer build serves its request",
+      true,
+      true,
+    ],
+    [
+      "fails a build cancelled for another reason, so the queue retries it",
+      false,
+      false,
+    ],
+  ] as const) {
+    it(label, async () => {
+      const builder: ISiteBuilder = {
+        build: mock(async () => ({
+          success: false,
+          cancelled: true,
+          ...(superseded && { superseded: true }),
+          outputDir: "/tmp/output",
+          filesGenerated: 0,
+          routesBuilt: 0,
+          errors: ["[build-cancelled] Site build cancelled"],
+        })),
+      };
+      const { sendMessage } = createMockMessageSender();
+      const handler = new SiteBuildJobHandler(
+        createSilentLogger("test"),
+        sendMessage,
+        {
+          siteBuilder: builder,
+          layouts: {},
+          defaultSiteConfig: {
+            represents: "anchor",
+            title: "Test Site",
+            description: "Test Description",
+          },
+          sharedImagesDir: "./dist/images",
+        },
+      );
+      const progressReporter = CallbackProgressReporter.from(async () => {});
+      if (!progressReporter) throw new Error("Expected progress reporter");
+
+      const result = await handler.process(
+        { outputDir: "/tmp/output", environment: "preview" },
+        "job-cancelled",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(completes);
+      expect(result.cancelled).toBe(true);
+    });
+  }
 
   it("records unchanged inputs as skipped instead of successful", async () => {
     const markSuccess = mock(async () => undefined);

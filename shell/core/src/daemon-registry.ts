@@ -13,7 +13,6 @@ import {
   stopDaemonInfo,
 } from "./daemon-operations";
 import { Effect, Exit, Scope } from "@brains/utils/effect";
-import { runEffectPromise } from "./effect-runtime";
 
 type DaemonTransitionKind = "start" | "stop" | "unregister";
 
@@ -30,7 +29,7 @@ interface DaemonTransitionQueue {
  */
 export class DaemonRegistry {
   private daemons: Map<string, DaemonInfo> = new Map();
-  private daemonScopes: Map<string, Scope.CloseableScope> = new Map();
+  private daemonScopes: Map<string, Scope.Closeable> = new Map();
   private daemonTransitions = new Map<string, DaemonTransitionQueue>();
   private logger: Logger;
 
@@ -105,10 +104,10 @@ export class DaemonRegistry {
     );
 
     try {
-      await runEffectPromise(Scope.extend(daemonResource, scope));
+      await Effect.runPromise(Scope.provide(daemonResource, scope));
       this.daemonScopes.set(name, scope);
     } catch (error) {
-      await runEffectPromise(Scope.close(scope, Exit.fail(error)));
+      await Effect.runPromise(Scope.close(scope, Exit.fail(error)));
       throw error;
     }
   }
@@ -132,7 +131,7 @@ export class DaemonRegistry {
     }
 
     this.daemonScopes.delete(name);
-    await runEffectPromise(Scope.close(scope, Exit.void));
+    await Effect.runPromise(Scope.close(scope, Exit.void));
   }
 
   /**

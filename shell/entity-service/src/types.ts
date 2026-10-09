@@ -1200,6 +1200,10 @@ export interface EntityServiceClient extends ICoreEntityService {
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
   ): Promise<boolean>;
+  /** Release a retired rule's entity ownership without deleting its content. */
+  releaseProjectionOwnership(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<void>;
 
   // Durable entity-to-directory export coordination
   listPendingEntityExports(): Promise<EntityExportIntent[]>;

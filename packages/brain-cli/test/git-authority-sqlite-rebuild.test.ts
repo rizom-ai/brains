@@ -157,6 +157,12 @@ async function assertAuthoritativeState(shell: Shell): Promise<void> {
   expect(await entityService.hasPendingEntityExports()).toBe(false);
 }
 
+/**
+ * Two shell boots, each draining its job queue for up to ten seconds, do
+ * not fit bun's five-second default on a loaded runner.
+ */
+const REBUILD_TEST_TIMEOUT_MS = 60_000;
+
 describe("Git-authoritative SQLite rebuild", () => {
   let tempRoot: string | undefined;
   let shell: Shell | undefined;
@@ -167,64 +173,71 @@ describe("Git-authoritative SQLite rebuild", () => {
     if (tempRoot) await rm(tempRoot, { recursive: true, force: true });
   });
 
-  it("rebuilds exact entity state after deleting SQLite without any AI work", async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "git-authority-rebuild-"));
-    const dataDir = join(tempRoot, "content");
-    await Promise.all([
-      mkdir(join(dataDir, "anchor-profile"), { recursive: true }),
-      mkdir(join(dataDir, "brain-character"), { recursive: true }),
-    ]);
-    await Promise.all([
-      writeFile(
-        join(dataDir, "authoritative-one.md"),
-        "---\ntitle: Authoritative One\n---\n\nFirst Git-authoritative note.\n",
-      ),
-      writeFile(
-        join(dataDir, "authoritative-two.md"),
-        "---\ntitle: Authoritative Two\n---\n\nSecond Git-authoritative note.\n",
-      ),
-      writeFile(
-        join(dataDir, "anchor-profile", "anchor-profile.md"),
-        "---\nname: Authoritative Anchor\n---\n",
-      ),
-      writeFile(
-        join(dataDir, "brain-character", "brain-character.md"),
-        [
-          "---",
-          "name: Authoritative Brain",
-          "role: Rebuild verifier",
-          "purpose: Verify Git-authoritative recovery",
-          "values:",
-          "  - durability",
-          "  - hermeticity",
-          "---",
-          "",
-        ].join("\n"),
-      ),
-    ]);
-    await run(["git", "init", "--initial-branch=main"], dataDir);
-    await run(["git", "config", "user.name", "Rebuild Test"], dataDir);
-    await run(["git", "config", "user.email", "rebuild@example.test"], dataDir);
-    await run(["git", "add", "-A"], dataDir);
-    await run(["git", "commit", "-m", "authoritative content"], dataDir);
+  it(
+    "rebuilds exact entity state after deleting SQLite without any AI work",
+    async () => {
+      tempRoot = await mkdtemp(join(tmpdir(), "git-authority-rebuild-"));
+      const dataDir = join(tempRoot, "content");
+      await Promise.all([
+        mkdir(join(dataDir, "anchor-profile"), { recursive: true }),
+        mkdir(join(dataDir, "brain-character"), { recursive: true }),
+      ]);
+      await Promise.all([
+        writeFile(
+          join(dataDir, "authoritative-one.md"),
+          "---\ntitle: Authoritative One\n---\n\nFirst Git-authoritative note.\n",
+        ),
+        writeFile(
+          join(dataDir, "authoritative-two.md"),
+          "---\ntitle: Authoritative Two\n---\n\nSecond Git-authoritative note.\n",
+        ),
+        writeFile(
+          join(dataDir, "anchor-profile", "anchor-profile.md"),
+          "---\nname: Authoritative Anchor\n---\n",
+        ),
+        writeFile(
+          join(dataDir, "brain-character", "brain-character.md"),
+          [
+            "---",
+            "name: Authoritative Brain",
+            "role: Rebuild verifier",
+            "purpose: Verify Git-authoritative recovery",
+            "values:",
+            "  - durability",
+            "  - hermeticity",
+            "---",
+            "",
+          ].join("\n"),
+        ),
+      ]);
+      await run(["git", "init", "--initial-branch=main"], dataDir);
+      await run(["git", "config", "user.name", "Rebuild Test"], dataDir);
+      await run(
+        ["git", "config", "user.email", "rebuild@example.test"],
+        dataDir,
+      );
+      await run(["git", "add", "-A"], dataDir);
+      await run(["git", "commit", "-m", "authoritative content"], dataDir);
 
-    const tracker = new MockLoadTracker();
-    const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
-    await resetDatabases(tempRoot, logger);
-    shell = createShell(tempRoot, dataDir, tracker);
-    await assertAuthoritativeState(shell);
-    await shell.shutdown();
-    shell = undefined;
+      const tracker = new MockLoadTracker();
+      const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
+      await resetDatabases(tempRoot, logger);
+      shell = createShell(tempRoot, dataDir, tracker);
+      await assertAuthoritativeState(shell);
+      await shell.shutdown();
+      shell = undefined;
 
-    await resetDatabases(tempRoot, logger);
-    shell = createShell(tempRoot, dataDir, tracker);
-    await assertAuthoritativeState(shell);
+      await resetDatabases(tempRoot, logger);
+      shell = createShell(tempRoot, dataDir, tracker);
+      await assertAuthoritativeState(shell);
 
-    expect(tracker.snapshot()).toMatchObject({
-      embeddingCalls: 0,
-      objectCalls: 0,
-      textCalls: 0,
-    });
-    expect(await run(["git", "status", "--porcelain"], dataDir)).toBe("");
-  });
+      expect(tracker.snapshot()).toMatchObject({
+        embeddingCalls: 0,
+        objectCalls: 0,
+        textCalls: 0,
+      });
+      expect(await run(["git", "status", "--porcelain"], dataDir)).toBe("");
+    },
+    { timeout: REBUILD_TEST_TIMEOUT_MS },
+  );
 });

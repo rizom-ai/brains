@@ -392,6 +392,7 @@ export function createMockEntityService(
     },
     getEntityTypeConfig: store.typeConfig,
     isProjectionOwnedEntity: async () => false,
+    releaseProjectionOwnership: async (): Promise<void> => {},
     listPendingEntityExports: async () =>
       [...store.exportIntents.values()].sort(
         (left, right) => left.markedAt - right.markedAt,

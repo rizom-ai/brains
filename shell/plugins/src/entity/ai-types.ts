@@ -22,6 +22,7 @@ export interface IEntityAINamespace {
   generate: <T>(
     config: ContentGenerationConfig,
     schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
   ) => Promise<T>;
   generateObject: <T>(
     prompt: string,

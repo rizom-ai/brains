@@ -602,7 +602,7 @@ if (response.status !== 200 || health.status !== "ready") {
 }
 const abandoned = queue?.staleLeaseCount ?? 0;
 if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== abandoned)) {
-  console.error("pre-deploy snapshot: job queue is not idle");
+  console.error("pre-deploy snapshot: job queue is not idle (" + (queue.totals?.pending ?? "?") + " pending, " + (queue.totals?.processing ?? "?") + " processing, " + abandoned + " abandoned); rerun once it drains");
   process.exit(1);
 }
 if (abandoned > 0) {
