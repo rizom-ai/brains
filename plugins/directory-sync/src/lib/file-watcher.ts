@@ -14,6 +14,15 @@ import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 
 const WATCH_SUPPRESSION_MS = 10_000;
+/**
+ * How long a pull's paths stay ignored. A polling watcher reports a large
+ * pull minutes late; matching HEAD, not the clock, decides what is ignored,
+ * so this only bounds the bookkeeping.
+ */
+const PULLED_PATH_RETENTION_MS = 30 * 60_000;
+
+/** The given paths, relative to the sync path, that match HEAD. */
+export type MatchesHead = (paths: string[]) => Promise<string[]>;
 
 function isImageInImageDir(path: string, syncPath: string): boolean {
   const relativePath = toSyncRelativePath(syncPath, path);
@@ -52,6 +61,8 @@ export class FileWatcher {
   private watchCallback?: ((event: string, path: string) => void) | undefined;
   private pendingChanges = new Map<string, string>();
   private suppressedPaths = new Map<string, number>();
+  private pulledPaths = new Map<string, number>();
+  private matchesHead: MatchesHead | undefined;
   private readonly delayScope: Scope.Closeable;
   private readonly delayedBatches: FiberMap.FiberMap<string, void, never>;
   private readonly clock: Clock.Clock | undefined;
@@ -141,6 +152,7 @@ export class FileWatcher {
     const closeDelay = this.closeDelayScope();
     this.pendingChanges.clear();
     this.suppressedPaths.clear();
+    this.pulledPaths.clear();
 
     const cleanup = [
       closeDelay,
@@ -187,6 +199,43 @@ export class FileWatcher {
     }
   }
 
+  /**
+   * Ignore what a pull wrote or removed. Git reconciliation imports a pull's
+   * changes from the commits themselves, so the watcher seeing the same files
+   * is an echo for as long as each path still matches HEAD; an edit made since
+   * differs from HEAD and is delivered. Unlike suppressPaths, every event for
+   * a path is checked, however many and however late.
+   */
+  ignorePulledPaths(paths: string[], matchesHead: MatchesHead): void {
+    const expiresAt = Date.now() + PULLED_PATH_RETENTION_MS;
+    for (const path of paths) {
+      this.pulledPaths.set(toSyncRelativePath(this.syncPath, path), expiresAt);
+    }
+    this.matchesHead = matchesHead;
+  }
+
+  /** Drop the changes that are a pull's own, as HEAD shows them now. */
+  private async withoutPulledEchoes(
+    changes: Map<string, string>,
+  ): Promise<Map<string, string>> {
+    const now = Date.now();
+    for (const [path, expiresAt] of this.pulledPaths) {
+      if (expiresAt <= now) this.pulledPaths.delete(path);
+    }
+    const candidates = [...changes.keys()].filter((path) =>
+      this.pulledPaths.has(path),
+    );
+    if (candidates.length === 0 || !this.matchesHead) return changes;
+    try {
+      const echoes = new Set(await this.matchesHead(candidates));
+      return new Map([...changes].filter(([path]) => !echoes.has(path)));
+    } catch (error) {
+      // Delivering an echo costs a redundant job; dropping an edit loses it.
+      this.logger.warn("Could not compare pulled paths with HEAD", { error });
+      return changes;
+    }
+  }
+
   private async handleFileChange(event: string, path: string): Promise<void> {
     if (this.stopping || !shouldProcessPath(path, this.syncPath)) {
       return;
@@ -220,8 +269,10 @@ export class FileWatcher {
       return;
     }
 
-    const changes = new Map(this.pendingChanges);
+    const pending = new Map(this.pendingChanges);
     this.pendingChanges.clear();
+    const changes = await this.withoutPulledEchoes(pending);
+    if (changes.size === 0) return;
 
     this.logger.debug("Processing batched file changes", {
       changeCount: changes.size,
