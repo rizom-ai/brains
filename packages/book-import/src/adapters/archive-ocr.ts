@@ -807,6 +807,8 @@ function middleOf(page: Page): number {
  */
 const NUMBERED_SUBSECTION =
   /^(\d{1,2}|[IVX]{1,4}|§\.?\s*\d{1,2})\.\s+(\p{Lu}.*)$/u;
+/** Space above a section's heading, against the page's line height: more than lines leave. */
+const SECTION_SPACE = 0.5;
 /** A part's letter and title set on one line: A. Die Physiokraten. */
 const LETTERED_PART = /^([A-H])\.\s+(\p{Lu}.*)$/u;
 /** A line that opens with a label of its own (a. Der „Geist“ und die „Masse“), or a quotation, a motto below the title. */
@@ -1023,7 +1025,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       .at(-1);
     // The page's head, its running head already read off, sets it apart too.
     const spacedAbove =
-      (textAbove === undefined || line.y - textAbove.bottom > bodyHeight) &&
+      (textAbove === undefined ||
+        line.y - textAbove.bottom > bodyHeight * SECTION_SPACE) &&
       endsAsTitle;
     if (
       subsection?.[1] &&
