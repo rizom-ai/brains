@@ -66,11 +66,13 @@ describe("verbatim update MCP eval contract", () => {
     }
 
     expect(testCase.turns[1]?.confirmPendingAction).toBe(false);
+    // Read-backs check the stored record, whichever part the model reads.
     expect(
-      testCase.turns[2]?.successCriteria?.expectedTools?.[0]?.resultContains?.[
-        "entity.content"
-      ],
-    ).toBe(stored);
+      testCase.turns[2]?.successCriteria?.expectedTools?.[0]?.resultContains,
+    ).toEqual({
+      "entity.contentHash": computeContentHash(stored),
+      "entity.visibility": "restricted",
+    });
     expect(testCase.turns[4]?.confirmPendingAction).toBe(true);
     expect(
       testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
@@ -79,9 +81,10 @@ describe("verbatim update MCP eval contract", () => {
     const criteria = testCase.turns[5]?.successCriteria;
     if (!criteria) throw new Error("Missing saved content checks");
     const expected = `${frontmatter}${content}`;
-    expect(
-      criteria.expectedTools?.[0]?.resultContains?.["entity.content"],
-    ).toBe(expected);
+    expect(criteria.expectedTools?.[0]?.resultContains).toEqual({
+      "entity.contentHash": computeContentHash(expected),
+      "entity.visibility": "restricted",
+    });
     // Dropped frontmatter, an unapplied update, or regenerated backslashes
     // must each fail the saved-state check.
     for (const candidate of [
@@ -95,7 +98,10 @@ describe("verbatim update MCP eval contract", () => {
           toolName: "system_get",
           args: { entityType: "note", id },
           result: {
-            entity: { content: candidate, visibility: "restricted" },
+            entity: {
+              contentHash: computeContentHash(candidate),
+              visibility: "restricted",
+            },
           },
         },
       ]);
