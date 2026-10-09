@@ -1599,3 +1599,85 @@ theorienberden01marxuoft:
     from: Der Begriff der produktiven Arbeit.!
     to: Der Begriff der produktiven Arbeit.
     by: scan
+p1theorienberden02marxuoft:
+  - page: 1
+    from: I. Mehrwert und profit.
+    to: I. Mehrwert und Profit.
+    by: scan
+  - page: 1
+    from: 1. Der Aufbau des Kicardoschen Werkes.
+    to: 1. Der Aufbau des Ricardoschen Werkes.
+    by: scan
+  - page: 9
+    from: 2. Ricardos cheorie des Profits.
+    to: 2. Ricardos Theorie des Profits.
+    by: scan
+  - page: 97
+    from: 3. Kicardos Darstellung des Mehrwerts.
+    to: 3. Ricardos Darstellung des Mehrwerts.
+    by: scan
+  - page: 167
+    from: 1. RKodbertus.
+    to: 1. Rodbertus.
+    by: scan
+  - page: 304
+    from: z. bemerkungen über dlie Geschichte der Entdeckung des
+    to: 2. Bemerkungen über die Geschichte der Entdeckung des sogenannten Ricardoschen Gesetzes.
+    by: scan
+  - page: 304
+    from: logenannten KRicardoschen Gesetzes.
+    to: ""
+    by: scan
+p2theorienberd02marx:
+  - page: 1
+    from: II. Die 6rundrente.
+    to: II. Die Grundrente.
+    by: scan
+  - page: 1
+    from: 3. Die Kicardosche Kententheorie.
+    to: 3. Die Ricardosche Rententheorie.
+    by: scan
+  - page: 100
+    from: sseines Produkts!]
+    to: "[seines Produkts]"
+    by: scan
+  - page: 218
+    from: Einfluß des Wertwechsels auf die organische
+    to: Einfluß des Wertwechsels auf die organische Zusammensetzung des Kapitals.
+    by: scan
+  - page: 218
+    from: Zusammensetzung des Kapitals.
+    to: ""
+    by: scan
+  - page: 233
+    from: III. ARkumulation von Kapital und Krisen.
+    to: III. Akkumulation von Kapital und Krisen.
+    by: scan
+  - page: 243
+    from: z. verwandlung von Revenue in Rapital.
+    to: 2. Verwandlung von Revenue in Kapital.
+    by: scan
+  - page: 255
+    from: 3. Verwandlung des akkumulierten Mehrwerts in variables
+    to: 3. Verwandlung des akkumulierten Mehrwerts in variables und konstantes Kapital.
+    by: scan
+  - page: 255
+    from: und konstantes Kapital.
+    to: ""
+    by: scan
+  - page: 262
+    from: 4. Die KRrisen.
+    to: 4. Die Krisen.
+    by: scan
+  - page: 319
+    from: 5. AkkUmulation und Ronsum.
+    to: 5. Akkumulation und Konsum.
+    by: scan
+  - page: 333
+    from: 1. Brutto- und nettoeinkommen.
+    to: 1. Brutto- und Nettoeinkommen.
+    by: scan
+  - page: 338
+    from: 2. Die Maͤschinerie.
+    to: 2. Die Maschinerie.
+    by: scan

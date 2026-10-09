@@ -484,3 +484,37 @@ books:
     year: 1905
     published: false
     kind: work
+  - source: archive-ocr
+    item: p1theorienberden02marxuoft
+    citation: Theorien II.1
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 344
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-2-1
+    title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
+    shortTitle: Theorien über den Mehrwert II.1
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Zweiter Band, Erster Teil, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: p2theorienberd02marx
+    citation: Theorien II.2
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 382
+    # The second part goes on with the first's chapter II.
+    firstChapter: 2
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-2-2
+    title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
+    shortTitle: Theorien über den Mehrwert II.2
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Zweiter Band, Zweiter Teil, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
