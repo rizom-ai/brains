@@ -68,6 +68,8 @@ const LINE_SELECTOR = ".ocr_line, .ocr_header, .ocr_caption, .ocr_textfloat";
 
 /** Footnotes are set smaller than the text, at most this share of its size. */
 const NOTE_SIZE = 0.8;
+/** The notes below a rule are set smaller than the text, at most this share. */
+const FOOT_TEXT_SIZE = 0.9;
 /** Running heads sit in the top tenth of the page, */
 const HEAD_ZONE = 0.1;
 /** among its first lines, below at most a scrap or two of the scan's noise. */
@@ -798,11 +800,15 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   // The footnotes open the page's foot: at the rule above them, or at a small
   // line that starts with a note marker. Everything below is notes; measured
   // sizes alone mistake a body line low on a curved page for one.
+  // A rule above a line set as large as the text ends a section instead.
   const footAt = headless.findIndex(
-    (line) =>
+    (line, index) =>
       line.y > page.height / 2 &&
-      (!/[\p{L}\d]/u.test(line.text) ||
-        (line.size < bodySize * NOTE_SIZE && NOTE_START.test(line.text))),
+      (!/[\p{L}\d]/u.test(line.text)
+        ? (headless.slice(index + 1).find((below) => /\p{L}/u.test(below.text))
+            ?.size ?? 0) <
+          bodySize * FOOT_TEXT_SIZE
+        : line.size < bodySize * NOTE_SIZE && NOTE_START.test(line.text)),
   );
   const noteFrom = footAt < 0 ? headless.length : footAt;
   const textLines = headless.slice(0, noteFrom);
@@ -858,11 +864,21 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         line.size > volume.textSize * HEADING_SIZE);
     // A title set in display type, larger than the text, need not be in
     // capitals; Fraktur's display type has none to read.
-    // Two text lines the OCR read as one are as large, but fill the column.
+    // Two text lines the OCR read as one are as large, but fill the column
+    // between the lines around them; a title as wide stands apart from them.
+    const before = headless[index - 1];
+    const after = headless[index + 1];
+    const apart =
+      (before === undefined || line.y - before.bottom > bodyHeight) &&
+      (after === undefined || after.y - line.bottom > bodyHeight);
+    // A title opens with a capital; a dedication's or a list's line does not.
     const display =
-      line.size > volume.textSize * DISPLAY_SIZE &&
-      line.bottom - line.y > bodyHeight * DISPLAY_HEIGHT &&
-      line.width < volume.column * HEADING_WIDTH;
+      /^\p{Lu}/u.test(line.text) &&
+      (apart
+        ? line.size > volume.textSize * HEADING_SIZE
+        : line.size > volume.textSize * DISPLAY_SIZE &&
+          line.bottom - line.y > bodyHeight * DISPLAY_HEIGHT &&
+          line.width < volume.column * HEADING_WIDTH);
     const candidate: HeadingLine | null =
       read ??
       (centred && (titles || display)

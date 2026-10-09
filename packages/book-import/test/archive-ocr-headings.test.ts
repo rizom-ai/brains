@@ -37,6 +37,19 @@ describe("headingLineOf", () => {
   });
 });
 
+describe("headingLineOf on a chapter named by its ordinal", () => {
+  it("reads an ordinal chapter, however long the ordinal, with its full stop", () => {
+    expect(headingLineOf("Erstes Kapitel.", 50)).toEqual({
+      kind: "chapter",
+      numeral: "Erstes",
+    });
+    expect(headingLineOf("Siebentes Kapitel.", 50)).toEqual({
+      kind: "chapter",
+      numeral: "Siebentes",
+    });
+  });
+});
+
 describe("headingLineOf on a section's name", () => {
   it("reads a preface's or a closing section's name as a heading, however set", () => {
     expect(headingLineOf("Vorwort.", 50)).toEqual({

@@ -675,4 +675,50 @@ describe("parseArchiveOcrWork, titles set in display type", () => {
       "Lassalle",
     );
   });
+
+  it("reads a title as wide as the text as a title where space sets it apart", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 43,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "Der Kommunismus des Rheinischen Beobachters.",
+    );
+    expect(units.at(-1)?.paragraphs[0]).toStartWith("In Nr. 70 dieses Blattes");
+  });
+
+  it("reads a rule in the page's lower half as a section's end where the text after it is not set smaller", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 44,
+      },
+    );
+
+    expect(units.at(-1)?.title).toBe(
+      "I. Weltgang und Verklärung der kritischen Kritik, oder die kritische Kritik als Rudolf, Fürst von Gerolstein.",
+    );
+    expect(units.at(-1)?.paragraphs).toEqual([
+      "Rudolf, Fürst von Gerolstein, büßt in seinem Weltgang ein doppeltes Vergehen, sein persönliches Vergehen und das der Kritik.",
+    ]);
+  });
 });

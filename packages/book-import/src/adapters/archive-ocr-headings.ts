@@ -27,8 +27,8 @@ export interface Heading {
 /** A part's name, its word for part however the OCR read it ("Tetl"). */
 const PART =
   /^(erster|zweiter|dritter|vierter|fünfter|[IVX]+\.?)\s+t\S{2,3}$/iu;
-/** A lecture's number, however the OCR read it. */
-const LECTURE = /^\S{1,8}\s*(?:vorlesung|kapitel)$/iu;
+/** A lecture's or chapter's number, however the OCR read it: Siebentes Kapitel. */
+const LECTURE = /^\S{1,9}\s*(?:vorlesung|kapitel)\.?$/iu;
 /** A roman numeral, with the OCR's usual misreadings of its strokes. */
 const NUMERAL = /^[IVXLHUlıi18Ä|vxTY3]{1,6}[.,]?$/u;
 const LETTER = /^[A-H]\.?$/u;
@@ -65,7 +65,7 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
   if (LECTURE.test(text)) {
     return {
       kind: "chapter",
-      numeral: text.replace(/\s*(?:vorlesung|kapitel)$/iu, ""),
+      numeral: text.replace(/\s*(?:vorlesung|kapitel)\.?$/iu, ""),
     };
   }
   // A lone letter that no numeral misreads as is a subsection's.
