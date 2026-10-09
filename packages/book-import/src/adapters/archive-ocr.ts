@@ -604,6 +604,8 @@ function normalised(text: string): string {
       // A dot the OCR set before a word inside the line is a speck.
       .replace(/(?<=\s)\.(?=\p{Ll})/gu, "")
       .replace(OCR_NOTE_MARKER, "¹)")
+      // Some scans' OCR prints a line's closing hyphen as ¬.
+      .replace(/(?<=\p{L})¬$/u, "-")
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
   );

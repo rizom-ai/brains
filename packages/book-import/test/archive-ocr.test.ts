@@ -1123,4 +1123,24 @@ describe("parseArchiveOcrWork, notes marked by asterisks", () => {
     expect(units.at(-1)?.title).toBe("§ 4. Konkurrenz und Monopol.");
     expect(units.at(-1)?.paragraphs[0]).toStartWith("„Die Konkurrenz gehört");
   });
+
+  it("joins a word broken at a line's end the OCR marked with ¬", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-star-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_14861084_000",
+        title: "Das Elend der Philosophie",
+        citation: "Elend",
+        firstPage: 70,
+        lastPage: 75,
+      },
+    );
+
+    expect(units.at(-1)?.paragraphs.join(" ")).toContain(
+      "nach Herrn Proudhon der Werth",
+    );
+  });
 });
