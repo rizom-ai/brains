@@ -55,21 +55,19 @@ export class AnalyticsPlugin extends ServicePlugin<
       "traffic-overview",
       createTrafficOverviewInsight(this.cloudflareClient),
     );
-  }
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const siteTag = this.config.cloudflare?.siteTag;
-    if (!siteTag) return;
-
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.headScriptRegister,
-      payload: {
-        pluginId: this.id,
-        script: generateCloudflareBeaconScript(siteTag),
-      },
-    });
+    // Site builds run in the worker and ask for head scripts as they render,
+    // so the beacon answers there; that process never runs the ready phase.
+    // Only with a beacon token: the beacon carries the site token, not the
+    // site tag, and a zone with automatic setup gets it from Cloudflare.
+    const beaconToken = this.config.cloudflare?.beaconToken;
+    if (beaconToken) {
+      const script = generateCloudflareBeaconScript(beaconToken);
+      context.messaging.subscribeExecution(
+        SITE_BUILDER_CHANNELS.headScripts,
+        async () => ({ success: true, data: script }),
+      );
+    }
   }
 
   protected override async getTools(): Promise<Tool[]> {

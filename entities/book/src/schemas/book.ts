@@ -16,18 +16,9 @@ export const bookKindSchema: z.ZodEnum<{
   excerpt: "excerpt";
 }> = z.enum(["work", "nachlass", "letters", "excerpt"]);
 
-/**
- * Every entry carries its title, its book, its reading order within the book,
- * citation unit, page and source. The title entry (order 0) also carries the
- * book's details.
- */
+/** A book: the work as printed, with its edition and its measure. */
 export const bookFrontmatterSchema: z.ZodObject<{
   title: z.ZodString;
-  book: z.ZodString;
-  order: z.ZodNumber;
-  section: NullableStringSchema;
-  page: NullableStringSchema;
-  part: NullableStringSchema;
   source: z.ZodURL;
   author: NullableStringSchema;
   year: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
@@ -41,12 +32,6 @@ export const bookFrontmatterSchema: z.ZodObject<{
   shortTitle: NullableStringSchema;
 }> = z.object({
   title: z.string(),
-  book: z.string().min(1),
-  order: z.number().int().min(0),
-  section: z.string().nullable().default(null),
-  page: z.string().nullable().default(null),
-  /** The top-level part of the book a section belongs to. */
-  part: z.string().nullable().default(null),
   source: z.url(),
   author: z.string().nullable().default(null),
   year: z.number().int().nullable().default(null),
@@ -67,22 +52,8 @@ export type BookFrontmatter = z.output<typeof bookFrontmatterSchema>;
 
 export const bookMetadataSchema: z.ZodObject<{
   title: z.ZodString;
-  section: z.ZodNullable<z.ZodString>;
-  book: z.ZodString;
-  order: z.ZodNumber;
-  slug: z.ZodString;
-  pageTitle: z.ZodString;
-  citable: z.ZodBoolean;
 }> = z.object({
   title: z.string(),
-  section: z.string().nullable(),
-  book: z.string(),
-  order: z.number().int(),
-  slug: z.string(),
-  /** What a page and a search result call this entry: its siglum, or its title. */
-  pageTitle: z.string(),
-  /** A title entry is the book's contents, no source in itself: answers cite sections. */
-  citable: z.boolean(),
 });
 
 export type BookMetadata = z.output<typeof bookMetadataSchema>;

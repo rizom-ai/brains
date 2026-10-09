@@ -1,26 +1,39 @@
 import { createId } from "@brains/utils/id";
-import { BROKER_PROTOCOL_VERSION, FrameDecoder, encodeFrame } from "./protocol";
-import type { BrokerMessage, ResultMessage, StatusMessage } from "./protocol";
-import { SocketWriter } from "./socket-writer";
+import { deferred } from "@brains/utils/deferred";
+import {
+  Context,
+  Effect,
+  Exit,
+  Layer,
+  Schedule,
+  Scope,
+} from "@brains/utils/effect";
+import {
+  RpcClient,
+  RpcClientError,
+  RpcSerialization,
+  Stream,
+} from "@brains/utils/effect/rpc";
+import type {
+  BrokerRpc,
+  BrokerRpcEvent,
+  BrokerRpcStatus,
+} from "./rpc-contract";
+import { BrokerRpcs } from "./rpc-contract";
+import { brokerRpcClientSocket } from "./rpc-client-socket";
+import { makeBrokerRpcSerialization } from "./rpc-serialization";
+import { BROKER_PROTOCOL_VERSION } from "./protocol";
+import type { StatusMessage } from "./protocol";
 import { parseGitOperationResult } from "./operations";
 import type { GitOperation, GitOperationResult } from "./operations";
 
-/**
- * A connection to the Git broker.
- *
- * Deliberately has no timeout of its own. A caller that gave up on a slow
- * operation would be guessing about a mutation the broker still owns, and
- * acting on that guess is what turns a lost completion into a duplicate
- * commit. Waiting is correct; detecting a stalled owner is supervision's job.
- */
-
+/** Giving up observation never cancels broker-owned Git work. */
 export class BrokerUnavailableError extends Error {
   constructor(socketPath: string, cause: string) {
     super(`Git broker at ${socketPath} is unavailable: ${cause}`);
     this.name = "BrokerUnavailableError";
   }
 }
-
 export class BrokerOperationError extends Error {
   constructor(message: string) {
     super(message);
@@ -28,61 +41,21 @@ export class BrokerOperationError extends Error {
   }
 }
 
-type Reply = StatusMessage | ResultMessage;
-
-interface Pending {
-  resolve(message: Reply): void;
-  reject(error: unknown): void;
-  onProgress?: (() => void) | undefined;
-}
-
+type Client = RpcClient.RpcClient<BrokerRpc, RpcClientError.RpcClientError>;
 interface InFlightRequest {
   checkoutPath: string;
   operationIdentity: string;
-  reply: Promise<Reply>;
+  reply: Promise<unknown>;
 }
 
-function operationIdentity(operation: GitOperation): string {
-  return JSON.stringify(operation);
-}
-
-/**
- * A caller that gives up stops waiting; the broker does not stop working.
- *
- * Cancelling here is a statement about this process — a shutting-down job has
- * no one left to hand a result to — not about the operation. The broker keeps
- * its turn and carries the mutation to a terminal result, which is what keeps
- * an abandoned request from becoming an unconfirmed unlock.
- */
-function abandonOnAbort(
-  signal: AbortSignal,
-  pending: Map<string, Pending>,
-  requestId: string,
-  reject: (error: unknown) => void,
-): () => void {
-  const onAbort = (): void => {
-    if (!pending.delete(requestId)) return;
-    reject(signal.reason);
-  };
-  signal.addEventListener("abort", onAbort, { once: true });
-  return (): void => signal.removeEventListener("abort", onAbort);
-}
-
-function expectStatus(reply: Reply): StatusMessage {
-  if (reply.type !== "status") {
-    throw new BrokerOperationError("The broker answered with no status");
-  }
-  return reply;
-}
-
+/** Promise/AbortSignal facade; the connection scope owns only RPC observation. */
 export class BrokerConnection {
   readonly #socketPath: string;
-  readonly #pending = new Map<string, Pending>();
+  readonly #scope = Effect.runSync(Scope.make());
+  readonly #lifetime = new AbortController();
   readonly #unavailableListeners = new Set<() => void>();
-  /** In-flight replies by request id, bound to the exact work they represent. */
   readonly #waiters = new Map<string, InFlightRequest>();
-  #writer: SocketWriter | null = null;
-  #socket: { end(): void } | null = null;
+  #client: Client | undefined;
   #closed = false;
 
   private constructor(socketPath: string) {
@@ -91,30 +64,60 @@ export class BrokerConnection {
 
   static async connect(socketPath: string): Promise<BrokerConnection> {
     const connection = new BrokerConnection(socketPath);
-    const decoder = new FrameDecoder();
-
-    const socket = await Bun.connect({
-      unix: socketPath,
-      socket: {
-        data: (_socket, chunk): void => {
-          decoder.push(chunk).forEach((message) => {
-            connection.#receive(message);
-          });
-        },
-        drain: (): void => connection.#writer?.flush(),
-        close: (): void => connection.#abandon("broker closed the connection"),
-        error: (_socket, error): void => connection.#abandon(String(error)),
-      },
-    }).catch((error: unknown) => {
-      throw new BrokerUnavailableError(socketPath, String(error));
-    });
-
-    connection.#socket = socket;
-    connection.#writer = new SocketWriter(socket);
-    return connection;
+    const connected = deferred();
+    const protocol = Layer.effect(
+      RpcClient.Protocol,
+      RpcClient.makeProtocolSocket({ retryPolicy: Schedule.recurs(0) }),
+    ).pipe(
+      Layer.provide(brokerRpcClientSocket(socketPath)),
+      Layer.provide(
+        Layer.succeed(
+          RpcSerialization.RpcSerialization,
+          makeBrokerRpcSerialization(),
+        ),
+      ),
+    );
+    try {
+      connection.#client = await Effect.runPromise(
+        Scope.provide(
+          Effect.gen(function* () {
+            // Build in the lifetime scope: providing only around make() would
+            // close its transport as soon as the constructed client is returned.
+            const services = yield* Layer.build(protocol).pipe(
+              Effect.provideService(RpcClient.ConnectionHooks, {
+                onConnect: Effect.sync(() => connected.resolve()),
+                onDisconnect: Effect.sync(() => {
+                  const error = new BrokerUnavailableError(
+                    socketPath,
+                    "broker closed the connection",
+                  );
+                  connected.reject(error);
+                  connection.#abandon(error);
+                }),
+              }),
+            );
+            return yield* RpcClient.make(BrokerRpcs, {
+              disableTracing: true,
+            }).pipe(
+              Effect.provideService(
+                RpcClient.Protocol,
+                Context.get(services, RpcClient.Protocol),
+              ),
+            );
+          }),
+          connection.#scope,
+        ),
+      );
+      await connected.promise;
+      return connection;
+    } catch (error) {
+      connection.close();
+      throw error instanceof BrokerUnavailableError
+        ? error
+        : new BrokerUnavailableError(socketPath, String(error));
+    }
   }
 
-  /** Observe an unexpected owner/socket loss; explicit client close is silent. */
   onUnavailable(listener: () => void): () => void {
     this.#unavailableListeners.add(listener);
     return (): void => {
@@ -124,64 +127,88 @@ export class BrokerConnection {
 
   close(): void {
     if (this.#closed) return;
-    // Closing is this process letting go, not the operation ending. Whoever is
-    // still waiting learns that now; hanging them would be the one outcome a
-    // shutdown must not produce.
-    const waiting = [...this.#pending.values()];
-    this.#pending.clear();
     this.#unavailableListeners.clear();
-    this.#closed = true;
-    this.#socket?.end();
-    waiting.forEach((pending) => {
-      pending.reject(
-        new BrokerUnavailableError(
-          this.#socketPath,
-          "client closed the connection",
-        ),
-      );
-    });
+    this.#abandon(
+      new BrokerUnavailableError(
+        this.#socketPath,
+        "client closed the connection",
+      ),
+    );
   }
 
-  #receive(message: BrokerMessage): void {
-    if (message.type === "progress") {
-      this.#pending.get(message.requestId)?.onProgress?.();
-      return;
-    }
-    if (message.type !== "status" && message.type !== "result") return;
-
-    const pending = this.#pending.get(message.requestId);
-    if (!pending) return;
-    this.#pending.delete(message.requestId);
-
-    if (message.type === "status") {
-      pending.resolve(message);
-      return;
-    }
-    if (message.outcome === "error") {
-      pending.reject(new BrokerOperationError(message.error ?? "unknown"));
-      return;
-    }
-    pending.resolve(message);
-  }
-
-  /** Every in-flight caller learns the broker is gone rather than hanging. */
-  #abandon(reason: string): void {
+  #abandon(error: BrokerUnavailableError): void {
     if (this.#closed) return;
     this.#closed = true;
-    const waiting = [...this.#pending.values()];
-    this.#pending.clear();
-    waiting.forEach((pending) => {
-      pending.reject(new BrokerUnavailableError(this.#socketPath, reason));
-    });
-    this.#unavailableListeners.forEach((listener) => listener());
+    this.#lifetime.abort(error);
+    const listeners = [...this.#unavailableListeners];
     this.#unavailableListeners.clear();
+    // Public close is synchronous. This fiber owns only finalizing this scope,
+    // independently of an onDisconnect callback running inside the same scope.
+    Effect.runFork(Scope.close(this.#scope, Exit.void));
+    listeners.forEach((listener) => listener());
   }
 
-  #send(message: BrokerMessage): void {
-    if (this.#closed) {
+  #rpc(): Client {
+    if (this.#closed || !this.#client)
       throw new BrokerUnavailableError(this.#socketPath, "connection closed");
+    return this.#client;
+  }
+
+  async #run<A, E>(
+    effect: Effect.Effect<A, E>,
+    signal?: AbortSignal,
+  ): Promise<A> {
+    const observation = signal
+      ? AbortSignal.any([signal, this.#lifetime.signal])
+      : this.#lifetime.signal;
+    try {
+      return await Effect.runPromise(
+        effect.pipe(
+          Effect.onInterrupt(() =>
+            Effect.sync(() => {
+              if (!observation.aborted)
+                this.#abandon(
+                  new BrokerUnavailableError(
+                    this.#socketPath,
+                    "broker interrupted RPC observation",
+                  ),
+                );
+            }),
+          ),
+        ),
+        { signal: observation },
+      );
+    } catch (error) {
+      if (observation.aborted) throw observation.reason;
+      if (error instanceof RpcClientError.RpcClientError) {
+        const unavailable = new BrokerUnavailableError(
+          this.#socketPath,
+          String(error),
+        );
+        this.#abandon(unavailable);
+        throw unavailable;
+      }
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "_tag" in error &&
+        error._tag === "BrokerError" &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        throw new BrokerOperationError(error.message);
+      }
+      throw error;
     }
-    this.#writer?.send(encodeFrame(message));
+  }
+
+  #statusFacade(status: BrokerRpcStatus): StatusMessage {
+    return {
+      ...status,
+      type: "status",
+      version: BROKER_PROTOCOL_VERSION,
+      requestId: `req_${createId(12)}`,
+    };
   }
 
   async registerCheckout(declaration: {
@@ -189,48 +216,17 @@ export class BrokerConnection {
     branch: string;
     remoteFingerprint: string;
   }): Promise<StatusMessage> {
-    const requestId = `req_${createId(12)}`;
-    const settled = Promise.withResolvers<Reply>();
-    this.#pending.set(requestId, settled);
-    this.#send({
-      type: "register-checkout",
-      version: BROKER_PROTOCOL_VERSION,
-      requestId,
-      ...declaration,
-    });
-    return expectStatus(await settled.promise);
+    return this.#statusFacade(
+      await this.#run(this.#rpc().RegisterCheckout(declaration)),
+    );
   }
-
-  /**
-   * Tell the owner this role has reconciled what its predecessor left.
-   *
-   * Only a role that can see the queue and the durable checkpoint can know
-   * that, which is why the broker waits to be told rather than deciding.
-   */
   async openAdmission(): Promise<StatusMessage> {
-    const requestId = `req_${createId(12)}`;
-    const settled = Promise.withResolvers<Reply>();
-    this.#pending.set(requestId, settled);
-    this.#send({
-      type: "open-admission",
-      version: BROKER_PROTOCOL_VERSION,
-      requestId,
-    });
-    return expectStatus(await settled.promise);
+    return this.#statusFacade(await this.#run(this.#rpc().OpenAdmission({})));
   }
-
   async status(): Promise<StatusMessage> {
-    const requestId = `req_${createId(12)}`;
-    const settled = Promise.withResolvers<Reply>();
-    this.#pending.set(requestId, settled);
-    this.#send({ type: "query", version: BROKER_PROTOCOL_VERSION, requestId });
-    return expectStatus(await settled.promise);
+    return this.#statusFacade(await this.#run(this.#rpc().QueryStatus({})));
   }
 
-  /**
-   * Run an operation under a caller-chosen id, so a lost reply can be asked
-   * for again without the work being done twice.
-   */
   executeWithId<TOperation extends GitOperation>(
     requestId: string,
     checkoutPath: string,
@@ -269,70 +265,65 @@ export class BrokerConnection {
     },
   ): Promise<GitOperationResult<TOperation["name"]>> {
     runOptions.signal?.throwIfAborted();
-    // One waiter per id. Keying pending requests by id means a second call
-    // with the same id would otherwise replace the first, stranding whoever
-    // was already waiting on an answer that never arrives.
-    const inFlight = this.#waiters.get(requestId);
-    if (inFlight) {
+    const identity = JSON.stringify(operation);
+    const existing = this.#waiters.get(requestId);
+    if (existing) {
       if (
-        inFlight.checkoutPath !== checkoutPath ||
-        inFlight.operationIdentity !== operationIdentity(operation)
+        existing.checkoutPath !== checkoutPath ||
+        existing.operationIdentity !== identity
       ) {
         throw new BrokerOperationError(
           `Request ${requestId} is already used for different Git work`,
         );
       }
-      const reply = await inFlight.reply;
-      if (reply.type !== "result") {
-        throw new BrokerOperationError(
-          "The broker answered an operation with a status frame",
-        );
-      }
       return parseGitOperationResult<TOperation["name"]>(
         operation.name,
-        reply.value,
+        await existing.reply,
       );
     }
-    const settled = Promise.withResolvers<Reply>();
+    const client = this.#rpc();
+    const completion = deferred<unknown>();
     this.#waiters.set(requestId, {
       checkoutPath,
-      operationIdentity: operationIdentity(operation),
-      reply: settled.promise,
+      operationIdentity: identity,
+      reply: completion.promise,
     });
-    this.#pending.set(requestId, {
-      ...settled,
-      ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),
-    });
-    const stopWatchingAbort = runOptions.signal
-      ? abandonOnAbort(
-          runOptions.signal,
-          this.#pending,
-          requestId,
-          settled.reject,
-        )
-      : (): void => {};
-
+    let terminal: Extract<BrokerRpcEvent, { _tag: "Result" }> | undefined;
+    const observe = Stream.runForEach(
+      client
+        .ExecuteOperation({
+          operationId: requestId,
+          checkoutPath,
+          operation,
+        })
+        .pipe(Stream.takeUntil((event) => event._tag === "Result")),
+      (event) =>
+        Effect.sync(() => {
+          if (terminal)
+            throw new BrokerOperationError(
+              "Git RPC sent events after a terminal result",
+            );
+          if (event._tag === "Progress") runOptions.onProgress?.();
+          else terminal = event;
+        }),
+    );
+    void this.#run(observe, runOptions.signal)
+      .then(() => {
+        if (!terminal)
+          throw new BrokerOperationError(
+            "Git RPC ended without a terminal result",
+          );
+        if (terminal.outcome === "error")
+          throw new BrokerOperationError(terminal.error ?? "unknown");
+        return terminal.value;
+      })
+      .then(completion.resolve, completion.reject);
     try {
-      this.#send({
-        type: "execute-operation",
-        version: BROKER_PROTOCOL_VERSION,
-        requestId,
-        checkoutPath,
-        operation,
-      });
-
-      const reply = await settled.promise;
-      if (reply.type !== "result") {
-        throw new BrokerOperationError(
-          "The broker answered an operation with a status frame",
-        );
-      }
       return parseGitOperationResult<TOperation["name"]>(
         operation.name,
-        reply.value,
+        await completion.promise,
       );
     } finally {
-      stopWatchingAbort();
       this.#waiters.delete(requestId);
     }
   }

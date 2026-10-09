@@ -5,6 +5,7 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
+  summaryBodySchema,
   summarySchema,
   summaryMetadataSchema,
   type SummaryBody,
@@ -30,7 +31,18 @@ export class SummaryAdapter extends BaseEntityAdapter<
     });
   }
 
+  /** Markdown body ↔ summary entries; a write is validated like a read. */
+  public readonly bodyCodec: z.ZodCodec<z.ZodString, typeof summaryBodySchema> =
+    z.codec(z.string(), summaryBodySchema, {
+      decode: (body) => ({ entries: this.readEntries(body) }),
+      encode: ({ entries }) => this.renderEntries(entries),
+    });
+
   public createContentBody(entries: SummaryEntry[]): string {
+    return z.encode(this.bodyCodec, { entries });
+  }
+
+  private renderEntries(entries: SummaryEntry[]): string {
     const lines: string[] = ["# Conversation Summary", ""];
 
     for (const entry of entries) {
@@ -61,11 +73,15 @@ export class SummaryAdapter extends BaseEntityAdapter<
     const body = content.startsWith("---")
       ? this.extractBody(content)
       : content;
-    const sections = body.split(/^##\s+/m).slice(1);
-    const entries = sections.map((section) => this.parseEntry(section));
-    return {
-      entries: entries.filter((entry): entry is SummaryEntry => entry !== null),
-    };
+    return z.decode(this.bodyCodec, body);
+  }
+
+  /** Parse every entry; the codec rejects malformed data without dropping it. */
+  private readEntries(body: string): SummaryEntry[] {
+    return body
+      .split(/^##\s+/m)
+      .slice(1)
+      .map((section) => this.parseEntry(section));
   }
 
   public override toMarkdown(entity: SummaryEntity): string {
@@ -102,30 +118,32 @@ export class SummaryAdapter extends BaseEntityAdapter<
     lines.push("");
   }
 
-  private parseEntry(section: string): SummaryEntry | null {
+  private parseEntry(section: string): SummaryEntry {
     const [rawTitle = "", ...rest] = section.split("\n");
     const title = rawTitle.trim();
     const text = rest.join("\n").trim();
     const timeMatch = text.match(/^Time:\s*(.*?)\s*→\s*(.*?)\s*$/m);
-    const countMatch = text.match(/^Messages summarized:\s*(\d+)\s*$/m);
-    if (!title || !timeMatch || !countMatch) return null;
-
-    const summary = text
-      .replace(/^Time:.*$/m, "")
-      .replace(/^Messages summarized:.*$/m, "")
-      .split(/^###\s+/m)[0]
+    const countText = text
+      .match(/^Messages summarized:[ \t]*([^\r\n]*)$/m)?.[1]
       ?.trim();
 
-    if (!summary) return null;
+    const summary =
+      text
+        .replace(/^Time:.*$/m, "")
+        .replace(/^Messages summarized:.*$/m, "")
+        .split(/^###\s+/m)[0]
+        ?.trim() ?? "";
 
+    // The body codec validates the complete entry. Silently omitting an
+    // invalid timestamp here would erase that entry on the next export.
     return {
       title,
       summary,
       timeRange: {
-        start: timeMatch[1]?.trim() ?? "",
-        end: timeMatch[2]?.trim() ?? "",
+        start: timeMatch?.[1]?.trim() ?? "",
+        end: timeMatch?.[2]?.trim() ?? "",
       },
-      sourceMessageCount: Number(countMatch[1]),
+      sourceMessageCount: countText ? Number(countText) : Number.NaN,
       keyPoints: this.parseList(text, "Key Points"),
     };
   }

@@ -1,5 +1,102 @@
 # @rizom/brain
 
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- [#581](https://github.com/rizom-ai/brains/pull/581) [`1516d52`](https://github.com/rizom-ai/brains/commit/1516d52fa1f909d7fa5e9aec79802ee851c4bf5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics injects its beacon only with `cloudflare.beaconToken` (`CLOUDFLARE_ANALYTICS_BEACON_TOKEN`), the Web Analytics site token; `siteTag` is only the metrics query filter. The beacon carried the site tag, which is not its token, and a proxied zone with automatic setup already gets the beacon from Cloudflare.
+
+- [#580](https://github.com/rizom-ai/brains/pull/580) [`dbaa3b1`](https://github.com/rizom-ai/brains/commit/dbaa3b11b0f4888bea6956e2cd7efa26e388617d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy snapshot's refusal "job queue is not idle" now names the queue it saw (pending, processing and abandoned counts) and says to rerun once it drains, so a deploy that stops on a busy brain explains itself in the workflow log.
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- [#578](https://github.com/rizom-ai/brains/pull/578) [`9d9d40d`](https://github.com/rizom-ai/brains/commit/9d9d40dd04be3a817ab53bf647f0b6ef54c6d5ef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds ask plugins for layout slots as they render, so the newsletter signup reaches the built footer; registered on `pluginsRegistered`, it never reached the worker process that builds the site.
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- [#576](https://github.com/rizom-ai/brains/pull/576) [`9c65cbf`](https://github.com/rizom-ai/brains/commit/9c65cbf0664c556cc8cab43c5b5a7fe9b4671cee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site builds ask plugins for head scripts as they render, through the new `context.messaging.collect`, so the analytics beacon reaches the built pages; registered from the ready phase, it never reached the worker process that builds the site.
+
+- [#576](https://github.com/rizom-ai/brains/pull/576) [`9c65cbf`](https://github.com/rizom-ai/brains/commit/9c65cbf0664c556cc8cab43c5b5a7fe9b4671cee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connection pragmas refused by a held lock are retried once, by the local client, instead of again on top of it; a locked database delayed startup by two retry budgets.
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- [#573](https://github.com/rizom-ai/brains/pull/573) [`34fc4ef`](https://github.com/rizom-ai/brains/commit/34fc4ef886cef62fb34f57f9a8fd74e044867291) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Books and their sections are two entity types: `book` is the work, with its details and contents, at `book/<slug>.md`; `book-section` is its text, at `book-section/<slug>/…`. Entity counts, search scopes and Studio now read 26 books and 3,705 sections instead of counting every section as a book. Answers cite sections only; a book's contents are never a source. The corpus reader reads back each part of a book printed in parts, so a corpus can be re-rendered without fetching its source.
+
+- [#571](https://github.com/rizom-ai/brains/pull/571) [`86bc21a`](https://github.com/rizom-ai/brains/commit/86bc21a0fb884b34ad9043bb45518fc20fceaa55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A projection wave larger than SQLite can bind in one statement is claimed and requeued in chunks. Before, a change touching several thousand entities at once — a corpus migration, a bulk import — failed every coordination sweep with "too many SQL variables", and no projection or automatic site rebuild ran again.
+
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- [#568](https://github.com/rizom-ai/brains/pull/568) [`da50849`](https://github.com/rizom-ai/brains/commit/da50849435abf847073c8d1b89f1f7d5aa255a42) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics queries accept Cloudflare's `errors: null` on a successful response; every query failed with "expected array, received null".
+
+- [`8932425`](https://github.com/rizom-ai/brains/commit/8932425101438c3eef1f60ac0f584b2974e9a465) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A native cron-stop failure no longer bypasses admitted callback draining or scheduler scope finalizers. Scheduled jobs prevent further callback admission and finish cleanup before reporting failures, preserving a single failure's identity and aggregating multiple failures in cleanup order.
+
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- [#566](https://github.com/rizom-ai/brains/pull/566) [`b5265b6`](https://github.com/rizom-ai/brains/commit/b5265b6985ea0cb0dac704028da8550d621fff4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep both published agent cards current with the brain's identity and skills. The A2A Agent Card is built per request, so a brain whose anchor profile, character or skills landed after startup no longer advertises "Brain is Unknown's Knowledge assistant" until restart. The AT Protocol brain card republishes on a new `system:identity:changed` signal, sent once the identity caches hold the change, and on skill creation, update and deletion; bursts of changes coalesce into one republish, and changes before the boot publish are covered by it.
+
+- [`c7614c9`](https://github.com/rizom-ai/brains/commit/c7614c957ae37e258ada6647b1090d5a6d86bf65) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep recurring-check service shutdown and plugin unregistration behind their cleanup barriers when a scheduler adapter throws synchronously from `stop()`. Cancel and drain admitted checks and catch-up enqueue work before reporting the original failure, and retain declaration-order aggregation of synchronous and asynchronous failures.
+
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- [#565](https://github.com/rizom-ai/brains/pull/565) [`9943020`](https://github.com/rizom-ai/brains/commit/9943020d6588e0ab7cfb957e91da7e63e77d1c36) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Content synced after startup reaches the site again. The web process schedules rebuilds while the worker runs them, so a rebuild queued once used to block every later one until the next restart; rebuilds now rely on the job queue, which keeps one pending build per environment. A build replaced by a newer one completes instead of failing and being retried against its replacement. A file removal seen while git rewrites a pulled file no longer deletes the entity whose file is back on disk.
+
+## 0.2.0-alpha.498
+
+### Patch Changes
+
+- [#534](https://github.com/rizom-ai/brains/pull/534) [`1d85b73`](https://github.com/rizom-ai/brains/commit/1d85b730ec435789b7701e3746c9ca79c085217f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate structured entity bodies on write. `StructuredContentFormatter` now parses and formats through a Zod codec, so `format` rejects data that violates the body schema instead of writing markdown that fails on the next read. Playbook optional text is a codec, so playbook bodies encode back to markdown.
+
+  Datasource-backed list and detail page templates (conversation summaries, decks, links, topics) no longer carry unused formatters that could not round-trip; they resolve from their data source only.
+
+  FAQ and conversation summary bodies are codecs too: writing an invalid FAQ body or summary entry fails at write time. Invalid stored summary entries fail validation rather than silently disappearing during export. Numeric arrays and absent optional collections retain their types and presence across the shared round-trip contract.
+
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- [#561](https://github.com/rizom-ai/brains/pull/561) [`ecd1746`](https://github.com/rizom-ai/brains/commit/ecd1746054788c189e78db7a6046f20431d66558) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section records its full heading path (`headings`, outermost first) in place of `part`, so a book printed in parts shows each part with its own divisions on the title page, and a section names its part and division. A long title or siglum wraps instead of overflowing, the title page opens with "Begin reading", Ask names the part or piece a section belongs to, and every spine on the horizon carries its title, outside the spine when it does not fit inside.
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- [#562](https://github.com/rizom-ai/brains/pull/562) [`2e542ee`](https://github.com/rizom-ai/brains/commit/2e542ee168657d54a134f306d646313415b10f6b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local database write refused by a briefly held lock no longer leaves its connection inside an uncommitted transaction. Before, the retried write and every later write on that connection looked applied to the brain itself but were never committed, and vanished when the connection reopened — import jobs completed, then ran again against a closed projection batch and failed.
+
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- [`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the private Git broker transport with bounded Effect RPC over scoped Bun
+  socket adapters. Preserve strict operation validation, stable-ID replay,
+  broker-owned Git work through observer cancellation, and Promise-based public
+  contracts.
+
+- [`205f50c`](https://github.com/rizom-ai/brains/commit/205f50c0a65228c259206b2ac8ebd7d28db807ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the obsolete Effect v3 Promise-failure wrapper and use Effect v4's native Promise runner for shell, daemon, and job-runtime ownership. Preserve original failure values, all-siblings-settled startup phases, declaration-order failure selection, and shared cleanup barriers for concurrent shutdown callers.
+
+- [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Upgrade the private Effect control-plane boundary to exactly 4.0.1, migrate service layers and supervised work to v4 APIs, and retain Promise-based public contracts and AbortSignal cancellation. Centralize optional clock injection and add regressions for failure identity, resource ownership, cleanup barriers, and deterministic timing.
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- [#556](https://github.com/rizom-ai/brains/pull/556) [`81128b8`](https://github.com/rizom-ai/brains/commit/81128b892d6ff553e91a2bc4e69a2aa13a3d3431) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content repository checked out in place now tracks `origin` as a clone would, and a checkout without an upstream gets one on its next start; the pre-deploy backup resolves `@{upstream}` and refused a checkout that had none.
+
 ## 0.2.0-alpha.493
 
 ## 0.2.0-alpha.492

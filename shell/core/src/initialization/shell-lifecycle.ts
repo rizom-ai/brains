@@ -1,6 +1,5 @@
 import { Cause, Effect, Exit, Layer, Scope } from "@brains/utils/effect";
 import type { Context } from "@brains/utils/effect";
-import { runEffectPromise } from "../effect-runtime";
 
 /**
  * Owns resources whose lifetime matches one Shell instance.
@@ -10,7 +9,7 @@ import { runEffectPromise } from "../effect-runtime";
  * Effect is an internal lifecycle implementation detail.
  */
 export class ShellLifecycle {
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private closePromise: Promise<void> | null = null;
   private closed = false;
 
@@ -59,7 +58,7 @@ export class ShellLifecycle {
     if (this.closed) {
       throw new Error("Cannot start background work after shell shutdown");
     }
-    await runEffectPromise(Effect.forkIn(effect, this.scope));
+    await Effect.runPromise(Effect.forkIn(effect, this.scope));
   }
 
   /** Close once. Effect scopes run registered finalizers in reverse order. */
@@ -68,7 +67,7 @@ export class ShellLifecycle {
     if (this.closed) return Promise.resolve();
 
     this.closed = true;
-    this.closePromise = runEffectPromise(Scope.close(this.scope, exit));
+    this.closePromise = Effect.runPromise(Scope.close(this.scope, exit));
     return this.closePromise;
   }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
 import { formatAgentBody, parseAgentBody } from "../../src/a2a/agent-body";
 
 const empty = { about: "", skills: [], notes: "" };
@@ -18,7 +19,10 @@ describe("agent body", () => {
       notes: "Met at the summit.",
     };
 
-    expect(parseAgentBody(formatAgentBody(body))).toEqual(body);
+    expectBodyRoundTrip(
+      { format: formatAgentBody, parse: parseAgentBody },
+      body,
+    );
   });
 
   it("keeps the sections a hand-written body has", () => {

@@ -5,10 +5,11 @@ import {
   type DataSource,
   type Template,
   type BaseEntity,
-  type ProjectionRule,
+  SYSTEM_CHANNELS,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
+  ENTITY_CHANNELS,
   TOPIC_TITLES_MESSAGE,
   type TopicTitlesResponse,
 } from "@brains/contracts";
@@ -32,7 +33,16 @@ import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
 import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
-import { createTopicProjectionRule } from "./lib/topic-wave-rule";
+import {
+  createRankedTopicJobHandler,
+  enqueueTopicExtraction,
+} from "./lib/ranked-topic-extraction";
+import {
+  includesTopicSourceType,
+  topicSourcePolicy,
+} from "./lib/topic-source-policy";
+import { topicVoteTemplate } from "./templates/vote-template";
+import { topicDescriptionTemplate } from "./templates/description-template";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
@@ -41,6 +51,8 @@ interface SourceMetadata {
   status?: unknown;
 }
 
+/** Runtime-state marker: the retired topics projection rule released its entities. */
+const PROJECTION_OWNERSHIP_RELEASED = "projection-ownership-released";
 const topicAdapter: TopicAdapter = new TopicAdapter();
 const sourceMetadataSchema: z.ZodType<SourceMetadata, unknown> = z.looseObject({
   status: z.unknown().optional(),
@@ -73,6 +85,8 @@ export class TopicsPlugin extends EntityPlugin<
   protected override getTemplates(): Record<string, Template> {
     return {
       extraction: topicExtractionTemplate,
+      votes: topicVoteTemplate,
+      description: topicDescriptionTemplate,
       "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
@@ -87,17 +101,66 @@ export class TopicsPlugin extends EntityPlugin<
     ];
   }
 
-  protected override getProjectionRules(
-    _context: EntityPluginContext,
-  ): ProjectionRule[] {
-    return this.config.enableAutoExtraction
-      ? [createTopicProjectionRule(this.config)]
-      : [];
-  }
-
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // Release the removed rule before the shell reconciles projection orphans,
+    // once per brain. This is needed even when extraction has been disabled.
+    const migrations = context.runtimeState.scoped({
+      namespace: "topics.migrations",
+      schema: z.literal(true),
+    });
+    if (!(await migrations.get(PROJECTION_OWNERSHIP_RELEASED))) {
+      for (const topic of await context.entityService.listEntities({
+        entityType: TOPIC_ENTITY_TYPE,
+        options: { filter: { visibilityScope: "restricted" } },
+      })) {
+        await context.entityService.releaseProjectionOwnership({
+          entityType: TOPIC_ENTITY_TYPE,
+          id: topic.id,
+        });
+      }
+      await migrations.set(PROJECTION_OWNERSHIP_RELEASED, true);
+    }
+    if (this.config.enableAutoExtraction) {
+      context.jobs.registerHandler(
+        "topics:extract",
+        createRankedTopicJobHandler(context, this.config, this.logger),
+      );
+      const eventSchema = z.object({ entityType: z.string() });
+      for (const channel of [
+        ENTITY_CHANNELS.created,
+        ENTITY_CHANNELS.updated,
+        ENTITY_CHANNELS.deleted,
+      ]) {
+        // Execution subscriptions run in both processes, exactly once: worker
+        // imports need the same trigger as ordinary web-side mutations.
+        context.messaging.subscribeExecution(channel, async (message) => {
+          const event = eventSchema.safeParse(message.payload);
+          if (
+            event.success &&
+            this.shouldProcessEntityType(
+              event.data.entityType,
+              context.entityService,
+            )
+          ) {
+            await enqueueTopicExtraction(
+              context,
+              this.config.sourceChangeBatchDelayMs,
+            );
+          }
+          return { success: true };
+        });
+      }
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.startupContentSettled,
+        async () => {
+          await enqueueTopicExtraction(context);
+          return { success: true };
+        },
+      );
+    }
+
     // What the brain's public work is about, for other plugins: for example
     // the site's subjects when a visitor's question is screened.
     context.messaging.subscribe<unknown, TopicTitlesResponse>(
@@ -157,16 +220,10 @@ export class TopicsPlugin extends EntityPlugin<
       getEntityTypeConfig: (type: string) => EntityTypeConfig;
     },
   ): boolean {
-    if (entityType === TOPIC_ENTITY_TYPE) return false;
-    if (this.config.excludeEntityTypes.includes(entityType)) return false;
-    if (
-      !this.config.includeEntityTypes.includes("*") &&
-      !this.config.includeEntityTypes.includes(entityType)
-    ) {
-      return false;
-    }
+    const typeConfig = entityService.getEntityTypeConfig(entityType);
     return (
-      entityService.getEntityTypeConfig(entityType).projectionSource !== false
+      includesTopicSourceType(entityType, this.config, typeConfig) &&
+      topicSourcePolicy(entityType, this.config, typeConfig).weight > 0
     );
   }
 

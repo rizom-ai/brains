@@ -794,18 +794,20 @@ describe("guest tool dispatch", () => {
       tool("system_search"),
       tool("system_get"),
       tool("system_list"),
+      tool("network_ask"),
       tool("system_create"),
       tool("new_plugin_read"),
       tool("remote-agent_ask"),
       tool("system_search", { sideEffects: "writes" }),
       tool("system_get", { visibility: "admin" }),
       tool("system_list", { agentTool: false }),
+      tool("network_ask", { sideEffects: "external" }),
     ];
     expect(
       filterToolsForCallOptions(tools, {
         interfaceType: guestInterfaceType,
       }).map((entry) => entry.name),
-    ).toEqual(["system_search", "system_get", "system_list"]);
+    ).toEqual(["system_search", "system_get", "system_list", "network_ask"]);
   });
 
   it("filters at SDK conversion too and does not broadcast guest queries", async () => {

@@ -19,6 +19,8 @@ analyticsPlugin({
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
     apiToken: process.env.CLOUDFLARE_API_TOKEN,
     siteTag: process.env.CLOUDFLARE_ANALYTICS_SITE_TAG,
+    // Only for a site without Cloudflare automatic setup
+    beaconToken: process.env.CLOUDFLARE_ANALYTICS_BEACON_TOKEN,
   },
 });
 ```
@@ -29,6 +31,7 @@ analyticsPlugin({
 CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_API_TOKEN=your_api_token  # Needs Analytics:Read permission
 CLOUDFLARE_ANALYTICS_SITE_TAG=your_site_tag
+CLOUDFLARE_ANALYTICS_BEACON_TOKEN=your_site_token  # Optional, see below
 ```
 
 ## MCP Tools
@@ -86,7 +89,14 @@ analytics_query({ startDate: "2025-01-01", endDate: "2025-01-31" });
 
 ## Infrastructure Setup
 
-Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics), then provide its site tag to the brain via the `CLOUDFLARE_ANALYTICS_SITE_TAG` environment variable. The site tag is used both for the tracking script injected into the site and for the GraphQL metrics queries.
+Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics) and give the brain its **site tag** in `CLOUDFLARE_ANALYTICS_SITE_TAG`; the metrics queries filter on it.
+
+The tracking beacon carries a different value, the **site token**:
+
+- **Automatic setup** (the domain is proxied through Cloudflare): Cloudflare injects the beacon itself. Leave `CLOUDFLARE_ANALYTICS_BEACON_TOKEN` unset.
+- **Manual setup**: set `CLOUDFLARE_ANALYTICS_BEACON_TOKEN` to the site token (the `token` in the JS snippet), and the brain adds the beacon to every page it builds.
+
+Both values are listed by `GET /accounts/{account_id}/rum/site_info/list` as `site_tag` and `site_token`.
 
 ## Dependencies
 

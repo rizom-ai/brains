@@ -2,11 +2,11 @@ import {
   Cause,
   Effect,
   Exit,
-  Fiber,
   FiberMap,
   Scope,
+  withOptionalClock,
 } from "@brains/utils/effect";
-import type { Clock } from "@brains/utils/effect";
+import type { Clock, Fiber } from "@brains/utils/effect";
 
 interface A2ATurnSupervisorOptions {
   clock?: Clock.Clock | undefined;
@@ -26,12 +26,12 @@ interface ActiveTurn {
   controller: AbortController;
   onCancel: () => void;
   canceled: boolean;
-  fiber?: Fiber.RuntimeFiber<void, never> | undefined;
+  fiber?: Fiber.Fiber<void, never> | undefined;
 }
 
 /** Owns in-flight A2A turns and their heartbeat schedules. @internal */
 export class A2ATurnSupervisor {
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private readonly fibers: FiberMap.FiberMap<string, void, never>;
   private readonly active = new Map<string, ActiveTurn>();
   private readonly clock: Clock.Clock | undefined;
@@ -42,7 +42,7 @@ export class A2ATurnSupervisor {
     this.clock = options.clock;
     this.scope = Effect.runSync(Scope.make());
     this.fibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.scope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.scope),
     );
   }
 
@@ -70,7 +70,7 @@ export class A2ATurnSupervisor {
       try: (lifecycleSignal) =>
         operation(AbortSignal.any([lifecycleSignal, entry.controller.signal])),
       catch: () => undefined,
-    }).pipe(Effect.catchAll(() => Effect.void));
+    }).pipe(Effect.catch(() => Effect.void));
 
     const heartbeat = options.heartbeat;
     const supervised = heartbeat
@@ -85,9 +85,7 @@ export class A2ATurnSupervisor {
           }),
         )
       : work;
-    const timed = this.clock
-      ? Effect.withClock(supervised, this.clock)
-      : supervised;
+    const timed = withOptionalClock(supervised, this.clock);
     const owned = timed.pipe(
       Effect.ensuring(
         Effect.sync(() => {
@@ -100,7 +98,7 @@ export class A2ATurnSupervisor {
 
     const fiber = Effect.runFork(owned);
     entry.fiber = fiber;
-    FiberMap.unsafeSet(this.fibers, taskId, fiber);
+    FiberMap.setUnsafe(this.fibers, taskId, fiber);
     return true;
   }
 
@@ -117,7 +115,7 @@ export class A2ATurnSupervisor {
       entry.controller.abort(reason);
     }
     if (entry.fiber) {
-      Effect.runSync(Fiber.interruptFork(entry.fiber));
+      entry.fiber.interruptUnsafe();
     }
     return true;
   }

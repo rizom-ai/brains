@@ -19,6 +19,13 @@ import {
   type Book,
   type BookWithData,
 } from "../schemas/book";
+import {
+  bookSectionFrontmatterSchema,
+  bookSectionSchema,
+  bookSectionWithDataSchema,
+  type BookSection,
+  type BookSectionWithData,
+} from "../schemas/book-section";
 
 interface BookListData {
   books: BookWithData[];
@@ -38,7 +45,8 @@ export interface ScoreEntry {
   title: string;
   section: string | null;
   order: number;
-  part: string | null;
+  /** The headings the section stands under, outermost first. */
+  headings: string[];
   /** Bytes of the section's text. */
   length: number;
 }
@@ -55,10 +63,22 @@ export function parseBookData(entity: Book): BookWithData {
   });
 }
 
+export function parseBookSectionData(entity: BookSection): BookSectionWithData {
+  const parsed = parseMarkdownWithFrontmatter(
+    entity.content,
+    bookSectionFrontmatterSchema,
+  );
+  return bookSectionWithDataSchema.parse({
+    ...entity,
+    frontmatter: parsed.metadata,
+    body: parsed.content,
+  });
+}
+
 /**
- * Books are listed by their title entries; an entry is read with its book and
- * its neighbours in reading order, each found by one indexed lookup so a book
- * of any length costs the same.
+ * Books are listed by title. A book's page holds its score; a section's page
+ * holds its book and its neighbours in reading order, each found by one
+ * indexed lookup so a book of any length costs the same.
  */
 export class BookDataSource extends BaseEntityDataSource<
   Book,
@@ -67,11 +87,13 @@ export class BookDataSource extends BaseEntityDataSource<
 > {
   readonly id = "book:entities";
   readonly name = "Book Entity DataSource";
-  readonly description = "Fetches books and their entries for reading";
+  readonly description = "Fetches books and their sections for reading";
 
   protected readonly config: EntityDataSourceConfig<Book> = {
     entityType: "book",
     entitySchema: bookSchema,
+    // A book opens at its id; sections are found by their slug.
+    lookupField: "id",
     defaultSort: [{ field: "title", direction: "asc" }],
     defaultLimit: 1000,
   };
@@ -91,42 +113,69 @@ export class BookDataSource extends BaseEntityDataSource<
   ): Promise<T> {
     const params = this.parseQuery(query);
     const entityService = context.entityService;
+    const id = params.query.id;
 
-    if (!params.query.id) {
-      const list = await this.fetchList(params.query, entityService, {
-        filter: { metadata: { order: 0 } },
-      });
+    if (!id) {
+      const list = await this.fetchList(params.query, entityService);
       return outputSchema.parse(
         this.buildListResult(list.items, list.pagination, params.query),
       );
     }
 
-    const entry = this.transformEntity(
-      await this.lookupEntity(params.query.id, entityService),
-    );
-    const { book, order } = entry.metadata;
-    const [title, prev, next, entries, score, themes] = await Promise.all([
-      order === 0 ? entry : this.findEntry(book, 0, entityService),
-      order === 0 ? null : this.findEntry(book, order - 1, entityService),
-      this.findEntry(book, order + 1, entityService),
-      entityService.countEntities({
-        entityType: "book",
-        options: { filter: { metadata: { book } } },
-      }),
-      order === 0 ? this.scoreOf(book, entityService) : [],
-      order === 0 ? [] : this.themesOf(entry.id, entityService),
-    ]);
+    if (params.entityType === "book-section") {
+      return outputSchema.parse(await this.sectionPage(id, entityService));
+    }
 
-    return outputSchema.parse({
-      entry,
-      book: title ?? entry,
+    const book = this.transformEntity(
+      await this.lookupEntity(id, entityService),
+    );
+    const [first, score] = await Promise.all([
+      this.findSection(book.id, 1, entityService),
+      this.scoreOf(book.id, entityService),
+    ]);
+    return outputSchema.parse({ book, first, score });
+  }
+
+  /** A section with its book, its neighbours, and the themes nearest it. */
+  private async sectionPage(
+    slug: string,
+    entityService: EntityServiceClient,
+  ): Promise<{
+    section: BookSectionWithData;
+    book: BookWithData;
+    prev: BookSectionWithData | null;
+    next: BookSectionWithData | null;
+    total: number;
+    themes: Theme[];
+  }> {
+    const [found] = await entityService.listEntities(
+      {
+        entityType: "book-section",
+        options: { filter: { metadata: { slug } }, limit: 1 },
+      },
+      bookSectionSchema,
+    );
+    if (!found) throw new Error(`book-section not found: ${slug}`);
+    const section = parseBookSectionData(found);
+    const { book: bookId, order } = section.metadata;
+    const [book, prev, next, total, themes] = await Promise.all([
+      this.lookupEntity(bookId, entityService),
+      this.findSection(bookId, order - 1, entityService),
+      this.findSection(bookId, order + 1, entityService),
+      entityService.countEntities({
+        entityType: "book-section",
+        options: { filter: { metadata: { book: bookId } } },
+      }),
+      this.themesOf(section.id, entityService),
+    ]);
+    return {
+      section,
+      book: this.transformEntity(book),
       prev,
       next,
-      // The title entry is not a section.
-      total: Math.max(0, entries - 1),
-      score,
+      total,
       themes,
-    });
+    };
   }
 
   /** Every section of a book in reading order, measured. */
@@ -136,35 +185,32 @@ export class BookDataSource extends BaseEntityDataSource<
   ): Promise<ScoreEntry[]> {
     const entities = await entityService.listEntities(
       {
-        entityType: "book",
+        entityType: "book-section",
         options: {
           filter: { metadata: { book } },
           sortFields: [{ field: "order", direction: "asc" }],
           limit: 100000,
         },
       },
-      bookSchema,
+      bookSectionSchema,
     );
-    return entities
-      .map((entity) => this.transformEntity(entity))
-      .filter((entry) => entry.metadata.order > 0)
-      .map((entry) => ({
-        slug: entry.metadata.slug,
-        title: entry.metadata.title,
-        section: entry.metadata.section,
-        order: entry.metadata.order,
-        part: entry.frontmatter.part,
-        length: Buffer.byteLength(entry.body.trim(), "utf8"),
-      }));
+    return entities.map(parseBookSectionData).map((section) => ({
+      slug: section.metadata.slug,
+      title: section.metadata.title,
+      section: section.metadata.section,
+      order: section.metadata.order,
+      headings: section.frontmatter.headings,
+      length: Buffer.byteLength(section.body.trim(), "utf8"),
+    }));
   }
 
   /** The topics nearest a section, by their stored embeddings: no API calls. */
   private async themesOf(
-    entryId: string,
+    sectionId: string,
     entityService: EntityServiceClient,
   ): Promise<Theme[]> {
     const related = await findRelatedEntities(entityService, {
-      origin: { entityType: "book", entityId: entryId },
+      origin: { entityType: "book-section", entityId: sectionId },
       types: ["topic"],
       maxDistance: THEME_DISTANCE,
       limit: THEME_LIMIT,
@@ -172,19 +218,20 @@ export class BookDataSource extends BaseEntityDataSource<
     return related.map(({ entity, title }) => ({ id: entity.id, title }));
   }
 
-  private async findEntry(
+  private async findSection(
     book: string,
     order: number,
     entityService: EntityServiceClient,
-  ): Promise<BookWithData | null> {
+  ): Promise<BookSectionWithData | null> {
+    if (order < 1) return null;
     const [entity] = await entityService.listEntities(
       {
-        entityType: "book",
+        entityType: "book-section",
         options: { filter: { metadata: { book, order } }, limit: 1 },
       },
-      bookSchema,
+      bookSectionSchema,
     );
-    return entity ? this.transformEntity(entity) : null;
+    return entity ? parseBookSectionData(entity) : null;
   }
 
   protected buildListResult(

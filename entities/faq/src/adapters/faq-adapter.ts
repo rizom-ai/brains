@@ -1,8 +1,11 @@
 import { BaseEntityAdapter } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
+  faqBodySchema,
   faqFrontmatterSchema,
   faqSchema,
   type FaqAlternative,
+  type FaqBody,
   type FaqEntity,
   type FaqFrontmatter,
   type FaqFrontmatterInput,
@@ -80,10 +83,7 @@ function faqBody(answer: string, alternatives: FaqAlternative[]): string {
 }
 
 /** Split a body into the answer and the alternatives below the heading. */
-function parseFaqBody(body: string): {
-  answer: string;
-  alternatives: FaqAlternative[];
-} {
+function parseFaqBody(body: string): FaqBody {
   const [answer = "", section] = body.split(ALTERNATIVES_HEADING_LINE);
   if (section === undefined) return { answer: answer.trim(), alternatives: [] };
 
@@ -99,6 +99,13 @@ function parseFaqBody(body: string): {
     .filter((alternative) => alternative.answer.length > 0);
   return { answer: answer.trim(), alternatives };
 }
+
+/** Markdown body ↔ FAQ body; a write is validated like a read. */
+export const faqBodyCodec: z.ZodCodec<z.ZodString, typeof faqBodySchema> =
+  z.codec(z.string(), faqBodySchema, {
+    decode: parseFaqBody,
+    encode: ({ answer, alternatives }) => faqBody(answer, alternatives),
+  });
 
 export class FaqAdapter extends BaseEntityAdapter<
   FaqEntity,
@@ -121,7 +128,7 @@ export class FaqAdapter extends BaseEntityAdapter<
     alternatives: FaqAlternative[] = [],
   ): string {
     return this.buildMarkdown(
-      faqBody(answer, alternatives),
+      z.encode(faqBodyCodec, { answer, alternatives }),
       faqFrontmatterSchema.parse(frontmatter),
     );
   }
@@ -139,7 +146,7 @@ export class FaqAdapter extends BaseEntityAdapter<
     const raw = this.parseFrontMatter(content, faqFrontmatterSchema);
     return {
       frontmatter: faqFrontmatterSchema.parse(raw),
-      ...parseFaqBody(this.extractBody(content)),
+      ...z.decode(faqBodyCodec, this.extractBody(content)),
     };
   }
 

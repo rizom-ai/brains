@@ -1,5 +1,5 @@
 import { generateMarkdownWithFrontmatter } from "@brains/plugins";
-import { bookEntrySlug, type BookFrontmatter } from "@brains/book";
+import { bookSectionSlug, type BookFrontmatter } from "@brains/book";
 import { slugify } from "@brains/utils/string-utils";
 
 /** One unit of the author's or edition's own structure, in reading order. */
@@ -138,7 +138,7 @@ function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
       const heading = entry.unit.parents[0] ?? entry.unit.title;
       if (state.seen.has(heading)) return state;
       state.seen.add(heading);
-      const href = `/books/${bookEntrySlug(book.slug, entry.order)}`;
+      const href = `/books/${bookSectionSlug(book.slug, entry.order)}`;
       return {
         seen: state.seen,
         lines: [...state.lines, `- [${heading}](${href})`],
@@ -149,17 +149,20 @@ function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
   return `## Contents\n\n${lines.join("\n")}\n`;
 }
 
-/** Render a book's entries as markdown files, deterministically. */
+/** Where a book is written: the book itself, then a folder of its sections. */
+export function bookPaths(slug: string): { book: string; sections: string } {
+  return { book: `book/${slug}.md`, sections: `book-section/${slug}` };
+}
+
+/** Render a book and its sections as markdown files, deterministically. */
 export function renderBook({ book, units }: BookSource): BookFile[] {
   const entries = placeEntries(units);
-  const root = `book/${book.slug}`;
+  const paths = bookPaths(book.slug);
 
   const title: BookFile = {
-    path: `${root}/${padded(0)}-titel.md`,
+    path: paths.book,
     markdown: generateMarkdownWithFrontmatter(tableOfContents(book, entries), {
       title: book.title,
-      book: book.slug,
-      order: 0,
       source: book.source,
       author: book.author,
       year: book.year,
@@ -176,7 +179,7 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
 
   const sections = entries.map((entry): BookFile => ({
     path: [
-      root,
+      paths.sections,
       ...entry.folders,
       `${padded(entry.order)}-${germanSlug(entry.unit.title)}.md`,
     ].join("/"),
@@ -186,7 +189,7 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
       order: entry.order,
       section: entry.unit.section,
       page: entry.unit.page,
-      part: entry.unit.parents[0] ?? null,
+      headings: entry.unit.parents,
       source: entry.unit.source,
     }),
   }));

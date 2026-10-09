@@ -147,6 +147,43 @@ describe("CloudflareClient", () => {
       expect(result.visits).toBe(0);
     });
 
+    it("should accept a successful response with errors: null", async () => {
+      // Cloudflare sends `errors: null` alongside data on success
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    count: 42,
+                    sum: { visits: 30 },
+                    dimensions: { date: "2025-01-15" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        errors: null,
+      };
+
+      installStaticMockFetch(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result.pageviews).toBe(42);
+      expect(result.visits).toBe(30);
+    });
+
     it("should throw error on API failure", async () => {
       installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
 

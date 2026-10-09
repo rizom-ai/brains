@@ -23,6 +23,20 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(true);
     });
 
+    it("keeps an optional beacon token apart from the site tag", () => {
+      const result = analyticsConfigSchema.parse({
+        cloudflare: {
+          accountId: "abc123",
+          apiToken: "cf_token_secret",
+          siteTag: "site123",
+          beaconToken: "token456",
+        },
+      });
+
+      expect(result.cloudflare?.siteTag).toBe("site123");
+      expect(result.cloudflare?.beaconToken).toBe("token456");
+    });
+
     it("should require accountId when cloudflare is provided", () => {
       const config = {
         cloudflare: {

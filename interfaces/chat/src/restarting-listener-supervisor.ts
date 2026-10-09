@@ -1,4 +1,9 @@
-import { Effect, Fiber, Schedule } from "@brains/utils/effect";
+import {
+  Effect,
+  Fiber,
+  Schedule,
+  withOptionalClock,
+} from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import type { GatewayListenerOptions } from "./types";
 
@@ -19,7 +24,7 @@ interface RestartingListenerSupervisorOptions {
 export class RestartingListenerSupervisor {
   private readonly options: RestartingListenerSupervisorOptions;
   private readonly activeCycles = new Set<Promise<void>>();
-  private loopFiber: Fiber.RuntimeFiber<unknown, never> | undefined;
+  private loopFiber: Fiber.Fiber<unknown, never> | undefined;
   private loopController: AbortController | undefined;
   private stopPromise: Promise<void> | undefined;
 
@@ -40,7 +45,7 @@ export class RestartingListenerSupervisor {
       try: () => this.trackCycle(controller.signal),
       catch: (error) => error,
     }).pipe(
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         Effect.sync(() => {
           if (!controller.signal.aborted) {
             this.options.logger.error(this.options.failureMessage, { error });
@@ -51,9 +56,7 @@ export class RestartingListenerSupervisor {
     const loop = cycle.pipe(
       Effect.repeat(Schedule.spaced(Math.max(1, this.options.restartDelayMs))),
     );
-    const ownedLoop = this.options.clock
-      ? Effect.withClock(loop, this.options.clock)
-      : loop;
+    const ownedLoop = withOptionalClock(loop, this.options.clock);
     this.loopFiber = Effect.runFork(ownedLoop);
   }
 

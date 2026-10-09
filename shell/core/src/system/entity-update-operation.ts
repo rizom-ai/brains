@@ -26,6 +26,16 @@ export type UpdateOperation = Extract<
   { kind: "fields" | "content" }
 >;
 
+/**
+ * Changed lines a replacement preview still lists. Beyond it the preview says
+ * the content is replaced wholesale. A count of edits, not a clock, so the
+ * same replacement previews the same way on a loaded machine; and a small
+ * one, because the diff's work grows with the document's length times this
+ * bound (two unrelated 3000-line documents took 8 s to reach 4000 on a CI
+ * runner), and a preview of more changed lines than this is not read anyway.
+ */
+const MAX_PREVIEW_DIFF_EDITS = 400;
+
 interface UpdateError {
   success: false;
   error: string;
@@ -473,9 +483,11 @@ export function buildUpdateDiff(
   const newLines = operation.content.split("\n");
   // Align unchanged lines so insertions do not make the entire suffix look
   // rewritten. Bound diff work for large, completely different documents.
-  const changes = diffArrays(oldLines, newLines, { timeout: 100 });
+  const changes = diffArrays(oldLines, newLines, {
+    maxEditLength: MAX_PREVIEW_DIFF_EDITS,
+  });
   if (!changes) {
-    return "Full content replacement (line diff omitted: comparison exceeded its time limit).";
+    return `Full content replacement (line diff omitted: more than ${MAX_PREVIEW_DIFF_EDITS} changed lines).`;
   }
   return changes
     .filter((change) => change.added || change.removed)

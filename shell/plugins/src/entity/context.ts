@@ -50,8 +50,10 @@ export function createAINamespace(shell: IShell): IEntityAINamespace {
     generate: async <T>(
       config: ContentGenerationConfig,
       schema: AIGenerationSchema<T>,
+      signal?: AbortSignal,
     ): Promise<T> => {
-      return schema.parse(await shell.generateContent(config));
+      signal?.throwIfAborted();
+      return schema.parse(await shell.generateContent(config, signal));
     },
     generateObject: async <T>(
       prompt: string,

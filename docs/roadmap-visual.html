@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. Posture—from private personal use to public professional publishing or shared team memory—is configuration, not a separate product.</p>
-      <div class="updated">Last updated: 2026-10-02 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-10-08 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -409,6 +409,22 @@
           <div class="card-desc">retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.</div>
           <div class="card-file">directory-sync-export-stall.md</div>
         </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Topics ranked under the cap</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">topics as the best-supported subjects under the cap: per-source votes in bounded, resumable jobs, and replacement of the weakest topic.</div>
+          <div class="card-file">topics-ranked-selection.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Effect v4 upgrade</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">implemented locally: v4 boundary, native Promise runner, and bounded private Git broker RPC; completion gates pass, publication pending.</div>
+          <div class="card-file">effect-v4-upgrade.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
@@ -416,14 +432,6 @@
           </div>
           <div class="card-desc">parallelize multi-model eval subprocesses.</div>
           <div class="card-file">parallel-eval-workers.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Topic extraction cost and reconciliation</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.</div>
-          <div class="card-file">topic-extraction-and-reconciliation.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -435,19 +443,11 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Effect v4 upgrade</span>
+            <span class="card-name">Local Model Runtime</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">move the shell's Effect boundary to v4, drop <code>runEffectPromise</code>, and put the Git broker transport on <code>effect/rpc</code>.</div>
-          <div class="card-file">effect-v4-upgrade.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Structured body codecs</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">make every structured body a Zod codec so writes validate like reads, with one shared round-trip contract.</div>
-          <div class="card-file">structured-body-codecs.md</div>
+          <div class="card-desc">per-brain model selection for embeddings, text and images, with a local runtime sidecar; EmbeddingGemma 2 embeddings first.</div>
+          <div class="card-file">local-model-runtime.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
@@ -456,14 +456,6 @@
           </div>
           <div class="card-desc">whether a renderer other than React earns its place at the prepared-build boundary.</div>
           <div class="card-file">alternative-site-renderer-spike.md</div>
-        </div>
-        <div class="card status-parked">
-          <div class="card-head">
-            <span class="card-name">Local AI Runtime</span>
-            <span class="badge badge-parked">Parked</span>
-          </div>
-          <div class="card-desc">local AI runtime sidecar direction.</div>
-          <div class="card-file">embedding-service.md</div>
         </div>
         </div>
       </details>

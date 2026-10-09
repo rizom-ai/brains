@@ -112,6 +112,13 @@ export const booksSite: SiteDefinition = {
       layout: "default",
       paginate: false,
       navigation: { show: false },
+    },
+    // A section opens under its book, at /books/<book>/<order>.
+    "book-section": {
+      label: "Section",
+      pluralName: "books",
+      layout: "default",
+      navigation: { show: false },
       // Answers cite book sections, and nothing else.
       citable: true,
     },
