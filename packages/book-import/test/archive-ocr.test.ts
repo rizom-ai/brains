@@ -1287,4 +1287,44 @@ describe("parseArchiveOcrWork, Kautsky's headings", () => {
       "1. Rodbertus.",
     ]);
   });
+
+  it("reads a roman title before its first numbered section as a chapter where the volume sets numerals alone", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-parts.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 1,
+        lastPage: 5,
+      },
+    );
+
+    expect(
+      units
+        .filter((unit) => unit.title === "1. Rodbertus.")
+        .map((unit) => unit.parents.at(-1)),
+    ).toEqual(["I. Die Grundrente."]);
+  });
+
+  it("leaves a roman label set smaller than the text, as a table sets it, to the text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-roman-parts.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 1,
+        lastPage: 5,
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).not.toContain("I. Agrikultur.");
+  });
 });

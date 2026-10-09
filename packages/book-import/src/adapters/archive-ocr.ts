@@ -1002,6 +1002,39 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // A centred line of a number and its title opens a numbered subsection,
     // which ends with the line: 2. Beraud über die Freudenmädchen.
     const subsection = NUMBERED_SUBSECTION.exec(line.text);
+    // A roman numeral and title on one centred line opens a chapter,
+    // numbered by its place, where it is set in display type or its first
+    // numbered section follows it: II. Die Grundrente. 1. Rodbertus.
+    const firstSection = /^\d{1,2}\.\s+\p{Lu}/u.test(
+      headless.slice(index + 1).find((below) => /\p{L}/u.test(below.text))
+        ?.text ?? "",
+    );
+    if (
+      subsection?.[1] &&
+      subsection[2] &&
+      /^[IVX]+$/u.test(subsection[1]) &&
+      Math.abs(centre - middle) < page.width * CENTRE &&
+      (firstSection ||
+        (line.size > volume.textSize * HEADING_SIZE &&
+          line.width < volume.column * HEADING_WIDTH)) &&
+      headingLineOf(line.text, line.size) === null
+    ) {
+      return [
+        ...pieces,
+        {
+          kind: "heading",
+          lines: [
+            { kind: "chapter", numeral: subsection[1], named: true },
+            {
+              kind: "caps",
+              text: subsection[2],
+              size: line.size,
+              misread: true,
+            },
+          ],
+        },
+      ];
+    }
     // Set as wide as the text, it stands apart by the space above it, and
     // ends in a centred line of its own or space below; a paragraph that
     // opens with a number (12. April.) runs on in full lines.
@@ -1036,6 +1069,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         spacedAbove) &&
       line.y < page.height * FOOT_ZONE &&
       line.size >= volume.textSize * NOTE_SIZE &&
+      // A roman label set smaller than the text is a table's.
+      (!/^[IVX]+$/u.test(subsection[1]) || line.size >= volume.textSize) &&
       (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
       // A chapter named so (2. Kapitel) is read as one.
       headingLineOf(line.text, line.size) === null
