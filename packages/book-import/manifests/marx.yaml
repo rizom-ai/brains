@@ -534,3 +534,38 @@ books:
     year: 1910
     published: false
     kind: work
+  - source: archive-ocr
+    # Rjasanoff's second volume collects the articles of 1854–1856 by Marx
+    # and by Engels. Engels' own articles are left out, as are four that
+    # neither MEW nor MECW attributes; MECW's attribution decides where MEW
+    # 10 differs (Zur Kritik der Belagerung Sebastopols, Engels).
+    item: gesammelteschrif02marxuoft
+    citation: GS II
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 470
+    datelined: true
+    skipHeadings:
+      - Die Belagerung von Silistria.
+      - Der Angriff auf Sebastopol.
+      - Die Militärmacht Rußlands.
+      - Die Belagerung von Sebastopol.
+      - Die Desorganisation der englischen Militärverwaltung.
+      - Zur Kritik der Belagerung Sebastopols.
+      - Krimsche Angelegenheiten.
+      - Über die letzten Vorgänge in der Krim.
+      - Über die Situation in der Krim.
+      - Kritik des Napoleonischen Moniteurartikels.
+      - Deutschland und der Panslawismus.
+      - Die Organisation.
+      - Die Bewaffnung der britischen Soldaten.
+      - Napier und Graham.
+      - Die Widerstandskraft Rußlands.
+      - Zur Erstürmung Sebastopols.
+    slug: gesammelte-schriften-2
+    title: "Gesammelte Schriften 1852 bis 1862. Zweiter Band: Artikel 1854 bis 1856"
+    shortTitle: Gesammelte Schriften II
+    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, die Übersetzungen aus dem Englischen von Luise Kautsky, Zweiter Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    author: Karl Marx
+    year: 1855
+    kind: work
