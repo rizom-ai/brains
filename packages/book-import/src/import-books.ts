@@ -50,6 +50,7 @@ const archiveOcrBookSchema: z.ZodObject<
       edition: z.ZodString;
       skipPages: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+      firstChapter: z.ZodDefault<z.ZodNumber>;
     }
   >
 > = z.object({
@@ -72,6 +73,8 @@ const archiveOcrBookSchema: z.ZodObject<
   skipPages: z.array(z.number().int().positive()).default([]),
   /** Sections to leave out by their headings, such as a piece in another language. */
   skipHeadings: z.array(z.string().min(1)).default([]),
+  /** The number of the work's first chapter, where it goes on from another. */
+  firstChapter: z.number().int().positive().default(1),
 });
 
 const manifestSchema: z.ZodDiscriminatedUnion<

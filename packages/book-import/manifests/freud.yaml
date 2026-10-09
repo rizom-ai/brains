@@ -1,15 +1,1670 @@
 # Sigmund Freud's works from the Gesammelte Werke (Imago, London 1940–52),
 # read from the Internet Archive's scans. The author's text is in the public
-# domain (author †1939); the editors' apparatus is left out.
+# domain (author †1939); the editors' apparatus is left out: their prefaces,
+# the bibliographic notes, the indexes, the note on Breuer's omitted parts in
+# Studien über Hysterie (I, 76) and the Traumdeutung's list of literature
+# (II/III, 627–642). `year` is first publication; short pieces the edition
+# prints under a collective title are one book per volume.
+#
+# Not imported, written in another language than German:
+#   I    39–56   Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques (French)
+#   I   345–354  Obsessions et phobies (French)
+#   I   405–424  L'hérédité et l'étiologie des névroses (French)
+#   XIII 437–438 Preface to J. J. Putnam, Addresses on Psycho-Analysis (English)
+#   XIII 442     Brief an Luis Lopez-Ballesteros y de Torres (Spanish)
+#   XIII 446     Zuschrift an die Zeitschrift „Le Disque Vert“ (French)
+#   XIV 297–308  Psycho-Analysis (English)
+#   XIV 556–557  To the Opening of the Hebrew University (English)
+#   XVII 139–148 Some Elementary Lessons in Psycho-Analysis (English)
 source: archive-ocr
 books:
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 3
+    lastPage: 20
+    slug: ein-fall-von-hypnotischer-heilung
+    title: "Ein Fall von hypnotischer Heilung nebst Bemerkungen über die Entstehung hysterischer Symptome durch den „Gegenwillen“"
+    shortTitle: Ein Fall von hypnotischer Heilung
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1892
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 21
+    lastPage: 38
+    slug: charcot
+    title: Charcot
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1893
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 57
+    lastPage: 75
+    slug: die-abwehr-neuropsychosen
+    title: Die Abwehr-Neuropsychosen
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1894
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 77
+    lastPage: 312
+    slug: studien-ueber-hysterie
+    title: Studien über Hysterie
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 313
+    lastPage: 344
+    slug: ueber-die-berechtigung-von-der-neurasthenie-die-angstneurose-abzutrennen
+    title: "Über die Berechtigung, von der Neurasthenie einen bestimmten Symptomenkomplex als „Angstneurose“ abzutrennen"
+    shortTitle: Angstneurose
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 355
+    lastPage: 376
+    slug: zur-kritik-der-angstneurose
+    title: "Zur Kritik der „Angstneurose“"
+    shortTitle: Zur Kritik der Angstneurose
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1895
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 377
+    lastPage: 404
+    slug: weitere-bemerkungen-ueber-die-abwehr-neuropsychosen
+    title: Weitere Bemerkungen über die Abwehr-Neuropsychosen
+    shortTitle: Weitere Bemerkungen
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1896
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 425
+    lastPage: 460
+    slug: zur-aetiologie-der-hysterie
+    title: Zur Ätiologie der Hysterie
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1896
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 461
+    lastPage: 490
+    slug: inhaltsangaben-der-wissenschaftlichen-arbeiten
+    title: Inhaltsangaben der wissenschaftlichen Arbeiten des Privatdozenten Dr. Sigm. Freud
+    shortTitle: Inhaltsangaben
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1897
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 491
+    lastPage: 516
+    slug: die-sexualitaet-in-der-aetiologie-der-neurosen
+    title: Die Sexualität in der Ätiologie der Neurosen
+    shortTitle: Sexualität und Neurosen
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1898
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 517
+    lastPage: 530
+    slug: zum-psychischen-mechanismus-der-vergesslichkeit
+    title: Zum psychischen Mechanismus der Vergeßlichkeit
+    shortTitle: Vergeßlichkeit
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1898
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 531
+    lastPage: 556
+    slug: ueber-deckerinnerungen
+    title: Über Deckerinnerungen
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1899
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 557
+    lastPage: 560
+    slug: vorwort-zur-sammlung-kleiner-schriften-zur-neurosenlehre
+    title: "Vorwort zur ersten Auflage der „Sammlung kleiner Schriften zur Neurosenlehre aus den Jahren 1893–1906“"
+    shortTitle: Vorwort zur Sammlung kleiner Schriften
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1906
+    kind: work
+  - item: freud-1952-gw-1
+    volume: I
+    firstPage: 561
+    lastPage: 574
+    slug: einige-nachtraege-zum-ganzen-der-traumdeutung
+    title: Einige Nachträge zum Ganzen der Traumdeutung
+    shortTitle: Nachträge zur Traumdeutung
+    edition: Gesammelte Werke, Bd. I (Imago, London 1952)
+    author: Sigmund Freud
+    year: 1925
+    kind: work
+  - item: freud-1942-gw-2-3
+    volume: "II/III"
+    firstPage: VII
+    lastPage: 626
+    slug: die-traumdeutung
+    title: Die Traumdeutung
+    edition: "Gesammelte Werke, Bd. II/III (Imago, London 1942)"
+    author: Sigmund Freud
+    year: 1900
+    kind: work
+  - item: freud-1942-gw-2-3
+    volume: "II/III"
+    firstPage: 643
+    lastPage: 700
+    slug: ueber-den-traum
+    title: Über den Traum
+    edition: "Gesammelte Werke, Bd. II/III (Imago, London 1942)"
+    author: Sigmund Freud
+    year: 1901
+    kind: work
+  - item: freud-1941-gw-4
+    volume: IV
+    firstPage: 1
+    lastPage: 310
+    slug: zur-psychopathologie-des-alltagslebens
+    title: Zur Psychopathologie des Alltagslebens
+    shortTitle: Psychopathologie des Alltagslebens
+    edition: Gesammelte Werke, Bd. IV (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1901
+    kind: work
+  - item: freud-1942-gw-5
+    volume: V
+    firstPage: 1
+    lastPage: 10
+    slug: die-freudsche-psychoanalytische-methode
+    title: Die Freudsche psychoanalytische Methode
+    shortTitle: Die psychoanalytische Methode
+    edition: Gesammelte Werke, Bd. V (Imago, London 1942)
+    author: Sigmund Freud
+    year: 1904
+    kind: work
+  - item: freud-1942-gw-5
+    volume: V
+    firstPage: 11
+    lastPage: 26
+    slug: ueber-psychotherapie
+    title: Über Psychotherapie
+    edition: Gesammelte Werke, Bd. V (Imago, London 1942)
+    author: Sigmund Freud
+    year: 1905
+    kind: work
+  - item: freud-1942-gw-5
+    volume: V
+    firstPage: 27
+    lastPage: 146
+    slug: drei-abhandlungen-zur-sexualtheorie
+    title: Drei Abhandlungen zur Sexualtheorie
+    shortTitle: Drei Abhandlungen
+    edition: Gesammelte Werke, Bd. V (Imago, London 1942)
+    author: Sigmund Freud
+    year: 1905
+    kind: work
+  - item: freud-1942-gw-5
+    volume: V
+    firstPage: 147
+    lastPage: 160
+    slug: meine-ansichten-ueber-die-rolle-der-sexualitaet
+    title: Meine Ansichten über die Rolle der Sexualität in der Ätiologie der Neurosen
+    shortTitle: Meine Ansichten
+    edition: Gesammelte Werke, Bd. V (Imago, London 1942)
+    author: Sigmund Freud
+    year: 1906
+    kind: work
+  - item: freud-1942-gw-5
+    volume: V
+    firstPage: 161
+    lastPage: 286
+    slug: bruchstueck-einer-hysterie-analyse
+    title: Bruchstück einer Hysterie-Analyse
+    shortTitle: Bruchstück (Dora)
+    edition: Gesammelte Werke, Bd. V (Imago, London 1942)
+    author: Sigmund Freud
+    year: 1905
+    kind: work
+  - item: freud-1942-gw-5
+    volume: V
+    firstPage: 287
+    lastPage: 316
+    slug: psychische-behandlung
+    title: Psychische Behandlung (Seelenbehandlung)
+    shortTitle: Psychische Behandlung
+    edition: Gesammelte Werke, Bd. V (Imago, London 1942)
+    author: Sigmund Freud
+    year: 1890
+    kind: work
+  - item: freud-1940-gw-6
+    volume: VI
+    firstPage: 1
+    lastPage: 270
+    slug: der-witz-und-seine-beziehung-zum-unbewussten
+    title: Der Witz und seine Beziehung zum Unbewußten
+    shortTitle: Der Witz
+    edition: Gesammelte Werke, Bd. VI (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1905
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 1
+    lastPage: 16
+    slug: tatbestandsdiagnostik-und-psychoanalyse
+    title: Tatbestandsdiagnostik und Psychoanalyse
+    shortTitle: Tatbestandsdiagnostik
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1906
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 17
+    lastPage: 28
+    slug: zur-sexuellen-aufklaerung-der-kinder
+    title: Zur sexuellen Aufklärung der Kinder
+    shortTitle: Sexuelle Aufklärung
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1907
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 29
+    lastPage: 126
+    slug: der-wahn-und-die-traeume-in-w-jensens-gradiva
+    title: "Der Wahn und die Träume in W. Jensens „Gradiva“"
+    shortTitle: Gradiva
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1907
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 127
+    lastPage: 140
+    slug: zwangshandlungen-und-religionsuebungen
+    title: Zwangshandlungen und Religionsübungen
+    shortTitle: Zwangshandlungen
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1907
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 141
+    lastPage: 168
+    slug: die-kulturelle-sexualmoral-und-die-moderne-nervositaet
+    title: "Die „kulturelle“ Sexualmoral und die moderne Nervosität"
+    shortTitle: Kulturelle Sexualmoral
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1908
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 169
+    lastPage: 188
+    slug: ueber-infantile-sexualtheorien
+    title: Über infantile Sexualtheorien
+    shortTitle: Infantile Sexualtheorien
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1908
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 189
+    lastPage: 200
+    slug: hysterische-phantasien-und-ihre-beziehung-zur-bisexualitaet
+    title: Hysterische Phantasien und ihre Beziehung zur Bisexualität
+    shortTitle: Hysterische Phantasien
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1908
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 201
+    lastPage: 210
+    slug: charakter-und-analerotik
+    title: Charakter und Analerotik
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1908
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 211
+    lastPage: 224
+    slug: der-dichter-und-das-phantasieren
+    title: Der Dichter und das Phantasieren
+    shortTitle: Der Dichter
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1908
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 225
+    lastPage: 232
+    slug: der-familienroman-der-neurotiker
+    title: Der Familienroman der Neurotiker
+    shortTitle: Der Familienroman
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1909
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 233
+    lastPage: 240
+    slug: allgemeines-ueber-den-hysterischen-anfall
+    title: Allgemeines über den hysterischen Anfall
+    shortTitle: Der hysterische Anfall
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1909
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 241
+    lastPage: 378
+    slug: analyse-der-phobie-eines-fuenfjaehrigen-knaben
+    title: Analyse der Phobie eines fünfjährigen Knaben
+    shortTitle: Der kleine Hans
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1909
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 379
+    lastPage: 466
+    slug: bemerkungen-ueber-einen-fall-von-zwangsneurose
+    title: Bemerkungen über einen Fall von Zwangsneurose
+    shortTitle: Der Rattenmann
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1909
+    kind: work
+  - item: freud-1941-gw-7
+    volume: VII
+    firstPage: 467
+    lastPage: 470
+    slug: vorreden-19061909
+    title: "Vorreden 1906–1909"
+    shortTitle: Vorreden
+    edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1908
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 1
+    lastPage: 61
+    slug: ueber-psychoanalyse
+    title: Über Psychoanalyse
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 62
+    lastPage: 64
+    slug: zur-einleitung-der-selbstmord-diskussion
+    title: Zur Einleitung der Selbstmord-Diskussion
+    shortTitle: Selbstmord-Diskussion
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 65
+    lastPage: 92
+    slug: beitraege-zur-psychologie-des-liebeslebens
+    title: Beiträge zur Psychologie des Liebeslebens
+    shortTitle: Psychologie des Liebeslebens
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 93
+    lastPage: 102
+    slug: die-psychogene-sehstoerung-in-psychoanalytischer-auffassung
+    title: Die psychogene Sehstörung in psychoanalytischer Auffassung
+    shortTitle: Die psychogene Sehstörung
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 103
+    lastPage: 116
+    slug: die-zukuenftigen-chancen-der-psychoanalytischen-therapie
+    title: Die zukünftigen Chancen der psychoanalytischen Therapie
+    shortTitle: Die zukünftigen Chancen
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 117
+    lastPage: 126
+    slug: ueber-wilde-psychoanalyse
+    title: "Über „wilde“ Psychoanalyse"
+    shortTitle: Wilde Psychoanalyse
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 127
+    lastPage: 212
+    slug: eine-kindheitserinnerung-des-leonardo-da-vinci
+    title: Eine Kindheitserinnerung des Leonardo da Vinci
+    shortTitle: Leonardo da Vinci
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 213
+    lastPage: 222
+    slug: ueber-den-gegensinn-der-urworte
+    title: Über den Gegensinn der Urworte
+    shortTitle: Gegensinn der Urworte
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 223
+    lastPage: 226
+    slug: brief-an-friedrich-s-krauss-ueber-die-anthropophyteia
+    title: "Brief an Dr. Friedrich S. Krauss über die „Anthropophyteia“"
+    shortTitle: Brief an Krauss
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 227
+    lastPage: 228
+    slug: beispiele-des-verrats-pathogener-phantasien-bei-neurotikern
+    title: Beispiele des Verrats pathogener Phantasien bei Neurotikern
+    shortTitle: Pathogene Phantasien
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1910
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 229
+    lastPage: 238
+    slug: formulierungen-ueber-die-zwei-prinzipien-des-psychischen-geschehens
+    title: Formulierungen über die zwei Prinzipien des psychischen Geschehens
+    shortTitle: Zwei Prinzipien
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 239
+    lastPage: 320
+    slug: psychoanalytische-bemerkungen-ueber-einen-fall-von-paranoia
+    title: Psychoanalytische Bemerkungen über einen autobiographisch beschriebenen Fall von Paranoia (Dementia paranoides)
+    shortTitle: Schreber
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 321
+    lastPage: 331
+    slug: ueber-neurotische-erkrankungstypen
+    title: Über neurotische Erkrankungstypen
+    shortTitle: Erkrankungstypen
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 332
+    lastPage: 346
+    slug: zur-einleitung-der-onanie-diskussion
+    title: Zur Einleitung der Onanie-Diskussion
+    shortTitle: Onanie-Diskussion
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 347
+    lastPage: 348
+    slug: die-bedeutung-der-vokalfolge
+    title: Die Bedeutung der Vokalfolge
+    shortTitle: Vokalfolge
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 349
+    lastPage: 358
+    slug: die-handhabung-der-traumdeutung-in-der-psychoanalyse
+    title: Die Handhabung der Traumdeutung in der Psychoanalyse
+    shortTitle: Handhabung der Traumdeutung
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 359
+    lastPage: 362
+    slug: gross-ist-die-diana-der-epheser
+    title: "„Groß ist die Diana der Epheser“"
+    shortTitle: Diana der Epheser
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1911
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 363
+    lastPage: 374
+    slug: zur-dynamik-der-uebertragung
+    title: Zur Dynamik der Übertragung
+    shortTitle: Dynamik der Übertragung
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 375
+    lastPage: 388
+    slug: ratschlaege-fuer-den-arzt-bei-der-psychoanalytischen-behandlung
+    title: Ratschläge für den Arzt bei der psychoanalytischen Behandlung
+    shortTitle: Ratschläge für den Arzt
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1912
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 389
+    lastPage: 421
+    slug: das-interesse-an-der-psychoanalyse
+    title: Das Interesse an der Psychoanalyse
+    shortTitle: Das Interesse
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 422
+    lastPage: 428
+    slug: zwei-kinderluegen
+    title: Zwei Kinderlügen
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 429
+    lastPage: 440
+    slug: einige-bemerkungen-ueber-den-begriff-des-unbewussten-in-der-psychoanalyse
+    title: Einige Bemerkungen über den Begriff des Unbewußten in der Psychoanalyse
+    shortTitle: Der Begriff des Unbewußten
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 441
+    lastPage: 452
+    slug: die-disposition-zur-zwangsneurose
+    title: Die Disposition zur Zwangsneurose
+    shortTitle: Disposition zur Zwangsneurose
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1943-gw-8
+    volume: VIII
+    firstPage: 453
+    lastPage: 478
+    slug: zur-einleitung-der-behandlung
+    title: Zur Einleitung der Behandlung
+    shortTitle: Einleitung der Behandlung
+    edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1940-gw-9
+    volume: IX
+    firstPage: 1
+    lastPage: 194
+    slug: totem-und-tabu
+    title: Totem und Tabu
+    edition: Gesammelte Werke, Bd. IX (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 2
+    lastPage: 10
+    slug: maerchenstoffe-in-traeumen
+    title: Märchenstoffe in Träumen
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 11
+    lastPage: 22
+    slug: ein-traum-als-beweismittel
+    title: Ein Traum als Beweismittel
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 23
+    lastPage: 38
+    slug: das-motiv-der-kaestchenwahl
+    title: Das Motiv der Kästchenwahl
+    shortTitle: Die Kästchenwahl
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 39
+    lastPage: 42
+    slug: erfahrungen-und-beispiele-aus-der-analytischen-praxis
+    title: Erfahrungen und Beispiele aus der analytischen Praxis
+    shortTitle: Erfahrungen und Beispiele
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 43
+    lastPage: 115
+    slug: zur-geschichte-der-psychoanalytischen-bewegung
+    title: Zur Geschichte der psychoanalytischen Bewegung
+    shortTitle: Geschichte der Bewegung
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 116
+    lastPage: 124
+    slug: ueber-fausse-reconnaissance
+    title: "Über Fausse Reconnaissance („Déjà raconté“) während der psychoanalytischen Arbeit"
+    shortTitle: Fausse Reconnaissance
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 125
+    lastPage: 136
+    slug: erinnern-wiederholen-und-durcharbeiten
+    title: Erinnern, Wiederholen und Durcharbeiten
+    shortTitle: Erinnern, Wiederholen
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 137
+    lastPage: 170
+    slug: zur-einfuehrung-des-narzissmus
+    title: Zur Einführung des Narzißmus
+    shortTitle: Narzißmus
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 171
+    lastPage: 202
+    slug: der-moses-des-michelangelo
+    title: Der Moses des Michelangelo
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 203
+    lastPage: 208
+    slug: zur-psychologie-des-gymnasiasten
+    title: Zur Psychologie des Gymnasiasten
+    shortTitle: Der Gymnasiast
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1914
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 209
+    lastPage: 233
+    slug: triebe-und-triebschicksale
+    title: Triebe und Triebschicksale
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 234
+    lastPage: 246
+    slug: mitteilung-eines-widersprechenden-falles-von-paranoia
+    title: Mitteilung eines der psychoanalytischen Theorie widersprechenden Falles von Paranoia
+    shortTitle: Ein Fall von Paranoia
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 247
+    lastPage: 263
+    slug: die-verdraengung
+    title: Die Verdrängung
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 264
+    lastPage: 305
+    slug: das-unbewusste
+    title: Das Unbewußte
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 306
+    lastPage: 322
+    slug: bemerkungen-ueber-die-uebertragungsliebe
+    title: Bemerkungen über die Übertragungsliebe
+    shortTitle: Übertragungsliebe
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 323
+    lastPage: 357
+    slug: zeitgemaesses-ueber-krieg-und-tod
+    title: Zeitgemäßes über Krieg und Tod
+    shortTitle: Krieg und Tod
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1915
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 358
+    lastPage: 362
+    slug: vergaenglichkeit
+    title: Vergänglichkeit
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 363
+    lastPage: 392
+    slug: einige-charaktertypen-aus-der-psychoanalytischen-arbeit
+    title: Einige Charaktertypen aus der psychoanalytischen Arbeit
+    shortTitle: Charaktertypen
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 393
+    lastPage: 396
+    slug: eine-beziehung-zwischen-einem-symbol-und-einem-symptom
+    title: Eine Beziehung zwischen einem Symbol und einem Symptom
+    shortTitle: Symbol und Symptom
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 397
+    lastPage: 400
+    slug: mythologische-parallele-zu-einer-plastischen-zwangsvorstellung
+    title: Mythologische Parallele zu einer plastischen Zwangsvorstellung
+    shortTitle: Mythologische Parallele
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 401
+    lastPage: 411
+    slug: ueber-triebumsetzungen-insbesondere-der-analerotik
+    title: Über Triebumsetzungen, insbesondere der Analerotik
+    shortTitle: Triebumsetzungen
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1917
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 412
+    lastPage: 427
+    slug: metapsychologische-ergaenzung-zur-traumlehre
+    title: Metapsychologische Ergänzung zur Traumlehre
+    shortTitle: Metapsychologische Ergänzung
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1917
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 428
+    lastPage: 447
+    slug: trauer-und-melancholie
+    title: Trauer und Melancholie
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1917
+    kind: work
+  - item: freud-1946-gw-10
+    volume: X
+    firstPage: 448
+    lastPage: 456
+    slug: vorreden-19131917
+    title: "Vorreden 1913–1917"
+    shortTitle: Vorreden
+    edition: Gesammelte Werke, Bd. X (Imago, London 1946)
+    author: Sigmund Freud
+    year: 1913
+    kind: work
+  - item: freud-1940-gw-11
+    volume: XI
+    firstPage: 3
+    lastPage: 482
+    slug: vorlesungen-zur-einfuehrung-in-die-psychoanalyse
+    title: Vorlesungen zur Einführung in die Psychoanalyse
+    shortTitle: Vorlesungen
+    edition: Gesammelte Werke, Bd. XI (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1916
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 1
+    lastPage: 14
+    slug: eine-schwierigkeit-der-psychoanalyse
+    title: Eine Schwierigkeit der Psychoanalyse
+    shortTitle: Eine Schwierigkeit
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1917
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 15
+    lastPage: 26
+    slug: eine-kindheitserinnerung-aus-dichtung-und-wahrheit
+    title: "Eine Kindheitserinnerung aus „Dichtung und Wahrheit“"
+    shortTitle: Dichtung und Wahrheit
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1917
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 27
+    lastPage: 160
+    slug: aus-der-geschichte-einer-infantilen-neurose
+    title: Aus der Geschichte einer infantilen Neurose
+    shortTitle: Der Wolfsmann
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1918
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 161
+    lastPage: 180
+    slug: das-tabu-der-virginitaet
+    title: Das Tabu der Virginität
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1918
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 181
+    lastPage: 194
+    slug: wege-der-psychoanalytischen-therapie
+    title: Wege der psychoanalytischen Therapie
+    shortTitle: Wege der Therapie
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 195
+    lastPage: 228
+    slug: ein-kind-wird-geschlagen
+    title: "„Ein Kind wird geschlagen“"
+    shortTitle: Ein Kind wird geschlagen
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 229
+    lastPage: 304
+    slug: das-unheimliche
+    title: Das Unheimliche
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 305
+    lastPage: 306
+    slug: gedankenassoziation-eines-vierjaehrigen-kindes
+    title: Gedankenassoziation eines vierjährigen Kindes
+    shortTitle: Gedankenassoziation
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 307
+    lastPage: 314
+    slug: zur-vorgeschichte-der-analytischen-technik
+    title: Zur Vorgeschichte der analytischen Technik
+    shortTitle: Zur Vorgeschichte der Technik
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 315
+    lastPage: 320
+    slug: gedenkworte-1919
+    title: Gedenkworte 1919
+    shortTitle: Gedenkworte
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 321
+    lastPage: 330
+    slug: vorreden-19171920
+    title: "Vorreden 1917–1920"
+    shortTitle: Vorreden
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1919
+    kind: work
+  - item: freud-1947-gw-12
+    volume: XII
+    firstPage: 331
+    lastPage: 337
+    slug: psychoanalytischer-verlag-und-preiszuteilungen
+    title: Internationaler Psychoanalytischer Verlag und Preiszuteilungen für psychoanalytische Arbeiten
+    shortTitle: Verlag und Preiszuteilungen
+    edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
+    author: Sigmund Freud
+    year: 1919
+    kind: work
   - item: freud-1940-gw-13
     volume: XIII
-    firstPage: 3
-    lastPage: 69
+    firstPage: 1
+    lastPage: 70
     slug: jenseits-des-lustprinzips
     title: Jenseits des Lustprinzips
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud
     year: 1920
     kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 71
+    lastPage: 162
+    slug: massenpsychologie-und-ich-analyse
+    title: Massenpsychologie und Ich-Analyse
+    shortTitle: Massenpsychologie
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1921
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 163
+    lastPage: 194
+    slug: traum-und-telepathie
+    title: Traum und Telepathie
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1922
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 195
+    lastPage: 208
+    slug: ueber-einige-neurotische-mechanismen-bei-eifersucht-paranoia-und-homosexualitaet
+    title: Über einige neurotische Mechanismen bei Eifersucht, Paranoia und Homosexualität
+    shortTitle: Eifersucht, Paranoia, Homosexualität
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1922
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 209
+    lastPage: 234
+    slug: psychoanalyse-und-libidotheorie
+    title: "„Psychoanalyse“ und „Libidotheorie“"
+    shortTitle: Psychoanalyse und Libidotheorie
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1923
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 235
+    lastPage: 290
+    slug: das-ich-und-das-es
+    title: Das Ich und das Es
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1923
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 291
+    lastPage: 300
+    slug: die-infantile-genitalorganisation
+    title: Die infantile Genitalorganisation
+    shortTitle: Genitalorganisation
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1923
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 301
+    lastPage: 314
+    slug: bemerkungen-zur-theorie-und-praxis-der-traumdeutung
+    title: Bemerkungen zur Theorie und Praxis der Traumdeutung
+    shortTitle: Theorie und Praxis der Traumdeutung
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1923
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 315
+    lastPage: 354
+    slug: eine-teufelsneurose-im-siebzehnten-jahrhundert
+    title: Eine Teufelsneurose im siebzehnten Jahrhundert
+    shortTitle: Eine Teufelsneurose
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1923
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 355
+    lastPage: 362
+    slug: josef-popper-lynkeus-und-die-theorie-des-traumes
+    title: Josef Popper-Lynkeus und die Theorie des Traumes
+    shortTitle: Popper-Lynkeus
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1923
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 363
+    lastPage: 368
+    slug: der-realitaetsverlust-bei-neurose-und-psychose
+    title: Der Realitätsverlust bei Neurose und Psychose
+    shortTitle: Der Realitätsverlust
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 369
+    lastPage: 384
+    slug: das-oekonomische-problem-des-masochismus
+    title: Das ökonomische Problem des Masochismus
+    shortTitle: Masochismus
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 385
+    lastPage: 392
+    slug: neurose-und-psychose
+    title: Neurose und Psychose
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 393
+    lastPage: 402
+    slug: der-untergang-des-oedipuskomplexes
+    title: Der Untergang des Ödipuskomplexes
+    shortTitle: Untergang des Ödipuskomplexes
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 403
+    lastPage: 428
+    slug: kurzer-abriss-der-psychoanalyse
+    title: Kurzer Abriß der Psychoanalyse
+    shortTitle: Kurzer Abriß
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1924
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 429
+    lastPage: 434
+    slug: nachschrift-zur-analyse-des-kleinen-hans
+    title: Nachschrift zur Analyse des kleinen Hans
+    shortTitle: Nachschrift zum kleinen Hans
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1922
+    kind: work
+  - item: freud-1940-gw-13
+    volume: XIII
+    firstPage: 435
+    lastPage: 445
+    skipPages: [437, 438, 442]
+    slug: gedenkworte-briefe-und-vorreden-19201924
+    title: "Gedenkworte, Briefe und Vorreden 1920–1924"
+    shortTitle: Gedenkworte, Briefe, Vorreden
+    edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1920
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 3
+    lastPage: 8
+    slug: notiz-ueber-den-wunderblock
+    title: "Notiz über den „Wunderblock“"
+    shortTitle: Der Wunderblock
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1925
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 9
+    lastPage: 16
+    slug: die-verneinung
+    title: Die Verneinung
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1925
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 17
+    lastPage: 30
+    slug: einige-psychische-folgen-des-anatomischen-geschlechtsunterschieds
+    title: Einige psychische Folgen des anatomischen Geschlechtsunterschieds
+    shortTitle: Geschlechtsunterschied
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1925
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 31
+    lastPage: 98
+    slug: selbstdarstellung
+    title: "„Selbstdarstellung“"
+    shortTitle: Selbstdarstellung
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1925
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 99
+    lastPage: 110
+    slug: die-widerstaende-gegen-die-psychoanalyse
+    title: Die Widerstände gegen die Psychoanalyse
+    shortTitle: Die Widerstände
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1925
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 111
+    lastPage: 208
+    slug: hemmung-symptom-und-angst
+    title: Hemmung, Symptom und Angst
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1926
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 209
+    lastPage: 296
+    slug: die-frage-der-laienanalyse
+    title: Die Frage der Laienanalyse
+    shortTitle: Laienanalyse
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1926
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 309
+    lastPage: 320
+    slug: fetischismus
+    title: Fetischismus
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1927
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 321
+    lastPage: 322
+    slug: nachtrag-zur-arbeit-ueber-den-moses-des-michelangelo
+    title: Nachtrag zur Arbeit über den Moses des Michelangelo
+    shortTitle: Nachtrag zum Moses
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1927
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 323
+    lastPage: 382
+    slug: die-zukunft-einer-illusion
+    title: Die Zukunft einer Illusion
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1927
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 383
+    lastPage: 390
+    slug: der-humor
+    title: Der Humor
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1927
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 391
+    lastPage: 396
+    slug: ein-religioeses-erlebnis
+    title: Ein religiöses Erlebnis
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1928
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 397
+    lastPage: 418
+    slug: dostojewski-und-die-vatertoetung
+    title: Dostojewski und die Vatertötung
+    shortTitle: Dostojewski
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1928
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 419
+    lastPage: 508
+    slug: das-unbehagen-in-der-kultur
+    title: Das Unbehagen in der Kultur
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1930
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 509
+    lastPage: 516
+    slug: ueber-libidinoese-typen
+    title: Über libidinöse Typen
+    shortTitle: Libidinöse Typen
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1931
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 517
+    lastPage: 540
+    slug: ueber-die-weibliche-sexualitaet
+    title: Über die weibliche Sexualität
+    shortTitle: Die weibliche Sexualität
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1931
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 541
+    lastPage: 542
+    slug: das-fakultaetsgutachten-im-prozess-halsmann
+    title: Das Fakultätsgutachten im Prozeß Halsmann
+    shortTitle: Prozeß Halsmann
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1931
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 543
+    lastPage: 550
+    slug: goethe-preis-1930
+    title: Goethe-Preis 1930
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1930
+    kind: work
+  - item: freud-1948-gw-14
+    volume: XIV
+    firstPage: 551
+    lastPage: 574
+    skipHeadings: [To the Opening of the Hebrew University]
+    slug: gedenkworte-briefe-und-vorreden-19251931
+    title: "Gedenkworte, Briefe und Vorreden 1925–1931"
+    shortTitle: Gedenkworte, Briefe, Vorreden
+    edition: Gesammelte Werke, Bd. XIV (Imago, London 1948)
+    author: Sigmund Freud
+    year: 1926
+    kind: work
+  - item: freud-1940-gw-15
+    volume: XV
+    firstPage: 3
+    lastPage: 197
+    firstChapter: 29
+    slug: neue-folge-der-vorlesungen-zur-einfuehrung-in-die-psychoanalyse
+    title: Neue Folge der Vorlesungen zur Einführung in die Psychoanalyse
+    shortTitle: Neue Folge der Vorlesungen
+    edition: Gesammelte Werke, Bd. XV (Imago, London 1940)
+    author: Sigmund Freud
+    year: 1933
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 1
+    lastPage: 10
+    slug: zur-gewinnung-des-feuers
+    title: Zur Gewinnung des Feuers
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1932
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 11
+    lastPage: 28
+    slug: warum-krieg
+    title: "Warum Krieg?"
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1933
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 29
+    lastPage: 34
+    slug: nachschrift-zur-selbstdarstellung
+    title: "Nachschrift zur „Selbstdarstellung“"
+    shortTitle: Nachschrift zur Selbstdarstellung
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1935
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 35
+    lastPage: 40
+    slug: die-feinheit-einer-fehlhandlung
+    title: Die Feinheit einer Fehlhandlung
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1935
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 41
+    lastPage: 58
+    slug: konstruktionen-in-der-analyse
+    title: Konstruktionen in der Analyse
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1937
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 59
+    lastPage: 100
+    slug: die-endliche-und-die-unendliche-analyse
+    title: Die endliche und die unendliche Analyse
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1937
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 101
+    lastPage: 248
+    slug: der-mann-moses-und-die-monotheistische-religion
+    title: Der Mann Moses und die monotheistische Religion
+    shortTitle: Der Mann Moses
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1939
+    kind: work
+  - item: freud-1950-gw-16
+    volume: XVI
+    firstPage: 249
+    lastPage: 278
+    slug: briefe-gedenkworte-vorreden-19321939
+    title: "Briefe, Gedenkworte, Vorreden 1932–1939"
+    shortTitle: Briefe, Gedenkworte, Vorreden
+    edition: Gesammelte Werke, Bd. XVI (Imago, London 1950)
+    author: Sigmund Freud
+    year: 1935
+    kind: work
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 3
+    lastPage: 18
+    slug: beitraege-zu-den-studien-ueber-hysterie
+    title: "Beiträge zu den „Studien über Hysterie“"
+    shortTitle: Beiträge zu den Studien
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1892
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 19
+    lastPage: 24
+    slug: eine-erfuellte-traumahnung
+    title: Eine erfüllte Traumahnung
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1899
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 25
+    lastPage: 44
+    slug: psychoanalyse-und-telepathie
+    title: Psychoanalyse und Telepathie
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1921
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 45
+    lastPage: 48
+    slug: das-medusenhaupt
+    title: Das Medusenhaupt
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1922
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 49
+    lastPage: 56
+    slug: ansprache-an-die-mitglieder-des-vereins-bnai-brith
+    title: "Ansprache an die Mitglieder des Vereins B'nai B'rith"
+    shortTitle: "Ansprache an B'nai B'rith"
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1926
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 57
+    lastPage: 62
+    slug: die-ichspaltung-im-abwehrvorgang
+    title: Die Ichspaltung im Abwehrvorgang
+    shortTitle: Die Ichspaltung
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1938
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 63
+    lastPage: 138
+    slug: abriss-der-psychoanalyse
+    title: Abriß der Psychoanalyse
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1938
+    kind: work
+    published: false
+  - item: freud-1941-gw-17
+    volume: XVII
+    firstPage: 149
+    lastPage: 160
+    slug: ergebnisse-ideen-probleme
+    title: Ergebnisse, Ideen, Probleme
+    edition: Gesammelte Werke, Bd. XVII (Imago, London 1941)
+    author: Sigmund Freud
+    year: 1938
+    kind: work
+    published: false

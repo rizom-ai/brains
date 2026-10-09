@@ -24,6 +24,8 @@ export interface ArchiveOcrWork {
   skipPages?: number[];
   /** Sections to leave out by their headings, such as a piece in another language. */
   skipHeadings?: string[];
+  /** The number of the work's first chapter, where it goes on from another. */
+  firstChapter?: number;
 }
 
 interface Line {
@@ -882,7 +884,12 @@ export function parseArchiveOcrWork(
                 }),
           state,
         ),
-      { sections: [], chapters: 0, titled: false, skipping: false },
+      {
+        sections: [],
+        chapters: (work.firstChapter ?? 1) - 1,
+        titled: false,
+        skipping: false,
+      },
     );
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);

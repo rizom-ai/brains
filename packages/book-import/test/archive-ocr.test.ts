@@ -174,6 +174,17 @@ describe("parseArchiveOcrWork on headings", () => {
     expect(units.map((unit) => unit.title)).toContain("III. Der Traum");
   });
 
+  it("numbers chapters on from where the manifest says the work begins", async () => {
+    const units = parseArchiveOcrWork(await headings(), {
+      ...lectures,
+      firstChapter: 29,
+    });
+
+    expect(units.map((unit) => unit.title)).toContain(
+      "XXX. Die Traumzensur (Fortsetzung)",
+    );
+  });
+
   it("drops the work's own title and a running head whose page number the OCR lost", async () => {
     const units = parseArchiveOcrWork(await headings(), lectures);
     const text = units.flatMap((unit) => unit.paragraphs).join("\n");
