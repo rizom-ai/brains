@@ -357,10 +357,13 @@ async function dictionaryWords(
   words: string[],
   dictionary: string,
 ): Promise<Set<string>> {
-  const checker = Bun.spawn(["hunspell", "-d", dictionary, "-l"], {
-    stdin: new TextEncoder().encode(words.join("\n")),
-    stdout: "pipe",
-  });
+  const checker = Bun.spawn(
+    ["hunspell", "-i", "utf-8", "-d", dictionary, "-l"],
+    {
+      stdin: new TextEncoder().encode(words.join("\n")),
+      stdout: "pipe",
+    },
+  );
   const rejected = new Set(
     (await new Response(checker.stdout).text()).split("\n").filter(Boolean),
   );

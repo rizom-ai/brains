@@ -39,7 +39,9 @@ function capitalised(word: string): string {
 }
 
 /** A line mostly in capitals: a heading's title, not running text. */
-function isCapitals(text: string): boolean {
+function isCapitals(line: string): boolean {
+  // A qualifier in brackets is set in small letters beside the title.
+  const text = line.replace(/\([^)]*\)/gu, "");
   const letters = text.match(/\p{L}/gu) ?? [];
   const capitals = text.match(/\p{Lu}/gu) ?? [];
   // A word of four letters at least: a picture's noise reads as scraps.

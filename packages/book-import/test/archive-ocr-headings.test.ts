@@ -37,6 +37,14 @@ describe("headingLineOf", () => {
   });
 });
 
+describe("headingLineOf on a title with its qualifier", () => {
+  it("reads a title in capitals with a bracketed qualifier as a title", () => {
+    expect(
+      headingLineOf("DR. FERENCZI SANDOR (Zum 50. Geburtstag)", 80)?.kind,
+    ).toBe("caps");
+  });
+});
+
 describe("headingOf", () => {
   it("reads a lettered heading that names a part as a part", () => {
     const heading = headingOf([

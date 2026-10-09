@@ -34,6 +34,11 @@ gaps:
     year: 1921
     reason: written in English
   - volume: XIII
+    pages: 439–440
+    title: Geleitwort zu J. Varendonck, Über das vorbewußte phantasierende Denken
+    year: 1921
+    reason: written in English
+  - volume: XIII
     pages: "442"
     title: Brief an Luis Lopez-Ballesteros y de Torres
     year: 1923
@@ -53,6 +58,11 @@ gaps:
     title: To the Opening of the Hebrew University
     year: 1925
     reason: written in English
+  - volume: XIV
+    pages: 558–560
+    title: Brief an Maxime Leroy über einen Traum des Cartesius
+    year: 1929
+    reason: written in French
   - volume: XVII
     pages: 139–148
     title: Some Elementary Lessons in Psycho-Analysis
@@ -1348,7 +1358,7 @@ books:
     volume: XIII
     firstPage: 435
     lastPage: 445
-    skipPages: [437, 438, 442]
+    skipPages: [437, 438, 439, 440, 442]
     slug: gedenkworte-briefe-und-vorreden-19201924
     title: "Gedenkworte, Briefe und Vorreden 1920–1924"
     shortTitle: Gedenkworte, Briefe, Vorreden
@@ -1550,7 +1560,7 @@ books:
     volume: XIV
     firstPage: 551
     lastPage: 574
-    skipHeadings: [To the Opening of the Hebrew University]
+    skipHeadings: [To the Opening of the Hebrew University, Brief an Maxim Leroy über einen Traum des Cartesius]
     slug: gedenkworte-briefe-und-vorreden-19251931
     title: "Gedenkworte, Briefe und Vorreden 1925–1931"
     shortTitle: Gedenkworte, Briefe, Vorreden
