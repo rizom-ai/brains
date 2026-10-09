@@ -620,6 +620,7 @@ describe("parseArchiveOcrWork, front matter numbered by a bare roman numeral", (
     );
 
     expect(units[0]?.section).toBe("Herr Vogt, III");
+    expect(units[0]?.title).toBe("Vorwort.");
     expect(units[0]?.paragraphs[0]).toBe(
       "Unter dem Datum veröffentlichte ich eine Erklärung. Der Prozeß wurde niedergeschlagen.",
     );

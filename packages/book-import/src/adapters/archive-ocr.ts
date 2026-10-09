@@ -6,6 +6,7 @@ import {
   createSpelling,
   headingLineOf,
   headingOf,
+  SECTION_NAME,
   isWordy,
   namesTitle,
   sameName,
@@ -51,6 +52,8 @@ interface Line {
   text: string;
   /** A title set on its numeral's line: the heading ends with it. */
   ends?: boolean;
+  /** Read from a line of numeral and title, which no running head is. */
+  numbered?: boolean;
 }
 
 interface Page {
@@ -733,6 +736,8 @@ function readPage(
   );
 }
 
+/** No chapter opens below this share of the page's height. */
+const FOOT_ZONE = 0.85;
 /** A chapter's numeral alone is narrower than this share of the page. */
 const NUMERAL_WIDTH = 0.1;
 /** A numeral set on a line of its own. */
@@ -745,7 +750,7 @@ const NUMBERED_TITLE = /^([IVXL]+\.)\s+(\p{Lu}.*)$/u;
  * heading sets them on more often, so the heading reads them alike; in a
  * volume that sets numerals on lines of their own, such a line is a list's.
  */
-function numberedTitleApart(line: Line, page: Page): Line[] {
+function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   const match = NUMBERED_TITLE.exec(line.text);
   const centred =
     Math.abs(line.x + line.width / 2 - page.width / 2) < page.width * CENTRE;
@@ -754,19 +759,25 @@ function numberedTitleApart(line: Line, page: Page): Line[] {
     !match?.[1] ||
     !match[2] ||
     !centred ||
+    // A note, set smaller or at the page's foot, may open with an initial
+    // (L. Oliphant); no chapter opens there.
+    line.size < volume.textSize * NOTE_SIZE ||
+    line.y > page.height * FOOT_ZONE ||
     headingLineOf(line.text, line.size) !== null
   ) {
     return [line];
   }
   return [
-    { ...line, text: match[1] },
-    { ...line, text: match[2], ends: true },
+    { ...line, text: match[1], numbered: true },
+    { ...line, text: match[2], ends: true, numbered: true },
   ];
 }
 
 function piecesOf(page: Page, volume: Volume): Piece[] {
   const headless = volume.numberedTitles
-    ? bodyLines(page, volume).flatMap((line) => numberedTitleApart(line, page))
+    ? bodyLines(page, volume).flatMap((line) =>
+        numberedTitleApart(line, page, volume),
+      )
     : bodyLines(page, volume);
   if (isPicture(headless)) return [];
   const bodySize = median(headless.map((line) => line.size));
@@ -811,7 +822,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // on through centred lines however wide.
     const centred =
       Math.abs(centre - page.width / 2) < page.width * CENTRE &&
-      line.y > page.height * HEAD_ZONE &&
+      // A running head is no section's bare name, nor a numeral with a title.
+      (line.y > page.height * HEAD_ZONE ||
+        line.numbered === true ||
+        SECTION_NAME.test(line.text.trim())) &&
       (open ||
         line.width < volume.column * HEADING_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE);
@@ -835,7 +849,9 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         : null);
     // A title is made of the work's words; a picture's scraps are not.
     const headingLine =
-      candidate?.kind === "caps" && !isWordy(candidate.text, volume.spelling)
+      candidate?.kind === "caps" &&
+      !SECTION_NAME.test(candidate.text) &&
+      !isWordy(candidate.text, volume.spelling)
         ? null
         : candidate;
     if (headingLine) {

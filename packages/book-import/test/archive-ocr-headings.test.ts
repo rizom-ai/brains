@@ -37,6 +37,18 @@ describe("headingLineOf", () => {
   });
 });
 
+describe("headingLineOf on a section's name", () => {
+  it("reads a preface's or a closing section's name as a heading, however set", () => {
+    expect(headingLineOf("Vorwort.", 50)).toEqual({
+      kind: "caps",
+      text: "Vorwort.",
+      size: 50,
+    });
+    expect(headingLineOf("Nachtrag", 50)?.kind).toBe("caps");
+    expect(headingLineOf("Vorwort und Dank", 50)).toBeNull();
+  });
+});
+
 describe("headingLineOf on a title with its qualifier", () => {
   it("reads a title in capitals with a bracketed qualifier as a title", () => {
     expect(

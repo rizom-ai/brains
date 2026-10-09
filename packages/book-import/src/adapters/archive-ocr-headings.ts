@@ -76,9 +76,15 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
     return { kind: "chapter", numeral: text.replace(/[.,]$/u, "") };
   }
   if (QUALIFIER.test(text)) return { kind: "qualifier", text };
-  if (isCapitals(text)) return { kind: "caps", text, size };
+  if (isCapitals(text) || SECTION_NAME.test(text)) {
+    return { kind: "caps", text, size };
+  }
   return null;
 }
+
+/** A preface's or a closing section's name, a heading however it is set. */
+export const SECTION_NAME: RegExp =
+  /^(?:vorwort|vorrede|einleitung|nachwort|nachtrag|anhang|schluß|schluss)\.?$/iu;
 
 /** A subtitle is set this much smaller than the title above it. */
 const SUBTITLE_SIZE = 0.85;
