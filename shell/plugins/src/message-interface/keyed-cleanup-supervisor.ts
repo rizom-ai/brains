@@ -1,4 +1,10 @@
-import { Effect, Exit, FiberMap, Scope } from "@brains/utils/effect";
+import {
+  Effect,
+  Exit,
+  FiberMap,
+  Scope,
+  withOptionalClock,
+} from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
 interface KeyedCleanupSupervisorRuntimeOptions {
@@ -7,7 +13,7 @@ interface KeyedCleanupSupervisorRuntimeOptions {
 
 /** Owns replaceable delayed cleanup fibers for one plugin instance. @internal */
 export class KeyedCleanupSupervisor {
-  private readonly scope: Scope.CloseableScope;
+  private readonly scope: Scope.Closeable;
   private readonly fibers: FiberMap.FiberMap<string, void, never>;
   private readonly delayMs: number;
   private readonly clock: Clock.Clock | undefined;
@@ -22,7 +28,7 @@ export class KeyedCleanupSupervisor {
     this.clock = runtimeOptions?.clock;
     this.scope = Effect.runSync(Scope.make());
     this.fibers = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.scope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.scope),
     );
   }
 
@@ -33,11 +39,9 @@ export class KeyedCleanupSupervisor {
     const delayedCleanup = Effect.sleep(this.delayMs).pipe(
       Effect.andThen(Effect.sync(cleanup)),
     );
-    const ownedCleanup = this.clock
-      ? Effect.withClock(delayedCleanup, this.clock)
-      : delayedCleanup;
+    const ownedCleanup = withOptionalClock(delayedCleanup, this.clock);
     const fiber = Effect.runFork(ownedCleanup);
-    FiberMap.unsafeSet(this.fibers, key, fiber);
+    FiberMap.setUnsafe(this.fibers, key, fiber);
   }
 
   /** Interrupt every pending cleanup and reject future scheduling. */

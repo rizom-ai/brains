@@ -30,6 +30,17 @@ describe("the icons a page links", () => {
     });
   });
 
+  test("carry a version when the build knows one, so an edge that kept an old answer is not asked again", () => {
+    expect(iconHeadPaths(["/favicon.svg", "favicon.png"], "abc123")).toEqual({
+      faviconSvgHref: "/favicon.svg?v=abc123",
+      faviconPngHref: "/favicon.png?v=abc123",
+    });
+    expect(iconHeadPaths([], "abc123")).toEqual({
+      faviconSvgHref: null,
+      faviconPngHref: null,
+    });
+  });
+
   test("leave no icon link where the build has no icon", () => {
     const tags = essentialHeadTags(iconHeadPaths([]));
     expect(tags.some((tag) => tag.includes('rel="icon"'))).toBe(false);

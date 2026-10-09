@@ -11,6 +11,7 @@ import {
 } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
 import { sha256Hex } from "@brains/utils/hash";
+import type { ProgressNotification } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
 import { promises as fs } from "fs";
@@ -193,6 +194,42 @@ describe("prepareSiteBuild", () => {
     expect(Object.isFrozen(result.preparedBuild.routes[0]?.sections)).toBe(
       true,
     );
+  });
+
+  it("reports progress as each route is prepared", async () => {
+    // A large site spends minutes here; the job's deadline is renewed by
+    // progress, so preparation has to report it.
+    const routes: RouteDefinition[] = ["one", "two", "three"].map((id) => ({
+      ...createRoute({ heading: id }),
+      id,
+      path: `/${id}`,
+    }));
+    const notifications: ProgressNotification[] = [];
+
+    await prepareSiteBuild({
+      buildId: "progress-build",
+      preparedAt: "2026-07-22T00:00:00.000Z",
+      routes,
+      publicDir: missingPublicDir,
+      signal: new AbortController().signal,
+      parsedOptions: {
+        environment: "preview",
+        siteConfig: { title: "Fixture Site", description: "Fixture" },
+      },
+      buildOptions: {},
+      pipelineContext: createPipelineContext(routes),
+      imageBuildService,
+      siteMetadata: { title: "Fixture Site", description: "Fixture" },
+      onProgress: (notification) => notifications.push(notification),
+    });
+
+    expect(
+      notifications.map(({ progress, total }) => [progress, total]),
+    ).toEqual([
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]);
   });
 
   it("gives the event loop a turn between sections", async () => {

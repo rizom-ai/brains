@@ -81,7 +81,9 @@ export function setupInitialSync(options: InitialSyncOptions): void {
         success: false,
         error: getErrorMessage(error),
       });
-      return { initialSyncPending: false };
+      // Defaults wait for the completion just sent, which says the sync
+      // failed: content it never imported may still be on disk.
+      return { initialSyncPending: true };
     }
 
     if (batchIds.length === 0) {

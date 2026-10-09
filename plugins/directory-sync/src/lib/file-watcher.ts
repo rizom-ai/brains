@@ -1,7 +1,14 @@
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import type { Logger } from "@brains/utils/logger";
-import { Cause, Effect, Exit, FiberMap, Scope } from "@brains/utils/effect";
+import {
+  Cause,
+  Effect,
+  Exit,
+  FiberMap,
+  Scope,
+  withOptionalClock,
+} from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
@@ -45,7 +52,7 @@ export class FileWatcher {
   private watchCallback?: ((event: string, path: string) => void) | undefined;
   private pendingChanges = new Map<string, string>();
   private suppressedPaths = new Map<string, number>();
-  private readonly delayScope: Scope.CloseableScope;
+  private readonly delayScope: Scope.Closeable;
   private readonly delayedBatches: FiberMap.FiberMap<string, void, never>;
   private readonly clock: Clock.Clock | undefined;
   private readonly activeCallbacks = new Set<Promise<void>>();
@@ -68,7 +75,7 @@ export class FileWatcher {
     this.clock = options.clock;
     this.delayScope = Effect.runSync(Scope.make());
     this.delayedBatches = Effect.runSync(
-      Scope.extend(FiberMap.make<string, void, never>(), this.delayScope),
+      Scope.provide(FiberMap.make<string, void, never>(), this.delayScope),
     );
   }
 
@@ -200,10 +207,8 @@ export class FileWatcher {
     const delayedBatch = Effect.sleep(500).pipe(
       Effect.andThen(Effect.sync(() => this.startPendingProcessing())),
     );
-    const ownedDelay = this.clock
-      ? Effect.withClock(delayedBatch, this.clock)
-      : delayedBatch;
-    FiberMap.unsafeSet(
+    const ownedDelay = withOptionalClock(delayedBatch, this.clock);
+    FiberMap.setUnsafe(
       this.delayedBatches,
       "file-change-batch",
       Effect.runFork(ownedDelay),

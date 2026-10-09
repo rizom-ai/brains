@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented in `work/topics-ranked-selection`; release, cohort bump, and verification on `friedrich` remain pending.
+Implemented in `work/topics-ranked-selection` and verified against an isolated local copy of `friedrich`'s corpus. Release, books cohort bump, live redeployment, semantic theme membership, and live ATProto deletion verification remain pending.
 
 ## Problem
 
@@ -73,7 +73,25 @@ Sources read early saw an earlier list, so they cannot vote for a challenger tha
 - The ten-call budget includes description synthesis, not only extraction, so selection cannot turn a bounded extraction job into another deadline failure. Pending selection continues in a successor.
 - Descriptions use at most eight strongest proposals, each bounded to 2,000 characters. Eligibility and evidence are rechecked after generation before topic writes, including visibility changes during the AI call.
 - `subscribeExecution` runs once in both web and worker processes, so a second ordinary subscription would only duplicate enqueue requests.
-- Validation is provider-free and local. The production corpus, release, books cohort bump, redeployment, and live site/ATProto deletion paths have not been verified here.
+- Provider-free validation covers cancellation, incremental checkpoints, source eligibility changes, lease recovery, malformed replies, ranked selection, and ownership migration. Provider-backed local verification is recorded below; live rollout remains separate.
+
+## Local corpus verification — 2026-10-08
+
+Verified implementation commit `769c063b4f` against an independent local copy of corpus revision `819c714f857c137b2c7f7612bac87b2e3c5a8e5f`, with only `book` sources eligible and no live content remote or publishing plugins.
+
+- All 3,738 sources reached fresh cached votes across 107 completed maintenance jobs; 188 votes were empty. All 33 works had sources supporting active topics. This measures vote coverage, not semantic theme membership.
+- The settled set contained 24 topics. Completed attempts made at most ten logical generation calls; the longest recorded successful attempt took 79.516 seconds. No extraction jobs ended failed.
+- A supervised restart preserved all 644 votes captured before shutdown without re-reading them. Recovery after an additional abrupt interruption retained 812 votes and used one queue retry. The abrupt stop was not established as a topic-handler failure.
+- Editing one copied section changed one source hash and one vote, made one AI call, and re-read no unchanged sources. Its original bytes were restored; restoration legitimately made another extraction call.
+- Three challengers entered naturally: `Artistic Creation`, `Revaluation of Values`, and `Criticism and Judgment` replaced `Sleep and Well-Being`, `Eternal Recurrence`, and `Marriage and Parenthood`. A post-hoc replay using settled votes matched the observed set and cleared the strict 25% threshold for every replacement; this is not a per-mutation historical audit.
+- A preview rebuild was requested through MCP on the running app. All 24 active topic pages returned HTTP 200 and all three removed pages returned 404. Preview shares the app port and is selected by the preview Host header; an initial test-harness assumption of a separate preview port was corrected.
+- The log recorded 995 provider usage reports: 2,544,525 input tokens and 410,688 output tokens. Published-rate estimates for recorded usage were USD 0.54–1.13 because owner-generation logs omit cache details. One request lacked usage and one log record was malformed; additional charges cannot be ruled out. This is not a confirmed invoice or spending cap.
+
+Embeddings were disabled to isolate extraction cost. Semantic theme membership, live ATProto deletion, release, cohort changes, and production deployment were not verified or performed.
+
+### Integration validation
+
+Merged main at `e80179cb64` into the feature worktree; only the generated roadmap visual conflicted and was regenerated from the merged source. The integrated branch passed 2,450 targeted tests (one remote-libSQL test skipped), all 112 workspace typechecks, affected-package lint, documentation checks, and architecture checks. An initial contention-worker timing test failed during concurrent validation, then passed in isolation and in the complete targeted rerun; no check was bypassed and no unrelated runtime fix was added.
 
 ## Decisions
 
