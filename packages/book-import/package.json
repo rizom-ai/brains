@@ -1,7 +1,7 @@
 {
   "name": "@brains/book-import",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.508",
+  "version": "0.2.0-alpha.509",
   "description": "Imports published books into book entities",
   "dependencies": {
     "@brains/book": "workspace:*",
