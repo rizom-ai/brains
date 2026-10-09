@@ -13,6 +13,7 @@ import type {
   IGitSync,
 } from "../types";
 import { gitReconciliationCheckpointSchema } from "../types/results";
+import type { MatchesHead } from "./file-watcher";
 
 const storedCheckpointSchema = z.object({
   checkpoint: gitReconciliationCheckpointSchema.optional(),
@@ -47,6 +48,16 @@ const CHECKPOINT_KEY = "current";
  * Owns the durable handoff from a serialized Git HEAD transition to queued
  * directory work. The checkpoint advances only after the batch is durable.
  */
+/** The paths whose working-tree state is what HEAD holds. */
+function matchingHead(gitSync: IGitSync): MatchesHead {
+  return async (paths) => {
+    const status = await gitSync.getStatus();
+    if (!status.isRepo) return [];
+    const differing = new Set(status.files.map((file) => file.path));
+    return paths.filter((path) => !differing.has(path));
+  };
+}
+
 export class GitReconciliationService {
   private readonly store: SerializedStatusStore<StoredCheckpoint>;
 
@@ -136,7 +147,12 @@ export class GitReconciliationService {
       delta.deletedFiles,
     );
     if (batch) {
-      options.directorySync.suppressWatchPaths(delta.files);
+      // The batch imports and deletes what the pull changed; the watcher
+      // seeing the same files, however late, is an echo while they match HEAD.
+      options.directorySync.ignorePulledWatchPaths(
+        delta.files,
+        matchingHead(options.gitSync),
+      );
       await this.saveCheckpoint(delta.checkpoint);
     }
 
