@@ -1435,3 +1435,71 @@ describe("parseArchiveOcrWork, numbered sections in order", () => {
     );
   });
 });
+
+describe("parseArchiveOcrWork, datelined articles", () => {
+  const articles = async (
+    skipHeadings: string[] = [],
+  ): Promise<ReturnType<typeof parseArchiveOcrWork>> =>
+    parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-articles.html"),
+        "utf8",
+      ),
+      {
+        item: "gesammelteschrif02marxuoft",
+        title: "Gesammelte Schriften",
+        citation: "GS II",
+        firstPage: 1,
+        lastPage: 3,
+        datelined: true,
+        skipHeadings,
+      },
+    );
+
+  it("reads a topic, its articles above their datelines, and an article's numbered parts", async () => {
+    const units = await articles();
+
+    expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
+      ["Die Räumung der Donaufürstentümer.", "Reden. — Saint-Arnaud."],
+      [
+        "Die Räumung der Donaufürstentümer.",
+        "Der Stand des russischen Krieges.",
+      ],
+      ["Die Räumung der Donaufürstentümer.", "Die Belagerung von Silistria."],
+      [
+        "Die Räumung der Donaufürstentümer.",
+        "Zum englischen Militärwesen.",
+        "I",
+      ],
+      [
+        "Die Räumung der Donaufürstentümer.",
+        "Zum englischen Militärwesen.",
+        "II",
+      ],
+      ["Die Räumung der Donaufürstentümer.", "Die Handelskrise.", "I"],
+      ["Die Räumung der Donaufürstentümer.", "Die Handelskrise.", "II"],
+    ]);
+  });
+
+  it("keeps an article's dateline as its first paragraph", async () => {
+    const units = await articles();
+
+    expect(units[0]?.paragraphs[0]).toBe(
+      "London, 9. Juni 1854 (New York Tribune, 24. Juni 1854).",
+    );
+  });
+
+  it("leaves out an article and its parts by the article's title", async () => {
+    const units = await articles([
+      "Die Belagerung von Silistria.",
+      "Die Handelskrise.",
+    ]);
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Reden. — Saint-Arnaud.",
+      "Der Stand des russischen Krieges.",
+      "I",
+      "II",
+    ]);
+  });
+});

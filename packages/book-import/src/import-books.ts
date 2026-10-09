@@ -81,6 +81,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipNotes: z.ZodDefault<z.ZodArray<typeof skippedNoteSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
+      datelined: z.ZodDefault<z.ZodBoolean>;
     }
   >
 > = z.object({
@@ -111,6 +112,8 @@ const archiveOcrBookSchema: z.ZodObject<
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
   spacedNotes: z.boolean().default(false),
+  /** A volume of newspaper articles, each titled above its dateline: London, 9. Juni 1854. */
+  datelined: z.boolean().default(false),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */

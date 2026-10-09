@@ -726,6 +726,16 @@ books:
     ).toBe(true);
   });
 
+  it("names a volume of newspaper articles, each titled above its dateline", () => {
+    const manifest = parseManifest(ocrManifest + "    datelined: true\n");
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].datelined
+        : null,
+    ).toBe(true);
+  });
+
   it("reads a corrections file by volume", () => {
     expect(
       parseCorrections(`

@@ -54,6 +54,12 @@ export interface ArchiveOcrWork {
    * does not read; full lines below a gap in the page's lower half are notes.
    */
   spacedNotes?: boolean;
+  /**
+   * A volume of newspaper articles: each article is titled above its
+   * dateline (London, 9. Juni 1854), a series' parts numbered there, and
+   * articles stand under topics set in display type.
+   */
+  datelined?: boolean;
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
@@ -581,6 +587,8 @@ type Piece =
 interface Volume {
   /** Notes set as large as the text, below a rule the OCR leaves unread. */
   spacedNotes?: boolean;
+  /** Newspaper articles, each titled above its dateline. */
+  datelined?: boolean;
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -648,6 +656,9 @@ function headingLineText(line: HeadingLine): string {
       return line.numeral;
     case "letter":
       return line.letter;
+    // Its title is in the lines after it.
+    case "article":
+      return "";
     default:
       return line.text;
   }
@@ -677,7 +688,8 @@ export function pageText(
   return readPage(page, volume, corrections, String(printedPage))
     .flatMap((piece) =>
       piece.kind === "heading"
-        ? piece.lines.map(headingLineText)
+        ? // A topic's or an article's mark prints nothing of its own.
+          piece.lines.map(headingLineText).filter((text) => text !== "")
         : [piece.text],
     )
     .join("\n");
@@ -820,6 +832,9 @@ function middleOf(page: Page): number {
  * A subsection's number, arabic, roman or after a paragraph sign, and title
  * set on one line: 2. Beraud über die Freudenmädchen; §. 2. Der Werth.
  */
+/** A month a day opens a dated line with, no section: 9. August von London. */
+const MONTH =
+  /^(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b/u;
 const NUMBERED_SUBSECTION =
   /^(\d{1,2}|[IVX]{1,4}|§\.?\s*\d{1,2})\.\s+(\p{Lu}.*)$/u;
 /** Space above a section's heading, against the page's line height: more than lines leave. */
@@ -883,6 +898,144 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
   ];
 }
 
+/** A dateline: where and when an article was written, or the paper and day it appeared, ending in its year. */
+const DATELINE = /\p{L}.*\b1\d{3}\)?\.?$/u;
+/** A series' numeral, as Fraktur sets I and J alike, with the part's own title or none. */
+const SERIES_NUMERAL = /^([IVXJ]{1,4})\.(?:\s+(\p{Lu}.*))?$/u;
+/** Title type is set larger than the text by this much at least, where it fills the column. */
+const TITLE_TYPE = 1.1;
+
+/** What a line above a dateline is to its article. */
+type ArticleLine =
+  /** A series' numeral the page sets beside the dateline. */
+  | { kind: "dateline"; numeral: string | null }
+  | { kind: "title" }
+  | { kind: "numeral"; numeral: string; title: string | null };
+
+/**
+ * The lines of a page's newspaper articles by their place: each dateline,
+ * set in from the margin and short of the column, and the centred lines
+ * above it, the article's title in title type and a series' numeral. Text
+ * starts at the margin; a title is set in from it, or fills the column in
+ * larger type.
+ */
+function articleLinesOf(
+  lines: Line[],
+  page: Page,
+  volume: Volume,
+  margin: number,
+): Map<number, ArticleLine> {
+  const middle = middleOf(page);
+  const centred = (line: Line): boolean =>
+    Math.abs(line.x + line.width / 2 - middle) < page.width * CENTRE;
+  const above = (at: number): Array<[number, ArticleLine]> => {
+    const line = lines[at];
+    if (line === undefined || !centred(line)) return [];
+    const numeral = SERIES_NUMERAL.exec(line.text);
+    if (numeral?.[1]) {
+      return [
+        [
+          at,
+          {
+            kind: "numeral",
+            numeral: numeral[1].replace(/J/gu, "I"),
+            title: numeral[2] ?? null,
+          },
+        ],
+        ...above(at - 1),
+      ];
+    }
+    const title =
+      /\p{L}{3}/u.test(line.text) &&
+      line.size >= volume.textSize &&
+      line.size <= volume.textSize * DISPLAY_SIZE &&
+      (line.x - margin > page.width * INDENT ||
+        line.size >= volume.textSize * TITLE_TYPE);
+    return title ? [[at, { kind: "title" }], ...above(at - 1)] : [];
+  };
+  return new Map(
+    lines.flatMap((line, index): Array<[number, ArticleLine]> =>
+      line.x - margin > page.width * INDENT &&
+      line.width < volume.column * HEADING_WIDTH &&
+      line.size <= volume.textSize &&
+      DATELINE.test(line.text)
+        ? [
+            [
+              index,
+              {
+                kind: "dateline",
+                numeral: SERIES_NUMERAL.exec(line.text)?.[1] ?? null,
+              },
+            ],
+            ...above(index - 1),
+          ]
+        : [],
+    ),
+  );
+}
+
+/** A line of a newspaper article's heading, or its dateline, added to a page's pieces. */
+function withArticleLine(
+  pieces: Piece[],
+  line: Line,
+  article: ArticleLine,
+): Piece[] {
+  if (article.kind === "dateline") {
+    const dateline = { kind: "text" as const, opens: true };
+    return article.numeral === null
+      ? [...pieces, { ...dateline, text: line.text }]
+      : [
+          ...pieces,
+          {
+            kind: "heading",
+            lines: [
+              { kind: "letter", letter: article.numeral.replace(/J/gu, "I") },
+            ],
+            closed: true,
+          },
+          {
+            ...dateline,
+            text: line.text.replace(/^[IVXJ]{1,4}\.\s+/u, ""),
+          },
+        ];
+  }
+  if (article.kind === "numeral") {
+    return [
+      ...pieces,
+      {
+        kind: "heading",
+        lines: [
+          { kind: "letter", letter: article.numeral },
+          ...(article.title === null
+            ? []
+            : [
+                {
+                  kind: "caps" as const,
+                  text: article.title,
+                  size: line.size,
+                  misread: true,
+                },
+              ]),
+        ],
+        closed: true,
+      },
+    ];
+  }
+  const caps = {
+    kind: "caps" as const,
+    text: line.text,
+    size: line.size,
+    misread: true,
+  };
+  const last = pieces.at(-1);
+  // A title of two lines runs on in the heading the first opened.
+  return last?.kind === "heading" &&
+    last.closed !== true &&
+    last.lines[0]?.kind === "article"
+    ? [...pieces.slice(0, -1), { ...last, lines: [...last.lines, caps] }]
+    : [...pieces, { kind: "heading", lines: [{ kind: "article" }, caps] }];
+}
+
 /**
  * One page read as heading blocks, text lines and note lines, in order. A
  * heading is a run of short centred lines: a numeral, a letter, a part's name,
@@ -942,6 +1095,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     [...full.map((line) => line.x)].sort((a, b) => a - b)[
       Math.floor(full.length / 4)
     ] ?? 0;
+  const articleLines =
+    volume.datelined === true
+      ? articleLinesOf(textLines, page, volume, margin)
+      : new Map<number, ArticleLine>();
   return headless.reduce<Piece[]>((pieces, line, index) => {
     if (index >= noteFrom) {
       if (
@@ -972,6 +1129,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     ) {
       return pieces;
     }
+    const article = articleLines.get(index);
+    if (article !== undefined) return withArticleLine(pieces, line, article);
     const centre = line.x + line.width / 2;
     const last = pieces.at(-1);
     // A heading runs on until a line ends it.
@@ -1103,6 +1262,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         (below !== undefined &&
           below.y - line.bottom > bodyHeight * SECTION_SPACE)) &&
       (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
+      !MONTH.test(subsection[2]) &&
       // A chapter named so (2. Kapitel) is read as one.
       headingLineOf(line.text, line.size) === null
     ) {
@@ -1244,7 +1404,20 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
               ...pieces.slice(0, -1),
               { kind: "heading", lines: [...last.lines, headingLine], closed },
             ]
-          : [...pieces, { kind: "heading", lines: [headingLine], closed }];
+          : [
+              ...pieces,
+              {
+                kind: "heading",
+                // Articles stand under a topic set in display type.
+                lines:
+                  volume.datelined === true &&
+                  headingLine.kind === "caps" &&
+                  headingLine.size > volume.textSize * DISPLAY_SIZE
+                    ? [{ kind: "part", text: "" }, headingLine]
+                    : [headingLine],
+                closed,
+              },
+            ];
       }
     }
     if (SIGNATURE.test(line.text) || isEdgeNoise(line.text)) return pieces;
@@ -1338,8 +1511,8 @@ interface WorkState {
   sections: Section[];
   /** Chapters so far, which number the next by its place. */
   chapters: number;
-  /** Inside a section the manifest leaves out, up to the next heading. */
-  skipping: boolean;
+  /** The level of a section the manifest leaves out, with the sections under it. */
+  skipping: number | null;
 }
 
 /** A heading's title in the work, its words cased as the text spells them. */
@@ -1448,11 +1621,15 @@ function addHeading(
     return state;
   }
   const chapters = state.chapters + (heading.numbered ? 1 : 0);
+  const level = levelOf(heading, path);
+  // A section left out leaves out the sections under it.
+  if (state.skipping !== null && level > state.skipping) {
+    return { ...state, chapters };
+  }
   // A section left out still holds its place among the chapters.
   if (skip.some((title) => namesTitle(heading.title.join(" "), title))) {
-    return { ...state, chapters, skipping: true };
+    return { ...state, chapters, skipping: level };
   }
-  const level = levelOf(heading, path);
   const step = {
     level,
     label: heading.numbered
@@ -1490,7 +1667,7 @@ function addHeading(
       },
     ],
     chapters,
-    skipping: false,
+    skipping: null,
   };
 }
 
@@ -1499,7 +1676,7 @@ function addPiece(
   piece: Exclude<Piece, { kind: "heading" }>,
   place: Place,
 ): WorkState {
-  if (state.skipping) return state;
+  if (state.skipping !== null) return state;
   const current = state.sections.at(-1) ?? {
     path: [],
     paragraphs: [],
@@ -1707,7 +1884,11 @@ export function parseArchiveOcrWork(
 ): BookUnit[] {
   const read = volumeOf(hocr);
   const { pages, printed, front } = read;
-  const volume = { ...read.volume, spacedNotes: work.spacedNotes === true };
+  const volume = {
+    ...read.volume,
+    spacedNotes: work.spacedNotes === true,
+    datelined: work.datelined === true,
+  };
   const { cased } = volume.spelling;
   const labelOf = (number: number, leaf: number): string =>
     number < 1 && front !== null ? roman(leaf + front) : String(number);
@@ -1762,7 +1943,7 @@ export function parseArchiveOcrWork(
       {
         sections: [],
         chapters: (work.firstChapter ?? 1) - 1,
-        skipping: false,
+        skipping: null,
       },
     );
 

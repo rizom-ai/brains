@@ -8,6 +8,8 @@ export type HeadingLine =
       named?: boolean;
     }
   | { kind: "letter"; letter: string }
+  /** A newspaper article's title: a chapter by its words alone, not numbered. */
+  | { kind: "article" }
   | { kind: "caps"; text: string; size: number; misread?: boolean }
   | { kind: "qualifier"; text: string };
 
@@ -129,6 +131,8 @@ function readHeading(lines: HeadingLine[]): Heading {
           };
         case "letter":
           return { ...heading, level: 2, label: line.letter };
+        case "article":
+          return { ...heading, level: 1 };
         case "qualifier":
           return { ...heading, qualifiers: [...heading.qualifiers, line.text] };
         case "caps": {
