@@ -29,22 +29,27 @@ function tesseractPage(text: string): string {
 }
 
 describe("volumeOfPages", () => {
-  it("numbers each page by its leaf and reads the long s as s, ꝛc. as etc.", () => {
+  it("numbers each page by its leaf and reads the long s as s, ꝛc. as etc., however misread", () => {
     const volume = volumeOfPages([
       tesseractPage("Geſellſchaft"),
       tesseractPage("Klaſſen"),
       tesseractPage("ꝛc."),
+      tesseractPage("ꝛe."),
+      tesseractPage("ꝛ2c."),
     ]);
 
     expect(volume.match(/<div class='ocr_page' id='page_\d+'/g)).toEqual([
       "<div class='ocr_page' id='page_0'",
       "<div class='ocr_page' id='page_1'",
       "<div class='ocr_page' id='page_2'",
+      "<div class='ocr_page' id='page_3'",
+      "<div class='ocr_page' id='page_4'",
     ]);
     expect(volume).toContain("Gesellschaft");
     expect(volume).toContain("Klassen");
     expect(volume).not.toContain("ſ");
     expect(volume).toContain(">etc.</span>");
+    expect(volume).not.toContain("ꝛ");
   });
 });
 

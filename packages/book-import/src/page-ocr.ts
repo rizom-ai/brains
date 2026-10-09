@@ -173,7 +173,8 @@ export function volumeOfPages(pages: string[]): string {
         `<div class='ocr_page' id='page_${leaf}'`,
       )
       .replace(/ſ/g, "s")
-      .replace(/ꝛc\./g, "etc.")
+      // Fraktur's etc., ꝛc., the model reads now and then as ꝛe. or ꝛ2c.
+      .replace(/ꝛ[ce2]+\./g, "etc.")
       // Fraktur models print a word's hyphen as a dash, a double hyphen or
       // an equals sign, at times two of them.
       .replace(/(\p{L})[—⸗=-]+(?=<\/span>)/gu, "$1-")

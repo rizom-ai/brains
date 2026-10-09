@@ -43,7 +43,10 @@ export interface ArchiveOcrWork {
   corrections?: OcrCorrection[];
   /** Notes not the author's, such as an editor's, by page and opening words. */
   skipNotes?: SkippedNote[];
-  /** An editor's signatures (K.): the notes ending in one are the editor's. */
+  /**
+   * An editor's signatures (K.): the notes ending in one are the editor's,
+   * and so are paragraphs ending in one, notes the page set as text.
+   */
   skipNotesSigned?: string[];
   /**
    * The edition sets its notes as large as the text, below a rule the OCR
@@ -131,11 +134,11 @@ const RUNNING_HEAD =
  * The printer's signature at a sheet's foot: the volume by its authors'
  * names, a comma after the first or more names after it, and numeral
  * (Freud, XIII; Marx, Engels, Lassalle. II), the sheet's number after it, the
- * numeral however misread. A single word with a stop and a stray mark
+ * numeral and the number however misread. A single word with a stop and a stray mark
  * (Gesetz. |) is a line's end.
  */
 const SIGNATURE =
-  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3})\s*[IVXLl1|]+\.?[,.]?\s*\d*\s*$/u;
+  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3}|\p{Lu}\p{L}*\s*\.(?:\s*\p{Lu}\p{L}*\s*[,.]){1,3})\s*[IVXLl1|]+\.?[,.]?\s*[\dIl|]*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
@@ -279,9 +282,14 @@ function numberedHead(page: Page): { index: number; number: number } | null {
       if (found || index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) {
         return found;
       }
-      // The OCR reads a 1 in a page number as a dotless i.
+      // The OCR reads a 1 in a page number as a dotless i, and may set a
+      // digit of it in superscript.
       const match = RUNNING_HEAD.exec(
-        line.text.replace(/(?<=\d)ı|ı(?=\d)/g, "1"),
+        line.text
+          .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
+          .replace(/(?<=\d)[⁰¹²³⁴⁵⁶⁷⁸⁹]/gu, (digit) =>
+            String("⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(digit)),
+          ),
       );
       const number = match?.[1] ?? match?.[2] ?? match?.[3];
       return number === undefined ? null : { index, number: Number(number) };
@@ -1760,7 +1768,13 @@ export function parseArchiveOcrWork(
   return unitsOfSections(
     filled.map((section) => ({
       ...section,
-      paragraphs: parted(section.paragraphs),
+      // A signed note the page set as text is the editor's too.
+      paragraphs: parted(
+        section.paragraphs.filter(
+          (paragraph) =>
+            !signed.some((signature) => signature.test(paragraph.text.trim())),
+        ),
+      ),
       notes: parted(section.notes.filter((note) => !skipped(note))),
       titles: section.path.map((step) => titles.get(step) ?? ""),
     })),

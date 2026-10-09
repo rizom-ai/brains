@@ -1327,4 +1327,47 @@ describe("parseArchiveOcrWork, Kautsky's headings", () => {
 
     expect(units.map((unit) => unit.title)).not.toContain("I. Agrikultur.");
   });
+
+  it("leaves out an editor's signed note the page sets as text", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-spaced-notes.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 14,
+        lastPage: 14,
+        spacedNotes: true,
+        skipNotesSigned: ["K."],
+      },
+    );
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "Der Handel der Nation bringt dem Lande den Profit der Arbeit, wie der Profit des Handels.",
+    ]);
+  });
+
+  it("reads a running head whose page number the OCR set in superscript", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-kautsky-heads.html"),
+        "utf8",
+      ),
+      {
+        item: "theorienberden01marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien I",
+        firstPage: 66,
+        lastPage: 69,
+        spacedNotes: true,
+      },
+    );
+
+    expect(units.flatMap((unit) => unit.paragraphs).join(" ")).not.toContain(
+      "6⁹",
+    );
+  });
 });
