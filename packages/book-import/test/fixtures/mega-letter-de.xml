@@ -1,0 +1,110 @@
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="M0000300">
+   <teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title>
+               <idno>292</idno>Karl Marx an Ferdinand Freiligrath in London. London,
+                    Samstag, 20. Juli 1867</title>
+         </titleStmt><editionStmt><p/></editionStmt>
+         <publicationStmt><publisher><ref target="https://www.bbaw.de">Berlin-Brandenburgische Akademie der Wissenschaften</ref></publisher><pubPlace ref="https://www.geonames.org/2950159">Berlin</pubPlace><availability><licence target="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</licence></availability><idno type="URLWeb">https://megadigital.bbaw.de/</idno><idno type="URLXML">https://megadigital.bbaw.de/.xml</idno></publicationStmt>
+         <sourceDesc>
+            <msDesc rend="manuscript">
+               <msIdentifier>
+                  <institution>IISG</institution>
+                  <collection>Marx-Engels-Nachlass</collection>
+                  <idno>
+                     <idno type="shelfmark">Sign. B107/B 100 Fotosign. AK 5b</idno>
+                  </idno>
+               </msIdentifier>
+               <physDesc>
+                  <p>Der Brief besteht aus einer Seite festem, weißem, liniertem Papier im
+                            Format 108 × 180 mm. Er ist als Abschrift von Marx’ Hand auf Seite 8
+                            seines Exzerptheftes von 1867/1868 überliefert. Wasserzeichen:
+                            „[Ham]mond [Manufa]ctoring [Stati]oner“. Marx hat die Seite zu drei
+                            Vierteln beschrieben. Schreibmaterial: schwarze Tinte.</p>
+               </physDesc>
+               <additional>
+                  <listBibl>
+                     <bibl>RGASPI f. 1 op. 1 d. 2055</bibl>
+                  </listBibl>
+               </additional>
+            </msDesc>
+            <listWit>
+               <witness>
+                  <bibl corresp="https://megadigital.bbaw.de/NLYXHEPM">Erstveröffentlichung: in
+                            russischer Übersetzung:
+                            МЭС¹ 25
+                            (1934). S. 493.</bibl>
+               </witness>
+               <witness>
+                  <bibl corresp="https://megadigital.bbaw.de/8D5GFYUL">vollständig in der Sprache des
+                            Originals:
+                            Marx
+                            K., Engels F.: Über Kunst und Literatur (1948).
+                            S. 406.</bibl>
+               </witness>
+            </listWit>
+         </sourceDesc>
+      </fileDesc>
+      <profileDesc><textClass><keywords><term>letter</term></keywords></textClass>
+         <correspDesc>
+            <correspAction type="sent">
+               <persName ref="https://megadigital.bbaw.de/M0001374 http://d-nb.info/gnd/118578537">Karl Marx</persName>
+               <placeName ref="https://megadigital.bbaw.de/M0004412 http://www.geonames.org/2643743">London</placeName>
+               <date when="1867-07-20"/>
+            </correspAction>
+            <correspAction type="received">
+               <persName ref="https://megadigital.bbaw.de/M0006797 1009644">Ferdinand Freiligrath</persName>
+               <placeName ref="https://megadigital.bbaw.de/M0004412 http://www.geonames.org/2643743">London</placeName>
+            </correspAction>
+            <correspContext>
+               <ref type="next" target="https://megadigital.bbaw.de/M0000301"/>
+            </correspContext>
+            <note>Freiligrath antwortet Marx noch am selben Tag (<ref target="https://megadigital.bbaw.de/M0000301">F.
+                        Freiligrath an Marx, 20.7.1867</ref>).</note>
+         </correspDesc>
+         <textClass>
+            <keywords>
+               <term key="M0002035">Lektüren im Korrespondentenkreis</term>
+            </keywords>
+         </textClass>
+      </profileDesc>
+      
+   </teiHeader>
+   <text><body>
+         <div type="writingSession">
+            <opener>
+               <dateline>
+                  <pb/> 20 Juli. 1867.</dateline>
+               <salute>Lieber Freiligrath,</salute>
+            </opener>
+            <p>Ich lese deutschen belletristischen Schund nicht, kann aber nicht vermeiden, daß
+                    hier u. <ref xml:id="fee775e4-c364-4441-a775-e4c36404418b" corresp="#abe05eac-6d13-4758-a05e-ac6d13875881" type="editorialNote">da Freunde aus Dtschd mir Personalia
+                            enthaltende Auszüge zuschicken. So erhielt ich gestern alle auf mich
+                            bezüglichen Passus aus <expan>d<ex>er</ex>
+                     </expan> Schrift eines
+                            gewissen <persName ref="https://megadigital.bbaw.de/M0009041 http://d-nb.info/gnd/116335351">Rasch</persName>,
+                            benamset: „<bibl type="primary" corresp="https://megadigital.bbaw.de/Z2VXC5MP">Zwölf
+                                Streiter der Revolution</bibl>“.</ref><note xml:id="abe05eac-6d13-4758-a05e-ac6d13875881" corresp="#fee775e4-c364-4441-a775-e4c36404418b" type="editorial">Siehe <ref target="https://megadigital.bbaw.de/M0000298">S.
+                                Borkheim an Marx, 19.7.1867</ref>.</note>
+                    Ich ersuche Dich mir über folgende Stelle Aufschluß zu geben:</p>
+            <p>
+               <ref xml:id="f0b9eaa4-e205-42cf-b9ea-a4e20542cf38" corresp="#ca97e369-504f-48c6-97e3-69504fa8c6c9" type="editorialNote">„F’s Beziehungen zu Marx
+                            hatten etc gänzlich <choice>
+                        <sic>aufgehört</sic>
+                        <corr cert="high">aufgehört;</corr>
+                     </choice>
+                     <hi rendition="#u">eine gar nicht zu entschuldigende Handlung
+                                Marxens,</hi> welche ich hier verschweigen will hatte ihnen den
+                            lezten Stoß gegeben. Sie ist nur aus der Gehässigkeit eines Charakters
+                            wie Marx zu erklären. Als ich eines Tages, empört über dieselbe, F. nach
+                            den <hi rendition="#u">Details</hi> derselben fragte, überging er sie
+                            schonend.“</ref><note xml:id="ca97e369-504f-48c6-97e3-69504fa8c6c9" corresp="#f0b9eaa4-e205-42cf-b9ea-a4e20542cf38" type="editorial">Siehe <ref target="https://megadigital.bbaw.de/M0000298">ebenda
+                                </ref>.</note>
+            </p>
+            <closer>
+               <signed>D<lb/>KM.</signed>
+            </closer>
+         </div>
+      </body></text>
+</TEI>

@@ -1,0 +1,156 @@
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="M0000175">
+   <teiHeader>
+      <fileDesc>
+         <titleStmt>
+            <title>
+               <idno>170a</idno>Karl Marx an Collet Dobson Collet in London. London,
+                    Samstag, 26. September 1866</title>
+         </titleStmt><editionStmt><p/></editionStmt>
+         
+         <publicationStmt><publisher><ref target="https://www.bbaw.de">Berlin-Brandenburgische Akademie der Wissenschaften</ref></publisher><pubPlace ref="https://www.geonames.org/2950159">Berlin</pubPlace><availability><licence target="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</licence></availability><idno type="URLWeb">https://megadigital.bbaw.de/</idno><idno type="URLXML">https://megadigital.bbaw.de/.xml</idno></publicationStmt>
+         <sourceDesc>
+            <msDesc rend="manuscript">
+               <msIdentifier>
+                  <institution>Sun Yat-sen University Libraries</institution>
+                  <idno>
+                     <idno type="shelfmark">Guangzhou, China</idno>
+                  </idno>
+               </msIdentifier>
+               <physDesc>
+                  <p>Der Brief besteht aus einem Bogen festem, weißem Papier im Format
+                            225 × 176 mm. Marx hat die ersten drei Seiten vollständig beschrieben,
+                            die vierte zu zwei Dritteln. Schreibmaterial: schwarze Tinte. </p>
+               </physDesc>
+               <additional>
+                  <listBibl>
+                     <bibl>RGASPI f. 1 op. 1 d. 7346</bibl>
+                  </listBibl>
+               </additional>
+            </msDesc>
+         </sourceDesc>
+      </fileDesc>
+      <profileDesc><textClass><keywords><term>letter</term></keywords></textClass>
+         <correspDesc>
+            <correspAction type="sent">
+               <persName ref="https://megadigital.bbaw.de/M0001374 http://d-nb.info/gnd/118578537">Karl Marx</persName>
+               <placeName ref="https://megadigital.bbaw.de/M0004412 http://www.geonames.org/2643743">London</placeName>
+               <date when="1866-09-26"/>
+            </correspAction>
+            <correspAction type="received">
+               <persName ref="https://megadigital.bbaw.de/M0006122 http://d-nb.info/gnd/17850260X">Collet Dobson Collet</persName>
+               <placeName ref="https://megadigital.bbaw.de/M0004412 http://www.geonames.org/2643743">London</placeName>
+            </correspAction>
+            <correspContext>
+               <ref type="prev" target="https://megadigital.bbaw.de/M0000173"/>
+               <ref type="next" target="https://megadigital.bbaw.de/M0000177"/>
+            </correspContext>
+            <note>Marx beantwortet den Brief Collets vom 15. September 1866 (<ref target="https://megadigital.bbaw.de/M0000173">C. Dobson Collet an Marx, 15.9.1866</ref>), Collet
+                    antwortete ihm am 27. September 1866 (<ref target="https://megadigital.bbaw.de/M0000177">C. Dobson Collet
+                        an Marx, 27.9.1866</ref>).</note>
+         </correspDesc>
+         <textClass>
+            <keywords>
+               <term key="M0003714">Preußen</term>
+            </keywords>
+         </textClass>
+      </profileDesc>
+      
+   </teiHeader>
+   <text><body>
+         <div type="writingSession">
+            <opener>
+               <dateline>
+                  <pb/> 1, Modena Villas, Maitland Park.<lb/>26
+                        Sept. 1866</dateline>
+               <salute>My Dear Sir,</salute>
+            </opener>
+            <p>Consequent upon my absence from London, I received <ref xml:id="cbe0ca02-f8ab-4ca8-a0ca-02f8abfca8c1" corresp="#d7e53740-de4d-442f-a537-40de4dc42ff0" type="editorialNote">your letter d.d. Sept. 15</ref><note xml:id="d7e53740-de4d-442f-a537-40de4dc42ff0" corresp="#cbe0ca02-f8ab-4ca8-a0ca-02f8abfca8c1" type="editorial">Siehe <ref target="https://megadigital.bbaw.de/M0000173">C. D. Collet an
+                                Marx,
+                                15.9.1866</ref>. Marx beantwortet im Folgenden <persName ref="https://megadigital.bbaw.de/M0006122 http://d-nb.info/gnd/17850260X">Collets</persName>
+                        Fragen.</note> only to-day.</p>
+            <p>1) The members of the Prussian Lower House are <hi rendition="#u">paid</hi>, but the members of the electoral colleges are <hi rendition="#u">not</hi>.</p>
+            <p>2) The costs of election are defrayed out of the <hi rendition="#u">provincial</hi> (resp. <hi rendition="#u">communal</hi>)
+                    Exchequers. From the nature of the proceeding, they cannot amount to much. The
+                        <add>limits of the</add> electoral ditricts are prescribed by law, each
+                    electoral district is again divided into numerous smaller districts. Aliquot
+                    parts of the population choose <add>each</add> one member for Parliament.</p>
+            <p>3) There is <hi rendition="#u">no qualification</hi>
+                    required for a man to become either a member of Parliament (Lower House) or
+                        <del> to <sic ana="#break-off"/>
+               </del> a member of the electoral
+                    colleges. </p>
+            <p>
+               <pb/> 4) The <hi rendition="#u">primary voters</hi>
+                    include all men from the age of 25 years who pay any <hi rendition="#u">direct</hi> tax. Certain direct taxes are paid by almost everybody, even
+                    servants. All <hi rendition="#u">primary</hi> voters are divided into <hi rendition="#u">three classes</hi>, formed in this way:</p>
+            <p>The <hi rendition="#u">direct taxes</hi> paid by the
+                    primary voters say of one electoral district are summed together. This total sum
+                    of direct taxes is divided into <hi rendition="#u">3 equal parts</hi>. The
+                    first part is <subst>
+                  <del>composed</del>
+                  <add>made up</add>
+               </subst>
+               <subst>
+                  <del>of</del>
+                  <add>by</add>
+               </subst> individuals who pay most direct taxes, the second by those who stand
+                    next <subst>
+                  <del>in</del>
+                  <add>on</add>
+               </subst> the scale of taxation, and the third by the remainder of the primary
+                    voters. The respective contributors to every part form one electoral class. Each
+                    of the three electoral classes so formed elects <hi rendition="#u">the same
+                        number of secondary electors</hi> who form the electoral body that finally
+                    nominates the members of Parliament.</p>
+            <p>5) The middle body or electoral fulfils no other
+                    function.</p>
+            <p>6) I do not exactly <del rendition="#ow">rember<sic ana="#break-off"/>
+               </del> remember for what number of years the deputies
+                    are elected. If I am not greatly mistaken, <ref xml:id="ef0e8943-b8d9-4b5b-8e89-43b8d9db5be3" corresp="#fc59c61c-eabd-4d89-99c6-1ceabdbd89c8" type="editorialNote">the English
+                            “7 years” <pb/> were introduced under the reactionnary
+                            Government of <persName ref="https://megadigital.bbaw.de/M0008169 http://d-nb.info/gnd/116735996">Manteuffel</persName>.</ref><note xml:id="fc59c61c-eabd-4d89-99c6-1ceabdbd89c8" corresp="#ef0e8943-b8d9-4b5b-8e89-43b8d9db5be3" type="editorial">Für das
+                            Preußische Abgeordnetenhaus betrug die Wahlperiode damals 3
+                            Jahre.</note>
+            </p>
+            <p>7) The modes of election <del rendition="#s">in
+                            G<ex>ermany</ex>
+               </del>
+               <sic ana="#break-off"/> throughout Germany are far
+                    from uniform. Generally. However, the system of double elections prevails.</p>
+            <p>In <hi rendition="#u">Bavaria</hi> f.i. every man, having
+                    reached the age of 25 years, and paying any direct tax, is an elector.
+                    Every district is subdivided into smaller ones, and each of them chooses a
+                    certain member of <hi rendition="#u">electors</hi>, but <hi rendition="#u">without the Prussian division of classes</hi>. For every 31,500 primary
+                    voters, there is one member of Parliament. The <hi rendition="#u">communal</hi>
+                    elections in Bavaria are regulated by the same <subst>
+                  <del>laws</del>
+                  <add>law</add>
+               </subst> as the parliamentary ones.</p>
+            <p>8) Cases of electoral bribery are absolutely unknown in
+                        <hi rendition="#u">all</hi> German states.</p>
+            <p>9) The <hi rendition="#u">daily attendance</hi> of members
+                    of Parliament is rigorously enforced. No member <pb/> can stay away without
+                    the permission of the President of the Lower House, and he can give no leave of
+                    absence except in <add place="superlinear">such</add> cases <del rendition="#s">
+                  <unclear reason="covered" cert="low">forever</unclear>
+               </del>
+               <sic ana="#break-off"/> as malady etc. <add place="intralinear">There exists no
+                        such thing as
+                        a “count
+                        out”.</add>
+            </p>
+            <p>10) The ministers, or other public functionaries, <del>
+                  <unclear reason="illegible" cert="low">m</unclear>
+                  <sic ana="#break-off"/>
+               </del> are eligible as members of the Lower House,
+                    but they can assist (in person or by official <hi rendition="#u">remplaçants</hi>), and take part <choice>
+                  <sic>in,</sic>
+                  <corr cert="high">in</corr>
+               </choice> the debates, without being members. In the latter case they are, of
+                    course, excluded from voting</p>
+            <closer>
+               <signed>Yours very truly<lb/>Karl Marx</signed>
+            </closer>
+         </div>
+      </body></text>
+</TEI>

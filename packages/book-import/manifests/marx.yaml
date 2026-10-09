@@ -7,10 +7,12 @@
 # Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept;
 # of the first volume of the Briefwechsel with Engels (Project Gutenberg's
 # ebook of the 1921 printing), only Marx's letters, without the editors'
-# introductions and notes.
-# `year` is first publication. The second and third volumes of Das Kapital
-# appeared after Marx's death, edited by Engels; Engels' prefaces to them are
-# left out. The third volume is two books, as printed, each paged on its own.
+# introductions and notes; and Marx's German letters of 1866–1871 from
+# MEGAdigital (CC BY-SA 4.0), his letters in English and French left out.
+# `year` is first publication, for letters the year of the first. The second
+# and third volumes of Das Kapital appeared after Marx's death, edited by
+# Engels; Engels' prefaces to them are left out. The third volume is two
+# books, as printed, each paged on its own.
 source: dta-tei
 books:
   - id: marx_manifestws_1848
@@ -129,6 +131,16 @@ books:
     title: Briefe an Engels 1847–1853
     edition: Der Briefwechsel zwischen Friedrich Engels und Karl Marx 1844 bis 1883, hrsg. von A. Bebel und Ed. Bernstein, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1921)
     author: Karl Marx
-    year: 1913
+    year: 1847
+    published: false
+    kind: letters
+  - source: mega-letters
+    writer: Karl Marx
+    language: de
+    slug: briefe-1866-1871
+    title: Briefe 1866–1871
+    edition: MEGAdigital, Briefe 1866–1871, Berlin-Brandenburgische Akademie der Wissenschaften (megadigital.bbaw.de)
+    author: Karl Marx
+    year: 1866
     published: false
     kind: letters

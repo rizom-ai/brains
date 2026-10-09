@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`. Sigmund's import is built (#538): 154 books from the Gesammelte Werke scans, the OCR checked against 20 Gutenberg transcriptions and corrected from them and from the scans; seeding the content repo waits on the book and book-section split (#561).
+In progress. Phase 1 and the reading site are built (PRs #519–#537). Friedrich's published works are imported and staged in a local content repo, rehearsed locally on the full corpus; Phase 2's rollout waits on the first release containing `@brains/book`. Sigmund's import is built (#538): 154 books from the Gesammelte Werke scans, the OCR checked against 20 Gutenberg transcriptions and corrected from them and from the scans; seeding the content repo waits on the book and book-section split (#561). Karl's import (#567) reads the Deutsches Textarchiv, Wikisource, Project Gutenberg and MEGAdigital; the scanned works follow.
 
 ## Goal
 
@@ -123,7 +123,7 @@ Not covered: Juvenilia, letters to Nietzsche.
 
 | Source                                                 | Coverage                                                                                                                                                                                             | License                       | Format        |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------- |
-| MEGAdigital (`megadigital.bbaw.de/api/v2/tei-xml.xql`) | Kapital and drafts (MEGA² II), letters 1866–1871, excerpt volumes                                                                                                                                    | CC BY-SA 4.0 (per TEI header) | TEI           |
+| MEGAdigital (`megadigital.bbaw.de/api/v2/tei-xml.xql`) | Marx’s letters 1866–1871 in German, excerpt volumes                                                                                                                                                  | CC BY-SA 4.0 (per TEI header) | TEI           |
 | Deutsches Textarchiv                                   | Kapital I–III, Achtzehnte Brumaire, Manifest                                                                                                                                                         | CC BY-SA 4.0                  | TEI           |
 | archive.org scans                                      | Theorien über den Mehrwert (1905–10), Aus dem literarischen Nachlass (Mehring 1902), Gesammelte Schriften 1852–1862 (Rjasanoff 1917, Luise Kautsky's translations), Das Elend der Philosophie (1885) | public domain                 | OCR           |
 | de.wikisource                                          | Zur Judenfrage, Zur Kritik der Hegel’schen Rechtsphilosophie. Einleitung, Marx’s letters in Ein Briefwechsel von 1843 (Deutsch-Französische Jahrbücher 1844), Thesen über Feuerbach (1888)           | public domain                 | rendered HTML |
@@ -159,7 +159,7 @@ bun packages/book-import/src/cli.ts <manifest> <content-repo>/brain-data
 ```
 
 - `manifests/{nietzsche,marx,freud}.yaml` — one entry per book: adapter, source, edition, license, strip rules
-- adapters: `dta-tei`, `ekgwb`, `mega-tei`, `archive-ocr`, `gutenberg-text`, `wikisource`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
+- adapters: `ekgwb`, `archive-ocr`, `dta-tei`, `wikisource`, `gutenberg-letters`, `mega-letters`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
 - one shared writer applies the splitting rule, validates every entry against `@brains/book`'s schema, writes `book/<book>/…`, and removes stale entries of that book
 - deterministic: rerunning on the same sources yields byte-identical files
 - downloads are cached locally and never committed
@@ -211,7 +211,7 @@ Each phase ships on its own PR, tests first.
 
 ### Phase 5 — Karl
 
-- `mega-tei`, `gutenberg-text` and `wikisource` adapters; Marx manifest and coverage note
+- `dta-tei`, `wikisource`, `gutenberg-letters` and `mega-letters` adapters (#567); Marx manifest and coverage note
 - `karl` user added, content repo seeded, deploy, same verification
 
 ## Risks

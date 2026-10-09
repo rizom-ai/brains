@@ -5,6 +5,14 @@ import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
 import { parseGutenbergLetters } from "./adapters/gutenberg-letters";
+import {
+  LANGUAGES,
+  isWritersLetter,
+  type MegaLetter,
+  megaLetterUnits,
+  parseMegaLetter,
+  parseMegaListing,
+} from "./adapters/mega-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
@@ -188,12 +196,32 @@ const gutenbergLettersBookSchema: z.ZodObject<
   edition: z.string().min(1),
 });
 
+const megaLettersBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      writer: z.ZodString;
+      language: z.ZodEnum<{ [K in (typeof LANGUAGES)[number]]: K }>;
+      title: z.ZodString;
+      edition: z.ZodString;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The writer as MEGAdigital's headings name them: Karl Marx. */
+  writer: z.string().min(1),
+  /** The language of the letters the book holds. */
+  language: z.enum(LANGUAGES),
+  title: z.string().min(1),
+  edition: z.string().min(1),
+});
+
 const SOURCES = [
   "ekgwb",
   "archive-ocr",
   "dta-tei",
   "wikisource",
   "gutenberg-letters",
+  "mega-letters",
 ] as const;
 
 /** A book of the manifest, read from its source. */
@@ -220,6 +248,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
         source: z.ZodLiteral<"gutenberg-letters">;
       }>
     >,
+    ReturnType<
+      typeof megaLettersBookSchema.extend<{
+        source: z.ZodLiteral<"mega-letters">;
+      }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
@@ -228,6 +261,7 @@ const bookSchema: z.ZodDiscriminatedUnion<
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
   gutenbergLettersBookSchema.extend({ source: z.literal("gutenberg-letters") }),
+  megaLettersBookSchema.extend({ source: z.literal("mega-letters") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -482,6 +516,53 @@ async function loadGutenbergLettersBook(
   };
 }
 
+const MEGA = "https://megadigital.bbaw.de/";
+
+async function loadMegaLettersBook(
+  entry: z.output<typeof megaLettersBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  const listed = parseMegaListing(
+    await fetchText(`${MEGA}api/v2/tei-xml.xql`),
+  ).filter(({ heading }) => isWritersLetter(heading, entry.writer));
+  // One letter after another, as the source asks to be fetched.
+  const letters = await listed.reduce<Promise<MegaLetter[]>>(
+    async (done, listing) => {
+      const read = await done;
+      const letter = parseMegaLetter(
+        await fetchText(`${MEGA}${listing.id}.xml`),
+      );
+      if (!letter.licence?.includes("/by-sa/")) {
+        throw new Error(
+          `${listing.id} is not under CC BY-SA: ${letter.licence}`,
+        );
+      }
+      return [...read, { ...listing, letter }];
+    },
+    Promise.resolve([]),
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "CC-BY-SA-4.0",
+      attribution:
+        "MEGAdigital, Berlin-Brandenburgische Akademie der Wissenschaften (megadigital.bbaw.de), CC BY-SA 4.0",
+      source: `${MEGA}briefe/index.xql`,
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: megaLetterUnits(
+      letters.filter(({ letter }) => letter.language === entry.language),
+      entry.writer,
+    ),
+  };
+}
+
 function loadersOf(
   manifest: Manifest,
   fetchText: FetchText,
@@ -499,6 +580,8 @@ function loadersOf(
         return loadWikisourceBook(entry, fetchText);
       case "gutenberg-letters":
         return loadGutenbergLettersBook(entry, fetchText);
+      case "mega-letters":
+        return loadMegaLettersBook(entry, fetchText);
     }
   });
 }

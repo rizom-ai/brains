@@ -341,6 +341,70 @@ books:
   });
 });
 
+describe("importBooks from MEGAdigital letters", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-mega-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads the writer's letters in the manifest's language and credits the edition", async () => {
+    const listing = `<documents xmlns="http://www.tei-c.org/ns/1.0">
+<document><uri>https://megadigital.bbaw.de/M0000300.xml</uri><title>
+  Karl Marx an Ferdinand Freiligrath in London. London, Samstag, 20. Juli 1867</title></document>
+<document><uri>https://megadigital.bbaw.de/M0000175.xml</uri><title>Karl Marx an Collet Dobson Collet in London. London, Mittwoch, 26. September 1866</title></document>
+<document><uri>https://megadigital.bbaw.de/M0000301.xml</uri><title>Ferdinand Freiligrath an Karl Marx in London. London, Samstag, 20. Juli 1867</title></document>
+<document><uri>https://megadigital.bbaw.de/M0001374.xml</uri><title>Marx Karl</title></document>
+</documents>`;
+    const letters: Record<string, string> = {
+      M0000300: "mega-letter-de.xml",
+      M0000175: "mega-letter-en.xml",
+    };
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: mega-letters
+books:
+  - writer: Karl Marx
+    language: de
+    slug: briefe-1866-1871
+    title: Briefe 1866–1871
+    edition: MEGAdigital, Briefe 1866–1871
+    author: Karl Marx
+    year: 1866
+    published: false
+    kind: letters
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        const id = /(M\d+)\.xml$/.exec(url)?.[1];
+        const name = id ? letters[id] : undefined;
+        return name
+          ? readFile(join(import.meta.dir, "fixtures", name), "utf8")
+          : listing;
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "briefe-1866-1871", "00000-titel.md"),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://megadigital.bbaw.de/api/v2/tei-xml.xql",
+      "https://megadigital.bbaw.de/M0000300.xml",
+      "https://megadigital.bbaw.de/M0000175.xml",
+    ]);
+    expect(results).toEqual([{ slug: "briefe-1866-1871", entries: 2 }]);
+    expect(title).toContain("license: CC-BY-SA-4.0");
+    expect(title).toContain("MEGAdigital");
+  });
+});
+
 describe("importBooks from scanned volumes", () => {
   const ocrManifest = `
 source: archive-ocr
