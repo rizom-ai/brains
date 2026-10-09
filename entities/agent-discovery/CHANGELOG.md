@@ -1,5 +1,39 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.504
+  - @brains/atproto-contracts@0.2.0-alpha.504
+  - @brains/content-formatters@0.2.0-alpha.504
+  - @brains/contracts@0.2.0-alpha.504
+  - @brains/http-signatures@0.2.0-alpha.504
+  - @brains/ui-library@0.2.0-alpha.504
+  - @brains/utils@0.2.0-alpha.504
+  - @brains/auth-service@0.2.0-alpha.504
+  - @brains/mcp-service@0.2.0-alpha.504
+  - @brains/plugins@0.2.0-alpha.504
+  - @brains/templates@0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.503
+  - @brains/atproto-contracts@0.2.0-alpha.503
+  - @brains/content-formatters@0.2.0-alpha.503
+  - @brains/contracts@0.2.0-alpha.503
+  - @brains/http-signatures@0.2.0-alpha.503
+  - @brains/ui-library@0.2.0-alpha.503
+  - @brains/utils@0.2.0-alpha.503
+  - @brains/auth-service@0.2.0-alpha.503
+  - @brains/mcp-service@0.2.0-alpha.503
+  - @brains/plugins@0.2.0-alpha.503
+  - @brains/templates@0.2.0-alpha.503
+
 ## 0.2.0-alpha.502
 
 ### Patch Changes

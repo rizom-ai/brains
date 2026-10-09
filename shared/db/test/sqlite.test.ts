@@ -185,12 +185,16 @@ describe("applySqlitePragmas under contention", () => {
       const held = await holder.transaction("write");
       try {
         await held.execute("INSERT INTO probe VALUES (1)");
+        const started = Date.now();
         await rejects(applySqlitePragmas(opener, url), (error: unknown) => {
           expect(error instanceof LibsqlError && error.code).toMatch(
             /^SQLITE_(BUSY|LOCKED)$/u,
           );
           return true;
         });
+        // One budget for every pragma, not one each: two full budgets ran
+        // into this test's own timeout.
+        expect(Date.now() - started).toBeLessThan(7_000);
       } finally {
         held.close();
       }
