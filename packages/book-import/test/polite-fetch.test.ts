@@ -93,6 +93,36 @@ describe("createPoliteFetch", () => {
     expect(gaps.every((gap) => gap >= 45)).toBe(true);
   });
 
+  it("fetches bytes in the same queue, at the same interval, without keeping them", async () => {
+    const { calls, fetchFn } = recorder();
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 50,
+      fetchFn,
+    });
+
+    const [, image, again] = await Promise.all([
+      get("https://example.org/page"),
+      get.bytes("https://example.org/n1.jpg"),
+      get.bytes("https://example.org/n1.jpg"),
+    ]);
+
+    expect(new TextDecoder().decode(image)).toBe(
+      "body of https://example.org/n1.jpg",
+    );
+    expect(again).toEqual(image);
+    expect(calls.map((call) => call.url).sort()).toEqual([
+      "https://example.org/n1.jpg",
+      "https://example.org/n1.jpg",
+      "https://example.org/page",
+    ]);
+    const gaps = calls
+      .slice(1)
+      .map((call, index) => call.at - (calls[index]?.at ?? 0));
+    expect(gaps.every((gap) => gap >= 45)).toBe(true);
+  });
+
   it("fails with the URL at once when the source answers with an error", async () => {
     const statuses: number[] = [];
     const get = createPoliteFetch({

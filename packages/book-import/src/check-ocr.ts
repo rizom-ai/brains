@@ -5,11 +5,13 @@ import {
   writeCorrectionsBeside,
 } from "./corrections-file";
 import {
-  fetchVolumeHocr,
+  firstOfEachVolume,
+  volumeHocr,
   parseManifest,
   scannedBooks,
   type Corrections,
 } from "./import-books";
+import { importerPageOcr } from "./page-ocr";
 import { createImporterFetch } from "./polite-fetch";
 /** A printed page's text as the importer reads it. */
 export interface PageOfText {
@@ -391,12 +393,15 @@ async function main(): Promise<void> {
   const books = scannedBooks(manifest);
   const fetchText = createImporterFetch();
   const corrections = await readCorrectionsBeside(manifestPath);
-  const items = [...new Set(books.map((book) => book.item))];
+  const volumes = firstOfEachVolume(books);
   const hocrs = new Map(
-    await items.reduce<Promise<Array<[string, string]>>>(
-      async (done, item) => [
+    await volumes.reduce<Promise<Array<[string, string]>>>(
+      async (done, book) => [
         ...(await done),
-        [item, await fetchVolumeHocr(item, fetchText)],
+        [
+          book.item,
+          await volumeHocr(book, fetchText, importerPageOcr(fetchText)),
+        ],
       ],
       Promise.resolve([]),
     ),

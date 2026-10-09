@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { readCorrectionsBeside } from "./corrections-file";
 import { importBooks, parseManifest } from "./import-books";
+import { importerPageOcr } from "./page-ocr";
 import { createImporterFetch } from "./polite-fetch";
 
 const USAGE =
@@ -13,12 +14,11 @@ if (!manifestPath || !brainData) {
 }
 
 const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-const results = await importBooks(
-  manifest,
-  brainData,
-  createImporterFetch(),
-  await readCorrectionsBeside(manifestPath),
-);
+const fetchText = createImporterFetch();
+const results = await importBooks(manifest, brainData, fetchText, {
+  corrections: await readCorrectionsBeside(manifestPath),
+  pageOcr: importerPageOcr(fetchText),
+});
 results.forEach(({ slug, entries }) =>
   console.log(`${slug}: ${entries} entries`),
 );

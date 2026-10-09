@@ -15,6 +15,7 @@ import {
   parseMegaListing,
 } from "./adapters/mega-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
+import { volumeOfPages, type PageOcr } from "./page-ocr";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
 
@@ -56,6 +57,8 @@ const archiveOcrBookSchema: z.ZodObject<
     BookFields & {
       item: z.ZodString;
       volume: z.ZodString;
+      citation: z.ZodString;
+      ocr: z.ZodOptional<z.ZodString>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       lastPage: z.ZodNumber;
       title: z.ZodString;
@@ -70,8 +73,12 @@ const archiveOcrBookSchema: z.ZodObject<
   ...bookFields,
   /** The archive.org item holding the scanned volume. */
   item: z.string().min(1),
-  /** The volume's roman numeral, as citations name it. */
+  /** The volume's roman numeral. */
   volume: z.string().min(1),
+  /** How a citation names the volume before its page: GW XIII. */
+  citation: z.string().min(1),
+  /** A Tesseract model to read the scan anew with, where the archive's text read the type wrong: frk for Fraktur. */
+  ocr: z.string().min(1).optional(),
   /** The work's printed pages in the volume. */
   firstPage: z.union([
     z.number().int().positive(),
@@ -316,6 +323,14 @@ export type Manifest = z.output<typeof manifestSchema>;
 
 export type ScannedBook = Extract<ManifestBook, { source: "archive-ocr" }>;
 
+/** One book of each scanned volume, in the manifest's order. */
+export function firstOfEachVolume(books: ScannedBook[]): ScannedBook[] {
+  return books.filter(
+    (book, index) =>
+      books.findIndex((other) => other.item === book.item) === index,
+  );
+}
+
 /** The manifest's books read from scanned volumes. */
 export function scannedBooks(manifest: Manifest): ScannedBook[] {
   return manifest.books.filter(
@@ -371,10 +386,21 @@ const EKGWB_ATTRIBUTION =
 const ARCHIVE = "https://archive.org";
 
 const archiveMetadataSchema = z.object({
+  metadata: z
+    .object({ imagecount: z.coerce.number().int().positive().optional() })
+    .optional(),
   files: z.array(z.object({ name: z.string(), format: z.string() })),
 });
 
 type FetchText = (url: string) => Promise<string>;
+
+/** What an import may be given beside the sources. */
+export interface ImportOptions {
+  /** Corrections to scanned volumes' text, by archive item. */
+  corrections?: Corrections;
+  /** Reads a scan's page images anew with a model, for works that name one. */
+  pageOcr?: (model: string) => PageOcr;
+}
 
 export interface ImportResult {
   slug: string;
@@ -457,15 +483,57 @@ async function loadDtaTeiBook(
 }
 
 /** A work in a scanned volume. */
-async function loadArchiveOcrBook(
-  entry: z.output<typeof archiveOcrBookSchema>,
+/**
+ * A scanned volume read anew, page image by page image in the scan's order,
+ * with the model the work names.
+ */
+export async function ocrVolumeHocr(
+  item: string,
   fetchText: FetchText,
-  corrections: Corrections,
-): Promise<LoadedBook> {
-  const units = parseArchiveOcrWork(
-    await fetchVolumeHocr(entry.item, fetchText),
-    { ...entry, corrections: corrections[entry.item] ?? [] },
+  pageOcr: PageOcr,
+): Promise<string> {
+  const metadata = archiveMetadataSchema.parse(
+    JSON.parse(await fetchText(`${ARCHIVE}/metadata/${item}`)),
   );
+  const count = metadata.metadata?.imagecount;
+  if (!count) throw new Error(`No image count for ${item}`);
+  const pages = await Array.from({ length: count }, (_, leaf) => leaf).reduce<
+    Promise<string[]>
+  >(
+    async (done, leaf) => [
+      ...(await done),
+      await pageOcr(`${ARCHIVE}/download/${item}/page/n${leaf}_w1600.jpg`),
+    ],
+    Promise.resolve([]),
+  );
+  return volumeOfPages(pages);
+}
+
+/** A scanned book's volume: the archive's hOCR, or the scan read anew. */
+export async function volumeHocr(
+  book: ScannedBook,
+  fetchText: FetchText,
+  pageOcr?: (model: string) => PageOcr,
+): Promise<string> {
+  if (!book.ocr) return fetchVolumeHocr(book.item, fetchText);
+  if (!pageOcr) {
+    throw new Error(
+      `${book.slug} is read with ${book.ocr}, but no OCR is given`,
+    );
+  }
+  return ocrVolumeHocr(book.item, fetchText, pageOcr(book.ocr));
+}
+
+async function loadArchiveOcrBook(
+  entry: ScannedBook,
+  fetchText: FetchText,
+  options: ImportOptions,
+): Promise<LoadedBook> {
+  const hocr = await volumeHocr(entry, fetchText, options.pageOcr);
+  const units = parseArchiveOcrWork(hocr, {
+    ...entry,
+    corrections: options.corrections?.[entry.item] ?? [],
+  });
   return {
     book: {
       slug: entry.slug,
@@ -634,14 +702,14 @@ async function loadMegaEtxBook(
 function loadersOf(
   manifest: Manifest,
   fetchText: FetchText,
-  corrections: Corrections,
+  options: ImportOptions,
 ): Array<() => Promise<LoadedBook>> {
   return manifest.books.map((entry) => () => {
     switch (entry.source) {
       case "ekgwb":
         return loadEkgwbBook(entry, fetchText);
       case "archive-ocr":
-        return loadArchiveOcrBook(entry, fetchText, corrections);
+        return loadArchiveOcrBook(entry, fetchText, options);
       case "dta-tei":
         return loadDtaTeiBook(entry, fetchText);
       case "wikisource":
@@ -661,9 +729,9 @@ export async function importBooks(
   manifest: Manifest,
   brainData: string,
   fetchText: FetchText,
-  corrections: Corrections = {},
+  options: ImportOptions = {},
 ): Promise<ImportResult[]> {
-  return loadersOf(manifest, fetchText, corrections).reduce<
+  return loadersOf(manifest, fetchText, options).reduce<
     Promise<ImportResult[]>
   >(async (done, load) => {
     const results = await done;

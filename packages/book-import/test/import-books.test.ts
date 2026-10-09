@@ -470,6 +470,7 @@ source: archive-ocr
 books:
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 3
     lastPage: 10
     slug: jenseits-des-lustprinzips
@@ -495,7 +496,11 @@ books:
     requested.push(url);
     if (url === "https://archive.org/metadata/freud-1940-gw-13") {
       return JSON.stringify({
-        metadata: { title: "Gesammelte Werke. XIII. Band", date: "1940" },
+        metadata: {
+          title: "Gesammelte Werke. XIII. Band",
+          date: "1940",
+          imagecount: 21,
+        },
         files: [
           { name: "Freud_1940_GW_13_djvu.txt", format: "DjVuTXT" },
           { name: "Freud_1940_GW_13_hocr.html", format: "hOCR" },
@@ -524,11 +529,69 @@ books:
     ]);
   });
 
+  it("reads the scan anew with the OCR model a work names, page by page", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    // The fixture's pages, as Tesseract would return each by itself.
+    const pageAt = (leaf: number): string => {
+      const div = volume
+        .split(/(?=<div class='ocr_page')/)
+        .find((chunk) =>
+          chunk.startsWith(
+            `<div class='ocr_page' id='page_${String(leaf).padStart(6, "0")}'`,
+          ),
+        );
+      const page =
+        div?.replace(/<\/body>[\s\S]*$/, "") ??
+        "<div class='ocr_page' id='page_1' title='bbox 0 0 2600 4400'></div>";
+      return `<html><body>${page}</body></html>`;
+    };
+    const recognised: string[] = [];
+    const files = async (dir: string): Promise<string[]> => {
+      const names = await Array.fromAsync(new Bun.Glob("**/*.md").scan(dir));
+      return Promise.all(
+        names.sort().map((name) => readFile(join(dir, name), "utf8")),
+      );
+    };
+
+    await importBooks(parseManifest(ocrManifest), brainData, fetchArchive);
+    const fromArchive = await files(join(brainData, "book"));
+    await rm(join(brainData, "book"), { recursive: true, force: true });
+    requested.length = 0;
+    await importBooks(
+      parseManifest(ocrManifest + "    ocr: frk\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          (model) =>
+          async (url): Promise<string> => {
+            recognised.push(`${model} ${url}`);
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            return pageAt(leaf);
+          },
+      },
+    );
+
+    expect(requested).toEqual([
+      "https://archive.org/metadata/freud-1940-gw-13",
+    ]);
+    expect(recognised).toHaveLength(21);
+    expect(recognised[0]).toBe(
+      "frk https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg",
+    );
+    expect(await files(join(brainData, "book"))).toEqual(fromArchive);
+  });
+
   it("applies the corrections for the work's volume", async () => {
     await importBooks(parseManifest(ocrManifest), brainData, fetchArchive, {
-      "freud-1940-gw-13": [
-        { page: 5, from: "rutscht ein", to: "rückt ein", by: "scan" },
-      ],
+      corrections: {
+        "freud-1940-gw-13": [
+          { page: 5, from: "rutscht ein", to: "rückt ein", by: "scan" },
+        ],
+      },
     });
     const files = await Array.fromAsync(
       new Bun.Glob("**/*.md").scan(join(brainData, "book")),

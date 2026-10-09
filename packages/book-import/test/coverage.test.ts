@@ -19,6 +19,7 @@ gaps:
 books:
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 21
     lastPage: 38
     slug: charcot
@@ -29,6 +30,7 @@ books:
     kind: work
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 63
     lastPage: 138
     slug: abriss-der-psychoanalyse

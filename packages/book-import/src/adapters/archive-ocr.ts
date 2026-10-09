@@ -26,8 +26,10 @@ export interface ArchiveOcrWork {
   item: string;
   /** The work's title, which its opening heading may print. */
   title: string;
-  /** The volume's roman numeral, as citations name it. */
+  /** The volume's roman numeral. */
   volume: string;
+  /** How a citation names the volume before its page: GW XIII. */
+  citation: string;
   /** A printed page, or a roman page of the front matter. */
   firstPage: number | string;
   lastPage: number;
@@ -1154,7 +1156,7 @@ export function parseArchiveOcrWork(
       titles: section.path.map((step) => titles.get(step) ?? ""),
     })),
     (start) => ({
-      citation: `GW ${work.volume}, ${start.label}`,
+      citation: `${work.citation}, ${start.label}`,
       source: `https://archive.org/details/${work.item}/page/n${start.leaf}`,
     }),
     options.entryBytes,

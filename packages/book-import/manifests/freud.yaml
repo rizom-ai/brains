@@ -75,6 +75,7 @@ gaps:
 books:
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 3
     lastPage: 20
     slug: ein-fall-von-hypnotischer-heilung
@@ -86,6 +87,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 21
     lastPage: 36
     slug: charcot
@@ -96,6 +98,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 57
     lastPage: 75
     slug: die-abwehr-neuropsychosen
@@ -106,6 +109,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 77
     lastPage: 312
     slug: studien-ueber-hysterie
@@ -116,6 +120,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 313
     lastPage: 344
     slug: ueber-die-berechtigung-von-der-neurasthenie-die-angstneurose-abzutrennen
@@ -127,6 +132,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 355
     lastPage: 376
     slug: zur-kritik-der-angstneurose
@@ -138,6 +144,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 377
     lastPage: 404
     slug: weitere-bemerkungen-ueber-die-abwehr-neuropsychosen
@@ -149,6 +156,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 425
     lastPage: 460
     slug: zur-aetiologie-der-hysterie
@@ -159,6 +167,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 461
     lastPage: 490
     slug: inhaltsangaben-der-wissenschaftlichen-arbeiten
@@ -170,6 +179,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 491
     lastPage: 516
     slug: die-sexualitaet-in-der-aetiologie-der-neurosen
@@ -181,6 +191,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 517
     lastPage: 530
     slug: zum-psychischen-mechanismus-der-vergesslichkeit
@@ -192,6 +203,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 531
     lastPage: 556
     slug: ueber-deckerinnerungen
@@ -202,6 +214,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 557
     lastPage: 560
     slug: vorwort-zur-sammlung-kleiner-schriften-zur-neurosenlehre
@@ -213,6 +226,7 @@ books:
     kind: work
   - item: freud-1952-gw-1
     volume: I
+    citation: GW I
     firstPage: 561
     lastPage: 574
     slug: einige-nachtraege-zum-ganzen-der-traumdeutung
@@ -224,6 +238,7 @@ books:
     kind: work
   - item: freud-1942-gw-2-3
     volume: "II/III"
+    citation: GW II/III
     firstPage: VII
     lastPage: 626
     slug: die-traumdeutung
@@ -235,6 +250,7 @@ books:
     kind: work
   - item: freud-1942-gw-2-3
     volume: "II/III"
+    citation: GW II/III
     firstPage: 643
     lastPage: 700
     slug: ueber-den-traum
@@ -245,6 +261,7 @@ books:
     kind: work
   - item: freud-1941-gw-4
     volume: IV
+    citation: GW IV
     firstPage: 1
     lastPage: 310
     slug: zur-psychopathologie-des-alltagslebens
@@ -257,6 +274,7 @@ books:
     kind: work
   - item: freud-1942-gw-5
     volume: V
+    citation: GW V
     firstPage: 1
     lastPage: 10
     slug: die-freudsche-psychoanalytische-methode
@@ -268,6 +286,7 @@ books:
     kind: work
   - item: freud-1942-gw-5
     volume: V
+    citation: GW V
     firstPage: 11
     lastPage: 26
     slug: ueber-psychotherapie
@@ -278,6 +297,7 @@ books:
     kind: work
   - item: freud-1942-gw-5
     volume: V
+    citation: GW V
     firstPage: 27
     lastPage: 146
     slug: drei-abhandlungen-zur-sexualtheorie
@@ -290,6 +310,7 @@ books:
     kind: work
   - item: freud-1942-gw-5
     volume: V
+    citation: GW V
     firstPage: 147
     lastPage: 160
     slug: meine-ansichten-ueber-die-rolle-der-sexualitaet
@@ -301,6 +322,7 @@ books:
     kind: work
   - item: freud-1942-gw-5
     volume: V
+    citation: GW V
     firstPage: 161
     lastPage: 286
     slug: bruchstueck-einer-hysterie-analyse
@@ -312,6 +334,7 @@ books:
     kind: work
   - item: freud-1942-gw-5
     volume: V
+    citation: GW V
     firstPage: 287
     lastPage: 316
     slug: psychische-behandlung
@@ -323,6 +346,7 @@ books:
     kind: work
   - item: freud-1940-gw-6
     volume: VI
+    citation: GW VI
     firstPage: 1
     lastPage: 270
     slug: der-witz-und-seine-beziehung-zum-unbewussten
@@ -335,6 +359,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 1
     lastPage: 16
     slug: tatbestandsdiagnostik-und-psychoanalyse
@@ -346,6 +371,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 17
     lastPage: 28
     slug: zur-sexuellen-aufklaerung-der-kinder
@@ -357,6 +383,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 29
     lastPage: 126
     slug: der-wahn-und-die-traeume-in-w-jensens-gradiva
@@ -369,6 +396,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 127
     lastPage: 140
     slug: zwangshandlungen-und-religionsuebungen
@@ -380,6 +408,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 141
     lastPage: 168
     slug: die-kulturelle-sexualmoral-und-die-moderne-nervositaet
@@ -391,6 +420,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 169
     lastPage: 188
     slug: ueber-infantile-sexualtheorien
@@ -402,6 +432,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 189
     lastPage: 200
     slug: hysterische-phantasien-und-ihre-beziehung-zur-bisexualitaet
@@ -413,6 +444,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 201
     lastPage: 210
     slug: charakter-und-analerotik
@@ -423,6 +455,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 211
     lastPage: 224
     slug: der-dichter-und-das-phantasieren
@@ -435,6 +468,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 225
     lastPage: 232
     slug: der-familienroman-der-neurotiker
@@ -446,6 +480,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 233
     lastPage: 240
     slug: allgemeines-ueber-den-hysterischen-anfall
@@ -457,6 +492,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 241
     lastPage: 378
     slug: analyse-der-phobie-eines-fuenfjaehrigen-knaben
@@ -468,6 +504,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 379
     lastPage: 466
     slug: bemerkungen-ueber-einen-fall-von-zwangsneurose
@@ -479,6 +516,7 @@ books:
     kind: work
   - item: freud-1941-gw-7
     volume: VII
+    citation: GW VII
     firstPage: 467
     lastPage: 470
     slug: vorreden-19061909
@@ -490,6 +528,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 1
     lastPage: 61
     slug: ueber-psychoanalyse
@@ -501,6 +540,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 62
     lastPage: 64
     slug: zur-einleitung-der-selbstmord-diskussion
@@ -512,6 +552,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 65
     lastPage: 92
     slug: beitraege-zur-psychologie-des-liebeslebens
@@ -523,6 +564,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 93
     lastPage: 102
     slug: die-psychogene-sehstoerung-in-psychoanalytischer-auffassung
@@ -534,6 +576,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 103
     lastPage: 116
     slug: die-zukuenftigen-chancen-der-psychoanalytischen-therapie
@@ -545,6 +588,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 117
     lastPage: 126
     slug: ueber-wilde-psychoanalyse
@@ -556,6 +600,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 127
     lastPage: 212
     slug: eine-kindheitserinnerung-des-leonardo-da-vinci
@@ -568,6 +613,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 213
     lastPage: 222
     slug: ueber-den-gegensinn-der-urworte
@@ -579,6 +625,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 223
     lastPage: 226
     slug: brief-an-friedrich-s-krauss-ueber-die-anthropophyteia
@@ -590,6 +637,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 227
     lastPage: 228
     slug: beispiele-des-verrats-pathogener-phantasien-bei-neurotikern
@@ -601,6 +649,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 229
     lastPage: 238
     slug: formulierungen-ueber-die-zwei-prinzipien-des-psychischen-geschehens
@@ -612,6 +661,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 239
     lastPage: 320
     slug: psychoanalytische-bemerkungen-ueber-einen-fall-von-paranoia
@@ -623,6 +673,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 321
     lastPage: 331
     slug: ueber-neurotische-erkrankungstypen
@@ -634,6 +685,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 332
     lastPage: 346
     slug: zur-einleitung-der-onanie-diskussion
@@ -645,6 +697,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 347
     lastPage: 348
     slug: die-bedeutung-der-vokalfolge
@@ -656,6 +709,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 349
     lastPage: 358
     slug: die-handhabung-der-traumdeutung-in-der-psychoanalyse
@@ -667,6 +721,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 359
     lastPage: 362
     slug: gross-ist-die-diana-der-epheser
@@ -678,6 +733,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 363
     lastPage: 374
     slug: zur-dynamik-der-uebertragung
@@ -689,6 +745,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 375
     lastPage: 388
     slug: ratschlaege-fuer-den-arzt-bei-der-psychoanalytischen-behandlung
@@ -700,6 +757,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 389
     lastPage: 421
     slug: das-interesse-an-der-psychoanalyse
@@ -711,6 +769,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 422
     lastPage: 428
     slug: zwei-kinderluegen
@@ -721,6 +780,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 429
     lastPage: 440
     slug: einige-bemerkungen-ueber-den-begriff-des-unbewussten-in-der-psychoanalyse
@@ -732,6 +792,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 441
     lastPage: 452
     slug: die-disposition-zur-zwangsneurose
@@ -743,6 +804,7 @@ books:
     kind: work
   - item: freud-1943-gw-8
     volume: VIII
+    citation: GW VIII
     firstPage: 453
     lastPage: 478
     slug: zur-einleitung-der-behandlung
@@ -754,6 +816,7 @@ books:
     kind: work
   - item: freud-1940-gw-9
     volume: IX
+    citation: GW IX
     firstPage: 1
     lastPage: 194
     slug: totem-und-tabu
@@ -765,6 +828,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 2
     lastPage: 10
     slug: maerchenstoffe-in-traeumen
@@ -775,6 +839,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 11
     lastPage: 22
     slug: ein-traum-als-beweismittel
@@ -785,6 +850,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 23
     lastPage: 38
     slug: das-motiv-der-kaestchenwahl
@@ -797,6 +863,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 39
     lastPage: 42
     slug: erfahrungen-und-beispiele-aus-der-analytischen-praxis
@@ -808,6 +875,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 43
     lastPage: 115
     slug: zur-geschichte-der-psychoanalytischen-bewegung
@@ -819,6 +887,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 116
     lastPage: 124
     slug: ueber-fausse-reconnaissance
@@ -830,6 +899,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 125
     lastPage: 136
     slug: erinnern-wiederholen-und-durcharbeiten
@@ -841,6 +911,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 137
     lastPage: 170
     slug: zur-einfuehrung-des-narzissmus
@@ -852,6 +923,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 171
     lastPage: 202
     slug: der-moses-des-michelangelo
@@ -863,6 +935,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 203
     lastPage: 208
     slug: zur-psychologie-des-gymnasiasten
@@ -874,6 +947,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 209
     lastPage: 233
     slug: triebe-und-triebschicksale
@@ -884,6 +958,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 234
     lastPage: 246
     slug: mitteilung-eines-widersprechenden-falles-von-paranoia
@@ -895,6 +970,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 247
     lastPage: 263
     slug: die-verdraengung
@@ -905,6 +981,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 264
     lastPage: 305
     slug: das-unbewusste
@@ -915,6 +992,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 306
     lastPage: 322
     slug: bemerkungen-ueber-die-uebertragungsliebe
@@ -926,6 +1004,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 323
     lastPage: 357
     slug: zeitgemaesses-ueber-krieg-und-tod
@@ -938,6 +1017,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 358
     lastPage: 362
     slug: vergaenglichkeit
@@ -949,6 +1029,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 363
     lastPage: 392
     slug: einige-charaktertypen-aus-der-psychoanalytischen-arbeit
@@ -961,6 +1042,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 393
     lastPage: 396
     slug: eine-beziehung-zwischen-einem-symbol-und-einem-symptom
@@ -972,6 +1054,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 397
     lastPage: 400
     slug: mythologische-parallele-zu-einer-plastischen-zwangsvorstellung
@@ -983,6 +1066,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 401
     lastPage: 411
     slug: ueber-triebumsetzungen-insbesondere-der-analerotik
@@ -994,6 +1078,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 412
     lastPage: 427
     slug: metapsychologische-ergaenzung-zur-traumlehre
@@ -1005,6 +1090,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 428
     lastPage: 447
     slug: trauer-und-melancholie
@@ -1015,6 +1101,7 @@ books:
     kind: work
   - item: freud-1946-gw-10
     volume: X
+    citation: GW X
     firstPage: 448
     lastPage: 456
     slug: vorreden-19131917
@@ -1026,6 +1113,7 @@ books:
     kind: work
   - item: freud-1940-gw-11
     volume: XI
+    citation: GW XI
     firstPage: 3
     lastPage: 482
     slug: vorlesungen-zur-einfuehrung-in-die-psychoanalyse
@@ -1037,6 +1125,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 1
     lastPage: 14
     slug: eine-schwierigkeit-der-psychoanalyse
@@ -1049,6 +1138,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 15
     lastPage: 26
     slug: eine-kindheitserinnerung-aus-dichtung-und-wahrheit
@@ -1061,6 +1151,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 27
     lastPage: 160
     slug: aus-der-geschichte-einer-infantilen-neurose
@@ -1072,6 +1163,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 161
     lastPage: 180
     slug: das-tabu-der-virginitaet
@@ -1082,6 +1174,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 181
     lastPage: 194
     slug: wege-der-psychoanalytischen-therapie
@@ -1093,6 +1186,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 195
     lastPage: 228
     slug: ein-kind-wird-geschlagen
@@ -1104,6 +1198,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 229
     lastPage: 268
     slug: das-unheimliche
@@ -1115,6 +1210,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 269
     lastPage: 304
     slug: ueber-die-psychogenese-eines-falles-von-weiblicher-homosexualitaet
@@ -1126,6 +1222,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 305
     lastPage: 306
     slug: gedankenassoziation-eines-vierjaehrigen-kindes
@@ -1137,6 +1234,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 307
     lastPage: 314
     slug: zur-vorgeschichte-der-analytischen-technik
@@ -1148,6 +1246,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 315
     lastPage: 320
     slug: gedenkworte-1919
@@ -1159,6 +1258,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 321
     lastPage: 330
     slug: vorreden-19171920
@@ -1170,6 +1270,7 @@ books:
     kind: work
   - item: freud-1947-gw-12
     volume: XII
+    citation: GW XII
     firstPage: 331
     lastPage: 337
     slug: psychoanalytischer-verlag-und-preiszuteilungen
@@ -1181,6 +1282,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 1
     lastPage: 70
     slug: jenseits-des-lustprinzips
@@ -1192,6 +1294,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 71
     lastPage: 162
     slug: massenpsychologie-und-ich-analyse
@@ -1204,6 +1307,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 163
     lastPage: 194
     slug: traum-und-telepathie
@@ -1215,6 +1319,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 195
     lastPage: 208
     slug: ueber-einige-neurotische-mechanismen-bei-eifersucht-paranoia-und-homosexualitaet
@@ -1226,6 +1331,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 209
     lastPage: 234
     slug: psychoanalyse-und-libidotheorie
@@ -1237,6 +1343,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 235
     lastPage: 290
     slug: das-ich-und-das-es
@@ -1247,6 +1354,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 291
     lastPage: 300
     slug: die-infantile-genitalorganisation
@@ -1258,6 +1366,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 301
     lastPage: 314
     slug: bemerkungen-zur-theorie-und-praxis-der-traumdeutung
@@ -1269,6 +1378,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 315
     lastPage: 354
     slug: eine-teufelsneurose-im-siebzehnten-jahrhundert
@@ -1280,6 +1390,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 355
     lastPage: 362
     slug: josef-popper-lynkeus-und-die-theorie-des-traumes
@@ -1291,6 +1402,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 363
     lastPage: 368
     slug: der-realitaetsverlust-bei-neurose-und-psychose
@@ -1302,6 +1414,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 369
     lastPage: 384
     slug: das-oekonomische-problem-des-masochismus
@@ -1313,6 +1426,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 385
     lastPage: 392
     slug: neurose-und-psychose
@@ -1323,6 +1437,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 393
     lastPage: 402
     slug: der-untergang-des-oedipuskomplexes
@@ -1334,6 +1449,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 403
     lastPage: 428
     slug: kurzer-abriss-der-psychoanalyse
@@ -1345,6 +1461,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 429
     lastPage: 434
     slug: nachschrift-zur-analyse-des-kleinen-hans
@@ -1356,6 +1473,7 @@ books:
     kind: work
   - item: freud-1940-gw-13
     volume: XIII
+    citation: GW XIII
     firstPage: 435
     lastPage: 445
     skipPages: [437, 438, 439, 440, 442]
@@ -1368,6 +1486,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 3
     lastPage: 8
     slug: notiz-ueber-den-wunderblock
@@ -1379,6 +1498,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 9
     lastPage: 16
     slug: die-verneinung
@@ -1389,6 +1509,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 17
     lastPage: 30
     slug: einige-psychische-folgen-des-anatomischen-geschlechtsunterschieds
@@ -1400,6 +1521,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 31
     lastPage: 98
     slug: selbstdarstellung
@@ -1411,6 +1533,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 99
     lastPage: 110
     slug: die-widerstaende-gegen-die-psychoanalyse
@@ -1422,6 +1545,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 111
     lastPage: 208
     slug: hemmung-symptom-und-angst
@@ -1432,6 +1556,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 209
     lastPage: 296
     slug: die-frage-der-laienanalyse
@@ -1443,6 +1568,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 309
     lastPage: 320
     slug: fetischismus
@@ -1453,6 +1579,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 321
     lastPage: 322
     slug: nachtrag-zur-arbeit-ueber-den-moses-des-michelangelo
@@ -1464,6 +1591,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 323
     lastPage: 382
     slug: die-zukunft-einer-illusion
@@ -1474,6 +1602,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 383
     lastPage: 390
     slug: der-humor
@@ -1484,6 +1613,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 391
     lastPage: 396
     slug: ein-religioeses-erlebnis
@@ -1494,6 +1624,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 397
     lastPage: 418
     slug: dostojewski-und-die-vatertoetung
@@ -1505,6 +1636,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 419
     lastPage: 508
     slug: das-unbehagen-in-der-kultur
@@ -1515,6 +1647,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 509
     lastPage: 516
     slug: ueber-libidinoese-typen
@@ -1526,6 +1659,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 517
     lastPage: 540
     slug: ueber-die-weibliche-sexualitaet
@@ -1537,6 +1671,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 541
     lastPage: 542
     slug: das-fakultaetsgutachten-im-prozess-halsmann
@@ -1548,6 +1683,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 543
     lastPage: 550
     slug: goethe-preis-1930
@@ -1558,6 +1694,7 @@ books:
     kind: work
   - item: freud-1948-gw-14
     volume: XIV
+    citation: GW XIV
     firstPage: 551
     lastPage: 574
     skipHeadings: [To the Opening of the Hebrew University, Brief an Maxim Leroy über einen Traum des Cartesius]
@@ -1570,6 +1707,7 @@ books:
     kind: work
   - item: freud-1940-gw-15
     volume: XV
+    citation: GW XV
     firstPage: 3
     lastPage: 197
     firstChapter: 29
@@ -1582,6 +1720,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 1
     lastPage: 10
     slug: zur-gewinnung-des-feuers
@@ -1592,6 +1731,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 11
     lastPage: 28
     slug: warum-krieg
@@ -1602,6 +1742,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 29
     lastPage: 34
     slug: nachschrift-zur-selbstdarstellung
@@ -1613,6 +1754,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 35
     lastPage: 40
     slug: die-feinheit-einer-fehlhandlung
@@ -1623,6 +1765,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 41
     lastPage: 58
     slug: konstruktionen-in-der-analyse
@@ -1633,6 +1776,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 59
     lastPage: 100
     slug: die-endliche-und-die-unendliche-analyse
@@ -1643,6 +1787,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 101
     lastPage: 248
     slug: der-mann-moses-und-die-monotheistische-religion
@@ -1654,6 +1799,7 @@ books:
     kind: work
   - item: freud-1950-gw-16
     volume: XVI
+    citation: GW XVI
     firstPage: 249
     lastPage: 278
     slug: briefe-gedenkworte-vorreden-19321939
@@ -1665,6 +1811,7 @@ books:
     kind: work
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 3
     lastPage: 18
     slug: beitraege-zu-den-studien-ueber-hysterie
@@ -1677,6 +1824,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 19
     lastPage: 24
     slug: eine-erfuellte-traumahnung
@@ -1688,6 +1836,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 25
     lastPage: 44
     slug: psychoanalyse-und-telepathie
@@ -1699,6 +1848,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 45
     lastPage: 48
     slug: das-medusenhaupt
@@ -1710,6 +1860,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 49
     lastPage: 56
     slug: ansprache-an-die-mitglieder-des-vereins-bnai-brith
@@ -1722,6 +1873,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 57
     lastPage: 62
     slug: die-ichspaltung-im-abwehrvorgang
@@ -1734,6 +1886,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 63
     lastPage: 138
     slug: abriss-der-psychoanalyse
@@ -1745,6 +1898,7 @@ books:
     published: false
   - item: freud-1941-gw-17
     volume: XVII
+    citation: GW XVII
     firstPage: 149
     lastPage: 152
     slug: ergebnisse-ideen-probleme
