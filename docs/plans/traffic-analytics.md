@@ -20,11 +20,13 @@ published, and shows it to the anchor in Studio:
 
 Today the analytics plugin is a pass-through to Cloudflare Web Analytics:
 
-- **No history.** Cloudflare answers windows of at most 13 weeks and keeps
-  exact counts for about a week; after that a day is sampled (about one page
-  load in ten on yeehaa.io), so its numbers are estimates in steps of about
-  ten. The brain stores nothing, so every question past a week is an
-  estimate and every question past 13 weeks has no answer.
+- **No history.** Cloudflare keeps exact counts for about a week; after
+  that a day is sampled (about one page load in ten to twenty on
+  yeehaa.io), so its numbers are estimates. One query spans at most 13
+  weeks, and the oldest day it still returns sits at about six months
+  (yeehaa.io's first day, 12 April 2026, on 9 October). The brain stores
+  nothing, so every question past a week is an estimate and history ages
+  out of Cloudflare.
 - **No link to content.** Requests are paths; nothing maps
   `/essays/infrastructure-not-platforms` to the `post` it renders, so the
   brain cannot say how a piece it published performed.
@@ -79,9 +81,11 @@ digest registers one), registered in `onRegister` so it runs in the worker:
 3. A day the check could not capture within Cloudflare's exact window is
    stored when next reachable, marked `estimated`.
 
-**Backfill.** When no snapshot exists, the first run imports what
-Cloudflare still has (13 weeks, one query per day), marking sampled days
-`estimated`.
+**Backfill.** When no snapshot exists, the first run imports every day
+Cloudflare still returns, one query per day, from the Web Analytics site's
+`created` date (`rum/site_info`) to yesterday, marking sampled days
+`estimated`. History ages out of Cloudflare a day at a time, so this ships
+in the first slice.
 
 ### Traffic per entity
 
@@ -129,7 +133,8 @@ subscriptions:
 
 1. **Capture.** Entity type, adapter, daily check, backfill. Done when a
    deployed brain has a snapshot for yesterday whose numbers match
-   Cloudflare's for that day, and 13 weeks backfilled.
+   Cloudflare's for that day, and every earlier day Cloudflare still
+   returns backfilled.
 2. **Reports.** `traffic-overview` and `traffic-series` as
    `system_analytics` definitions over snapshots; `analytics_query` gone.
    Lands with or after system-analytics-tool phase 2.
