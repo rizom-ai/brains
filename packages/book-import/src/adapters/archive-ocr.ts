@@ -108,8 +108,14 @@ const CLEAN_LINES = 0.5;
  */
 const RUNNING_HEAD =
   /^(?:\S{1,2}\s+)?(\d+)\s+\S.*$|^.*\S\s+(\d+)(?:\s+\S{1,2})?$|^[—–-]?\s*(\d+)\s*[—–-]?$/;
-/** The printer's signature at a sheet's foot, its numeral however misread. */
-const SIGNATURE = /^Freud\s*[,.]?\s*[IVXLl1|]+\.?\s*\d*\s*$/;
+/**
+ * The printer's signature at a sheet's foot: the volume by its authors'
+ * names, a comma after the first, and numeral (Freud, XIII; Marx, Engels,
+ * Lassalle. II), the sheet's number after it, the numeral however misread.
+ * Without the comma a word and a stray mark (Gesetz. |) are a line's end.
+ */
+const SIGNATURE =
+  /^(?:Freud\s*[,.]?|\p{Lu}\p{L}*\s*,(?:\s*\p{Lu}\p{L}*\s*[,.]){0,3})\s*[IVXLl1|]+\.?[,.]?\s*\d*\s*$/u;
 const NOTE_START = /^(?:ı|\d+|\*)\)/;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
 const OCR_NOTE_MARKER = /ı\)/g;

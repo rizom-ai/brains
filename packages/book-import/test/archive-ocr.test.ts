@@ -651,7 +651,28 @@ describe("parseArchiveOcrWork, titles set in display type", () => {
     ]);
     expect(units[0]?.paragraphs[0]).toStartWith("Die Nr. 60 des Vorwärts");
     expect(units[1]?.paragraphs).toEqual([
-      "Zunächst erinnere man sich an das Weberlied, an diese kühne Parole des Kampfes.",
+      "Zunächst erinnere man sich an das Weberlied, an diese kühne Parole des Kampfes. Der Aufstand der Weber galt dem König von Preussen, nicht Ludwig XIV.",
     ]);
+  });
+
+  it("leaves out the printer's signature at the foot of a sheet, whatever volume it names", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-2",
+        title:
+          "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform",
+        citation: "Nachlass II",
+        firstPage: 41,
+        lastPage: 42,
+      },
+    );
+
+    expect(units.flatMap((unit) => unit.paragraphs).join("\n")).not.toContain(
+      "Lassalle",
+    );
   });
 });
