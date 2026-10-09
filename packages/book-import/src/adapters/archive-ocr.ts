@@ -12,6 +12,13 @@ import {
   type HeadingLine,
 } from "./archive-ocr-headings";
 
+/** A misread line fixed: on a printed page, its text from, as the reader reads it, to the right one. */
+export interface OcrCorrection {
+  page: number | string;
+  from: string;
+  to: string;
+}
+
 /** A work inside a scanned volume, by its printed pages. */
 export interface ArchiveOcrWork {
   /** The archive.org item, e.g. `freud-1940-gw-13`. */
@@ -29,6 +36,8 @@ export interface ArchiveOcrWork {
   skipHeadings?: string[];
   /** The number of the work's first chapter, where it goes on from another. */
   firstChapter?: number;
+  /** Lines the OCR misread, fixed. */
+  corrections?: OcrCorrection[];
 }
 
 interface Line {
@@ -557,18 +566,67 @@ export function pageLeaf(hocr: string, printedPage: number): number {
  * One printed page's text as the importer reads it, line by line, headings
  * and notes included: what an OCR check holds against the scan.
  */
-export function pageText(hocr: string, printedPage: number): string {
+export function pageText(
+  hocr: string,
+  printedPage: number,
+  corrections: OcrCorrection[] = [],
+): string {
   const { pages, volume } = volumeOf(hocr);
   const leaf = pageLeaf(hocr, printedPage);
   const page = pages.find((each) => each.leaf === leaf);
   if (!page) throw new Error(`No page ${printedPage}`);
-  return piecesOf(page, volume)
+  return correctedPieces(
+    piecesOf(page, volume),
+    corrections,
+    String(printedPage),
+  )
     .flatMap((piece) =>
       piece.kind === "heading"
         ? piece.lines.map(headingLineText)
-        : [normalised(piece.text)],
+        : [piece.text],
     )
     .join("\n");
+}
+
+/**
+ * A page's pieces, their text read as the importer reads it and the page's
+ * corrections applied. A correction that finds no text to fix is stale, and
+ * the import stops rather than keep a misread it meant to fix.
+ */
+function correctedPieces(
+  pieces: Piece[],
+  corrections: OcrCorrection[],
+  label: string,
+): Piece[] {
+  const own = corrections.filter(
+    (correction) => String(correction.page) === label,
+  );
+  const read = pieces.map((piece) =>
+    piece.kind === "heading"
+      ? piece
+      : { ...piece, text: normalised(piece.text) },
+  );
+  const stale = own.find(
+    (correction) =>
+      !read.some(
+        (piece) =>
+          piece.kind !== "heading" && piece.text.includes(correction.from),
+      ),
+  );
+  if (stale) {
+    throw new Error(`No "${stale.from}" on page ${label} to correct`);
+  }
+  return read.map((piece) =>
+    piece.kind === "heading"
+      ? piece
+      : {
+          ...piece,
+          text: own.reduce(
+            (text, correction) => text.replace(correction.from, correction.to),
+            piece.text,
+          ),
+        },
+  );
 }
 
 function piecesOf(page: Page, volume: Volume): Piece[] {
@@ -1067,7 +1125,11 @@ export function parseArchiveOcrWork(
     })
     .reduce<WorkState>(
       (state, { page, number }) =>
-        piecesOf(page, volume).reduce<WorkState>(
+        correctedPieces(
+          piecesOf(page, volume),
+          work.corrections ?? [],
+          labelOf(number, page.leaf),
+        ).reduce<WorkState>(
           (done, piece) =>
             piece.kind === "heading"
               ? addHeading(

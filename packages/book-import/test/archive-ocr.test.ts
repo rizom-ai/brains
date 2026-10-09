@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  pageText,
   parseArchiveOcrWork,
   printedPageNumbers,
   type LeafReading,
@@ -85,6 +86,38 @@ describe("parseArchiveOcrWork on pages left out", () => {
     expect(text).not.toContain("historisch festgelegten");
     expect(text).not.toContain("Kriegsneurosen");
     expect(text).toContain("Die Ich-Analyse beginnt hier.");
+  });
+});
+
+describe("parseArchiveOcrWork with corrections", () => {
+  it("replaces a line's misread words on the page the correction names", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      corrections: [{ page: 5, from: "rutscht ein", to: "rückt ein" }],
+    });
+
+    expect(units[0]?.paragraphs[3]).toBe(
+      "Ein Satz unten auf der Seite läuft weiter, und am Rand rückt ein Wort nach unten.",
+    );
+  });
+
+  it("stops on a correction that finds nothing to fix", async () => {
+    const hocr = await fixture();
+
+    expect(() =>
+      parseArchiveOcrWork(hocr, {
+        ...work,
+        corrections: [{ page: 5, from: "nicht da", to: "da" }],
+      }),
+    ).toThrow('No "nicht da" on page 5 to correct');
+  });
+
+  it("reads a page's text with its corrections", async () => {
+    expect(
+      pageText(await fixture(), 5, [
+        { page: 5, from: "rutscht ein", to: "rückt ein" },
+      ]),
+    ).toContain("rückt ein");
   });
 });
 

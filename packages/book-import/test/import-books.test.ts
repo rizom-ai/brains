@@ -3,7 +3,11 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bookAdapter } from "@brains/book";
-import { importBooks, parseManifest } from "../src/import-books";
+import {
+  importBooks,
+  parseCorrections,
+  parseManifest,
+} from "../src/import-books";
 
 const manifestYaml = `
 source: ekgwb
@@ -195,6 +199,38 @@ books:
     expect(results).toEqual([
       { slug: "jenseits-des-lustprinzips", entries: 3 },
     ]);
+  });
+
+  it("applies the corrections for the work's volume", async () => {
+    await importBooks(parseManifest(ocrManifest), brainData, fetchArchive, {
+      "freud-1940-gw-13": [
+        { page: 5, from: "rutscht ein", to: "rückt ein", by: "scan" },
+      ],
+    });
+    const files = await Array.fromAsync(
+      new Bun.Glob("**/*.md").scan(join(brainData, "book")),
+    );
+    const texts = await Promise.all(
+      files.map((file) => readFile(join(brainData, "book", file), "utf8")),
+    );
+
+    expect(texts.join("\n")).toContain("rückt ein Wort");
+  });
+
+  it("reads a corrections file by volume", () => {
+    expect(
+      parseCorrections(`
+freud-1940-gw-13:
+  - page: 5
+    from: rutscht ein
+    to: rückt ein
+    by: reference
+`),
+    ).toEqual({
+      "freud-1940-gw-13": [
+        { page: 5, from: "rutscht ein", to: "rückt ein", by: "reference" },
+      ],
+    });
   });
 
   it("credits the edition and the scan on the title entry", async () => {

@@ -134,6 +134,32 @@ const manifestSchema: z.ZodDiscriminatedUnion<
 
 export type Manifest = z.output<typeof manifestSchema>;
 
+/** A misread line fixed, and what told the right reading. */
+const correctionSchema: z.ZodObject<{
+  page: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
+  from: z.ZodString;
+  to: z.ZodString;
+  by: z.ZodEnum<{ reference: "reference"; scan: "scan" }>;
+}> = z.object({
+  page: z.union([z.number().int(), z.string().min(1)]),
+  from: z.string().min(1),
+  to: z.string(),
+  /** A transcription of the work, or the scan read again. */
+  by: z.enum(["reference", "scan"]),
+});
+
+/** Corrections by scanned volume, kept beside a manifest. */
+const correctionsSchema: z.ZodRecord<
+  z.ZodString,
+  z.ZodArray<typeof correctionSchema>
+> = z.record(z.string(), z.array(correctionSchema));
+
+export type Corrections = z.output<typeof correctionsSchema>;
+
+export function parseCorrections(yaml: string): Corrections {
+  return correctionsSchema.parse(parseYaml(yaml) ?? {});
+}
+
 export function parseManifest(yaml: string): Manifest {
   return manifestSchema.parse(parseYaml(yaml));
 }
@@ -202,10 +228,11 @@ export async function fetchVolumeHocr(
 async function loadArchiveOcrBook(
   entry: z.output<typeof archiveOcrBookSchema>,
   fetchText: FetchText,
+  corrections: Corrections,
 ): Promise<LoadedBook> {
   const units = parseArchiveOcrWork(
     await fetchVolumeHocr(entry.item, fetchText),
-    entry,
+    { ...entry, corrections: corrections[entry.item] ?? [] },
   );
   return {
     book: {
@@ -228,10 +255,13 @@ async function loadArchiveOcrBook(
 function loadersOf(
   manifest: Manifest,
   fetchText: FetchText,
+  corrections: Corrections,
 ): Array<() => Promise<LoadedBook>> {
   return manifest.source === "ekgwb"
     ? manifest.books.map((entry) => () => loadEkgwbBook(entry, fetchText))
-    : manifest.books.map((entry) => () => loadArchiveOcrBook(entry, fetchText));
+    : manifest.books.map(
+        (entry) => () => loadArchiveOcrBook(entry, fetchText, corrections),
+      );
 }
 
 /** Import the manifest's books one after another into brain-data. */
@@ -239,18 +269,18 @@ export async function importBooks(
   manifest: Manifest,
   brainData: string,
   fetchText: FetchText,
+  corrections: Corrections = {},
 ): Promise<ImportResult[]> {
-  return loadersOf(manifest, fetchText).reduce<Promise<ImportResult[]>>(
-    async (done, load) => {
-      const results = await done;
-      const { book, units } = await load();
-      if (units.length === 0) {
-        throw new Error(`No sections found for ${book.slug}`);
-      }
-      const files = renderBook({ book, units });
-      await writeBook(brainData, book.slug, files);
-      return [...results, { slug: book.slug, entries: files.length }];
-    },
-    Promise.resolve([]),
-  );
+  return loadersOf(manifest, fetchText, corrections).reduce<
+    Promise<ImportResult[]>
+  >(async (done, load) => {
+    const results = await done;
+    const { book, units } = await load();
+    if (units.length === 0) {
+      throw new Error(`No sections found for ${book.slug}`);
+    }
+    const files = renderBook({ book, units });
+    await writeBook(brainData, book.slug, files);
+    return [...results, { slug: book.slug, entries: files.length }];
+  }, Promise.resolve([]));
 }
