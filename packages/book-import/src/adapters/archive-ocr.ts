@@ -66,6 +66,13 @@ const HEADING_WIDTH = 0.9;
 const HEADING_SIZE = 1.25;
 /** A title the OCR misread is at most this share of the text column. */
 const TITLE_WIDTH = 0.75;
+/** So many tokens without a word among them are scraps, not a short last line. */
+const SCRAP_TOKENS = 3;
+/** A line of several tokens and no word among them: a rule read as letters. */
+function isScraps(text: string): boolean {
+  return !/\p{L}{3}/u.test(text) && text.split(" ").length >= SCRAP_TOKENS;
+}
+
 /** A page whose lines are mostly not words holds a picture, not text. */
 const CLEAN_LINES = 0.5;
 
@@ -591,7 +598,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       if (
         !/\p{L}/u.test(line.text) ||
         SIGNATURE.test(line.text) ||
-        isEdgeNoise(line.text)
+        isEdgeNoise(line.text) ||
+        isScraps(line.text)
       ) {
         return pieces;
       }
@@ -649,10 +657,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       }
     }
     if (SIGNATURE.test(line.text) || isEdgeNoise(line.text)) return pieces;
-    // Scraps away from the margin are marks on the scan, not a line's end.
+    // Scraps without a word, away from the margin or several of them, are
+    // marks on the scan, such as a rule read as letters; not a line's end.
     if (
       !/\p{L}{3}/u.test(line.text) &&
-      Math.abs(line.x - margin) > page.width * INDENT
+      (Math.abs(line.x - margin) > page.width * INDENT || isScraps(line.text))
     ) {
       return pieces;
     }
