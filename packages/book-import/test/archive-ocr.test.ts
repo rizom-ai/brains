@@ -160,6 +160,20 @@ describe("parseArchiveOcrWork on headings", () => {
     ]);
   });
 
+  it("leaves out a section the manifest names, such as a piece in another language", async () => {
+    const units = parseArchiveOcrWork(await headings(), {
+      ...lectures,
+      skipHeadings: ["Die Traumzensur"],
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(units.map((unit) => unit.title)).not.toContain(
+      "II. Die Traumzensur (Fortsetzung)",
+    );
+    expect(text).not.toContain("entstellt ihn");
+    expect(units.map((unit) => unit.title)).toContain("III. Der Traum");
+  });
+
   it("drops the work's own title and a running head whose page number the OCR lost", async () => {
     const units = parseArchiveOcrWork(await headings(), lectures);
     const text = units.flatMap((unit) => unit.paragraphs).join("\n");
@@ -340,6 +354,25 @@ describe("printedPageNumbers", () => {
     ]);
 
     expect([15, 18].map((leaf) => pages.get(leaf))).toEqual([335, 338]);
+  });
+
+  it("ignores consecutive page numbers the OCR misread alike", () => {
+    const pages = printedPageNumbers([
+      text(10, 330),
+      text(11, 331),
+      text(12, 332),
+      text(13, 333),
+      text(14, 354),
+      text(15, 355),
+      text(16, 356),
+      text(17, 337),
+      text(18, 338),
+      text(19, 339),
+    ]);
+
+    expect([14, 15, 16].map((leaf) => pages.get(leaf))).toEqual([
+      334, 335, 336,
+    ]);
   });
 
   it("ignores a page number the OCR misread", () => {

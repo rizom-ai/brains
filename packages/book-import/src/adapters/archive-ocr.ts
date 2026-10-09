@@ -22,6 +22,8 @@ export interface ArchiveOcrWork {
   lastPage: number;
   /** Pages in the range that are not the author's, such as an editors' note. */
   skipPages?: number[];
+  /** Sections to leave out by their headings, such as a piece in another language. */
+  skipHeadings?: string[];
 }
 
 interface Line {
@@ -304,6 +306,10 @@ interface Anchor {
 
 /** So few agreeing heads can be one misreading repeated, as 355 and 358 for 335 and 338. */
 const SHORT_RUN = 3;
+/** A scan missing a leaf or two raises the offset that much; more is a misreading. */
+const MISSING_LEAVES = 2;
+/** A run this long is the numbering itself, however it moved. */
+const LONG_RUN = 10;
 
 /** Anchors in runs of one offset, in reading order. */
 function runsOf(anchors: Anchor[]): Anchor[][] {
@@ -316,9 +322,10 @@ function runsOf(anchors: Anchor[]): Anchor[][] {
 }
 
 /**
- * Plates only ever lower the offset between leaf and page. A short run of
- * heads that raises it, or that differs from the runs on both its sides
- * where those agree, is the OCR misreading the same digit twice.
+ * Plates only ever lower the offset between leaf and page, and a missing
+ * leaf raises it by one. A run of heads that raises it further, or a short
+ * run that raises it at all or differs from the agreeing runs on both its
+ * sides, is the OCR misreading the same digit again and again.
  */
 function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
   const runs = runsOf(anchors);
@@ -328,10 +335,11 @@ function withoutMisreadRuns(anchors: Anchor[]): Anchor[] {
       const before = kept.at(-1)?.[0]?.offset;
       const after = runs[index + 1]?.[0]?.offset;
       const misread =
-        run.length < SHORT_RUN &&
         before !== undefined &&
         offset !== before &&
-        (offset > before || before === after);
+        ((run.length < LONG_RUN &&
+          (offset > before + MISSING_LEAVES || before === after)) ||
+          (run.length < SHORT_RUN && offset > before));
       return misread ? kept : [...kept, run];
     }, [])
     .flat();
@@ -638,6 +646,8 @@ interface WorkState {
   chapters: number;
   /** Whether the work's own title, its first unnumbered heading, has passed. */
   titled: boolean;
+  /** Inside a section the manifest leaves out, up to the next heading. */
+  skipping: boolean;
 }
 
 /** A heading's title in the work, its words cased as the text spells them. */
@@ -683,6 +693,7 @@ function addHeading(
   cased: (capitals: string) => string,
   place: Place,
   workTitle: string,
+  skip: string[],
 ): WorkState {
   const heading = asLetter(read, state.sections.at(-1)?.path ?? []);
   // Inside a lettered subsection, a numeral without a title in capitals
@@ -712,6 +723,10 @@ function addHeading(
     return { ...state, titled: true };
   }
   const chapters = state.chapters + (heading.numbered ? 1 : 0);
+  // A section left out still holds its place among the chapters.
+  if (skip.some((title) => namesTitle(heading.title.join(" "), title))) {
+    return { ...state, chapters, titled: true, skipping: true };
+  }
   const level = levelOf(heading, path);
   const step = {
     level,
@@ -730,6 +745,7 @@ function addHeading(
     ],
     chapters,
     titled: true,
+    skipping: false,
   };
 }
 
@@ -738,6 +754,7 @@ function addPiece(
   piece: Exclude<Piece, { kind: "heading" }>,
   place: Place,
 ): WorkState {
+  if (state.skipping) return state;
   const current = state.sections.at(-1) ?? {
     path: [],
     paragraphs: [],
@@ -856,6 +873,7 @@ export function parseArchiveOcrWork(
                     label: labelOf(number, page.leaf),
                   },
                   work.title,
+                  work.skipHeadings ?? [],
                 )
               : addPiece(done, piece, {
                   page: number,
@@ -864,7 +882,7 @@ export function parseArchiveOcrWork(
                 }),
           state,
         ),
-      { sections: [], chapters: 0, titled: false },
+      { sections: [], chapters: 0, titled: false, skipping: false },
     );
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);

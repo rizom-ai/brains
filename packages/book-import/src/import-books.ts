@@ -49,6 +49,7 @@ const archiveOcrBookSchema: z.ZodObject<
       title: z.ZodString;
       edition: z.ZodString;
       skipPages: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
+      skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }
   >
 > = z.object({
@@ -69,6 +70,8 @@ const archiveOcrBookSchema: z.ZodObject<
   edition: z.string().min(1),
   /** Pages in the range that are not the author's, such as an editors' note. */
   skipPages: z.array(z.number().int().positive()).default([]),
+  /** Sections to leave out by their headings, such as a piece in another language. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
 const manifestSchema: z.ZodDiscriminatedUnion<
