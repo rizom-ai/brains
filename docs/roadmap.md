@@ -127,6 +127,7 @@ Discord, Slack, standalone `/ask`, native Studio Chat, and the shared Chat proto
 Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
+- [ask-over-a2a.md](./plans/ask-over-a2a.md) — the Ask answers across brains over A2A: Rizom asks the peers that know while the guest waits, peers return their sources, the room lights the brains that answered; being asked is bounded.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
 - [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.
 - [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with smoke-only test deployment still pending.
