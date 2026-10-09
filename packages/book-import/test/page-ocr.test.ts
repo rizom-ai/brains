@@ -53,6 +53,58 @@ describe("volumeOfPages", () => {
   });
 });
 
+describe("volumeOfPages, capital umlauts", () => {
+  it("dots the capital umlauts the Fraktur model reads without them, by the word", () => {
+    const volume = volumeOfPages([
+      tesseractPage("Okonomie"),
+      tesseractPage("Aquivalent"),
+      tesseractPage("Osterreicher"),
+      tesseractPage("Uberproduktion"),
+      tesseractPage("Uber"),
+      tesseractPage("Arzte"),
+    ]);
+
+    expect(volume).toContain(">Ökonomie</span>");
+    expect(volume).toContain(">Äquivalent</span>");
+    expect(volume).toContain(">Österreicher</span>");
+    expect(volume).toContain(">Überproduktion</span>");
+    expect(volume).toContain(">Über</span>");
+    expect(volume).toContain(">Ärzte</span>");
+  });
+
+  it("reads the capital Ö the model takes for S, and a noun's capital umlaut it sets small", () => {
+    const volume = volumeOfPages([
+      tesseractPage("Ssterreich"),
+      tesseractPage("Skonomie"),
+      tesseractPage("überproduktion"),
+      tesseractPage("äußerungen"),
+      tesseractPage("überhaupt"),
+    ]);
+
+    expect(volume).toContain(">Österreich</span>");
+    expect(volume).toContain(">Ökonomie</span>");
+    expect(volume).toContain(">Überproduktion</span>");
+    expect(volume).toContain(">Äußerungen</span>");
+    expect(volume).toContain(">überhaupt</span>");
+  });
+
+  it("leaves the words that are spelled without an umlaut", () => {
+    const volume = volumeOfPages([
+      tesseractPage("Arzt"),
+      tesseractPage("Außer"),
+      tesseractPage("Ostern"),
+      tesseractPage("Andern"),
+      tesseractPage("Apfel"),
+    ]);
+
+    expect(volume).toContain(">Arzt</span>");
+    expect(volume).toContain(">Außer</span>");
+    expect(volume).toContain(">Ostern</span>");
+    expect(volume).toContain(">Andern</span>");
+    expect(volume).toContain(">Apfel</span>");
+  });
+});
+
 describe("volumeOfPages, hyphens", () => {
   it("reads a word's dash or double hyphen at the line's end as its hyphen, a free-standing dash as a dash", () => {
     const volume = volumeOfPages([

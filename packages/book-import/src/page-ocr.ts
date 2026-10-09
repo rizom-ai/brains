@@ -162,8 +162,26 @@ export async function tesseractHocr(
 }
 
 /**
+ * The words frak2021 reads with a capital umlaut's dots lost, by their
+ * opening, as Marx's volumes print them: Ökonomie, Äquivalent, Über-. A word
+ * spelled without the umlaut (Arzt, Außer, Andern, Apfel) is not among them.
+ */
+const DOTLESS =
+  /(?<![\p{L}])(?:Okonom|Aquivalen|Anderung|Andert|Arzten?(?!\p{L})|Außerung|Außerst|Außerlich|Amter|Uber(?=\p{Ll}|(?!\p{L}))|Ubel|Osterreich|Angstlich|Ahnlich|Offentlich|Offnung|Agypt|Ortlich|Armste|Apfeln(?!\p{L}))/gu;
+const UMLAUT: Record<string, string> = { A: "Ä", O: "Ö", U: "Ü" };
+/** A capital Ö the model reads as S, where no German word opens so. */
+const O_AS_S = /(?<![\p{L}])S(?=sterreich|konom)/gu;
+/**
+ * A noun the model opens with a small umlaut, read by the ending only a noun
+ * has: überproduktion, äußerungen.
+ */
+const SMALL_NOUN =
+  /(?<![\p{L}-])[äöü](?=\p{Ll}*(?:ung|heit|keit|schaft|tion)(?:en|s)?(?![\p{L}]))/gu;
+
+/**
  * A volume's pages as one hOCR document, each page numbered by its leaf, the
- * order the scan holds them in; Fraktur's long s read as s, and its hyphen as one.
+ * order the scan holds them in; Fraktur's long s read as s, its hyphen as
+ * one, and its capital umlauts with their dots.
  */
 export function volumeOfPages(pages: string[]): string {
   const bodies = pages.map((page, leaf) =>
@@ -175,6 +193,12 @@ export function volumeOfPages(pages: string[]): string {
       .replace(/ſ/g, "s")
       // Fraktur's etc., ꝛc., the model reads now and then as ꝛe. or ꝛ2c.
       .replace(/ꝛ[ce2]+\./g, "etc.")
+      .replace(O_AS_S, "Ö")
+      .replace(SMALL_NOUN, (letter) => letter.toUpperCase())
+      .replace(
+        DOTLESS,
+        (word) => `${UMLAUT[word.charAt(0)] ?? word.charAt(0)}${word.slice(1)}`,
+      )
       // Fraktur models print a word's hyphen as a dash, a double hyphen or
       // an equals sign, at times two of them.
       .replace(/(\p{L})[—⸗=-]+(?=<\/span>)/gu, "$1-")
