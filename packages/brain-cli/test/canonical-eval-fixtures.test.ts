@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import { YAMLLoader } from "../src/loaders/yaml-loader";
+import { YAMLLoader } from "@brains/ai-evaluation";
 
 async function findFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -24,15 +24,7 @@ async function findYamlFiles(directory: string): Promise<string[]> {
 
 describe("canonical evaluation test cases", () => {
   it("loads every canonical fixture with unique IDs", async () => {
-    const testCaseDir = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "packages",
-      "brain-cli",
-      "test-cases",
-    );
+    const testCaseDir = join(import.meta.dir, "..", "test-cases");
     const loader = YAMLLoader.createFresh({ directory: testCaseDir });
     const files = await findYamlFiles(testCaseDir);
 

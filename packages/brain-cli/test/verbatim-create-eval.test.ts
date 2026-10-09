@@ -1,13 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { computeContentHash } from "@brains/utils/hash";
-import { YAMLLoader } from "../src/loaders/yaml-loader";
-import { evaluateCriteria } from "../src/criteria-evaluator";
+import { evaluateCriteria, YAMLLoader } from "@brains/ai-evaluation";
 
-const cases = join(
-  import.meta.dir,
-  "../../../packages/brain-cli/test-cases/personal/multi-turn",
-);
+const cases = join(import.meta.dir, "../test-cases/personal/multi-turn");
 const loader = YAMLLoader.createFresh({ directory: cases });
 
 describe("verbatim creation MCP eval contract", () => {
