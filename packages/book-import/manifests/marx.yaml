@@ -213,3 +213,22 @@ books:
     year: 1988
     published: false
     kind: nachlass
+  - source: archive-ocr
+    item: dieklassenkmpf00marxuoft
+    citation: Klassenkämpfe
+    ocr: frak2021
+    firstPage: 20
+    lastPage: 112
+    # MEW 7, Dietz 1960, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20170119094535id_/http://www.mlwerke.de/me/me07/me07_012.htm
+      - https://web.archive.org/web/20170119094121id_/http://www.mlwerke.de/me/me07/me07_035.htm
+      - https://web.archive.org/web/20170120003310id_/http://www.mlwerke.de/me/me07/me07_064.htm
+      - https://web.archive.org/web/20170119094540id_/http://www.mlwerke.de/me/me07/me07_095.htm
+    slug: die-klassenkaempfe-in-frankreich-1848-bis-1850
+    title: Die Klassenkämpfe in Frankreich 1848 bis 1850
+    shortTitle: Die Klassenkämpfe in Frankreich
+    edition: "Die Klassenkämpfe in Frankreich 1848 bis 1850, Abdruck aus der „Neuen Rheinischen Zeitung. Politisch-ökonomische Revue“, mit Einleitung von Friedrich Engels (Berlin, Vorwärts, 1895)"
+    author: Karl Marx
+    year: 1850
+    kind: work

@@ -18,7 +18,6 @@ async function fixture(): Promise<string> {
 const work = {
   item: "freud-1940-gw-13",
   title: "Jenseits des Lustprinzips",
-  volume: "XIII",
   citation: "GW XIII",
   firstPage: 3,
   lastPage: 10,
@@ -128,6 +127,17 @@ describe("parseArchiveOcrWork with corrections", () => {
     ]);
   });
 
+  it("fixes a heading's line before the heading is read, where no text line is the correction's", async () => {
+    const page = pageText(await fixture(), 3, [
+      { page: 3, from: "I", to: "II" },
+    ]);
+
+    expect(page.split("\n").slice(0, 2)).toEqual([
+      "II",
+      "In der psychoanalytischen Theorie nehmen wir unbedenklich",
+    ]);
+  });
+
   it("stops on a correction that finds nothing to fix", async () => {
     const hocr = await fixture();
 
@@ -169,7 +179,6 @@ describe("parseArchiveOcrWork on headings", () => {
   const lectures = {
     item: "freud-1940-gw-11",
     title: "Vorlesungen zur Einführung in die Psychoanalyse",
-    volume: "XI",
     citation: "GW XI",
     firstPage: 3,
     lastPage: 10,
@@ -293,7 +302,6 @@ describe("parseArchiveOcrWork on an essay's sections", () => {
       {
         item: "freud-1946-gw-10",
         title: "Das Unbewußte",
-        volume: "X",
         citation: "GW X",
         firstPage: 19,
         lastPage: 22,
@@ -323,7 +331,6 @@ describe("parseArchiveOcrWork on a work's opening", () => {
       {
         item: "freud-1952-gw-1",
         title: "Studien über Hysterie",
-        volume: "I",
         citation: "GW I",
         firstPage: 20,
         lastPage: 22,
@@ -344,7 +351,6 @@ describe("parseArchiveOcrWork on front matter", () => {
       {
         item: "freud-1942-gw-2-3",
         title: "Die Traumdeutung",
-        volume: "II/III",
         citation: "GW II/III",
         firstPage: "V",
         lastPage: 3,
@@ -500,5 +506,31 @@ describe("parseArchiveOcrWork on long chapters", () => {
     // A footnote goes with the part whose pages hold it.
     expect(units[1]?.paragraphs.at(-1)).toStartWith("¹) Vgl.");
     expect(units[2]?.paragraphs[0]).toBe("Die Ich-Analyse beginnt hier.");
+  });
+});
+
+describe("parseArchiveOcrWork, titles in display type", () => {
+  it("takes a title set larger than the text under its numeral, however wide", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wide-titles.html"),
+        "utf8",
+      ),
+      {
+        item: "dieklassenkmpf00marxuoft",
+        title: "Die Klassenkämpfe in Frankreich 1848 bis 1850",
+        citation: "Klassenkämpfe",
+        firstPage: 20,
+        lastPage: 23,
+      },
+    );
+
+    expect(units.map((unit) => [unit.title, unit.section])).toEqual([
+      ["I. Vom Februar bis Juni 1848.", "Klassenkämpfe, 20"],
+      ["II. Vom Juni 1848 bis 13. Juni 1849.", "Klassenkämpfe, 22"],
+    ]);
+    expect(units[1]?.paragraphs).toEqual([
+      "Der 25. Februar 1848 hatte Frankreich die Republik oktroyirt, der 25. Juni drang ihm die Revolution auf. Und Revolution bedeutete nach dem Juni: Umwälzung der bürgerlichen Gesellschaft.",
+    ]);
   });
 });

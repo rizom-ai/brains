@@ -9,7 +9,7 @@ coverage:
   edition: the Gesammelte Werke (Imago, London 1940–52)
   license: The author's text is in the public domain.
 gaps:
-  - volume: I
+  - citation: GW I
     pages: 39–56
     title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
     year: 1893
@@ -18,7 +18,6 @@ gaps:
     reason: not in the Gesammelte Werke
 books:
   - item: freud-1952-gw-1
-    volume: I
     citation: GW I
     firstPage: 21
     lastPage: 38
@@ -29,7 +28,6 @@ books:
     year: 1893
     kind: work
   - item: freud-1941-gw-17
-    volume: XVII
     citation: GW XVII
     firstPage: 63
     lastPage: 138

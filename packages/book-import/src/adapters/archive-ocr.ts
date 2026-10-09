@@ -26,8 +26,6 @@ export interface ArchiveOcrWork {
   item: string;
   /** The work's title, which its opening heading may print. */
   title: string;
-  /** The volume's roman numeral. */
-  volume: string;
   /** How a citation names the volume before its page: GW XIII. */
   citation: string;
   /** A printed page, or a roman page of the front matter. */
@@ -578,11 +576,7 @@ export function pageText(
   const leaf = pageLeaf(hocr, printedPage);
   const page = pages.find((each) => each.leaf === leaf);
   if (!page) throw new Error(`No page ${printedPage}`);
-  return correctedPieces(
-    piecesOf(page, volume),
-    corrections,
-    String(printedPage),
-  )
+  return readPage(page, volume, corrections, String(printedPage))
     .flatMap((piece) =>
       piece.kind === "heading"
         ? piece.lines.map(headingLineText)
@@ -637,6 +631,74 @@ function correctedPieces(
   });
 }
 
+/** A page's lines with corrections applied, each to one line: its own, else the first holding it. */
+function correctedLines(
+  page: Page,
+  corrections: OcrCorrection[],
+  label: string,
+): Page {
+  if (corrections.length === 0) return page;
+  const lines = page.lines.map((line) => normalised(line.text));
+  const fixed = corrections.reduce<string[]>((done, correction) => {
+    const exact = done.indexOf(correction.from);
+    const at =
+      exact >= 0
+        ? exact
+        : done.findIndex((line) => line.includes(correction.from));
+    if (at < 0) {
+      throw new Error(`No "${correction.from}" on page ${label} to correct`);
+    }
+    return done.map((line, index) =>
+      index === at ? line.replace(correction.from, correction.to) : line,
+    );
+  }, lines);
+  return {
+    ...page,
+    lines: page.lines.flatMap((line, index) => {
+      const text = (fixed[index] ?? "").trim();
+      // A line a correction empties was the scan's noise.
+      if (text === "") return [];
+      return [text === lines[index] ? line : { ...line, text }];
+    }),
+  };
+}
+
+/**
+ * A page read into pieces with its corrections. A correction whose text is
+ * a whole line of the scan fixes that line before the page is read, so a
+ * misread heading can be set right; any other fixes the text where it holds
+ * it, else the scan's line that holds it. A correction that finds nothing to
+ * fix is stale.
+ */
+function readPage(
+  page: Page,
+  volume: Volume,
+  corrections: OcrCorrection[],
+  label: string,
+): Piece[] {
+  const own = corrections.filter(
+    (correction) => String(correction.page) === label,
+  );
+  const lines = page.lines.map((line) => normalised(line.text));
+  const whole = own.filter((correction) => lines.includes(correction.from));
+  const lined = correctedLines(page, whole, label);
+  const rest = own.filter((correction) => !whole.includes(correction));
+  const pieces = piecesOf(lined, volume);
+  const texts = pieces.flatMap((piece) =>
+    piece.kind === "heading" ? [] : [normalised(piece.text)],
+  );
+  const inScan = rest.filter(
+    (correction) => !texts.some((text) => text.includes(correction.from)),
+  );
+  return correctedPieces(
+    inScan.length === 0
+      ? pieces
+      : piecesOf(correctedLines(lined, inScan, label), volume),
+    rest.filter((correction) => !inScan.includes(correction)),
+    label,
+  );
+}
+
 function piecesOf(page: Page, volume: Volume): Piece[] {
   const headless = bodyLines(page, volume);
   if (isPicture(headless)) return [];
@@ -686,7 +748,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         line.size > volume.textSize * HEADING_SIZE);
     const read = centred ? headingLineOf(line.text, line.size) : null;
     // The line after a numeral, letter or part's name is its title, even where
-    // the OCR read its capitals as small letters.
+    // the OCR read its capitals as small letters, or set in display type
+    // across the column.
     const above = last?.kind === "heading" ? last.lines.at(-1) : undefined;
     const titles =
       above !== undefined &&
@@ -694,7 +757,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         above.kind === "chapter" ||
         above.kind === "letter" ||
         (above.kind === "caps" && above.misread === true)) &&
-      line.width < volume.column * TITLE_WIDTH;
+      (line.width < volume.column * TITLE_WIDTH ||
+        line.size > volume.textSize * HEADING_SIZE);
     const candidate: HeadingLine | null =
       read ??
       (centred && titles
@@ -1109,8 +1173,9 @@ export function parseArchiveOcrWork(
     })
     .reduce<WorkState>(
       (state, { page, number }) =>
-        correctedPieces(
-          piecesOf(page, volume),
+        readPage(
+          page,
+          volume,
           work.corrections ?? [],
           labelOf(number, page.leaf),
         ).reduce<WorkState>(

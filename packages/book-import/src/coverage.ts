@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { parseManifest, scannedBooks, type Manifest } from "./import-books";
 
 interface CoverageLine {
-  volume: string;
+  /** The volume, as cited: GW XIII. */
+  citation: string;
   /** Where the work begins in its volume, for listing works in their order. */
   start: number;
   line: string;
@@ -28,33 +29,33 @@ export function renderCoverage(manifest: Manifest): string {
   if (!coverage) throw new Error("The manifest has no coverage section.");
   const lines: CoverageLine[] = [
     ...books.map((book) => ({
-      volume: book.volume,
+      citation: book.citation,
       start: startOf(book.firstPage),
-      line: `- ${book.title} (${book.year}, GW ${book.volume}, ${book.firstPage}–${book.lastPage}) — imported${book.published ? "" : ", published after the author's death"}`,
+      line: `- ${book.title} (${book.year}, ${book.citation}, ${book.firstPage}–${book.lastPage}) — imported${book.published ? "" : ", published after the author's death"}`,
     })),
     ...manifest.gaps.flatMap((gap) =>
-      gap.volume === undefined
+      gap.citation === undefined
         ? []
         : [
             {
-              volume: gap.volume,
+              citation: gap.citation,
               start: startOf(gap.pages ?? ""),
-              line: `- ${gap.title} (${gap.year === undefined ? "" : `${gap.year}, `}GW ${gap.volume}, ${gap.pages ?? ""}) — gap: ${gap.reason}`,
+              line: `- ${gap.title} (${gap.year === undefined ? "" : `${gap.year}, `}${gap.citation}, ${gap.pages ?? ""}) — gap: ${gap.reason}`,
             },
           ],
     ),
   ];
   // Works the edition does not print close the note.
   const outside = manifest.gaps
-    .filter((gap) => gap.volume === undefined)
+    .filter((gap) => gap.citation === undefined)
     .map((gap) => `- ${gap.title} — gap: ${gap.reason}`);
-  const volumes = [...new Set(books.map((book) => book.volume))];
+  const volumes = [...new Set(books.map((book) => book.citation))];
   const sections = volumes.map((volume) =>
     [
-      `## GW ${volume}`,
+      `## ${volume}`,
       "",
       ...lines
-        .filter((entry) => entry.volume === volume)
+        .filter((entry) => entry.citation === volume)
         .sort((a, b) => a.start - b.start)
         .map((entry) => entry.line),
       "",

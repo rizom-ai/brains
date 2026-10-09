@@ -469,7 +469,6 @@ describe("importBooks from scanned volumes", () => {
 source: archive-ocr
 books:
   - item: freud-1940-gw-13
-    volume: XIII
     citation: GW XIII
     firstPage: 3
     lastPage: 10
@@ -603,17 +602,20 @@ books:
     expect(texts.join("\n")).toContain("rückt ein Wort");
   });
 
-  it("names a transcription of a work to check its OCR against", () => {
+  it("names the transcriptions of a work to check its OCR against", () => {
     const manifest = parseManifest(
       ocrManifest +
-        "    reference: https://www.gutenberg.org/cache/epub/28220/pg28220.txt\n",
+        "    references:\n      - https://example.org/kapitel-1.htm\n      - https://example.org/kapitel-2.htm\n",
     );
 
     expect(
       manifest.books[0]?.source === "archive-ocr"
-        ? manifest.books[0].reference
+        ? manifest.books[0].references
         : null,
-    ).toBe("https://www.gutenberg.org/cache/epub/28220/pg28220.txt");
+    ).toEqual([
+      "https://example.org/kapitel-1.htm",
+      "https://example.org/kapitel-2.htm",
+    ]);
   });
 
   it("reads a corrections file by volume", () => {

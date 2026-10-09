@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createPageOcr, volumeOfPages, type PageOcr } from "../src/page-ocr";
+import {
+  createPageOcr,
+  tessdataFor,
+  volumeOfPages,
+  type PageOcr,
+} from "../src/page-ocr";
 
 function tesseractPage(text: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -24,19 +29,42 @@ function tesseractPage(text: string): string {
 }
 
 describe("volumeOfPages", () => {
-  it("numbers each page by its leaf and reads the long s as s", () => {
+  it("numbers each page by its leaf and reads the long s as s, ꝛc. as etc.", () => {
     const volume = volumeOfPages([
       tesseractPage("Geſellſchaft"),
       tesseractPage("Klaſſen"),
+      tesseractPage("ꝛc."),
     ]);
 
     expect(volume.match(/<div class='ocr_page' id='page_\d+'/g)).toEqual([
       "<div class='ocr_page' id='page_0'",
       "<div class='ocr_page' id='page_1'",
+      "<div class='ocr_page' id='page_2'",
     ]);
     expect(volume).toContain("Gesellschaft");
     expect(volume).toContain("Klassen");
     expect(volume).not.toContain("ſ");
+    expect(volume).toContain(">etc.</span>");
+  });
+});
+
+describe("volumeOfPages, hyphens", () => {
+  it("reads a word's dash or double hyphen at the line's end as its hyphen, a free-standing dash as a dash", () => {
+    const volume = volumeOfPages([
+      tesseractPage("alt—"),
+      tesseractPage("ver⸗"),
+      tesseractPage("—"),
+      tesseractPage("Bour—-"),
+      tesseractPage("Februar="),
+      tesseractPage("Juni⸗-Insurgent"),
+    ]);
+
+    expect(volume).toContain(">alt-</span>");
+    expect(volume).toContain(">ver-</span>");
+    expect(volume).toContain(">—</span>");
+    expect(volume).toContain(">Bour-</span>");
+    expect(volume).toContain(">Februar-</span>");
+    expect(volume).toContain(">Juni-Insurgent</span>");
   });
 });
 
@@ -49,6 +77,53 @@ describe("createPageOcr", () => {
 
   afterEach(async () => {
     await rm(cacheDir, { recursive: true, force: true });
+  });
+
+  it("recognises a page again when it is prepared differently", async () => {
+    const recognised: string[] = [];
+    const ocrWith = (prepare: string): PageOcr =>
+      createPageOcr({
+        cacheDir,
+        model: "frak2021",
+        prepare,
+        fetchImage: async () => new Uint8Array([1]),
+        recognise: async () => {
+          recognised.push(prepare);
+          return tesseractPage(prepare);
+        },
+      });
+    const url = "https://archive.org/download/item/page/n3_w1600.jpg";
+
+    await ocrWith("gray 2x")(url);
+    await ocrWith("gray 2x")(url);
+    await ocrWith("gray 3x")(url);
+
+    expect(recognised).toEqual(["gray 2x", "gray 3x"]);
+  });
+
+  it("fetches a model Tesseract lacks once, and leaves its own models to it", async () => {
+    const fetched: string[] = [];
+    const fetchModel = async (url: string): Promise<Uint8Array> => {
+      fetched.push(url);
+      return new Uint8Array([7, 7]);
+    };
+
+    const dir = await tessdataFor("frak2021", cacheDir, fetchModel);
+    const again = await tessdataFor("frak2021", cacheDir, fetchModel);
+    const builtIn = await tessdataFor("frk", cacheDir, fetchModel);
+
+    expect(dir).toBe(join(cacheDir, "tessdata"));
+    expect(again).toBe(dir);
+    expect(builtIn).toBeNull();
+    expect(fetched).toHaveLength(1);
+    expect(fetched[0]).toContain("frak2021");
+    expect(
+      new Uint8Array(
+        await Bun.file(
+          join(cacheDir, "tessdata", "frak2021.traineddata"),
+        ).arrayBuffer(),
+      ),
+    ).toEqual(new Uint8Array([7, 7]));
   });
 
   it("recognises a page once per model, and serves it again from the cache", async () => {

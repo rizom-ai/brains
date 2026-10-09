@@ -56,7 +56,6 @@ const archiveOcrBookSchema: z.ZodObject<
   Shape<
     BookFields & {
       item: z.ZodString;
-      volume: z.ZodString;
       citation: z.ZodString;
       ocr: z.ZodOptional<z.ZodString>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
@@ -66,15 +65,13 @@ const archiveOcrBookSchema: z.ZodObject<
       skipPages: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       firstChapter: z.ZodDefault<z.ZodNumber>;
-      reference: z.ZodOptional<z.ZodURL>;
+      references: z.ZodOptional<z.ZodArray<z.ZodURL>>;
     }
   >
 > = z.object({
   ...bookFields,
   /** The archive.org item holding the scanned volume. */
   item: z.string().min(1),
-  /** The volume's roman numeral. */
-  volume: z.string().min(1),
   /** How a citation names the volume before its page: GW XIII. */
   citation: z.string().min(1),
   /** A Tesseract model to read the scan anew with, where the archive's text read the type wrong: frk for Fraktur. */
@@ -95,8 +92,8 @@ const archiveOcrBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
   /** The number of the work's first chapter, where it goes on from another. */
   firstChapter: z.number().int().positive().default(1),
-  /** A transcription of the work, of any edition, to check the OCR against. */
-  reference: z.url().optional(),
+  /** Transcriptions of the work, of any edition, to check the OCR against: a text, or a web page per chapter. */
+  references: z.array(z.url()).min(1).optional(),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */
@@ -113,14 +110,14 @@ const coverageSchema: z.ZodObject<{
 
 /** A work of the oeuvre the brain does not hold, and why. */
 const gapSchema: z.ZodObject<{
-  volume: z.ZodOptional<z.ZodString>;
+  citation: z.ZodOptional<z.ZodString>;
   pages: z.ZodOptional<z.ZodString>;
   title: z.ZodString;
   year: z.ZodOptional<z.ZodNumber>;
   reason: z.ZodString;
 }> = z.object({
-  /** Where the edition prints it; a work it leaves out has none. */
-  volume: z.string().min(1).optional(),
+  /** The volume the edition prints it in, as cited: GW I; a work it leaves out has none. */
+  citation: z.string().min(1).optional(),
   pages: z.string().min(1).optional(),
   title: z.string().min(1),
   year: z.number().int().optional(),

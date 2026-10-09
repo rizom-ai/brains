@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
   checkPages,
+  lostHyphens,
+  modernForms,
   referenceCorrections,
   referenceText,
 } from "../src/check-ocr";
@@ -23,6 +25,20 @@ describe("checkPages", () => {
     expect(page?.covered).toBe(true);
     expect(page?.wrong).toEqual(["durchlaufeu"]);
     expect(page?.words).toBe(17);
+  });
+
+  it("takes a word in the print's old spelling as the transcription's modern one, a misread still as wrong", () => {
+    const [page] = checkPages(
+      [
+        {
+          page: 30,
+          text: "Die Centralisation marschirte über die Ueberlieferung hinweg und giebt dem Gefängniß baare Zahlungen der sämmtlichen Civilisten in Frantreich und anderswo, wie man weiß, auch den Aerzten in Oesterreich, die getödtet wurden",
+        },
+      ],
+      "Die Zentralisation marschierte über die Überlieferung hinweg und gibt dem Gefängnis bare Zahlungen der sämtlichen Zivilisten in Frankreich und anderswo, wie man weiß, auch den Ärzten in Österreich, die getötet wurden",
+    );
+
+    expect(page?.wrong).toEqual(["Frantreich"]);
   });
 
   it("counts no word of a passage the transcription's edition lacks", () => {
@@ -129,6 +145,19 @@ describe("referenceText", () => {
 
     expect(referenceText(raw).trim()).toBe("Den Menschen der Vorzeit");
   });
+
+  it("takes a web page's text, a paragraph to a line, its scripts and styles left out", () => {
+    const raw = `<html><head><title>MEW 7</title><style>p { color: red }</style></head>
+<body><script>var x = 1;</script><h3>I.</h3>
+<p>Mit Ausnahme einiger <i>weniger</i>
+Kapitel tr&auml;gt jeder</p><p>bedeutendere Abschnitt</p></body></html>`;
+
+    expect(referenceText(raw).split("\n").filter(Boolean)).toEqual([
+      "I.",
+      "Mit Ausnahme einiger weniger Kapitel trägt jeder",
+      "bedeutendere Abschnitt",
+    ]);
+  });
 });
 
 describe("referenceCorrections", () => {
@@ -201,5 +230,122 @@ describe("referenceCorrections between editions", () => {
         to: "im allgemeinen — gegen das mächtige",
       },
     ]);
+  });
+});
+
+describe("referenceCorrections against a transcription in today's spelling", () => {
+  const modern =
+    "Sie wollten die Lasten neu verteilen. Er mochte die Steuer ohne die Verteilung neu zu regeln, und das Volk murrte laut.";
+
+  it("writes the fix in the edition's own spelling, as its text uses the word elsewhere", () => {
+    const fixes = referenceCorrections(
+      [
+        {
+          page: 21,
+          text: "Sie wollten die Vertheilung der Lasten neu ordnen.\nEr mochte die Steuer ohne die Vertheiluug neu zu regeln, und das Volk murrte laut.",
+        },
+      ],
+      modern + " Sie wollten die Verteilung der Lasten neu ordnen.",
+    );
+
+    expect(fixes.map((fix) => fix.to)).toContain("ohne die Vertheilung neu zu");
+  });
+
+  it("makes no fix that would bring the transcription's own note marks in", () => {
+    const fixes = referenceCorrections(
+      [
+        {
+          page: 98,
+          text: "Sie haben wie unseren Vorfahren, den Grees), nicht die Stadt erobert.",
+        },
+      ],
+      "Sie haben wie unseren Vorfahren, den Grecs (3), nicht die Stadt erobert.",
+    );
+
+    expect(fixes).toEqual([]);
+  });
+
+  it("makes no fix whose word the edition never uses, rather than write today's spelling into it", () => {
+    const fixes = referenceCorrections(
+      [
+        {
+          page: 21,
+          text: "Ein Theil der Leute wußte es.\nEr mochte die Steuer ohne die Vertheiluug neu zu regeln, und das Volk murrte laut.",
+        },
+      ],
+      `Ein Teil der Leute wußte es. ${modern}`,
+    );
+
+    expect(fixes).toEqual([]);
+  });
+});
+
+describe("lostHyphens", () => {
+  it("gives a line's last word back the hyphen the OCR lost, where the transcription knows only the joined word", () => {
+    const fixes = lostHyphens(
+      [
+        {
+          page: 47,
+          text: "Marrast, der zugleich den Amphi\ntryon und den Gast spielte, der\nGefangene des Tages",
+        },
+      ],
+      "Marrast, der zugleich den Amphitryon und den Gast spielte, der Gefangene des Tages",
+    );
+
+    expect(fixes).toEqual([
+      {
+        page: 47,
+        from: "den Amphi",
+        to: "den Amphi-",
+      },
+    ]);
+  });
+
+  it("places the fix by as much of the line's end as no line before it holds", () => {
+    const fixes = lostHyphens(
+      [
+        {
+          page: 71,
+          text: "Sie schützte die Konstitution vor ihm\nin die Versammlung durch die Kon\nstitution, den Präsidenten",
+        },
+      ],
+      "Sie schützte die Konstitution vor ihm in die Versammlung durch die Konstitution, den Präsidenten",
+    );
+
+    expect(fixes).toEqual([
+      { page: 71, from: "durch die Kon", to: "durch die Kon-" },
+    ]);
+  });
+
+  it("gives the hyphen back to a word broken over a page", () => {
+    const fixes = lostHyphens(
+      [
+        { page: 21, text: "Nicht die französische Bour" },
+        { page: 22, text: "geoisie herrschte unter Louis Philipp" },
+      ],
+      "Nicht die französische Bourgeoisie herrschte unter Louis Philipp",
+    );
+
+    expect(fixes).toEqual([
+      {
+        page: 21,
+        from: "französische Bour",
+        to: "französische Bour-",
+      },
+    ]);
+  });
+});
+
+describe("modernForms", () => {
+  it("spells a word of 1850 as after the spelling reform, for the dictionary to know it", () => {
+    expect(modernForms("wüthete")).toContain("wütete");
+    expect(modernForms("großentheils")).toContain("großenteils");
+    expect(modernForms("dupiren")).toContain("dupieren");
+    expect(modernForms("niedervotirt")).toContain("niedervotiert");
+    expect(modernForms("Civilisation")).toContain("Zivilisation");
+    expect(modernForms("Kompagnie")).toContain("Kompagnie");
+    expect(modernForms("Gefängniß")).toContain("Gefängnis");
+    expect(modernForms("Uebergang")).toContain("Übergang");
+    expect(modernForms("muß")).toContain("muss");
   });
 });

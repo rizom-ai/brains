@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { Window } from "happy-dom";
 import { pageText } from "./adapters/archive-ocr";
 import {
   readCorrectionsBeside,
@@ -42,14 +43,25 @@ function wordsOf(text: string): string[] {
 
 /**
  * A word as editions and spellings agree on it: in small letters, ß as ss,
- * the th of the spelling before 1901 as t (Theil, thun), a dotless i as i.
+ * a dotless i as i, and the spelling before 1901 as today's: th as t (Theil),
+ * ie as i (giebt, marschirte), c as z or k (Civilisation, Kompagnie), a first
+ * Ue, Ae or Oe as Ü, Ä or Ö, dt as t (getödtet), doubled letters as one
+ * (baar, sämmtlich, Gefängniß).
  */
 function keyOf(word: string): string {
   return word
     .toLowerCase()
     .replace(/ı/gu, "i")
     .replace(/ß/gu, "ss")
-    .replace(/th/gu, "t");
+    .replace(/th/gu, "t")
+    .replace(/^ue/u, "ü")
+    .replace(/^ae/u, "ä")
+    .replace(/^oe/u, "ö")
+    .replace(/dt/gu, "t")
+    .replace(/ie/gu, "i")
+    .replace(/c(?=[eiy])/gu, "z")
+    .replace(/c(?!h)/gu, "k")
+    .replace(/(\p{L})\1/gu, "$1");
 }
 
 function runs(keys: string[]): string[] {
@@ -193,7 +205,29 @@ export function checkPages(
 }
 
 /** A Project Gutenberg text without its header and licence. */
+/** A web page's text: its paragraphs, headings and list items, a line each. */
+function pageTextOf(html: string): string {
+  const window = new Window();
+  try {
+    const document = window.document;
+    document.write(html);
+    document.querySelectorAll("script, style").forEach((element) => {
+      element.remove();
+    });
+    return Array.from(
+      document.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li"),
+    )
+      .map((element) => element.textContent.replace(/\s+/gu, " ").trim())
+      .filter((text) => text.length > 0)
+      .join("\n");
+  } finally {
+    // Closing only releases the window's timers; parsing is already done.
+    void window.happyDOM.close();
+  }
+}
+
 export function referenceText(raw: string): string {
+  if (/<(html|body)[\s>]/iu.test(raw)) return pageTextOf(raw);
   const lines = raw.split(/\r?\n/u);
   const start = lines.findIndex((line) => /^\*\*\* ?START OF/u.test(line));
   const end = lines.findIndex((line) => /^\*\*\* ?END OF/u.test(line));
@@ -238,6 +272,52 @@ function asPrinted(text: string): string {
 
 /** A misread run is at most this many tokens; longer damage is read from the scan. */
 const MAX_RUN = 4;
+/**
+ * Lines whose last word the OCR read without its hyphen: the next line goes
+ * on in small letters, and the transcription knows the two only as one word
+ * (Amphi / tryon). Each fix gives the line's last word its hyphen back, so
+ * the reader joins the word again.
+ */
+export function lostHyphens(
+  pages: PageOfText[],
+  reference: string,
+): ReferenceCorrection[] {
+  const known = new Set(wordsOf(reference).map(keyOf));
+  return pages.flatMap(({ page, text }, pageIndex) => {
+    const lines = text.split("\n");
+    // The page's last line goes on in the next page's first.
+    const next = (pages[pageIndex + 1]?.text ?? "").split("\n")[0] ?? "";
+    return lines.flatMap((line, index) => {
+      const head = /(\p{L}+)$/u.exec(line)?.[1];
+      const tail = /^(\p{Ll}\p{L}*)/u.exec(lines[index + 1] ?? next)?.[1];
+      if (head === undefined || tail === undefined) return [];
+      const joined = keyOf(`${head}${tail}`);
+      const apart = known.has(keyOf(head)) && known.has(keyOf(tail));
+      // As much of the line's end as no line before it holds places the fix,
+      // whatever else is fixed on the line: a correction fixes the first
+      // line that holds its text.
+      const words = line.split(/(?<=\s)(?=\S)/u);
+      const end =
+        Array.from({ length: words.length }, (_, from) =>
+          words.slice(Math.max(0, words.length - 2 - from)).join(""),
+        ).find(
+          (ending) =>
+            !lines.slice(0, index).some((before) => before.includes(ending)) &&
+            line.indexOf(ending) === line.length - ending.length,
+        ) ?? line;
+      return known.has(joined) && !apart
+        ? [{ page, from: end, to: `${end}-` }]
+        : [];
+    });
+  });
+}
+
+/** A transcription writing more than this share of shared words otherwise spells otherwise. */
+const SPELLED_OTHERWISE = 0.02;
+
+/** Words this short are spelled alike before and after the spelling reform. */
+const SPELLED_ALIKE = 5;
+
 /** The transcription may have at most this many words where the run stands. */
 const MAX_GAP = 4;
 
@@ -249,6 +329,9 @@ const MAX_GAP = 4;
  * right reading. A run whose context the transcription does not share, or
  * shares more than once, is left for the scan to tell. A word the author's
  * text uses elsewhere is a reading of this edition, not a misread, and stays.
+ * A fix is written in the edition's own spelling; where the transcription
+ * spells otherwise, none is made with a word the edition never uses, so a
+ * transcription in today's spelling cannot carry its spelling in.
  */
 export function referenceCorrections(
   pages: PageOfText[],
@@ -262,6 +345,41 @@ export function referenceCorrections(
     ...keys,
     ...keys.slice(1).map((key, index) => `${keys[index]}${key}`),
   ]);
+  // The edition's own spelling of each word, by key: its commonest form.
+  const counted = pages
+    .flatMap(({ text }) => wordsOf(text))
+    .reduce(
+      (seen, word) => seen.set(word, (seen.get(word) ?? 0) + 1),
+      new Map<string, number>(),
+    );
+  const spelling = [...counted]
+    .sort((a, b) => b[1] - a[1])
+    .reduce((forms, [word]) => {
+      const key = keyOf(word);
+      return forms.has(key) ? forms : forms.set(key, word);
+    }, new Map<string, string>());
+  // Whether the transcription spells otherwise than the edition: of the
+  // words both use, it writes enough in another form (Teil for Theil).
+  const shared = [...new Set(known.map((token) => token.word))].filter((word) =>
+    spelling.has(keyOf(word)),
+  );
+  const otherwise =
+    shared.filter(
+      (word) => spelling.get(keyOf(word))?.toLowerCase() !== word.toLowerCase(),
+    ).length >
+    shared.length * SPELLED_OTHERWISE;
+  // A word of the transcription as the edition spells it, keeping its
+  // capital. Where the transcription spells otherwise, a word the edition
+  // never uses is null, unless short enough to be spelled alike either way.
+  const asEdition = (word: string): string | null => {
+    const form = spelling.get(keyOf(word));
+    if (form === undefined) {
+      return otherwise && word.length > SPELLED_ALIKE ? null : word;
+    }
+    return /^\p{Lu}/u.test(word)
+      ? `${form.charAt(0).toUpperCase()}${form.slice(1)}`
+      : `${form.charAt(0).toLowerCase()}${form.slice(1)}`;
+  };
   const pairs = keys.slice(1).reduce((index, key, at) => {
     const pair = `${keys[at]} ${key}`;
     return index.set(pair, [...(index.get(pair) ?? []), at]);
@@ -311,8 +429,21 @@ export function referenceCorrections(
       const leftEnd = only ? known[only.at + 1] : undefined;
       const rightStart = only ? known[only.at + 2 + only.gap] : undefined;
       if (!leftEnd || !rightStart) return [];
-      const between = asPrinted(
+      const transcribed = asPrinted(
         cleaned.slice(leftEnd.end, rightStart.start).replace(/\s+/gu, " "),
+      );
+      // The transcription's own note marks are not the author's text.
+      if (/[([]\d+[)\]]/u.test(transcribed)) return [];
+      // The transcription's words in the edition's spelling; a word the
+      // edition never uses could carry the transcription's spelling in.
+      const respelled = [...transcribed.matchAll(/\p{L}+/gu)].map((match) =>
+        asEdition(match[0]),
+      );
+      if (respelled.some((word) => word === null)) return [];
+      const between = [...transcribed.matchAll(/\p{L}+/gu)].reduceRight(
+        (text, match, index) =>
+          `${text.slice(0, match.index)}${respelled[index] ?? match[0]}${text.slice(match.index + match[0].length)}`,
+        transcribed,
       );
       return [
         {
@@ -331,6 +462,29 @@ export function referenceCorrections(
 
 /** A word spelled as a word, used this often across the author's volumes, is real. */
 const REAL_USES = 3;
+
+/**
+ * A word of the spelling before the reform of 1901, as it may be spelled
+ * today: th as t (wüthete), -iren as -ieren (dupiren), a first C as K or Z
+ * (Civilisation), a first Ae, Oe or Ue as Ä, Ö or Ü, -niß as -nis, and ß as
+ * ss where today's spelling has it (muß).
+ */
+export function modernForms(word: string): string[] {
+  const reformed = word
+    .replace(/th/gu, "t")
+    .replace(/Th(?=\p{Ll})/gu, "T")
+    .replace(
+      /(\p{L}{3,})ir(en|t|te|ten|ter|tes|tem|end|ung|ungen)$/u,
+      "$1ier$2",
+    )
+    .replace(/^C(?=[aouAOU])/u, "K")
+    .replace(/^C(?=[eiyEIY])/u, "Z")
+    .replace(/^Ae/u, "Ä")
+    .replace(/^Oe/u, "Ö")
+    .replace(/^Ue/u, "Ü")
+    .replace(/niß$/u, "nis");
+  return [...new Set([word, reformed, reformed.replace(/ß/gu, "ss")])];
+}
 const SPELLED = /^\p{Lu}?\p{Ll}+$/u;
 /** The plan's OCR gate: fewer than one wrong word in this many. */
 const GATE = 200;
@@ -349,7 +503,7 @@ function pagesOfBook(book: {
 }
 
 const USAGE =
-  "Usage: bun packages/book-import/src/check-ocr.ts <manifest.yaml> [--correct] [--dictionary=<hunspell dictionary>]";
+  "Usage: bun packages/book-import/src/check-ocr.ts <manifest.yaml> [--correct] [--show] [--dictionary=<hunspell dictionary>]";
 
 /**
  * The words a spelling dictionary accepts: real words, so that where a
@@ -382,6 +536,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const manifestPath = args.find((arg) => !arg.startsWith("--"));
   const correct = args.includes("--correct");
+  const show = args.includes("--show");
   const dictionary = args
     .find((arg) => arg.startsWith("--dictionary="))
     ?.slice(13);
@@ -435,17 +590,25 @@ async function main(): Promise<void> {
       new Map<string, number>(),
     );
   const accepted = dictionary
-    ? await dictionaryWords([...uses.keys()], dictionary)
+    ? await dictionaryWords(
+        [...new Set([...uses.keys()].flatMap(modernForms))],
+        dictionary,
+      )
     : new Set<string>();
+  // A word the dictionary knows, also in today's spelling of an older one.
   const isWord = (word: string): boolean =>
-    accepted.has(word) ||
+    modernForms(word).some((form) => accepted.has(form)) ||
     (SPELLED.test(word) && (uses.get(word) ?? 0) >= REAL_USES);
 
   const added = await books
-    .filter((book) => book.reference !== undefined)
+    .filter((book) => book.references !== undefined)
     .reduce<Promise<Corrections>>(async (done, book) => {
       const found = await done;
-      const reference = referenceText(await fetchText(book.reference ?? ""));
+      const reference = await (book.references ?? []).reduce<Promise<string>>(
+        async (text, url) =>
+          `${await text}\n${referenceText(await fetchText(url))}`,
+        Promise.resolve(""),
+      );
       const pages = texts.get(book.slug) ?? [];
       const checks = checkPages(pages, reference, isWord).filter(
         (check) => check.covered,
@@ -456,9 +619,37 @@ async function main(): Promise<void> {
       console.log(
         `${passes ? "pass" : "FAIL"} ${book.slug}: ${wrong} wrong in ${words} words${wrong ? ` (1 in ${Math.round(words / wrong)})` : ""}`,
       );
+      if (show) {
+        // The words read wrong most often, to tell a misread from a spelling
+        // the transcription modernised.
+        const counts = checks
+          .flatMap((check) => check.wrong)
+          .reduce(
+            (seen, word) => seen.set(word, (seen.get(word) ?? 0) + 1),
+            new Map<string, number>(),
+          );
+        console.log(
+          [...counts]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 80)
+            .map(([word, count]) => `${word} ${count}`)
+            .join(", "),
+        );
+        // The pages with most of them, to read against their scans.
+        checks
+          .filter((check) => check.wrong.length >= 3)
+          .sort((a, b) => b.wrong.length - a.wrong.length)
+          .slice(0, 20)
+          .forEach((check) => {
+            console.log(`  p. ${check.page}: ${check.wrong.join(", ")}`);
+          });
+      }
       if (!correct) return found;
       const existing = corrections[book.item] ?? [];
-      const fixes = referenceCorrections(pages, reference, isWord).filter(
+      const fixes = [
+        ...lostHyphens(pages, reference),
+        ...referenceCorrections(pages, reference, isWord),
+      ].filter(
         (fix) =>
           !existing.some(
             (known) =>

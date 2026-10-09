@@ -11,6 +11,8 @@ export interface PageOcrOptions {
   cacheDir: string;
   /** The recognition model: Tesseract's frk for Fraktur. */
   model: string;
+  /** How the image is prepared before recognition, as named in the cache. */
+  prepare?: string;
   fetchImage: (url: string) => Promise<Uint8Array>;
   recognise: (image: Uint8Array, model: string) => Promise<string>;
 }
@@ -32,7 +34,7 @@ async function readCached(path: string): Promise<string | null> {
 export function createPageOcr(options: PageOcrOptions): PageOcr {
   return async (imageUrl) => {
     const key = createHash("sha256")
-      .update(`${options.model}\n${imageUrl}`)
+      .update(`${options.model}\n${options.prepare ?? ""}\n${imageUrl}`)
       .digest("hex");
     const path = join(options.cacheDir, `ocr-${key}.html`);
     const cached = await readCached(path);
@@ -47,16 +49,78 @@ export function createPageOcr(options: PageOcrOptions): PageOcr {
   };
 }
 
+/**
+ * Models Tesseract does not bring, by where they are published: frak2021,
+ * UB Mannheim's Fraktur model trained on historical prints (Apache-2.0).
+ */
+const MODELS: Record<string, string> = {
+  frak2021:
+    "https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/frak2021/tessdata_best/frak2021-0.905.traineddata",
+};
+
+async function exists(path: string): Promise<boolean> {
+  return Bun.file(path).exists();
+}
+
+/**
+ * The folder holding a model Tesseract does not bring, fetched into the
+ * cache once; null for a model of Tesseract's own.
+ */
+export async function tessdataFor(
+  model: string,
+  cacheDir: string,
+  fetchModel: (url: string) => Promise<Uint8Array>,
+): Promise<string | null> {
+  const url = MODELS[model];
+  if (!url) return null;
+  const dir = join(cacheDir, "tessdata");
+  const path = join(dir, `${model}.traineddata`);
+  if (!(await exists(path))) {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path, await fetchModel(url));
+  }
+  return dir;
+}
+
+/**
+ * How a page image is prepared for recognition: in grey, at twice its size,
+ * which keeps the scan's small Fraktur letters apart.
+ */
+const PREPARE = ["-colorspace", "Gray", "-resize", "200%"];
+
+/** A page image prepared for recognition with ImageMagick, which must be on the path. */
+export async function preparedImage(image: Uint8Array): Promise<Uint8Array> {
+  const child = Bun.spawn(["magick", "-", ...PREPARE, "png:-"], {
+    stdin: image,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [prepared, errors, code] = await Promise.all([
+    new Response(child.stdout).arrayBuffer(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  if (code !== 0) throw new Error(`magick failed (${code}): ${errors}`);
+  return new Uint8Array(prepared);
+}
+
 /** The importer's page OCR: Tesseract, images fetched in the importer's queue. */
 export function importerPageOcr(
   fetch: PoliteFetch,
 ): (model: string) => PageOcr {
+  const cacheDir = importerCacheDir();
   return (model) =>
     createPageOcr({
-      cacheDir: importerCacheDir(),
+      cacheDir,
       model,
+      prepare: PREPARE.join(" "),
       fetchImage: fetch.bytes,
-      recognise: tesseractHocr,
+      recognise: async (image, used) =>
+        tesseractHocr(
+          await preparedImage(image),
+          used,
+          await tessdataFor(used, cacheDir, fetch.bytes),
+        ),
     });
 }
 
@@ -64,9 +128,21 @@ export function importerPageOcr(
 export async function tesseractHocr(
   image: Uint8Array,
   model: string,
+  tessdata: string | null = null,
 ): Promise<string> {
   const child = Bun.spawn(
-    ["tesseract", "stdin", "stdout", "-l", model, "hocr"],
+    [
+      "tesseract",
+      "stdin",
+      "stdout",
+      ...(tessdata ? ["--tessdata-dir", tessdata] : []),
+      "-l",
+      model,
+      // Asked for by setting, not by config file, which a model's own
+      // folder lacks.
+      "-c",
+      "tessedit_create_hocr=1",
+    ],
     {
       stdin: image,
       stdout: "pipe",
@@ -79,12 +155,15 @@ export async function tesseractHocr(
     child.exited,
   ]);
   if (code !== 0) throw new Error(`tesseract failed (${code}): ${errors}`);
+  if (!hocr.includes("ocr_page")) {
+    throw new Error(`tesseract gave no hOCR with ${model}: ${errors}`);
+  }
   return hocr;
 }
 
 /**
  * A volume's pages as one hOCR document, each page numbered by its leaf, the
- * order the scan holds them in; Fraktur's long s read as s.
+ * order the scan holds them in; Fraktur's long s read as s, and its hyphen as one.
  */
 export function volumeOfPages(pages: string[]): string {
   const bodies = pages.map((page, leaf) =>
@@ -93,7 +172,13 @@ export function volumeOfPages(pages: string[]): string {
         /<div class='ocr_page' id='page_\d+'/,
         `<div class='ocr_page' id='page_${leaf}'`,
       )
-      .replace(/ſ/g, "s"),
+      .replace(/ſ/g, "s")
+      .replace(/ꝛc\./g, "etc.")
+      // Fraktur models print a word's hyphen as a dash, a double hyphen or
+      // an equals sign, at times two of them.
+      .replace(/(\p{L})[—⸗=-]+(?=<\/span>)/gu, "$1-")
+      // A double hyphen is a hyphen wherever it stands.
+      .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L})/gu, "$1-"),
   );
   return `<html><body>\n${bodies.join("\n")}\n</body></html>\n`;
 }
