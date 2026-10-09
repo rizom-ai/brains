@@ -16,7 +16,7 @@ export class BookAdapter extends BaseEntityAdapter<
     super({
       entityType: "book",
       purpose:
-        "A section of a published book, kept verbatim and cited by its section.",
+        "A published book: its title, author, edition and contents. Its text is in its sections.",
       schema: bookSchema,
       frontmatterSchema: bookFrontmatterSchema,
     });
@@ -28,25 +28,9 @@ export class BookAdapter extends BaseEntityAdapter<
     return {
       content: markdown,
       entityType: "book",
-      metadata: {
-        title: frontmatter.title,
-        section: frontmatter.section,
-        book: frontmatter.book,
-        order: frontmatter.order,
-        slug: bookEntrySlug(frontmatter.book, frontmatter.order),
-        pageTitle:
-          frontmatter.order === 0
-            ? frontmatter.title
-            : (frontmatter.section ?? frontmatter.title),
-        citable: frontmatter.order !== 0,
-      },
+      metadata: { title: frontmatter.title },
     };
   }
 }
 
 export const bookAdapter: BookAdapter = new BookAdapter();
-
-/** A book opens at its slug; its entries follow at `<book>/<order>`. */
-export function bookEntrySlug(book: string, order: number): string {
-  return order === 0 ? book : `${book}/${order}`;
-}

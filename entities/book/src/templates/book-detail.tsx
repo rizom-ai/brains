@@ -1,20 +1,29 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { BookWithData } from "../schemas/book";
+import type { BookSectionWithData } from "../schemas/book-section";
 import type { ScoreEntry, Theme } from "../datasources/book-datasource";
 import { count } from "../lib/count";
 import { bookClasses, bookHref, licenseLabel } from "./book-design";
 
+/** A book's title page. */
 export interface BookDetailProps {
-  entry: BookWithData;
   book: BookWithData;
-  prev: BookWithData | null;
-  next: BookWithData | null;
-  /** Sections in the book, not counting its title entry. */
-  total: number;
-  /** On a book's title page, every section in reading order. */
+  /** The section reading begins at; null for a book without sections. */
+  first: BookSectionWithData | null;
+  /** Every section in reading order. */
   score: ScoreEntry[];
-  /** On a section page, the topics nearest it. */
+}
+
+/** A section set for reading. */
+export interface BookSectionProps {
+  section: BookSectionWithData;
+  book: BookWithData;
+  prev: BookSectionWithData | null;
+  next: BookSectionWithData | null;
+  /** Sections in the book. */
+  total: number;
+  /** The topics nearest the section. */
   themes: Theme[];
 }
 
@@ -44,10 +53,11 @@ const BookDetails = ({ book }: { book: BookWithData }): JSX.Element => (
 );
 
 const Source = ({
-  entry,
+  href,
   book,
 }: {
-  entry: BookWithData;
+  /** The edition's page for what is shown: the book, or one section. */
+  href: string;
   book: BookWithData;
 }): JSX.Element => {
   const license = licenseLabel(book);
@@ -56,8 +66,8 @@ const Source = ({
       className={`${bookClasses.rule} m-0 mt-12 pt-4 font-mono text-[13px] leading-relaxed text-theme-light`}
     >
       Source:{" "}
-      <a href={entry.frontmatter.source} className={bookClasses.link}>
-        {book.frontmatter.attribution ?? entry.frontmatter.source}
+      <a href={href} className={bookClasses.link}>
+        {book.frontmatter.attribution ?? href}
       </a>
       {license && <span> · {license}</span>}
     </p>
@@ -65,7 +75,11 @@ const Source = ({
 };
 
 /** Where a link leads: the section's own title, with its siglum. */
-const PagerLabel = ({ target }: { target: BookWithData }): JSX.Element => (
+const PagerLabel = ({
+  target,
+}: {
+  target: BookSectionWithData;
+}): JSX.Element => (
   <>
     <span lang="de">{target.metadata.title}</span>
     {target.metadata.section &&
@@ -81,8 +95,8 @@ const Pager = ({
   prev,
   next,
 }: {
-  prev: BookWithData | null;
-  next: BookWithData | null;
+  prev: BookSectionWithData | null;
+  next: BookSectionWithData | null;
 }): JSX.Element => (
   <nav
     className="mt-10 flex justify-between gap-6 font-mono text-sm"
@@ -258,30 +272,28 @@ function titleSize(title: string): string {
 }
 
 /** A book's title page: its details beside the score of its sections. */
-const TitleView = ({
-  entry,
+export const BookDetailTemplate = ({
   book,
-  next,
-  total,
+  first,
   score,
 }: BookDetailProps): JSX.Element => (
   <article className="mx-auto grid w-full max-w-[76rem] gap-x-16 gap-y-12 px-4 py-14 md:grid-cols-[22rem_minmax(0,1fr)] md:py-20">
     <header>
       <p className={`${bookClasses.label} m-0`}>{book.frontmatter.author}</p>
       <h1
-        className={`m-0 mt-5 font-heading leading-[0.95] font-normal tracking-[-0.02em] text-heading hyphens-auto ${titleSize(entry.metadata.title)}`}
+        className={`m-0 mt-5 font-heading leading-[0.95] font-normal tracking-[-0.02em] text-heading hyphens-auto ${titleSize(book.metadata.title)}`}
         lang="de"
       >
-        {entry.metadata.title}
+        {book.metadata.title}
       </h1>
       <BookDetails book={book} />
       <p className="m-0 mt-2 font-mono text-sm text-theme-muted">
-        {count(total, "section")}
+        {count(score.length, "section")}
       </p>
-      <Source entry={entry} book={book} />
-      {next && (
+      <Source href={book.frontmatter.source} book={book} />
+      {first && (
         <nav className="mt-10 flex justify-end font-mono text-sm">
-          <a href={bookHref(next)} rel="next" className={bookClasses.link}>
+          <a href={bookHref(first)} rel="next" className={bookClasses.link}>
             Begin reading →
           </a>
         </nav>
@@ -316,9 +328,9 @@ const AskAbout = ({
  * (a bracketed siglum, `Za-II-[Titel]`) whose title only names its kind,
  * the heading it opens, or the book.
  */
-function askTitleOf(entry: BookWithData, book: BookWithData): string {
-  if (!entry.metadata.section?.includes("[")) return entry.metadata.title;
-  return entry.frontmatter.headings.at(-1) ?? book.metadata.title;
+function askTitleOf(section: BookSectionWithData, book: BookWithData): string {
+  if (!section.metadata.section?.includes("[")) return section.metadata.title;
+  return section.frontmatter.headings.at(-1) ?? book.metadata.title;
 }
 
 /** The longest stretch of a siglum the margin sets on one line at full size. */
@@ -342,30 +354,32 @@ const Siglum = ({ siglum }: { siglum: string }): JSX.Element => {
 };
 
 /** A section set for reading: siglum and place in the margin, text alone. */
-const SectionView = ({
-  entry,
+export const BookSectionTemplate = ({
+  section,
   book,
   prev,
   next,
   total,
   themes,
-}: BookDetailProps): JSX.Element => (
+}: BookSectionProps): JSX.Element => (
   <article className="mx-auto grid w-full max-w-[76rem] gap-x-14 gap-y-8 px-4 py-14 md:grid-cols-[13rem_minmax(0,40rem)] md:py-20 lg:grid-cols-[13rem_minmax(0,40rem)_minmax(0,14rem)]">
     <aside className="md:pt-3">
-      <Siglum siglum={entry.metadata.section ?? String(entry.metadata.order)} />
+      <Siglum
+        siglum={section.metadata.section ?? String(section.metadata.order)}
+      />
       <p className="m-0 mt-4 font-mono text-xs leading-relaxed text-theme-muted">
         <a href={bookHref(book)} className={bookClasses.link} lang="de">
           {book.metadata.title}
         </a>
-        {entry.frontmatter.headings.length > 0 && (
+        {section.frontmatter.headings.length > 0 && (
           <>
             <br />
-            <span lang="de">{entry.frontmatter.headings.join(" · ")}</span>
+            <span lang="de">{section.frontmatter.headings.join(" · ")}</span>
           </>
         )}
         <br />
         {book.frontmatter.year !== null && `${book.frontmatter.year} · `}
-        section {entry.metadata.order} of {total}
+        section {section.metadata.order} of {total}
       </p>
     </aside>
     <div className="min-w-0">
@@ -373,12 +387,12 @@ const SectionView = ({
         className="m-0 mb-8 text-5xl leading-none font-normal text-heading hyphens-auto md:text-6xl"
         lang="de"
       >
-        {entry.metadata.title}
+        {section.metadata.title}
       </h1>
       <div className="book-text" lang="de">
-        <MarkdownContent markdown={entry.body} />
+        <MarkdownContent markdown={section.body} />
       </div>
-      <Source entry={entry} book={book} />
+      <Source href={section.frontmatter.source} book={book} />
       <Pager prev={prev} next={next} />
     </div>
     <aside className="md:col-start-2 lg:col-start-3 lg:pt-3">
@@ -402,16 +416,9 @@ const SectionView = ({
         </>
       )}
       <AskAbout
-        siglum={entry.metadata.pageTitle}
-        title={askTitleOf(entry, book)}
+        siglum={section.metadata.pageTitle}
+        title={askTitleOf(section, book)}
       />
     </aside>
   </article>
 );
-
-export const BookDetailTemplate = (props: BookDetailProps): JSX.Element =>
-  props.entry.metadata.order === 0 ? (
-    <TitleView {...props} />
-  ) : (
-    <SectionView {...props} />
-  );
