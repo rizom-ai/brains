@@ -19,6 +19,13 @@ import type { SystemServices } from "./types";
  * What an update asks for, once edits are applied and input normalized: a
  * full content replacement or a set of field changes, never both.
  */
+/**
+ * Changed lines a replacement preview still lists. Beyond it the preview says
+ * the content is replaced wholesale. A count of edits, not a clock, so the
+ * same replacement previews the same way on a loaded machine.
+ */
+const MAX_PREVIEW_DIFF_EDITS = 4_000;
+
 export interface UpdateOperation {
   fields?: Record<string, unknown>;
   content?: string;
@@ -473,9 +480,11 @@ export function buildUpdateDiff(
   const newLines = (operation.content ?? "").split("\n");
   // Align unchanged lines so insertions do not make the entire suffix look
   // rewritten. Bound diff work for large, completely different documents.
-  const changes = diffArrays(oldLines, newLines, { timeout: 100 });
+  const changes = diffArrays(oldLines, newLines, {
+    maxEditLength: MAX_PREVIEW_DIFF_EDITS,
+  });
   if (!changes) {
-    return "Full content replacement (line diff omitted: comparison exceeded its time limit).";
+    return `Full content replacement (line diff omitted: more than ${MAX_PREVIEW_DIFF_EDITS} changed lines).`;
   }
   return changes
     .filter((change) => change.added || change.removed)
