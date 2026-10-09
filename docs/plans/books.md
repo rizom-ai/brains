@@ -121,16 +121,17 @@ Not covered: Juvenilia, letters to Nietzsche.
 
 ### Karl
 
-| Source                                                 | Coverage                                                                                                                                                                                             | License                       | Format        |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------- |
-| MEGAdigital (`megadigital.bbaw.de/api/v2/tei-xml.xql`) | Marx’s letters 1866–1871 in German, excerpt volumes                                                                                                                                                  | CC BY-SA 4.0 (per TEI header) | TEI           |
-| Deutsches Textarchiv                                   | Kapital I–III, Achtzehnte Brumaire, Manifest                                                                                                                                                         | CC BY-SA 4.0                  | TEI           |
-| archive.org scans                                      | Theorien über den Mehrwert (1905–10), Aus dem literarischen Nachlass (Mehring 1902), Gesammelte Schriften 1852–1862 (Rjasanoff 1917, Luise Kautsky's translations), Das Elend der Philosophie (1885) | public domain                 | OCR           |
-| de.wikisource                                          | Zur Judenfrage, Zur Kritik der Hegel’schen Rechtsphilosophie. Einleitung, Marx’s letters in Ein Briefwechsel von 1843 (Deutsch-Französische Jahrbücher 1844), Thesen über Feuerbach (1888)           | public domain                 | rendered HTML |
-| gutenberg.org                                          | Briefwechsel Marx–Engels vol. 1 (1913)                                                                                                                                                               | public domain                 | text          |
+| Source                                                   | Coverage                                                                                                                                                                                             | License                                             | Format        |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------- |
+| MEGAdigital (`megadigital.bbaw.de/api/v2/tei-xml.xql`)   | Marx’s letters 1866–1871 in German, excerpt volumes                                                                                                                                                  | CC BY-SA 4.0 (per TEI header)                       | TEI           |
+| MEGAdigital Kapital section (`telota.bbaw.de/mega/docs`) | Grundrisse with Einleitung and Bastiat und Carey (MEGA² II/1, 1976–81), Ökonomisches Manuskript 1863–65, Erstes and Zweites Buch (II/4.1, 1988)                                                      | public domain (author text; edition past § 70 UrhG) | TEI           |
+| Deutsches Textarchiv                                     | Kapital I–III, Achtzehnte Brumaire, Manifest                                                                                                                                                         | CC BY-SA 4.0                                        | TEI           |
+| archive.org scans                                        | Theorien über den Mehrwert (1905–10), Aus dem literarischen Nachlass (Mehring 1902), Gesammelte Schriften 1852–1862 (Rjasanoff 1917, Luise Kautsky's translations), Das Elend der Philosophie (1885) | public domain                                       | OCR           |
+| de.wikisource                                            | Zur Judenfrage, Zur Kritik der Hegel’schen Rechtsphilosophie. Einleitung, Marx’s letters in Ein Briefwechsel von 1843 (Deutsch-Französische Jahrbücher 1844), Thesen über Feuerbach (1888)           | public domain                                       | rendered HTML |
+| gutenberg.org                                            | Briefwechsel Marx–Engels vol. 1 (1913)                                                                                                                                                               | public domain                                       | text          |
 
 Joint works with Engels are included; Engels-only works are not.
-Not covered: English and French writings with no public-domain German translation, letters before 1866 other than those in the Deutsch-Französische Jahrbücher and the Briefwechsel's first volume (to 1853), letters after 1871, Grundrisse, Ökonomisch-philosophische Manuskripte, Deutsche Ideologie and the Kritik des Hegelschen Staatsrechts (1843) until an open transcription is found.
+Not covered: English and French writings with no public-domain German translation, letters before 1866 other than those in the Deutsch-Französische Jahrbücher and the Briefwechsel's first volume (to 1853), letters after 1871; the Ökonomisch-philosophische Manuskripte, Deutsche Ideologie and the Kritik des Hegelschen Staatsrechts (1843) until an open transcription is found; MEGA² volumes still within the edition right (II/4.3, II/11–13), and II/4.2 until its print date is confirmed, since its transcription carries II/4.3's header.
 
 ### Sigmund
 
@@ -159,7 +160,7 @@ bun packages/book-import/src/cli.ts <manifest> <content-repo>/brain-data
 ```
 
 - `manifests/{nietzsche,marx,freud}.yaml` — one entry per book: adapter, source, edition, license, strip rules
-- adapters: `ekgwb`, `archive-ocr`, `dta-tei`, `wikisource`, `gutenberg-letters`, `mega-letters`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
+- adapters: `ekgwb`, `archive-ocr`, `dta-tei`, `mega-etx` (both on a shared TEI reader), `wikisource`, `gutenberg-letters`, `mega-letters`; each yields ordered units `{ path, title, section, page, source, paragraphs }`
 - one shared writer applies the splitting rule, validates every entry against `@brains/book`'s schema, writes `book/<book>/…`, and removes stale entries of that book
 - deterministic: rerunning on the same sources yields byte-identical files
 - downloads are cached locally and never committed
@@ -211,7 +212,7 @@ Each phase ships on its own PR, tests first.
 
 ### Phase 5 — Karl
 
-- `dta-tei`, `wikisource`, `gutenberg-letters` and `mega-letters` adapters (#567); Marx manifest and coverage note
+- `dta-tei`, `wikisource`, `gutenberg-letters`, `mega-letters` and `mega-etx` adapters (#567); Marx manifest and coverage note
 - `karl` user added, content repo seeded, deploy, same verification
 
 ## Risks

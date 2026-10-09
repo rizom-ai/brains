@@ -405,6 +405,65 @@ books:
   });
 });
 
+describe("importBooks from MEGAdigital's Kapital volumes", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-mega-etx-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads a work over its volumes and credits the transcription", async () => {
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: mega-etx
+books:
+  - citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Erster Teil
+      - file: MEGA_A2_B001-02_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Zweiter Teil
+    slug: grundrisse
+    title: Grundrisse der Kritik der politischen Ökonomie
+    edition: MEGA² II/1 (Berlin 1976–1981)
+    author: Karl Marx
+    year: 1939
+    published: false
+    kind: nachlass
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        return readFile(
+          join(
+            import.meta.dir,
+            "fixtures",
+            url.endsWith("01_ETX.xml") ? "mega-etx-1.xml" : "mega-etx-2.xml",
+          ),
+          "utf8",
+        );
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "grundrisse", "00000-titel.md"),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://telota.bbaw.de/mega/docs/MEGA_A2_B001-01_ETX.xml",
+      "https://telota.bbaw.de/mega/docs/MEGA_A2_B001-02_ETX.xml",
+    ]);
+    expect(results).toEqual([{ slug: "grundrisse", entries: 2 }]);
+    expect(title).toContain("license: public-domain");
+    expect(title).toContain("MEGAdigital");
+  });
+});
+
 describe("importBooks from scanned volumes", () => {
   const ocrManifest = `
 source: archive-ocr

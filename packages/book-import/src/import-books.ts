@@ -5,6 +5,7 @@ import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
 import { parseGutenbergLetters } from "./adapters/gutenberg-letters";
+import { MEGA_DOCS, parseMegaEtx } from "./adapters/mega-etx";
 import {
   LANGUAGES,
   isWritersLetter,
@@ -215,6 +216,31 @@ const megaLettersBookSchema: z.ZodObject<
   edition: z.string().min(1),
 });
 
+const megaEtxBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      citation: z.ZodString;
+      parts: z.ZodArray<z.ZodObject<{ file: z.ZodString; text: z.ZodString }>>;
+      title: z.ZodString;
+      edition: z.ZodString;
+      skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** How a citation names the volume before its page: MEGA² II/1. */
+  citation: z.string().min(1),
+  /** The volumes the work runs over, each with the editors' title of it there. */
+  parts: z
+    .array(z.object({ file: z.string().min(1), text: z.string().min(1) }))
+    .min(1),
+  title: z.string().min(1),
+  /** The printed MEGA volumes the transcription follows. */
+  edition: z.string().min(1),
+  /** Headings of divisions left out. */
+  skipHeadings: z.array(z.string().min(1)).default([]),
+});
+
 const SOURCES = [
   "ekgwb",
   "archive-ocr",
@@ -222,6 +248,7 @@ const SOURCES = [
   "wikisource",
   "gutenberg-letters",
   "mega-letters",
+  "mega-etx",
 ] as const;
 
 /** A book of the manifest, read from its source. */
@@ -253,6 +280,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
         source: z.ZodLiteral<"mega-letters">;
       }>
     >,
+    ReturnType<
+      typeof megaEtxBookSchema.extend<{
+        source: z.ZodLiteral<"mega-etx">;
+      }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
@@ -262,6 +294,7 @@ const bookSchema: z.ZodDiscriminatedUnion<
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
   gutenbergLettersBookSchema.extend({ source: z.literal("gutenberg-letters") }),
   megaLettersBookSchema.extend({ source: z.literal("mega-letters") }),
+  megaEtxBookSchema.extend({ source: z.literal("mega-etx") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -563,6 +596,41 @@ async function loadMegaLettersBook(
   };
 }
 
+async function loadMegaEtxBook(
+  entry: z.output<typeof megaEtxBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  // One volume after another, as the source asks to be fetched.
+  const parts = await entry.parts.reduce<
+    Promise<Array<{ file: string; text: string; xml: string }>>
+  >(
+    async (done, part) => [
+      ...(await done),
+      { ...part, xml: await fetchText(`${MEGA_DOCS}${part.file}`) },
+    ],
+    Promise.resolve([]),
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      // Marx's text is in the public domain, and the edition's right in it
+      // (§ 70 UrhG) ran out 25 years after the volume appeared.
+      license: "public-domain",
+      attribution:
+        "Transcription: MEGAdigital, Berlin-Brandenburgische Akademie der Wissenschaften (telota.bbaw.de/mega)",
+      source: `${MEGA_DOCS}${entry.parts[0]?.file ?? ""}`,
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: parseMegaEtx(parts, entry),
+  };
+}
+
 function loadersOf(
   manifest: Manifest,
   fetchText: FetchText,
@@ -582,6 +650,8 @@ function loadersOf(
         return loadGutenbergLettersBook(entry, fetchText);
       case "mega-letters":
         return loadMegaLettersBook(entry, fetchText);
+      case "mega-etx":
+        return loadMegaEtxBook(entry, fetchText);
     }
   });
 }

@@ -8,7 +8,11 @@
 # of the first volume of the Briefwechsel with Engels (Project Gutenberg's
 # ebook of the 1921 printing), only Marx's letters, without the editors'
 # introductions and notes; and Marx's German letters of 1866–1871 from
-# MEGAdigital (CC BY-SA 4.0), his letters in English and French left out.
+# MEGAdigital (CC BY-SA 4.0), his letters in English and French left out; and
+# the economic manuscripts of 1857/58 and 1863–65 from MEGAdigital's
+# transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
+# right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
+# apparatus and Marx's English "Value, price and profit" are left out.
 # `year` is first publication, for letters the year of the first. The second
 # and third volumes of Das Kapital appeared after Marx's death, edited by
 # Engels; Engels' prefaces to them are left out. The third volume is two
@@ -144,3 +148,68 @@ books:
     year: 1866
     published: false
     kind: letters
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Bastiat und Carey
+    slug: bastiat-und-carey
+    title: Bastiat und Carey
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1 (Berlin, Dietz, 1976)
+    author: Karl Marx
+    year: 1904
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Einleitung zu den „Grundrissen der Kritik der politischen Ökonomie“
+    slug: einleitung-zur-kritik-der-politischen-oekonomie
+    title: Einleitung zur Kritik der politischen Ökonomie
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1 (Berlin, Dietz, 1976)
+    author: Karl Marx
+    year: 1903
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Erster Teil
+      - file: MEGA_A2_B001-02_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Zweiter Teil
+    slug: grundrisse-der-kritik-der-politischen-oekonomie
+    title: Grundrisse der Kritik der politischen Ökonomie
+    shortTitle: Grundrisse
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1–1.2 (Berlin, Dietz, 1976–1981)
+    author: Karl Marx
+    year: 1939
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/4.1
+    parts:
+      - file: MEGA_A2_B004-01_ETX.xml
+        text: Das Kapital (Ökonomisches Manuskript 1863-1865) Erstes Buch
+    slug: oekonomisches-manuskript-1863-1865-erstes-buch
+    title: "Das Kapital. Ökonomisches Manuskript 1863–1865, Erstes Buch"
+    shortTitle: Manuskript 1863–65, Erstes Buch
+    edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
+    author: Karl Marx
+    year: 1933
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/4.1
+    parts:
+      - file: MEGA_A2_B004-01_ETX.xml
+        text: Das Kapital (Ökonomisches Manuskript 1863-1865) Zweites Buch (Manuskript I)
+    slug: oekonomisches-manuskript-1863-1865-zweites-buch
+    title: "Das Kapital. Ökonomisches Manuskript 1863–1865, Zweites Buch (Manuskript I)"
+    shortTitle: Manuskript 1863–65, Zweites Buch
+    edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
+    author: Karl Marx
+    year: 1988
+    published: false
+    kind: nachlass
