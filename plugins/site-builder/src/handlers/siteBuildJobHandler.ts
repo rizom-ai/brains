@@ -49,20 +49,6 @@ export interface SiteBuildJobHandlerConfig {
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   statusService?: BuildStatusRecorder | undefined;
-  onBuildStarted?:
-    | ((
-        environment: "preview" | "production",
-        jobId: string,
-        inputGeneration: number,
-      ) => void | Promise<void>)
-    | undefined;
-  onBuildFinished?:
-    | ((
-        environment: "preview" | "production",
-        jobId: string,
-        inputGeneration: number,
-      ) => void | Promise<void>)
-    | undefined;
 }
 
 /**
@@ -96,17 +82,10 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     // Apply defaults for optional fields
     const environment = data.environment ?? "preview";
     const enableContentGeneration = data.enableContentGeneration ?? false;
-    const inputGeneration = data.inputGeneration ?? 0;
 
     await this.recordStatus(
       () => this.cfg.statusService?.markBuilding(environment, jobId),
       "building",
-    );
-    await this.recordLifecycle(
-      () =>
-        this.cfg.onBuildStarted?.(environment, jobId, inputGeneration) ??
-        Promise.resolve(),
-      "started",
     );
 
     try {
@@ -248,8 +227,10 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         });
       }
 
+      // A superseded build's request is served by the build that replaced
+      // it, so its job is done; any other cancellation is retried.
       return {
-        success: result.success,
+        success: result.success || result.superseded === true,
         ...(result.cancelled && { cancelled: true }),
         ...(result.skipped && { skipped: true }),
         routesBuilt: result.routesBuilt,
@@ -271,28 +252,6 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       );
       this.logger.error("Site build job failed", error);
       throw error;
-    } finally {
-      await this.recordLifecycle(
-        () =>
-          this.cfg.onBuildFinished?.(environment, jobId, inputGeneration) ??
-          Promise.resolve(),
-        "finished",
-      );
-    }
-  }
-
-  private async recordLifecycle(
-    update: () => void | Promise<void>,
-    state: string,
-  ): Promise<void> {
-    try {
-      await update();
-    } catch (error) {
-      // The projection heals on the next read via queue reconciliation, so the
-      // job must not fail here — but the lost write is an operational error.
-      this.logger.error(`Failed to record site build ${state} lifecycle`, {
-        error,
-      });
     }
   }
 
@@ -303,8 +262,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     try {
       await update();
     } catch (error) {
-      // Same contract as recordLifecycle: reconciliation recovers the state,
-      // the build outcome stands, and the failure is loud in the logs.
+      // Reconciliation recovers the state, the build outcome stands, and the
+      // failure is loud in the logs.
       this.logger.error(`Failed to record site build ${state} state`, {
         error,
       });
