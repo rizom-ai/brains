@@ -90,6 +90,118 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   });
 });
 
+describe("parseArchiveOcrWork on headings", () => {
+  const lectures = {
+    item: "freud-1940-gw-11",
+    volume: "XI",
+    firstPage: 3,
+    lastPage: 10,
+  };
+
+  async function headings(): Promise<string> {
+    return readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-headings.html"),
+      "utf8",
+    );
+  }
+
+  it("reads parts, chapters and subsections, cased as the text spells their words", async () => {
+    const units = parseArchiveOcrWork(await headings(), lectures);
+
+    expect(
+      units.map((unit) => [unit.parents, unit.title, unit.section]),
+    ).toEqual([
+      [
+        ["Erster Teil. Die Fehlleistungen", "I. Einleitung"],
+        "I. Einleitung",
+        "GW XI, 3",
+      ],
+      [
+        ["Erster Teil. Die Fehlleistungen", "I. Einleitung"],
+        "A. Das Rezente und das Indifferente im Traum",
+        "GW XI, 4",
+      ],
+      [
+        ["Erster Teil. Die Fehlleistungen"],
+        "II. Die Traumzensur (Fortsetzung)",
+        "GW XI, 6",
+      ],
+      [
+        ["Zweiter Teil. Der Traum", "III. Der Traum"],
+        "III. Der Traum",
+        "GW XI, 9",
+      ],
+      [
+        ["Zweiter Teil. Der Traum", "III. Der Traum"],
+        "H. Die Träume",
+        "GW XI, 10",
+      ],
+      [
+        ["Zweiter Teil. Der Traum", "III. Der Traum"],
+        "I. Die sekundäre Bearbeitung und ihre Folgen für den Traum",
+        "GW XI, 10",
+      ],
+    ]);
+  });
+
+  it("drops the work's own title and a running head whose page number the OCR lost", async () => {
+    const units = parseArchiveOcrWork(await headings(), lectures);
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(units[0]?.paragraphs[0]).toBe(
+      "Meine Damen und Herren! Die Fehlleistungen sind ein Thema, über das wir sprechen werden.",
+    );
+    expect(units[1]?.paragraphs).toEqual([
+      "Das Rezente und das Indifferente im Traum zeigen sich in jedem Fall. Das gilt auch für die Traumzensur, wie wir sehen werden, wenn wir den Traum weiter untersuchen.",
+    ]);
+    expect(text).not.toContain("VORLESUNGEN");
+    expect(text).not.toContain("Nah");
+  });
+
+  it("reads an example's numeral in a subsection as no chapter, and a dotless i as an i", async () => {
+    const units = parseArchiveOcrWork(await headings(), lectures);
+
+    expect(units[3]?.paragraphs).toEqual([
+      "Der Traum ist ein Thema für sich, und wir werden ihn nun untersuchen. Wir sehen, wie der Traum sich in jedem Fall zeigt.",
+    ]);
+    expect(units[4]?.paragraphs).toEqual([
+      "Sie sehen nun, wie die Träume entstehen.",
+      "„Ein schöner Traum“",
+      "Ein neues Beispiel folgt hier, und es ist ein Traum.",
+    ]);
+  });
+
+  it("leaves out a decorated page's picture and stray marks beside the text", async () => {
+    const units = parseArchiveOcrWork(await headings(), lectures);
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(units[3]?.paragraphs[0]).toStartWith("Der Traum ist ein Thema");
+    expect(text).not.toContain("Fear");
+    expect(text).not.toContain("Br er");
+  });
+});
+
+describe("parseArchiveOcrWork on an essay's sections", () => {
+  it("reads sections by their numerals, however misread and wherever on the page", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-sections.html"),
+        "utf8",
+      ),
+      { item: "freud-1946-gw-10", volume: "X", firstPage: 20, lastPage: 22 },
+    );
+
+    expect(units.map((unit) => [unit.title, unit.section])).toEqual([
+      ["GW X, 20", "GW X, 20"],
+      ["I. Die Rechtfertigung des Unbewußten", "GW X, 20"],
+      ["II. Unbewußte Gefühle", "GW X, 21"],
+    ]);
+    expect(units[1]?.paragraphs).toEqual([
+      "Die Berechtigung, ein unbewußtes Seelisches anzunehmen, wird uns von vielen Seiten bestritten. Wir können darauf mit dem Hinweis antworten, daß die Annahme notwendig ist.",
+    ]);
+  });
+});
+
 describe("printedPageNumbers", () => {
   /** A text page: its running head's number, or none where a chapter opens. */
   const text = (leaf: number, head: number | null): LeafReading => ({
