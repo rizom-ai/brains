@@ -113,7 +113,7 @@ describe("SiteBuildJobHandler", () => {
   });
 
   describe("slot registry", () => {
-    it("should pass slot registry to siteBuilder.build()", async () => {
+    it("should pass the slots asked for at build time to siteBuilder.build()", async () => {
       const slotRegistry = new UISlotRegistry();
       slotRegistry.register("footer-top", {
         pluginId: "newsletter",
@@ -149,7 +149,7 @@ describe("SiteBuildJobHandler", () => {
           layouts: {},
           defaultSiteConfig,
           sharedImagesDir: "./dist/images",
-          slots: slotRegistry,
+          getSlots: async (): Promise<UISlotRegistry> => slotRegistry,
         },
       );
 

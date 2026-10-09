@@ -100,12 +100,8 @@ export function createGuestAnswerSources(
         publishedOnly: true,
       },
     });
-    // A type the site cites can still hold entries that are no source in
-    // themselves, as a book's contents; those say so in their metadata.
-    const citable = results.filter(
-      (result) =>
-        deps.isCitable(result.entity.entityType) &&
-        result.entity.metadata["citable"] !== false,
+    const citable = results.filter((result) =>
+      deps.isCitable(result.entity.entityType),
     );
     const closest = Math.max(...citable.map((result) => result.score));
     return citable

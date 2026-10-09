@@ -1,5 +1,6 @@
 import type {
   DataSource,
+  EntityPluginContext,
   EntityTypeConfig,
   Plugin,
   Template,
@@ -7,12 +8,23 @@ import type {
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { bookSchema, type Book } from "./schemas/book";
 import { bookAdapter, type BookAdapter } from "./adapters/book-adapter";
+import { bookSectionAdapter } from "./adapters/book-section-adapter";
+import { bookSectionSchema } from "./schemas/book-section";
 import { homepageChatAvailable } from "@brains/site-atlas";
 import { BookAskDataSource } from "./datasources/book-ask-datasource";
 import { BookDataSource } from "./datasources/book-datasource";
 import { BookThemeDataSource } from "./datasources/book-theme-datasource";
 import { getTemplates } from "./lib/register-templates";
 import packageJson from "../package.json";
+
+/** The importer writes books through directory-sync; no one edits them. */
+const READ_ONLY: NonNullable<EntityTypeConfig["actionPolicy"]> = {
+  create: "never",
+  update: "never",
+  delete: "never",
+  extract: "never",
+  publish: "never",
+};
 
 export class BookPlugin extends EntityPlugin<
   Book,
@@ -31,25 +43,36 @@ export class BookPlugin extends EntityPlugin<
     return {
       classification: "content",
       includeInBroadSearch: true,
-      // A book brain's books are its primary texts; its topics map their themes.
-      projectionSourceRole: "canonical",
-      // Ids carry zero-padded reading order.
-      defaultSort: [{ field: "id", direction: "asc" }],
-      // The importer writes books through directory-sync; no one edits them.
-      actionPolicy: {
-        create: "never",
-        update: "never",
-        delete: "never",
-        extract: "never",
-        publish: "never",
-      },
+      // A book is its details and contents; its text is in its sections.
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+      actionPolicy: READ_ONLY,
     };
+  }
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    context.entities.register(
+      bookSectionAdapter.entityType,
+      bookSectionSchema,
+      bookSectionAdapter,
+      {
+        classification: "content",
+        includeInBroadSearch: true,
+        // A book brain's sections are its primary texts; its topics map their themes.
+        projectionSourceRole: "canonical",
+        // Ids carry zero-padded reading order.
+        defaultSort: [{ field: "id", direction: "asc" }],
+        actionPolicy: READ_ONLY,
+      },
+    );
   }
 
   protected override async getInstructions(): Promise<string> {
     return [
-      "Books (entityType \"book\") hold an author's texts, one entry per section; an entry's `section` is its siglum.",
-      'When a question concerns the author\'s ideas or texts, search the books first: system_search with scope { kind: "type", entityType: "book" }.',
+      'Books (entityType "book") hold an author\'s works; their text is in their sections (entityType "book-section"), whose `section` is their siglum.',
+      'When a question concerns the author\'s ideas or texts, search the sections first: system_search with scope { kind: "type", entityType: "book-section" }.',
       "Ground every claim in sections you found, and cite each section by its siglum and its book's title.",
       "Quote the text verbatim, in the language of the text, even when you answer in another language.",
       "When the books hold nothing on the question, say that the books do not address it instead of answering from general knowledge.",

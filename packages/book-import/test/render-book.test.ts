@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { bookAdapter } from "@brains/book";
+import { bookAdapter, bookSectionAdapter } from "@brains/book";
 import { germanSlug, renderBook, type BookSource } from "../src/render-book";
 
 const source: BookSource = {
@@ -44,19 +44,24 @@ const source: BookSource = {
   ],
 };
 
-function frontmatterOf(markdown: string): Record<string, unknown> {
+function bookOf(markdown: string): Record<string, unknown> {
   return bookAdapter.parseFrontMatter(markdown, bookAdapter.frontmatterSchema);
 }
 
+function frontmatterOf(markdown: string): Record<string, unknown> {
+  return bookSectionAdapter.parseFrontMatter(
+    markdown,
+    bookSectionAdapter.frontmatterSchema,
+  );
+}
+
 describe("renderBook", () => {
-  it("opens with a title entry holding the book's details and contents", () => {
+  it("opens with the book: its details and contents", () => {
     const [title] = renderBook(source);
 
-    expect(title?.path).toBe("book/erfundenes-buch/00000-titel.md");
-    expect(frontmatterOf(title?.markdown ?? "")).toMatchObject({
+    expect(title?.path).toBe("book/erfundenes-buch.md");
+    expect(bookOf(title?.markdown ?? "")).toMatchObject({
       title: "Erfundenes Buch",
-      book: "erfundenes-buch",
-      order: 0,
       author: "Erfundener Autor",
       license: "CC-BY-NC-ND-4.0",
       source: "https://example.org/eb",
@@ -67,13 +72,13 @@ describe("renderBook", () => {
     );
   });
 
-  it("measures the book on its title entry", () => {
+  it("measures the book by its sections", () => {
     const [title, ...sections] = renderBook(source);
     const bodyBytes = sections
       .map((file) => file.markdown.split("---\n").slice(2).join("---\n").trim())
       .reduce((sum, body) => sum + Buffer.byteLength(body, "utf8"), 0);
 
-    expect(frontmatterOf(title?.markdown ?? "")).toMatchObject({
+    expect(bookOf(title?.markdown ?? "")).toMatchObject({
       published: true,
       shortTitle: "Erfunden",
       sections: 3,
@@ -81,17 +86,18 @@ describe("renderBook", () => {
     });
   });
 
-  it("writes one entry per unit in reading order, parents as folders", () => {
+  it("writes one section per unit in reading order, parents as folders", () => {
     const files = renderBook(source);
 
     expect(files.map((file) => file.path)).toEqual([
-      "book/erfundenes-buch/00000-titel.md",
-      "book/erfundenes-buch/00001-vorrede.md",
-      "book/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
-      "book/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
+      "book/erfundenes-buch.md",
+      "book-section/erfundenes-buch/00001-vorrede.md",
+      "book-section/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
+      "book-section/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
     ]);
     expect(frontmatterOf(files[2]?.markdown ?? "")).toMatchObject({
       title: "Über das Erfinden",
+      book: "erfundenes-buch",
       order: 2,
       section: "EB-1",
       page: "12",
@@ -190,9 +196,14 @@ describe("renderBook", () => {
     expect(bodies.join(" ")).toBe(paragraph);
   });
 
-  it("writes only files the book schema accepts", () => {
-    for (const file of renderBook(source)) {
-      expect(() => bookAdapter.fromMarkdown(file.markdown)).not.toThrow();
+  it("writes only files their schemas accept", () => {
+    const [book, ...sections] = renderBook(source);
+
+    expect(() => bookAdapter.fromMarkdown(book?.markdown ?? "")).not.toThrow();
+    for (const file of sections) {
+      expect(() =>
+        bookSectionAdapter.fromMarkdown(file.markdown),
+      ).not.toThrow();
     }
   });
 

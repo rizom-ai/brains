@@ -15,9 +15,9 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
 
 /** The subset of the libSQL client the pragma helper needs. */
-/** A client whose execute already waits out contention, as createSqliteClient's does. */
 export interface PragmaClient {
   execute: (statement: string) => Promise<unknown>;
+  readonly closed?: boolean;
 }
 
 export interface CreateSqliteDatabaseOptions {
@@ -207,11 +207,11 @@ export function createSqliteDatabase(
 /**
  * Enable WAL and fail fast on lock contention. Native busy waiting blocks the
  * application thread, preventing an in-process lock holder from continuing.
- * Entering WAL needs an exclusive lock, so a refusal is retried asynchronously,
- * like a refused BEGIN: by the client's own contention policy, which every
- * service client carries, so the wait has one owner and one budget. libSQL's
- * reopened connections also default to 0. Only meaningful for local files —
- * remote libSQL manages its own concurrency.
+ * Entering WAL needs an exclusive lock; a refusal is retried asynchronously by
+ * the client from {@link createSqliteClient}, like a refused BEGIN, and
+ * libSQL's reopened connections also default to 0. Retrying here as well ran
+ * a second full budget on top of the client's. Only meaningful for local
+ * files — remote libSQL manages its own concurrency.
  */
 export async function applySqlitePragmas(
   client: PragmaClient,

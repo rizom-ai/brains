@@ -10,7 +10,11 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { bookSchema, type BookWithData } from "../schemas/book";
-import { parseBookData } from "./book-datasource";
+import {
+  bookSectionSchema,
+  type BookSectionWithData,
+} from "../schemas/book-section";
+import { parseBookData, parseBookSectionData } from "./book-datasource";
 import { THEME_DISTANCE, THEME_PASSAGES, THEME_REACH } from "../lib/themes";
 
 /** A book's share of a theme. */
@@ -44,7 +48,7 @@ type EntityServiceClient = BaseDataSourceContext["entityService"];
  * A long section is split across entries that share its siglum; it counts
  * once, by its closest entry.
  */
-function oncePerSection(entries: BookWithData[]): BookWithData[] {
+function oncePerSection(entries: BookSectionWithData[]): BookSectionWithData[] {
   const seen = new Set<string>();
   return entries.filter((entry) => {
     const key = `${entry.metadata.book}:${entry.metadata.section ?? entry.id}`;
@@ -86,16 +90,16 @@ export class BookThemeDataSource implements DataSource {
 
     const related = await findRelatedEntities(entityService, {
       origin: { entityType: "topic", entityId: id },
-      types: ["book"],
+      types: ["book-section"],
       maxDistance: THEME_DISTANCE,
       limit: THEME_REACH,
     });
     const sections = oncePerSection(
-      related
-        .map(({ entity }) => parseBookData(bookSchema.parse(entity)))
-        .filter((entry) => entry.metadata.order > 0),
+      related.map(({ entity }) =>
+        parseBookSectionData(bookSectionSchema.parse(entity)),
+      ),
     );
-    const books = await this.titleEntries(
+    const books = await this.booksOf(
       [...new Set(sections.map((entry) => entry.metadata.book))],
       entityService,
     );
@@ -119,7 +123,7 @@ export class BookThemeDataSource implements DataSource {
   }
 
   private strandOf(
-    sections: BookWithData[],
+    sections: BookSectionWithData[],
     books: Map<string, BookWithData>,
   ): StrandEntry[] {
     const counts = sections.reduce<Map<string, number>>(
@@ -145,27 +149,24 @@ export class BookThemeDataSource implements DataSource {
       .sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
   }
 
-  /** Each book's title entry, by book slug. */
-  private async titleEntries(
+  /** Each book, by its slug. */
+  private async booksOf(
     books: string[],
     entityService: EntityServiceClient,
   ): Promise<Map<string, BookWithData>> {
-    const entries = await Promise.all(
-      books.map(async (book) => {
-        const [entity] = await entityService.listEntities(
-          {
-            entityType: "book",
-            options: { filter: { metadata: { book, order: 0 } }, limit: 1 },
-          },
+    const found = await Promise.all(
+      books.map(async (id) => {
+        const entity = await entityService.getEntity(
+          { entityType: "book", id },
           bookSchema,
         );
         return entity ? parseBookData(entity) : null;
       }),
     );
     return new Map(
-      entries
-        .filter((entry): entry is BookWithData => entry !== null)
-        .map((entry) => [entry.metadata.book, entry]),
+      found
+        .filter((book): book is BookWithData => book !== null)
+        .map((book) => [book.id, book]),
     );
   }
 }
