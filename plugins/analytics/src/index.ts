@@ -58,9 +58,11 @@ export class AnalyticsPlugin extends ServicePlugin<
 
     // Site builds run in the worker and ask for head scripts as they render,
     // so the beacon answers there; that process never runs the ready phase.
-    const siteTag = this.config.cloudflare?.siteTag;
-    if (siteTag) {
-      const script = generateCloudflareBeaconScript(siteTag);
+    // Only with a beacon token: the beacon carries the site token, not the
+    // site tag, and a zone with automatic setup gets it from Cloudflare.
+    const beaconToken = this.config.cloudflare?.beaconToken;
+    if (beaconToken) {
+      const script = generateCloudflareBeaconScript(beaconToken);
       context.messaging.subscribeExecution(
         SITE_BUILDER_CHANNELS.headScripts,
         async () => ({ success: true, data: script }),
