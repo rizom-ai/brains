@@ -4,7 +4,10 @@
 # and of the Thesen über Feuerbach as Engels first printed them (1888). The
 # Textarchiv's transcriptions are under CC BY-SA 4.0, the Manifest's under
 # CC BY-SA 2.0 DE; Wikisource's are of public-domain texts. Of the letters the
-# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept.
+# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept;
+# of the first volume of the Briefwechsel with Engels (Project Gutenberg's
+# ebook of the 1921 printing), only Marx's letters, without the editors'
+# introductions and notes.
 # `year` is first publication. The second and third volumes of Das Kapital
 # appeared after Marx's death, edited by Engels; Engels' prefaces to them are
 # left out. The third volume is two books, as printed, each paged on its own.
@@ -109,3 +112,23 @@ books:
     year: 1888
     published: false
     kind: work
+  - source: gutenberg-letters
+    ebook: 64327
+    citation: Briefwechsel I
+    writer:
+      signatures: [K. M., K. Marx., Marx., M., Ch. M., Karl Marx.]
+      salutations:
+        [
+          Lieber Engels!,
+          Lieber Frederic!,
+          Dear Frederic!,
+          "[Marx an Engels, ohne Anrede.]",
+          "[Marx an Engels ohne Anrede.]",
+        ]
+    slug: briefe-an-engels-1847-1853
+    title: Briefe an Engels 1847–1853
+    edition: Der Briefwechsel zwischen Friedrich Engels und Karl Marx 1844 bis 1883, hrsg. von A. Bebel und Ed. Bernstein, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1921)
+    author: Karl Marx
+    year: 1913
+    published: false
+    kind: letters

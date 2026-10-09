@@ -4,6 +4,7 @@ import { z } from "@brains/utils/zod";
 import { EKGWB_BASE, parseEkgwbBook } from "./adapters/ekgwb";
 import { parseArchiveOcrWork } from "./adapters/archive-ocr";
 import { parseDtaTei } from "./adapters/dta-tei";
+import { parseGutenbergLetters } from "./adapters/gutenberg-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
@@ -156,7 +157,44 @@ const wikisourceBookSchema: z.ZodObject<
   skipHeadings: z.array(z.string().min(1)).default([]),
 });
 
-const SOURCES = ["ekgwb", "archive-ocr", "dta-tei", "wikisource"] as const;
+const gutenbergLettersBookSchema: z.ZodObject<
+  Shape<
+    BookFields & {
+      ebook: z.ZodNumber;
+      citation: z.ZodString;
+      writer: z.ZodObject<{
+        signatures: z.ZodArray<z.ZodString>;
+        salutations: z.ZodArray<z.ZodString>;
+      }>;
+      title: z.ZodString;
+      edition: z.ZodString;
+    }
+  >
+> = z.object({
+  ...bookFields,
+  /** The Project Gutenberg ebook's number: 64327. */
+  ebook: z.number().int().positive(),
+  /** How a citation names the edition before its page: Briefwechsel I, 23. */
+  citation: z.string().min(1),
+  /** How the author's letters are known among the others. */
+  writer: z.object({
+    /** Signatures without their closing: K. M. for Dein K. M. */
+    signatures: z.array(z.string().min(1)).min(1),
+    /** Salutations of the author's letters, for a letter left unsigned. */
+    salutations: z.array(z.string().min(1)),
+  }),
+  title: z.string().min(1),
+  /** The printed edition the ebook follows. */
+  edition: z.string().min(1),
+});
+
+const SOURCES = [
+  "ekgwb",
+  "archive-ocr",
+  "dta-tei",
+  "wikisource",
+  "gutenberg-letters",
+] as const;
 
 /** A book of the manifest, read from its source. */
 const bookSchema: z.ZodDiscriminatedUnion<
@@ -177,6 +215,11 @@ const bookSchema: z.ZodDiscriminatedUnion<
         source: z.ZodLiteral<"wikisource">;
       }>
     >,
+    ReturnType<
+      typeof gutenbergLettersBookSchema.extend<{
+        source: z.ZodLiteral<"gutenberg-letters">;
+      }>
+    >,
   ],
   "source"
 > = z.discriminatedUnion("source", [
@@ -184,6 +227,7 @@ const bookSchema: z.ZodDiscriminatedUnion<
   archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
+  gutenbergLettersBookSchema.extend({ source: z.literal("gutenberg-letters") }),
 ]);
 
 export type ManifestBook = z.output<typeof bookSchema>;
@@ -409,6 +453,35 @@ async function loadWikisourceBook(
   };
 }
 
+const GUTENBERG = "https://www.gutenberg.org/";
+
+async function loadGutenbergLettersBook(
+  entry: z.output<typeof gutenbergLettersBookSchema>,
+  fetchText: FetchText,
+): Promise<LoadedBook> {
+  const html = await fetchText(
+    `${GUTENBERG}cache/epub/${entry.ebook}/pg${entry.ebook}-images.html`,
+  );
+  return {
+    book: {
+      slug: entry.slug,
+      title: entry.title,
+      author: entry.author,
+      year: entry.year,
+      kind: entry.kind,
+      edition: entry.edition,
+      license: "public-domain",
+      // The text is used without Project Gutenberg's license and trademark,
+      // as its terms allow for a public-domain work; the ebook is its source.
+      attribution: null,
+      source: `${GUTENBERG}ebooks/${entry.ebook}`,
+      published: entry.published,
+      shortTitle: entry.shortTitle ?? null,
+    },
+    units: parseGutenbergLetters(html, entry),
+  };
+}
+
 function loadersOf(
   manifest: Manifest,
   fetchText: FetchText,
@@ -424,6 +497,8 @@ function loadersOf(
         return loadDtaTeiBook(entry, fetchText);
       case "wikisource":
         return loadWikisourceBook(entry, fetchText);
+      case "gutenberg-letters":
+        return loadGutenbergLettersBook(entry, fetchText);
     }
   });
 }

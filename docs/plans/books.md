@@ -130,7 +130,7 @@ Not covered: Juvenilia, letters to Nietzsche.
 | gutenberg.org                                          | Briefwechsel Marx–Engels vol. 1 (1913)                                                                                                                                                               | public domain                 | text          |
 
 Joint works with Engels are included; Engels-only works are not.
-Not covered: English and French writings with no public-domain German translation, letters before 1866 (other than those Marx printed in the Deutsch-Französische Jahrbücher) and after 1871, Grundrisse, Ökonomisch-philosophische Manuskripte, Deutsche Ideologie and the Kritik des Hegelschen Staatsrechts (1843) until an open transcription is found.
+Not covered: English and French writings with no public-domain German translation, letters before 1866 other than those in the Deutsch-Französische Jahrbücher and the Briefwechsel's first volume (to 1853), letters after 1871, Grundrisse, Ökonomisch-philosophische Manuskripte, Deutsche Ideologie and the Kritik des Hegelschen Staatsrechts (1843) until an open transcription is found.
 
 ### Sigmund
 

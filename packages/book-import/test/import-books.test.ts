@@ -286,6 +286,61 @@ books:
   });
 });
 
+describe("importBooks from Project Gutenberg letters", () => {
+  let brainData: string;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-gutenberg-"));
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  it("reads the writer's letters from the ebook and links it as source", async () => {
+    const requested: string[] = [];
+    const results = await importBooks(
+      parseManifest(`
+source: gutenberg-letters
+books:
+  - ebook: 64327
+    citation: Briefwechsel I
+    writer:
+      signatures: [K. M.]
+      salutations: [Lieber Engels!]
+    slug: briefe-an-engels-1844-1853
+    title: Briefe an Friedrich Engels 1844–1853
+    edition: "Der Briefwechsel zwischen Friedrich Engels und Karl Marx, Erster Band (Stuttgart 1913)"
+    author: Karl Marx
+    year: 1913
+    published: false
+    kind: letters
+`),
+      brainData,
+      async (url) => {
+        requested.push(url);
+        return readFile(
+          join(import.meta.dir, "fixtures", "gutenberg-briefwechsel.html"),
+          "utf8",
+        );
+      },
+    );
+    const title = await readFile(
+      join(brainData, "book", "briefe-an-engels-1844-1853", "00000-titel.md"),
+      "utf8",
+    );
+
+    expect(requested).toEqual([
+      "https://www.gutenberg.org/cache/epub/64327/pg64327-images.html",
+    ]);
+    expect(results).toEqual([
+      { slug: "briefe-an-engels-1844-1853", entries: 3 },
+    ]);
+    expect(title).toContain("license: public-domain");
+    expect(title).toContain("source: 'https://www.gutenberg.org/ebooks/64327'");
+  });
+});
+
 describe("importBooks from scanned volumes", () => {
   const ocrManifest = `
 source: archive-ocr
