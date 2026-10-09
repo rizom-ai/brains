@@ -518,3 +518,19 @@ books:
     year: 1905
     published: false
     kind: work
+  - source: archive-ocr
+    item: theorienberden03marxuoft
+    citation: Theorien III
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 600
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-3
+    title: "Theorien über den Mehrwert. Dritter Band: Von Ricardo zur Vulgärökonomie"
+    shortTitle: Theorien über den Mehrwert III
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Dritter Band (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1910
+    published: false
+    kind: work
