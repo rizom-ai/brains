@@ -165,22 +165,108 @@ function runningHeadNumber(page: Page): number | null {
   return number === undefined ? null : Number(number);
 }
 
+/** What numbering a scan leaf needs: its running head's number, if any, and how much it reads. */
+export interface LeafReading {
+  leaf: number;
+  head: number | null;
+  /** Words of running text; a plate's picture reads as next to none. */
+  words: number;
+}
+
+/** A running head's number counts when a head this close by agrees with it. */
+const CONFIRM_LEAVES = 4;
+
+interface Anchor {
+  leaf: number;
+  offset: number;
+}
+
 /**
- * Printed page numbers by scan leaf. Pages that open a chapter carry no
- * running head; the scan's leaves run on with the printed pages, so the most
- * common offset between the two numbers every page.
+ * Number the pages between two anchors whose offsets differ: the plates bound
+ * in between take the leaves that read least and get no number; the other
+ * leaves are numbered on from the first anchor.
  */
-function printedPages(pages: Page[]): (leaf: number) => number {
-  const offsets = pages.flatMap((page) => {
-    const number = runningHeadNumber(page);
-    return number === null ? [] : [number - page.leaf];
-  });
-  const counts = offsets.reduce<Map<number, number>>(
-    (tally, offset) => tally.set(offset, (tally.get(offset) ?? 0) + 1),
-    new Map(),
+function numberGap(
+  from: Anchor,
+  to: Anchor,
+  readings: LeafReading[],
+): Array<[number, number | null]> {
+  const gap = readings.filter(
+    (reading) => reading.leaf > from.leaf && reading.leaf < to.leaf,
   );
-  const [offset] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [0];
-  return (leaf) => leaf + offset;
+  const pages = to.leaf + to.offset - (from.leaf + from.offset) - 1;
+  const plateCount = Math.max(0, to.leaf - from.leaf - 1 - pages);
+  const plates = new Set(
+    [...gap]
+      .sort((a, b) => a.words - b.words || a.leaf - b.leaf)
+      .slice(0, plateCount)
+      .map((reading) => reading.leaf),
+  );
+  return gap.reduce<{ numbered: Array<[number, number | null]>; next: number }>(
+    ({ numbered, next }, reading) =>
+      plates.has(reading.leaf)
+        ? { numbered: [...numbered, [reading.leaf, null]], next }
+        : { numbered: [...numbered, [reading.leaf, next]], next: next + 1 },
+    { numbered: [], next: from.leaf + from.offset + 1 },
+  ).numbered;
+}
+
+/**
+ * Printed page numbers by scan leaf. Running heads anchor the numbering where
+ * a nearby head agrees; pages that open a chapter carry none and run on from
+ * their neighbours. Plates bound between the pages shift the numbering and
+ * get no number themselves.
+ */
+export function printedPageNumbers(
+  readings: LeafReading[],
+): Map<number, number | null> {
+  const heads = readings.flatMap((reading) =>
+    reading.head === null
+      ? []
+      : [{ leaf: reading.leaf, offset: reading.head - reading.leaf }],
+  );
+  const anchors = heads.filter((head) =>
+    heads.some(
+      (other) =>
+        other !== head &&
+        other.offset === head.offset &&
+        Math.abs(other.leaf - head.leaf) <= CONFIRM_LEAVES,
+    ),
+  );
+  const first = anchors[0];
+  const last = anchors.at(-1);
+  if (!first || !last) {
+    return new Map(readings.map((reading) => [reading.leaf, null]));
+  }
+  const gaps = anchors.slice(1).flatMap((to, index) => {
+    const from = anchors[index] ?? to;
+    return from.offset === to.offset ? [] : numberGap(from, to, readings);
+  });
+  const gapPages = new Map(gaps);
+  return new Map(
+    readings.map((reading): [number, number | null] => {
+      const gapPage = gapPages.get(reading.leaf);
+      if (gapPage !== undefined) return [reading.leaf, gapPage];
+      const before = anchors
+        .filter((anchor) => anchor.leaf <= reading.leaf)
+        .at(-1);
+      return [reading.leaf, reading.leaf + (before ?? first).offset];
+    }),
+  );
+}
+
+/** Words of four or more small letters: running text, not a picture's noise. */
+const WORD = /\p{Ll}{4,}/gu;
+
+function readingOf(page: Page): LeafReading {
+  return {
+    leaf: page.leaf,
+    head: runningHeadNumber(page),
+    words: page.lines.reduce(
+      (sum, line) => sum + (line.text.match(WORD)?.length ?? 0),
+      0,
+    ),
+  };
 }
 
 function median(values: number[]): number {
@@ -339,14 +425,18 @@ export function parseArchiveOcrWork(
   options: ArchiveOcrOptions = {},
 ): BookUnit[] {
   const pages = readPages(hocr);
-  const printed = printedPages(pages);
+  const printed = printedPageNumbers(pages.map(readingOf));
   const chapters = pages
-    .filter((page) => {
-      const number = printed(page.leaf);
-      return number >= work.firstPage && number <= work.lastPage;
+    .flatMap((page) => {
+      const number = printed.get(page.leaf) ?? null;
+      return number !== null &&
+        number >= work.firstPage &&
+        number <= work.lastPage
+        ? [{ page, number }]
+        : [];
     })
-    .reduce<Chapter[]>((chapters, page) => {
-      const place = { page: printed(page.leaf), leaf: page.leaf };
+    .reduce<Chapter[]>((chapters, { page, number }) => {
+      const place = { page: number, leaf: page.leaf };
       return piecesOf(page).reduce<Chapter[]>((done, piece) => {
         if (piece.kind === "chapter") {
           return [...done, { title: piece.title, paragraphs: [], notes: [] }];

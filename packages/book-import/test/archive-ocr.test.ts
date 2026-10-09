@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseArchiveOcrWork } from "../src/adapters/archive-ocr";
+import {
+  parseArchiveOcrWork,
+  printedPageNumbers,
+  type LeafReading,
+} from "../src/adapters/archive-ocr";
 
 async function fixture(): Promise<string> {
   return readFile(
@@ -83,6 +87,68 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
       "Nach schweren mechanischen Erschütterungen ist ein Zustand beschrieben worden.",
       "Ein volles Verständnis ist bisher nicht erzielt worden.",
     ]);
+  });
+});
+
+describe("printedPageNumbers", () => {
+  /** A text page: its running head's number, or none where a chapter opens. */
+  const text = (leaf: number, head: number | null): LeafReading => ({
+    leaf,
+    head,
+    words: 300,
+  });
+  /** A plate: a picture between the pages, with no running text. */
+  const plate = (leaf: number): LeafReading => ({
+    leaf,
+    head: null,
+    words: 2,
+  });
+
+  it("numbers every page from its running heads, also pages that open a chapter", () => {
+    const pages = printedPageNumbers([
+      text(10, null),
+      text(11, 2),
+      text(12, 3),
+      text(13, null),
+      text(14, 5),
+    ]);
+
+    expect([10, 11, 12, 13, 14].map((leaf) => pages.get(leaf))).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
+  });
+
+  it("leaves a plate between the pages unnumbered and numbers on after it", () => {
+    const pages = printedPageNumbers([
+      text(10, 1),
+      text(11, 2),
+      text(12, 3),
+      plate(13),
+      plate(14),
+      text(15, null),
+      text(16, 5),
+      text(17, 6),
+    ]);
+
+    expect([12, 13, 14, 15, 16].map((leaf) => pages.get(leaf))).toEqual([
+      3,
+      null,
+      null,
+      4,
+      5,
+    ]);
+  });
+
+  it("ignores a page number the OCR misread", () => {
+    const pages = printedPageNumbers([
+      text(10, 1),
+      text(11, 2),
+      text(12, 53),
+      text(13, 4),
+      text(14, 5),
+    ]);
+
+    expect(pages.get(12)).toBe(3);
   });
 });
 
