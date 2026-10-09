@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- [#573](https://github.com/rizom-ai/brains/pull/573) [`34fc4ef`](https://github.com/rizom-ai/brains/commit/34fc4ef886cef62fb34f57f9a8fd74e044867291) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Books and their sections are two entity types: `book` is the work, with its details and contents, at `book/<slug>.md`; `book-section` is its text, at `book-section/<slug>/…`. Entity counts, search scopes and Studio now read 26 books and 3,705 sections instead of counting every section as a book. Answers cite sections only; a book's contents are never a source. The corpus reader reads back each part of a book printed in parts, so a corpus can be re-rendered without fetching its source.
+
+- [#571](https://github.com/rizom-ai/brains/pull/571) [`86bc21a`](https://github.com/rizom-ai/brains/commit/86bc21a0fb884b34ad9043bb45518fc20fceaa55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A projection wave larger than SQLite can bind in one statement is claimed and requeued in chunks. Before, a change touching several thousand entities at once — a corpus migration, a bulk import — failed every coordination sweep with "too many SQL variables", and no projection or automatic site rebuild ran again.
+
 ## 0.2.0-alpha.501
 
 ### Patch Changes
