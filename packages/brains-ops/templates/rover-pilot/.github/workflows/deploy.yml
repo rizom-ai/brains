@@ -303,30 +303,27 @@ jobs:
           merge-multiple: true
           path: .
 
-      - name: Regenerate users table
-        run: bunx brains-ops render "$GITHUB_WORKSPACE"
-
       - name: Commit generated config
         run: |
           # A newly added user's generated directory is untracked, and
           # `git diff` cannot see untracked files — without intent-to-add
           # the new config is silently dropped here and every later deploy
           # skips that user (their files never appear in a commit range).
-          git add --intent-to-add -- users views
-
-          if git diff --quiet -- users views; then
-            exit 0
-          fi
-
-          git fetch origin "${{ github.ref_name }}"
-          if git diff --quiet "origin/${{ github.ref_name }}" -- users views; then
-            exit 0
-          fi
+          git add --intent-to-add -- users
 
           patch_file="$(mktemp)"
-          git diff --binary -- users views > "$patch_file"
+          git diff --binary -- users > "$patch_file"
+          git fetch origin "${{ github.ref_name }}"
           git reset --hard "origin/${{ github.ref_name }}"
-          git apply --3way --index "$patch_file"
+          if [ -s "$patch_file" ]; then
+            git apply --3way --index "$patch_file"
+          fi
+
+          # views/users.md is generated, and a concurrent deploy may have
+          # rewritten it since this run's checkout; render it on fresh main
+          # instead of merging a stale copy.
+          bunx brains-ops render "$GITHUB_WORKSPACE"
+          git add -- views
 
           if git diff --cached --quiet -- users views; then
             exit 0
