@@ -79,41 +79,62 @@ export async function resolveConversationMessageContent(
     return { success: true, messageId: message.id, content: message.content };
   }
 
+  // Name the failing boundary and the way out: a generic refusal led models
+  // to ask the user to resend content that a literal prefix selects uniquely.
   const boundary = (
+    name: "startAfter" | "endBefore",
     value: string | undefined,
     fallback: number,
     after: boolean,
-  ): number => {
-    if (value === undefined) return fallback;
-    if (input.boundaryMode === "lines") {
-      if (/[\r\n]/.test(value)) return -1;
-      let offset = 0;
-      let found = -1;
-      // Retain line endings in the slices, so offsets preserve LF and CRLF bytes.
-      for (const line of message.content.split(/(?<=\n)/)) {
-        if (line.replace(/\r?\n$/, "") === value) {
-          if (found >= 0) return -1;
-          found = offset + (after ? line.length : 0);
-        }
-        offset += line.length;
-      }
-      return found;
+  ): { offset: number } | { problem: string } => {
+    if (value === undefined) return { offset: fallback };
+    const quoted = `${name} ${JSON.stringify(value)}`;
+    if (value === "") return { problem: `${quoted} is empty` };
+    if (input.boundaryMode === "lines" && /[\r\n]/.test(value)) {
+      return {
+        problem: `${quoted} contains a newline; in lines mode give the marker line's text only`,
+      };
     }
-    const index = message.content.indexOf(value);
-    return index >= 0 && index === message.content.lastIndexOf(value)
-      ? index + (after ? value.length : 0)
-      : -1;
+    const offsets =
+      input.boundaryMode === "lines"
+        ? lineBoundaryOffsets(message.content, value, after)
+        : literalBoundaryOffsets(message.content, value, after);
+    const [offset] = offsets;
+    if (offsets.length === 1 && offset !== undefined) return { offset };
+    return {
+      problem:
+        offsets.length === 0
+          ? `${quoted} does not occur in the message`
+          : `${quoted} occurs ${offsets.length} times in the message`,
+    };
   };
-  const start = boundary(input.startAfter, 0, true);
-  const end = boundary(input.endBefore, message.content.length, false);
-  if (start < 0 || end < 0 || start >= end) {
+  const start = boundary("startAfter", input.startAfter, 0, true);
+  const end = boundary(
+    "endBefore",
+    input.endBefore,
+    message.content.length,
+    false,
+  );
+  const problems = [start, end].flatMap((match) =>
+    "problem" in match ? [match.problem] : [],
+  );
+  if (
+    problems.length === 0 &&
+    "offset" in start &&
+    "offset" in end &&
+    start.offset >= end.offset
+  ) {
+    problems.push(
+      "startAfter must come before endBefore with content between them",
+    );
+  }
+  if (!("offset" in start) || !("offset" in end) || problems.length > 0) {
     return {
       success: false,
-      error:
-        "User-message boundaries must each occur exactly once and select non-empty content in order. In lines mode, use complete marker lines without newline characters. Request clarification if the intended content cannot be selected uniquely.",
+      error: `User-message boundary ${problems.join("; ")}; each boundary must occur exactly once. To select everything after an instruction, use boundaryMode literal with startAfter set to the instruction's exact text and omit endBefore.`,
     };
   }
-  const content = message.content.slice(start, end);
+  const content = message.content.slice(start.offset, end.offset);
   if (input.contentHash && input.contentHash !== computeContentHash(content)) {
     return {
       success: false,
@@ -134,4 +155,38 @@ export function freezeUserMessageSource(
     messageId: resolved.messageId,
     contentHash: computeContentHash(resolved.content),
   };
+}
+
+/** Offsets after (or before) each whole line equal to the marker. */
+function lineBoundaryOffsets(
+  content: string,
+  marker: string,
+  after: boolean,
+): number[] {
+  // Retain line endings in the slices, so offsets preserve LF and CRLF bytes.
+  return content.split(/(?<=\n)/).reduce<{ offset: number; matches: number[] }>(
+    (state, line) => ({
+      offset: state.offset + line.length,
+      matches:
+        line.replace(/\r?\n$/, "") === marker
+          ? [...state.matches, state.offset + (after ? line.length : 0)]
+          : state.matches,
+    }),
+    { offset: 0, matches: [] },
+  ).matches;
+}
+
+/** Offsets after (or before) each literal occurrence of a non-empty marker. */
+function literalBoundaryOffsets(
+  content: string,
+  marker: string,
+  after: boolean,
+  from = 0,
+): number[] {
+  const index = content.indexOf(marker, from);
+  if (index < 0) return [];
+  return [
+    index + (after ? marker.length : 0),
+    ...literalBoundaryOffsets(content, marker, after, index + 1),
+  ];
 }
