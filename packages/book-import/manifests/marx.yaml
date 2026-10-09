@@ -439,3 +439,31 @@ books:
     author: Karl Marx
     year: 1842
     kind: work
+  - source: archive-ocr
+    item: ldpd_14861084_000
+    citation: Elend
+    firstPage: XXVI
+    lastPage: 209
+    # Engels' notes, signed F. E. or speaking of Marx, and the translators'.
+    skipNotes:
+      - { page: 21, opens: "*) Ricärdo bestimmt" }
+      - { page: 26, opens: "*) Der Satz, dass der" }
+      - { page: 26, opens: "1844) und in der" }
+      - { page: 62, opens: "*) Wie jede andere Theorie" }
+      - { page: 69, opens: "*) Titre heisst" }
+      - { page: 103, opens: "*) Dies war vollkommen" }
+      - { page: 177, opens: "*) Das heisst: die damaligen" }
+      - { page: 181, opens: "*) Stände hier im historischen" }
+    # MEW 4 and 16, Dietz 1972 and 1962, as mlwerke.de published them.
+    references:
+      - https://web.archive.org/web/20030511031035id_/http://www.mlwerke.de:80/me/me16/me16_025.htm
+      - https://web.archive.org/web/20010222180609id_/http://www.mlwerke.de:80/me/me04/me04_065.htm
+      - https://web.archive.org/web/20010118055500id_/http://www.mlwerke.de:80/me/me04/me04_125.htm
+      - https://web.archive.org/web/20000602120617id_/http://www.mlwerke.de:80/me/me04/me04_444.htm
+    slug: das-elend-der-philosophie
+    title: Das Elend der Philosophie. Antwort auf Proudhons „Philosophie des Elends“
+    shortTitle: Das Elend der Philosophie
+    edition: Das Elend der Philosophie. Antwort auf Proudhons „Philosophie des Elends“, deutsch von E. Bernstein und K. Kautsky (Stuttgart, J. H. W. Dietz, 1885), with Marx's letter Über P.-J. Proudhon (1865) and his speech on free trade (1848)
+    author: Karl Marx
+    year: 1847
+    kind: work
