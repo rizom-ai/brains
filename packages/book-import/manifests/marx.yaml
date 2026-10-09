@@ -328,3 +328,114 @@ books:
     author: Karl Marx
     year: 1847
     kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 67
+    lastPage: 118
+    # Marx's own table of contents.
+    skipPages: [69, 70]
+    slug: differenz-der-demokritischen-und-epikureischen-naturphilosophie
+    title: Differenz der demokritischen und epikureischen Naturphilosophie
+    shortTitle: Differenz der Naturphilosophie
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1902
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 142
+    lastPage: 166
+    # MEW 1, Dietz 1976, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20010219162044id_/http://www.mlwerke.de:80/me/me01/me01_003.htm
+    slug: bemerkungen-ueber-die-neueste-preussische-zensurinstruktion
+    title: Bemerkungen über die neueste preußische Zensurinstruktion
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1843
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 208
+    lastPage: 258
+    references:
+      - https://web.archive.org/web/20020114214805id_/http://www.mlwerke.de:80/me/me01/me01_028.htm
+      - https://web.archive.org/web/20020514182135id_/http://www.mlwerke.de:80/me/me01/me01_033.htm
+      - https://web.archive.org/web/20020725034046id_/http://www.mlwerke.de:80/me/me01/me01_041.htm
+      - https://web.archive.org/web/20030121150543id_/http://www.mlwerke.de:80/me/me01/me01_050.htm
+      - https://web.archive.org/web/20030121145506id_/http://www.mlwerke.de:80/me/me01/me01_060.htm
+      - https://web.archive.org/web/20020514182515id_/http://www.mlwerke.de:80/me/me01/me01_066.htm
+    slug: debatten-ueber-pressfreiheit
+    title: Debatten über Preßfreiheit und Publikation der landständischen Verhandlungen
+    shortTitle: Debatten über Preßfreiheit
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 259
+    lastPage: 267
+    references:
+      - https://web.archive.org/web/20020324155844id_/http://www.mlwerke.de:80/me/me01/me01_086.htm
+    slug: der-leitende-artikel-in-nr-179-der-koelnischen-zeitung
+    title: Der leitende Artikel in Nr. 179 der Kölnischen Zeitung
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 268
+    lastPage: 274
+    references:
+      - https://web.archive.org/web/20020114220020id_/http://www.mlwerke.de:80/me/me01/me01_078.htm
+    slug: das-philosophische-manifest-der-historischen-rechtsschule
+    title: Das philosophische Manifest der historischen Rechtsschule
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 275
+    lastPage: 279
+    references:
+      - https://web.archive.org/web/20001023213931id_/http://www.mlwerke.de:80/me/me01/me01_105.htm
+    slug: der-kommunismus-und-die-augsburger-allgemeine-zeitung
+    title: Ueber Kommunismus
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 280
+    lastPage: 321
+    references:
+      - https://web.archive.org/web/20020114221307id_/http://www.mlwerke.de:80/me/me01/me01_109.htm
+      - https://web.archive.org/web/20020725100845id_/http://www.mlwerke.de:80/me/me01/me01_116.htm
+      - https://web.archive.org/web/20020514183320id_/http://www.mlwerke.de:80/me/me01/me01_124.htm
+      - https://web.archive.org/web/20020725100928id_/http://www.mlwerke.de:80/me/me01/me01_131.htm
+      - https://web.archive.org/web/20030121150847id_/http://www.mlwerke.de:80/me/me01/me01_139.htm
+    slug: debatten-ueber-das-holzdiebstahlsgesetz
+    title: Debatten über das Holzdiebstahlsgesetz
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
