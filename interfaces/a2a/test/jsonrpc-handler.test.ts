@@ -326,6 +326,90 @@ describe("JSON-RPC Handler", () => {
       expect(taskManager.getTask(task.id)?.task.artifacts).toBeUndefined();
     });
 
+    it("refuses a public caller over its allowance with a failed task, without a turn", async () => {
+      let chats = 0;
+      const service = createCustomAgentService({
+        chat: async () => {
+          chats += 1;
+          return OK_RESPONSE;
+        },
+      });
+      const response = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        {
+          taskManager,
+          turnSupervisor,
+          agentService: service,
+          callerPermissionLevel: "public",
+          callerDomain: "jo.example",
+          publicAsks: {
+            admit: async () => ({ ok: false, reason: "Over for today." }),
+            settle: async () => {},
+          },
+        },
+      );
+      const task = expectSuccess(response);
+      expect(task.status.state).toBe("failed");
+      expect(statusMessageText(task)).toBe("Over for today.");
+      expect(chats).toBe(0);
+    });
+
+    it("settles an admitted public caller's answer tokens against its allowance", async () => {
+      const calls: Array<[string, string | null, number?]> = [];
+      const response = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        {
+          taskManager,
+          turnSupervisor,
+          agentService: createMockAgentService({
+            usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+          }),
+          callerPermissionLevel: "public",
+          callerDomain: "jo.example",
+          publicAsks: {
+            admit: async (caller) => {
+              calls.push(["admit", caller]);
+              return { ok: true };
+            },
+            settle: async (caller, tokens) => {
+              calls.push(["settle", caller, tokens]);
+            },
+          },
+        },
+      );
+      const task = expectSuccess(response);
+      await waitForTaskState(taskManager, task.id, "completed");
+      await waitUntil(() => calls.length === 2, "the answer to be settled");
+      expect(calls).toEqual([
+        ["admit", "jo.example"],
+        ["settle", "jo.example", 30],
+      ]);
+    });
+
+    it("leaves trusted callers outside the public allowance", async () => {
+      let admits = 0;
+      const response = await handleJsonRpc(
+        rpcRequest("message/send", userMessage("Hello")),
+        {
+          taskManager,
+          turnSupervisor,
+          agentService,
+          callerPermissionLevel: "trusted",
+          callerDomain: "jo.example",
+          publicAsks: {
+            admit: async () => {
+              admits += 1;
+              return { ok: false, reason: "never" };
+            },
+            settle: async () => {},
+          },
+        },
+      );
+      const task = expectSuccess(response);
+      await waitForTaskState(taskManager, task.id, "completed");
+      expect(admits).toBe(0);
+    });
+
     it("should return failed task when AgentService throws", async () => {
       const failingService = createCustomAgentService({
         chat: async () => {
@@ -946,6 +1030,34 @@ describe("JSON-RPC Handler", () => {
         },
         expect.objectContaining({ kind: "status-update", final: true }),
       ]);
+    });
+
+    it("ends a refused public caller's stream with a failed status", async () => {
+      const result = expectStream(
+        handleStreamMessage(
+          1,
+          { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+          {
+            taskManager,
+            turnSupervisor,
+            agentService,
+            callerPermissionLevel: "public",
+            callerDomain: "jo.example",
+            publicAsks: {
+              admit: async () => ({ ok: false, reason: "Over for today." }),
+              settle: async () => {},
+            },
+          },
+        ),
+      );
+      const events = await collectEvents(result.stream);
+      const last = events[events.length - 1];
+      expect(last).toHaveProperty("result.final", true);
+      expect(last).toHaveProperty("result.status.state", "failed");
+      expect(last).toHaveProperty(
+        "result.status.message.parts.0.text",
+        "Over for today.",
+      );
     });
 
     it("should stream failed status-update when agent throws", async () => {

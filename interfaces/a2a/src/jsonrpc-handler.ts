@@ -8,6 +8,7 @@ import {
   type TaskManager,
 } from "./task-manager";
 import type { A2ATurnSupervisor } from "./turn-supervisor";
+import type { PublicAskAllowance } from "./public-asks";
 import { getErrorMessage } from "@brains/utils/error";
 
 const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
@@ -126,6 +127,28 @@ export interface JsonRpcHandlerContext {
   callerIsAnchor?: boolean;
   /** Verified caller domain for signed A2A requests; null/undefined for anonymous callers. */
   callerDomain?: string | null;
+  /** The daily allowance public callers answer under; absent means unbounded. */
+  publicAsks?: PublicAskAllowance;
+}
+
+/** A public caller's admission for this turn; trusted callers are not counted. */
+async function admitPublicCaller(
+  context: JsonRpcHandlerContext,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (context.callerPermissionLevel !== "public" || !context.publicAsks)
+    return { ok: true };
+  return context.publicAsks.admit(context.callerDomain ?? null);
+}
+
+async function settlePublicCaller(
+  context: JsonRpcHandlerContext,
+  agentResponse: AgentResponse,
+): Promise<void> {
+  if (context.callerPermissionLevel !== "public" || !context.publicAsks) return;
+  await context.publicAsks.settle(
+    context.callerDomain ?? null,
+    agentResponse.usage.totalTokens,
+  );
 }
 
 // -- Main handler --
@@ -198,6 +221,15 @@ async function handleSendMessage(
   const taskId = record.task.id;
   context.taskManager.updateState(taskId, "working");
 
+  const admission = await admitPublicCaller(context);
+  if (!admission.ok) {
+    context.taskManager.updateState(taskId, "failed", admission.reason);
+    const refused = context.taskManager.getTask(taskId);
+    return refused
+      ? successResponse(id, refused.task)
+      : errorResponse(id, -32603, "Internal error: task disappeared");
+  }
+
   // Fire agent processing in background, return "working" immediately.
   // Caller polls tasks/get until completion.
   processInBackground(taskId, messageText, record.conversationId, context);
@@ -240,6 +272,7 @@ function processInBackground(
           "completed",
           agentResponse.text,
         );
+        await settlePublicCaller(context, agentResponse);
       } catch (error) {
         if (signal.aborted) return;
         const errorMessage = getErrorMessage(error, "Unknown error");
@@ -430,6 +463,17 @@ export function handleStreamMessage(
         taskId,
         async (signal) => {
           try {
+            const admission = await admitPublicCaller(context);
+            if (!admission.ok) {
+              context.taskManager.updateState(
+                taskId,
+                "failed",
+                admission.reason,
+              );
+              const refused = context.taskManager.getTask(taskId);
+              if (refused) send(statusEvent(refused.task, true));
+              return;
+            }
             const agentResponse = await context.agentService.chat(
               messageText,
               record.conversationId,
@@ -460,6 +504,7 @@ export function handleStreamMessage(
               }
               send(statusEvent(completed.task, true));
             }
+            await settlePublicCaller(context, agentResponse);
           } catch (error) {
             if (signal.aborted) return;
             const errorMessage = getErrorMessage(error, "Unknown error");

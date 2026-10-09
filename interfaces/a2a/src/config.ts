@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { publicAsksConfigSchema } from "./public-asks";
 
 type A2AConfigSchema = z.ZodObject<
   {
@@ -8,6 +9,7 @@ type A2AConfigSchema = z.ZodObject<
     streamIdleTimeoutMs: z.ZodDefault<z.ZodNumber>;
     maxNetworkAttempts: z.ZodDefault<z.ZodNumber>;
     networkAskTimeoutMs: z.ZodDefault<z.ZodNumber>;
+    publicAsks: z.ZodPrefault<typeof publicAsksConfigSchema>;
   },
   z.core.$strict
 >;
@@ -38,6 +40,9 @@ export const a2aConfigSchema: A2AConfigSchema = z
      * takes 15–25 s on the fleet, so a short budget asks nobody in effect.
      */
     networkAskTimeoutMs: z.number().positive().default(30_000),
+
+    /** How much this brain answers public A2A callers per day, and whether at all. */
+    publicAsks: publicAsksConfigSchema.prefault({}),
   })
   .strict();
 

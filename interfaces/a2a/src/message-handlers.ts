@@ -76,9 +76,14 @@ export function registerA2ACallMessageHandlers(
       if (budget.aborted) return timedOut;
       if ("success" in result && result.success === true) {
         const answer = peerAnswerSchema.safeParse(result.data);
-        return answer.success
-          ? { success: true, data: answer.data }
-          : { success: false, error: `${agent} gave no readable answer` };
+        if (!answer.success)
+          return { success: false, error: `${agent} gave no readable answer` };
+        if (answer.data.state !== "completed")
+          return {
+            success: false,
+            error: `${agent} did not answer: ${answer.data.response}`,
+          };
+        return { success: true, data: answer.data };
       }
       return {
         success: false,

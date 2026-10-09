@@ -269,6 +269,44 @@ describe("A2A network ask channel", () => {
     }
   });
 
+  it("treats a peer's refusal as no answer", async () => {
+    const fetchFn = mock(
+      async (input: string | URL | Request): Promise<Response> => {
+        const url = String(input);
+        if (url.endsWith("/.well-known/agent-card.json")) {
+          const origin = url.replace("/.well-known/agent-card.json", "");
+          return new Response(
+            JSON.stringify({ name: "Remote", url: `${origin}/a2a` }),
+          );
+        }
+        return new Response(
+          `data: ${JSON.stringify({
+            result: {
+              kind: "status-update",
+              final: true,
+              status: {
+                state: "failed",
+                message: {
+                  parts: [{ kind: "text", text: "Over for today." }],
+                },
+              },
+            },
+          })}\n\n`,
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      },
+    );
+    const harness = await installed(fetchFn);
+    try {
+      expect(await ask(harness, "approved.example")).toEqual({
+        success: false,
+        error: "approved.example did not answer: Over for today.",
+      });
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
   it("refuses peers that are not saved and approved", async () => {
     const fetchFn = citingFetch();
     const harness = await installed(fetchFn);
