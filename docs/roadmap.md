@@ -83,6 +83,7 @@ Plans:
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
+- [traffic-analytics.md](./plans/traffic-analytics.md) — daily traffic captured as entities while counts are exact, joined to published content, and shown in a Studio Traffic workspace.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
 
 ### 2. The collective posture
