@@ -548,8 +548,23 @@ describe("Studio hierarchy of a container type", () => {
   const books = [record("book", "zara", "Also sprach Zarathustra")];
   const sections = [
     record("section", "zara:00001-vorrede", "Vorrede"),
-    record("section", "zara:00002-erster-theil:00003-reden", "Reden"),
+    {
+      ...record("section", "zara:00002-erster-theil:00003-reden", "Reden"),
+      content: "---\ntitle: Reden\nheadings:\n  - Erster Theil\n---\n\nText",
+    },
   ];
+  /** A section names the folders it stands in by its headings. */
+  class SectionAdapter extends Adapter {
+    getFolderTitles(
+      entity: Pick<BaseEntity, "content">,
+    ): Array<string | undefined> {
+      const { headings } = this.parseFrontMatter(
+        entity.content,
+        z.object({ headings: z.array(z.string()).default([]) }),
+      );
+      return [undefined, ...headings];
+    }
+  }
 
   /** Books contain sections; the store answers as the entity service would. */
   function containerFixture(): {
@@ -562,7 +577,7 @@ describe("Studio hierarchy of a container type", () => {
     registry.registerEntityType(
       "section",
       baseEntitySchema,
-      new Adapter("section"),
+      new SectionAdapter("section"),
       { containedIn: "book" },
     );
     registry.getEffectiveFrontmatterSchema = (): typeof frontmatterSchema =>
@@ -705,11 +720,44 @@ describe("Studio hierarchy of a container type", () => {
     expect(page.folders).toEqual([
       {
         path: ["zara", "00002-erster-theil"],
+        title: "Erster Theil",
         descendantCount: 1,
       },
     ]);
     expect(page.total).toBe(2);
     expect(page.trail).toEqual(["Also sprach Zarathustra"]);
+  });
+
+  test("names a part by the headings its sections stand under", async () => {
+    const { routes } = containerFixture();
+    const prefix = encodeURIComponent(
+      JSON.stringify(["zara", "00002-erster-theil"]),
+    );
+    const page = containerPageSchema.parse(
+      await (
+        await request(routes, `hierarchy?type=book&prefix=${prefix}`)
+      ).json(),
+    );
+
+    expect(page.trail).toEqual(["Also sprach Zarathustra", "Erster Theil"]);
+  });
+
+  test("names folders by their entries' headings outside a container too", async () => {
+    const { routes } = containerFixture();
+    const prefix = encodeURIComponent(JSON.stringify(["zara"]));
+    const page = containerPageSchema.parse(
+      await (
+        await request(routes, `hierarchy?type=section&prefix=${prefix}`)
+      ).json(),
+    );
+
+    expect(page.folders).toEqual([
+      {
+        path: ["zara", "00002-erster-theil"],
+        title: "Erster Theil",
+        descendantCount: 1,
+      },
+    ]);
   });
 
   test("searches a container's contents as well as the containers", async () => {

@@ -541,6 +541,13 @@ export interface EntityAdapter<
   getCoverImageId?(entity: TEntity): string | undefined;
 
   /**
+   * Optional: titles for the folders a nested id stands in, one per segment
+   * above its own, outermost first; undefined where the entity does not know
+   * a folder's title. A book section names its parts by its headings.
+   */
+  getFolderTitles?(entity: Pick<TEntity, "content">): Array<string | undefined>;
+
+  /**
    * Optional: build the markdown content and metadata for a queued-generation stub.
    * When undefined, this entity type does not support prompt-based queued creation
    * via system_create; the tool will reject the call rather than silently degrade.

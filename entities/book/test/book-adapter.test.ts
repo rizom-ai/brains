@@ -125,6 +125,12 @@ describe("BookSectionAdapter", () => {
     ).toEqual(["Erster Theil", "Erstes Hauptstück"]);
   });
 
+  it("titles the folders it stands in by its headings, under its book", () => {
+    expect(
+      bookSectionAdapter.getFolderTitles({ content: sectionMarkdown }),
+    ).toEqual([undefined, "Erster Theil", "Erstes Hauptstück"]);
+  });
+
   it("rejects a section outside reading order", () => {
     expect(() =>
       bookSectionAdapter.fromMarkdown(
