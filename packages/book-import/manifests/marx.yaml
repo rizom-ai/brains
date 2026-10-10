@@ -635,3 +635,32 @@ books:
     author: Karl Marx
     year: 1850
     kind: work
+  - source: archive-ocr
+    # Rjasanoff's first volume collects the articles of 1852–1854 by Marx
+    # and by Engels. Engels' own articles are left out, and one that
+    # neither MEW nor MECW attributes (Preußische Politik).
+    item: gesammelteschrif01marxuoft
+    citation: GS I
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 442
+    datelined: true
+    skipHeadings:
+      - Der wirkliche Streitpunkt in der Türkei.
+      - Die türkische Frage.
+      - Was soll aus der Europäischen Türkei werden?
+      - Der heilige Krieg.
+      - Der Krieg an der Donau.
+      - Sinope und Achalzych.
+      - Der europäische Krieg.
+      - Der russische Rückzug.
+      - Preußische Politik.
+      - Die Kriegstaten im Baltischen und im Schwarzen Meer. — Englisch-französisches Operationssystem.
+      - Der gegenwärtige Stand der englischen Armee. — Taktik. — Uniformen. — Verpflegungswesen usw.
+    slug: gesammelte-schriften-1
+    title: "Gesammelte Schriften 1852 bis 1862. Erster Band: Artikel 1852 bis 1854"
+    shortTitle: Gesammelte Schriften I
+    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, die Übersetzungen aus dem Englischen von Luise Kautsky, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    author: Karl Marx
+    year: 1853
+    kind: work
