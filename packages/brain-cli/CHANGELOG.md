@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- [#588](https://github.com/rizom-ai/brains/pull/588) [`eb47f05`](https://github.com/rizom-ai/brains/commit/eb47f05a3f3f0cffa999525a2522f7944277ec87) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio names an entity type by its display label, pluralized, never by the path its pages live under. A books site opens book sections under `/books`, so Studio showed two "books" sections; it now shows Books and Sections.
+
 ## 0.2.0-alpha.514
 
 ### Patch Changes

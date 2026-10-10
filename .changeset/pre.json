@@ -689,6 +689,7 @@
     "core--studio-hierarchical-navigation",
     "core--studio-interface-semantics",
     "core--studio-invitations-workspace",
+    "core--studio-labels-from-label",
     "core--studio-mobile-browse",
     "core--studio-overview-workspace",
     "core--studio-pagination-editor-release",
