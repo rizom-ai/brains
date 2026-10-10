@@ -1821,3 +1821,31 @@ describe("parseArchiveOcrWork, leaves scanned at two sizes", () => {
     expect(units[0]?.paragraphs).toHaveLength(6);
   });
 });
+
+describe("parseArchiveOcrWork, a title in display type across the column", () => {
+  it("reads it apart from the text by the space its tall lines leave, less than a line's height", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-title.html"),
+        "utf8",
+      ),
+      {
+        item: "lohnarbeitundka00marxgoog",
+        title: "Lohnarbeit und Kapital",
+        citation: "Lohnarbeit",
+        firstPage: 19,
+        lastPage: 20,
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Lohnarbeit, 19",
+      "Wodurch wird der Preis einer Ware bestimmt?",
+    ]);
+    // A note set nearly as large as the text stands apart from the
+    // paragraph running on across the page.
+    expect(units.at(-1)?.paragraphs.join("\n")).toContain(
+      "bestimmt wird, ist dreiseitig.",
+    );
+  });
+});

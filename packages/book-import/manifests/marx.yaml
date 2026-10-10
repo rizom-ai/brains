@@ -803,3 +803,22 @@ books:
     author: Karl Marx
     year: 1871
     kind: work
+  - source: archive-ocr
+    # Kautsky's edition of Engels's revised text of 1891: Engels's additions
+    # in square brackets, Marx's own wording of 1849 where Engels changed it
+    # in the notes. Kautsky's preface and Engels's introduction are left out.
+    item: lohnarbeitundka00marxgoog
+    citation: Lohnarbeit
+    ocr: frak2021
+    firstPage: 15
+    lastPage: 40
+    # MEW 6, Dietz 1959, as mlwerke.de published it: the text of 1849.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_397.htm
+    slug: lohnarbeit-und-kapital
+    title: Lohnarbeit und Kapital
+    shortTitle: Lohnarbeit und Kapital
+    edition: Lohnarbeit und Kapital, Separat-Abdruck aus der „Neuen Rheinischen Zeitung“ vom Jahre 1849, neu herausgegeben von K. Kautsky, mit einer Einleitung von Friedrich Engels (Berlin, Buchhandlung Vorwärts, 1908)
+    author: Karl Marx
+    year: 1849
+    kind: work

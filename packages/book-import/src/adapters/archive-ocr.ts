@@ -168,6 +168,8 @@ const SIGNATURE =
 const NOTE_START = /^(?:ı|\d+|\*+)\)/;
 /** A note marked by asterisks: *) or **). */
 const STAR_NOTE_START = /^\*+\)/;
+/** A note's mark, its digit read as ½ or lost: ½) 1 Frank ist 8 Sgr. */
+const MARKED_NOTE_START = /^(?:[ı½¹²³]|\d{1,2})?\)\s/u;
 /** The OCR reads the superscript note marker 1) as a dotless i. */
 const OCR_NOTE_MARKER = /ı\)/g;
 
@@ -1205,6 +1207,13 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           // No line of text opens with an asterisk's mark; a note may be
           // set, or measured, as large as the text.
           STAR_NOTE_START.test(line.text) ||
+          // Below a line's height of space, a line that opens with a note's
+          // mark is a note, though set nearly as large as the text; a title
+          // numbered so is centred.
+          (MARKED_NOTE_START.test(line.text) &&
+            !isCentredShort(line) &&
+            index > 0 &&
+            line.y - (headless[index - 1]?.bottom ?? line.y) > bodyHeight) ||
           spacedFoot(line, headless[index - 1], headless[index + 1])),
   );
   const noteFrom = footAt < 0 ? headless.length : footAt;
@@ -1605,11 +1614,14 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     const top = headless[first]?.y ?? line.y;
     const bottom = headless[end]?.bottom ?? line.bottom;
     // A page set in large type throughout, a dedication, has no text for a
-    // title to stand apart from.
+    // title to stand apart from. Display type's tall lines leave less space
+    // between their boxes than a line's height; half of one is more than
+    // text lines leave, even two the OCR read as one.
     const apart =
       (before !== undefined || after !== undefined) &&
-      (before === undefined || top - before.bottom > bodyHeight) &&
-      (after === undefined || after.y - bottom > bodyHeight);
+      (before === undefined ||
+        top - before.bottom > bodyHeight * SECTION_SPACE) &&
+      (after === undefined || after.y - bottom > bodyHeight * SECTION_SPACE);
     // A title opens with a capital, past a bracket or quotation mark; a
     // dedication's or a list's line does not.
     const display =

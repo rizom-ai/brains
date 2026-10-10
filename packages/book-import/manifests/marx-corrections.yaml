@@ -5233,3 +5233,336 @@ ldpd_13048930_000:
     from: Milliére in
     to: Millière in
     by: scan
+lohnarbeitundka00marxgoog:
+  - page: 15
+    from: daß endlich Guropa mit
+    to: daß endlich Europa mit
+    by: reference
+  - page: 15
+    from: englisch-russische SEklaverei.
+    to: englisch-russische Sklaverei.
+    by: reference
+  - page: 15
+    from: Vourgeoisie und Arbeiterklasse
+    to: Bourgeoisie und Arbeiterklasse
+    by: reference
+  - page: 16
+    from: Vas ilt der Hrbeitslohnꝰ
+    to: Was ist der Arbeitslohn?
+    by: scan
+  - page: 16
+    from: Vie wird er bestimmtꝰ
+    to: Wie wird er bestimmt?
+    by: scan
+  - page: 16
+    from: summe, womit der Bourgeois ihre Arbeitsskraft! gekauft hat,
+    to: summe, womit der Bourgeois ihre Arbeit[skraft] gekauft hat,
+    by: scan
+  - page: 17
+    from: Arbeitskraft]) kaufte, sind der Preis der zwölfstündigen Arbeit.
+    to: Arbeitskraft]¹) kaufte, sind der Preis der zwölfstündigen Arbeit.
+    by: scan
+  - page: 17
+    from: Die Arbeits[skraft! ist also eine Ware, nicht mehr, nicht minder
+    to: Die Arbeit[skraft] ist also eine Ware, nicht mehr, nicht minder
+    by: scan
+  - page: 17
+    from: Ihre Ware, die Arbeit [skraft], tauschen die Arbeiter gegen die
+    to: Ihre Ware, die Arbeit[skraft], tauschen die Arbeiter gegen die
+    by: scan
+  - page: 17
+    from: hat der Arbeiter also seine Ware. die Arbeit[skraft! gegen Waren
+    to: hat der Arbeiter also seine Ware. die Arbeit[skraft] gegen Waren
+    by: scan
+  - page: 17
+    from: worin die Arbeitskraft!) gegen andere Waren ausgetauscht wird,
+    to: worin die Arbeit[skraft] gegen andere Waren ausgetauscht wird,
+    by: scan
+  - page: 17
+    from: den Tauschwert seiner Arbeitsskraft!. Der Tauschwert einer
+    to: den Tauschwert seiner Arbeit[skraft]. Der Tauschwert einer
+    by: scan
+  - page: 17
+    from: Arbeitlskraft, den man gewöhnlich den Preis der Arbeit
+    to: Arbeit[skraft, den man gewöhnlich den Preis der Arbeit
+    by: scan
+  - page: 17
+    from: Waren, die er im Austausch für seine Ware, die Arbeitsskraft!,
+    to: Waren, die er im Austausch für seine Ware, die Arbeit[skraft],
+    by: scan
+  - page: 17
+    from: Zucker kaufte, find der Preis
+    to: Zucker kaufte, sind der Preis
+    by: reference
+  - page: 18
+    from: Arbeitskraft! des Webers ganz so, wie er mit einem anderen Teil
+    to: Arbeit[skraft] des Webers ganz so, wie er mit einem anderen Teil
+    by: scan
+  - page: 18
+    from: duktion der Leinwand nötige Arbeitsskraft!], produziert er nur
+    to: duktion der Leinwand nötige Arbeit[skraft], produziert er nur
+    by: scan
+  - page: 18
+    from: st immte Summe produktiver Arbeitlskraft] an
+    to: st immte Summe produktiver Arbeit[skraft] an
+    by: scan
+  - page: 18
+    from: »Die Arbeitsskraft! ist also eine Ware, die ihr Besitzer, der
+    to: »Die Arbeit[skraft] ist also eine Ware, die ihr Besitzer, der
+    by: scan
+  - page: 18
+    from: zu fristen, soswäre er ein
+    to: zu fristen, so wäre er ein
+    by: reference
+  - page: 19
+    from: Nodurch wird der DPreis einer Mare
+    to: Wodurch wird der Preis einer Ware
+    by: scan
+  - page: 19
+    from: beltimmt?
+    to: bestimmt?
+    by: scan
+  - page: 19
+    from: Die Arbeitsskraft! war nicht immer eine Ware. Die Arbeit
+    to: Die Arbeit[skraft] war nicht immer eine Ware. Die Arbeit
+    by: scan
+  - page: 19
+    from: verkauft seine Arbeitlskraft! nicht an den Sklavenbesitzer, so
+    to: verkauft seine Arbeit[skraft] nicht an den Sklavenbesitzer, so
+    by: scan
+  - page: 19
+    from: Der Sklave mitsamt seiner Arbeitsskraft! ist ein- für allemal
+    to: Der Sklave mitsamt seiner Arbeit[skraft] ist ein- für allemal
+    by: scan
+  - page: 19
+    from: Er selbst ist eine Ware, aber die Arbeits[skraft] ist nicht se ine
+    to: Er selbst ist eine Ware, aber die Arbeit[skraft] ist nicht se ine
+    by: scan
+  - page: 19
+    from: Arbeitsskraft). Nicht er erhält einen Lohn vom Eigentümer des
+    to: Arbeit[skraft]. Nicht er erhält einen Lohn vom Eigentümer des
+    by: scan
+  - page: 19
+    from: quelle der Verkauf der Arbeitsskraft] ist, kann nicht die ganze
+    to: quelle der Verkauf der Arbeit[skraft] ist, kann nicht die ganze
+    by: scan
+  - page: 19
+    from: einer bestimmten Ware, der Arbeitsskraft!]. Der Arbeitslohn wird
+    to: einer bestimmten Ware, der Arbeit[skraft]. Der Arbeitslohn wird
+    by: scan
+  - page: 19
+    from: ist nicht se ine
+    to: ist nicht seine
+    by: reference
+  - page: 19
+    from: vermietet, so
+    to: vermietet, so-
+    by: reference
+  - page: 19
+    from: scines Lebens
+    to: seines Lebens
+    by: scan
+  - page: 20
+    from: Nehmen wir san!],
+    to: Nehmen wir [an],
+    by: scan
+  - page: 20
+    from: die ibrerseitr den
+    to: die ihrerseits den
+    by: scan
+  - page: 21
+    from: minder bedeutendes Siergen der
+    to: minder bedeutendes Steigen der
+    by: reference
+  - page: 21
+    from: nur eine geinge oder gar
+    to: nur eine geringe oder gar
+    by: reference
+  - page: 22
+    from: entsprechend gegen
+    to: entsprechend gegen-
+    by: reference
+  - page: 23
+    from: Konkurrenz zwischen den Käufern der Arbeitsskraft], den
+    to: Konkurrenz zwischen den Käufern der Arbeit[skraft], den
+    by: scan
+  - page: 23
+    from: Kapitalisten, und den Verkäufern der Arbeitlskraft], den Arbeitern,
+    to: Kapitalisten, und den Verkäufern der Arbeit[skraft], den Arbeitern,
+    by: scan
+  - page: 23
+    from: i st, um diese Ware, die Arbeitlskraft] hervor-
+    to: i st, um diese Ware, die Arbeit[skraft] hervor-
+    by: scan
+  - page: 23
+    from: Arbeitsskraft] selbst?
+    to: Arbeit[skraft] selbst?
+    by: scan
+  - page: 23
+    from: "[Verschleiß von! Instrumenten"
+    to: "[Verschleiß von] Instrumenten"
+    by: scan
+  - page: 24
+    from: Die Produktionskosten der einfachen Arbeitlskraft! belaufen
+    to: Die Produktionskosten der einfachen Arbeit[skraft] belaufen
+    by: scan
+  - page: 25
+    from: (sondern auch auf einander]
+    to: "[sondern auch auf einander]"
+    by: scan
+  - page: 25
+    from: ihre Ginwirkung auf die
+    to: ihre Einwirkung auf die
+    by: reference
+  - page: 25
+    from: Produzenten zu
+    to: Produzenten zu-
+    by: reference
+  - page: 25
+    from: Um zu produgieren, treten sie
+    to: Um zu produzieren, treten sie
+    by: reference
+  - page: 25
+    from: die feu dale Gesellschaft
+    to: die feudale Gesellschaft
+    by: scan
+  - page: 25
+    from: in bé-
+    to: in be-
+    by: scan
+  - page: 26
+    from: mittelbare, lebendige Arbeitsskraft!]). Die Existenz
+    to: mittelbare, lebendige Arbeit[skraft]¹). Die Existenz
+    by: scan
+  - page: 26
+    from: Irdnf Arbeit erst
+    to: aufgehäufte Arbeit erst
+    by: reference
+  - page: 26
+    from: ist eine Suüumme von Tauschwerten
+    to: ist eine Summe von Tauschwerten
+    by: scan
+  - page: 27
+    from: Der Arbeiter erhält im Austausch gegen seine Arbeit[skraft!
+    to: Der Arbeiter erhält im Austausch gegen seine Arbeit[skraft]
+    by: scan
+  - page: 27
+    from: Kapital sist! und
+    to: Kapital [ist] und
+    by: scan
+  - page: 27
+    from: Lohnarbeit ser]?
+    to: Lohnarbeit [er]?
+    by: scan
+  - page: 28
+    from: Arbeitsskraft! austauscht, indem es Lohnarbeit ins Leben ruft. Die
+    to: Arbeit[skraft] austauscht, indem es Lohnarbeit ins Leben ruft. Die
+    by: scan
+  - page: 28
+    from: beitlskraft! nicht ausbeutet, und um sie auszubeuten, muß es sie
+    to: beit[skraft] nicht ausbeutet, und um sie auszubeuten, muß es sie
+    by: scan
+  - page: 28
+    from: besser das Geschäfi
+    to: besser das Geschäft
+    by: reference
+  - page: 29
+    from: Was die Arbeiter zunächst für ihre Arbeitsskraft) erhalten, ist
+    to: Was die Arbeiter zunächst für ihre Arbeit[skraft] erhalten, ist
+    by: scan
+  - page: 29
+    from: Silbers für ihre Arbeit[skraft). Der Geldpreis ihrer Arbeit blieb
+    to: Silbers für ihre Arbeit[skraft]. Der Geldpreis ihrer Arbeit blieb
+    by: scan
+  - page: 29
+    from: in! Amerika
+    to: in] Amerika
+    by: scan
+  - page: 30
+    from: Arbeitsskraft! empfangen. War ihr Arbeitslohn nicht gefallen?
+    to: Arbeit[skraft] empfangen. War ihr Arbeitslohn nicht gefallen?
+    by: scan
+  - page: 30
+    from: Preise der aufgehäusten Arbeit, den
+    to: Preise der aufgehäuften Arbeit, den
+    by: reference
+  - page: 30
+    from: Profit, übrig
+    to: Profit, übrig-
+    by: reference
+  - page: 30
+    from: verbältnismäßigen Wert
+    to: verhältnismäßigen Wert
+    by: scan
+  - page: 32
+    from: Fallen des Arbeitslohnes, des Tauschwertes der Arbeitsskraft!; oder
+    to: Fallen des Arbeitslohnes, des Tauschwertes der Arbeit[skraft]; oder
+    by: scan
+  - page: 32
+    from: (fremder! Arbeit
+    to: "[fremder] Arbeit"
+    by: scan
+  - page: 32
+    from: Pfund auf die Dauer!]
+    to: Pfund [auf die Dauer]
+    by: scan
+  - page: 34
+    from: das industrielle EchLacztfeld 3u
+    to: das industrielle Schlachtfeld zu
+    by: reference
+  - page: 34
+    from: produktiven Kapi
+    to: produktiven Kapi-
+    by: reference
+  - page: 35
+    from: nichts extra! gewinnen
+    to: nichts [extra] gewinnen
+    by: scan
+  - page: 35
+    from: etwaige größere Ginnahme würde daher
+    to: etwaige größere Einnahme würde daher
+    by: reference
+  - page: 36
+    from: um (mehr!
+    to: um [mehr]
+    by: scan
+  - page: 36
+    from: die massenhaftere Lieserung sür den alten
+    to: die massenhaftere Lieferung für den alten
+    by: reference
+  - page: 36
+    from: sie den Préis der Ware
+    to: sie den Preis der Ware
+    by: reference
+  - page: 37
+    from: bis die Wonrurrenz
+    to: bis die Konkurrenz
+    by: reference
+  - page: 37
+    from: die Bestim mung des
+    to: die Bestimmung des
+    by: scan
+  - page: 37
+    from: Arbeit befäbiat einen
+    to: Arbeit befähigt einen
+    by: scan
+  - page: 39
+    from: und „Lebens
+    to: und „Lebens-
+    by: reference
+  - page: 40
+    from: V
+    to: ""
+    by: scan
+  - page: 40
+    from: Vorwärts Büchdruckerei und Verlagsanstalt Paul Singer & Co., Berlin SW. 68.
+    to: ""
+    by: scan
+  - page: 40
+    from: die (industriellen]
+    to: die [industriellen]
+    by: scan
+  - page: 40
+    from: und nichts
+    to: und nichts-
+    by: reference
