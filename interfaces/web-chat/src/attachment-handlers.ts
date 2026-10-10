@@ -129,8 +129,7 @@ async function resolveVisibleArtifactEntity(input: {
   const access = await resolveMessageArtifactAccess({
     entityRef,
     userLevel: input.permissionLevel,
-    getEntity: (ref) => input.entityService.getEntity(ref),
-    getVisibleEntity: (ref, visibilityScope) =>
+    getEntity: (ref, visibilityScope) =>
       input.entityService.getEntity({ ...ref, visibilityScope }),
   });
 

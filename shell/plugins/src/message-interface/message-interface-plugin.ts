@@ -176,8 +176,7 @@ export abstract class MessageInterfacePlugin<
       const access = await resolveMessageArtifactAccess({
         entityRef,
         userLevel: input.userPermissionLevel,
-        getEntity: (ref) => context.entityService.getEntity(ref),
-        getVisibleEntity: (ref, visibilityScope) =>
+        getEntity: (ref, visibilityScope) =>
           context.entityService.getEntity({ ...ref, visibilityScope }),
       });
       if (access.status === "denied") {

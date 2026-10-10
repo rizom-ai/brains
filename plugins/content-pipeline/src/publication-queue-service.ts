@@ -168,6 +168,7 @@ export class PublicationQueueService {
       const entity = await this.context.entityService.getEntity({
         entityType,
         id: entityId,
+        visibilityScope: "restricted",
       });
       if (entity) await this.persistStatus(entity, "failed", error);
       await this.queueManager.remove(entityType, entityId);
@@ -176,6 +177,8 @@ export class PublicationQueueService {
     });
   }
 
+  // Queue bookkeeping sees every queued entity whatever its visibility; callers
+  // are checked at the tool and workspace boundary.
   /** Rebuild the in-memory projection and repair recoverable runtime records. */
   async reconcile(entityTypes: string[]): Promise<void> {
     await this.runExclusive(async () => {
@@ -183,7 +186,12 @@ export class PublicationQueueService {
       for (const entityType of entityTypes) {
         const entities = await this.context.entityService.listEntities({
           entityType,
-          options: { filter: { metadata: { status: "queued" } } },
+          options: {
+            filter: {
+              metadata: { status: "queued" },
+              visibilityScope: "restricted",
+            },
+          },
         });
         for (const entity of entities) {
           queuedEntities.set(recordKey(entityType, entity.id), entity);
@@ -312,6 +320,7 @@ export class PublicationQueueService {
     const entity = await this.context.entityService.getEntity({
       entityType,
       id: entityId,
+      visibilityScope: "restricted",
     });
     if (!entity) throw new Error(`Entity not found: ${entityType}:${entityId}`);
     return entity;

@@ -43,11 +43,10 @@ export function createMockEntityService(
   ): Promise<BaseEntity | null> {
     const entity = store.entities.get(request.id);
     if (entity?.entityType !== request.entityType) return null;
-    const visible =
-      request.visibilityScope === undefined ||
-      getVisibleContentVisibilities(request.visibilityScope).includes(
-        entity.visibility,
-      );
+    // Fail closed like the real query layer: unscoped reads see public only.
+    const visible = getVisibleContentVisibilities(
+      request.visibilityScope ?? "public",
+    ).includes(entity.visibility);
     if (!visible) return null;
     return schema ? schema.parse(entity) : entity;
   }
@@ -97,14 +96,14 @@ export function createMockEntityService(
   }
 
   function filterEntitiesFake(request: ListEntitiesRequest): BaseEntity[] {
-    const scope = request.options?.filter?.visibilityScope;
-    const visible = scope
-      ? new Set(getVisibleContentVisibilities(scope))
-      : null;
+    // Fail closed like the real query layer: unscoped reads see public only.
+    const visible = new Set(
+      getVisibleContentVisibilities(
+        request.options?.filter?.visibilityScope ?? "public",
+      ),
+    );
     let results = Array.from(store.entities.values()).filter(
-      (e) =>
-        e.entityType === request.entityType &&
-        (visible === null || visible.has(e.visibility)),
+      (e) => e.entityType === request.entityType && visible.has(e.visibility),
     );
     const exactVisibility = request.options?.filter?.visibility;
     if (exactVisibility)
@@ -414,12 +413,12 @@ export function createMockEntityService(
     getEntityCounts: async (
       visibilityScope?: BaseEntity["visibility"],
     ): Promise<Array<{ entityType: string; count: number }>> => {
-      const visible = visibilityScope
-        ? new Set(getVisibleContentVisibilities(visibilityScope))
-        : null;
+      const visible = new Set(
+        getVisibleContentVisibilities(visibilityScope ?? "public"),
+      );
       const counts = new Map<string, number>();
       for (const entity of store.entities.values()) {
-        if (visible !== null && !visible.has(entity.visibility)) continue;
+        if (!visible.has(entity.visibility)) continue;
         counts.set(entity.entityType, (counts.get(entity.entityType) ?? 0) + 1);
       }
       return Array.from(counts.entries()).map(([entityType, count]) => ({

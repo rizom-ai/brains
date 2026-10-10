@@ -136,6 +136,7 @@ export class NotePlugin extends EntityPlugin<
       const stubEntity = await context.entityService.getEntity({
         entityType: "note",
         id: created.entityId,
+        visibilityScope: "restricted",
       });
       if (!stubEntity) {
         throw new Error("Created note import stub could not be read");
@@ -216,6 +217,7 @@ export class NotePlugin extends EntityPlugin<
         const existing = await context.entityService.getEntity({
           entityType: "note",
           id,
+          visibilityScope: "restricted",
         });
         if (existing)
           return { success: true, data: { noteId: id, created: false } };

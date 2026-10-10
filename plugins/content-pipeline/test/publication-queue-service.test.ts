@@ -205,6 +205,32 @@ describe("PublicationQueueService", () => {
     );
   });
 
+  // Unscoped reads see public entities only; reconcile once dropped every
+  // queued non-public entity's record on restart.
+  it("keeps a non-public queued entity across a restart", async () => {
+    const { context, service } = await createFixture();
+    await context.entityService.createEntity({
+      entity: {
+        id: "members-only",
+        entityType: "social-post",
+        content: "---\ntitle: Members only\nstatus: draft\n---\n\nBody",
+        metadata: { title: "Members only", status: "draft" },
+        visibility: "shared",
+      },
+    });
+    await service.enqueue("social-post", "members-only");
+
+    const restoredManager = QueueManager.createFresh();
+    const restored = new PublicationQueueService(context, restoredManager);
+    await restored.reconcile(["social-post"]);
+
+    expect(
+      (await restoredManager.list("social-post")).map(
+        (entry) => entry.entityId,
+      ),
+    ).toEqual(["members-only"]);
+  });
+
   it("repairs missing and orphaned runtime records from entity intent", async () => {
     const { context, queueManager, service } = await createFixture();
     await service.enqueue("social-post", "first");

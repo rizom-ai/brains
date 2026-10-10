@@ -157,9 +157,12 @@ export class PublishExecutor implements PublishEntityExecutor {
     id?: string,
     slug?: string,
   ): Promise<PublishableEntity | null> {
+    // Read at full scope so the visibility gate in resolveCandidate can name
+    // why a non-public entity cannot be published; an unscoped read sees
+    // public entities only and would report it as missing.
     if (id) {
       return this.deps.context.entityService.getEntity(
-        { entityType, id },
+        { entityType, id, visibilityScope: "restricted" },
         publishableEntitySchema,
       );
     }
@@ -170,7 +173,7 @@ export class PublishExecutor implements PublishEntityExecutor {
       {
         entityType,
         options: {
-          filter: { metadata: { slug } },
+          filter: { metadata: { slug }, visibilityScope: "restricted" },
           limit: 1,
         },
       },

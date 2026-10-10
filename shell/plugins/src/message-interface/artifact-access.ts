@@ -1,4 +1,7 @@
-import { permissionToVisibilityScope } from "@brains/entity-service";
+import {
+  permissionToVisibilityScope,
+  type ContentVisibility,
+} from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { StructuredChatCard } from "../contracts/agent";
 import {
@@ -11,16 +14,19 @@ export interface MessageArtifactEntity {
   metadata: Record<string, unknown> | null | undefined;
 }
 
+/** Reads an artifact's entity at a visibility scope. */
+export type ArtifactLookup<TEntity extends MessageArtifactEntity> = (
+  ref: ArtifactEntityRef,
+  visibilityScope: ContentVisibility,
+) => Promise<TEntity | null | undefined>;
+
 export interface MessageArtifactAccessInput<
   TEntity extends MessageArtifactEntity,
 > {
   entityRef: ArtifactEntityRef;
   userLevel: UserPermissionLevel;
-  getEntity: (ref: ArtifactEntityRef) => Promise<TEntity | null | undefined>;
-  getVisibleEntity: (
-    ref: ArtifactEntityRef,
-    visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
-  ) => Promise<TEntity | null | undefined>;
+  /** Read the artifact at a visibility scope; asked at the caller's, then at full scope. */
+  getEntity: ArtifactLookup<TEntity>;
 }
 
 export type MessageArtifactAccessResult<TEntity extends MessageArtifactEntity> =
@@ -34,15 +40,18 @@ export async function resolveMessageArtifactAccess<
   entityRef,
   userLevel,
   getEntity,
-  getVisibleEntity,
 }: MessageArtifactAccessInput<TEntity>): Promise<
   MessageArtifactAccessResult<TEntity>
 > {
-  const visibilityScope = permissionToVisibilityScope(userLevel);
-  const entity = await getVisibleEntity(entityRef, visibilityScope);
+  const entity = await getEntity(
+    entityRef,
+    permissionToVisibilityScope(userLevel),
+  );
   if (entity) return { status: "visible", entity };
 
-  const exists = Boolean(await getEntity(entityRef));
+  // An unscoped read sees public entities only; the existence check asks at
+  // full scope so a restricted artifact is denied, not reported missing.
+  const exists = Boolean(await getEntity(entityRef, "restricted"));
   return exists ? { status: "denied" } : { status: "missing" };
 }
 
@@ -65,11 +74,7 @@ export async function collectDeniedArtifactCardIds<
   cards: StructuredChatCard[] | undefined;
   userLevel: UserPermissionLevel;
   displayBaseUrl: string | undefined;
-  getEntity: (ref: ArtifactEntityRef) => Promise<TEntity | null | undefined>;
-  getVisibleEntity: (
-    ref: ArtifactEntityRef,
-    visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
-  ) => Promise<TEntity | null | undefined>;
+  getEntity: ArtifactLookup<TEntity>;
 }): Promise<Set<string>> {
   const denied = new Set<string>();
   for (const card of input.cards ?? []) {
@@ -83,7 +88,6 @@ export async function collectDeniedArtifactCardIds<
       entityRef,
       userLevel: input.userLevel,
       getEntity: input.getEntity,
-      getVisibleEntity: input.getVisibleEntity,
     });
     if (access.status === "denied") denied.add(card.id);
   }

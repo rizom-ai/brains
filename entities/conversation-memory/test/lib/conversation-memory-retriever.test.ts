@@ -486,7 +486,10 @@ describe("ConversationMemoryRetriever", () => {
     const context = createEntityPluginContext(shell, "conversation-memory");
 
     const retriever = new ConversationMemoryRetriever(context);
-    const result = await retriever.retrieve({ limit: 1 });
+    const result = await retriever.retrieve({
+      limit: 1,
+      visibilityScope: "restricted",
+    });
 
     expect(result.results).toEqual([
       expect.objectContaining({

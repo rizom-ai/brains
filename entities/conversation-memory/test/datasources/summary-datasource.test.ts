@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryDataSource } from "../../src/datasources/summary-datasource";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
 import { createSilentLogger } from "@brains/test-utils";
+import { scopeEntityReads } from "@brains/entity-service";
 
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
@@ -31,7 +32,13 @@ describe("SummaryDataSource", () => {
   beforeEach(() => {
     shell = createMockShell();
     entityService = shell.getEntityService();
-    context = { entityService };
+    // Production resolves templates through reads scoped to the caller; an
+    // owner's view sees the summaries' non-public visibility.
+    context = {
+      entityService: scopeEntityReads(entityService, {
+        visibilityScope: "restricted",
+      }),
+    };
     datasource = new SummaryDataSource(createSilentLogger());
   });
 

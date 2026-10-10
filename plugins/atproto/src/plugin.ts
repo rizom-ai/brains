@@ -866,6 +866,8 @@ export class AtprotoPlugin extends ServicePlugin<
     );
   }
 
+  // Full scope: the publish gate names why a non-public entity is refused;
+  // an unscoped read sees public entities only and reports it as missing.
   private async findPublishEntity(
     context: ServicePluginContext,
     options: PublishEntityOptions,
@@ -874,6 +876,7 @@ export class AtprotoPlugin extends ServicePlugin<
       return context.entityService.getEntity({
         entityType: options.entityType,
         id: options.entityId,
+        visibilityScope: "restricted",
       });
     }
 
@@ -882,7 +885,12 @@ export class AtprotoPlugin extends ServicePlugin<
         (
           await context.entityService.listEntities({
             entityType: options.entityType,
-            options: { filter: { metadata: { slug: options.slug } } },
+            options: {
+              filter: {
+                metadata: { slug: options.slug },
+                visibilityScope: "restricted",
+              },
+            },
           })
         )[0] ?? null
       );
@@ -933,6 +941,7 @@ export class AtprotoPlugin extends ServicePlugin<
 
     const agents = await context.entityService.listEntities({
       entityType: "agent",
+      options: { filter: { visibilityScope: "restricted" } },
     });
     const existingByDomain = agents.find((agent) => agent.id === domain);
     const existingByRepo = agents.find(
