@@ -425,7 +425,80 @@ describe("RecurringCheckService", () => {
     },
   );
 
-  it("reports every schedule shutdown failure after the barrier settles", async () => {
+  it.each([
+    ["stop", "check"],
+    ["stop", "catch-up"],
+    ["unregisterPlugin", "check"],
+    ["unregisterPlugin", "catch-up"],
+  ] as const)(
+    "%s drains admitted %s work after a synchronous schedule shutdown failure",
+    async (method, work) => {
+      const failed = Object.freeze({ message: "Schedule shutdown threw" });
+      const entered = deferred();
+      const release = deferred();
+      let stopCalls = 0;
+      const scheduler: SchedulerBackend = {
+        scheduleCron: (): ScheduledJob => ({
+          stop: (): Promise<void> => {
+            stopCalls += 1;
+            throw failed;
+          },
+        }),
+        scheduleInterval: (): never => {
+          throw new Error("Unexpected interval schedule");
+        },
+        validateCron: (): void => {},
+      };
+      const { service, queue, state } = createService({ scheduler });
+      let checkSignal: AbortSignal | undefined;
+      service.namespace("agent").register({
+        id: "blocked",
+        cadence: "daily",
+        run: async ({ signal }) => {
+          checkSignal = signal;
+          entered.resolve();
+          await release.promise;
+          return {};
+        },
+      });
+      if (work === "catch-up") {
+        queue.enqueueHook = async (): Promise<string> => {
+          entered.resolve();
+          await release.promise;
+          return "blocked-job";
+        };
+      }
+      const starting = service.start();
+      if (work === "check") await starting;
+      const active =
+        work === "check" ? service.runNow("agent:blocked") : starting;
+      const observed = active.catch((error: unknown) => error);
+      await entered.promise;
+      let settled = false;
+      const closing = (
+        method === "stop" ? service.stop() : service.unregisterPlugin("agent")
+      )
+        .catch((error: unknown) => error)
+        .finally(() => {
+          settled = true;
+        });
+      try {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(settled).toBe(false);
+        if (work === "check") expect(checkSignal?.aborted).toBe(true);
+      } finally {
+        release.resolve();
+        await Promise.allSettled([starting, observed]);
+      }
+      expect(await closing).toBe(failed);
+      if (work === "check") expect(await observed).toBe(checkSignal?.reason);
+      expect(state.snapshot()).toEqual([]);
+      await service.unregisterPlugin("agent");
+      expect(stopCalls).toBe(1);
+    },
+  );
+
+  it("reports synchronous and asynchronous schedule shutdown failures together", async () => {
     const failures = [
       new Error("First schedule failed"),
       new Error("Second schedule failed"),
@@ -433,7 +506,11 @@ describe("RecurringCheckService", () => {
     let stopCalls = 0;
     const scheduler: SchedulerBackend = {
       scheduleCron: (): ScheduledJob => ({
-        stop: (): Promise<void> => Promise.reject(failures[stopCalls++]),
+        stop: (): Promise<void> => {
+          const failure = failures[stopCalls++];
+          if (stopCalls === 1) throw failure;
+          return Promise.reject(failure);
+        },
       }),
       scheduleInterval: (): never => {
         throw new Error("Unexpected interval schedule");
