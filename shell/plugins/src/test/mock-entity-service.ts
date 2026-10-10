@@ -323,6 +323,16 @@ export function createMockEntityService(
       );
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
+    purgeEntityType: async (entityType: string): Promise<number> => {
+      const ids = [...store.entities.values()]
+        .filter((entity) => entity.entityType === entityType)
+        .map((entity) => entity.id);
+      ids.forEach((id) => {
+        store.entities.delete(id);
+        store.markExportIntent(entityType, id, "delete", undefined);
+      });
+      return ids.length;
+    },
     deleteEntity: async (request: {
       entityType: string;
       id: string;

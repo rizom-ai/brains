@@ -1236,6 +1236,11 @@ export interface EntityServiceClient extends ICoreEntityService {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
+  /**
+   * Delete every stored row of a type no plugin registers any more, with its
+   * search index, embeddings and files. Refuses a registered type.
+   */
+  purgeEntityType(entityType: string): Promise<number>;
   foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
   getEntityMutationReceipt(
     key: EntityMutationReceiptKey,

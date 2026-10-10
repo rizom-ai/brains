@@ -24,6 +24,7 @@ export interface MockEntityServiceReturns {
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
+  purgeEntityType?: number;
   foldEntity?: EntityMutationResult;
   getEntityMutationReceipt?: EntityMutationReceipt | null;
   applyEntityMutationOnce?: EntityMutationReceipt;
@@ -191,6 +192,7 @@ export function createMockEntityService(
       return mutationResult(returns.updateEntity);
     }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
+    purgeEntityType: mock(() => Promise.resolve(returns.purgeEntityType ?? 0)),
     foldEntity: mock(async (request) => {
       await request.options?.beforeWrite?.(request.entity);
       return mutationResult(returns.foldEntity);

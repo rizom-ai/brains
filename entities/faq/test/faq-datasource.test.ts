@@ -164,7 +164,7 @@ describe("FaqDataSource", () => {
       asked: 5,
       sources: [
         {
-          id: "network-piece:plc-peer--post--3kabc",
+          id: "post:handoffs",
           title: "Handoffs between teams",
           url: "https://becca.rizom.ai/essays/handoffs",
           excerpt: "Before anyone leaves a task we write three things down.",
@@ -185,7 +185,7 @@ describe("FaqDataSource", () => {
     const sourced = section.faqs.find((faq) => faq.id === "sourced");
     expect(sourced?.sources).toEqual([
       {
-        id: "network-piece:plc-peer--post--3kabc",
+        id: "post:handoffs",
         title: "Handoffs between teams",
         url: "https://becca.rizom.ai/essays/handoffs",
         excerpt: "Before anyone leaves a task we write three things down.",

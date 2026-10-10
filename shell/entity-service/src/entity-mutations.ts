@@ -892,9 +892,12 @@ export class EntityMutations {
       id,
       "restricted",
     );
-    const prior = priorData
-      ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
-      : undefined;
+    // A purged type is no longer registered: its rows have no adapter to parse.
+    const prior =
+      priorData && this.entityRegistry.hasEntityType(entityType)
+        ? ((await this.entitySerializer.convertToEntity(priorData)) ??
+          undefined)
+        : undefined;
 
     if (priorData) {
       await this.mutationAdmission?.assertMutationAdmission({
