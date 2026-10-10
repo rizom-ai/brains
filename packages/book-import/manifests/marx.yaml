@@ -569,3 +569,69 @@ books:
     author: Karl Marx
     year: 1855
     kind: work
+  - source: archive-ocr
+    # Mehring's choice from the Neue Rheinische Zeitung, in his groups. The
+    # articles MECW gives to Engels alone are left out: the Frankfurt
+    # Assembly (31 May), the Prague rising, English conditions, and the
+    # groups on the Polish debate, Schleswig-Holstein, Hungary and
+    # democratic Panslavism. The rest are Marx's or the editors', as MEW 5–6
+    # and MECW 7–9 have them.
+    item: mehring-nachlass-3
+    citation: Nachlass III
+    ocr: frak2021
+    firstPage: 87
+    lastPage: 268
+    datelined: true
+    skipHeadings:
+      - Köln, 31. Mai.
+      - Köln, 17. Juni.
+      - Köln, 31. Juli.
+      - Die Polendebatte in Frankfurt.
+      - Der Krieg um Schleswig-Holstein.
+      - Ungarn.
+      - Der demokratische Panslavismus.
+    # MEW 5–6, Dietz 1959, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_029.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_039.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_064.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_085.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_098.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_100.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_104.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_133.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_159.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_166.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_202.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_243.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_278.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_398.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_405.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_455.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_007.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_102.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_148.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_503.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_519.htm
+    slug: aus-der-neuen-rheinischen-zeitung
+    title: Aus der Neuen Rheinischen Zeitung
+    shortTitle: Neue Rheinische Zeitung
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: archive-ocr
+    # Gottfried Kinkel, the reviews and the two Revues, by Marx and Engels;
+    # Engels' Reichsverfassungskampagne and Zehnstundenbill come before.
+    item: mehring-nachlass-3
+    citation: Nachlass III
+    ocr: frak2021
+    firstPage: 396
+    lastPage: 478
+    slug: aus-der-neuen-rheinischen-revue
+    title: Aus der Neuen Rheinischen Zeitung. Politisch-ökonomische Revue
+    shortTitle: Neue Rheinische Revue
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
+    author: Karl Marx
+    year: 1850
+    kind: work
