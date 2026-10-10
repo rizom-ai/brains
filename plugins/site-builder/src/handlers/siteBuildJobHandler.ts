@@ -1,5 +1,9 @@
 import { SITE_CHANNELS } from "@brains/contracts";
-import type { LoggerContract, ServicePublisher } from "@brains/sdk/services";
+import {
+  SdkError,
+  type LoggerContract,
+  type ServicePublisher,
+} from "@brains/sdk/services";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
 import { EntityUrlGenerator } from "@brains/site-composition";
@@ -45,20 +49,6 @@ export interface SiteBuildJobHandlerConfig {
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   statusService?: BuildStatusRecorder | undefined;
-  onBuildStarted?:
-    | ((
-        environment: "preview" | "production",
-        jobId: string,
-        inputGeneration: number,
-      ) => void | Promise<void>)
-    | undefined;
-  onBuildFinished?:
-    | ((
-        environment: "preview" | "production",
-        jobId: string,
-        inputGeneration: number,
-      ) => void | Promise<void>)
-    | undefined;
 }
 
 /**
@@ -71,22 +61,15 @@ export interface SiteBuildJobHandlerConfig {
 export function handleSiteBuild(
   cfg: SiteBuildJobHandlerConfig,
 ): ReturnType<typeof siteBuildJob.handle> {
-  return siteBuildJob.handle(async ({ input, jobId, progress }) => {
+  return siteBuildJob.handle(async ({ input, jobId, progress, signal }) => {
     const environment = input.environment ?? "preview";
     const enableContentGeneration = input.enableContentGeneration ?? false;
-    const inputGeneration = input.inputGeneration ?? 0;
+    let failureRecorded = false;
 
     await recordStatus(
       cfg,
       () => cfg.statusService?.markBuilding(environment, jobId),
       "building",
-    );
-    await recordLifecycle(
-      cfg,
-      () =>
-        cfg.onBuildStarted?.(environment, jobId, inputGeneration) ??
-        Promise.resolve(),
-      "started",
     );
 
     try {
@@ -126,6 +109,7 @@ export function handleSiteBuild(
           sharedImagesDir: cfg.sharedImagesDir,
           enableContentGeneration,
           environment,
+          signal,
           cleanBeforeBuild: true,
           siteConfig,
           siteUrl,
@@ -139,6 +123,16 @@ export function handleSiteBuild(
       );
 
       await recordOutcome(cfg, environment, jobId, result);
+
+      // Declared jobs return data, not native failure envelopes. Throw so
+      // ordinary failures/cancellations reach the queue's retry policy.
+      // A superseded request ends here; it does not certify its replacement.
+      if (!result.success && !result.superseded) {
+        failureRecorded = true;
+        throw new SdkError(result.cancelled ? "cancelled" : "handler_failed", {
+          cause: result,
+        });
+      }
 
       await progress.report({
         progress: 100,
@@ -178,7 +172,7 @@ export function handleSiteBuild(
       }
 
       return {
-        success: result.success,
+        success: result.success || result.superseded === true,
         ...(result.cancelled && { cancelled: true }),
         ...(result.skipped && { skipped: true }),
         routesBuilt: result.routesBuilt,
@@ -189,26 +183,20 @@ export function handleSiteBuild(
         ...(result.diagnostics && { diagnostics: result.diagnostics }),
       };
     } catch (error) {
-      await recordStatus(
-        cfg,
-        () =>
-          cfg.statusService?.markFailure(
-            environment,
-            jobId,
-            getErrorMessage(error, "Site build failed"),
-          ),
-        "failure",
-      );
+      if (!failureRecorded) {
+        await recordStatus(
+          cfg,
+          () =>
+            cfg.statusService?.markFailure(
+              environment,
+              jobId,
+              getErrorMessage(error, "Site build failed"),
+            ),
+          "failure",
+        );
+      }
       cfg.logger.error("Site build job failed", error);
       throw error;
-    } finally {
-      await recordLifecycle(
-        cfg,
-        () =>
-          cfg.onBuildFinished?.(environment, jobId, inputGeneration) ??
-          Promise.resolve(),
-        "finished",
-      );
     }
   });
 }
@@ -271,22 +259,6 @@ async function recordOutcome(
   );
 }
 
-async function recordLifecycle(
-  cfg: SiteBuildJobHandlerConfig,
-  update: () => void | Promise<void>,
-  state: string,
-): Promise<void> {
-  try {
-    await update();
-  } catch (error) {
-    // The projection heals on the next read via queue reconciliation, so the
-    // job must not fail here — but the lost write is an operational error.
-    cfg.logger.error(`Failed to record site build ${state} lifecycle`, {
-      error,
-    });
-  }
-}
-
 async function recordStatus(
   cfg: SiteBuildJobHandlerConfig,
   update: () => Promise<void> | undefined,
@@ -295,8 +267,8 @@ async function recordStatus(
   try {
     await update();
   } catch (error) {
-    // Same contract as recordLifecycle: reconciliation recovers the state,
-    // the build outcome stands, and the failure is loud in the logs.
+    // Reconciliation recovers the state, the build outcome stands, and the
+    // failure is loud in the logs.
     cfg.logger.error(`Failed to record site build ${state} state`, { error });
   }
 }

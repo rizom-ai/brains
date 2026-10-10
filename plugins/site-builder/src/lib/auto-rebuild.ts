@@ -15,7 +15,6 @@ export interface RebuildJobs {
       workingDir?: string | undefined;
       enableContentGeneration: boolean;
       metadata: { trigger: string; timestamp: string };
-      inputGeneration: number;
     },
   ): Promise<{ id: string }>;
 }
@@ -30,6 +29,10 @@ const EXCLUDED_REBUILD_TYPES = new Set(["note"]);
  * Manages debounced site rebuilds triggered by entity changes or explicit
  * build requests. Separate debounces per environment so preview and production
  * do not interfere with each other.
+ *
+ * Build state belongs to the durable queue: the web process schedules waves
+ * while a separate worker renders them. The job's oncePending declaration
+ * coalesces pending requests but permits a successor behind a running build.
  */
 export class RebuildManager {
   private readonly config: SiteBuilderConfig;
@@ -37,15 +40,6 @@ export class RebuildManager {
   private readonly logger: LoggerContract;
   private readonly statusService: SiteBuildStatusService | undefined;
   private debounces = new Map<string, LeadingTrailingDebounce>();
-  private readonly dirtyGenerations = new Map<string, number>();
-  private readonly queuedGenerations = new Map<
-    string,
-    { jobId: string; generation: number }
-  >();
-  private readonly activeBuilds = new Map<
-    string,
-    { jobId: string; generation: number }
-  >();
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
   private disposed = false;
@@ -82,7 +76,7 @@ export class RebuildManager {
     if (!debounce) {
       debounce = new LeadingTrailingDebounce(() => {
         this.runTrackedTask(`enqueue ${env} build`, () =>
-          this.enqueueBuild(env, false),
+          this.enqueueBuild(env),
         );
       }, this.config.rebuildDebounce);
       this.debounces.set(env, debounce);
@@ -98,42 +92,8 @@ export class RebuildManager {
     const env =
       environment ?? (this.config.previewOutputDir ? "preview" : "production");
 
-    this.dirtyGenerations.set(env, (this.dirtyGenerations.get(env) ?? 0) + 1);
     await this.statusService?.markRequested(env);
-    await this.enqueueBuild(env, true, true);
-  }
-
-  markBuildStarted(
-    environment: "preview" | "production",
-    jobId: string,
-    inputGeneration: number,
-  ): void {
-    if (this.disposed) return;
-    this.activeBuilds.set(environment, {
-      jobId,
-      generation: inputGeneration,
-    });
-    if (this.queuedGenerations.get(environment)?.jobId === jobId) {
-      this.queuedGenerations.delete(environment);
-    }
-  }
-
-  async markBuildFinished(
-    environment: "preview" | "production",
-    jobId: string,
-    inputGeneration: number,
-  ): Promise<void> {
-    const active = this.activeBuilds.get(environment);
-    if (active?.jobId !== jobId || active.generation !== inputGeneration) {
-      return;
-    }
-    this.activeBuilds.delete(environment);
-    if (
-      !this.disposed &&
-      (this.dirtyGenerations.get(environment) ?? 0) > inputGeneration
-    ) {
-      await this.enqueueBuild(environment, true);
-    }
+    await this.enqueueBuild(env, true);
   }
 
   /**
@@ -172,8 +132,6 @@ export class RebuildManager {
       }
     }
     this.debounces.clear();
-    this.queuedGenerations.clear();
-    this.activeBuilds.clear();
 
     await Promise.all([...this.activeTasks]);
     if (cleanupErrors.length > 0) throw cleanupErrors[0];
@@ -194,14 +152,8 @@ export class RebuildManager {
 
   private async enqueueBuild(
     environment: "preview" | "production",
-    automatic: boolean,
     failClosed: boolean = false,
   ): Promise<void> {
-    if (automatic && this.activeBuilds.has(environment)) return;
-    const inputGeneration = this.dirtyGenerations.get(environment) ?? 0;
-    const queued = this.queuedGenerations.get(environment);
-    if (automatic && queued) return;
-
     const outputDir =
       environment === "production"
         ? this.config.productionOutputDir
@@ -219,14 +171,7 @@ export class RebuildManager {
           trigger: "debounced-rebuild",
           timestamp: new Date().toISOString(),
         },
-        inputGeneration,
       });
-      if (automatic) {
-        this.queuedGenerations.set(environment, {
-          jobId: job.id,
-          generation: inputGeneration,
-        });
-      }
       await this.statusService?.markQueued(environment, job.id);
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {

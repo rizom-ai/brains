@@ -23,6 +23,13 @@ interface ActiveSiteBuild {
   promise: Promise<BuildResult>;
 }
 
+/** The reason a build is aborted when a newer one of its environment starts. */
+class SupersededBuildError extends Error {
+  constructor(environment: string) {
+    super(`Superseded by a newer ${environment} site build`);
+  }
+}
+
 export class SiteBuilder implements ISiteBuilder {
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
     createReactBuilder;
@@ -89,9 +96,7 @@ export class SiteBuilder implements ISiteBuilder {
   ): Promise<BuildResult> {
     const environment = options.environment;
     const previousBuild = this.activeBuilds.get(environment);
-    previousBuild?.controller.abort(
-      new Error(`Superseded by a newer ${environment} site build`),
-    );
+    previousBuild?.controller.abort(new SupersededBuildError(environment));
 
     const controller = new AbortController();
     const signal = options.signal
@@ -117,7 +122,10 @@ export class SiteBuilder implements ISiteBuilder {
     this.activeBuilds.set(environment, activeBuild);
 
     try {
-      return await promise;
+      const result = await promise;
+      return result.cancelled && signal.reason instanceof SupersededBuildError
+        ? { ...result, superseded: true }
+        : result;
     } finally {
       if (this.activeBuilds.get(environment) === activeBuild) {
         this.activeBuilds.delete(environment);

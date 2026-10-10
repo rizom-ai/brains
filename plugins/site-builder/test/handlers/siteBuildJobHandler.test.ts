@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
-import { createSilentLogger } from "@brains/test-utils";
+import { caughtError, createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
   createRequester,
@@ -70,6 +70,7 @@ describe("the site build job", () => {
 
   function build(
     overrides: Partial<SiteBuildJobHandlerConfig> = {},
+    signal?: AbortSignal,
   ): (input: SiteBuildJobData, jobId?: string) => Promise<SiteBuildJobResult> {
     const binding = handleSiteBuild({
       siteBuilder,
@@ -86,6 +87,7 @@ describe("the site build job", () => {
       const context = createTestJobContext<SiteBuildJobData>({
         input,
         jobId,
+        signal,
         ai: runtime.ai,
         logger: createSilentLogger("site-build-job-test"),
         entities: createTestEntityAccess({
@@ -186,51 +188,38 @@ describe("the site build job", () => {
     expect(capturedOptions?.slots).toBe(slots);
   });
 
-  it("reports the build lifecycle around execution", async () => {
-    const lifecycle: string[] = [];
-    const run = build({
-      siteBuilder: {
-        build: mock(async () => {
-          lifecycle.push("build");
-          return {
-            success: true,
-            outputDir: "/tmp/output",
-            filesGenerated: 1,
-            routesBuilt: 1,
-          };
-        }),
+  it("forwards the job cancellation signal to the rendering pipeline", async () => {
+    const controller = new AbortController();
+    let buildSignal: AbortSignal | undefined;
+    const run = build(
+      {
+        siteBuilder: {
+          build: async (options) => {
+            buildSignal = options.signal;
+            return {
+              success: true,
+              outputDir: "/tmp/output",
+              filesGenerated: 1,
+              routesBuilt: 1,
+            };
+          },
+        },
       },
-      onBuildStarted: (environment, jobId, generation): void => {
-        lifecycle.push(`start:${environment}:${jobId}:${generation}`);
-      },
-      onBuildFinished: async (
-        environment,
-        jobId,
-        generation,
-      ): Promise<void> => {
-        lifecycle.push(`finish:${environment}:${jobId}:${generation}`);
-      },
-    });
-
-    await run(
-      { outputDir: "/tmp/output", environment: "preview", inputGeneration: 4 },
-      "job-generation",
+      controller.signal,
     );
 
-    expect(lifecycle).toEqual([
-      "start:preview:job-generation:4",
-      "build",
-      "finish:preview:job-generation:4",
-    ]);
+    await run({ outputDir: "/tmp/output" });
+    expect(buildSignal).toBe(controller.signal);
   });
 
-  it("records a cancelled build without announcing completion", async () => {
+  it("completes a superseded request without announcing a published build", async () => {
     const markCancelled = mock(async () => undefined);
     const run = build({
       siteBuilder: {
         build: mock(async () => ({
           success: false,
           cancelled: true,
+          superseded: true,
           outputDir: "/tmp/output",
           filesGenerated: 0,
           routesBuilt: 0,
@@ -245,7 +234,7 @@ describe("the site build job", () => {
       "job-cancelled",
     );
 
-    expect(result.cancelled).toBe(true);
+    expect(result).toMatchObject({ success: true, cancelled: true });
     expect(markCancelled).toHaveBeenCalledWith(
       "preview",
       "job-cancelled",
@@ -253,6 +242,41 @@ describe("the site build job", () => {
     );
     expect(announced).toEqual([]);
   });
+
+  it.each([false, true])(
+    "throws failed attempts for queue retry policy (cancelled=%s)",
+    async (cancelled) => {
+      const markCancelled = mock(async () => undefined);
+      const markFailure = mock(async () => undefined);
+      const run = build({
+        siteBuilder: {
+          build: async () => ({
+            success: false,
+            cancelled,
+            outputDir: "/tmp/output",
+            filesGenerated: 0,
+            routesBuilt: 0,
+            errors: ["Renderer stopped"],
+          }),
+        },
+        statusService: recorder({ markCancelled, markFailure }),
+      });
+
+      // Declared jobs treat returned objects as data, not failure envelopes.
+      const error = await run({ outputDir: "/tmp/output" }).catch(caughtError);
+      expect(error).toMatchObject({
+        code: cancelled ? "cancelled" : "handler_failed",
+        cause: expect.objectContaining({ errors: ["Renderer stopped"] }),
+      });
+      expect(cancelled ? markCancelled : markFailure).toHaveBeenCalledWith(
+        "preview",
+        "job-1",
+        "Renderer stopped",
+      );
+      expect(cancelled ? markFailure : markCancelled).not.toHaveBeenCalled();
+      expect(announced).toEqual([]);
+    },
+  );
 
   it("records unchanged inputs as skipped instead of successful", async () => {
     const markSuccess = mock(async () => undefined);

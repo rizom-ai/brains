@@ -7,7 +7,6 @@ import { createTestConfig } from "../test-helpers";
 interface BuildRequest {
   environment: "preview" | "production";
   outputDir: string;
-  inputGeneration: number;
 }
 
 /** A queue that records what was asked of it and hands back job ids. */
@@ -19,7 +18,6 @@ function recordingJobs(): RebuildJobs & { readonly queued: BuildRequest[] } {
       queued.push({
         environment: input.environment,
         outputDir: input.outputDir,
-        inputGeneration: input.inputGeneration,
       });
       return { id: `job-${queued.length}` };
     },
@@ -68,7 +66,7 @@ describe("RebuildManager", () => {
     await manager.dispose();
   });
 
-  test("enqueues one dirty-generation successor after an active build", async () => {
+  test("lets the queue decide every wave without worker lifecycle callbacks", async () => {
     const manager = new RebuildManager(
       createTestConfig({ autoRebuild: true, rebuildDebounce: 1 }),
       jobs,
@@ -80,7 +78,6 @@ describe("RebuildManager", () => {
       sourceTypes: ["post"],
       changedTargetTypes: [],
     });
-    manager.markBuildStarted("preview", "job-1", 1);
 
     await manager.onProjectionWave({
       waveId: "wave-2",
@@ -92,10 +89,13 @@ describe("RebuildManager", () => {
       sourceTypes: ["page"],
       changedTargetTypes: [],
     });
-    await manager.markBuildFinished("preview", "job-1", 1);
-
-    expect(jobs.queued.map((request) => request.inputGeneration)).toEqual([
-      1, 3,
+    // The web process never observes the worker's start/finish callbacks.
+    // A local remembered job id must not suppress subsequent waves.
+    expect(jobs.queued).toHaveLength(3);
+    expect(jobs.queued.map((request) => request.environment)).toEqual([
+      "preview",
+      "preview",
+      "preview",
     ]);
     await manager.dispose();
   });

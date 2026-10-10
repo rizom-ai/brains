@@ -107,7 +107,9 @@ export class DirectoryDeleteJobHandler {
 
     // An entity can have several files, such as an image left beside an
     // older format. Removing one must not delete what another still holds;
-    // importing the survivor makes it the entity's content.
+    // importing the survivor makes it the entity's content. The removed file
+    // itself counts: git rewrites a pulled file by removing and recreating it,
+    // so a removal seen in between is only real if the file is still gone.
     const remaining = await this.remainingFiles(deletion);
     if (remaining.length > 0) {
       this.logger.info("Kept entity another of its files still holds", {
@@ -169,9 +171,15 @@ export class DirectoryDeleteJobHandler {
   private async remainingFiles(
     deletion: DirectoryDeleteTarget,
   ): Promise<string[]> {
-    const candidates = this.directorySync.fileOps
-      .getEntityDeletePaths(deletion.entityType, deletion.entityId)
-      .filter((path) => path !== deletion.filePath);
+    const candidates = [
+      ...new Set([
+        deletion.filePath,
+        ...this.directorySync.fileOps.getEntityDeletePaths(
+          deletion.entityType,
+          deletion.entityId,
+        ),
+      ]),
+    ];
     const present = await Promise.all(
       candidates.map((path) => this.directorySync.fileOps.fileExists(path)),
     );

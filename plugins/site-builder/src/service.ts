@@ -193,15 +193,6 @@ export function siteBuilderService(
           getHeadScripts: (): string[] => [...headScripts.values()],
           ...(config.staticAssets && { staticAssets: config.staticAssets }),
           statusService: status,
-          onBuildStarted: (environment, jobId, inputGeneration): void => {
-            rebuilds.markBuildStarted(environment, jobId, inputGeneration);
-          },
-          onBuildFinished: (
-            environment,
-            jobId,
-            inputGeneration,
-          ): Promise<void> =>
-            rebuilds.markBuildFinished(environment, jobId, inputGeneration),
         });
 
         lifecycle.onCleanup(async () => {
@@ -282,6 +273,9 @@ export function siteBuilderService(
         defineSubscription({
           topic: PROJECTION_CHANNELS.waveReady,
           payload: ProjectionWaveReadySchema,
+          // A worker can settle the wave; its process-local bus must also
+          // enqueue the installed job. The durable queue owns deduplication.
+          execution: "all-roles",
           handle: async ({ payload }) => {
             await state.rebuilds.onProjectionWave(payload);
             return { success: true };

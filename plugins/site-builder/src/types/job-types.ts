@@ -11,15 +11,12 @@ export const siteBuildJobSchema: z.ZodObject<{
   workingDir: z.ZodOptional<z.ZodString>;
   enableContentGeneration: z.ZodOptional<z.ZodBoolean>;
   siteConfig: z.ZodOptional<typeof siteMetadataSchema>;
-  inputGeneration: z.ZodOptional<z.ZodNumber>;
 }> = z.object({
   environment: z.enum(["preview", "production"]).optional(),
   outputDir: z.string(),
   workingDir: z.string().optional(),
   enableContentGeneration: z.boolean().optional(),
   siteConfig: siteMetadataSchema.optional(),
-  /** Automatic content-change generation observed when this build was queued. */
-  inputGeneration: z.number().int().nonnegative().optional(),
 });
 
 export type SiteBuildJobData = z.output<typeof siteBuildJobSchema>;
