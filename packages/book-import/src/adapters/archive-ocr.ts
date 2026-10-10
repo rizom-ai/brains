@@ -941,6 +941,8 @@ const LETTERED_SUBSECTION = /^([A-H])\.\s+(\p{Lu}.*)$/u;
  * 1) Maaß der Werthe; a) Die Metamorphose; α) Ricardos Anschauungen.
  */
 const BRACKETED_SUBSECTION = /^(\d{1,2}\)|[a-z]\)|[α-ω]\))\s+(\p{Lu}.*)$/u;
+/** Space around a title, against the space the page's lines leave: more than it. */
+const TITLE_LEADING = 1.5;
 /** Space above a section's heading, against the page's line height: more than lines leave. */
 const SECTION_SPACE = 0.5;
 /** A part's letter and title set on one line: A. Die Physiokraten. */
@@ -1323,6 +1325,19 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   };
   // Full lines end at the right margin, an indented first line too.
   const rightMargin = median(full.map((line) => line.x + line.width));
+  // The space the page leaves between its lines of text, set close or wide.
+  const leading = median(
+    full
+      .slice(1)
+      .map((line, index) => line.y - (full[index]?.bottom ?? line.y))
+      .filter((gap) => gap > 0 && gap < bodyHeight),
+  );
+  // A title stands apart by more space than lines leave, on a page set
+  // with wide leading too.
+  const titleSpace = Math.max(
+    bodyHeight * SECTION_SPACE,
+    leading * TITLE_LEADING,
+  );
   const opensParagraph = (line: Line, index: number): boolean => {
     // No paragraph opens in lower case but a list's lettered item: such a
     // line runs on the one above, a word it broke or a quotation set in. A
@@ -1752,9 +1767,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // text lines leave, even two the OCR read as one.
     const apart =
       (before !== undefined || after !== undefined) &&
-      (before === undefined ||
-        top - before.bottom > bodyHeight * SECTION_SPACE) &&
-      (after === undefined || after.y - bottom > bodyHeight * SECTION_SPACE);
+      (before === undefined || top - before.bottom > titleSpace) &&
+      (after === undefined || after.y - bottom > titleSpace);
     // A title opens with a capital, past a bracket or quotation mark; a
     // dedication's or a list's line does not.
     const display =

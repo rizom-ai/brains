@@ -22,6 +22,24 @@ describe("createSpelling", () => {
   });
 });
 
+describe("createSpelling after a full stop", () => {
+  it("opens a subtitle with a capital, but no word after a date's number or a lettered label", () => {
+    const { cased } = createSpelling([
+      "Das Fest fand am 26. und 27. Juni statt, und Vogt und andere kamen.",
+    ]);
+
+    expect(cased("Centralfest zu Lausanne. (26. und 27. Juni 1859.)")).toBe(
+      "Centralfest zu Lausanne. (26. und 27. Juni 1859.)",
+    );
+    expect(cased("16. Nachtrag. a) K. Vogt und La Cimentaire.")).toBe(
+      "16. Nachtrag. a) K. Vogt und La Cimentaire.",
+    );
+    expect(cased("NACHTRAG. DIE SACHE")).toBe("Nachtrag. Die Sache");
+    // A number that opens the title labels it.
+    expect(cased("1. DIE SACHE")).toBe("1. Die Sache");
+  });
+});
+
 describe("createSpelling after an apostrophe", () => {
   it("keeps a possessive s small", () => {
     const { cased } = createSpelling([

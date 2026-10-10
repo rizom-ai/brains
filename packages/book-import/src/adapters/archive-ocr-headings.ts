@@ -285,8 +285,15 @@ export function createSpelling(texts: string[]): Spelling {
         : SPELLED.test(word) || word.length === 1 || /^[IVXL]{2,}$/u.test(word)
           ? word
           : (spelling(word.toLowerCase()) ?? capitalised(word));
-      // A title, or a subtitle after its full stop, opens with a capital.
-      const opens = offset === 0 || /[.:]\s*$/u.test(capitals.slice(0, offset));
+      // A title, or a subtitle after its full stop, opens with a capital;
+      // a date's number (26. und 27. Juni) ends no sentence, and a lettered
+      // label (a) Vogt) keeps its small letter.
+      const before = capitals.slice(0, offset);
+      const opens =
+        offset === 0 ||
+        (/[.:]\s*$/u.test(before) &&
+          !/[\s(]\d{1,2}\.\s*$/u.test(before) &&
+          !/^\p{Ll}\)/u.test(capitals.slice(offset)));
       return opens
         ? spelled.charAt(0).toUpperCase() + spelled.slice(1)
         : spelled;

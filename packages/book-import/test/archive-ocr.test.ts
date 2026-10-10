@@ -1938,6 +1938,29 @@ describe("parseArchiveOcrWork, leaves scanned at two sizes", () => {
   });
 });
 
+describe("parseArchiveOcrWork, a page set with wide leading", () => {
+  it("reads no line of the text as a title for the space every line leaves", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-leaded.html"),
+        "utf8",
+      ),
+      {
+        item: "bub_gb_d0M6AAAAcAAJ",
+        title: "Herr Vogt",
+        citation: "Herr Vogt",
+        firstPage: 4,
+        lastPage: 4,
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual(["Herr Vogt, 4"]);
+    expect(units[0]?.paragraphs.join("\n")).toContain(
+      "Nr. 41 über Vogt's Pamphlet: „Mein Prozeß gegen die Allgemeine Zeitung“.",
+    );
+  });
+});
+
 describe("parseArchiveOcrWork, a page scanned askew", () => {
   it("opens a paragraph only where a line is set in from the lines about it", async () => {
     const units = parseArchiveOcrWork(
