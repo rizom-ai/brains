@@ -40,6 +40,8 @@ export interface EntityOpenerInput {
   currentStudioPathname: string;
   createMode: boolean;
   entityType: string | null;
+  /** The type whose collection lists the active type's entries. */
+  collectionType: string | null;
   activeType: EntityTypeInfo | undefined;
   entityCollectionQuery: StudioCollectionQuery;
   preferredMobilePane: RefObject<MobileEditorPane | null>;
@@ -50,8 +52,11 @@ export interface EntityOpenerInput {
 }
 
 export interface EntityOpener {
-  /** Open an entity: navigate when the route differs, else load it in place. */
-  openEntity: (id: string, nextState?: SaveState) => void;
+  /**
+   * Open an entity: navigate when the route differs, else load it in place.
+   * A collection can list another type's entries; they open by their own type.
+   */
+  openEntity: (id: string, nextState?: SaveState, type?: string) => void;
   /** The last open's error, if it failed; route resolution reports here too. */
   loadError: string | null;
   setLoadError: Dispatch<SetStateAction<string | null>>;
@@ -89,6 +94,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
     currentStudioPathname,
     createMode,
     entityType,
+    collectionType,
     activeType,
     entityCollectionQuery,
     preferredMobilePane,
@@ -259,16 +265,21 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
   ]);
 
   const openEntity = useCallback(
-    (id: string, nextState: SaveState = { kind: "idle" }): void => {
-      if (!entityType) return;
-      const pathname = studioEntityPath(studioBasePath, entityType, id);
+    (
+      id: string,
+      nextState: SaveState = { kind: "idle" },
+      type: string | null = entityType,
+    ): void => {
+      if (!type || !entityType) return;
+      const pathname = studioEntityPath(studioBasePath, type, id);
       const sameEntity =
+        type === entityType &&
         routeTarget.kind === "entity" &&
         routeTarget.entityType === entityType &&
         routeTarget.id === id;
       if (!sameEntity) {
         pendingOpenState.current = { pathname, save: nextState };
-        const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
+        const collectionPath = `${studioCollectionPath(studioBasePath, collectionType ?? entityType)}${collectionSearch(entityCollectionQuery)}`;
         const replaceCreation = createMode && nextState.kind === "saved";
         const historyState: unknown = history.location.state;
         const fromCollection =
@@ -316,6 +327,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
       routeTarget,
       createMode,
       entityType,
+      collectionType,
       entityCollectionQuery,
       queryClient,
       history,

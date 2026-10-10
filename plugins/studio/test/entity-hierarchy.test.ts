@@ -4,8 +4,10 @@ import {
   baseEntitySchema,
   createServicePluginContext,
   type BaseEntity,
+  type GetEntityRequest,
   type WebRouteDefinition,
 } from "@brains/plugins";
+import { decodeEntityIdPath } from "@brains/entity-service";
 import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { EntityWriteConflictError } from "@brains/plugins";
@@ -524,5 +526,203 @@ describe("Studio hierarchy editor API", () => {
       ).status,
     ).toBe(409);
     expect(create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Studio hierarchy of a container type", () => {
+  const record = (
+    entityType: string,
+    id: string,
+    title: string,
+    updated = "2026-10-01T00:00:00Z",
+  ): BaseEntity => ({
+    id,
+    entityType,
+    content: `---\ntitle: ${title}\n---\n\nText`,
+    metadata: { title },
+    visibility: "public",
+    contentHash: id,
+    created: updated,
+    updated,
+  });
+  const books = [record("book", "zara", "Also sprach Zarathustra")];
+  const sections = [
+    record("section", "zara:00001-vorrede", "Vorrede"),
+    record("section", "zara:00002-erster-theil:00003-reden", "Reden"),
+  ];
+
+  /** Books contain sections; the store answers as the entity service would. */
+  function containerFixture(): {
+    shell: ReturnType<typeof createMockShell>;
+    routes: WebRouteDefinition[];
+  } {
+    const shell = createMockShell({ domain: "example.com" });
+    const registry = shell.getEntityRegistry();
+    registry.registerEntityType("book", baseEntitySchema, new Adapter("book"));
+    registry.registerEntityType(
+      "section",
+      baseEntitySchema,
+      new Adapter("section"),
+      { containedIn: "book" },
+    );
+    registry.getEffectiveFrontmatterSchema = (): typeof frontmatterSchema =>
+      frontmatterSchema;
+    spyOn(shell.getEntityService(), "queryEntityHierarchy").mockImplementation(
+      async (query) => {
+        const prefix = query.prefix ? [...query.prefix] : [];
+        const of = query.entityType === "book" ? books : sections;
+        const within = of.filter((entity) =>
+          prefix.every(
+            (segment, depth) => entity.id.split(":")[depth] === segment,
+          ),
+        );
+        const direct = query.includeDescendants
+          ? within
+          : within.filter(
+              (entity) => entity.id.split(":").length === prefix.length + 1,
+            );
+        const folderNames = query.includeDescendants
+          ? []
+          : [
+              ...new Set(
+                within
+                  .filter(
+                    (entity) => entity.id.split(":").length > prefix.length + 1,
+                  )
+                  .map((entity) => entity.id.split(":")[prefix.length] ?? ""),
+              ),
+            ];
+        const offset = query.offset ?? 0;
+        return {
+          prefix:
+            prefix.length > 0 ? decodeEntityIdPath(prefix.join(":")) : null,
+          folders: folderNames.map((name) => ({
+            path: decodeEntityIdPath([...prefix, name].join(":")),
+            name,
+            descendantCount: within.filter(
+              (entity) => entity.id.split(":")[prefix.length] === name,
+            ).length,
+          })),
+          entities: direct
+            .slice(offset, offset + (query.limit ?? 50))
+            .map((entity) => ({
+              entity,
+              path: decodeEntityIdPath(entity.id),
+            })),
+          offset,
+          totalEntities: direct.length,
+        };
+      },
+    );
+    spyOn(shell.getEntityService(), "getEntity").mockImplementation(
+      async (request: GetEntityRequest): Promise<BaseEntity | null> =>
+        [...books, ...sections].find(
+          (entity) =>
+            entity.entityType === request.entityType &&
+            entity.id === request.id,
+        ) ?? null,
+    );
+    const context = createServicePluginContext(shell, "studio");
+    const routes = createEditorRoutes({
+      routePath: "/studio",
+      getContext: () => context,
+      getEntityDisplay: () => undefined,
+      resolveAuthPrincipal: async () => ({
+        userId: "usr_editor",
+        personId: "person_editor",
+        displayName: "Editor",
+        role: "trusted",
+        status: "active",
+        permissionLevel: "trusted",
+        isAnchor: false,
+      }),
+      workspaceRegistry: new StudioWorkspaceRegistry(),
+    });
+    return { shell, routes };
+  }
+
+  const containerPageSchema = z.object({
+    folders: z.array(
+      z.object({
+        path: z.array(z.string()),
+        title: z.string().optional(),
+        descendantCount: z.number(),
+      }),
+    ),
+    entities: z.array(z.object({ id: z.string(), entityType: z.string() })),
+    total: z.number(),
+    trail: z.array(z.string().nullable()).optional(),
+  });
+
+  test("reports which type a contained type lives in, and keeps containers flat", async () => {
+    const { routes } = containerFixture();
+    const response = await request(routes, "types");
+    const { types } = z
+      .object({
+        types: z.array(
+          z.object({
+            entityType: z.string(),
+            containedIn: z.string().optional(),
+            hierarchy: z.object({ nested: z.boolean() }),
+          }),
+        ),
+      })
+      .parse(await response.json());
+
+    expect(types.find((type) => type.entityType === "section")).toMatchObject({
+      containedIn: "book",
+    });
+    expect(types.find((type) => type.entityType === "book")).toMatchObject({
+      hierarchy: { nested: false },
+    });
+  });
+
+  test("lists each container as a folder titled by its entity", async () => {
+    const { routes } = containerFixture();
+    const page = containerPageSchema.parse(
+      await (await request(routes, "hierarchy?type=book")).json(),
+    );
+
+    expect(page.folders).toEqual([
+      { path: ["zara"], title: "Also sprach Zarathustra", descendantCount: 2 },
+    ]);
+    expect(page.entities).toEqual([]);
+  });
+
+  test("opens a container on its own record, then its contents", async () => {
+    const { routes } = containerFixture();
+    const prefix = encodeURIComponent(JSON.stringify(["zara"]));
+    const page = containerPageSchema.parse(
+      await (
+        await request(routes, `hierarchy?type=book&prefix=${prefix}`)
+      ).json(),
+    );
+
+    expect(page.entities).toEqual([
+      { id: "zara", entityType: "book" },
+      { id: "zara:00001-vorrede", entityType: "section" },
+    ]);
+    expect(page.folders).toEqual([
+      {
+        path: ["zara", "00002-erster-theil"],
+        descendantCount: 1,
+      },
+    ]);
+    expect(page.total).toBe(2);
+    expect(page.trail).toEqual(["Also sprach Zarathustra"]);
+  });
+
+  test("searches a container's contents as well as the containers", async () => {
+    const { routes } = containerFixture();
+    const page = containerPageSchema.parse(
+      await (await request(routes, "hierarchy?type=book&q=Text")).json(),
+    );
+
+    expect(page.entities.map((entity) => entity.id)).toEqual([
+      "zara",
+      "zara:00001-vorrede",
+      "zara:00002-erster-theil:00003-reden",
+    ]);
+    expect(page.total).toBe(3);
   });
 });

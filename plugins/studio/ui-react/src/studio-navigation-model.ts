@@ -39,6 +39,10 @@ export interface NavigationModelInput {
 
 /** Everything Studio's navigation shows, as both the rail and the phone sheet read it. */
 export interface NavigationModel {
+  /** The types navigation lists: a contained type lives inside its container. */
+  types: EntityTypeInfo[];
+  /** The listed type the open route belongs to. */
+  active: string | null;
   overviewWorkspace: StudioWorkspaceInfo | undefined;
   chatWorkspace: StudioWorkspaceInfo | undefined;
   administrationWorkspace: StudioWorkspaceInfo | undefined;
@@ -56,6 +60,10 @@ export interface NavigationModel {
 export function deriveNavigationModel(
   input: NavigationModelInput,
 ): NavigationModel {
+  const types = input.types.filter((info) => info.containedIn === undefined);
+  const active =
+    input.types.find((info) => info.entityType === input.active)?.containedIn ??
+    input.active;
   const overviewWorkspace = input.workspaces?.find(
     (workspace) => workspace.id === "studio:overview",
   );
@@ -72,7 +80,7 @@ export function deriveNavigationModel(
   const groups = (["Content", "Collections", "Site", "System"] as const)
     .map((label) => ({
       label,
-      types: input.types.filter((info) => studioTypeGroup(info) === label),
+      types: types.filter((info) => studioTypeGroup(info) === label),
     }))
     .filter((group) => group.types.length > 0);
   const primaryTypeGroups = groups.filter(
@@ -80,7 +88,7 @@ export function deriveNavigationModel(
   );
   const systemTypes = (ids: string[]): EntityTypeInfo[] =>
     ids.flatMap((id) =>
-      input.types.filter(
+      types.filter(
         (info) => info.entityType === id && info.classification === "system",
       ),
     );
@@ -92,7 +100,7 @@ export function deriveNavigationModel(
     ...groups.filter((group) => group.label === "Site"),
     {
       label: "Other",
-      types: input.types.filter(
+      types: types.filter(
         (info) =>
           studioTypeGroup(info) === "System" &&
           !SYSTEM_TYPE_GROUPS.some((group) =>
@@ -104,12 +112,12 @@ export function deriveNavigationModel(
   const currentArea = input.groupings?.active
     ? "library"
     : studioArea(
-        input.types.find((type) => type.entityType === input.active) ?? null,
+        types.find((type) => type.entityType === active) ?? null,
         input.activeWorkspace ?? null,
       );
   const destination = input.groupings?.active
     ? `${MOBILE_GROUPING_PREFIX}${input.groupings.active}`
-    : (input.activeWorkspace ?? input.active);
+    : (input.activeWorkspace ?? active);
   const badges = input.workspaceBadges;
   const areas: readonly NavigationArea[] = [
     {
@@ -156,6 +164,8 @@ export function deriveNavigationModel(
     },
   ];
   return {
+    types,
+    active,
     overviewWorkspace,
     chatWorkspace,
     administrationWorkspace,

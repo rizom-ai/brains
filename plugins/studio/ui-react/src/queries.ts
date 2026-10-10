@@ -86,6 +86,7 @@ export const studioKeys = {
     "schema",
     entityType,
   ],
+  entityLists: (): readonly ["studio", "entities"] => ["studio", "entities"],
   entities: (entityType: string): EntityListScopeKey => [
     "studio",
     "entities",
