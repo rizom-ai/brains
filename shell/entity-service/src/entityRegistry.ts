@@ -4,6 +4,7 @@ import {
 } from "./grouping-projection-state";
 import type { Logger } from "@brains/utils/logger";
 import { EntityValidationError } from "./errors";
+import { decodeEntityIdPath } from "./entity-id-path";
 import { entityTypeClassificationSchema } from "./entity-type-classification";
 import { isGroupingContributor } from "./grouping-eligibility";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
@@ -89,6 +90,19 @@ export class EntityRegistry implements IEntityRegistry {
     const classification = entityTypeClassificationSchema.parse(
       config?.classification,
     );
+    const container = config?.containedIn;
+    if (container !== undefined) {
+      if (!this.entitySchemas.has(container)) {
+        throw new Error(
+          `Entity type registration failed for ${type}: container type ${container} is not registered`,
+        );
+      }
+      if (this.entityConfigs.get(container)?.containedIn !== undefined) {
+        throw new Error(
+          `Entity type registration failed for ${type}: ${container} is itself contained; containment is one level`,
+        );
+      }
+    }
 
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
@@ -114,6 +128,15 @@ export class EntityRegistry implements IEntityRegistry {
       (registration) => registration.entityType !== type,
     );
     this.logger.debug(`Unregistered entity type: ${type}`);
+  }
+
+  /** Each contained type with the type it is contained in. */
+  getContainment(): ReadonlyMap<string, string> {
+    return new Map(
+      [...this.entityConfigs].flatMap(([type, config]) =>
+        config.containedIn === undefined ? [] : [[type, config.containedIn]],
+      ),
+    );
   }
 
   /**
@@ -172,6 +195,7 @@ export class EntityRegistry implements IEntityRegistry {
     const schema = this.getSchema(type);
     const parsed = schema.parse(this.normalizePolicyFields(entity, type));
     const base = baseEntitySchema.parse(parsed);
+    this.assertContainmentShape(type, base.id);
     const parsedFields =
       parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
         ? Object.fromEntries(Object.entries(parsed))
@@ -187,6 +211,32 @@ export class EntityRegistry implements IEntityRegistry {
       metadata: this.projectMetadata(type, base.content, base.metadata),
       contentHash: base.contentHash,
     };
+  }
+
+  /**
+   * A container's ids are flat, so its contents can live beneath it; a
+   * contained entity's id starts with its container's, then its own path.
+   */
+  private assertContainmentShape(type: string, id: string): void {
+    const segments = decodeEntityIdPath(id);
+    const container = this.entityConfigs.get(type)?.containedIn;
+    if (container !== undefined && segments.length < 2) {
+      throw new EntityValidationError(
+        type,
+        new Error(
+          `${id} needs its ${container} container's id as the first segment of its id`,
+        ),
+      );
+    }
+    const isContainer = [...this.entityConfigs.values()].some(
+      (config) => config.containedIn === type,
+    );
+    if (isContainer && segments.length > 1) {
+      throw new EntityValidationError(
+        type,
+        new Error(`${id} contains other entities, so its id must be flat`),
+      );
+    }
   }
 
   private normalizePolicyFields(entity: unknown, type: string): unknown {

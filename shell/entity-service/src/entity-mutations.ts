@@ -838,6 +838,42 @@ export class EntityMutations {
     });
   }
 
+  /** Delete the entities contained in a container, one by one. */
+  private async deleteContents(
+    containerType: string,
+    containerId: string,
+    persistenceOrigin: EntityJobOptions["persistenceOrigin"],
+  ): Promise<void> {
+    const prefix = `${containerId}:`;
+    const containedTypes = [...this.entityRegistry.getContainment()]
+      .filter(([, container]) => container === containerType)
+      .map(([type]) => type);
+    const contents = await Promise.all(
+      containedTypes.map(async (type) =>
+        (
+          await this.db
+            .select({ id: entities.id })
+            .from(entities)
+            .where(
+              and(
+                eq(entities.entityType, type),
+                sql`substr(${entities.id}, 1, ${prefix.length}) = ${prefix}`,
+              ),
+            )
+        ).map(({ id }) => ({ entityType: type, id })),
+      ),
+    );
+    await contents.flat().reduce<Promise<void>>(async (previous, content) => {
+      await previous;
+      await this.deleteEntity({
+        ...content,
+        ...(persistenceOrigin !== undefined && {
+          options: { persistenceOrigin },
+        }),
+      });
+    }, Promise.resolve());
+  }
+
   /**
    * Delete an entity by type and ID
    */
@@ -870,6 +906,9 @@ export class EntityMutations {
 
     if (!priorData) return false;
     const expectedContentHash = options?.expectedContentHash;
+    // A container goes with its contents, which go first: a failure part way
+    // leaves the container, never contents without one.
+    await this.deleteContents(entityType, id, options?.persistenceOrigin);
     if (
       expectedContentHash !== undefined &&
       priorData.contentHash !== expectedContentHash
