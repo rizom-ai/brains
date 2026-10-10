@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { resolve, type BrainDefinition } from "@brains/app";
 import { canonicalBrain, coreBundle } from "../src/model/canonical-brain";
 import { isRecord } from "@brains/utils/is-record";
+import { openAiGuestPricing } from "@brains/ai-service";
 
 const expectedCatalogIds = [
   "prompt",
@@ -100,6 +101,13 @@ const definitionPermissionBaseline = {
 } satisfies NonNullable<BrainDefinition["permissions"]>;
 
 describe("canonical brain core", () => {
+  test("defaults to GPT-6 Luna at low reasoning, priced for guest turns", () => {
+    expect(canonicalBrain.model).toBe("gpt-6-luna");
+    expect(canonicalBrain.reasoningEffort).toBe("low");
+    // An unpriced default would charge every guest turn the answer cap.
+    expect(openAiGuestPricing(canonicalBrain.model)).toBeDefined();
+  });
+
   test("owns one complete model-neutral catalog", () => {
     expect(catalogIds(canonicalBrain)).toEqual(expectedCatalogIds);
     expect(new Set(expectedCatalogIds).size).toBe(expectedCatalogIds.length);

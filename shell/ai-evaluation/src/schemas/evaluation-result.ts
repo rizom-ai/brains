@@ -152,6 +152,7 @@ type EvaluationResultSchema = z.ZodObject<{
   failures: z.ZodArray<FailureDetailSchema>;
   efficiencyPassed: z.ZodOptional<z.ZodBoolean>;
   efficiencyFailures: z.ZodOptional<z.ZodArray<FailureDetailSchema>>;
+  unjudgedRequirements: z.ZodOptional<z.ZodArray<z.ZodString>>;
   pluginOutput: z.ZodOptional<z.ZodUnknown>;
 }>;
 
@@ -179,6 +180,9 @@ export const evaluationResultSchema: EvaluationResultSchema = z.object({
   // Efficiency check results
   efficiencyPassed: z.boolean().optional(),
   efficiencyFailures: z.array(failureDetailSchema).optional(),
+
+  // Response requirements the run could not judge (judge skipped or unavailable)
+  unjudgedRequirements: z.array(z.string()).optional(),
 
   // Plugin output (for plugin test cases)
   pluginOutput: z.unknown().optional(),

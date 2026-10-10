@@ -1,5 +1,61 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`80a6dc9`](https://github.com/rizom-ai/brains/commit/80a6dc9637d072ed77fab8f45f191142a29f6779) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Update the AI SDK and Chat SDK within their current majors: `ai` 6.0.302, `@ai-sdk/openai` 3.0.124 (adds GPT-6 Luna/Sol model IDs and reasoning configuration), `@ai-sdk/anthropic` 3.0.128, `@ai-sdk/google` 3.0.131, `@ai-sdk/react` 3.0.305, and `chat` with its adapters 4.41.1. Chat attachments whose adapter delivers bytes as an `ArrayBuffer` are now read correctly.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`b27967d`](https://github.com/rizom-ai/brains/commit/b27967db5dede302b059a8b41e0e95fc45373eac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The configured OpenAI `reasoningEffort` now reaches the provider for every model the runtime treats as a reasoning model, including `gpt-6*` and provider-prefixed IDs. Previously the AI SDK silently dropped the effort, sent instructions in the `system` role, and accepted a temperature for model names missing from its own allowlist. Text, structured, and agent generation share one rule; non-reasoning models keep their temperature and `system` role.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`19b74c5`](https://github.com/rizom-ai/brains/commit/19b74c5a1c4cb029bbf3de4bc44f27bc6ac9b565) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Agent results keep tool calls the SDK rejected before execution (invalid or malformed input) and calls that threw during execution, as errored tool results. Previously these were dropped, so a successful retry in the same turn erased the rejected attempt from chat records and evaluation traces.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`9ef4941`](https://github.com/rizom-ai/brains/commit/9ef4941a4bec1c10f50a1a3381757191ddcad9de) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat token usage now covers every model call of a turn — each tool-loop step and, for a guest, the screening judgment — instead of only the final answer's call. A turn that reads a note and then answers previously reported only the answer's tokens. Guest settlement already priced every step and is unchanged. Evaluation token budgets measured against the old figure undercount and are recalibrated separately.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_update` takes exactly one typed `operation`: `{ kind: "fields", fields }`, `{ kind: "content", content }`, `{ kind: "edits", edits }`, or `{ kind: "source", source }`. The flat `fields`, `content`, `edits`, and `source` arguments are removed, and unknown or mixed arguments are rejected by the schema instead of being stripped or reconciled in the handler. Direct callers migrate to the typed operation.
+
+  JSON in a content replacement is stored literally; it is no longer inferred as a field update. A confirmation must replay the exact approval args the proposal returned; a confirmed call that omits the operation is rejected instead of being recovered from the pending approval. Approval still pins a user-message source to its message and content hash.
+
+  Agent and MCP tool schemas are strict at the root and inside operation branches while plugin-owned field maps stay open, so models and clients see the same contract the handler enforces.
+
+- Updated dependencies [[`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84)]:
+  - @brains/mcp-service@0.2.0-alpha.516
+  - @brains/entity-service@0.2.0-alpha.516
+  - @brains/identity-service@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+  - @brains/conversation-service@0.2.0-alpha.516
+  - @brains/messaging-service@0.2.0-alpha.516
+  - @brains/templates@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/conversation-service@0.2.0-alpha.515
+  - @brains/entity-service@0.2.0-alpha.515
+  - @brains/identity-service@0.2.0-alpha.515
+  - @brains/mcp-service@0.2.0-alpha.515
+  - @brains/messaging-service@0.2.0-alpha.515
+  - @brains/templates@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/conversation-service@0.2.0-alpha.514
+  - @brains/entity-service@0.2.0-alpha.514
+  - @brains/identity-service@0.2.0-alpha.514
+  - @brains/mcp-service@0.2.0-alpha.514
+  - @brains/messaging-service@0.2.0-alpha.514
+  - @brains/templates@0.2.0-alpha.514
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes

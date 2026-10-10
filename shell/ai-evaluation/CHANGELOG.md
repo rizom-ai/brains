@@ -1,5 +1,57 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.516
+
+### Minor Changes
+
+- [#559](https://github.com/rizom-ai/brains/pull/559) [`d31e95d`](https://github.com/rizom-ai/brains/commit/d31e95d26310c51936743fa7fbc410faedc2fae3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Eval success criteria accept `responseCriteria`: plain-language requirements on what a reply conveys, judged for meaning rather than wording, all of a turn's requirements in one judge call. An unmet requirement fails the case with the judge's reason. Requirements the run could not judge (judge skipped, unavailable, or an incomplete verdict) are listed on the result and in the console report instead of passing silently.
+
+  The bundled eval cases replace keyword checks on model wording with judged requirements that keep each check's intent: concept words, synonym lists such as verify/contact/reach, and single-word guards such as "deleted", "saved" or "done" that also match a correct refusal ("it can't be deleted"). Checks on host-produced text and on facts from seed content or tool results stay exact. A case no longer forbids a write attempt that runtime policy refuses; it requires the reply to decline without claiming the change.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`985dc31`](https://github.com/rizom-ai/brains/commit/985dc311aa0268d70658eb5eb9f87cb12243fef8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Evaluate a model by pass rate over independent runs. `--samples <n>` (or `samples:` in brain.eval.yaml) runs each model's suite n times, each in a fresh environment, and the model comparison reports passes out of runs per test. `--min-pass-rate <r>` sets the share of a test's runs that must pass; the default of 1 keeps single-run behaviour unchanged. Sampling requires the `models:` path.
+
+### Patch Changes
+
+- [#559](https://github.com/rizom-ai/brains/pull/559) [`dff9212`](https://github.com/rizom-ai/brains/commit/dff9212472aa3c0f92bb134d1dbdd112efb0fce5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A multi-model evaluation where a model ran no tests now fails, as a single-model run already did. A test filter that matched nothing previously reported success while verifying nothing.
+
+- Updated dependencies [[`80a6dc9`](https://github.com/rizom-ai/brains/commit/80a6dc9637d072ed77fab8f45f191142a29f6779), [`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a), [`b27967d`](https://github.com/rizom-ai/brains/commit/b27967db5dede302b059a8b41e0e95fc45373eac), [`19b74c5`](https://github.com/rizom-ai/brains/commit/19b74c5a1c4cb029bbf3de4bc44f27bc6ac9b565), [`9ef4941`](https://github.com/rizom-ai/brains/commit/9ef4941a4bec1c10f50a1a3381757191ddcad9de), [`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84)]:
+  - @brains/ai-service@0.2.0-alpha.516
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/mcp-service@0.2.0-alpha.516
+  - @brains/app@0.2.0-alpha.516
+  - @brains/content-formatters@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+  - @brains/templates@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.515
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/ai-service@0.2.0-alpha.515
+  - @brains/app@0.2.0-alpha.515
+  - @brains/mcp-service@0.2.0-alpha.515
+  - @brains/plugins@0.2.0-alpha.515
+  - @brains/templates@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.514
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/ai-service@0.2.0-alpha.514
+  - @brains/app@0.2.0-alpha.514
+  - @brains/mcp-service@0.2.0-alpha.514
+  - @brains/plugins@0.2.0-alpha.514
+  - @brains/templates@0.2.0-alpha.514
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes

@@ -1,5 +1,73 @@
 # @brains/plugins
 
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The default guest disclosure names the provider and model this runtime actually sends guest text to, for both the local-test preset and the owner-activated hosted policy. Previously it always said "OpenAI (gpt-5.6-luna)" and "reach this Brain and OpenAI", whatever model was configured. The preset is resolved at registration against the runtime model and stays closed until then; operator-authored policies keep their own disclosure.
+
+- Updated dependencies [[`80a6dc9`](https://github.com/rizom-ai/brains/commit/80a6dc9637d072ed77fab8f45f191142a29f6779), [`b27967d`](https://github.com/rizom-ai/brains/commit/b27967db5dede302b059a8b41e0e95fc45373eac), [`19b74c5`](https://github.com/rizom-ai/brains/commit/19b74c5a1c4cb029bbf3de4bc44f27bc6ac9b565), [`9ef4941`](https://github.com/rizom-ai/brains/commit/9ef4941a4bec1c10f50a1a3381757191ddcad9de), [`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84)]:
+  - @brains/ai-service@0.2.0-alpha.516
+  - @brains/mcp-service@0.2.0-alpha.516
+  - @brains/content-service@0.2.0-alpha.516
+  - @brains/job-queue@0.2.0-alpha.516
+  - @brains/entity-service@0.2.0-alpha.516
+  - @brains/recurring-checks@0.2.0-alpha.516
+  - @brains/identity-service@0.2.0-alpha.516
+  - @brains/content-formatters@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/site-composition@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+  - @brains/conversation-service@0.2.0-alpha.516
+  - @brains/messaging-service@0.2.0-alpha.516
+  - @brains/runtime-state@0.2.0-alpha.516
+  - @brains/scheduler@0.2.0-alpha.516
+  - @brains/templates@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.515
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/site-composition@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/ai-service@0.2.0-alpha.515
+  - @brains/content-service@0.2.0-alpha.515
+  - @brains/conversation-service@0.2.0-alpha.515
+  - @brains/entity-service@0.2.0-alpha.515
+  - @brains/identity-service@0.2.0-alpha.515
+  - @brains/job-queue@0.2.0-alpha.515
+  - @brains/mcp-service@0.2.0-alpha.515
+  - @brains/messaging-service@0.2.0-alpha.515
+  - @brains/recurring-checks@0.2.0-alpha.515
+  - @brains/runtime-state@0.2.0-alpha.515
+  - @brains/scheduler@0.2.0-alpha.515
+  - @brains/templates@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.514
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/site-composition@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/ai-service@0.2.0-alpha.514
+  - @brains/content-service@0.2.0-alpha.514
+  - @brains/conversation-service@0.2.0-alpha.514
+  - @brains/entity-service@0.2.0-alpha.514
+  - @brains/identity-service@0.2.0-alpha.514
+  - @brains/job-queue@0.2.0-alpha.514
+  - @brains/mcp-service@0.2.0-alpha.514
+  - @brains/messaging-service@0.2.0-alpha.514
+  - @brains/recurring-checks@0.2.0-alpha.514
+  - @brains/runtime-state@0.2.0-alpha.514
+  - @brains/scheduler@0.2.0-alpha.514
+  - @brains/templates@0.2.0-alpha.514
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes

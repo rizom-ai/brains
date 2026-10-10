@@ -2,10 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { computeContentHash } from "@brains/utils/hash";
-import { YAMLLoader } from "../src/loaders/yaml-loader";
-import { evaluateCriteria } from "../src/criteria-evaluator";
+import { evaluateCriteria, YAMLLoader } from "@brains/ai-evaluation";
 
-const cli = join(import.meta.dir, "../../../packages/brain-cli");
+const cli = join(import.meta.dir, "..");
 const cases = join(cli, "test-cases/personal/multi-turn");
 const loader = YAMLLoader.createFresh({ directory: cases });
 const id = "mcp-verbatim-update";
@@ -48,23 +47,31 @@ describe("verbatim update MCP eval contract", () => {
       expect(proposal?.argsContain).toEqual({
         entityType: "note",
         id,
-        "source.kind": "user-message",
-        "source.boundaryMode": "lines",
-        "source.startAfter": startAfter,
-        "source.endBefore": endBefore,
-        "source.contentHash": computeContentHash(content),
+        "operation.kind": "source",
+        "operation.source.kind": "user-message",
+        "operation.source.boundaryMode": "lines",
+        "operation.source.startAfter": startAfter,
+        "operation.source.endBefore": endBefore,
+        "operation.source.contentHash": computeContentHash(content),
       });
-      for (const absent of ["content", "edits", "fields", "confirmed"])
+      for (const absent of [
+        "operation.content",
+        "operation.edits",
+        "operation.fields",
+        "confirmed",
+      ])
         expect(proposal?.argsAbsent).toContain(absent);
       expect(proposal?.resultContains).toEqual({ needsConfirmation: true });
     }
 
     expect(testCase.turns[1]?.confirmPendingAction).toBe(false);
+    // Read-backs check the stored record, whichever part the model reads.
     expect(
-      testCase.turns[2]?.successCriteria?.expectedTools?.[0]?.resultContains?.[
-        "entity.content"
-      ],
-    ).toBe(stored);
+      testCase.turns[2]?.successCriteria?.expectedTools?.[0]?.resultContains,
+    ).toEqual({
+      "entity.contentHash": computeContentHash(stored),
+      "entity.visibility": "restricted",
+    });
     expect(testCase.turns[4]?.confirmPendingAction).toBe(true);
     expect(
       testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
@@ -73,9 +80,10 @@ describe("verbatim update MCP eval contract", () => {
     const criteria = testCase.turns[5]?.successCriteria;
     if (!criteria) throw new Error("Missing saved content checks");
     const expected = `${frontmatter}${content}`;
-    expect(
-      criteria.expectedTools?.[0]?.resultContains?.["entity.content"],
-    ).toBe(expected);
+    expect(criteria.expectedTools?.[0]?.resultContains).toEqual({
+      "entity.contentHash": computeContentHash(expected),
+      "entity.visibility": "restricted",
+    });
     // Dropped frontmatter, an unapplied update, or regenerated backslashes
     // must each fail the saved-state check.
     for (const candidate of [
@@ -89,7 +97,10 @@ describe("verbatim update MCP eval contract", () => {
           toolName: "system_get",
           args: { entityType: "note", id },
           result: {
-            entity: { content: candidate, visibility: "restricted" },
+            entity: {
+              contentHash: computeContentHash(candidate),
+              visibility: "restricted",
+            },
           },
         },
       ]);

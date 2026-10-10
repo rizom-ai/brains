@@ -1,5 +1,62 @@
 # @brains/app
 
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a), [`ce66cd5`](https://github.com/rizom-ai/brains/commit/ce66cd5195a0f020ed78096debc8e82069951454), [`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/core@0.2.0-alpha.516
+  - @brains/mcp-service@0.2.0-alpha.516
+  - @brains/chat-repl@0.2.0-alpha.516
+  - @brains/job-queue@0.2.0-alpha.516
+  - @brains/entity-service@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/site-composition@0.2.0-alpha.516
+  - @brains/theme-base@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+  - @brains/conversation-service@0.2.0-alpha.516
+  - @brains/runtime-state@0.2.0-alpha.516
+  - @brains/templates@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.515
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/site-composition@0.2.0-alpha.515
+  - @brains/theme-base@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/conversation-service@0.2.0-alpha.515
+  - @brains/core@0.2.0-alpha.515
+  - @brains/entity-service@0.2.0-alpha.515
+  - @brains/job-queue@0.2.0-alpha.515
+  - @brains/mcp-service@0.2.0-alpha.515
+  - @brains/plugins@0.2.0-alpha.515
+  - @brains/runtime-state@0.2.0-alpha.515
+  - @brains/templates@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.514
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/site-composition@0.2.0-alpha.514
+  - @brains/theme-base@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/conversation-service@0.2.0-alpha.514
+  - @brains/core@0.2.0-alpha.514
+  - @brains/entity-service@0.2.0-alpha.514
+  - @brains/job-queue@0.2.0-alpha.514
+  - @brains/mcp-service@0.2.0-alpha.514
+  - @brains/plugins@0.2.0-alpha.514
+  - @brains/runtime-state@0.2.0-alpha.514
+  - @brains/templates@0.2.0-alpha.514
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes

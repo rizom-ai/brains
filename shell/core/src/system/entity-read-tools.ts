@@ -7,6 +7,7 @@ import {
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
+import { markdownBody } from "./markdown-body";
 import { assertGuestReader } from "./guest-read-context";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
@@ -136,10 +137,14 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         if (!result.ok) {
           return { success: false, error: result.error };
         }
+        const entity = sanitizeEntity(result.entity, services.entityRegistry);
         return {
           success: true,
           data: {
-            entity: sanitizeEntity(result.entity, services.entityRegistry),
+            entity:
+              input.part === "body"
+                ? { ...entity, content: markdownBody(entity.content) }
+                : entity,
           },
         };
       },

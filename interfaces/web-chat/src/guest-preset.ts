@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { resolveTextProvider } from "@brains/plugins";
 import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
 
 const localOriginSchema: z.ZodString = z.string().refine((value) => {
@@ -26,6 +27,13 @@ const localPresetSchema: z.ZodObject<
   origin: localOriginSchema.default("http://127.0.0.1:8080"),
 });
 
+const providerNames: Readonly<Record<string, string>> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google",
+  ollama: "Ollama",
+};
+
 /**
  * Shared execution defaults. A hosted policy still needs explicit authorization,
  * and its owner's budget is the ceiling: these counts only stop floods, sized
@@ -33,8 +41,12 @@ const localPresetSchema: z.ZodObject<
  */
 export function createDefaultGuestPolicy(
   origin: string,
+  model: string,
   previewOrigin?: string,
 ): GuestPolicy {
+  // Guests are told where their text goes: the provider this runtime uses.
+  const resolved = resolveTextProvider(model);
+  const provider = providerNames[resolved.provider] ?? resolved.provider;
   return guestPolicySchema.parse({
     enabled: true,
     origin,
@@ -67,10 +79,10 @@ export function createDefaultGuestPolicy(
       maxStoredBytes: 4_000_000,
     },
     disclosure: {
-      provider: "OpenAI (gpt-5.6-luna)",
+      provider: `${provider} (${resolved.modelId})`,
       notice:
         (origin.startsWith("http://") ? "Local test only. " : "") +
-        "Messages and retrieved public text reach this Brain and OpenAI. Do not send sensitive information. AI answers can be wrong. Conversations are not added to public knowledge. This session expires after one hour without renewal.",
+        `Messages and retrieved public text reach this Brain and ${provider}. Do not send sensitive information. AI answers can be wrong. Conversations are not added to public knowledge. This session expires after one hour without renewal.`,
       deletionLimitations:
         "Local deletion does not guarantee erasure from journals, backups, test artifacts, or provider and security logs. Usage reservations can remain.",
     },
@@ -84,10 +96,12 @@ export const guestPresetSchema: z.ZodUnion<
 
 export function resolveGuestPreset(
   input: z.output<typeof guestPresetSchema>,
+  model: string,
 ): GuestPolicy {
   if (input === false) return { enabled: false };
   return createDefaultGuestPolicy(
     localPresetSchema.parse(input === "local-test" ? { preset: input } : input)
       .origin,
+    model,
   );
 }

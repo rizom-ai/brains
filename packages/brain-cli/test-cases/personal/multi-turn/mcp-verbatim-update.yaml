@@ -185,15 +185,16 @@ turns:
           argsContain:
             entityType: note
             id: mcp-verbatim-update
-            source.kind: user-message
-            source.boundaryMode: lines
-            source.startAfter: BEGIN EXACT CONTENT
-            source.endBefore: END EXACT CONTENT
-            source.contentHash: e92bb4adc6060be129b9598284e6b061a2443533e69910a761d94740127b4d5b
+            operation.kind: source
+            operation.source.kind: user-message
+            operation.source.boundaryMode: lines
+            operation.source.startAfter: BEGIN EXACT CONTENT
+            operation.source.endBefore: END EXACT CONTENT
+            operation.source.contentHash: e92bb4adc6060be129b9598284e6b061a2443533e69910a761d94740127b4d5b
           argsAbsent:
-            - content
-            - edits
-            - fields
+            - operation.content
+            - operation.edits
+            - operation.fields
             - confirmed
           resultContains:
             needsConfirmation: true
@@ -207,14 +208,10 @@ turns:
             entityType: note
             id: mcp-verbatim-update
           resultContains:
-            entity.content: |
-              ---
-              visibility: restricted
-              ---
-              # Verbatim Update Plan
-
-              Draft placeholder. This body is replaced in full by the approved update.
-
+            # The stored record, whichever part the model reads: the hash of
+            # the restricted frontmatter plus the draft placeholder body.
+            entity.contentHash: d92a72bb61008bdf3b5f341ee3d969b7e3d03130233826f59846468adf50ee8e
+            entity.visibility: restricted
   - *a1
   - userMessage: Approve the update.
     confirmPendingAction: true
@@ -232,166 +229,8 @@ turns:
             entityType: note
             id: mcp-verbatim-update
           resultContains:
-            entity.content: |
-              ---
-              visibility: restricted
-              ---
-              # Verbatim Update Plan
-
-              ## Operations revision 1
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-1.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Research revision 2
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-2.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Funding revision 3
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-3.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Governance revision 4
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-4.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Delivery revision 5
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-5.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Documentation revision 6
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-6.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Review revision 7
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-7.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Handover revision 8
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-8.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Archive revision 9
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-9.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Retrospective revision 10
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-10.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Planning revision 11
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-11.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              ## Support revision 12
-
-              Rewrite this section exactly as supplied. Keep each owner, date, and verification note attached to its release; never merge separate checkpoints.
-
-              Hard break\
-              Next line. Literal pair\\
-
-              ```text
-              C:\notes\revision-12.md
-              regex: \d+\s+
-              replacement: $&
-              ```
-
-              Closing checksum line: =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+            # The stored record, whichever part the model reads: the hash of
+            # the restricted frontmatter plus the exact body between the
+            # boundary lines of the update request.
+            entity.contentHash: bd898458f400b6cde8be082f3acd06681eae317966d143de8c72120097da8293
+            entity.visibility: restricted

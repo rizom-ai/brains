@@ -36,11 +36,11 @@ turns:
   - userMessage: "Approve saving that brain identity."
     confirmPendingAction: true
     successCriteria:
-      responseContains:
-        - "brain"
       responseNotContains:
         - "I cannot"
         - "I don't have access"
+      responseCriteria:
+        - "Confirms the brain identity was saved."
 
   - userMessage: "Update my anchor profile now: my name is Ada Morgan. My role is advisor, my audience is climate-tech founders, my expertise is resilient software systems, and my desired tone is clear, practical, quietly confident."
     successCriteria:
@@ -121,16 +121,13 @@ turns:
           shouldBeCalled: false
       responseContains:
         - "woodchucks"
-        - "retrieved"
-        - "transformed"
-      responseContainsAny:
-        - - "saved a seed"
-          - "saved the seed"
-          - "durable knowledge"
       responseNotContains:
         - "Confirmation required"
         - "I cannot"
         - "I don't have access"
+      responseCriteria:
+        - "Delivers the retrieved note as an outline in chat."
+        - "Says the first knowledge loop is complete: a seed was saved, retrieved, and transformed into working material."
 
 successCriteria:
   expectedTools:
@@ -150,4 +147,4 @@ successCriteria:
     - "I don't have access"
 efficiency:
   maxToolCalls: 24
-  maxTokens: 260000
+  maxTokens: 239000

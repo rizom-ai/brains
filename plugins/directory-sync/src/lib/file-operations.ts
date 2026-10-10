@@ -20,7 +20,8 @@ import {
   resolveEntityPlacement,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
-import { mkdir, readFile, unlink, writeFile, stat, utimes } from "fs/promises";
+import { mkdir, readFile, unlink, stat, utimes } from "fs/promises";
+import { writeFileAtomic } from "./atomic-write";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
@@ -246,7 +247,7 @@ export class FileOperations {
 
       if (!binaryUnchanged) {
         await this.ensureEntityDirectory(filePath);
-        await writeFile(filePath, contentToWrite);
+        await writeFileAtomic(filePath, contentToWrite);
       }
 
       if (isDocument) {
@@ -270,7 +271,7 @@ export class FileOperations {
       }
 
       await this.ensureEntityDirectory(filePath);
-      await writeFile(filePath, contentToWrite, "utf-8");
+      await writeFileAtomic(filePath, contentToWrite);
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
@@ -311,7 +312,7 @@ export class FileOperations {
     }
 
     await this.ensureEntityDirectory(sidecarPath);
-    await writeFile(sidecarPath, serialized, "utf-8");
+    await writeFileAtomic(sidecarPath, serialized);
   }
 
   getFilePath(

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { studioTypeHierarchy, zodFieldToStudioWidget } from "../src/config";
+import {
+  entityTypeLabels,
+  type EntityDisplayLabel,
+  studioTypeHierarchy,
+  zodFieldToStudioWidget,
+} from "../src/config";
 
 describe("zodFieldToStudioWidget", () => {
   it("should map z.string() to string widget", () => {
@@ -101,6 +106,33 @@ describe("studioTypeHierarchy", () => {
     expect(studioTypeHierarchy("note")).toEqual({
       kind: "folder",
       nested: false,
+    });
+  });
+});
+
+describe("entityTypeLabels", () => {
+  // Display entries as sites declare them: pluralName is the path pages live under.
+  const sections = { label: "Section", pluralName: "books" };
+  const books = { label: "Book", pluralName: "books" };
+  const socialPosts: EntityDisplayLabel & { pluralName: string } = {
+    pluralName: "social-posts",
+  };
+
+  it("names a type by its label, not by the path its pages live under", () => {
+    expect(entityTypeLabels("book-section", sections)).toEqual({
+      label: "Section",
+      pluralLabel: "Sections",
+    });
+    expect(entityTypeLabels("book", books)).toEqual({
+      label: "Book",
+      pluralLabel: "Books",
+    });
+  });
+
+  it("names a type without a label after the type itself", () => {
+    expect(entityTypeLabels("social-post", socialPosts)).toEqual({
+      label: "Social Post",
+      pluralLabel: "Social Posts",
     });
   });
 });

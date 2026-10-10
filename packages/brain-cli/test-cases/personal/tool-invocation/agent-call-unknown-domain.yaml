@@ -22,12 +22,11 @@ successCriteria:
         agent: "unknown-agent.io"
     - toolName: agent_connect
       shouldBeCalled: false
-  responseContainsAny:
-    - ["verify", "verified", "Agent Card", "contact", "reach"]
-    - ["could not", "couldn’t", "unable", "failed"]
   responseNotContains:
     - "I called"
     - "I reached"
+  responseCriteria:
+    - "Says it could not verify or contact unknown-agent.io, and does not claim to have asked it."
 
 efficiency:
   maxToolCalls: 3

@@ -112,6 +112,11 @@ export {
   type AgentContextResponse,
 } from "./agent-context";
 export {
+  ASSISTANT_TURN_METADATA_KEY,
+  assistantTurnSchema,
+  type AssistantTurn,
+} from "./assistant-turn";
+export {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,

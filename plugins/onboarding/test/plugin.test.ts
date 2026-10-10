@@ -1,6 +1,10 @@
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
+import {
+  playbookAdapter,
+  playbookPlugin,
+  playbooksPlugin,
+} from "@brains/playbooks";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { onboardingPlugin } from "../src";
@@ -87,10 +91,27 @@ describe("OnboardingPlugin", () => {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
     });
+    expect(
+      setup?.content.match(
+        /operation: \{ kind: "content", content: <full markdown> \}/g,
+      ),
+    ).toHaveLength(2);
+    expect(setup?.content).not.toContain("the `content` argument");
     expect(firstLoop?.metadata).toMatchObject({
       title: "Brain First Knowledge Loop",
       lifecycle: "onboarding",
     });
+    // Only the step whose outcome is an answer in chat accepts a reply as proof.
+    const loopStates = playbookAdapter.parsePlaybookContent(
+      firstLoop?.content ?? "",
+    ).body.states;
+    expect(
+      loopStates.find((state) => state.id === "retrieve-and-transform")
+        ?.provenBy,
+    ).toEqual(["reply"]);
+    expect(
+      loopStates.find((state) => state.id === "first-note"),
+    ).not.toHaveProperty("provenBy");
   });
 
   it("does not overwrite existing onboarding playbooks", async () => {

@@ -633,7 +633,7 @@ export interface MockMessage {
     mimeType?: string;
     size?: number;
     url?: string;
-    fetchData?: () => Promise<Buffer>;
+    fetchData?: () => Promise<Buffer | ArrayBuffer>;
   }>;
   raw: {
     guild_id: string;

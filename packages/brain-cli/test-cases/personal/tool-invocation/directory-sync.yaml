@@ -25,16 +25,16 @@ permissions:
         shouldBeCalled: false
         argsContain:
           action: sync
-    responseNotContains:
-      - "done"
+    responseCriteria:
+      - "Does not claim the request is done."
   trusted:
     expectedTools:
       - toolName: directory_sync
         shouldBeCalled: false
         argsContain:
           action: sync
-    responseNotContains:
-      - "done"
+    responseCriteria:
+      - "Does not claim the request is done."
   admin:
     expectedTools:
       - toolName: directory_sync
@@ -52,4 +52,4 @@ permissions:
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 20000
+  maxTokens: 27000

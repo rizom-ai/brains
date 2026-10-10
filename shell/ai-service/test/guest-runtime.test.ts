@@ -16,7 +16,7 @@ import { AgentService } from "../src/agent-service";
 import { EmbeddingUsageMeter } from "../src/embedding-usage-meter";
 import {
   openAiEmbeddingPricingRevision,
-  openAiGuestPricingRevision,
+  noModelCallPricing,
 } from "../src/openai-guest-pricing";
 import { filterToolsForCallOptions } from "../src/brain-agent";
 import { convertToSDKTools } from "../src/sdk-tools";
@@ -526,7 +526,7 @@ describe("guest runtime boundary", () => {
         cost: {
           state: "known",
           microUsd: 0,
-          pricing: openAiGuestPricingRevision,
+          pricing: noModelCallPricing,
         },
       });
       expect(response.text).toBe(askedBefore.answer);
@@ -566,7 +566,7 @@ describe("guest runtime boundary", () => {
       expect(response.guestSettlement?.usage.embeddingTokens).toBe(12);
       expect(response.guestSettlement?.cost).toMatchObject({
         state: "known",
-        pricing: `${openAiGuestPricingRevision}+${openAiEmbeddingPricingRevision}`,
+        pricing: `${noModelCallPricing}+${openAiEmbeddingPricingRevision}`,
       });
     });
 

@@ -1,5 +1,38 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- Updated dependencies [[`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84)]:
+  - @brains/mcp-service@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/db@0.2.0-alpha.516
+  - @brains/operation-context@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/db@0.2.0-alpha.515
+  - @brains/operation-context@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/mcp-service@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/db@0.2.0-alpha.514
+  - @brains/operation-context@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/mcp-service@0.2.0-alpha.514
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes
