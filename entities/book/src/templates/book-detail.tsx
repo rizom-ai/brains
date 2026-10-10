@@ -120,104 +120,205 @@ const Pager = ({
 /** The tallest stroke in a book's score; every other is to scale. */
 const TALLEST_STROKE = 46;
 
-interface ScoreRow {
-  /** The heading the row stands for, or its section's title where none. */
+/**
+ * One line of the score: a heading of the book, a unit its author titled, or
+ * a run of untitled sections. A line draws a stroke for each of its sections.
+ */
+interface ScoreLineData {
+  kind: "heading" | "unit" | "run";
   label: string;
+  /** How many headings the line stands under. */
+  depth: number;
   first: ScoreEntry;
   sections: ScoreEntry[];
 }
 
-interface ScorePart {
-  /** The part's heading; null for a section that stands under none. */
-  label: string | null;
-  first: ScoreEntry;
-  /** Whether the part's sections stand under divisions within it. */
-  divided: boolean;
-  /** One row per division of the part, or a single row for the whole part. */
-  rows: ScoreRow[];
+/** A number, as aphorisms and paragraphs are titled: 125, 65a, II. */
+const NUMBERED = /^[0-9IVXLC]+[a-z]?\.?$/;
+
+/** The edition's own name for a unit is in brackets: [Motto], Za-II-[Titel]. */
+function isEditorial(text: string | null): boolean {
+  return text?.includes("[") ?? false;
 }
 
 /**
- * Consecutive sections sharing the heading at `depth` form one run; a
- * section with no heading there runs alone, under its own title.
+ * A unit's name without the edition's brackets or siglum, its number set
+ * apart: Za-II-[Motto] → Motto, [Einleitung2] → Einleitung 2.
  */
-function runsAt(sections: ScoreEntry[], depth: number): ScoreRow[] {
-  return sections.reduce<ScoreRow[]>((runs, section) => {
-    const heading = section.headings[depth];
-    const last = runs.at(-1);
-    if (
-      last &&
-      heading !== undefined &&
-      last.first.headings[depth] === heading
-    ) {
-      last.sections.push(section);
-      return runs;
-    }
-    return [
-      ...runs,
-      { label: heading ?? section.title, first: section, sections: [section] },
-    ];
-  }, []);
+function plainName(entry: ScoreEntry): string {
+  return entry.title
+    .replace(/^.*\[/, "")
+    .replace(/\]$/, "")
+    .replace(/(\p{L})(\d+)$/u, "$1 $2");
 }
 
-/** A book's parts, each divided where its sections stand under divisions. */
-function partsOf(score: ScoreEntry[]): ScorePart[] {
-  return runsAt(score, 0).map((run): ScorePart => {
-    const part = run.first.headings[0] ?? null;
-    const divided =
-      part !== null && run.sections.some((section) => section.headings[1]);
-    return {
-      label: part,
-      first: run.first,
-      divided,
-      rows: divided ? runsAt(run.sections, 1) : [run],
-    };
-  });
+/**
+ * Whether a unit is an entry of the contents: a title its author gave it, or
+ * a text the edition names (a motto, a dedication). Numbered units and title
+ * pages are drawn, not listed.
+ */
+function isEntry(entry: ScoreEntry): boolean {
+  if (!isEditorial(entry.title) && !isEditorial(entry.section)) {
+    return !NUMBERED.test(entry.title);
+  }
+  const name = plainName(entry);
+  return name !== "Titel" && !NUMBERED.test(name);
 }
 
-/** One row of the score: its label, a stroke per section, the count. */
+/** A title page: the edition's [Titel] block before a book or a part. */
+function isTitlePage(entry: ScoreEntry): boolean {
+  return isEditorial(entry.section) && plainName(entry) === "Titel";
+}
+
+/** A run is named by its first and last unit, title pages aside. */
+function runLabel(sections: ScoreEntry[]): string {
+  const named = sections.filter((section) => !isTitlePage(section));
+  const first = named[0] ?? sections[0];
+  const last = named.at(-1) ?? first;
+  if (!first || !last) return "";
+  const from = plainName(first);
+  const to = plainName(last);
+  return from === to ? from : `${from}–${to}`;
+}
+
+function samePath(left: string[], right: string[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((heading, depth) => heading === right[depth])
+  );
+}
+
+/**
+ * The book's contents as it is printed: every heading, every unit its author
+ * titled, and, as strokes, the numbered and editorial units between them.
+ * Untitled units directly under a heading draw on the heading's line.
+ */
+function linesOf(score: ScoreEntry[]): ScoreLineData[] {
+  const outline = score.reduce<{
+    lines: ScoreLineData[];
+    /** A book's own title page, waiting for the line it opens. */
+    pending: ScoreEntry[];
+  }>(
+    ({ lines, pending }, entry, index) => {
+      const previous = score[index - 1]?.headings ?? [];
+      const opened = entry.headings.findIndex(
+        (heading, depth) => heading !== previous[depth],
+      );
+      const headings =
+        opened === -1
+          ? []
+          : entry.headings
+              .slice(opened)
+              .map((label, offset): ScoreLineData => ({
+                kind: "heading",
+                label,
+                depth: opened + offset,
+                first: entry,
+                sections: [],
+              }));
+      const all = [...lines, ...headings];
+      const last = all.at(-1);
+      const depth = entry.headings.length;
+      const titled = isEntry(entry);
+      const joins =
+        last !== undefined &&
+        (titled
+          ? last.kind === "unit" &&
+            plainName(last.first) === plainName(entry) &&
+            samePath(last.first.headings, entry.headings)
+          : (last.kind === "heading" &&
+              last.depth === depth - 1 &&
+              samePath(last.first.headings.slice(0, depth), entry.headings)) ||
+            (last.kind === "run" &&
+              samePath(last.first.headings, entry.headings)));
+      if (joins) {
+        last.sections.push(...pending, entry);
+        if (last.kind === "run") last.label = runLabel(last.sections);
+        return { lines: all, pending: [] };
+      }
+      if (isTitlePage(entry))
+        return { lines: all, pending: [...pending, entry] };
+      const sections = [...pending, entry];
+      return {
+        lines: [
+          ...all,
+          {
+            kind: titled ? "unit" : "run",
+            label: titled ? plainName(entry) : runLabel(sections),
+            depth,
+            first: entry,
+            sections,
+          },
+        ],
+        pending: [],
+      };
+    },
+    { lines: [], pending: [] },
+  );
+  // A book of its title page alone still draws it.
+  const [titlePage] = outline.pending;
+  return titlePage
+    ? [
+        ...outline.lines,
+        {
+          kind: "run",
+          label: plainName(titlePage),
+          depth: 0,
+          first: titlePage,
+          sections: outline.pending,
+        },
+      ]
+    : outline.lines;
+}
+
+const INDENT = ["", "md:pl-4", "md:pl-8", "md:pl-12"];
+
+/** One line of the score: its label, a stroke per section, the count. */
 const ScoreLine = ({
-  row,
+  line,
   longest,
-  nested,
 }: {
-  row: ScoreRow;
+  line: ScoreLineData;
   longest: number;
-  nested: boolean;
-}): JSX.Element => (
-  <div
-    className={`${nested ? "" : bookClasses.rule} grid gap-x-6 gap-y-2 py-4 md:grid-cols-[13rem_1fr_3rem] md:items-end`}
-  >
-    <a
-      href={`/books/${row.first.slug}`}
-      className={`${bookClasses.link} font-heading italic ${nested ? "text-base md:pl-4" : "text-lg"}`}
-      lang="de"
+}): JSX.Element => {
+  const part = line.kind === "heading" && line.depth === 0;
+  const size = part
+    ? "text-xl"
+    : line.kind === "heading"
+      ? "text-lg"
+      : "text-base";
+  return (
+    <div
+      className={`${part ? `${bookClasses.rule} pt-5` : ""} grid gap-x-6 gap-y-2 py-2 md:grid-cols-[13rem_1fr_3rem] md:items-end`}
     >
-      {row.label}
-    </a>
-    <div className="flex flex-wrap items-end gap-x-[1px] gap-y-2">
-      {row.sections.map((section) => (
-        <a
-          key={section.slug}
-          href={`/books/${section.slug}`}
-          title={[section.section, section.title].filter(Boolean).join(" · ")}
-          style={{
-            height: `${Math.max(4, Math.round((section.length / longest) * TALLEST_STROKE))}px`,
-          }}
-          className="block w-[2px] bg-[var(--color-heading)] opacity-85 hover:bg-brand hover:opacity-100"
-        />
-      ))}
+      <a
+        href={`/books/${line.first.slug}`}
+        className={`${bookClasses.link} font-heading italic ${size} ${INDENT[Math.min(line.depth, INDENT.length - 1)] ?? ""}`}
+        lang="de"
+      >
+        {line.label}
+      </a>
+      <div className="flex flex-wrap items-end gap-x-[1px] gap-y-2">
+        {line.sections.map((section) => (
+          <a
+            key={section.slug}
+            href={`/books/${section.slug}`}
+            title={[section.section, section.title].filter(Boolean).join(" · ")}
+            style={{
+              height: `${Math.max(4, Math.round((section.length / longest) * TALLEST_STROKE))}px`,
+            }}
+            className="block w-[2px] bg-[var(--color-heading)] opacity-85 hover:bg-brand hover:opacity-100"
+          />
+        ))}
+      </div>
+      <span className="font-mono text-xs text-theme-light md:text-right">
+        {line.sections.length > 0 ? line.sections.length : ""}
+      </span>
     </div>
-    <span className="font-mono text-xs text-theme-light md:text-right">
-      {row.sections.length}
-    </span>
-  </div>
-);
+  );
+};
 
-/**
- * The score: a row per part, or, where a part has divisions, the part's
- * heading with a row per division beneath it.
- */
+/** The score: the book's contents, each line with a stroke per section. */
 const Score = ({ score }: { score: ScoreEntry[] }): JSX.Element => {
   const longest = Math.max(1, ...score.map((section) => section.length));
   return (
@@ -225,36 +326,13 @@ const Score = ({ score }: { score: ScoreEntry[] }): JSX.Element => {
       <p className={`${bookClasses.label} m-0 mb-6`}>
         Score — one stroke per section, as tall as its text
       </p>
-      {partsOf(score).map((part) =>
-        part.divided ? (
-          <section key={part.first.slug} className={`${bookClasses.rule} pt-4`}>
-            <a
-              href={`/books/${part.first.slug}`}
-              className={`${bookClasses.link} font-heading text-xl italic`}
-              lang="de"
-            >
-              {part.label}
-            </a>
-            {part.rows.map((row) => (
-              <ScoreLine
-                key={row.first.slug}
-                row={row}
-                longest={longest}
-                nested
-              />
-            ))}
-          </section>
-        ) : (
-          part.rows.map((row) => (
-            <ScoreLine
-              key={row.first.slug}
-              row={row}
-              longest={longest}
-              nested={false}
-            />
-          ))
-        ),
-      )}
+      {linesOf(score).map((line) => (
+        <ScoreLine
+          key={`${line.kind}:${line.depth}:${line.first.slug}`}
+          line={line}
+          longest={longest}
+        />
+      ))}
     </div>
   );
 };

@@ -184,41 +184,126 @@ function partKeyOf(section: string): string {
   return cut < 0 ? section : section.slice(0, cut);
 }
 
+const UMLAUTS: Record<string, string> = {
+  ä: "ae",
+  ö: "oe",
+  ü: "ue",
+  Ä: "Ae",
+  Ö: "Oe",
+  Ü: "Ue",
+};
+
+/** Sigla spell a word either way: GD-Irrthuemer-1 and GD-Irrthümer-2 share a part. */
+function spelledKey(key: string | null): string | null {
+  return key?.replace(/[äöüÄÖÜ]/g, (ch) => UMLAUTS[ch] ?? ch) ?? null;
+}
+
+function sameKey(left: string | null, right: string | null): boolean {
+  return spelledKey(left) === spelledKey(right);
+}
+
+/**
+ * A block of headings alone names the part its siglum opens: GT-Selbstkritik
+ * is "Versuch einer Selbstkritik", MA-II-VM[Titel] "Vermischte Meinungen und
+ * Sprüche". The book's own title block names no part.
+ */
+function partNamesOf(
+  raws: RawUnit[],
+  bookSiglum: string | null,
+): Map<string, string> {
+  return new Map(
+    raws.flatMap((raw): [string, string][] => {
+      const name = raw.headings.at(-1);
+      const key = spelledKey(raw.section.replace(/-?\[Titel\]$/, ""));
+      if (raw.paragraphs.length > 0 || name === undefined || key === null) {
+        return [];
+      }
+      return sameKey(key, bookSiglum) ? [] : [[key, name]];
+    }),
+  );
+}
+
+/** The last segment of a siglum: 57 in FW-II-57. */
+function lastSegmentOf(section: string): string {
+  return section.slice(section.lastIndexOf("-") + 1);
+}
+
 /** A bracketed last segment names a block rather than numbering it: [Motto]. */
 function bracketOf(section: string): string | null {
   return /\[([^\]]+)\]$/.exec(section)?.[1] ?? null;
 }
 
+/** The edition repeats a heading in brackets where its chapter goes on. */
+function plainHeading(heading: string): string {
+  return heading.replace(/^\[(.*)\]$/, "$1").replace(/\.$/, "");
+}
+
+const NUMBER = /^\d+$/;
+/** Books numbered in their sigla: M-I to M-V. */
+const ROMAN = /^[IVXLC]+$/;
+
 /**
- * Most pages do not nest sections in their parts; a part shows where the
- * siglum's part key changes or where a block opens with a part heading above
- * its own. A section's title is its block's last heading.
+ * Most pages do not nest sections in their parts; a part shows where a block
+ * opens with a part heading above its own, where a block's only heading names
+ * the part its siglum opens (a motto, or the titled first section of a
+ * chapter), or where the siglum numbers a book. A section's title is its
+ * block's last heading, or its number where its heading names its chapter.
  */
 function withParts(raws: RawUnit[], bookSiglum: string | null): BookUnit[] {
+  const names = partNamesOf(raws, bookSiglum);
   return raws.reduce<{
     units: BookUnit[];
     key: string | null;
     part: string | null;
+    /** Whether the part's sections are numbered or titled, as its first is. */
+    numbered: boolean;
   }>(
     (state, raw) => {
       const key = partKeyOf(raw.section);
-      const ownKey = key !== bookSiglum;
-      const keyChanged = key !== state.key;
+      const ownKey = !sameKey(key, bookSiglum);
+      const keyChanged = !sameKey(key, state.key);
       const leading = raw.headings.length > 1 ? raw.headings[0] : undefined;
+      const only = raw.headings.length === 1 ? raw.headings[0] : undefined;
       const bracket = bracketOf(raw.section);
+      const number = lastSegmentOf(raw.section);
+      // Nested blocks take their parts from the blocks around them.
+      const opening =
+        raw.wrappers.length === 0 && keyChanged && ownKey && only !== undefined;
       // A block whose only heading names the part it opens, as a motto does.
-      const namesPart =
-        keyChanged && ownKey && raw.headings.length === 1 && bracket !== null;
-      const part =
-        leading ??
-        (namesPart
-          ? (raw.headings[0] ?? null)
-          : keyChanged
-            ? ownKey
-              ? key.slice(key.lastIndexOf("-") + 1)
-              : null
-            : state.part);
-      const title = namesPart ? bracket : (raw.headings.at(-1) ?? raw.section);
+      const namesPart = opening && bracket !== null;
+      // A chapter's first section, titled by its chapter: GD-Irrthuemer-1.
+      const opensChapter =
+        opening &&
+        bracket === null &&
+        NUMBER.test(number) &&
+        !NUMBER.test(only);
+      const continues =
+        leading !== undefined &&
+        state.part !== null &&
+        plainHeading(leading) === plainHeading(state.part);
+      // A titled block at the book's own level ends a part of numbered
+      // sections; a part opened above a titled block goes on through them.
+      const standsAlone =
+        !ownKey && only !== undefined && !NUMBER.test(only) && state.numbered;
+      const segment = lastSegmentOf(key);
+      const named = names.get(spelledKey(key) ?? "");
+      const part = continues
+        ? state.part
+        : (leading ??
+          (namesPart || opensChapter
+            ? only
+            : keyChanged
+              ? ownKey
+                ? (named ?? (ROMAN.test(segment) ? segment : null))
+                : null
+              : standsAlone
+                ? null
+                : state.part));
+      const title = namesPart
+        ? bracket
+        : opensChapter
+          ? number
+          : (raw.headings.at(-1) ?? raw.section);
       const unit: BookUnit = {
         parents:
           raw.wrappers.length > 0 ? raw.wrappers : part !== null ? [part] : [],
@@ -228,9 +313,11 @@ function withParts(raws: RawUnit[], bookSiglum: string | null): BookUnit[] {
         source: `${EKGWB_BASE}${raw.section}`,
         paragraphs: raw.paragraphs,
       };
-      return { units: [...state.units, unit], key, part };
+      const numbered =
+        part === state.part ? state.numbered : NUMBER.test(title);
+      return { units: [...state.units, unit], key, part, numbered };
     },
-    { units: [], key: null, part: null },
+    { units: [], key: null, part: null, numbered: false },
   ).units;
 }
 
