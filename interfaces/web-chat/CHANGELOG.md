@@ -1,5 +1,21 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`80a6dc9`](https://github.com/rizom-ai/brains/commit/80a6dc9637d072ed77fab8f45f191142a29f6779) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Update the AI SDK and Chat SDK within their current majors: `ai` 6.0.302, `@ai-sdk/openai` 3.0.124 (adds GPT-6 Luna/Sol model IDs and reasoning configuration), `@ai-sdk/anthropic` 3.0.128, `@ai-sdk/google` 3.0.131, `@ai-sdk/react` 3.0.305, and `chat` with its adapters 4.41.1. Chat attachments whose adapter delivers bytes as an `ArrayBuffer` are now read correctly.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The default guest disclosure names the provider and model this runtime actually sends guest text to, for both the local-test preset and the owner-activated hosted policy. Previously it always said "OpenAI (gpt-5.6-luna)" and "reach this Brain and OpenAI", whatever model was configured. The preset is resolved at registration against the runtime model and stays closed until then; operator-authored policies keep their own disclosure.
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/auth-service@0.2.0-alpha.516
+  - @brains/app-ui-react@0.2.0-alpha.516
+  - @brains/console-theme@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+
 ## 0.2.0-alpha.515
 
 ### Patch Changes

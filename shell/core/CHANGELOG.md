@@ -1,5 +1,31 @@
 # @brains/core
 
+## 0.2.0-alpha.516
+
+### Minor Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`4f055f3`](https://github.com/rizom-ai/brains/commit/4f055f34a33f2a869b58413d30aa18a07dbc1a84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_update` takes exactly one typed `operation`: `{ kind: "fields", fields }`, `{ kind: "content", content }`, `{ kind: "edits", edits }`, or `{ kind: "source", source }`. The flat `fields`, `content`, `edits`, and `source` arguments are removed, and unknown or mixed arguments are rejected by the schema instead of being stripped or reconciled in the handler. Direct callers migrate to the typed operation.
+
+  JSON in a content replacement is stored literally; it is no longer inferred as a field update. A confirmation must replay the exact approval args the proposal returned; a confirmed call that omits the operation is rejected instead of being recovered from the pending approval. Approval still pins a user-message source to its message and content hash.
+
+  Agent and MCP tool schemas are strict at the root and inside operation branches while plugin-owned field maps stay open, so models and clients see the same contract the handler enforces.
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`ce66cd5`](https://github.com/rizom-ai/brains/commit/ce66cd5195a0f020ed78096debc8e82069951454) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_get` accepts `part: "body"` to return the stored Markdown without its leading frontmatter, stripped by the host. A request to show or copy a note's body verbatim no longer depends on the model removing frontmatter correctly. The default (`full`) is unchanged.
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/image@0.2.0-alpha.516
+  - @brains/recurring-checks@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/operation-context@0.2.0-alpha.516
+  - @brains/site-composition@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+  - @brains/runtime-state@0.2.0-alpha.516
+  - @brains/scheduler@0.2.0-alpha.516
+  - @brains/templates@0.2.0-alpha.516
+
 ## 0.2.0-alpha.515
 
 ### Patch Changes

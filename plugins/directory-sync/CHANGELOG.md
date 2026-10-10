@@ -1,5 +1,19 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`af2e395`](https://github.com/rizom-ai/brains/commit/af2e395feaf28947afafb60abc3f15150e2ed0d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync writes entity files, document sidecars, and image-conversion rewrites through a temporary dotfile beside the target and renames it into place. Before, a new file existed before its content landed, so the file watcher, the import scan, or a concurrent Git commit could read an empty or partial note. The checkout's local Git exclude keeps in-flight temporary files out of commits; the content repository itself is unchanged.
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/image@0.2.0-alpha.516
+  - @brains/entity-service@0.2.0-alpha.516
+  - @brains/content-formatters@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+
 ## 0.2.0-alpha.515
 
 ### Patch Changes

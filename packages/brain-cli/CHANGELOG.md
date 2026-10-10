@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.516
+
+### Minor Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`2fa2775`](https://github.com/rizom-ai/brains/commit/2fa27752be3b73160704d99058cc18c29e00a7ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The default text model is now `gpt-6-luna` at low reasoning, replacing `gpt-5.6-luna`. On the canonical eval suites it passes at the same rate (98.7% against 98.8%) at about half the cost. Guest chat prices GPT-6 Luna turns at its published rates, so guest costs stay known after the switch; a turn answered from the FAQ without a model call is labelled `no-model-call`. Instances that set `model` keep their model.
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`6eb665a`](https://github.com/rizom-ai/brains/commit/6eb665a7e19631c4d1b849cb76bd06ca61023b1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_create` refuses a title that already exists for notes and other plugin-handled types too, and points the model to `system_update`; `replace: true` still creates a deliberate copy. Before, an edit of a just-imported note that the model misrouted to `system_create` silently saved a duplicate such as `community-launch-plan-2`, sometimes with the original upload's content instead of the edits.
+
+- [#559](https://github.com/rizom-ai/brains/pull/559) [`d31e95d`](https://github.com/rizom-ai/brains/commit/d31e95d26310c51936743fa7fbc410faedc2fae3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Eval success criteria accept `responseCriteria`: plain-language requirements on what a reply conveys, judged for meaning rather than wording, all of a turn's requirements in one judge call. An unmet requirement fails the case with the judge's reason. Requirements the run could not judge (judge skipped, unavailable, or an incomplete verdict) are listed on the result and in the console report instead of passing silently.
+
+  The bundled eval cases replace keyword checks on model wording with judged requirements that keep each check's intent: concept words, synonym lists such as verify/contact/reach, and single-word guards such as "deleted", "saved" or "done" that also match a correct refusal ("it can't be deleted"). Checks on host-produced text and on facts from seed content or tool results stay exact. A case no longer forbids a write attempt that runtime policy refuses; it requires the reply to decline without claiming the change.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`86ef50a`](https://github.com/rizom-ai/brains/commit/86ef50a2a1b6da147b665a17b257d59bcb3051b5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publishing queue actions accept an entity's title or slug as well as its id, as the system tools do, and queue it under its id. Before, `publishing_manage` queue-add with a post's title failed with "Entity not found" and the assistant told admins it could not queue the draft.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`3299684`](https://github.com/rizom-ai/brains/commit/329968484199d2104e671dca332db68b7230e985) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_status` lists the web surfaces the caller may open — such as the dashboard, Studio and the public site — with their paths, filtered by the caller's permission. Before, status left them out although its description promised interfaces, so the assistant either guessed `/dashboard` and `/studio` or said it could not tell.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`afd282e`](https://github.com/rizom-ai/brains/commit/afd282e206917f87445f1670d268e78802162704) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A user-message source whose boundaries do not select content now names the failing boundary and why — missing, repeated, or out of order — and says how to select everything after an instruction with a literal `startAfter` and no `endBefore`. Before, one generic refusal told the model to ask for clarification, and models asked users to resend pasted posts whose frontmatter `---` lines repeat.
+
 ## 0.2.0-alpha.515
 
 ### Patch Changes
