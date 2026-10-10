@@ -1541,4 +1541,28 @@ describe("parseArchiveOcrWork, articles opening with their dateline", () => {
       "** Köln, 3. Juni. Die Zeiten ändern sich, wir ändern uns mit ihnen, und die Herren Camphausen und Hansemann wissen davon zu erzählen.",
     ]);
   });
+
+  it("leaves out an article by its dateline, not another of the month", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-nrz.html"),
+        "utf8",
+      ),
+      {
+        item: "mehring-nachlass-3",
+        title: "Aus dem literarischen Nachlass",
+        citation: "Nachlass III",
+        firstPage: 95,
+        lastPage: 100,
+        datelined: true,
+        skipHeadings: ["Köln, 3. Juni."],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "Köln, 13. Juni.",
+      "Köln, 7. August.",
+      "Köln, im Januar.",
+    ]);
+  });
 });

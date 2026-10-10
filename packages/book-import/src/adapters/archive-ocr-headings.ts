@@ -317,8 +317,9 @@ const SAME = 0.8;
 /**
  * Whether a heading set in capitals reads as the given title, however the OCR
  * spelled it; the heading may run on into a subtitle. A title named to leave
- * a section out is read closely: among a volume's many like titles, one
- * alike in some words is another.
+ * a section out is read closely, its numbers too: among a volume's many like
+ * titles, one alike in some words is another, and Köln, 3. Juni is not
+ * Köln, 13. Juni.
  */
 export function namesTitle(
   heading: string,
@@ -327,6 +328,13 @@ export function namesTitle(
 ): boolean {
   const read = letters(heading);
   const known = letters(title);
+  // The heading may run on into a subtitle with numbers of its own.
+  const numbers = (text: string): string[] => text.match(/\d+/gu) ?? [];
+  const named = numbers(title);
+  const printed = numbers(heading);
+  if (closely && named.some((number, index) => printed[index] !== number)) {
+    return false;
+  }
   return (
     Math.max(
       likeness(read, known),
