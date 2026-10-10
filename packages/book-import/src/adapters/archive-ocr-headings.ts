@@ -1,13 +1,24 @@
 /** A centred line that can belong to a heading, as the page sets it. */
 export type HeadingLine =
   | { kind: "part"; text: string }
-  | { kind: "chapter"; numeral: string }
+  | {
+      kind: "chapter";
+      numeral: string;
+      /** Named a chapter or lecture in words (Erstes Kapitel), not by a numeral alone. */
+      named?: boolean;
+    }
   | { kind: "letter"; letter: string }
+  /** A newspaper article's title: a chapter by its words alone, not numbered. */
+  | { kind: "article" }
   | { kind: "caps"; text: string; size: number; misread?: boolean }
   | { kind: "qualifier"; text: string };
 
-/** A heading's place in a work: part above chapter above subsection. */
-export type HeadingLevel = 0 | 1 | 2;
+/**
+ * A heading's place in a work: part above chapter above subsection, a
+ * subsection's own parts lettered small with a bracket (a), b)), and theirs
+ * lettered in Greek (α), β)).
+ */
+export type HeadingLevel = 0 | 1 | 2 | 3 | 4;
 
 /** A heading block as read, before its words are cased. */
 export interface Heading {
@@ -17,6 +28,8 @@ export interface Heading {
   numbered: boolean;
   /** The numeral as the OCR read it; chapters are numbered by place. */
   numeral: string | null;
+  /** The chapter is named so in words: no list's or example's number. */
+  named: boolean;
   /** Capitals lines, a smaller line opening a subtitle. */
   title: string[];
   /** The title came from a line the OCR read in small letters. */
@@ -24,11 +37,12 @@ export interface Heading {
   qualifiers: string[];
 }
 
-/** A part's name, its word for part however the OCR read it ("Tetl"). */
+/** A part's name, its word for part however the OCR read it ("Tetl"), or as
+ * an older edition spells it (Theil). */
 const PART =
-  /^(erster|zweiter|dritter|vierter|fünfter|[IVX]+\.?)\s+t\S{2,3}$/iu;
-/** A lecture's number, however the OCR read it. */
-const LECTURE = /^\S{1,8}\s*(?:vorlesung|kapitel)$/iu;
+  /^(erster|zweiter|dritter|vierter|fünfter|[IVX]+\.?)\s+(t\S{2,3}|theil)\.?$/iu;
+/** A lecture's or chapter's number, however the OCR read it: Siebentes Kapitel. */
+const LECTURE = /^\S{1,9}\s*(?:vorlesung|kapitel)\.?$/iu;
 /** A roman numeral, with the OCR's usual misreadings of its strokes. */
 const NUMERAL = /^[IVXLHUlıi18Ä|vxTY3]{1,6}[.,]?$/u;
 const LETTER = /^[A-H]\.?$/u;
@@ -60,12 +74,15 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
   if (part?.[1]) {
     const ordinal = part[1];
     const named = /^[IVX]/u.test(ordinal) ? ordinal : capitalised(ordinal);
-    return { kind: "part", text: `${named} Teil` };
+    // The edition's own spelling of the word, which the OCR may misread.
+    const word = /^theil$/iu.test(part[2] ?? "") ? "Theil" : "Teil";
+    return { kind: "part", text: `${named} ${word}` };
   }
   if (LECTURE.test(text)) {
     return {
       kind: "chapter",
-      numeral: text.replace(/\s*(?:vorlesung|kapitel)$/iu, ""),
+      numeral: text.replace(/\s*(?:vorlesung|kapitel)\.?$/iu, ""),
+      named: true,
     };
   }
   // A lone letter that no numeral misreads as is a subsection's.
@@ -76,9 +93,51 @@ export function headingLineOf(line: string, size: number): HeadingLine | null {
     return { kind: "chapter", numeral: text.replace(/[.,]$/u, "") };
   }
   if (QUALIFIER.test(text)) return { kind: "qualifier", text };
-  if (isCapitals(text)) return { kind: "caps", text, size };
+  if (isCapitals(text) || SECTION_NAME.test(text)) {
+    return { kind: "caps", text, size };
+  }
   return null;
 }
+
+/** The most places in a word where a misread t is tried. */
+const MISREAD_PLACES = 5;
+
+/**
+ * A title with the words its type misreads, a t taken for k or l, spelled
+ * as the running text spells them: kürkische, Parlamenk, Diplomalie. A word
+ * the running text uses stays (Werk is not Wert), and one it uses no other
+ * way; a capital is the word's own.
+ */
+export function retitled(text: string, uses: (word: string) => number): string {
+  return text.replace(/\p{L}+/gu, (word) => {
+    if (uses(word) > 0) return word;
+    const letters = [...word];
+    const places = letters
+      .map((letter, index) => (/[kl]/u.test(letter) ? index : -1))
+      .filter((index) => index >= 0)
+      .slice(0, MISREAD_PLACES);
+    const read = Array.from(
+      { length: 2 ** places.length - 1 },
+      (_, mask) => mask + 1,
+    )
+      .map((mask) => ({
+        changed: mask.toString(2).replace(/0/gu, "").length,
+        word: letters
+          .map((letter, index) => {
+            const place = places.indexOf(index);
+            return place >= 0 && (mask >> place) % 2 === 1 ? "t" : letter;
+          })
+          .join(""),
+      }))
+      .sort((a, b) => a.changed - b.changed)
+      .find((variant) => uses(variant.word) > 0);
+    return read?.word ?? word;
+  });
+}
+
+/** A preface's or a closing section's name, numbered or not (Anhang II, Beilagen), a heading however it is set. */
+export const SECTION_NAME: RegExp =
+  /^(?:vorwort|vorrede|einleitung|nachwort|nachtrag|anhang|beilagen?|schluß|schluss)(?:\s+(?:[IVX]+|\d+))?(?:\s+zu[mr]?\s+.+)?[.:]?$/iu;
 
 /** A subtitle is set this much smaller than the title above it. */
 const SUBTITLE_SIZE = 0.85;
@@ -108,9 +167,20 @@ function readHeading(lines: HeadingLine[]): Heading {
             level: 1,
             numbered: true,
             numeral: line.numeral,
+            named: line.named === true,
           };
         case "letter":
-          return { ...heading, level: 2, label: line.letter };
+          return {
+            ...heading,
+            level: /^[α-ω]\)$/u.test(line.letter)
+              ? 4
+              : /^[a-z]\)$/u.test(line.letter)
+                ? 3
+                : 2,
+            label: line.letter,
+          };
+        case "article":
+          return { ...heading, level: 1 };
         case "qualifier":
           return { ...heading, qualifiers: [...heading.qualifiers, line.text] };
         case "caps": {
@@ -140,6 +210,7 @@ function readHeading(lines: HeadingLine[]): Heading {
       label: null,
       numbered: false,
       numeral: null,
+      named: false,
       title: [],
       misread: false,
       qualifiers: [],
@@ -206,14 +277,23 @@ export function createSpelling(texts: string[]): Spelling {
       // A word the page already spells as a word, or an initial, stays as
       // printed.
       // An s after an apostrophe is a possessive, not an initial.
-      const possessive = /['’]$/u.test(capitals.slice(0, offset));
+      const possessive =
+        /['’]$/u.test(capitals.slice(0, offset)) && /^s$/iu.test(word);
+      // A roman numeral (Anhang II) stays in capitals.
       const spelled = possessive
         ? word.toLowerCase()
-        : SPELLED.test(word) || word.length === 1
+        : SPELLED.test(word) || word.length === 1 || /^[IVXL]{2,}$/u.test(word)
           ? word
           : (spelling(word.toLowerCase()) ?? capitalised(word));
-      // A title, or a subtitle after its full stop, opens with a capital.
-      const opens = offset === 0 || /[.:]\s*$/u.test(capitals.slice(0, offset));
+      // A title, or a subtitle after its full stop, opens with a capital;
+      // a date's number (26. und 27. Juni) ends no sentence, and a lettered
+      // label (a) Vogt) keeps its small letter.
+      const before = capitals.slice(0, offset);
+      const opens =
+        offset === 0 ||
+        (/[.:]\s*$/u.test(before) &&
+          !/[\s(]\d{1,2}\.\s*$/u.test(before) &&
+          !/^\p{Ll}\)/u.test(capitals.slice(offset)));
       return opens
         ? spelled.charAt(0).toUpperCase() + spelled.slice(1)
         : spelled;
@@ -286,13 +366,33 @@ function likeness(a: string, b: string): number {
 /** Headings this alike in their letters name the same thing. */
 const ALIKE = 0.5;
 
+/** Names this alike in their letters are one name, however each is printed. */
+const SAME = 0.8;
+
 /**
  * Whether a heading set in capitals reads as the given title, however the OCR
- * spelled it; the heading may run on into a subtitle.
+ * spelled it; the heading may run on into a subtitle. A title named to leave
+ * a section out is read closely, its numbers too: among a volume's many like
+ * titles, one alike in some words is another, and Köln, 3. Juni is not
+ * Köln, 13. Juni.
  */
-export function namesTitle(heading: string, title: string): boolean {
+export function namesTitle(
+  heading: string,
+  title: string,
+  closely = false,
+): boolean {
   const read = letters(heading);
   const known = letters(title);
+  // The heading may run on into a subtitle with numbers of its own.
+  const numbers = (text: string): string[] => text.match(/\d+/gu) ?? [];
+  const named = numbers(title);
+  const printed = numbers(heading);
+  if (closely && named.some((number, index) => printed[index] !== number)) {
+    return false;
+  }
+  // Read closely, the whole heading is the title: one that runs on from it
+  // (Die türkische Frage im Unterhaus) is another.
+  if (closely) return likeness(read, known) >= SAME;
   return (
     Math.max(
       likeness(read, known),
@@ -300,9 +400,6 @@ export function namesTitle(heading: string, title: string): boolean {
     ) >= ALIKE
   );
 }
-
-/** Names this alike in their letters are one name, however each is printed. */
-const SAME = 0.8;
 
 /** Whether two printings name the same heading: a running head and a title. */
 export function sameName(a: string, b: string): boolean {

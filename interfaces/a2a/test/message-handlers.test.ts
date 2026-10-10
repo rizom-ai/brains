@@ -143,3 +143,195 @@ describe("A2A call message handlers", () => {
     expect(fetchFn).not.toHaveBeenCalled();
   });
 });
+
+describe("A2A network ask channel", () => {
+  const sources = [
+    {
+      id: "post:a-piece",
+      title: "A piece",
+      source: "post",
+      url: "https://approved.example/posts/a-piece",
+    },
+  ];
+
+  function citingFetch(): ReturnType<typeof mock> {
+    return mock(async (input: string | URL | Request): Promise<Response> => {
+      const url = String(input);
+      if (url.endsWith("/.well-known/agent-card.json")) {
+        const origin = url.replace("/.well-known/agent-card.json", "");
+        return new Response(
+          JSON.stringify({ name: "Remote", url: `${origin}/a2a` }),
+        );
+      }
+      const events = [
+        {
+          result: {
+            kind: "artifact-update",
+            taskId: "t",
+            artifact: {
+              artifactId: "a",
+              name: "sources",
+              parts: [{ kind: "data", data: { sources } }],
+            },
+          },
+        },
+        {
+          result: {
+            kind: "status-update",
+            final: true,
+            status: {
+              state: "completed",
+              message: { parts: [{ kind: "text", text: "Cited answer" }] },
+            },
+          },
+        },
+      ];
+      return new Response(
+        events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""),
+        { headers: { "Content-Type": "text/event-stream" } },
+      );
+    });
+  }
+
+  /** A peer that never answers: the request settles only when it is aborted. */
+  function hangingFetch(): ReturnType<typeof mock> {
+    return mock(
+      (_input: string | URL | Request, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          const signal = init?.signal;
+          if (!signal) return;
+          if (signal.aborted) reject(signal.reason);
+          signal.addEventListener("abort", () => reject(signal.reason), {
+            once: true,
+          });
+        }),
+    );
+  }
+
+  async function installed(
+    fetchFn: ReturnType<typeof mock>,
+    config: ConstructorParameters<typeof A2AInterface>[0] = {},
+  ): Promise<ReturnType<typeof createPluginHarness>> {
+    const harness = createPluginHarness();
+    harness.addEntities([
+      {
+        id: "approved.example",
+        entityType: "agent",
+        content: "Approved",
+        metadata: { name: "Approved Agent", status: "approved" },
+      },
+      {
+        id: "discovered.example",
+        entityType: "agent",
+        content: "Discovered",
+        metadata: { name: "Discovered Agent", status: "discovered" },
+      },
+    ]);
+    await harness.installPlugin(new A2AInterface(config, { fetch: fetchFn }));
+    return harness;
+  }
+
+  type Bus = ReturnType<
+    ReturnType<
+      ReturnType<typeof createPluginHarness>["getMockShell"]
+    >["getMessageBus"]
+  >;
+  const ask = (
+    harness: ReturnType<typeof createPluginHarness>,
+    agent: string,
+  ): ReturnType<Bus["send"]> =>
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: "a2a:ask:request",
+        payload: { agent, question: "What do you know about gardens?" },
+        sender: "agent",
+      });
+
+  it("returns the peer's answer with its sources", async () => {
+    const fetchFn = citingFetch();
+    const harness = await installed(fetchFn);
+    try {
+      const response = await ask(harness, "approved.example");
+      expect(response).toEqual({
+        success: true,
+        data: { state: "completed", response: "Cited answer", sources },
+      });
+      const sent = fetchFn.mock.calls.find(
+        (call) => call[1] !== undefined && call[1].method === "POST",
+      );
+      const body = String(sent?.[1]?.body);
+      expect(body).toContain("What do you know about gardens?");
+      expect(body).toContain("Answer briefly, from your own public content");
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
+  it("treats a peer's refusal as no answer", async () => {
+    const fetchFn = mock(
+      async (input: string | URL | Request): Promise<Response> => {
+        const url = String(input);
+        if (url.endsWith("/.well-known/agent-card.json")) {
+          const origin = url.replace("/.well-known/agent-card.json", "");
+          return new Response(
+            JSON.stringify({ name: "Remote", url: `${origin}/a2a` }),
+          );
+        }
+        return new Response(
+          `data: ${JSON.stringify({
+            result: {
+              kind: "status-update",
+              final: true,
+              status: {
+                state: "failed",
+                message: {
+                  parts: [{ kind: "text", text: "Over for today." }],
+                },
+              },
+            },
+          })}\n\n`,
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      },
+    );
+    const harness = await installed(fetchFn);
+    try {
+      expect(await ask(harness, "approved.example")).toEqual({
+        success: false,
+        error: "approved.example did not answer: Over for today.",
+      });
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
+  it("refuses peers that are not saved and approved", async () => {
+    const fetchFn = citingFetch();
+    const harness = await installed(fetchFn);
+    try {
+      for (const agent of ["discovered.example", "unknown.example"]) {
+        const response = await ask(harness, agent);
+        expect("success" in response && response.success).toBe(false);
+      }
+      expect(fetchFn).not.toHaveBeenCalled();
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+
+  it("gives up on a peer that does not answer within the ask budget", async () => {
+    const fetchFn = hangingFetch();
+    const harness = await installed(fetchFn, { networkAskTimeoutMs: 20 });
+    try {
+      const response = await ask(harness, "approved.example");
+      expect(response).toEqual({
+        success: false,
+        error: "approved.example did not answer within 20 ms",
+      });
+    } finally {
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    }
+  });
+});

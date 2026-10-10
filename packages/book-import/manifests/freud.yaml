@@ -13,57 +13,57 @@ coverage:
   edition: the Gesammelte Werke, chronologically ordered, edited by Anna Freud and others (Imago, London 1940–52), read from the Internet Archive's scans
   license: The author's text is in the public domain; the editors' prefaces, notes and indexes are left out.
 gaps:
-  - volume: I
+  - citation: GW I
     pages: 37–56
     title: Quelques considérations pour une étude comparative des paralysies motrices organiques et hystériques
     year: 1893
     reason: written in French
-  - volume: I
+  - citation: GW I
     pages: 345–354
     title: Obsessions et phobies
     year: 1895
     reason: written in French
-  - volume: I
+  - citation: GW I
     pages: 405–424
     title: L'hérédité et l'étiologie des névroses
     year: 1896
     reason: written in French
-  - volume: XIII
+  - citation: GW XIII
     pages: 437–438
     title: Preface to J. J. Putnam, Addresses on Psycho-Analysis
     year: 1921
     reason: written in English
-  - volume: XIII
+  - citation: GW XIII
     pages: 439–440
     title: Geleitwort zu J. Varendonck, Über das vorbewußte phantasierende Denken
     year: 1921
     reason: written in English
-  - volume: XIII
+  - citation: GW XIII
     pages: "442"
     title: Brief an Luis Lopez-Ballesteros y de Torres
     year: 1923
     reason: written in Spanish
-  - volume: XIII
+  - citation: GW XIII
     pages: "446"
     title: Zuschrift an die Zeitschrift „Le Disque Vert“
     year: 1924
     reason: written in French
-  - volume: XIV
+  - citation: GW XIV
     pages: 297–308
     title: Psycho-Analysis
     year: 1926
     reason: written in English
-  - volume: XIV
+  - citation: GW XIV
     pages: 556–557
     title: To the Opening of the Hebrew University
     year: 1925
     reason: written in English
-  - volume: XIV
+  - citation: GW XIV
     pages: 558–560
     title: Brief an Maxime Leroy über einen Traum des Cartesius
     year: 1929
     reason: written in French
-  - volume: XVII
+  - citation: GW XVII
     pages: 139–148
     title: Some Elementary Lessons in Psycho-Analysis
     year: 1938
@@ -74,7 +74,7 @@ gaps:
     reason: published in 1987 with an editorial apparatus still in copyright
 books:
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 3
     lastPage: 20
     slug: ein-fall-von-hypnotischer-heilung
@@ -85,7 +85,7 @@ books:
     year: 1892
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 21
     lastPage: 36
     slug: charcot
@@ -95,7 +95,7 @@ books:
     year: 1893
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 57
     lastPage: 75
     slug: die-abwehr-neuropsychosen
@@ -105,7 +105,7 @@ books:
     year: 1894
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 77
     lastPage: 312
     slug: studien-ueber-hysterie
@@ -115,7 +115,7 @@ books:
     year: 1895
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 313
     lastPage: 344
     slug: ueber-die-berechtigung-von-der-neurasthenie-die-angstneurose-abzutrennen
@@ -126,7 +126,7 @@ books:
     year: 1895
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 355
     lastPage: 376
     slug: zur-kritik-der-angstneurose
@@ -137,7 +137,7 @@ books:
     year: 1895
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 377
     lastPage: 404
     slug: weitere-bemerkungen-ueber-die-abwehr-neuropsychosen
@@ -148,7 +148,7 @@ books:
     year: 1896
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 425
     lastPage: 460
     slug: zur-aetiologie-der-hysterie
@@ -158,7 +158,7 @@ books:
     year: 1896
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 461
     lastPage: 490
     slug: inhaltsangaben-der-wissenschaftlichen-arbeiten
@@ -169,7 +169,7 @@ books:
     year: 1897
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 491
     lastPage: 516
     slug: die-sexualitaet-in-der-aetiologie-der-neurosen
@@ -180,7 +180,7 @@ books:
     year: 1898
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 517
     lastPage: 530
     slug: zum-psychischen-mechanismus-der-vergesslichkeit
@@ -191,7 +191,7 @@ books:
     year: 1898
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 531
     lastPage: 556
     slug: ueber-deckerinnerungen
@@ -201,7 +201,7 @@ books:
     year: 1899
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 557
     lastPage: 560
     slug: vorwort-zur-sammlung-kleiner-schriften-zur-neurosenlehre
@@ -212,7 +212,7 @@ books:
     year: 1906
     kind: work
   - item: freud-1952-gw-1
-    volume: I
+    citation: GW I
     firstPage: 561
     lastPage: 574
     slug: einige-nachtraege-zum-ganzen-der-traumdeutung
@@ -223,18 +223,18 @@ books:
     year: 1925
     kind: work
   - item: freud-1942-gw-2-3
-    volume: "II/III"
+    citation: GW II/III
     firstPage: VII
     lastPage: 626
     slug: die-traumdeutung
-    reference: https://www.gutenberg.org/cache/epub/40739/pg40739.txt
+    references: [https://www.gutenberg.org/cache/epub/40739/pg40739.txt]
     title: Die Traumdeutung
     edition: "Gesammelte Werke, Bd. II/III (Imago, London 1942)"
     author: Sigmund Freud
     year: 1900
     kind: work
   - item: freud-1942-gw-2-3
-    volume: "II/III"
+    citation: GW II/III
     firstPage: 643
     lastPage: 700
     slug: ueber-den-traum
@@ -244,11 +244,11 @@ books:
     year: 1901
     kind: work
   - item: freud-1941-gw-4
-    volume: IV
+    citation: GW IV
     firstPage: 1
     lastPage: 310
     slug: zur-psychopathologie-des-alltagslebens
-    reference: https://www.gutenberg.org/cache/epub/24429/pg24429.txt
+    references: [https://www.gutenberg.org/cache/epub/24429/pg24429.txt]
     title: Zur Psychopathologie des Alltagslebens
     shortTitle: Psychopathologie des Alltagslebens
     edition: Gesammelte Werke, Bd. IV (Imago, London 1941)
@@ -256,7 +256,7 @@ books:
     year: 1901
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 1
     lastPage: 10
     slug: die-freudsche-psychoanalytische-methode
@@ -267,7 +267,7 @@ books:
     year: 1904
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 11
     lastPage: 26
     slug: ueber-psychotherapie
@@ -277,11 +277,11 @@ books:
     year: 1905
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 27
     lastPage: 146
     slug: drei-abhandlungen-zur-sexualtheorie
-    reference: https://www.gutenberg.org/cache/epub/39938/pg39938.txt
+    references: [https://www.gutenberg.org/cache/epub/39938/pg39938.txt]
     title: Drei Abhandlungen zur Sexualtheorie
     shortTitle: Drei Abhandlungen
     edition: Gesammelte Werke, Bd. V (Imago, London 1942)
@@ -289,7 +289,7 @@ books:
     year: 1905
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 147
     lastPage: 160
     slug: meine-ansichten-ueber-die-rolle-der-sexualitaet
@@ -300,7 +300,7 @@ books:
     year: 1906
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 161
     lastPage: 286
     slug: bruchstueck-einer-hysterie-analyse
@@ -311,7 +311,7 @@ books:
     year: 1905
     kind: work
   - item: freud-1942-gw-5
-    volume: V
+    citation: GW V
     firstPage: 287
     lastPage: 316
     slug: psychische-behandlung
@@ -322,11 +322,11 @@ books:
     year: 1890
     kind: work
   - item: freud-1940-gw-6
-    volume: VI
+    citation: GW VI
     firstPage: 1
     lastPage: 270
     slug: der-witz-und-seine-beziehung-zum-unbewussten
-    reference: https://www.gutenberg.org/cache/epub/76423/pg76423.txt
+    references: [https://www.gutenberg.org/cache/epub/76423/pg76423.txt]
     title: Der Witz und seine Beziehung zum Unbewußten
     shortTitle: Der Witz
     edition: Gesammelte Werke, Bd. VI (Imago, London 1940)
@@ -334,7 +334,7 @@ books:
     year: 1905
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 1
     lastPage: 16
     slug: tatbestandsdiagnostik-und-psychoanalyse
@@ -345,7 +345,7 @@ books:
     year: 1906
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 17
     lastPage: 28
     slug: zur-sexuellen-aufklaerung-der-kinder
@@ -356,11 +356,11 @@ books:
     year: 1907
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 29
     lastPage: 126
     slug: der-wahn-und-die-traeume-in-w-jensens-gradiva
-    reference: https://www.gutenberg.org/cache/epub/35549/pg35549.txt
+    references: [https://www.gutenberg.org/cache/epub/35549/pg35549.txt]
     title: "Der Wahn und die Träume in W. Jensens „Gradiva“"
     shortTitle: Gradiva
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
@@ -368,7 +368,7 @@ books:
     year: 1907
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 127
     lastPage: 140
     slug: zwangshandlungen-und-religionsuebungen
@@ -379,7 +379,7 @@ books:
     year: 1907
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 141
     lastPage: 168
     slug: die-kulturelle-sexualmoral-und-die-moderne-nervositaet
@@ -390,7 +390,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 169
     lastPage: 188
     slug: ueber-infantile-sexualtheorien
@@ -401,7 +401,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 189
     lastPage: 200
     slug: hysterische-phantasien-und-ihre-beziehung-zur-bisexualitaet
@@ -412,7 +412,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 201
     lastPage: 210
     slug: charakter-und-analerotik
@@ -422,11 +422,11 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 211
     lastPage: 224
     slug: der-dichter-und-das-phantasieren
-    reference: https://www.gutenberg.org/cache/epub/28863/pg28863.txt
+    references: [https://www.gutenberg.org/cache/epub/28863/pg28863.txt]
     title: Der Dichter und das Phantasieren
     shortTitle: Der Dichter
     edition: Gesammelte Werke, Bd. VII (Imago, London 1941)
@@ -434,7 +434,7 @@ books:
     year: 1908
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 225
     lastPage: 232
     slug: der-familienroman-der-neurotiker
@@ -445,7 +445,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 233
     lastPage: 240
     slug: allgemeines-ueber-den-hysterischen-anfall
@@ -456,7 +456,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 241
     lastPage: 378
     slug: analyse-der-phobie-eines-fuenfjaehrigen-knaben
@@ -467,7 +467,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 379
     lastPage: 466
     slug: bemerkungen-ueber-einen-fall-von-zwangsneurose
@@ -478,7 +478,7 @@ books:
     year: 1909
     kind: work
   - item: freud-1941-gw-7
-    volume: VII
+    citation: GW VII
     firstPage: 467
     lastPage: 470
     slug: vorreden-19061909
@@ -489,18 +489,18 @@ books:
     year: 1908
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 1
     lastPage: 61
     slug: ueber-psychoanalyse
-    reference: https://www.gutenberg.org/cache/epub/20613/pg20613.txt
+    references: [https://www.gutenberg.org/cache/epub/20613/pg20613.txt]
     title: Über Psychoanalyse
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
     author: Sigmund Freud
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 62
     lastPage: 64
     slug: zur-einleitung-der-selbstmord-diskussion
@@ -511,9 +511,10 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 65
     lastPage: 92
+    skipPages: [65]
     slug: beitraege-zur-psychologie-des-liebeslebens
     title: Beiträge zur Psychologie des Liebeslebens
     shortTitle: Psychologie des Liebeslebens
@@ -522,7 +523,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 93
     lastPage: 102
     slug: die-psychogene-sehstoerung-in-psychoanalytischer-auffassung
@@ -533,7 +534,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 103
     lastPage: 116
     slug: die-zukuenftigen-chancen-der-psychoanalytischen-therapie
@@ -544,7 +545,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 117
     lastPage: 126
     slug: ueber-wilde-psychoanalyse
@@ -555,11 +556,11 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 127
     lastPage: 212
     slug: eine-kindheitserinnerung-des-leonardo-da-vinci
-    reference: https://www.gutenberg.org/cache/epub/75455/pg75455.txt
+    references: [https://www.gutenberg.org/cache/epub/75455/pg75455.txt]
     title: Eine Kindheitserinnerung des Leonardo da Vinci
     shortTitle: Leonardo da Vinci
     edition: Gesammelte Werke, Bd. VIII (Imago, London 1943)
@@ -567,7 +568,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 213
     lastPage: 222
     slug: ueber-den-gegensinn-der-urworte
@@ -578,7 +579,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 223
     lastPage: 226
     slug: brief-an-friedrich-s-krauss-ueber-die-anthropophyteia
@@ -589,7 +590,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 227
     lastPage: 228
     slug: beispiele-des-verrats-pathogener-phantasien-bei-neurotikern
@@ -600,7 +601,7 @@ books:
     year: 1910
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 229
     lastPage: 238
     slug: formulierungen-ueber-die-zwei-prinzipien-des-psychischen-geschehens
@@ -611,7 +612,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 239
     lastPage: 320
     slug: psychoanalytische-bemerkungen-ueber-einen-fall-von-paranoia
@@ -622,7 +623,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 321
     lastPage: 331
     slug: ueber-neurotische-erkrankungstypen
@@ -633,7 +634,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 332
     lastPage: 346
     slug: zur-einleitung-der-onanie-diskussion
@@ -644,7 +645,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 347
     lastPage: 348
     slug: die-bedeutung-der-vokalfolge
@@ -655,7 +656,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 349
     lastPage: 358
     slug: die-handhabung-der-traumdeutung-in-der-psychoanalyse
@@ -666,7 +667,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 359
     lastPage: 362
     slug: gross-ist-die-diana-der-epheser
@@ -677,7 +678,7 @@ books:
     year: 1911
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 363
     lastPage: 374
     slug: zur-dynamik-der-uebertragung
@@ -688,7 +689,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 375
     lastPage: 388
     slug: ratschlaege-fuer-den-arzt-bei-der-psychoanalytischen-behandlung
@@ -699,7 +700,7 @@ books:
     year: 1912
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 389
     lastPage: 421
     slug: das-interesse-an-der-psychoanalyse
@@ -710,7 +711,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 422
     lastPage: 428
     slug: zwei-kinderluegen
@@ -720,7 +721,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 429
     lastPage: 440
     slug: einige-bemerkungen-ueber-den-begriff-des-unbewussten-in-der-psychoanalyse
@@ -731,7 +732,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 441
     lastPage: 452
     slug: die-disposition-zur-zwangsneurose
@@ -742,7 +743,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1943-gw-8
-    volume: VIII
+    citation: GW VIII
     firstPage: 453
     lastPage: 478
     slug: zur-einleitung-der-behandlung
@@ -753,18 +754,18 @@ books:
     year: 1913
     kind: work
   - item: freud-1940-gw-9
-    volume: IX
+    citation: GW IX
     firstPage: 1
     lastPage: 194
     slug: totem-und-tabu
-    reference: https://www.gutenberg.org/cache/epub/37065/pg37065.txt
+    references: [https://www.gutenberg.org/cache/epub/37065/pg37065.txt]
     title: Totem und Tabu
     edition: Gesammelte Werke, Bd. IX (Imago, London 1940)
     author: Sigmund Freud
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 2
     lastPage: 10
     slug: maerchenstoffe-in-traeumen
@@ -774,7 +775,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 11
     lastPage: 22
     slug: ein-traum-als-beweismittel
@@ -784,11 +785,11 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 23
     lastPage: 38
     slug: das-motiv-der-kaestchenwahl
-    reference: https://www.gutenberg.org/cache/epub/24017/pg24017.txt
+    references: [https://www.gutenberg.org/cache/epub/24017/pg24017.txt]
     title: Das Motiv der Kästchenwahl
     shortTitle: Die Kästchenwahl
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -796,7 +797,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 39
     lastPage: 42
     slug: erfahrungen-und-beispiele-aus-der-analytischen-praxis
@@ -807,7 +808,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 43
     lastPage: 115
     slug: zur-geschichte-der-psychoanalytischen-bewegung
@@ -818,7 +819,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 116
     lastPage: 124
     slug: ueber-fausse-reconnaissance
@@ -829,7 +830,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 125
     lastPage: 136
     slug: erinnern-wiederholen-und-durcharbeiten
@@ -840,7 +841,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 137
     lastPage: 170
     slug: zur-einfuehrung-des-narzissmus
@@ -851,18 +852,18 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 171
     lastPage: 202
     slug: der-moses-des-michelangelo
-    reference: https://www.gutenberg.org/cache/epub/30762/pg30762.txt
+    references: [https://www.gutenberg.org/cache/epub/30762/pg30762.txt]
     title: Der Moses des Michelangelo
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
     author: Sigmund Freud
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 203
     lastPage: 208
     slug: zur-psychologie-des-gymnasiasten
@@ -873,7 +874,7 @@ books:
     year: 1914
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 209
     lastPage: 233
     slug: triebe-und-triebschicksale
@@ -883,7 +884,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 234
     lastPage: 246
     slug: mitteilung-eines-widersprechenden-falles-von-paranoia
@@ -894,7 +895,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 247
     lastPage: 263
     slug: die-verdraengung
@@ -904,7 +905,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 264
     lastPage: 305
     slug: das-unbewusste
@@ -914,7 +915,7 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 306
     lastPage: 322
     slug: bemerkungen-ueber-die-uebertragungsliebe
@@ -925,11 +926,11 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 323
     lastPage: 357
     slug: zeitgemaesses-ueber-krieg-und-tod
-    reference: https://www.gutenberg.org/cache/epub/29941/pg29941.txt
+    references: [https://www.gutenberg.org/cache/epub/29941/pg29941.txt]
     title: Zeitgemäßes über Krieg und Tod
     shortTitle: Krieg und Tod
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -937,22 +938,22 @@ books:
     year: 1915
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 358
     lastPage: 362
     slug: vergaenglichkeit
-    reference: https://www.gutenberg.org/cache/epub/29514/pg29514.txt
+    references: [https://www.gutenberg.org/cache/epub/29514/pg29514.txt]
     title: Vergänglichkeit
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
     author: Sigmund Freud
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 363
     lastPage: 392
     slug: einige-charaktertypen-aus-der-psychoanalytischen-arbeit
-    reference: https://www.gutenberg.org/cache/epub/29101/pg29101.txt
+    references: [https://www.gutenberg.org/cache/epub/29101/pg29101.txt]
     title: Einige Charaktertypen aus der psychoanalytischen Arbeit
     shortTitle: Charaktertypen
     edition: Gesammelte Werke, Bd. X (Imago, London 1946)
@@ -960,7 +961,7 @@ books:
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 393
     lastPage: 396
     slug: eine-beziehung-zwischen-einem-symbol-und-einem-symptom
@@ -971,7 +972,7 @@ books:
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 397
     lastPage: 400
     slug: mythologische-parallele-zu-einer-plastischen-zwangsvorstellung
@@ -982,7 +983,7 @@ books:
     year: 1916
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 401
     lastPage: 411
     slug: ueber-triebumsetzungen-insbesondere-der-analerotik
@@ -993,7 +994,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 412
     lastPage: 427
     slug: metapsychologische-ergaenzung-zur-traumlehre
@@ -1004,7 +1005,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 428
     lastPage: 447
     slug: trauer-und-melancholie
@@ -1014,7 +1015,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1946-gw-10
-    volume: X
+    citation: GW X
     firstPage: 448
     lastPage: 456
     slug: vorreden-19131917
@@ -1025,7 +1026,7 @@ books:
     year: 1913
     kind: work
   - item: freud-1940-gw-11
-    volume: XI
+    citation: GW XI
     firstPage: 3
     lastPage: 482
     slug: vorlesungen-zur-einfuehrung-in-die-psychoanalyse
@@ -1036,11 +1037,11 @@ books:
     year: 1916
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 1
     lastPage: 14
     slug: eine-schwierigkeit-der-psychoanalyse
-    reference: https://www.gutenberg.org/cache/epub/29097/pg29097.txt
+    references: [https://www.gutenberg.org/cache/epub/29097/pg29097.txt]
     title: Eine Schwierigkeit der Psychoanalyse
     shortTitle: Eine Schwierigkeit
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
@@ -1048,11 +1049,11 @@ books:
     year: 1917
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 15
     lastPage: 26
     slug: eine-kindheitserinnerung-aus-dichtung-und-wahrheit
-    reference: https://www.gutenberg.org/cache/epub/29946/pg29946.txt
+    references: [https://www.gutenberg.org/cache/epub/29946/pg29946.txt]
     title: "Eine Kindheitserinnerung aus „Dichtung und Wahrheit“"
     shortTitle: Dichtung und Wahrheit
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
@@ -1060,7 +1061,7 @@ books:
     year: 1917
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 27
     lastPage: 160
     slug: aus-der-geschichte-einer-infantilen-neurose
@@ -1071,7 +1072,7 @@ books:
     year: 1918
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 161
     lastPage: 180
     slug: das-tabu-der-virginitaet
@@ -1081,7 +1082,7 @@ books:
     year: 1918
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 181
     lastPage: 194
     slug: wege-der-psychoanalytischen-therapie
@@ -1092,7 +1093,7 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 195
     lastPage: 228
     slug: ein-kind-wird-geschlagen
@@ -1103,18 +1104,18 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 229
     lastPage: 268
     slug: das-unheimliche
-    reference: https://www.gutenberg.org/cache/epub/34222/pg34222.txt
+    references: [https://www.gutenberg.org/cache/epub/34222/pg34222.txt]
     title: Das Unheimliche
     edition: Gesammelte Werke, Bd. XII (Imago, London 1947)
     author: Sigmund Freud
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 269
     lastPage: 304
     slug: ueber-die-psychogenese-eines-falles-von-weiblicher-homosexualitaet
@@ -1125,7 +1126,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 305
     lastPage: 306
     slug: gedankenassoziation-eines-vierjaehrigen-kindes
@@ -1136,7 +1137,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 307
     lastPage: 314
     slug: zur-vorgeschichte-der-analytischen-technik
@@ -1147,7 +1148,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 315
     lastPage: 320
     slug: gedenkworte-1919
@@ -1158,7 +1159,7 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 321
     lastPage: 330
     slug: vorreden-19171920
@@ -1169,7 +1170,7 @@ books:
     year: 1919
     kind: work
   - item: freud-1947-gw-12
-    volume: XII
+    citation: GW XII
     firstPage: 331
     lastPage: 337
     slug: psychoanalytischer-verlag-und-preiszuteilungen
@@ -1180,22 +1181,22 @@ books:
     year: 1919
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 1
     lastPage: 70
     slug: jenseits-des-lustprinzips
-    reference: https://www.gutenberg.org/cache/epub/28220/pg28220.txt
+    references: [https://www.gutenberg.org/cache/epub/28220/pg28220.txt]
     title: Jenseits des Lustprinzips
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud
     year: 1920
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 71
     lastPage: 162
     slug: massenpsychologie-und-ich-analyse
-    reference: https://www.gutenberg.org/cache/epub/30843/pg30843.txt
+    references: [https://www.gutenberg.org/cache/epub/30843/pg30843.txt]
     title: Massenpsychologie und Ich-Analyse
     shortTitle: Massenpsychologie
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
@@ -1203,18 +1204,18 @@ books:
     year: 1921
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 163
     lastPage: 194
     slug: traum-und-telepathie
-    reference: https://www.gutenberg.org/cache/epub/31560/pg31560.txt
+    references: [https://www.gutenberg.org/cache/epub/31560/pg31560.txt]
     title: Traum und Telepathie
     edition: Gesammelte Werke, Bd. XIII (Imago, London 1940)
     author: Sigmund Freud
     year: 1922
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 195
     lastPage: 208
     slug: ueber-einige-neurotische-mechanismen-bei-eifersucht-paranoia-und-homosexualitaet
@@ -1225,7 +1226,7 @@ books:
     year: 1922
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 209
     lastPage: 234
     slug: psychoanalyse-und-libidotheorie
@@ -1236,7 +1237,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 235
     lastPage: 290
     slug: das-ich-und-das-es
@@ -1246,7 +1247,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 291
     lastPage: 300
     slug: die-infantile-genitalorganisation
@@ -1257,7 +1258,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 301
     lastPage: 314
     slug: bemerkungen-zur-theorie-und-praxis-der-traumdeutung
@@ -1268,7 +1269,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 315
     lastPage: 354
     slug: eine-teufelsneurose-im-siebzehnten-jahrhundert
@@ -1279,7 +1280,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 355
     lastPage: 362
     slug: josef-popper-lynkeus-und-die-theorie-des-traumes
@@ -1290,7 +1291,7 @@ books:
     year: 1923
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 363
     lastPage: 368
     slug: der-realitaetsverlust-bei-neurose-und-psychose
@@ -1301,7 +1302,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 369
     lastPage: 384
     slug: das-oekonomische-problem-des-masochismus
@@ -1312,7 +1313,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 385
     lastPage: 392
     slug: neurose-und-psychose
@@ -1322,7 +1323,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 393
     lastPage: 402
     slug: der-untergang-des-oedipuskomplexes
@@ -1333,7 +1334,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 403
     lastPage: 428
     slug: kurzer-abriss-der-psychoanalyse
@@ -1344,7 +1345,7 @@ books:
     year: 1924
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 429
     lastPage: 434
     slug: nachschrift-zur-analyse-des-kleinen-hans
@@ -1355,7 +1356,7 @@ books:
     year: 1922
     kind: work
   - item: freud-1940-gw-13
-    volume: XIII
+    citation: GW XIII
     firstPage: 435
     lastPage: 445
     skipPages: [437, 438, 439, 440, 442]
@@ -1367,7 +1368,7 @@ books:
     year: 1920
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 3
     lastPage: 8
     slug: notiz-ueber-den-wunderblock
@@ -1378,7 +1379,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 9
     lastPage: 16
     slug: die-verneinung
@@ -1388,7 +1389,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 17
     lastPage: 30
     slug: einige-psychische-folgen-des-anatomischen-geschlechtsunterschieds
@@ -1399,7 +1400,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 31
     lastPage: 98
     slug: selbstdarstellung
@@ -1410,7 +1411,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 99
     lastPage: 110
     slug: die-widerstaende-gegen-die-psychoanalyse
@@ -1421,7 +1422,7 @@ books:
     year: 1925
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 111
     lastPage: 208
     slug: hemmung-symptom-und-angst
@@ -1431,7 +1432,7 @@ books:
     year: 1926
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 209
     lastPage: 296
     slug: die-frage-der-laienanalyse
@@ -1442,7 +1443,7 @@ books:
     year: 1926
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 309
     lastPage: 320
     slug: fetischismus
@@ -1452,7 +1453,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 321
     lastPage: 322
     slug: nachtrag-zur-arbeit-ueber-den-moses-des-michelangelo
@@ -1463,7 +1464,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 323
     lastPage: 382
     slug: die-zukunft-einer-illusion
@@ -1473,7 +1474,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 383
     lastPage: 390
     slug: der-humor
@@ -1483,7 +1484,7 @@ books:
     year: 1927
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 391
     lastPage: 396
     slug: ein-religioeses-erlebnis
@@ -1493,7 +1494,7 @@ books:
     year: 1928
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 397
     lastPage: 418
     slug: dostojewski-und-die-vatertoetung
@@ -1504,7 +1505,7 @@ books:
     year: 1928
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 419
     lastPage: 508
     slug: das-unbehagen-in-der-kultur
@@ -1514,7 +1515,7 @@ books:
     year: 1930
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 509
     lastPage: 516
     slug: ueber-libidinoese-typen
@@ -1525,7 +1526,7 @@ books:
     year: 1931
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 517
     lastPage: 540
     slug: ueber-die-weibliche-sexualitaet
@@ -1536,7 +1537,7 @@ books:
     year: 1931
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 541
     lastPage: 542
     slug: das-fakultaetsgutachten-im-prozess-halsmann
@@ -1547,7 +1548,7 @@ books:
     year: 1931
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 543
     lastPage: 550
     slug: goethe-preis-1930
@@ -1557,10 +1558,14 @@ books:
     year: 1930
     kind: work
   - item: freud-1948-gw-14
-    volume: XIV
+    citation: GW XIV
     firstPage: 551
     lastPage: 574
-    skipHeadings: [To the Opening of the Hebrew University, Brief an Maxim Leroy über einen Traum des Cartesius]
+    skipHeadings:
+      [
+        To the Opening of the Hebrew University,
+        Brief an Maxim Leroy über einen Traum des Cartesius,
+      ]
     slug: gedenkworte-briefe-und-vorreden-19251931
     title: "Gedenkworte, Briefe und Vorreden 1925–1931"
     shortTitle: Gedenkworte, Briefe, Vorreden
@@ -1569,7 +1574,7 @@ books:
     year: 1926
     kind: work
   - item: freud-1940-gw-15
-    volume: XV
+    citation: GW XV
     firstPage: 3
     lastPage: 197
     firstChapter: 29
@@ -1581,7 +1586,7 @@ books:
     year: 1933
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 1
     lastPage: 10
     slug: zur-gewinnung-des-feuers
@@ -1591,7 +1596,7 @@ books:
     year: 1932
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 11
     lastPage: 28
     slug: warum-krieg
@@ -1601,7 +1606,7 @@ books:
     year: 1933
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 29
     lastPage: 34
     slug: nachschrift-zur-selbstdarstellung
@@ -1612,7 +1617,7 @@ books:
     year: 1935
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 35
     lastPage: 40
     slug: die-feinheit-einer-fehlhandlung
@@ -1622,7 +1627,7 @@ books:
     year: 1935
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 41
     lastPage: 58
     slug: konstruktionen-in-der-analyse
@@ -1632,7 +1637,7 @@ books:
     year: 1937
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 59
     lastPage: 100
     slug: die-endliche-und-die-unendliche-analyse
@@ -1642,7 +1647,7 @@ books:
     year: 1937
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 101
     lastPage: 248
     slug: der-mann-moses-und-die-monotheistische-religion
@@ -1653,7 +1658,7 @@ books:
     year: 1939
     kind: work
   - item: freud-1950-gw-16
-    volume: XVI
+    citation: GW XVI
     firstPage: 249
     lastPage: 278
     slug: briefe-gedenkworte-vorreden-19321939
@@ -1664,7 +1669,7 @@ books:
     year: 1935
     kind: work
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 3
     lastPage: 18
     slug: beitraege-zu-den-studien-ueber-hysterie
@@ -1676,7 +1681,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 19
     lastPage: 24
     slug: eine-erfuellte-traumahnung
@@ -1687,7 +1692,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 25
     lastPage: 44
     slug: psychoanalyse-und-telepathie
@@ -1698,7 +1703,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 45
     lastPage: 48
     slug: das-medusenhaupt
@@ -1709,7 +1714,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 49
     lastPage: 56
     slug: ansprache-an-die-mitglieder-des-vereins-bnai-brith
@@ -1721,7 +1726,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 57
     lastPage: 62
     slug: die-ichspaltung-im-abwehrvorgang
@@ -1733,7 +1738,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 63
     lastPage: 138
     slug: abriss-der-psychoanalyse
@@ -1744,7 +1749,7 @@ books:
     kind: work
     published: false
   - item: freud-1941-gw-17
-    volume: XVII
+    citation: GW XVII
     firstPage: 149
     lastPage: 152
     slug: ergebnisse-ideen-probleme

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { expectBodyRoundTrip } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { TemplateCapabilities } from "@brains/templates";
 import {
@@ -7,7 +8,6 @@ import {
 } from "@brains/plugins/test";
 import { ProfessionalSitePlugin } from "../src/plugin";
 import { routes } from "../src/routes";
-import { aboutHighlightsSchema } from "../src/schemas";
 
 const sample = {
   headline: "Builds durable tools for small teams",
@@ -56,11 +56,7 @@ describe("professional site about highlights", () => {
     const formatter = template?.formatter;
     if (!formatter) throw new Error("Template has no formatter");
 
-    const markdown = formatter.format(sample);
-    expect(markdown).toContain(sample.headline);
-    expect(aboutHighlightsSchema.parse(formatter.parse(markdown))).toEqual(
-      sample,
-    );
+    expectBodyRoundTrip(formatter, sample);
   });
 
   it("appears on the about route as a section with no static content", () => {

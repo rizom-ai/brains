@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xmlns:m="http://www.w3.org/1998/Math/MathML" xml:lang="de-DE">
+<teiHeader type="text"><fileDesc><titleStmt><title>MEGA, Zweite Abteilung, Band 1, Teil 1</title></titleStmt>
+<publicationStmt><publisher>Akademie Verlag</publisher><availability status="restricted"><p>copyright Akademie Verlag Berlin</p></availability><date>1976</date></publicationStmt></fileDesc></teiHeader>
+<text n="2/1"><front><div type="editorialHead"><p>Ökonomische Manuskripte 1857/58</p></div></front>
+<group><text n="1"><group>
+<text><front><pb n="3"/><div type="editorialHead"><p rendition="c"><lb/>Bastiat und Carey</p></div></front>
+<body><div1 type="body"><head type="h1"><lb n="1"/>Bastiat. Harmonies Économiques.</head>
+<p><lb n="2"/>Die Geschichte der modernen politischen Oekonomie endet mit Ricardo.</p></div1></body></text>
+<text><front><pb n="49"/><div type="editorialHead"><p rendition="c"><lb/>Grundrisse der Kritik der politischen Ökonomie<lb/>Erster Teil</p></div></front>
+<body><div1 type="body" rend="fwl(Grundrisse...Das Kapitel vom Geld · Heft I)">
+<head type="h1"><lb n="1"/><add resp="ed" type="mpb2">|</add><label type="mpb">I-1</label><add resp="ed" type="mpb2">|</add> Alfred Darimon: De la Réforme des Banques. Paris 1856.</head>
+<div2><head type="h2"><lb n="2"/><hi rendition="i">I.</hi></head>
+<p><lb n="3"/>Der Werth der Waare ist <hi rendition="i">bestimmt</hi> durch die Ar-
+<lb n="4"/>beitszeit<add resp="ed">[,]</add> die im 17<hi rendition="sup">t</hi> Jahrhundert
+<pb ed="manuscript" n="2"/>
+<lb n="5"/>gilt: <formula notation="mathml"><m:math><m:mfrac><m:mtext>1</m:mtext><m:mtext>39</m:mtext></m:mfrac></m:math></formula> des
+<pb n="50"/>
+<lb n="1"/>Einkommens.<ref target="d1e1"><hi rendition="sup">*</hi></ref></p>
+<note type="footnote" xml:id="d1e1"><lb n="30"/><label type="footnote"><hi rendition="sup">*</hi></label> Wie im <hi rendition="i">Geld</hi> der Tauschwerth.</note>
+</div2></div1></body></text>
+</group></text></group></text></TEI>

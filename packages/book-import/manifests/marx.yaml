@@ -1,0 +1,864 @@
+# Karl Marx's works, read from the Deutsches Textarchiv's TEI transcriptions
+# of their first editions (the Brumaire from the second, 1869), and from
+# Wikisource's transcriptions of the Deutsch-Französische Jahrbücher (1844)
+# and of the Thesen über Feuerbach as Engels first printed them (1888). The
+# Textarchiv's transcriptions are under CC BY-SA 4.0, the Manifest's under
+# CC BY-SA 2.0 DE; Wikisource's are of public-domain texts. Of the letters the
+# Jahrbücher print as "Ein Briefwechsel von 1843", only Marx's three are kept;
+# of the first volume of the Briefwechsel with Engels (Project Gutenberg's
+# ebook of the 1921 printing), only Marx's letters, without the editors'
+# introductions and notes; and Marx's German letters of 1866–1871 from
+# MEGAdigital (CC BY-SA 4.0), his letters in English and French left out; and
+# the economic manuscripts of 1857/58 and 1863–65 from MEGAdigital's
+# transcription of MEGA² II/1 (1976–1981) and II/4.1 (1988), whose edition
+# right (§ 70 UrhG) ran out 25 years after each volume appeared; the editors'
+# apparatus and Marx's English "Value, price and profit" are left out.
+# Works printed in Fraktur are read anew from archive.org's scans (`ocr`):
+# Die Klassenkämpfe in Frankreich (1895), and Marx's and the joint writings
+# of 1841–1847 that Franz Mehring collected in Aus dem literarischen Nachlass
+# (1902), without his introductions and notes and without Engels' own pieces.
+# `year` is first publication, for letters the year of the first. The second
+# and third volumes of Das Kapital appeared after Marx's death, edited by
+# Engels; Engels' prefaces to them are left out. The third volume is two
+# books, as printed, each paged on its own.
+source: dta-tei
+coverage:
+  author: Karl Marx
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
+  license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces and introductions are left out.
+gaps:
+  - title: Kritik des Hegelschen Staatsrechts
+    year: 1843
+    reason: no scan of its first printing (MEGA I/1.1, 1927) found on the Internet Archive
+  - title: Ökonomisch-philosophische Manuskripte
+    year: 1844
+    reason: no scan of its first printing (MEGA I/3, 1932) found on the Internet Archive
+  - title: Die deutsche Ideologie
+    year: 1846
+    reason: no scan of its first full printing (MEGA I/5, 1932) found on the Internet Archive; the copies there are later editions of unknown source
+  - title: Briefe an Engels 1854–1883
+    year: 1854
+    reason: of the second to fourth volumes of the Briefwechsel (1913), only the third is identified among the Internet Archive's scans
+  - title: Herr Vogt
+    year: 1860
+    reason: both scans of the first edition (London, 1860) read below the OCR gate, 1 wrong word in 68 and, after 554 fixes from MEW, in 78
+  - title: Inauguraladresse der Internationalen Arbeiter-Assoziation
+    year: 1864
+    reason: no scan of a German edition found on the Internet Archive
+  - title: Lohn, Preis und Profit
+    year: 1865
+    reason: no scan of the German edition (1908) found on the Internet Archive, which holds only a recording
+books:
+  - id: marx_manifestws_1848
+    citation: Manifest
+    slug: manifest-der-kommunistischen-partei
+    title: Manifest der Kommunistischen Partei
+    shortTitle: Kommunistisches Manifest
+    edition: "Manifest der Kommunistischen Partei (London: Office der „Bildungs-Gesellschaft für Arbeiter“, 1848)"
+    author: Karl Marx und Friedrich Engels
+    year: 1848
+    kind: work
+  - id: marx_bonaparte_1869
+    citation: Brumaire
+    slug: der-achtzehnte-brumaire-des-louis-bonaparte
+    title: Der achtzehnte Brumaire des Louis Bonaparte
+    shortTitle: Der achtzehnte Brumaire
+    edition: Der achtzehnte Brumaire des Louis Bonaparte, 2., überarbeitete Auflage (Hamburg, Otto Meißner, 1869)
+    author: Karl Marx
+    year: 1852
+    kind: work
+  - id: marx_kapital01_1867
+    citation: Kapital I
+    slug: das-kapital-1
+    title: "Das Kapital. Erster Band: Der Produktionsprocess des Kapitals"
+    shortTitle: Das Kapital I
+    edition: Das Kapital. Kritik der politischen Oekonomie, Erster Band (Hamburg, Otto Meissner, 1867)
+    author: Karl Marx
+    year: 1867
+    kind: work
+  - id: marx_kapital02_1885
+    citation: Kapital II
+    slug: das-kapital-2
+    title: "Das Kapital. Zweiter Band: Der Cirkulationsprocess des Kapitals"
+    shortTitle: Das Kapital II
+    edition: Das Kapital. Kritik der politischen Oekonomie, Zweiter Band, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1885)
+    author: Karl Marx
+    year: 1885
+    published: false
+    kind: work
+    skipHeadings: [Vorwort]
+  - id: marx_kapital0301_1894
+    citation: Kapital III.1
+    slug: das-kapital-3-1
+    title: "Das Kapital. Dritter Band, erster Theil: Der Gesammtprocess der kapitalistischen Produktion, Kapitel I bis XXVIII"
+    shortTitle: Das Kapital III.1
+    edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, erster Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
+    author: Karl Marx
+    year: 1894
+    published: false
+    kind: work
+    skipHeadings: [Vorwort]
+  - id: marx_kapital0302_1894
+    citation: Kapital III.2
+    slug: das-kapital-3-2
+    title: "Das Kapital. Dritter Band, zweiter Theil: Der Gesammtprocess der kapitalistischen Produktion, Kapitel XXIX bis LII"
+    shortTitle: Das Kapital III.2
+    edition: Das Kapital. Kritik der politischen Oekonomie, Dritter Band, zweiter Theil, hrsg. von Friedrich Engels (Hamburg, Otto Meissner, 1894)
+    author: Karl Marx
+    year: 1894
+    published: false
+    kind: work
+  - source: wikisource
+    page: Ein Briefwechsel von 1843
+    citation: Briefwechsel 1843
+    slug: briefe-aus-den-deutsch-franzoesischen-jahrbuechern
+    title: Briefe aus den Deutsch-Französischen Jahrbüchern
+    shortTitle: Briefe von 1843
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 17–40
+    author: Karl Marx
+    year: 1844
+    kind: letters
+    skipHeadings: [R. an M., B. an R., R. an B., F. an R.]
+  - source: wikisource
+    page: Zur Kritik der Hegel’schen Rechtsphilosophie
+    citation: Rechtsphilosophie
+    slug: zur-kritik-der-hegelschen-rechtsphilosophie-einleitung
+    title: Zur Kritik der Hegel’schen Rechts-Philosophie. Einleitung
+    shortTitle: Zur Kritik der Hegel’schen Rechtsphilosophie
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 71–85
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: wikisource
+    page: Zur Judenfrage
+    citation: Judenfrage
+    slug: zur-judenfrage
+    title: Zur Judenfrage
+    edition: Deutsch-Französische Jahrbücher, hrsg. von Arnold Ruge und Karl Marx (Paris, Bureau der Jahrbücher, 1844), S. 182–214
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: wikisource
+    page: Thesen über Feuerbach
+    citation: Feuerbach-Thesen
+    slug: thesen-ueber-feuerbach
+    title: Thesen über Feuerbach
+    edition: "Anhang zu Friedrich Engels, Ludwig Feuerbach und der Ausgang der klassischen deutschen Philosophie (Stuttgart, J. H. W. Dietz, 1888), S. 69–72"
+    author: Karl Marx
+    year: 1888
+    published: false
+    kind: work
+  - source: gutenberg-letters
+    ebook: 64327
+    citation: Briefwechsel I
+    writer:
+      signatures: [K. M., K. Marx., Marx., M., Ch. M., Karl Marx.]
+      salutations:
+        [
+          Lieber Engels!,
+          Lieber Frederic!,
+          Dear Frederic!,
+          "[Marx an Engels, ohne Anrede.]",
+          "[Marx an Engels ohne Anrede.]",
+        ]
+    slug: briefe-an-engels-1847-1853
+    title: Briefe an Engels 1847–1853
+    edition: Der Briefwechsel zwischen Friedrich Engels und Karl Marx 1844 bis 1883, hrsg. von A. Bebel und Ed. Bernstein, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1921)
+    author: Karl Marx
+    year: 1847
+    published: false
+    kind: letters
+  - source: mega-letters
+    writer: Karl Marx
+    language: de
+    slug: briefe-1866-1871
+    title: Briefe 1866–1871
+    edition: MEGAdigital, Briefe 1866–1871, Berlin-Brandenburgische Akademie der Wissenschaften (megadigital.bbaw.de)
+    author: Karl Marx
+    year: 1866
+    published: false
+    kind: letters
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Bastiat und Carey
+    slug: bastiat-und-carey
+    title: Bastiat und Carey
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1 (Berlin, Dietz, 1976)
+    author: Karl Marx
+    year: 1904
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Einleitung zu den „Grundrissen der Kritik der politischen Ökonomie“
+    slug: einleitung-zur-kritik-der-politischen-oekonomie
+    title: Einleitung zur Kritik der politischen Ökonomie
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1 (Berlin, Dietz, 1976)
+    author: Karl Marx
+    year: 1903
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/1
+    parts:
+      - file: MEGA_A2_B001-01_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Erster Teil
+      - file: MEGA_A2_B001-02_ETX.xml
+        text: Grundrisse der Kritik der politischen Ökonomie Zweiter Teil
+    slug: grundrisse-der-kritik-der-politischen-oekonomie
+    title: Grundrisse der Kritik der politischen Ökonomie
+    shortTitle: Grundrisse
+    edition: Karl Marx, Ökonomische Manuskripte 1857/58, MEGA² II/1.1–1.2 (Berlin, Dietz, 1976–1981)
+    author: Karl Marx
+    year: 1939
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/4.1
+    parts:
+      - file: MEGA_A2_B004-01_ETX.xml
+        text: Das Kapital (Ökonomisches Manuskript 1863-1865) Erstes Buch
+    slug: oekonomisches-manuskript-1863-1865-erstes-buch
+    title: "Das Kapital. Ökonomisches Manuskript 1863–1865, Erstes Buch"
+    shortTitle: Manuskript 1863–65, Erstes Buch
+    edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
+    author: Karl Marx
+    year: 1933
+    published: false
+    kind: nachlass
+  - source: mega-etx
+    citation: MEGA² II/4.1
+    parts:
+      - file: MEGA_A2_B004-01_ETX.xml
+        text: Das Kapital (Ökonomisches Manuskript 1863-1865) Zweites Buch (Manuskript I)
+    slug: oekonomisches-manuskript-1863-1865-zweites-buch
+    title: "Das Kapital. Ökonomisches Manuskript 1863–1865, Zweites Buch (Manuskript I)"
+    shortTitle: Manuskript 1863–65, Zweites Buch
+    edition: Karl Marx, Ökonomische Manuskripte 1863–1867, MEGA² II/4.1 (Berlin, Dietz, 1988)
+    author: Karl Marx
+    year: 1988
+    published: false
+    kind: nachlass
+  - source: archive-ocr
+    item: dieklassenkmpf00marxuoft
+    citation: Klassenkämpfe
+    ocr: frak2021
+    firstPage: 20
+    lastPage: 112
+    # MEW 7, Dietz 1960, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20170119094535id_/http://www.mlwerke.de/me/me07/me07_012.htm
+      - https://web.archive.org/web/20170119094121id_/http://www.mlwerke.de/me/me07/me07_035.htm
+      - https://web.archive.org/web/20170120003310id_/http://www.mlwerke.de/me/me07/me07_064.htm
+      - https://web.archive.org/web/20170119094540id_/http://www.mlwerke.de/me/me07/me07_095.htm
+    slug: die-klassenkaempfe-in-frankreich-1848-bis-1850
+    title: Die Klassenkämpfe in Frankreich 1848 bis 1850
+    shortTitle: Die Klassenkämpfe in Frankreich
+    edition: "Die Klassenkämpfe in Frankreich 1848 bis 1850, Abdruck aus der „Neuen Rheinischen Zeitung. Politisch-ökonomische Revue“, mit Einleitung von Friedrich Engels (Berlin, Vorwärts, 1895)"
+    author: Karl Marx
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 41
+    lastPage: 60
+    # MEW 1, Dietz 1976, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20160612182802id_/http://www.mlwerke.de/me/me01/me01_392.htm
+    slug: kritische-randglossen-zu-dem-artikel-der-koenig-von-preussen-und-die-sozialreform
+    title: "Kritische Randglossen zu dem Artikel: Der König von Preußen und die Sozialreform"
+    shortTitle: Kritische Randglossen
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1844
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 103
+    lastPage: 324
+    # MEW 2, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20000524185220id_/http://www.mlwerke.de:80/me/me02/me02_003.htm
+      - https://web.archive.org/web/20010123075700id_/http://www.mlwerke.de:80/me/me02/me02_007.htm
+      - https://web.archive.org/web/20010123081600id_/http://www.mlwerke.de:80/me/me02/me02_009.htm
+      - https://web.archive.org/web/20010123061800id_/http://www.mlwerke.de:80/me/me02/me02_012.htm
+      - https://web.archive.org/web/20010123082700id_/http://www.mlwerke.de:80/me/me02/me02_017.htm
+      - https://web.archive.org/web/20010425235247id_/http://www.mlwerke.de:80/me/me02/me02_019.htm
+      - https://web.archive.org/web/20001208130600id_/http://www.mlwerke.de:80/me/me02/me02_057.htm
+      - https://web.archive.org/web/20010123083300id_/http://www.mlwerke.de:80/me/me02/me02_082.htm
+      - https://web.archive.org/web/20001208131100id_/http://www.mlwerke.de:80/me/me02/me02_152.htm
+      - https://web.archive.org/web/20020704041655id_/http://mlwerke.de:80/me/me02/me02_172.htm
+      - https://web.archive.org/web/20010426000827id_/http://www.mlwerke.de:80/me/me02/me02_222.htm
+    slug: die-heilige-familie
+    title: Die heilige Familie oder Kritik der kritischen Kritik
+    shortTitle: Die heilige Familie
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx und Friedrich Engels
+    year: 1845
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 414
+    lastPage: 428
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20001001093635id_/http://www.mlwerke.de:80/me/me04/me04_003.htm
+    slug: zirkular-gegen-kriege
+    title: Der Volkstribun, redigirt von Hermann Kriege in New York
+    shortTitle: Zirkular gegen Kriege
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx und Friedrich Engels
+    year: 1846
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 433
+    lastPage: 445
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20010531155020id_/http://www.mlwerke.de:80/me/me04/me04_191.htm
+    slug: der-kommunismus-des-rheinischen-beobachters
+    title: Der Kommunismus des Rheinischen Beobachters
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-2
+    citation: Nachlass II
+    ocr: frak2021
+    firstPage: 454
+    lastPage: 477
+    # MEW 4, Dietz 1972, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/20010531161251id_/http://www.mlwerke.de:80/me/me04/me04_331.htm
+    slug: die-moralisierende-kritik-und-die-kritisierende-moral
+    title: Die moralisirende Kritik und die kritische Moral
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. II (Stuttgart, J. H. W. Dietz Nachf., 1902)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 67
+    lastPage: 118
+    # Marx's own table of contents.
+    skipPages: [69, 70]
+    slug: differenz-der-demokritischen-und-epikureischen-naturphilosophie
+    title: Differenz der demokritischen und epikureischen Naturphilosophie
+    shortTitle: Differenz der Naturphilosophie
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1902
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 142
+    lastPage: 166
+    # MEW 1, Dietz 1976, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/20010219162044id_/http://www.mlwerke.de:80/me/me01/me01_003.htm
+    slug: bemerkungen-ueber-die-neueste-preussische-zensurinstruktion
+    title: Bemerkungen über die neueste preußische Zensurinstruktion
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1843
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 208
+    lastPage: 258
+    references:
+      - https://web.archive.org/web/20020114214805id_/http://www.mlwerke.de:80/me/me01/me01_028.htm
+      - https://web.archive.org/web/20020514182135id_/http://www.mlwerke.de:80/me/me01/me01_033.htm
+      - https://web.archive.org/web/20020725034046id_/http://www.mlwerke.de:80/me/me01/me01_041.htm
+      - https://web.archive.org/web/20030121150543id_/http://www.mlwerke.de:80/me/me01/me01_050.htm
+      - https://web.archive.org/web/20030121145506id_/http://www.mlwerke.de:80/me/me01/me01_060.htm
+      - https://web.archive.org/web/20020514182515id_/http://www.mlwerke.de:80/me/me01/me01_066.htm
+    slug: debatten-ueber-pressfreiheit
+    title: Debatten über Preßfreiheit und Publikation der landständischen Verhandlungen
+    shortTitle: Debatten über Preßfreiheit
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 259
+    lastPage: 267
+    references:
+      - https://web.archive.org/web/20020324155844id_/http://www.mlwerke.de:80/me/me01/me01_086.htm
+    slug: der-leitende-artikel-in-nr-179-der-koelnischen-zeitung
+    title: Der leitende Artikel in Nr. 179 der Kölnischen Zeitung
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 268
+    lastPage: 274
+    references:
+      - https://web.archive.org/web/20020114220020id_/http://www.mlwerke.de:80/me/me01/me01_078.htm
+    slug: das-philosophische-manifest-der-historischen-rechtsschule
+    title: Das philosophische Manifest der historischen Rechtsschule
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 275
+    lastPage: 279
+    references:
+      - https://web.archive.org/web/20001023213931id_/http://www.mlwerke.de:80/me/me01/me01_105.htm
+    # Names and the period's spellings the scan shows printed so.
+    printedWords:
+      [
+        Mephistopheles,
+        Baierin,
+        Sieyes,
+        Berl,
+        debutiren,
+        synthetisiren,
+        Considerant,
+        Glaceephrasen,
+      ]
+    slug: der-kommunismus-und-die-augsburger-allgemeine-zeitung
+    title: Ueber Kommunismus
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: mehring-nachlass-1
+    citation: Nachlass I
+    ocr: frak2021
+    firstPage: 280
+    lastPage: 321
+    references:
+      - https://web.archive.org/web/20020114221307id_/http://www.mlwerke.de:80/me/me01/me01_109.htm
+      - https://web.archive.org/web/20020725100845id_/http://www.mlwerke.de:80/me/me01/me01_116.htm
+      - https://web.archive.org/web/20020514183320id_/http://www.mlwerke.de:80/me/me01/me01_124.htm
+      - https://web.archive.org/web/20020725100928id_/http://www.mlwerke.de:80/me/me01/me01_131.htm
+      - https://web.archive.org/web/20030121150847id_/http://www.mlwerke.de:80/me/me01/me01_139.htm
+    slug: debatten-ueber-das-holzdiebstahlsgesetz
+    title: Debatten über das Holzdiebstahlsgesetz
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
+    author: Karl Marx
+    year: 1842
+    kind: work
+  - source: archive-ocr
+    item: ldpd_14861084_000
+    citation: Elend
+    firstPage: XXVI
+    lastPage: 209
+    # Engels' notes, signed F. E. or speaking of Marx, and the translators'.
+    skipNotes:
+      - { page: 21, opens: "*) Ricärdo bestimmt" }
+      - { page: 26, opens: "*) Der Satz, dass der" }
+      - { page: 26, opens: "1844) und in der" }
+      - { page: 62, opens: "*) Wie jede andere Theorie" }
+      - { page: 69, opens: "*) Titre heisst" }
+      - { page: 103, opens: "*) Dies war vollkommen" }
+      - { page: 177, opens: "*) Das heisst: die damaligen" }
+      - { page: 181, opens: "*) Stände hier im historischen" }
+    # MEW 4 and 16, Dietz 1972 and 1962, as mlwerke.de published them.
+    references:
+      - https://web.archive.org/web/20030511031035id_/http://www.mlwerke.de:80/me/me16/me16_025.htm
+      - https://web.archive.org/web/20010222180609id_/http://www.mlwerke.de:80/me/me04/me04_065.htm
+      - https://web.archive.org/web/20010118055500id_/http://www.mlwerke.de:80/me/me04/me04_125.htm
+      - https://web.archive.org/web/20000602120617id_/http://www.mlwerke.de:80/me/me04/me04_444.htm
+    slug: das-elend-der-philosophie
+    title: Das Elend der Philosophie. Antwort auf Proudhons „Philosophie des Elends“
+    shortTitle: Das Elend der Philosophie
+    edition: Das Elend der Philosophie. Antwort auf Proudhons „Philosophie des Elends“, deutsch von E. Bernstein und K. Kautsky (Stuttgart, J. H. W. Dietz, 1885), with Marx's letter Über P.-J. Proudhon (1865) and his speech on free trade (1848)
+    author: Karl Marx
+    year: 1847
+    kind: work
+  - source: archive-ocr
+    item: theorienberden01marxuoft
+    citation: Theorien I
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 428
+    # Kautsky sets his notes as large as the text and signs them K.
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-1
+    title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
+    shortTitle: Theorien über den Mehrwert I
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Erster Band, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: p1theorienberden02marxuoft
+    citation: Theorien II.1
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 344
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-2-1
+    title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
+    shortTitle: Theorien über den Mehrwert II.1
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Zweiter Band, Erster Teil, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: p2theorienberd02marx
+    citation: Theorien II.2
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 382
+    # The second part goes on with the first's chapter II.
+    firstChapter: 2
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-2-2
+    title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
+    shortTitle: Theorien über den Mehrwert II.2
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Zweiter Band, Zweiter Teil, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1905
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: theorienberden03marxuoft
+    citation: Theorien III
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 600
+    spacedNotes: true
+    skipNotesSigned: [K.]
+    slug: theorien-ueber-den-mehrwert-3
+    title: "Theorien über den Mehrwert. Dritter Band: Von Ricardo zur Vulgärökonomie"
+    shortTitle: Theorien über den Mehrwert III
+    edition: Theorien über den Mehrwert, aus dem nachgelassenen Manuskript „Zur Kritik der politischen Ökonomie“, hg. von Karl Kautsky, Dritter Band (Stuttgart, J. H. W. Dietz Nachf., 1910)
+    author: Karl Marx
+    year: 1910
+    published: false
+    kind: work
+  - source: archive-ocr
+    # Rjasanoff's second volume collects the articles of 1854–1856 by Marx
+    # and by Engels. Engels' own articles are left out, as are four that
+    # neither MEW nor MECW attributes; MECW's attribution decides where MEW
+    # 10 differs (Zur Kritik der Belagerung Sebastopols, Engels).
+    item: gesammelteschrif02marxuoft
+    citation: GS II
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 470
+    datelined: true
+    skipHeadings:
+      - Die Belagerung von Silistria.
+      - Der Angriff auf Sebastopol.
+      - Die Militärmacht Rußlands.
+      - Die Belagerung von Sebastopol.
+      - Die Desorganisation der englischen Militärverwaltung.
+      - Zur Kritik der Belagerung Sebastopols.
+      - Krimsche Angelegenheiten.
+      - Über die letzten Vorgänge in der Krim.
+      - Über die Situation in der Krim.
+      - Kritik des Napoleonischen Moniteurartikels.
+      - Deutschland und der Panslawismus.
+      - Die Organisation.
+      - Die Bewaffnung der britischen Soldaten.
+      - Napier und Graham.
+      - Die Widerstandskraft Rußlands.
+      - Zur Erstürmung Sebastopols.
+    slug: gesammelte-schriften-2
+    title: "Gesammelte Schriften 1852 bis 1862. Zweiter Band: Artikel 1854 bis 1856"
+    shortTitle: Gesammelte Schriften II
+    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, die Übersetzungen aus dem Englischen von Luise Kautsky, Zweiter Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    author: Karl Marx
+    year: 1855
+    kind: work
+  - source: archive-ocr
+    # Mehring's choice from the Neue Rheinische Zeitung, in his groups. The
+    # articles MECW gives to Engels alone are left out: the Frankfurt
+    # Assembly (31 May), the Prague rising, English conditions, and the
+    # groups on the Polish debate, Schleswig-Holstein, Hungary and
+    # democratic Panslavism. The rest are Marx's or the editors', as MEW 5–6
+    # and MECW 7–9 have them.
+    item: mehring-nachlass-3
+    citation: Nachlass III
+    ocr: frak2021
+    firstPage: 87
+    lastPage: 268
+    datelined: true
+    skipHeadings:
+      - Köln, 31. Mai.
+      - Köln, 17. Juni.
+      - Köln, 31. Juli.
+      - Die Polendebatte in Frankfurt.
+      - Der Krieg um Schleswig-Holstein.
+      - Ungarn.
+      - Der demokratische Panslavismus.
+    # MEW 5–6, Dietz 1959, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_029.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_039.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_064.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_085.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_098.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_100.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_104.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_133.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_159.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_166.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_202.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_243.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_278.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_398.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_405.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me05/me05_455.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_007.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_102.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_148.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_503.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_519.htm
+    slug: aus-der-neuen-rheinischen-zeitung
+    title: Aus der Neuen Rheinischen Zeitung
+    shortTitle: Neue Rheinische Zeitung
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
+    author: Karl Marx
+    year: 1848
+    kind: work
+  - source: archive-ocr
+    # Gottfried Kinkel, the reviews and the two Revues, by Marx and Engels;
+    # Engels' Reichsverfassungskampagne and Zehnstundenbill come before.
+    item: mehring-nachlass-3
+    citation: Nachlass III
+    ocr: frak2021
+    firstPage: 396
+    lastPage: 478
+    slug: aus-der-neuen-rheinischen-revue
+    title: Aus der Neuen Rheinischen Zeitung. Politisch-ökonomische Revue
+    shortTitle: Neue Rheinische Revue
+    edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. III (Stuttgart, J. H. W. Dietz Nachf., 2. Aufl. 1913)
+    author: Karl Marx
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    # Rjasanoff's first volume collects the articles of 1852–1854 by Marx
+    # and by Engels. Engels' own articles are left out, and one that
+    # neither MEW nor MECW attributes (Preußische Politik).
+    item: gesammelteschrif01marxuoft
+    citation: GS I
+    ocr: frak2021
+    firstPage: 1
+    lastPage: 442
+    datelined: true
+    skipHeadings:
+      - Der wirkliche Streitpunkt in der Türkei.
+      - Die türkische Frage.
+      - Was soll aus der Europäischen Türkei werden?
+      - Der heilige Krieg.
+      - Der Krieg an der Donau.
+      - Sinope und Achalzych.
+      - Der europäische Krieg.
+      - Der russische Rückzug.
+      - Preußische Politik.
+      - Die Kriegstaten im Baltischen und im Schwarzen Meer. — Englisch-französisches Operationssystem.
+      - Der gegenwärtige Stand der englischen Armee. — Taktik. — Uniformen. — Verpflegungswesen usw.
+    slug: gesammelte-schriften-1
+    title: "Gesammelte Schriften 1852 bis 1862. Erster Band: Artikel 1852 bis 1854"
+    shortTitle: Gesammelte Schriften I
+    edition: Gesammelte Schriften von Karl Marx und Friedrich Engels 1852 bis 1862, hg. von N. Rjasanoff, die Übersetzungen aus dem Englischen von Luise Kautsky, Erster Band (Stuttgart, J. H. W. Dietz Nachf., 1917)
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: archive-ocr
+    # The critique of the Gotha programme as Engels first printed it, from
+    # the manuscript with his omissions marked, in Die Neue Zeit; his preface
+    # before Marx's letter to Bracke is left out.
+    item: ao391_die_neue_zeit
+    citation: Neue Zeit IX.1
+    firstPage: 562
+    lastPage: 575
+    opensWith: London, 5. Mai 1875.
+    # MEW 19, Dietz 1962, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me19/me19_013.htm
+    slug: zur-kritik-des-sozialdemokratischen-parteiprogramms
+    title: Zur Kritik des sozialdemokratischen Parteiprogramms
+    shortTitle: Kritik des Gothaer Programms
+    edition: "Zur Kritik des sozialdemokratischen Parteiprogramms. Aus dem Nachlaß von Karl Marx, Die Neue Zeit, IX. Jahrgang, I. Band, Nr. 18 (Stuttgart, J. H. W. Dietz, 1891)"
+    author: Karl Marx
+    year: 1891
+    published: false
+    kind: work
+  - source: archive-ocr
+    item: zur-kritik-der-politischen-okonomie
+    citation: Kritik
+    ocr: frak2021
+    firstPage: III
+    lastPage: 170
+    # Its notes are set a little smaller than the text, below a rule the OCR
+    # does not read, and run on from page to page.
+    spacedNotes: true
+    # The contents and the list of misprints, between the preface and the text.
+    skipPages: [1, 2]
+    # MEW 13, Dietz 1961, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_007.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_015.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_049.htm
+    slug: zur-kritik-der-politischen-oekonomie
+    title: Zur Kritik der politischen Oekonomie. Erstes Heft
+    shortTitle: Zur Kritik der politischen Oekonomie
+    edition: Zur Kritik der politischen Oekonomie, Erstes Heft (Berlin, Franz Duncker, 1859)
+    author: Karl Marx
+    year: 1859
+    kind: work
+  - source: archive-ocr
+    # Engels's edition, with what Marx added in 1875: his appendix to Herr
+    # Vogt on the Cologne trial and his afterword. Engels's history of the
+    # League that opens it is left out; the addresses of 1850 it appends
+    # follow as works of their own.
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 18
+    lastPage: 74
+    # The addition from Herr Vogt is titled in the text's type.
+    headings:
+      - { page: 64, opens: 1) Beilage 4 }
+    # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_414.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_418.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_431.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_455.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_458.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_465.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me18/me18_568.htm
+    slug: enthuellungen-ueber-den-kommunisten-prozess-zu-koeln
+    title: Enthüllungen über den Kommunistenprozeß zu Köln
+    shortTitle: Enthüllungen
+    edition: Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck, mit Einleitung von Friedrich Engels, und Dokumenten (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: archive-ocr
+    # The first of the two addresses Engels appended to the Enthüllungen,
+    # the second left to its own entry.
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 75
+    lastPage: 83
+    opensWith: Die Zentralbehörde an den Bund.
+    skipHeadings:
+      [Ansprache derselben Zentralbehörde an den Bund vom Juni 1850.]
+    # MEW 7, Dietz 1960, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_244.htm
+    slug: ansprache-der-zentralbehoerde-an-den-bund-vom-maerz-1850
+    title: Ansprache der Zentralbehörde an den Bund vom März 1850
+    shortTitle: Ansprache vom März 1850
+    edition: Anhang zu Karl Marx, Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 83
+    lastPage: 88
+    opensWith: Die Zentralbehörde an den Bund.
+    # Its first section's title the OCR measures larger than the others.
+    headings:
+      - { page: 86, opens: I. Belgien }
+    # MEW 7, Dietz 1960, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_306.htm
+    slug: ansprache-der-zentralbehoerde-an-den-bund-vom-juni-1850
+    title: Ansprache der Zentralbehörde an den Bund vom Juni 1850
+    shortTitle: Ansprache vom Juni 1850
+    edition: Anhang zu Karl Marx, Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    # Engels's translation, printed from the Volksstaat in 1871, with the
+    # address's two appendices; his introduction of 1891 is not in it.
+    item: ldpd_13048930_000
+    citation: Bürgerkrieg
+    ocr: frak2021
+    # Yellowed paper, its lines askew.
+    binarise: true
+    firstPage: 1
+    lastPage: 52
+    # The address opens without a numeral, its second section with II.
+    firstChapter: 2
+    opensWith: Am 4. September
+    # The numerals the scan lost above their sections' first lines.
+    headings:
+      - { page: 11, opens: Paris war das einzige, numeral: II }
+      - { page: 19, opens: Am Morgen des 18. März, numeral: III }
+      - { page: 35, opens: Der erste Versuch der Sklavenhalter, numeral: IV }
+    # MEW 17, Dietz 1962, as mlwerke.de published it: the edition of 1891.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me17/me17_319.htm
+    slug: der-buergerkrieg-in-frankreich
+    title: Der Bürgerkrieg in Frankreich. Adresse des Generalraths der Internationalen Arbeiter-Assoziation an alle Mitglieder in Europa und den Vereinigten Staaten
+    shortTitle: Der Bürgerkrieg in Frankreich
+    edition: Der Bürgerkrieg in Frankreich. Adresse des Generalraths der Internationalen Arbeiter-Assoziation, deutsch von F. Engels, Separatabdruck aus dem Volksstaat (Leipzig, Verlag der Expedition des Volksstaat, 1871)
+    author: Karl Marx
+    year: 1871
+    kind: work
+  - source: archive-ocr
+    # Kautsky's edition of Engels's revised text of 1891: Engels's additions
+    # in square brackets, Marx's own wording of 1849 where Engels changed it
+    # in the notes. Kautsky's preface and Engels's introduction are left out.
+    item: lohnarbeitundka00marxgoog
+    citation: Lohnarbeit
+    ocr: frak2021
+    firstPage: 15
+    lastPage: 40
+    # Its notes are set nearly as large as the text, below a rule the OCR
+    # reads as specks.
+    spacedNotes: true
+    # MEW 6, Dietz 1959, as mlwerke.de published it: the text of 1849.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_397.htm
+    slug: lohnarbeit-und-kapital
+    title: Lohnarbeit und Kapital
+    shortTitle: Lohnarbeit und Kapital
+    edition: Lohnarbeit und Kapital, Separat-Abdruck aus der „Neuen Rheinischen Zeitung“ vom Jahre 1849, neu herausgegeben von K. Kautsky, mit einer Einleitung von Friedrich Engels (Berlin, Buchhandlung Vorwärts, 1908)
+    author: Karl Marx
+    year: 1849
+    kind: work

@@ -1,7 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pageLeaf, pageText } from "./adapters/archive-ocr";
-import { fetchVolumeHocr, parseManifest } from "./import-books";
+import {
+  firstOfEachVolume,
+  parseManifest,
+  scannedBooks,
+  volumeHocr,
+} from "./import-books";
+import { importerPageOcr } from "./page-ocr";
 import { createImporterFetch } from "./polite-fetch";
 
 /** The printed pages of one work in a volume. */
@@ -98,18 +104,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const manifest = parseManifest(await readFile(manifestPath, "utf8"));
-  if (manifest.source !== "archive-ocr") {
-    console.error("The OCR gate reads archive-ocr manifests.");
-    process.exit(1);
-  }
+  const books = scannedBooks(manifest);
   const fetchText = createImporterFetch();
-  const items = [...new Set(manifest.books.map((book) => book.item))];
-  await items.reduce(async (done, item) => {
+  await firstOfEachVolume(books).reduce(async (done, first) => {
     await done;
-    const hocr = await fetchVolumeHocr(item, fetchText);
+    const item = first.item;
+    const hocr = await volumeHocr(first, fetchText, importerPageOcr(fetchText));
     const pages = samplePages(
       item,
-      manifest.books.filter((book) => book.item === item),
+      books.filter((book) => book.item === item),
       PAGES_PER_VOLUME,
     );
     const dir = join(outDir, item);

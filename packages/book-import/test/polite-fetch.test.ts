@@ -50,6 +50,27 @@ describe("createPoliteFetch", () => {
     expect(calls[0]?.userAgent).toBe("book-import (test@example.org)");
   });
 
+  it("sends the headers a source asks for", async () => {
+    const sent: Array<Record<string, string>> = [];
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 0,
+      headersFor: (url) =>
+        url.includes("textarchiv") ? { cookie: "verified=1" } : {},
+      fetchFn: async (_, init) => {
+        sent.push(init.headers);
+        return new Response("text");
+      },
+    });
+
+    await get("https://www.deutschestextarchiv.de/book/download_xml/x");
+    await get("https://example.org/y");
+
+    expect(sent[0]?.["cookie"]).toBe("verified=1");
+    expect(sent[1]?.["cookie"]).toBeUndefined();
+  });
+
   it("keeps requests at least the minimum interval apart", async () => {
     const { calls, fetchFn } = recorder();
     const get = createPoliteFetch({
@@ -69,6 +90,36 @@ describe("createPoliteFetch", () => {
       .slice(1)
       .map((call, index) => call.at - (calls[index]?.at ?? 0));
     expect(gaps).toHaveLength(2);
+    expect(gaps.every((gap) => gap >= 45)).toBe(true);
+  });
+
+  it("fetches bytes in the same queue, at the same interval, without keeping them", async () => {
+    const { calls, fetchFn } = recorder();
+    const get = createPoliteFetch({
+      cacheDir,
+      userAgent: "book-import (test@example.org)",
+      minIntervalMs: 50,
+      fetchFn,
+    });
+
+    const [, image, again] = await Promise.all([
+      get("https://example.org/page"),
+      get.bytes("https://example.org/n1.jpg"),
+      get.bytes("https://example.org/n1.jpg"),
+    ]);
+
+    expect(new TextDecoder().decode(image)).toBe(
+      "body of https://example.org/n1.jpg",
+    );
+    expect(again).toEqual(image);
+    expect(calls.map((call) => call.url).sort()).toEqual([
+      "https://example.org/n1.jpg",
+      "https://example.org/n1.jpg",
+      "https://example.org/page",
+    ]);
+    const gaps = calls
+      .slice(1)
+      .map((call, index) => call.at - (calls[index]?.at ?? 0));
     expect(gaps.every((gap) => gap >= 45)).toBe(true);
   });
 

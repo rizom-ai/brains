@@ -159,6 +159,10 @@ freud-1940-gw-13:
     from: Habe ich Lei Ihnen den
     to: Habe ich bei Ihnen den
     by: reference
+  - page: 318
+    from: ki HAITZMANN
+    to: HAITZMANN
+    by: scan
 freud-1940-gw-6:
   - page: 6
     from: welches den kömisehen Kontrast erzeugt
@@ -895,6 +899,14 @@ freud-1941-gw-7:
     from: Schiffes im’ Seesturme geendigt hat
     to: Schiffes im Seesturm geendigt hat
     by: reference
+  - page: 417
+    from: J Die Krankheitsveranlassung
+    to: f) Die Krankheitsveranlassung
+    by: scan
+  - page: 421
+    from: 8) Der Vaterkomplex und die Lösung der Rattenidee
+    to: g) Der Vaterkomplex und die Lösung der Rattenidee
+    by: scan
   - page: 432
     from: (Enthalten in Ba.VIlI dieser
     to: (Enthalten in Bd. VII dieser
@@ -922,6 +934,10 @@ freud-1941-gw-7:
   - page: 432
     from: Weffenübung daß Oblt. A.
     to: daß Oblt. A.
+    by: scan
+  - page: 439
+    from: a) Einige allgemeine Charaktere der Zwangsbildungen'
+    to: a) Einige allgemeine Charaktere der Zwangsbildungen
     by: scan
 freud-1942-gw-2-3:
   - page: 4
@@ -1609,6 +1625,10 @@ freud-1942-gw-5:
     from: habe ich nfir detaillierte Nachweise
     to: habe ich mir detaillierte Nachweise
     by: reference
+  - page: 34
+    from: ¹) Abweichungen in Bezug auf das Sexualobjekt
+    to: 1) Abweichungen in Bezug auf das Sexualobjekt
+    by: scan
   - page: 42
     from: Aufsatz (Les aberrations de l
     to: Aufsatz (Les abérrations de l
@@ -1633,6 +1653,10 @@ freud-1942-gw-5:
     from: Ein gewisses MaB von Tasten
     to: Ein gewisses Maß von Tasten
     by: reference
+  - page: 55
+    from: b) Fizierungen von vorläufigen Sexualzielen
+    to: b) Fixierungen von vorläufigen Sexualzielen
+    by: scan
   - page: 56
     from: bei den Exhibit‘onisten der Fall
     to: bei den Exhibitionisten der Fall
@@ -1641,6 +1665,10 @@ freud-1942-gw-5:
     from: Sadismus und issschäckinik nehmen unter
     to: Sadismus und Masochismus nehmen unter
     by: reference
+  - page: 62
+    from: 4) Der Sexualtrieb bei. den. Neurotikern
+    to: 4) Der Sexualtrieb bei den Neurotikern
+    by: scan
   - page: 63
     from: beseitigt die Sahra Hysterischer unter
     to: beseitigt die Symptome Hysterischer unter
@@ -1673,6 +1701,10 @@ freud-1942-gw-5:
     from: Patientinnen mit EBßBstörungen, hysterischem Globus
     to: Patientinnen mit Eßstörungen, hysterischem Globus
     by: reference
+  - page: 86
+    from: Die masturbatorischen Sexualäußerungen’
+    to: Die masturbatorischen Sexualäußerungen
+    by: scan
   - page: 92
     from: an der EntblößBung seines Körpers
     to: an der Entblößung seines Körpers
@@ -2169,6 +2201,18 @@ freud-1948-gw-14:
     from: von I. Th. L.ooney
     to: von I. Th. Looney
     by: scan
+  - page: 572
+    from: zur Broschüre „ZEHN JAHRE BERLINER PSYCHO-
+    to: zur Broschüre „Zehn Jahre Berliner Psychoanalytisches Institut“.
+    by: scan
+  - page: 572
+    from: ANALYTISCHES INSTITUT“. Wien, Internationaler Psychoanalyti-
+    to: Wien, Internationaler Psychoanalytischer Verlag, 1930.
+    by: scan
+  - page: 572
+    from: scher Verlag, 1930.
+    to: ""
+    by: scan
 freud-1952-gw-1:
   - page: 220
     from: ‚ weil sie meinte,
@@ -2193,4 +2237,21 @@ freud-1952-gw-1:
   - page: 220
     from: rg anlangE nicht teilnehmen, er zog es vor, bei
     to: wollte der Schwager anfangs nicht teilnehmen, er zog es vor, bei
+    by: scan
+  - page: 565
+    from: b) Die sittliche Verantwortung für den Inhalt der
+    to: ""
+    by: scan
+  - page: 565
+    from: I’räume
+    to: b) Die sittliche Verantwortung für den Inhalt der Träume
+    by: scan
+freud-1950-gw-16:
+  - page: 219
+    from: c) Der Fortschrüt in der Geistigkeit
+    to: c) Der Fortschritt in der Geistigkeit
+    by: scan
+  - page: 233
+    from: f) Die Wiederkehr des V erdrängten
+    to: f) Die Wiederkehr des Verdrängten
     by: scan
