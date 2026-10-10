@@ -1510,7 +1510,7 @@ describe("parseArchiveOcrWork, datelined articles", () => {
   it("leaves out an article and its parts by the article's title", async () => {
     const units = await articles([
       "Die Belagerung von Silistria.",
-      "Die Handelskrise.",
+      "Die Handelskrise im Parlament.",
     ]);
 
     expect(units.map((unit) => unit.title)).toEqual([

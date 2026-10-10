@@ -4,6 +4,7 @@ import {
   headingLineOf,
   headingOf,
   isWordy,
+  namesTitle,
   retitled,
 } from "../src/adapters/archive-ocr-headings";
 
@@ -153,5 +154,20 @@ describe("retitled", () => {
     expect(retitled("Das Werk.", uses({ werk: 1, wert: 50 }))).toBe(
       "Das Werk.",
     );
+  });
+});
+
+describe("namesTitle, closely", () => {
+  it("names a heading by its whole title, not one that runs on from it", () => {
+    expect(
+      namesTitle("Die türkische Frage.", "Die türkische Frage.", true),
+    ).toBe(true);
+    expect(
+      namesTitle(
+        "Die türkische Frage im Unterhaus.",
+        "Die türkische Frage.",
+        true,
+      ),
+    ).toBe(false);
   });
 });

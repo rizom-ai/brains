@@ -371,11 +371,14 @@ export function namesTitle(
   if (closely && named.some((number, index) => printed[index] !== number)) {
     return false;
   }
+  // Read closely, the whole heading is the title: one that runs on from it
+  // (Die türkische Frage im Unterhaus) is another.
+  if (closely) return likeness(read, known) >= SAME;
   return (
     Math.max(
       likeness(read, known),
       likeness(read.slice(0, known.length + 2), known),
-    ) >= (closely ? SAME : ALIKE)
+    ) >= ALIKE
   );
 }
 
