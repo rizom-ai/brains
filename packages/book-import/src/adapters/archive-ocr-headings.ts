@@ -100,16 +100,16 @@ const MISREAD_PLACES = 5;
 
 /**
  * A title with the words its type misreads, a t taken for k or l, spelled
- * as the text spells them: Parkeien, Diplomalie, Kabinelks. A word the text
- * uses beyond the title itself stays, and one it knows no other way; a
- * word's first letter is its own.
+ * as the running text spells them: kürkische, Parlamenk, Diplomalie. A word
+ * the running text uses stays (Werk is not Wert), and one it uses no other
+ * way; a capital is the word's own.
  */
 export function retitled(text: string, uses: (word: string) => number): string {
   return text.replace(/\p{L}+/gu, (word) => {
-    if (uses(word) > 1) return word;
+    if (uses(word) > 0) return word;
     const letters = [...word];
     const places = letters
-      .map((letter, index) => (index > 0 && /[kl]/u.test(letter) ? index : -1))
+      .map((letter, index) => (/[kl]/u.test(letter) ? index : -1))
       .filter((index) => index >= 0)
       .slice(0, MISREAD_PLACES);
     const read = Array.from(
@@ -126,7 +126,7 @@ export function retitled(text: string, uses: (word: string) => number): string {
           .join(""),
       }))
       .sort((a, b) => a.changed - b.changed)
-      .find((variant) => uses(variant.word) > 1);
+      .find((variant) => uses(variant.word) > 0);
     return read?.word ?? word;
   });
 }
@@ -217,8 +217,6 @@ export interface Spelling {
   cased: (capitals: string) => string;
   /** Whether the text uses a word, however it is cased. */
   knows: (word: string) => boolean;
-  /** How often the text uses a word, however it is cased. */
-  uses: (word: string) => number;
 }
 
 /**
@@ -282,15 +280,9 @@ export function createSpelling(texts: string[]): Spelling {
         : spelled;
     });
   };
-  const key = (word: string): string => word.toLowerCase().replace(/ı/gu, "i");
   return {
     cased,
-    knows: (word) => spelling(key(word)) !== null,
-    uses: (word) =>
-      [...(counts.get(key(word))?.values() ?? [])].reduce(
-        (sum, count) => sum + count,
-        0,
-      ),
+    knows: (word) => spelling(word.toLowerCase().replace(/ı/gu, "i")) !== null,
   };
 }
 

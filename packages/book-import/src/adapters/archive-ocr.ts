@@ -1929,9 +1929,7 @@ export function parseArchiveOcrWork(
     spacedNotes: work.spacedNotes === true,
     datelined: work.datelined === true,
   };
-  // A title is spelled as the text spells it, its misread letters too.
-  const cased = (capitals: string): string =>
-    volume.spelling.cased(retitled(capitals, volume.spelling.uses));
+  const { cased } = volume.spelling;
   const labelOf = (number: number, leaf: number): string =>
     number < 1 && front !== null ? roman(leaf + front) : String(number);
   const firstPage =
@@ -1991,10 +1989,19 @@ export function parseArchiveOcrWork(
 
   const filled = sections.filter((section) => section.paragraphs.length > 0);
   const steps = [...new Set(filled.flatMap((section) => section.path))];
+  // A title is spelled as the running text spells it, its misread type too.
+  const running = filled
+    .flatMap((section) => section.paragraphs)
+    .flatMap((block) => block.text.toLowerCase().match(/\p{L}+/gu) ?? [])
+    .reduce(
+      (tally, word) => tally.set(word, (tally.get(word) ?? 0) + 1),
+      new Map<string, number>(),
+    );
+  const uses = (word: string): number => running.get(word.toLowerCase()) ?? 0;
   const titles = new Map(
     steps.map((step) => [
       step,
-      titleOf(step, namedByHeads(step, filled, volume)),
+      titleOf(step, retitled(namedByHeads(step, filled, volume), uses)),
     ]),
   );
   // A ß the OCR read as B is read as ß again, words it ran together in

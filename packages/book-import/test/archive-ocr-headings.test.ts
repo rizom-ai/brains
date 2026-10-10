@@ -4,6 +4,7 @@ import {
   headingLineOf,
   headingOf,
   isWordy,
+  retitled,
 } from "../src/adapters/archive-ocr-headings";
 
 describe("createSpelling", () => {
@@ -130,5 +131,27 @@ describe("createSpelling, apostrophes", () => {
       "Oder Clemence d'Harville.",
     );
     expect(cased("FREUD'S TRÄUME")).toBe("Freud's Träume");
+  });
+});
+
+describe("retitled", () => {
+  const uses =
+    (counts: Record<string, number>) =>
+    (word: string): number =>
+      counts[word.toLowerCase()] ?? 0;
+
+  it("spells a title word the text never uses as the text spells it with a t for a k or l", () => {
+    expect(
+      retitled(
+        "Die kürkische Frage im Parlamenk. — Russische Diplomalie.",
+        uses({ türkische: 5, parlament: 3, diplomatie: 1 }),
+      ),
+    ).toBe("Die türkische Frage im Parlament. — Russische Diplomatie.");
+  });
+
+  it("leaves a word the text uses, however much more it uses a t", () => {
+    expect(retitled("Das Werk.", uses({ werk: 1, wert: 50 }))).toBe(
+      "Das Werk.",
+    );
   });
 });
