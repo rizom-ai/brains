@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- [#593](https://github.com/rizom-ai/brains/pull/593) [`2490d2a`](https://github.com/rizom-ai/brains/commit/2490d2aa5ce6267e30d209608b43694ae37b97b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain no longer copies what other brains publish. The `network-piece` entity type, its daily sync and its citations are gone; the live `network_ask` lane answers from other brains instead. On start, a brain deletes the pieces it kept before, with their search index, embeddings and files. FAQs no longer wait for review when a cited piece is withdrawn. The entity service can purge a type no plugin registers any more (`purgeEntityType`).
+
 ## 0.2.0-alpha.519
 
 ### Patch Changes

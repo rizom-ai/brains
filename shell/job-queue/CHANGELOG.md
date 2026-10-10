@@ -1,5 +1,16 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.520
+  - @brains/db@0.2.0-alpha.520
+  - @brains/operation-context@0.2.0-alpha.520
+  - @brains/utils@0.2.0-alpha.520
+  - @brains/mcp-service@0.2.0-alpha.520
+
 ## 0.2.0-alpha.519
 
 ### Patch Changes

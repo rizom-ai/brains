@@ -625,6 +625,7 @@
     "core--rejected-tool-attempts",
     "core--release-config-workspace-guard",
     "core--relicense-agpl-apache-split",
+    "core--remove-network-pieces",
     "core--remove-obsolete-auth-compatibility",
     "core--remove-public-headless-chat-contract",
     "core--remove-service-singletons",
