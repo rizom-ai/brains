@@ -184,7 +184,6 @@ describe("canonical brain core", () => {
       "agent-discovery",
       "agent",
       "skill",
-      "network-pieces",
       "unified-inbox",
       "mcp",
       "a2a",

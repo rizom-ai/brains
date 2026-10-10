@@ -64,17 +64,6 @@ function toItem({ entity, frontmatter, alternatives }: ParsedFaq): InboxItem[] {
         ],
       },
     ];
-  if (frontmatter.review === "source-withdrawn")
-    return [
-      {
-        ...base,
-        summary: `A cited piece left the network. ${asked(frontmatter.asked)}`,
-        actions: [
-          { id: "keep-published", label: "Keep the answer" },
-          { id: "unpublish", label: "Take it down", confirm: true },
-        ],
-      },
-    ];
   if (alternatives.length === 0) return [];
   const actions: InboxAction[] = [
     ...alternatives.slice(0, MAX_ALTERNATIVES).map((_alternative, index) => ({
@@ -172,31 +161,6 @@ export class FaqInboxSource implements InboxSource {
       return;
     }
 
-    if (actionId === "keep-published" || actionId === "unpublish") {
-      this.allow("update", actor);
-      if (faq.frontmatter.review !== "source-withdrawn")
-        throw new Error("Invalid FAQ inbox action");
-      const { review: _review, ...rest } = faq.frontmatter;
-      const settled: FaqFrontmatter = {
-        ...rest,
-        status: actionId === "unpublish" ? "draft" : rest.status,
-      };
-      const reviewed = await this.context.entityService.updateEntity({
-        entity: {
-          ...faq.entity,
-          content: faqAdapter.createFaqContent(
-            settled,
-            faq.answer,
-            faq.alternatives,
-          ),
-          metadata: faqMetadata(settled),
-        },
-        options: { expectedContentHash: faq.entity.contentHash },
-      });
-      if (reviewed.skipped)
-        throw new Error("The FAQ changed meanwhile; try again");
-      return;
-    }
     // Moving a draft to `published` is the publish entity action.
     this.allow(actionId === "publish" ? "publish" : "update", actor);
     const chosen = this.chosenAnswer(faq, actionId);

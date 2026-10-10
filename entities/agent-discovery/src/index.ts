@@ -6,7 +6,6 @@ import {
   agentToolsPlugin,
 } from "./plugins/agent-tools-plugin";
 import { skillPlugin } from "./plugins/skill-plugin";
-import { networkPiecePlugin } from "./plugins/network-piece-plugin";
 
 export {
   AgentDiscoveryPlugin,
@@ -58,7 +57,6 @@ export function agentDiscovery(
     agentDiscoveryPlugin(),
     agentToolsPlugin(agentToolsConfig),
     skillPlugin({ enableSkillDerivation }),
-    networkPiecePlugin(),
   ];
 }
 
@@ -80,22 +78,6 @@ export {
 } from "./schemas/agent";
 
 export { AgentAdapter } from "./adapters/agent-adapter";
-export {
-  NetworkPiecePlugin,
-  networkPiecePlugin,
-  NETWORK_PIECES_PLUGIN_ID,
-} from "./plugins/network-piece-plugin";
-export {
-  NetworkPieceAdapter,
-  networkPieceId,
-} from "./adapters/network-piece-adapter";
-export {
-  NETWORK_PIECE_ENTITY_TYPE,
-  networkPieceSchema,
-  type NetworkPieceEntity,
-  type NetworkPieceMetadata,
-} from "./schemas/network-piece";
-export { syncNetworkPieces } from "./lib/network-pieces-sync";
 export { AgentDataSource } from "./datasources/agent-datasource";
 export { ProximityMapDataSource } from "./datasources/proximity-map-datasource";
 export { AgentProximityMapTemplate } from "./templates/proximity-map-template";

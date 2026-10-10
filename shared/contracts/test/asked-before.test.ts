@@ -14,8 +14,8 @@ describe("a question asked before", () => {
     answer: "In the brains of the people who hold it.",
     sources: [
       {
-        id: "network-piece:plc-peer--post--3kabc",
-        source: "network-piece",
+        id: "post:handoffs",
+        source: "post",
         title: "Handoffs between teams",
         url: "https://becca.rizom.ai/essays/handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },

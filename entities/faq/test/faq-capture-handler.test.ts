@@ -219,10 +219,10 @@ describe("FaqCaptureHandler", () => {
             id: "sources:tool-results",
             sources: [
               {
-                id: "network-piece:plc-peer--post--3kabc",
-                source: "network-piece",
-                entityType: "network-piece",
-                entityId: "plc-peer--post--3kabc",
+                id: "post:handoffs",
+                source: "post",
+                entityType: "post",
+                entityId: "handoffs",
                 title: "Handoffs between teams",
                 url: "https://becca.rizom.ai/essays/handoffs",
                 excerpt:
@@ -255,7 +255,7 @@ describe("FaqCaptureHandler", () => {
       faqAdapter.parseFaqContent(faq?.content ?? "").frontmatter.sources,
     ).toEqual([
       {
-        id: "network-piece:plc-peer--post--3kabc",
+        id: "post:handoffs",
         title: "Handoffs between teams",
         url: "https://becca.rizom.ai/essays/handoffs",
         excerpt: "Before anyone leaves a task we write three things down.",
