@@ -775,3 +775,31 @@ books:
     author: Karl Marx und Friedrich Engels
     year: 1850
     kind: work
+  - source: archive-ocr
+    # Engels's translation, printed from the Volksstaat in 1871, with the
+    # address's two appendices; his introduction of 1891 is not in it.
+    item: ldpd_13048930_000
+    citation: Bürgerkrieg
+    ocr: frak2021
+    # Yellowed paper, its lines askew.
+    binarise: true
+    firstPage: 1
+    lastPage: 52
+    # The address opens without a numeral, its second section with II.
+    firstChapter: 2
+    opensWith: Am 4. September
+    # The numerals the scan lost above their sections' first lines.
+    headings:
+      - { page: 11, opens: Paris war das einzige, numeral: II }
+      - { page: 19, opens: Am Morgen des 18. März, numeral: III }
+      - { page: 35, opens: Der erste Versuch der Sklavenhalter, numeral: IV }
+    # MEW 17, Dietz 1962, as mlwerke.de published it: the edition of 1891.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me17/me17_319.htm
+    slug: der-buergerkrieg-in-frankreich
+    title: Der Bürgerkrieg in Frankreich. Adresse des Generalraths der Internationalen Arbeiter-Assoziation an alle Mitglieder in Europa und den Vereinigten Staaten
+    shortTitle: Der Bürgerkrieg in Frankreich
+    edition: Der Bürgerkrieg in Frankreich. Adresse des Generalraths der Internationalen Arbeiter-Assoziation, deutsch von F. Engels, Separatabdruck aus dem Volksstaat (Leipzig, Verlag der Expedition des Volksstaat, 1871)
+    author: Karl Marx
+    year: 1871
+    kind: work

@@ -48,9 +48,9 @@ export interface ArchiveOcrWork {
   /**
    * Headings set in the text's type, by the line that opens them: a numbered
    * or lettered one keeps its label, one without opens a chapter numbered by
-   * place.
+   * place; a section's numeral the scan lost stands above it.
    */
-  headings?: PageLine[];
+  headings?: Array<PageLine & { numeral?: string | undefined }>;
   /**
    * An editor's signatures (K.): the notes ending in one are the editor's,
    * and so are paragraphs ending in one, notes the page set as text.
@@ -670,7 +670,7 @@ interface Volume {
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
-  headingOpenings?: string[];
+  headingOpenings?: Array<{ opens: string; numeral?: string }>;
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -1222,7 +1222,24 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     volume.datelined === true
       ? articleLinesOf(textLines, page, volume, margin)
       : new Map<number, ArticleLine>();
-  return headless.reduce<Piece[]>((pieces, line, index) => {
+  return headless.reduce<Piece[]>((earlier, line, index) => {
+    // A section's numeral the scan lost stands above the line the manifest
+    // names; the line stays the section's text.
+    const lost = (volume.headingOpenings ?? []).find(
+      (opening) =>
+        opening.numeral !== undefined && line.text.startsWith(opening.opens),
+    )?.numeral;
+    const pieces: Piece[] =
+      lost === undefined
+        ? earlier
+        : [
+            ...earlier,
+            {
+              kind: "heading",
+              lines: [{ kind: "chapter", numeral: lost }],
+              closed: true,
+            },
+          ];
     if (index >= noteFrom) {
       if (
         !/\p{L}/u.test(line.text) ||
@@ -1258,8 +1275,9 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // says: a numbered piece by its number, a chapter without its numeral
     // numbered by place; a chapter's title may run on.
     if (
-      (volume.headingOpenings ?? []).some((opening) =>
-        line.text.startsWith(opening),
+      (volume.headingOpenings ?? []).some(
+        (opening) =>
+          opening.numeral === undefined && line.text.startsWith(opening.opens),
       )
     ) {
       const labelled =
@@ -2259,7 +2277,9 @@ export function parseArchiveOcrWork(
             ...volume,
             headingOpenings: (work.headings ?? [])
               .filter((heading) => String(heading.page) === String(number))
-              .map((heading) => heading.opens),
+              .map(({ opens, numeral }) =>
+                numeral === undefined ? { opens } : { opens, numeral },
+              ),
           },
           work.corrections ?? [],
           labelOf(number, page.leaf),

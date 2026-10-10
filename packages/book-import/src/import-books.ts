@@ -90,6 +90,20 @@ const pageLineSchema: z.ZodObject<{
   opens: z.ZodString;
 }> = z.object({ page: printedPageSchema, opens: z.string().min(1) });
 
+/** A heading by the line that opens it, or the numeral the scan lost above that line. */
+const headingLineSchema: z.ZodObject<{
+  page: typeof printedPageSchema;
+  opens: z.ZodString;
+  numeral: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  page: printedPageSchema,
+  opens: z.string().min(1),
+  numeral: z
+    .string()
+    .regex(/^[IVXL]+$/)
+    .optional(),
+});
+
 const archiveOcrBookSchema: z.ZodObject<
   Shape<
     BookFields & {
@@ -106,7 +120,7 @@ const archiveOcrBookSchema: z.ZodObject<
       firstChapter: z.ZodDefault<z.ZodNumber>;
       references: z.ZodOptional<z.ZodArray<z.ZodURL>>;
       skipNotes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
-      headings: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
+      headings: z.ZodDefault<z.ZodArray<typeof headingLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
@@ -143,9 +157,9 @@ const archiveOcrBookSchema: z.ZodObject<
    * Headings the edition sets in the text's type, which their place on the
    * page does not tell from the text, by the line that opens them: a
    * numbered or lettered one keeps its label, one without opens a chapter
-   * numbered by place.
+   * numbered by place; a section's numeral the scan lost stands above it.
    */
-  headings: z.array(pageLineSchema).default([]),
+  headings: z.array(headingLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */

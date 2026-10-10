@@ -1720,7 +1720,7 @@ describe("parseArchiveOcrWork, bracketed titles set as Kautsky sets them", () =>
 
 describe("parseArchiveOcrWork, headings set in the text's type", () => {
   const read = async (
-    headings?: Array<{ page: number; opens: string }>,
+    headings?: Array<{ page: number; opens: string; numeral?: string }>,
   ): Promise<ReturnType<typeof parseArchiveOcrWork>> =>
     parseArchiveOcrWork(
       await readFile(
@@ -1755,8 +1755,28 @@ describe("parseArchiveOcrWork, headings set in the text's type", () => {
         "1) Beilage 4 zu „Herr Vogt“ von Karl Marx, London 1860.",
         "Enthüllungen, 4",
       ],
+      ["Beilagen.", "Enthüllungen, 4"],
     ]);
     expect(units[1]?.paragraphs[0]).toStartWith("Die pr. Regierung");
+  });
+
+  it("opens a section above the line the manifest names with the numeral the scan lost", async () => {
+    const units = await read([
+      { page: 3, opens: "Paris war das einzige", numeral: "II" },
+      { page: 4, opens: "1) Beilage 4", numeral: "IV" },
+    ]);
+
+    expect(
+      units.map((unit) => [...unit.parents, unit.title].join(" > ")),
+    ).toEqual([
+      "I. Vorläufiges.",
+      "II",
+      "III. Die Fraktion Willich-Schapper.",
+      "IV",
+      // The appendices close the work beside its chapters.
+      "Beilagen.",
+    ]);
+    expect(units[1]?.paragraphs[0]).toStartWith("Paris war das einzige");
   });
 
   it("reads the line as text where the manifest names none", async () => {
@@ -1765,6 +1785,7 @@ describe("parseArchiveOcrWork, headings set in the text's type", () => {
     expect(units.map((unit) => unit.title)).toEqual([
       "I. Vorläufiges.",
       "II. Die Fraktion Willich-Schapper.",
+      "Beilagen.",
     ]);
   });
 });
