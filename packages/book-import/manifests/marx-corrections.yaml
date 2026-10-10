@@ -2407,6 +2407,10 @@ ao391_die_neue_zeit:
     to: man von Sozialisten erwarten durfte
     by: reference
 zur-kritik-der-politischen-okonomie:
+  - page: -1
+    from: "Proudhon gerichteten Schrift: „Misère de la Philosophie ete.“"
+    to: "Proudhon gerichteten Schrift: „Misère de la Philosophie etc.“"
+    by: scan
   - page: 4
     from: ) Dies ist der Grund, warum deutsche Kompilatoren den unter dem Na-
     to: 1) Dies ist der Grund, warum deutsche Kompilatoren den unter dem Na-
@@ -2475,6 +2479,14 @@ zur-kritik-der-politischen-okonomie:
     from: ½) „Dans son état naturel la matière est toujours destituée de va-
     to: 1) „Dans son état naturel la matière est toujours destituée de va-
     by: scan
+  - page: 12
+    from: "leur.“ Mace Culloch: Discours sur Porigine de Péconomie politique"
+    to: "leur.“ Mace Culloch: Discours sur l'origine de l'économie politique"
+    by: scan
+  - page: 12
+    from: etc. traduit par Prévost. Genéve 1825 p. 57. Man sieht, wie hoch selbst
+    to: etc. traduit par Prévost. Genève 1825 p. 57. Man sieht, wie hoch selbst
+    by: scan
   - page: 13
     from: ) F. List, der den Unterschied zwischen der Arbeit, sofern sie Nützliches, einen
     to: 1) F. List, der den Unterschied zwischen der Arbeit, sofern sie Nützliches, einen
@@ -2539,6 +2551,10 @@ zur-kritik-der-politischen-okonomie:
     from: veranschaͤulichen sich
     to: veranschaulichen sich
     by: scan
+  - page: 28
+    from: of political economy, than the consideération of ships, or steam engines,
+    to: of political economy, than the consideration of ships, or steam engines,
+    by: scan
   - page: 29
     from: Ricardo, in Franukreich mit Sismondi
     to: Ricardo, in Frankreich mit Sismondi
@@ -2546,6 +2562,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 29
     from: distribution ot wealth.“ (Th. Hodgskin. Popular Political Eeo-
     to: distribution of wealth.“ (Th. Hodgskin. Popular Political Eco-
+    by: scan
+  - page: 29
+    from: nomy ete. London. 1827. pag. 178, 179.)
+    to: nomy etc. London. 1827. pag. 178, 179.)
     by: scan
   - page: 30
     from: c. Ch. 10.) „Tbat the impediments
@@ -2566,6 +2586,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 30
     from: "Sieh: Auessay concer-"
     to: "Sieh: An essay concer-"
+    by: scan
+  - page: 30
+    from: Arithmetic ete. London 1699. Preface.) Seine geniale Kühnheit zeigt sich
+    to: Arithmetic etc. London 1699. Preface.) Seine geniale Kühnheit zeigt sich
     by: scan
   - page: 31
     from: und Verstaud in göttlichen
@@ -2603,6 +2627,14 @@ zur-kritik-der-politischen-okonomie:
     from: ½) „La véritable richesse ... jouissance entière, non seulement des
     to: 3) „La véritable richesse ... jouissance entière, non seulement des
     by: scan
+  - page: 32
+    from: des intérêëts de l'agriculture et du commerce.“ Les détails de la
+    to: des intérêts de l'agriculture et du commerce.“ Les détails de la
+    by: scan
+  - page: 32
+    from: von Eugéne
+    to: von Eugène
+    by: scan
   - page: 33
     from: la nature deé la richesse
     to: la nature de la richesse
@@ -2614,6 +2646,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 33
     from: ) Der französische Socialismus in der Form Proudhon leidet an demsel-
     to: 1) Der französische Socialismus in der Form Proudhon leidet an demsel-
+    by: scan
+  - page: 33
+    from: besoins de la vie, mais méme de tous les superflus et de tout, ce qui
+    to: besoins de la vie, mais même de tous les superflus et de tout, ce qui
     by: scan
   - page: 34
     from: have said beéfore, most justly
@@ -2667,6 +2703,10 @@ zur-kritik-der-politischen-okonomie:
     from: ) Dieser von bürgerlich-ökonomischer Seite gegen Ricardo beigebrachte Ein-
     to: 1) Dieser von bürgerlich-ökonomischer Seite gegen Ricardo beigebrachte Ein-
     by: scan
+  - page: 40
+    from: "deckte.“ (Vergl. meine Schrift: Miséere de la Philosophie ete. Paris"
+    to: "deckte.“ (Vergl. meine Schrift: Misère de la Philosophie etc. Paris"
+    by: scan
   - page: 41
     from: des Geldes handet, die unmittelbar
     to: des Geldes handelt, die unmittelbar
@@ -2719,9 +2759,25 @@ zur-kritik-der-politischen-okonomie:
     from: verschiedener Goldquauta zu
     to: verschiedener Goldquanta zu
     by: scan
+  - page: 48
+    from: ½ „Money may continually vary in value, and yet be as good 2
+    to: 1) „Money may continually vary in value, and yet be as good a
+    by: scan
   - page: 49
     from: weniger als ooo, der portugiesische
     to: weniger als 1/1000, der portugiesische
+    by: scan
+  - page: 49
+    from: ½ „Le monete lequali oggi sono ideéali sono le piu antiche d'ogni
+    to: 1) „Le monete lequali oggi sono ideali sono le piu antiche d'ogni
+    by: scan
+  - page: 49
+    from: meéeasure of value as if it remained perfectly stationary. Suppose, for
+    to: measure of value as if it remained perfectly stationary. Suppose, for
+    by: scan
+  - page: 49
+    from: would purchase thrée bushels of wheéat or 6 day's labour; subsequently
+    to: would purchase three bushels of wheat or 6 day's labour; subsequently
     by: scan
   - page: 50
     from: einem dreifachen srandard of value
@@ -2739,6 +2795,10 @@ zur-kritik-der-politischen-okonomie:
     from: idealen Maaßeinbeit des
     to: idealen Maaßeinheit des
     by: scan
+  - page: 53
+    from: Some Considerations on the Lowering of Interest ete. 1691) p. 65 in
+    to: Some Considerations on the Lowering of Interest etc. 1691) p. 65 in
+    by: scan
   - page: 54
     from: der Seeretary to the treasury
     to: der Secretary to the treasury
@@ -2750,6 +2810,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 56
     from: „seeretary to the treasury“
     to: „secretary to the treasury“
+    by: scan
+  - page: 56
+    from: derations ete. London 1696“ versuchte vergebens Locke auf schwieriges Ter-
+    to: derations etc. London 1696“ versuchte vergebens Locke auf schwieriges Ter-
     by: scan
   - page: 58
     from: das als Maajßeinheit dient, sei
@@ -2775,6 +2839,10 @@ zur-kritik-der-politischen-okonomie:
     from: „Lecturés on the nature
     to: „Lectures on the nature
     by: scan
+  - page: 62
+    from: meérely stipulating, by common cousent, chat he who lodges any kind of
+    to: merely stipulating, by common cousent, chat he who lodges any kind of
+    by: scan
   - page: 63
     from: Unteestellt Gray
     to: Unterstellt Gray
@@ -2795,9 +2863,17 @@ zur-kritik-der-politischen-okonomie:
     from: ") Sieh z. B. W. Thompson: An Iuquiry into the distribution of"
     to: "1) Sieh z. B. W. Thompson: An Iuquiry into the distribution of"
     by: scan
+  - page: 64
+    from: "wealth ete. London 1827. Bray: Labour's wrongs and labour's remedy"
+    to: "wealth etc. London 1827. Bray: Labour's wrongs and labour's remedy"
+    by: scan
   - page: 66
     from: die Cirkulation — GE — W zerfällt
     to: die Cirkulation W — G — W zerfällt
+    by: scan
+  - page: 67
+    from: e i contratti si valutano in moneéta ideale e si exguiscono in moneta
+    to: e i contratti si valutano in moneta ideale e si exguiscono in moneta
     by: scan
   - page: 68
     from: an der Ouelle seiner Produktion
@@ -2835,9 +2911,17 @@ zur-kritik-der-politischen-okonomie:
     from: société. II
     to: société. Il
     by: scan
+  - page: 73
+    from: change sont done intimement liéêes, et toutes deux dans leur forme ac-
+    to: change sont done intimement liées, et toutes deux dans leur forme ac-
+    by: scan
   - page: 74
     from: stattfinden ohne Geldeirkulation.
     to: stattfinden ohne Geldcirkulation.
+    by: scan
+  - page: 74
+    from: "détail de la France 1697 in Eugéène Daire's: Economistes financiers"
+    to: "détail de la France 1697 in Eugène Daire's: Economistes financiers"
     by: scan
   - page: 75
     from: eignete sich IJ. B. Say
@@ -2859,6 +2943,14 @@ zur-kritik-der-politischen-okonomie:
     from: ) Die Manier, worin die Oekonomen die verschiedenen Formbestimmungen
     to: 1) Die Manier, worin die Oekonomen die verschiedenen Formbestimmungen
     by: scan
+  - page: 76
+    from: sequence of theé less saleableness of commodities.“ (Corbet Th. An
+    to: sequence of the less saleableness of commodities.“ (Corbet Th. An
+    by: scan
+  - page: 76
+    from: inquiry into the causes and modes of the wealth of individuals ete.
+    to: inquiry into the causes and modes of the wealth of individuals etc.
+    by: scan
   - page: 77
     from: identische Goldindividunm,
     to: identische Goldindividuum,
@@ -2879,9 +2971,21 @@ zur-kritik-der-politischen-okonomie:
     from: ) Die Masse des Geldes ist gleichgültig „pourvu qu'il y en ait assez pour
     to: 1) Die Masse des Geldes ist gleichgültig „pourvu qu'il y en ait assez pour
     by: scan
+  - page: 82
+    from: produced by the expenditure of Government ete. London 1823 pag. 42.
+    to: produced by the expenditure of Government etc. London 1823 pag. 42.
+    by: scan
+  - page: 83
+    from: 5 „E la velocità del giro del danaro, non la quantità dei metalli
+    to: 1) „È la velocità del giro del danaro, non la quantità dei metalli
+    by: scan
   - page: 84
     from: ) Ein Beispiel vom außerordentlichen Fallen der metallischen Cirkulation
     to: 1) Ein Beispiel vom außerordentlichen Fallen der metallischen Cirkulation
+    by: scan
+  - page: 84
+    from: is fluctuating in the markeéet, and in the hands of the not banking classes.
+    to: is fluctuating in the market, and in the hands of the not banking classes.
     by: scan
   - page: 86
     from: ec) Die Münze. Das Werthzeichen.
@@ -2895,10 +2999,26 @@ zur-kritik-der-politischen-okonomie:
     from: the precious métals. London 1831. vol
     to: the precious metals. London 1831. vol
     by: scan
+  - page: 88
+    from: 1) The curreney question reviewed ete. by a banker. Edinburgh
+    to: 1) The curreney question reviewed etc. by a banker. Edinburgh
+    by: scan
+  - page: 88
+    from: 1845 pag. 69 ete. „Si un éeu un peu usé etait reputé valoir quelque
+    to: 1845 pag. 69 etc. „Si un écu un peu usé etait réputé valoir quelque
+    by: scan
+  - page: 88
+    from: matiére à contestation.“ (Garnier G. I. c. tom I p. 24.)
+    to: matière à contestation.“ (Garnier G. I. c. tom I p. 24.)
+    by: scan
   - page: 90
     from: W- G efällt es aus
     to: W- G fällt es aus
     by: reference
+  - page: 92
+    from: Doctor Smith's Inquiry on the wealth of nations ete. Edinburgh 1814
+    to: Doctor Smith's Inquiry on the wealth of nations etc. Edinburgh 1814
+    by: scan
   - page: 93
     from: durch ihren Austanschproceß sich in
     to: durch ihren Austauschproceß sich in
@@ -2915,6 +3035,10 @@ zur-kritik-der-politischen-okonomie:
     from: ½) Henry Storch; Cours d' Economie politique ete. avec des notes
     to: 1) Henry Storch; Cours d' Economie politique ete. avec des notes
     by: scan
+  - page: 96
+    from: omnia ete. ed. G. Stallbumius. London 1850 pag. 304. Plato entwickelt
+    to: omnia etc. ed. G. Stallbumius. London 1850 pag. 304. Plato entwickelt
+    by: scan
   - page: 97
     from: ) Berkeley l. c. „Wenn die Denomination der Münze beibehalten
     to: 3) Berkeley l. c. „Wenn die Denomination der Münze beibehalten
@@ -2926,6 +3050,26 @@ zur-kritik-der-politischen-okonomie:
   - page: 103
     from: ½) „Non solo i metalli riechi son segni delle cose..; ma vicendevolmente
     to: 1) „Non solo i metalli riechi son segni delle cose..; ma vicendevolmente
+    by: scan
+  - page: 104
+    from: risbh eétc. London 1622. „Die natürliche Materie des Handels ist die mer-
+    to: risbh etc. London 1622. „Die natürliche Materie des Handels ist die mer-
+    by: scan
+  - page: 104
+    from: été appélés dans le commerce, savoir pour y servir de gages dans
+    to: été appelés dans le commerce, savoir pour y servir de gages dans
+    by: scan
+  - page: 104
+    from: toujours plus de biens et de beésoins précieux et mëme d'hommes, que
+    to: toujours plus de biens et de besoins précieux et même d'hommes, que
+    by: scan
+  - page: 104
+    from: jamais l'aveugle antiquité n'en immola à ces fausses divinités ete.“ (I.
+    to: jamais l'aveugle antiquité n'en immola à ces fausses divinités etc.“ (I.
+    by: scan
+  - page: 106
+    from: soll sein „dCaus un mouvement continuel, ce qui ne peut éêtre que tant
+    to: soll sein „dCaus un mouvement continuel, ce qui ne peut être que tant
     by: scan
   - page: 109
     from: ) 1. c. p. 11—13 passim.
@@ -2946,6 +3090,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 113
     from: ) Horaz versteht also nichts von der Philosophie der Schatzbildung, wenn
     to: 1) Horaz versteht also nichts von der Philosophie der Schatzbildung, wenn
+    by: scan
+  - page: 113
+    from: "Herr Senior versteht die Sache besser: „L'argent parait étre la seule"
+    to: "Herr Senior versteht die Sache besser: „L'argent parait être la seule"
     by: scan
   - page: 115
     from: ½) Jaco b I. c. t. 2. ch. 25 und 26
@@ -2983,9 +3131,21 @@ zur-kritik-der-politischen-okonomie:
     from: ) Můẽntanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
     to: 1) Montanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
     by: scan
+  - page: 134
+    from: "bildeten: „O felicem moneétam, quae suavem utilemque praebet"
+    to: "bildeten: „O felicem monetam, quae suavem utilemque praebet"
+    by: scan
+  - page: 134
+    from: munes servat possessorés, quod suffodi aut diu servari nequeat.“
+    to: munes servat possessores, quod suffodi aut diu servari nequeat.“
+    by: scan
   - page: 137
     from: ) Bisher haben die australischen u. s. w. Entdeckungen das Werthverhält-
     to: 1) Bisher haben die australischen u. s. w. Entdeckungen das Werthverhält-
+    by: scan
+  - page: 137
+    from: 1 Pfd. Silber gegeben wurden, erscheint keinéswegs unglaublich.
+    to: 1 Pfd. Silber gegeben wurden, erscheint keineswegs unglaublich.
     by: scan
   - page: 140
     from: Masse des ecirkulirenden Geldes, nicht
@@ -3015,6 +3175,10 @@ zur-kritik-der-politischen-okonomie:
     from: ) Der Unterschied von „Curreney“ und „money“, d. h. von Cirkulations-
     to: 1) Der Unterschied von „Curreney“ und „money“, d. h. von Cirkulations-
     by: scan
+  - page: 149
+    from: pendence of prices on theé extent of the currency had not as yet, at-
+    to: pendence of prices on the extent of the currency had not as yet, at-
+    by: scan
   - page: 151
     from: ") David Ricardo: „On the principles of political economy ete.“"
     to: "2) David Ricardo: „On the principles of political economy ete.“"
@@ -3039,13 +3203,33 @@ zur-kritik-der-politischen-okonomie:
     from: "½) David Ricardo: „Reply to Mr. Bosanquet's practical obser-"
     to: "1) David Ricardo: „Reply to Mr. Bosanquet's practical obser-"
     by: scan
+  - page: 156
+    from: "2) Ricardo: The highprice of Bullion ete. „Money would"
+    to: "2) Ricardo: The highprice of Bullion etc. „Money would"
+    by: scan
   - page: 158
     from: Niveau der eurrencies. In andern
     to: Niveau der currencies. In andern
     by: reference
+  - page: 159
+    from: the case of a country having beéen deéprived of a part of its commo-
+    to: the case of a country having been deprived of a part of its commo-
+    by: scan
+  - page: 159
+    from: other countriées.“ Seine Konfusion zwischen Geld und Waare, und zwischen
+    to: other countries.“ Seine Konfusion zwischen Geld und Waare, und zwischen
+    by: scan
   - page: 161
     from: of political éeconomy. Im Text
     to: of political economy. Im Text
+    by: scan
+  - page: 161
+    from: "2) Pooke (Thomas): History of prices ete. London, 1848. p. 110."
+    to: "2) Pooke (Thomas): History of prices etc. London, 1848. p. 110."
+    by: scan
+  - page: 161
+    from: 3) Vergl. W. Blake die oben citirten „observations ete.“
+    to: 3) Vergl. W. Blake die oben citirten „observations etc.“
     by: scan
   - page: 163
     from: ½) JI. c. p. 128 — 136 passim.
@@ -3055,6 +3239,22 @@ zur-kritik-der-politischen-okonomie:
     from: könnten 20 Millionen umlanfen, wenn jeder
     to: könnten 20 Millionen umlaufen, wenn jeder
     by: reference
+  - page: 168
+    from: "mittee in folgender Renommage: „By strict and prompt adheérence to the"
+    to: "mittee in folgender Renommage: „By strict and prompt adherence to the"
+    by: scan
+  - page: 169
+    from: the currency principle, the connexion of currency with prices ete.
+    to: the currency principle, the connexion of currency with prices etc.
+    by: scan
+  - page: 169
+    from: in use as money. It is not in tea, coffée, sugar or indigo that
+    to: in use as money. It is not in tea, coffee, sugar or indigo that
+    by: scan
+  - page: 169
+    from: but in coin; and the remittance, thereéfore, either in the identical coin
+    to: but in coin; and the remittance, therefore, either in the identical coin
+    by: scan
   - page: 170
     from: ½) Die Verwandlung des Gelds in Kapital werden wir betrachten im 3. Ka-
     to: 1) Die Verwandlung des Gelds in Kapital werden wir betrachten im 3. Ka-
