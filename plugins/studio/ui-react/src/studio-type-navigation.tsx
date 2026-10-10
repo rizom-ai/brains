@@ -60,8 +60,8 @@ export function TypeSwitcher(props: {
     <>
       {props.renderMode !== "desktop" ? (
         <MobileNavigation
-          types={props.types}
-          active={props.active}
+          types={model.types}
+          active={model.active}
           onSelect={props.onSelect}
           groupings={props.groupings}
           activeWorkspace={props.activeWorkspace}
@@ -75,7 +75,7 @@ export function TypeSwitcher(props: {
         <DesktopNavigation
           model={model}
           tree={tree}
-          active={props.active}
+          active={model.active}
           onSelect={props.onSelect}
           groupings={props.groupings}
           activeWorkspace={props.activeWorkspace}

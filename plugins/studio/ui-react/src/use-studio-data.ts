@@ -72,6 +72,8 @@ export interface StudioData {
   types: EntityTypeInfo[] | null;
   groupings: StudioGrouping[];
   activeType: EntityTypeInfo | undefined;
+  /** The collection the active type is listed in: its container's, if it has one. */
+  collectionType: string | null;
   activeCapabilities: StudioTypeCapabilities | undefined;
   entityCollectionQuery: StudioCollectionQuery;
   entityListOffset: number;
@@ -133,6 +135,8 @@ export function useStudioData(input: StudioDataInput): StudioData {
   const types = navigationQuery.data?.types ?? null;
   const groupings = navigationQuery.data?.groupings ?? EMPTY_GROUPINGS;
   const activeType = types?.find((info) => info.entityType === entityType);
+  // Known once the type list says whether the type lists in a container.
+  const collectionType = types ? (activeType?.containedIn ?? entityType) : null;
   const activeCapabilities = activeType?.capabilities;
   const entityCollectionQuery = useMemo(
     () =>
@@ -196,10 +200,12 @@ export function useStudioData(input: StudioDataInput): StudioData {
   });
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
-    ...entityListQueryOptions(api, entityType ?? "", entityCollectionQuery),
-    enabled: entityType !== null,
+    ...entityListQueryOptions(api, collectionType ?? "", entityCollectionQuery),
+    enabled: collectionType !== null,
   });
-  const entities = entityType ? (entityListQuery.data?.entities ?? null) : null;
+  const entities = collectionType
+    ? (entityListQuery.data?.entities ?? null)
+    : null;
   const entityListTotal = entityListQuery.data?.total;
   const entitySchemaQuery = useQuery({
     ...entitySchemaQueryOptions(api, entityType ?? ""),
@@ -246,6 +252,7 @@ export function useStudioData(input: StudioDataInput): StudioData {
     types,
     groupings,
     activeType,
+    collectionType,
     activeCapabilities,
     entityCollectionQuery,
     entityListOffset,

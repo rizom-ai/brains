@@ -23,33 +23,27 @@ describe("writeBook", () => {
   });
 
   it("writes the book and its sections, removing sections it no longer has", async () => {
-    await mkdir(join(brainData, "book-section/eb/00001-alt"), {
+    await mkdir(join(brainData, "book/eb/00001-alt"), {
       recursive: true,
     });
-    await writeFile(
-      join(brainData, "book-section/eb/00001-alt/00009-weg.md"),
-      "alt",
-    );
-    await mkdir(join(brainData, "book-section/anderes"), { recursive: true });
-    await writeFile(
-      join(brainData, "book-section/anderes/00001-a.md"),
-      "bleibt",
-    );
+    await writeFile(join(brainData, "book/eb/00001-alt/00009-weg.md"), "alt");
+    await mkdir(join(brainData, "book/anderes"), { recursive: true });
+    await writeFile(join(brainData, "book/anderes/00001-a.md"), "bleibt");
     await mkdir(join(brainData, "book"), { recursive: true });
     await writeFile(join(brainData, "book/anderes.md"), "bleibt");
 
     await writeBook(brainData, "eb", [
       { path: "book/eb.md", markdown: "buch" },
-      { path: "book-section/eb/00001-teil/00001-eins.md", markdown: "eins" },
+      { path: "book/eb/00001-teil/00001-eins.md", markdown: "eins" },
     ]);
 
     expect(await readFile(join(brainData, "book/eb.md"), "utf8")).toBe("buch");
-    expect((await readdir(join(brainData, "book-section/eb"))).sort()).toEqual([
+    expect((await readdir(join(brainData, "book/eb"))).sort()).toEqual([
       "00001-teil",
     ]);
     expect(
       await readFile(
-        join(brainData, "book-section/eb/00001-teil/00001-eins.md"),
+        join(brainData, "book/eb/00001-teil/00001-eins.md"),
         "utf8",
       ),
     ).toBe("eins");
@@ -57,18 +51,13 @@ describe("writeBook", () => {
       "bleibt",
     );
     expect(
-      await readFile(
-        join(brainData, "book-section/anderes/00001-a.md"),
-        "utf8",
-      ),
+      await readFile(join(brainData, "book/anderes/00001-a.md"), "utf8"),
     ).toBe("bleibt");
   });
 
   it("refuses files outside the book and its sections", async () => {
     expect(
-      writeBook(brainData, "eb", [
-        { path: "book-section/anderes/x.md", markdown: "" },
-      ]),
-    ).rejects.toThrow("outside book/eb.md and book-section/eb");
+      writeBook(brainData, "eb", [{ path: "book/anderes/x.md", markdown: "" }]),
+    ).rejects.toThrow("outside book/eb.md and book/eb");
   });
 });

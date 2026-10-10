@@ -48,6 +48,8 @@ export interface StudioNavigationActionsInput {
   studioBasePath: string;
   routeSearch: string;
   entityType: string | null;
+  /** The type whose collection lists the active type's entries. */
+  collectionType: string | null;
   entityCollectionQuery: StudioCollectionQuery;
   groupReturnPath: string | undefined;
   workspaces: StudioWorkspaceInfo[];
@@ -93,6 +95,7 @@ export function useStudioNavigationActions(
     studioBasePath,
     routeSearch,
     entityType,
+    collectionType,
     entityCollectionQuery,
     groupReturnPath,
     workspaces,
@@ -102,6 +105,7 @@ export function useStudioNavigationActions(
     setFieldAssistState,
     setWorkspaceQueries,
   } = input;
+  const listingType = collectionType ?? entityType;
   const openWorkspaceEntity = useCallback(
     (nextEntityType: string, id: string): void => {
       const pathname = studioEntityPath(studioBasePath, nextEntityType, id);
@@ -251,13 +255,13 @@ export function useStudioNavigationActions(
 
   const changeEntityPage = useCallback(
     (offset: number): void => {
-      if (!entityType) return;
+      if (!listingType) return;
       history.push(
-        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, offset })}`,
+        `${studioCollectionPath(studioBasePath, listingType)}${collectionSearch({ ...entityCollectionQuery, offset })}`,
       );
       window.scrollTo({ top: 0, left: 0 });
     },
-    [entityType, entityCollectionQuery, studioBasePath, history],
+    [listingType, entityCollectionQuery, studioBasePath, history],
   );
 
   const selectWorkspace = useCallback(
@@ -274,13 +278,13 @@ export function useStudioNavigationActions(
 
   const selectFolder = useCallback(
     (prefix: EntityIdPath | null): void => {
-      if (!entityType) return;
+      if (!listingType) return;
       history.push(
-        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, prefix, offset: 0 })}`,
+        `${studioCollectionPath(studioBasePath, listingType)}${collectionSearch({ ...entityCollectionQuery, prefix, offset: 0 })}`,
       );
       window.scrollTo({ top: 0, left: 0 });
     },
-    [entityType, studioBasePath, entityCollectionQuery, history],
+    [listingType, studioBasePath, entityCollectionQuery, history],
   );
 
   const startCreate = useCallback((): void => {
@@ -310,8 +314,8 @@ export function useStudioNavigationActions(
       else history.replace(groupReturnPath);
       return;
     }
-    if (!entityType) return;
-    const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
+    if (!listingType) return;
+    const collectionPath = `${studioCollectionPath(studioBasePath, listingType)}${collectionSearch(entityCollectionQuery)}`;
     const historyState: unknown = history.location.state;
     if (
       typeof historyState === "object" &&
@@ -326,7 +330,7 @@ export function useStudioNavigationActions(
     history.replace(collectionPath);
   }, [
     studioBasePath,
-    entityType,
+    listingType,
     entityCollectionQuery,
     history,
     groupReturnPath,

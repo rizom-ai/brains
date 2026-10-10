@@ -136,6 +136,8 @@ export interface EntityFolder {
   path: EntityIdPath;
   name: string;
   descendantCount: number;
+  /** A container's folder is titled by the container. */
+  title?: string;
 }
 
 export interface DestinationInput {
@@ -159,6 +161,8 @@ export interface EntityPage {
   entities: EntitySummary[];
   /** Count after applying the same filters and visibility scope as the page. */
   total: number;
+  /** Titles for the prefix's segments, where a segment names a container. */
+  trail?: Array<string | null>;
 }
 
 export interface EntityDetail extends EntitySummary {

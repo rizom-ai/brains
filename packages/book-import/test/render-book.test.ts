@@ -91,9 +91,9 @@ describe("renderBook", () => {
 
     expect(files.map((file) => file.path)).toEqual([
       "book/erfundenes-buch.md",
-      "book-section/erfundenes-buch/00001-vorrede.md",
-      "book-section/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
-      "book-section/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
+      "book/erfundenes-buch/00001-vorrede.md",
+      "book/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
+      "book/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
     ]);
     expect(frontmatterOf(files[2]?.markdown ?? "")).toMatchObject({
       title: "Über das Erfinden",

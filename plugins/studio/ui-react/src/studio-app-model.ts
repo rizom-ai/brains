@@ -158,7 +158,12 @@ export function deriveStudioAppModel(
       Boolean(props.creationDestination.error));
   const hierarchyKind = activeType?.hierarchy.kind ?? "folder";
   const folderContext =
-    props.collectionQuery.prefix?.map(folderLabel).join(" / ") ??
+    props.collectionQuery.prefix
+      ?.map(
+        (segment, index) =>
+          props.collectionTrail?.[index] ?? folderLabel(segment),
+      )
+      .join(" / ") ??
     activeType?.label ??
     entityType ??
     "Collection";

@@ -186,6 +186,7 @@ async function renderActions(
       history,
       studioBasePath: "/studio",
       entityType: "note",
+      collectionType: "note",
       entityCollectionQuery: studioCollectionQuerySchema.parse({}),
       groupReturnPath: undefined,
       activeCapabilities: capabilities,
@@ -422,6 +423,18 @@ describe("useEditorActions", () => {
       "deleteSucceeded",
     );
     expect(allowed.history.location.pathname).toBe("/studio/entities/note");
+  });
+
+  it("returns a deleted contained entry to its container's collection", async () => {
+    const harness = await renderActions({
+      entityType: "memo",
+      collectionType: "note",
+    });
+    await act(async () => harness.actions().remove());
+    await settle();
+
+    expect(harness.deletes).toEqual([{ entityType: "memo", id: "n1" }]);
+    expect(harness.history.location.pathname).toBe("/studio/entities/note");
   });
 
   it("requests a field suggestion and applies it back into the draft", async () => {

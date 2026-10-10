@@ -47,11 +47,12 @@ describe("importBooks", () => {
       "http://www.nietzschesource.org/eKGWB/EB/print",
     ]);
     expect(results).toEqual([{ slug: "erfundenes-buch", entries: 3 }]);
-    expect(await readdir(join(brainData, "book"))).toEqual([
+    expect((await readdir(join(brainData, "book"))).sort()).toEqual([
+      "erfundenes-buch",
       "erfundenes-buch.md",
     ]);
     expect(
-      (await readdir(join(brainData, "book-section/erfundenes-buch"))).sort(),
+      (await readdir(join(brainData, "book/erfundenes-buch"))).sort(),
     ).toEqual(["00001-vorwort.md", "00002-1.md"]);
   });
 
@@ -187,7 +188,7 @@ books:
   }
 
   async function entries(): Promise<Record<string, unknown>[]> {
-    const root = join(brainData, "book-section/erfundenes-werk");
+    const root = join(brainData, "book/erfundenes-werk");
     const files = await readdir(root, { recursive: true });
     const parsed = await Promise.all(
       files

@@ -61,7 +61,12 @@ function navigateFolder(
 }
 
 export function StudioFolderTrail(
-  props: FolderNavigationProps & { collectionLabel: string; fixed?: boolean },
+  props: FolderNavigationProps & {
+    collectionLabel: string;
+    fixed?: boolean;
+    /** Titles for prefix segments that name a container. */
+    trail?: ReadonlyArray<string | null> | undefined;
+  },
 ): ReactElement | null {
   const prefix = props.query.prefix;
   if (!prefix) return null;
@@ -94,7 +99,7 @@ export function StudioFolderTrail(
                 aria-current={current ? "page" : undefined}
                 className={editorClassName("", styles.crumb)}
               >
-                {folderLabel(segment)}
+                {props.trail?.[index] ?? folderLabel(segment)}
               </span>
             ) : (
               <a
@@ -102,7 +107,7 @@ export function StudioFolderTrail(
                 href={folderHref(props, path)}
                 onClick={(event) => navigateFolder(event, props, path)}
               >
-                {folderLabel(segment)}
+                {props.trail?.[index] ?? folderLabel(segment)}
               </a>
             )}
           </span>
@@ -141,7 +146,7 @@ export function StudioFolderRows(
             /
           </span>
           <span className={editorClassName("", styles.folderTitle)}>
-            {folderLabel(folder.name)}
+            {folder.title ?? folderLabel(folder.name)}
           </span>
           <span className={editorClassName("", styles.count)}>
             {folder.descendantCount}{" "}

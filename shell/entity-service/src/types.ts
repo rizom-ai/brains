@@ -663,6 +663,13 @@ export interface EntityTypeConfig {
   /** Default source authority role for derived projections. Entity types own
    *  their durable/source character; consumers may map roles to local policy. */
   projectionSourceRole?: ProjectionSourceRole;
+  /**
+   * The type this one is contained in, as a book's sections are in their
+   * book: a contained entity's id starts with its container's id, it is
+   * stored in its container's folder, shown under it, and deleted with it.
+   * One level only; a container's own ids are flat.
+   */
+  containedIn?: string;
   /** Publish semantics for status-bearing entity types. Statuses listed here
    *  represent publication commitment/execution states and require the
    *  `publish` entity action when entered or modified. */
@@ -1341,6 +1348,8 @@ export interface EntityRegistry {
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;
+  /** Each contained type with the type it is contained in. */
+  getContainment(): ReadonlyMap<string, string>;
 
   registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
 

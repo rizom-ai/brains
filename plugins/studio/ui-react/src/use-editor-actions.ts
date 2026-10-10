@@ -46,6 +46,8 @@ export interface EditorActionsInput {
   history: RouterHistory;
   studioBasePath: string;
   entityType: string | null;
+  /** The type whose collection lists the active type's entries. */
+  collectionType: string | null;
   entityCollectionQuery: StudioCollectionQuery;
   groupReturnPath: string | undefined;
   activeCapabilities: StudioTypeCapabilities | undefined;
@@ -90,6 +92,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     history,
     studioBasePath,
     entityType,
+    collectionType,
     entityCollectionQuery,
     groupReturnPath,
     activeCapabilities,
@@ -229,6 +232,13 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
           queryClient.invalidateQueries({
             queryKey: studioKeys.entities(entityType),
           }),
+          ...(collectionType && collectionType !== entityType
+            ? [
+                queryClient.invalidateQueries({
+                  queryKey: studioKeys.entities(collectionType),
+                }),
+              ]
+            : []),
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
@@ -296,6 +306,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
   }, [
     activeCapabilities,
     entityType,
+    collectionType,
     mode,
     createPath,
     editor,
@@ -331,8 +342,9 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
             queryClient.invalidateQueries({
               queryKey: ["studio", "groupings"],
             }),
+            // Every listing: deleting a container deletes its contents too.
             queryClient.invalidateQueries({
-              queryKey: studioKeys.entities(entityType),
+              queryKey: studioKeys.entityLists(),
             }),
             queryClient.invalidateQueries({
               queryKey: studioKeys.syncStatus(),
@@ -343,7 +355,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
           ]);
           history.replace(
             groupReturnPath ??
-              `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
+              `${studioCollectionPath(studioBasePath, collectionType ?? entityType)}${collectionSearch(entityCollectionQuery)}`,
             undefined,
             { ignoreBlocker: true },
           );
@@ -360,6 +372,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     activeCapabilities,
     studioBasePath,
     entityType,
+    collectionType,
     mode,
     deleting,
     queryClient,

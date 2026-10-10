@@ -36,6 +36,8 @@ describe("FileOperations", () => {
       serializeEntity: (entity: BaseEntity): string =>
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
+      getEntityTypes: (): string[] => [],
+      getEntityTypeConfig: (): { containedIn?: string } => ({}),
     };
 
     fileOps = new FileOperations(testDir, mockEntityService);
@@ -362,6 +364,8 @@ describe("FileOperations", () => {
         const selectiveService: FileOperationsEntityService = {
           serializeEntity: () => "",
           hasEntityType: (type: string) => ["post", "link"].includes(type),
+          getEntityTypes: () => ["post", "link"],
+          getEntityTypeConfig: (): { containedIn?: string } => ({}),
         };
         const selectiveFileOps = new FileOperations(testDir, selectiveService);
 
@@ -381,6 +385,51 @@ describe("FileOperations", () => {
         expect(files).toContain("root.md");
         expect(files).not.toContain("templates/post.md");
       });
+    });
+  });
+
+  describe("contained entities", () => {
+    // Book sections are contained in their book.
+    const books: FileOperationsEntityService = {
+      serializeEntity: (entity: BaseEntity): string => entity.content,
+      hasEntityType: (type: string) => ["book", "book-section"].includes(type),
+      getEntityTypes: () => ["book", "book-section"],
+      getEntityTypeConfig: (type: string) =>
+        type === "book-section" ? { containedIn: "book" } : {},
+    };
+
+    it("writes a section into its book's folder and reads it back", async () => {
+      const files = new FileOperations(testDir, books);
+      const section = createTestEntity("book-section", {
+        id: "zara:00036-zweiter-theil:00039-inseln",
+        content: "Text.",
+      });
+
+      await files.writeEntity(section);
+      const path = join(
+        testDir,
+        "book/zara/00036-zweiter-theil/00039-inseln.md",
+      );
+
+      expect(existsSync(path)).toBe(true);
+      expect(files.parseEntityFromPath(path)).toEqual({
+        entityType: "book-section",
+        id: section.id,
+      });
+      expect(files.parseEntityFromPath(join(testDir, "book/zara.md"))).toEqual({
+        entityType: "book",
+        id: "zara",
+      });
+    });
+
+    it("makes no folder of its own for a contained type", async () => {
+      await new FileOperations(testDir, books).ensureDirectoryStructure([
+        "book",
+        "book-section",
+      ]);
+
+      expect(existsSync(join(testDir, "book"))).toBe(true);
+      expect(existsSync(join(testDir, "book-section"))).toBe(false);
     });
   });
 

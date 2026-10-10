@@ -32,7 +32,7 @@ It follows the domain-plugin model in `docs/architecture-overview.md` (multi-tar
 ### Id path
 
 - `brain-data/book/<book>.md` → id `<book>`: the book's details and table of contents.
-- `brain-data/book-section/<book>/<nnnnn>-<slug>.md` → id `<book>:<nnnnn>-<slug>`; headings become folders named after the order of their first section, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`. `<nnnnn>` is five-digit reading order within the book, from 1, so id order is reading order.
+- `brain-data/book/<book>/<nnnnn>-<slug>.md` → a `book-section` with id `<book>:<nnnnn>-<slug>`: sections are contained in their book, so they live in its folder; headings become folders named after the order of their first section, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`. `<nnnnn>` is five-digit reading order within the book, from 1, so id order is reading order.
 
 ### Frontmatter
 
@@ -80,7 +80,7 @@ Ask lives at `/ask` (`book:ask`): the guest box under the site's name, and a rai
 ### Entity type config
 
 - Both types: `actionPolicy` `never` for create, update, delete, extract and publish — the agent reads and cites, never edits; the importer writes through directory-sync.
-- `book-section`: `projectionSourceRole: "canonical"` — a book brain's sections are its primary texts; its topics map their themes. `defaultSort`: `id` ascending — reading order for `system_list`.
+- `book-section`: `containedIn: "book"` — stored in its book's folder, shown under it in Studio, deleted with it. `projectionSourceRole: "canonical"` — a book brain's sections are its primary texts; its topics map their themes. `defaultSort`: `id` ascending — reading order for `system_list`.
 - `book`: `projectionSource: false` — a book's contents are no text to extract topics from.
 
 Action policy is enforced in the `system_*` tools, Studio and the operator surface, not in the entity service, so directory-sync writes books unhindered.
