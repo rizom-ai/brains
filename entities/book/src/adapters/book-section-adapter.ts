@@ -41,6 +41,17 @@ export class BookSectionAdapter extends BaseEntityAdapter<
       },
     };
   }
+
+  /** Its book's folder is titled by the book; its headings title the rest. */
+  public getFolderTitles(
+    entity: Pick<BookSection, "content">,
+  ): Array<string | undefined> {
+    const { headings } = this.parseFrontMatter(
+      entity.content,
+      bookSectionFrontmatterSchema,
+    );
+    return [undefined, ...headings];
+  }
 }
 
 export const bookSectionAdapter: BookSectionAdapter = new BookSectionAdapter();

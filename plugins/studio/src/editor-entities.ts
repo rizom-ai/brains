@@ -42,6 +42,7 @@ import {
   type HierarchyQueryBase,
 } from "./container-hierarchy";
 import { editorValidationResponse } from "./editor-validation";
+import { titleFolders } from "./folder-titles";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   studioCollectionQuerySchema,
@@ -384,12 +385,23 @@ export async function handleGetEntityHierarchy(
         base,
         titleOf: (entity) => entityDisplayTitle(context, entity),
       });
-      return jsonResponse({
+      const titled = await titleFolders(context, {
+        entityType: contained,
         prefix: page.prefix,
         folders: page.folders,
+        visibilityScope: access.visibilityScope,
+        signal: request.signal,
+      });
+      // The container names its own folder; its contents name the rest.
+      const trail = titled.trail.map(
+        (title, index) => page.trail?.[index] ?? title,
+      );
+      return jsonResponse({
+        prefix: page.prefix,
+        folders: titled.folders,
         total: page.total,
         entities: page.entities.map(summaryOf),
-        ...(page.trail && { trail: page.trail }),
+        ...(trail.some((title) => title !== null) && { trail }),
       });
     }
     const page = await context.entityService.queryEntityHierarchy({
@@ -400,11 +412,21 @@ export async function handleGetEntityHierarchy(
       offset,
       includeDescendants: searching,
     });
-    return jsonResponse({
+    const titled = await titleFolders(context, {
+      entityType,
       prefix: page.prefix,
       folders: page.folders,
+      visibilityScope: access.visibilityScope,
+      signal: request.signal,
+    });
+    return jsonResponse({
+      prefix: page.prefix,
+      folders: titled.folders,
       total: page.totalEntities,
       entities: page.entities.map(summaryOf),
+      ...(titled.trail.some((title) => title !== null) && {
+        trail: titled.trail,
+      }),
     });
   } catch (error) {
     if (error instanceof z.ZodError)
