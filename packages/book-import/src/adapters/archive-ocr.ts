@@ -205,6 +205,19 @@ function joinSplitLines(lines: Line[]): Line[] {
     }, []);
 }
 
+/**
+ * A rule: a line without letters, or one set as small as no type is, its
+ * dashes read with a letter or two among them.
+ */
+function isRule(line: Line, bodySize: number): boolean {
+  const signs = line.text.match(/[\p{L}\d]/gu) ?? [];
+  const dashes = line.text.match(/[—–-]/gu) ?? [];
+  return (
+    signs.length === 0 ||
+    (line.size < bodySize * MARK_SIZE && dashes.length > signs.length * 2)
+  );
+}
+
 /** Letters mostly in capitals, off the centre: the facing page's edge. */
 function isEdgeNoise(text: string): boolean {
   const letters = text.match(/\p{L}/gu) ?? [];
@@ -938,6 +951,12 @@ const LABELLED = /^(?:\S{1,4}[.)]\s|[„"»])/u;
 const BROKEN_END = /[,;:=⸗—-]$/u;
 /** A line the OCR measures this share of the text's size is set as large. */
 const SAME_SIZE = 0.95;
+/** The lines either side of a line that tell where the margin runs near it. */
+const NEAR_LINES = 8;
+/** A line ending this share of the page short of the right margin ends its paragraph. */
+const SHORT_END = 0.1;
+/** Lines starting further left than this share of the page stand in another column. */
+const NEAR_COLUMN = 0.3;
 /** A title's second line is set this large at least, against its first. */
 const TITLE_LINE_SIZE = 0.9;
 
@@ -1199,19 +1218,39 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   const footAt = headless.findIndex(
     (line, index) =>
       line.y > page.height / 2 &&
-      (!/[\p{L}\d]/u.test(line.text)
-        ? (headless.slice(index + 1).find((below) => /\p{L}/u.test(below.text))
-            ?.size ?? 0) <
+      (isRule(line, bodySize)
+        ? (headless
+            .slice(index + 1)
+            .find(
+              (below) => !isRule(below, bodySize) && /\p{L}/u.test(below.text),
+            )?.size ?? 0) <
           bodySize * FOOT_TEXT_SIZE
-        : (line.size < bodySize * NOTE_SIZE && NOTE_START.test(line.text)) ||
+        : // A numbered line set small opens the notes; one only a little
+          // smaller than the text does below the space of a rule, more
+          // than lines leave, where a list's item is spaced as the text,
+          // and the notes run to the page's foot, smaller than the text. A
+          // title numbered so is centred, a note nearly the text's size not.
+          (NOTE_START.test(line.text) &&
+            (line.size < bodySize * NOTE_SIZE ||
+              (index > 0 &&
+                line.y - (headless[index - 1]?.bottom ?? line.y) >
+                  bodyHeight * SECTION_SPACE &&
+                headless
+                  .slice(index + 1)
+                  .filter((below) => /\p{L}/u.test(below.text))
+                  .every((below) => below.size < bodySize * SAME_SIZE) &&
+                (line.size < bodySize * FOOT_TEXT_SIZE ||
+                  (line.size < bodySize * SAME_SIZE &&
+                    !isCentredShort(line)))))) ||
           // No line of text opens with an asterisk's mark; a note may be
           // set, or measured, as large as the text.
           STAR_NOTE_START.test(line.text) ||
           // Below a line's height of space, a line that opens with a note's
           // mark is a note, though set nearly as large as the text; a title
-          // numbered so is centred.
+          // numbered so is centred, and set as large as the text. A note set
+          // in from the margin and short of the line may sit as centred.
           (MARKED_NOTE_START.test(line.text) &&
-            !isCentredShort(line) &&
+            (!isCentredShort(line) || line.size < bodySize * SAME_SIZE) &&
             index > 0 &&
             line.y - (headless[index - 1]?.bottom ?? line.y) > bodyHeight) ||
           spacedFoot(line, headless[index - 1], headless[index + 1])),
@@ -1225,8 +1264,71 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     [...full.map((line) => line.x)].sort((a, b) => a - b)[
       Math.floor(full.length / 4)
     ] ?? 0;
+  // A page scanned askew or curved toward the spine drifts its lines'
+  // starts across the page; a paragraph's first line is set in from the
+  // lines of text about it, where most start at the margin, a paragraph's
+  // last too, and from the page's margin, which a list's hanging lines keep;
+  // lines far to its left stand in another column, as text beside a picture
+  // does. Glosses in the margin are set smaller.
+  const inText = textLines.filter(
+    (other) =>
+      /\p{L}{3}/u.test(other.text) &&
+      !isCentredShort(other) &&
+      other.size >= bodySize * NOTE_SIZE,
+  );
+  const marginNear = (line: Line): number => {
+    const at = inText.findIndex((other) => other.y >= line.y);
+    const from = Math.max(
+      0,
+      Math.min(
+        (at < 0 ? inText.length : at) - NEAR_LINES,
+        inText.length - (2 * NEAR_LINES + 1),
+      ),
+    );
+    const near = inText
+      .slice(from, from + 2 * NEAR_LINES + 1)
+      .map((other) => other.x)
+      .filter((x) => x > line.x - page.width * NEAR_COLUMN)
+      .sort((a, b) => a - b);
+    return near.length > NEAR_LINES / 2
+      ? (near[Math.floor(near.length / 4)] ?? margin)
+      : margin;
+  };
   // Full lines end at the right margin, an indented first line too.
   const rightMargin = median(full.map((line) => line.x + line.width));
+  const opensParagraph = (line: Line, index: number): boolean => {
+    // No paragraph opens in lower case but a list's lettered item: such a
+    // line runs on the one above, a word it broke or a quotation set in. A
+    // small umlaut may be a capital the Fraktur model read so (über).
+    if (
+      /^(?![äöü])\p{Ll}/u.test(line.text) &&
+      !/^\p{Ll}[).]\s/u.test(line.text)
+    ) {
+      return false;
+    }
+    // A line set out to the right margin stands in its column, as does one
+    // among lines a column's width from the page's margin; verse ends short
+    // of it, set in from the page's margin.
+    const justified =
+      Math.abs(line.x + line.width - rightMargin) < page.width * INDENT;
+    const near = marginNear(line);
+    const reference =
+      justified || near - margin > page.width * NEAR_COLUMN
+        ? Math.max(margin, near)
+        : margin;
+    if (line.x - reference > page.width * INDENT) return true;
+    // A paragraph's last line starts at the margin and ends short of the
+    // right one; below it, a line set in however little opens the next.
+    const above = textLines[index - 1];
+    return (
+      justified &&
+      above !== undefined &&
+      /\p{L}{3}/u.test(above.text) &&
+      Math.abs(above.x - reference) < (page.width * INDENT) / 2 &&
+      above.x + above.width < rightMargin - page.width * SHORT_END &&
+      line.x - above.x > (page.width * INDENT) / 2
+    );
+  };
   const articleLines =
     volume.datelined === true
       ? articleLinesOf(textLines, page, volume, margin)
@@ -1252,6 +1354,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     if (index >= noteFrom) {
       if (
         !/\p{L}/u.test(line.text) ||
+        isRule(line, bodySize) ||
         SIGNATURE.test(line.text) ||
         isEdgeNoise(line.text) ||
         isScraps(line.text)
@@ -1263,10 +1366,12 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         {
           kind: "note",
           text: line.text,
-          // A note opens with its mark; in notes set as the text is, it is
-          // set in where the OCR lost its mark.
+          // A note opens with its mark, its digit read amiss or lost; in
+          // notes set as the text is, it is set in where the OCR lost its
+          // mark.
           opens:
             NOTE_START.test(line.text) ||
+            MARKED_NOTE_START.test(line.text) ||
             (volume.spacedNotes === true &&
               line.x - margin > page.width * INDENT),
         },
@@ -1714,7 +1819,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       {
         kind: "text",
         text: line.text,
-        opens: line.x - margin > page.width * INDENT,
+        opens: opensParagraph(line, index),
       },
     ];
   }, []);
@@ -1735,6 +1840,9 @@ function joinLine(before: string, line: string): string {
 }
 
 /** A paragraph or note, and where its text starts. */
+/** A sentence's end, its quotation closed or its bracket. */
+const SENTENCE_END = /[.!?][“”"»)]?$/u;
+
 interface Block {
   text: string;
   page: number;
@@ -1758,12 +1866,42 @@ function addLine(
   place: Place,
 ): Block[] {
   const last = blocks.at(-1);
-  return opens || last === undefined
-    ? [...blocks, { text: line, ...place, lastLeaf: place.leaf }]
-    : [
-        ...blocks.slice(0, -1),
-        { ...last, text: joinLine(last.text, line), lastLeaf: place.leaf },
-      ];
+  if (opens || last === undefined) {
+    return [...blocks, { text: line, ...place, lastLeaf: place.leaf }];
+  }
+  // A page that opens in lower case ends the word the page before broke
+  // off, though notes read as text stand between, opening with their marks
+  // and ending their sentences; the text runs on below them.
+  const broken =
+    last.lastLeaf < place.leaf &&
+    /^\p{Ll}/u.test(line) &&
+    SENTENCE_END.test(last.text)
+      ? blocks.reduce(
+          (found, block, index) =>
+            block.lastLeaf === last.lastLeaf && /[-⸗]$/u.test(block.text)
+              ? index
+              : found,
+          -1,
+        )
+      : -1;
+  const at =
+    broken >= 0 &&
+    blocks
+      .slice(broken + 1)
+      .every(
+        (block) =>
+          NOTE_START.test(block.text) ||
+          MARKED_NOTE_START.test(block.text) ||
+          STAR_NOTE_START.test(block.text),
+      )
+      ? broken
+      : blocks.length - 1;
+  const into = blocks[at] ?? last;
+  return [
+    ...blocks.slice(0, at),
+    ...blocks.slice(at + 1),
+    { ...into, text: joinLine(into.text, line), lastLeaf: place.leaf },
+  ];
 }
 
 /** A heading as it stands in the work: its level and its cased title. */

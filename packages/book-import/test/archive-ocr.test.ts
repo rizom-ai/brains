@@ -1636,6 +1636,70 @@ describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
       ["I. Das Geld oder die einfache Cirkulation.", "3) Geld."],
     ]);
   });
+
+  it("reads a numbered note set close below the text, a little smaller than it, as a note", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(
+          import.meta.dir,
+          "fixtures",
+          "archive-ocr-bracketed-sections.html",
+        ),
+        "utf8",
+      ),
+      {
+        item: "zur-kritik-der-politischen-okonomie",
+        title: "Zur Kritik der politischen Oekonomie",
+        citation: "Kritik",
+        firstPage: 41,
+        lastPage: 47,
+      },
+    );
+    const paragraphs = units.at(-1)?.paragraphs ?? [];
+
+    // The text runs on across the note into the next page.
+    expect(paragraphs.join("\n")).toContain(
+      "durch die Arbeitszeit zu messende Tauschwerthe, sondern",
+    );
+    expect(paragraphs).toContain(
+      "1) Die Sonderbarkeit, daß die Unze Gold in England als Maaßeinheit des Geldes in nicht aliquote Theile abgetheilt ist, erklärt sich wie folgt.",
+    );
+    // A list's item measured as small, spaced as the text is, stays text.
+    expect(paragraphs.join("\n")).toContain(
+      "wo es ihnen nicht zugänglich hätte sein sollen,",
+    );
+  });
+
+  it("reads the lines below a rule read as dashes and a letter or two as notes", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(
+          import.meta.dir,
+          "fixtures",
+          "archive-ocr-bracketed-sections.html",
+        ),
+        "utf8",
+      ),
+      {
+        item: "zur-kritik-der-politischen-okonomie",
+        title: "Zur Kritik der politischen Oekonomie",
+        citation: "Kritik",
+        firstPage: 41,
+        lastPage: 49,
+      },
+    );
+    const paragraphs = units.at(-1)?.paragraphs ?? [];
+
+    // The text runs on across the notes into the next page.
+    expect(paragraphs.join("\n")).toContain(
+      "das als Material des Geldes diente, war gesellschaftlich gegeben.",
+    );
+    expect(paragraphs.join("\n")).not.toContain("πε");
+    // Unmarked, the lines run on the note before them.
+    expect(paragraphs.at(-1)).toEndWith(
+      "erklärt sich wie folgt. measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
+    );
+  });
 });
 
 describe("parseArchiveOcrWork, bracketed titles set as Kautsky sets them", () => {
@@ -1822,6 +1886,62 @@ describe("parseArchiveOcrWork, leaves scanned at two sizes", () => {
   });
 });
 
+describe("parseArchiveOcrWork, a page scanned askew", () => {
+  it("opens a paragraph only where a line is set in from the lines about it", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-skewed.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1940-gw-13",
+        title: "Eine Teufelsneurose im siebzehnten Jahrhundert",
+        citation: "GW XIII",
+        firstPage: 333,
+        lastPage: 333,
+      },
+    );
+    const paragraphs = units.flatMap((unit) => unit.paragraphs);
+
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs[0]).toEndWith("gegen den Vater gerichtet.");
+    expect(paragraphs[1]).toStartWith(
+      "Dieselbe Ambivalenz beherrscht nach unserer Auffassung das",
+    );
+    // A line set in that opens in lower case runs on the line above.
+    expect(paragraphs[2]).toBe(
+      "3. „Die Befreiung der Arbeit erfordert die Erhebung der zu Gemeingut der Gesellschaft und die Regelung der Gesammtarbeit mit gerechter Vertheilung des Arbeitsertrags.“",
+    );
+  });
+
+  it("reads a column beside a picture by its own margin, not the text's across the page below", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-skewed.html"),
+        "utf8",
+      ),
+      {
+        item: "freud-1940-gw-13",
+        title: "Eine Kindheitserinnerung des Leonardo da Vinci",
+        citation: "GW XIII",
+        firstPage: 335,
+        lastPage: 335,
+      },
+    );
+    const paragraphs = units.flatMap((unit) => unit.paragraphs);
+
+    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs[1]).toStartWith("Die weibliche Brust zeigt zwei Mängel");
+    expect(paragraphs[1]).toContain(
+      "wahrscheinlich nach Leonardos Meinung die Milch",
+    );
+    // Below a paragraph's short last line, a line set in at all opens the next.
+    expect(paragraphs[2]).toStartWith(
+      "Wenn man von wenig bekannten inneren Antrieben",
+    );
+  });
+});
+
 describe("parseArchiveOcrWork, a title in display type across the column", () => {
   it("reads it apart from the text by the space its tall lines leave, less than a line's height", async () => {
     const units = parseArchiveOcrWork(
@@ -1834,7 +1954,7 @@ describe("parseArchiveOcrWork, a title in display type across the column", () =>
         title: "Lohnarbeit und Kapital",
         citation: "Lohnarbeit",
         firstPage: 19,
-        lastPage: 20,
+        lastPage: 22,
       },
     );
 
@@ -1847,5 +1967,61 @@ describe("parseArchiveOcrWork, a title in display type across the column", () =>
     expect(units.at(-1)?.paragraphs.join("\n")).toContain(
       "bestimmt wird, ist dreiseitig.",
     );
+  });
+
+  it("reads notes set in from the margin and short of the line as notes, not a heading", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-title.html"),
+        "utf8",
+      ),
+      {
+        item: "lohnarbeitundka00marxgoog",
+        title: "Lohnarbeit und Kapital",
+        citation: "Lohnarbeit",
+        firstPage: 19,
+        lastPage: 22,
+      },
+    );
+    const paragraphs = units.at(-1)?.paragraphs ?? [];
+
+    // The text runs on across the notes into the next page.
+    expect(paragraphs.join("\n")).toContain(
+      "Der Kapitalist kauft mit einem Teil seines vorhandenen Vermögens",
+    );
+    expect(paragraphs).toContain(
+      "1) Marx schrieb: womit er 12 Stunden Arbeit kaufte. K.",
+    );
+    // A note whose digit the OCR lost still opens with its bracket.
+    expect(paragraphs).toContain(") Marx schrieb: Für soviel Arbeit. K.");
+  });
+
+  it("reads a note set nearly as large as the text below a rule's space, and runs a broken word on past a note measured large", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-display-title.html"),
+        "utf8",
+      ),
+      {
+        item: "lohnarbeitundka00marxgoog",
+        title: "Lohnarbeit und Kapital",
+        citation: "Lohnarbeit",
+        firstPage: 19,
+        lastPage: 25,
+      },
+    );
+    const paragraphs = units.flatMap((unit) => unit.paragraphs);
+    const text = paragraphs.join("\n");
+
+    expect(text).toContain(
+      "Der Verkaufspreis der Ware teilt sich für den Kapitalisten in drei Teile",
+    );
+    expect(paragraphs).toContain(
+      "1) Marx schrieb: der relative Arbeitslohn dagegen den Preis der unmittelbaren Arbeit im Verhältnis zum Preise der aufgehäuften Arbeit, den Wert der Kapitalisten und Arbeiter. K.",
+    );
+    // The next page ends the word the text broke; the note between ends a
+    // sentence.
+    expect(text).toContain("wirklich so unzertrennlich verbunden");
+    expect(paragraphs).toContain("1) Marx schrieb: der Tauschwert. K.");
   });
 });
