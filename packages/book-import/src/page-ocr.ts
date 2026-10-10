@@ -167,7 +167,7 @@ export async function tesseractHocr(
  * spelled without the umlaut (Arzt, Außer, Andern, Apfel) is not among them.
  */
 const DOTLESS =
-  /(?<![\p{L}])(?:Okonom|Aquivalen|Anderung|Andert|Arzten?(?!\p{L})|Außerung|Außerst|Außerlich|Amter|Uber(?=\p{Ll}|(?!\p{L}))|Ubel|Osterreich|Angstlich|Ahnlich|Offentlich|Offnung|Agypt|Ortlich|Armste|Apfeln(?!\p{L}))/gu;
+  /(?<![\p{L}])(?:Okonom|Aquivalen|Anderung|Andert|Arzten?(?!\p{L})|Außerung|Außerst|Außerlich|Amter|Uber(?=\p{Ll}|(?!\p{L}))|Ubel|Osterreich|Angstlich|Ahnlich|Offent|Offnung|Agypt|Ortlich|Armste|Apfeln(?!\p{L}))/gu;
 const UMLAUT: Record<string, string> = { A: "Ä", O: "Ö", U: "Ü" };
 /** A capital Ö the model reads as S, where no German word opens so. */
 const O_AS_S = /(?<![\p{L}])S(?=sterreich|konom)/gu;

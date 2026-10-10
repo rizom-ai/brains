@@ -62,6 +62,7 @@ describe("volumeOfPages, capital umlauts", () => {
       tesseractPage("Uberproduktion"),
       tesseractPage("Uber"),
       tesseractPage("Arzte"),
+      tesseractPage("Offent-"),
     ]);
 
     expect(volume).toContain(">Ökonomie</span>");
@@ -70,6 +71,7 @@ describe("volumeOfPages, capital umlauts", () => {
     expect(volume).toContain(">Überproduktion</span>");
     expect(volume).toContain(">Über</span>");
     expect(volume).toContain(">Ärzte</span>");
+    expect(volume).toContain(">Öffent-</span>");
   });
 
   it("reads the capital Ö the model takes for S, and a noun's capital umlaut it sets small", () => {
