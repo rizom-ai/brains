@@ -357,6 +357,7 @@
     "core--contact-same-origin-referrer",
     "core--contact-separate-worker",
     "core--contact-site-theme",
+    "core--content-sync-reaches-site",
     "core--context-extends-published-surface",
     "core--contracts-channel-ownership",
     "core--cover-page",
