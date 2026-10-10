@@ -664,3 +664,23 @@ books:
     author: Karl Marx
     year: 1853
     kind: work
+  - source: archive-ocr
+    # The critique of the Gotha programme as Engels first printed it, from
+    # the manuscript with his omissions marked, in Die Neue Zeit; his preface
+    # before Marx's letter to Bracke is left out.
+    item: ao391_die_neue_zeit
+    citation: Neue Zeit IX.1
+    firstPage: 562
+    lastPage: 575
+    opensWith: London, 5. Mai 1875.
+    # MEW 19, Dietz 1962, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me19/me19_013.htm
+    slug: zur-kritik-des-sozialdemokratischen-parteiprogramms
+    title: Zur Kritik des sozialdemokratischen Parteiprogramms
+    shortTitle: Kritik des Gothaer Programms
+    edition: "Zur Kritik des sozialdemokratischen Parteiprogramms. Aus dem Nachlaß von Karl Marx, Die Neue Zeit, IX. Jahrgang, I. Band, Nr. 18 (Stuttgart, J. H. W. Dietz, 1891)"
+    author: Karl Marx
+    year: 1891
+    published: false
+    kind: work

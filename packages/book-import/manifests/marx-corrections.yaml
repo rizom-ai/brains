@@ -2193,3 +2193,84 @@ gesammelteschrif01marxuoft:
     from: Times. — Bundesvertrag zwischen Gsterreich und Preußen.
     to: Times. — Bundesvertrag zwischen Österreich und Preußen.
     by: scan
+ao391_die_neue_zeit:
+  - page: 562
+    from: einer füngst erschienenen
+    to: einer jüngst erschienenen
+    by: scan
+  - page: 563
+    from: Nandglossen zum Programm der deutschen Arbeiterpartei.
+    to: Randglossen zum Programm der deutschen Arbeiterpartei.
+    by: scan
+  - page: 563
+    from: schaft fih Niemand
+    to: schaft sich Niemand
+    by: scan
+  - page: 564
+    from: der Mensch ift ein Wilder
+    to: der Mensch ist ein Wilder
+    by: reference
+  - page: 565
+    from: Behanpten die Bourgeois
+    to: Behaupten die Bourgeois
+    by: scan
+  - page: 565
+    from: Redendarten. Der Kern
+    to: Redensarten. Der Kern
+    by: scan
+  - page: 566
+    from: aus; ebenso
+    to: aus; ebenso-
+    by: reference
+  - page: 567
+    from: Waarenägquivalenten
+    to: Waarenäquivalenten
+    by: scan
+  - page: 567
+    from: daher Leistungs fähigkeit
+    to: daher Leistungsfähigkeit
+    by: scan
+  - page: 568
+    from: ist aus deu Eingangsworten der
+    to: ist aus den Eingangsworten der
+    by: reference
+  - page: 570
+    from: aber richtig, jo kann ich
+    to: aber richtig, so kann ich
+    by: reference
+  - page: 570
+    from: II. N
+    to: II.
+    by: scan
+  - page: 571
+    from: der Staat Prodnktlivgenossenschaften giebt, die
+    to: der Staat Produktivgenossenschaften giebt, die
+    by: reference
+  - page: 571
+    from: einer Sklaverei tft, die im
+    to: einer Sklaverei ist, die im
+    by: reference
+  - page: 572
+    from: Kooperativgesellschaften betrifft, jo haben sie
+    to: Kooperativgesellschaften betrifft, so haben sie
+    by: reference
+  - page: 573
+    from: der revolutionären Unwandlung der einen
+    to: der revolutionären Umwandlung der einen
+    by: reference
+  - page: 573
+    from: gesellschaftl ichen
+    to: gesellschaftlichen
+    by: scan
+  - page: 573
+    from: fo hätte man
+    to: so hätte man
+    by: scan
+  - page: 574
+    from: einzige progresstve Einkommensteuer etc.“ Die Steuern find die
+    to: einzige progressive Einkommensteuer etc.“ Die Steuern sind die
+    by: scan
+  - page: 575
+    from: man von Scszialisten erwarten durfte
+    to: man von Sozialisten erwarten durfte
+    by: reference
