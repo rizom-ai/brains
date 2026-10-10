@@ -123,6 +123,16 @@ describe("volumeOfPages, hyphens", () => {
     expect(volume).toContain(">Februar-</span>");
     expect(volume).toContain(">Juni-Insurgent</span>");
   });
+
+  it("reads a double hyphen that ends a word before a comma as a hyphen", () => {
+    const volume = volumeOfPages([
+      tesseractPage("Wechsel⸗,"),
+      tesseractPage("Schiffs⸗-,"),
+    ]);
+
+    expect(volume).toContain(">Wechsel-,</span>");
+    expect(volume).toContain(">Schiffs-,</span>");
+  });
 });
 
 describe("createPageOcr", () => {

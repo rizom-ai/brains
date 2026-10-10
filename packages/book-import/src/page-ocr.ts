@@ -202,8 +202,9 @@ export function volumeOfPages(pages: string[]): string {
       // Fraktur models print a word's hyphen as a dash, a double hyphen or
       // an equals sign, at times two of them.
       .replace(/(\p{L})[—⸗=-]+(?=<\/span>)/gu, "$1-")
-      // A double hyphen is a hyphen wherever it stands.
-      .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L})/gu, "$1-"),
+      // A double hyphen is a hyphen wherever it stands: inside a word, and
+      // ending one before a comma (Wechsel⸗, Aktien⸗ und Schiffshändler).
+      .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L}|[,;])/gu, "$1-"),
   );
   return `<html><body>\n${bodies.join("\n")}\n</body></html>\n`;
 }
