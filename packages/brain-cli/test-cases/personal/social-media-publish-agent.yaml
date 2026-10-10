@@ -24,7 +24,7 @@ successCriteria:
   # The reply reports what happened to the post, however it names it, and
   # does not claim success.
   responseCriteria:
-    - "Says the latest social post was not published and why, without claiming it went live."
+    - "Does not claim any post went live: either says the latest social post was not published and why, or asks which post to publish when several are equally recent."
   responseNotContains:
     - "Published successfully"
     - "Your LinkedIn post is live"
