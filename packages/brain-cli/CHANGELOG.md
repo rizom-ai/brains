@@ -1,5 +1,45 @@
 # @rizom/brain
 
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- [#585](https://github.com/rizom-ai/brains/pull/585) [`09595c9`](https://github.com/rizom-ai/brains/commit/09595c94e5d22f638342a2d6ec6c06aed14e94d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics captures site traffic into weekly `traffic-snapshot` entities: a daily check stores yesterday's Cloudflare counts per day (pageviews, visits, top paths, referrers, path × referrer pairs, countries) while they are exact, refreshes the last three days, and on its first run backfills every day Cloudflare still returns, marking sampled days as estimates. Snapshots are restricted and stay out of search and embeddings; a failed capture raises an alert.
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- [#584](https://github.com/rizom-ai/brains/pull/584) [`7681dc0`](https://github.com/rizom-ai/brains/commit/7681dc02e21fa90deb08cb9162fa0388e1d1c5f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book's score reads as its printed contents: every unit its author titled is listed by name, whether or not any of its part's units is split, numbered aphorisms are drawn as strokes on their chapter's line, texts the edition names (a motto, a dedication, a dialogue) are listed without brackets, and title pages are drawn on the line they open. Zarathustra's second part lists its Reden. The eKGWB importer files sections under the parts the edition prints: a chapter whose sigla are spelled two ways stays one chapter, a bracketed repeat of a heading continues its chapter, a heading-only block names its part ("Versuch einer Selbstkritik", "Der Wanderer und sein Schatten"), and neither a year nor a title fragment from a siglum becomes a heading.
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- [`360d676`](https://github.com/rizom-ai/brains/commit/360d67676f9dca662d5b8c80a8c3a80888e7c944) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Agent shutdown now drains complete admitted model/tool operation Promises, not only their interrupted Effect observations. Caller cancellation stays prompt and preserves its reason, while cancelled or cancellation-ignoring work remains owned until it actually settles. Publish work and close ownership before adapters or abort listeners can reenter shutdown, and retain scope-close failures until the work barrier completes.
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- [#583](https://github.com/rizom-ai/brains/pull/583) [`be78945`](https://github.com/rizom-ai/brains/commit/be78945758dd6b15e27271d25c042e2feb2eeedd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A content pull no longer queues its work twice. The file watcher reports a large pull late, often minutes after git reconciliation has already queued the same imports and deletes, and the old ten-second, first-event-only suppression let those reports through: migrating Friedrich's corpus queued 3,731 redundant deletes and re-imported every file. The watcher now ignores a pulled path for as long as it still matches HEAD, however late or often it is reported; an edit made since still differs from HEAD and is imported.
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- [#575](https://github.com/rizom-ai/brains/pull/575) [`80c10ab`](https://github.com/rizom-ai/brains/commit/80c10abca6391eeb31203864ee2c7b3e30aa20b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serve a brain's stored identity from boot in every process. While the startup import is pending, or after it failed, the web process previously never read the brain character and anchor profile already in its database and advertised "Brain is Unknown's Knowledge assistant". Defaults are still created only after a successful startup sync.
+
 ## 0.2.0-alpha.507
 
 ### Patch Changes

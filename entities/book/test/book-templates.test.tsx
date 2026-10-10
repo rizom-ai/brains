@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import type { BookWithData } from "../src/schemas/book";
 import type { BookSectionWithData } from "../src/schemas/book-section";
+import type { ScoreEntry } from "../src/datasources/book-datasource";
 import { BookListTemplate } from "../src/templates/book-list";
 import {
   BookDetailTemplate,
@@ -579,5 +580,120 @@ describe("Book pages", () => {
     expect(html).toContain("Testausgabe");
     expect(html).toMatch(/href="\/books\/erstes\/1"[^>]*>Begin reading →</);
     expect(html).not.toContain('rel="prev"');
+  });
+});
+
+describe("The score as the book's contents", () => {
+  let order = 0;
+  /** A score entry; its siglum is its title unless given. */
+  function unit(
+    title: string,
+    headings: string[] = [],
+    siglum: string = title,
+  ): ScoreEntry {
+    order += 1;
+    return {
+      slug: `werk/${order}`,
+      title,
+      section: siglum,
+      order,
+      headings,
+      length: 100,
+    };
+  }
+  const score = (entries: ScoreEntry[]): string =>
+    render(<BookDetailTemplate book={erstes} first={null} score={entries} />);
+  const labelled = (order: number, label: string): RegExp =>
+    new RegExp(`href="/books/werk/${order}"[^>]*>${label}<`);
+
+  test("lists every titled unit of a part, whether or not any is split", () => {
+    order = 0;
+    const html = score([
+      unit("Titel", ["Zweiter Theil"], "Za-II-[Titel]"),
+      unit("Za-II-[Motto]", ["Zweiter Theil"]),
+      unit("Das Kind mit dem Spiegel", ["Zweiter Theil"]),
+      unit("Auf den glückseligen Inseln", ["Zweiter Theil"]),
+    ]);
+
+    expect(html).toMatch(labelled(1, "Zweiter Theil"));
+    // The motto is a text the edition named: listed, without its brackets.
+    expect(html).toMatch(labelled(2, "Motto"));
+    expect(html).toMatch(labelled(3, "Das Kind mit dem Spiegel"));
+    expect(html).toMatch(labelled(4, "Auf den glückseligen Inseln"));
+    // The part title page is a stroke on the part's line, not an entry.
+    expect(html).not.toContain(">Titel<");
+  });
+
+  test("draws numbered aphorisms as strokes on their chapter's line", () => {
+    order = 0;
+    const html = score([
+      unit("1", ["Erstes Hauptstück"]),
+      unit("2", ["Erstes Hauptstück"]),
+      unit("65a", ["Erstes Hauptstück"]),
+    ]);
+
+    expect(html).toMatch(labelled(1, "Erstes Hauptstück"));
+    expect(html).not.toMatch(/>(1|2|65a)</);
+    expect(html.match(/style="height:/g)).toHaveLength(3);
+  });
+
+  test("lists a division's titled units beneath it, in reading order", () => {
+    order = 0;
+    const html = score([
+      unit("1", ["Erster Theil", "Die Vorrede"]),
+      unit("2", ["Erster Theil", "Die Vorrede"]),
+      unit("Von den drei Verwandlungen", ["Erster Theil", "Die Reden"]),
+      unit("Von den Hinterweltlern", ["Erster Theil", "Die Reden"]),
+    ]);
+
+    expect(html).toMatch(labelled(1, "Erster Theil"));
+    expect(html).toMatch(labelled(1, "Die Vorrede"));
+    expect(html).toMatch(labelled(3, "Die Reden"));
+    expect(html).toMatch(labelled(3, "Von den drei Verwandlungen"));
+    expect(html).toMatch(labelled(4, "Von den Hinterweltlern"));
+    expect(html.indexOf("Die Reden")).toBeLessThan(
+      html.indexOf("Von den drei Verwandlungen"),
+    );
+  });
+
+  test("draws a book's own title page on its opening line, not a line of its own", () => {
+    order = 0;
+    const html = score([
+      unit("Titel", [], "GT-[Titel]"),
+      unit("Vorwort", [], "GT-Vorwort"),
+      unit("1"),
+    ]);
+
+    expect(html).not.toContain(">Titel<");
+    expect(html).toMatch(labelled(2, "Vorwort"));
+    expect(html.match(/style="height:/g)).toHaveLength(3);
+  });
+
+  test("gives a titled unit split across sections one row", () => {
+    order = 0;
+    const html = score([
+      unit("Vortrag I", [], "BA-I"),
+      unit("Vortrag I", [], "BA-I"),
+      unit("Vortrag II", [], "BA-II"),
+    ]);
+
+    expect(html.match(/>Vortrag I</g)).toHaveLength(1);
+    expect(html).toMatch(labelled(1, "Vortrag I"));
+    expect(html).toMatch(labelled(3, "Vortrag II"));
+  });
+
+  test("names a run of numbered sections by its range and an edition-named text by its name", () => {
+    order = 0;
+    const html = score([
+      unit("Vorwort", [], "AC-Vorwort"),
+      unit("1"),
+      unit("2"),
+      unit("3"),
+      unit("[Gesetz]", [], "AC-Gesetz"),
+    ]);
+
+    expect(html).toMatch(labelled(1, "Vorwort"));
+    expect(html).toMatch(labelled(2, "1–3"));
+    expect(html).toMatch(labelled(5, "Gesetz"));
   });
 });

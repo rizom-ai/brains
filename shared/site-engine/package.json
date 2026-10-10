@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-engine",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.507",
+  "version": "0.2.0-alpha.513",
   "description": "Renderer-agnostic site build engine utilities",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -11,7 +11,7 @@
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "@tailwindcss/postcss": "^4.3.1",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.29",
     "tailwindcss": "^4.3.1"
   },
   "devDependencies": {

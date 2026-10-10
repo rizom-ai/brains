@@ -1,5 +1,95 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.513
+  - @brains/contracts@0.2.0-alpha.513
+  - @brains/utils@0.2.0-alpha.513
+  - @brains/ai-service@0.2.0-alpha.513
+  - @brains/app@0.2.0-alpha.513
+  - @brains/mcp-service@0.2.0-alpha.513
+  - @brains/plugins@0.2.0-alpha.513
+  - @brains/templates@0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.512
+  - @brains/contracts@0.2.0-alpha.512
+  - @brains/utils@0.2.0-alpha.512
+  - @brains/ai-service@0.2.0-alpha.512
+  - @brains/app@0.2.0-alpha.512
+  - @brains/mcp-service@0.2.0-alpha.512
+  - @brains/plugins@0.2.0-alpha.512
+  - @brains/templates@0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies [[`360d676`](https://github.com/rizom-ai/brains/commit/360d67676f9dca662d5b8c80a8c3a80888e7c944)]:
+  - @brains/ai-service@0.2.0-alpha.511
+  - @brains/plugins@0.2.0-alpha.511
+  - @brains/app@0.2.0-alpha.511
+  - @brains/content-formatters@0.2.0-alpha.511
+  - @brains/contracts@0.2.0-alpha.511
+  - @brains/utils@0.2.0-alpha.511
+  - @brains/mcp-service@0.2.0-alpha.511
+  - @brains/templates@0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.510
+  - @brains/contracts@0.2.0-alpha.510
+  - @brains/utils@0.2.0-alpha.510
+  - @brains/ai-service@0.2.0-alpha.510
+  - @brains/app@0.2.0-alpha.510
+  - @brains/mcp-service@0.2.0-alpha.510
+  - @brains/plugins@0.2.0-alpha.510
+  - @brains/templates@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
+- Updated dependencies [[`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c)]:
+  - @brains/content-formatters@0.2.0-alpha.509
+  - @brains/utils@0.2.0-alpha.509
+  - @brains/mcp-service@0.2.0-alpha.509
+  - @brains/plugins@0.2.0-alpha.509
+  - @brains/templates@0.2.0-alpha.509
+  - @brains/contracts@0.2.0-alpha.509
+  - @brains/ai-service@0.2.0-alpha.509
+  - @brains/app@0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.508
+  - @brains/contracts@0.2.0-alpha.508
+  - @brains/utils@0.2.0-alpha.508
+  - @brains/ai-service@0.2.0-alpha.508
+  - @brains/app@0.2.0-alpha.508
+  - @brains/mcp-service@0.2.0-alpha.508
+  - @brains/plugins@0.2.0-alpha.508
+  - @brains/templates@0.2.0-alpha.508
+
 ## 0.2.0-alpha.507
 
 ### Patch Changes

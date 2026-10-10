@@ -1,14 +1,14 @@
 {
   "name": "@brains/email",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.507",
+  "version": "0.2.0-alpha.513",
   "description": "Email transport with Resend delivery, threaded replies, IMAP intake, and private bounded source reads",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "imapflow": "^1.6.5",
-    "mailparser": "^3.9.14"
+    "mailparser": "^3.9.37"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

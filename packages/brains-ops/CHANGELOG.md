@@ -1,5 +1,17 @@
 # @brains/ops
 
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
 ## 0.2.0-alpha.507
 
 ### Patch Changes

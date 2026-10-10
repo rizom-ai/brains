@@ -1,5 +1,71 @@
 # @brains/contact
 
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.513
+  - @brains/contracts@0.2.0-alpha.513
+  - @brains/site-composition@0.2.0-alpha.513
+  - @brains/utils@0.2.0-alpha.513
+  - @brains/plugins@0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.512
+  - @brains/contracts@0.2.0-alpha.512
+  - @brains/site-composition@0.2.0-alpha.512
+  - @brains/utils@0.2.0-alpha.512
+  - @brains/plugins@0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.511
+  - @brains/console-theme@0.2.0-alpha.511
+  - @brains/contracts@0.2.0-alpha.511
+  - @brains/site-composition@0.2.0-alpha.511
+  - @brains/utils@0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.510
+  - @brains/contracts@0.2.0-alpha.510
+  - @brains/site-composition@0.2.0-alpha.510
+  - @brains/utils@0.2.0-alpha.510
+  - @brains/plugins@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- Updated dependencies [[`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c)]:
+  - @brains/utils@0.2.0-alpha.509
+  - @brains/site-composition@0.2.0-alpha.509
+  - @brains/plugins@0.2.0-alpha.509
+  - @brains/contracts@0.2.0-alpha.509
+  - @brains/console-theme@0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.508
+  - @brains/contracts@0.2.0-alpha.508
+  - @brains/site-composition@0.2.0-alpha.508
+  - @brains/utils@0.2.0-alpha.508
+  - @brains/plugins@0.2.0-alpha.508
+
 ## 0.2.0-alpha.507
 
 ### Patch Changes
