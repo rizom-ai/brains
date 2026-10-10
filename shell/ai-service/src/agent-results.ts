@@ -1,6 +1,7 @@
 import {
   StructuredChatCardSchema,
   type AgentContextItem,
+  type AssistantTurn,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -765,4 +766,38 @@ export function buildEntityMemoryContext(refs: EntityMemoryRef[]): string {
     return `- ${details.join("; ")}`;
   });
   return `\n\nInternal entity refs from previous assistant turns for follow-up resolution. These are typed runtime references, not visible user text. Use the canonical entityId when a follow-up refers to the same item (for example “it”, “that”, “that post”, “the draft”, “publish it”, or “a cover image to go with that”). Do not derive or rewrite IDs from titles; copy the exact entityId value from the matching ref. A ref with operation created and status generating/draft is already a valid target for follow-up operations such as cover-image generation; do not ask the user for its slug again.\n${lines.join("\n")}`;
+}
+
+const readEntitySchema = z.object({
+  id: z.string().min(1),
+  entityType: z.string().min(1),
+});
+const getReadSchema = z.object({ entity: readEntitySchema });
+const searchReadSchema = z.object({
+  results: z.array(z.object({ entity: readEntitySchema })),
+});
+
+/** Entities a turn's reads actually returned, once each, in read order. */
+export function buildRetrievedEntityRefs(
+  toolResults: ToolResultData[],
+): AssistantTurn["retrieved"] {
+  const entities = toolResults.flatMap((result) => {
+    if (result.error) return [];
+    if (result.toolName === "system_get") {
+      const read = getReadSchema.safeParse(result.data);
+      return read.success ? [read.data.entity] : [];
+    }
+    if (result.toolName === "system_search") {
+      const read = searchReadSchema.safeParse(result.data);
+      return read.success ? read.data.results.map((hit) => hit.entity) : [];
+    }
+    return [];
+  });
+  const refs = new Map(
+    entities.map((entity) => [
+      `${entity.entityType}/${entity.id}`,
+      { entityType: entity.entityType, entityId: entity.id },
+    ]),
+  );
+  return [...refs.values()].slice(0, 50);
 }

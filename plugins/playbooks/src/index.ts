@@ -50,6 +50,12 @@ export {
   type PlaybookStatusResponse,
 } from "./plugin";
 export {
+  playbookManageOutputSchema,
+  playbookStatusResponseSchema,
+  playbookSummarySchema,
+  type PlaybookSummary,
+} from "./lib/status";
+export {
   PlaybookRunStore,
   createPlaybookRun,
   playbookGateVerdictSchema,

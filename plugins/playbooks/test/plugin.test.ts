@@ -18,6 +18,8 @@ import {
 import {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   playbookRunSchema,
+  playbookManageOutputSchema,
+  playbookStatusResponseSchema,
   playbooksPlugin,
   type GoalCheck,
   type GoalCheckInput,
@@ -179,7 +181,9 @@ const playbookToolDataSchema = z
 function parsePlaybookToolData(
   input: unknown,
 ): z.output<typeof playbookToolDataSchema> {
-  return playbookToolDataSchema.parse(input);
+  return playbookToolDataSchema.parse(
+    playbookStatusResponseSchema.parse(input),
+  );
 }
 
 function goalCheck(evaluate: GoalCheck["evaluate"]): {
@@ -226,6 +230,166 @@ describe("PlaybooksPlugin", () => {
     expect(records).toHaveLength(1);
     expect(records[0]?.value.conversationId).toBe(
       "conversation-uses-runtime-state",
+    );
+  });
+
+  describe("assistant reply evidence", () => {
+    const transformState: PlaybookBody["states"][number] = {
+      id: "welcome",
+      title: "Transform",
+      instructions: ["Transform the retrieved note in chat."],
+      requiredDetails: [],
+      doneWhen: ["The saved note has been retrieved and transformed in chat."],
+      provenBy: ["reply"],
+      transitions: [{ event: "NEXT", target: "complete" }],
+    };
+
+    async function setup(
+      state: PlaybookBody["states"][number] = transformState,
+    ): Promise<{
+      harness: PluginHarness;
+      runId: string;
+      evaluate: ReturnType<typeof mock<GoalCheck["evaluate"]>>;
+    }> {
+      const evaluate = mock<GoalCheck["evaluate"]>(async () => ({
+        met: true,
+        reason: "The outline was delivered in chat.",
+      }));
+      const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+      await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+      addPlaybookEntity(harness, {
+        ...playbookBody,
+        states: [state, completeState],
+      });
+      const runId = await startRun(harness, "reply-evidence");
+      return { harness, runId, evaluate };
+    }
+
+    async function reply(
+      harness: PluginHarness,
+      options: {
+        startedAt: string;
+        sender?: string;
+        role?: string;
+        assistantTurn?: boolean;
+      },
+    ): Promise<void> {
+      await harness.sendMessage(
+        "conversation:messageAdded",
+        {
+          conversationId: "reply-evidence",
+          messageId: "reply-1",
+          role: options.role ?? "assistant",
+          content: "1. Problem\n2. Approach\n3. Next step",
+          metadata:
+            options.assistantTurn === false
+              ? {}
+              : {
+                  assistantTurn: {
+                    startedAt: options.startedAt,
+                    retrieved: [{ entityType: "note", entityId: "seed" }],
+                  },
+                },
+          timestamp: new Date().toISOString(),
+        },
+        options.sender ?? "conversation-service",
+        true,
+      );
+    }
+
+    async function runState(
+      harness: PluginHarness,
+      runId: string,
+    ): Promise<z.output<typeof playbookRunSchema>> {
+      const status = await harness.executeTool("playbook_manage", {
+        action: "status",
+        runId,
+      });
+      expectSuccess(status);
+      return playbookRunSchema.parse(
+        parsePlaybookToolData(status.data).activeRun,
+      );
+    }
+
+    it("proves a reply-proven step with a later turn's saved reply", async () => {
+      const { harness, runId, evaluate } = await setup();
+      await reply(harness, {
+        startedAt: new Date(Date.now() + 1000).toISOString(),
+      });
+
+      expect(evaluate).toHaveBeenCalledTimes(1);
+      const evidence = evaluate.mock.calls[0]?.[0].evidence ?? [];
+      expect(evidence).toHaveLength(1);
+      expect(evidence[0]).toMatchObject({
+        kind: "assistant_reply",
+        stateId: "welcome",
+        data: {
+          conversationId: "reply-evidence",
+          messageId: "reply-1",
+          retrieved: [{ entityType: "note", entityId: "seed" }],
+          reply: "1. Problem\n2. Approach\n3. Next step",
+        },
+      });
+      const run = await runState(harness, runId);
+      expect(run.currentState).toBe("complete");
+      expect(run.evidence.map((item) => item.data)).toEqual([
+        { messageId: "reply-1" },
+      ]);
+    });
+
+    it("records when each step was entered", async () => {
+      const { harness, runId } = await setup({
+        ...transformState,
+        provenBy: undefined,
+        doneWhen: [],
+      });
+      const started = await runState(harness, runId);
+      expect(started.stateEnteredAt).toBeDefined();
+      const advanced = await harness.executeTool("playbook_manage", {
+        action: "send-event",
+        runId,
+        event: "NEXT",
+        fromState: "welcome",
+      });
+      expectSuccess(advanced);
+      const completed = await runState(harness, runId);
+      expect(completed.currentState).toBe("complete");
+      expect(
+        (completed.stateEnteredAt ?? "") >= (started.stateEnteredAt ?? ""),
+      ).toBe(true);
+      expect(completed.stateEnteredAt).not.toBe(started.stateEnteredAt);
+    });
+
+    it("does not credit the reply of the turn that entered the step", async () => {
+      const { harness, runId, evaluate } = await setup();
+      await reply(harness, { startedAt: "2020-01-01T00:00:00.000Z" });
+      expect(evaluate).not.toHaveBeenCalled();
+      expect((await runState(harness, runId)).evidence).toEqual([]);
+    });
+
+    it("does not credit replies on steps that do not declare Proven by: reply", async () => {
+      const { harness, runId, evaluate } = await setup({
+        ...transformState,
+        provenBy: undefined,
+      });
+      await reply(harness, {
+        startedAt: new Date(Date.now() + 1000).toISOString(),
+      });
+      expect(evaluate).not.toHaveBeenCalled();
+      expect((await runState(harness, runId)).evidence).toEqual([]);
+    });
+
+    it.each([{ sender: "test" }, { role: "user" }, { assistantTurn: false }])(
+      "ignores a message that is not a host-recorded reply: %j",
+      async (options) => {
+        const { harness, runId, evaluate } = await setup();
+        await reply(harness, {
+          startedAt: new Date(Date.now() + 1000).toISOString(),
+          ...options,
+        });
+        expect(evaluate).not.toHaveBeenCalled();
+        expect((await runState(harness, runId)).evidence).toEqual([]);
+      },
     );
   });
 
@@ -341,6 +505,137 @@ describe("PlaybooksPlugin", () => {
     });
   });
 
+  it.each(["active", "draft", "archived"] as const)(
+    "returns a definition summary without a run for an %s playbook",
+    async (status) => {
+      const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+      const capabilities = await harness.installPlugin(playbooksPlugin({}));
+      addPlaybookEntity(harness, playbookBody, "rover-onboarding", { status });
+      const source = await harness
+        .getEntityService()
+        .getEntity({ entityType: "playbook", id: "rover-onboarding" });
+      if (!source) throw new Error("Missing playbook fixture");
+
+      const response = await harness.executeTool("playbook_manage", {
+        action: "status",
+        playbookId: "rover-onboarding",
+      });
+      expectSuccess(response);
+      const data = playbookStatusResponseSchema.parse(response.data);
+      expect(data.runs).toEqual([]);
+      expect(data.activeRun).toBeUndefined();
+      expect(data.currentState).toBeUndefined();
+      expect(data.playbook).toEqual({
+        id: "rover-onboarding",
+        entityType: "playbook",
+        title: "Rover Onboarding",
+        status,
+        audience: "admin",
+        version: expect.any(String),
+        initialState: { id: "welcome", title: "Welcome" },
+      });
+      expect(data).not.toHaveProperty("body");
+      expect(data.playbook).not.toHaveProperty("content");
+      expect(data.playbook).not.toHaveProperty("metadata");
+      expect(data.playbook).not.toHaveProperty("states");
+      expect(
+        playbookStatusResponseSchema.safeParse({ ...data, body: playbookBody })
+          .success,
+      ).toBe(false);
+      expect(
+        playbookStatusResponseSchema.safeParse({
+          ...data,
+          playbook: { ...data.playbook, content: source.content },
+        }).success,
+      ).toBe(false);
+      const manageTool = capabilities.tools.find(
+        (tool) => tool.name === "playbook_manage",
+      );
+      expect(manageTool?.outputSchema).toBe(playbookManageOutputSchema);
+      expect(playbookManageOutputSchema.safeParse(response).success).toBe(true);
+      expect(manageTool?.description).toContain(
+        "system_get with entityType=playbook",
+      );
+      expect(
+        await harness
+          .getEntityService()
+          .getEntity({ entityType: "playbook", id: "rover-onboarding" }),
+      ).toEqual(source);
+    },
+  );
+
+  it("omits future definitions but retains them for execution and stored-source retrieval", async () => {
+    const harness = await installHarness();
+    const futureInstructions = "Future-step source must remain intact. "
+      .repeat(400)
+      .trim();
+    const futureState = {
+      ...completeState,
+      instructions: [futureInstructions],
+    };
+    const body = {
+      ...playbookBody,
+      states: [welcomeState, seedState, futureState],
+    };
+    addPlaybookEntity(harness, body);
+    const source = await harness
+      .getEntityService()
+      .getEntity({ entityType: "playbook", id: "rover-onboarding" });
+    if (!source) throw new Error("Missing playbook fixture");
+    expect(source.content.length).toBeGreaterThan(15000);
+
+    const runId = await startRun(harness, "compact-full-engine");
+    const status = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
+    expectSuccess(status);
+    const data = playbookStatusResponseSchema.parse(status.data);
+    expect(data.currentState).toEqual(welcomeState);
+    expect(JSON.stringify(data)).not.toContain(
+      "Future-step source must remain intact.",
+    );
+    expect(JSON.stringify(data).length).toBeLessThan(6000);
+
+    for (const fromState of ["welcome", "seed"]) {
+      const advanced = await harness.executeTool("playbook_manage", {
+        action: "send-event",
+        runId,
+        event: "NEXT",
+        fromState,
+      });
+      expectSuccess(advanced);
+    }
+    const completed = await harness.executeTool("playbook_manage", {
+      action: "status",
+      runId,
+    });
+    expectSuccess(completed);
+    const completedData = playbookStatusResponseSchema.parse(completed.data);
+    expect(completedData.activeRun?.status).toBe("completed");
+    expect(completedData.currentState).toEqual(futureState);
+    expect(completedData.guidance).toContain(futureInstructions);
+    expect(
+      await harness
+        .getEntityService()
+        .getEntity({ entityType: "playbook", id: "rover-onboarding" }),
+    ).toEqual(source);
+  });
+
+  it("returns an absent definition rather than inventing an initial step", async () => {
+    const harness = await installHarness();
+    const response = await harness.executeTool("playbook_manage", {
+      action: "status",
+      playbookId: "missing-playbook",
+    });
+    expectSuccess(response);
+    const data = playbookStatusResponseSchema.parse(response.data);
+    expect(data.playbook).toBeUndefined();
+    expect(data.activeRun).toBeUndefined();
+    expect(data.currentState).toBeUndefined();
+    expect(data.runs).toEqual([]);
+  });
+
   it("routes status, start, and send-event through playbook_manage", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     await harness.installPlugin(playbooksPlugin({}));
@@ -354,6 +649,17 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(started);
     const startedData = parsePlaybookToolData(started.data);
     expect(startedData.activeRun.currentState).toBe("welcome");
+    const startedSummary = playbookStatusResponseSchema.parse(started.data);
+    expect(startedSummary.currentState).toEqual(welcomeState);
+    expect(startedSummary.operatorActions).toEqual(welcomeState.transitions);
+    expect(startedSummary.cards?.[0]?.actions).toEqual([
+      expect.objectContaining({ event: "NEXT", fromState: "welcome" }),
+      expect.objectContaining({ event: "SKIP", fromState: "welcome" }),
+    ]);
+    expect(startedSummary.playbook?.initialState).toEqual({
+      id: "welcome",
+      title: "Welcome",
+    });
 
     const status = await harness.executeTool(
       "playbook_manage",
@@ -379,6 +685,19 @@ describe("PlaybooksPlugin", () => {
     expect(parsePlaybookToolData(advanced.data).activeRun.currentState).toBe(
       "seed",
     );
+    const advancedSummary = playbookStatusResponseSchema.parse(advanced.data);
+    expect(advancedSummary.currentState).toEqual(seedState);
+    expect(advancedSummary.validEvents).toEqual(seedState.transitions);
+    expect(advancedSummary.cards).toBeUndefined();
+    expect(advancedSummary.activeRun?.status).toBe("active");
+    expect(advancedSummary.playbook?.version).toBe(
+      startedSummary.playbook?.version,
+    );
+    for (const response of [started, status, advanced]) {
+      expect(playbookManageOutputSchema.safeParse(response).success).toBe(true);
+      expect(response.data).not.toHaveProperty("body");
+      expect(JSON.stringify(response.data)).not.toContain("Teach by doing.");
+    }
   });
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {

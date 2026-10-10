@@ -10,7 +10,11 @@
 
 import type { EmbeddingUsage } from "./embedding-usage-meter";
 import { noModelCallPricing, withEmbeddingUsage } from "./openai-guest-pricing";
-import type { AgentContextItem, AskedBefore } from "@brains/contracts";
+import type {
+  AgentContextItem,
+  AskedBefore,
+  AssistantTurn,
+} from "@brains/contracts";
 import {
   guestInterfaceType,
   getGuestSourceCards,
@@ -63,6 +67,7 @@ import {
   extractToolResults,
   buildAgentContactCandidates,
   buildEntityMemoryRefs,
+  buildRetrievedEntityRefs,
   buildToolResultPromptFallback,
   withAnswerSources,
   type AgentContactCandidate,
@@ -109,6 +114,8 @@ interface AdmittedTurn {
   guestExecution: GuestExecutionPolicy | undefined;
   /** The caller, canonically attributed; always null for a guest. */
   attributedActor: ConversationMessageActor | null;
+  /** When the turn was admitted, before any of its tools ran. */
+  startedAt: string;
 }
 
 /** What the model is given for a turn, and what the response needs back. */
@@ -203,6 +210,7 @@ export class TurnProcessor {
       source,
       attachments,
     } = input;
+    const startedAt = new Date().toISOString();
     const guest = interfaceType === guestInterfaceType;
     assertGuestPermission(input);
     const guestExecution = requireGuestExecutionPolicy(input);
@@ -239,7 +247,7 @@ export class TurnProcessor {
           channelId: storageChannelId,
         },
       });
-    return { input, guest, guestExecution, attributedActor };
+    return { input, guest, guestExecution, attributedActor, startedAt };
   }
 
   private async answerAttachmentsOnly(
@@ -555,6 +563,15 @@ export class TurnProcessor {
       guest || pendingConfirmations.length > 0
         ? []
         : buildAgentContactCandidates(toolResults);
+    // Only a completed, non-guest reply carries turn facts; a reply awaiting
+    // confirmation has not done what it proposes.
+    const assistantTurn =
+      guest || pendingConfirmations.length > 0
+        ? undefined
+        : {
+            startedAt: turn.startedAt,
+            retrieved: buildRetrievedEntityRefs(toolResults),
+          };
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
@@ -575,6 +592,7 @@ export class TurnProcessor {
           cards: responseCards,
           entityMemoryRefs,
           agentContactCandidates,
+          assistantTurn,
           guest,
         })),
       });
@@ -854,6 +872,7 @@ export class TurnProcessor {
     cards?: StructuredChatCard[];
     entityMemoryRefs?: EntityMemoryRef[];
     agentContactCandidates?: AgentContactCandidate[];
+    assistantTurn?: AssistantTurn | undefined;
     actorAlreadyEnriched?: boolean;
     guest?: boolean;
     /** The FAQ that gave a visitor's reply in the model's place. */

@@ -81,12 +81,11 @@ To do:
 - When the operator only asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
 - Use `operation: { kind: "content", content: <full markdown> }`; never use the fields operation for anchor-profile during this playbook. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
-- Set kind to "person" for an individual operator.
-- Store onboarding essentials as structured frontmatter keys: name, kind, role, audience, and expertise.
+- The anchor category is selected by instance configuration, not profile frontmatter. Do not write `kind` into anchor-profile content; it is not an accepted profile field.
+- Store onboarding essentials as structured frontmatter keys: name, role, audience, and expertise.
 - Do not store tone or visual-style instructions in anchor-profile; those belong in the style-guide singleton.
-- `kind: person` is required. Never call system_update for anchor-profile if the replacement content omits kind.
 - `expertise` must be a YAML list, even when the operator gives one expertise phrase. Never call system_update for anchor-profile if expertise is a one-line string.
-- Use this exact frontmatter shape for anchor-profile content, substituting only details the operator provided in the current onboarding run: `---`, `name: <provided name>`, `kind: person`, `role: <provided role>`, `audience: <provided audience>`, `expertise:`, `  - <provided expertise>`, then closing `---`. Do not copy placeholder or example values into the profile.
+- Use this exact frontmatter shape for anchor-profile content, substituting only details the operator provided in the current onboarding run: `---`, `name: <provided name>`, `role: <provided role>`, `audience: <provided audience>`, `expertise:`, `  - <provided expertise>`, then closing `---`. Do not copy placeholder or example values into the profile.
 - Do not use fields-only updates for anchor-profile.
 - Do not use system_create for anchor-profile; anchor-profile is an existing singleton profile record.
 - After saving, explain that Brain uses the anchor profile to shape answers, site content, and publishing workflows around the operator.
