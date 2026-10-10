@@ -684,3 +684,23 @@ books:
     year: 1891
     published: false
     kind: work
+  - source: archive-ocr
+    item: zur-kritik-der-politischen-okonomie
+    citation: Kritik
+    ocr: frak2021
+    firstPage: III
+    lastPage: 170
+    # The contents and the list of misprints, between the preface and the text.
+    skipPages: [1, 2]
+    # MEW 13, Dietz 1961, as mlwerke.de published it: to check the OCR against.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_007.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_015.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_049.htm
+    slug: zur-kritik-der-politischen-oekonomie
+    title: Zur Kritik der politischen Oekonomie. Erstes Heft
+    shortTitle: Zur Kritik der politischen Oekonomie
+    edition: Zur Kritik der politischen Oekonomie, Erstes Heft (Berlin, Franz Duncker, 1859)
+    author: Karl Marx
+    year: 1859
+    kind: work

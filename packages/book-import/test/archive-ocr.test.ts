@@ -1614,7 +1614,7 @@ describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
         title: "Zur Kritik der politischen Oekonomie",
         citation: "Kritik",
         firstPage: 41,
-        lastPage: 43,
+        lastPage: 44,
       },
     );
 
@@ -1633,6 +1633,7 @@ describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
         "2) Cirkulationsmittel.",
         "a) Die Metamorphose der Waaren.",
       ],
+      ["I. Das Geld oder die einfache Cirkulation.", "3) Geld."],
     ]);
   });
 });
@@ -1692,6 +1693,27 @@ describe("parseArchiveOcrWork, bracketed titles set as Kautsky sets them", () =>
     ]);
     expect(units.at(-5)?.paragraphs[0]).toContain(
       "Ricardo ist hier keineswegs theoretisch klar.",
+    );
+  });
+
+  it("reads a small e above a vowel as the umlaut the volume spells, or as a speck", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 9,
+        lastPage: 12,
+        spacedNotes: true,
+      },
+    );
+
+    expect(units.at(-1)?.paragraphs.at(-1)).toBe(
+      "Der Tauschwerth wäre ein anderer, wäre der Tauschwerth nicht der Gebrauchswerth, kein Gebrauchswerth.",
     );
   });
 });

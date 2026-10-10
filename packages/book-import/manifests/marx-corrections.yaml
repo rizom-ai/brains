@@ -1161,10 +1161,6 @@ mehring-nachlass-1:
     from: Uon einem Rheinländer.
     to: ""
     by: scan
-  - page: 290
-    from: so mehr glaͤubte der gesetzgebende
-    to: so mehr glaubte der gesetzgebende
-    by: reference
   - page: 312
     from: Distanz von
     to: Distanz von-
@@ -1306,10 +1302,6 @@ mehring-nachlass-2:
     from: Jurisprudenz und Politik (nationalität). ＋
     to: ""
     by: scan
-  - page: 220
-    from: in den franzoͤsischen Kammerverhandlungen von
-    to: in den französischen Kammerverhandlungen von
-    by: reference
   - page: 241
     from: nous fait halr ou aimer
     to: nous fait haïr ou aimer
@@ -1805,10 +1797,6 @@ p2theorienberd02marx:
     from: 1. Brutto- und nettoeinkommen.
     to: 1. Brutto- und Nettoeinkommen.
     by: scan
-  - page: 338
-    from: 2. Die Maͤschinerie.
-    to: 2. Die Maschinerie.
-    by: scan
 theorienberden03marxuoft:
   - page: 1
     from: I. Cyomas Robert malthus.
@@ -1946,10 +1934,6 @@ theorienberden03marxuoft:
     from: 7. Rlassische IRonomie und vulgärökonomie.
     to: 7. Klassische Ökonomie und Vulgärökonomie.
     by: scan
-  - page: 581
-    from: Anhaͤng.
-    to: Anhang.
-    by: scan
   - page: 586
     from: II. Iuther über den Wucher.
     to: II. Luther über den Wucher.
@@ -2068,7 +2052,7 @@ gesammelteschrif02marxuoft:
     to: Balaklawa. — Die Times. — Ein Meeting.
     by: scan
   - page: 198
-    from: Eine Debaͤlte über Preußen im Oberhaus.
+    from: Eine Debalte über Preußen im Oberhaus.
     to: Eine Debatte über Preußen im Oberhaus.
     by: scan
   - page: 202
@@ -2285,10 +2269,6 @@ gesammelteschrif01marxuoft:
     from: Koalitionsbudgek.
     to: Koalitionsbudget.
     by: scan
-  - page: 137
-    from: zwischen Österreich und Preußen. — Times und die Emigraͤtion.
-    to: zwischen Österreich und Preußen. — Times und die Emigration.
-    by: scan
   - page: 159
     from: Die kürkische Frage.
     to: Die türkische Frage.
@@ -2401,4 +2381,493 @@ ao391_die_neue_zeit:
   - page: 575
     from: man von Scszialisten erwarten durfte
     to: man von Sozialisten erwarten durfte
+    by: reference
+zur-kritik-der-politischen-okonomie:
+  - page: 5
+    from: gleichzültig, ob sie in Gold
+    to: gleichgültig, ob sie in Gold
+    by: scan
+  - page: 5
+    from: daher gleichzültig gegen
+    to: daher gleichgültig gegen
+    by: scan
+  - page: 5
+    from: Blut des Meuschen.
+    to: Blut des Menschen.
+    by: scan
+  - page: 7
+    from: Abstraltion, die in
+    to: Abstraktion, die in
+    by: scan
+  - page: 8
+    from: durch lhatsächliche Reduktion
+    to: durch thatsächliche Reduktion
+    by: scan
+  - page: 8
+    from: lichen Charalter der
+    to: lichen Charakter der
+    by: scan
+  - page: 8
+    from: andern Judividuen als
+    to: andern Individuen als
+    by: scan
+  - page: 9
+    from: Produkt des Weders,
+    to: Produkt des Webers,
+    by: scan
+  - page: 11
+    from: Wie ein Psund Eisen und
+    to: Wie ein Pfund Eisen und
+    by: reference
+  - page: 11
+    from: Qnantum Schwere darstellen
+    to: Quantum Schwere darstellen
+    by: scan
+  - page: 11
+    from: bestimmten quantitatiden Verhältnissen
+    to: bestimmten quantitativen Verhältnissen
+    by: scan
+  - page: 11
+    from: der „Serittori elas-
+    to: der „Scrittori clas-
+    by: scan
+  - page: 12
+    from: Londan 1831
+    to: London 1831
+    by: scan
+  - page: 14
+    from: Arbeit. Die Prodnktivkraft der Arbeit
+    to: Arbeit. Die Produktivkraft der Arbeit
+    by: reference
+  - page: 15
+    from: Kaffee, ihr Aequivaleut bildet. Das
+    to: Kaffee, ihr Aequivalent bildet. Das
+    by: reference
+  - page: 15
+    from: Waaren erforpert ist.
+    to: Waaren erfordert ist.
+    by: scan
+  - page: 18
+    from: B ersorderte Arbeitszeit
+    to: B erforderte Arbeitszeit
+    by: scan
+  - page: 18
+    from: ist jede Wäare
+    to: ist jede Waare
+    by: scan
+  - page: 19
+    from: den Tanschwerth auffaßt.
+    to: den Tauschwerth auffaßt.
+    by: scan
+  - page: 20
+    from: gesellschaftliche vorausg esetzt
+    to: gesellschaftliche vorausgesetzt
+    by: scan
+  - page: 22
+    from: Gebrauchswerths als rirelte Materiatur der
+    to: Gebrauchswerths als direkte Materiatur der
+    by: reference
+  - page: 22
+    from: seinen realen Ausrruck fret, z. B
+    to: seinen realen Ausdruck findet, z. B
+    by: reference
+  - page: 22
+    from: Waare aber ift die Waare
+    to: Waare aber ist die Waare
+    by: reference
+  - page: 23
+    from: 8 Pfo. Brod
+    to: 8 Pfd. Brod
+    by: scan
+  - page: 24
+    from: diesem Ausdruck unmittetbar als Aequivalent
+    to: diesem Ausdruck unmittelbar als Aequivalent
+    by: reference
+  - page: 28
+    from: Oekonom daber richtig
+    to: Oekonom daher richtig
+    by: scan
+  - page: 28
+    from: veranschaͤulichen sich
+    to: veranschaulichen sich
+    by: scan
+  - page: 29
+    from: Ricardo, in Franukreich mit Sismondi
+    to: Ricardo, in Frankreich mit Sismondi
+    by: reference
+  - page: 29
+    from: distribution ot wealth.“ (Th. Hodgskin. Popular Political Eeo-
+    to: distribution of wealth.“ (Th. Hodgskin. Popular Political Eco-
+    by: scan
+  - page: 30
+    from: c. Ch. 10.) „Tbat the impediments
+    to: c. Ch. 10.) „That the impediments
+    by: scan
+  - page: 30
+    from: Gründer einer ueuen Wissenschaft. Seine
+    to: Gründer einer neuen Wissenschaft. Seine
+    by: reference
+  - page: 30
+    from: Jahre jüngern Schriststeller verwechselt. (Sieh
+    to: Jahre jüngern Schriftsteller verwechselt. (Sieh
+    by: reference
+  - page: 30
+    from: Political Eeonomy, à elassified catalogue.
+    to: Political Economy, a classified catalogue.
+    by: scan
+  - page: 30
+    from: "Sieh: Auessay concer-"
+    to: "Sieh: An essay concer-"
+    by: scan
+  - page: 31
+    from: und Verstaud in göttlichen
+    to: und Verstand in göttlichen
+    by: scan
+  - page: 31
+    from: von indnstrieller Hand
+    to: von industrieller Hand
+    by: scan
+  - page: 31
+    from: buchhändlerische Raritäken
+    to: buchhändlerische Raritäten
+    by: scan
+  - page: 31
+    from: Marquis of Lausdowne,
+    to: Marquis of Lansdowne,
+    by: scan
+  - page: 31
+    from: Die Familie Lausdowne
+    to: Die Familie Lansdowne
+    by: scan
+  - page: 31
+    from: Euglands Blüthezeit
+    to: Englands Blüthezeit
+    by: scan
+  - page: 31
+    from: der „gloxious revolution.“
+    to: der „glorious revolution.“
+    by: scan
+  - page: 32
+    from: Daire, der Eeonomistes financiers du
+    to: Daire, der Economistes financiers du
+    by: scan
+  - page: 33
+    from: la nature deé la richesse
+    to: la nature de la richesse
+    by: reference
+  - page: 33
+    from: trivial klare Analhse des
+    to: trivial klare Analyse des
+    by: scan
+  - page: 34
+    from: have said beéfore, most justly
+    to: have said before, most justly
+    by: reference
+  - page: 34
+    from: able to purehase.“
+    to: able to purchase.“
+    by: scan
+  - page: 35
+    from: italiani di Eeonomia politica. (Herausgegeben
+    to: italiani di Economia politica. (Herausgegeben
+    by: reference
+  - page: 35
+    from: on American Polities“
+    to: on American Politics“
+    by: scan
+  - page: 36
+    from: a workman ean perform in
+    to: a workman can perform in
+    by: scan
+  - page: 38
+    from: aber bles, weil
+    to: aber blos, weil
+    by: scan
+  - page: 40
+    from: als Herr Prondhon sie jenseits
+    to: als Herr Proudhon sie jenseits
+    by: reference
+  - page: 41
+    from: des Geldes handet, die unmittelbar
+    to: des Geldes handelt, die unmittelbar
+    by: reference
+  - page: 42
+    from: wir einen Auzgenblick zurück zur
+    to: wir einen Augenblick zurück zur
+    by: reference
+  - page: 42
+    from: Gold in Geld verwandelu.
+    to: Gold in Geld verwandeln.
+    by: scan
+  - page: 42
+    from: = 2 Unzen Golv,
+    to: = 2 Unzen Gold,
+    by: scan
+  - page: 43
+    from: Aequivalent oder Geid wird. Andrerseits
+    to: Aequivalent oder Geld wird. Andrerseits
+    by: reference
+  - page: 43
+    from: und ein quautitatives Moment sind
+    to: und ein quantitatives Moment sind
+    by: reference
+  - page: 43
+    from: verwandelte Form, woriy der Tauschwerth
+    to: verwandelte Form, worin der Tauschwerth
+    by: reference
+  - page: 43
+    from: gold enen Aequivalent.
+    to: goldenen Aequivalent.
+    by: scan
+  - page: 44
+    from: das früher eutwickelte Gesetz der
+    to: das früher entwickelte Gesetz der
+    by: reference
+  - page: 44
+    from: einem bestimmten Qnantum Gold und
+    to: einem bestimmten Quantum Gold und
+    by: reference
+  - page: 47
+    from: Nothwendigkeit der Eutäußerung der
+    to: Nothwendigkeit der Entäußerung der
+    by: scan
+  - page: 48
+    from: verschiedener Goldquauta zu
+    to: verschiedener Goldquanta zu
+    by: scan
+  - page: 49
+    from: weniger als ooo, der portugiesische
+    to: weniger als 1/1000, der portugiesische
+    by: scan
+  - page: 50
+    from: einem dreifachen srandard of value
+    to: einem dreifachen standard of value
+    by: reference
+  - page: 50
+    from: hier wohfeilere Gold
+    to: hier wohlfeilere Gold
+    by: scan
+  - page: 53
+    from: des Gol
+    to: des Gol-
+    by: reference
+  - page: 53
+    from: idealen Maaßeinbeit des
+    to: idealen Maaßeinheit des
+    by: scan
+  - page: 54
+    from: der Seeretary to the treasury
+    to: der Secretary to the treasury
+    by: scan
+  - page: 56
+    from: „seeretary to the treasury“
+    to: „secretary to the treasury“
+    by: scan
+  - page: 58
+    from: das als Maajßeinheit dient, sei
+    to: das als Maaßeinheit dient, sei
+    by: reference
+  - page: 59
+    from: Handels- und Indnustrie-Krisen
+    to: Handels- und Industrie-Krisen
+    by: scan
+  - page: 61
+    from: auf dieselbe Eutdeckung ausgelöst worden
+    to: auf dieselbe Entdeckung ausgelöst worden
+    by: reference
+  - page: 61
+    from: Papiergeldes in Eugland flüchteten daher
+    to: Papiergeldes in England flüchteten daher
+    by: reference
+  - page: 61
+    from: „Lecturés on the nature
+    to: „Lectures on the nature
+    by: scan
+  - page: 63
+    from: Unteestellt Gray
+    to: Unterstellt Gray
+    by: scan
+  - page: 63
+    from: treibt Grahy eine
+    to: treibt Gray eine
+    by: scan
+  - page: 63
+    from: wegzulengnen, obgleich
+    to: wegzuleugnen, obgleich
+    by: scan
+  - page: 64
+    from: "Thompson: An Iuquiry into the"
+    to: "Thompson: An Inquiry into the"
+    by: reference
+  - page: 66
+    from: die Cirkulation — GE — W zerfällt
+    to: die Cirkulation W — G — W zerfällt
+    by: scan
+  - page: 68
+    from: an der Ouelle seiner Produktion
+    to: an der Quelle seiner Produktion
+    by: reference
+  - page: 68
+    from: den Austauschalt aus
+    to: den Austauschakt aus
+    by: scan
+  - page: 70
+    from: Vielseitigkeit der Bedürfuisse des Einzelnen
+    to: Vielseitigkeit der Bedürfnisse des Einzelnen
+    by: reference
+  - page: 70
+    from: zur Gesammtceirkulation — G — Wzurück,
+    to: zur Gesammtcirkulation W — G — W zurück,
+    by: scan
+  - page: 71
+    from: vollzieht. Die Gesammtceirkulation W — G
+    to: vollzieht. Die Gesammtcirkulation W — G
+    by: reference
+  - page: 71
+    from: zu unterscheiden, Wuein beiden Extremen
+    to: zu unterscheiden, W in beiden Extremen
+    by: reference
+  - page: 71
+    from: einzelne-Waare die Cirkulation — & — W edurchläuft,
+    to: einzelne Waare die Cirkulation W — G — W durchläuft,
+    by: scan
+  - page: 73
+    from: société. II
+    to: société. Il
+    by: scan
+  - page: 74
+    from: stattfinden ohne Geldeirkulation.
+    to: stattfinden ohne Geldcirkulation.
+    by: scan
+  - page: 75
+    from: eignete sich IJ. B. Say
+    to: eignete sich J. B. Say
+    by: scan
+  - page: 75
+    from: deren Prineip William
+    to: deren Princip William
+    by: scan
+  - page: 75
+    from: unmittelbaren Tanuschhandel
+    to: unmittelbaren Tauschhandel
+    by: scan
+  - page: 77
+    from: identische Goldindividunm,
+    to: identische Goldindividuum,
+    by: scan
+  - page: 80
+    from: W — G — MW die Rückverwandlung
+    to: W — G — W die Rückverwandlung
+    by: scan
+  - page: 80
+    from: einfache Geldeirkulation ist
+    to: einfache Geldcirkulation ist
+    by: scan
+  - page: 81
+    from: Waaren im Cirkulatiousproceß ersetzt werden
+    to: Waaren im Cirkulationsproceß ersetzt werden
+    by: reference
+  - page: 86
+    from: ec) Die Münze. Das Werthzeichen.
+    to: c) Die Münze. Das Werthzeichen.
+    by: scan
+  - page: 88
+    from: the precious métals. London 1831. vol
+    to: the precious metals. London 1831. vol
+    by: scan
+  - page: 90
+    from: W- G efällt es aus
+    to: W- G fällt es aus
+    by: reference
+  - page: 93
+    from: durch ihren Austanschproceß sich in
+    to: durch ihren Austauschproceß sich in
+    by: reference
+  - page: 93
+    from: Metalle als Gyld cirkulirten, wie
+    to: Metalle als Geld cirkulirten, wie
+    by: reference
+  - page: 96
+    from: de la seience“ keineswegs höflich
+    to: de la science“ keineswegs höflich
+    by: scan
+  - page: 102
+    from: G — W ebildet die Waare
+    to: G — W bildet die Waare
+    by: scan
+  - page: 110
+    from: deutschen Landen gefürt wird, ohne
+    to: deutschen Landen geführt wird, ohne
+    by: reference
+  - page: 111
+    from: Motiv seines Aufangs findet. Wenn
+    to: Motiv seines Anfangs findet. Wenn
+    by: reference
+  - page: 116
+    from: Stelle entwickelt Renophon Geld in
+    to: Stelle entwickelt Xenophon Geld in
+    by: reference
+  - page: 116
+    from: Umfang der Gesammteirkulation plötzlich aus
+    to: Umfang der Gesammtcirkulation plötzlich aus
+    by: reference
+  - page: 117
+    from: W- G öin ihrem Gegensatz
+    to: W- G in ihrem Gegensatz
+    by: reference
+  - page: 118
+    from: seitige Eutäußerung unterstellt
+    to: seitige Entäußerung unterstellt
+    by: scan
+  - page: 126
+    from: zum praktischen paniée, und die
+    to: zum praktischen panic, und die
+    by: reference
+  - page: 129
+    from: e) Weltgeld.
+    to: c) Weltgeld.
+    by: scan
+  - page: 140
+    from: Masse des ecirkulirenden Geldes, nicht
+    to: Masse des cirkulirenden Geldes, nicht
+    by: reference
+  - page: 140
+    from: W — G — Wsund diese wieder
+    to: W — G — W und diese wieder
+    by: scan
+  - page: 143
+    from: Masse des cirkulirendes Geldes bei
+    to: Masse des cirkulirenden Geldes bei
+    by: reference
+  - page: 144
+    from: sind die Waarenupreise in jedem
+    to: sind die Waarenpreise in jedem
+    by: reference
+  - page: 149
+    from: Unterschied von „Curreney“ und „money
+    to: Unterschied von „Currency“ und „money
+    by: scan
+  - page: 152
+    from: gegebenem Werth eirkuliren kann, sich
+    to: gegebenem Werth cirkuliren kann, sich
+    by: reference
+  - page: 155
+    from: consisting of meétal and of
+    to: consisting of metal and of
+    by: scan
+  - page: 156
+    from: Geld. Geld eirkulirt in einem
+    to: Geld. Geld cirkulirt in einem
+    by: reference
+  - page: 158
+    from: Niveau der eurrencies. In andern
+    to: Niveau der currencies. In andern
+    by: reference
+  - page: 161
+    from: of political éeconomy. Im Text
+    to: of political economy. Im Text
+    by: scan
+  - page: 164
+    from: könnten 20 Millionen umlanfen, wenn jeder
+    to: könnten 20 Millionen umlaufen, wenn jeder
     by: reference

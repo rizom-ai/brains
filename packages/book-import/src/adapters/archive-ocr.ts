@@ -1377,7 +1377,11 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       ((closelyCentred &&
         (line.width < volume.column * HEADING_WIDTH || (!dotted && runsOn))) ||
         (dotted ? spacedAbove : spacedApart)) &&
-      line.y < page.height * FOOT_ZONE &&
+      // Low on the page a title has the text run on below it in its type,
+      // where a note's lines are set small.
+      (line.y < page.height * FOOT_ZONE ||
+        (below !== undefined &&
+          below.size >= volume.textSize * TITLE_LINE_SIZE)) &&
       line.size >= volume.textSize * NOTE_SIZE &&
       // A roman label set smaller than the text is a table's, unless space
       // below sets it apart from the text as a title.
@@ -1904,8 +1908,54 @@ interface ReadVolume {
   front: number | null;
 }
 
+/** A word with a small e set above a vowel, as Fraktur models read an umlaut or a speck over it. */
+const SMALL_E = /\p{L}*[aouAOU]\u0364[\p{L}\u0364]*/gu;
+const UMLAUTS: Record<string, string> = {
+  a: "ä",
+  o: "ö",
+  u: "ü",
+  A: "Ä",
+  O: "Ö",
+  U: "Ü",
+};
+
+/**
+ * The volume's words with a small e above a vowel read as the volume spells
+ * them elsewhere: an umlaut (naͤmlich) or a speck (Gebraͤuchswerth); a word it
+ * spells neither way stays as read.
+ */
+function withUmlauts(pages: Page[]): Page[] {
+  const uses = pages
+    .flatMap((page) =>
+      page.lines.flatMap(
+        (line) => line.text.toLowerCase().match(/\p{L}+/gu) ?? [],
+      ),
+    )
+    .reduce(
+      (seen, word) => seen.set(word, (seen.get(word) ?? 0) + 1),
+      new Map<string, number>(),
+    );
+  const read = (word: string): string => {
+    const umlaut = word.replace(
+      /([aouAOU])\u0364/gu,
+      (_, vowel: string) => UMLAUTS[vowel] ?? vowel,
+    );
+    const plain = word.replace(/\u0364/gu, "");
+    const asUmlaut = uses.get(umlaut.toLowerCase()) ?? 0;
+    const asPlain = uses.get(plain.toLowerCase()) ?? 0;
+    return asUmlaut > asPlain ? umlaut : asPlain > 0 ? plain : word;
+  };
+  return pages.map((page) => ({
+    ...page,
+    lines: page.lines.map((line) => ({
+      ...line,
+      text: line.text.replace(SMALL_E, read),
+    })),
+  }));
+}
+
 function readVolume(hocr: string): ReadVolume {
-  const pages = readPages(hocr);
+  const pages = withUmlauts(readPages(hocr));
   const printed = printedPageNumbers(pages.map(readingOf));
   // The leaves before the first page are the front matter.
   const firstLeaf = Math.min(
