@@ -22,10 +22,32 @@
 # Engels; Engels' prefaces to them are left out. The third volume is two
 # books, as printed, each paged on its own.
 source: dta-tei
+coverage:
+  author: Karl Marx
+  edition: first editions where they could be had, and otherwise the early editions of Engels, Kautsky and Mehring or MEGAdigital's transcriptions of the manuscripts, transcribed by the Deutsches Textarchiv, Wikisource and Project Gutenberg or read from the Internet Archive's scans
+  license: The author's text is in the public domain; the Textarchiv's and MEGAdigital's transcriptions are under the CC BY-SA licences each work names. Editors' prefaces and introductions are left out.
 gaps:
+  - title: Kritik des Hegelschen Staatsrechts
+    year: 1843
+    reason: no scan of its first printing (MEGA I/1.1, 1927) found on the Internet Archive
+  - title: Ökonomisch-philosophische Manuskripte
+    year: 1844
+    reason: no scan of its first printing (MEGA I/3, 1932) found on the Internet Archive
+  - title: Die deutsche Ideologie
+    year: 1846
+    reason: no scan of its first full printing (MEGA I/5, 1932) found on the Internet Archive; the copies there are later editions of unknown source
+  - title: Briefe an Engels 1854–1883
+    year: 1854
+    reason: of the second to fourth volumes of the Briefwechsel (1913), only the third is identified among the Internet Archive's scans
   - title: Herr Vogt
     year: 1860
     reason: the only scan of the first edition (London, 1860) reads below the OCR gate, 1 wrong word in 68
+  - title: Inauguraladresse der Internationalen Arbeiter-Assoziation
+    year: 1864
+    reason: no scan of a German edition found on the Internet Archive
+  - title: Lohn, Preis und Profit
+    year: 1865
+    reason: no scan of the German edition (1908) found on the Internet Archive, which holds only a recording
 books:
   - id: marx_manifestws_1848
     citation: Manifest

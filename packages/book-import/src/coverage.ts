@@ -18,15 +18,83 @@ function startOf(pages: string | number): number {
   return ROMAN_PAGE.test(first) ? 0 : Number(first);
 }
 
-/**
- * The coverage note of a brain read from scanned volumes: every work of the
- * author's oeuvre by volume, in the volume's order, imported or a gap with
- * its reason.
- */
-export function renderCoverage(manifest: Manifest): string {
-  const books = scannedBooks(manifest);
+/** The note's front matter and its opening sentence, which says what the note lists. */
+function opening(
+  manifest: Manifest,
+  lists: (author: string) => string,
+): string[] {
   const coverage = manifest.coverage;
   if (!coverage) throw new Error("The manifest has no coverage section.");
+  return [
+    "---",
+    "title: Coverage",
+    "---",
+    `${lists(coverage.author)} Texts come from ${coverage.edition}. ${coverage.license}`,
+    "",
+  ];
+}
+
+/** A list under a heading, closed by a blank line. */
+function section(heading: string, lines: string[]): string {
+  return [`## ${heading}`, "", ...lines, ""].join("\n");
+}
+
+/**
+ * The coverage note of a brain read from many sources: every work by the
+ * decade it appeared in, with the edition it comes from, imported or a gap
+ * with its reason; gaps without a year close the note.
+ */
+function renderBySource(manifest: Manifest): string {
+  const entries = [
+    ...manifest.books.map((book) => ({
+      year: book.year,
+      line: `- ${book.title ?? book.slug} (${book.year}) — imported${"edition" in book ? ` from ${book.edition}` : ""}${book.published ? "" : ", published after the author's death"}`,
+    })),
+    ...manifest.gaps.flatMap((gap) =>
+      gap.year === undefined
+        ? []
+        : [
+            {
+              year: gap.year,
+              line: `- ${gap.title} (${gap.year}) — gap: ${gap.reason}`,
+            },
+          ],
+    ),
+  ].sort((a, b) => a.year - b.year);
+  const decades = [
+    ...new Set(entries.map((entry) => Math.floor(entry.year / 10) * 10)),
+  ];
+  const undated = manifest.gaps
+    .filter((gap) => gap.year === undefined)
+    .map((gap) => `- ${gap.title} — gap: ${gap.reason}`);
+  return [
+    ...opening(
+      manifest,
+      (author) =>
+        `The works of ${author} this brain holds, and those it lacks with the reason.`,
+    ),
+    ...decades.map((decade) =>
+      section(
+        `${decade}s`,
+        entries
+          .filter((entry) => Math.floor(entry.year / 10) * 10 === decade)
+          .map((entry) => entry.line),
+      ),
+    ),
+    ...(undated.length === 0 ? [] : [section("Not held", undated)]),
+  ].join("\n");
+}
+
+/**
+ * The coverage note of a brain: read from one edition's scanned volumes,
+ * every work of the author's oeuvre by volume, in the volume's order,
+ * imported or a gap with its reason; read from many sources, by decade.
+ */
+export function renderCoverage(manifest: Manifest): string {
+  if (manifest.books.some((book) => book.source !== "archive-ocr")) {
+    return renderBySource(manifest);
+  }
+  const books = scannedBooks(manifest);
   const lines: CoverageLine[] = [
     ...books.map((book) => ({
       citation: book.citation,
@@ -62,11 +130,11 @@ export function renderCoverage(manifest: Manifest): string {
     ].join("\n"),
   );
   return [
-    "---",
-    "title: Coverage",
-    "---",
-    `Every work of ${coverage.author}'s oeuvre, and whether this brain holds it. Texts come from ${coverage.edition}. ${coverage.license}`,
-    "",
+    ...opening(
+      manifest,
+      (author) =>
+        `Every work of ${author}'s oeuvre, and whether this brain holds it.`,
+    ),
     ...sections,
     ...(outside.length === 0
       ? []
