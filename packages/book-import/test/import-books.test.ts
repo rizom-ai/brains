@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bookAdapter, bookSectionAdapter } from "@brains/book";
 import {
+  fetchVolumeHocr,
   importBooks,
   ocrVolumeHocr,
   parseCorrections,
@@ -879,5 +880,33 @@ freud-1940-gw-13:
       source: "https://archive.org/details/freud-1940-gw-13",
     });
     expect(title).toContain("Internet Archive");
+  });
+});
+
+describe("fetchVolumeHocr", () => {
+  const fetchHocr =
+    (hocr: string) =>
+    async (url: string): Promise<string> =>
+      url.includes("/metadata/")
+        ? JSON.stringify({ files: [{ name: "x_hocr.html", format: "hOCR" }] })
+        : hocr;
+
+  it("reads an archive OCR that read Fraktur as roman type sets it", async () => {
+    expect(
+      await fetchVolumeHocr(
+        "x",
+        fetchHocr(
+          "<span class='ocrx_word'>Geſellſchaft</span> <span class='ocrx_word'>ver⸗</span>",
+        ),
+      ),
+    ).toBe(
+      "<span class='ocrx_word'>Gesellschaft</span> <span class='ocrx_word'>ver-</span>",
+    );
+  });
+
+  it("leaves an archive OCR of roman type as it read it", async () => {
+    const roman = "<span class='ocrx_word'>Wort—</span>";
+
+    expect(await fetchVolumeHocr("x", fetchHocr(roman))).toBe(roman);
   });
 });

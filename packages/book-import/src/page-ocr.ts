@@ -185,11 +185,23 @@ const SMALL_NOUN =
  */
 export function volumeOfPages(pages: string[]): string {
   const bodies = pages.map((page, leaf) =>
-    (/<body>([\s\S]*)<\/body>/.exec(page)?.[1] ?? "")
-      .replace(
+    frakturRead(
+      (/<body>([\s\S]*)<\/body>/.exec(page)?.[1] ?? "").replace(
         /<div class='ocr_page' id='page_\d+'/,
         `<div class='ocr_page' id='page_${leaf}'`,
-      )
+      ),
+    ),
+  );
+  return `<html><body>\n${bodies.join("\n")}\n</body></html>\n`;
+}
+
+/**
+ * A Fraktur OCR's hOCR as roman type sets it: its long s as s, its etc.
+ * and hyphens as such, and its capital umlauts with their dots.
+ */
+export function frakturRead(hocr: string): string {
+  return (
+    hocr
       .replace(/ſ/g, "s")
       // Fraktur's etc., ꝛc., the model reads now and then as ꝛe. or ꝛ2c.
       .replace(/ꝛ[ce2]+\./g, "etc.")
@@ -204,7 +216,6 @@ export function volumeOfPages(pages: string[]): string {
       .replace(/(\p{L})[—⸗=-]+(?=<\/span>)/gu, "$1-")
       // A double hyphen is a hyphen wherever it stands: inside a word, and
       // ending one before a comma (Wechsel⸗, Aktien⸗ und Schiffshändler).
-      .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L}|[,;])/gu, "$1-"),
+      .replace(/(\p{L})(?:⸗-?|-⸗)(?=\p{L}|[,;])/gu, "$1-")
   );
-  return `<html><body>\n${bodies.join("\n")}\n</body></html>\n`;
 }

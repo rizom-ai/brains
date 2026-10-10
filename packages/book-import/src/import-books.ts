@@ -15,7 +15,7 @@ import {
   parseMegaListing,
 } from "./adapters/mega-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
-import { volumeOfPages, type PageOcr } from "./page-ocr";
+import { frakturRead, volumeOfPages, type PageOcr } from "./page-ocr";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
 
@@ -536,7 +536,9 @@ export async function fetchVolumeHocr(
   );
   const hocr = metadata.files.find((file) => file.format === "hOCR");
   if (!hocr) throw new Error(`No hOCR file in ${item}`);
-  return fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
+  const text = await fetchText(`${ARCHIVE}/download/${item}/${hocr.name}`);
+  // An OCR that read Fraktur prints its long s; it reads as roman type then.
+  return /ſ/u.test(text) ? frakturRead(text) : text;
 }
 
 const DTA = "https://www.deutschestextarchiv.de/book/";

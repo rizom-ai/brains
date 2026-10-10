@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createPageOcr,
+  frakturRead,
   tessdataFor,
   volumeOfPages,
   type PageOcr,
@@ -221,5 +222,17 @@ describe("createPageOcr", () => {
     expect(other).toContain("deu_frak");
     expect(recognised).toEqual(["frk:3", "deu_frak:3"]);
     expect(fetched).toEqual([url, url]);
+  });
+});
+
+describe("frakturRead", () => {
+  it("reads a Fraktur OCR's long s, its etc. and its hyphens as roman type sets them", () => {
+    expect(
+      frakturRead(
+        "<span class='ocrx_word'>Geſellſchaft</span> <span class='ocrx_word'>ꝛc.</span> <span class='ocrx_word'>ver⸗</span>",
+      ),
+    ).toBe(
+      "<span class='ocrx_word'>Gesellschaft</span> <span class='ocrx_word'>etc.</span> <span class='ocrx_word'>ver-</span>",
+    );
   });
 });
