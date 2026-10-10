@@ -44,7 +44,13 @@ export interface ArchiveOcrWork {
   /** Lines the OCR misread, fixed. */
   corrections?: OcrCorrection[];
   /** Notes not the author's, such as an editor's, by page and opening words. */
-  skipNotes?: SkippedNote[];
+  skipNotes?: PageLine[];
+  /**
+   * Headings set in the text's type, by the line that opens them: a numbered
+   * or lettered one keeps its label, one without opens a chapter numbered by
+   * place.
+   */
+  headings?: PageLine[];
   /**
    * An editor's signatures (K.): the notes ending in one are the editor's,
    * and so are paragraphs ending in one, notes the page set as text.
@@ -69,7 +75,8 @@ export interface ArchiveOcrWork {
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
-export interface SkippedNote {
+/** A line on a printed page, by the words it opens with. */
+export interface PageLine {
   page: number | string;
   opens: string;
 }
@@ -292,6 +299,67 @@ function readPages(hocr: string): Page[] {
     // Closing only releases the window's timers; parsing is already done.
     void window.happyDOM.close();
   }
+}
+
+/** A page scanned at another size than the volume's: by half again or more. */
+const OTHER_SCALE = 1.5;
+
+/**
+ * The volume's pages at one scale: a leaf scanned at another size than most
+ * is measured as if scanned at theirs.
+ */
+function atOneScale(pages: Page[]): Page[] {
+  const width = median(pages.map((page) => page.width));
+  return pages.map((page) => {
+    const factor = width / page.width;
+    if (factor < OTHER_SCALE && 1 / factor < OTHER_SCALE) return page;
+    const scaled = (value: number): number => Math.round(value * factor);
+    return {
+      ...page,
+      width: scaled(page.width),
+      height: scaled(page.height),
+      lines: page.lines.map((line) => ({
+        ...line,
+        x: scaled(line.x),
+        y: scaled(line.y),
+        bottom: scaled(line.bottom),
+        width: scaled(line.width),
+        size: line.size * factor,
+      })),
+    };
+  });
+}
+
+/**
+ * The volume's pages without the margin a scan keeps above the type, where
+ * even its pages set highest have nothing in their head zone: measured from
+ * the top of their lines, their running heads stand where a page's do. A
+ * chapter's opening page sets its first line lower; the lowest quarter of
+ * the pages' tops passes over them.
+ */
+function withoutTopMargin(pages: Page[]): Page[] {
+  const tops = pages
+    .flatMap((page) =>
+      page.lines.length > 0
+        ? [Math.min(...page.lines.map((line) => line.y)) / page.height]
+        : [],
+    )
+    .sort((a, b) => a - b);
+  const top = tops[Math.floor(tops.length / 4)] ?? 0;
+  if (top <= HEAD_ZONE) return pages;
+  const margin = top - HEAD_ZONE / 2;
+  return pages.map((page) => {
+    const cut = Math.round(margin * page.height);
+    return {
+      ...page,
+      height: page.height - cut,
+      lines: page.lines.map((line) => ({
+        ...line,
+        y: line.y - cut,
+        bottom: line.bottom - cut,
+      })),
+    };
+  });
 }
 
 /** The page's running head that carries its page number, and where it stands. */
@@ -601,6 +669,8 @@ interface Volume {
   spacedNotes?: boolean;
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
+  /** The page's lines that open a heading set in the text's type, by their opening words. */
+  headingOpenings?: string[];
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -864,6 +934,8 @@ const LETTERED_PART = /^([A-H])\.\s+(\p{Lu}.*)$/u;
 const LABELLED = /^(?:\S{1,4}[.)]\s|[„"»])/u;
 /** A line broken off before its end: at a comma, a colon, a dash or a word's hyphen. */
 const BROKEN_END = /[,;:=⸗—-]$/u;
+/** A line the OCR measures this share of the text's size is set as large. */
+const SAME_SIZE = 0.95;
 /** A title's second line is set this large at least, against its first. */
 const TITLE_LINE_SIZE = 0.9;
 
@@ -1182,6 +1254,48 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     }
     const article = articleLines.get(index);
     if (article !== undefined) return withArticleLine(pieces, line, article);
+    // A heading the edition sets in the text's type opens where the manifest
+    // says: a numbered piece by its number, a chapter without its numeral
+    // numbered by place; a chapter's title may run on.
+    if (
+      (volume.headingOpenings ?? []).some((opening) =>
+        line.text.startsWith(opening),
+      )
+    ) {
+      const labelled =
+        NUMBERED_SUBSECTION.exec(line.text) ??
+        BRACKETED_SUBSECTION.exec(line.text);
+      return [
+        ...pieces,
+        labelled?.[1] && labelled[2]
+          ? {
+              kind: "heading",
+              lines: [
+                { kind: "letter", letter: labelled[1] },
+                {
+                  kind: "caps",
+                  text: labelled[2],
+                  size: line.size,
+                  misread: true,
+                },
+              ],
+              closed: true,
+              subsection: true,
+            }
+          : {
+              kind: "heading",
+              lines: [
+                { kind: "chapter", numeral: "", named: true },
+                {
+                  kind: "caps",
+                  text: line.text,
+                  size: line.size,
+                  misread: true,
+                },
+              ],
+            },
+      ];
+    }
     // An article without a title of its own opens with its dateline, which
     // titles it; the paragraph keeps it.
     const inline =
@@ -1384,9 +1498,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           below.size >= volume.textSize * TITLE_LINE_SIZE)) &&
       line.size >= volume.textSize * NOTE_SIZE &&
       // A roman label set smaller than the text is a table's, unless space
-      // below sets it apart from the text as a title.
+      // below sets it apart from the text as a title; one the OCR measures a
+      // hair under the text is set as large.
       (!/^[IVX]+$/u.test(subsection[1]) ||
-        line.size >= volume.textSize ||
+        line.size >= volume.textSize * SAME_SIZE ||
         (below !== undefined &&
           below.y - line.bottom > bodyHeight * SECTION_SPACE)) &&
       (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
@@ -1666,6 +1781,17 @@ function titleOf(step: PathStep, name: string = step.name): string {
  * chapter, and beside other unnumbered ones.
  */
 function levelOf(heading: Heading, path: PathStep[]): number {
+  // A piece numbered with a bracket stands below the section numbered in
+  // roman above it: VIII. Nachtrag, 1) Beilage.
+  if (
+    heading.level === 2 &&
+    /^\d+\)$/u.test(heading.label ?? "") &&
+    /^[IVXL]+$/u.test(
+      path.filter((step) => step.level === 2).at(-1)?.letter ?? "",
+    )
+  ) {
+    return 3;
+  }
   if (heading.level !== null) return heading.level;
   // A preface or an appendix stands beside the chapters, within the part
   // it closes, not under the last chapter.
@@ -1908,8 +2034,8 @@ interface ReadVolume {
   front: number | null;
 }
 
-/** A word with a small e set above a vowel, as Fraktur models read an umlaut or a speck over it. */
-const SMALL_E = /\p{L}*[aouAOU]\u0364[\p{L}\u0364]*/gu;
+/** A word with a small e set above a letter, as Fraktur models read an umlaut or a speck over it. */
+const SMALL_E = /\p{L}+\u0364[\p{L}\u0364]*/gu;
 const UMLAUTS: Record<string, string> = {
   a: "ä",
   o: "ö",
@@ -1920,9 +2046,10 @@ const UMLAUTS: Record<string, string> = {
 };
 
 /**
- * The volume's words with a small e above a vowel read as the volume spells
- * them elsewhere: an umlaut (naͤmlich) or a speck (Gebraͤuchswerth); a word it
- * spells neither way stays as read.
+ * The volume's words with a small e above a letter read as the volume spells
+ * them elsewhere: an umlaut (naͤmlich), a speck (Gebraͤuchswerth, säͤchsische),
+ * or an umlaut the model read as the mark alone (wͤre); a word it spells no
+ * such way stays as read.
  */
 function withUmlauts(pages: Page[]): Page[] {
   const uses = pages
@@ -1935,15 +2062,32 @@ function withUmlauts(pages: Page[]): Page[] {
       (seen, word) => seen.set(word, (seen.get(word) ?? 0) + 1),
       new Map<string, number>(),
     );
+  // Each mark is a speck, or the umlaut of the vowel below it, or after
+  // another letter an umlaut of its own; the plain reading comes first.
+  const readings = (word: string): string[] => {
+    const at = word.indexOf("\u0364");
+    if (at < 0) return [word];
+    const before = word.slice(0, at);
+    const rest = readings(word.slice(at + 1));
+    const last = before.slice(-1);
+    const heads = [
+      before,
+      ...(UMLAUTS[last] ? [`${before.slice(0, -1)}${UMLAUTS[last]}`] : []),
+      ...(/[äöüÄÖÜ]/u.test(last) || UMLAUTS[last]
+        ? []
+        : ["ä", "ö", "ü"].map((umlaut) => `${before}${umlaut}`)),
+    ];
+    return heads.flatMap((head) => rest.map((tail) => `${head}${tail}`));
+  };
   const read = (word: string): string => {
-    const umlaut = word.replace(
-      /([aouAOU])\u0364/gu,
-      (_, vowel: string) => UMLAUTS[vowel] ?? vowel,
-    );
-    const plain = word.replace(/\u0364/gu, "");
-    const asUmlaut = uses.get(umlaut.toLowerCase()) ?? 0;
-    const asPlain = uses.get(plain.toLowerCase()) ?? 0;
-    return asUmlaut > asPlain ? umlaut : asPlain > 0 ? plain : word;
+    const [best] = readings(word)
+      .map((reading) => ({
+        reading,
+        count: uses.get(reading.toLowerCase()) ?? 0,
+      }))
+      .filter(({ count }) => count > 0)
+      .sort((a, b) => b.count - a.count);
+    return best?.reading ?? word;
   };
   return pages.map((page) => ({
     ...page,
@@ -1955,7 +2099,7 @@ function withUmlauts(pages: Page[]): Page[] {
 }
 
 function readVolume(hocr: string): ReadVolume {
-  const pages = withUmlauts(readPages(hocr));
+  const pages = withUmlauts(withoutTopMargin(atOneScale(readPages(hocr))));
   const printed = printedPageNumbers(pages.map(readingOf));
   // The leaves before the first page are the front matter.
   const firstLeaf = Math.min(
@@ -2111,7 +2255,12 @@ export function parseArchiveOcrWork(
       (state, { page, number }) =>
         readPage(
           page,
-          volume,
+          {
+            ...volume,
+            headingOpenings: (work.headings ?? [])
+              .filter((heading) => String(heading.page) === String(number))
+              .map((heading) => heading.opens),
+          },
           work.corrections ?? [],
           labelOf(number, page.leaf),
         ).reduce<WorkState>(

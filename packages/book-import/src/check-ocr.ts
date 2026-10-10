@@ -260,9 +260,14 @@ export interface ReferenceCorrection {
   to: string;
 }
 
-/** A transcription's dashes and quotes as the Gesammelte Werke print them. */
+/**
+ * A transcription's dashes and quotes as German editions print them: a
+ * straight quote opens low after a space or a bracket, and closes high.
+ */
 function asPrinted(text: string): string {
   return text
+    .replace(/(^|[\s(—–-])"/gu, "$1„")
+    .replace(/"/gu, "“")
     .replace(/--/gu, "—")
     .replace(/»/gu, "„")
     .replace(/«/gu, "“")
@@ -385,22 +390,41 @@ export function referenceCorrections(
     return index.set(pair, [...(index.get(pair) ?? []), at]);
   }, new Map<string, number[]>());
 
-  const fix = (line: string, page: number | string): ReferenceCorrection[] => {
-    const tokens = tokensOf(line);
-    const flagged = tokens.map(
-      (token, at) =>
-        !vocabulary.has(token.key) &&
+  // A page's words in reading order, each with its line: the words around a
+  // misread may stand on the line above or below it.
+  const fix = (text: string, page: number | string): ReferenceCorrection[] => {
+    const lines = text.split("\n");
+    const tokens = lines.flatMap((line, at) =>
+      tokensOf(line).map((token, index, all) => ({
+        ...token,
+        line: at,
         // A word broken at either end of the line is half a word.
-        !(at === 0 && /^\p{Ll}/u.test(line.trimStart())) &&
-        !(at === tokens.length - 1 && /-\s*$/u.test(line)),
+        broken:
+          (index === 0 && /^\p{Ll}/u.test(line.trimStart())) ||
+          (index === all.length - 1 && /-\s*$/u.test(line)),
+      })),
     );
-    const runs = stretchesOf(flagged);
+    const flagged = tokens.map(
+      (token) => !vocabulary.has(token.key) && !token.broken,
+    );
+    // A misread stretch stays on its line.
+    const runs = stretchesOf(flagged).flatMap(([first, last]) =>
+      tokens
+        .slice(first, last + 1)
+        .reduce<Array<[number, number]>>((found, token, offset) => {
+          const index = first + offset;
+          const open = found.at(-1);
+          return open && tokens[open[1]]?.line === token.line
+            ? [...found.slice(0, -1), [open[0], index]]
+            : [...found, [index, index]];
+        }, []),
+    );
     return runs.flatMap(([first, last]) => {
-      const before = [tokens[first - 2], tokens[first - 1]];
-      const after = [tokens[last + 1], tokens[last + 2]];
-      const [left2, left1] = before;
-      const [right1, right2] = after;
+      const [left2, left1] = [tokens[first - 2], tokens[first - 1]];
+      const [right1, right2] = [tokens[last + 1], tokens[last + 2]];
       const run = tokens.slice(first, last + 1);
+      const line = lines[run[0]?.line ?? 0] ?? "";
+      const lineOf = run[0]?.line;
       if (
         run.every((token) => isWord(token.word)) ||
         last - first + 1 > MAX_RUN ||
@@ -445,19 +469,53 @@ export function referenceCorrections(
           `${text.slice(0, match.index)}${respelled[index] ?? match[0]}${text.slice(match.index + match[0].length)}`,
         transcribed,
       );
+      // The fix spans the misread's line from its first word around to its
+      // last; words around it on another line bound it at the line's ends,
+      // and what that line sets beside them is left to it, where the
+      // transcription sets it so.
+      const leftHere = left1.line === lineOf;
+      const rightHere = right1.line === lineOf;
+      const leftRest = leftHere
+        ? ""
+        : (lines[left1.line] ?? "").slice(left1.end).trim();
+      const rightLead = rightHere
+        ? ""
+        : (lines[right1.line] ?? "").slice(0, right1.start).trim();
+      const inner = between.trim();
+      if (!inner.startsWith(leftRest) || !inner.endsWith(rightLead)) return [];
+      const own = inner.slice(leftRest.length, inner.length - rightLead.length);
+      const from = leftHere
+        ? left2.line === lineOf
+          ? left2.start
+          : left1.start
+        : 0;
+      const to = rightHere
+        ? right2.line === lineOf
+          ? right2.end
+          : right1.end
+        : line.length;
       return [
         {
           page,
-          from: line.slice(left2.start, right2.end),
-          to: `${line.slice(left2.start, left1.end)}${between}${line.slice(right1.start, right2.end)}`,
+          from: line.slice(from, to),
+          to: `${leftHere ? line.slice(from, left1.end) : ""}${
+            leftHere
+              ? rightHere
+                ? between
+                : between.slice(
+                    0,
+                    between.length - between.trimStart().length,
+                  ) + own.trim()
+              : rightHere
+                ? own.trim() + between.slice(between.trimEnd().length)
+                : own.trim()
+          }${rightHere ? line.slice(right1.start, to) : ""}`,
         },
       ];
     });
   };
 
-  return pages.flatMap(({ page, text }) =>
-    text.split("\n").flatMap((line) => fix(line, page)),
-  );
+  return pages.flatMap(({ page, text }) => fix(text, page));
 }
 
 /** A word spelled as a word, used this often across the author's volumes, is real. */

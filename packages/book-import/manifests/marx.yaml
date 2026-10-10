@@ -704,3 +704,74 @@ books:
     author: Karl Marx
     year: 1859
     kind: work
+  - source: archive-ocr
+    # Engels's edition, with what Marx added in 1875: his appendix to Herr
+    # Vogt on the Cologne trial and his afterword. Engels's history of the
+    # League that opens it is left out; the addresses of 1850 it appends
+    # follow as works of their own.
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 18
+    lastPage: 74
+    # The addition from Herr Vogt is titled in the text's type.
+    headings:
+      - { page: 64, opens: 1) Beilage 4 }
+    # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_414.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_418.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_431.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_455.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_458.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_465.htm
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me18/me18_568.htm
+    slug: enthuellungen-ueber-den-kommunisten-prozess-zu-koeln
+    title: Enthüllungen über den Kommunistenprozeß zu Köln
+    shortTitle: Enthüllungen
+    edition: Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck, mit Einleitung von Friedrich Engels, und Dokumenten (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx
+    year: 1853
+    kind: work
+  - source: archive-ocr
+    # The first of the two addresses Engels appended to the Enthüllungen,
+    # the second left to its own entry.
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 75
+    lastPage: 83
+    opensWith: Die Zentralbehörde an den Bund.
+    skipHeadings:
+      [Ansprache derselben Zentralbehörde an den Bund vom Juni 1850.]
+    # MEW 7, Dietz 1960, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_244.htm
+    slug: ansprache-der-zentralbehoerde-an-den-bund-vom-maerz-1850
+    title: Ansprache der Zentralbehörde an den Bund vom März 1850
+    shortTitle: Ansprache vom März 1850
+    edition: Anhang zu Karl Marx, Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work
+  - source: archive-ocr
+    item: enthullungen-1885
+    citation: Enthüllungen
+    ocr: frak2021
+    firstPage: 83
+    lastPage: 88
+    opensWith: Die Zentralbehörde an den Bund.
+    # Its first section's title the OCR measures larger than the others.
+    headings:
+      - { page: 86, opens: I. Belgien }
+    # MEW 7, Dietz 1960, as mlwerke.de published it.
+    references:
+      - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_306.htm
+    slug: ansprache-der-zentralbehoerde-an-den-bund-vom-juni-1850
+    title: Ansprache der Zentralbehörde an den Bund vom Juni 1850
+    shortTitle: Ansprache vom Juni 1850
+    edition: Anhang zu Karl Marx, Enthüllungen über den Kommunistenprozeß zu Köln, neuer Abdruck (Hottingen-Zürich, Verlag der Volksbuchhandlung, 1885)
+    author: Karl Marx und Friedrich Engels
+    year: 1850
+    kind: work

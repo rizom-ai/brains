@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   createPageOcr,
   frakturRead,
+  preparationFor,
   tessdataFor,
   volumeOfPages,
   type PageOcr,
@@ -135,6 +136,27 @@ describe("volumeOfPages, hyphens", () => {
 
     expect(volume).toContain(">Wechsel-,</span>");
     expect(volume).toContain(">Schiffs-,</span>");
+  });
+});
+
+describe("preparationFor", () => {
+  it("enlarges a page in grey, and straightens a page of uneven paper and sets it black on white against its surroundings", () => {
+    expect(preparationFor({ binarise: false })).toEqual([
+      "-colorspace",
+      "Gray",
+      "-resize",
+      "200%",
+    ]);
+    expect(preparationFor({ binarise: true })).toEqual([
+      "-colorspace",
+      "Gray",
+      "-deskew",
+      "40%",
+      "-resize",
+      "200%",
+      "-lat",
+      "60x60-6%",
+    ]);
   });
 });
 

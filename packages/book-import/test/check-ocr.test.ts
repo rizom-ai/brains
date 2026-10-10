@@ -194,6 +194,36 @@ describe("referenceCorrections", () => {
     ]);
   });
 
+  it("reads the words around a misread that opens a line from the line above, and fixes its own line", () => {
+    expect(
+      referenceCorrections(
+        [
+          {
+            page: 8,
+            text: "Ich habe die Absicht, nach\nHanse zu gehen, wenn es",
+          },
+        ],
+        reference,
+      ),
+    ).toEqual([{ page: 8, from: "Hanse zu gehen", to: "Hause zu gehen" }]);
+  });
+
+  it("reads the words around a misread that ends a line from the line below, and fixes its own line", () => {
+    expect(
+      referenceCorrections(
+        [
+          {
+            page: 9,
+            text: "Er suchte die Lösung, welcher er folgen kounte,\nund fand sie.",
+          },
+        ],
+        reference,
+      ),
+    ).toEqual([
+      { page: 9, from: "er folgen kounte,", to: "er folgen konnte," },
+    ]);
+  });
+
   it("leaves a word alone where the words around it are not the transcription's", () => {
     expect(
       referenceCorrections(
@@ -230,6 +260,39 @@ describe("referenceCorrections between editions", () => {
         to: "im allgemeinen — gegen das mächtige",
       },
     ]);
+  });
+
+  it("sets a transcription's straight quotes as the German quotes the edition prints", () => {
+    expect(
+      referenceCorrections(
+        [{ page: 22, text: "und die „Partel Marx“ zu London" }],
+        'und die "Partei Marx" zu London',
+      ),
+    ).toEqual([
+      {
+        page: 22,
+        from: "und die „Partel Marx“ zu",
+        to: "und die „Partei Marx“ zu",
+      },
+    ]);
+  });
+
+  it("leaves the punctuation the line above ends with to that line", () => {
+    expect(
+      referenceCorrections(
+        [{ page: 20, text: "wie es dunkel wird.\nThe wir nun weiter gehen" }],
+        "wie es dunkel wird. Ehe wir nun weiter gehen",
+      ),
+    ).toEqual([{ page: 20, from: "The wir nun", to: "Ehe wir nun" }]);
+  });
+
+  it("leaves a misread alone where the line beside it sets the punctuation between otherwise", () => {
+    expect(
+      referenceCorrections(
+        [{ page: 20, text: "wie es dunkel wird:\nThe wir nun weiter gehen" }],
+        "wie es dunkel wird. Ehe wir nun weiter gehen",
+      ),
+    ).toEqual([]);
   });
 });
 

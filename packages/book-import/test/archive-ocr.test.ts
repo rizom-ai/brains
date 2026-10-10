@@ -1713,7 +1713,90 @@ describe("parseArchiveOcrWork, bracketed titles set as Kautsky sets them", () =>
     );
 
     expect(units.at(-1)?.paragraphs.at(-1)).toBe(
-      "Der Tauschwerth wäre ein anderer, wäre der Tauschwerth nicht der Gebrauchswerth, kein Gebrauchswerth.",
+      "Der Tauschwerth wäre ein anderer, wäre der Tauschwerth nicht der Gebrauchswerth, kein Gebrauchswerth. Der sächsische Staat, der sächsische Hof; wäre er, wäre er.",
     );
+  });
+});
+
+describe("parseArchiveOcrWork, headings set in the text's type", () => {
+  const read = async (
+    headings?: Array<{ page: number; opens: string }>,
+  ): Promise<ReturnType<typeof parseArchiveOcrWork>> =>
+    parseArchiveOcrWork(
+      await readFile(
+        join(
+          import.meta.dir,
+          "fixtures",
+          "archive-ocr-unnumbered-chapter.html",
+        ),
+        "utf8",
+      ),
+      {
+        item: "10394216bsb",
+        title: "Enthüllungen über den Kommunisten-Prozeß zu Köln",
+        citation: "Enthüllungen",
+        firstPage: 3,
+        lastPage: 4,
+        ...(headings ? { headings } : {}),
+      },
+    );
+
+  it("opens the headings the manifest names by their first lines: a chapter numbered by place, a numbered piece by its number", async () => {
+    const units = await read([
+      { page: 4, opens: "Das Begleit-Schreiben" },
+      { page: 4, opens: "1) Beilage 4" },
+    ]);
+
+    expect(units.map((unit) => [unit.title, unit.section])).toEqual([
+      ["I. Vorläufiges.", "Enthüllungen, 3"],
+      ["II. Das Begleit-Schreiben des rothen Katechismus.", "Enthüllungen, 4"],
+      ["III. Die Fraktion Willich-Schapper.", "Enthüllungen, 4"],
+      [
+        "1) Beilage 4 zu „Herr Vogt“ von Karl Marx, London 1860.",
+        "Enthüllungen, 4",
+      ],
+    ]);
+    expect(units[1]?.paragraphs[0]).toStartWith("Die pr. Regierung");
+  });
+
+  it("reads the line as text where the manifest names none", async () => {
+    const units = await read();
+
+    expect(units.map((unit) => unit.title)).toEqual([
+      "I. Vorläufiges.",
+      "II. Die Fraktion Willich-Schapper.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, leaves scanned at two sizes", () => {
+  it("reads every page at one scale, its running head below a wide margin", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-two-scales.html"),
+        "utf8",
+      ),
+      {
+        item: "enthullungen-1885",
+        title: "Enthüllungen über den Kommunistenprozeß zu Köln",
+        citation: "Enthüllungen",
+        firstPage: 18,
+        lastPage: 20,
+        headings: [{ page: 20, opens: "1) Beilage 4" }],
+      },
+    );
+
+    expect(units.map((unit) => [unit.title, unit.section])).toEqual([
+      ["I. Vorläufiges.", "Enthüllungen, 18"],
+      ["II. Das Archiv Dietz.", "Enthüllungen, 20"],
+      [
+        "1) Beilage 4 zu „Herr Vogt“ von Karl Marx, London 1860.",
+        "Enthüllungen, 20",
+      ],
+    ]);
+    // A piece numbered with a bracket stands below the section numbered in
+    // roman above it.
+    expect(units[2]?.parents).toEqual(["II. Das Archiv Dietz."]);
+    expect(units[0]?.paragraphs).toHaveLength(6);
   });
 });

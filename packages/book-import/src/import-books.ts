@@ -15,7 +15,12 @@ import {
   parseMegaListing,
 } from "./adapters/mega-letters";
 import { parseWikisourcePage, wikisourcePageUrl } from "./adapters/wikisource";
-import { frakturRead, volumeOfPages, type PageOcr } from "./page-ocr";
+import {
+  frakturRead,
+  volumeOfPages,
+  type OcrReading,
+  type PageOcr,
+} from "./page-ocr";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
 
@@ -79,8 +84,8 @@ const printedPageSchema: z.ZodUnion<[z.ZodNumber, z.ZodString]> = z.union([
   z.string().regex(/^[IVXL]+$/),
 ]);
 
-/** A note left out: on a printed page, the note that opens with these words. */
-const skippedNoteSchema: z.ZodObject<{
+/** A line on a printed page, by the words it opens with: a note left out, a chapter set without its numeral. */
+const pageLineSchema: z.ZodObject<{
   page: typeof printedPageSchema;
   opens: z.ZodString;
 }> = z.object({ page: printedPageSchema, opens: z.string().min(1) });
@@ -91,6 +96,7 @@ const archiveOcrBookSchema: z.ZodObject<
       item: z.ZodString;
       citation: z.ZodString;
       ocr: z.ZodOptional<z.ZodString>;
+      binarise: z.ZodDefault<z.ZodBoolean>;
       firstPage: z.ZodUnion<[z.ZodNumber, z.ZodString]>;
       lastPage: z.ZodNumber;
       title: z.ZodString;
@@ -99,7 +105,8 @@ const archiveOcrBookSchema: z.ZodObject<
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       firstChapter: z.ZodDefault<z.ZodNumber>;
       references: z.ZodOptional<z.ZodArray<z.ZodURL>>;
-      skipNotes: z.ZodDefault<z.ZodArray<typeof skippedNoteSchema>>;
+      skipNotes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
+      headings: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
@@ -114,6 +121,8 @@ const archiveOcrBookSchema: z.ZodObject<
   citation: z.string().min(1),
   /** A Tesseract model to read the scan anew with, where the archive's text read the type wrong: frk for Fraktur. */
   ocr: z.string().min(1).optional(),
+  /** The scan's paper is uneven in tone and its lines askew: each page is straightened and set black on white before it is read anew. */
+  binarise: z.boolean().default(false),
   /** The work's printed pages in the volume. */
   firstPage: printedPageSchema,
   lastPage: z.number().int().positive(),
@@ -129,7 +138,14 @@ const archiveOcrBookSchema: z.ZodObject<
   /** Transcriptions of the work, of any edition, to check the OCR against: a text, or a web page per chapter. */
   references: z.array(z.url()).min(1).optional(),
   /** Notes not the author's, such as an editor's or translator's, left out. */
-  skipNotes: z.array(skippedNoteSchema).default([]),
+  skipNotes: z.array(pageLineSchema).default([]),
+  /**
+   * Headings the edition sets in the text's type, which their place on the
+   * page does not tell from the text, by the line that opens them: a
+   * numbered or lettered one keeps its label, one without opens a chapter
+   * numbered by place.
+   */
+  headings: z.array(pageLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
@@ -470,7 +486,7 @@ export interface ImportOptions {
   /** Corrections to scanned volumes' text, by archive item. */
   corrections?: Corrections;
   /** Reads a scan's page images anew with a model, for works that name one. */
-  pageOcr?: (model: string) => PageOcr;
+  pageOcr?: (reading: OcrReading) => PageOcr;
   /**
    * Where eKGWB books are read from: eKGWB itself, or a corpus the importer
    * already rendered, so a book's structure can change without a fetch.
@@ -645,7 +661,7 @@ export async function ocrVolumeHocr(
 export async function volumeHocr(
   book: ScannedBook,
   fetchText: FetchText,
-  pageOcr?: (model: string) => PageOcr,
+  pageOcr?: (reading: OcrReading) => PageOcr,
 ): Promise<string> {
   if (!book.ocr) return fetchVolumeHocr(book.item, fetchText);
   if (!pageOcr) {
@@ -653,7 +669,11 @@ export async function volumeHocr(
       `${book.slug} is read with ${book.ocr}, but no OCR is given`,
     );
   }
-  return ocrVolumeHocr(book.item, fetchText, pageOcr(book.ocr));
+  return ocrVolumeHocr(
+    book.item,
+    fetchText,
+    pageOcr({ model: book.ocr, binarise: book.binarise }),
+  );
 }
 
 async function loadArchiveOcrBook(

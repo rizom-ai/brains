@@ -671,14 +671,14 @@ books:
     await rm(join(brainData, "book"), { recursive: true, force: true });
     requested.length = 0;
     await importBooks(
-      parseManifest(ocrManifest + "    ocr: frk\n"),
+      parseManifest(ocrManifest + "    ocr: frk\n    binarise: true\n"),
       brainData,
       fetchArchive,
       {
         pageOcr:
-          (model) =>
+          ({ model, binarise }) =>
           async (url): Promise<string> => {
-            recognised.push(`${model} ${url}`);
+            recognised.push(`${model}${binarise ? " binarised" : ""} ${url}`);
             const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
             return pageAt(leaf);
           },
@@ -690,7 +690,7 @@ books:
     ]);
     expect(recognised).toHaveLength(21);
     expect(recognised[0]).toBe(
-      "frk https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg",
+      "frk binarised https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg",
     );
     expect(await files(join(brainData, "book"))).toEqual(fromArchive);
   });

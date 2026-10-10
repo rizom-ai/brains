@@ -82,15 +82,42 @@ export async function tessdataFor(
   return dir;
 }
 
+/** How a volume's pages are read: the model, and whether its paper is uneven. */
+export interface OcrReading {
+  model: string;
+  /** The paper is uneven in tone and the lines askew, as on a yellowed scan. */
+  binarise: boolean;
+}
+
 /**
  * How a page image is prepared for recognition: in grey, at twice its size,
- * which keeps the scan's small Fraktur letters apart.
+ * which keeps the scan's small Fraktur letters apart. A page of uneven paper
+ * is straightened first, and each part set black or white against its own
+ * surroundings.
  */
-const PREPARE = ["-colorspace", "Gray", "-resize", "200%"];
+export function preparationFor({
+  binarise,
+}: Pick<OcrReading, "binarise">): string[] {
+  return binarise
+    ? [
+        "-colorspace",
+        "Gray",
+        "-deskew",
+        "40%",
+        "-resize",
+        "200%",
+        "-lat",
+        "60x60-6%",
+      ]
+    : ["-colorspace", "Gray", "-resize", "200%"];
+}
 
 /** A page image prepared for recognition with ImageMagick, which must be on the path. */
-export async function preparedImage(image: Uint8Array): Promise<Uint8Array> {
-  const child = Bun.spawn(["magick", "-", ...PREPARE, "png:-"], {
+export async function preparedImage(
+  image: Uint8Array,
+  preparation: string[],
+): Promise<Uint8Array> {
+  const child = Bun.spawn(["magick", "-", ...preparation, "png:-"], {
     stdin: image,
     stdout: "pipe",
     stderr: "pipe",
@@ -107,21 +134,23 @@ export async function preparedImage(image: Uint8Array): Promise<Uint8Array> {
 /** The importer's page OCR: Tesseract, images fetched in the importer's queue. */
 export function importerPageOcr(
   fetch: PoliteFetch,
-): (model: string) => PageOcr {
+): (reading: OcrReading) => PageOcr {
   const cacheDir = importerCacheDir();
-  return (model) =>
-    createPageOcr({
+  return (reading) => {
+    const preparation = preparationFor(reading);
+    return createPageOcr({
       cacheDir,
-      model,
-      prepare: PREPARE.join(" "),
+      model: reading.model,
+      prepare: preparation.join(" "),
       fetchImage: fetch.bytes,
       recognise: async (image, used) =>
         tesseractHocr(
-          await preparedImage(image),
+          await preparedImage(image, preparation),
           used,
           await tessdataFor(used, cacheDir, fetch.bytes),
         ),
     });
+  };
 }
 
 /** Recognise a page image with Tesseract, which must be on the path. */
