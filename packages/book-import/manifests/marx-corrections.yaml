@@ -11,6 +11,10 @@ dieklassenkmpf00marxuoft:
     from: J. Die Juniniederlage 1848.
     to: 1. Die Juniniederlage 1848.
     by: scan
+  - page: 20
+    from: Kompeère, den
+    to: Kompère, den
+    by: scan
   - page: 21
     from: anki
     to: ""
@@ -115,6 +119,10 @@ dieklassenkmpf00marxuoft:
     from: Splären
     to: Sphären
     by: scan
+  - page: 23
+    from: de l'eépoque“ etc.
+    to: de l'époque“ etc.
+    by: scan
   - page: 24
     from: Boürgeoisie
     to: Bourgeoisie
@@ -146,6 +154,14 @@ dieklassenkmpf00marxuoft:
   - page: 25
     from: Uebxigens
     to: Uebrigens
+    by: scan
+  - page: 26
+    from: die Gazetté deé
+    to: die Gazette deé
+    by: scan
+  - page: 26
+    from: deé France
+    to: de France
     by: scan
   - page: 27
     from: zur Ver
@@ -179,14 +195,26 @@ dieklassenkmpf00marxuoft:
     from: Oesterreicher, Ungarn, Itoliener, jedes Volk
     to: Oesterreicher, Ungarn, Italiener, jedes Volk
     by: reference
+  - page: 30
+    from: Von Caussidiêre ließ
+    to: Von Caussidière ließ
+    by: scan
   - page: 31
     from: den Tausch
     to: den Tausch-
     by: reference
+  - page: 32
+    from: der Banqueé de
+    to: der Banque de
+    by: scan
   - page: 33
     from: Pariser Proletariat exklickte er den
     to: Pariser Proletariat erblickte er den
     by: reference
+  - page: 35
+    from: ihrer Misére. Und
+    to: ihrer Misère. Und
+    by: scan
   - page: 37
     from: datirt die Repu
     to: datirt die Repu-
@@ -263,6 +291,14 @@ dieklassenkmpf00marxuoft:
     from: vornherein in oer konstituirenden Nationalversammlung
     to: vornherein in der konstituirenden Nationalversammlung
     by: reference
+  - page: 44
+    from: und Caussidiére. Die
+    to: und Caussidière. Die
+    by: scan
+  - page: 44
+    from: und Caussidièêére wurden
+    to: und Caussidière wurden
+    by: scan
   - page: 45
     from: als die Barri
     to: als die Barri-
@@ -279,6 +315,14 @@ dieklassenkmpf00marxuoft:
     from: sie be
     to: sie be-
     by: reference
+  - page: 45
+    from: Nationalversammlung eine Enquéte über
+    to: Nationalversammlung eine Enquête über
+    by: scan
+  - page: 45
+    from: eine Enquéte über
+    to: eine Enquête über
+    by: scan
   - page: 46
     from: à Pamiable
     to: à l’amiable
@@ -302,6 +346,10 @@ dieklassenkmpf00marxuoft:
   - page: 47
     from: zu sesseln
     to: zu fesseln
+    by: scan
+  - page: 48
+    from: à l'assistançce, in
+    to: à l'assistance, in
     by: scan
   - page: 49
     from: die ge
@@ -391,6 +439,10 @@ dieklassenkmpf00marxuoft:
     from: de la Dröme) Antrag auf
     to: de la Drôme) Antrag auf
     by: reference
+  - page: 60
+    from: eine Enquéte über
+    to: eine Enquête über
+    by: scan
   - page: 61
     from: Allem kon
     to: Allem kon-
@@ -475,6 +527,10 @@ dieklassenkmpf00marxuoft:
     from: brutale Geltend
     to: brutale Geltend-
     by: reference
+  - page: 67
+    from: und Caussidiére's an
+    to: und Caussidière's an
+    by: scan
   - page: 69
     from: Bourgedisrepublik
     to: Bourgeoisrepublik
@@ -587,6 +643,10 @@ dieklassenkmpf00marxuoft:
     from: Repräsentanten, die Créme der Legitimisten
     to: Repräsentanten, die Creme der Legitimisten
     by: reference
+  - page: 78
+    from: der „Siéèele“, der
+    to: der „Siècle“, der
+    by: scan
   - page: 79
     from: die Jung
     to: die Jung-
@@ -635,6 +695,22 @@ dieklassenkmpf00marxuoft:
     from: Prätendenten herab
     to: Prätendenten herab-
     by: reference
+  - page: 82
+    from: in pétto hat,
+    to: in petto hat,
+    by: scan
+  - page: 84
+    from: si béte!
+    to: si bête!
+    by: scan
+  - page: 84
+    from: des trée trade,
+    to: des free trade,
+    by: scan
+  - page: 85
+    from: General Cubiéres wegen
+    to: General Cubières wegen
+    by: scan
   - page: 86
     from: respektable Steuer. Viveée lümpöt des boissons
     to: respektable Steuer. Vive II'impôt des boissons
@@ -687,6 +763,10 @@ dieklassenkmpf00marxuoft:
     from: Popularität en détail vorbehielt durch
     to: Popularität en detail vorbehielt durch
     by: reference
+  - page: 92
+    from: den Mystérées Eugéne
+    to: den Mystères Eugène
+    by: scan
   - page: 93
     from: behandelt. Auf
     to: behandelt. Auf-
@@ -703,6 +783,10 @@ dieklassenkmpf00marxuoft:
     from: ihrer Be
     to: ihrer Be-
     by: reference
+  - page: 94
+    from: par excéellence. Das
+    to: par excellence. Das
+    by: scan
   - page: 95
     from: beruhen, zur Abschaffung sämmt
     to: beruhen, zur Abschaffung sämmt-
@@ -711,6 +795,10 @@ dieklassenkmpf00marxuoft:
     from: diesen Produktionsverhält
     to: diesen Produktionsverhält-
     by: reference
+  - page: 96
+    from: das Wahleomité, ganz
+    to: das Wahlcomité, ganz
+    by: scan
   - page: 97
     from: der sozia
     to: der sozia-
@@ -751,6 +839,10 @@ dieklassenkmpf00marxuoft:
     from: würde die Froktionen der revolutionären
     to: würde die Fraktionen der revolutionären
     by: reference
+  - page: 99
+    from: Aprés moiele
+    to: Après moiele
+    by: scan
   - page: 101
     from: im Sommer 1850 yder Baarvorrath sich
     to: im Sommer 1850 der Baarvorrath sich
@@ -767,10 +859,18 @@ dieklassenkmpf00marxuoft:
     from: und gegen
     to: und gegen-
     by: reference
+  - page: 104
+    from: calmé majéstueux. Passivität
+    to: calmé majestueux. Passivität
+    by: scan
   - page: 105
     from: vom Präsidenten Düpin nicht zum
     to: vom Präsidenten Dupin nicht zum
     by: reference
+  - page: 105
+    from: von Eugéne Sue),
+    to: von Eugène Sue),
+    by: scan
   - page: 106
     from: „Journal deés Débats“
     to: „Journal des Débats“
@@ -786,6 +886,14 @@ dieklassenkmpf00marxuoft:
   - page: 106
     from: téstimonia
     to: testimonia
+    by: scan
+  - page: 106
+    from: Nationalée“, des
+    to: Nationale“, des
+    by: scan
+  - page: 106
+    from: in pétto hat,
+    to: in petto hat,
     by: scan
   - page: 107
     from: de mauvaise gräce hingeworfene Geschenk
@@ -803,6 +911,10 @@ dieklassenkmpf00marxuoft:
     from: wiederholte Zu
     to: wiederholte Zu-
     by: reference
+  - page: 108
+    from: vom „Siéele“ und
+    to: vom „Siècle“ und
+    by: scan
   - page: 110
     from: der Gesellschast vom
     to: der Gesellschaft vom
@@ -823,6 +935,10 @@ dieklassenkmpf00marxuoft:
     from: Ordnungspartei ge
     to: Ordnungspartei ge-
     by: reference
+  - page: 111
+    from: IEmpereéur! vorbeidefiliren
+    to: l'Empereur! vorbeidefiliren
+    by: scan
   - page: 112
     from: "Druck: Hamburger Buchdruckerei und Verlagsanstalt Auer & Co. in Hamburg."
     to: ""
@@ -1121,6 +1237,10 @@ mehring-nachlass-1:
     from: vous m'öten ma place
     to: vous m'ôtez ma place
     by: reference
+  - page: 254
+    from: des priviléges, suppose
+    to: des privilèges, suppose
+    by: scan
   - page: 266
     from: Arbeit weiter
     to: Arbeit weiter-
@@ -1161,6 +1281,14 @@ mehring-nachlass-1:
     from: Uon einem Rheinländer.
     to: ""
     by: scan
+  - page: 283
+    from: memeée.
+    to: même.
+    by: scan
+  - page: 303
+    from: Pabsurdité, das
+    to: l'absurdité, das
+    by: scan
   - page: 312
     from: Distanz von
     to: Distanz von-
@@ -1178,6 +1306,10 @@ mehring-nachlass-2:
     from: Gehorsam à Pordre du jour
     to: Gehorsam à l'ordre du jour
     by: reference
+  - page: 49
+    from: plus arrétés par
+    to: plus arrêtés par
+    by: scan
   - page: 50
     from: Wohlthätigkeitsmaßregeln stehen
     to: Wohlthätigkeitsmaßregeln stehen-
@@ -1222,14 +1354,38 @@ mehring-nachlass-2:
     from: pas de systéme; je demande
     to: pas de système; je demande
     by: scan
+  - page: 119
+    from: doit-il étre éternellement
+    to: doit-il être éternellement
+    by: scan
+  - page: 119
+    from: la lacheté et
+    to: la lâcheté et
+    by: scan
+  - page: 119
+    from: sans m'arréter aux
+    to: sans m'arrêter aux
+    by: scan
   - page: 124
     from: des massenhaften Prondhon, so feine
     to: des massenhaften Proudhon, so feine
     by: reference
+  - page: 125
+    from: heißt sacrilége nicht,
+    to: heißt sacrilège nicht,
+    by: scan
   - page: 142
     from: der Nahrung nud für gewisse
     to: der Nahrung und für gewisse
     by: reference
+  - page: 145
+    from: (valeur intrinséque),
+    to: (valeur intrinsèque),
+    by: scan
+  - page: 148
+    from: vous étes ete.)
+    to: vous êtes ete.)
+    by: scan
   - page: 149
     from: bourgeois juste-milien) in „unsere
     to: bourgeois juste-milieu) in „unsere
@@ -1246,6 +1402,22 @@ mehring-nachlass-2:
     from: und das Geheimniss der Rechtlosigkeit im Staate.
     to: ""
     by: scan
+  - page: 153
+    from: der Mystéères de
+    to: der Mystères de
+    by: scan
+  - page: 153
+    from: der Mystéres de
+    to: der Mystères de
+    by: scan
+  - page: 155
+    from: Darstellung der Mystéres de
+    to: Darstellung der Mystères de
+    by: scan
+  - page: 155
+    from: der Mystéres de
+    to: der Mystères de
+    by: scan
   - page: 157
     from: Wenn der Apsel, die Birne
     to: Wenn der Apfel, die Birne
@@ -1254,6 +1426,10 @@ mehring-nachlass-2:
     from: de chose, cest-à-dire
     to: de chose, c'est-à-dire
     by: reference
+  - page: 165
+    from: les mystéères, les
+    to: les mystères, les
+    by: scan
   - page: 166
     from: weil sie troz des Augenscheins
     to: weil sie trotz des Augenscheins
@@ -1266,6 +1442,10 @@ mehring-nachlass-2:
     from: femmes de Lespece de Cecily
     to: femmes de l'espèce de Cecily
     by: reference
+  - page: 170
+    from: gesetzten Mystéres de
+    to: gesetzten Mystères de
+    by: scan
   - page: 171
     from: Charlatans Bradamanti (Abbe Polidori) führt
     to: Charlatans Bradamanti (Abbé Polidori) führt
@@ -1282,6 +1462,10 @@ mehring-nachlass-2:
     from: donner que donze franes par mois
     to: donner que douze francs par mois
     by: reference
+  - page: 177
+    from: der Mystéres
+    to: der Mystères
+    by: scan
   - page: 178
     from: a. Der „Geist“ und die „Masse“. 7
     to: a. Der „Geist“ und die „Masse“.
@@ -1306,6 +1490,70 @@ mehring-nachlass-2:
     from: nous fait halr ou aimer
     to: nous fait haïr ou aimer
     by: reference
+  - page: 241
+    from: les étres de
+    to: les êtres de
+    by: scan
+  - page: 241
+    from: notre intérèt ...
+    to: notre intérêt ...
+    by: scan
+  - page: 241
+    from: propre intérét doit
+    to: propre intérêt doit
+    by: scan
+  - page: 241
+    from: nos associéës
+    to: nos associés
+    by: scan
+  - page: 241
+    from: nos intéréts avec
+    to: nos intérêts avec
+    by: scan
+  - page: 241
+    from: à Putilité commune
+    to: à l'utilité commune
+    by: scan
+  - page: 241
+    from: un étre sociable...
+    to: un être sociable...
+    by: scan
+  - page: 241
+    from: „intérét genéral
+    to: „intérêt genéral
+    by: scan
+  - page: 241
+    from: genéral im
+    to: général im
+    by: scan
+  - page: 241
+    from: doit cëder à
+    to: doit céder à
+    by: scan
+  - page: 241
+    from: à Pintérét public.
+    to: à l'intérêt public.
+    by: scan
+  - page: 241
+    from: intérét
+    to: intérêt
+    by: scan
+  - page: 241
+    from: d'étre un
+    to: d'être un
+    by: scan
+  - page: 242
+    from: intéréèt public,
+    to: intérêt public,
+    by: scan
+  - page: 242
+    from: Les intéréts individuels
+    to: Les intérêts individuels
+    by: scan
+  - page: 242
+    from: intéréts réels.
+    to: intérêts réels.
+    by: scan
   - page: 253
     from: Die RKorrespondenz der kritischen Kritik.
     to: Die Korrespondenz der kritischen Kritik.
@@ -1325,6 +1573,10 @@ mehring-nachlass-2:
   - page: 265
     from: und die Berliner Kouleur.
     to: ""
+    by: scan
+  - page: 270
+    from: par çga, par
+    to: par ça, par
     by: scan
   - page: 272
     from: Weltgang und Uerklärung der kritischen Kritik, V
@@ -1350,22 +1602,58 @@ mehring-nachlass-2:
     from: oder Fleur de Marie.
     to: ""
     by: scan
+  - page: 279
+    from: me chagrineé de
+    to: me chagrine de
+    by: scan
+  - page: 279
+    from: d'etre honnéte. Auf
+    to: d'etre honnête. Auf
+    by: scan
   - page: 280
     from: "sie aus: Honnéte, mon dieu"
     to: "sie aus: Honnête, mon dieu"
+    by: scan
+  - page: 280
+    from: Fleur deé Marie
+    to: Fleur de Marie
     by: scan
   - page: 286
     from: plus, ma chére fille, avant
     to: plus, ma chère fille, avant
     by: reference
+  - page: 286
+    from: mes préoceupations terrestres
+    to: mes préoccupations terrestres
+    by: scan
+  - page: 286
+    from: aussi égaréëe, qu'elle
+    to: aussi égarée, qu'elle
+    by: scan
   - page: 287
     from: 3. Enthüllung der Geheimnisse des Kechts.
     to: 3. Enthüllung des Geheimnisses des Rechts.
+    by: scan
+  - page: 287
+    from: Fleur deé Marie
+    to: Fleur de Marie
+    by: scan
+  - page: 287
+    from: Sainte mére —
+    to: Sainte mère —
+    by: scan
+  - page: 291
+    from: à téte mit
+    to: à tête mit
     by: scan
   - page: 292
     from: m'a öté la vue
     to: m'a ôté la vue
     by: reference
+  - page: 292
+    from: oté la
+    to: ôté la
+    by: scan
   - page: 293
     from: depuis ce rève de la
     to: depuis ce rêve de la
@@ -1374,10 +1662,42 @@ mehring-nachlass-2:
     from: qu'autrefois . çceu que j
     to: qu'autrefois ... ce que j
     by: reference
+  - page: 293
+    from: va sétre affreux
+    to: va être affreux
+    by: scan
+  - page: 293
+    from: que d'étre seul.
+    to: que d'être seul.
+    by: scan
+  - page: 296
+    from: mais cçe serait
+    to: mais ce serait
+    by: scan
   - page: 297
     from: où s'abima sa raison
     to: où s'abîma sa raison
     by: reference
+  - page: 297
+    from: Ah vipéèrel .
+    to: Ah vipère .
+    by: scan
+  - page: 297
+    from: des Bicétre.
+    to: des Bicêtre.
+    by: scan
+  - page: 297
+    from: im Bicétre und
+    to: im Bicêtre und
+    by: scan
+  - page: 297
+    from: et exasperés par
+    to: et exaspérés par
+    by: scan
+  - page: 300
+    from: der Siécle, die
+    to: der Siècle, die
+    by: scan
   - page: 302
     from: 4. Aufhebung der Uerwilderung innerhalb der Zivilisation,
     to: c. Aufhebung der Verwilderung innerhalb der Zivilisation und der Rechtlosigkeit im Staate.
@@ -1385,6 +1705,10 @@ mehring-nachlass-2:
   - page: 302
     from: und der Kechtlosigkeit im Staate.
     to: ""
+    by: scan
+  - page: 302
+    from: ein mysteére de
+    to: ein mystère de
     by: scan
   - page: 303
     from: 5. Das enthüllte Geheimniss des Standpunktes.
@@ -1410,6 +1734,34 @@ mehring-nachlass-2:
     from: will? .. De méme qu'en
     to: will? .. De même qu'en
     by: reference
+  - page: 315
+    from: den modéle d'un
+    to: den modèle d'un
+    by: scan
+  - page: 315
+    from: im téte à
+    to: im tête à
+    by: scan
+  - page: 317
+    from: le cóté théatral
+    to: le côté théatral
+    by: scan
+  - page: 317
+    from: les intéréts les
+    to: les intérêts les
+    by: scan
+  - page: 318
+    from: bien chéères, certaines
+    to: bien chères, certaines
+    by: scan
+  - page: 319
+    from: à téte mit
+    to: à tête mit
+    by: scan
+  - page: 320
+    from: tant d'intérét à
+    to: tant d'intérêt à
+    by: scan
   - page: 323
     from: Beuntes Kapitel.
     to: Neuntes Kapitel.
@@ -1459,6 +1811,10 @@ theorienberden01marxuoft:
     from: 2. Ch. d'Avenant.
     to: 2. Charles D’Avenant.
     by: scan
+  - page: 12
+    from: probable meéethods of
+    to: probable methods of
+    by: scan
   - page: 13
     from: 3. Sir Dbudleh north und John Locke.!
     to: 3. Sir Dudley North und John Locke.
@@ -1475,9 +1831,41 @@ theorienberden01marxuoft:
     from: 6. Der allgemeine Charakter des Sistems der Physlokraten.“
     to: 6. Der allgemeine Charakter des Systems der Physiokraten.
     by: scan
+  - page: 46
+    from: "la Riviére sagt:"
+    to: "la Rivière sagt:"
+    by: scan
+  - page: 46
+    from: des sociéëtés politiques,
+    to: des sociétés politiques,
+    by: scan
+  - page: 46
+    from: Mirabeau pêre! Und
+    to: Mirabeau père! Und
+    by: scan
+  - page: 47
+    from: produit neét der
+    to: produit net der
+    by: scan
+  - page: 48
+    from: des sociéëtés politiques,
+    to: des sociétés politiques,
+    by: scan
   - page: 49
     from: 7. Turgot.“
     to: 7. Turgot.
+    by: scan
+  - page: 49
+    from: sind.“ (Physiocrateés ete.
+    to: sind.“ (Physiocrates ete.
+    by: scan
+  - page: 49
+    from: édition Eugéêne Daire.
+    to: édition Eugène Daire.
+    by: scan
+  - page: 56
+    from: la Riviéêére eine
+    to: la Rivière eine
     by: scan
   - page: 59
     from: 8. f. Paoletti und pietro verri.“
@@ -1499,6 +1887,10 @@ theorienberden01marxuoft:
     from: II. Ein englischer Phisiokrat.
     to: 11. Ein englischer Physiokrat.
     by: scan
+  - page: 68
+    from: „Britain indeépendent of
+    to: „Britain independent of
+    by: scan
   - page: 73
     from: 12. necker.
     to: 12. Necker.
@@ -1515,6 +1907,14 @@ theorienberden01marxuoft:
     from: Gesamtkapitals nach Quesnahs „Tableau économique“.
     to: ""
     by: scan
+  - page: 88
+    from: Zinsen (intérsts)
+    to: Zinsen (intérêts)
+    by: scan
+  - page: 91
+    from: verfrachtet (fagonnée et
+    to: verfrachtet (façonnée et
+    by: scan
   - page: 93
     from: Anhang
     to: Anhang zu dem „Tableau économique“.
@@ -1526,6 +1926,10 @@ theorienberden01marxuoft:
   - page: 93
     from: „Tableau économique“.
     to: ""
+    by: scan
+  - page: 105
+    from: erédit.“ Discussion
+    to: crédit.“ Discussion
     by: scan
   - page: 117
     from: 6. Erklärung des Kapitalprofits daraus, daß der
@@ -1595,9 +1999,17 @@ theorienberden01marxuoft:
     from: Einfluß des Wertwechsels darauf.“
     to: ""
     by: scan
+  - page: 252
+    from: und deéaler. Der
+    to: und dealer. Der
+    by: scan
   - page: 253
     from: Kapital produzierenden Arbeit.!“
     to: Kapital produzierenden Arbeit.
+    by: scan
+  - page: 256
+    from: of socièty. London
+    to: of society. London
     by: scan
   - page: 260
     from: Waren produzierenden.!“
@@ -1611,9 +2023,29 @@ theorienberden01marxuoft:
     from: Arbeit vor und nach A. Smith.!“
     to: Arbeit vor und nach A. Smith.
     by: scan
+  - page: 290
+    from: Pettys „Treéatise on
+    to: Pettys „Treatise on
+    by: scan
+  - page: 295
+    from: tical éeconomy, Edition
+    to: tical economy, Edition
+    by: scan
   - page: 308
     from: f) Ganilh.“
     to: f) Ganilh.
+    by: scan
+  - page: 308
+    from: „Des systêmes d'economie
+    to: „Des systèmes d'economie
+    by: scan
+  - page: 308
+    from: „Principes d'ëconomie politique“
+    to: „Principes d'économie politique“
+    by: scan
+  - page: 312
+    from: (valeur intrinséque), was
+    to: (valeur intrinsèque), was
     by: scan
   - page: 321
     from: g) Ganilh und Riceardo über Brutto- und Netto-
@@ -1627,6 +2059,14 @@ theorienberden01marxuoft:
     from: i) Lauderdale und J. B. Say.“
     to: i) Lauderdale und J. B. Say.
     by: scan
+  - page: 354
+    from: "Übersetzung: „Reécherches sur"
+    to: "Übersetzung: „Recherches sur"
+    by: scan
+  - page: 368
+    from: 100 ëH an
+    to: 100 £ an
+    by: scan
   - page: 380
     from: J) Henri Storch. Die geistige Produktion.
     to: l) Henri Storch. Die geistige Produktion.
@@ -1634,6 +2074,10 @@ theorienberden01marxuoft:
   - page: 387
     from: m) W. Nassau Senior.!
     to: m) W. Nassau Senior.
+    by: scan
+  - page: 393
+    from: Térum.
+    to: rerum.
     by: scan
   - page: 403
     from: A. Smith.“
@@ -1660,21 +2104,61 @@ p1theorienberden02marxuoft:
     from: 4) Ricardos Anschauungen.
     to: α) Ricardos Anschauungen.
     by: scan
+  - page: 63
+    from: Geldleute (monièd class)
+    to: Geldleute (monied class)
+    by: scan
   - page: 71
     from: 3) Smith über Produktionspreise und Marktpreise.
     to: β) Smith über Produktionspreise und Marktpreise.
+    by: scan
+  - page: 82
+    from: Abnutzung (Weéar
+    to: Abnutzung (wear
+    by: scan
+  - page: 92
+    from: hauteé finance
+    to: haute finance
     by: scan
   - page: 97
     from: 3. Kicardos Darstellung des Mehrwerts.
     to: 3. Ricardos Darstellung des Mehrwerts.
     by: scan
+  - page: 117
+    from: wages deépend upon
+    to: wages depend upon
+    by: scan
   - page: 129
     from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ＋æꝓ S
     to: ""
     by: scan
+  - page: 144
+    from: schritts (improveément), die
+    to: schritts (improvement), die
+    by: scan
+  - page: 152
+    from: sub speécié des
+    to: sub specie des
+    by: scan
   - page: 167
     from: 1. RKodbertus.
     to: 1. Rodbertus.
+    by: scan
+  - page: 172
+    from: Stammbaumweizen (pédigrèe nursery
+    to: Stammbaumweizen (pedigree nursery
+    by: scan
+  - page: 178
+    from: Ist é von
+    to: Ist c von
+    by: scan
+  - page: 179
+    from: von ée, Roh-
+    to: von c, Roh-
+    by: scan
+  - page: 179
+    from: von é modifiziert
+    to: von c modifiziert
     by: scan
   - page: 230
     from: Ee) Fortsetzung der Kritik.
@@ -1692,6 +2176,14 @@ p1theorienberden02marxuoft:
     from: „) Dritte Formel.
     to: γ) Dritte Formel.
     by: scan
+  - page: 294
+    from: ditferentia speécifica aus.
+    to: ditferentia specifica aus.
+    by: scan
+  - page: 302
+    from: hat.“ (Misére de
+    to: hat.“ (Misère de
+    by: scan
   - page: 304
     from: z. bemerkungen über dlie Geschichte der Entdeckung des
     to: 2. Bemerkungen über die Geschichte der Entdeckung des sogenannten Ricardoschen Gesetzes.
@@ -1700,13 +2192,133 @@ p1theorienberden02marxuoft:
     from: logenannten KRicardoschen Gesetzes.
     to: ""
     by: scan
+  - page: 305
+    from: „ex profésso“
+    to: „ex professo“
+    by: scan
+  - page: 305
+    from: „Essays reéelating
+    to: „Essays relating
+    by: scan
+  - page: 311
+    from: (On Proteéction to
+    to: (On Protection to
+    by: scan
+  - page: 312
+    from: political économy“, gegen
+    to: political economy“, gegen
+    by: scan
+  - page: 312
+    from: ciplés of political
+    to: ciples of political
+    by: scan
+  - page: 314
+    from: of spécies by
+    to: of species by
+    by: scan
+  - page: 314
+    from: natural seleéction or
+    to: natural selection or
+    by: scan
+  - page: 314
+    from: the préeservation of
+    to: the preservation of
+    by: scan
+  - page: 314
+    from: of favoréed races
+    to: of favored races
+    by: scan
+  - page: 314
+    from: theé struggle
+    to: the struggle
+    by: scan
+  - page: 314
+    from: for lifeé (2.
+    to: for life (2.
+    by: scan
+  - page: 316
+    from: have leéed to
+    to: have led to
+    by: scan
+  - page: 316
+    from: und landeéd interést
+    to: und landed interést
+    by: scan
+  - page: 316
+    from: interést berührte.“
+    to: interest berührte.“
+    by: scan
+  - page: 317
+    from: als „moniéd class“,
+    to: als „monied class“,
+    by: scan
+  - page: 317
+    from: „monied intérést“ und
+    to: „monied interest“ und
+    by: scan
+  - page: 317
+    from: „landed interést“.
+    to: „landed interest“.
+    by: scan
+  - page: 318
+    from: intérést) und
+    to: interest) und
+    by: scan
+  - page: 318
+    from: loanmongers (inoniéd intérést)
+    to: loanmongers (monied intérést)
+    by: scan
+  - page: 318
+    from: intérést) zusammengingen
+    to: interest) zusammengingen
+    by: scan
+  - page: 318
+    from: industrial intérest. Aber
+    to: industrial interest. Aber
+    by: scan
+  - page: 318
+    from: monied intérést zum
+    to: monied interest zum
+    by: scan
+  - page: 318
+    from: des landeéd intéréest
+    to: des landed intéréest
+    by: scan
+  - page: 318
+    from: intéréest gegen
+    to: interest gegen
+    by: scan
+  - page: 318
+    from: facturing intéreést sich
+    to: facturing interest sich
+    by: scan
+  - page: 318
+    from: inteérést“ diente
+    to: interest“ diente
+    by: scan
+  - page: 318
+    from: "sagen: „matériam superabat"
+    to: "sagen: „materiam superabat"
+    by: scan
   - page: 324
     from: e) Die Bewegung der Kornpreise von 1641 bis 1859.
     to: c) Die Bewegung der Kornpreise von 1641 bis 1859.
     by: scan
+  - page: 335
+    from: hitherto reéetarded the
+    to: hitherto retarded the
+    by: scan
   - page: 338
     from: e) Diverse Autoren über die Rententheorie.“
     to: e) Diverse Autoren über die Rententheorie.
+    by: scan
+  - page: 338
+    from: trading intérests)
+    to: trading interests)
+    by: scan
+  - page: 339
+    from: (The Queèrist. Dr.
+    to: (The Querist. Dr.
     by: scan
 p2theorienberd02marx:
   - page: 1
@@ -1724,6 +2336,10 @@ p2theorienberd02marx:
   - page: 27
     from: 5) Veränderungen der Differentialrente.
     to: β) Veränderungen der Differentialrente.
+    by: scan
+  - page: 49
+    from: ex profeésso käme,
+    to: ex professo käme,
     by: scan
   - page: 59
     from: „) Der Ricardosche Normalfall.
@@ -1777,6 +2393,10 @@ p2theorienberd02marx:
     from: Zusammensetzung des Kapitals.
     to: ""
     by: scan
+  - page: 227
+    from: per cçent
+    to: per cent
+    by: scan
   - page: 233
     from: III. ARkumulation von Kapital und Krisen.
     to: III. Akkumulation von Kapital und Krisen.
@@ -1797,6 +2417,10 @@ p2theorienberd02marx:
     from: 4. Die KRrisen.
     to: 4. Die Krisen.
     by: scan
+  - page: 274
+    from: spéecificae, kurz
+    to: specificae, kurz
+    by: scan
   - page: 319
     from: 5. AkkUmulation und Ronsum.
     to: 5. Akkumulation und Konsum.
@@ -1804,6 +2428,10 @@ p2theorienberd02marx:
   - page: 333
     from: 1. Brutto- und nettoeinkommen.
     to: 1. Brutto- und Nettoeinkommen.
+    by: scan
+  - page: 342
+    from: Hände, kfrée hands,
+    to: Hände, free hands,
     by: scan
 theorienberden03marxuoft:
   - page: 1
@@ -1833,6 +2461,14 @@ theorienberden03marxuoft:
   - page: 73
     from: 1. K. Torrens.
     to: 1. R. Torrens.
+    by: scan
+  - page: 94
+    from: duktivität éo ipso
+    to: duktivität eo ipso
+    by: scan
+  - page: 121
+    from: "Reichtums (progréès divitial):"
+    to: "Reichtums (progrès divitial):"
     by: scan
   - page: 176
     from: 6. Der Wert der Arbeit.
@@ -1874,6 +2510,14 @@ theorienberden03marxuoft:
     from: 6. John Stuart mill.
     to: 6. John Stuart Mill.
     by: scan
+  - page: 230
+    from: and inteéreésts“ heißt
+    to: and interests“ heißt
+    by: scan
+  - page: 231
+    from: speécie berechneter
+    to: specie berechneter
+    by: scan
   - page: 281
     from: III. õegensatz gegen die öRonomen auf Basis dler
     to: III. Gegensatz gegen die Ökonomen auf Basis der Ricardoschen Theorie.
@@ -1889,6 +2533,30 @@ theorienberden03marxuoft:
   - page: 313
     from: 3. TChomas hodgskin.
     to: 3. Thomas Hodgskin.
+    by: scan
+  - page: 313
+    from: Labour deéfended against
+    to: Labour defended against
+    by: scan
+  - page: 318
+    from: Modéerna. 3.
+    to: Moderna. 3.
+    by: scan
+  - page: 319
+    from: (Labour deéfended, S.
+    to: (Labour defended, S.
+    by: scan
+  - page: 372
+    from: Remeédy etc.“
+    to: Remedy etc.“
+    by: scan
+  - page: 374
+    from: Political Eeonomy. Four Lectures deli-
+    to: Political Economy. Four Lectures deli-
+    by: scan
+  - page: 374
+    from: vereéd at the London Mechanies'
+    to: vered at the London Mechanics'
     by: scan
   - page: 381
     from: 1. Das Hapital eine historische Kategorie.
@@ -1922,9 +2590,17 @@ theorienberden03marxuoft:
     from: z. An Introductory lecture. Arbeitsfonds und Profitrate.
     to: 2. An Introductory Lecture. Arbeitsfonds und Profitrate.
     by: scan
+  - page: 470
+    from: Economy, deéelivered at
+    to: Economy, delivered at
+    by: scan
   - page: 477
     from: 3. Tertbook.
     to: 3. Textbook.
+    by: scan
+  - page: 487
+    from: Verwalter (trusteées)
+    to: Verwalter (trustees)
     by: scan
   - page: 521
     from: VII. Profit, Zins und vulgäarokonomie.
@@ -1933,6 +2609,10 @@ theorienberden03marxuoft:
   - page: 538
     from: 3. der Kampf gegen das zinstragende Kapital.
     to: 3. Der Kampf gegen das zinstragende Kapital.
+    by: scan
+  - page: 543
+    from: résultent deè la
+    to: résultent de la
     by: scan
   - page: 553
     from: 5. die veräußerlichung des Mehrwerts.
@@ -1950,7 +2630,47 @@ theorienberden03marxuoft:
     from: II. Iuther über den Wucher.
     to: II. Luther über den Wucher.
     by: scan
+  - page: 593
+    from: sedephantasticum inteéresse. Ein
+    to: sedephantasticum interesse. Ein
+    by: scan
 gesammelteschrif02marxuoft:
+  - page: 2
+    from: Pariser Bohéme, der
+    to: Pariser Bohème, der
+    by: scan
+  - page: 3
+    from: den Nachteafés von
+    to: den Nachtcafés von
+    by: scan
+  - page: 4
+    from: Recht réfugium
+    to: Recht refugium
+    by: scan
+  - page: 4
+    from: péccatorum nannte.
+    to: peccatorum nannte.
+    by: scan
+  - page: 5
+    from: Rulhiéres zu
+    to: Rulhières zu
+    by: scan
+  - page: 5
+    from: Generals Rulhieéres von
+    to: Generals Rulhières von
+    by: scan
+  - page: 5
+    from: Rulhiéres sandte
+    to: Rulhières sandte
+    by: scan
+  - page: 5
+    from: Generals Rulhiéres, und
+    to: Generals Rulhières, und
+    by: scan
+  - page: 5
+    from: de Rulhiêres, der
+    to: de Rulhières, der
+    by: scan
   - page: 12
     from: Der Krieg. — Parlamenksdebatte.
     to: Der Krieg. — Parlamentsdebatte.
@@ -1958,6 +2678,10 @@ gesammelteschrif02marxuoft:
   - page: 20
     from: Verkrag zwischen OÖsterreich und der Türkei. — Die Moldau
     to: Vertrag zwischen Österreich und der Türkei. — Die Moldau
+    by: scan
+  - page: 29
+    from: Pariser Siécle ein
+    to: Pariser Siècle ein
     by: scan
   - page: 35
     from: Der Kriegsschauplah. — Die russische Note an die deutschen
@@ -1975,9 +2699,17 @@ gesammelteschrif02marxuoft:
     from: Die Räumung der Donaufürstenkümer.
     to: Die Räumung der Donaufürstentümer.
     by: scan
+  - page: 59
+    from: Blatt Siéècle hatte
+    to: Blatt Siècle hatte
+    by: scan
   - page: 60
     from: Die Zustände in der Walachei. — Revolukion in der Türkei.
     to: Die Zustände in der Walachei. — Revolution in der Türkei.
+    by: scan
+  - page: 65
+    from: uns Lamoricièêre!“) Seine
+    to: uns Lamoricière!“) Seine
     by: scan
   - page: 69
     from: Die Milikärmacht Rußlands.
@@ -1995,13 +2727,37 @@ gesammelteschrif02marxuoft:
     from: —3—— ——ßꝛ7 ———— ———⅛ — —— „
     to: ""
     by: scan
+  - page: 82
+    from: la gueérre comme
+    to: la guerre comme
+    by: scan
+  - page: 82
+    from: la gueérre. „Wenn
+    to: la guerre. „Wenn
+    by: scan
   - page: 84
     from: Zum englischen Milikärwesen.
     to: Zum englischen Militärwesen.
     by: scan
+  - page: 85
+    from: der „Secrétary at
+    to: der „Secretary at
+    by: scan
+  - page: 92
+    from: des doméèstic trade,
+    to: des domestic trade,
+    by: scan
+  - page: 100
+    from: post féstum
+    to: post festum
+    by: scan
   - page: 103
     from: Die Bierwirte und die Sonnkagsfeier. — Clanricarde.
     to: Die Bierwirte und die Sonntagsfeier. — Clanricarde.
+    by: scan
+  - page: 104
+    from: der „wouldbé“ Chef
+    to: der „wouldbe“ Chef
     by: scan
   - page: 105
     from: Zur Krikik der Belagerung Sebastopols.
@@ -2015,6 +2771,10 @@ gesammelteschrif02marxuoft:
     from: I. Die Eröffnung des Parlamenks.
     to: I. Die Eröffnung des Parlaments.
     by: scan
+  - page: 109
+    from: Die Patreés conscripti
+    to: Die Patres conscripti
+    by: scan
   - page: 111
     from: II. Erläukerungen zur Kabinelkskrisis.
     to: II. Erläuterungen zur Kabinettskrisis.
@@ -2022,6 +2782,14 @@ gesammelteschrif02marxuoft:
   - page: 114
     from: III. Parlamenkarisches.
     to: III. Parlamentarisches.
+    by: scan
+  - page: 115
+    from: vor „Litéèrary Institutions“
+    to: vor „Literary Institutions“
+    by: scan
+  - page: 115
+    from: des Secrétary at
+    to: des Secretary at
     by: scan
   - page: 117
     from: IV. Aus dem Parlamenk. — Vom Kriegsschauplah.
@@ -2039,9 +2807,33 @@ gesammelteschrif02marxuoft:
     from: Herberls Wiederwahl. — Die ersten Schritte des neuen
     to: Herberts Wiederwahl. — Die ersten Schritte des neuen
     by: scan
+  - page: 149
+    from: den Secereétary at
+    to: den Secretary at
+    by: scan
+  - page: 152
+    from: Kabinettsministern éx officio
+    to: Kabinettsministern ex officio
+    by: scan
+  - page: 153
+    from: als Blueé Books
+    to: als Blue Books
+    by: scan
   - page: 155
     from: Justand der Armeen.
     to: Zustand der Armeen.
+    by: scan
+  - page: 163
+    from: er „eléver“ ist.
+    to: er „clever“ ist.
+    by: scan
+  - page: 163
+    from: der „cléver“ ist,
+    to: der „clever“ ist,
+    by: scan
+  - page: 164
+    from: die préssureé from
+    to: die pressure from
     by: scan
   - page: 166
     from: derglorreichen“
@@ -2059,6 +2851,14 @@ gesammelteschrif02marxuoft:
     from: Unkersuchungskomitee. — Das Brüsseler Memoire.
     to: Untersuchungskomitee. — Das Brüsseler Memoire.
     by: scan
+  - page: 189
+    from: cul deé sac
+    to: cul de sac
+    by: scan
+  - page: 189
+    from: einen coupndeé main,
+    to: einen coup de main,
+    by: scan
   - page: 190
     from: Agikation gegen Preußen. — Ein Fasttag.
     to: Agitation gegen Preußen. — Ein Fasttag.
@@ -2067,6 +2867,10 @@ gesammelteschrif02marxuoft:
     from: Balaklawa. — Die Times. — Ein Meeling.
     to: Balaklawa. — Die Times. — Ein Meeting.
     by: scan
+  - page: 194
+    from: ihr „Céêtérum cen-
+    to: ihr „Ceterum cen-
+    by: scan
   - page: 198
     from: Eine Debalte über Preußen im Oberhaus.
     to: Eine Debatte über Preußen im Oberhaus.
@@ -2074,6 +2878,10 @@ gesammelteschrif02marxuoft:
   - page: 202
     from: Über die lehten Vorgänge in der Krim.
     to: Über die letzten Vorgänge in der Krim.
+    by: scan
+  - page: 206
+    from: re intécta aufbreche
+    to: re infecta aufbreche
     by: scan
   - page: 209
     from: Die Enkhüllungen in dem Unkersuchungskomikee.
@@ -2087,9 +2895,21 @@ gesammelteschrif02marxuoft:
     from: de Chuys' Einfluß. — Zustand der Miliz.
     to: de Lhuys' Einfluß. — Zustand der Miliz.
     by: scan
+  - page: 215
+    from: Corps Leégislatif
+    to: Corps Legislatif
+    by: scan
   - page: 217
     from: Die Aussichlen in Frankreich und England.
     to: Die Aussichten in Frankreich und England.
+    by: scan
+  - page: 217
+    from: legenes „trés bien“.
+    to: legenes „très bien“.
+    by: scan
+  - page: 217
+    from: „Monsieur l'Aubergistée“
+    to: „Monsieur l'Aubergiste“
     by: scan
   - page: 222
     from: Krikik des Napoleonischen Moniteurarlikels.
@@ -2107,9 +2927,33 @@ gesammelteschrif02marxuoft:
     from: Lord Ellenboroughs Ankrag im Oberhaus.
     to: Lord Ellenboroughs Antrag im Oberhaus.
     by: scan
+  - page: 240
+    from: „Jurés probeés et
+    to: „Jurés probes et
+    by: scan
+  - page: 240
+    from: the Auéeen's Bench,
+    to: the Queen's Bench,
+    by: scan
   - page: 242
     from: Die Aufregung außerhalb des Parlamenks.
     to: Die Aufregung außerhalb des Parlaments.
+    by: scan
+  - page: 242
+    from: Mala fidés der
+    to: Mala fides der
+    by: scan
+  - page: 247
+    from: Banking deépartement, zwischen
+    to: Banking departement, zwischen
+    by: scan
+  - page: 247
+    from: ing departément liegen
+    to: ing departement liegen
+    by: scan
+  - page: 248
+    from: Banking deéparteément liegenbleibenden
+    to: Banking departement liegenbleibenden
     by: scan
   - page: 250
     from: Zur Kritik der Krimschen Angelegenheiken. —
@@ -2118,6 +2962,14 @@ gesammelteschrif02marxuoft:
   - page: 250
     from: Aus dem Parlamenk.
     to: Aus dem Parlament.
+    by: scan
+  - page: 251
+    from: thinking péeople of
+    to: thinking people of
+    by: scan
+  - page: 252
+    from: ferocious monstér) zusammen
+    to: ferocious monster) zusammen
     by: scan
   - page: 253
     from: Das Vorspiel bei Lord Palmerston. — Verlauf der letten
@@ -2131,13 +2983,33 @@ gesammelteschrif02marxuoft:
     from: Konferenzen. — Der sogenannke Vernichkungskrieg.
     to: Konferenzen. — Der sogenannte Vernichtungskrieg.
     by: scan
+  - page: 256
+    from: Changarnier, Lamoricièêre oder
+    to: Changarnier, Lamoricière oder
+    by: scan
+  - page: 264
+    from: quéstiones und
+    to: questiones und
+    by: scan
+  - page: 264
+    from: und quéstionenlae, das
+    to: und questionculae, das
+    by: scan
   - page: 272
     from: Die Administraliv-Reformassoziation. — Die Charke. —
     to: Die Administrativ-Reformassoziation. — Die Charte. —
     by: scan
+  - page: 275
+    from: das Statuté Law
+    to: das Statute Law
+    by: scan
   - page: 276
     from: Parlamenkarisches (Lowes Amendement im Unkerhaus).
     to: Parlamentarisches (Lowes Amendement im Unterhaus).
+    by: scan
+  - page: 277
+    from: dissolving viéws den
+    to: dissolving views den
     by: scan
   - page: 285
     from: Der lokale Krieg. — Debalte über die Administralivreform. —
@@ -2147,9 +3019,25 @@ gesammelteschrif02marxuoft:
     from: Bericht des Roebuck-Komikees.
     to: Bericht des Roebuck-Komitees.
     by: scan
+  - page: 293
+    from: kein commissionéd officier
+    to: kein commissioned officier
+    by: scan
   - page: 294
     from: Der Unfall des 18. Juni (Sturm auf den Malakhoff).
     to: Der Unfall des 18. Juni (Sturm auf den Malakoff).
+    by: scan
+  - page: 301
+    from: the Guéen!“
+    to: the Queen!“
+    by: scan
+  - page: 302
+    from: Wheère are
+    to: Where are
+    by: scan
+  - page: 302
+    from: the geéese?
+    to: the geese?
     by: scan
   - page: 308
     from: Roebuchks Antrag.
@@ -2159,9 +3047,25 @@ gesammelteschrif02marxuoft:
     from: IJ.
     to: I.
     by: scan
+  - page: 311
+    from: ein Committée of
+    to: ein Committee of
+    by: scan
+  - page: 311
+    from: Committée of
+    to: Committee of
+    by: scan
   - page: 321
     from: .
     to: I.
+    by: scan
+  - page: 321
+    from: unglaublich (quité incrédible).
+    to: unglaublich (quite incrédible).
+    by: scan
+  - page: 321
+    from: incrédible). Unglaublicher
+    to: incredible). Unglaublicher
     by: scan
   - page: 323
     from: I.
@@ -2171,6 +3075,14 @@ gesammelteschrif02marxuoft:
     from: W.
     to: IV.
     by: scan
+  - page: 338
+    from: of eéquity, vermittels
+    to: of equity, vermittels
+    by: scan
+  - page: 342
+    from: „a charteéred libertine“
+    to: „a chartered libertine“
+    by: scan
   - page: 351
     from: II. Züchligung der Soldaten.
     to: II. Züchtigung der Soldaten.
@@ -2178,6 +3090,10 @@ gesammelteschrif02marxuoft:
   - page: 356
     from: Die Erstürmung des Malahoff.
     to: Die Erstürmung des Malakoff.
+    by: scan
+  - page: 357
+    from: ein „matéeriel immense“
+    to: ein „materiel immense“
     by: scan
   - page: 387
     from: in People's Paper, 19. April 1856.
@@ -2199,9 +3115,41 @@ gesammelteschrif02marxuoft:
     from: New Hork Tribune, 9. September 1854.
     to: New York Tribune, 9. September 1854.
     by: scan
+  - page: 418
+    from: nach Compiégne gebracht
+    to: nach Compiègne gebracht
+    by: scan
+  - page: 425
+    from: Vertreibung Lefébvres aus
+    to: Vertreibung Lefèbvres aus
+    by: scan
+  - page: 425
+    from: Marschall Bessiéres
+    to: Marschall Bessières
+    by: scan
+  - page: 447
+    from: Révolution actuelleé de
+    to: Révolution actuelle de
+    by: scan
+  - page: 447
+    from: de l'Espagneé tat,
+    to: de l'Espagne tat,
+    by: scan
+  - page: 454
+    from: Plaza deé Fernando
+    to: Plaza de Fernando
+    by: scan
   - page: 458
     from: New HYork Tribune, 2. Dezember 1854.
     to: New York Tribune, 2. Dezember 1854.
+    by: scan
+  - page: 463
+    from: Angouléme zur
+    to: Angoulême zur
+    by: scan
+  - page: 466
+    from: zur béte noire
+    to: zur bête noire
     by: scan
 mehring-nachlass-3:
   - page: 95
@@ -2240,6 +3188,22 @@ mehring-nachlass-3:
     from: Citeratur.
     to: Literatur.
     by: scan
+  - page: 414
+    from: eités de la bourgeoisie
+    to: cités de la bourgeoisie
+    by: scan
+  - page: 426
+    from: sociétés secréètes; la
+    to: sociétés secrètes; la
+    by: scan
+  - page: 426
+    from: la preéfecture de
+    to: la préfecture de
+    by: scan
+  - page: 436
+    from: die baénale bürgerliche
+    to: die banale bürgerliche
+    by: scan
   - page: 452
     from: Sonth Wales Bank
     to: South Wales Bank
@@ -2256,22 +3220,66 @@ mehring-nachlass-3:
     from: vor in New Nork,
     to: vor in New York,
     by: scan
+  - page: 478
+    from: an deé demokratische
+    to: an de demokratische
+    by: scan
 gesammelteschrif01marxuoft:
+  - page: 1
+    from: sehen, laudatorés temporis
+    to: sehen, laudatores temporis
+    by: scan
+  - page: 9
+    from: Grundbesitzer (fréeeholders), die
+    to: Grundbesitzer (freeholders), die
+    by: scan
   - page: 16
     from: Wahlnorruption.
     to: Wahlkorruption.
+    by: scan
+  - page: 40
+    from: Conditio sineé qua
+    to: Conditio sine qua
     by: scan
   - page: 59
     from: Eine alkersschwache Regierung. — Aussichten des Koalitions-
     to: Eine altersschwache Regierung. — Aussichten des Koalitions-
     by: scan
+  - page: 60
+    from: die „Enteénte cordiale“
+    to: die „Entente cordiale“
+    by: scan
   - page: 73
     from: und die Sklaveren.
     to: und die Sklaverei.
     by: scan
+  - page: 77
+    from: seinen Etudeés sociales
+    to: seinen Etudes sociales
+    by: scan
+  - page: 78
+    from: von Gruyéres
+    to: von Gruyères
+    by: scan
+  - page: 78
+    from: of estateés) spielte
+    to: of estates) spielte
+    by: scan
   - page: 79
     from: Die Todesstrafe. — Herrn Cobdens Pamphlek. — Anordnungen
     to: Die Todesstrafe. — Herrn Cobdens Pamphlet. — Anordnungen
+    by: scan
+  - page: 88
+    from: „exhaustis éetiam, quas
+    to: „exhaustis etiam, quas
+    by: scan
+  - page: 88
+    from: Cassia, eét princeps
+    to: Cassia, et princeps
+    by: scan
+  - page: 95
+    from: Das Nieévre lieferte
+    to: Das Nièvre lieferte
     by: scan
   - page: 99
     from: Das Attenkat auf Franz Joseph. — Der Mailänder Aufstand. —
@@ -2293,6 +3301,14 @@ gesammelteschrif01marxuoft:
     from: Koalitionsbudgek.
     to: Koalitionsbudget.
     by: scan
+  - page: 139
+    from: „Dio é popolo“
+    to: „Dio e popolo“
+    by: scan
+  - page: 139
+    from: Et encorée! Der
+    to: Et encore! Der
+    by: scan
   - page: 159
     from: Die kürkische Frage.
     to: Die türkische Frage.
@@ -2300,6 +3316,10 @@ gesammelteschrif01marxuoft:
   - page: 172
     from: Die englische und die französische Flotte. —-Die Times. —
     to: Die englische und die französische Flotte. — Die Times. —
+    by: scan
+  - page: 177
+    from: des Deébats veröffentlichter
+    to: des Débats veröffentlichter
     by: scan
   - page: 188
     from: Russisch-tkürkische Schwierigkeiten. — Ducken und Bücken
@@ -2309,9 +3329,53 @@ gesammelteschrif01marxuoft:
     from: des brikischen Kabinelks. — Nesselrodes lehte Note.
     to: des britischen Kabinetts. — Nesselrodes letzte Note.
     by: scan
+  - page: 194
+    from: la Guéronniére gezeichnet,
+    to: la Guéronnière gezeichnet,
+    by: scan
   - page: 203
     from: Urquharkt. — Bem. — Die kürkische Frage im Oberhaus.
     to: Urquhart. — Bem. — Die türkische Frage im Oberhaus.
+    by: scan
+  - page: 225
+    from: zum béte noire
+    to: zum bête noire
+    by: scan
+  - page: 272
+    from: als Mareé clausum,
+    to: als Mare clausum,
+    by: scan
+  - page: 312
+    from: Proscrits Démocrateés et
+    to: Proscrits Démocrates et
+    by: scan
+  - page: 341
+    from: que couteé, die
+    to: que coute, die
+    by: scan
+  - page: 345
+    from: das Mareé clausum
+    to: das Mare clausum
+    by: scan
+  - page: 374
+    from: Solidarität (perféct identity)
+    to: Solidarität (perfect identity)
+    by: scan
+  - page: 405
+    from: Deval, seerétaire
+    to: Deval, secrétaire
+    by: scan
+  - page: 405
+    from: interpréète du
+    to: interprète du
+    by: scan
+  - page: 405
+    from: Roi eét son
+    to: Roi et son
+    by: scan
+  - page: 405
+    from: la éour ottomane
+    to: la cour ottomane
     by: scan
   - page: 409
     from: Die Kriegsdebalke im Parlamenk.
@@ -2471,6 +3535,10 @@ zur-kritik-der-politischen-okonomie:
     from: ½) „La Richezza é una ragione tra due persone.“ (Galiani della
     to: 1) „La Richezza é una ragione tra due persone.“ (Galiani della
     by: scan
+  - page: 11
+    from: Richezza é una
+    to: Richezza è una
+    by: scan
   - page: 12
     from: Londan 1831
     to: London 1831
@@ -2502,6 +3570,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 15
     from: Waaren erforpert ist.
     to: Waaren erfordert ist.
+    by: scan
+  - page: 16
+    from: „Egli é proprio
+    to: „Egli è proprio
     by: scan
   - page: 18
     from: B ersorderte Arbeitszeit
@@ -2667,6 +3739,10 @@ zur-kritik-der-politischen-okonomie:
     from: on American Polities“
     to: on American Politics“
     by: scan
+  - page: 35
+    from: che daà valore
+    to: che dà valore
+    by: scan
   - page: 36
     from: a workman ean perform in
     to: a workman can perform in
@@ -2755,6 +3831,10 @@ zur-kritik-der-politischen-okonomie:
     from: ) Die Sonderbarkeit, daß die Unze Gold in England als Maaßeinheit des
     to: 1) Die Sonderbarkeit, daß die Unze Gold in England als Maaßeinheit des
     by: scan
+  - page: 47
+    from: coinage adaptèd only
+    to: coinage adapted only
+    by: scan
   - page: 48
     from: verschiedener Goldquauta zu
     to: verschiedener Goldquanta zu
@@ -2786,6 +3866,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 50
     from: hier wohfeilere Gold
     to: hier wohlfeilere Gold
+    by: scan
+  - page: 52
+    from: under aà false
+    to: under a false
     by: scan
   - page: 53
     from: des Gol
@@ -2875,6 +3959,18 @@ zur-kritik-der-politischen-okonomie:
     from: e i contratti si valutano in moneéta ideale e si exguiscono in moneta
     to: e i contratti si valutano in moneta ideale e si exguiscono in moneta
     by: scan
+  - page: 67
+    from: sorte é la
+    to: sorte è la
+    by: scan
+  - page: 67
+    from: é adoperata,
+    to: è adoperata,
+    by: scan
+  - page: 67
+    from: valutare é buona
+    to: valutare è buona
+    by: scan
   - page: 68
     from: an der Ouelle seiner Produktion
     to: an der Quelle seiner Produktion
@@ -2922,6 +4018,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 74
     from: "détail de la France 1697 in Eugéène Daire's: Economistes financiers"
     to: "détail de la France 1697 in Eugène Daire's: Economistes financiers"
+    by: scan
+  - page: 74
+    from: XVIIIieme giècle vol.
+    to: XVIIIième siècle vol.
     by: scan
   - page: 75
     from: eignete sich IJ. B. Say
@@ -3079,6 +4179,10 @@ zur-kritik-der-politischen-okonomie:
     from: ) Petty. Political Arith. I. c. p. 196.
     to: 2) Petty. Political Arith. I. c. p. 196.
     by: scan
+  - page: 109
+    from: des ôtats
+    to: des états
+    by: scan
   - page: 110
     from: deutschen Landen gefürt wird, ohne
     to: deutschen Landen geführt wird, ohne
@@ -3127,9 +4231,21 @@ zur-kritik-der-politischen-okonomie:
     from: ) „Il danaro ammassato supplisca a quella somma, che per essere
     to: 1) „Il danaro ammassato supplisca a quella somma, che per essere
     by: scan
+  - page: 131
+    from: l'eventuale promiscuitâà de'
+    to: l'eventuale promiscuità de'
+    by: scan
   - page: 133
     from: ) Můẽntanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
     to: 1) Montanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
+    by: scan
+  - page: 133
+    from: che é la
+    to: che è la
+    by: scan
+  - page: 133
+    from: diversa qualitaà né
+    to: diversa qualità nè
     by: scan
   - page: 134
     from: "bildeten: „O felicem moneétam, quae suavem utilemque praebet"
@@ -3167,6 +4283,10 @@ zur-kritik-der-politischen-okonomie:
     from: sind die Waarenupreise in jedem
     to: sind die Waarenpreise in jedem
     by: reference
+  - page: 144
+    from: never meêet, they
+    to: never meet, they
+    by: scan
   - page: 149
     from: Unterschied von „Curreney“ und „money
     to: Unterschied von „Currency“ und „money
@@ -3178,6 +4298,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 149
     from: pendence of prices on theé extent of the currency had not as yet, at-
     to: pendence of prices on the extent of the currency had not as yet, at-
+    by: scan
+  - page: 149
+    from: considers métalliec money
+    to: considers metallic money
     by: scan
   - page: 151
     from: ") David Ricardo: „On the principles of political economy ete.“"
@@ -3258,6 +4382,26 @@ zur-kritik-der-politischen-okonomie:
   - page: 170
     from: ½) Die Verwandlung des Gelds in Kapital werden wir betrachten im 3. Ka-
     to: 1) Die Verwandlung des Gelds in Kapital werden wir betrachten im 3. Ka-
+    by: scan
+  - page: VIII
+    from: Ogni viltàâ convien che qui sia morta.
+    to: Ogni viltà convien che qui sia morta.
+    by: scan
+  - page: 70
+    from: Waarenôqui-
+    to: Waarenäqui-
+    by: scan
+  - page: 73
+    from: industrie réespec-
+    to: industrie respec-
+    by: scan
+  - page: 104
+    from: seére des peuples
+    to: sère des peuples
+    by: scan
+  - page: 126
+    from: appreciêes.“
+    to: appreciées.“
     by: scan
 enthullungen-1885:
   - page: 18
@@ -3364,6 +4508,10 @@ enthullungen-1885:
     from: Iu bezeichnen, es
     to: That“ zu bezeichnen, es
     by: reference
+  - page: 21
+    from: Code pënal enthält
+    to: Code pénal enthält
+    by: scan
   - page: 22
     from: Schapper, in VBerbindung mit der
     to: Schapper, in Verbindung mit der
@@ -5168,6 +6316,14 @@ ldpd_13048930_000:
   - page: 16
     from: jener bewaffneten Dimarstatten
     to: jener bewaffneten Demonstration
+    by: scan
+  - page: 16
+    from: Heeckeren, Coêtlogon, Henri
+    to: Heeckeren, Coëtlogon, Henri
+    by: scan
+  - page: 17
+    from: Desmarét, der
+    to: Desmarêt, der
     by: scan
   - page: 18
     from: Leuüte auf so
