@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- [#587](https://github.com/rizom-ai/brains/pull/587) [`f681966`](https://github.com/rizom-ai/brains/commit/f6819663e0f8d8ab04f8de913e16c8a92bca822f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book that is one undivided text names its score's single line by its title instead of the edition's lone number.
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes
