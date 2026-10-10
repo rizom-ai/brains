@@ -13,6 +13,9 @@ import {
   type CloudflareClientDeps,
 } from "./lib/cloudflare-client";
 import { createTrafficOverviewInsight } from "./insights/traffic-overview";
+import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
+import { TrafficSnapshotPlugin } from "./entity/plugin";
+import { getErrorMessage } from "@brains/utils/error";
 import packageJson from "../package.json";
 
 /**
@@ -23,8 +26,8 @@ import packageJson from "../package.json";
  * - Top pages, referrers, countries
  * - Device breakdown
  *
- * Also injects the Cloudflare Web Analytics beacon script into
- * site builds via the site-builder's head-script registration hook.
+ * Captures each day's traffic into weekly `traffic-snapshot` entities, and
+ * contributes the Cloudflare beacon to site builds when a beacon token is set.
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
@@ -55,21 +58,50 @@ export class AnalyticsPlugin extends ServicePlugin<
       "traffic-overview",
       createTrafficOverviewInsight(this.cloudflareClient),
     );
-  }
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const siteTag = this.config.cloudflare?.siteTag;
-    if (!siteTag) return;
+    // Site builds run in the worker and ask for head scripts as they render,
+    // so the beacon answers there; that process never runs the ready phase.
+    // Only with a beacon token: the beacon carries the site token, not the
+    // site tag, and a zone with automatic setup gets it from Cloudflare.
+    const beaconToken = this.config.cloudflare?.beaconToken;
+    if (beaconToken) {
+      const script = generateCloudflareBeaconScript(beaconToken);
+      context.messaging.subscribeExecution(
+        SITE_BUILDER_CHANNELS.headScripts,
+        async () => ({ success: true, data: script }),
+      );
+    }
 
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.headScriptRegister,
-      payload: {
-        pluginId: this.id,
-        script: generateCloudflareBeaconScript(siteTag),
-      },
-    });
+    // Daily, in the worker: yesterday's traffic while Cloudflare's counts are
+    // exact, and on the first run every earlier day it still returns.
+    if (this.cloudflareClient) {
+      const capture = new TrafficCapture({
+        client: this.cloudflareClient,
+        store: entitySnapshotStore(context.entityService),
+        today: (): string => new Date().toISOString().slice(0, 10),
+      });
+      context.recurringChecks.register({
+        id: "traffic-capture",
+        cadence: "daily",
+        run: async ({ signal }) => {
+          try {
+            await capture.run(signal);
+            return {};
+          } catch (error) {
+            if (signal.aborted) throw error;
+            return {
+              alerts: [
+                {
+                  dedupeKey: "traffic-capture-failed",
+                  title: "Traffic capture failed",
+                  body: `Yesterday's site traffic could not be saved: ${getErrorMessage(error)}. Cloudflare keeps exact counts for about a week, so the next successful run catches up.`,
+                },
+              ],
+            };
+          }
+        },
+      });
+    }
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -92,10 +124,23 @@ export function createAnalyticsPlugin(
 }
 
 /**
- * Convenience function matching other plugin patterns
+ * The analytics feature as a brain installs it: the traffic snapshot entity
+ * and the service that captures and queries traffic.
  */
-export const analyticsPlugin: typeof createAnalyticsPlugin =
-  createAnalyticsPlugin;
+export function analyticsPlugin(
+  config: AnalyticsConfigInput = {},
+  deps: CloudflareClientDeps = {},
+): [TrafficSnapshotPlugin, AnalyticsPlugin] {
+  return [new TrafficSnapshotPlugin(), new AnalyticsPlugin(config, deps)];
+}
+
+export { TrafficSnapshotPlugin };
+export { trafficSnapshotAdapter } from "./entity/adapter";
+export {
+  trafficSnapshotSchema,
+  type TrafficDay,
+  type TrafficSnapshot,
+} from "./entity/schema";
 
 // Export types and schemas
 export type {

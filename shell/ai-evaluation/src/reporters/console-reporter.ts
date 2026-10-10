@@ -52,6 +52,16 @@ export class ConsoleReporter implements IReporter {
       `Tests: ${passColor(`${summary.passedTests} passed`)}, ${chalk.red(`${summary.failedTests} failed`)}, ${summary.totalTests} total`,
     );
     console.log(`Pass Rate: ${(summary.passRate * 100).toFixed(1)}%`);
+    const unjudged = summary.results.reduce(
+      (count, result) => count + (result.unjudgedRequirements?.length ?? 0),
+      0,
+    );
+    if (unjudged > 0)
+      console.log(
+        chalk.yellow(
+          `Requirements not judged: ${unjudged} (judge skipped or unavailable)`,
+        ),
+      );
     console.log("");
 
     // Average metrics
@@ -106,6 +116,11 @@ export class ConsoleReporter implements IReporter {
           ),
         );
       }
+    }
+
+    // Unjudged requirements did not pass; they were never checked.
+    for (const requirement of result.unjudgedRequirements ?? []) {
+      console.log(`  ${chalk.yellow("?")} not judged: ${requirement}`);
     }
 
     // Show failures

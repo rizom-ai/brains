@@ -15,6 +15,7 @@ import type {
   GitReconciliationDelta,
 } from "../../src/types";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
+import type { MatchesHead } from "../../src/lib/file-watcher";
 
 const BASELINE: GitReconciliationCheckpoint = {
   remoteFingerprint: "a".repeat(64),
@@ -107,16 +108,27 @@ describe("GitReconciliationService", () => {
         totalFiles: 2,
       };
     });
-    const suppressWatchPaths = mock(() => {
-      calls.push("suppress");
-    });
+    const ignorePulledWatchPaths = mock(
+      (_paths: string[], _matchesHead: MatchesHead) => {
+        calls.push("ignore-pulled");
+      },
+    );
+    // The working tree after the pull, with one pulled file edited since.
+    const getStatus = mock(async () => ({
+      isRepo: true,
+      hasChanges: true,
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      files: [{ path: "note/changed.md", status: " M" }],
+    }));
 
     const result = await service.pullAndQueue({
-      gitSync: createMockGitSync({ pull, getReconciliationDelta }),
+      gitSync: createMockGitSync({ pull, getReconciliationDelta, getStatus }),
       directorySync: createMockDirectorySync({
         recordPendingPullDeletes,
         queueSyncBatch,
-        suppressWatchPaths,
+        ignorePulledWatchPaths,
       }),
       context,
       source: "periodic-sync",
@@ -127,8 +139,13 @@ describe("GitReconciliationService", () => {
       "derive",
       "pending-deletes",
       "queue",
-      "suppress",
+      "ignore-pulled",
     ]);
+    const [paths, matchesHead] = ignorePulledWatchPaths.mock.calls[0] ?? [];
+    expect(paths).toEqual(["note/changed.md", "note/deleted.md"]);
+    expect(await matchesHead?.(["note/changed.md", "note/deleted.md"])).toEqual(
+      ["note/deleted.md"],
+    );
     expect(recordPendingPullDeletes).toHaveBeenCalledWith(["note/deleted.md"]);
     expect(queueSyncBatch).toHaveBeenCalledWith(
       context,

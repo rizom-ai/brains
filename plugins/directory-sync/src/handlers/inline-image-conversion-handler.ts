@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "fs/promises";
+import { readFile } from "fs/promises";
+import { writeFileAtomic } from "../lib/atomic-write";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
@@ -130,7 +131,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
       // Step 4: Write updated content back to file
       try {
-        await writeFile(filePath, result.content, "utf-8");
+        await writeFileAtomic(filePath, result.content);
       } catch (error) {
         const message = getErrorMessage(error);
         this.logger.error("Failed to write file", { filePath, error: message });

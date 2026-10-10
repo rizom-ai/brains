@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ReactElement } from "react";
@@ -24,18 +25,10 @@ describe("newsletter provider registration", () => {
   it("registers Buttondown publishing and its matching signup action", async () => {
     const harness = createPluginHarness<ButtondownPlugin>();
     const publishes: PublishRegistration[] = [];
-    const slots: SlotRegistration[] = [];
     harness.subscribe<PublishRegistration>("publish:register", async (msg) => {
       publishes.push(msg.payload);
       return { success: true };
     });
-    harness.subscribe<SlotRegistration>(
-      "plugin:site-builder:slot:register",
-      async (msg) => {
-        slots.push(msg.payload);
-        return { success: true };
-      },
-    );
     await harness.installPlugin(
       new ButtondownPlugin({ apiKey: "buttondown-key", doubleOptIn: true }),
     );
@@ -50,6 +43,9 @@ describe("newsletter provider registration", () => {
         publishTimestampField: "sentAt",
       },
     });
+    const slots = await slotsInWorker(
+      new ButtondownPlugin({ apiKey: "buttondown-key", doubleOptIn: true }),
+    );
     expect(slots[0]).toMatchObject({
       pluginId: "buttondown",
       slotName: "footer-top",
@@ -67,18 +63,10 @@ describe("newsletter provider registration", () => {
   it("registers Resend publishing and its matching signup action", async () => {
     const harness = createPluginHarness<ResendPlugin>();
     const publishes: PublishRegistration[] = [];
-    const slots: SlotRegistration[] = [];
     harness.subscribe<PublishRegistration>("publish:register", async (msg) => {
       publishes.push(msg.payload);
       return { success: true };
     });
-    harness.subscribe<SlotRegistration>(
-      "plugin:site-builder:slot:register",
-      async (msg) => {
-        slots.push(msg.payload);
-        return { success: true };
-      },
-    );
     await harness.installPlugin(
       new ResendPlugin({
         apiKey: "resend-key",
@@ -97,6 +85,13 @@ describe("newsletter provider registration", () => {
         publishTimestampField: "sentAt",
       },
     });
+    const slots = await slotsInWorker(
+      new ResendPlugin({
+        apiKey: "resend-key",
+        segmentId: "segment-1",
+        from: "Rizom <newsletter@example.com>",
+      }),
+    );
     expect(slots[0]).toMatchObject({
       pluginId: "resend",
       slotName: "footer-top",
@@ -143,5 +138,24 @@ async function notifyPluginsRegistered(
     { timestamp: new Date().toISOString(), pluginCount: 1 },
     "shell",
     true,
+  );
+}
+
+// Site builds run in the worker process, which registers plugins but never
+// emits pluginsRegistered; the signup slot has to answer there.
+async function slotsInWorker(
+  plugin: ButtondownPlugin | ResendPlugin,
+): Promise<SlotRegistration[]> {
+  const shell = createPluginHarness().getMockShell();
+  await plugin.register(shell, { executionOnly: true });
+  const answers = await shell
+    .getMessageBus()
+    .collect<unknown, SlotRegistration[]>({
+      type: SITE_BUILDER_CHANNELS.slots,
+      payload: {},
+      sender: "site-builder",
+    });
+  return answers.flatMap((answer) =>
+    "data" in answer && answer.data ? answer.data : [],
   );
 }

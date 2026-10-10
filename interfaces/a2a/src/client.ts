@@ -8,12 +8,16 @@ import type {
 import { internalFullScope, parseAgentCard } from "@brains/plugins";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
 import { getErrorMessage } from "@brains/utils/error";
+import { SourceCitationSchema, type SourceCitation } from "@brains/contracts";
+import { SOURCES_ARTIFACT_NAME } from "./task-manager";
 
 interface A2ASuccess {
   success: true;
   data: {
     state: string;
     response: string;
+    /** Citations the remote brain attached to its answer; empty when none. */
+    sources: SourceCitation[];
     taskId?: string;
   };
 }
@@ -43,6 +47,39 @@ const textPartSchema = z.object({
 
 const partsSchema = z.array(z.looseObject({ kind: z.string() }));
 
+/** A `sources` artifact's data part: `{ sources: SourceCitation[] }`, lenient per item. */
+const sourcesDataPartSchema = z.object({
+  kind: z.literal("data"),
+  data: z.object({ sources: z.array(z.unknown()) }),
+});
+
+const artifactSchema = z.looseObject({
+  name: z.string().optional(),
+  parts: partsSchema,
+});
+
+const artifactsSchema = z.array(artifactSchema);
+
+/**
+ * Collect the citations from a task's `sources` artifacts, dropping any
+ * citation the remote brain shaped differently from our contract.
+ */
+function extractSources(
+  artifacts: z.output<typeof artifactsSchema> | undefined,
+): SourceCitation[] {
+  return (artifacts ?? [])
+    .filter((artifact) => artifact.name === SOURCES_ARTIFACT_NAME)
+    .flatMap((artifact) => artifact.parts)
+    .flatMap((part) => {
+      const parsed = sourcesDataPartSchema.safeParse(part);
+      return parsed.success ? parsed.data.data.sources : [];
+    })
+    .flatMap((source) => {
+      const parsed = SourceCitationSchema.safeParse(source);
+      return parsed.success ? [parsed.data] : [];
+    });
+}
+
 const rpcErrorSchema = z.object({
   error: z.object({ message: z.string() }),
 });
@@ -59,6 +96,7 @@ const taskResultSchema = z.object({
     state: z.string(),
     message: z.object({ parts: partsSchema }).optional(),
   }),
+  artifacts: artifactsSchema.optional(),
 });
 
 const resultEnvelopeSchema = z.object({ result: z.unknown() });
@@ -71,7 +109,9 @@ const sseTextPartSchema = z.looseObject({
 const sseEventSchema = z.looseObject({
   result: z
     .looseObject({
+      kind: z.string().optional(),
       final: z.boolean().optional(),
+      artifact: artifactSchema.optional(),
       status: z
         .looseObject({
           state: z.string().optional(),
@@ -118,7 +158,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
   if (!resultParsed.success || resultParsed.data.result === undefined) {
     return {
       success: true,
-      data: { state: "unknown", response: "No response text" },
+      data: { state: "unknown", response: "No response text", sources: [] },
     };
   }
 
@@ -132,6 +172,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
       data: {
         state: "completed",
         response: extractText(messageParsed.data.parts),
+        sources: [],
       },
     };
   }
@@ -139,13 +180,14 @@ export function parseA2AResponse(data: unknown): A2AResult {
   // Task response
   const taskParsed = taskResultSchema.safeParse(result);
   if (taskParsed.success) {
-    const { status, id } = taskParsed.data;
+    const { status, id, artifacts } = taskParsed.data;
     const parts = status.message?.parts ?? [];
     return {
       success: true,
       data: {
         state: status.state,
         response: extractText(parts),
+        sources: extractSources(artifacts),
         ...(id ? { taskId: id } : {}),
       },
     };
@@ -153,7 +195,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
 
   return {
     success: true,
-    data: { state: "unknown", response: "No response text" },
+    data: { state: "unknown", response: "No response text", sources: [] },
   };
 }
 
@@ -395,6 +437,7 @@ async function readStreamToCompletion(
     streamIdleTimeoutMs,
     signal,
   );
+  const artifacts: z.output<typeof artifactsSchema> = [];
   while (!chunk.done) {
     buffer += decoder.decode(chunk.value, { stream: true });
 
@@ -423,6 +466,9 @@ async function readStreamToCompletion(
 
       // Check if this is a JSON-RPC envelope with a result
       const result = event.result;
+      if (result?.kind === "artifact-update" && result.artifact) {
+        artifacts.push(result.artifact);
+      }
       if (!result?.final) continue;
 
       // Terminal event — extract response
@@ -442,7 +488,11 @@ async function readStreamToCompletion(
 
       return {
         success: true,
-        data: { state, response: responseText },
+        data: {
+          state,
+          response: responseText,
+          sources: extractSources(artifacts),
+        },
       };
     }
 

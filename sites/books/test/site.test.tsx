@@ -36,12 +36,19 @@ describe("@rizom/site-books", () => {
   });
 
   test("cites only book sections in answers", () => {
-    expect(site.entityDisplay["book"]?.citable).toBe(true);
     expect(
       Object.entries(site.entityDisplay)
         .filter(([, display]) => display.citable === true)
         .map(([type]) => type),
-    ).toEqual(["book"]);
+    ).toEqual(["book-section"]);
+  });
+
+  test("opens each section under its book", () => {
+    expect(site.entityDisplay["book-section"]).toMatchObject({
+      label: "Section",
+      pluralName: "books",
+      navigation: { show: false },
+    });
   });
 
   test("lists books on one page and keeps the generated index out of the menu", () => {

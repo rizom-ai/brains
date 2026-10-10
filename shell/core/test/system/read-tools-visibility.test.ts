@@ -367,6 +367,51 @@ describe("read tools enforce caller visibility scope", () => {
   });
 
   describe("system_get", () => {
+    const contentOf = (raw: unknown): string =>
+      expectSuccess(
+        raw,
+        z.object({ entity: z.object({ content: z.string() }) }),
+      ).entity.content;
+    const withFrontmatter =
+      "---\ntitle: Plan\nstatus: draft\n---\n# Plan\n\nBody line.\n";
+
+    it("returns only the Markdown body when asked for the body part", async () => {
+      services.addEntities([
+        {
+          ...makeEntity("doc-with-frontmatter", "public"),
+          content: withFrontmatter,
+        },
+      ]);
+      const get = getTool("system_get");
+      expect(
+        contentOf(
+          await get.handler(
+            { entityType: "doc", id: "doc-with-frontmatter", part: "body" },
+            baseContext("public"),
+          ),
+        ),
+      ).toBe("# Plan\n\nBody line.\n");
+      expect(
+        contentOf(
+          await get.handler(
+            { entityType: "doc", id: "doc-with-frontmatter" },
+            baseContext("public"),
+          ),
+        ),
+      ).toBe(withFrontmatter);
+    });
+
+    it("returns content without frontmatter unchanged as the body", async () => {
+      expect(
+        contentOf(
+          await getTool("system_get").handler(
+            { entityType: "doc", id: "doc-public", part: "body" },
+            baseContext("public"),
+          ),
+        ),
+      ).toBe("body of doc-public");
+    });
+
     it("refuses to return a restricted entity to a public caller", async () => {
       const error = expectError(await runGet("doc-restricted", "public"));
       expect(error).toMatch(/not found|denied|restricted/i);

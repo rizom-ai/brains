@@ -12,13 +12,13 @@ function deferred(): { promise: Promise<void>; resolve(): void } {
 
 describe("ShellLifecycle", () => {
   it("owns scoped layers for the shell lifetime", () => {
-    const ServiceTag = Context.GenericTag<"test/Service", { value: string }>(
+    const ServiceTag = Context.Service<"test/Service", { value: string }>(
       "test/Service",
     );
     let releases = 0;
     const lifecycle = new ShellLifecycle();
     const context = lifecycle.buildLayer(
-      Layer.scoped(
+      Layer.effect(
         ServiceTag,
         Effect.acquireRelease(Effect.succeed({ value: "owned" }), () =>
           Effect.sync(() => {
@@ -36,7 +36,7 @@ describe("ShellLifecycle", () => {
   });
 
   it("preserves synchronous layer acquisition error identity", () => {
-    const ServiceTag = Context.GenericTag<"test/Failure", { value: string }>(
+    const ServiceTag = Context.Service<"test/Failure", { value: string }>(
       "test/Failure",
     );
     const failure = new Error("layer acquisition failed");
@@ -148,7 +148,70 @@ describe("ShellLifecycle", () => {
     expect(order).toEqual(["interrupted", "finalized"]);
   });
 
+  it("joins failing cleanup for concurrent and later close callers", async () => {
+    const failure = new Error("cleanup failed before the drain");
+    const finalizerEntered = deferred();
+    const releaseFinalizer = deferred();
+    const order: string[] = [];
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addFinalizer(async () => {
+      order.push("waiting");
+      finalizerEntered.resolve();
+      await releaseFinalizer.promise;
+      order.push("drained");
+    });
+    lifecycle.addFinalizer(() => {
+      order.push("failed");
+      throw failure;
+    });
+
+    const firstClose = lifecycle.close();
+    let firstSettled = false;
+    const firstOutcome = firstClose.then(
+      () => ({ error: undefined }),
+      (error: unknown) => ({ error }),
+    );
+    void firstOutcome.then(() => {
+      firstSettled = true;
+    });
+    await finalizerEntered.promise;
+    const secondClose = lifecycle.close();
+    const secondOutcome = secondClose.then(
+      () => ({ error: undefined }),
+      (error: unknown) => ({ error }),
+    );
+
+    expect(secondClose).toBe(firstClose);
+    expect(firstSettled).toBe(false);
+    expect(order).toEqual(["failed", "waiting"]);
+    releaseFinalizer.resolve();
+    const [first, second] = await Promise.all([firstOutcome, secondOutcome]);
+    expect(first.error).toBe(failure);
+    expect(second.error).toBe(failure);
+    expect(order).toEqual(["failed", "waiting", "drained"]);
+    expect(lifecycle.close()).toBe(firstClose);
+    expect(() => lifecycle.addFinalizer(() => {})).toThrow(
+      "Cannot register cleanup after shell shutdown",
+    );
+  });
+
+  it("preserves cleanup failure identity when closing a failed lifetime", async () => {
+    const startupFailure = new Error("startup failed");
+    const cleanupFailure = new Error("rollback failed");
+    const lifecycle = new ShellLifecycle();
+    lifecycle.addFinalizer(() => {
+      throw cleanupFailure;
+    });
+
+    const outcome = await lifecycle.close(Exit.fail(startupFailure)).then(
+      () => ({ error: undefined }),
+      (error: unknown) => ({ error }),
+    );
+    expect(outcome.error).toBe(cleanupFailure);
+  });
+
   it("runs every finalizer in reverse order when one fails", async () => {
+    const failure = new Error("cleanup failed");
     const order: string[] = [];
     const lifecycle = new ShellLifecycle();
     lifecycle.addFinalizer(() => {
@@ -156,7 +219,7 @@ describe("ShellLifecycle", () => {
     });
     lifecycle.addFinalizer(() => {
       order.push("second");
-      throw new Error("cleanup failed");
+      throw failure;
     });
     lifecycle.addFinalizer(() => {
       order.push("third");
@@ -169,7 +232,7 @@ describe("ShellLifecycle", () => {
       closeError = error;
     }
 
-    expect(closeError).toBeInstanceOf(Error);
+    expect(closeError).toBe(failure);
     expect(order).toEqual(["third", "second", "first"]);
   });
 });

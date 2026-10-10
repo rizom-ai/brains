@@ -1,13 +1,13 @@
 {
   "name": "@brains/webserver",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.493",
+  "version": "0.2.0-alpha.515",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@hono/bun-compress": "^0.1.1",
-    "hono": "^4.12.25"
+    "hono": "^4.13.13"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

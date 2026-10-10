@@ -87,6 +87,39 @@ describe("parseEkgwbBook", () => {
     ]);
   });
 
+  it("files under a part only what the page prints as one", async () => {
+    const book = parseEkgwbBook(
+      await fixture("ekgwb-part-anomalies.html"),
+      "XB",
+    );
+
+    expect(
+      book.units.map((unit) => [unit.section, unit.parents, unit.title]),
+    ).toEqual([
+      ["XB-[Titel]", [], "Titel"],
+      // A siglum segment that is no numeral is no heading: 1878, Vogel.
+      ["XB-1878-[Widmung]", [], "XB-1878-[Widmung]"],
+      ["XB-1878-Vorrede", [], "An Stelle einer Vorrede"],
+      ["XB-Vorrede", ["Vorrede, zu lesen vorher"], "1"],
+      // A titled block at the book's own level is not in the part before it.
+      ["XB-I", [], "Vortrag I"],
+      // The first numbered section's heading names its chapter; the
+      // siglum's spelling (ue for ü) does not split it.
+      ["XB-Irrthuemer-1", ["Die vier grossen Irrthümer"], "1"],
+      ["XB-Irrthümer-2", ["Die vier grossen Irrthümer"], "2"],
+      // A bracketed copy of the heading continues its chapter.
+      ["XB-Gefahr-1", ["Wagner als Gefahr"], "1"],
+      ["XB-Gefahr-2", ["Wagner als Gefahr"], "2"],
+      // A heading-only block names the part its siglum opens.
+      ["XB-Kritik-1", ["Versuch einer Kritik"], "1"],
+      ["XB-AB-1", ["Vermischte Meinungen"], "1"],
+      // A part opened above a titled block goes on through titled blocks.
+      ["XB-Reden", ["Die Reden"], "Von den Verwandlungen"],
+      ["XB-Tugend", ["Die Reden"], "Von der Tugend"],
+      ["XB-Vogel-Urtheil", [], "Vogel-Urtheil"],
+    ]);
+  });
+
   it("keeps emphasis to its words: touching spans merge, markdown characters escape", async () => {
     const [unit] = parseEkgwbBook(await fixture("ekgwb-emphasis.html")).units;
 

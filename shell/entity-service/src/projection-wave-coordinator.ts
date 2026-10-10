@@ -50,6 +50,29 @@ export interface ProjectionWaveCoordinatorOptions {
  * because the rule-result path and the batch coordinator ask the wave about
  * itself; everything else here is the lifecycle proper.
  */
+/**
+ * Rows per insert statement. SQLite binds at most 32,766 variables to one
+ * statement; a wave of a whole corpus has thousands of inputs, six columns
+ * each.
+ */
+const ROWS_PER_INSERT = 1000;
+
+/** Write rows in statements small enough to bind, one after another. */
+async function inChunks<T>(
+  rows: readonly T[],
+  write: (chunk: T[]) => Promise<unknown>,
+): Promise<void> {
+  const chunks = Array.from(
+    { length: Math.ceil(rows.length / ROWS_PER_INSERT) },
+    (_, index) =>
+      rows.slice(index * ROWS_PER_INSERT, (index + 1) * ROWS_PER_INSERT),
+  );
+  await chunks.reduce<Promise<void>>(async (previous, chunk) => {
+    await previous;
+    await write(chunk);
+  }, Promise.resolve());
+}
+
 export class ProjectionWaveCoordinator {
   private readonly db: EntityDB;
   private readonly transactions: ProjectionTransactionRunner;
@@ -113,15 +136,17 @@ export class ProjectionWaveCoordinator {
         .where(lte(projectionDirtyInputs.generation, cutoffGeneration))
         .orderBy(asc(projectionDirtyInputs.generation));
       const claimed = coalesceLatestInputs(journalRows);
-      await transaction.insert(projectionWaveInputs).values(
-        claimed.map((entry) => ({
-          waveId,
-          sourceType: entry.sourceType,
-          sourceId: entry.sourceId,
-          revision: entry.revision,
-          operation: entry.operation,
-          generation: entry.generation,
-        })),
+      await inChunks(claimed, (chunk) =>
+        transaction.insert(projectionWaveInputs).values(
+          chunk.map((entry) => ({
+            waveId,
+            sourceType: entry.sourceType,
+            sourceId: entry.sourceId,
+            revision: entry.revision,
+            operation: entry.operation,
+            generation: entry.generation,
+          })),
+        ),
       );
       await transaction
         .delete(projectionDirtyInputs)
@@ -409,15 +434,16 @@ export class ProjectionWaveCoordinator {
     const requeued = claimedInputs.filter(
       (input) => !pendingKeys.has(inputKey(input)),
     );
-    if (requeued.length === 0) return;
-    await transaction.insert(projectionDirtyInputs).values(
-      requeued.map((input) => ({
-        sourceType: input.sourceType,
-        sourceId: input.sourceId,
-        revision: input.revision,
-        operation: input.operation,
-        markedAt,
-      })),
+    await inChunks(requeued, (chunk) =>
+      transaction.insert(projectionDirtyInputs).values(
+        chunk.map((input) => ({
+          sourceType: input.sourceType,
+          sourceId: input.sourceId,
+          revision: input.revision,
+          operation: input.operation,
+          markedAt,
+        })),
+      ),
     );
   }
 

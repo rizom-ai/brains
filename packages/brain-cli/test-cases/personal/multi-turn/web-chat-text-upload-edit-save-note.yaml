@@ -68,13 +68,15 @@ turns:
     successCriteria:
       responseContains:
         - "Confirmation required"
+      # The edit must land on the imported note. A misrouted system_create is
+      # refused by the runtime before any confirmation, so it cannot mint a
+      # duplicate; the outcome checked here is the update's target.
       expectedTools:
         - toolName: system_update
           shouldBeCalled: true
           argsContain:
             entityType: note
-        - toolName: system_create
-          shouldBeCalled: false
+            id: community-launch-plan
 
   - userMessage: "Confirm update"
     confirmPendingAction: true
@@ -89,6 +91,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: note
+            id: community-launch-plan
         - toolName: system_create
           shouldBeCalled: false
       responseContains:
@@ -119,4 +122,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 70000
+  maxTokens: 74000

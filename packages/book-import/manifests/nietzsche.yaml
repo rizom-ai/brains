@@ -11,34 +11,21 @@ books:
     author: Friedrich Nietzsche
     year: 1872
     kind: work
-  - siglum: DS
-    slug: david-strauss
-    title: "Unzeitgemässe Betrachtungen I: David Strauss der Bekenner und der Schriftsteller"
-    shortTitle: David Strauss
+  - slug: unzeitgemaesse-betrachtungen
+    title: Unzeitgemässe Betrachtungen
+    shortTitle: Unzeitgemässe
     author: Friedrich Nietzsche
     year: 1873
     kind: work
-  - siglum: HL
-    slug: vom-nutzen-und-nachtheil-der-historie
-    title: "Unzeitgemässe Betrachtungen II: Vom Nutzen und Nachtheil der Historie für das Leben"
-    shortTitle: Historie
-    author: Friedrich Nietzsche
-    year: 1874
-    kind: work
-  - siglum: SE
-    slug: schopenhauer-als-erzieher
-    title: "Unzeitgemässe Betrachtungen III: Schopenhauer als Erzieher"
-    shortTitle: Schopenhauer
-    author: Friedrich Nietzsche
-    year: 1874
-    kind: work
-  - siglum: WB
-    slug: richard-wagner-in-bayreuth
-    title: "Unzeitgemässe Betrachtungen IV: Richard Wagner in Bayreuth"
-    shortTitle: Wagner in Bayreuth
-    author: Friedrich Nietzsche
-    year: 1876
-    kind: work
+    parts:
+      - siglum: DS
+        title: "Erstes Stück: David Strauss der Bekenner und der Schriftsteller"
+      - siglum: HL
+        title: "Zweites Stück: Vom Nutzen und Nachtheil der Historie für das Leben"
+      - siglum: SE
+        title: "Drittes Stück: Schopenhauer als Erzieher"
+      - siglum: WB
+        title: "Viertes Stück: Richard Wagner in Bayreuth"
   - siglum: NJ
     slug: ein-neujahrswort
     title: Ein Neujahrswort an den Herausgeber der Wochenschrift „Im neuen Reich“
@@ -46,22 +33,19 @@ books:
     author: Friedrich Nietzsche
     year: 1873
     kind: work
-  - siglum: MA-I
-    slug: menschliches-allzumenschliches-1
-    title: Menschliches, Allzumenschliches I
-    shortTitle: Menschliches I
+  - slug: menschliches-allzumenschliches
+    title: Menschliches, Allzumenschliches
+    shortTitle: Menschliches
     author: Friedrich Nietzsche
     year: 1878
     kind: work
-  # eKGWB's MA-II is the 1886 edition joining the two parts first published
-  # in 1879 and 1880; the year is the first part's.
-  - siglum: MA-II
-    slug: menschliches-allzumenschliches-2
-    title: Menschliches, Allzumenschliches II
-    shortTitle: Menschliches II
-    author: Friedrich Nietzsche
-    year: 1879
-    kind: work
+    parts:
+      - siglum: MA-I
+        title: Erster Band
+      # eKGWB's MA-II is the 1886 edition joining the two parts first published
+      # in 1879 and 1880.
+      - siglum: MA-II
+        title: Zweiter Band
   - siglum: M
     slug: morgenroethe
     title: Morgenröthe
@@ -83,27 +67,21 @@ books:
     author: Friedrich Nietzsche
     year: 1882
     kind: work
-  - siglum: Za-I
-    slug: also-sprach-zarathustra-1
-    title: Also sprach Zarathustra I
-    shortTitle: Zarathustra I
+  - slug: also-sprach-zarathustra
+    title: Also sprach Zarathustra
+    shortTitle: Zarathustra
     author: Friedrich Nietzsche
     year: 1883
     kind: work
-  - siglum: Za-II
-    slug: also-sprach-zarathustra-2
-    title: Also sprach Zarathustra II
-    shortTitle: Zarathustra II
-    author: Friedrich Nietzsche
-    year: 1883
-    kind: work
-  - siglum: Za-III
-    slug: also-sprach-zarathustra-3
-    title: Also sprach Zarathustra III
-    shortTitle: Zarathustra III
-    author: Friedrich Nietzsche
-    year: 1884
-    kind: work
+    parts:
+      - siglum: Za-I
+        title: Erster Theil
+      - siglum: Za-II
+        title: Zweiter Theil
+      - siglum: Za-III
+        title: Dritter Theil
+      - siglum: Za-IV
+        title: Vierter und letzter Theil
   - siglum: JGB
     slug: jenseits-von-gut-und-boese
     title: Jenseits von Gut und Böse
@@ -138,13 +116,6 @@ books:
     shortTitle: Sokrates
     author: Friedrich Nietzsche
     year: 1871
-    kind: work
-  - siglum: Za-IV
-    slug: also-sprach-zarathustra-4
-    title: Also sprach Zarathustra IV
-    shortTitle: Zarathustra IV
-    author: Friedrich Nietzsche
-    year: 1885
     kind: work
   - siglum: NW
     slug: nietzsche-contra-wagner

@@ -44,6 +44,7 @@ export class GuestAccessControl {
     resolveAccess: (request: Request) => Promise<BrowserAccess>,
     ready: () => boolean,
     available: boolean,
+    model: string,
     now?: () => number,
   ) {
     this.context = context;
@@ -57,7 +58,7 @@ export class GuestAccessControl {
       preview && preview !== origin && new URL(preview).protocol === "https:"
         ? preview
         : undefined;
-    const defaults = createDefaultGuestPolicy(origin, previewOrigin);
+    const defaults = createDefaultGuestPolicy(origin, model, previewOrigin);
     if (!defaults.enabled) return;
     this.policy = { ...defaults, budgeted: true };
     this.admission = new GuestAdmission(context.runtimeState, this.policy, {

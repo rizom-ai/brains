@@ -7,6 +7,78 @@ import { z } from "@brains/utils/zod";
 import { convertToSDKTools, toModelVisibleInputSchema } from "../src/sdk-tools";
 
 describe("convertToSDKTools", () => {
+  it("preserves open plugin field maps while rejecting unknown and mixed arguments", async () => {
+    const converted = convertToSDKTools(
+      [
+        {
+          name: "typed_update",
+          description: "Typed update",
+          visibility: "admin",
+          inputSchema: {
+            id: z.string(),
+            operation: z.discriminatedUnion("kind", [
+              z
+                .object({
+                  kind: z.literal("fields"),
+                  fields: z.record(z.string(), z.unknown()),
+                })
+                .strict(),
+              z
+                .object({ kind: z.literal("content"), content: z.string() })
+                .strict(),
+            ]),
+          },
+          handler: mock(async () => ({ success: true as const })),
+        },
+      ],
+      { conversationId: "schema-test", interfaceType: "agent" },
+      { emit: mock(() => {}) },
+    );
+    const inputSchema = converted["typed_update"]?.inputSchema;
+    if (!inputSchema) throw new Error("Missing input schema");
+    const schema = asSchema(inputSchema);
+    expect(await schema.jsonSchema).toMatchObject({
+      additionalProperties: false,
+      properties: {
+        operation: {
+          oneOf: [
+            {
+              additionalProperties: false,
+              properties: { fields: { additionalProperties: {} } },
+            },
+            { additionalProperties: false },
+          ],
+        },
+      },
+    });
+    if (!schema.validate) throw new Error("Missing Zod validator");
+    expect(
+      (
+        await schema.validate({
+          id: "plan",
+          operation: { kind: "fields", fields: { customExtension: "value" } },
+        })
+      ).success,
+    ).toBe(true);
+    expect(
+      (
+        await schema.validate({
+          id: "plan",
+          operation: { kind: "fields", fields: {}, content: "mixed" },
+        })
+      ).success,
+    ).toBe(false);
+    expect(
+      (
+        await schema.validate({
+          id: "plan",
+          operation: { kind: "fields", fields: {} },
+          content: "flat",
+        })
+      ).success,
+    ).toBe(false);
+  });
+
   it("exposes source only for model-visible system_create source selection", () => {
     const tool: Tool = {
       name: "system_create",

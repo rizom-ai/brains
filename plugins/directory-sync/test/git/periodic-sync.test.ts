@@ -1,7 +1,7 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
+import { TestClock } from "@brains/utils/effect/test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   setupPeriodicGitSync,
@@ -12,6 +12,7 @@ import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
 import type { PullResult } from "../../src/types";
 import type { BatchResult } from "../../src/lib/batch-operations";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
+import type { MatchesHead } from "../../src/lib/file-watcher";
 
 const emptyBatchResult: BatchResult = {
   batchId: "batch-1",
@@ -33,7 +34,7 @@ function deferred(): {
 }
 
 function yieldToFibers(): Effect.Effect<void> {
-  return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
+  return Effect.yieldNow.pipe(Effect.andThen(Effect.yieldNow));
 }
 
 function createReconciliation(): PeriodicGitSyncOptions["reconciliation"] {
@@ -60,7 +61,12 @@ function createReconciliation(): PeriodicGitSyncOptions["reconciliation"] {
         pull.files,
         pull.deletedFiles,
       );
-      if (batch) options.directorySync.suppressWatchPaths(pull.files);
+      if (batch) {
+        options.directorySync.ignorePulledWatchPaths(
+          pull.files,
+          async (paths) => paths,
+        );
+      }
       return {
         mode: "incremental",
         files: pull.files,
@@ -76,7 +82,7 @@ describe("setupPeriodicGitSync", () => {
   it("waits one complete interval and runs at fixed cadence", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
         const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
@@ -102,19 +108,21 @@ describe("setupPeriodicGitSync", () => {
         yield* yieldToFibers();
         expect(pullMock).toHaveBeenCalledTimes(2);
         yield* Effect.promise(() => runtime.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("queues imports only when pull returns changed files", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
         const queueSyncBatchMock = mock(
           async (): Promise<BatchResult | null> => emptyBatchResult,
         );
-        const suppressWatchPathsMock = mock(() => {});
+        const ignorePulledWatchPathsMock = mock(
+          (_paths: string[], _matchesHead: MatchesHead) => {},
+        );
         const recordPendingPullDeletesMock = mock(async () => {});
         const pullMock = mock(async (): Promise<PullResult> => ({
           files: ["a.md", "deleted.md"],
@@ -126,7 +134,7 @@ describe("setupPeriodicGitSync", () => {
           gitSync: createMockGitSync({ pull: pullMock }),
           directorySync: createMockDirectorySync({
             queueSyncBatch: queueSyncBatchMock,
-            suppressWatchPaths: suppressWatchPathsMock,
+            ignorePulledWatchPaths: ignorePulledWatchPathsMock,
             recordPendingPullDeletes: recordPendingPullDeletesMock,
           }),
           context,
@@ -141,7 +149,7 @@ describe("setupPeriodicGitSync", () => {
         expect(recordPendingPullDeletesMock).toHaveBeenCalledWith([
           "deleted.md",
         ]);
-        expect(suppressWatchPathsMock).toHaveBeenCalledWith([
+        expect(ignorePulledWatchPathsMock.mock.calls[0]?.[0]).toEqual([
           "a.md",
           "deleted.md",
         ]);
@@ -158,16 +166,16 @@ describe("setupPeriodicGitSync", () => {
         yield* yieldToFibers();
         expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
         yield* Effect.promise(() => runtime.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("keeps watcher fallback active when the sync queue is busy", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
-        const suppressWatchPathsMock = mock(() => {});
+        const ignorePulledWatchPathsMock = mock(() => {});
 
         setupPeriodicGitSync({
           gitSync: createMockGitSync({
@@ -175,7 +183,7 @@ describe("setupPeriodicGitSync", () => {
           }),
           directorySync: createMockDirectorySync({
             queueSyncBatch: mock(async () => null),
-            suppressWatchPaths: suppressWatchPathsMock,
+            ignorePulledWatchPaths: ignorePulledWatchPathsMock,
           }),
           context: createMockServicePluginContext(),
           intervalMinutes: 0.001,
@@ -186,16 +194,16 @@ describe("setupPeriodicGitSync", () => {
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
 
-        expect(suppressWatchPathsMock).not.toHaveBeenCalled();
+        expect(ignorePulledWatchPathsMock).not.toHaveBeenCalled();
         yield* Effect.promise(() => runtime.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("uses queueSyncBatch instead of blocking sync", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
         const syncMock = mock(async () => {
           throw new Error("sync() should not be called");
@@ -224,14 +232,14 @@ describe("setupPeriodicGitSync", () => {
         expect(syncMock).not.toHaveBeenCalled();
         expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
         yield* Effect.promise(() => runtime.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("does not schedule a disabled interval", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
         const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
@@ -249,14 +257,14 @@ describe("setupPeriodicGitSync", () => {
 
         expect(pullMock).not.toHaveBeenCalled();
         yield* Effect.promise(() => runtime.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("stops future cycles and aborts an active pull on close", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
         const pullStarted = deferred();
         const pullAborted = deferred();
@@ -302,14 +310,14 @@ describe("setupPeriodicGitSync", () => {
         yield* TestClock.adjust(600);
         yield* yieldToFibers();
         expect(pullMock).toHaveBeenCalledTimes(1);
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 
   it("does not overlap cycles", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
         const runtime = new DirectorySyncRuntime({ clock });
         const releaseFirst = deferred();
         const firstFinished = deferred();
@@ -351,7 +359,7 @@ describe("setupPeriodicGitSync", () => {
         yield* yieldToFibers();
         expect(pullMock).toHaveBeenCalledTimes(2);
         yield* Effect.promise(() => runtime.close());
-      }).pipe(Effect.provide(TestContext.TestContext)),
+      }).pipe(Effect.provide(TestClock.layer())),
     );
   });
 });

@@ -1,11 +1,11 @@
 {
   "name": "@brains/document",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.493",
+  "version": "0.2.0-alpha.515",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",
-    "pdfjs-dist": "^6.0.227"
+    "pdfjs-dist": "^6.4.299"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",

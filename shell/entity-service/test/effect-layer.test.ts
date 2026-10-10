@@ -20,7 +20,7 @@ type TestLayerOptions = EntityServiceLayerOptions & {
   jobQueueService: IJobQueueService;
 };
 
-function closeScope(scope: Scope.CloseableScope): void {
+function closeScope(scope: Scope.Closeable): void {
   Effect.runSync(Scope.close(scope, Exit.void));
 }
 
@@ -61,7 +61,7 @@ function createLayerOptions(database: TestDatabase): TestLayerOptions {
 }
 
 describe("entity-service Effect layer", () => {
-  const scopes: Scope.CloseableScope[] = [];
+  const scopes: Scope.Closeable[] = [];
   const databaseCleanups: Array<() => Promise<void>> = [];
 
   afterEach(async () => {
@@ -75,7 +75,7 @@ describe("entity-service Effect layer", () => {
     return database;
   }
 
-  function createScope(): Scope.CloseableScope {
+  function createScope(): Scope.Closeable {
     const scope = Effect.runSync(Scope.make());
     scopes.push(scope);
     return scope;

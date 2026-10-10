@@ -1,10 +1,10 @@
 {
   "name": "@brains/web-chat",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.493",
+  "version": "0.2.0-alpha.515",
   "description": "Web chat interface for Brains",
   "dependencies": {
-    "@ai-sdk/react": "^3.0.208",
+    "@ai-sdk/react": "^3.0.305",
     "@brains/app-ui-react": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
@@ -16,7 +16,7 @@
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
     "@tanstack/react-query": "^5.0.0",
-    "ai": "^6.0.206",
+    "ai": "^6.0.302",
     "class-variance-authority": "^0.7.0",
     "cmdk": "^1.1.1",
     "lucide-react": "^1.20.0",

@@ -1,4 +1,7 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import type { SimpleGit } from "simple-git";
+import { ATOMIC_WRITE_EXCLUDE_PATTERN } from "../atomic-write";
 import type { Logger } from "@brains/utils/logger";
 import { checkoutGitBranch } from "../git-branch";
 import { prepareGitRepository } from "./git-repository";
@@ -47,12 +50,39 @@ export async function initializeGitRepository(
     ...(signal ? { signal } : {}),
   });
 
+  await excludeAtomicWrites(git, dataDir);
   await configureIdentity(git, authorName, authorEmail);
   await git.addConfig("pull.rebase", "false");
 
   await checkoutGitBranch(git, dataDir, branch);
 
   return git;
+}
+
+/**
+ * Keep in-flight atomic writes out of every Git operation on this checkout,
+ * including `add -A` while an export is mid-replace. The local exclude file
+ * is never committed, so the content repository itself is unchanged.
+ */
+async function excludeAtomicWrites(
+  git: SimpleGit,
+  dataDir: string,
+): Promise<void> {
+  const excludePath = resolve(
+    dataDir,
+    (await git.revparse(["--git-path", "info/exclude"])).trim(),
+  );
+  const existing = await readFile(excludePath, "utf-8").catch(
+    // A fresh repository may not have created info/exclude yet.
+    () => "",
+  );
+  if (existing.split("\n").includes(ATOMIC_WRITE_EXCLUDE_PATTERN)) return;
+  await mkdir(dirname(excludePath), { recursive: true });
+  const separator = existing === "" || existing.endsWith("\n") ? "" : "\n";
+  await writeFile(
+    excludePath,
+    `${existing}${separator}${ATOMIC_WRITE_EXCLUDE_PATTERN}\n`,
+  );
 }
 
 async function configureIdentity(

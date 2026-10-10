@@ -238,10 +238,13 @@ export class ShellBootloader {
       return;
     }
 
+    // Both roles serve the identity stored by earlier runs from here on, and
+    // follow what imports bring. Only a settled startup may create defaults:
+    // a pending or failed initial sync must not leave the stored identity
+    // unread behind them.
+    await this.loadIdentityServices();
+
     if (!this.role.serves) {
-      // The worker imports startup content, so it never creates defaults:
-      // it reads what exists and follows what its imports bring.
-      await this.loadIdentityServices();
       this.services.jobProgressMonitor.start();
       await this.services.jobQueueWorker.start();
       this.services.logger.debug("Shell boot complete (worker process)");
@@ -443,7 +446,7 @@ export class ShellBootloader {
           }
         }),
       ),
-      Effect.catchAll((error) =>
+      Effect.catch((error) =>
         Effect.sync(() => {
           logger.warn("Semantic index readiness monitor stopped", error);
         }),

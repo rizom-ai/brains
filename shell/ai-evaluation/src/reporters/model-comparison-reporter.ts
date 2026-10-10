@@ -1,6 +1,14 @@
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import type { EvaluationSummary } from "../schemas";
+import { perTestPassRates, type TestPassRate } from "../sample-aggregation";
+
+/** One run reads pass/fail; sampled runs read as passes out of runs. */
+function formatRate(rate: TestPassRate | undefined): string {
+  if (!rate) return "—";
+  if (rate.runs === 1) return rate.passes === 1 ? "✅" : "❌";
+  return `${rate.passes}/${rate.runs}`;
+}
 
 export interface ModelResult {
   model: string;
@@ -62,12 +70,13 @@ export function renderModelComparison(results: ModelResult[]): string {
     lines.push(`| Test | ${modelNames.join(" | ")} |`);
     lines.push(`|------|${modelNames.map(() => "------").join("|")}|`);
 
+    const ratesByModel = results.map(({ summary }) =>
+      perTestPassRates(summary),
+    );
     for (const testId of sortedTestIds) {
-      const cells = results.map(({ summary }) => {
-        const result = summary.results.find((r) => r.testCaseId === testId);
-        if (!result) return "—";
-        return result.passed ? "✅" : "❌";
-      });
+      const cells = ratesByModel.map((rates) =>
+        formatRate(rates.find((rate) => rate.testCaseId === testId)),
+      );
       lines.push(`| ${testId} | ${cells.join(" | ")} |`);
     }
 
@@ -100,7 +109,14 @@ export async function writeModelComparisonReport(
     avgTokens: Math.round(summary.avgMetrics.totalTokens),
     avgDurationMs: Math.round(summary.avgMetrics.durationMs),
     perTest: Object.fromEntries(
-      summary.results.map((r) => [r.testCaseId, r.passed ? "pass" : "fail"]),
+      perTestPassRates(summary).map((rate) => [
+        rate.testCaseId,
+        rate.runs === 1
+          ? rate.passes === 1
+            ? "pass"
+            : "fail"
+          : `${rate.passes}/${rate.runs}`,
+      ]),
     ),
   }));
   await writeFile(

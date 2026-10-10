@@ -48,6 +48,133 @@ describe("buildRetrievedEntityRefs", () => {
 });
 
 describe("extractToolResults", () => {
+  it("keeps a rejected SDK attempt visible before a successful repair proposal", () => {
+    const input = {
+      entityType: "note",
+      id: "plan",
+      operation: {
+        kind: "edits",
+        edits: [{ oldText: "old", newText: "new" }],
+        fields: { title: "New" },
+      },
+    };
+    const error = new Error("Invalid tool input: mixed operation branches");
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "invalid",
+            toolName: "system_update",
+            input,
+            invalid: true,
+            error,
+          },
+        ],
+        content: [
+          {
+            type: "tool-error",
+            toolCallId: "invalid",
+            toolName: "system_update",
+            input,
+            error,
+          },
+        ],
+        toolResults: [],
+      },
+      {
+        toolCalls: [
+          {
+            toolCallId: "repair",
+            toolName: "system_update",
+            input: {
+              ...input,
+              operation: { kind: "edits", edits: input.operation.edits },
+            },
+          },
+        ],
+        toolResults: [
+          {
+            toolCallId: "repair",
+            toolName: "system_update",
+            output: {
+              needsConfirmation: true,
+              toolName: "system_update",
+              summary: "Update plan?",
+              args: {
+                ...input,
+                operation: { kind: "edits", edits: input.operation.edits },
+                confirmed: true,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+    expect(results.totalToolCalls).toBe(2);
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_update",
+        args: input,
+        error: { code: "invalid_tool_call", message: error.message },
+      },
+    ]);
+    expect(results.pendingConfirmations).toHaveLength(1);
+  });
+
+  it("records SDK execution exceptions that are absent from toolResults", () => {
+    const input = { entityType: "note", id: "plan" };
+    const results = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "failed", toolName: "system_get", input }],
+        content: [
+          {
+            type: "tool-error",
+            toolCallId: "failed",
+            toolName: "system_get",
+            input,
+            error: new Error("Storage unavailable"),
+          },
+        ],
+        toolResults: [],
+      },
+    ]);
+    expect(results.totalToolCalls).toBe(1);
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_get",
+        args: input,
+        error: {
+          code: "tool_execution_failed",
+          message: "Storage unavailable",
+        },
+      },
+    ]);
+  });
+
+  it("records malformed JSON calls even without record-shaped arguments", () => {
+    const results = extractToolResults([
+      {
+        toolCalls: [
+          {
+            toolCallId: "malformed",
+            toolName: "system_update",
+            input: "{broken",
+            invalid: true,
+            error: new Error("Invalid JSON"),
+          },
+        ],
+        toolResults: [],
+      },
+    ]);
+    expect(results.totalToolCalls).toBe(1);
+    expect(results.toolResults).toEqual([
+      {
+        toolName: "system_update",
+        error: { code: "invalid_tool_call", message: "Invalid JSON" },
+      },
+    ]);
+  });
+
   it("omits cached duplicate read results from extracted metrics records", () => {
     const results = extractToolResults([
       {
@@ -273,6 +400,55 @@ describe("an answer's sources", () => {
       "post:read-directly",
     ]);
     expect(sourceIds()).toEqual(sourceIds("A general answer."));
+  });
+
+  it("keep the sources a tool attributes itself, with their brains", () => {
+    const cards = extractToolResults(
+      [
+        {
+          toolCalls: [{ toolCallId: "n", toolName: "network_ask", input: {} }],
+          toolResults: [
+            {
+              toolCallId: "n",
+              toolName: "network_ask",
+              output: {
+                success: true,
+                data: {
+                  answers: [],
+                  sources: [
+                    {
+                      id: "agent:jo.example",
+                      title: "Jo",
+                      source: "agent",
+                      url: "https://jo.example",
+                      brain: { name: "Jo", url: "https://jo.example" },
+                    },
+                    { title: "not a citation" },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      "Jo says to start with the soil.",
+    ).cards;
+    expect(cards).toEqual([
+      {
+        kind: "sources",
+        id: "sources:tool-results",
+        title: "Retrieved sources",
+        sources: [
+          {
+            id: "agent:jo.example",
+            title: "Jo",
+            source: "agent",
+            url: "https://jo.example",
+            brain: { name: "Jo", url: "https://jo.example" },
+          },
+        ],
+      },
+    ]);
   });
 });
 

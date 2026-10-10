@@ -1,5 +1,11 @@
 # @rizom/site-books
 
+## 0.2.0-alpha.2
+
+### Patch Changes
+
+- [#573](https://github.com/rizom-ai/brains/pull/573) [`34fc4ef`](https://github.com/rizom-ai/brains/commit/34fc4ef886cef62fb34f57f9a8fd74e044867291) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The books site opens each section of a book under its book, at `/books/<book>/<order>`, and cites only sections in answers.
+
 ## 0.2.0-alpha.1
 
 ### Minor Changes

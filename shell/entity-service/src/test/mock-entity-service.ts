@@ -201,6 +201,7 @@ export function createMockEntityService(
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
     isProjectionOwnedEntity: mock(() => Promise.resolve(false)),
+    releaseProjectionOwnership: mock(() => Promise.resolve()),
     listPendingEntityExports: mock(() => Promise.resolve([])),
     hasPendingEntityExports: mock(() => Promise.resolve(false)),
     acknowledgeEntityExports: mock(() => Promise.resolve(0)),

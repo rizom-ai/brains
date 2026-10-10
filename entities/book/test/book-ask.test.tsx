@@ -13,10 +13,6 @@ import { BookAskTemplate } from "../src/templates/book-ask";
 function titleEntry(book: string, title: string, year: number): BaseEntity {
   const content = `---
 title: ${title}
-book: ${book}
-order: 0
-section: null
-page: null
 source: https://example.org/${book}
 author: Erfundener Autor
 year: ${year}
@@ -26,7 +22,7 @@ kind: work
 Titel.
 `;
   return {
-    id: `${book}:00000`,
+    id: book,
     entityType: "book",
     content,
     contentHash: book,
@@ -123,14 +119,15 @@ describe("BookAskTemplate script", () => {
         bubbles: true,
         detail: {
           sources: [
-            { id: "book:spaet:00007-7", title: "SPAET-7" },
+            { id: "book-section:spaet:00007-7", title: "SPAET-7" },
             // A book with parts files each section under its part's folder.
-            { id: "book:spaet:00009-ii:00012-11", title: "SPAET-II-11" },
-            { id: "topic:mitleid", title: "Mitleid" },
             {
-              id: "book:spaet:00000-ein-spaetes-buch",
-              title: "Ein spätes Buch",
+              id: "book-section:spaet:00009-ii:00012-11",
+              title: "SPAET-II-11",
             },
+            { id: "topic:mitleid", title: "Mitleid" },
+            // A book is its details and contents, never a passage.
+            { id: "book:spaet", title: "Ein spätes Buch" },
           ],
         },
       }),
@@ -142,7 +139,6 @@ describe("BookAskTemplate script", () => {
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/books/spaet/7",
       "/books/spaet/12",
-      "/books/spaet",
     ]);
     expect(links[0]?.textContent).toContain("SPAET-7");
     expect(links[0]?.textContent).toContain("Ein spätes Buch");

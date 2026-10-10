@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
 
 import { TestRunner } from "../src/test-runner";
-import type { TestCase } from "../src/schemas";
+import type { ILLMJudge, RequirementVerdict } from "../src/types";
+import type { AgentTestCase, TestCase } from "../src/schemas";
 import type { IAgentService, AgentResponse } from "@brains/ai-service";
 import type {
   IRuntimeUploadsNamespace,
@@ -25,6 +26,29 @@ describe("TestRunner", () => {
   };
   let testRunner: TestRunner;
 
+  const requirement =
+    "Lists the team's knowledge sources, including decks and docs.";
+  const judgedCase = (): AgentTestCase => ({
+    id: "judged-requirements",
+    name: "Judged requirements",
+    type: "response_quality",
+    turns: [
+      {
+        userMessage: "What can I find in team memory?",
+        successCriteria: { responseCriteria: [requirement] },
+      },
+    ],
+    successCriteria: {},
+  });
+  const judgeReturning = (
+    verdicts: RequirementVerdict[] | null,
+  ): ILLMJudge & {
+    judgeRequirements: Mock<ILLMJudge["judgeRequirements"]>;
+  } => ({
+    scoreConversation: mock(async () => null),
+    judgeRequirements: mock(async () => verdicts),
+  });
+
   const createMockResponse = (
     overrides: Partial<AgentResponse> = {},
   ): AgentResponse => ({
@@ -41,6 +65,60 @@ describe("TestRunner", () => {
       invalidateAgent: (): void => {},
     };
     testRunner = TestRunner.createFresh(mockAgentService);
+  });
+
+  describe("judged response requirements", () => {
+    it("fails a turn whose reply does not meet a judged requirement", async () => {
+      const judge = judgeReturning([
+        { requirement, met: false, reason: "Mentions notes only." },
+      ]);
+      const runner = TestRunner.createFresh(mockAgentService, judge);
+
+      const result = await runner.runTest(judgedCase());
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toContainEqual(
+        expect.objectContaining({
+          criterion: "responseCriteria",
+          expected: requirement,
+          actual: "Mentions notes only.",
+        }),
+      );
+      expect(judge.judgeRequirements).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userMessage: "What can I find in team memory?",
+          response: createMockResponse().text,
+          requirements: [requirement],
+        }),
+      );
+    });
+
+    it("passes when every judged requirement is met", async () => {
+      const runner = TestRunner.createFresh(
+        mockAgentService,
+        judgeReturning([{ requirement, met: true, reason: "Lists both." }]),
+      );
+      const result = await runner.runTest(judgedCase());
+      expect(result.passed).toBe(true);
+      expect(result.unjudgedRequirements).toBeUndefined();
+    });
+
+    it("lists requirements it could not judge instead of passing them silently", async () => {
+      const runs = [
+        TestRunner.createFresh(mockAgentService).runTest(judgedCase()),
+        TestRunner.createFresh(
+          mockAgentService,
+          judgeReturning([{ requirement, met: false, reason: "No." }]),
+        ).runTest(judgedCase(), { skipLLMJudge: true }),
+        TestRunner.createFresh(mockAgentService, judgeReturning(null)).runTest(
+          judgedCase(),
+        ),
+      ];
+      for (const result of await Promise.all(runs)) {
+        expect(result.passed).toBe(true);
+        expect(result.unjudgedRequirements).toEqual([requirement]);
+      }
+    });
   });
 
   describe("runTest", () => {
@@ -60,6 +138,70 @@ describe("TestRunner", () => {
       expect(result.passed).toBe(true);
       expect(result.testCaseId).toBe("test-1");
       expect(result.failures).toHaveLength(0);
+    });
+
+    it("does not erase a rejected SDK attempt when a repaired call requests approval", async () => {
+      const bad = {
+        entityType: "note",
+        id: "plan",
+        operation: {
+          kind: "edits",
+          edits: [{ oldText: "old", newText: "new" }],
+          fields: { title: "New" },
+        },
+      };
+      mockAgentService.chat.mockResolvedValue(
+        createMockResponse({
+          text: "Confirmation required.",
+          toolResults: [
+            {
+              toolName: "system_update",
+              args: bad,
+              error: {
+                code: "invalid_tool_call",
+                message: "Mixed operation branches",
+              },
+            },
+          ],
+          pendingConfirmations: [
+            {
+              id: "approval",
+              toolName: "system_update",
+              summary: "Update plan?",
+              args: {
+                entityType: "note",
+                id: "plan",
+                operation: { kind: "edits", edits: bad.operation.edits },
+              },
+            },
+          ],
+        }),
+      );
+      const result = await testRunner.runTest({
+        id: "rejected-then-repaired",
+        name: "Rejected attempt remains red",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Edit the plan." }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_update",
+              shouldBeCalled: true,
+              argsAbsent: ["operation.fields"],
+              resultContains: { needsConfirmation: true },
+            },
+          ],
+        },
+      });
+      expect(result.passed).toBe(false);
+      expect(result.totalMetrics.toolCallCount).toBe(2);
+      expect(result.turnResults[0]?.toolCalls).toHaveLength(2);
+      expect(result.failures.map((failure) => failure.criterion)).toContain(
+        "toolArgsAbsent",
+      );
+      expect(result.failures.map((failure) => failure.criterion)).toContain(
+        "toolResultContains",
+      );
     });
 
     it("should default eval callers to admin permission", async () => {

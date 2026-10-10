@@ -48,12 +48,10 @@ import {
 const entityDisplayEntrySchema: z.ZodObject<
   {
     label: z.ZodOptional<z.ZodString>;
-    pluralName: z.ZodOptional<z.ZodString>;
   },
   z.core.$loose
 > = z.looseObject({
   label: z.string().optional(),
-  pluralName: z.string().optional(),
 });
 
 const entityDisplaySchema: z.ZodRecord<

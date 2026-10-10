@@ -5,6 +5,8 @@ import {
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
+import { getErrorMessage } from "@brains/utils/error";
+import { SourceCitationSchema } from "@brains/contracts";
 import {
   toolConfirmationSchema,
   toolErrorSchema,
@@ -20,6 +22,13 @@ import type {
 } from "./agent-types";
 
 const toolCallArgsSchema = z.record(z.string(), z.unknown());
+const sdkToolErrorSchema = z.object({
+  type: z.literal("tool-error"),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  input: z.unknown(),
+  error: z.unknown(),
+});
 const jobIdSchema = z.looseObject({ jobId: z.string() });
 const sourceEntitySchema = z.looseObject({
   id: z.string().min(1),
@@ -37,6 +46,10 @@ const searchToolDataSchema = z.object({
 });
 const getToolDataSchema = z.object({
   entity: sourceEntitySchema,
+});
+/** A tool that attributes its own sources, such as the network's answers. */
+const toolSourcesDataSchema = z.object({
+  sources: z.array(z.unknown()),
 });
 const structuredChatCardParserSchema = z.custom<StructuredChatCard>(
   (value) => StructuredChatCardSchema.safeParse(value).success,
@@ -299,6 +312,15 @@ function buildToolSourceCitations(params: {
     ];
   }
 
+  // A tool's own citations count like a direct read: kept whatever the answer names.
+  const own = toolSourcesDataSchema.safeParse(params.data);
+  if (own.success) {
+    return own.data.sources.flatMap((source) => {
+      const citation = SourceCitationSchema.safeParse(source);
+      return citation.success ? [{ citation: citation.data }] : [];
+    });
+  }
+
   return [];
 }
 
@@ -410,10 +432,48 @@ export function extractToolResults(
       }
     }
 
+    // SDK validation can reject a call before our handler runs; execution
+    // exceptions likewise appear in content rather than toolResults. Keep
+    // both as attempted calls so retries cannot turn failures invisible.
+    const failedCallIds = new Set<string>();
+    for (const call of step.toolCalls) {
+      if (!call.invalid && call.error === undefined) continue;
+      failedCallIds.add(call.toolCallId);
+      toolResults.push({
+        toolName: call.toolName,
+        ...definedFields({ args: toolCallArgsMap.get(call.toolCallId) }),
+        error: {
+          code: "invalid_tool_call",
+          message: getErrorMessage(call.error, "SDK rejected the tool call"),
+        },
+      });
+    }
+    for (const part of step.content ?? []) {
+      const parsedError = sdkToolErrorSchema.safeParse(part);
+      if (!parsedError.success) continue;
+      const error = parsedError.data;
+      if (failedCallIds.has(error.toolCallId)) continue;
+      failedCallIds.add(error.toolCallId);
+      const args = toolCallArgsSchema.safeParse(error.input);
+      toolResults.push({
+        toolName: error.toolName,
+        ...definedFields({
+          args: args.success
+            ? args.data
+            : toolCallArgsMap.get(error.toolCallId),
+        }),
+        error: {
+          code: "tool_execution_failed",
+          message: getErrorMessage(error.error, "Tool execution failed"),
+        },
+      });
+    }
+
     let stepRequestedConfirmation = false;
     const confirmedToolNames = new Set<string>();
 
     for (const tr of step.toolResults) {
+      if (failedCallIds.has(tr.toolCallId)) continue;
       if (tr.output === null) continue;
 
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);

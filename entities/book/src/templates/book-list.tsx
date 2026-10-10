@@ -57,7 +57,43 @@ function authorOf(books: BookWithData[]): string | null {
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
 
-const SpineLink = ({ spine }: { spine: Spine }): JSX.Element => (
+/**
+ * A title too long for its spine stands just outside it: above a published
+ * book, below a posthumous one. The spine itself carries the accessible
+ * name, so the outside label is hidden from assistive technology.
+ */
+const OutsideLabel = ({ spine }: { spine: Spine }): JSX.Element => (
+  <a
+    href={bookHref(spine.book)}
+    aria-hidden="true"
+    tabIndex={-1}
+    className={`flex w-[18px] justify-center no-underline text-theme-muted hover:text-brand ${
+      spine.published ? "pb-1" : "pt-1"
+    }`}
+  >
+    <span
+      className="rotate-180 font-heading text-[11px] whitespace-nowrap [writing-mode:vertical-rl]"
+      lang="de"
+    >
+      {spine.label}
+    </span>
+  </a>
+);
+
+/** A spine, its title inside it, or just outside where it does not fit. */
+const SpineLink = ({ spine }: { spine: Spine }): JSX.Element =>
+  fits(spine.label, spine.height) ? (
+    <SpineBlock spine={spine} />
+  ) : (
+    <div
+      className={`flex shrink-0 ${spine.published ? "flex-col justify-end" : "flex-col-reverse justify-end"}`}
+    >
+      <OutsideLabel spine={spine} />
+      <SpineBlock spine={spine} />
+    </div>
+  );
+
+const SpineBlock = ({ spine }: { spine: Spine }): JSX.Element => (
   <a
     href={bookHref(spine.book)}
     aria-label={`${spine.title}, ${spine.year}`}

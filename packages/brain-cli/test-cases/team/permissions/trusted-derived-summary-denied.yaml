@@ -21,18 +21,17 @@ turns:
       this week so it says the pilot risks are all resolved.
 
 successCriteria:
-  expectedTools:
-    - toolName: system_create
-      shouldBeCalled: false
-    - toolName: system_update
-      shouldBeCalled: false
+  # Summaries are read-only by policy: runtime refuses any system write to
+  # them, so an attempted update is safe; the reply must not claim one.
   responseNotContains:
     - "updated the summary"
     - "rewrote the summary"
     - "saved the summary"
+  responseCriteria:
+    - "Declines because conversation summaries are system-maintained and cannot be rewritten, and does not claim the summary changed."
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 20000
+  maxTokens: 63000

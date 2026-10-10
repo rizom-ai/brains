@@ -4,12 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
 import { createBrokerGitSync } from "../broker-git-sync";
-import {
-  MAX_FRAME_BYTES,
-  MAX_PAYLOAD_BYTES,
-} from "../../../src/lib/broker/protocol";
-import { SocketWriter } from "../../../src/lib/broker/socket-writer";
-import type { WritableSocket } from "../../../src/lib/broker/socket-writer";
+import { MAX_PAYLOAD_BYTES } from "../../../src/lib/broker/protocol";
 
 /**
  * Review blocker 4.
@@ -28,30 +23,6 @@ let scratch: string | undefined;
 afterEach(async () => {
   if (scratch) await rm(scratch, { recursive: true, force: true });
   scratch = undefined;
-});
-
-describe("a peer that will not drain", () => {
-  it("is refused rather than buffered without end", () => {
-    let accepting = false;
-    const socket: WritableSocket = {
-      write: (bytes: Uint8Array): number => (accepting ? bytes.length : 0),
-    };
-    const writer = new SocketWriter(socket);
-
-    // Every frame is retained because nothing is being taken. Reach the
-    // exact two-frame boundary directly: using hundreds of small frames makes
-    // SocketWriter repeatedly copy a growing buffer and turns this unit test
-    // into an O(n²) allocation workload under parallel CI load.
-    const frame = new Uint8Array(MAX_FRAME_BYTES);
-    writer.send(frame);
-    writer.send(frame);
-
-    expect(() => writer.send(frame)).toThrow(/backpressure|pending|limit/i);
-
-    accepting = true;
-    writer.flush();
-    expect(writer.pendingBytes).toBe(0);
-  });
 });
 
 describe.skipIf(!LINUX)("an oversized result", () => {

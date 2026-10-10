@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-composition",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.493",
+  "version": "0.2.0-alpha.515",
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@rizom/site": "workspace:*",
     "@types/react": "^19.2.17",

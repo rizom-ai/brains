@@ -91,6 +91,12 @@ describe("OnboardingPlugin", () => {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
     });
+    expect(
+      setup?.content.match(
+        /operation: \{ kind: "content", content: <full markdown> \}/g,
+      ),
+    ).toHaveLength(2);
+    expect(setup?.content).not.toContain("the `content` argument");
     expect(firstLoop?.metadata).toMatchObject({
       title: "Brain First Knowledge Loop",
       lifecycle: "onboarding",

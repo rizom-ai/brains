@@ -22,9 +22,9 @@ turns:
             agent: "refusal-followup.example"
         - toolName: agent_connect
           shouldBeCalled: false
-      responseContainsAny:
-        - ["verify", "verified", "Agent Card", "contact", "reach"]
-        - ["add", "save", "connect"]
+      responseCriteria:
+        - "Says it could not verify or contact the agent at refusal-followup.example."
+        - "Offers to save or connect that agent."
 
   - userMessage: "please add"
     successCriteria:

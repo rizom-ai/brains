@@ -21,8 +21,6 @@ successCriteria:
     max: 6
   responseContains:
     - "Team Brain"
-    - "docs"
-    - "decks"
   responseNotContains:
     - "newsletter"
     - "blog"
@@ -30,6 +28,8 @@ successCriteria:
   minHelpfulnessScore: 3
   minAccuracyScore: 3
   minInstructionFollowingScore: 3
+  responseCriteria:
+    - "Grounds the explanation of the operating model and POC walkthrough in the saved docs and deck content."
 
 efficiency:
   maxToolCalls: 6

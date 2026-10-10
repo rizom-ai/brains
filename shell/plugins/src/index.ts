@@ -638,6 +638,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageCollector,
   type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
@@ -660,6 +661,7 @@ export {
 export type { ConversationMessageActor } from "@brains/conversation-service";
 
 export type { IAgentService } from "@brains/ai-service";
+export { resolveTextProvider } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 

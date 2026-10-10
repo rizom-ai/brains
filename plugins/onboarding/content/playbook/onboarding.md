@@ -48,7 +48,7 @@ To do:
 - If the operator says "Brain should..." or asks to tune Brain's brain identity, treat Brain as the brain name and the supplied description/values as enough identity detail unless role, purpose, and values are genuinely absent.
 - When enough details are known, summarize once and call system_update to request approval in the same turn; do not wait for another chat turn before requesting approval.
 - Update the existing brain character singleton with system_update using entityType "brain-character" and id "brain-character".
-- Use a full markdown content replacement with valid frontmatter keys: name, role, purpose, and values (values is a YAML list); do not use fields-only updates for brain-character.
+- Use `operation: { kind: "content", content: <full markdown> }` with valid frontmatter keys: name, role, purpose, and values (values is a YAML list); do not use fields-only updates for brain-character.
 - Do not use system_create for brain-character; brain-character is an existing singleton identity record.
 - After saving, explain that Brain uses brain identity to introduce itself, frame its work, and keep a consistent style.
 
@@ -80,7 +80,7 @@ To do:
 - Construct the required full markdown replacement yourself from the operator's natural-language details; never ask the operator to resend full markdown when they already provided name, role, audience, and expertise.
 - When the operator only asks to continue to profile setup, ask the Anchor profile prompt; do not update the profile from existing memory or prior profile data until the operator provides the details to save.
 - Update the existing anchor profile singleton with system_update using entityType "anchor-profile" and id "anchor-profile".
-- Use the `content` argument with a full markdown replacement; never use `fields` for anchor-profile during this playbook. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
+- Use `operation: { kind: "content", content: <full markdown> }`; never use the fields operation for anchor-profile during this playbook. Anchor profile accepts its base keys plus extension frontmatter keys preserved by the adapter; do not use brain-character keys such as purpose or values.
 - The anchor category is selected by instance configuration, not profile frontmatter. Do not write `kind` into anchor-profile content; it is not an accepted profile field.
 - Store onboarding essentials as structured frontmatter keys: name, role, audience, and expertise.
 - Do not store tone or visual-style instructions in anchor-profile; those belong in the style-guide singleton.

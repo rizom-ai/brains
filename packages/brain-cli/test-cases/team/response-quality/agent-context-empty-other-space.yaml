@@ -31,8 +31,6 @@ successCriteria:
       shouldBeCalled: false
     - toolName: system_list
       shouldBeCalled: false
-  responseContains:
-    - "conversation memory"
   responseNotContains:
     - "Core should validate private team memory"
     - "default should add a minimal public site"
@@ -42,7 +40,9 @@ successCriteria:
   minHelpfulnessScore: 3
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Says the conversation memory available in this channel has nothing about the preset direction, and gives no preset details from another channel."
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 30000
+  maxTokens: 14000

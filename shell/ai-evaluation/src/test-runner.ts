@@ -7,7 +7,12 @@ import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
-import type { ITestRunner, ILLMJudge, TestRunnerOptions } from "./types";
+import type {
+  ITestRunner,
+  ILLMJudge,
+  RequirementJudgeInput,
+  TestRunnerOptions,
+} from "./types";
 import type {
   AgentTestCase,
   EvaluationResult,
@@ -114,6 +119,7 @@ export class TestRunner implements ITestRunner {
     const collector = MetricCollector.createFresh();
     const turnResults: TurnResult[] = [];
     const failures: FailureDetail[] = [];
+    const unjudgedRequirements: string[] = [];
 
     const baseContext = this.buildChatContext(testCase);
     let pendingApprovalIds: string[] = [];
@@ -199,6 +205,18 @@ export class TestRunner implements ITestRunner {
       });
 
       failures.push(...turnCriteriaResults.filter((result) => !result.passed));
+
+      const judged = await this.judgeResponseRequirements(
+        turn.successCriteria?.responseCriteria,
+        {
+          userMessage: turn.userMessage,
+          response: response.text,
+          toolCalls,
+        },
+        options,
+      );
+      failures.push(...judged.failures);
+      unjudgedRequirements.push(...judged.unjudged);
     }
 
     const finalCriteriaFailures = evaluateCriteria(
@@ -207,6 +225,19 @@ export class TestRunner implements ITestRunner {
       collector.getAllToolCalls(),
     ).filter((result) => !result.passed);
     failures.push(...finalCriteriaFailures);
+
+    const lastTurn = turnResults.at(-1);
+    const judgedOverall = await this.judgeResponseRequirements(
+      testCase.successCriteria.responseCriteria,
+      {
+        userMessage: lastTurn?.userMessage ?? "",
+        response: lastTurn?.assistantResponse ?? "",
+        toolCalls: lastTurn?.toolCalls ?? [],
+      },
+      options,
+    );
+    failures.push(...judgedOverall.failures);
+    unjudgedRequirements.push(...judgedOverall.unjudged);
 
     const totalMetrics = collector.getTotalMetrics();
     const efficiencyFailures = evaluateEfficiency(testCase, totalMetrics);
@@ -237,6 +268,36 @@ export class TestRunner implements ITestRunner {
       efficiencyPassed: efficiencyFailures.length === 0,
       efficiencyFailures:
         efficiencyFailures.length > 0 ? efficiencyFailures : undefined,
+      ...(unjudgedRequirements.length > 0 ? { unjudgedRequirements } : {}),
+    };
+  }
+
+  /**
+   * Judge a reply's response requirements. Without a judge (skipped,
+   * unavailable, or an incomplete verdict) they are reported as unjudged,
+   * never counted as met.
+   */
+  private async judgeResponseRequirements(
+    requirements: string[] | undefined,
+    turn: Omit<RequirementJudgeInput, "requirements">,
+    options: TestRunnerOptions,
+  ): Promise<{ failures: FailureDetail[]; unjudged: string[] }> {
+    if (!requirements?.length) return { failures: [], unjudged: [] };
+    const verdicts =
+      this.llmJudge && !options.skipLLMJudge
+        ? await this.llmJudge.judgeRequirements({ ...turn, requirements })
+        : null;
+    if (!verdicts) return { failures: [], unjudged: requirements };
+    return {
+      failures: verdicts
+        .filter((verdict) => !verdict.met)
+        .map((verdict) => ({
+          criterion: "responseCriteria",
+          expected: verdict.requirement,
+          actual: verdict.reason,
+          message: `Reply does not meet: ${verdict.requirement}`,
+        })),
+      unjudged: [],
     };
   }
 

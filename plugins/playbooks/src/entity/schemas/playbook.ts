@@ -27,20 +27,22 @@ const playbookCompletionModeParserSchema: z.ZodType<
   PlaybookCompletionMode
 > = z.enum(["agent-confirmed", "manual"]);
 
-const optionalTextSchema: z.ZodType<string | undefined, unknown> = z.preprocess(
-  (value) =>
-    typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().min(1).optional(),
-);
+/**
+ * Optional text where blank means absent. A codec rather than a preprocess so
+ * the playbook body built on it can be encoded back to markdown.
+ */
+function blankTextAsUndefined(): z.ZodType<string | undefined, unknown> {
+  return z.codec(z.string().optional(), z.string().min(1).optional(), {
+    decode: (value) => (value?.trim().length === 0 ? undefined : value),
+    encode: (value) => value,
+  });
+}
+
+const optionalTextSchema: z.ZodType<string | undefined, unknown> =
+  blankTextAsUndefined();
 
 const optionalTextParserSchema: z.ZodType<string | undefined, unknown> =
-  z.preprocess(
-    (value) =>
-      typeof value === "string" && value.trim().length === 0
-        ? undefined
-        : value,
-    z.string().min(1).optional(),
-  );
+  blankTextAsUndefined();
 
 export interface PlaybookTransition {
   event: string;

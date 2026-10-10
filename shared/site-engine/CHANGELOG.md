@@ -1,5 +1,275 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/image@0.2.0-alpha.515
+  - @brains/site-composition@0.2.0-alpha.515
+  - @brains/ui-library@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/entity-service@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/image@0.2.0-alpha.514
+  - @brains/site-composition@0.2.0-alpha.514
+  - @brains/ui-library@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/entity-service@0.2.0-alpha.514
+
+## 0.2.0-alpha.513
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.513
+  - @brains/image@0.2.0-alpha.513
+  - @brains/site-composition@0.2.0-alpha.513
+  - @brains/ui-library@0.2.0-alpha.513
+  - @brains/utils@0.2.0-alpha.513
+  - @brains/entity-service@0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.512
+  - @brains/image@0.2.0-alpha.512
+  - @brains/site-composition@0.2.0-alpha.512
+  - @brains/ui-library@0.2.0-alpha.512
+  - @brains/utils@0.2.0-alpha.512
+  - @brains/entity-service@0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.511
+  - @brains/ui-library@0.2.0-alpha.511
+  - @brains/contracts@0.2.0-alpha.511
+  - @brains/site-composition@0.2.0-alpha.511
+  - @brains/utils@0.2.0-alpha.511
+  - @brains/entity-service@0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.510
+  - @brains/image@0.2.0-alpha.510
+  - @brains/site-composition@0.2.0-alpha.510
+  - @brains/ui-library@0.2.0-alpha.510
+  - @brains/utils@0.2.0-alpha.510
+  - @brains/entity-service@0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+### Patch Changes
+
+- [#570](https://github.com/rizom-ai/brains/pull/570) [`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise compatible security-update minimums for the MCP client/server, Hono, PDF.js, JS-YAML, HTML sanitization, mail parsing and PostCSS. Refresh compatible vulnerable transitive dependencies, including nested JS-YAML, Seroval, Axios, Undici, DOMPurify, Mermaid, shell-quote and brace-expansion, without changing AI/Chat SDK versions, Effect pins or database dependencies.
+
+  Migrate the Git broker to simple-git 4.0.2's named export and patched argument parser. Preserve broker ownership, managed hook disabling and credential handling without enabling additional unsafe operations. Add controls for configuration includes, trailer commands, abbreviated executable options and explicitly supplied VISUAL editors.
+
+  This is not a clean-security-audit claim. Remaining advisories without compatible updates are not resolved by this patch.
+
+- Updated dependencies [[`010d171`](https://github.com/rizom-ai/brains/commit/010d1713adba894a2151af948016a2073f0cc72c)]:
+  - @brains/ui-library@0.2.0-alpha.509
+  - @brains/utils@0.2.0-alpha.509
+  - @brains/site-composition@0.2.0-alpha.509
+  - @brains/entity-service@0.2.0-alpha.509
+  - @brains/contracts@0.2.0-alpha.509
+  - @brains/image@0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.508
+  - @brains/image@0.2.0-alpha.508
+  - @brains/site-composition@0.2.0-alpha.508
+  - @brains/ui-library@0.2.0-alpha.508
+  - @brains/utils@0.2.0-alpha.508
+  - @brains/entity-service@0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.507
+  - @brains/image@0.2.0-alpha.507
+  - @brains/site-composition@0.2.0-alpha.507
+  - @brains/ui-library@0.2.0-alpha.507
+  - @brains/utils@0.2.0-alpha.507
+  - @brains/entity-service@0.2.0-alpha.507
+
+## 0.2.0-alpha.506
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.506
+  - @brains/image@0.2.0-alpha.506
+  - @brains/site-composition@0.2.0-alpha.506
+  - @brains/ui-library@0.2.0-alpha.506
+  - @brains/utils@0.2.0-alpha.506
+  - @brains/entity-service@0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+### Patch Changes
+
+- Updated dependencies [[`44addbc`](https://github.com/rizom-ai/brains/commit/44addbc8095c8be96762f7eabeadd291c00a253b)]:
+  - @brains/contracts@0.2.0-alpha.505
+  - @brains/site-composition@0.2.0-alpha.505
+  - @brains/ui-library@0.2.0-alpha.505
+  - @brains/entity-service@0.2.0-alpha.505
+  - @brains/image@0.2.0-alpha.505
+  - @brains/utils@0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.504
+  - @brains/image@0.2.0-alpha.504
+  - @brains/site-composition@0.2.0-alpha.504
+  - @brains/ui-library@0.2.0-alpha.504
+  - @brains/utils@0.2.0-alpha.504
+  - @brains/entity-service@0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.503
+  - @brains/image@0.2.0-alpha.503
+  - @brains/site-composition@0.2.0-alpha.503
+  - @brains/ui-library@0.2.0-alpha.503
+  - @brains/utils@0.2.0-alpha.503
+  - @brains/entity-service@0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.502
+  - @brains/image@0.2.0-alpha.502
+  - @brains/site-composition@0.2.0-alpha.502
+  - @brains/ui-library@0.2.0-alpha.502
+  - @brains/utils@0.2.0-alpha.502
+  - @brains/entity-service@0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.501
+  - @brains/ui-library@0.2.0-alpha.501
+  - @brains/contracts@0.2.0-alpha.501
+  - @brains/site-composition@0.2.0-alpha.501
+  - @brains/utils@0.2.0-alpha.501
+  - @brains/entity-service@0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.500
+  - @brains/ui-library@0.2.0-alpha.500
+  - @brains/contracts@0.2.0-alpha.500
+  - @brains/site-composition@0.2.0-alpha.500
+  - @brains/utils@0.2.0-alpha.500
+  - @brains/entity-service@0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.499
+  - @brains/image@0.2.0-alpha.499
+  - @brains/site-composition@0.2.0-alpha.499
+  - @brains/ui-library@0.2.0-alpha.499
+  - @brains/utils@0.2.0-alpha.499
+  - @brains/entity-service@0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.498
+  - @brains/image@0.2.0-alpha.498
+  - @brains/site-composition@0.2.0-alpha.498
+  - @brains/ui-library@0.2.0-alpha.498
+  - @brains/utils@0.2.0-alpha.498
+  - @brains/entity-service@0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+### Patch Changes
+
+- Updated dependencies [[`769c063`](https://github.com/rizom-ai/brains/commit/769c063b4f2fa550a6f63548df8bbfe8e98630f5)]:
+  - @brains/entity-service@0.2.0-alpha.497
+  - @brains/image@0.2.0-alpha.497
+  - @brains/ui-library@0.2.0-alpha.497
+  - @brains/contracts@0.2.0-alpha.497
+  - @brains/site-composition@0.2.0-alpha.497
+  - @brains/utils@0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.496
+  - @brains/image@0.2.0-alpha.496
+  - @brains/site-composition@0.2.0-alpha.496
+  - @brains/ui-library@0.2.0-alpha.496
+  - @brains/utils@0.2.0-alpha.496
+  - @brains/entity-service@0.2.0-alpha.496
+
+## 0.2.0-alpha.495
+
+### Patch Changes
+
+- Updated dependencies [[`a3f4b3d`](https://github.com/rizom-ai/brains/commit/a3f4b3de998dd79d4dc58f0c4bc3956960c42892), [`7d956d4`](https://github.com/rizom-ai/brains/commit/7d956d4310615b3b04d005ff11281e897731efde)]:
+  - @brains/utils@0.2.0-alpha.495
+  - @brains/contracts@0.2.0-alpha.495
+  - @brains/image@0.2.0-alpha.495
+  - @brains/site-composition@0.2.0-alpha.495
+  - @brains/ui-library@0.2.0-alpha.495
+  - @brains/entity-service@0.2.0-alpha.495
+
+## 0.2.0-alpha.494
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.494
+  - @brains/image@0.2.0-alpha.494
+  - @brains/site-composition@0.2.0-alpha.494
+  - @brains/ui-library@0.2.0-alpha.494
+  - @brains/utils@0.2.0-alpha.494
+  - @brains/entity-service@0.2.0-alpha.494
+
 ## 0.2.0-alpha.493
 
 ### Patch Changes
