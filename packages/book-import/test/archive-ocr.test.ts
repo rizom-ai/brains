@@ -1700,6 +1700,58 @@ describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
       "erklärt sich wie folgt. measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
     );
   });
+
+  it("reads notes filling most of a page against the text above them, not the page's lines", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(
+          import.meta.dir,
+          "fixtures",
+          "archive-ocr-bracketed-sections.html",
+        ),
+        "utf8",
+      ),
+      {
+        item: "zur-kritik-der-politischen-okonomie",
+        title: "Zur Kritik der politischen Oekonomie",
+        citation: "Kritik",
+        firstPage: 41,
+        lastPage: 51,
+      },
+    );
+    const paragraphs = units.at(-1)?.paragraphs ?? [];
+
+    expect(paragraphs.join("\n")).toContain(
+      "die Geldnamen der Metallgewichte von ihren allgemeinen Gewichtsnamen",
+    );
+    expect(paragraphs.at(-1)).toStartWith("2) Der romantische A. Müller sagt");
+    expect(paragraphs.at(-1)).toEndWith("Liberalität unentgeldlich münzt.“");
+  });
+
+  it("keeps the note run on below a rule read as dashes", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(
+          import.meta.dir,
+          "fixtures",
+          "archive-ocr-bracketed-sections.html",
+        ),
+        "utf8",
+      ),
+      {
+        item: "zur-kritik-der-politischen-okonomie",
+        title: "Zur Kritik der politischen Oekonomie",
+        citation: "Kritik",
+        firstPage: 41,
+        lastPage: 49,
+      },
+    );
+    const paragraphs = units.at(-1)?.paragraphs ?? [];
+    // Unmarked, the lines run on the note before them.
+    expect(paragraphs.at(-1)).toEndWith(
+      "erklärt sich wie folgt. measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
+    );
+  });
 });
 
 describe("parseArchiveOcrWork, bracketed titles set as Kautsky sets them", () => {

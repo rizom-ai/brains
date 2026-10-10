@@ -953,6 +953,10 @@ const BROKEN_END = /[,;:=⸗—-]$/u;
 const SAME_SIZE = 0.95;
 /** The lines either side of a line that tell where the margin runs near it. */
 const NEAR_LINES = 8;
+/** The lines of a page's upper half that tell the text's size, at least. */
+const UPPER_LINES = 5;
+/** No rule above the notes stands higher on the page than this share of it. */
+const RULE_ZONE = 0.25;
 /** A line ending this share of the page short of the right margin ends its paragraph. */
 const SHORT_END = 0.1;
 /** Lines starting further left than this share of the page stand in another column. */
@@ -1215,32 +1219,55 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       other.width < volume.column * HEADING_WIDTH
     );
   }
+  // Notes filling most of a page would pass for its text: where the page's
+  // lines are as a whole the notes' size against the text of its upper
+  // half, the foot is measured against that text.
+  const upper = headless.filter(
+    (line) => line.y < page.height / 2 && /\p{L}{3}/u.test(line.text),
+  );
+  const upperSize = median(upper.map((line) => line.size));
+  const footSize =
+    upper.length >= UPPER_LINES && bodySize < upperSize * FOOT_TEXT_SIZE
+      ? upperSize
+      : bodySize;
+  // Below a rule, notes are set smaller than the text. Long notes may fill
+  // more than half the page below their rule, in lines across the text's
+  // measure, where a figure's are short, and smaller than the text to the
+  // page's foot, where a quotation set small gives way to the text again.
+  const notesBelowRule = (rule: Line, index: number): boolean => {
+    const rest = headless
+      .slice(index + 1)
+      .filter((other) => /\p{L}/u.test(other.text));
+    const below = rest.find((other) => !isRule(other, footSize));
+    return (
+      below !== undefined &&
+      below.size < footSize * FOOT_TEXT_SIZE &&
+      (rule.y > page.height / 2 ||
+        (below.width > volume.column / 2 &&
+          rest.every((other) => other.size < footSize * SAME_SIZE)))
+    );
+  };
   const footAt = headless.findIndex(
     (line, index) =>
-      line.y > page.height / 2 &&
-      (isRule(line, bodySize)
-        ? (headless
-            .slice(index + 1)
-            .find(
-              (below) => !isRule(below, bodySize) && /\p{L}/u.test(below.text),
-            )?.size ?? 0) <
-          bodySize * FOOT_TEXT_SIZE
+      line.y > page.height * (isRule(line, footSize) ? RULE_ZONE : 0.5) &&
+      (isRule(line, footSize)
+        ? notesBelowRule(line, index)
         : // A numbered line set small opens the notes; one only a little
           // smaller than the text does below the space of a rule, more
           // than lines leave, where a list's item is spaced as the text,
           // and the notes run to the page's foot, smaller than the text. A
           // title numbered so is centred, a note nearly the text's size not.
           (NOTE_START.test(line.text) &&
-            (line.size < bodySize * NOTE_SIZE ||
+            (line.size < footSize * NOTE_SIZE ||
               (index > 0 &&
                 line.y - (headless[index - 1]?.bottom ?? line.y) >
                   bodyHeight * SECTION_SPACE &&
                 headless
                   .slice(index + 1)
                   .filter((below) => /\p{L}/u.test(below.text))
-                  .every((below) => below.size < bodySize * SAME_SIZE) &&
-                (line.size < bodySize * FOOT_TEXT_SIZE ||
-                  (line.size < bodySize * SAME_SIZE &&
+                  .every((below) => below.size < footSize * SAME_SIZE) &&
+                (line.size < footSize * FOOT_TEXT_SIZE ||
+                  (line.size < footSize * SAME_SIZE &&
                     !isCentredShort(line)))))) ||
           // No line of text opens with an asterisk's mark; a note may be
           // set, or measured, as large as the text.
@@ -1250,7 +1277,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           // numbered so is centred, and set as large as the text. A note set
           // in from the margin and short of the line may sit as centred.
           (MARKED_NOTE_START.test(line.text) &&
-            (!isCentredShort(line) || line.size < bodySize * SAME_SIZE) &&
+            (!isCentredShort(line) || line.size < footSize * SAME_SIZE) &&
             index > 0 &&
             line.y - (headless[index - 1]?.bottom ?? line.y) > bodyHeight) ||
           spacedFoot(line, headless[index - 1], headless[index + 1])),
@@ -1299,9 +1326,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   const opensParagraph = (line: Line, index: number): boolean => {
     // No paragraph opens in lower case but a list's lettered item: such a
     // line runs on the one above, a word it broke or a quotation set in. A
-    // small umlaut may be a capital the Fraktur model read so (über).
+    // small umlaut opening a word may be a capital the Fraktur model read
+    // so (über); alone, it is a speck.
     if (
-      /^(?![äöü])\p{Ll}/u.test(line.text) &&
+      /^(?![äöü]\p{L})\p{Ll}/u.test(line.text) &&
       !/^\p{Ll}[).]\s/u.test(line.text)
     ) {
       return false;
