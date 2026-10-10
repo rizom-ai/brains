@@ -10,6 +10,7 @@ import {
   SECTION_NAME,
   isWordy,
   namesTitle,
+  retitled,
   sameName,
   type Spelling,
   type Heading,
@@ -900,10 +901,11 @@ function numberedTitleApart(line: Line, page: Page, volume: Volume): Line[] {
 
 /**
  * A dateline: where and when an article was written, or the paper and day
- * it appeared, ending in a day, month and year (14./16. August 1855).
+ * it appeared, ending in a day, month and year (14./16. August 1855), its
+ * closing bracket as the OCR may read it, a 3 (18553.).
  */
 const DATELINE =
-  /\p{L}.*\b\d{1,2}\.\s*(?:\/\s*\d{1,2}\.\s*)?\p{L}+\s+1\d{3}\)?\.?$/u;
+  /\p{L}.*\b\d{1,2}\.\s*(?:\/\s*\d{1,2}\.\s*)?\p{L}+\s+1\d{3}[)3]?\.?$/u;
 /**
  * A dateline a paragraph opens with, after the paper's marks for its
  * authors, in an editor's brackets or not, and dated by its day or its
@@ -916,7 +918,7 @@ const DATELINE_SIZE = 1.05;
 /** A series' numeral, as Fraktur sets I and J alike, with the part's own title or none. */
 const SERIES_NUMERAL = /^([IVXJ]{1,4})\.(?:\s+(\p{Lu}.*))?$/u;
 /** Title type is set larger than the text by this much at least, where it fills the column. */
-const TITLE_TYPE = 1.1;
+const TITLE_TYPE = 1.06;
 
 /** What a line above a dateline is to its article. */
 type ArticleLine =
@@ -938,9 +940,11 @@ function articleLinesOf(
   volume: Volume,
   margin: number,
 ): Map<number, ArticleLine> {
-  const middle = middleOf(page);
+  // A title is centred on the text's column, closely: a paragraph's last
+  // line is not, and datelines set flush right move the page's middle.
+  const middle = margin + volume.column / 2;
   const centred = (line: Line): boolean =>
-    Math.abs(line.x + line.width / 2 - middle) < page.width * CENTRE;
+    Math.abs(line.x + line.width / 2 - middle) < (page.width * CENTRE) / 2;
   const above = (at: number): Array<[number, ArticleLine]> => {
     const line = lines[at];
     if (line === undefined || !centred(line)) return [];
@@ -962,7 +966,8 @@ function articleLinesOf(
       /\p{L}{3}/u.test(line.text) &&
       line.size >= volume.textSize &&
       line.size <= volume.textSize * DISPLAY_SIZE &&
-      (line.x - margin > page.width * INDENT ||
+      // Set in twice a paragraph's indent: a paragraph's last line is not.
+      (line.x - margin > page.width * INDENT * 2 ||
         line.size >= volume.textSize * TITLE_TYPE);
     return title ? [[at, { kind: "title" }], ...above(at - 1)] : [];
   };
@@ -1295,6 +1300,9 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           below.y - line.bottom > bodyHeight * SECTION_SPACE)) &&
       (line.corrected === true || isWordy(subsection[2], volume.spelling)) &&
       !MONTH.test(subsection[2]) &&
+      // A newspaper article has no numbered sections: its numbers are a
+      // list's, as Gladstone's budget items are.
+      (volume.datelined !== true || /^[IVX]+$/u.test(subsection[1])) &&
       // A chapter named so (2. Kapitel) is read as one.
       headingLineOf(line.text, line.size) === null
     ) {
@@ -1921,7 +1929,9 @@ export function parseArchiveOcrWork(
     spacedNotes: work.spacedNotes === true,
     datelined: work.datelined === true,
   };
-  const { cased } = volume.spelling;
+  // A title is spelled as the text spells it, its misread letters too.
+  const cased = (capitals: string): string =>
+    volume.spelling.cased(retitled(capitals, volume.spelling.uses));
   const labelOf = (number: number, leaf: number): string =>
     number < 1 && front !== null ? roman(leaf + front) : String(number);
   const firstPage =

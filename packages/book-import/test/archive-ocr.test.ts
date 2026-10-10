@@ -1476,8 +1476,16 @@ describe("parseArchiveOcrWork, datelined articles", () => {
         "Zum englischen Militärwesen.",
         "II",
       ],
-      ["Die Räumung der Donaufürstentümer.", "Die Handelskrise.", "I"],
-      ["Die Räumung der Donaufürstentümer.", "Die Handelskrise.", "II"],
+      [
+        "Die Räumung der Donaufürstentümer.",
+        "Die Handelskrise im Parlament.",
+        "I",
+      ],
+      [
+        "Die Räumung der Donaufürstentümer.",
+        "Die Handelskrise im Parlament.",
+        "II",
+      ],
     ]);
   });
 
