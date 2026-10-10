@@ -1535,6 +1535,7 @@ describe("parseArchiveOcrWork, articles opening with their dateline", () => {
       ["Das Ministerium Camphausen", "Köln, 3. Juni."],
       ["Das Ministerium Camphausen", "Köln, 13. Juni."],
       ["Die Polendebatte in Frankfurt", "Köln, 7. August."],
+      ["Die Polendebatte in Frankfurt", "Köln, im Januar."],
     ]);
     expect(units[0]?.paragraphs).toEqual([
       "** Köln, 3. Juni. Die Zeiten ändern sich, wir ändern uns mit ihnen, und die Herren Camphausen und Hansemann wissen davon zu erzählen.",

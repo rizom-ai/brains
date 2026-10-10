@@ -906,10 +906,11 @@ const DATELINE =
   /\p{L}.*\b\d{1,2}\.\s*(?:\/\s*\d{1,2}\.\s*)?\p{L}+\s+1\d{3}\)?\.?$/u;
 /**
  * A dateline a paragraph opens with, after the paper's marks for its
- * authors: ** Köln, 3. Juni. Die Zeiten ändern sich.
+ * authors, in an editor's brackets or not, and dated by its day or its
+ * month alone: ** Köln, 3. Juni. Die Zeiten ändern sich; * Köln, im Januar.
  */
 const INLINE_DATELINE =
-  /^[*⁎]*\s*(\p{Lu}[\p{L}.]*(?:\s[\p{L}.]+)?,\s*\d{1,2}\.\s*\p{L}+\.)\s/u;
+  /^[*⁎]*\s*\[?(\p{Lu}[\p{L}.]*(?:\s[\p{L}.]+)?,\s*(?:\d{1,2}\.|im)\s*\p{L}+\.)\]?\s/u;
 /** A dateline is set no larger than the text, give or take the OCR's measure. */
 const DATELINE_SIZE = 1.05;
 /** A series' numeral, as Fraktur sets I and J alike, with the part's own title or none. */
