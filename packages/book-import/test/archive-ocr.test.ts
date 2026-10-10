@@ -95,6 +95,29 @@ describe("parseArchiveOcrWork on notes left out", () => {
   });
 });
 
+describe("parseArchiveOcrWork on a work that opens mid-page", () => {
+  it("reads its first page from the line it opens with, after another's end", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      opensWith: "Es hat dabei für uns",
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join("\n");
+
+    expect(units[0]?.paragraphs[0]).toStartWith(
+      "Es hat dabei für uns kein Interesse",
+    );
+    expect(text).not.toContain("In der psychoanalytischen Theorie");
+  });
+
+  it("stops on an opening line its first page does not hold", async () => {
+    const hocr = await fixture();
+
+    expect(() =>
+      parseArchiveOcrWork(hocr, { ...work, opensWith: "Nicht da" }),
+    ).toThrow('No line opening "Nicht da" on page 3');
+  });
+});
+
 describe("parseArchiveOcrWork on pages left out", () => {
   it("leaves out the pages the manifest names, such as an editors' note", async () => {
     const units = parseArchiveOcrWork(await fixture(), {

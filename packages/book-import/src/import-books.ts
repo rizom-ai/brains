@@ -103,6 +103,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
+      opensWith: z.ZodOptional<z.ZodString>;
     }
   >
 > = z.object({
@@ -135,6 +136,8 @@ const archiveOcrBookSchema: z.ZodObject<
   spacedNotes: z.boolean().default(false),
   /** A volume of newspaper articles, each titled above its dateline: London, 9. Juni 1854. */
   datelined: z.boolean().default(false),
+  /** The line the first page opens the work with, after another work's end. */
+  opensWith: z.string().min(1).optional(),
 });
 
 /** What a coverage note says of the books' source, before it lists them. */

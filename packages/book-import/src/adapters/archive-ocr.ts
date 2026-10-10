@@ -61,6 +61,11 @@ export interface ArchiveOcrWork {
    * articles stand under topics set in display type.
    */
   datelined?: boolean;
+  /**
+   * The line its first page opens the work with, where it follows another
+   * work's end on that page, as a periodical prints it.
+   */
+  opensWith?: string | undefined;
 }
 
 /** A note left out: on a printed page, the note that opens with these words. */
@@ -1909,6 +1914,19 @@ function volumeOf(hocr: string): ReadVolume {
   return lastRead.volume;
 }
 
+/** A work's first page from the line it opens with, if the manifest names one. */
+function opened(page: Page, work: ArchiveOcrWork): Page {
+  const opening = work.opensWith;
+  if (opening === undefined) return page;
+  const at = page.lines.findIndex((line) =>
+    normalised(line.text).startsWith(opening),
+  );
+  if (at < 0) {
+    throw new Error(`No line opening "${opening}" on page ${work.firstPage}`);
+  }
+  return { ...page, lines: page.lines.slice(at) };
+}
+
 /**
  * Parse a work from a scanned volume's hOCR: its parts, chapters and
  * subsections by their headings, paragraphs by first-line indent across
@@ -1948,7 +1966,7 @@ export function parseArchiveOcrWork(
         number >= firstPage &&
         number <= work.lastPage &&
         !(work.skipPages ?? []).includes(number)
-        ? [{ page, number }]
+        ? [{ page: number === firstPage ? opened(page, work) : page, number }]
         : [];
     })
     .reduce<WorkState>(

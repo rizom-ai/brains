@@ -836,6 +836,18 @@ books:
     ).toBe(true);
   });
 
+  it("names the line a work opens with, after another's end on its first page", () => {
+    const manifest = parseManifest(
+      ocrManifest + "    opensWith: London, 5. Mai 1875.\n",
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].opensWith
+        : null,
+    ).toBe("London, 5. Mai 1875.");
+  });
+
   it("names a volume of newspaper articles, each titled above its dateline", () => {
     const manifest = parseManifest(ocrManifest + "    datelined: true\n");
 
