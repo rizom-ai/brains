@@ -19,6 +19,15 @@ import { volumeOfPages, type PageOcr } from "./page-ocr";
 import { renderBook, type BookDetails, type BookUnit } from "./render-book";
 import { writeBook } from "./write-book";
 
+const manifestPartSchema: z.ZodObject<{
+  siglum: z.ZodString;
+  title: z.ZodString;
+}> = z.object({
+  siglum: z.string().min(1),
+  /** The part's title as its title page names it: "Erster Theil". */
+  title: z.string().min(1),
+});
+
 interface BookFields {
   slug: z.ZodString;
   shortTitle: z.ZodOptional<z.ZodString>;
@@ -44,10 +53,22 @@ const bookFields: BookFields = {
 };
 
 const ekgwbBookSchema: z.ZodObject<
-  Shape<BookFields & { siglum: z.ZodString; title: z.ZodOptional<z.ZodString> }>
+  Shape<
+    BookFields & {
+      siglum: z.ZodOptional<z.ZodString>;
+      parts: z.ZodOptional<z.ZodArray<typeof manifestPartSchema>>;
+      title: z.ZodOptional<z.ZodString>;
+    }
+  >
 > = z.object({
   ...bookFields,
-  siglum: z.string().min(1),
+  /** The book's siglum, for a book printed as one. */
+  siglum: z.string().min(1).optional(),
+  /**
+   * A title printed in numbered parts is one book: each part is read from
+   * its own siglum, in this order.
+   */
+  parts: z.array(manifestPartSchema).min(2).optional(),
   /** The work's own title, where the page heads it with a series title. */
   title: z.string().min(1).optional(),
 });
@@ -312,7 +333,15 @@ const bookSchema: z.ZodDiscriminatedUnion<
   ],
   "source"
 > = z.discriminatedUnion("source", [
-  ekgwbBookSchema.extend({ source: z.literal("ekgwb") }),
+  ekgwbBookSchema
+    .extend({ source: z.literal("ekgwb") })
+    .refine(
+      (book) => (book.siglum === undefined) !== (book.parts === undefined),
+      { message: "A book names either its siglum or its parts" },
+    )
+    .refine((book) => book.parts === undefined || book.title !== undefined, {
+      message: "A book of parts names its title",
+    }),
   archiveOcrBookSchema.extend({ source: z.literal("archive-ocr") }),
   dtaTeiBookSchema.extend({ source: z.literal("dta-tei") }),
   wikisourceBookSchema.extend({ source: z.literal("wikisource") }),
@@ -400,6 +429,25 @@ const EKGWB_EDITION =
 const EKGWB_ATTRIBUTION =
   "Nietzsche Source, eKGWB, ed. Paolo D'Iorio (nietzschesource.org)";
 
+/** A book's title and units, read from a source by its siglum. */
+export interface BookRead {
+  title: string;
+  units: BookUnit[];
+}
+
+/** Where the importer reads a siglum's book from. */
+export interface BookReader {
+  read(siglum: string): Promise<BookRead>;
+}
+
+/** Read each siglum's print page from eKGWB. */
+export function ekgwbReader(fetchText: FetchText): BookReader {
+  return {
+    read: async (siglum): Promise<BookRead> =>
+      parseEkgwbBook(await fetchText(`${EKGWB_BASE}${siglum}/print`), siglum),
+  };
+}
+
 const ARCHIVE = "https://archive.org";
 
 const archiveMetadataSchema = z.object({
@@ -420,6 +468,11 @@ export interface ImportOptions {
   corrections?: Corrections;
   /** Reads a scan's page images anew with a model, for works that name one. */
   pageOcr?: (model: string) => PageOcr;
+  /**
+   * Where eKGWB books are read from: eKGWB itself, or a corpus the importer
+   * already rendered, so a book's structure can change without a fetch.
+   */
+  ekgwb?: BookReader;
 }
 
 export interface ImportResult {
@@ -434,10 +487,27 @@ interface LoadedBook {
 
 async function loadEkgwbBook(
   entry: z.output<typeof ekgwbBookSchema>,
-  fetchText: FetchText,
+  reader: BookReader,
 ): Promise<LoadedBook> {
-  const html = await fetchText(`${EKGWB_BASE}${entry.siglum}/print`);
-  const { title, units } = parseEkgwbBook(html, entry.siglum);
+  const parts = entry.parts ?? [{ siglum: entry.siglum ?? "", title: null }];
+  const read = await parts.reduce<Promise<BookRead[]>>(
+    async (previous, part) => {
+      const book = await reader.read(part.siglum);
+      if (book.units.length === 0) {
+        throw new Error(`No sections found for ${part.siglum}`);
+      }
+      // A part's title encloses everything read from its siglum.
+      const units = book.units.map((unit) => ({
+        ...unit,
+        parents:
+          part.title === null ? unit.parents : [part.title, ...unit.parents],
+      }));
+      return [...(await previous), { title: book.title, units }];
+    },
+    Promise.resolve([]),
+  );
+  const title = read[0]?.title ?? "";
+  const units = read.flatMap((part) => part.units);
   return {
     book: {
       slug: entry.slug,
@@ -448,7 +518,7 @@ async function loadEkgwbBook(
       edition: EKGWB_EDITION,
       license: "CC-BY-NC-ND-4.0",
       attribution: EKGWB_ATTRIBUTION,
-      source: `${EKGWB_BASE}${entry.siglum}`,
+      source: `${EKGWB_BASE}${parts[0]?.siglum ?? ""}`,
       published: entry.published,
       shortTitle: entry.shortTitle ?? null,
     },
@@ -764,7 +834,7 @@ function loadersOf(
   return manifest.books.map((entry) => () => {
     switch (entry.source) {
       case "ekgwb":
-        return loadEkgwbBook(entry, fetchText);
+        return loadEkgwbBook(entry, options.ekgwb ?? ekgwbReader(fetchText));
       case "archive-ocr":
         return loadArchiveOcrBook(entry, fetchText, options);
       case "dta-tei":

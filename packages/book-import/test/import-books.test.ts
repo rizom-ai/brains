@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { bookAdapter } from "@brains/book";
+import { bookAdapter, bookSectionAdapter } from "@brains/book";
 import {
   importBooks,
   ocrVolumeHocr,
@@ -52,15 +52,18 @@ describe("importBooks", () => {
       "http://www.nietzschesource.org/eKGWB/EB/print",
     ]);
     expect(results).toEqual([{ slug: "erfundenes-buch", entries: 3 }]);
+    expect(await readdir(join(brainData, "book"))).toEqual([
+      "erfundenes-buch.md",
+    ]);
     expect(
-      (await readdir(join(brainData, "book/erfundenes-buch"))).sort(),
-    ).toEqual(["00000-titel.md", "00001-vorwort.md", "00002-1.md"]);
+      (await readdir(join(brainData, "book-section/erfundenes-buch"))).sort(),
+    ).toEqual(["00001-vorwort.md", "00002-1.md"]);
   });
 
-  it("credits eKGWB on the title entry", async () => {
+  it("credits eKGWB on the book", async () => {
     await importBooks(parseManifest(manifestYaml), brainData, fetchFixture);
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
@@ -87,7 +90,7 @@ describe("importBooks", () => {
       fetchFixture,
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
@@ -110,7 +113,7 @@ describe("importBooks", () => {
       fetchFixture,
     );
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
@@ -122,7 +125,7 @@ describe("importBooks", () => {
   it("counts a book as published unless the manifest says otherwise", async () => {
     await importBooks(parseManifest(manifestYaml), brainData, fetchFixture);
     const title = await readFile(
-      join(brainData, "book/erfundenes-buch/00000-titel.md"),
+      join(brainData, "book/erfundenes-buch.md"),
       "utf8",
     );
 
@@ -137,6 +140,113 @@ describe("importBooks", () => {
     expect(() =>
       parseManifest(
         `source: ekgwb\nbooks:\n  - slug: x\n    author: A\n    year: 1\n    kind: work\n`,
+      ),
+    ).toThrow();
+  });
+});
+
+describe("importBooks with a book of several parts", () => {
+  let brainData: string;
+  const requested: string[] = [];
+  const partsYaml = `
+source: ekgwb
+books:
+  - slug: erfundenes-werk
+    title: Erfundenes Werk
+    author: Erfundener Autor
+    year: 1888
+    kind: work
+    parts:
+      - siglum: EB-I
+        title: Erster Theil
+      - siglum: EB-II
+        title: Zweiter Theil
+`;
+
+  beforeEach(async () => {
+    brainData = await mkdtemp(join(tmpdir(), "book-import-parts-"));
+    requested.length = 0;
+  });
+
+  afterEach(async () => {
+    await rm(brainData, { recursive: true, force: true });
+  });
+
+  /** The flat fixture, keyed to whichever siglum is asked for. */
+  async function fetchPart(url: string): Promise<string> {
+    requested.push(url);
+    const siglum = url.split("/").at(-2) ?? "";
+    const html = await readFile(
+      join(import.meta.dir, "fixtures", "ekgwb-flat.html"),
+      "utf8",
+    );
+    return html.replaceAll("EB-", `${siglum}-`);
+  }
+
+  async function entries(): Promise<Record<string, unknown>[]> {
+    const root = join(brainData, "book-section/erfundenes-werk");
+    const files = await readdir(root, { recursive: true });
+    const parsed = await Promise.all(
+      files
+        .filter((file) => file.endsWith(".md"))
+        .map(async (file) =>
+          bookSectionAdapter.parseFrontMatter(
+            await readFile(join(root, file), "utf8"),
+            bookSectionAdapter.frontmatterSchema,
+          ),
+        ),
+    );
+    return parsed.sort(
+      (left, right) => Number(left["order"]) - Number(right["order"]),
+    );
+  }
+
+  it("joins the parts into one book, numbered across them", async () => {
+    const results = await importBooks(
+      parseManifest(partsYaml),
+      brainData,
+      fetchPart,
+    );
+
+    expect(requested).toEqual([
+      "http://www.nietzschesource.org/eKGWB/EB-I/print",
+      "http://www.nietzschesource.org/eKGWB/EB-II/print",
+    ]);
+    expect(results).toEqual([{ slug: "erfundenes-werk", entries: 5 }]);
+    const sections = await entries();
+    expect(sections.map((entry) => entry["order"])).toEqual([1, 2, 3, 4]);
+    expect(sections.map((entry) => entry["headings"])).toEqual([
+      ["Erster Theil"],
+      ["Erster Theil"],
+      ["Zweiter Theil"],
+      ["Zweiter Theil"],
+    ]);
+    expect(sections.map((entry) => entry["section"])).toEqual([
+      "EB-I-Vorwort",
+      "EB-I-1",
+      "EB-II-Vorwort",
+      "EB-II-1",
+    ]);
+  });
+
+  it("titles the book from the manifest and lists its parts", async () => {
+    await importBooks(parseManifest(partsYaml), brainData, fetchPart);
+    const title = await readFile(
+      join(brainData, "book/erfundenes-werk.md"),
+      "utf8",
+    );
+
+    expect(
+      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
+    ).toMatchObject({ title: "Erfundenes Werk", sections: 4 });
+    expect(title).toContain("[Erster Theil]");
+    expect(title).toContain("[Zweiter Theil]");
+  });
+
+  it("rejects a book that names both a siglum and parts", () => {
+    expect(() =>
+      parseManifest(
+        partsYaml.replace("kind: work", "kind: work\n    siglum: EB"),
       ),
     ).toThrow();
   });
@@ -207,7 +317,7 @@ books:
       },
     );
     const title = await readFile(
-      join(brainData, "book", "das-kapital-1", "00000-titel.md"),
+      join(brainData, "book", "das-kapital-1.md"),
       "utf8",
     );
 
@@ -264,8 +374,7 @@ books:
       join(
         brainData,
         "book",
-        "briefe-aus-den-deutsch-franzoesischen-jahrbuechern",
-        "00000-titel.md",
+        "briefe-aus-den-deutsch-franzoesischen-jahrbuechern.md",
       ),
       "utf8",
     );
@@ -327,7 +436,7 @@ books:
       },
     );
     const title = await readFile(
-      join(brainData, "book", "briefe-an-engels-1844-1853", "00000-titel.md"),
+      join(brainData, "book", "briefe-an-engels-1844-1853.md"),
       "utf8",
     );
 
@@ -391,7 +500,7 @@ books:
       },
     );
     const title = await readFile(
-      join(brainData, "book", "briefe-1866-1871", "00000-titel.md"),
+      join(brainData, "book", "briefe-1866-1871.md"),
       "utf8",
     );
 
@@ -451,7 +560,7 @@ books:
       },
     );
     const title = await readFile(
-      join(brainData, "book", "grundrisse", "00000-titel.md"),
+      join(brainData, "book", "grundrisse.md"),
       "utf8",
     );
 
@@ -665,10 +774,10 @@ books:
       },
     });
     const files = await Array.fromAsync(
-      new Bun.Glob("**/*.md").scan(join(brainData, "book")),
+      new Bun.Glob("book-section/**/*.md").scan(brainData),
     );
     const texts = await Promise.all(
-      files.map((file) => readFile(join(brainData, "book", file), "utf8")),
+      files.map((file) => readFile(join(brainData, file), "utf8")),
     );
 
     expect(texts.join("\n")).toContain("rückt ein Wort");
@@ -755,7 +864,7 @@ freud-1940-gw-13:
   it("credits the edition and the scan on the title entry", async () => {
     await importBooks(parseManifest(ocrManifest), brainData, fetchArchive);
     const title = await readFile(
-      join(brainData, "book/jenseits-des-lustprinzips/00000-titel.md"),
+      join(brainData, "book/jenseits-des-lustprinzips.md"),
       "utf8",
     );
 

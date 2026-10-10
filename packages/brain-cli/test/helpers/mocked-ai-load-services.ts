@@ -31,6 +31,8 @@ export interface MockLoadSnapshot {
   maxConcurrentUpdateEmbeddingCalls: number;
   objectCalls: number;
   objectCallsByProjection: Record<string, number>;
+  /** Per-source reads by topic vote prompts, keyed by `Source key:`. */
+  sourceReads: Record<string, number>;
   textCalls: number;
   activeCalls: number;
   maxConcurrentCalls: number;
@@ -48,6 +50,7 @@ export class MockLoadTracker {
   private maxConcurrentUpdateEmbeddingCalls = 0;
   private objectCalls = 0;
   private readonly objectCallsByProjection = new Map<string, number>();
+  private readonly sourceReads = new Map<string, number>();
   private textCalls = 0;
   private activeCalls = 0;
   private maxConcurrentCalls = 0;
@@ -100,6 +103,12 @@ export class MockLoadTracker {
     };
   }
 
+  recordSourceReads(keys: readonly string[]): void {
+    for (const key of keys) {
+      this.sourceReads.set(key, (this.sourceReads.get(key) ?? 0) + 1);
+    }
+  }
+
   snapshot(): MockLoadSnapshot {
     return {
       embeddingCalls: this.embeddingCalls,
@@ -111,6 +120,11 @@ export class MockLoadTracker {
       objectCalls: this.objectCalls,
       objectCallsByProjection: Object.fromEntries(
         [...this.objectCallsByProjection].sort(([left], [right]) =>
+          left.localeCompare(right),
+        ),
+      ),
+      sourceReads: Object.fromEntries(
+        [...this.sourceReads].sort(([left], [right]) =>
           left.localeCompare(right),
         ),
       ),
@@ -241,7 +255,7 @@ export class MockLoadAIService implements IAIService {
 
   async generateObject<T>(
     systemPrompt: string,
-    _userPrompt: string,
+    userPrompt: string,
     schema: AIGenerationSchema<T>,
     signal?: AbortSignal,
   ): Promise<{ object: T; usage: typeof tokenUsage }> {
@@ -253,7 +267,19 @@ export class MockLoadAIService implements IAIService {
     );
     try {
       await delay(this.delayMs, signal);
+      // Topic vote prompts must answer every listed source exactly once.
+      const sourceKeys = [...userPrompt.matchAll(/^Source key: (.+)$/gm)].map(
+        ([, key]) => key ?? "",
+      );
+      this.tracker.recordSourceReads(sourceKeys);
       const candidates: unknown[] = [
+        {
+          sources: sourceKeys.map((sourceKey) => ({
+            sourceKey,
+            supported: [],
+            proposal: null,
+          })),
+        },
         { topics: [] },
         { skills: [] },
         {
@@ -326,4 +352,17 @@ export class MockLoadAIService implements IAIService {
   canGenerateImages(): boolean {
     return false;
   }
+}
+
+/** Per-key counts that changed between two tracker snapshots. */
+export function diffCounts(
+  before: Record<string, number>,
+  after: Record<string, number>,
+): Record<string, number> {
+  return Object.fromEntries(
+    [...new Set([...Object.keys(before), ...Object.keys(after)])]
+      .sort()
+      .map((key) => [key, (after[key] ?? 0) - (before[key] ?? 0)])
+      .filter(([, count]) => count !== 0),
+  );
 }

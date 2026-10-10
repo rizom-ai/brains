@@ -1,7 +1,7 @@
 {
   "name": "@brains/ai-evaluation",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.495",
+  "version": "0.2.0-alpha.513",
   "description": "AI evaluation system for testing agent and plugin performance",
   "bin": {
     "brain-eval": "./src/run-evaluations.ts"
@@ -15,8 +15,8 @@
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@modelcontextprotocol/client": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "chalk": "^5.4.1",
     "dotenv": "^17.4.2",
     "yaml": "^2.9.0"

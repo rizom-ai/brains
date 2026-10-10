@@ -1,5 +1,45 @@
 # @brains/ops
 
+## 0.2.0-alpha.513
+
+## 0.2.0-alpha.512
+
+## 0.2.0-alpha.511
+
+## 0.2.0-alpha.510
+
+## 0.2.0-alpha.509
+
+## 0.2.0-alpha.508
+
+## 0.2.0-alpha.507
+
+### Patch Changes
+
+- [#580](https://github.com/rizom-ai/brains/pull/580) [`dbaa3b1`](https://github.com/rizom-ai/brains/commit/dbaa3b11b0f4888bea6956e2cd7efa26e388617d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy snapshot's refusal "job queue is not idle" now names the queue it saw (pending, processing and abandoned counts) and says to rerun once it drains, so a deploy that stops on a busy brain explains itself in the workflow log.
+
+## 0.2.0-alpha.506
+
+## 0.2.0-alpha.505
+
+## 0.2.0-alpha.504
+
+## 0.2.0-alpha.503
+
+## 0.2.0-alpha.502
+
+## 0.2.0-alpha.501
+
+## 0.2.0-alpha.500
+
+## 0.2.0-alpha.499
+
+## 0.2.0-alpha.498
+
+## 0.2.0-alpha.497
+
+## 0.2.0-alpha.496
+
 ## 0.2.0-alpha.495
 
 ## 0.2.0-alpha.494

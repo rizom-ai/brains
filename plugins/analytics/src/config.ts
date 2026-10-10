@@ -4,6 +4,7 @@ type CloudflareConfigSchema = z.ZodObject<{
   accountId: z.ZodString;
   apiToken: z.ZodString;
   siteTag: z.ZodString;
+  beaconToken: z.ZodOptional<z.ZodString>;
 }>;
 
 /**
@@ -15,7 +16,17 @@ export const cloudflareConfigSchema: CloudflareConfigSchema = z.object({
   apiToken: z
     .string()
     .describe("Cloudflare API token with Analytics:Read permission"),
-  siteTag: z.string().describe("Cloudflare Web Analytics site tag"),
+  siteTag: z
+    .string()
+    .describe(
+      "Cloudflare Web Analytics site tag, which metrics queries filter on",
+    ),
+  beaconToken: z
+    .string()
+    .optional()
+    .describe(
+      "Web Analytics site token for a beacon the brain injects itself; leave unset when Cloudflare injects it (automatic setup on a proxied zone)",
+    ),
 });
 
 export type CloudflareConfig = z.output<typeof cloudflareConfigSchema>;

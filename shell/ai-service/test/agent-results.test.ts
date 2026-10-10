@@ -235,6 +235,55 @@ describe("an answer's sources", () => {
     ]);
     expect(sourceIds()).toEqual(sourceIds("A general answer."));
   });
+
+  it("keep the sources a tool attributes itself, with their brains", () => {
+    const cards = extractToolResults(
+      [
+        {
+          toolCalls: [{ toolCallId: "n", toolName: "network_ask", input: {} }],
+          toolResults: [
+            {
+              toolCallId: "n",
+              toolName: "network_ask",
+              output: {
+                success: true,
+                data: {
+                  answers: [],
+                  sources: [
+                    {
+                      id: "agent:jo.example",
+                      title: "Jo",
+                      source: "agent",
+                      url: "https://jo.example",
+                      brain: { name: "Jo", url: "https://jo.example" },
+                    },
+                    { title: "not a citation" },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      "Jo says to start with the soil.",
+    ).cards;
+    expect(cards).toEqual([
+      {
+        kind: "sources",
+        id: "sources:tool-results",
+        title: "Retrieved sources",
+        sources: [
+          {
+            id: "agent:jo.example",
+            title: "Jo",
+            source: "agent",
+            url: "https://jo.example",
+            brain: { name: "Jo", url: "https://jo.example" },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe("buildAgentContactCandidates", () => {

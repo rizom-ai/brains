@@ -178,8 +178,8 @@ Note that this phase changes the plugin SDK surface, not just core: the
 
 ### Phase 3 — Fold Cloudflare query into analytics
 
-- Move `analytics_query` behavior into `system_analytics` via `traffic-overview` params or a more specific `traffic-query` report.
-- Decide whether to remove `analytics_query` cleanly or leave it as a plugin-local CLI/admin affordance only.
+- Replace `analytics_query` with the `traffic-overview` and `traffic-series` reports defined in [traffic-analytics.md](./traffic-analytics.md), which read the brain's traffic snapshots rather than querying Cloudflare per call.
+- Remove `analytics_query`.
 - Ensure no duplicate LLM-callable traffic analytics surface remains in the professional posture.
 
 ### Phase 4 — Tighten report quality
@@ -227,9 +227,9 @@ Required checks:
   - metrics/cadence/health requests use `system_analytics`;
   - traffic requests use the Cloudflare-backed analytics report when configured.
 
-## Open questions
+## Decisions
 
-- Should the final name be `system_analytics` or `system_reports`? Current preference: `system_analytics`.
-- Should traffic analytics be public-visible, trusted-visible, or admin-only by default?
-- Should `analytics_query` be removed cleanly once Cloudflare params are available via `system_analytics`, or kept as a non-agent/CLI tool?
-- Do report definitions need output schemas in the first typed-params phase, or can that come later?
+- The name is `system_analytics`: the surface reports metrics, and "reports" reads as documents the brain writes.
+- Traffic reports are admin-only (`minVisibility: "admin"`): traffic is operational data, and the snapshots they read are `restricted` entities ([traffic-analytics.md](./traffic-analytics.md)).
+- `analytics_query` is removed cleanly in Phase 3, with no alias or CLI-only remnant; the traffic reports cover its date ranges and limits.
+- Output schemas come with the typed-params phase only for the traffic reports, which the Studio Traffic workspace also renders; the core reports add theirs in Phase 4.

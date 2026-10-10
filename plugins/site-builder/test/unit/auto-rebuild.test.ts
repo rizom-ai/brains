@@ -10,7 +10,6 @@ import { genericSpy, waitUntil } from "@brains/test-utils";
 
 /** The build payload these tests read off an enqueued job. */
 const buildJobDataSchema = z.looseObject({
-  inputGeneration: z.number().optional(),
   environment: z.string().optional(),
   outputDir: z.string().optional(),
 });
@@ -105,7 +104,11 @@ describe("RebuildManager", () => {
     await manager.dispose();
   });
 
-  test("enqueues one dirty-generation successor after an active build", async () => {
+  test("every site wave enqueues, whichever process runs the builds", async () => {
+    // The web process schedules waves and the worker runs builds, so this
+    // manager never hears a build start or finish. The queue keeps at most one
+    // pending build per environment; a wave during a running build leaves one
+    // pending behind it.
     let waveReadyHandler: WaveReadyHandler | undefined;
     // mock() erases the type parameters subscribeExecution declares;
     // genericSpy names that as the only reason.
@@ -117,13 +120,6 @@ describe("RebuildManager", () => {
         return () => {};
       }),
     );
-    let nextJob = 0;
-    enqueue.mockImplementation(
-      mock(async () => {
-        nextJob += 1;
-        return `job-${nextJob}`;
-      }),
-    );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
       context,
@@ -133,40 +129,19 @@ describe("RebuildManager", () => {
     manager.setupAutoRebuild();
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
-    await waveReadyHandler({
-      payload: {
-        waveId: "wave-1",
-        sourceTypes: ["post"],
-        changedTargetTypes: [],
-      },
-    });
-    manager.markBuildStarted("preview", "job-1", 1);
-
-    await waveReadyHandler({
-      payload: {
-        waveId: "wave-2",
-        sourceTypes: ["post"],
-        changedTargetTypes: [],
-      },
-    });
-    await waveReadyHandler({
-      payload: {
-        waveId: "wave-3",
-        sourceTypes: ["page"],
-        changedTargetTypes: [],
-      },
-    });
-    await manager.markBuildFinished("preview", "job-1", 1);
+    for (const waveId of ["wave-1", "wave-2"]) {
+      await waveReadyHandler({
+        payload: { waveId, sourceTypes: ["book"], changedTargetTypes: [] },
+      });
+    }
 
     expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(
-      buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data)
-        .inputGeneration,
-    ).toBe(1);
-    expect(
-      buildJobDataSchema.parse(enqueue.mock.calls[1]?.[0]?.data)
-        .inputGeneration,
-    ).toBe(3);
+    for (const [request] of enqueue.mock.calls) {
+      expect(request.options).toMatchObject({
+        deduplication: "skip",
+        deduplicationKey: "site-build:preview",
+      });
+    }
     await manager.dispose();
   });
 

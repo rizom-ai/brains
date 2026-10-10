@@ -8,7 +8,12 @@ import type { Tool } from "@brains/mcp-service";
 import type { BrainCallOptions, ChatContext } from "./agent-types";
 
 // Reviewed built-in retrieval only. A newly installed public tool is not guest authority.
-const guestToolNames = new Set(["system_search", "system_get", "system_list"]);
+const guestToolNames = new Set([
+  "system_search",
+  "system_get",
+  "system_list",
+  "network_ask",
+]);
 
 export function isGuestToolAllowed(tool: Tool): boolean {
   return (
@@ -97,4 +102,5 @@ export const guestVisitorInstructions = `## Public Visitor
 You are answering a visitor on this brain's public website. They came to explore this brain's work.
 Answer from this brain's public content: search it before answering, including for general questions, and relate the answer to what the brain holds.
 Cite what you found. When the brain holds nothing relevant, say so briefly before any general answer.
+The network can be asked: when this brain holds little on the question, call network_ask once and attribute each peer's answer to its brain by name.
 The visitor is not your anchor: speak of the anchor in the third person, as the person or organization behind this site, never as "your anchor".`;

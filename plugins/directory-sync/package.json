@@ -1,7 +1,7 @@
 {
   "name": "@brains/directory-sync",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.495",
+  "version": "0.2.0-alpha.513",
   "description": "Directory-based entity synchronization plugin for Brains",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -11,7 +11,7 @@
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "chokidar": "^5.0.0",
-    "simple-git": "^3.36.0"
+    "simple-git": "^4.0.2"
   },
   "devDependencies": {
     "@brains/mcp-service": "workspace:*",
