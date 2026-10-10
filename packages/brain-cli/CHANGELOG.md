@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- [#589](https://github.com/rizom-ai/brains/pull/589) [`a2566b1`](https://github.com/rizom-ai/brains/commit/a2566b1df0f59902665386789932ce80fbabe371) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Built-in dashboard widgets read entities at the viewer's visibility, which `registerBuiltInDashboardWidget` now passes to `load` as `visibilityScope`. They read public entities only before, so the owner's dashboard showed none of their restricted conversation memory (summaries, decisions, action items, coverage) or non-public topics, wishes, skills and pipeline drafts.
+
+- [#589](https://github.com/rizom-ai/brains/pull/589) [`780b089`](https://github.com/rizom-ai/brains/commit/780b0898aec4b1a3de9f04f1b3101b4acdbe7180) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reads of non-public entities that relied on an unscoped lookup now pass a scope: a restricted artifact is withheld from callers who cannot see it instead of passing as missing; publishing a non-public post names why it is refused; reordering or restarting the publication queue keeps non-public queued posts; a redelivered email is not classified twice; note capture and markdown imports find their own private notes.
+
 ## 0.2.0-alpha.517
 
 ## 0.2.0-alpha.516
