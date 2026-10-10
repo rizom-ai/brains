@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- [#592](https://github.com/rizom-ai/brains/pull/592) [`5c51b8f`](https://github.com/rizom-ai/brains/commit/5c51b8f690f63f79940d96f29f1b55ad36eb363a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web chat initialises again. It reads the brain's app info while registering, to name the configured model to guests, and app info used to throw until every plugin had registered its job handlers. App info is now available throughout boot; its background-work summary checks undeclared job types once the handler declarations are final.
+
+- [#591](https://github.com/rizom-ai/brains/pull/591) [`d652301`](https://github.com/rizom-ai/brains/commit/d652301da8bf5e7ca9eb2ea6a054d3110f0bd30f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity type can be contained in another: a book's sections live in the book's own folder (`book/<slug>.md` beside `book/<slug>/`), are deleted with their book, and appear inside Books in Studio rather than as a separate collection. Each book is a folder titled by the book; opening one shows the book's record first, then its sections. Contained ids start with their container's id, and a container's ids stay flat.
+
 ## 0.2.0-alpha.518
 
 ### Patch Changes
