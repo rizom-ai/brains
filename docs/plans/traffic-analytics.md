@@ -56,13 +56,19 @@ and for today's partial numbers.
 week, id `YYYY-Www`, markdown with the numbers in frontmatter and a short
 generated summary in the body:
 
-- `days`: per date, `pageviews`, `visits`, `estimated` (Cloudflare's sample
-  interval was above about 1.5 for that day).
-- `paths`: per date, the top 50 request paths with pageviews (query string
-  and trailing slash stripped).
-- `referrers`: per date, top referring hosts with visits, and the top
-  path × referrer pairs (what brought readers to which page).
-- `countries`: per date, top countries with visits.
+`days`, one entry per date with:
+
+- `pageviews`, `visits`, `estimated` (Cloudflare's sample interval was
+  above about 1.5 for that day);
+- `paths`: the top 25 request paths with pageviews (trailing slash
+  stripped);
+- `referrers`: the top 10 referring hosts with visits, and
+  `pathReferrers`, the top 25 path × referrer pairs (what brought readers
+  to which page); rows without visits, such as navigation within the
+  site, are dropped;
+- `countries`: the top 10 countries with visits.
+
+A week comes to about 5 KB.
 
 Weekly keeps the store at about 52 files a year, each readable on its own
 and synced with the rest of the content. Visibility is `restricted`:
