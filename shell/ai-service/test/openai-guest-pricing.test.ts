@@ -3,10 +3,20 @@ import type { LanguageModelUsage } from "ai";
 import {
   guestTurnSettlement,
   openAiEmbeddingPricingRevision,
-  openAiGuestPricingRevision,
-  priceOpenAiGuestTurn,
+  openAiGuestPricing,
   withEmbeddingUsage,
+  type GuestPricing,
 } from "../src/openai-guest-pricing";
+
+function pricingFor(model: string): GuestPricing {
+  const pricing = openAiGuestPricing(model);
+  if (!pricing) throw new Error(`No pricing for ${model}`);
+  return pricing;
+}
+
+const priceGpt56LunaTurn = pricingFor("gpt-5.6-luna");
+const priceGpt6LunaTurn = pricingFor("gpt-6-luna");
+const gpt56LunaRevision = "openai-gpt-5.6-luna-2026-09-26";
 
 function stepUsage(
   input: number,
@@ -30,11 +40,11 @@ function stepUsage(
   };
 }
 
-describe("guest turn pricing at the pinned Luna revision", () => {
+describe("guest turn pricing at the pinned GPT-5.6 Luna revision", () => {
   it("prices a turn from the usage the provider reported", () => {
     // 6,000 uncached × $0.20/M + 4,000 cached × $0.02/M + 500 output × $1.20/M
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [
           {
             input: 10_000,
@@ -47,14 +57,14 @@ describe("guest turn pricing at the pinned Luna revision", () => {
     ).toEqual({
       state: "known",
       microUsd: 1_880,
-      pricing: openAiGuestPricingRevision,
+      pricing: gpt56LunaRevision,
     });
   });
 
   it("charges a request over 272K input tokens at the long-context rates throughout", () => {
     // 300,000 × $0.40/M + 1,000 × $1.80/M
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [
           {
             input: 300_000,
@@ -69,7 +79,7 @@ describe("guest turn pricing at the pinned Luna revision", () => {
 
   it("prices each model call at its own tier and sums the turn", () => {
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [
           { input: 1_000, cacheRead: 0, cacheWrite: undefined, output: 100 },
           { input: 300_000, cacheRead: 0, cacheWrite: undefined, output: 100 },
@@ -80,7 +90,7 @@ describe("guest turn pricing at the pinned Luna revision", () => {
 
   it("charges cache writes at 1.25× the uncached input rate", () => {
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [{ input: 1_000, cacheRead: 0, cacheWrite: 1_000, output: 0 }],
       }),
     ).toMatchObject({ state: "known", microUsd: 250 });
@@ -88,7 +98,7 @@ describe("guest turn pricing at the pinned Luna revision", () => {
 
   it("rounds a fraction of a micro-dollar up, never down", () => {
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [{ input: 1, cacheRead: 0, cacheWrite: undefined, output: 0 }],
       }),
     ).toMatchObject({ state: "known", microUsd: 1 });
@@ -96,7 +106,7 @@ describe("guest turn pricing at the pinned Luna revision", () => {
 
   it("leaves cost unknown rather than guess the unpublished long-context cached rate", () => {
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [
           {
             input: 300_000,
@@ -111,7 +121,7 @@ describe("guest turn pricing at the pinned Luna revision", () => {
 
   it("leaves cost unknown when a call reported no cached-input usage", () => {
     expect(
-      priceOpenAiGuestTurn({
+      priceGpt56LunaTurn({
         calls: [
           {
             input: 1_000,
@@ -125,6 +135,60 @@ describe("guest turn pricing at the pinned Luna revision", () => {
   });
 });
 
+describe("guest turn pricing at the pinned GPT-6 Luna revision", () => {
+  it("prices a turn from the usage the provider reported", () => {
+    // 6,000 uncached × $0.10/M + 4,000 cached × $0.01/M + 500 output × $0.50/M
+    expect(
+      priceGpt6LunaTurn({
+        calls: [
+          {
+            input: 10_000,
+            cacheRead: 4_000,
+            cacheWrite: undefined,
+            output: 500,
+          },
+        ],
+      }),
+    ).toEqual({
+      state: "known",
+      microUsd: 890,
+      pricing: "openai-gpt-6-luna-2026-10-10",
+    });
+  });
+
+  it("charges cache writes at 1.25× the uncached input rate", () => {
+    // 1,000 × $0.125/M
+    expect(
+      priceGpt6LunaTurn({
+        calls: [{ input: 1_000, cacheRead: 0, cacheWrite: 1_000, output: 0 }],
+      }),
+    ).toMatchObject({ state: "known", microUsd: 125 });
+  });
+
+  it("charges a request over 272K input tokens at the published long-context rates, cached input included", () => {
+    // 299,000 uncached × $0.20/M + 1,000 cached × $0.02/M + 1,000 × $0.75/M
+    expect(
+      priceGpt6LunaTurn({
+        calls: [
+          {
+            input: 300_000,
+            cacheRead: 1_000,
+            cacheWrite: undefined,
+            output: 1_000,
+          },
+        ],
+      }),
+    ).toMatchObject({ state: "known", microUsd: 59_800 + 20 + 750 });
+  });
+});
+
+describe("guest pricing by model", () => {
+  it("has no pricing for a model whose rates are not published here", () => {
+    expect(openAiGuestPricing("gpt-4.1")).toBeUndefined();
+    expect(openAiGuestPricing(undefined)).toBeUndefined();
+  });
+});
+
 describe("guest turn settlement from the agent's steps", () => {
   it("sums each step's reported usage and prices it", () => {
     const settlement = guestTurnSettlement(
@@ -132,7 +196,7 @@ describe("guest turn settlement from the agent's steps", () => {
         { usage: stepUsage(10_000, 4_000, 300, 100) },
         { usage: stepUsage(0, 0, 200) },
       ],
-      priceOpenAiGuestTurn,
+      priceGpt56LunaTurn,
     );
     expect(settlement.usage).toEqual({
       modelCalls: 2,
@@ -145,7 +209,7 @@ describe("guest turn settlement from the agent's steps", () => {
     expect(settlement.cost).toEqual({
       state: "known",
       microUsd: 1_880,
-      pricing: openAiGuestPricingRevision,
+      pricing: gpt56LunaRevision,
     });
   });
 
@@ -153,7 +217,7 @@ describe("guest turn settlement from the agent's steps", () => {
     expect(
       guestTurnSettlement(
         [{ usage: stepUsage(10, 0, 1) }, {}],
-        priceOpenAiGuestTurn,
+        priceGpt56LunaTurn,
       ).cost,
     ).toEqual({ state: "unknown", reason: "missing-usage" });
   });
@@ -168,7 +232,7 @@ describe("guest turn settlement from the agent's steps", () => {
 describe("a guest turn's embeddings in its settlement", () => {
   const settled = guestTurnSettlement(
     [{ usage: stepUsage(10_000, 4_000, 300, 100) }],
-    priceOpenAiGuestTurn,
+    priceGpt56LunaTurn,
   );
 
   it("counts the tokens and adds them at text-embedding-3-small's rate", () => {
@@ -182,7 +246,7 @@ describe("a guest turn's embeddings in its settlement", () => {
       state: "known",
       microUsd:
         settled.cost.state === "known" ? settled.cost.microUsd + 1_000 : -1,
-      pricing: `${openAiGuestPricingRevision}+${openAiEmbeddingPricingRevision}`,
+      pricing: `${gpt56LunaRevision}+${openAiEmbeddingPricingRevision}`,
     });
   });
 
@@ -207,7 +271,7 @@ describe("a guest turn's embeddings in its settlement", () => {
   });
 
   it("keeps an unknown cost unknown", () => {
-    const unknown = guestTurnSettlement([{}], priceOpenAiGuestTurn);
+    const unknown = guestTurnSettlement([{}], priceGpt56LunaTurn);
     expect(
       withEmbeddingUsage(unknown, [
         { model: "text-embedding-3-small", tokens: 10 },

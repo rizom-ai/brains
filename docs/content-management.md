@@ -79,29 +79,29 @@ brain tool system_list '{"entityType":"post","status":"draft"}'
 
 For creation, omit `visibility` for public content, use `shared` for content readable by Trusted and Admin callers, and use `restricted` for Admin-only content. Visibility is a sibling of `source`; do not add policy frontmatter to exact source text merely to select access.
 
-Use `fields` for frontmatter/metadata changes:
+`system_update` takes exactly one typed `operation`: `fields`, `edits`, `content`, or `source`. Use the `fields` operation for frontmatter/metadata changes:
 
 ```bash
 brain tool system_update '{
   "entityType":"post",
   "id":"my-first-post",
-  "fields":{"title":"A revised title"}
+  "operation":{"kind":"fields","fields":{"title":"A revised title"}}
 }'
 ```
 
-For small content changes, fetch the entity first and use `edits` rather than regenerating the whole Markdown document:
+For small content changes, fetch the entity first and use the `edits` operation rather than regenerating the whole Markdown document:
 
 ```bash
 brain tool system_update '{
   "entityType":"note",
   "id":"working-plan",
-  "edits":[{"oldText":"Review cadence: monthly.","newText":"Review cadence: weekly."}]
+  "operation":{"kind":"edits","edits":[{"oldText":"Review cadence: monthly.","newText":"Review cadence: weekly."}]}
 }'
 ```
 
 Each `oldText` must occur exactly once in the original content. Up to 50 non-overlapping edits can be proposed together; an empty `newText` deletes the matched text. All edits are checked before any is applied, and unchanged text is not regenerated. Ambiguous, missing, or overlapping matches are rejected.
 
-Use exactly one of `fields`, `edits`, or `content`. Use `content` only for intentional whole-document replacement. Source-derived metadata is refreshed when its source changes, including a note title derived from an edited heading.
+Use the `content` operation only for intentional whole-document replacement; text without frontmatter replaces the body and keeps the stored frontmatter. Use the `source` operation to replace content with text the user supplied in a conversation message, selected by exact boundaries. Flat `fields`, `edits`, or `content` arguments, unknown arguments, and mixed operations are rejected. Source-derived metadata is refreshed when its source changes, including a note title derived from an edited heading.
 
 The initial call proposes changes without writing them. Approve through the confirmation flow; stale or altered approvals are rejected. Basic MCP clients continue to use agent-backed `chat` and `confirm`, not direct mutation tools.
 

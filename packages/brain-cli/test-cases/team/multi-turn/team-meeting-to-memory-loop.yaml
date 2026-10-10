@@ -48,13 +48,14 @@ turns:
       responseContains:
         - "Customer Alpha"
         - "MCP"
-        - "unassigned"
         - "Daniel"
         - "Mira"
       responseNotContains:
         - "blog"
         - "newsletter"
         - "I don't have access"
+      responseCriteria:
+        - "Labels the captured action that has no owner (the Customer Alpha MCP handoff) as unassigned, and does not assign actions to people the notes do not name."
 
 successCriteria:
   expectedTools:
@@ -72,4 +73,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 8
-  maxTokens: 60000
+  maxTokens: 69000

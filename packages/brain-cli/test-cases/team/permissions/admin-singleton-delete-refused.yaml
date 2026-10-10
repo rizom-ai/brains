@@ -23,12 +23,13 @@ turns:
 
 successCriteria:
   responseNotContains:
-    - "deleted"
     - "I deleted"
     - "I removed"
   minAccuracyScore: 4
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Does not claim that anything was deleted."
 
 efficiency:
   maxToolCalls: 2
-  maxTokens: 20000
+  maxTokens: 16000

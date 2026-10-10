@@ -8,10 +8,10 @@
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@chat-adapter/discord": "^4.34.0",
-    "@chat-adapter/slack": "^4.34.0",
-    "@chat-adapter/state-memory": "^4.34.0",
-    "chat": "^4.34.0"
+    "@chat-adapter/discord": "^4.41.1",
+    "@chat-adapter/slack": "^4.41.1",
+    "@chat-adapter/state-memory": "^4.41.1",
+    "chat": "^4.41.1"
   },
   "devDependencies": {
     "@brains/core": "workspace:*",

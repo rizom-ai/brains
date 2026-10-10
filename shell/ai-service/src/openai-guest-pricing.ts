@@ -19,26 +19,61 @@ export interface GuestProviderUsage {
 /** Prices a guest turn's reported usage; absent when the model is unpriced. */
 export type GuestPricing = (usage: GuestProviderUsage) => GuestTurnCost;
 
-/**
- * Published gpt-5.6-luna rates, read on 2026-09-26
- * from https://developers.openai.com/api/docs/models/gpt-5.6-luna: per 1M
- * tokens, input $0.20, cached input $0.02, output $1.20 up to 272K input
- * tokens; above that, 2× input and 1.5× output for the whole request. Cache
- * writes cost 1.25× uncached input. Output includes reasoning. The long-context cached-input rate is not
- * published, so such a request is left unknown rather than guessed.
- */
-export const openAiGuestPricingRevision = "openai-gpt-5.6-luna-2026-09-26";
+/** Per-token rates in nano-dollars, so every published rate is an integer. */
+interface TokenRates {
+  input: number;
+  /** Absent where the provider publishes no rate; such a call stays unknown. */
+  cacheRead: number | undefined;
+  cacheWrite: number;
+  output: number;
+}
+
+interface ModelRates {
+  revision: string;
+  standard: TokenRates;
+  /** Applies to the whole request once its input passes the threshold. */
+  long: TokenRates;
+}
 
 const LONG_CONTEXT_THRESHOLD = 272_000;
-/** Hundredths of a micro-dollar per token, so every published rate is an integer. */
-const rates = {
-  standard: { input: 20, cacheRead: 2, cacheWrite: 25, output: 120 },
-  long: { input: 40, cacheRead: undefined, cacheWrite: 50, output: 180 },
-} as const;
 
-type Priced = { centi: number } | Extract<GuestTurnCost, { state: "unknown" }>;
+/**
+ * Published OpenAI rates per model, per 1M tokens. Above 272K input tokens the
+ * whole request is billed at 2× input and 1.5× output; cache writes cost 1.25×
+ * uncached input; output includes reasoning.
+ *
+ * gpt-5.6-luna, read 2026-09-26 from
+ * https://developers.openai.com/api/docs/models/gpt-5.6-luna: input $0.20,
+ * cached input $0.02, output $1.20. Its long-context cached-input rate is not
+ * published, so such a request is left unknown rather than guessed.
+ *
+ * gpt-6-luna, read 2026-10-10 from
+ * https://developers.openai.com/api/docs/models/gpt-6-luna: input $0.10,
+ * cached input $0.01, cache writes $0.125, output $0.50; long context doubles
+ * the cached-input rate too.
+ */
+const openAiModelRates: Readonly<Record<string, ModelRates>> = {
+  "gpt-5.6-luna": {
+    revision: "openai-gpt-5.6-luna-2026-09-26",
+    standard: { input: 200, cacheRead: 20, cacheWrite: 250, output: 1_200 },
+    long: { input: 400, cacheRead: undefined, cacheWrite: 500, output: 1_800 },
+  },
+  "gpt-6-luna": {
+    revision: "openai-gpt-6-luna-2026-10-10",
+    standard: { input: 100, cacheRead: 10, cacheWrite: 125, output: 500 },
+    long: { input: 200, cacheRead: 20, cacheWrite: 250, output: 750 },
+  },
+};
 
-function priceCall(call: GuestProviderUsage["calls"][number]): Priced {
+/** The pricing label of a turn that made no model call. */
+export const noModelCallPricing = "no-model-call";
+
+type Priced = { nano: number } | Extract<GuestTurnCost, { state: "unknown" }>;
+
+function priceCall(
+  rates: ModelRates,
+  call: GuestProviderUsage["calls"][number],
+): Priced {
   if (call.cacheRead === undefined)
     return { state: "unknown", reason: "missing-usage" };
   // The guest wire policy sends no cache writes; the provider reports none.
@@ -50,7 +85,7 @@ function priceCall(call: GuestProviderUsage["calls"][number]): Priced {
   if (call.cacheRead > 0 && tier.cacheRead === undefined)
     return { state: "unknown", reason: "unsupported-pricing" };
   return {
-    centi:
+    nano:
       uncached * tier.input +
       call.cacheRead * (tier.cacheRead ?? 0) +
       cacheWrite * tier.cacheWrite +
@@ -58,21 +93,31 @@ function priceCall(call: GuestProviderUsage["calls"][number]): Priced {
   };
 }
 
-/** A guest turn's cost from the provider's reported usage; never a quote. */
-export function priceOpenAiGuestTurn(usage: GuestProviderUsage): GuestTurnCost {
-  const parts: Priced[] = usage.calls.map(priceCall);
-  const unknown = parts.find(
-    (part): part is Extract<Priced, { state: "unknown" }> => "state" in part,
-  );
-  if (unknown) return unknown;
-  const centi = parts.reduce(
-    (sum, part) => sum + ("centi" in part ? part.centi : 0),
-    0,
-  );
-  return {
-    state: "known",
-    microUsd: Math.ceil(centi / 100),
-    pricing: openAiGuestPricingRevision,
+/**
+ * A model's guest-turn pricing from its reported usage, never a quote; absent
+ * for a model whose rates are not published here.
+ */
+export function openAiGuestPricing(
+  modelId: string | undefined,
+): GuestPricing | undefined {
+  if (modelId === undefined) return undefined;
+  const rates = openAiModelRates[modelId];
+  if (!rates) return undefined;
+  return (usage) => {
+    const parts = usage.calls.map((call) => priceCall(rates, call));
+    const unknown = parts.find(
+      (part): part is Extract<Priced, { state: "unknown" }> => "state" in part,
+    );
+    if (unknown) return unknown;
+    const nano = parts.reduce(
+      (sum, part) => sum + ("nano" in part ? part.nano : 0),
+      0,
+    );
+    return {
+      state: "known",
+      microUsd: Math.ceil(nano / 1_000),
+      pricing: rates.revision,
+    };
   };
 }
 
@@ -125,9 +170,9 @@ export function guestTurnSettlement(
 export const openAiEmbeddingPricingRevision =
   "openai-text-embedding-3-small-2026-09-30";
 
-/** Hundredths of a micro-dollar per token, by embedding model. */
+/** Nano-dollars per token, by embedding model. */
 const embeddingRates: Readonly<Record<string, number>> = {
-  "text-embedding-3-small": 2,
+  "text-embedding-3-small": 20,
 };
 
 /**
@@ -147,18 +192,18 @@ export function withEmbeddingUsage(
   };
   if (settlement.cost.state === "unknown")
     return { usage, cost: settlement.cost };
-  const centis = embeddings.map((call) => {
+  const nanos = embeddings.map((call) => {
     const rate = embeddingRates[call.model];
     return rate === undefined ? undefined : call.tokens * rate;
   });
-  if (centis.includes(undefined))
+  if (nanos.includes(undefined))
     return { usage, cost: { state: "unknown", reason: "unsupported-pricing" } };
-  const centi = centis.reduce<number>((sum, part) => sum + (part ?? 0), 0);
+  const nano = nanos.reduce<number>((sum, part) => sum + (part ?? 0), 0);
   return {
     usage,
     cost: {
       state: "known",
-      microUsd: settlement.cost.microUsd + Math.ceil(centi / 100),
+      microUsd: settlement.cost.microUsd + Math.ceil(nano / 1_000),
       pricing: `${settlement.cost.pricing}+${openAiEmbeddingPricingRevision}`,
     },
   };

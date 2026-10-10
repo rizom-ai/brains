@@ -252,6 +252,9 @@ bun run eval --skip-llm-judge --test tool-invocation-agent-approve
 
 # Reduce flakiness for broad runs
 bun run eval --skip-llm-judge --max-parallel 1
+
+# Judge model behaviour by pass rate over independent runs (models: path)
+bun run eval --samples 5 --min-pass-rate 0.8
 ```
 
 ### Example Unit Tests

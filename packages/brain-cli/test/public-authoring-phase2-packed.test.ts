@@ -313,7 +313,10 @@ describe("public authoring Phase 2 packed entity contract", () => {
         {
           entityType: "bookmark",
           id: "deep-focus",
-          fields: { title: "Deep Focus Revised" },
+          operation: {
+            kind: "fields",
+            fields: { title: "Deep Focus Revised" },
+          },
         },
         { confirm: true },
       );

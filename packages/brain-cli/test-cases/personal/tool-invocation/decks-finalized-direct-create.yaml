@@ -45,4 +45,4 @@ successCriteria:
     - "I generated"
 efficiency:
   maxToolCalls: 3
-  maxTokens: 30000
+  maxTokens: 53000

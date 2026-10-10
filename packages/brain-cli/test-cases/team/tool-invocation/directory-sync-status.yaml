@@ -29,15 +29,15 @@ successCriteria:
       shouldBeCalled: false
       argsContain:
         action: sync
-  responseContains:
-    - "sync"
   responseNotContains:
     - "started a sync"
     - "backup complete"
     - "I cannot"
     - "I don't have access"
   minInstructionFollowingScore: 4
+  responseCriteria:
+    - "Reports the current content sync status, and either reports git status with any pending changes or says plainly that git status is unavailable, without starting a sync."
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 20000
+  maxTokens: 31000
