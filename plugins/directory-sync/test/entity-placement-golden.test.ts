@@ -6,6 +6,9 @@ import {
   resolveEntityPlacement,
 } from "../src/lib/entity-paths";
 
+/** No contained types: every type in a folder of its own. */
+const NO_CONTAINMENT: ReadonlyMap<string, string> = new Map();
+
 // Captured against the released implementation BEFORE codec adoption.
 // These are placement observations, not validation rules or approval of unsafe IDs.
 // Owner decision: remove type-prefix stripping to make valid IDs injective.
@@ -91,7 +94,13 @@ describe("released entity placement golden", () => {
       expect(
         relative(
           "/content",
-          buildEntityFilePath("/content", id, entityType, extension),
+          buildEntityFilePath(
+            "/content",
+            id,
+            entityType,
+            extension,
+            NO_CONTAINMENT,
+          ),
         ),
       ).toBe(expected);
     },
@@ -163,7 +172,13 @@ describe("released entity placement golden", () => {
     "%s / %s (%s) exports only when its path reads back as itself",
     (entityType, id, extension, writable) => {
       expect(
-        resolveEntityPlacement("/content", entityType, id, extension).writable,
+        resolveEntityPlacement(
+          "/content",
+          entityType,
+          id,
+          extension,
+          NO_CONTAINMENT,
+        ).writable,
       ).toBe(writable);
     },
   );
@@ -172,7 +187,13 @@ describe("released entity placement golden", () => {
     for (const [entityType, id] of placements) {
       if (entityType !== "note" || !id.includes(":")) continue;
       expect(
-        resolveEntityPlacement("/content", entityType, id, ".md").writable,
+        resolveEntityPlacement(
+          "/content",
+          entityType,
+          id,
+          ".md",
+          NO_CONTAINMENT,
+        ).writable,
       ).toBe(false);
     }
   });
@@ -187,6 +208,9 @@ describe("released entity placement golden", () => {
     ["book-section/book/intro.txt", "book-section", "book:intro.txt"],
     ["document/book/chapter.PDF", "document", "book:chapter"],
   ])("import of %s preserves the stored ID", (path, entityType, id) => {
-    expect(parseEntityPath("/content", path)).toEqual({ entityType, id });
+    expect(parseEntityPath("/content", path, NO_CONTAINMENT)).toEqual({
+      entityType,
+      id,
+    });
   });
 });

@@ -97,6 +97,14 @@ export class EntityRegistry implements IEntityRegistry {
           `Entity type registration failed for ${type}: container type ${container} is not registered`,
         );
       }
+      const sibling = [...this.entityConfigs].find(
+        ([, other]) => other.containedIn === container,
+      )?.[0];
+      if (sibling !== undefined) {
+        throw new Error(
+          `Entity type registration failed for ${type}: ${container} already contains ${sibling}; a path inside a container must name one type`,
+        );
+      }
       if (this.entityConfigs.get(container)?.containedIn !== undefined) {
         throw new Error(
           `Entity type registration failed for ${type}: ${container} is itself contained; containment is one level`,

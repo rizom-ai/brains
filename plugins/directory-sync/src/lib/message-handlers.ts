@@ -2,7 +2,11 @@ import {
   DIRECTORY_SYNC_CHANNELS,
   directorySyncPathRequestSchema,
 } from "@brains/contracts";
-import { resolveEntityPlacement, getEntityFileExtension } from "./entity-paths";
+import {
+  containmentOf,
+  resolveEntityPlacement,
+  getEntityFileExtension,
+} from "./entity-paths";
 import { decodeEntityIdPath } from "@brains/entity-service";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -104,6 +108,7 @@ export function registerMessageHandlers(
       input.entityType,
       input.entityId,
       extension,
+      containmentOf(context.entityService),
     );
     const [first, ...rest] = decodeEntityIdPath(input.entityId);
     const segment = rest.at(-1) ?? first;

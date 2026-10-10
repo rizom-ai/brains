@@ -20,6 +20,9 @@ import {
 import { FileOperations } from "../src/lib/file-operations";
 import { EntityPlacementError } from "../src/lib/entity-placement-error";
 
+/** No contained types: every type in a folder of its own. */
+const NO_CONTAINMENT: ReadonlyMap<string, string> = new Map();
+
 describe("injective entity placement", () => {
   test.each(["note", "section", "site-content", "image", "document"])(
     "%s valid IDs have distinct paths and round-trip unchanged",
@@ -51,15 +54,29 @@ describe("injective entity placement", () => {
             : ".md";
       for (const candidate of candidates) {
         const id = encodeEntityIdPath(entityIdPathSchema.parse(candidate));
-        const path = buildEntityFilePath("/content", id, entityType, extension);
+        const path = buildEntityFilePath(
+          "/content",
+          id,
+          entityType,
+          extension,
+          NO_CONTAINMENT,
+        );
         expect(ids.has(id)).toBe(false);
         expect(paths.has(path)).toBe(false);
         ids.add(id);
         paths.add(path);
-        expect(parseEntityPath("/content", path)).toEqual({ entityType, id });
+        expect(parseEntityPath("/content", path, NO_CONTAINMENT)).toEqual({
+          entityType,
+          id,
+        });
         expect(
-          resolveEntityPlacement("/content", entityType, id, extension)
-            .writable,
+          resolveEntityPlacement(
+            "/content",
+            entityType,
+            id,
+            extension,
+            NO_CONTAINMENT,
+          ).writable,
         ).toBe(true);
       }
     },
@@ -73,6 +90,9 @@ describe("injective entity placement", () => {
         hasEntityType: (): never => {
           throw new Error("placement must not consult the registry");
         },
+        // Placement reads where contained types live; there are none here.
+        getEntityTypes: (): string[] => [],
+        getEntityTypeConfig: (): { containedIn?: string } => ({}),
       });
       const first = createTestEntity("site-content", {
         id: "home:hero",
@@ -128,6 +148,9 @@ describe("injective entity placement", () => {
           hasEntityType: (): never => {
             throw new Error("must not consult registry");
           },
+          // Placement reads where contained types live; there are none here.
+          getEntityTypes: (): string[] => [],
+          getEntityTypeConfig: (): { containedIn?: string } => ({}),
         });
         // Include an obsolete image representation and a document sidecar: no
         // effect may occur before the placement check, including cleanup.
@@ -155,7 +178,11 @@ describe("injective entity placement", () => {
         expect(writeError).toMatchObject({
           entityType,
           entityId: id,
-          owner: parseEntityPath(dir, files.getEntityFilePath(entity)),
+          owner: parseEntityPath(
+            dir,
+            files.getEntityFilePath(entity),
+            NO_CONTAINMENT,
+          ),
         });
         expect((await readdir(dir, { recursive: true })).sort()).toEqual(
           before,
@@ -176,10 +203,85 @@ describe("injective entity placement", () => {
   );
 
   test("a nested note names the type and identity its path reads as", () => {
-    expect(resolveEntityPlacement("/content", "note", "book:intro")).toEqual({
+    expect(
+      resolveEntityPlacement(
+        "/content",
+        "note",
+        "book:intro",
+        ".md",
+        NO_CONTAINMENT,
+      ),
+    ).toEqual({
       relativePath: "book/intro.md",
       owner: { entityType: "book", id: "intro" },
       writable: false,
     });
+  });
+});
+
+describe("contained entity placement", () => {
+  // Sections are contained in books.
+  const containment = new Map([["book-section", "book"]]);
+
+  test("places a contained entity inside its container's folder", () => {
+    const id = "zara:00036-zweiter-theil:00039-inseln";
+    const path = buildEntityFilePath(
+      "/content",
+      id,
+      "book-section",
+      ".md",
+      containment,
+    );
+
+    expect(path).toBe("/content/book/zara/00036-zweiter-theil/00039-inseln.md");
+    expect(parseEntityPath("/content", path, containment)).toEqual({
+      entityType: "book-section",
+      id,
+    });
+  });
+
+  test("reads a file directly in a container's folder as the container", () => {
+    expect(
+      parseEntityPath("/content", "/content/book/zara.md", containment),
+    ).toEqual({ entityType: "book", id: "zara" });
+    expect(
+      buildEntityFilePath("/content", "zara", "book", ".md", containment),
+    ).toBe("/content/book/zara.md");
+  });
+
+  test("admits only placements that read back as themselves", () => {
+    // A nested book id would read back as a section, a flat section id as a book.
+    expect(
+      resolveEntityPlacement("/content", "book", "zara:x", ".md", containment)
+        .writable,
+    ).toBe(false);
+    expect(
+      resolveEntityPlacement(
+        "/content",
+        "book-section",
+        "zara",
+        ".md",
+        containment,
+      ).writable,
+    ).toBe(false);
+    expect(
+      resolveEntityPlacement(
+        "/content",
+        "book-section",
+        "zara:x",
+        ".md",
+        containment,
+      ).writable,
+    ).toBe(true);
+  });
+
+  test("still reads a contained type's own top-level folder", () => {
+    expect(
+      parseEntityPath(
+        "/content",
+        "/content/book-section/zara/x.md",
+        containment,
+      ),
+    ).toEqual({ entityType: "book-section", id: "zara:x" });
   });
 });

@@ -473,6 +473,30 @@ This note has frontmatter metadata.`;
       expect(freshRegistry.hasEntityType("section")).toBe(false);
     });
 
+    test("refuses a second type contained in the same container", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
+      freshRegistry.registerEntityType(
+        "section",
+        sectionSchema,
+        sectionAdapter,
+        {
+          containedIn: "note",
+        },
+      );
+      const lineSchema = noteSchema.extend({ entityType: z.literal("line") });
+
+      // A path inside the container must name one type.
+      expect(() =>
+        freshRegistry.registerEntityType(
+          "line",
+          lineSchema,
+          new NoteAdapter("line"),
+          { containedIn: "note" },
+        ),
+      ).toThrow("already contains");
+    });
+
     test("refuses a container that is itself contained", (): void => {
       const freshRegistry = EntityRegistry.createFresh(logger);
       freshRegistry.registerEntityType("note", noteSchema, adapter);
