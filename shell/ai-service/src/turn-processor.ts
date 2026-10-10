@@ -9,10 +9,7 @@
  */
 
 import type { EmbeddingUsage } from "./embedding-usage-meter";
-import {
-  openAiGuestPricingRevision,
-  withEmbeddingUsage,
-} from "./openai-guest-pricing";
+import { noModelCallPricing, withEmbeddingUsage } from "./openai-guest-pricing";
 import type { AgentContextItem, AskedBefore } from "@brains/contracts";
 import {
   guestInterfaceType,
@@ -497,7 +494,7 @@ export class TurnProcessor {
           cost: {
             state: "known",
             microUsd: 0,
-            pricing: openAiGuestPricingRevision,
+            pricing: noModelCallPricing,
           },
         },
         embeddings,
