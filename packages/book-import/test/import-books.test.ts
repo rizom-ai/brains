@@ -826,6 +826,18 @@ books:
     ).toEqual(["K."]);
   });
 
+  it("names the words the scan shows printed so, which no dictionary knows", () => {
+    const manifest = parseManifest(
+      ocrManifest + "    printedWords: [Glaceephrasen, Sieyes]\n",
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].printedWords
+        : null,
+    ).toEqual(["Glaceephrasen", "Sieyes"]);
+  });
+
   it("names an edition that sets its notes as large as the text", () => {
     const manifest = parseManifest(ocrManifest + "    spacedNotes: true\n");
 

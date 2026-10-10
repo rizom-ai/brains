@@ -1668,6 +1668,10 @@ p1theorienberden02marxuoft:
     from: 3. Kicardos Darstellung des Mehrwerts.
     to: 3. Ricardos Darstellung des Mehrwerts.
     by: scan
+  - page: 129
+    from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ＋æꝓ S
+    to: ""
+    by: scan
   - page: 167
     from: 1. RKodbertus.
     to: 1. Rodbertus.
@@ -1728,6 +1732,10 @@ p2theorienberd02marx:
   - page: 79
     from: 0) Ricardos Darstellung seines Normalfalles.
     to: δ) Ricardos Darstellung seines Normalfalles.
+    by: scan
+  - page: 82
+    from: ꝛ1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
+    to: 1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
     by: scan
   - page: 100
     from: sseines Produkts!]
@@ -1829,6 +1837,10 @@ theorienberden03marxuoft:
   - page: 176
     from: 6. Der Wert der Arbeit.
     to: β. Der Wert der Arbeit.
+    by: scan
+  - page: 183
+    from: Malthusscher Manieꝛ).
+    to: Malthusscher Manier).
     by: scan
   - page: 189
     from: "W:ꝗWÄ—“.= GA: GA“"
@@ -1978,6 +1990,10 @@ gesammelteschrif02marxuoft:
   - page: 81
     from: Die Presse und das Wilitärsysflem.
     to: Die Presse und das Militärsystem.
+    by: scan
+  - page: 81
+    from: —3—— ——ßꝛ7 ———— ———⅛ — —— „
+    to: ""
     by: scan
   - page: 84
     from: Zum englischen Milikärwesen.
@@ -2232,6 +2248,14 @@ mehring-nachlass-3:
     from: die Neweastle Union
     to: die Newcastle Union
     by: scan
+  - page: 452
+    from: ꝛAa.
+    to: ""
+    by: scan
+  - page: 453
+    from: vor in New Nork,
+    to: vor in New York,
+    by: scan
 gesammelteschrif01marxuoft:
   - page: 16
     from: Wahlnorruption.
@@ -2383,6 +2407,10 @@ ao391_die_neue_zeit:
     to: man von Sozialisten erwarten durfte
     by: reference
 zur-kritik-der-politischen-okonomie:
+  - page: 4
+    from: ) Dies ist der Grund, warum deutsche Kompilatoren den unter dem Na-
+    to: 1) Dies ist der Grund, warum deutsche Kompilatoren den unter dem Na-
+    by: scan
   - page: 5
     from: gleichzültig, ob sie in Gold
     to: gleichgültig, ob sie in Gold
@@ -2398,6 +2426,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 7
     from: Abstraltion, die in
     to: Abstraktion, die in
+    by: scan
+  - page: 7
+    from: ½) „Unskilled labour“ nennen es die englischen Oekonomen.
+    to: 1) „Unskilled labour“ nennen es die englischen Oekonomen.
     by: scan
   - page: 8
     from: durch lhatsächliche Reduktion
@@ -2431,9 +2463,21 @@ zur-kritik-der-politischen-okonomie:
     from: der „Serittori elas-
     to: der „Scrittori clas-
     by: scan
+  - page: 11
+    from: ½) „La Richezza é una ragione tra due persone.“ (Galiani della
+    to: 1) „La Richezza é una ragione tra due persone.“ (Galiani della
+    by: scan
   - page: 12
     from: Londan 1831
     to: London 1831
+    by: scan
+  - page: 12
+    from: ½) „Dans son état naturel la matière est toujours destituée de va-
+    to: 1) „Dans son état naturel la matière est toujours destituée de va-
+    by: scan
+  - page: 13
+    from: ) F. List, der den Unterschied zwischen der Arbeit, sofern sie Nützliches, einen
+    to: 1) F. List, der den Unterschied zwischen der Arbeit, sofern sie Nützliches, einen
     by: scan
   - page: 14
     from: Arbeit. Die Prodnktivkraft der Arbeit
@@ -2458,6 +2502,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 19
     from: den Tanschwerth auffaßt.
     to: den Tauschwerth auffaßt.
+    by: scan
+  - page: 19
+    from: ) Es ist in dieser Bestimmtheit, daß Aristoteles (siehe die im Eingang des
+    to: 1) Es ist in dieser Bestimmtheit, daß Aristoteles (siehe die im Eingang des
     by: scan
   - page: 20
     from: gesellschaftliche vorausg esetzt
@@ -2551,6 +2599,10 @@ zur-kritik-der-politischen-okonomie:
     from: Daire, der Eeonomistes financiers du
     to: Daire, der Economistes financiers du
     by: scan
+  - page: 32
+    from: ½) „La véritable richesse ... jouissance entière, non seulement des
+    to: 3) „La véritable richesse ... jouissance entière, non seulement des
+    by: scan
   - page: 33
     from: la nature deé la richesse
     to: la nature de la richesse
@@ -2558,6 +2610,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 33
     from: trivial klare Analhse des
     to: trivial klare Analyse des
+    by: scan
+  - page: 33
+    from: ) Der französische Socialismus in der Form Proudhon leidet an demsel-
+    to: 1) Der französische Socialismus in der Form Proudhon leidet an demsel-
     by: scan
   - page: 34
     from: have said beéfore, most justly
@@ -2579,6 +2635,26 @@ zur-kritik-der-politischen-okonomie:
     from: a workman ean perform in
     to: a workman can perform in
     by: scan
+  - page: 36
+    from: ) Steuart I1.
+    to: 1) Steuart l. c. t. 1. p. 181—83.
+    by: scan
+  - page: 36
+    from: 2) Steuart I1.
+    to: 2) Steuart l. c. t. 1. p. 361—62. „represents a portion of a man's
+    by: scan
+  - page: 36
+    from: t. 1. p. 181—83.
+    to: ""
+    by: scan
+  - page: 36
+    from: t. 1. p. 361—62. „represents a portion of à man's
+    to: ""
+    by: scan
+  - page: 36
+    from: —24
+    to: ""
+    by: scan
   - page: 38
     from: aber bles, weil
     to: aber blos, weil
@@ -2587,6 +2663,10 @@ zur-kritik-der-politischen-okonomie:
     from: als Herr Prondhon sie jenseits
     to: als Herr Proudhon sie jenseits
     by: reference
+  - page: 40
+    from: ) Dieser von bürgerlich-ökonomischer Seite gegen Ricardo beigebrachte Ein-
+    to: 1) Dieser von bürgerlich-ökonomischer Seite gegen Ricardo beigebrachte Ein-
+    by: scan
   - page: 41
     from: des Geldes handet, die unmittelbar
     to: des Geldes handelt, die unmittelbar
@@ -2631,6 +2711,10 @@ zur-kritik-der-politischen-okonomie:
     from: Nothwendigkeit der Eutäußerung der
     to: Nothwendigkeit der Entäußerung der
     by: scan
+  - page: 47
+    from: ) Die Sonderbarkeit, daß die Unze Gold in England als Maaßeinheit des
+    to: 1) Die Sonderbarkeit, daß die Unze Gold in England als Maaßeinheit des
+    by: scan
   - page: 48
     from: verschiedener Goldquauta zu
     to: verschiedener Goldquanta zu
@@ -2659,6 +2743,10 @@ zur-kritik-der-politischen-okonomie:
     from: der Seeretary to the treasury
     to: der Secretary to the treasury
     by: scan
+  - page: 55
+    from: ") Locke sagt u. A.: „Nennt eine Krone, was früher eine halbe Krone hieß."
+    to: "1) Locke sagt u. A.: „Nennt eine Krone, was früher eine halbe Krone hieß."
+    by: scan
   - page: 56
     from: „seeretary to the treasury“
     to: „secretary to the treasury“
@@ -2667,6 +2755,10 @@ zur-kritik-der-politischen-okonomie:
     from: das als Maajßeinheit dient, sei
     to: das als Maaßeinheit dient, sei
     by: reference
+  - page: 58
+    from: ) Bei Gelegenheit der jüngsten Handelskrise pries man in England von
+    to: 1) Bei Gelegenheit der jüngsten Handelskrise pries man in England von
+    by: scan
   - page: 59
     from: Handels- und Indnustrie-Krisen
     to: Handels- und Industrie-Krisen
@@ -2699,6 +2791,10 @@ zur-kritik-der-politischen-okonomie:
     from: "Thompson: An Iuquiry into the"
     to: "Thompson: An Inquiry into the"
     by: reference
+  - page: 64
+    from: ") Sieh z. B. W. Thompson: An Iuquiry into the distribution of"
+    to: "1) Sieh z. B. W. Thompson: An Iuquiry into the distribution of"
+    by: scan
   - page: 66
     from: die Cirkulation — GE — W zerfällt
     to: die Cirkulation W — G — W zerfällt
@@ -2710,6 +2806,10 @@ zur-kritik-der-politischen-okonomie:
   - page: 68
     from: den Austauschalt aus
     to: den Austauschakt aus
+    by: scan
+  - page: 69
+    from: ) Es verhindert dies natürlich nicht, daß der Marktpreis der Waaren
+    to: 1) Es verhindert dies natürlich nicht, daß der Marktpreis der Waaren
     by: scan
   - page: 70
     from: Vielseitigkeit der Bedürfuisse des Einzelnen
@@ -2751,6 +2851,14 @@ zur-kritik-der-politischen-okonomie:
     from: unmittelbaren Tanuschhandel
     to: unmittelbaren Tauschhandel
     by: scan
+  - page: 75
+    from: ) November 1807 erschien in England eine Schrift von William Spence
+    to: 1) November 1807 erschien in England eine Schrift von William Spence
+    by: scan
+  - page: 76
+    from: ) Die Manier, worin die Oekonomen die verschiedenen Formbestimmungen
+    to: 1) Die Manier, worin die Oekonomen die verschiedenen Formbestimmungen
+    by: scan
   - page: 77
     from: identische Goldindividunm,
     to: identische Goldindividuum,
@@ -2767,9 +2875,21 @@ zur-kritik-der-politischen-okonomie:
     from: Waaren im Cirkulatiousproceß ersetzt werden
     to: Waaren im Cirkulationsproceß ersetzt werden
     by: reference
+  - page: 82
+    from: ) Die Masse des Geldes ist gleichgültig „pourvu qu'il y en ait assez pour
+    to: 1) Die Masse des Geldes ist gleichgültig „pourvu qu'il y en ait assez pour
+    by: scan
+  - page: 84
+    from: ) Ein Beispiel vom außerordentlichen Fallen der metallischen Cirkulation
+    to: 1) Ein Beispiel vom außerordentlichen Fallen der metallischen Cirkulation
+    by: scan
   - page: 86
     from: ec) Die Münze. Das Werthzeichen.
     to: c) Die Münze. Das Werthzeichen.
+    by: scan
+  - page: 87
+    from: "½) Dodd: Curiosities of industry ete. London 1854."
+    to: "1) Dodd: Curiosities of industry ete. London 1854."
     by: scan
   - page: 88
     from: the precious métals. London 1831. vol
@@ -2791,9 +2911,29 @@ zur-kritik-der-politischen-okonomie:
     from: de la seience“ keineswegs höflich
     to: de la science“ keineswegs höflich
     by: scan
+  - page: 96
+    from: ½) Henry Storch; Cours d' Economie politique ete. avec des notes
+    to: 1) Henry Storch; Cours d' Economie politique ete. avec des notes
+    by: scan
+  - page: 97
+    from: ) Berkeley l. c. „Wenn die Denomination der Münze beibehalten
+    to: 3) Berkeley l. c. „Wenn die Denomination der Münze beibehalten
+    by: scan
   - page: 102
     from: G — W ebildet die Waare
     to: G — W bildet die Waare
+    by: scan
+  - page: 103
+    from: ½) „Non solo i metalli riechi son segni delle cose..; ma vicendevolmente
+    to: 1) „Non solo i metalli riechi son segni delle cose..; ma vicendevolmente
+    by: scan
+  - page: 109
+    from: ) 1. c. p. 11—13 passim.
+    to: 1) 1. c. p. 11—13 passim.
+    by: scan
+  - page: 109
+    from: ) Petty. Political Arith. I. c. p. 196.
+    to: 2) Petty. Political Arith. I. c. p. 196.
     by: scan
   - page: 110
     from: deutschen Landen gefürt wird, ohne
@@ -2803,6 +2943,14 @@ zur-kritik-der-politischen-okonomie:
     from: Motiv seines Aufangs findet. Wenn
     to: Motiv seines Anfangs findet. Wenn
     by: reference
+  - page: 113
+    from: ) Horaz versteht also nichts von der Philosophie der Schatzbildung, wenn
+    to: 1) Horaz versteht also nichts von der Philosophie der Schatzbildung, wenn
+    by: scan
+  - page: 115
+    from: ½) Jaco b I. c. t. 2. ch. 25 und 26
+    to: 1) Jaco b I. c. t. 2. ch. 25 und 26
+    by: scan
   - page: 116
     from: Stelle entwickelt Renophon Geld in
     to: Stelle entwickelt Xenophon Geld in
@@ -2827,6 +2975,18 @@ zur-kritik-der-politischen-okonomie:
     from: e) Weltgeld.
     to: c) Weltgeld.
     by: scan
+  - page: 131
+    from: ) „Il danaro ammassato supplisca a quella somma, che per essere
+    to: 1) „Il danaro ammassato supplisca a quella somma, che per essere
+    by: scan
+  - page: 133
+    from: ) Můẽntanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
+    to: 1) Montanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
+    by: scan
+  - page: 137
+    from: ) Bisher haben die australischen u. s. w. Entdeckungen das Werthverhält-
+    to: 1) Bisher haben die australischen u. s. w. Entdeckungen das Werthverhält-
+    by: scan
   - page: 140
     from: Masse des ecirkulirenden Geldes, nicht
     to: Masse des cirkulirenden Geldes, nicht
@@ -2839,6 +2999,10 @@ zur-kritik-der-politischen-okonomie:
     from: Masse des cirkulirendes Geldes bei
     to: Masse des cirkulirenden Geldes bei
     by: reference
+  - page: 143
+    from: ) Conf. Ste uart c. t. 1. p. 394— 400.
+    to: 1) Conf. Ste uart c. t. 1. p. 394— 400.
+    by: scan
   - page: 144
     from: sind die Waarenupreise in jedem
     to: sind die Waarenpreise in jedem
@@ -2847,10 +3011,22 @@ zur-kritik-der-politischen-okonomie:
     from: Unterschied von „Curreney“ und „money
     to: Unterschied von „Currency“ und „money
     by: scan
+  - page: 149
+    from: ) Der Unterschied von „Curreney“ und „money“, d. h. von Cirkulations-
+    to: 1) Der Unterschied von „Curreney“ und „money“, d. h. von Cirkulations-
+    by: scan
+  - page: 151
+    from: ") David Ricardo: „On the principles of political economy ete.“"
+    to: "2) David Ricardo: „On the principles of political economy ete.“"
+    by: scan
   - page: 152
     from: gegebenem Werth eirkuliren kann, sich
     to: gegebenem Werth cirkuliren kann, sich
     by: reference
+  - page: 152
+    from: ½) Ricardo I. c. 421. „Die Quantität Geld, die in einem Land an-
+    to: 1) Ricardo I. c. 421. „Die Quantität Geld, die in einem Land an-
+    by: scan
   - page: 155
     from: consisting of meétal and of
     to: consisting of metal and of
@@ -2859,6 +3035,10 @@ zur-kritik-der-politischen-okonomie:
     from: Geld. Geld eirkulirt in einem
     to: Geld. Geld cirkulirt in einem
     by: reference
+  - page: 156
+    from: "½) David Ricardo: „Reply to Mr. Bosanquet's practical obser-"
+    to: "1) David Ricardo: „Reply to Mr. Bosanquet's practical obser-"
+    by: scan
   - page: 158
     from: Niveau der eurrencies. In andern
     to: Niveau der currencies. In andern
@@ -2867,10 +3047,18 @@ zur-kritik-der-politischen-okonomie:
     from: of political éeconomy. Im Text
     to: of political economy. Im Text
     by: scan
+  - page: 163
+    from: ½) JI. c. p. 128 — 136 passim.
+    to: 1) JI. c. p. 128 — 136 passim.
+    by: scan
   - page: 164
     from: könnten 20 Millionen umlanfen, wenn jeder
     to: könnten 20 Millionen umlaufen, wenn jeder
     by: reference
+  - page: 170
+    from: ½) Die Verwandlung des Gelds in Kapital werden wir betrachten im 3. Ka-
+    to: 1) Die Verwandlung des Gelds in Kapital werden wir betrachten im 3. Ka-
+    by: scan
 enthullungen-1885:
   - page: 18
     from: Dauer der uchungshaft wurde in
@@ -5258,6 +5446,14 @@ lohnarbeitundka00marxgoog:
     from: summe, womit der Bourgeois ihre Arbeitsskraft! gekauft hat,
     to: summe, womit der Bourgeois ihre Arbeit[skraft] gekauft hat,
     by: scan
+  - page: 16
+    from: „Ich erhalte 1 Frank“) für den
+    to: „Ich erhalte 1 Frank*) für den
+    by: scan
+  - page: 16
+    from: ½) 1 Frank ist 8 Sgr. preußisch.
+    to: 1) 1 Frank ist 8 Sgr. preußisch.
+    by: scan
   - page: 17
     from: Arbeitskraft]) kaufte, sind der Preis der zwölfstündigen Arbeit.
     to: Arbeitskraft]¹) kaufte, sind der Preis der zwölfstündigen Arbeit.
@@ -5294,6 +5490,10 @@ lohnarbeitundka00marxgoog:
     from: Zucker kaufte, find der Preis
     to: Zucker kaufte, sind der Preis
     by: reference
+  - page: 17
+    from: ") Marx schrieb: womit er 12 Stunden Arbeit kaufte. K."
+    to: "1) Marx schrieb: womit er 12 Stunden Arbeit kaufte. K."
+    by: scan
   - page: 18
     from: Arbeitskraft! des Webers ganz so, wie er mit einem anderen Teil
     to: Arbeit[skraft] des Webers ganz so, wie er mit einem anderen Teil
@@ -5314,6 +5514,14 @@ lohnarbeitundka00marxgoog:
     from: zu fristen, soswäre er ein
     to: zu fristen, so wäre er ein
     by: reference
+  - page: 18
+    from: ꝛ1½) Im „Kapital“ nennt Marr das Arbeitsinstrument „Arbeitsmiltel“. K.
+    to: 1) Im „Kapital“ nennt Marx das Arbeitsinstrument „Arbeitsmittel“. K.
+    by: scan
+  - page: 18
+    from: instrument) — den Webstuhl
+    to: instrument¹) — den Webstuhl
+    by: scan
   - page: 19
     from: Nodurch wird der DPreis einer Mare
     to: Wodurch wird der Preis einer Ware
@@ -5430,6 +5638,18 @@ lohnarbeitundka00marxgoog:
     from: in bé-
     to: in be-
     by: scan
+  - page: 25
+    from: wirken die Menschen“) nicht
+    to: wirken die Menschen¹) nicht
+    by: scan
+  - page: 25
+    from: auf die Natur'), findet
+    to: auf die Natur²), findet
+    by: scan
+  - page: 25
+    from: "— 1) Marr schrieb: beziehen sich die Menschen. K."
+    to: "1) Marx schrieb: beziehen sich die Menschen. K."
+    by: scan
   - page: 26
     from: mittelbare, lebendige Arbeitsskraft!]). Die Existenz
     to: mittelbare, lebendige Arbeit[skraft]¹). Die Existenz
@@ -5441,6 +5661,10 @@ lohnarbeitundka00marxgoog:
   - page: 26
     from: ist eine Suüumme von Tauschwerten
     to: ist eine Summe von Tauschwerten
+    by: scan
+  - page: 26
+    from: ) Marr ebraucht meines Entsinnens nie den Ausdruck „lebendige
+    to: 1) Marx gebraucht meines Entsinnens nie den Ausdruck „lebendige
     by: scan
   - page: 27
     from: Der Arbeiter erhält im Austausch gegen seine Arbeit[skraft!
@@ -5454,6 +5678,10 @@ lohnarbeitundka00marxgoog:
     from: Lohnarbeit ser]?
     to: Lohnarbeit [er]?
     by: scan
+  - page: 27
+    from: eine Arbeitskraft') aus-
+    to: eine Arbeitskraft¹) aus-
+    by: scan
   - page: 28
     from: Arbeitsskraft! austauscht, indem es Lohnarbeit ins Leben ruft. Die
     to: Arbeit[skraft] austauscht, indem es Lohnarbeit ins Leben ruft. Die
@@ -5466,6 +5694,10 @@ lohnarbeitundka00marxgoog:
     from: besser das Geschäfi
     to: besser das Geschäft
     by: reference
+  - page: 28
+    from: ") Marr schrieb: Die Lohnarbeit. K."
+    to: "1) Marx schrieb: Die Lohnarbeit. K."
+    by: scan
   - page: 29
     from: Was die Arbeiter zunächst für ihre Arbeitsskraft) erhalten, ist
     to: Was die Arbeiter zunächst für ihre Arbeit[skraft] erhalten, ist
@@ -5494,6 +5726,26 @@ lohnarbeitundka00marxgoog:
     from: verbältnismäßigen Wert
     to: verhältnismäßigen Wert
     by: scan
+  - page: 30
+    from: "½) Marx schrieb: der relative Arbeitslohn dagegen den Preis der un-"
+    to: "1) Marx schrieb: der relative Arbeitslohn dagegen den Preis der un-"
+    by: scan
+  - page: 31
+    from: (3. B. des Fabrikanten)
+    to: (z. B. des Fabrikanten)
+    by: scan
+  - page: 31
+    from: Anteil des Kapitals'), der Profit
+    to: Anteil des Kapitals¹), der Profit
+    by: scan
+  - page: 31
+    from: beit'), der Tagelohn
+    to: beit²), der Tagelohn
+    by: scan
+  - page: 31
+    from: "2) Marrx schrieb: worin der Tauschwert der Arbeit. K."
+    to: "2) Marx schrieb: worin der Tauschwert der Arbeit. K."
+    by: scan
   - page: 32
     from: Fallen des Arbeitslohnes, des Tauschwertes der Arbeitsskraft!; oder
     to: Fallen des Arbeitslohnes, des Tauschwertes der Arbeit[skraft]; oder
@@ -5505,6 +5757,14 @@ lohnarbeitundka00marxgoog:
   - page: 32
     from: Pfund auf die Dauer!]
     to: Pfund [auf die Dauer]
+    by: scan
+  - page: 33
+    from: der Preis) der Arbeit
+    to: der Preis¹) der Arbeit
+    by: scan
+  - page: 33
+    from: ") Marx schrieb: der Tauschwert. K. 3"
+    to: "1) Marx schrieb: der Tauschwert. K."
     by: scan
   - page: 34
     from: das industrielle EchLacztfeld 3u
@@ -5534,6 +5794,10 @@ lohnarbeitundka00marxgoog:
     from: sie den Préis der Ware
     to: sie den Preis der Ware
     by: reference
+  - page: 36
+    from: dieselbe Preissumme) zu
+    to: dieselbe Preissumme¹) zu
+    by: scan
   - page: 37
     from: bis die Wonrurrenz
     to: bis die Konkurrenz
@@ -5550,6 +5814,14 @@ lohnarbeitundka00marxgoog:
     from: und „Lebens
     to: und „Lebens-
     by: reference
+  - page: 39
+    from: der Lohn“‘) des Mannes
+    to: der Lohn¹) des Mannes
+    by: scan
+  - page: 39
+    from: ) Marr schrieb hier und noch zweimal später statt „Lohn“ und „Lebens
+    to: 1) Marx schrieb hier und noch zweimal später statt „Lohn“ und „Lebens
+    by: scan
   - page: 40
     from: V
     to: ""

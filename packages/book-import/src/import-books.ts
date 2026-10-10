@@ -119,6 +119,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipHeadings: z.ZodDefault<z.ZodArray<z.ZodString>>;
       firstChapter: z.ZodDefault<z.ZodNumber>;
       references: z.ZodOptional<z.ZodArray<z.ZodURL>>;
+      printedWords: z.ZodDefault<z.ZodArray<z.ZodString>>;
       skipNotes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       headings: z.ZodDefault<z.ZodArray<typeof headingLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
@@ -151,6 +152,8 @@ const archiveOcrBookSchema: z.ZodObject<
   firstChapter: z.number().int().positive().default(1),
   /** Transcriptions of the work, of any edition, to check the OCR against: a text, or a web page per chapter. */
   references: z.array(z.url()).min(1).optional(),
+  /** Words the scan shows printed so, which no dictionary knows: names and the period's spellings. The OCR check reads them as right. */
+  printedWords: z.array(z.string().min(1)).default([]),
   /** Notes not the author's, such as an editor's or translator's, left out. */
   skipNotes: z.array(pageLineSchema).default([]),
   /**

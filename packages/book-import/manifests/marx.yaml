@@ -437,6 +437,18 @@ books:
     lastPage: 279
     references:
       - https://web.archive.org/web/20001023213931id_/http://www.mlwerke.de:80/me/me01/me01_105.htm
+    # Names and the period's spellings the scan shows printed so.
+    printedWords:
+      [
+        Mephistopheles,
+        Baierin,
+        Sieyes,
+        Berl,
+        debutiren,
+        synthetisiren,
+        Considerant,
+        Glaceephrasen,
+      ]
     slug: der-kommunismus-und-die-augsburger-allgemeine-zeitung
     title: Ueber Kommunismus
     edition: Aus dem literarischen Nachlass von Karl Marx, Friedrich Engels und Ferdinand Lassalle, hg. von Franz Mehring, Bd. I, 2. Aufl. (Stuttgart, J. H. W. Dietz Nachf., 1913)
@@ -712,6 +724,9 @@ books:
     ocr: frak2021
     firstPage: III
     lastPage: 170
+    # Its notes are set a little smaller than the text, below a rule the OCR
+    # does not read, and run on from page to page.
+    spacedNotes: true
     # The contents and the list of misprints, between the preface and the text.
     skipPages: [1, 2]
     # MEW 13, Dietz 1961, as mlwerke.de published it: to check the OCR against.
@@ -834,6 +849,9 @@ books:
     ocr: frak2021
     firstPage: 15
     lastPage: 40
+    # Its notes are set nearly as large as the text, below a rule the OCR
+    # reads as specks.
+    spacedNotes: true
     # MEW 6, Dietz 1959, as mlwerke.de published it: the text of 1849.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me06/me06_397.htm

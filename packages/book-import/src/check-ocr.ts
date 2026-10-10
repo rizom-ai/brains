@@ -668,9 +668,12 @@ async function main(): Promise<void> {
         Promise.resolve(""),
       );
       const pages = texts.get(book.slug) ?? [];
-      const checks = checkPages(pages, reference, isWord).filter(
-        (check) => check.covered,
-      );
+      const printed = new Set(book.printedWords);
+      const checks = checkPages(
+        pages,
+        reference,
+        (word) => isWord(word) || printed.has(word),
+      ).filter((check) => check.covered);
       const words = checks.reduce((sum, check) => sum + check.words, 0);
       const wrong = checks.reduce((sum, check) => sum + check.wrong.length, 0);
       const passes = wrong * GATE < words;
