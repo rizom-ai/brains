@@ -132,7 +132,11 @@ export class ChatInputBuilder {
   private async readAttachmentData(
     attachment: Message["attachments"][number],
   ): Promise<Buffer | undefined> {
-    if (attachment.fetchData) return attachment.fetchData();
+    if (attachment.fetchData) {
+      // Adapters may deliver the bytes as a Buffer or a bare ArrayBuffer.
+      const data = await attachment.fetchData();
+      return Buffer.isBuffer(data) ? data : Buffer.from(data);
+    }
     if (!attachment.url) return undefined;
 
     const response = await (this.deps.fetch ?? fetch)(attachment.url);
