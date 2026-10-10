@@ -1597,3 +1597,101 @@ describe("parseArchiveOcrWork, articles opening with their dateline", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
+  it("reads sections numbered 1) and lettered A. as titled, a) below them, not the notes numbered so", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(
+          import.meta.dir,
+          "fixtures",
+          "archive-ocr-bracketed-sections.html",
+        ),
+        "utf8",
+      ),
+      {
+        item: "zur-kritik-der-politischen-okonomie",
+        title: "Zur Kritik der politischen Oekonomie",
+        citation: "Kritik",
+        firstPage: 41,
+        lastPage: 43,
+      },
+    );
+
+    expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
+      [
+        "I. Das Geld oder die einfache Cirkulation.",
+        "I. Das Geld oder die einfache Cirkulation.",
+      ],
+      ["I. Das Geld oder die einfache Cirkulation.", "1) Maaß der Werthe."],
+      [
+        "I. Das Geld oder die einfache Cirkulation.",
+        "B. Theorieen von der Maaßeinheit des Geldes.",
+      ],
+      [
+        "I. Das Geld oder die einfache Cirkulation.",
+        "2) Cirkulationsmittel.",
+        "a) Die Metamorphose der Waaren.",
+      ],
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, bracketed titles set as Kautsky sets them", () => {
+  it("reads a title run on to a centred line, one set across the measure, and Greek letters below them", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 9,
+        lastPage: 12,
+        // Kautsky sets his notes as large as the text.
+        spacedNotes: true,
+      },
+    );
+
+    const section = [
+      "I. Mehrwert und Profit.",
+      "2. Ricardos Theorie des Profits.",
+    ];
+    expect(units.map((unit) => [...unit.parents, unit.title])).toEqual([
+      [...section, "a) Ricardos Darstellung vom Wert."],
+      [
+        ...section,
+        "b) Ricardos Darstellung von Profit, Profitrate, Produktionspreisen usw.",
+      ],
+      [
+        ...section,
+        "c) Wert und Produktionspreis in der Agrikultur.",
+        "c) Wert und Produktionspreis in der Agrikultur.",
+      ],
+      [
+        ...section,
+        "c) Wert und Produktionspreis in der Agrikultur.",
+        "α) Ricardos Anschauungen.",
+      ],
+      [...section, "d) Der Mehrwert."],
+      [
+        ...section,
+        "e) Th. Chalmers und einige Anschauungen über die Rente von A. Smith.",
+      ],
+      [
+        ...section,
+        "f) Ferrier. Smith über die Akkumulation von Kapital. Eine neue Definition der produktiven Arbeit.",
+      ],
+      [...section, "h) Wert der Arbeitskraft und Wert der Arbeit."],
+      [
+        ...section,
+        "i) Einige psychische Besonderheiten der Zwangskranken — ihr Verhältnis zur Realität, zum Aberglauben und zum Tod",
+      ],
+    ]);
+    expect(units.at(-5)?.paragraphs[0]).toContain(
+      "Ricardo ist hier keineswegs theoretisch klar.",
+    );
+  });
+});

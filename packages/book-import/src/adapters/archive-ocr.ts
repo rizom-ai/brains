@@ -585,6 +585,12 @@ type Piece =
       closed?: boolean;
       /** A numbered subsection's, whose title may run on to a second line. */
       subsection?: boolean;
+      /**
+       * A title too long for its line, which runs on to the next even where
+       * that opens like a label: o) Th. Chalmers und einige Anschauungen von /
+       * A. Smith.
+       */
+      runsOn?: boolean;
     }
   | { kind: "text"; text: string; opens: boolean }
   | { kind: "note"; text: string; opens: boolean };
@@ -834,21 +840,30 @@ function middleOf(page: Page): number {
     : page.width / 2;
 }
 
+/** A month a day opens a dated line with, no section: 9. August von London. */
+const MONTH =
+  /^(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b/u;
 /**
  * A subsection's number, arabic, roman or after a paragraph sign, and title
  * set on one line: 2. Beraud über die Freudenmädchen; §. 2. Der Werth.
  */
-/** A month a day opens a dated line with, no section: 9. August von London. */
-const MONTH =
-  /^(?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\b/u;
 const NUMBERED_SUBSECTION =
   /^(\d{1,2}|[IVX]{1,4}|§\.?\s*\d{1,2})\.\s+(\p{Lu}.*)$/u;
+/** A subsection lettered in capitals in the text's type: A. Historisches. */
+const LETTERED_SUBSECTION = /^([A-H])\.\s+(\p{Lu}.*)$/u;
+/**
+ * A subsection numbered or lettered with a bracket, which its title keeps:
+ * 1) Maaß der Werthe; a) Die Metamorphose; α) Ricardos Anschauungen.
+ */
+const BRACKETED_SUBSECTION = /^(\d{1,2}\)|[a-z]\)|[α-ω]\))\s+(\p{Lu}.*)$/u;
 /** Space above a section's heading, against the page's line height: more than lines leave. */
 const SECTION_SPACE = 0.5;
 /** A part's letter and title set on one line: A. Die Physiokraten. */
 const LETTERED_PART = /^([A-H])\.\s+(\p{Lu}.*)$/u;
 /** A line that opens with a label of its own (a. Der „Geist“ und die „Masse“), or a quotation, a motto below the title. */
 const LABELLED = /^(?:\S{1,4}[.)]\s|[„"»])/u;
+/** A line broken off before its end: at a comma, a colon, a dash or a word's hyphen. */
+const BROKEN_END = /[,;:=⸗—-]$/u;
 /** A title's second line is set this large at least, against its first. */
 const TITLE_LINE_SIZE = 0.9;
 
@@ -1080,15 +1095,27 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
   // Notes set as large as the text, below a rule the OCR did not read, stand
   // apart by the space it leaves: full lines below a gap a line high, after
   // a line of text, not a heading's.
-  const spacedFoot = (line: Line, above: Line | undefined): boolean =>
+  const spacedFoot = (
+    line: Line,
+    above: Line | undefined,
+    below: Line | undefined,
+  ): boolean =>
     volume.spacedNotes === true &&
     above !== undefined &&
     line.y - above.bottom > bodyHeight &&
     line.width > volume.column / 2 &&
     !isCentredShort(above) &&
-    // A heading below the gap opens a section, not the notes.
+    // A heading below the gap opens a section, not the notes, as does a
+    // title run on to a short line centred under it.
     !isCentredShort(line) &&
-    !NUMBERED_SUBSECTION.test(line.text);
+    !NUMBERED_SUBSECTION.test(line.text) &&
+    !(
+      below !== undefined &&
+      below.x - line.x > page.width * INDENT &&
+      Math.abs(below.x + below.width / 2 - (line.x + line.width / 2)) <
+        (page.width * CENTRE) / 2 &&
+      below.width < volume.column * TITLE_WIDTH
+    );
   function isCentredShort(other: Line): boolean {
     return (
       Math.abs(other.x + other.width / 2 - middle) < page.width * CENTRE &&
@@ -1106,7 +1133,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           // No line of text opens with an asterisk's mark; a note may be
           // set, or measured, as large as the text.
           STAR_NOTE_START.test(line.text) ||
-          spacedFoot(line, headless[index - 1])),
+          spacedFoot(line, headless[index - 1], headless[index + 1])),
   );
   const noteFrom = footAt < 0 ? headless.length : footAt;
   const textLines = headless.slice(0, noteFrom);
@@ -1117,6 +1144,8 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     [...full.map((line) => line.x)].sort((a, b) => a - b)[
       Math.floor(full.length / 4)
     ] ?? 0;
+  // Full lines end at the right margin, an indented first line too.
+  const rightMargin = median(full.map((line) => line.x + line.width));
   const articleLines =
     volume.datelined === true
       ? articleLinesOf(textLines, page, volume, margin)
@@ -1192,18 +1221,26 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         line.width < volume.column * HEADING_WIDTH ||
         line.size > volume.textSize * HEADING_SIZE);
     // A numbered subsection's title runs on to a centred line in its type
-    // that numbers nothing of its own.
+    // that numbers nothing of its own; a bracketed one's, centred closely.
     const subsectionTitle =
       last?.kind === "heading" && last.subsection === true
         ? last.lines.at(-1)
         : undefined;
+    const bracketed =
+      last?.kind === "heading" &&
+      last.lines.some(
+        (above) => above.kind === "letter" && above.letter.endsWith(")"),
+      );
     if (
       last?.kind === "heading" &&
       subsectionTitle?.kind === "caps" &&
-      Math.abs(centre - middle) < page.width * CENTRE &&
-      line.width < volume.column * TITLE_WIDTH &&
+      // A title read as running on takes its next line as it was measured.
+      (last.runsOn === true ||
+        (Math.abs(centre - middle) <
+          page.width * (bracketed ? CENTRE / 2 : CENTRE) &&
+          line.width < volume.column * TITLE_WIDTH &&
+          !LABELLED.test(line.text))) &&
       line.size >= subsectionTitle.size * TITLE_LINE_SIZE &&
-      !LABELLED.test(line.text) &&
       (line.corrected === true || isWordy(line.text, volume.spelling))
     ) {
       return [
@@ -1223,7 +1260,13 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     }
     // A centred line of a number and its title opens a numbered subsection,
     // which ends with the line: 2. Beraud über die Freudenmädchen.
-    const subsection = NUMBERED_SUBSECTION.exec(line.text);
+    const subsection =
+      NUMBERED_SUBSECTION.exec(line.text) ??
+      // A lettered title in display type opens a part.
+      (line.size > volume.textSize * HEADING_SIZE
+        ? null
+        : LETTERED_SUBSECTION.exec(line.text)) ??
+      BRACKETED_SUBSECTION.exec(line.text);
     // A roman numeral and title on one centred line opens a chapter,
     // numbered by its place, where it is set in display type or its first
     // numbered section follows it: II. Die Grundrente. 1. Rodbertus.
@@ -1289,12 +1332,51 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       (textAbove === undefined ||
         line.y - textAbove.bottom > bodyHeight * SECTION_SPACE) &&
       endsAsTitle;
+    // A list's items are lettered and bracketed too, set at the margin; a
+    // title lettered or bracketed so is centred closely, or set across the
+    // measure with space above and below it. No title ends broken off, unless
+    // it runs on to a centred line.
+    const dotted = NUMBERED_SUBSECTION.test(line.text);
+    const closelyCentred =
+      Math.abs(centre - middle) < page.width * (dotted ? CENTRE : CENTRE / 2);
+    // Space measured top to top: a short line's box leaves more than its type.
+    const roomAbove =
+      textAbove === undefined ||
+      line.y - textAbove.y > bodyHeight * (1 + SECTION_SPACE);
+    // Its next line is centred under it, and short, or set in from both of
+    // the text's margins below space above, where a list's item hangs its
+    // lines and a paragraph's reach a margin.
+    const runsOn =
+      below !== undefined &&
+      below.y - line.bottom < bodyHeight * SECTION_SPACE &&
+      Math.abs(below.x + below.width / 2 - centre) <
+        (page.width * CENTRE) / 2 &&
+      (below.width < volume.column * TITLE_WIDTH ||
+        (roomAbove &&
+          below.x - margin > page.width * INDENT &&
+          rightMargin - (below.x + below.width) > page.width * INDENT));
+    const spacedApart =
+      below !== undefined &&
+      roomAbove &&
+      below.y - line.y > bodyHeight * (1 + SECTION_SPACE);
     if (
       subsection?.[1] &&
       subsection[2] &&
-      ((Math.abs(centre - middle) < page.width * CENTRE &&
-        line.width < volume.column * HEADING_WIDTH) ||
-        spacedAbove) &&
+      (dotted || !BROKEN_END.test(subsection[2]) || runsOn) &&
+      // A note numbered so is set smaller than a title, or ends the page,
+      // where Greek letters number no notes and their titles are set small; a
+      // list's item starts where the next one does, and no space sets it
+      // apart nor runs it on.
+      (dotted ||
+        ((line.size >= volume.textSize * TITLE_LINE_SIZE ||
+          /^[α-ω]\)$/u.test(subsection[1])) &&
+          below !== undefined &&
+          (Math.abs(below.x - line.x) > (page.width * INDENT) / 4 ||
+            spacedApart ||
+            runsOn))) &&
+      ((closelyCentred &&
+        (line.width < volume.column * HEADING_WIDTH || (!dotted && runsOn))) ||
+        (dotted ? spacedAbove : spacedApart)) &&
       line.y < page.height * FOOT_ZONE &&
       line.size >= volume.textSize * NOTE_SIZE &&
       // A roman label set smaller than the text is a table's, unless space
@@ -1329,6 +1411,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           ],
           closed: true,
           subsection: true,
+          runsOn:
+            runsOn &&
+            (line.width >= volume.column * HEADING_WIDTH ||
+              BROKEN_END.test(subsection[2])),
         },
       ];
     }
@@ -1566,7 +1652,9 @@ function titleOf(step: PathStep, name: string = step.name): string {
   const named = [step.label, name].filter(
     (part): part is string => part !== null && part !== "",
   );
-  return [named.join(". "), ...step.qualifiers].join(" ");
+  // A label with its bracket, 1), is set off by it.
+  const joined = step.label?.endsWith(")") === true ? " " : ". ";
+  return [named.join(joined), ...step.qualifiers].join(" ");
 }
 
 /**
@@ -1681,8 +1769,8 @@ function addHeading(
       ? roman(chapters)
       : heading.label === null
         ? null
-        : // A number, arabic or roman, is no word to case.
-          /^(?:\d+|[IVX]+)$/u.test(heading.label)
+        : // A number, arabic or roman, or a bracketed label is no word to case.
+          /^(?:\d+|[IVX]+|\d+\)|[a-z]\)|[α-ω]\))$/u.test(heading.label)
           ? heading.label
           : cased(heading.label),
     // A subtitle follows its title after one full stop, or after the comma

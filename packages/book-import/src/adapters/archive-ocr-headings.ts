@@ -13,8 +13,12 @@ export type HeadingLine =
   | { kind: "caps"; text: string; size: number; misread?: boolean }
   | { kind: "qualifier"; text: string };
 
-/** A heading's place in a work: part above chapter above subsection. */
-export type HeadingLevel = 0 | 1 | 2;
+/**
+ * A heading's place in a work: part above chapter above subsection, a
+ * subsection's own parts lettered small with a bracket (a), b)), and theirs
+ * lettered in Greek (α), β)).
+ */
+export type HeadingLevel = 0 | 1 | 2 | 3 | 4;
 
 /** A heading block as read, before its words are cased. */
 export interface Heading {
@@ -166,7 +170,15 @@ function readHeading(lines: HeadingLine[]): Heading {
             named: line.named === true,
           };
         case "letter":
-          return { ...heading, level: 2, label: line.letter };
+          return {
+            ...heading,
+            level: /^[α-ω]\)$/u.test(line.letter)
+              ? 4
+              : /^[a-z]\)$/u.test(line.letter)
+                ? 3
+                : 2,
+            label: line.letter,
+          };
         case "article":
           return { ...heading, level: 1 };
         case "qualifier":

@@ -1555,6 +1555,14 @@ theorienberden01marxuoft:
     from: z. der Ursprung des Mehrwerts.“
     to: 2. Der Ursprung des Mehrwerts.
     by: scan
+  - page: 144
+    from: e) Der Kapitalzins.
+    to: c) Der Kapitalzins.
+    by: scan
+  - page: 149
+    from: ) Der Austausch von mehr Arbeit mit weniger
+    to: f) Der Austausch von mehr Arbeit mit weniger
+    by: scan
   - page: 158
     from: 3. Rapital und 6rundeigentum auellen von wert.“
     to: 3. Kapital und Grundeigentum Quellen von Wert.
@@ -1595,6 +1603,50 @@ theorienberden01marxuoft:
     from: Einfluß des Wertwechsels darauf.“
     to: ""
     by: scan
+  - page: 253
+    from: Kapital produzierenden Arbeit.!“
+    to: Kapital produzierenden Arbeit.
+    by: scan
+  - page: 260
+    from: Waren produzierenden.!“
+    to: Waren produzierenden.
+    by: scan
+  - page: 285
+    from: e) Die Polemik gegen die Smithsche Definition.)
+    to: c) Die Polemik gegen die Smithsche Definition.
+    by: scan
+  - page: 287
+    from: Arbeit vor und nach A. Smith.!“
+    to: Arbeit vor und nach A. Smith.
+    by: scan
+  - page: 308
+    from: f) Ganilh.“
+    to: f) Ganilh.
+    by: scan
+  - page: 321
+    from: g) Ganilh und Riceardo über Brutto- und Netto-
+    to: g) Ganilh und Ricardo über Brutto- und Netto-
+    by: scan
+  - page: 339
+    from: Eine neue Definition der produktiven Arbeit.!
+    to: Eine neue Definition der produktiven Arbeit.
+    by: scan
+  - page: 354
+    from: i) Lauderdale und J. B. Say.“
+    to: i) Lauderdale und J. B. Say.
+    by: scan
+  - page: 380
+    from: J) Henri Storch. Die geistige Produktion.
+    to: l) Henri Storch. Die geistige Produktion.
+    by: scan
+  - page: 387
+    from: m) W. Nassau Senior.!
+    to: m) W. Nassau Senior.
+    by: scan
+  - page: 403
+    from: A. Smith.“
+    to: A. Smith.
+    by: scan
   - page: 407
     from: Der Begriff der produktiven Arbeit.!
     to: Der Begriff der produktiven Arbeit.
@@ -1612,6 +1664,14 @@ p1theorienberden02marxuoft:
     from: 2. Ricardos cheorie des Profits.
     to: 2. Ricardos Theorie des Profits.
     by: scan
+  - page: 54
+    from: 4) Ricardos Anschauungen.
+    to: α) Ricardos Anschauungen.
+    by: scan
+  - page: 71
+    from: 3) Smith über Produktionspreise und Marktpreise.
+    to: β) Smith über Produktionspreise und Marktpreise.
+    by: scan
   - page: 97
     from: 3. Kicardos Darstellung des Mehrwerts.
     to: 3. Ricardos Darstellung des Mehrwerts.
@@ -1620,6 +1680,22 @@ p1theorienberden02marxuoft:
     from: 1. RKodbertus.
     to: 1. Rodbertus.
     by: scan
+  - page: 230
+    from: Ee) Fortsetzung der Kritik.
+    to: e) Fortsetzung der Kritik.
+    by: scan
+  - page: 230
+    from: 4) Erste Formel.
+    to: α) Erste Formel.
+    by: scan
+  - page: 233
+    from: ) Zweite Formel.
+    to: β) Zweite Formel.
+    by: scan
+  - page: 249
+    from: „) Dritte Formel.
+    to: γ) Dritte Formel.
+    by: scan
   - page: 304
     from: z. bemerkungen über dlie Geschichte der Entdeckung des
     to: 2. Bemerkungen über die Geschichte der Entdeckung des sogenannten Ricardoschen Gesetzes.
@@ -1627,6 +1703,14 @@ p1theorienberden02marxuoft:
   - page: 304
     from: logenannten KRicardoschen Gesetzes.
     to: ""
+    by: scan
+  - page: 324
+    from: e) Die Bewegung der Kornpreise von 1641 bis 1859.
+    to: c) Die Bewegung der Kornpreise von 1641 bis 1859.
+    by: scan
+  - page: 338
+    from: e) Diverse Autoren über die Rententheorie.“
+    to: e) Diverse Autoren über die Rententheorie.
     by: scan
 p2theorienberd02marx:
   - page: 1
@@ -1637,9 +1721,53 @@ p2theorienberd02marx:
     from: 3. Die Kicardosche Kententheorie.
     to: 3. Die Ricardosche Rententheorie.
     by: scan
+  - page: 23
+    from: C4õ) Veränderungen der Masse der Rente.
+    to: α) Veränderungen der Masse der Rente.
+    by: scan
+  - page: 27
+    from: 5) Veränderungen der Differentialrente.
+    to: β) Veränderungen der Differentialrente.
+    by: scan
+  - page: 59
+    from: „) Der Ricardosche Normalfall.
+    to: γ) Der Ricardosche Normalfall.
+    by: scan
+  - page: 79
+    from: 0) Ricardos Darstellung seines Normalfalles.
+    to: δ) Ricardos Darstellung seines Normalfalles.
+    by: scan
   - page: 100
     from: sseines Produkts!]
     to: "[seines Produkts]"
+    by: scan
+  - page: 108
+    from: t) Ricardos Kritik der Smithschen Rententheorie.
+    to: f) Ricardos Kritik der Smithschen Rententheorie.
+    by: scan
+  - page: 124
+    from: g4) Wert, Preis und Rente.
+    to: α) Wert, Preis und Rente.
+    by: scan
+  - page: 140
+    from: 5) Bodenprodukte, die immer eine Rente liefern.
+    to: β) Bodenprodukte, die immer eine Rente liefern.
+    by: scan
+  - page: 146
+    from: „) Bodenprodukte, die manchmal eine Rente liefern und
+    to: γ) Bodenprodukte, die manchmal eine Rente liefern und
+    by: scan
+  - page: 157
+    from: 0) Veränderungen im Verhältnis der Werte der beiden Arten
+    to: δ) Veränderungen im Verhältnis der Werte der beiden Arten
+    by: scan
+  - page: 178
+    from: 4) Untersuchung der Ricardoschen Voraussetzungen.
+    to: α) Untersuchung der Ricardoschen Voraussetzungen.
+    by: scan
+  - page: 205
+    from: 5) Ricardos Äußerungen über den Fall.
+    to: β) Ricardos Äußerungen über den Fall.
     by: scan
   - page: 218
     from: Einfluß des Wertwechsels auf die organische
