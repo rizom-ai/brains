@@ -1,5 +1,25 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.517
+
+### Patch Changes
+
+- [#558](https://github.com/rizom-ai/brains/pull/558) [`3e65a69`](https://github.com/rizom-ai/brains/commit/3e65a693af743469a11a12e493f8ee5e3f8092fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A playbook step can declare `Proven by: reply`: its Done when goal can then be proven by the assistant's saved reply in the run, not only by entity events. Use it for steps whose outcome is an answer in chat, such as transforming a note into an outline; other steps never accept a reply as proof, so a reply that only claims a saved change cannot complete them.
+
+  Completed, non-guest assistant replies carry host-written `assistantTurn` metadata: when the turn started and which entities its reads returned. A reply counts only for the step the run was already in when its turn began, and the goal check sees the reply text and those reads. Runs record when they entered their current step (`stateEnteredAt`). Playbook status shows only the reply's message id. The run evidence kind union now includes `assistant_reply`; strict consumers must accept it.
+
+  The bundled first knowledge loop marks "Retrieve and transform" as proven by reply.
+
+- Updated dependencies [[`3e65a69`](https://github.com/rizom-ai/brains/commit/3e65a693af743469a11a12e493f8ee5e3f8092fb)]:
+  - @brains/contracts@0.2.0-alpha.517
+  - @brains/conversation-service@0.2.0-alpha.517
+  - @brains/entity-service@0.2.0-alpha.517
+  - @brains/identity-service@0.2.0-alpha.517
+  - @brains/mcp-service@0.2.0-alpha.517
+  - @brains/messaging-service@0.2.0-alpha.517
+  - @brains/templates@0.2.0-alpha.517
+  - @brains/utils@0.2.0-alpha.517
+
 ## 0.2.0-alpha.516
 
 ### Patch Changes
