@@ -647,6 +647,7 @@
     "core--standalone-predeploy-backup",
     "core--status-palette-light-mode",
     "core--strip-to-top",
+    "core--structured-body-codecs",
     "core--studio-account-administration-separation",
     "core--studio-account-workspace",
     "core--studio-ai-tools-tab",

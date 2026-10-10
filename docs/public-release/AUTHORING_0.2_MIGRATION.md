@@ -13,6 +13,21 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 | `PLUGIN_API_VERSION`                       | Use an explicit compatible peer dependency range                     |
 | `brain.yaml` `plugins.<id>.package`        | Import the definition in a brain package and compose it with `use()` |
 
+## Structured body validation
+
+Bundled structured formatters now encode through Zod codecs, validating writes
+as well as reads. Supply decoded body values, including defaults; a one-way
+`transform` or `preprocess` inside an encoded body schema is not encodable. Use a
+bidirectional body field codec where normalization is needed, without replacing
+frontmatter's decode-only normalization or persisted metadata validation.
+
+FAQ and summary content helpers use body codecs without native adapter classes.
+Malformed summary entries now fail validation instead of disappearing from a
+later export. Back up and reconcile invalid stored bodies explicitly; this change
+does not rewrite a corpus, reset FAQ counts or replay receipts. Summary embedded
+frontmatter/projection envelopes and FAQ source attribution remain intact.
+Round-trip tests cover canonical decoded fixtures, not arbitrary markdown layouts.
+
 ## Grouping exclusions and conditional imports
 
 Document grouping policies now use optional `excludeTypes`, not `types` allowlists.

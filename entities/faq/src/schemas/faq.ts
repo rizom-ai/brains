@@ -26,6 +26,19 @@ export const faqAlternativeSchema: FaqAlternativeSchema = z.object({
 
 export type FaqAlternative = z.output<typeof faqAlternativeSchema>;
 
+type FaqBodySchema = z.ZodObject<{
+  answer: z.ZodString;
+  alternatives: z.ZodArray<FaqAlternativeSchema>;
+}>;
+
+/** A FAQ body: the answer, then the alternatives below it. */
+export const faqBodySchema: FaqBodySchema = z.object({
+  answer: z.string(),
+  alternatives: z.array(faqAlternativeSchema),
+});
+
+export type FaqBody = z.output<typeof faqBodySchema>;
+
 type FaqSourceSchema = z.ZodObject<{
   id: z.ZodString;
   title: z.ZodString;

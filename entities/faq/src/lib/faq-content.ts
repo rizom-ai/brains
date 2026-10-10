@@ -1,9 +1,12 @@
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdown,
+  z,
 } from "@brains/sdk/entities";
 import {
   faqFrontmatterSchema,
+  faqBodySchema,
+  type FaqBody,
   type FaqAlternative,
   type FaqFrontmatter,
   type FaqFrontmatterInput,
@@ -69,10 +72,7 @@ function faqBody(answer: string, alternatives: FaqAlternative[]): string {
   ].join("\n");
 }
 
-function parseFaqBody(body: string): {
-  answer: string;
-  alternatives: FaqAlternative[];
-} {
+function parseFaqBody(body: string): FaqBody {
   const [answer = "", section] = body.split(ALTERNATIVES_HEADING_LINE);
   if (section === undefined) return { answer: answer.trim(), alternatives: [] };
   const alternatives = markdownLines(section)
@@ -86,13 +86,19 @@ function parseFaqBody(body: string): {
   return { answer: answer.trim(), alternatives };
 }
 
+export const faqBodyCodec: z.ZodCodec<z.ZodString, typeof faqBodySchema> =
+  z.codec(z.string(), faqBodySchema, {
+    decode: parseFaqBody,
+    encode: ({ answer, alternatives }) => faqBody(answer, alternatives),
+  });
+
 export function createFaqContent(
   frontmatter: FaqFrontmatterInput,
   answer: string,
   alternatives: FaqAlternative[] = [],
 ): string {
   return generateMarkdownWithFrontmatter(
-    faqBody(answer, alternatives),
+    z.encode(faqBodyCodec, { answer, alternatives }),
     faqFrontmatterSchema.parse(frontmatter),
   );
 }
@@ -106,6 +112,6 @@ export function parseFaqContent(content: string): {
   const parsed = parseMarkdown(content);
   return {
     frontmatter: faqFrontmatterSchema.parse(parsed.frontmatter),
-    ...parseFaqBody(parsed.content),
+    ...z.decode(faqBodyCodec, parsed.content),
   };
 }

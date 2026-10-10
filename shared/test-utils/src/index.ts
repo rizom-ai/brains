@@ -70,3 +70,6 @@ export {
   type RestoreGlobals,
   type TestDomWindow,
 } from "./dom-globals";
+
+// Round-trip contract for structured body formatters
+export { expectBodyRoundTrip, type BodyFormatter } from "./body-round-trip";

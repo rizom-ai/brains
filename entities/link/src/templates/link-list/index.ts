@@ -1,7 +1,6 @@
 import { createTemplate } from "@brains/sdk/entities";
 import { linkListSchema, type LinkListData } from "./schema";
 import { LinkListLayout } from "./layout";
-import { LinkListFormatter } from "./formatter";
 
 export const linkListTemplate: ReturnType<typeof createTemplate<LinkListData>> =
   createTemplate<LinkListData>({
@@ -10,7 +9,6 @@ export const linkListTemplate: ReturnType<typeof createTemplate<LinkListData>> =
     schema: linkListSchema,
     dataSourceId: "entities",
     requiredPermission: "public",
-    formatter: new LinkListFormatter(),
     layout: {
       component: LinkListLayout,
     },
@@ -18,4 +16,3 @@ export const linkListTemplate: ReturnType<typeof createTemplate<LinkListData>> =
 
 export { LinkListLayout } from "./layout";
 export { linkListSchema, type LinkListData } from "./schema";
-export { LinkListFormatter } from "./formatter";

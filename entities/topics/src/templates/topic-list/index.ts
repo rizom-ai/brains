@@ -1,7 +1,6 @@
 import { createTemplate, type Template } from "@brains/sdk/entities";
 import { topicListSchema, type TopicListData } from "./schema";
 import { TopicListLayout } from "./layout";
-import { TopicListFormatter } from "./formatter";
 
 export const topicListTemplate: Template = createTemplate<TopicListData>({
   name: "topics:topic-list",
@@ -9,7 +8,6 @@ export const topicListTemplate: Template = createTemplate<TopicListData>({
   schema: topicListSchema,
   dataSourceId: "entities",
   requiredPermission: "public",
-  formatter: new TopicListFormatter(),
   layout: {
     component: TopicListLayout,
   },
@@ -17,4 +15,3 @@ export const topicListTemplate: Template = createTemplate<TopicListData>({
 
 export { TopicListLayout } from "./layout";
 export { topicListSchema, type TopicListData } from "./schema";
-export { TopicListFormatter } from "./formatter";

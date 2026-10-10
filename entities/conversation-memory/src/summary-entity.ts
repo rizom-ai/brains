@@ -1,5 +1,6 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { memoryMarkdown } from "./lib/memory-markdown";
+import { parseSummaryBody } from "./lib/summary-body";
 import {
   migrateSummaryMetadata,
   summaryMetadataSchema,
@@ -31,7 +32,16 @@ export const summary: EntityDefinition<
     "A read-only, system-maintained summary derived from stored conversation messages.",
   metadata: summaryMetadataSchema,
   metadataFrom: migrateSummaryMetadata,
-  markdown: memoryMarkdown,
+  markdown: {
+    decode: (input): ReturnType<typeof memoryMarkdown.decode> => {
+      parseSummaryBody(input.content);
+      return memoryMarkdown.decode(input);
+    },
+    encode: (input): ReturnType<typeof memoryMarkdown.encode> => {
+      parseSummaryBody(input.content);
+      return memoryMarkdown.encode(input);
+    },
+  },
   config: { projectionSource: false, projectionSourceRole: "excluded" },
   // Nobody edits a summary by hand. A user who could rewrite one could
   // rewrite what the brain remembers happening.

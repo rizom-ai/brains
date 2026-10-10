@@ -1,5 +1,9 @@
-import { parseMarkdown } from "@brains/sdk/entities";
-import type { SummaryBody, SummaryEntry } from "../schemas/summary";
+import { parseMarkdown, z } from "@brains/sdk/entities";
+import {
+  summaryBodySchema,
+  type SummaryBody,
+  type SummaryEntry,
+} from "../schemas/summary";
 import { stripMemoryProjectionEnvelope } from "./memory-projection-envelope";
 
 /**
@@ -10,7 +14,24 @@ import { stripMemoryProjectionEnvelope } from "./memory-projection-envelope";
  * Extracted from the adapter it used to live in: the runtime builds adapters
  * from declarations now, but how a summary reads is the package's own.
  */
+export const summaryBodyCodec: z.ZodCodec<
+  z.ZodString,
+  typeof summaryBodySchema
+> = z.codec(z.string(), summaryBodySchema, {
+  decode: (body) => ({
+    entries: body
+      .split(/^##\s+/m)
+      .slice(1)
+      .map(parseEntry),
+  }),
+  encode: ({ entries }) => renderEntries(entries),
+});
+
 export function composeSummaryBody(entries: SummaryEntry[]): string {
+  return z.encode(summaryBodyCodec, { entries });
+}
+
+function renderEntries(entries: SummaryEntry[]): string {
   const lines: string[] = ["# Conversation Summary", ""];
 
   for (const entry of entries) {
@@ -28,22 +49,15 @@ export function composeSummaryBody(entries: SummaryEntry[]): string {
 }
 
 /**
- * Read the entries back out. A section without a time range and a message
- * count is dropped rather than guessed at — a half-parsed entry would be
- * reported as summary the brain never wrote.
+ * Validate every stored entry rather than silently discarding malformed data.
+ * Keep the declarative memory frontmatter and projection envelope handling.
  */
 export function parseSummaryBody(content: string): SummaryBody {
   const narrative = stripMemoryProjectionEnvelope(content);
   const body = narrative.startsWith("---")
     ? parseMarkdown(narrative).content
     : narrative;
-  return {
-    entries: body
-      .split(/^##\s+/m)
-      .slice(1)
-      .map(parseEntry)
-      .filter((entry): entry is SummaryEntry => entry !== null),
-  };
+  return z.decode(summaryBodyCodec, body);
 }
 
 function appendList(lines: string[], title: string, items: string[]): void {
@@ -54,29 +68,30 @@ function appendList(lines: string[], title: string, items: string[]): void {
   lines.push("");
 }
 
-function parseEntry(section: string): SummaryEntry | null {
+function parseEntry(section: string): SummaryEntry {
   const [rawTitle = "", ...rest] = section.split("\n");
   const title = rawTitle.trim();
   const text = rest.join("\n").trim();
   const timeMatch = /^Time:\s*(.*?)\s*→\s*(.*?)\s*$/m.exec(text);
-  const countMatch = /^Messages summarized:\s*(\d+)\s*$/m.exec(text);
-  if (!title || !timeMatch || !countMatch) return null;
-
-  const summary = text
-    .replace(/^Time:.*$/m, "")
-    .replace(/^Messages summarized:.*$/m, "")
-    .split(/^###\s+/m)[0]
+  const countText = /^Messages summarized:[ \t]*([^\r\n]*)$/m
+    .exec(text)?.[1]
     ?.trim();
-  if (!summary) return null;
+
+  const summary =
+    text
+      .replace(/^Time:.*$/m, "")
+      .replace(/^Messages summarized:.*$/m, "")
+      .split(/^###\s+/m)[0]
+      ?.trim() ?? "";
 
   return {
     title,
     summary,
     timeRange: {
-      start: timeMatch[1]?.trim() ?? "",
-      end: timeMatch[2]?.trim() ?? "",
+      start: timeMatch?.[1]?.trim() ?? "",
+      end: timeMatch?.[2]?.trim() ?? "",
     },
-    sourceMessageCount: Number(countMatch[1]),
+    sourceMessageCount: countText ? Number(countText) : Number.NaN,
     keyPoints: parseList(text, "Key Points"),
   };
 }

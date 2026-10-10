@@ -1,7 +1,6 @@
 import { createTemplate } from "@brains/sdk/entities";
 import { summaryListSchema, type SummaryListData } from "./schema";
 import { SummaryListLayout } from "./layout";
-import { SummaryListFormatter } from "./formatter";
 import { SUMMARY_DATASOURCE_ID } from "../../lib/constants";
 
 export const summaryListTemplate: ReturnType<
@@ -12,7 +11,6 @@ export const summaryListTemplate: ReturnType<
   schema: summaryListSchema,
   dataSourceId: SUMMARY_DATASOURCE_ID,
   requiredPermission: "public",
-  formatter: new SummaryListFormatter(),
   layout: {
     component: SummaryListLayout,
   },
@@ -20,4 +18,3 @@ export const summaryListTemplate: ReturnType<
 
 export { SummaryListLayout } from "./layout";
 export { summaryListSchema, type SummaryListData } from "./schema";
-export { SummaryListFormatter } from "./formatter";

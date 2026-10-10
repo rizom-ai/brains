@@ -21,6 +21,16 @@ const optionalTextSchema: z.ZodType<string | undefined, unknown> = z.preprocess(
   z.string().min(1).optional(),
 );
 
+// Body fields must encode as well as decode. Frontmatter remains decode-only.
+const optionalBodyTextSchema = z.codec(
+  z.string().optional(),
+  z.string().min(1).optional(),
+  {
+    decode: (value) => (value?.trim().length === 0 ? undefined : value),
+    encode: (value) => value,
+  },
+);
+
 export interface PlaybookTransition {
   event: string;
   target: string;
@@ -35,9 +45,9 @@ export const playbookTransitionSchema: z.ZodType<PlaybookTransition> = z.object(
     event: z.string().min(1),
     target: z.string().min(1),
     operatorAction: z.boolean().optional(),
-    label: optionalTextSchema,
-    description: optionalTextSchema,
-    operatorDescription: optionalTextSchema,
+    label: optionalBodyTextSchema,
+    description: optionalBodyTextSchema,
+    operatorDescription: optionalBodyTextSchema,
   },
 );
 
@@ -54,7 +64,7 @@ export interface PlaybookState {
 export const playbookStateSchema: z.ZodType<PlaybookState> = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  prompt: optionalTextSchema,
+  prompt: optionalBodyTextSchema,
   requiredDetails: z.array(z.string().min(1)).default([]),
   instructions: z.array(z.string().min(1)).default([]),
   doneWhen: z.array(z.string().min(1)).default([]),

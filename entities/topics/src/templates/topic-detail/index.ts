@@ -1,7 +1,6 @@
 import { createTemplate, type Template } from "@brains/sdk/entities";
 import { topicDetailSchema, type TopicDetailData } from "./schema";
 import { TopicDetailLayout } from "./layout";
-import { TopicDetailFormatter } from "./formatter";
 
 export const topicDetailTemplate: Template = createTemplate<TopicDetailData>({
   name: "topics:topic-detail",
@@ -9,7 +8,6 @@ export const topicDetailTemplate: Template = createTemplate<TopicDetailData>({
   schema: topicDetailSchema,
   dataSourceId: "entities",
   requiredPermission: "public",
-  formatter: new TopicDetailFormatter(),
   layout: {
     component: TopicDetailLayout,
   },
@@ -17,4 +15,3 @@ export const topicDetailTemplate: Template = createTemplate<TopicDetailData>({
 
 export { TopicDetailLayout } from "./layout";
 export { topicDetailSchema, type TopicDetailData } from "./schema";
-export { TopicDetailFormatter } from "./formatter";
