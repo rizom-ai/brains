@@ -92,8 +92,7 @@ export class ArtifactDeliveryResolver {
     const access = await resolveMessageArtifactAccess({
       entityRef,
       userLevel,
-      getEntity: (ref) => context.entityService.getEntity(ref),
-      getVisibleEntity: (ref, visibilityScope) =>
+      getEntity: (ref, visibilityScope) =>
         context.entityService.getEntity({ ...ref, visibilityScope }),
     });
     if (access.status === "denied") return { denied: true };

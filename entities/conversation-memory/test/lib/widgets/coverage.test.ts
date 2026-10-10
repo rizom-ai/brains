@@ -89,6 +89,7 @@ describe("buildSummaryCoverageData", () => {
     const data = await buildSummaryCoverageData({
       context,
       config: summaryConfigSchema.parse({}),
+      visibilityScope: "restricted",
     });
 
     expect(data.items).toEqual([
@@ -158,6 +159,7 @@ describe("buildSummaryCoverageData", () => {
     const data = await buildSummaryCoverageData({
       context,
       config: summaryConfigSchema.parse({}),
+      visibilityScope: "restricted",
     });
 
     expect(data.items).toEqual([

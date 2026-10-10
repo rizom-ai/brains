@@ -70,7 +70,7 @@ describe("buildDecisionsWidgetData", () => {
       listEntitiesImpl: async () => items,
     });
 
-    const data = await buildDecisionsWidgetData(context);
+    const data = await buildDecisionsWidgetData(context, "restricted");
     expect(data.items.map((item) => item.id)).toEqual([
       "newer-active",
       "older-active",
@@ -96,7 +96,7 @@ describe("buildDecisionsWidgetData", () => {
       listEntitiesImpl: async () => items,
     });
 
-    const data = await buildDecisionsWidgetData(context);
+    const data = await buildDecisionsWidgetData(context, "restricted");
     expect(data.items[0]?.meta).toContain("Apr 28 – May 1");
     expect(data.items[0]?.meta).not.toContain('class="sep"');
   });

@@ -1,3 +1,4 @@
+import type { ContentVisibility } from "@brains/plugins";
 import {
   SYSTEM_CHANNELS,
   defineDashboardWidget,
@@ -99,14 +100,16 @@ function summarizeCoverageStatus(params: {
 export async function buildSummaryCoverageData(params: {
   context: EntityPluginContext;
   config: SummaryConfig;
+  visibilityScope: ContentVisibility;
 }): Promise<SummaryDashboardData> {
-  const { context, config } = params;
+  const { context, config, visibilityScope } = params;
 
   const summaries = await context.entityService.listEntities(
     {
       entityType: SUMMARY_ENTITY_TYPE,
       options: {
         sortFields: [{ field: "updated", direction: "desc" }],
+        filter: { visibilityScope },
       },
     },
     summarySchema,
@@ -226,9 +229,9 @@ export function registerSummaryCoverageWidget(params: {
       await registerBuiltInDashboardWidget({
         context,
         definition: summaryCoverageWidget,
-        load: ({ signal }) => {
+        load: ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          return buildSummaryCoverageData({ context, config });
+          return buildSummaryCoverageData({ context, config, visibilityScope });
         },
       });
       return { success: true };

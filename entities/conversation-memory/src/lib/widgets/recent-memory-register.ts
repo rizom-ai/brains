@@ -90,9 +90,9 @@ export function registerRecentConversationMemoryWidget(params: {
       await registerBuiltInDashboardWidget({
         context,
         definition: recentMemoryWidget,
-        load: ({ signal }) => {
+        load: ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          return buildRecentConversationMemoryData(context);
+          return buildRecentConversationMemoryData(context, visibilityScope);
         },
       });
       return { success: true };

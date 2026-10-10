@@ -129,6 +129,7 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
       const existing = await this.context.entityService.getEntity({
         entityType: "note",
         id: entityId,
+        visibilityScope: "restricted",
       });
       if (!existing) return;
 

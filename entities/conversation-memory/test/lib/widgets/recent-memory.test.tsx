@@ -91,7 +91,7 @@ describe("buildRecentConversationMemoryData", () => {
       listEntitiesImpl: async () => summaries,
     });
 
-    const data = await buildRecentConversationMemoryData(context);
+    const data = await buildRecentConversationMemoryData(context, "restricted");
 
     expect(data.all.map((row) => row.title)).toEqual([
       "Ops planning",

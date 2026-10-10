@@ -540,6 +540,7 @@ describe("NotePlugin note capture", () => {
     const note = await harness.getEntityService().getEntity({
       entityType: "note",
       id: "visitor-question-abc123",
+      visibilityScope: "restricted",
     });
     expect(note?.visibility).toBe("restricted");
     expect(note?.content).toContain("How do institutions forget?");
@@ -562,6 +563,7 @@ describe("NotePlugin note capture", () => {
     const note = await harness.getEntityService().getEntity({
       entityType: "note",
       id: "visitor-question-abc123",
+      visibilityScope: "restricted",
     });
     expect(note?.content).toContain("How do institutions forget?");
   });

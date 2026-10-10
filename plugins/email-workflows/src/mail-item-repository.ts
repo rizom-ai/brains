@@ -15,6 +15,7 @@ export class EntityMailItemRepository implements MailItemRepository {
       {
         entityType: "mail-item",
         id,
+        visibilityScope: "restricted",
       },
       mailItemSchema,
     );

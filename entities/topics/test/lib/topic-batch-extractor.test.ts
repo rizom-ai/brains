@@ -183,6 +183,7 @@ describe("extractTopicsBatched", () => {
     const topic = await mockShell.getEntityService().getEntity({
       entityType: "topic",
       id: "shared-derived-topic-shared",
+      visibilityScope: "restricted",
     });
 
     expect(result.created).toBe(1);
@@ -1043,7 +1044,10 @@ describe("extractTopicsBatched", () => {
       expect(result.created).toBe(1);
       expect(result.merged).toBe(0);
 
-      const topics = await entityService.listEntities({ entityType: "topic" });
+      const topics = await entityService.listEntities({
+        entityType: "topic",
+        options: { filter: { visibilityScope: "restricted" } },
+      });
       expect(topics).toHaveLength(2);
       expect(
         topics.find((topic) => topic.id === "human-ai-collaboration")
