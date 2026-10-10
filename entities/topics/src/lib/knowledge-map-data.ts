@@ -1,3 +1,4 @@
+import type { ContentVisibility } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -106,10 +107,15 @@ interface ListedEntity {
 
 export interface KnowledgeMapDataContext {
   semantic: {
-    project(request: Record<string, never>): Promise<ProjectionResult>;
+    project(request: {
+      visibilityScope: ContentVisibility;
+    }): Promise<ProjectionResult>;
   };
   entityService: {
-    listEntities(request: { entityType: string }): Promise<ListedEntity[]>;
+    listEntities(request: {
+      entityType: string;
+      options: { filter: { visibilityScope: ContentVisibility } };
+    }): Promise<ListedEntity[]>;
   };
 }
 
@@ -208,8 +214,9 @@ function displayTitle(content: string | undefined, id: string): string {
 
 export async function buildKnowledgeMapData(
   context: KnowledgeMapDataContext,
+  visibilityScope: ContentVisibility,
 ): Promise<KnowledgeMapData> {
-  const projection = await context.semantic.project({});
+  const projection = await context.semantic.project({ visibilityScope });
 
   // Titles come from the entities themselves, one list call per type present.
   const types = [
@@ -218,7 +225,10 @@ export async function buildKnowledgeMapData(
   const titleById = new Map<string, string>();
   await Promise.all(
     types.map(async (entityType) => {
-      const entities = await context.entityService.listEntities({ entityType });
+      const entities = await context.entityService.listEntities({
+        entityType,
+        options: { filter: { visibilityScope } },
+      });
       for (const entity of entities) {
         titleById.set(
           `${entityType}:${entity.id}`,

@@ -1,4 +1,7 @@
-import { permissionToVisibilityScope } from "@brains/entity-service";
+import {
+  permissionToVisibilityScope,
+  type ContentVisibility,
+} from "@brains/entity-service";
 import type { JobInfo } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
 import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
@@ -108,6 +111,17 @@ function createOperatorJobs(context: BasePluginContext): OperatorJobs {
   };
 }
 
+/**
+ * The entity visibility an operator caller may read; no caller reads as
+ * public. An unscoped entity read sees public entities only, so every
+ * operator surface reads at this scope.
+ */
+export function callerVisibilityScope(
+  caller: OperatorCaller | null,
+): ContentVisibility {
+  return permissionToVisibilityScope(caller?.permission ?? "public");
+}
+
 export async function createOperatorContext<
   TConfig,
   TState extends object,
@@ -124,7 +138,7 @@ export async function createOperatorContext<
   const { caller, signal } = input.provider;
   signal.throwIfAborted();
   const permission = caller?.permission ?? "public";
-  const visibilityScope = permissionToVisibilityScope(permission);
+  const visibilityScope = callerVisibilityScope(caller);
   const fullSettings =
     caller && input.accountSettingsRegistration
       ? await input.context.accountSettings.getForActor(

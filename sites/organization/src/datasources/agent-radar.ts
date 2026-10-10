@@ -159,19 +159,22 @@ export async function loadAgentRadar(
     // projection for them and keeps them; the console's clusters go unused.
     const neighbours: SemanticSpaceNeighbor[] = [];
     const [map, listed] = await Promise.all([
-      buildProximityMapData({
-        entityService: source.entityService,
-        semantic: {
-          project: async (request) => {
-            const projection = await source.semantic.project({
-              ...request,
-              maxNeighborDistance: CONSTELLATION_REACH,
-            });
-            neighbours.push(...projection.neighbors);
-            return projection;
+      buildProximityMapData(
+        {
+          entityService: source.entityService,
+          semantic: {
+            project: async (request) => {
+              const projection = await source.semantic.project({
+                ...request,
+                maxNeighborDistance: CONSTELLATION_REACH,
+              });
+              neighbours.push(...projection.neighbors);
+              return projection;
+            },
           },
         },
-      }),
+        "public",
+      ),
       source.entityService.listEntities({ entityType: "agent" }),
     ]);
     const slugs = new Map(

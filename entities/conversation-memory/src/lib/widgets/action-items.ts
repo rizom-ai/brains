@@ -1,3 +1,4 @@
+import type { ContentVisibility } from "@brains/plugins";
 import {
   SYSTEM_CHANNELS,
   defineDashboardWidget,
@@ -114,11 +115,13 @@ function entityBody(entity: ActionItemEntity): string {
 
 export async function buildActionItemsWidgetData(
   context: EntityPluginContext,
+  visibilityScope: ContentVisibility,
   now: Date = new Date(),
 ): Promise<ActionItemsWidgetData> {
   const items = await context.entityService.listEntities(
     {
       entityType: ACTION_ITEM_ENTITY_TYPE,
+      options: { filter: { visibilityScope } },
     },
     actionItemSchema,
   );
@@ -160,9 +163,9 @@ export function registerActionItemsWidget(params: {
       await registerBuiltInDashboardWidget({
         context,
         definition: actionItemsWidget,
-        load: ({ signal }) => {
+        load: ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          return buildActionItemsWidgetData(context);
+          return buildActionItemsWidgetData(context, visibilityScope);
         },
       });
       return { success: true };

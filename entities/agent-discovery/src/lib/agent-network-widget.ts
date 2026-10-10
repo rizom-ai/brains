@@ -1,3 +1,4 @@
+import type { ContentVisibility } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { agentEntitySchema } from "../schemas/agent";
@@ -33,17 +34,20 @@ export type {
 const agentAdapter: AgentAdapter = new AgentAdapter();
 export async function buildAgentNetworkWidgetData(
   context: EntityPluginContext,
+  visibilityScope: ContentVisibility,
 ): Promise<AgentNetworkWidgetData> {
   const [agents, skills] = await Promise.all([
     context.entityService.listEntities(
       {
         entityType: AGENT_ENTITY_TYPE,
+        options: { filter: { visibilityScope } },
       },
       agentEntitySchema,
     ),
     context.entityService.listEntities(
       {
         entityType: SKILL_ENTITY_TYPE,
+        options: { filter: { visibilityScope } },
       },
       skillEntitySchema,
     ),
