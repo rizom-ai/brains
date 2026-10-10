@@ -710,6 +710,7 @@
     "core--theme-package-build-helper",
     "core--topics-narrow-distance",
     "core--topics-unextracted-hint",
+    "core--traffic-capture",
     "core--unified-inbox-foundation",
     "core--unified-inbox-headless-reader",
     "core--unified-inbox-quality-pass",
