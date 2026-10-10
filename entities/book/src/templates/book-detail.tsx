@@ -319,14 +319,33 @@ const ScoreLine = ({
 };
 
 /** The score: the book's contents, each line with a stroke per section. */
-const Score = ({ score }: { score: ScoreEntry[] }): JSX.Element => {
+/**
+ * A book that is one undivided text has no contents but itself: its single
+ * line is named by the book, not by the edition's lone number.
+ */
+function contentsOf(score: ScoreEntry[], title: string): ScoreLineData[] {
+  const lines = linesOf(score);
+  const [only] = lines;
+  if (lines.length !== 1 || only?.kind !== "run" || only.label.includes("–")) {
+    return lines;
+  }
+  return [{ ...only, label: title }];
+}
+
+const Score = ({
+  score,
+  title,
+}: {
+  score: ScoreEntry[];
+  title: string;
+}): JSX.Element => {
   const longest = Math.max(1, ...score.map((section) => section.length));
   return (
     <div>
       <p className={`${bookClasses.label} m-0 mb-6`}>
         Score — one stroke per section, as tall as its text
       </p>
-      {linesOf(score).map((line) => (
+      {contentsOf(score, title).map((line) => (
         <ScoreLine
           key={`${line.kind}:${line.depth}:${line.first.slug}`}
           line={line}
@@ -377,7 +396,7 @@ export const BookDetailTemplate = ({
         </nav>
       )}
     </header>
-    <Score score={score} />
+    <Score score={score} title={book.metadata.title} />
   </article>
 );
 
