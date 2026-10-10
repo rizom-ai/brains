@@ -1,5 +1,24 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.521
+  - @brains/decks@0.2.0-alpha.521
+  - @brains/faq@0.2.0-alpha.521
+  - @brains/site-info@0.2.0-alpha.521
+  - @brains/topics@0.2.0-alpha.521
+  - @brains/profile@0.2.0-alpha.521
+  - @brains/content-formatters@0.2.0-alpha.521
+  - @brains/site-atlas@0.2.0-alpha.521
+  - @brains/site-composition@0.2.0-alpha.521
+  - @brains/ui-library@0.2.0-alpha.521
+  - @brains/utils@0.2.0-alpha.521
+  - @brains/plugins@0.2.0-alpha.521
+  - @brains/templates@0.2.0-alpha.521
+
 ## 0.2.0-alpha.520
 
 ### Patch Changes

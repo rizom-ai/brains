@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- [#595](https://github.com/rizom-ai/brains/pull/595) [`1fe3a30`](https://github.com/rizom-ai/brains/commit/1fe3a30f973b34496c7fcffe93173293f9f93d94) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Inside a book in Studio, parts and divisions are titled by the headings the edition prints ("Dritter Theil", "Von der verkleinernden Tugend") in the folder list and the folder trail, rather than by their slugs. An entity adapter can name the folders a nested id stands in; a book section names them by its headings.
+
+- [#594](https://github.com/rizom-ai/brains/pull/594) [`6404cb1`](https://github.com/rizom-ai/brains/commit/6404cb11133763e8c3dc2e3787ebe6103ca3994b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic snapshots are system records: Studio lists them under System, not Library, and no one creates, edits or deletes them by hand. The daily capture still writes them.
+
 ## 0.2.0-alpha.520
 
 ### Patch Changes
