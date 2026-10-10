@@ -200,7 +200,8 @@ export class JobQueueService implements IJobQueueService {
     return this.handlerRegistry.finalizeRegistrations();
   }
 
-  public getExecutionRegistrations(): readonly JobExecutionRegistration[] {
+  public getExecutionRegistrations():
+    readonly JobExecutionRegistration[] | undefined {
     return this.handlerRegistry.getExecutionRegistrations();
   }
 

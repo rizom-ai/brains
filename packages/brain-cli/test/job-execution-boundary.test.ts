@@ -93,8 +93,9 @@ describe("canonical durable job execution boundary", () => {
     const webQueue = webApp.getShell().getJobQueueService();
     const workerShell = workerApp.getShell();
     const workerQueue = workerShell.getJobQueueService();
-    const webRegistrations = webQueue.getExecutionRegistrations();
-    const workerRegistrations = workerQueue.getExecutionRegistrations();
+    const webRegistrations = webQueue.getExecutionRegistrations() ?? [];
+    const workerRegistrations = workerQueue.getExecutionRegistrations() ?? [];
+    expect(workerRegistrations.length).toBeGreaterThan(0);
     const webTypes = webRegistrations.map(({ type }) => type).sort();
     const workerTypes = workerRegistrations.map(({ type }) => type).sort();
 
