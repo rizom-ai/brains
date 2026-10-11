@@ -3,22 +3,34 @@ import {
   defineStudioWorkspace,
   permissionToVisibilityScope,
   registerBuiltInStudioWorkspace,
+  type AnalyticsReportContext,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { shortDate } from "../lib/short-date";
+import { addDays } from "../lib/iso-week";
+import { readStoredDays } from "../lib/traffic-days";
 import type { TrafficReports } from "../reports/traffic-reports";
 import type { createTrafficByEntityReport } from "../reports/traffic-by-entity";
 
 export interface TrafficWorkspaceReports extends TrafficReports {
   byEntity: ReturnType<typeof createTrafficByEntityReport>;
+  /** Today, `YYYY-MM-DD` in UTC, as the reports count days. */
+  today: () => string;
 }
 
 const RANGES = ["7", "30", "90"] as const;
 
-const querySchema = z.strictObject({
-  days: z.enum(RANGES).default("30"),
-});
+/** "All" in Studio's select is an empty value; the rest are day counts. */
+const querySchema = z.strictObject({ days: z.string().optional() });
+
+type Period = (typeof RANGES)[number] | "all";
+
+/** Every recorded day for All, a listed range as asked, else the default. */
+function periodOf(days: string | undefined): Period {
+  if (days === "") return "all";
+  return RANGES.find((range) => range === days) ?? "30";
+}
 
 const rangeSchema = z.object({
   startDate: z.string(),
@@ -68,7 +80,7 @@ const byEntitySchema = z.object({
 });
 
 const dataSchema = z.object({
-  days: z.enum(RANGES),
+  days: z.enum([...RANGES, "all"]),
   overview: overviewSchema,
   series: seriesSchema,
   pieces: byEntitySchema,
@@ -169,7 +181,8 @@ const trafficWorkspace = defineStudioWorkspace({
             {
               key: "days",
               label: "Period",
-              value: data.days,
+              value: data.days === "all" ? undefined : data.days,
+              allLabel: "All recorded days",
               options: RANGES.map((days) => ({
                 value: days,
                 label: `Last ${days} days`,
@@ -294,6 +307,26 @@ const trafficWorkspace = defineStudioWorkspace({
   },
 });
 
+/** A period as report params: all means the first stored day to yesterday. */
+async function rangeFor(
+  period: Period,
+  context: AnalyticsReportContext,
+  today: () => string,
+): Promise<{ days: number } | { startDate: string; endDate: string }> {
+  if (period !== "all") return { days: Number(period) };
+  const endDate = addDays(today(), -1);
+  const first = (await readStoredDays(context))
+    .map((d) => d.date)
+    .reduce<string | undefined>(
+      (earliest, date) =>
+        earliest === undefined || date < earliest ? date : earliest,
+      undefined,
+    );
+  return first !== undefined && first <= endDate
+    ? { startDate: first, endDate }
+    : { days: 30 };
+}
+
 /** Registers the Traffic workspace; a no-op where Studio does not run. */
 export async function registerTrafficWorkspace(
   context: ServicePluginContext,
@@ -307,12 +340,12 @@ export async function registerTrafficWorkspace(
         listEntityTypes: () => Object.keys(context.entityDisplay ?? {}),
         load: async ({ caller, query }) => {
           if (!caller) throw new Error("Traffic requires authentication");
-          const { days } = query.get(querySchema);
+          const days = periodOf(query.get(querySchema).days);
           const reportContext = {
             entityService: context.entityService,
             visibilityScope: permissionToVisibilityScope(caller.permission),
           };
-          const range = { days: Number(days) };
+          const range = await rangeFor(days, reportContext, reports.today);
           const [overview, series, pieces] = await Promise.all([
             reports.overview.handler(
               reports.overview.params.parse({ ...range, limit: 10 }),
