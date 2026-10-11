@@ -15,6 +15,21 @@ export interface ActiveTopic {
   title: string;
 }
 
+/**
+ * A topic names one concept other brains can match: never two joined by
+ * "and", "or", "&" or "/", never built on a term the brain excludes.
+ */
+export function isTopicTitleAllowed(
+  title: string,
+  config: Pick<TopicsPluginConfig, "excludeTitleTerms">,
+): boolean {
+  if (/[&/]/.test(title) || /\b(?:and|or)\b/i.test(title)) return false;
+  const words = title.toLowerCase().split(/[^\p{L}\p{N}']+/u);
+  return !config.excludeTitleTerms.some((term) =>
+    words.some((word) => word.startsWith(term.toLowerCase())),
+  );
+}
+
 export function topicSoftCeiling(
   sourceCount: number,
   sourceRatio: number,
@@ -52,7 +67,8 @@ export function tallyTopicVotes(
       if (proposal) entry.proposals.push(proposal);
       if (
         canMint &&
-        weight * supported.relevanceScore >= config.createRelevanceThreshold
+        weight * supported.relevanceScore >= config.createRelevanceThreshold &&
+        isTopicTitleAllowed(entry.title, config)
       ) {
         entry.canEnter = true;
       }

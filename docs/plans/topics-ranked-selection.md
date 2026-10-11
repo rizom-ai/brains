@@ -26,6 +26,7 @@ A brain's topics are the best-supported subjects across all of its content, at m
 5. **Selection.** The cap is `topicSoftCeiling` over the full eligible-source count.
    - Below the cap, the best-supported challenger whose relevance clears `createRelevanceThreshold` becomes a topic.
    - At the cap, the best-supported challenger replaces the weakest topic when its support exceeds the weakest topic's by more than 25%. The margin keeps near-equal topics from swapping on small edits. Replacement waits until every eligible source has been read once.
+   - A title names one concept other brains can match: one that joins two with "and", "or", "&" or "/", or is built on a term in `excludeTitleTerms` (a book brain's author), never enters, is not listed to the model, and leaves the set once every source is read. The rule applies to tallied votes, so stored votes are re-judged without new AI calls.
    - Selection repeats until no challenger qualifies.
    - An entering topic's description is written by one AI call from the proposals that support it. A replaced topic is deleted; its site page and ATProto record follow the existing deletion paths.
    - Topic ids stay `scopedDerivedId(generateIdFromText(title), visibility)`, so a topic keeps its id and URL while it stays in the set.
