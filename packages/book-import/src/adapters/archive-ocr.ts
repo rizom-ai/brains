@@ -774,10 +774,15 @@ function normalised(text: string): string {
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
       // The Fraktur model reads a plus and an equals sign at full width,
-      // and a pound after a figure as an ampersand.
+      // and a pound after a figure as an ampersand,
       .replace(/＋/g, "+")
       .replace(/＝/g, "=")
       .replace(/(?<=(?:^|[^\p{L}\d])[\d½¼¾⅓⅔⅛⅕⅖⅗⅙⅚⅐⁄¹²³⁰-⁹₀-₉]+ ?)&/gu, "£")
+      // and as a quotation mark standing apart after a figure, before no word.
+      .replace(
+        /(?<=(?:^|[^\p{L}\d])[\d½¼¾⅓⅔⅛⅕⅖⅗⅙⅚⅐⁄¹²³⁰-⁹₀-₉]+ )[«„“](?=[\s,.;:)\]]|$)/gu,
+        "£",
+      )
   );
 }
 

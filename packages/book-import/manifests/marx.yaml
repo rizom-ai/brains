@@ -591,7 +591,7 @@ books:
       - { page: 100, opens: "III |" }
       - { page: 100, opens: "Tot |" }
       - { page: 171, opens: "Wir hätten also:" }
-      - { page: 171, opens: "Profit " }
+      - { page: 171, opens: "Profit |" }
       - { page: 171, opens: "I. 84" }
       - { page: 171, opens: "II. 66" }
       - { page: 171, opens: "III. 88" }
@@ -630,30 +630,30 @@ books:
       - { page: 187, opens: "III, obgleich" }
       - { page: 187, opens: "Was II angeht" }
       - { page: 187, opens: "Da aber der individuelle" }
-      - { page: 188, opens: "Klasse " }
-      - { page: 188, opens: "III " }
-      - { page: 188, opens: "II " }
-      - { page: 188, opens: "I " }
+      - { page: 188, opens: "Klasse |" }
+      - { page: 188, opens: "III |" }
+      - { page: 188, opens: "II |" }
+      - { page: 188, opens: "I |" }
       - { page: 188, opens: "Kurz, dieser Fall" }
       - { page: 188, opens: "Gehen wir nun über" }
       - { page: 188, opens: "Der Wert der Tonne ist gestiegen" }
       - { page: 188, opens: "Da die organische" }
       - { page: 188, opens: "Da aber der individuelle" }
-      - { page: 190, opens: "Klasse " }
-      - { page: 190, opens: "III " }
-      - { page: 190, opens: "II " }
-      - { page: 190, opens: "I " }
-      - { page: 190, opens: "Ib " }
+      - { page: 190, opens: "Klasse |" }
+      - { page: 190, opens: "III |" }
+      - { page: 190, opens: "II |" }
+      - { page: 190, opens: "I |" }
+      - { page: 190, opens: "Ib |" }
       - { page: 190, opens: "Setzen wir endlich" }
       - { page: 190, opens: "Hier steigt" }
       - { page: 190, opens: "Da in III" }
       - { page: 190, opens: "In II ist" }
-      - { page: 192, opens: "Klasse " }
-      - { page: 192, opens: "III " }
-      - { page: 192, opens: "II " }
-      - { page: 192, opens: "I " }
-      - { page: 192, opens: "Ib " }
-      - { page: 192, opens: "Ia " }
+      - { page: 192, opens: "Klasse |" }
+      - { page: 192, opens: "III |" }
+      - { page: 192, opens: "II |" }
+      - { page: 192, opens: "I |" }
+      - { page: 192, opens: "Ib |" }
+      - { page: 192, opens: "Ia |" }
       - { page: 192, opens: "In den vier" }
       - { page: 192, opens: "Ferner zeigt" }
       - { page: 192, opens: "Derselbe Widerspruch" }
@@ -664,24 +664,24 @@ books:
       - { page: 193, opens: "Wenn 20 Mann" }
       - { page: 194, opens: "Gang der Rente" }
       - { page: 194, opens: "A. (Beste" }
-      - { page: 194, opens: "Klasse " }
-      - { page: 194, opens: "III " }
-      - { page: 194, opens: "II " }
-      - { page: 194, opens: "I " }
-      - { page: 194, opens: "Ib " }
-      - { page: 194, opens: "Ia " }
-      - { page: 194, opens: "Total " }
+      - { page: 194, opens: "Klasse |" }
+      - { page: 194, opens: "III |" }
+      - { page: 194, opens: "II |" }
+      - { page: 194, opens: "I |" }
+      - { page: 194, opens: "Ib |" }
+      - { page: 194, opens: "Ia |" }
+      - { page: 194, opens: "Total |" }
       - { page: 194, opens: "B. Zweite" }
       - { page: 194, opens: "C. Dritte" }
       - { page: 194, opens: "D. Vierte" }
       - { page: 194, opens: "E. Fünfte" }
       - { page: 40, opens: "A." }
-      - { page: 40, opens: "Klasse " }
-      - { page: 40, opens: "I " }
-      - { page: 40, opens: "II " }
-      - { page: 40, opens: "III " }
-      - { page: 40, opens: "IV " }
-      - { page: 40, opens: "Total " }
+      - { page: 40, opens: "Klasse |" }
+      - { page: 40, opens: "I |" }
+      - { page: 40, opens: "II |" }
+      - { page: 40, opens: "III |" }
+      - { page: 40, opens: "IV |" }
+      - { page: 40, opens: "Total |" }
       - { page: 40, opens: "B." }
       - { page: 40, opens: "C." }
       - { page: 40, opens: "D." }
@@ -690,18 +690,59 @@ books:
       - { page: 102, opens: "B." }
       - { page: 102, opens: "C." }
       - { page: 102, opens: "D." }
-      - { page: 102, opens: "Klasse " }
-      - { page: 102, opens: "I " }
-      - { page: 102, opens: "II " }
-      - { page: 102, opens: "III " }
-      - { page: 102, opens: "Total " }
+      - { page: 102, opens: "Klasse |" }
+      - { page: 102, opens: "I |" }
+      - { page: 102, opens: "II |" }
+      - { page: 102, opens: "III |" }
+      - { page: 102, opens: "Total |" }
       - { page: 102, opens: "Man sieht aus" }
       - { page: 102, opens: "Ursprünglich bestand" }
       - { page: 102, opens: "In B verwohlfeilert" }
+      - { page: 223, opens: "Konstantes Kapital |" }
+      - { page: 223, opens: "80 |" }
+      - { page: 223, opens: "Jetzt haben wir" }
+      - { page: 223, opens: "80 c stellt hier" }
+      - { page: 223, opens: "Nehmen wir ein" }
+      - { page: 223, opens: "Der Wert des Pfundes" }
+      - { page: 224, opens: "Klasse |" }
+      - { page: 224, opens: "I |" }
+      - { page: 224, opens: "II |" }
+      - { page: 224, opens: "[Nämlich ist" }
+      - { page: 224, opens: "Wäre nur die Baumwolle" }
+      - { page: 225, opens: "Das Verhältnis wäre" }
+      - { page: 225, opens: "Klasse |" }
+      - { page: 225, opens: "III |" }
+      - { page: 225, opens: "In diesem Falle" }
+      - { page: 225, opens: "In I verhält" }
+      - { page: 228, opens: "Wir kommen nun" }
+      - { page: 228, opens: "Das Pfund Garn" }
+      - { page: 228, opens: "Wir haben also" }
+      - { page: 228, opens: "Klasse |" }
+      - { page: 228, opens: "II |" }
+      - { page: 228, opens: "In diesen" }
+      - { page: 229, opens: "Nehmen wir nun an" }
+      - { page: 229, opens: "Jetzt zerfällt" }
+      - { page: 229, opens: "Klasse |" }
+      - { page: 229, opens: "IV |" }
+      - { page: 229, opens: "Von diesen" }
+      - { page: 229, opens: "Stellen wir nun" }
+      - { page: 229, opens: "Der Preis des Produkts" }
+      - { page: 230, opens: "Klasse |" }
+      - { page: 230, opens: "I |" }
+      - { page: 230, opens: "II |" }
+      - { page: 230, opens: "III |" }
+      - { page: 230, opens: "IV |" }
+      - { page: 230, opens: "Wie verhält sich" }
+      - { page: 230, opens: "Wäre nur der Arbeitslohn" }
+      - { page: 230, opens: "Soviel ergibt" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 171, opens: "¹) Mit Überschlagung" }
       - { page: 188, opens: "¹) Im Manuskript" }
+      - { page: 223, opens: "¹) Im Manuskript steht 120" }
+      - { page: 223, opens: "²) Im Manuskript steht" }
+      - { page: 226, opens: "¹) Im Manuskript steht:" }
+      - { page: 230, opens: "¹) Im Manuskript steht IV" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2

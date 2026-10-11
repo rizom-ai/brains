@@ -2208,7 +2208,7 @@ describe("parseArchiveOcrWork, signs the Fraktur model misreads", () => {
     );
 
     expect(units.at(-1)?.paragraphs.at(-2)).toBe(
-      "Das Kapital 80 c + 20 v gibt 110 = 100 + 10 £, Hope & Co., Zo6& 4.",
+      "Das Kapital 80 c + 20 v gibt 110 = 100 + 10 £, Hope & Co., Zo6& 4; 130 £ (10), 300 £; von 1820 „Principles“ 1696“ seit.",
     );
   });
 });
