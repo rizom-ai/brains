@@ -2845,6 +2845,10 @@ theorienberden01marxuoft:
     from: und einige ihrer vorgänger und Zeitgenossen.
     to: und einige ihrer Vorgänger und Zeitgenossen.
     by: scan
+  - page: 1
+    from: sentwickeln]
+    to: "[entwickeln]"
+    by: scan
   - page: 3
     from: Stunden!
     to: Stunden]
@@ -3009,6 +3013,10 @@ theorienberden01marxuoft:
     from: 10. TCh. A. h. Schmalz und Graf de Buat.
     to: 10. Th. A. H. Schmalz und Graf de Buat.
     by: scan
+  - page: 67
+    from: Rficardo]
+    to: R[icardo]
+    by: scan
   - page: 68
     from: II. Ein englischer Phisiokrat.
     to: 11. Ein englischer Physiokrat.
@@ -3140,6 +3148,10 @@ theorienberden01marxuoft:
   - page: 112
     from: streten
     to: "[treten"
+    by: scan
+  - page: 115
+    from: daß lin
+    to: daß [in
     by: scan
   - page: 116
     from: bemerkt ([, Umlauf
@@ -3765,6 +3777,10 @@ theorienberden01marxuoft:
     from: Abnutzung!
     to: Abnutzung]
     by: scan
+  - page: 218
+    from: Eisensproduzenten]
+    to: Eisen[produzenten]
+    by: scan
   - page: 221
     from: 3. Austausch zwischen Kapital und Kapital und der
     to: 3. Austausch zwischen Kapital und Kapital und der Einfluß des Wertwechsels darauf.
@@ -3780,6 +3796,10 @@ theorienberden01marxuoft:
   - page: 227
     from: "[Mehr!"
     to: "[Mehr]"
+    by: scan
+  - page: 227
+    from: haben sum
+    to: haben [um
     by: scan
   - page: 228
     from: sphäre!
@@ -3809,6 +3829,18 @@ theorienberden01marxuoft:
     from: Falle!
     to: Falle]
     by: scan
+  - page: 234
+    from: produziert und
+    to: produziert [und
+    by: scan
+  - page: 234
+    from: ist (im
+    to: ist [im
+    by: scan
+  - page: 234
+    from: sentweder
+    to: "[entweder"
+    by: scan
   - page: 237
     from: beamten!
     to: beamten¹
@@ -3817,9 +3849,17 @@ theorienberden01marxuoft:
     from: Wert!
     to: Wert]
     by: scan
+  - page: 243
+    from: sei san
+    to: sei [an
+    by: scan
   - page: 244
     from: Falle!
     to: Falle]
+    by: scan
+  - page: 244
+    from: aber lin
+    to: aber [in
     by: scan
   - page: 245
     from: daß!
@@ -3832,6 +3872,14 @@ theorienberden01marxuoft:
   - page: 246
     from: ([verzehrt
     to: "[verzehrt"
+    by: scan
+  - page: 246
+    from: ganz von
+    to: ganz [von
+    by: scan
+  - page: 248
+    from: Teils]
+    to: "[Teils]"
     by: scan
   - page: 251
     from: loder
@@ -3864,6 +3912,10 @@ theorienberden01marxuoft:
   - page: 260
     from: Waren produzierenden.!“
     to: Waren produzierenden.
+    by: scan
+  - page: 260
+    from: Eigenschaft,
+    to: Eigenschaft[,
     by: scan
   - page: 262
     from: sihrer
@@ -3912,6 +3964,10 @@ theorienberden01marxuoft:
   - page: 295
     from: tical éeconomy, Edition
     to: tical economy, Edition
+    by: scan
+  - page: 300
+    from: unproduktiven]
+    to: "[unproduktiven]"
     by: scan
   - page: 306
     from: des Princeipes de I'Economie
@@ -3997,6 +4053,10 @@ theorienberden01marxuoft:
     from: verfügt!
     to: verfügt]
     by: scan
+  - page: 340
+    from: füber
+    to: "[über"
+    by: scan
   - page: 343
     from: ssich
     to: "[sich"
@@ -4012,6 +4072,10 @@ theorienberden01marxuoft:
   - page: 346
     from: nur!
     to: nur]
+    by: scan
+  - page: 346
+    from: Falle vor
+    to: Falle [vor
     by: scan
   - page: 347
     from: muß,!
@@ -4036,6 +4100,10 @@ theorienberden01marxuoft:
   - page: 354
     from: produktiver Arbeiter.
     to: "produktiver Arbeiter:"
+    by: scan
+  - page: 354
+    from: Produktsivität])
+    to: Produkt[ivität]
     by: scan
   - page: 356
     from: Kapital?
@@ -4077,9 +4145,13 @@ theorienberden01marxuoft:
     from: Land!]
     to: Land]
     by: scan
+  - page: 369
+    from: C sein
+    to: C [ein
+    by: scan
   - page: 371
     from: gedrängten!
-    to: gedrängten]
+    to: "[gedrängten]"
     by: scan
   - page: 374
     from: werden.!
@@ -4104,6 +4176,10 @@ theorienberden01marxuoft:
   - page: 381
     from: ([dann]
     to: "[dann]"
+    by: scan
+  - page: 381
+    from: Betrachtungskreis, ihre
+    to: Betrachtungskreis, [ihre
     by: scan
   - page: 383
     from: ([geistig
@@ -4148,6 +4224,10 @@ theorienberden01marxuoft:
   - page: 395
     from: seine!
     to: seine]
+    by: scan
+  - page: 395
+    from: ebenso
+    to: "[ebenso"
     by: scan
   - page: 400
     from: produktiven!
@@ -4213,6 +4293,10 @@ theorienberden01marxuoft:
     from: nur vorgehen, indem ein Teil des Geldes in e verwandelt
     to: nur vorgehen, indem ein Teil des Geldes in c verwandelt
     by: scan
+  - page: 414
+    from: vergegenständlicht]
+    to: "[vergegenständlicht]"
+    by: scan
   - page: 419
     from: nichtl.
     to: nicht].
@@ -4249,6 +4333,10 @@ p1theorienberden02marxuoft:
   - page: 13
     from: lindustrielles
     to: "[industrielle]"
+    by: scan
+  - page: 13
+    from: Proportionen sin
+    to: Proportionen [in
     by: scan
   - page: 15
     from: sauf
@@ -4296,7 +4384,7 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 28
     from: durch!
-    to: durch]
+    to: "[durch]"
     by: scan
   - page: 29
     from: Arbeit!
@@ -4314,6 +4402,14 @@ p1theorienberden02marxuoft:
     from: (auch!
     to: "[auch]"
     by: scan
+  - page: 32
+    from: wende im
+    to: wende [im
+    by: scan
+  - page: 32
+    from: 4000 T],
+    to: 4000 £],
+    by: scan
   - page: 34
     from: Falles!]
     to: Falles]
@@ -4321,6 +4417,14 @@ p1theorienberden02marxuoft:
   - page: 38
     from: seiner!
     to: seiner]
+    by: scan
+  - page: 38
+    from: (der
+    to: "[der"
+    by: scan
+  - page: 39
+    from: Kapital im
+    to: Kapital [im
     by: scan
   - page: 40
     from: gleichlbleibendem!
@@ -4333,6 +4437,14 @@ p1theorienberden02marxuoft:
   - page: 42
     from: Verhältnis!
     to: Verhältnis]
+    by: scan
+  - page: 42
+    from: daher sim
+    to: daher [im
+    by: scan
+  - page: 42
+    from: Verschiedenheiten sim
+    to: Verschiedenheiten [im
     by: scan
   - page: 44
     from: Dauerhaftigkeit!
@@ -4398,6 +4510,10 @@ p1theorienberden02marxuoft:
     from: 4) Ricardos Anschauungen.
     to: α) Ricardos Anschauungen.
     by: scan
+  - page: 54
+    from: Größe. Es
+    to: Größe. [Es
+    by: scan
   - page: 55
     from: wolmit!
     to: wo[mit]
@@ -4408,11 +4524,15 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 58
     from: hier!
-    to: hier]
+    to: "[hier]"
     by: scan
   - page: 58
     from: Aktion!]
     to: Aktion]
+    by: scan
+  - page: 58
+    from: findet. Durch
+    to: findet. [Durch
     by: scan
   - page: 63
     from: Geldleute (monièd class)
@@ -4439,8 +4559,8 @@ p1theorienberden02marxuoft:
     to: jetzt ³⁵⁄₇₅ = 46⅔ Prozent. K.
     by: scan
   - page: 68
-    from: steigen!
-    to: steigen]
+    from: oder steigen!
+    to: "[oder steigen]"
     by: scan
   - page: 68
     from: sinkt loder
@@ -4462,6 +4582,10 @@ p1theorienberden02marxuoft:
     from: wendiger!
     to: wendiger]
     by: scan
+  - page: 69
+    from: (not-
+    to: "[not-"
+    by: scan
   - page: 71
     from: 3) Smith über Produktionspreise und Marktpreise.
     to: β) Smith über Produktionspreise und Marktpreise.
@@ -4469,6 +4593,14 @@ p1theorienberden02marxuoft:
   - page: 72
     from: kurrenz!
     to: kurrenz]
+    by: scan
+  - page: 72
+    from: Ausgangspunkt der
+    to: Ausgangspunkt [der
+    by: scan
+  - page: 72
+    from: verlehrten
+    to: verkehrten
     by: scan
   - page: 74
     from: ssie
@@ -4502,6 +4634,10 @@ p1theorienberden02marxuoft:
     from: Lohn!],
     to: Lohn],
     by: scan
+  - page: 79
+    from: (des
+    to: "[des"
+    by: scan
   - page: 80
     from: swill
     to: "[will"
@@ -4511,8 +4647,8 @@ p1theorienberden02marxuoft:
     to: er]
     by: scan
   - page: 80
-    from: steigt!
-    to: steigt]
+    from: ser steigt!
+    to: "[er steigt]"
     by: scan
   - page: 80
     from: Profits!
@@ -4532,7 +4668,7 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 88
     from: Niedrige!]
-    to: Niedrige]
+    to: "[Niedrige]"
     by: scan
   - page: 89
     from: 2 Penee täglich
@@ -4548,7 +4684,7 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 89
     from: in!
-    to: in]
+    to: "[in]"
     by: scan
   - page: 89
     from: (ge-
@@ -4604,7 +4740,7 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 117
     from: von!
-    to: von]
+    to: "[von]"
     by: scan
   - page: 118
     from: Abnahme.?
@@ -4633,6 +4769,10 @@ p1theorienberden02marxuoft:
   - page: 121
     from: von!
     to: von]
+    by: scan
+  - page: 121
+    from: slals
+    to: "[als"
     by: scan
   - page: 122
     from: den cerele vicieux.
@@ -4910,6 +5050,10 @@ p1theorienberden02marxuoft:
     from: werden,!]
     to: werden,]
     by: scan
+  - page: 165
+    from: daß, wenn
+    to: daß, [wenn
+    by: scan
   - page: 167
     from: 1. RKodbertus.
     to: 1. Rodbertus.
@@ -4925,6 +5069,10 @@ p1theorienberden02marxuoft:
   - page: 167
     from: Wert!
     to: Wert]
+    by: scan
+  - page: 167
+    from: (die
+    to: "[die"
     by: scan
   - page: 168
     from: sins
@@ -4950,9 +5098,13 @@ p1theorienberden02marxuoft:
     from: faßt!,
     to: faßt],
     by: scan
+  - page: 168
+    from: Kapitals sim
+    to: Kapitals [im
+    by: scan
   - page: 169
     from: fällt, der Arbeitslohn!
-    to: fällt, der Arbeitslohn]
+    to: fällt, [der Arbeitslohn]
     by: scan
   - page: 169
     from: Arbeitslohn! ist
@@ -4994,9 +5146,17 @@ p1theorienberden02marxuoft:
     from: etwas!]
     to: etwas]
     by: scan
+  - page: 170
+    from: (Wenn
+    to: "[Wenn"
+    by: scan
   - page: 171
     from: lärmeren!
     to: "[ärmeren]"
+    by: scan
+  - page: 171
+    from: könnens,
+    to: können[,
     by: scan
   - page: 172
     from: Stammbaumweizen (pédigrèe nursery
@@ -5021,6 +5181,10 @@ p1theorienberden02marxuoft:
   - page: 172
     from: Inhalt!]
     to: Inhalt]
+    by: scan
+  - page: 172
+    from: Wie sehr
+    to: "[Wie sehr"
     by: scan
   - page: 173
     from: (Verzehnfacht!
@@ -5093,6 +5257,14 @@ p1theorienberden02marxuoft:
   - page: 180
     from: Produktionsprozeß!
     to: Produktionsprozeß]
+    by: scan
+  - page: 180
+    from: hat im
+    to: hat [im
+    by: scan
+  - page: 180
+    from: des Produkts]
+    to: "[des Produkts]"
     by: scan
   - page: 181
     from: 50 berechnet, (gibt es einen ÜUberschuß von 50] - 100 Prozent.
@@ -5187,8 +5359,8 @@ p1theorienberden02marxuoft:
     to: "[nebeneinander"
     by: scan
   - page: 193
-    from: Boden!]
-    to: Boden]
+    from: einen Boden!]
+    to: "[einen Boden]"
     by: scan
   - page: 194
     from: man!
@@ -5210,6 +5382,10 @@ p1theorienberden02marxuoft:
     from: tionspreis)
     to: tionspreis]
     by: scan
+  - page: 195
+    from: ist; und
+    to: ist; [und
+    by: scan
   - page: 196
     from: ([dieser
     to: "[dieser"
@@ -5217,6 +5393,10 @@ p1theorienberden02marxuoft:
   - page: 196
     from: Produktionssphäre!]
     to: Produktionssphäre]
+    by: scan
+  - page: 196
+    from: Nun vergleichen
+    to: "[Nun vergleichen"
     by: scan
   - page: 198
     from: sgegebene
@@ -5227,8 +5407,8 @@ p1theorienberden02marxuoft:
     to: Niveau]
     by: scan
   - page: 198
-    from: durch!]
-    to: durch]
+    from: das durch!]
+    to: "[das durch]"
     by: scan
   - page: 201
     from: shohen!
@@ -5247,8 +5427,8 @@ p1theorienberden02marxuoft:
     to: dem]
     by: scan
   - page: 203
-    from: gibt!
-    to: gibt]
+    from: Es gibt!
+    to: "[Es gibt]"
     by: scan
   - page: 204
     from: sihn
@@ -5269,6 +5449,10 @@ p1theorienberden02marxuoft:
   - page: 206
     from: "[wird!"
     to: "[wird]"
+    by: scan
+  - page: 206
+    from: zwischen
+    to: "[zwischen"
     by: scan
   - page: 208
     from: Kapitalisten!
@@ -5294,9 +5478,21 @@ p1theorienberden02marxuoft:
     from: ([die
     to: "[die"
     by: scan
+  - page: 208
+    from: eine dem
+    to: eine [dem
+    by: scan
+  - page: 208
+    from: nicht,
+    to: "[nicht,"
+    by: scan
   - page: 209
     from: économique!
     to: économique]
+    by: scan
+  - page: 209
+    from: rechnet sin
+    to: rechnet [in
     by: scan
   - page: 210
     from: "[keines)"
@@ -5314,6 +5510,10 @@ p1theorienberden02marxuoft:
     from: oder!
     to: oder]
     by: scan
+  - page: 211
+    from: sind, sondern
+    to: sind, [sondern
+    by: scan
   - page: 214
     from: ist!
     to: ist]
@@ -5330,13 +5530,25 @@ p1theorienberden02marxuoft:
     from: beiter (von
     to: beiter [von
     by: scan
+  - page: 215
+    from: andere von
+    to: andere [von
+    by: scan
+  - page: 215
+    from: von B]
+    to: "[von B]"
+    by: scan
   - page: 216
     from: vornherein!
     to: vornherein]
     by: scan
+  - page: 216
+    from: sich von
+    to: sich [von
+    by: scan
   - page: 217
-    from: schaffend!
-    to: schaffend]
+    from: Mehrwert schaffend!
+    to: "[Mehrwert schaffend]"
     by: scan
   - page: 217
     from: Wert!,
@@ -5353,6 +5565,10 @@ p1theorienberden02marxuoft:
   - page: 220
     from: kann).
     to: kann].
+    by: scan
+  - page: 220
+    from: sals
+    to: "[als"
     by: scan
   - page: 221
     from: (der
@@ -5402,6 +5618,10 @@ p1theorienberden02marxuoft:
     from: von!
     to: von]
     by: scan
+  - page: 228
+    from: (sind
+    to: "[sind"
+    by: scan
   - page: 229
     from: mit Aere und
     to: mit Acre und
@@ -5432,15 +5652,15 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 230
     from: Ee) Fortsetzung der Kritik.
-    to: e) Fortsetzung der Kritik.
+    to: e) Fortsetzung [der Kritik.
     by: scan
   - page: 230
     from: 4) Erste Formel.
     to: α) Erste Formel.
     by: scan
   - page: 230
-    from: Bodenwert!]
-    to: Bodenwert]
+    from: der Bodenwert!]
+    to: "[der Bodenwert]"
     by: scan
   - page: 233
     from: ) Zweite Formel.
@@ -5608,7 +5828,11 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 243
     from: erwirbt!]
-    to: erwirbt]
+    to: "[erwirbt]"
+    by: scan
+  - page: 243
+    from: ohne in
+    to: ohne [in
     by: scan
   - page: 244
     from: dieser!
@@ -5621,6 +5845,10 @@ p1theorienberden02marxuoft:
   - page: 245
     from: Falle!
     to: Falle]
+    by: scan
+  - page: 245
+    from: (dem
+    to: "[dem"
     by: scan
   - page: 246
     from: Mehrwert!
@@ -5636,7 +5864,7 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 246
     from: anderen!]
-    to: anderen]
+    to: "[anderen]"
     by: scan
   - page: 249
     from: „) Dritte Formel.
@@ -5654,6 +5882,10 @@ p1theorienberden02marxuoft:
     from: (meint
     to: "[meint"
     by: scan
+  - page: 251
+    from: Rodbertus lin
+    to: Rodbertus [in
+    by: scan
   - page: 253
     from: (50],
     to: "[50],"
@@ -5662,9 +5894,17 @@ p1theorienberden02marxuoft:
     from: (zu
     to: "[zu"
     by: scan
+  - page: 253
+    from: habe, sum
+    to: habe, [um
+    by: scan
   - page: 254
     from: die!
     to: die]
+    by: scan
+  - page: 254
+    from: steigt, so
+    to: steigt, [so
     by: scan
   - page: 255
     from: (Garn!
@@ -5681,6 +5921,10 @@ p1theorienberden02marxuoft:
   - page: 255
     from: Falle!
     to: Falle]
+    by: scan
+  - page: 255
+    from: (der
+    to: "[der"
     by: scan
   - page: 256
     from: Produktionskosten 960, Profit 60, Profitrate 6⅛ Prozent.
@@ -5726,6 +5970,10 @@ p1theorienberden02marxuoft:
     from: zwar sum
     to: zwar [um
     by: scan
+  - page: 257
+    from: streifen
+    to: "[streifen"
+    by: scan
   - page: 261
     from: ([wieder!
     to: "[wieder]"
@@ -5737,6 +5985,10 @@ p1theorienberden02marxuoft:
   - page: 262
     from: Bedingungen!
     to: Bedingungen]
+    by: scan
+  - page: 262
+    from: technischen
+    to: "[technischen"
     by: scan
   - page: 263
     from: etwa einen Dollar pro Aere zahlen läßt, einen geringen,
@@ -5921,6 +6173,10 @@ p1theorienberden02marxuoft:
   - page: 268
     from: "[Es ergibt!]"
     to: "[Es ergibt]"
+    by: scan
+  - page: 268
+    from: steht, sondern
+    to: steht, [sondern
     by: scan
   - page: 269
     from: (nicht!
@@ -6218,6 +6474,10 @@ p1theorienberden02marxuoft:
     from: produzierten!
     to: produzierten]
     by: scan
+  - page: 285
+    from: lauf
+    to: "[auf"
+    by: scan
   - page: 286
     from: Mehrwerts!
     to: Mehrwerts]
@@ -6477,6 +6737,10 @@ p1theorienberden02marxuoft:
   - page: 317
     from: weder!
     to: weder]
+    by: scan
+  - page: 317
+    from: lent-
+    to: "[ent-"
     by: scan
   - page: 318
     from: intérést) und
@@ -6808,6 +7072,10 @@ p1theorienberden02marxuoft:
     from: (von
     to: "[von"
     by: scan
+  - page: 331
+    from: 1800—1859].
+    to: "[1800—1859].¹"
+    by: scan
   - page: 332
     from: present scareity
     to: present scarcity
@@ -6902,7 +7170,7 @@ p1theorienberden02marxuoft:
     by: scan
   - page: 340
     from: bemächtigt!],
-    to: bemächtigt],
+    to: "[bemächtigt],"
     by: scan
   - page: 341
     from: Boden!
@@ -6911,6 +7179,10 @@ p1theorienberden02marxuoft:
   - page: 341
     from: (des
     to: "[des"
+    by: scan
+  - page: 341
+    from: Eigentumsrechtes sam
+    to: Eigentumsrechtes [am
     by: scan
   - page: 344
     from: stets.
@@ -6940,6 +7212,10 @@ p2theorienberd02marx:
   - page: 4
     from: Grundrente!
     to: Grundrente]
+    by: scan
+  - page: 4
+    from: Hauptsache über
+    to: Hauptsache [über
     by: scan
   - page: 5
     from: "[nahm!]"
@@ -6977,6 +7253,10 @@ p2theorienberd02marx:
     from: Wert!],
     to: Wert],
     by: scan
+  - page: 13
+    from: Produkts, und
+    to: Produkts, [und
+    by: scan
   - page: 16
     from: lüber
     to: "[über"
@@ -6988,6 +7268,10 @@ p2theorienberd02marx:
   - page: 17
     from: genommen!
     to: genommen]
+    by: scan
+  - page: 17
+    from: Industrie das
+    to: Industrie [das
     by: scan
   - page: 19
     from: noch!,
@@ -7011,7 +7295,7 @@ p2theorienberd02marx:
     by: scan
   - page: 22
     from: verhältnismäßig!]
-    to: verhältnismäßig]
+    to: "[verhältnismäßig]"
     by: scan
   - page: 22
     from: "[und!]"
@@ -7023,7 +7307,11 @@ p2theorienberd02marx:
     by: scan
   - page: 22
     from: größer und!]
-    to: größer und]
+    to: größer [und]
+    by: scan
+  - page: 22
+    from: ausgelegte kleiner,
+    to: ausgelegte [kleiner,
     by: scan
   - page: 23
     from: C4õ) Veränderungen der Masse der Rente.
@@ -7385,6 +7673,10 @@ p2theorienberd02marx:
   - page: 39
     from: bestimmten!
     to: bestimmten]
+    by: scan
+  - page: 39
+    from: seinem
+    to: "[einem"
     by: scan
   - page: 40
     from: 40 Die Grundrente
@@ -8628,6 +8920,10 @@ p2theorienberd02marx:
     from: sbildet,
     to: "[bildet],"
     by: scan
+  - page: 116
+    from: er im
+    to: er [im
+    by: scan
   - page: 117
     from: Boden!
     to: Boden]
@@ -8723,6 +9019,10 @@ p2theorienberd02marx:
   - page: 159
     from: („
     to: "[„"
+    by: scan
+  - page: 159
+    from: Silber in
+    to: Silber [in
     by: scan
   - page: 164
     from: Arbeitskraft!
@@ -9006,6 +9306,10 @@ p2theorienberd02marx:
     from: erhebenden!
     to: erhebenden]
     by: scan
+  - page: 175
+    from: Verwandelte
+    to: "[Verwandelte"
+    by: scan
   - page: 176
     from: smehreren
     to: "[mehreren"
@@ -9013,6 +9317,10 @@ p2theorienberd02marx:
   - page: 176
     from: angewandten!]
     to: angewandten]
+    by: scan
+  - page: 177
+    from: daß lin
+    to: daß [in
     by: scan
   - page: 178
     from: 4) Untersuchung der Ricardoschen Voraussetzungen.
@@ -9025,6 +9333,10 @@ p2theorienberd02marx:
   - page: 180
     from: bleibtl.
     to: bleibt].
+    by: scan
+  - page: 180
+    from: von diesem
+    to: "[von diesem"
     by: scan
   - page: 181
     from: Arbeit!
@@ -10315,6 +10627,10 @@ p2theorienberd02marx:
     from: wenn!
     to: wenn]
     by: scan
+  - page: 201
+    from: abhängt, sso
+    to: abhängt, [so
+    by: scan
   - page: 203
     from: sihn!
     to: "[ihn]"
@@ -10342,6 +10658,10 @@ p2theorienberd02marx:
   - page: 207
     from: Industriellen!
     to: Industriellen]
+    by: scan
+  - page: 207
+    from: (der
+    to: "[der"
     by: scan
   - page: 209
     from: sauf
@@ -10450,6 +10770,10 @@ p2theorienberd02marx:
   - page: 222
     from: Menge!
     to: Menge]
+    by: scan
+  - page: 222
+    from: die geringere
+    to: die [geringere
     by: scan
   - page: 223
     from: 88 C +ε 22 v. Wert des Produkts - 128. Dieses gibt 18
@@ -10947,6 +11271,10 @@ p2theorienberd02marx:
     from: Korns)
     to: Korns]
     by: scan
+  - page: 242
+    from: enthält seine
+    to: enthält [eine
+    by: scan
   - page: 243
     from: z. verwandlung von Revenue in Rapital.
     to: 2. Verwandlung von Revenue in Kapital.
@@ -11027,6 +11355,10 @@ p2theorienberd02marx:
     from: Konsumenten!],
     to: Konsumenten],
     by: scan
+  - page: 264
+    from: Kategorie, die
+    to: Kategorie, [die
+    by: scan
   - page: 268
     from: Aber!
     to: "[Aber]"
@@ -11083,6 +11415,10 @@ p2theorienberd02marx:
     from: der!
     to: der]
     by: scan
+  - page: 283
+    from: sersteht
+    to: "[ersteht"
+    by: scan
   - page: 284
     from: Produktionsprozeß!
     to: Produktionsprozeß]
@@ -11131,13 +11467,25 @@ p2theorienberd02marx:
     from: Sinne!
     to: Sinne]
     by: scan
+  - page: 295
+    from: Und sin
+    to: Und [in
+    by: scan
   - page: 296
     from: sihrer)
     to: "[ihrer]"
     by: scan
+  - page: 298
+    from: dessen
+    to: "[dessen"
+    by: scan
   - page: 305
     from: auch!
     to: auch]
+    by: scan
+  - page: 305
+    from: Momente
+    to: "[Momente"
     by: scan
   - page: 306
     from: kann,?
@@ -11166,6 +11514,14 @@ p2theorienberd02marx:
   - page: 312
     from: der!
     to: der]
+    by: scan
+  - page: 312
+    from: daher in
+    to: daher [in
+    by: scan
+  - page: 312
+    from: soll in der Unmöglichkeit
+    to: soll in der [Unmöglichkeit
     by: scan
   - page: 314
     from: daß!
@@ -11207,6 +11563,10 @@ p2theorienberd02marx:
     from: Reichtum.!
     to: Reichtum.¹
     by: scan
+  - page: 323
+    from: falsch, wie
+    to: falsch, [wie
+    by: scan
   - page: 324
     from: vergrößern,!
     to: vergrößern,¹
@@ -11242,6 +11602,10 @@ p2theorienberd02marx:
   - page: 340
     from: "[vermehrte!"
     to: "[vermehrte]"
+    by: scan
+  - page: 340
+    from: umgekehrt, sie
+    to: umgekehrt, [sie
     by: scan
   - page: 341
     from: (Mittel
@@ -11283,9 +11647,17 @@ p2theorienberd02marx:
     from: darzulegen,!
     to: darzulegen,¹
     by: scan
+  - page: 344
+    from: erlaubt, diese
+    to: erlaubt, [diese
+    by: scan
   - page: 346
     from: (das
     to: "[das"
+    by: scan
+  - page: 348
+    from: Arbeitslohns, des
+    to: Arbeitslohns, [des
     by: scan
   - page: 352
     from: ihn!
@@ -11294,6 +11666,10 @@ p2theorienberd02marx:
   - page: 352
     from: nimmt!],
     to: nimmt],
+    by: scan
+  - page: 352
+    from: san-
+    to: "[an-"
     by: scan
   - page: 353
     from: labnimmt).
@@ -11367,6 +11743,10 @@ p2theorienberd02marx:
     from: ist;!
     to: ist;¹
     by: scan
+  - page: 365
+    from: 1.],
+    to: "[1.],"
+    by: scan
   - page: 366
     from: (die
     to: "[die"
@@ -11374,6 +11754,10 @@ p2theorienberd02marx:
   - page: 366
     from: für!
     to: für]
+    by: scan
+  - page: 366
+    from: (Lebensmittel
+    to: "[Lebensmittel"
     by: scan
   - page: 367
     from: seinmal
@@ -11428,6 +11812,10 @@ theorienberden03marxuoft:
     from: nirgends!
     to: nirgends¹
     by: scan
+  - page: 5
+    from: wird]
+    to: "[wird]"
+    by: scan
   - page: 6
     from: Economy ete. S.
     to: Economy etc. S.
@@ -11456,9 +11844,17 @@ theorienberden03marxuoft:
     from: sei!
     to: "[sei]"
     by: scan
+  - page: 13
+    from: sentspann
+    to: "[entspann"
+    by: scan
   - page: 14
     from: Zitate!
     to: Zitate]
+    by: scan
+  - page: 14
+    from: noch
+    to: "[noch"
     by: scan
   - page: 15
     from: unbefangenen!
@@ -11491,6 +11887,10 @@ theorienberden03marxuoft:
   - page: 20
     from: (Definitions ete., S.
     to: (Definitions etc., S.
+    by: scan
+  - page: 21
+    from: Schrift Zur
+    to: Schrift [Zur
     by: scan
   - page: 23
     from: "[zum!]"
@@ -11539,6 +11939,10 @@ theorienberden03marxuoft:
   - page: 32
     from: des Produkts, nämlich 600 E nehmen und mit der Summe ver-
     to: des Produkts, nämlich 600 £ nehmen und mit der Summe ver-
+    by: scan
+  - page: 34
+    from: sebensoviel
+    to: "[ebensoviel"
     by: scan
   - page: 35
     from: 3. Uverproduktion und Upernonfumtion.
@@ -11612,6 +12016,14 @@ theorienberden03marxuoft:
     from: sso
     to: "[so"
     by: scan
+  - page: 44
+    from: über
+    to: "[über"
+    by: scan
+  - page: 44
+    from: sals
+    to: "[als"
+    by: scan
   - page: 47
     from: (Klasse]
     to: "[Klasse]"
@@ -11623,6 +12035,10 @@ theorienberden03marxuoft:
   - page: 51
     from: wettgemacht!
     to: wettgemacht]
+    by: scan
+  - page: 51
+    from: Kapitalisten wird
+    to: Kapitalisten [wird
     by: scan
   - page: 53
     from: (haben!
@@ -11639,6 +12055,10 @@ theorienberden03marxuoft:
   - page: 59
     from: Anschauungen!]
     to: Anschauungen]
+    by: scan
+  - page: 59
+    from: seinige
+    to: "[einige"
     by: scan
   - page: 61
     from: 4. der verfafler der Inquiry'.
@@ -11678,7 +12098,7 @@ theorienberden03marxuoft:
     by: scan
   - page: 68
     from: vergrößerte!
-    to: vergrößerte]
+    to: "[vergrößerte]"
     by: scan
   - page: 68
     from: Maschineriel,
@@ -11692,6 +12112,10 @@ theorienberden03marxuoft:
     from: schaffen!
     to: schaffen]
     by: scan
+  - page: 71
+    from: (der
+    to: "[der"
+    by: scan
   - page: 73
     from: II. Auf losung der Ricardoschen Schule.
     to: II. Auflösung der Ricardoschen Schule.
@@ -11704,9 +12128,17 @@ theorienberden03marxuoft:
     from: Wealth ete.“, London
     to: Wealth etc.“, London
     by: scan
+  - page: 78
+    from: der Kapitalien]
+    to: "[der Kapitalien]"
+    by: scan
   - page: 80
     from: Bedingungen!
     to: Bedingungen]
+    by: scan
+  - page: 80
+    from: serforderlichen
+    to: "[erforderlichen"
     by: scan
   - page: 81
     from: (die
@@ -11719,6 +12151,10 @@ theorienberden03marxuoft:
   - page: 81
     from: Produktion!]
     to: Produktion]
+    by: scan
+  - page: 81
+    from: seiner
+    to: "[seiner"
     by: scan
   - page: 82
     from: schöner cerele vicieux,
@@ -11739,6 +12175,10 @@ theorienberden03marxuoft:
   - page: 90
     from: sseines]
     to: "[seines]"
+    by: scan
+  - page: 93
+    from: hat].
+    to: "[hat]."
     by: scan
   - page: 94
     from: duktivität éo ipso
@@ -11824,6 +12264,10 @@ theorienberden03marxuoft:
     from: (vermehrt!
     to: "[vermehrt]"
     by: scan
+  - page: 137
+    from: Produktionsüberschuß]
+    to: Produktions[überschuß]
+    by: scan
   - page: 138
     from: "[diesel"
     to: "[diese]"
@@ -11831,6 +12275,10 @@ theorienberden03marxuoft:
   - page: 140
     from: viel!
     to: viel]
+    by: scan
+  - page: 140
+    from: nicht sso
+    to: nicht [so
     by: scan
   - page: 141
     from: (Industriezweige!]
@@ -11880,6 +12328,10 @@ theorienberden03marxuoft:
     from: Wert!
     to: Wert]
     by: scan
+  - page: 165
+    from: kann den
+    to: kann [den
+    by: scan
   - page: 166
     from: Produzenten!
     to: Produzenten¹
@@ -11903,6 +12355,10 @@ theorienberden03marxuoft:
   - page: 173
     from: (was, wie]
     to: (was, [wie]
+    by: scan
+  - page: 173
+    from: verwandelt]),
+    to: "[verwandelt]),"
     by: scan
   - page: 176
     from: 6. Der Wert der Arbeit.
@@ -11936,6 +12392,10 @@ theorienberden03marxuoft:
     from: gedrückt)
     to: gedrückt]
     by: scan
+  - page: 179
+    from: bleibt nach
+    to: bleibt [nach
+    by: scan
   - page: 180
     from: genössische!
     to: genössische“
@@ -11956,6 +12416,10 @@ theorienberden03marxuoft:
     from: Malthusscher Manieꝛ).
     to: Malthusscher Manier).
     by: scan
+  - page: 184
+    from: über]
+    to: "[über]"
+    by: scan
   - page: 186
     from: unab- — rreeeennreeeee-it,
     to: unab-
@@ -11963,6 +12427,10 @@ theorienberden03marxuoft:
   - page: 186
     from: ([deren]
     to: "[deren]"
+    by: scan
+  - page: 186
+    from: wird, deren]
+    to: wird, [deren]
     by: scan
   - page: 187
     from: (wie
@@ -12019,6 +12487,10 @@ theorienberden03marxuoft:
   - page: 194
     from: Gebrauchswert!
     to: Gebrauchswert]
+    by: scan
+  - page: 194
+    from: sals
+    to: "[als"
     by: scan
   - page: 196
     from: ([die
@@ -12084,9 +12556,17 @@ theorienberden03marxuoft:
     from: auch!
     to: auch]
     by: scan
+  - page: 218
+    from: salso
+    to: "[also"
+    by: scan
   - page: 219
     from: "[Anschauungen!"
     to: "[Anschauungen]"
+    by: scan
+  - page: 219
+    from: „versöhnen“],
+    to: "[„versöhnen“],"
     by: scan
   - page: 221
     from: Manier Maes, den
@@ -12100,6 +12580,14 @@ theorienberden03marxuoft:
     from: "[gezahlt!"
     to: "[gezahlt]"
     by: scan
+  - page: 223
+    from: schmierigsten]
+    to: schmierigsten¹]
+    by: scan
+  - page: 223
+    from: letzten
+    to: "[letzten"
+    by: scan
   - page: 224
     from: als Thueydides an.
     to: als Thucydides an.
@@ -12112,6 +12600,10 @@ theorienberden03marxuoft:
     from: plündert!
     to: plündert]
     by: scan
+  - page: 226
+    from: Arbeitslohns].
+    to: "[Arbeitslohns]."
+    by: scan
   - page: 229
     from: Ware!
     to: Ware]
@@ -12119,6 +12611,10 @@ theorienberden03marxuoft:
   - page: 229
     from: "[(der"
     to: "[der"
+    by: scan
+  - page: 229
+    from: und lin
+    to: und [in
     by: scan
   - page: 230
     from: 6. John Stuart mill.
@@ -12156,9 +12652,17 @@ theorienberden03marxuoft:
     from: Verhältnis!]
     to: Verhältnis]
     by: scan
+  - page: 246
+    from: die die
+    to: die [die
+    by: scan
   - page: 247
     from: von!
     to: von]
+    by: scan
+  - page: 247
+    from: seinem
+    to: "[einem"
     by: scan
   - page: 248
     from: Ausgelegtes Kapital Gesamtprodukt Mehrwert
@@ -12547,6 +13051,10 @@ theorienberden03marxuoft:
     from: Gebrauchswerten!])
     to: Gebrauchswerten])
     by: scan
+  - page: 284
+    from: würde seine
+    to: würde [eine
+    by: scan
   - page: 286
     from: "[bestimmt!"
     to: "[bestimmt]"
@@ -12571,6 +13079,10 @@ theorienberden03marxuoft:
     from: zwar!]
     to: zwar]
     by: scan
+  - page: 290
+    from: vor, und
+    to: vor, [und
+    by: scan
   - page: 293
     from: der)
     to: der]
@@ -12587,9 +13099,17 @@ theorienberden03marxuoft:
     from: (dieser
     to: "[dieser"
     by: scan
+  - page: 294
+    from: Konsum. Dieses
+    to: Konsum. [Dieses
+    by: scan
   - page: 295
     from: Konsumtion. yY“+r“
     to: Konsumtion. v“ + r“
+    by: scan
+  - page: 296
+    from: das]
+    to: "[das]"
     by: scan
   - page: 297
     from: (500
@@ -12602,6 +13122,10 @@ theorienberden03marxuoft:
   - page: 297
     from: hervor!]
     to: hervor]
+    by: scan
+  - page: 297
+    from: und die
+    to: und [die
     by: scan
   - page: 299
     from: ihre.!
@@ -12619,6 +13143,10 @@ theorienberden03marxuoft:
     from: ein!
     to: ein]
     by: scan
+  - page: 301
+    from: (sondern
+    to: "[sondern"
+    by: scan
   - page: 304
     from: "[jetzigel"
     to: "[jetzige]"
@@ -12627,9 +13155,17 @@ theorienberden03marxuoft:
     from: noch!
     to: noch]
     by: scan
+  - page: 304
+    from: alle Arbeiter
+    to: alle [Arbeiter
+    by: scan
   - page: 306
     from: 2. Percy Kavenstone.
     to: 2. Percy Ravenstone.
+    by: scan
+  - page: 306
+    from: der Arbeitszeit]
+    to: "[der Arbeitszeit]"
     by: scan
   - page: 307
     from: "[Grundlage!"
@@ -12642,6 +13178,10 @@ theorienberden03marxuoft:
   - page: 307
     from: durch!
     to: durch]
+    by: scan
+  - page: 307
+    from: Grundeigentum, noch
+    to: Grundeigentum, [noch
     by: scan
   - page: 312
     from: Rente!
@@ -12687,6 +13227,10 @@ theorienberden03marxuoft:
     from: Pamphletisten!],
     to: Pamphletisten],
     by: scan
+  - page: 316
+    from: Pamphlet die
+    to: Pamphlet [die
+    by: scan
   - page: 317
     from: (durchgehenden!],
     to: "[durchgehenden],"
@@ -12727,9 +13271,21 @@ theorienberden03marxuoft:
     from: ([des
     to: "[des"
     by: scan
+  - page: 320
+    from: sals
+    to: "[als"
+    by: scan
+  - page: 320
+    from: leinen
+    to: "[einen"
+    by: scan
   - page: 321
     from: Berufe!
     to: Berufe]
+    by: scan
+  - page: 321
+    from: diese Verselbständigung
+    to: diese [Verselbständigung
     by: scan
   - page: 323
     from: Arbeitsmittel!
@@ -12737,7 +13293,11 @@ theorienberden03marxuoft:
     by: scan
   - page: 323
     from: nötig!],
-    to: nötig],
+    to: "[nötig],"
+    by: scan
+  - page: 323
+    from: Konzentration; ses
+    to: Konzentration; [es
     by: scan
   - page: 326
     from: "[procura!"
@@ -12746,6 +13306,10 @@ theorienberden03marxuoft:
   - page: 327
     from: sohne
     to: "[ohne"
+    by: scan
+  - page: 327
+    from: sals
+    to: "[als"
     by: scan
   - page: 328
     from: ([die
@@ -12759,6 +13323,14 @@ theorienberden03marxuoft:
     from: Ware!
     to: Ware]
     by: scan
+  - page: 337
+    from: Außer
+    to: "[Außer"
+    by: scan
+  - page: 337
+    from: (die
+    to: "[die"
+    by: scan
   - page: 339
     from: Händler!
     to: Händler]
@@ -12766,6 +13338,14 @@ theorienberden03marxuoft:
   - page: 342
     from: statt,)
     to: statt,]
+    by: scan
+  - page: 342
+    from: der]
+    to: "[der]"
+    by: scan
+  - page: 342
+    from: Industrie]
+    to: "[Industrie]"
     by: scan
   - page: 343
     from: verbessert!
@@ -12786,6 +13366,10 @@ theorienberden03marxuoft:
   - page: 347
     from: ([keine]
     to: "[keine]"
+    by: scan
+  - page: 357
+    from: sin
+    to: "[in"
     by: scan
   - page: 358
     from: tal + 10 Zins) + 10 Zins + 1 Zins 121 usw. Die Steige-
@@ -12839,6 +13423,14 @@ theorienberden03marxuoft:
     from: Mehrwertrate!
     to: Mehrwertrate]
     by: scan
+  - page: 360
+    from: müßte die
+    to: müßte [die
+    by: scan
+  - page: 360
+    from: Jedoch
+    to: "[Jedoch"
+    by: scan
   - page: 362
     from: sseine
     to: "[seine"
@@ -12859,6 +13451,10 @@ theorienberden03marxuoft:
     from: (im
     to: "[im"
     by: scan
+  - page: 363
+    from: 200 £H bei
+    to: 200 £ [bei
+    by: scan
   - page: 364
     from: zusammengesetzt nt.,tt.
     to: zusammengesetzt
@@ -12866,6 +13462,10 @@ theorienberden03marxuoft:
   - page: 365
     from: Umständen!
     to: Umständen]
+    by: scan
+  - page: 365
+    from: unter
+    to: "[unter"
     by: scan
   - page: 366
     from: "[(anehr"
@@ -12886,6 +13486,14 @@ theorienberden03marxuoft:
   - page: 368
     from: geschaffenen!
     to: geschaffenen]
+    by: scan
+  - page: 368
+    from: seine
+    to: "[eine"
+    by: scan
+  - page: 368
+    from: des sin
+    to: des [in
     by: scan
   - page: 371
     from: Demand ete.“ London
@@ -12922,6 +13530,10 @@ theorienberden03marxuoft:
   - page: 375
     from: sich!
     to: sich]
+    by: scan
+  - page: 375
+    from: Auf S. 126
+    to: "[Auf S. 126"
     by: scan
   - page: 378
     from: be- nnrteeeeeeteeeeeeeetet
@@ -13159,6 +13771,10 @@ theorienberden03marxuoft:
     from: sstatt
     to: "[statt"
     by: scan
+  - page: 403
+    from: Garnsproduktion]
+    to: Garn[produktion]
+    by: scan
   - page: 404
     from: fluktuieren und n 8 7 42
     to: fluktuieren und
@@ -13187,6 +13803,14 @@ theorienberden03marxuoft:
     from: "[Zunahme!"
     to: "[Zunahme]"
     by: scan
+  - page: 408
+    from: eintreten,)]
+    to: eintreten,]
+    by: scan
+  - page: 408
+    from: anderen. Das
+    to: anderen. [Das
+    by: scan
   - page: 409
     from: prozeß!
     to: prozeß]
@@ -13199,6 +13823,10 @@ theorienberden03marxuoft:
     from: (in
     to: "[in"
     by: scan
+  - page: 410
+    from: wachsende]
+    to: "[wachsende]"
+    by: scan
   - page: 413
     from: ([dort]
     to: "[dort]"
@@ -13210,6 +13838,10 @@ theorienberden03marxuoft:
   - page: 413
     from: Unternehmer!]
     to: Unternehmer]
+    by: scan
+  - page: 413
+    from: den in
+    to: den [in
     by: scan
   - page: 417
     from: (ganz!
@@ -13234,6 +13866,10 @@ theorienberden03marxuoft:
   - page: 419
     from: Leitung!,
     to: Leitung],
+    by: scan
+  - page: 419
+    from: dder
+    to: "[der"
     by: scan
   - page: 420
     from: (die
@@ -13299,6 +13935,10 @@ theorienberden03marxuoft:
     from: größer!]
     to: größer]
     by: scan
+  - page: 441
+    from: und desto
+    to: und [desto
+    by: scan
   - page: 443
     from: "[(des"
     to: "[des"
@@ -13306,6 +13946,14 @@ theorienberden03marxuoft:
   - page: 444
     from: 4. Anklänge an Kicardo und Sismondi.
     to: 4. Anklänge an Ricardo und Sismondi.
+    by: scan
+  - page: 445
+    from: Das ist
+    to: "[Das ist"
+    by: scan
+  - page: 445
+    from: Wirkung der
+    to: Wirkung [der
     by: scan
   - page: 446
     from: bestimmen,!
@@ -13359,6 +14007,10 @@ theorienberden03marxuoft:
     from: (die
     to: "[die"
     by: scan
+  - page: 463
+    from: nicht seine verminderte
+    to: nicht [eine verminderte
+    by: scan
   - page: 464
     from: umgekehrt,?
     to: umgekehrt,²
@@ -13366,6 +14018,14 @@ theorienberden03marxuoft:
   - page: 465
     from: "[(der"
     to: "[der"
+    by: scan
+  - page: 465
+    from: ser-
+    to: "[er-"
+    by: scan
+  - page: 466
+    from: Hilfskapital].
+    to: "[Hilfskapital]."
     by: scan
   - page: 468
     from: swie
@@ -13386,6 +14046,10 @@ theorienberden03marxuoft:
   - page: 470
     from: ofa Course
     to: of a Course
+    by: scan
+  - page: 470
+    from: R. Jones]
+    to: R. [Jones]
     by: scan
   - page: 473
     from: Inhaber (oecupiers), Eigentümer,
@@ -13419,9 +14083,17 @@ theorienberden03marxuoft:
     from: noch!]
     to: noch]
     by: scan
+  - page: 482
+    from: Einheit von
+    to: Einheit [von
+    by: scan
   - page: 485
     from: Falle!
     to: Falle]
+    by: scan
+  - page: 486
+    from: Arbeitsfonds]
+    to: "[Arbeitsfonds]"
     by: scan
   - page: 487
     from: Verwalter (trusteées)
@@ -13433,7 +14105,7 @@ theorienberden03marxuoft:
     by: scan
   - page: 508
     from: Mehrprodukt!]
-    to: Mehrprodukt]
+    to: "[Mehrprodukt]"
     by: scan
   - page: 509
     from: so mußte der Kapitalist (früher! jährlich 500 £ auslegen,
@@ -13466,6 +14138,10 @@ theorienberden03marxuoft:
   - page: 519
     from: ist!
     to: ist]
+    by: scan
+  - page: 519
+    from: geschaffen. Diese
+    to: geschaffen. [Diese
     by: scan
   - page: 520
     from: Größel. erneessps
@@ -13502,6 +14178,10 @@ theorienberden03marxuoft:
   - page: 539
     from: (Die
     to: "[Die"
+    by: scan
+  - page: 540
+    from: verlockt
+    to: "[verlockt"
     by: scan
   - page: 541
     from: (Bank-
@@ -13558,6 +14238,10 @@ theorienberden03marxuoft:
   - page: 565
     from: Unternehmer!
     to: Unternehmer]
+    by: scan
+  - page: 565
+    from: Wo sein
+    to: Wo [ein
     by: scan
   - page: 569
     from: bRSRIIIIIIIIRR ist,
@@ -13621,7 +14305,7 @@ theorienberden03marxuoft:
     by: scan
   - page: 584
     from: Individuum!]
-    to: Individuum]
+    to: "[Individuum]"
     by: scan
   - page: 586
     from: II. Iuther über den Wucher.
@@ -13629,7 +14313,7 @@ theorienberden03marxuoft:
     by: scan
   - page: 586
     from: Formen!]
-    to: Formen]
+    to: "[Formen]"
     by: scan
   - page: 589
     from: IIIXLIRRNNNNNN 1K rfPReer!irnt 4 er den Leuten
@@ -13667,6 +14351,22 @@ theorienberden03marxuoft:
     from: der!
     to: der]
     by: scan
+  - page: 591
+    from: erlaubt].
+    to: "[erlaubt]."
+    by: scan
+  - page: 591
+    from: (richtet
+    to: "[richtet"
+    by: scan
+  - page: 591
+    from: Kredit. (Es
+    to: Kredit. [Es
+    by: scan
+  - page: 591
+    from: Luther hat
+    to: Luther [hat
+    by: scan
   - page: 593
     from: sedephantasticum inteéresse. Ein
     to: sedephantasticum interesse. Ein
@@ -13674,6 +14374,10 @@ theorienberden03marxuoft:
   - page: 599
     from: Aber Hereules soll
     to: Aber Hercules soll
+    by: scan
+  - page: 600
+    from: Diese
+    to: "[Diese"
     by: scan
 gesammelteschrif02marxuoft:
   - page: 2
