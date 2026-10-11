@@ -92,6 +92,46 @@ describe("ranked topic selection", () => {
     );
   });
 
+  it("never admits a title that joins two concepts", () => {
+    const titles = [
+      "Design and Craft",
+      "Truth or Lie",
+      "Form & Function",
+      "Mind/Body",
+      "Honor",
+      "Android Ethics",
+    ];
+    const tally = tallyTopicVotes(
+      titles.map((title) => ({
+        vote: vote(title, 0.95, true),
+        weight: 1,
+        canMint: true,
+      })),
+      config,
+    );
+    expect(
+      titles.filter((title) => tally.get(title.toLowerCase())?.canEnter),
+    ).toEqual(["Honor", "Android Ethics"]);
+  });
+
+  it("never admits a title built on a term the brain excludes", () => {
+    const excluding = topicsPluginConfigSchema.parse({
+      excludeTitleTerms: ["Nietzsche"],
+    });
+    const titles = ["Nietzschean Philosophy", "Nietzsche's Style", "Pity"];
+    const tally = tallyTopicVotes(
+      titles.map((title) => ({
+        vote: vote(title, 0.95, true),
+        weight: 1,
+        canMint: true,
+      })),
+      excluding,
+    );
+    expect(
+      titles.filter((title) => tally.get(title.toLowerCase())?.canEnter),
+    ).toEqual(["Pity"]);
+  });
+
   it("computes the cap from the full eligible corpus", () => {
     expect(topicSoftCeiling(1, 5)).toBe(5);
     expect(topicSoftCeiling(55, 5)).toBe(11);

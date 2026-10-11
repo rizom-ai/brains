@@ -465,6 +465,15 @@ describe("bounded ranked topic extraction", () => {
     expect(f.calls).toHaveLength(4);
   });
 
+  it("lets a topic whose title breaks the title rules go once every source is read", async () => {
+    const f = fixture(8, { propose: true });
+    f.addTopic("Design and Craft", "design-and-craft");
+    await f.run();
+    expect(f.calls[0]?.prompt).not.toContain("Design and Craft");
+    expect(f.entities.has("topic:design-and-craft")).toBe(false);
+    expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
   it("lets topics chosen under an earlier prompt go once the corpus is re-read", async () => {
     const f = fixture(8, { propose: true });
     f.addTopic("Legacy");

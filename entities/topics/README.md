@@ -36,6 +36,7 @@ interface TopicsPluginConfig {
   mergeSimilarityThreshold?: number; // Default: 0.85
   autoMerge?: boolean; // Default: true
   extractableStatuses?: string[]; // Default: ["published"]
+  excludeTitleTerms?: string[]; // Default: []; e.g. a book brain's author
   enableAutoExtraction?: boolean; // Default: true
 }
 

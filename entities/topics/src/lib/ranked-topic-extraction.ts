@@ -27,6 +27,7 @@ import {
 } from "./topic-source-policy";
 import {
   chooseTopicChallenger,
+  isTopicTitleAllowed,
   rankedTopicChallengers,
   tallyTopicVotes,
   topicSoftCeiling,
@@ -406,6 +407,17 @@ export function createRankedTopicJobHandler(
             earlier = new Set();
             await recordSelection();
           }
+          // A topic whose title breaks the title rules cannot be chosen again.
+          if (allRead()) {
+            for (const topic of active.filter(
+              ({ title }) => !isTopicTitleAllowed(title, config),
+            )) {
+              signal.throwIfAborted();
+              await topics.deleteTopic(topic.id);
+              active = active.filter(({ id }) => id !== topic.id);
+              changed++;
+            }
+          }
           while (allRead() && active.length > ceiling()) {
             signal.throwIfAborted();
             const weakest = weakestTopic(active, support);
@@ -501,11 +513,15 @@ export function createRankedTopicJobHandler(
           const batch = await loadSources(context, config, refs);
           if (batch.length === 0) continue;
           const currentTitles = active
-            .filter(({ id }) => !earlier.has(id))
+            .filter(
+              ({ id, title }) =>
+                !earlier.has(id) && isTopicTitleAllowed(title, config),
+            )
             .map(({ title }) => title)
             .sort()
             .slice(0, ceiling());
           const challengerTitles = rankedTopicChallengers(active, tally())
+            .filter(({ title }) => isTopicTitleAllowed(title, config))
             .slice(0, ceiling())
             .map(({ title }) => title);
           const listedTitles = new Set([...currentTitles, ...challengerTitles]);
