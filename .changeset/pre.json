@@ -553,6 +553,7 @@
     "core--network-learns-dids",
     "core--network-pieces",
     "core--newsletter-resend-provider",
+    "core--no-origin-502",
     "core--no-retention-notices",
     "core--note-fallback-title-length",
     "core--oauth-client-metadata-claude-clients",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.531
+
+### Patch Changes
+
+- [#607](https://github.com/rizom-ai/brains/pull/607) [`e7f4a8c`](https://github.com/rizom-ai/brains/commit/e7f4a8c0b905030347fe3a0cf6fba08258ed8410) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio and web chat answer a failure of their own (a workspace that cannot load its data, an upload that cannot be promoted, an agent or runtime action answer that does not parse) with 500 instead of 502. A proxy in front of the brain, such as Cloudflare, replaces an origin 502 with its own page, so the reason never reached Studio.
+
 ## 0.2.0-alpha.530
 
 ### Patch Changes
