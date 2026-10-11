@@ -34,13 +34,14 @@ function day(
   date: string,
   paths: Array<[string, number]>,
   referrers: Array<[string, number]> = [],
+  estimated = false,
 ): TrafficDay {
   const pageviews = paths.reduce((total, [, count]) => total + count, 0);
   return {
     date,
     pageviews,
     visits: Math.ceil(pageviews / 2),
-    estimated: false,
+    estimated,
     paths: paths.map(([path, count]) => ({ path, pageviews: count })),
     referrers: referrers.map(([host, visits]) => ({ host, visits })),
     pathReferrers: [],
@@ -71,6 +72,7 @@ async function brain(): Promise<ServicePluginContext> {
       [["www.linkedin.com", 5]],
     ),
     day("2026-10-11", [["/essays/a", 4]]),
+    day("2026-10-01", [["/", 9]], [], true),
   ];
   const store = entitySnapshotStore(context.entityService);
   for (const d of days) {
@@ -185,10 +187,22 @@ describe("the Traffic workspace", () => {
     );
 
     expect(all).toContain('"allLabel":"All recorded days"');
-    expect(all).toContain('"description":"9 Oct – 11 Oct"');
-    expect(all).toContain('"id":"2026-10-09"');
-    expect(all).not.toContain('"id":"2026-10-08"');
+    expect(all).toContain('"description":"1 Oct – 11 Oct"');
+    expect(all).toContain('"id":"2026-10-01"');
+    expect(all).not.toContain('"id":"2026-09-30"');
     expect(bogus).toContain('"value":"30"');
     expect(bogus).toContain('"id":"2026-09-12"');
+  });
+
+  // A sampled day is an estimate, not a warning: drawn like the rest, named
+  // as an estimate on hover, the notice above the chart saying why.
+  it("draws a sampled day like any other, naming it an estimate", async () => {
+    const registration = await registered(await brain());
+    const view = JSON.stringify(await registration.dataProvider(adminActor));
+
+    expect(view).toContain(
+      '{"id":"2026-10-01","label":"1 Oct (estimated)","value":9}',
+    );
+    expect(view).not.toContain('"tone":"warn"');
   });
 });
