@@ -12,6 +12,7 @@ import {
   type CloudflareClientDeps,
 } from "./lib/cloudflare-client";
 import { createTrafficReports } from "./reports/traffic-reports";
+import { createTrafficByEntityReport } from "./reports/traffic-by-entity";
 import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
 import { TrafficSnapshotPlugin } from "./entity/plugin";
 import type { TrafficDay } from "./entity/schema";
@@ -58,14 +59,23 @@ export class AnalyticsPlugin extends ServicePlugin<
 
     // Read from the snapshots; Cloudflare only adds today's numbers so far.
     const client = this.cloudflareClient;
-    const traffic = createTrafficReports({
+    const trafficDeps = {
       today: utcToday,
       ...(client && {
-        liveDay: (date): Promise<TrafficDay> => client.getDailyTraffic(date),
+        liveDay: (date: string): Promise<TrafficDay> =>
+          client.getDailyTraffic(date),
       }),
-    });
+    };
+    const traffic = createTrafficReports(trafficDeps);
     context.analytics.register(traffic.overview);
     context.analytics.register(traffic.series);
+    // Pages map to entities through the site's own routes.
+    context.analytics.register(
+      createTrafficByEntityReport({
+        ...trafficDeps,
+        entityDisplay: context.entityDisplay,
+      }),
+    );
 
     // Site builds run in the worker and ask for head scripts as they render,
     // so the beacon answers there; that process never runs the ready phase.
