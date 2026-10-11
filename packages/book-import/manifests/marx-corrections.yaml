@@ -335,6 +335,10 @@ dieklassenkmpf00marxuoft:
     from: Louis Blane und
     to: Louis Blanc und
     by: scan
+  - page: 44
+    from: grave.
+    to: grave,
+    by: scan
   - page: 45
     from: als die Barri
     to: als die Barri-
@@ -430,6 +434,10 @@ dieklassenkmpf00marxuoft:
   - page: 55
     from: Louis Blane, haben
     to: Louis Blanc, haben
+    by: scan
+  - page: 55
+    from: journées.
+    to: journées,
     by: scan
   - page: 57
     from: Barrot über
@@ -751,6 +759,10 @@ dieklassenkmpf00marxuoft:
     from: des trée trade,
     to: des free trade,
     by: scan
+  - page: 84
+    from: gegen.
+    to: gegen
+    by: scan
   - page: 85
     from: General Cubiéres wegen
     to: General Cubières wegen
@@ -842,6 +854,10 @@ dieklassenkmpf00marxuoft:
   - page: 96
     from: das Wahleomité, ganz
     to: das Wahlcomité, ganz
+    by: scan
+  - page: 96
+    from: gegen.
+    to: gegen
     by: scan
   - page: 97
     from: der sozia
@@ -1440,6 +1456,30 @@ ldpd_14861084_000:
     from: Yortheilen
     to: Vortheilen
     by: scan
+  - page: 59
+    from: schliesslich. mehr
+    to: schliesslich mehr
+    by: scan
+  - page: 61
+    from: Man.
+    to: Man
+    by: scan
+  - page: 77
+    from: öd. p
+    to: éd. p
+    by: scan
+  - page: 90
+    from: dd. p
+    to: éd. p
+    by: scan
+  - page: 122
+    from: Arbeitstheilung. und
+    to: Arbeitstheilung und
+    by: scan
+  - page: 170
+    from: wie. die
+    to: wie die
+    by: scan
 mehring-nachlass-1:
   - page: 67
     from: Uorrede.
@@ -1460,6 +1500,10 @@ mehring-nachlass-1:
   - page: 75
     from: epikureischer naturphilosophie.
     to: epikureischer Naturphilosophie.
+    by: scan
+  - page: 83
+    from: gekettet. ä
+    to: gekettet.
     by: scan
   - page: 84
     from: Zweiter cheil.
@@ -1565,6 +1609,10 @@ mehring-nachlass-1:
     from: schlechte Polizeimaßregel, dean sie erreicht
     to: schlechte Polizeimaßregel, denn sie erreicht
     by: scan
+  - page: 246
+    from: se. im
+    to: sc. im
+    by: scan
   - page: 250
     from: vous m'öten ma place
     to: vous m'ôtez ma place
@@ -1593,6 +1641,10 @@ mehring-nachlass-1:
     from: empfehlend nachlhin-
     to: empfehlend nach[hin]-
     by: scan
+  - page: 277
+    from: Ueberraschung.
+    to: Ueberraschung,
+    by: scan
   - page: 280
     from: Debatten über das Holzdiebstahlsgesetz.
     to: ""
@@ -1613,9 +1665,21 @@ mehring-nachlass-1:
     from: Uon einem Rheinländer.
     to: ""
     by: scan
+  - page: 282
+    from: nicht. kriminell
+    to: nicht kriminell
+    by: scan
   - page: 283
     from: memeée.
     to: même.
+    by: scan
+  - page: 287
+    from: vr
+    to: ""
+    by: scan
+  - page: 300
+    from: nein.
+    to: nein,
     by: scan
   - page: 303
     from: Pabsurdité, das
@@ -1714,6 +1778,10 @@ mehring-nachlass-2:
     from: nur aceidentellement zu
     to: nur accidentellement zu
     by: scan
+  - page: 132
+    from: bestätigt. weiß
+    to: bestätigt, weiß
+    by: scan
   - page: 141
     from: terra ete. interdicti
     to: terra etc. interdicti
@@ -1778,6 +1846,10 @@ mehring-nachlass-2:
     from: Wenn der Apsel, die Birne
     to: Wenn der Apfel, die Birne
     by: reference
+  - page: 160
+    from: konstruirt. ö
+    to: konstruirt.
+    by: scan
   - page: 165
     from: de chose, cest-à-dire
     to: de chose, c'est-à-dire
@@ -1834,6 +1906,10 @@ mehring-nachlass-2:
     from: I. Erster Feldzug der absoluten Kritik.
     to: 1. Erster Feldzug der absoluten Kritik.
     by: scan
+  - page: 178
+    from: Kritik.
+    to: Kritik“
+    by: scan
   - page: 181
     from: das „von vorn
     to: das „von vorn-
@@ -1845,6 +1921,10 @@ mehring-nachlass-2:
   - page: 197
     from: Jurisprudenz und Politik (nationalität). +
     to: ""
+    by: scan
+  - page: 213
+    from: aus. den
+    to: aus den
     by: scan
   - page: 225
     from: Bahn Leclere und
@@ -1929,6 +2009,10 @@ mehring-nachlass-2:
   - page: 253
     from: I. Die kritische Masse. .
     to: 1. Die kritische Masse.
+    by: scan
+  - page: 253
+    from: ù peut-on stre mieux
+    to: Où peut-on être mieux
     by: scan
   - page: 258
     from: 3. Die verstockte masse und aie unbeiriedigte masse.
@@ -2103,8 +2187,146 @@ mehring-nachlass-2:
     to: der Siècle, die
     by: scan
   - page: 301
-    from: du erime, Assisen
-    to: du crime, Assisen
+    from: Tabelle der kritisch vollständigen Justiz.
+    to: ""
+    by: scan
+  - page: 301
+    from: Bestehende Justiz. Kritisch ergänzende Justiz.
+    to: ""
+    by: scan
+  - page: 301
+    from: "namen: Justice Criminelle. namen: Justice Uertueuse."
+    to: ""
+    by: scan
+  - page: 301
+    from: "Signalement: hält in der Hand ein (Signalement: hält in der Hand eine"
+    to: ""
+    by: scan
+  - page: 301
+    from: Schwert, um die Bösen um einen Krone, um die Guten um einen
+    to: ""
+    by: scan
+  - page: 301
+    from: Kopf zu verkürzen. Kopf zu erhöhen.
+    to: ""
+    by: scan
+  - page: 301
+    from: "Zweck: Bestrafung des Bösen, Ge- Zweck: Belohnung des Guten, Frei-"
+    to: ""
+    by: scan
+  - page: 301
+    from: fangenschaft, Infamie, Lebensberau- tisch, Ehre, Lebenserhaltung.
+    to: ""
+    by: scan
+  - page: 301
+    from: bung. Das Volk erfährt den eklatanten
+    to: ""
+    by: scan
+  - page: 301
+    from: Das Volk erfährt die schreckliche Züch- Triumph für den Guten.
+    to: ""
+    by: scan
+  - page: 301
+    from: tigung für den Bösen.
+    to: ""
+    by: scan
+  - page: 301
+    from: "Mittel um die Bösen zu entdecken: [Mittel um die Guten zu entdecken:"
+    to: ""
+    by: scan
+  - page: 301
+    from: Polizeiliche Spionage, Mouchards, Espionage de vertu, Mouchards,
+    to: ""
+    by: scan
+  - page: 301
+    from: um den Bösen aufzulauern. um den Tugendhaften aufzulauern.
+    to: ""
+    by: scan
+  - page: 301
+    from: Entscheidung, ob Einer ein Böser (Entscheidung, ob Einer ein Guter
+    to: ""
+    by: scan
+  - page: 301
+    from: "sei: Les assises du erime, Assisen sei: Assises de la vertu, Assisen"
+    to: ""
+    by: scan
+  - page: 301
+    from: für das Verbrechen. Das öffent- für die Tugend. Das öffentliche
+    to: ""
+    by: scan
+  - page: 301
+    from: liche Ministerium signalisirt die Ver- Ministerium signalisirt die edlen
+    to: ""
+    by: scan
+  - page: 301
+    from: brechen des Angeklagten und de- Handlungen des Angeklagten und
+    to: ""
+    by: scan
+  - page: 301
+    from: nunzirt sie der öffentlichen Rache. denunzirt sie der öffentlichen Er-
+    to: ""
+    by: scan
+  - page: 301
+    from: kenntlichkeit.
+    to: ""
+    by: scan
+  - page: 301
+    from: Zustand des Verbrechers nach dem (Zustand des Tugendhaften nach dem
+    to: ""
+    by: scan
+  - page: 301
+    from: "Urtheil: Er steht unter der sur- Urtheil: Er steht unter der sur-"
+    to: ""
+    by: scan
+  - page: 301
+    from: veillance de la haute police. Er veillance de la haute charité
+    to: ""
+    by: scan
+  - page: 301
+    from: wird ernährt im Gefängniß. Der morale. Er wird ernährt in seinem
+    to: ""
+    by: scan
+  - page: 301
+    from: Staat macht Ausgaben für ihn. Hause. Der Staat macht Ausgaben
+    to: ""
+    by: scan
+  - page: 301
+    from: für ihn.
+    to: ""
+    by: scan
+  - page: 301
+    from: Exekution. Exekution.
+    to: ""
+    by: scan
+  - page: 301
+    from: Der Verbrecher steht auf dem Schafott. [Gerade gegenüber dem Schafott des
+    to: ""
+    by: scan
+  - page: 301
+    from: Verbrechers erhebt sich ein Piedestal,
+    to: ""
+    by: scan
+  - page: 301
+    from: worauf der grand homme de bien
+    to: ""
+    by: scan
+  - page: 301
+    from: steigt — Ein Tugendpranger.
+    to: ""
+    by: scan
+  - page: 302
+    from: lungen, für welche jede Partei ihr eigenes Organ besitzt.
+    to: |-
+      lungen, für welche jede Partei ihr eigenes Organ besitzt.
+      Tabelle der kritisch vollständigen Justiz.
+      Bestehende Justiz. | Kritisch ergänzende Justiz.
+      Namen: Justice Criminelle. | Namen: Justice Vertueuse.
+      Signalement: hält in der Hand ein Schwert, um die Bösen um einen Kopf zu verkürzen. | Signalement: hält in der Hand eine Krone, um die Guten um einen Kopf zu erhöhen.
+      Zweck: Bestrafung des Bösen, Gefangenschaft, Infamie, Lebensberaubung. Das Volk erfährt die schreckliche Züchtigung für den Bösen. | Zweck: Belohnung des Guten, Freitisch, Ehre, Lebenserhaltung. Das Volk erfährt den eklatanten Triumph für den Guten.
+      Mittel um die Bösen zu entdecken: Polizeiliche Spionage, Mouchards, um den Bösen aufzulauern. | Mittel um die Guten zu entdecken: Espionage de vertu, Mouchards, um den Tugendhaften aufzulauern.
+      Entscheidung, ob Einer ein Böser sei: Les assises du crime, Assisen für das Verbrechen. Das öffentliche Ministerium signalisirt die Verbrechen des Angeklagten und denunzirt sie der öffentlichen Rache. | Entscheidung, ob Einer ein Guter sei: Assises de la vertu, Assisen für die Tugend. Das öffentliche Ministerium signalisirt die edlen Handlungen des Angeklagten und denunzirt sie der öffentlichen Erkenntlichkeit.
+      Zustand des Verbrechers nach dem Urtheil: Er steht unter der surveillance de la haute police. Er wird ernährt im Gefängniß. Der Staat macht Ausgaben für ihn. | Zustand des Tugendhaften nach dem Urtheil: Er steht unter der surveillance de la haute charité morale. Er wird ernährt in seinem Hause. Der Staat macht Ausgaben für ihn.
+      Exekution. Der Verbrecher steht auf dem Schafott. | Exekution. Gerade gegenüber dem Schafott des Verbrechers erhebt sich ein Piedestal, worauf der grand homme de bien steigt — Ein Tugendpranger.
     by: scan
   - page: 302
     from: 4. Aufhebung der Uerwilderung innerhalb der Zivilisation,
@@ -2402,6 +2624,10 @@ theorienberden01marxuoft:
   - page: 93
     from: „Tableau économique“.
     to: ""
+    by: scan
+  - page: 95
+    from: Bewegung G—WSG. ö
+    to: Bewegung G—W—G.
     by: scan
   - page: 104
     from: Geschäftsanteile (eommandite)
@@ -3011,6 +3237,10 @@ theorienberden01marxuoft:
     from: Kapital produzierenden Arbeit.!“
     to: Kapital produzierenden Arbeit.
     by: scan
+  - page: 255
+    from: weil der.
+    to: weil der
+    by: scan
   - page: 256
     from: of socièty. London
     to: of society. London
@@ -3090,6 +3320,10 @@ theorienberden01marxuoft:
   - page: 354
     from: wealth ete.“ London
     to: wealth etc.“ London
+    by: scan
+  - page: 354
+    from: produktiver Arbeiter.
+    to: "produktiver Arbeiter:"
     by: scan
   - page: 368
     from: 100 ëH an
@@ -3444,6 +3678,10 @@ p1theorienberden02marxuoft:
     from: von Riecardo selbst
     to: von Ricardo selbst
     by: scan
+  - page: 157
+    from: Möbelfabrikantenusw.
+    to: Möbelfabrikanten usw.
+    by: scan
   - page: 167
     from: 1. RKodbertus.
     to: 1. Rodbertus.
@@ -3467,6 +3705,10 @@ p1theorienberden02marxuoft:
   - page: 174
     from: mehr Aeres be-
     to: mehr Acres be-
+    by: scan
+  - page: 177
+    from: Zi. sich
+    to: m/(c + v) [sich
     by: scan
   - page: 178
     from: Ist é von
@@ -4438,6 +4680,10 @@ p1theorienberden02marxuoft:
     from: trading intérests)
     to: trading interests)
     by: scan
+  - page: 338
+    from: groß.
+    to: groß
+    by: scan
   - page: 339
     from: (The Queèrist. Dr.
     to: (The Querist. Dr.
@@ -4449,6 +4695,14 @@ p1theorienberden02marxuoft:
   - page: 340
     from: Laws ete. London
     to: Laws etc. London
+    by: scan
+  - page: 344
+    from: stets.
+    to: stets
+    by: scan
+  - page: 344
+    from: anderen.
+    to: anderen
     by: scan
 p2theorienberd02marx:
   - page: 1
@@ -5508,6 +5762,10 @@ p2theorienberd02marx:
     from: Preise von 16/¼4s L zu verkaufen. Damit wäre IIIaus dem
     to: Preise von 1³⁷⁄₁₄₈ £ zu verkaufen. Damit wäre III aus dem
     by: scan
+  - page: 78
+    from: in II.
+    to: in II
+    by: scan
   - page: 79
     from: 0) Ricardos Darstellung seines Normalfalles.
     to: δ) Ricardos Darstellung seines Normalfalles.
@@ -5515,6 +5773,10 @@ p2theorienberd02marx:
   - page: 82
     from: ꝛ1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
     to: 1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
+    by: scan
+  - page: 85
+    from: von. dem
+    to: von dem
     by: scan
   - page: 100
     from: bildet die Grundrente.“ (I. c. S. 73, 74.)
@@ -5869,6 +6131,10 @@ p2theorienberd02marx:
   - page: 108
     from: t) Ricardos Kritik der Smithschen Rententheorie.
     to: f) Ricardos Kritik der Smithschen Rententheorie.
+    by: scan
+  - page: 111
+    from: Ländern. ist
+    to: Ländern ist
     by: scan
   - page: 124
     from: g4) Wert, Preis und Rente.
@@ -7965,6 +8231,10 @@ p2theorienberd02marx:
     from: 4. Die KRrisen.
     to: 4. Die Krisen.
     by: scan
+  - page: 262
+    from: Krisen.
+    to: Krisen
+    by: scan
   - page: 274
     from: spéecificae, kurz
     to: specificae, kurz
@@ -8021,6 +8291,10 @@ theorienberden03marxuoft:
   - page: 29
     from: Z. Variables Rapital und Akkumulation.
     to: 2. Variables Kapital und Akkumulation.
+    by: scan
+  - page: 29
+    from: ODefin. in
+    to: (Defin. in
     by: scan
   - page: 32
     from: 1/½1 davon erfordert, die Arbeiter zu bezahlen, und der Profit
@@ -8106,6 +8380,10 @@ theorienberden03marxuoft:
     from: Malthus ete. London
     to: Malthus etc. London
     by: scan
+  - page: 64
+    from: Innel. vom
+    to: zuviel vom
+    by: scan
   - page: 65
     from: 5. Dder verfasler der „Outlines“.
     to: 5. Der Verfasser der „Outlines“.
@@ -8145,6 +8423,10 @@ theorienberden03marxuoft:
   - page: 94
     from: duktivität éo ipso
     to: duktivität eo ipso
+    by: scan
+  - page: 108
+    from: Arbeit. riIANR
+    to: Arbeit.
     by: scan
   - page: 119
     from: Elements ete.
@@ -8194,6 +8476,14 @@ theorienberden03marxuoft:
     from: Political Eeonomy“ sich
     to: Political Economy“ sich
     by: scan
+  - page: 146
+    from: verbal.
+    to: verbal
+    by: scan
+  - page: 159
+    from: sondern.
+    to: sondern
+    by: scan
   - page: 176
     from: 6. Der Wert der Arbeit.
     to: β. Der Wert der Arbeit.
@@ -8233,6 +8523,10 @@ theorienberden03marxuoft:
   - page: 189
     from: sie sich auch wie —— die in ihnen enthaltenen Quanta
     to: "sie sich auch wie A/x : A′/x, die in ihnen enthaltenen Quanta"
+    by: scan
+  - page: 194
+    from: sogl. das
+    to: "[vgl. das"
     by: scan
   - page: 197
     from: verhalten. Rieardo
@@ -8601,6 +8895,10 @@ theorienberden03marxuoft:
     from: Difficulties ete. A
     to: Difficulties etc. A
     by: scan
+  - page: 295
+    from: Konsumtion. yY“+r“
+    to: Konsumtion. v“ + r“
+    by: scan
   - page: 306
     from: 2. Percy Kavenstone.
     to: 2. Percy Ravenstone.
@@ -8676,6 +8974,10 @@ theorienberden03marxuoft:
   - page: 358
     from: Achtes Jahr. 1947/100 10 + 97½1000 214½1000
     to: Achtes Jahr | 194⁸⁷⁄₁₀₀ | 10 + 9⁴⁸⁷⁄₁₀₀₀ | 214³⁵⁷⁄₁₀₀₀
+    by: scan
+  - page: 364
+    from: zusammengesetzt nt.,tt.
+    to: zusammengesetzt
     by: scan
   - page: 371
     from: Demand ete.“ London
@@ -8885,6 +9187,10 @@ theorienberden03marxuoft:
     from: z. Maschine und Arbeiter.
     to: 2. Maschine und Arbeiter.
     by: scan
+  - page: 431
+    from: für. den
+    to: für den
+    by: scan
   - page: 436
     from: im „Approvifionnement“
     to: im „Approvisionnement“
@@ -8933,6 +9239,10 @@ theorienberden03marxuoft:
     from: Manufactures ete. London
     to: Manufactures etc. London
     by: scan
+  - page: 520
+    from: Größel. erneessps
+    to: Größe].
+    by: scan
   - page: 521
     from: VII. Profit, Zins und vulgäarokonomie.
     to: VII. Profit, Zins und Vulgärökonomie.
@@ -8977,6 +9287,10 @@ theorienberden03marxuoft:
     from: von Thueydides
     to: von Thucydides
     by: scan
+  - page: 582
+    from: Hand.
+    to: Hand
+    by: scan
   - page: 586
     from: II. Iuther über den Wucher.
     to: II. Luther über den Wucher.
@@ -9014,6 +9328,10 @@ gesammelteschrif02marxuoft:
     from: den Nachteafés von
     to: den Nachtcafés von
     by: scan
+  - page: 3
+    from: fungierte. überglücklich
+    to: fungierte. Überglücklich
+    by: scan
   - page: 4
     from: Recht réfugium
     to: Recht refugium
@@ -9042,21 +9360,57 @@ gesammelteschrif02marxuoft:
     from: de Rulhiêres, der
     to: de Rulhières, der
     by: scan
+  - page: 6
+    from: über die Operationen vom
+    to: Über die Operationen vom
+    by: scan
+  - page: 10
+    from: herausspringt. über
+    to: herausspringt. Über
+    by: scan
   - page: 12
     from: Der Krieg. — Parlamenksdebatte.
     to: Der Krieg. — Parlamentsdebatte.
+    by: scan
+  - page: 12
+    from: Dariel. über
+    to: Dariel. Über
     by: scan
   - page: 13
     from: Neweastle den
     to: Newcastle den
     by: scan
+  - page: 14
+    from: übereinkommens,
+    to: Übereinkommens,
+    by: scan
   - page: 20
     from: Verkrag zwischen OÖsterreich und der Türkei. — Die Moldau
     to: Vertrag zwischen Österreich und der Türkei. — Die Moldau
     by: scan
+  - page: 22
+    from: übereinkommens
+    to: Übereinkommens
+    by: scan
+  - page: 23
+    from: unterhandeln. übrigens
+    to: unterhandeln. Übrigens
+    by: scan
+  - page: 27
+    from: über die
+    to: Über die
+    by: scan
+  - page: 28
+    from: weggelassen. über
+    to: weggelassen. Über
+    by: scan
   - page: 29
     from: Pariser Siécle ein
     to: Pariser Siècle ein
+    by: scan
+  - page: 30
+    from: überreste
+    to: Überreste
     by: scan
   - page: 35
     from: Der Kriegsschauplah. — Die russische Note an die deutschen
@@ -9066,9 +9420,17 @@ gesammelteschrif02marxuoft:
     from: Mächte. — Serbien und ĩsterreich.
     to: Mächte. — Serbien und Österreich.
     by: scan
+  - page: 36
+    from: übermaß
+    to: Übermaß
+    by: scan
   - page: 40
     from: Die Türkei und Österreich. — Kriegsdebalte im Unkerhaus.
     to: Die Türkei und Österreich. — Kriegsdebatte im Unterhaus.
+    by: scan
+  - page: 46
+    from: übergewicht
+    to: Übergewicht
     by: scan
   - page: 55
     from: Die Räumung der Donaufürstenkümer.
@@ -9082,9 +9444,21 @@ gesammelteschrif02marxuoft:
     from: Die Zustände in der Walachei. — Revolukion in der Türkei.
     to: Die Zustände in der Walachei. — Revolution in der Türkei.
     by: scan
+  - page: 60
+    from: übergabe
+    to: Übergabe
+    by: scan
+  - page: 63
+    from: übergewicht
+    to: Übergewicht
+    by: scan
   - page: 65
     from: uns Lamoricièêre!“) Seine
     to: uns Lamoricière!“) Seine
+    by: scan
+  - page: 67
+    from: übermaß
+    to: Übermaß
     by: scan
   - page: 69
     from: Die Milikärmacht Rußlands.
@@ -9130,6 +9504,14 @@ gesammelteschrif02marxuoft:
     from: der „Secrétary at
     to: der „Secretary at
     by: scan
+  - page: 85
+    from: überröcken.
+    to: Überröcken.
+    by: scan
+  - page: 85
+    from: alle überröcke
+    to: alle Überröcke
+    by: scan
   - page: 92
     from: des doméèstic trade,
     to: des domestic trade,
@@ -9137,6 +9519,10 @@ gesammelteschrif02marxuoft:
   - page: 100
     from: post féstum
     to: post festum
+    by: scan
+  - page: 101
+    from: übergriffe
+    to: Übergriffe
     by: scan
   - page: 103
     from: Die Bierwirte und die Sonnkagsfeier. — Clanricarde.
@@ -9165,6 +9551,10 @@ gesammelteschrif02marxuoft:
   - page: 109
     from: von Neweastle, Mi-
     to: von Newcastle, Mi-
+    by: scan
+  - page: 110
+    from: Radikalkuren. über
+    to: Radikalkuren. Über
     by: scan
   - page: 111
     from: II. Erläukerungen zur Kabinelkskrisis.
@@ -9198,9 +9588,21 @@ gesammelteschrif02marxuoft:
     from: Mann, Neweastle durch
     to: Mann, Newcastle durch
     by: scan
+  - page: 115
+    from: übels im
+    to: Übels im
+    by: scan
+  - page: 115
+    from: übels,
+    to: Übels,
+    by: scan
   - page: 117
     from: IV. Aus dem Parlamenk. — Vom Kriegsschauplah.
     to: IV. Aus dem Parlament. — Vom Kriegsschauplatz.
+    by: scan
+  - page: 119
+    from: übersicht
+    to: Übersicht
     by: scan
   - page: 123
     from: von Neweastle, und
@@ -9230,6 +9632,10 @@ gesammelteschrif02marxuoft:
     from: er (Neweastle) im
     to: er (Newcastle) im
     by: scan
+  - page: 124
+    from: habe. übrigens
+    to: habe. Übrigens
+    by: scan
   - page: 125
     from: Das gestürzle Ministerium.
     to: Das gestürzte Ministerium.
@@ -9241,6 +9647,10 @@ gesammelteschrif02marxuoft:
   - page: 125
     from: er (Neweastle) dem
     to: er (Newcastle) dem
+    by: scan
+  - page: 125
+    from: sei. übrigens
+    to: sei. Übrigens
     by: scan
   - page: 129
     from: Die Parkeien und Cliquen.
@@ -9274,6 +9684,22 @@ gesammelteschrif02marxuoft:
     from: von Neweastle
     to: von Newcastle
     by: scan
+  - page: 139
+    from: übelstände
+    to: Übelstände
+    by: scan
+  - page: 142
+    from: übels
+    to: Übels
+    by: scan
+  - page: 142
+    from: überbleibsel
+    to: Überbleibsel
+    by: scan
+  - page: 143
+    from: überrest
+    to: Überrest
+    by: scan
   - page: 145
     from: Herberls Wiederwahl. — Die ersten Schritte des neuen
     to: Herberts Wiederwahl. — Die ersten Schritte des neuen
@@ -9298,9 +9724,17 @@ gesammelteschrif02marxuoft:
     from: Justand der Armeen.
     to: Zustand der Armeen.
     by: scan
+  - page: 156
+    from: übersicht
+    to: Übersicht
+    by: scan
   - page: 159
     from: und Neweastle
     to: und Newcastle
+    by: scan
+  - page: 161
+    from: seien. über
+    to: seien. Über
     by: scan
   - page: 163
     from: er „eléver“ ist.
@@ -9309,6 +9743,10 @@ gesammelteschrif02marxuoft:
   - page: 163
     from: der „cléver“ ist,
     to: der „clever“ ist,
+    by: scan
+  - page: 163
+    from: fallen.
+    to: fallen
     by: scan
   - page: 164
     from: die préssureé from
@@ -9322,9 +9760,17 @@ gesammelteschrif02marxuoft:
     from: Die englische Presse über den koten Zar.
     to: Die englische Presse über den toten Zar.
     by: scan
+  - page: 170
+    from: übergriffe
+    to: Übergriffe
+    by: scan
   - page: 171
     from: Skellenkauf. — Aus Australien.
     to: Stellenkauf. — Aus Australien.
+    by: scan
+  - page: 174
+    from: Kosten.
+    to: Kosten
     by: scan
   - page: 177
     from: Unkersuchungskomitee. — Das Brüsseler Memoire.
@@ -9362,6 +9808,10 @@ gesammelteschrif02marxuoft:
     from: Eine Debalte über Preußen im Oberhaus.
     to: Eine Debatte über Preußen im Oberhaus.
     by: scan
+  - page: 199
+    from: konstatiert. übrigens
+    to: konstatiert. Übrigens
+    by: scan
   - page: 202
     from: Über die lehten Vorgänge in der Krim.
     to: Über die letzten Vorgänge in der Krim.
@@ -9369,6 +9819,18 @@ gesammelteschrif02marxuoft:
   - page: 206
     from: re intécta aufbreche
     to: re infecta aufbreche
+    by: scan
+  - page: 206
+    from: „übereinkunft“
+    to: „Übereinkunft“
+    by: scan
+  - page: 206
+    from: übergang,
+    to: Übergang,
+    by: scan
+  - page: 207
+    from: übereinkunft
+    to: Übereinkunft
     by: scan
   - page: 209
     from: Die Enkhüllungen in dem Unkersuchungskomikee.
@@ -9398,6 +9860,10 @@ gesammelteschrif02marxuoft:
     from: „Monsieur l'Aubergistée“
     to: „Monsieur l'Aubergiste“
     by: scan
+  - page: 221
+    from: übergewicht
+    to: Übergewicht
+    by: scan
   - page: 222
     from: Krikik des Napoleonischen Moniteurarlikels.
     to: Kritik des Napoleonischen Moniteurartikels.
@@ -9409,6 +9875,10 @@ gesammelteschrif02marxuoft:
   - page: 236
     from: Morning Post gegen Preußen. — Charahter der Whigs
     to: Morning Post gegen Preußen. — Charakter der Whigs
+    by: scan
+  - page: 238
+    from: überläufer
+    to: Überläufer
     by: scan
   - page: 239
     from: Lord Ellenboroughs Ankrag im Oberhaus.
@@ -9453,6 +9923,10 @@ gesammelteschrif02marxuoft:
   - page: 251
     from: thinking péeople of
     to: thinking people of
+    by: scan
+  - page: 251
+    from: übergang
+    to: Übergang
     by: scan
   - page: 252
     from: ferocious monstér) zusammen
@@ -9510,6 +9984,14 @@ gesammelteschrif02marxuoft:
     from: Bericht des Roebuck-Komikees.
     to: Bericht des Roebuck-Komitees.
     by: scan
+  - page: 286
+    from: Graham. übrigens
+    to: Graham. Übrigens
+    by: scan
+  - page: 291
+    from: übergang
+    to: Übergang
+    by: scan
   - page: 293
     from: kein commissionéd officier
     to: kein commissioned officier
@@ -9518,9 +10000,21 @@ gesammelteschrif02marxuoft:
     from: Der Unfall des 18. Juni (Sturm auf den Malakhoff).
     to: Der Unfall des 18. Juni (Sturm auf den Malakoff).
     by: scan
+  - page: 295
+    from: übernahme
+    to: Übernahme
+    by: scan
   - page: 296
     from: über Neweastle am
     to: über Newcastle am
+    by: scan
+  - page: 296
+    from: überarbeit.
+    to: Überarbeit.
+    by: scan
+  - page: 296
+    from: überarbeit?
+    to: Überarbeit?
     by: scan
   - page: 301
     from: the Guéen!“
@@ -9554,6 +10048,10 @@ gesammelteschrif02marxuoft:
     from: Committée of
     to: Committee of
     by: scan
+  - page: 313
+    from: hat. überhaupt
+    to: hat. Überhaupt
+    by: scan
   - page: 321
     from: .
     to: I.
@@ -9570,9 +10068,21 @@ gesammelteschrif02marxuoft:
     from: I.
     to: II.
     by: scan
+  - page: 328
+    from: übergewicht
+    to: Übergewicht
+    by: scan
   - page: 330
     from: W.
     to: IV.
+    by: scan
+  - page: 334
+    from: überschrift „Peel-Laib“,
+    to: Überschrift „Peel-Laib“,
+    by: scan
+  - page: 334
+    from: überschrift „Russell-Laib“.
+    to: Überschrift „Russell-Laib“.
     by: scan
   - page: 336
     from: seine „Eeclesiastical Titles
@@ -9598,6 +10108,22 @@ gesammelteschrif02marxuoft:
     from: ein „matéeriel immense“
     to: ein „materiel immense“
     by: scan
+  - page: 361
+    from: rechtfertigen. über
+    to: rechtfertigen. Über
+    by: scan
+  - page: 362
+    from: überschwangs
+    to: Überschwangs
+    by: scan
+  - page: 370
+    from: überbleibsel
+    to: Überbleibsel
+    by: scan
+  - page: 375
+    from: übergang
+    to: Übergang
+    by: scan
   - page: 387
     from: in People's Paper, 19. April 1856.
     to: III. People's Paper, 19. April 1856.
@@ -9618,9 +10144,29 @@ gesammelteschrif02marxuoft:
     from: New Hork Tribune, 9. September 1854.
     to: New York Tribune, 9. September 1854.
     by: scan
+  - page: 413
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 415
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 416
+    from: schwer. überall
+    to: schwer. Überall
+    by: scan
+  - page: 416
+    from: übergewicht
+    to: Übergewicht
+    by: scan
   - page: 418
     from: nach Compiégne gebracht
     to: nach Compiègne gebracht
+    by: scan
+  - page: 421
+    from: Opfer. überall
+    to: Opfer. Überall
     by: scan
   - page: 425
     from: Vertreibung Lefébvres aus
@@ -9630,6 +10176,10 @@ gesammelteschrif02marxuoft:
     from: Marschall Bessiéres
     to: Marschall Bessières
     by: scan
+  - page: 426
+    from: übergewicht,
+    to: Übergewicht,
+    by: scan
   - page: 447
     from: Révolution actuelleé de
     to: Révolution actuelle de
@@ -9638,9 +10188,21 @@ gesammelteschrif02marxuoft:
     from: de l'Espagneé tat,
     to: de l'Espagne tat,
     by: scan
+  - page: 448
+    from: treten. übrigens
+    to: treten. Übrigens
+    by: scan
+  - page: 449
+    from: überbleibsel
+    to: Überbleibsel
+    by: scan
   - page: 454
     from: Plaza deé Fernando
     to: Plaza de Fernando
+    by: scan
+  - page: 456
+    from: übergang
+    to: Übergang
     by: scan
   - page: 458
     from: New HYork Tribune, 2. Dezember 1854.
@@ -9653,6 +10215,10 @@ gesammelteschrif02marxuoft:
   - page: 466
     from: zur béte noire
     to: zur bête noire
+    by: scan
+  - page: 467
+    from: überblick
+    to: Überblick
     by: scan
 mehring-nachlass-3:
   - page: 95
@@ -9711,6 +10277,10 @@ mehring-nachlass-3:
     from: de I'Unité universelle
     to: de l'Unité universelle
     by: scan
+  - page: 434
+    from: impöt. paris
+    to: impôt. Paris
+    by: scan
   - page: 436
     from: die baénale bürgerliche
     to: die banale bürgerliche
@@ -9718,6 +10288,10 @@ mehring-nachlass-3:
   - page: 447
     from: vollständigen panie steigerte.
     to: vollständigen panic steigerte.
+    by: scan
+  - page: 448
+    from: stiegen.
+    to: stiegen,
     by: scan
   - page: 451
     from: dem panie von
@@ -9792,13 +10366,25 @@ gesammelteschrif01marxuoft:
     from: sehen, laudatorés temporis
     to: sehen, laudatores temporis
     by: scan
+  - page: 7
+    from: übergewicht
+    to: Übergewicht
+    by: scan
   - page: 9
     from: Grundbesitzer (fréeeholders), die
     to: Grundbesitzer (freeholders), die
     by: scan
+  - page: 14
+    from: überangebot
+    to: Überangebot
+    by: scan
   - page: 16
     from: Wahlnorruption.
     to: Wahlkorruption.
+    by: scan
+  - page: 33
+    from: übermaß
+    to: Übermaß
     by: scan
   - page: 40
     from: Conditio sineé qua
@@ -9808,6 +10394,10 @@ gesammelteschrif01marxuoft:
     from: von Neweastle, Lord
     to: von Newcastle, Lord
     by: scan
+  - page: 46
+    from: blasen. über
+    to: blasen. Über
+    by: scan
   - page: 59
     from: Eine alkersschwache Regierung. — Aussichten des Koalitions-
     to: Eine altersschwache Regierung. — Aussichten des Koalitions-
@@ -9816,9 +10406,29 @@ gesammelteschrif01marxuoft:
     from: die „Enteénte cordiale“
     to: die „Entente cordiale“
     by: scan
+  - page: 60
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 65
+    from: überblick
+    to: Überblick
+    by: scan
   - page: 68
     from: in Neweastle und
     to: in Newcastle und
+    by: scan
+  - page: 68
+    from: über die Schiffahrt
+    to: Über die Schiffahrt
+    by: scan
+  - page: 68
+    from: über dieselbe
+    to: Über dieselbe
+    by: scan
+  - page: 68
+    from: über das
+    to: Über das
     by: scan
   - page: 73
     from: und die Sklaveren.
@@ -9828,6 +10438,10 @@ gesammelteschrif01marxuoft:
     from: seinen Etudeés sociales
     to: seinen Etudes sociales
     by: scan
+  - page: 77
+    from: übermaß
+    to: Übermaß
+    by: scan
   - page: 78
     from: von Gruyéres
     to: von Gruyères
@@ -9836,9 +10450,21 @@ gesammelteschrif01marxuoft:
     from: of estateés) spielte
     to: of estates) spielte
     by: scan
+  - page: 78
+    from: eigentümlich. überall
+    to: eigentümlich. Überall
+    by: scan
   - page: 79
     from: Die Todesstrafe. — Herrn Cobdens Pamphlek. — Anordnungen
     to: Die Todesstrafe. — Herrn Cobdens Pamphlet. — Anordnungen
+    by: scan
+  - page: 85
+    from: übelstand
+    to: Übelstand
+    by: scan
+  - page: 85
+    from: übeln
+    to: Übeln
     by: scan
   - page: 88
     from: „exhaustis éetiam, quas
@@ -9848,6 +10474,14 @@ gesammelteschrif01marxuoft:
     from: Cassia, eét princeps
     to: Cassia, et princeps
     by: scan
+  - page: 89
+    from: übermaß
+    to: Übermaß
+    by: scan
+  - page: 94
+    from: über die Art
+    to: Über die Art
+    by: scan
   - page: 95
     from: Das Nieévre lieferte
     to: Das Nièvre lieferte
@@ -9856,9 +10490,25 @@ gesammelteschrif01marxuoft:
     from: Das Attenkat auf Franz Joseph. — Der Mailänder Aufstand. —
     to: Das Attentat auf Franz Joseph. — Der Mailänder Aufstand. —
     by: scan
+  - page: 105
+    from: übergang
+    to: Übergang
+    by: scan
+  - page: 109
+    from: übergewicht
+    to: Übergewicht
+    by: scan
   - page: 114
     from: Flüchtlingsfrage. Wahlbestechung in England.-Herr Cobden.
     to: Flüchtlingsfrage. — Wahlbestechung in England. — Herr Cobden.
+    by: scan
+  - page: 119
+    from: überwachungsdienst
+    to: Überwachungsdienst
+    by: scan
+  - page: 122
+    from: übergabe
+    to: Übergabe
     by: scan
   - page: 126
     from: Pfunde, Schillinge, Pence oder Klassenbudgels und wer hal
@@ -9867,6 +10517,10 @@ gesammelteschrif01marxuoft:
   - page: 126
     from: den Nuhen davon?
     to: den Nutzen davon?
+    by: scan
+  - page: 129
+    from: gewähren. überall
+    to: gewähren. Überall
     by: scan
   - page: 130
     from: Koalitionsbudgek.
@@ -9900,6 +10554,10 @@ gesammelteschrif01marxuoft:
     from: Totalsumme 1923000 Pfund Sterling
     to: Totalsumme | 1923000 | Pfund Sterling
     by: scan
+  - page: 131
+    from: überschusses,
+    to: Überschusses,
+    by: scan
   - page: 132
     from: 6 Penee 160000
     to: 6 Pence 160000
@@ -9924,6 +10582,18 @@ gesammelteschrif01marxuoft:
     from: Die kürkische Frage.
     to: Die türkische Frage.
     by: scan
+  - page: 159
+    from: übergewicht
+    to: Übergewicht
+    by: scan
+  - page: 162
+    from: überreste
+    to: Überreste
+    by: scan
+  - page: 166
+    from: übergriffe
+    to: Übergriffe
+    by: scan
   - page: 172
     from: Die englische und die französische Flotte. —-Die Times. —
     to: Die englische und die französische Flotte. — Die Times. —
@@ -9931,6 +10601,14 @@ gesammelteschrif01marxuoft:
   - page: 177
     from: des Deébats veröffentlichter
     to: des Débats veröffentlichter
+    by: scan
+  - page: 183
+    from: übergriffe im
+    to: Übergriffe im
+    by: scan
+  - page: 183
+    from: übergriffe zurückzuweisen.
+    to: Übergriffe zurückzuweisen.
     by: scan
   - page: 188
     from: Russisch-tkürkische Schwierigkeiten. — Ducken und Bücken
@@ -9944,9 +10622,45 @@ gesammelteschrif01marxuoft:
     from: la Guéronniére gezeichnet,
     to: la Guéronnière gezeichnet,
     by: scan
+  - page: 197
+    from: dessen übergriffe
+    to: dessen Übergriffe
+    by: scan
+  - page: 197
+    from: russische übergriffe
+    to: russische Übergriffe
+    by: scan
   - page: 203
     from: Urquharkt. — Bem. — Die kürkische Frage im Oberhaus.
     to: Urquhart. — Bem. — Die türkische Frage im Oberhaus.
+    by: scan
+  - page: 205
+    from: über die ersten
+    to: Über die ersten
+    by: scan
+  - page: 208
+    from: überschrei-
+    to: Überschrei-
+    by: scan
+  - page: 209
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 209
+    from: existiert! über
+    to: existiert! Über
+    by: scan
+  - page: 210
+    from: übereinkommens
+    to: Übereinkommens
+    by: scan
+  - page: 210
+    from: über die noch
+    to: Über die noch
+    by: scan
+  - page: 217
+    from: übergriffe
+    to: Übergriffe
     by: scan
   - page: 220
     from: von Neweastle on
@@ -9956,25 +10670,141 @@ gesammelteschrif01marxuoft:
     from: zum béte noire
     to: zum bête noire
     by: scan
+  - page: 229
+    from: übeln
+    to: Übeln
+    by: scan
+  - page: 242
+    from: überbleibsel
+    to: Überbleibsel
+    by: scan
+  - page: 245
+    from: Frankreich. über
+    to: Frankreich. Über
+    by: scan
+  - page: 248
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 257
+    from: übermaß
+    to: Übermaß
+    by: scan
+  - page: 265
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 269
+    from: über die geheimen
+    to: Über die geheimen
+    by: scan
+  - page: 269
+    from: übergriffe
+    to: Übergriffe
+    by: scan
   - page: 272
     from: als Mareé clausum,
     to: als Mare clausum,
+    by: scan
+  - page: 276
+    from: letzte übergriffe
+    to: letzte Übergriffe
+    by: scan
+  - page: 276
+    from: übergriffe erlaubte?“
+    to: Übergriffe erlaubte?“
+    by: scan
+  - page: 280
+    from: durften. über
+    to: durften. Über
+    by: scan
+  - page: 287
+    from: übergriffe
+    to: Übergriffe
+    by: scan
+  - page: 289
+    from: überdies
+    to: Überdies
+    by: scan
+  - page: 291
+    from: soll. über
+    to: soll. Über
+    by: scan
+  - page: 291
+    from: übergang
+    to: Übergang
+    by: scan
+  - page: 300
+    from: Adresse. über
+    to: Adresse. Über
+    by: scan
+  - page: 300
+    from: übergang
+    to: Übergang
+    by: scan
+  - page: 301
+    from: übergang
+    to: Übergang
+    by: scan
+  - page: 306
+    from: übergang von
+    to: Übergang von
+    by: scan
+  - page: 306
+    from: Dieser übergang
+    to: Dieser Übergang
+    by: scan
+  - page: 306
+    from: übergang bei
+    to: Übergang bei
+    by: scan
+  - page: 308
+    from: überfall
+    to: Überfall
     by: scan
   - page: 312
     from: Proscrits Démocrateés et
     to: Proscrits Démocrates et
     by: scan
+  - page: 321
+    from: mußten. übrigens
+    to: mußten. Übrigens
+    by: scan
+  - page: 337
+    from: überbringer
+    to: Überbringer
+    by: scan
   - page: 341
     from: que couteé, die
     to: que coute, die
+    by: scan
+  - page: 341
+    from: übergewicht
+    to: Übergewicht
     by: scan
   - page: 345
     from: das Mareé clausum
     to: das Mare clausum
     by: scan
+  - page: 347
+    from: Ansicht. nach
+    to: Ansicht nach
+    by: scan
+  - page: 358
+    from: abhing. über
+    to: abhing. Über
+    by: scan
   - page: 374
     from: Solidarität (perféct identity)
     to: Solidarität (perfect identity)
+    by: scan
+  - page: 380
+    from: würde. über
+    to: würde. Über
+    by: scan
+  - page: 402
+    from: überbringer
+    to: Überbringer
     by: scan
   - page: 405
     from: Deval, seerétaire
@@ -9992,9 +10822,17 @@ gesammelteschrif01marxuoft:
     from: la éour ottomane
     to: la cour ottomane
     by: scan
+  - page: 405
+    from: übereinkommens
+    to: Übereinkommens
+    by: scan
   - page: 409
     from: Die Kriegsdebalke im Parlamenk.
     to: Die Kriegsdebatte im Parlament.
+    by: scan
+  - page: 419
+    from: übereinkommens
+    to: Übereinkommens
     by: scan
   - page: 433
     from: Der gegenwärlige Stand der englischen Armee. — Talkik. —
@@ -11262,6 +12100,42 @@ zur-kritik-der-politischen-okonomie:
     from: von der Arkeit der Jatiriruen als gemeinschaftlicher, sonrern um-
     to: von der Arbeit der Individuen als gemeinschaftlicher, sondern um-
     by: scan
+  - page: 1
+    from: Allgemeinen. ö
+    to: Allgemeinen.
+    by: scan
+  - page: 35
+    from: olieh. free
+    to: policy in free
+    by: scan
+  - page: 61
+    from: Proudhon. ö
+    to: Proudhon.
+    by: scan
+  - page: 86
+    from: gicht. mehr
+    to: nicht mehr
+    by: scan
+  - page: 96
+    from: (LVergl.
+    to: (Vergl.
+    by: scan
+  - page: 100
+    from: mechanisch. verletzten
+    to: mechanisch verletzten
+    by: scan
+  - page: 147
+    from: purpose of.
+    to: purpose of
+    by: scan
+  - page: 147
+    from: quantity. of
+    to: quantity of
+    by: scan
+  - page: 169
+    from: descrip.
+    to: descrip-
+    by: scan
 enthullungen-1885:
   - page: 18
     from: Vorläusiges.
@@ -12331,6 +13205,10 @@ enthullungen-1885:
     from: ammengeschleppt
     to: sammengeschleppt
     by: scan
+  - page: 29
+    from: dafür.
+    to: dafür,
+    by: scan
   - page: 30
     from: in seindlichem Gegensatz
     to: in feindlichem Gegensatz
@@ -12371,6 +13249,14 @@ enthullungen-1885:
     from: einen spürlich erleuchteten
     to: einen spärlich erleuchteten
     by: reference
+  - page: 31
+    from: verhaftet. am
+    to: verhaftet, am
+    by: scan
+  - page: 31
+    from: bei I+αH. gefundenen
+    to: bei Dietz gefundenen
+    by: scan
   - page: 32
     from: Die französische Reqierung hatte ihr
     to: Die französische Regierung hatte ihr
@@ -13056,44 +13942,60 @@ enthullungen-1885:
     to: Voruntersuchung? Aus Tendenz
     by: reference
   - page: 62
-    from: den verschiedenen Landern gehandelt.“ ... (Sitzung
-    to: den verschiedenen Ländern gehandelt.“ ... (Sitzung
-    by: reference
-  - page: 62
-    from: der Kommunisten gedenüber den Proletariern
-    to: der Kommunisten gegenüber den Proletariern
-    by: reference
-  - page: 62
-    from: Kommunismus. Gery fine
-    to: Kommunismus. very fine
-    by: reference
-  - page: 62
-    from: des angellagten Kommunismus
-    to: des angeklagten Kommunismus
-    by: reference
-  - page: 62
-    from: für „unberusen“ zur
-    to: für „unberufen“ zur
-    by: reference
-  - page: 62
-    from: jedenfalis muß
-    to: jedenfalls muß
-    by: reference
-  - page: 62
-    from: sogenannte sopiale
-    to: sogenannte soziale
+    from: wicklung der gesellschaftlichen Stellung der verschiedenen Bürger () vom
+    to: wicklung der gesellschaftlichen Stellung der verschiedenen Bürger (!) vom
     by: scan
   - page: 62
-    from: dewegung, den Inquisitor
-    to: bewegung, den Inquisitor
+    from: Standpunkt des Kommunismus. Gery fine) . Der zweite Abschnitt
+    to: Standpunkt des Kommunismus. (very fine) .... Der zweite Abschnitt
     by: scan
   - page: 62
-    from: sagten sich die chwo-
-    to: sagten sich die Geschwo-
+    from: entwickele die Stellung der Kommunisten gedenüber den Proletariern...
+    to: entwickele die Stellung der Kommunisten gegenüber den Proletariern...
     by: scan
   - page: 62
-    from: 5 ben dann
-    to: den dann
+    from: in den verschiedenen Landern gehandelt.“ ... (Sitzung vom 6. Novbr.)
+    to: in den verschiedenen Ländern gehandelt.“ ...! (Sitzung vom 6. Novbr.)
+    by: scan
+  - page: 62
+    from: Das Manifest besteht nun H17 aus 4 Abschnitten und nicht aus
+    to: Das Manifest besteht nun allerdings aus 4 Abschnitten und nicht aus
+    by: scan
+  - page: 62
+    from: nicht für ihn besteht, ist derselbige unselige Abschnitt, der die E des
+    to: nicht für ihn besteht, ist derselbige unselige Abschnitt, der die Kritik des
+    by: scan
+  - page: 62
+    from: denz des angellagten Kommunismus enthält. Armer Saedt! Erst fehlt
+    to: denz des angeklagten Kommunismus enthält. Armer Saedt! Erst fehlt
+    by: scan
+  - page: 62
+    from: Aber grau, theurer Freund, ist alle Theorie. Die „sogenannte sopiale
+    to: Aber grau, theurer Freund, ist alle Theorie. Die „sogenannte soziale
+    by: scan
+  - page: 62
+    from: gestimmt, den Galilei für „unberusen“ zur Erforschung der Himmels-
+    to: gestimmt, den Galilei für „unberufen“ zur Erforschung der Himmels-
+    by: scan
+  - page: 62
+    from: dewegung, den Inquisitor aber, der ihn verketzerte, für „berufen“ zu
+    to: bewegung, den Inquisitor aber, der ihn verketzerte, für „berufen“ zu
+    by: scan
+  - page: 62
+    from: gelegte Regierungs-Intrigue, die Korruption der preußischen Regierung.
+    to: gelegte Regierungs-Intrigue, die Korruption der preußischen Regierung,
+    by: scan
+  - page: 62
+    from: die sich vor ihren Augen enthüllt hatte. Aber, sagten sich die chwo-
+    to: die sich vor ihren Augen enthüllt hatte. Aber, sagten sich die Geschwo-
+    by: scan
+  - page: 62
+    from: jedenfalis muß ihre Lehre eine Macht sein. Die Regierung hat alle
+    to: jedenfalls muß ihre Lehre eine Macht sein. Die Regierung hat alle
+    by: scan
+  - page: 62
+    from: 5 ben dann, versehen mit den heiligen Sterbesakramenten, selig ver-
+    to: den dann, versehen mit den heiligen Sterbesakramenten, selig ver-
     by: scan
   - page: 63
     from: Ree Veruriheilen wir in
@@ -13351,6 +14253,10 @@ enthullungen-1885:
     from: "* Wahlen schon"
     to: Wahlen schon
     by: scan
+  - page: 82
+    from: τ) Es ist heute
+    to: "*) Es ist heute"
+    by: scan
   - page: 84
     from: Angelegenheit in Frantfurt wurde durch
     to: Angelegenheit in Frankfurt wurde durch
@@ -13398,6 +14304,10 @@ enthullungen-1885:
   - page: 84
     from: deng stand,
     to: denz stand,
+    by: scan
+  - page: 84
+    from: Bundesmitglied. brachte
+    to: Bundesmitglied, brachte
     by: scan
   - page: 85
     from: die brauchbaren Kräftie in den
@@ -13668,6 +14578,10 @@ ldpd_13048930_000:
     from: — Soldaten waren,
     to: Soldaten waren,
     by: scan
+  - page: 3
+    from: Privatgründe. ö
+    to: Privatgründe.
+    by: scan
   - page: 4
     from: Nihre Zuchthäusler freiließen
     to: ihre Zuchthäusler freiließen
@@ -13694,7 +14608,7 @@ ldpd_13048930_000:
     by: scan
   - page: 4
     from: Zeitung, 2'Etendard.“
-    to: Zeitung, L'Etendard.“
+    to: Zeitung „L'Etendard.“
     by: scan
   - page: 4
     from: „nalen Vertheidigung
@@ -13708,6 +14622,10 @@ ldpd_13048930_000:
     from: hen tickets-of-leave
     to: ßen tickets-of-leave
     by: scan
+  - page: 4
+    from: Männer. nun
+    to: Männer nun
+    by: scan
   - page: 5
     from: eignen Klassenver
     to: eignen Klassenver-
@@ -13719,6 +14637,10 @@ ldpd_13048930_000:
   - page: 5
     from: Ticket-of-leave-Män- ö
     to: Ticket-of-leave-Män-
+    by: scan
+  - page: 5
+    from: und.
+    to: und
     by: scan
   - page: 6
     from: später befand scch Thiers unter
@@ -13739,6 +14661,10 @@ ldpd_13048930_000:
   - page: 6
     from: (Hiirabeau-
     to: (Mirabeau-
+    by: scan
+  - page: 6
+    from: konspirirten. zur
+    to: konspirirten zur
     by: scan
   - page: 7
     from: Zielpunkte ist diefer
@@ -13768,6 +14694,14 @@ ldpd_13048930_000:
     from: sein letztes Ministeriu:n unter demselben
     to: sein letztes Ministerium unter demselben
     by: reference
+  - page: 8
+    from: oder. irgend
+    to: oder irgend
+    by: scan
+  - page: 8
+    from: Republik. und
+    to: Republik und
+    by: scan
   - page: 9
     from: in Vordeaur eröffnet war
     to: in Bordeaux eröffnet war
@@ -13832,6 +14766,18 @@ ldpd_13048930_000:
     from: hartnäcigen
     to: hartnäckigen
     by: scan
+  - page: 12
+    from: besorgte.
+    to: besorgte
+    by: scan
+  - page: 12
+    from: Villette.
+    to: Villette
+    by: scan
+  - page: 12
+    from: daß, er
+    to: daß er
+    by: scan
   - page: 13
     from: dessen Wieder
     to: dessen Wieder-
@@ -13864,6 +14810,10 @@ ldpd_13048930_000:
     from: auichen erstaunlchen Hu Staats- und Kriegsaktionen ir-
     to: neulichen erstaunlichen Haupt-, Staats- und Kriegsaktionen ir-
     by: scan
+  - page: 13
+    from: Polizeisergeanten, und
+    to: Polizeisergeanten und
+    by: scan
   - page: 14
     from: vin die
     to: in die
@@ -13892,6 +14842,10 @@ ldpd_13048930_000:
     from: . Arbeiter ihr
     to: Arbeiter ihr
     by: scan
+  - page: 14
+    from: Statt. ihr
+    to: Statt ihr
+    by: scan
   - page: 15
     from: und löste, unker dem Brandmal
     to: und löste, unter dem Brandmal
@@ -13899,6 +14853,10 @@ ldpd_13048930_000:
   - page: 15
     from: seindlichen Offiziere
     to: feindlichen Offiziere
+    by: scan
+  - page: 15
+    from: anvertrauten. d
+    to: anvertrauten.
     by: scan
   - page: 16
     from: waffenlosen Leute loszgelassen hatte, um
@@ -13940,9 +14898,25 @@ ldpd_13048930_000:
     from: Heeckeren, Coêtlogon, Henri
     to: Heeckeren, Coëtlogon, Henri
     by: scan
+  - page: 16
+    from: Revolution. wir
+    to: Revolution wir
+    by: scan
   - page: 17
     from: Desmarét, der
     to: Desmarêt, der
+    by: scan
+  - page: 17
+    from: Picard.
+    to: Picard,
+    by: scan
+  - page: 17
+    from: Metzgerart.
+    to: Metzgerart
+    by: scan
+  - page: 17
+    from: parlameütari-
+    to: parlamentari-
     by: scan
   - page: 18
     from: Leuüte auf so
@@ -13972,6 +14946,14 @@ ldpd_13048930_000:
     from: lichen Londoner „Umes- Aber es wäre e lächerlich, die bloß ein-
     to: lichen Londoner „Times“. Aber es wäre lächerlich, die bloß ein-
     by: scan
+  - page: 18
+    from: Krautjunker. seine
+    to: Krautjunker seine
+    by: scan
+  - page: 18
+    from: "zu: den"
+    to: zu den
+    by: scan
   - page: 19
     from: dem Ueber
     to: dem Ueber-
@@ -13990,7 +14972,7 @@ ldpd_13048930_000:
     by: scan
   - page: 19
     from: und die Regierungégewalt.
-    to: und die Regierungsgewalt.
+    to: und die Regierungsgewalt
     by: scan
   - page: 19
     from: daß IL'Assem-
@@ -14003,6 +14985,26 @@ ldpd_13048930_000:
   - page: 19
     from: D Die Proletarier von Paris“, sagte das Centraltomitee
     to: „Die Proletarier von Paris“, sagte das Centralkomitee
+    by: scan
+  - page: 19
+    from: Trümmer.
+    to: Trümmer
+    by: scan
+  - page: 19
+    from: geschlagen, hat
+    to: geschlagen hat
+    by: scan
+  - page: 19
+    from: "Hände: nehmen"
+    to: Hände nehmen
+    by: scan
+  - page: 19
+    from: "ihre: höchste"
+    to: ihre höchste
+    by: scan
+  - page: 19
+    from: "Geschicke: zu"
+    to: Geschicke zu
     by: scan
   - page: 20
     from: einzigen Heldenthat dvom Juni blieb
@@ -14019,6 +15021,10 @@ ldpd_13048930_000:
   - page: 20
     from: rublit die verschicdenen
     to: publik die verschiedenen
+    by: scan
+  - page: 20
+    from: ihrer.
+    to: ihrer
     by: scan
   - page: 21
     from: der Finanzz
@@ -14039,6 +15045,14 @@ ldpd_13048930_000:
   - page: 21
     from: zu vereinigeu durch
     to: zu vereinigen durch
+    by: scan
+  - page: 21
+    from: unmittelbar. in
+    to: unmittelbar in
+    by: scan
+  - page: 21
+    from: schwebend. war
+    to: schwebend, war
     by: scan
   - page: 22
     from: bestimmie Form
@@ -14068,6 +15082,18 @@ ldpd_13048930_000:
     from: scheinbare Unah-
     to: scheinbare Unab-
     by: scan
+  - page: 23
+    from: Würdenträgern. selbst
+    to: Würdenträgern selbst
+    by: scan
+  - page: 23
+    from: Nicht. nur
+    to: Nicht nur
+    by: scan
+  - page: 23
+    from: in. die
+    to: in die
+    by: scan
   - page: 24
     from: Rommune gegen die
     to: Kommune gegen die
@@ -14087,6 +15113,14 @@ ldpd_13048930_000:
   - page: 26
     from: — unterlag, und
     to: unterlag, und
+    by: scan
+  - page: 26
+    from: und. durch
+    to: und durch
+    by: scan
+  - page: 26
+    from: Resultat. des
+    to: Resultat des
     by: scan
   - page: 27
     from: einem gemeinsamen Plau regeln
@@ -14127,6 +15161,14 @@ ldpd_13048930_000:
   - page: 29
     from: Louis Bonapacte zum
     to: Louis Bonaparte zum
+    by: scan
+  - page: 29
+    from: ruhmvollen.
+    to: ruhmvollen
+    by: scan
+  - page: 29
+    from: der.
+    to: der
     by: scan
   - page: 30
     from: Augen in Napolcon verkörpert war
@@ -14196,6 +15238,10 @@ ldpd_13048930_000:
     from: die ungläubige Kom⸗.—
     to: die ungläubige Kom-
     by: scan
+  - page: 32
+    from: unterdrücken. ö
+    to: unterdrücken.
+    by: scan
   - page: 33
     from: Paris des zweilen Kaiserthums. Paris
     to: Paris des zweiten Kaiserthums. Paris
@@ -14212,6 +15258,78 @@ ldpd_13048930_000:
     from: Begeisterung seiner geschichtlichen. Initiativeeln
     to: Begeisterung seiner geschichtlichen Initiative!
     by: scan
+  - page: 33
+    from: sich. in
+    to: sich in
+    by: scan
+  - page: 33
+    from: geschleppt. habe
+    to: geschleppt habe
+    by: scan
+  - page: 33
+    from: Religion. und
+    to: Religion und
+    by: scan
+  - page: 33
+    from: hochherzig. und
+    to: hochherzig und
+    by: scan
+  - page: 33
+    from: wie. die
+    to: wie die
+    by: scan
+  - page: 33
+    from: kämpfend.
+    to: kämpfend,
+    by: scan
+  - page: 33
+    from: zu. zehren
+    to: zu zehren
+    by: scan
+  - page: 33
+    from: Schwanz.
+    to: Schwanz
+    by: scan
+  - page: 33
+    from: die. durch
+    to: die durch
+    by: scan
+  - page: 33
+    from: Gegenwart in.
+    to: Gegenwart in
+    by: scan
+  - page: 33
+    from: "schüttelt: man"
+    to: schüttelt man
+    by: scan
+  - page: 33
+    from: jetzt, nichts
+    to: jetzt nichts
+    by: scan
+  - page: 33
+    from: nichts:mehr
+    to: nichts mehr
+    by: scan
+  - page: 33
+    from: Personen; es
+    to: "Personen: es"
+    by: scan
+  - page: 33
+    from: "vor: Allem"
+    to: vor Allem
+    by: scan
+  - page: 33
+    from: "des: Alterthums"
+    to: des Alterthums
+    by: scan
+  - page: 33
+    from: seiner, Vorbereitung
+    to: seiner Vorbereitung
+    by: scan
+  - page: 33
+    from: "Vorbereitung: einer"
+    to: Vorbereitung einer
+    by: scan
   - page: 34
     from: Llern, seiner
     to: lern, seiner
@@ -14223,6 +15341,10 @@ ldpd_13048930_000:
   - page: 34
     from: wie welthistorisch war nicht die ganze-
     to: wie welthistorisch war nicht die ganze Sache!
+    by: scan
+  - page: 34
+    from: gefallen.
+    to: gefallen
     by: scan
   - page: 35
     from: IV
@@ -14280,6 +15402,18 @@ ldpd_13048930_000:
     from: sentimentalen Nede-
     to: sentimentalen Rede-
     by: scan
+  - page: 38
+    from: sagen. konnte
+    to: sagen konnte
+    by: scan
+  - page: 38
+    from: Sire.
+    to: Sire-
+    by: scan
+  - page: 38
+    from: Frankreich ge.
+    to: Frankreich ge-
+    by: scan
   - page: 39
     from: dieser Zufage zur
     to: dieser Zusage zur
@@ -14295,6 +15429,10 @@ ldpd_13048930_000:
   - page: 39
     from: sein ganzes Werk krönenden Verrath
     to: sein ganzes Werk krönenden Verrath?
+    by: scan
+  - page: 39
+    from: "wurde!: Dagegen"
+    to: wurde! Dagegen
     by: scan
   - page: 40
     from: dem General Douai die Thore
@@ -14340,6 +15478,14 @@ ldpd_13048930_000:
     from: Gebäude und. Monumente
     to: Gebäude und Monumente
     by: scan
+  - page: 42
+    from: sie, in
+    to: sie in
+    by: scan
+  - page: 42
+    from: "Entweihung: von"
+    to: Entweihung von
+    by: scan
   - page: 44
     from: der Kommune nichis übrig, zum
     to: der Kommune nichts übrig, zum
@@ -14372,6 +15518,18 @@ ldpd_13048930_000:
     from: sie die Infurgenten als Mörder
     to: sie die Insurgenten als Mörder
     by: reference
+  - page: 45
+    from: Zeugniß. eingehändigt
+    to: Zeugniß eingehändigt
+    by: scan
+  - page: 45
+    from: abhängig. machte
+    to: abhängig machte
+    by: scan
+  - page: 45
+    from: Für, ihn
+    to: Für ihn
+    by: scan
   - page: 46
     from: emporarbeitenden neuen Gesellschäft, sondern
     to: emporarbeitenden neuen Gesellschaft, sondern
@@ -14396,6 +15554,14 @@ ldpd_13048930_000:
     from: huelle alles
     to: quelle alles
     by: scan
+  - page: 46
+    from: auch. noch
+    to: auch noch
+    by: scan
+  - page: 46
+    from: Während. die
+    to: Während die
+    by: scan
   - page: 48
     from: — Eccarius, für
     to: Eccarius, für
@@ -14419,6 +15585,10 @@ ldpd_13048930_000:
   - page: 50
     from: Londoner „Aimes-
     to: Londoner „Times“
+    by: scan
+  - page: 50
+    from: Kriegs, bekannt
+    to: Kriegs bekannt
     by: scan
   - page: 51
     from: Diese Sorte Ma- —
@@ -14508,6 +15678,10 @@ lohnarbeitundka00marxgoog:
   - page: 17
     from: ") Marx schrieb: womit er 12 Stunden Arbeit kaufte. K."
     to: "1) Marx schrieb: womit er 12 Stunden Arbeit kaufte. K."
+    by: scan
+  - page: 17
+    from: Ware. die
+    to: Ware, die
     by: scan
   - page: 18
     from: Arbeitskraft! des Webers ganz so, wie er mit einem anderen Teil
@@ -14697,6 +15871,14 @@ lohnarbeitundka00marxgoog:
     from: eine Arbeitskraft') aus-
     to: eine Arbeitskraft¹) aus-
     by: scan
+  - page: 27
+    from: worden.
+    to: worden,
+    by: scan
+  - page: 27
+    from: Zig. schon
+    to: Ztg. schon
+    by: scan
   - page: 28
     from: Arbeitsskraft! austauscht, indem es Lohnarbeit ins Leben ruft. Die
     to: Arbeit[skraft] austauscht, indem es Lohnarbeit ins Leben ruft. Die
@@ -14797,6 +15979,10 @@ lohnarbeitundka00marxgoog:
     from: etwaige größere Ginnahme würde daher
     to: etwaige größere Einnahme würde daher
     by: reference
+  - page: 35
+    from: oder. über
+    to: oder über
+    by: scan
   - page: 36
     from: um (mehr!
     to: um [mehr]

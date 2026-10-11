@@ -297,6 +297,11 @@ books:
       - https://web.archive.org/web/20001208131100id_/http://www.mlwerke.de:80/me/me02/me02_152.htm
       - https://web.archive.org/web/20020704041655id_/http://mlwerke.de:80/me/me02/me02_172.htm
       - https://web.archive.org/web/20010426000827id_/http://www.mlwerke.de:80/me/me02/me02_222.htm
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 302, opens: "Tabelle der" }
+      - { page: 302, opens: "Schon der alte Voß" }
+      - { page: 302, opens: "Das juristische Präventivmittel" }
     slug: die-heilige-familie
     title: Die heilige Familie oder Kritik der kritischen Kritik
     shortTitle: Die heilige Familie

@@ -2381,3 +2381,36 @@ describe("parseArchiveOcrWork, the page edge's shadow", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork, a table of two columns", () => {
+  it("writes rows of two cells, however long, as a markdown table", async () => {
+    const left =
+      "Entscheidung, ob Einer ein Böser sei: Les assises du crime, Assisen für das Verbrechen. Das öffentliche Ministerium signalisirt die Verbrechen des Angeklagten.";
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 15,
+        lastPage: 15,
+        spacedNotes: true,
+        corrections: [
+          {
+            page: 15,
+            from: "niemand weiß, wohin er ging.",
+            to: `niemand weiß, wohin er ging.\nBestehende Justiz. | Kritisch ergänzende Justiz.\n${left} | Entscheidung, ob Einer ein Guter sei.`,
+          },
+        ],
+        paragraphs: [{ page: 15, opens: "Wie Frazer" }],
+      },
+    );
+
+    expect(units[0]?.paragraphs.at(-1)).toBe(
+      `| Bestehende Justiz. | Kritisch ergänzende Justiz. |\n| --- | --- |\n| ${left} | Entscheidung, ob Einer ein Guter sei. |`,
+    );
+  });
+});

@@ -2574,13 +2574,13 @@ function volumeOf(hocr: string): ReadVolume {
 /** A table's caption between its rows: B., or B. Zweite Klasse II tritt ein. */
 const TABLE_CAPTION = /^[A-H]\.(?:\s|$)/u;
 /** A table's cell is short; a bar the OCR read in a paragraph parts no cells. */
-const TABLE_CELL = 120;
-
-/** A paragraph's cells, if it is a table's row: parted by bars, each short. */
+/**
+ * A paragraph's cells, if it is a table's row: parted by bars. Only a row
+ * read from the scan keeps its bars; elsewhere a bar is a speck.
+ */
 function tableCells(text: string): string[] | null {
   if (!/ \| |^\| | \|$/u.test(text)) return null;
-  const cells = text.split("|").map((cell) => cell.trim());
-  return cells.every((cell) => cell.length <= TABLE_CELL) ? cells : null;
+  return text.split("|").map((cell) => cell.trim());
 }
 
 /** A table's rows as a markdown table: its first row heads it unless it holds figures, then its head is empty. */
@@ -2601,7 +2601,7 @@ function markdownTable(rows: string[][]): string {
 
 /**
  * Paragraphs with each run of a table's rows, read from the scan with their
- * short cells parted by bars, made one markdown table; a lettered caption
+ * cells parted by bars, made one markdown table; a lettered caption
  * between two rows is one of its rows.
  */
 function tabled<Paragraph extends { text: string }>(
@@ -2626,9 +2626,7 @@ function tabled<Paragraph extends { text: string }>(
       (paragraph) => tableCells(paragraph.text) ?? [paragraph.text],
     );
     const [first] = run;
-    // A table has a row of three cells at least: two cells a bar parts
-    // alone are a paragraph.
-    return first && rows.some((cells) => cells.length >= 3)
+    return first && rows.some((cells) => cells.length >= 2)
       ? [{ ...first, text: markdownTable(rows) }]
       : run;
   });
