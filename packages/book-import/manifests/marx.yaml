@@ -544,6 +544,137 @@ books:
     firstChapter: 2
     spacedNotes: true
     skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 170, opens: "Profit |" }
+      - { page: 170, opens: "I. 80 c" }
+      - { page: 170, opens: "II. 60 c" }
+      - { page: 170, opens: "III. 85 c" }
+      - { page: 170, opens: "IV. 95 c" }
+      - { page: 170, opens: "Zusammen 400" }
+      - { page: 170, opens: "Das Durchschnittskapital" }
+      - { page: 170, opens: "Würde das Gesamtprodukt" }
+      - { page: 170, opens: "Wie aber hätte" }
+      - { page: 170, opens: "Für Kapital I haben" }
+      - { page: 170, opens: "Für Kapital II." }
+      - { page: 170, opens: "Für Kapital III." }
+      - { page: 32, opens: "Die 92½ Tonnen" }
+      - { page: 32, opens: "Stellen wir nun" }
+      - { page: 32, opens: "Tabelle A." }
+      - { page: 32, opens: "Klasse |" }
+      - { page: 32, opens: "I |" }
+      - { page: 32, opens: "II |" }
+      - { page: 32, opens: "III |" }
+      - { page: 32, opens: "Total |" }
+      - { page: 32, opens: "Der Gesamt-Tonnengehalt" }
+      - { page: 33, opens: "Tabelle B." }
+      - { page: 33, opens: "Klasse |" }
+      - { page: 33, opens: "II |" }
+      - { page: 33, opens: "III |" }
+      - { page: 33, opens: "IV |" }
+      - { page: 33, opens: "Total |" }
+      - { page: 33, opens: "Gesamtkapital" }
+      - { page: 33, opens: "Diese beiden Tabellen" }
+      - { page: 33, opens: "Zunächst sehen wir" }
+      - { page: 33, opens: "In II B" }
+      - { page: 33, opens: "Ehe wir nun" }
+      - { page: 34, opens: "[Der Produktionspreis" }
+      - { page: 34, opens: "Damit I A gar" }
+      - { page: 34, opens: "Was nun aber II" }
+      - { page: 100, opens: "Dieses ist richtig" }
+      - { page: 100, opens: "Dagegen berührt" }
+      - { page: 100, opens: "Gesetzt, wir nehmen" }
+      - { page: 100, opens: "Hier wird vorausgesetzt" }
+      - { page: 100, opens: "Klasse |" }
+      - { page: 100, opens: "I |" }
+      - { page: 100, opens: "II |" }
+      - { page: 100, opens: "III |" }
+      - { page: 100, opens: "Tot |" }
+      - { page: 171, opens: "Wir hätten also:" }
+      - { page: 171, opens: "Profit " }
+      - { page: 171, opens: "I. 84" }
+      - { page: 171, opens: "II. 66" }
+      - { page: 171, opens: "III. 88" }
+      - { page: 171, opens: "IV. 90" }
+      - { page: 171, opens: "Zusammen 400" }
+      - { page: 171, opens: "Die Durchschnittsprofitrate" }
+      - { page: 183, opens: "Wir wollen nun" }
+      - { page: 183, opens: "Klasse |" }
+      - { page: 183, opens: "I |" }
+      - { page: 183, opens: "II |" }
+      - { page: 183, opens: "III |" }
+      - { page: 183, opens: "Würde diese Tabelle" }
+      - { page: 183, opens: "[Total]" }
+      - { page: 184, opens: "Wir hätten also:" }
+      - { page: 184, opens: "Klasse |" }
+      - { page: 184, opens: "III |" }
+      - { page: 184, opens: "In Tonnen ausgedrückt" }
+      - { page: 184, opens: "Nehmen wir nun an" }
+      - { page: 184, opens: "Es geht hier" }
+      - { page: 184, opens: "Dabei bleibt" }
+      - { page: 185, opens: "Da diese 20" }
+      - { page: 185, opens: "Da der Wert" }
+      - { page: 185, opens: "Da der Gesamtwert" }
+      - { page: 185, opens: "Nun verkauft" }
+      - { page: 185, opens: "Statt das Produkt" }
+      - { page: 185, opens: "Wir hätten also" }
+      - { page: 185, opens: "Klasse |" }
+      - { page: 185, opens: "III |" }
+      - { page: 186, opens: "Gehen wir nun zu" }
+      - { page: 186, opens: "Klasse |" }
+      - { page: 186, opens: "II |" }
+      - { page: 186, opens: "Arbeitslohn in Tonnen" }
+      - { page: 186, opens: "III |" }
+      - { page: 186, opens: "Gehen wir nun über" }
+      - { page: 186, opens: "Der Arbeitslohn in Tonnen" }
+      - { page: 187, opens: "III, obgleich" }
+      - { page: 187, opens: "Was II angeht" }
+      - { page: 187, opens: "Da aber der individuelle" }
+      - { page: 188, opens: "Klasse " }
+      - { page: 188, opens: "III " }
+      - { page: 188, opens: "II " }
+      - { page: 188, opens: "I " }
+      - { page: 188, opens: "Kurz, dieser Fall" }
+      - { page: 188, opens: "Gehen wir nun über" }
+      - { page: 188, opens: "Der Wert der Tonne ist gestiegen" }
+      - { page: 188, opens: "Da die organische" }
+      - { page: 188, opens: "Da aber der individuelle" }
+      - { page: 190, opens: "Klasse " }
+      - { page: 190, opens: "III " }
+      - { page: 190, opens: "II " }
+      - { page: 190, opens: "I " }
+      - { page: 190, opens: "Ib " }
+      - { page: 190, opens: "Setzen wir endlich" }
+      - { page: 190, opens: "Hier steigt" }
+      - { page: 190, opens: "Da in III" }
+      - { page: 190, opens: "In II ist" }
+      - { page: 192, opens: "Klasse " }
+      - { page: 192, opens: "III " }
+      - { page: 192, opens: "II " }
+      - { page: 192, opens: "I " }
+      - { page: 192, opens: "Ib " }
+      - { page: 192, opens: "Ia " }
+      - { page: 192, opens: "In den vier" }
+      - { page: 192, opens: "Ferner zeigt" }
+      - { page: 192, opens: "Derselbe Widerspruch" }
+      - { page: 193, opens: "Ebenso in I," }
+      - { page: 193, opens: "Endlich in Ib" }
+      - { page: 193, opens: "Nun ist aber" }
+      - { page: 193, opens: "Das Rätsel" }
+      - { page: 193, opens: "Wenn 20 Mann" }
+      - { page: 194, opens: "Gang der Rente" }
+      - { page: 194, opens: "A. (Beste" }
+      - { page: 194, opens: "Klasse " }
+      - { page: 194, opens: "III " }
+      - { page: 194, opens: "II " }
+      - { page: 194, opens: "I " }
+      - { page: 194, opens: "Ib " }
+      - { page: 194, opens: "Ia " }
+      - { page: 194, opens: "Total " }
+      - { page: 194, opens: "B. Zweite" }
+      - { page: 194, opens: "C. Dritte" }
+      - { page: 194, opens: "D. Vierte" }
+      - { page: 194, opens: "E. Fünfte" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2

@@ -188,6 +188,44 @@ describe("parseArchiveOcrWork with corrections", () => {
     ]);
   });
 
+  it("gives a line the lines the OCR lost below it, where a whole line's correction holds several", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      corrections: [
+        {
+          page: 5,
+          from: "Ein Satz unten auf der Seite",
+          to: "Ein Satz unten auf der Seite\nI | 100 | 60\nII | 100 | 65",
+        },
+      ],
+      paragraphs: [
+        { page: 5, opens: "Ein Satz" },
+        { page: 5, opens: "I |" },
+        { page: 5, opens: "II |" },
+      ],
+    });
+
+    expect(units[0]?.paragraphs.slice(2, 5)).toEqual([
+      "Ein Satz unten auf der Seite",
+      "I | 100 | 60",
+      "II | 100 | 65 läuft weiter, und am Rand rutscht ein Wort nach unten.",
+    ]);
+  });
+
+  it("reads a table's row read from the scan as text, however it opens and wherever it stands", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      corrections: [{ page: 3, from: "I", to: "I | 100 | 60" }],
+      paragraphs: [
+        { page: 3, opens: "I |" },
+        { page: 3, opens: "In der psychoanalytischen" },
+        { page: 3, opens: "Es hat dabei" },
+      ],
+    });
+
+    expect(units[0]?.paragraphs[0]).toBe("I | 100 | 60");
+  });
+
   it("fixes a heading's line before the heading is read, where no text line is the correction's", async () => {
     const page = pageText(await fixture(), 3, [
       { page: 3, from: "I", to: "II" },
@@ -2148,6 +2186,126 @@ describe("parseArchiveOcrWork, a scan whose lines curve", () => {
       "V. Das erste, was si",
       "D Die erste Frage, d",
       "Also: Am selben Aben",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, signs the Fraktur model misreads", () => {
+  it("reads a plus, an equals sign and a pound after a figure as the print sets them", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 9,
+        lastPage: 12,
+        spacedNotes: true,
+      },
+    );
+
+    expect(units.at(-1)?.paragraphs.at(-2)).toBe(
+      "Das Kapital 80 c + 20 v gibt 110 = 100 + 10 £, Hope & Co., Zo6& 4.",
+    );
+  });
+});
+
+describe("parseArchiveOcrWork, a table read anew from the scan", () => {
+  it("reads its rows as text, not a title however large the OCR read them, and the text below them as text, not notes", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 13,
+        lastPage: 13,
+        spacedNotes: true,
+        corrections: [
+          {
+            page: 13,
+            from: "Klasse Kapital Tonnen Rente 5 100 60 2 70 0",
+            to: "Klasse | Kapital | Tonnen\nI | 100 | 60\nII | 100 | 65",
+          },
+        ],
+        paragraphs: [
+          { page: 13, opens: "Ricardo geht" },
+          { page: 13, opens: "Klasse |" },
+          { page: 13, opens: "I |" },
+          { page: 13, opens: "II |" },
+          { page: 13, opens: "Würde diese" },
+        ],
+      },
+    );
+
+    expect(units.map((unit) => unit.title)).toEqual(["Theorien II.1, 13"]);
+    expect(units[0]?.paragraphs.slice(4)).toEqual([
+      "Klasse | Kapital | Tonnen",
+      "I | 100 | 60",
+      "II | 100 | 65",
+      "Würde diese Tabelle nun umgekehrt dargestellt nach Ricardos absteigender Linie, also von III begonnen und zugleich angenommen, daß der zuerst bebaute fruchtbarere Boden keine Rente zahlt.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, a page of a table alone", () => {
+  it("reads the page, its rows read anew from the scan, as no picture, and a line the manifest names as opening a paragraph as no heading", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 14,
+        lastPage: 14,
+        spacedNotes: true,
+        corrections: [
+          {
+            page: 14,
+            from: "III ö 100 81½j 13023 130½23 175⁵ 15/½5 0",
+            to: "III | 100 | 81",
+          },
+          {
+            page: 14,
+            from: "B. Zweite Klasse II tritt ein. Entstehung der Rente.",
+            to: "B. Zweite Klasse II tritt ein. Entstehung der Rente auf Boden III.",
+          },
+          {
+            page: 14,
+            from: "II 100 67½/63 1237½¹ 123, 1½s 14½3 0",
+            to: "II | 100 | 67",
+          },
+          {
+            page: 14,
+            from: "Totals 200 1II%% 2 266¹ù-",
+            to: "Total | 200 | 148",
+          },
+        ],
+        paragraphs: [
+          { page: 14, opens: "Gang der Rente" },
+          { page: 14, opens: "III |" },
+          { page: 14, opens: "B. Zweite" },
+          { page: 14, opens: "II |" },
+          { page: 14, opens: "Total |" },
+        ],
+      },
+    );
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
+      "Gang der Rente",
+      "III | 100 | 81",
+      "B. Zweite Klasse II tritt ein. Entstehung der Rente auf Boden III.",
+      "II | 100 | 67",
+      "Total | 200 | 148",
     ]);
   });
 });

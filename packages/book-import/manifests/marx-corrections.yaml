@@ -1659,11 +1659,11 @@ mehring-nachlass-2:
     to: das „von vorn-
     by: reference
   - page: 197
-    from: b. Die Judenfrage nr. 2. Kritische Entdeckungen über Sorialismus, ＋
+    from: b. Die Judenfrage nr. 2. Kritische Entdeckungen über Sorialismus, +
     to: b. Die Judenfrage Nr. 2. Kritische Entdeckungen über Sozialismus, Jurisprudenz und Politik (Nationalität).
     by: scan
   - page: 197
-    from: Jurisprudenz und Politik (nationalität). ＋
+    from: Jurisprudenz und Politik (nationalität). +
     to: ""
     by: scan
   - page: 225
@@ -1755,7 +1755,7 @@ mehring-nachlass-2:
     to: a. Die verstockte Masse und die unbefriedigte Masse.
     by: scan
   - page: 265
-    from: 3. Die unkritisch-kritische Masse, oder die Kritik ＋
+    from: 3. Die unkritisch-kritische Masse, oder die Kritik +
     to: 3. Die unkritisch-kritische Masse, oder die Kritik und die Berliner Kouleur.
     by: scan
   - page: 265
@@ -2525,7 +2525,7 @@ p1theorienberden02marxuoft:
     to: den cercle vicieux.
     by: scan
   - page: 129
-    from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ＋æꝓ S
+    from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ+æꝓ S
     to: ""
     by: scan
   - page: 144
@@ -2913,13 +2913,814 @@ p2theorienberd02marx:
     from: 5) Veränderungen der Differentialrente.
     to: β) Veränderungen der Differentialrente.
     by: scan
+  - page: 31
+    from: 5 H gefallen. Wäre noch dieselbe Menge Kapital angewandt,
+    to: 5 £ gefallen. Wäre noch dieselbe Menge Kapital angewandt,
+    by: scan
+  - page: 31
+    from: die ganze Differenz, die der von J bestimmte Marktwert
+    to: die ganze Differenz, die der von I bestimmte Marktwert
+    by: scan
+  - page: 31
+    from: von II bestimmt ist, durch 1J½8 £E pro Tonne, ist der Markt-
+    to: von II bestimmt ist, durch 1¹¹⁄₁₃ £ pro Tonne, ist der Markt-
+    by: scan
+  - page: 31
+    from: wert der 75 Tonnen, die IIIproduziert, nun gleich 1386/13 £,
+    to: wert der 75 Tonnen, die III produziert, nun gleich 138⁶⁄₁₃ £,
+    by: scan
+  - page: 31
+    from: davon die Rente S 28/8 L&. Früher betrug die Rente 40 L.
+    to: davon die Rente = 28⁶⁄₁₃ £. Früher betrug die Rente 40 £.
+    by: scan
+  - page: 31
+    from: Sie ist also um 117½/8 £ gefallen. Ihre Differenz von der
+    to: Sie ist also um 11⁷⁄₁₃ £ gefallen. Ihre Differenz von der
+    by: scan
+  - page: 31
+    from: absoluten Rente betrug 30. Sie beträgt jetzt nur noch 18½/3.
+    to: absoluten Rente betrug 30. Sie beträgt jetzt nur noch 18⁶⁄₁₃.
+    by: scan
+  - page: 31
+    from: Sie war früher 4 R. Sie ist jetzt nur noch = 2 R + 8½/13 L.
+    to: Sie war früher = 4 R. Sie ist jetzt nur noch = 2 R + 8⁶⁄₁₃ £.
+    by: scan
+  - page: 31
+    from: mit 100 £ Kapital 75 Tonnen, deren Wert S- 120 £; also
+    to: mit 100 £ Kapital 75 Tonnen, deren Wert = 120 £; also
+    by: scan
+  - page: 31
+    from: 1 Tonne = 1/ K. Statt dessen verkaufte III bei dem höheren
+    to: 1 Tonne = 1⅗ £. Statt dessen verkaufte III bei dem höheren
+    by: scan
+  - page: 31
+    from: Marktpreis zu 2 £, also ½ 4 zu teuer pro Tonne. Dieses
+    to: Marktpreis zu 2 £, also ⅖ £ zu teuer pro Tonne. Dieses
+    by: scan
+  - page: 31
+    from: machte auf 75 Tonnen / & 75 = 30 £, und dieses war in
+    to: machte auf 75 Tonnen ⅖ × 75 = 30 £, und dieses war in
+    by: scan
+  - page: 32
+    from: 1½38 L. Also um ½s über ihrem Werte von 1/ L.
+    to: 1¹¹⁄₁₃ £. Also um ¹⁶⁄₆₅ über ihrem Werte von 1⅗ £.
+    by: scan
+  - page: 32
+    from: Dieses macht auf 75 Tonnen -= 18½8 £, und dieses ist
+    to: Dieses macht auf 75 Tonnen = 18⁶⁄₁₃ £, und dieses ist
+    by: scan
+  - page: 32
+    from: Marktwerts der Tonne über den sindividuellen) Wert der
+    to: Marktwerts der Tonne über den [individuellen] Wert der
+    by: scan
+  - page: 32
+    from: Rente um 117/13. Der Überschuß des Marktwerts über den
+    to: Rente um 11⁷⁄₁₃. Der Überschuß des Marktwerts über den
+    by: scan
+  - page: 32
+    from: Wert von III ist gefallen von ¾ pro Tonne (als es sie
+    to: Wert von III ist gefallen von ⅖ £ pro Tonne (als es sie
+    by: scan
+  - page: 32
+    from: zu 2 C verkaufte) auf ⅛s pro Tonne (zu 114J½8 £), also von
+    to: zu 2 £ verkaufte) auf ¹⁶⁄₆₅ pro Tonne (zu 1¹¹⁄₁₃ £), also von
+    by: scan
+  - page: 32
+    from: "%⁵²s Auf ½/es, also um ½s. Dieses macht auf 75 Tonnen"
+    to: ⅖ = ²⁶⁄₆₅ auf ¹⁶⁄₆₅, also um ¹⁰⁄₆₅. Dieses macht auf 75 Tonnen
+    by: scan
+  - page: 32
+    from: 5% 117½18, und dieses ist genau der Betrag, um den die
+    to: ⁷⁵⁰⁄₆₅ = 11⁷⁄₁₃, und dieses ist genau der Betrag, um den die
+    by: scan
+  - page: 32
+    from: Die 92 / Tonnen von IV kosten zu 11J½13 170 /13 L.
+    to: Die 92½ Tonnen von IV kosten zu 1¹¹⁄₁₃ £ 170¹⁰⁄₁₃ £.
+    by: scan
+  - page: 32
+    from: Hier beträgt die Rente 605/18 und die Differentialrente
+    to: Hier beträgt die Rente 60¹⁰⁄₁₃ und die Differentialrente
+    by: scan
+  - page: 32
+    from: 50 %/3. Wären die 92½ Tonnen zu ihrem Werte von
+    to: 50¹⁰⁄₁₃. Wären die 92½ Tonnen zu ihrem Werte von
+    by: scan
+  - page: 32
+    from: 120 £ verkauft, so würde 1 Tonne kosten 11 ½ L. Statt
+    to: 120 £ verkauft, so würde 1 Tonne kosten 1¹¹⁄₃₇ £. Statt
+    by: scan
+  - page: 32
+    from: dessen wird sie verkauft zu 1J½½3. Aber ½¼13 = %½ und
+    to: dessen wird sie verkauft zu 1¹¹⁄₁₃. Aber ¹¹⁄₁₃ = ⁴⁰⁷⁄₄₈₁ und
+    by: scan
+  - page: 32
+    from: ¼½⁷ ½81. Dieses gibt einen Überschuß von ½8i des
+    to: ¹¹⁄₃₇ = ¹⁴³⁄₄₈₁. Dieses gibt einen Überschuß von ²⁶⁴⁄₄₈₁ des
+    by: scan
+  - page: 32
+    from: 92 ½ Tonnen exakt 50 ½½%/8 £, die Differentialrente von IV.
+    to: 92½ Tonnen exakt 50¹⁰⁄₁₃ £, die Differentialrente von IV.
+    by: scan
+  - page: 32
+    from: Stellen wir nun die beiden Fälle zusammen unter 4
+    to: Stellen wir nun die beiden Fälle zusammen unter A
+    by: scan
+  - page: 32
+    from: wert Individueller Gesamt- Rente
+    to: Klasse | Kapital £ | Tonnen | Marktwert pro Tonne £ | Individueller Wert pro Tonne £ | Gesamt-[markt-]wert £ | Profit £ | Rente absolute £ | Rente differentiale £
+    by: scan
+  - page: 32
+    from: Klasse Kapital Tonnen wer Wert [markt⸗] Profit aßh- differen-
+    to: I | 100 | 60 | 2 | 2 | 120 | 10 | 10 | 0
+    by: scan
+  - page: 32
+    from: Tonne Y Tonne wert solute tiale
+    to: |-
+      II | 100 | 65 | 2 | 1¹¹⁄₁₃ | 130 | 10 | 10 | 10
+      III | 100 | 75 | 2 | 1⅗ | 150 | 10 | 10 | 30
+    by: scan
+  - page: 32
+    from: Total 300 200 400 30⁰ 30 40
+    to: Total | 300 | 200 | | | 400 | 30 | 30 | 40
+    by: scan
+  - page: 32
+    from: Der Gesamt-Tonnengehalt —- 200. Gesamte absolute Rente 30.
+    to: Der Gesamt-Tonnengehalt = 200. Gesamte absolute Rente = 30.
+    by: scan
+  - page: 32
+    from: Gesamte Differentialrente - 40. Gesamtrente S- 70.
+    to: Gesamte Differentialrente = 40. Gesamtrente = 70.
+    by: scan
+  - page: 33
+    from: Marktt- Individueller Gesamt- Rente
+    to: Klasse | Kapital £ | Tonnen | Marktwert pro Tonne £ | Individueller Wert pro Tonne £ | Gesamt-[markt-]wert £ | Profit £ | Rente absolute £ | Rente differentiale £
+    by: scan
+  - page: 33
+    from: Klasse Kapital Tonnen wert Wert Profit ah- differen-
+    to: ""
+    by: scan
+  - page: 33
+    from: "[(markt-"
+    to: ""
+    by: scan
+  - page: 33
+    from: pro ö
+    to: ""
+    by: scan
+  - page: 33
+    from: pro Tonne wert
+    to: ""
+    by: scan
+  - page: 33
+    from: Tonne solute tiale
+    to: ""
+    by: scan
+  - page: 33
+    from: III 100O0 75 1/18 1575⁵ 138613 1010 18/13
+    to: |-
+      II | 50 | 32½ | 1¹¹⁄₁₃ | 1¹¹⁄₁₃ | 60 | 5 | 5 | 0
+      III | 100 | 75 | 1¹¹⁄₁₃ | 1⅗ | 138⁶⁄₁₃ | 10 | 10 | 18⁶⁄₁₃
+      IV | 100 | 92½ | 1¹¹⁄₁₃ | 1¹¹⁄₃₇ | 170¹⁰⁄₁₃ | 10 | 10 | 50¹⁰⁄₁₃
+    by: scan
+  - page: 33
+    from: Total 250 200 369/1— 25 25 69½/ij6
+    to: Total | 250 | 200 | | | 369³⁄₁₃ | 25 | 25 | 69³⁄₁₃
+    by: scan
+  - page: 33
+    from: Gesamtkapital —- 250. Absolute Rente — 25. Differentialrente
+    to: Gesamtkapital = 250. Absolute Rente = 25. Differentialrente
+    by: scan
+  - page: 33
+    from: 69/83. Gesamtrente =S 94/18. Der Gesamtwert von
+    to: = 69³⁄₁₃. Gesamtrente = 94³⁄₁₃. Der Gesamtwert von
+    by: scan
+  - page: 33
+    from: 200 Tonnen ist gefallen von 400 auf 369/13 £.
+    to: 200 Tonnen ist gefallen von 400 auf 369³⁄₁₃ £.
+    by: scan
+  - page: 33
+    from: In IIB fällt der Betrag der absoluten Rente von 10
+    to: In II B fällt der Betrag der absoluten Rente von 10
+    by: scan
+  - page: 33
+    from: des Kapitals [dem Boden! entzogen worden ist.
+    to: des Kapitals [dem Boden] entzogen worden ist.
+    by: scan
+  - page: 33
+    from: sehen, in B ist der Marktwert auf 11J7½3 4 pro Tonne ge-
+    to: sehen, in B ist der Marktwert auf 1¹¹⁄₁₃ £ pro Tonne ge-
+    by: scan
+  - page: 33
+    from: fallen. Mit diesem Werte aber werden weder ILA vom
+    to: fallen. Mit diesem Werte aber werden weder I A vom
+    by: scan
+  - page: 33
+    from: Da bei J von dem Gesamtwert der Ware 120 die Rente
+    to: Da bei I von dem Gesamtwert der Ware 120 die Rente
+    by: scan
+  - page: 33
+    from: Marx, Theorien über den Mehrwert. II, 2. Teil. 3
+    to: ""
+    by: scan
+  - page: 34
+    from: — 10 oder ½2 des Gesamtwerts ist, so gilt das auch auf
+    to: = 10 oder = ¹⁄₁₂ des Gesamtwerts ist, so gilt das auch auf
+    by: scan
+  - page: 34
+    from: "[Der Produktionspreis der Tonne bei 1J ist also ½ 2"
+    to: "[Der Produktionspreis der Tonne bei I ist also ¹¹⁄₁₂ × 2"
+    by: scan
+  - page: 34
+    from: 1¼ L. Der Marktwert ist im Falle B 11½18 £. Die
+    to: = 1⅚ £. Der Marktwert ist im Falle B 1¹¹⁄₁₃ £. Die
+    by: scan
+  - page: 34
+    from: Rente pro Tonne 11½/½18 — 1⅛ 1%½ — 17½ ½ £
+    to: Rente pro Tonne 1¹¹⁄₁₃ — 1⅚ = 1⁶⁶⁄₇₈ — 1⁶⁵⁄₇₈ = ¹⁄₇₈ £
+    by: scan
+  - page: 34
+    from: und gäbe für 60 Tonnen ½%½8 £, also noch lange nicht
+    to: und gäbe für 60 Tonnen ¹⁰⁄₁₃ £, also noch lange nicht
+    by: scan
+  - page: 34
+    from: 1 Prozent Rente auf 100 £ Kapital.)
+    to: 1 Prozent Rente auf 100 £ Kapital.]
+    by: scan
+  - page: 34
+    from: Damit IJA gar keine Rente abwürfe, müßte der Markt-
+    to: Damit I A gar keine Rente abwürfe, müßte der Markt-
+    by: scan
+  - page: 34
+    from: wert auf seinen Produktionspreis fallen, also auf 1⅛ „.
+    to: wert auf seinen Produktionspreis fallen, also auf 1⅚ £.
+    by: scan
+  - page: 34
+    from: In diesem Falle wäre die Rente auf I verschwunden.
+    to: In diesem Falle wäre die Rente auf I A verschwunden.
+    by: scan
+  - page: 34
+    from: des Marktwerts unter 1/ L.
+    to: des Marktwerts unter 1⅚ £.
+    by: scan
+  - page: 34
+    from: Was nun aber IIB angeht, so ist in Tabelle B ange-
+    to: Was nun aber II B angeht, so ist in Tabelle B ange-
+    by: scan
+  - page: 34
+    from: zogen wird. Da aber der Marktwert von 111½18 £ noch
+    to: zogen wird. Da aber der Marktwert von 1¹¹⁄₁₃ £ noch
+    by: scan
+  - page: 34
+    from: fallen, wenn angenommen wird, daß die 32 ½ Tonnen
+    to: fallen, wenn angenommen wird, daß die 32½ Tonnen
+    by: scan
+  - page: 35
+    from: dann würde der Marktwert hergestellt sein auf 114½8 £,
+    to: dann würde der Marktwert hergestellt sein auf 1¹¹⁄₁₃ £,
+    by: scan
+  - page: 35
+    from: die Tonne zu 11J1½18 £ nur 200 Tonnen absorbiert, er nicht
+    to: die Tonne zu 1¹¹⁄₁₃ £ nur 200 Tonnen absorbiert, er nicht
+    by: scan
+  - page: 35
+    from: 32 ½ Tonnen mehr absorbiert, wenn der Marktwert fällt,
+    to: 32½ Tonnen mehr absorbiert, wenn der Marktwert fällt,
+    by: scan
+  - page: 35
+    from: "wird. Der Produktionspreis in IIB ist [110: 65 Al˙IÜB 1/18 K&.!“"
+    to: "wird. Der Produktionspreis in II B ist [110 : 65 =] 1⁹⁄₁₃ £."
+    by: scan
+  - page: 35
+    from: Der Marktwert aber ist 117½½8 L, [um /¼8 L mehr!]. Fiele
+    to: Der Marktwert aber ist 1¹¹⁄₁₃ £, [um ²⁄₁₃ £ mehr]. Fiele
+    by: scan
+  - page: 35
+    from: der Marktwert auf den Produktionspreis von IA, auf
+    to: der Marktwert auf den Produktionspreis von I A, auf
+    by: scan
+  - page: 35
+    from: 1⅛j 4, wo JA keine Rente mehr abwürfe, so müßte die
+    to: 1⅚ £, wo I A keine Rente mehr abwürfe, so müßte die
+    by: scan
+  - page: 35
+    from: bedeutend wachsen; denn LA könnte fortfahren, da es den
+    to: bedeutend wachsen; denn I A könnte fortfahren, da es den
+    by: scan
+  - page: 35
+    from: Markt hätte nicht 32 ½, sondern 92 ½ Tonnen mehr, statt
+    to: Markt hätte nicht 32½, sondern 92½ Tonnen mehr, statt
+    by: scan
+  - page: 35
+    from: 200 Tonnen 292 ½ Tonnen zu absorbieren, also [fast! ein
+    to: 200 Tonnen 292½ Tonnen zu absorbieren, also [fast] ein
+    by: scan
+  - page: 35
+    from: mäßig sein — so tief fallen, daß IA aus dem Markt ge-
+    to: mäßig sein — so tief fallen, daß I A aus dem Markt ge-
+    by: scan
+  - page: 35
+    from: Produktionspreis von IA fallen, also unter 1⅛e 1 6½12 £,
+    to: Produktionspreis von I A fallen, also unter 1⅚ = 1¹⁰⁄₁₂ £,
+    by: scan
+  - page: 35
+    from: sage auf 1/2 oder 1/ &.“
+    to: sage auf 1⁹⁄₁₂ oder 1¾ £.
+    by: scan
+  - page: 35
+    from: zufügen, Cund D und E. Und wir wollen in O annehmen,
+    to: zufügen, C und D und E. Und wir wollen in C annehmen,
+    by: scan
+  - page: 35
+    from: Im Manuskript steht 17/½8 £. Dies ist der Produktionspreis von
+    to: ¹ Im Manuskript steht 1⁷⁄₁₅ £. Dies ist der Produktionspreis von III B, nicht II B. K.
+    by: scan
+  - page: 35
+    from: 2Im Manufkript wird der Produktionspreis von J4 reduziert nicht
+    to: ² Im Manuskript wird der Produktionspreis von I A reduziert nicht
+    by: scan
+  - page: 35
+    from: "auf 1½¼, sondern auf 1/12 = 1⅛ E und hinzugefügt: „Er stände"
+    to: "auf 1¾, sondern auf 1⁸⁄₁₂ = 1⅔ £ und hinzugefügt: „Er stände"
+    by: scan
+  - page: 35
+    from: Das gälte, wenn dieser 1/s wäre und nicht 19/18 E. K.
+    to: Das gälte, wenn dieser 1⁷⁄₁₅ wäre und nicht 1⁹⁄₁₃ £. K.
+    by: scan
+  - page: 47
+    from: 1/8 4 ist, = / L. Und da in der Klasse, wo der in-
+    to: = 1⅗ £ ist, = ⅖ £. Und da in der Klasse, wo der in-
+    by: scan
+  - page: 47
+    from: dividuelle Wert der Tonne 1/8 £, das Kapital von 100 £
+    to: dividuelle Wert der Tonne = 1⅗ £, das Kapital von 100 £
+    by: scan
+  - page: 47
+    from: dieser 75 Tonnen = ½¼ 75 H 30 £. Dieser Überschuß
+    to: dieser 75 Tonnen = ⅖ £ × 75 = 30 £. Dieser Überschuß
+    by: scan
+  - page: 47
+    from: — 120 4 und der Produktionspreis 110 £ ist, der Pro-
+    to: = 120 £ und der Produktionspreis = 110 £ ist, der Pro-
+    by: scan
+  - page: 47
+    from: duktionspreis der einzelnen Ware 1/1 , und wäre der
+    to: duktionspreis der einzelnen Ware = 1⁷⁄₁₅ £, und wäre der
+    by: scan
+  - page: 47
+    from: heißt = 1⅛ L, so würden die 75 Tonnen, zu 120 ver-
+    to: heißt = 1⅗ £, so würden die 75 Tonnen, zu 120 £ ver-
+    by: scan
+  - page: 47
+    from: 100 £ = 60 Tonnen, so ist der Wert der Tonne 2 £ und
+    to: 100 £ = 60 Tonnen, so ist der Wert der Tonne = 2 £ und
+    by: scan
+  - page: 47
+    from: ihr Produktionspreis 1 4. 55 Tonnen würden gleich
+    to: ihr Produktionspreis = 1⅚ £. 55 Tonnen würden gleich
+    by: scan
+  - page: 47
+    from: sein 110 E oder dem Produktionspreis des Gesamtprodukts.
+    to: sein 110 £ oder dem Produktionspreis des Gesamtprodukts.
+    by: scan
+  - page: 48
+    from: der Wert der Tonne 1/ &, ihr Produktionspreis S 1 /18 £,
+    to: der Wert der Tonne = 1⅗ £, ihr Produktionspreis = 1⁷⁄₁₅ £,
+    by: scan
+  - page: 48
+    from: und von dem gesamten Produkt würden 68⅛ Tonnen 110
+    to: und von dem gesamten Produkt würden 68¾ Tonnen 110 £
+    by: scan
   - page: 49
     from: ex profeésso käme,
     to: ex professo käme,
     by: scan
+  - page: 52
+    from: von 10 £ und III von 30 £, weil der durch J bestimmte
+    to: von 10 £ und III von 30 £, weil der durch I bestimmte
+    by: scan
+  - page: 52
+    from: von 30 K über ihren individuellen Wert hinaus liefert und
+    to: von 30 £ über ihren individuellen Wert hinaus liefert und
+    by: scan
+  - page: 52
+    from: und III von 40 «, weil der Marktwert einen Überschuß von
+    to: und III von 40 £, weil der Marktwert einen Überschuß von
+    by: scan
+  - page: 52
+    from: Wert respektive nur 11½8 und 1/ & ist. Es ist klar,
+    to: Wert respektive nur 1¹¹⁄₁₃ £ und 1⅗ £ ist. Es ist klar,
+    by: scan
+  - page: 52
+    from: ist, um irgend einen Anlaß zu geben, den durch Klasse 1
+    to: ist, um irgend einen Anlaß zu geben, den durch Klasse I
+    by: scan
+  - page: 55
+    from: gelegt ist, seine Waren zu ihrem Werte, zu 120 L. Dieses
+    to: gelegt ist, seine Waren zu ihrem Werte, zu 120 £. Dieses
+    by: scan
+  - page: 55
+    from: gibt pro Tonne 1⅛ 4, da es 75 Tonnen produziert. Wird
+    to: gibt pro Tonne 1⅗ £, da es 75 Tonnen produziert. Wird
+    by: scan
+  - page: 55
+    from: sein Produkt zum Werte von 120. Dieses gibt 11½8 pro
+    to: sein Produkt zum Werte von 120. Dieses gibt 1¹¹⁄₁₃ £ pro
+    by: scan
+  - page: 55
+    from: für die Tonne 2 £E gibt. Bei diesem Prozeß würde III eine
+    to: für die Tonne 2 £ gibt. Bei diesem Prozeß würde III eine
+    by: scan
+  - page: 55
+    from: Differentialrente von 18/ & liefern, sobald II auf den
+    to: Differentialrente von 18⁶⁄₁₃ £ liefern, sobald II auf den
+    by: scan
+  - page: 55
+    from: von 10 £« lieferte. II würde eine Differentialrente von 10 4
+    to: von 10 £ lieferte. II würde eine Differentialrente von 10 £
+    by: scan
+  - page: 55
+    from: Werte von J, gleich 2 %. Und wenn der Durchschnittsprofit,
+    to: Werte von I, gleich 2 £. Und wenn der Durchschnittsprofit,
+    by: scan
+  - page: 57
+    from: bloß eine zusätzliche Zufuhr von 32 ½ Tonnen erheischt,
+    to: bloß eine zusätzliche Zufuhr von 32½ Tonnen erheischt,
+    by: scan
+  - page: 57
+    from: 369/18 4. Der Marktwert der Tonne ist gefallen, verglichen
+    to: 369³⁄₁₃ £. Der Marktwert der Tonne ist gefallen, verglichen
+    by: scan
+  - page: 57
+    from: mit A, von 2 £ auf 11½8 E, indem der neue Marktwert
+    to: mit A, von 2 £ auf 1¹¹⁄₁₃ £, indem der neue Marktwert
+    by: scan
+  - page: 57
+    from: gestiegen um 24/ (94½s gegen 70). Betrachten wir,
+    to: gestiegen um 24³⁄₁₃ £ (94³⁄₁₃ gegen 70). Betrachten wir,
+    by: scan
+  - page: 57
+    from: 5 % auf 50 « gibt 10 Prozent; aber ihre Masse ist auf die
+    to: 5 £ auf 50 £ gibt 10 Prozent; aber ihre Masse ist auf die
+    by: scan
+  - page: 57
+    from: IIB um die Hälfte gefallen ist, von 100 auf 50. Statt
+    to: II B um die Hälfte gefallen ist, von 100 auf 50. Statt
+    by: scan
+  - page: 57
+    from: Verminderung desselben um 5 L. Ferner ist die Differential-
+    to: Verminderung desselben um 5 £. Ferner ist die Differential-
+    by: scan
+  - page: 58
+    from: wert gefallen; daher die Differentialrente. Sie betrug 30 L.
+    to: wert gefallen; daher die Differentialrente. Sie betrug 30 £.
+    by: scan
+  - page: 58
+    from: Sie beträgt nur noch 187/1 L. Dieses ist ein Ausfall von
+    to: Sie beträgt nur noch 18⁶⁄₁₃ £. Dieses ist ein Ausfall von
+    by: scan
+  - page: 58
+    from: 11 /8 4. Für II und III zusammen ist also die Rente ge-
+    to: 11⁷⁄₁₃ £. Für II und III zusammen ist also die Rente ge-
+    by: scan
+  - page: 58
+    from: fallen um 26 /8 L. Es bleibt also Rechenschaft abzulegen
+    to: fallen um 26⁷⁄₁₃ £. Es bleibt also Rechenschaft abzulegen
+    by: scan
+  - page: 58
+    from: für ein Steigen (des Rentals! nicht von 24½3, wie es auf
+    to: für ein Steigen [des Rentals] nicht von 24³⁄₁₃, wie es auf
+    by: scan
+  - page: 58
+    from: den ersten Blick scheint, sondern von 50 /13 £.
+    to: den ersten Blick scheint, sondern von 50¹⁰⁄₁₃ £.
+    by: scan
+  - page: 58
+    from: ist also ein weiterer Ausfall von 10 L. So ist summa
+    to: ist also ein weiterer Ausfall von 10 £. So ist summa
+    by: scan
+  - page: 58
+    from: summarum für 60 ½½/18 £E Rechenschaft abzulegen. Dieses ist
+    to: summarum für 60¹⁰⁄₁₃ £ Rechenschaft abzulegen. Dieses ist
+    by: scan
+  - page: 58
+    from: beträgt 10 £. Die Differentialrente von 50 /18 L aber
+    to: beträgt 10 £. Die Differentialrente von 50¹⁰⁄₁₃ £ aber
+    by: scan
+  - page: 58
+    from: kommt daher, daß der Differentialwert von III %¾8 pro
+    to: kommt daher, daß der Differentialwert von III ²⁶⁴⁄₄₈₁ £ pro
+    by: scan
+  - page: 58
+    from: Tonne beträgt und mit 92 / zu multiplizieren ist, weil
+    to: Tonne beträgt und mit 92½ zu multiplizieren ist, weil
+    by: scan
+  - page: 58
+    from: Differentialrente für ,½ II, III, IV B größer, als sie für 1,
+    to: Differentialrente für ½ II, III, IV B größer, als sie für I,
+    by: scan
+  - page: 59
+    from: Differentialwert in [Bl, wo der Marktwert S 11 ½8 pro
+    to: Differentialwert in [B], wo der Marktwert = 1¹¹⁄₁₃ £ pro
+    by: scan
+  - page: 59
+    from: Tonne, 9%¼86 pro Tonne.
+    to: Tonne, ²⁶⁴⁄₄₈₁ £ pro Tonne.
+    by: scan
+  - page: 59
+    from: Das ganze Rental in 4 beträgt 70 auf 300 Kapital
+    to: Das ganze Rental in A beträgt 70 auf 300 Kapital
+    by: scan
+  - page: 59
+    from: 23½ Prozent. Dagegen in B 94/18 auf 250 = 37/13
+    to: = 23⅓ Prozent. Dagegen in B 94³⁄₁₃ auf 250 = 37⁹⁄₁₃
+    by: scan
+  - page: 59
+    from: daß die ganze von IV neuzugeführte Masse von 92⅛ Tonnen
+    to: daß die ganze von IV neuzugeführte Masse von 92½ Tonnen
+    by: scan
+  - page: 59
+    from: vom Markte absorbiert wird. Zu 2 £H pro Tonne würden
+    to: vom Markte absorbiert wird. Zu 2 £ pro Tonne würden
+    by: scan
+  - page: 59
+    from: nur 200 Tonnen absorbiert; zu 117J ½½¼8 wächst die Nach-
+    to: nur 200 Tonnen absorbiert; zu 1¹¹⁄₁₃ £ wächst die Nach-
+    by: scan
+  - page: 59
+    from: frage zu 292⅛ Tonnen. Es ist falsch, vorauszusetzen, daß
+    to: frage zu 292½ Tonnen. Es ist falsch, vorauszusetzen, daß
+    by: scan
+  - page: 59
+    from: die Schranke des Marktes bei 11 ½½8 Lpro Tonne notwendig
+    to: die Schranke des Marktes bei 1¹¹⁄₁₃ £ pro Tonne notwendig
+    by: scan
+  - page: 59
+    from: dieselbe bleibt wie bei 2 4 pro Tonne. Vielmehr dehnt sich
+    to: dieselbe bleibt wie bei 2 £ pro Tonne. Vielmehr dehnt sich
+    by: scan
   - page: 59
     from: „) Der Ricardosche Normalfall.
     to: γ) Der Ricardosche Normalfall.
+    by: scan
+  - page: 59
+    from: Tabelle D. Hier ist angenommen, daß die 292¼ Tonnen
+    to: Tabelle D. Hier ist angenommen, daß die 292½ Tonnen
+    by: scan
+  - page: 59
+    from: auf 1⅛8 4 fällt, welches der Produktionspreis der Tonne
+    to: auf 1⅚ £ fällt, welches der Produktionspreis der Tonne
+    by: scan
+  - page: 59
+    from: für Klasse J ist, die also keine Rente trägt, sondern nur
+    to: für Klasse I ist, die also keine Rente trägt, sondern nur
+    by: scan
+  - page: 59
+    from: 140 [Tonnen! lieferten, das heißt die zusätzliche Zufuhr, die
+    to: 140 [Tonnen] lieferten, das heißt die zusätzliche Zufuhr, die
+    by: scan
+  - page: 59
+    from: der Markt zu 2 E pro Tonne absorbiert, so würde I fort-
+    to: der Markt zu 2 £ pro Tonne absorbiert, so würde I fort-
+    by: scan
+  - page: 62
+    from: seiner absoluten Rente, 9⅛ 4 statt 10 £.
+    to: seiner absoluten Rente, 9⅙ £ statt 10 £.
+    by: scan
+  - page: 62
+    from: Unter den angenommenen Umständen zahlt J keine Rente.
+    to: Unter den angenommenen Umständen zahlt I keine Rente.
+    by: scan
+  - page: 62
+    from: Worte. Nun ist aber der Marktwert hier gleich dem Pro-
+    to: Werte. Nun ist aber der Marktwert hier gleich dem Pro-
+    by: scan
+  - page: 62
+    from: duktionspreis von J. Der individuelle Wert von J ist 2
+    to: duktionspreis von I. Der individuelle Wert von I ist 2 £
+    by: scan
+  - page: 62
+    from: pro Tonne. Der Marktwert = 1/8 L. Die Differential-
+    to: pro Tonne. Der Marktwert = 1⅚ £. Die Differential-
+    by: scan
+  - page: 62
+    from: rente von 1 ist also 1½ — 2 , also ⸗ ½ ½.
+    to: rente von I ist also = 1⅚ £ — 2 £, also = — ⅙ £.
+    by: scan
+  - page: 62
+    from: Die absolute Rente von J aber ist = 2 — 1/ L. Das
+    to: Die absolute Rente von I aber ist = 2 £ — 1⅚ £. Das
+    by: scan
+  - page: 62
+    from: Werte und seinem Produktionspreis S + ½ L. Da also
+    to: Werte und seinem Produktionspreis = + ⅙ £. Da also
+    by: scan
+  - page: 62
+    from: (+E ½/6⁵ 4) und der Differentialrente (— ½ „), so ist sie gleich 0.
+    to: (+ ⅙ £) und der Differentialrente (— ⅙ £), so ist sie gleich 0.
+    by: scan
+  - page: 62
+    from: ist 2 4; es wird verkauft zu 1⅛ 4, also ½2 oder 8⅛ Prozent
+    to: ist 2 £; es wird verkauft zu 1⅚ £, also ¹⁄₁₂ oder 8⅓ Prozent
+    by: scan
+  - page: 62
+    from: Es hat nur zu dem Preise von 1/ & eine zusätzliche Zufuhr
+    to: Es hat nur zu dem Preise von 1⅚ £ eine zusätzliche Zufuhr
+    by: scan
+  - page: 62
+    from: Die Tatsache, warum J keine Rente zahlt, erklärt sich
+    to: Die Tatsache, warum I keine Rente zahlt, erklärt sich
+    by: scan
+  - page: 62
+    from: Erstens von der relativen Unfruchtbarkeit von J.
+    to: Erstens von der relativen Unfruchtbarkeit von I.
+    by: scan
+  - page: 62
+    from: Was es zu liefern hat, sind 60 zusätzliche Tonnen zu 1/8 .
+    to: Was es zu liefern hat, sind 60 zusätzliche Tonnen zu 1⅚ £.
+    by: scan
+  - page: 62
+    from: Gesetzt, statt nur 60 Tonnen für ein Kapital von 100
+    to: Gesetzt, statt nur 60 Tonnen für ein Kapital von 100 £
+    by: scan
+  - page: 62
+    from: zu liefern, liefere L64 zu 100, 1 Tonne weniger als Klasse II.
+    to: zu liefern, liefere I 64 zu 100, 1 Tonne weniger als Klasse II.
+    by: scan
+  - page: 62
+    from: So braͤuchten nur 93¾ 4 Kapital in J gesteckt zu werden,
+    to: So brauchten nur 93¾ £ Kapital in I gesteckt zu werden,
+    by: scan
+  - page: 63
+    from: 1 Tonne auf JI wäre dann 1⅛ 4. Sein Produktionspreis
+    to: 1 Tonne auf I wäre dann 1⅞ £. Sein Produktionspreis
+    by: scan
+  - page: 63
+    from: = 1/ C. Und da der Marktwert = 1d , so wäre die
+    to: = 1²³⁄₃₂ £. Und da der Marktwert = 1⅚ £, so wäre die
+    by: scan
+  - page: 63
+    from: Differenz zwischen Marktwert und Produktionspreis ½ .
+    to: Differenz zwischen Marktwert und Produktionspreis ¹¹⁄₉₆ £.
+    by: scan
+  - page: 63
+    from: Und dieses würde machen auf 60 £ eine Rente von 6/s &L.
+    to: Und dieses würde machen auf 60 £ eine Rente von 6⅞ £.
+    by: scan
+  - page: 63
+    from: Wenn also alle Umstände dieselben blieben und Lum
+    to: Wenn also alle Umstände dieselben blieben und I um
+    by: scan
+  - page: 63
+    from: "%ο fruchtbarer wäre, als es ist, würde es noch einen"
+    to: ⁴⁄₆₀ = ¹⁄₁₅ fruchtbarer wäre, als es ist, würde es noch einen
+    by: scan
+  - page: 63
+    from: barer wäre, als er ist. Wäre J absolut fruchtbarer, als es
+    to: barer wäre, als er ist. Wäre I absolut fruchtbarer, als es
+    by: scan
+  - page: 63
+    from: "Zweitens aber: Die Fruchtbarkeit von J sei gegeben,"
+    to: "Zweitens aber: Die Fruchtbarkeit von I sei gegeben,"
+    by: scan
+  - page: 63
+    from: 60 Tonnen für 100 L. Wären II, III, IV, also speziell IV,
+    to: 60 Tonnen für 100 £. Wären II, III, IV, also speziell IV,
+    by: scan
+  - page: 63
+    from: relativ gegen J, sondern absolut minder fruchtbar, so könnte
+    to: relativ gegen I, sondern absolut minder fruchtbar, so könnte
+    by: scan
+  - page: 63
+    from: Jeine Rente abwerfen, obgleich diese nur in einer Fraktion
+    to: I eine Rente abwerfen, obgleich diese nur in einer Fraktion
+    by: scan
+  - page: 63
+    from: der absoluten Rente bestünde. Denn da der Markt 292 ½
+    to: der absoluten Rente bestünde. Denn da der Markt 292½
+    by: scan
+  - page: 63
+    from: Tonnen zu 1⅛ £ absorbiert, würde er eine geringere Anzahl
+    to: Tonnen zu 1⅚ £ absorbiert, würde er eine geringere Anzahl
+    by: scan
+  - page: 63
+    from: wert als 1⅛ absorbieren. Jeder Marktwert aber, der
+    to: wert als 1⅚ £ absorbieren. Jeder Marktwert aber, der
+    by: scan
+  - page: 63
+    from: höher als 1½ „, das heißt als die Produktionskosten von J,
+    to: höher als 1⅚ £, das heißt als die Produktionskosten von I,
+    by: scan
+  - page: 63
+    from: wirft eine Rente für Jeab, die gleich ist dem Marktwert
+    to: wirft eine Rente für I ab, die gleich ist dem Marktwert
+    by: scan
+  - page: 63
+    from: minus des Produktionspreises von J.
+    to: minus des Produktionspreises von I.
+    by: scan
+  - page: 63
+    from: Es kann also ebenfalls gesagt werden, daß Jwegen der
+    to: Es kann also ebenfalls gesagt werden, daß I wegen der
+    by: scan
+  - page: 69
+    from: das heißt wenn J durch die Konkurrenz von IV, III und II,
+    to: das heißt wenn I durch die Konkurrenz von IV, III und II,
+    by: scan
+  - page: 69
+    from: steht. Nimmt Ricardo an, daß dieses bei J nicht der Fall
+    to: steht. Nimmt Ricardo an, daß dieses bei I nicht der Fall
+    by: scan
+  - page: 69
+    from: Nehmen wir den Fall C, wo die 292⅛ Tonnen zum
+    to: Nehmen wir den Fall C, wo die 292½ Tonnen zum
+    by: scan
+  - page: 69
+    from: Marktwert von 11J½½8 Absatz finden. Und gehen wir wie
+    to: Marktwert von 1¹¹⁄₁₃ £ Absatz finden. Und gehen wir wie
+    by: scan
+  - page: 69
+    from: sind, verkauft IV die Tonne zu 117/h &, das heißt Ware,
+    to: sind, verkauft IV die Tonne zu 1¹¹⁄₃₇ £, das heißt Ware,
+    by: scan
+  - page: 69
+    from: mit 100 £ Kapital produziert, zu ihrem Werte von 120 £«,
+    to: mit 100 £ Kapital produziert, zu ihrem Werte von 120 £,
+    by: scan
+  - page: 69
+    from: von II und J. Also könnte III usw. keine Konkurrenz machen,
+    to: von II und I. Also könnte III usw. keine Konkurrenz machen,
+    by: scan
+  - page: 69
+    from: — dieses tut zur Theorie gar nichts — nehmen wir an,
+    to: beste oder schlechteste Bodenart IV oder I oder III oder II
+    by: scan
+  - page: 73
+    from: Geht man von J aus, so ist es klar, daß II, III, IV,
+    to: Geht man von I aus, so ist es klar, daß II, III, IV,
+    by: scan
+  - page: 73
+    from: liche Zufuhr liefern, zu dem Marktwert verkaufen, den 1
+    to: liche Zufuhr liefern, zu dem Marktwert verkaufen, den I
+    by: scan
+  - page: 73
+    from: es zu seinem Werte 117½½ E verkauft. In Tabelle D steht
+    to: es zu seinem Werte 1¹¹⁄₃₇ £ verkauft. In Tabelle D steht
+    by: scan
+  - page: 73
+    from: 1 ½½ E 1½s &] in der absteigenden Linie, höher als
+    to: "[1⁷⁄₁₅ = 1²⁵⁹⁄₅₅₅ £] in der absteigenden Linie, höher als"
+    by: scan
+  - page: 73
+    from: der Wert von IV, der eine Rente von 10 « abwirft
+    to: der Wert von IV, der eine Rente von 10 £ abwirft
+    by: scan
+  - page: 73
+    from: "[1½⁵τ 11½½/85 L]J. Von einer Konkurrenz oder einem"
+    to: "[1¹¹⁄₃₇ = 1¹⁶⁵⁄₅₅₅ £]. Von einer Konkurrenz oder einem"
+    by: scan
+  - page: 73
+    from: aber nicht mehr die Nachfrage, werden mehr als 92⅛ Tonnen
+    to: aber nicht mehr die Nachfrage, werden mehr als 92½ Tonnen
+    by: scan
+  - page: 73
+    from: Falle schon um ¼85 E pro Tonne steigen, bevor III selbst
+    to: Falle schon um ⁹⁴⁄₅₅₅ £ pro Tonne steigen, bevor III selbst
+    by: scan
+  - page: 73
+    from: Preis von IV auf 1⅛ „, den individuellen Wert von III
+    to: Preis von IV auf 1⅗ £, den individuellen Wert von III
+    by: scan
+  - page: 74
+    from: der Zufuhr entspricht. Wäre IV aber auf 1/ gestiegen,
+    to: der Zufuhr entspricht. Wäre IV aber auf 1⅗ £ gestiegen,
+    by: scan
+  - page: 74
+    from: Aber gesetzt, der Marktpreis von IV steige nur auf 1 7/18 £,
+    to: Aber gesetzt, der Marktpreis von IV steige nur auf 1⁷⁄₁₅ £,
+    by: scan
+  - page: 74
+    from: 1¼½ ½48s &, also nur /14s & höher als der Produktions-
+    to: 1¼ £ = ³⁷⁄₁₄₈ £, also nur ⁹⁄₁₄₈ £ höher als der Produktions-
+    by: scan
+  - page: 74
+    from: preis von IxV- 1/¾4s L. Höher muß er sein, weil seine
+    to: preis von IV = 1²⁸⁄₁₄₈ £. Höher muß er sein, weil seine
+    by: scan
+  - page: 74
+    from: stiegen, über 1 ½ 1 7½4s L. Und III würde dann unter
+    to: stiegen, über 1¹¹⁄₃₇ £ = 1⁴⁴⁄₁₄₈ £. Und III würde dann unter
+    by: scan
+  - page: 74
+    from: allen Umständen über seinem Produktionspreis, 1¼148 £,
+    to: allen Umständen über seinem Produktionspreis, 1³⁷⁄₁₄₈ £,
+    by: scan
+  - page: 74
+    from: Preise von 17½¼—48 E zu verkaufen, und sogar unter dem
+    to: Preise von 1⁴⁴⁄₁₄₈ £ zu verkaufen, und sogar unter dem
+    by: scan
+  - page: 74
+    from: Preise von 16/¼4s L zu verkaufen. Damit wäre IIIaus dem
+    to: Preise von 1³⁷⁄₁₄₈ £ zu verkaufen. Damit wäre III aus dem
     by: scan
   - page: 79
     from: 0) Ricardos Darstellung seines Normalfalles.
@@ -2930,8 +3731,76 @@ p2theorienberd02marx:
     to: 1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
     by: scan
   - page: 100
-    from: sseines Produkts!]
-    to: "[seines Produkts]"
+    from: bildet die Grundrente.“ (I. c. S. 73, 74.)
+    to: bildet die Grundrente.“ (l. c. S. 73, 74.)
+    by: scan
+  - page: 100
+    from: Wertes sseines Produkts!] über seinen Produktionspreis gleich
+    to: Wertes [seines Produkts] über seinen Produktionspreis gleich
+    by: scan
+  - page: 100
+    from: 2 . — Qu. Qu. IQu.
+    to: Klasse | Kapital £ | Getreide Qu. | Gesamtwert £ | Marktwert pro Quarter £ | Indiv. Wert pro Quarter £ | Differ. Wert pro Quarter £ | Produktionspreis pr. Qu. £ | Abs. Rente £ | Differ. Rente £ | Abs. Rente Qu. | Differ. Rente Qu. | Rental £ | Rental Qu.
+    by: scan
+  - page: 100
+    from: Ireo 60 taa 0
+    to: |-
+      I | 100 | 60 | 120 | 2 | 2 | 0 | 1⅚ | 10 | 0 | 5 | 0 | 10 | 5
+      II | 100 | 65 | 130 | 2 | 1¹¹⁄₁₃ | ²⁄₁₃ | 1⁹⁄₁₃ | 10 | 10 | 5 | 5 | 20 | 10
+    by: scan
+  - page: 100
+    from: III 100 7 2 17½½ 1½8 10 30 5 15 40 20⁰
+    to: III | 100 | 75 | 150 | 2 | 1⅗ | ⅖ | 1⁷⁄₁₅ | 10 | 30 | 5 | 15 | 40 | 20
+    by: scan
+  - page: 100
+    from: Tot 300 200 400 29⁰7057½̈⁰⁵⁷½⁷9
+    to: Tot | 300 | 200 | 400 | | | | | 30 | 40 | 15 | 20 | 70 | 35
+    by: scan
+  - page: 101
+    from: zerfielen in 60 e + 40 v, dann das Kapital von 90 zerfallen
+    to: zerfielen in 60 c + 40 v, dann das Kapital von 90 zerfallen
+    by: scan
+  - page: 101
+    from: in 546c + 36 v, und in diesem Falle wird der Wert der auf
+    to: in 54 c + 36 v, und in diesem Falle wird der Wert der auf
+    by: scan
+  - page: 101
+    from: dem Boden J produzierten 60 Quarter 108 £ ausmachen.
+    to: dem Boden I produzierten 60 Quarter 108 £ ausmachen.
+    by: scan
+  - page: 101
+    from: ausgelegte Kapital aber nur mehr 32/ statt 36; 36 v sei
+    to: ausgelegte Kapital aber nur mehr 32⅖ statt 36; 36 v sei
+    by: scan
+  - page: 101
+    from: ebenfalls um ½ gesunken. In diesem Falle sind statt 100
+    to: ebenfalls um ¹⁄₁₀ gesunken. In diesem Falle sind statt 100
+    by: scan
+  - page: 101
+    from: ausgelegt 86/8. Die Zusammensetzung dieses Kapitals wäre
+    to: ausgelegt 86⅖. Die Zusammensetzung dieses Kapitals wäre
+    by: scan
+  - page: 101
+    from: 54 C + 32/8 v. Und auf die 100 gerechnet wäre die Kom-
+    to: 54 c + 32⅖ v. Und auf die 100 gerechnet wäre die Kom-
+    by: scan
+  - page: 101
+    from: position 62½ 64 + 37½ v. Unter diesen Umständen wäre
+    to: position 62½ c + 37½ v. Unter diesen Umständen wäre
+    by: scan
+  - page: 101
+    from: der Wert der 60 Quarter auf I H 102/ L.
+    to: der Wert der 60 Quarter auf I = 102⅗ £.
+    by: scan
+  - page: 101
+    from: ist 50 c + 40 v, die Zusammensetzung auf 100 gleich 55/ e
+    to: |-
+      ist 50 c + 40 v, die Zusammensetzung auf 100 gleich 55⁵⁄₉ c
+      + 44⁴⁄₉ v.
+    by: scan
+  - page: 101
+    from: "[Der Wert der 60 Quarter betrüge dann 110 K&.)"
+    to: "[Der Wert der 60 Quarter betrüge dann 110 £.]"
     by: scan
   - page: 108
     from: t) Ricardos Kritik der Smithschen Rententheorie.
@@ -2953,9 +3822,1376 @@ p2theorienberd02marx:
     from: 0) Veränderungen im Verhältnis der Werte der beiden Arten
     to: δ) Veränderungen im Verhältnis der Werte der beiden Arten
     by: scan
+  - page: 169
+    from: Masse Waren hätten den Wert von 80 cC + 15 v&ÆL 15 m,
+    to: Masse Waren hätten den Wert von 80 c + 15 v + 15 m,
+    by: scan
+  - page: 169
+    from: auf 95 = 15 ¼— Prozent. Würde aber dasselbe Kapital von
+    to: auf 95 = 15¹⁵⁄₁₉ Prozent. Würde aber dasselbe Kapital von
+    by: scan
+  - page: 169
+    from: "100 ausgelegt, so wäre das Verhältnis: 84/e c + 155/10 v."
+    to: "100 ausgelegt, so wäre das Verhältnis: 84⁴⁄₁₉ c + 15¹⁵⁄₁₉ v."
+    by: scan
+  - page: 169
+    from: Der Profit aber wäre 15 ½. Und der Wert des Produkts
+    to: Der Profit aber wäre 15¹⁵⁄₁₉. Und der Wert des Produkts
+    by: scan
+  - page: 169
+    from: betrüge 115 ½1 £. Nach der Voraussetzung aber war das
+    to: betrüge 115¹⁵⁄₁₉ £. Nach der Voraussetzung aber war das
+    by: scan
+  - page: 169
+    from: agrikulturelle Kapital S 60 c + 40 v und der Wert seines
+    to: agrikulturelle Kapital = 60 c + 40 v und der Wert seines
+    by: scan
+  - page: 169
+    from: preis 110. Sie wäre jetzt nur noch = 4/. Denn
+    to: |-
+      preis = 110. Sie wäre jetzt nur noch = 4⁴⁄₁₉. Denn
+      115¹⁵⁄₁₉ + 4⁴⁄₁₉ = 120.
+    by: scan
+  - page: 169
+    from: produzierte Waren zum Produktionspreis von 1157½9 £,
+    to: produzierte Waren zum Produktionspreis von 115¹⁵⁄₁₉ £,
+    by: scan
+  - page: 169
+    from: statt früher von 110 4. Wäre dadurch der Durchschnitts-
+    to: statt früher von 110 £. Wäre dadurch der Durchschnitts-
+    by: scan
+  - page: 169
+    from: früher für 80, jetzt für 84/ konstantes Kapital in Pro-
+    to: früher für 80, jetzt für 84⁴⁄₁₉ konstantes Kapital in Pro-
+    by: scan
+  - page: 170
+    from: Produktionspreis Differentialwert
+    to: Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert
+    by: scan
+  - page: 170
+    from: Profit des zw. Produktionspreis
+    to: ""
+    by: scan
+  - page: 170
+    from: Produkts und Wert
+    to: ""
+    by: scan
+  - page: 170
+    from: I. 80 C + 20 v 10 110 (Wert = 110) 0
+    to: I. 80 c + 20 v | 10 | 110 (Wert = 110) | 0
+    by: scan
+  - page: 170
+    from: II. 60 c +E 40 v 20 110 (Wert = 120) — 10
+    to: II. 60 c + 40 v | 20 | 110 (Wert = 120) | — 10
+    by: scan
+  - page: 170
+    from: II. 85 C + 15v 7/2 110 (Wert = 107½) + 2½
+    to: III. 85 c + 15 v | 7½ | 110 (Wert = 107½) | + 2½
+    by: scan
+  - page: 170
+    from: IV. 95c + 5vV 2½ 110 (Wert = 102½—) — 7½2
+    to: IV. 95 c + 5 v | 2½ | 110 (Wert = 102½) | + 7½
+    by: scan
+  - page: 170
+    from: Zusammen 400 40
+    to: Zusammen 400 | 40
+    by: scan
+  - page: 170
+    from: Das Durchschnittskapital 2 80 c +L 20 v.
+    to: Das Durchschnittskapital = 80 c + 20 v.
+    by: scan
+  - page: 170
+    from: III 2,½ £ über ihrem Werte und IV 7½ „ über ihrem
+    to: III 2½ £ über ihrem Werte und IV 7½ £ über ihrem
+    by: scan
+  - page: 170
+    from: Werte verkaufen. Nur J wird zu seinem Werte verkauft,
+    to: Werte verkaufen. Nur I wird zu seinem Werte verkauft,
+    by: scan
+  - page: 170
+    from: Für Kapital J haben wir statt 80 c + 20 v nun
+    to: Für Kapital I haben wir statt 80 c + 20 v nun
+    by: scan
+  - page: 170
+    from: 84/ c + 15 ,/1 v, Profit 15 ½/1e, Wert des Produkts
+    to: 84⁴⁄₁₉ c + 15¹⁵⁄₁₉ v, Profit 15¹⁵⁄₁₉, Wert des Produkts
+    by: scan
+  - page: 170
+    from: 115 715.
+    to: 115¹⁵⁄₁₉.
+    by: scan
+  - page: 170
+    from: Für Kapital II. Nur mehr 30 sind in Arbeitslohn
+    to: Für Kapital II. Nur mehr 30 £ sind in Arbeitslohn
+    by: scan
+  - page: 170
+    from: ausgelegt. Das Produkt macht 60 c6 += 30 v +=Æ 30 m aus.
+    to: ausgelegt. Das Produkt macht 60 c + 30 v + 30 m aus.
+    by: scan
+  - page: 170
+    from: auf Kapital von 90 macht 33/ Prozent. Für ein Kapital
+    to: auf Kapital von 90 macht 33⅓ Prozent. Für ein Kapital
+    by: scan
+  - page: 170
+    from: von 100 ist das Verhältnis 66 ½8 e + 33½ v, und der Wert
+    to: von 100 ist das Verhältnis 66⅔ c + 33⅓ v, und der Wert
+    by: scan
+  - page: 170
+    from: des Produkts ist 133 ¼8. Profitrate = 33½ Prozent.
+    to: des Produkts ist 133⅓. Profitrate = 33⅓ Prozent.
+    by: scan
+  - page: 170
+    from: Arbeitslohns nur mehr 11½ in Arbeitslohn ausgelegt, statt
+    to: Arbeitslohns nur mehr 11¼ in Arbeitslohn ausgelegt, statt
+    by: scan
+  - page: 170
+    from: 15. Der Wert des Produkts wäre 85 C +Æά 11½vÆL 11½ m.
+    to: 15. Der Wert des Produkts wäre 85 c + 11¼ v + 11¼ m.
+    by: scan
+  - page: 170
+    from: (da der Wert der angewandten Arbeit - 22 ½). 11½ m
+    to: (da der Wert der angewandten Arbeit = 22½). 11¼ m
+    by: scan
+  - page: 170
+    from: auf ein Kapital von 96 ½ gibt eine Profitrate von 116½½ Pro-
+    to: auf ein Kapital von 96¼ gibt eine Profitrate von 11⁵³⁄₇₇ Pro-
+    by: scan
+  - page: 170
+    from: zent. Für 100 ist das Verhältnis 88 ⅛½½ + 11½7 v, die
+    to: zent. Für 100 ist das Verhältnis 88²⁴⁄₇₇ c + 11⁵³⁄₇₇ v, die
+    by: scan
+  - page: 170
+    from: Profitrate macht 116½7 Prozent, und der Wert des Pro-
+    to: Profitrate macht 11⁵³⁄₇₇ Prozent, und der Wert des Pro-
+    by: scan
+  - page: 170
+    from: dukts beträgt 111½½ L.
+    to: dukts beträgt 111⁵³⁄₇₇ £.
+    by: scan
+  - page: 171
+    from: Für Kapital IV. Hier werden nur mehr 3d in Arbeits-
+    to: Für Kapital IV. Hier werden nur mehr 3¾ in Arbeits-
+    by: scan
+  - page: 171
+    from: lohn ausgelegt. Das Produkt machte also 95 c4C +π 3/ v
+    to: lohn ausgelegt. Das Produkt machte also 95 c + 3¾ v
+    by: scan
+  - page: 171
+    from: + 3½maus, denn der Wert der Gesamtarbeit ist gleich 7½.
+    to: + 3¾ m aus, denn der Wert der Gesamtarbeit ist gleich 7½.
+    by: scan
+  - page: 171
+    from: Auf ein Kapital von 98/ kommt eine Profitrate von 3/.
+    to: Auf ein Kapital von 98¾ kommt eine Profitrate von 3¾.
+    by: scan
+  - page: 171
+    from: Für 100 ist das Verhältnis = 96 ½½ C + 3½0 v. Profit-
+    to: Für 100 ist das Verhältnis = 96¹⁶⁄₇₉ c + 3⁶³⁄₇₉ v. Profit-
+    by: scan
+  - page: 171
+    from: rate E 3½. Der Wert des Produkts macht S 103½
+    to: rate = 3⁶³⁄₇₉. Der Wert des Produkts macht = 103⁶³⁄₇₉ £
+    by: scan
+  - page: 171
+    from: Profit es zw. Produktions-
+    to: Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert
+    by: scan
+  - page: 171
+    from: Produkts preis und Wert
+    to: ""
+    by: scan
+  - page: 171
+    from: I. 84½e e + 151½1 v 1515/10 116 (Wert = 11515/10) + /10
+    to: ""
+    by: scan
+  - page: 171
+    from: II. 66¾ c + 33¼½ v 33¼ 116 (Wert ⸗ 133½) = — 17½
+    to: I. 84⁴⁄₁₉ c + 15¹⁵⁄₁₉ v | 15¹⁵⁄₁₉ | 116 (Wert = 115¹⁵⁄₁₉) | = + ⁴⁄₁₉
+    by: scan
+  - page: 171
+    from: III. 882½¼7 C + 11½½ v 11½½7 116(Wert 111777) — 4½7
+    to: II. 66⅔ c + 33⅓ v | 33⅓ | 116 (Wert = 133⅓) | = — 17⅓
+    by: scan
+  - page: 171
+    from: IV. 901%½ 3½ο 36½ 116 (Wert S 103½0) + 121½0
+    to: III. 88²⁴⁄₇₇ c + 11⁵³⁄₇₇ v | 11⁵³⁄₇₇ | 116 (Wert = 111⁵³⁄₇₇) | = + 4²⁴⁄₇₇
+    by: scan
+  - page: 171
+    from: Zusammen 400 641
+    to: IV. 90¹⁶⁄₇₉ c + 3⁶³⁄₇₉ v | 3⁶³⁄₇₉ | 116 (Wert = 103⁶³⁄₇₉) | = + 12¹⁶⁄₇₉
+    by: scan
+  - page: 171
+    from: Die Durchschnittsprofitrate macht also rund 16 Prozent.
+    to: Zusammen 400 | 64¹
+    by: scan
+  - page: 171
+    from: genau 116¾46731, also etwa 116½.] Man sieht aber,
+    to: genau 116⁵²⁷⁵⁴⁄₃₄₆₇₃₁, also etwa 116⅐.] Man sieht aber,
+    by: scan
+  - page: 171
+    from: Mit Überschlagung einer Bruchzahl (21106/487e1].
+    to: ¹ Mit Überschlagung einer Bruchzahl [²¹¹⁰¹⁶⁄₃₄₆₇₃₁].
+    by: scan
+  - page: 173
+    from: "auf 100: 66 /8 cC + 33 ⅛ v. Und da die Arbeit, die mit 40"
+    to: "auf 100: 66⅔ c + 33⅓ v. Und da die Arbeit, die mit 40"
+    by: scan
+  - page: 173
+    from: bezahlt wird, 20, so die, die mit 30 bezahlt wird, S15. Und
+    to: bezahlt wird, = 20, so die, die mit 30 bezahlt wird, = 15. Und
+    by: scan
+  - page: 173
+    from: die mit 33/ bezahlte = 16 /. So näherte sich die orga-
+    to: die mit 33⅓ bezahlte = 16⅔. So näherte sich die orga-
+    by: scan
+  - page: 173
+    from: wird, S- 20“, sagen soll, daß „die Arbeit, die mit 40 bezahlt wird,
+    to: wird, = 20“, sagen soll, daß „die Arbeit, die mit 40 bezahlt wird,
+    by: scan
+  - page: 173
+    from: die mit 33½ bezahlt wird, 16¾3. Der individuelle Wert des Pro-
+    to: die mit 33⅓ bezahlt wird, 16⅔. Der individuelle Wert des Pro-
+    by: scan
+  - page: 173
+    from: dukts von einem Kapital von 100 wird dann 116/8, kommt damit
+    to: dukts von einem Kapital von 100 wird dann 116⅔, kommt damit
+    by: scan
+  - page: 175
+    from: Verhältnis von 60 c + 40 v in 66 ⅛ c + 33½ v], so
+    to: Verhältnis von 60 c + 40 v in 66⅔ c + 33⅓ v], so
+    by: scan
+  - page: 175
+    from: auf 116/. Also um 3/. Die Profitrate bliebe nach wie vor
+    to: auf 116⅔. Also um 3⅓. Die Profitrate bliebe nach wie vor
+    by: scan
+  - page: 175
+    from: 10 Prozent. Die Rente fiele von 10 auf 6 /8, und zwar hätte
+    to: 10 Prozent. Die Rente fiele von 10 auf 6⅔, und zwar hätte
+    by: scan
   - page: 178
     from: 4) Untersuchung der Ricardoschen Voraussetzungen.
     to: α) Untersuchung der Ricardoschen Voraussetzungen.
+    by: scan
+  - page: 182
+    from: — 2 H), so jetzt die 50J von 16 /8 Mann, die 50 £ erhalten,
+    to: = 2 £), so jetzt [die 50] von 16⅔ Mann, die 50 £ erhalten,
+    by: scan
+  - page: 182
+    from: seit der Wert der Tonne gestiegen auf 3 L. Es erhält nach
+    to: seit der Wert der Tonne gestiegen auf 3 £. Es erhält nach
+    by: scan
+  - page: 182
+    from: wie vor 1 Mann 1 Tonne ⸗ 3 £, denn 16⅛ 3 50.
+    to: wie vor 1 Mann 1 Tonne = 3 £, denn 16⅔ × 3 = 50.
+    by: scan
+  - page: 182
+    from: Wenn der von 16/ Mann geschaffene Wert = 50 £ ist, so
+    to: Wenn der von 16⅔ Mann geschaffene Wert = 50 £ ist, so
+    by: scan
+  - page: 182
+    from: ist der von 20 Mann - 60 £. Es bleibt also nach wie vor
+    to: ist der von 20 Mann = 60 £. Es bleibt also nach wie vor
+    by: scan
+  - page: 182
+    from: die Voraussetzung, daß die Tagesarbeit der 20 Mann S 60 L.
+    to: die Voraussetzung, daß die Tagesarbeit der 20 Mann = 60 £.
+    by: scan
+  - page: 182
+    from: Kapital von 100 ist das Produkt S 109 ½ = 43 /1 Tonnen
+    to: Kapital von 100 ist das Produkt = 109¹⁄₁₁ = 43⁷⁄₁₁ Tonnen
+    by: scan
+  - page: 182
+    from: (2⅛ 437/— 109 ½). Das konstante Kapital S 54/11
+    to: (2½ × 43⁷⁄₁₁ = 109¹⁄₁₁). Das konstante Kapital = 54⁶⁄₁₁
+    by: scan
+  - page: 182
+    from: und das variable 45,/11. Wieviel Mann repräsentieren
+    to: und das variable = 45⁵⁄₁₁. Wieviel Mann repräsentieren
+    by: scan
+  - page: 182
+    from: die 45 ¾1 18½1 Mann. Und zwar, wenn der Wert
+    to: die 45⁵⁄₁₁? 18²⁄₁₁ Mann. Und zwar, wenn der Wert
+    by: scan
+  - page: 182
+    from: der Jahresarbeit von 20 Mann =E 60 £, so der von
+    to: der Jahresarbeit von 20 Mann = 60 £, so der von
+    by: scan
+  - page: 182
+    from: 18½1 Mann S 54½ und daher der Wert des Produkts
+    to: |-
+      18²⁄₁₁ Mann = 54⁶⁄₁₁ und daher der Wert des Produkts
+      = 109¹⁄₁₁ £.
+    by: scan
+  - page: 182
+    from: den oben angegebenen Fällen, statt daß in Fall L40 Tonnen
+    to: den oben angegebenen Fällen, statt daß in Fall I 40 Tonnen
+    by: scan
+  - page: 182
+    from: produziert werden mit einer Auslage von 120 LC und 48
+    to: produziert werden mit einer Auslage von 120 £ und 48
+    by: scan
+  - page: 182
+    from: 33½ Tonnen und im zweiten Falle S 43 /1 Tonnen. Ricardo
+    to: 33⅓ Tonnen und im zweiten Falle = 43⁷⁄₁₁ Tonnen. Ricardo
+    by: scan
+  - page: 183
+    from: erst die Tabelle A von S. 40,41 und die aus den bisher
+    to: erst die Tabelle A von S. 40/41 und die aus den bisher
+    by: scan
+  - page: 183
+    from: 5 Kapital Tonnen G. W. M. W. Tüime Tonne Doirn A. R. D. R. A. R.
+    to: Klasse | Kapital | Tonnen | G. W. £ | M. W. £ | I. W. pro Tonne £ | D. W. pro Tonne £ | P. P. pro Tonne £ | A. R. £ | D. R. £ | A. R. Tonnen | D. R. Tonnen | Rental £ | Rental Tonnen | Zusammensetzung des Kapitals | Mehrwert Proz. | Anzahl der Arbeiter | Arbeitslohn £ | Arbeitslohn Tonnen | Profitrate Proz.
+    by: scan
+  - page: 183
+    from: 22— %½. Tonnen
+    to: |-
+      I | 100 | 60 | 120 | 2 | 2 | 0 | 1⅚ | 10 | 0 | 5 | 0 | 10 | 5 | 60 c + 40 v | 50 | 20 | 40 | 20 | 10
+      II | 100 | 65 | 130 | 2 | 1¹¹⁄₁₃ | ²⁄₁₃ | 1⁹⁄₁₃ | 10 | 10 | 5 | 5 | 20 | 10 | 60 c + 40 v | 50 | 20 | 40 | 20 | 10
+    by: scan
+  - page: 183
+    from: III 100 753ꝛTch50 2 17/½ 27½5 1/ 10 30 5
+    to: III | 100 | 75 | 150 | 2 | 1⅗ | ⅖ | 1⁷⁄₁₅ | 10 | 30 | 5 | 15 | 40 | 20 | 60 c + 40 v | 50 | 20 | 40 | 20 | 10
+    by: scan
+  - page: 183
+    from: D. R. Rental Rental Zusammen- Mehr- 4rb Arbeits-Arbeits- Proftt-
+    to: "[Total] | 300 | 200 | 400 | | | | | 30 | 40 | 15 | 20 | 70 | 35 | | | | | |"
+    by: scan
+  - page: 183
+    from: ö setzung wert Ar- lohn lohn rate
+    to: ""
+    by: scan
+  - page: 183
+    from: Tonnen & Tonnen des Kapitals Proz. beiter Tonnen Proz.
+    to: ""
+    by: scan
+  - page: 183
+    from: 60 £ konstantes Kapital und 60 E neuzugesetzte Arbeit. Es
+    to: 60 £ konstantes Kapital und 60 £ neuzugesetzte Arbeit. Es
+    by: scan
+  - page: 183
+    from: fälltl. Die 20 Mann bekommen 20 Tonnen - 40 (, so-
+    to: fällt]. Die 20 Mann bekommen 20 Tonnen = 40 £, so-
+    by: scan
+  - page: 183
+    from: lange die Tonne 2 “ kostet. Da sie aber jetzt sauf IIII
+    to: lange die Tonne 2 £ kostet. Da sie aber jetzt [auf III]
+    by: scan
+  - page: 183
+    from: bloß 1⅛ „ kostet, so bekommen die 20 Mann nur noch
+    to: bloß 1⅗ £ kostet, so bekommen die 20 Mann nur noch
+    by: scan
+  - page: 183
+    from: 32 4 (S 20 Tonnen). Das vorgeschossene Kapital für die-
+    to: 32 £ (= 20 Tonnen). Das vorgeschossene Kapital für die-
+    by: scan
+  - page: 183
+    from: selbe Masse Arbeiter betrüge 60 e und 32 v = 92 „, der
+    to: selbe Masse Arbeiter betrüge 60 c und 32 v = 92 £, der
+    by: scan
+  - page: 183
+    from: I. W. D. W. P. P.
+    to: ""
+    by: scan
+  - page: 184
+    from: "schaffen von 130 /, denn 92: 120 = 100: 130 /8. Und"
+    to: "schaffen von 130¹⁰⁄₂₃, denn 92 : 120 = 100 : 130¹⁰⁄₂₃. Und"
+    by: scan
+  - page: 184
+    from: "folgt: 65½86 e und 34 /6 v. Wert des Produkts S 130 ½8."
+    to: "folgt: 65⁵⁄₂₃ c und 34¹⁸⁄₂₃ v. Wert des Produkts = 130¹⁰⁄₂₃."
+    by: scan
+  - page: 184
+    from: Die Anzahl der Arbeiter wäre 217/8. Die Rate des Mehr-
+    to: Die Anzahl der Arbeiter wäre 21¹⁷⁄₂₃. Die Rate des Mehr-
+    by: scan
+  - page: 184
+    from: werts wäre 87 ½ Prozent.
+    to: werts wäre 87½ Prozent.
+    by: scan
+  - page: 184
+    from: — Zusammen- I
+    to: Klasse | Kapital £ | Tonnenzahl | G. W. £ | M. W. £ | I. W. £ | D. W. £ | Rente £ | Profit £ | Profitrate Proz. | Zusammensetzung des Kapitals | Mehrwert Proz. | Anzahl der Arbeiter
+    by: scan
+  - page: 184
+    from: . G. V. U Proftt Proftt- setzung 388 8
+    to: III | 100 | 81¹²⁄₂₃ | 130¹⁰⁄₂₃ | 1⅗ | 1⅗ | 0 | 0 | 30¹⁰⁄₂₃ | 30¹⁰⁄₂₃ | 65⁵⁄₂₃ c + 34¹⁸⁄₂₃ v | 87½ | 21¹⁷⁄₂₃
+    by: scan
+  - page: 184
+    from: — 6 S+IS rate des = 55 5
+    to: ""
+    by: scan
+  - page: 184
+    from: 2 8 + Proz. Kapitals Proz.
+    to: ""
+    by: scan
+  - page: 184
+    from: In Tonnen ausgedrückt macht der Arbeitslohn = 21 ½8
+    to: In Tonnen ausgedrückt macht der Arbeitslohn = 21¹⁷⁄₂₃
+    by: scan
+  - page: 184
+    from: Tonnen aus und der Profit 19 ¼½6 Tonnen.“
+    to: Tonnen aus und der Profit 19¹⁄₄₆ Tonnen.¹
+    by: scan
+  - page: 184
+    from: auf 14J½8 £ steht, bebaut werden muß.
+    to: auf 1¹¹⁄₁₃ £ steht, bebaut werden muß.
+    by: scan
+  - page: 184
+    from: 21½8 Arbeiter stets denselben Wert produzieren werden,
+    to: 21¹⁷⁄₂₃ Arbeiter stets denselben Wert produzieren werden,
+    by: scan
+  - page: 184
+    from: nämlich 65 /8 (Arbeitslohn und Mehrwert zusammen-
+    to: nämlich 65⁵⁄₂₃ £² (Arbeitslohn und Mehrwert zusammen-
+    by: scan
+  - page: 184
+    from: Im Manuskript steht 181½26 Tonnen. K.
+    to: ¹ Im Manuskript steht 18¹¹¹⁄₁₂₈ Tonnen. K.
+    by: scan
+  - page: 184
+    from: 2 Im Manuskript steht 75/38 L. K.
+    to: ² Im Manuskript steht 75⁵⁄₂₃ £. K.
+    by: scan
+  - page: 185
+    from: e 1 7718 V, kosten 20 Arbeiter 36 ½/13 L.
+    to: = 1¹¹⁄₁₃ £, kosten 20 Arbeiter 36¹²⁄₁₃ £.
+    by: scan
+  - page: 185
+    from: immer die Produktivität ihrer Arbeit, 60 £E beträgt, macht
+    to: immer die Produktivität ihrer Arbeit, 60 £ beträgt, macht
+    by: scan
+  - page: 185
+    from: also das vorgeschossene Kapital 96 ½8 α und der Wert
+    to: also das vorgeschossene Kapital 96¹²⁄₁₃ £ und der Wert
+    by: scan
+  - page: 185
+    from: 120 4 aus; also der Profit = 23 ½18 L. Der Profit des
+    to: 120 £ aus; also der Profit = 23¹⁄₁₃ £. Der Profit des
+    by: scan
+  - page: 185
+    from: Kapitals 100 wird daher 23 ½ sein und die Zusammen-
+    to: Kapitals 100 wird daher 23¹⁷⁄₂₁ sein¹ und die Zusammen-
+    by: scan
+  - page: 185
+    from: setzung des Kapitals 61 / e + 38/1 v. Beschäftigt sind
+    to: setzung des Kapitals 61¹⁹⁄₂₁ c + 38²⁄₂₁ v. Beschäftigt sind
+    by: scan
+  - page: 185
+    from: auf 100 E 20 /e Arbeiter.
+    to: auf 100 £ 20⁴⁰⁄₆₃ Arbeiter.
+    by: scan
+  - page: 185
+    from: Da der Gesamtwert - 123 ½1½ und der individuelle
+    to: Da der Gesamtwert = 123¹⁷⁄₂₁ £ und der individuelle
+    by: scan
+  - page: 185
+    from: Wert der Tonne in Klasse III 1⅝ &, so beträgt das
+    to: Wert der Tonne in Klasse III = 1⅗ £, so beträgt das
+    by: scan
+  - page: 185
+    from: Produkt sauf ein Kapital von 100 in dieser Klasse jetzt!
+    to: Produkt [auf ein Kapital von 100 in dieser Klasse jetzt]
+    by: scan
+  - page: 185
+    from: 77%1 Tonnen. Die Rate des Mehrwerts ist 62 ½ Prozent.
+    to: 77⁸⁄₂₁ Tonnen. Die Rate des Mehrwerts ist 62½ Prozent.
+    by: scan
+  - page: 185
+    from: Nun verkauft aber III die Tonne zu 111½18 L. Dieses
+    to: Nun verkauft aber III die Tonne zu 1¹¹⁄₁₃ £. Dieses
+    by: scan
+  - page: 185
+    from: macht einen Differentialwert pro Tonne von /8 und
+    to: macht einen Differentialwert pro Tonne von ¹⁶⁄₆₅ £ und
+    by: scan
+  - page: 185
+    from: macht auf 77/1 Tonnen 19 ½1 £.
+    to: macht auf 77⁸⁄₂₁ Tonnen 19¹⁄₂₁ £.
+    by: scan
+  - page: 185
+    from: Statt das Produkt zu 123 /1 zu verkaufen, verkauft
+    to: Statt das Produkt zu 123¹⁷⁄₂₁ £ zu verkaufen, verkauft
+    by: scan
+  - page: 185
+    from: es III zu 123½½²¹ —— 19 ½1 142 7⁵ +. Die 19 ½1 O
+    to: es III zu 123¹⁷⁄₂₁ + 19¹⁄₂₁ = 142⁶⁄₇ £. Die 19¹⁄₂₁ £
+    by: scan
+  - page: 185
+    from: — Wirklicher Gesamt-
+    to: Klasse | Kapital £ | Tonnen | Wirklicher Gesamtwert £ | Gesamt-Marktwert £ | I. W. £ | M. W. £ | D. W. £ | Mehrwert Prozent | Profitrate Prozent | Anzahl der Arbeiter | Zusammensetzung des Kapitals | Rente £ | Rente in Tonnen
+    by: scan
+  - page: 185
+    from: Marktwert I. W. M. W. D. W.
+    to: ""
+    by: scan
+  - page: 185
+    from: Klasse Kapital Tonnen Ldert
+    to: ""
+    by: scan
+  - page: 185
+    from: III 100 77/½¹ 123²⁷½¹ 142⁵⁵ 15 14½3 /½65
+    to: III | 100 | 77⁸⁄₂₁ | 123¹⁷⁄₂₁ | 142⁶⁄₇ | 1⅗ | 1¹¹⁄₁₃ | ¹⁶⁄₆₅ | 62½ | 23¹⁷⁄₂₁ | 20⁴⁰⁄₆₃ | 61¹⁹⁄₂₁ c + 38²⁄₂₁ v | 19¹⁄₂₁ | 10²⁰⁄₆₃
+    by: scan
+  - page: 185
+    from: Mehr- Anzahl Zusammensetzung Rente
+    to: ""
+    by: scan
+  - page: 185
+    from: wert Profitrate der des Rente an
+    to: ""
+    by: scan
+  - page: 185
+    from: Prozent Prozent Arbeiter Kapitals 2 Tonnen
+    to: ""
+    by: scan
+  - page: 185
+    from: Im Manuskript steht 23½8 Prozent, so hoch wird auch in den
+    to: ¹ Im Manuskript steht 23¹⁄₁₃ Prozent, so hoch wird auch in den
+    by: scan
+  - page: 185
+    from: folgenden Rechnungen der Profit pro 100 gerechnet, statt 2317/1. Ich
+    to: folgenden Rechnungen der Profit pro 100 gerechnet, statt 23¹⁷⁄₂₁. Ich
+    by: scan
+  - page: 186
+    from: Der Arbeitslohn in Tonnen = 20 ½ Tonnen. Und der
+    to: Der Arbeitslohn in Tonnen = 20⁴⁰⁄₆₃ Tonnen. Und der
+    by: scan
+  - page: 186
+    from: Profit =E 1211/126 Tonnen.
+    to: Profit = 12¹¹³⁄₁₂₆ Tonnen.
+    by: scan
+  - page: 186
+    from: Die Tonnenzahl, die II produziert, ist S 67/es Tonnen.
+    to: Die Tonnenzahl, die II produziert, ist = 67⁴⁄₆₃ Tonnen.
+    by: scan
+  - page: 186
+    from: 4 — Anzahl Zusammen⸗2
+    to: Klasse | Kapital £ | Tonnen | G. W. £ | M. W. £ | I. W. £ | D. W. £ | Mehrwert Proz. | Profitrate Proz. | Anzahl der Arbeiter | Zusammensetzung des Kapitals | Rente £
+    by: scan
+  - page: 186
+    from: 4 E — G. W. M. W.I. W. 5 * 4*— — der setzung
+    to: II | 100 | 67⁴⁄₆₃ | 123¹⁷⁄₂₁ | 1¹¹⁄₁₃ | 1¹¹⁄₁₃ | 0 | 62½ | 23¹⁷⁄₂₁ | 20⁴⁰⁄₆₃ | 61¹⁹⁄₂₁ c + 38²⁄₂₁ v | 0
+    by: scan
+  - page: 186
+    from: S E 5 68srate Ar- des
+    to: ""
+    by: scan
+  - page: 186
+    from: L EProz. Proz. Deiter Kapitals 5
+    to: ""
+    by: scan
+  - page: 186
+    from: Arbeitslohn in Tonnen = 20/ und Profit E 121/126
+    to: Arbeitslohn in Tonnen = 20⁴⁰⁄₆₃ und Profit = 12¹¹³⁄₁₂₆
+    by: scan
+  - page: 186
+    from: Klasse Kapital
+    to: |-
+      Klasse | Kapital £ | Tonnen | W. G. W. £ | G. M. W. £ | M. W. £ | I. W. £ | D. W. £ | Zusammensetzung des Kapitals | Anzahl der Arbeiter | Mehrwert Proz. | Profitrate Proz. | Arbeitslohn in Tonnen | Profit in Tonnen | Rente £ | Rente in Tonnen
+      III | 100 | 77⁸⁄₂₁ | 123¹⁷⁄₂₁ | 142⁶⁄₇ | 1¹¹⁄₁₃ | 1⅗ | ¹⁶⁄₆₅ | 61¹⁹⁄₂₁ c + 38²⁄₂₁ v | 20⁴⁰⁄₆₃ | 62½ | 23¹⁷⁄₂₁ | 20⁴⁰⁄₆₃ | 12¹¹³⁄₁₂₆ | 19¹⁄₂₁ | 10²⁰⁄₆₃
+      II | 100 | 67⁴⁄₆₃ | 123¹⁷⁄₂₁ | 123¹⁷⁄₂₁ | 1¹¹⁄₁₃ | 1¹¹⁄₁₃ | 0 | 61¹⁹⁄₂₁ c + 38²⁄₂₁ v | 20⁴⁰⁄₆₃ | 62½ | 23¹⁷⁄₂₁ | 20⁴⁰⁄₆₃ | 12¹¹³⁄₁₂₆ | 0 | 0
+    by: scan
+  - page: 186
+    from: stellen wir mit Ricardo, daß die schlechtere Mine J bebaut
+    to: stellen wir mit Ricardo, daß die schlechtere Mine I bebaut
+    by: scan
+  - page: 186
+    from: auf 24. Da auf ein konstantes Kapital von 60 erheischt
+    to: auf 2 £. Da auf ein konstantes Kapital von 60 erheischt
+    by: scan
+  - page: 186
+    from: 20 Arbeiter produzieren, immer 60 ist, macht also Ge-
+    to: 20 Arbeiter produzieren, immer = 60 ist, macht also Ge-
+    by: scan
+  - page: 186
+    from: rate ist hier 20 Prozent, der Mehrwert S 50 Prozent.
+    to: rate ist hier = 20 Prozent, der Mehrwert = 50 Prozent.
+    by: scan
+  - page: 186
+    from: In Tonnen ist der Profit 10 Tonnen. Wir müssen nun
+    to: In Tonnen ist der Profit = 10 Tonnen. Wir müssen nun
+    by: scan
+  - page: 187
+    from: des Marktwerts und des Neueinkommens von J, das die
+    to: des Marktwerts und des Neueinkommens von I, das die
+    by: scan
+  - page: 187
+    from: 1/8 £, so produziert er 75 Tonnen. Die von ihm pro-
+    to: = 1⅗ £, so produziert er 75 Tonnen. Die von ihm pro-
+    by: scan
+  - page: 187
+    from: Zusammensetzung — 5 Profit- 4 Profit Rente
+    to: ""
+    by: scan
+  - page: 187
+    from: des Ar- 88 rate ö in Rente in
+    to: ""
+    by: scan
+  - page: 187
+    from: Kapitals beiter Proz. Proz. Tonnen Tonnen 4635
+    to: ""
+    by: scan
+  - page: 187
+    from: auf 30 L.
+    to: auf 30 £.
+    by: scan
+  - page: 187
+    from: Was II angeht, so ist hier der Wert des Produkts dito
+    to: |-
+      Was II angeht, so ist hier der Wert des Produkts dito
+      = 120 £.
+    by: scan
+  - page: 187
+    from: Da aber der individuelle Wert der Tonne = 11½18,
+    to: Da aber der individuelle Wert der Tonne = 1¹¹⁄₁₃,
+    by: scan
+  - page: 187
+    from: heraus, jetzt, wo JLeintritt und der Marktwert zu 2 £ ge-
+    to: heraus, jetzt, wo I eintritt und der Marktwert zu 2 £ ge-
+    by: scan
+  - page: 188
+    from: ssiii- τ———FT- 7.. . .......
+    to: ""
+    by: scan
+  - page: 188
+    from: Klasse Kapital Tonnen W. G. W. G. M. W. M. W. I. W. D. w.
+    to: Klasse | Kapital £ | Tonnen | W. G. W. £ | G. M. W. £ | M. W. £ | I. W. £ | D. W. £ | Zusammensetzung des Kapitals | Anzahl der Arbeiter | Mehrwert Proz. | Profitrate Proz. | Arbeitslohn in Tonnen | Profit in Tonnen | Rente £ | Rente in Tonnen
+    by: scan
+  - page: 188
+    from: III 100 75 12⁰ 15⁰
+    to: |-
+      III | 100 | 75 | 120 | 150 | 2 | 1⅗ | ⅖ | 60 c + 40 v | 20 | 50 | 20 | 20 | 10 | 30 | 15
+      II | 100 | 65 | 120 | 130 | 2 | 1¹¹⁄₁₃ | ²⁄₁₃ | 60 c + 40 v | 20 | 50 | 20 | 20 | 10 | 10 | 5
+      I | 100 | 60 | 120 | 120 | 2 | 2 | 0 | 60 c + 40 v | 20 | 50 | 20 | 20 | 10 | 0 | 0
+    by: scan
+  - page: 188
+    from: 43/1 Tonnen.
+    to: 43⁷⁄₁₁ Tonnen.
+    by: scan
+  - page: 188
+    from: Der Wert der Tonne ist gestiegen zu 2¼⅛ L. Die Zu-
+    to: Der Wert der Tonne ist gestiegen zu 2½ £. Die Zu-
+    by: scan
+  - page: 188
+    from: sammensetzung des Kapitals S 54%½e + 45 /11v. 45/1
+    to: sammensetzung des Kapitals = 54⁶⁄₁₁ c + 45⁵⁄₁₁ v. 45⁵⁄₁₁ £
+    by: scan
+  - page: 188
+    from: bezahlen 18½1 Mann. Und da der Wert der Tagesarbeit
+    to: bezahlen 18²⁄₁₁ Mann. Und da der Wert der Tagesarbeit
+    by: scan
+  - page: 188
+    from: von 20 Mann S 60 K„, so ist der von 18½1 Mann = 54/11.
+    to: von 20 Mann = 60 £, so ist der von 18²⁄₁₁ Mann = 54⁶⁄₁₁.
+    by: scan
+  - page: 188
+    from: Daher der Wert des Produkts -= 109 /½1. Die Profitrate
+    to: Daher der Wert des Produkts = 109¹⁄₁₁. Die Profitrate
+    by: scan
+  - page: 188
+    from: 9½1 Prozent. Der Profit 3/¾1 Tonnen. Die Rate
+    to: = 9¹⁄₁₁ Prozent. Der Profit = 3⁷⁄₁₁ Tonnen. Die Rate
+    by: scan
+  - page: 188
+    from: des Mehrwerts S- 20 Prozent.!“
+    to: des Mehrwerts = 20 Prozent.¹
+    by: scan
+  - page: 188
+    from: lohn zahlen müssen, können sie ebenfalls nur 18/¼½ Mann
+    to: lohn zahlen müssen, können sie ebenfalls nur 18²⁄₁₁ Mann
+    by: scan
+  - page: 188
+    from: mit 100 LH anwenden, die einen Gesamtwert von 54%½4 pro-
+    to: mit 100 £ anwenden, die einen Gesamtwert von 54⁶⁄₁₁ pro-
+    by: scan
+  - page: 188
+    from: und eine Profitrate von 9½1 Prozent. Der Gesamtwert
+    to: und eine Profitrate von 9¹⁄₁₁ Prozent. Der Gesamtwert
+    by: scan
+  - page: 188
+    from: des Produkts ist hier wie in Ib S 109 ½1 £.
+    to: des Produkts ist hier wie in Ib = 109¹⁄₁₁ £.
+    by: scan
+  - page: 188
+    from: Da aber der individuelle Wert der Tonne in III = 1/8 £,
+    to: Da aber der individuelle Wert der Tonne in III = 1⅗ £,
+    by: scan
+  - page: 188
+    from: so produziert es 109 ½ dividiert durch 1/ oder S 68/11
+    to: so produziert es 109¹⁄₁₁ dividiert durch 1⅗ oder = 68²⁄₁₁
+    by: scan
+  - page: 188
+    from: "Im Manuskript steht 14¾1 Prozent. Aber 9¼ 100: 45/11"
+    to: "¹ Im Manuskript steht 14⁶⁄₁₁ Prozent. Aber 9¹⁄₁₁ × 100 : 45⁵⁄₁₁"
+    by: scan
+  - page: 188
+    from: — 20. Auch im weiteren Verlauf der Rechnung finden sich zahlreiche
+    to: = 20. Auch im weiteren Verlauf der Rechnung finden sich zahlreiche
+    by: scan
+  - page: 189
+    from: Anzahl Arbeits-
+    to: ""
+    by: scan
+  - page: 189
+    from: Zusammensetzung der Mehr- Profit- lohn ia Rente Wat
+    to: ""
+    by: scan
+  - page: 189
+    from: des Ar- wert rate in
+    to: ""
+    by: scan
+  - page: 189
+    from: Kapitals beiter Proz. Proz. Tonnen aomen 8 Tomen
+    to: ""
+    by: scan
+  - page: 189
+    from: 2¼½ — 1⅛f ½10 L. Und dieses macht auf 68/11
+    to: 2½ £ — 1⅗ £ = ⁹⁄₁₀ £. Und dieses macht auf 68²⁄₁₁
+    by: scan
+  - page: 189
+    from: Tonnen = 61/1 . Statt zu 109 /1 verkauft III zu
+    to: Tonnen = 61⁴⁄₁₁ £. Statt zu 109¹⁄₁₁ £ verkauft III zu
+    by: scan
+  - page: 189
+    from: 170²½/11 4.
+    to: 170⁵⁄₁₁ £.
+    by: scan
+  - page: 189
+    from: III. Diese Rente in Tonnen ausgedrückt ist = 24/11
+    to: III. Diese Rente in Tonnen ausgedrückt ist = 24⁶⁄₁₁
+    by: scan
+  - page: 189
+    from: Da der individuelle Wert der Tonne in II E 11½/13 £,
+    to: Da der individuelle Wert der Tonne in II = 1¹¹⁄₁₃ £,
+    by: scan
+  - page: 189
+    from: so produziert es 109 ½1 dividiert durch 114N ½18, und dieses ist
+    to: so produziert es 109¹⁄₁₁ dividiert durch 1¹¹⁄₁₃, und dieses ist
+    by: scan
+  - page: 189
+    from: 59½1 Tonnen.
+    to: = 59¹⁄₁₁ Tonnen.
+    by: scan
+  - page: 189
+    from: Tonne und ihres Marktwerts 2½ — 11/1
+    to: Tonne und ihres Marktwerts 2½ £ — 1¹¹⁄₁₃ £
+    by: scan
+  - page: 189
+    from: 726 L. Und dieses macht auf 59/½1 Tonnen =
+    to: = ¹⁷⁄₂₆ £. Und dieses macht auf 59¹⁄₁₁ Tonnen =
+    by: scan
+  - page: 189
+    from: 38 /⁷ . Und dieses ist die Rente. Der Gesamtmarktwert
+    to: 38⁷⁄₁₁ £. Und dieses ist die Rente. Der Gesamtmarktwert
+    by: scan
+  - page: 189
+    from: 147/11 4. Die Rente in Tonnen ausgedrückt = 15 /1½1
+    to: = 147⁸⁄₁₁ £. Die Rente in Tonnen ausgedrückt = 15⁵⁄₁₁
+    by: scan
+  - page: 189
+    from: Endlich da der individuelle Wert der Tonne in I 2 £,
+    to: Endlich da der individuelle Wert der Tonne in I = 2 £,
+    by: scan
+  - page: 189
+    from: so 109 ½⁷ α 54%/1 Tonnen.
+    to: so 109¹⁄₁₁ £ = 54⁶⁄₁₁ Tonnen.
+    by: scan
+  - page: 189
+    from: wert =E 2⅛ — 2 £ ⸗ ½ „. Und dieses macht auf
+    to: wert = 2½ £ — 2 £ = ½ £. Und dieses macht auf
+    by: scan
+  - page: 189
+    from: 54%4 Tonnen 27/1 £. Also Gesamtmarktwert = 136 /1 £.
+    to: 54⁶⁄₁₁ Tonnen 27³⁄₁₁ £. Also Gesamtmarktwert = 136⁴⁄₁₁ £.
+    by: scan
+  - page: 189
+    from: Und der Wert 2—— Rente in Tonnen ausgedrückt ist S 1015½175
+    to: Und der Wert der Rente in Tonnen ausgedrückt ist = 10¹⁰⁄₁₁
+    by: scan
+  - page: 190
+    from: EEE
+    to: ""
+    by: scan
+  - page: 190
+    from: Klasse Kapital Tonnen W. G. W. G. M. W. M. W. I. W.
+    to: Klasse | Kapital £ | Tonnen | W. G. W. £ | G. M. W. £ | M. W. £ | I. W. £ | D. W. £ | Zusammensetzung des Kapitals | Anzahl der Arbeiter | Mehrwert Proz. | Profitrate Proz. | Arbeitslohn in Tonnen | Profit in Tonnen | Rente £ | Rente in Tonnen
+    by: scan
+  - page: 190
+    from: S . —.— 8 IAR 2
+    to: |-
+      III | 100 | 68²⁄₁₁ | 109¹⁄₁₁ | 170⁵⁄₁₁ | 2½ | 1⅗ | ⁹⁄₁₀ | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 18²⁄₁₁ | 3⁷⁄₁₁ | 61⁴⁄₁₁ | 24⁶⁄₁₁
+      II | 100 | 59¹⁄₁₁ | 109¹⁄₁₁ | 147⁸⁄₁₁ | 2½ | 1¹¹⁄₁₃ | ¹⁷⁄₂₆ | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 18²⁄₁₁ | 3⁷⁄₁₁ | 38⁷⁄₁₁ | 15⁵⁄₁₁
+      I | 100 | 54⁶⁄₁₁ | 109¹⁄₁₁ | 136⁴⁄₁₁ | 2½ | 2 | ½ | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 18²⁄₁₁ | 3⁷⁄₁₁ | 27³⁄₁₁ | 10¹⁰⁄₁₁
+      Ib | 100 | 43⁷⁄₁₁ | 109¹⁄₁₁ | 109¹⁄₁₁ | 2½ | 2½ | 0 | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 18²⁄₁₁ | 3⁷⁄₁₁ | 0 | 0
+    by: scan
+  - page: 190
+    from: Hier steigt der Wert des Produkts auf 3 „, so daß bei
+    to: Hier steigt der Wert des Produkts auf 3 £, so daß bei
+    by: scan
+  - page: 190
+    from: Anwendung von 20 Mann ihr Lohn =S 60 £, gleich dem
+    to: Anwendung von 20 Mann ihr Lohn = 60 £, gleich dem
+    by: scan
+  - page: 190
+    from: 16⅛ Mann. Wenn der von 20 Mann produzierte Wert
+    to: 16⅔ Mann. Wenn der von 20 Mann produzierte Wert
+    by: scan
+  - page: 190
+    from: — 60, so der von 16/ Mann produzierte Wert S 50 L.
+    to: = 60, so der von 16⅔ Mann produzierte Wert = 50 £.
+    by: scan
+  - page: 190
+    from: — 100 und damit produzierte Tonnenzahl = 33½/ Tonnen.
+    to: = 100 und damit produzierte Tonnenzahl = 33⅓ Tonnen.
+    by: scan
+  - page: 190
+    from: Da in III der individuelle Wert der Tonne = 1/, so
+    to: Da in III der individuelle Wert der Tonne = 1⅗, so
+    by: scan
+  - page: 190
+    from: produziert es 100 dividiert durch /8, also 62⅛ Tonnen,
+    to: produziert es 100 dividiert durch ⁸⁄₅, also 62½ Tonnen,
+    by: scan
+  - page: 190
+    from: deren Wert - 100. Es ist aber die Differenz zwischen
+    to: deren Wert = 100. Es ist aber die Differenz zwischen
+    by: scan
+  - page: 190
+    from: individuellem Werte und Marktwert 3 £ — 1½ 1½ L.
+    to: individuellem Werte und Marktwert = 3 £ — 1⅗ £ = 1⅖ £.
+    by: scan
+  - page: 190
+    from: Dieses macht auf 62⅛ Tonnen 87 ½ L. Also Gesamt-
+    to: Dieses macht auf 62½ Tonnen = 87½ £. Also Gesamt-
+    by: scan
+  - page: 190
+    from: marktwert des Produkts 187 ⅛ 4. Und die Rente ist in
+    to: marktwert des Produkts = 187½ £. Und die Rente ist in
+    by: scan
+  - page: 190
+    from: Tonnen = 29/ Tonnen.
+    to: Tonnen = 29⅙ Tonnen.
+    by: scan
+  - page: 190
+    from: In II ist der individuelle Wert der Tonne = 111½8 £.
+    to: In II ist der individuelle Wert der Tonne = 1¹¹⁄₁₃ £.
+    by: scan
+  - page: 190
+    from: Also der Differentialwert 3 £ — 11½¼8 £ 1/1½ L. Da
+    to: Also der Differentialwert = 3 £ — 1¹¹⁄₁₃ £ = 1²⁄₁₃ £. Da
+    by: scan
+  - page: 190
+    from: der individuelle Wert der Tonne hier 114N½3 £ oder /½18 £,
+    to: der individuelle Wert der Tonne hier = 1¹¹⁄₁₃ £ oder ²⁴⁄₁₃ £,
+    by: scan
+  - page: 190
+    from: so produziert das Kapital von 100 54⅛½ Tonnen. Auf
+    to: so produziert das Kapital von 100 54⅙ Tonnen. Auf
+    by: scan
+  - page: 191
+    from: Anzahl 2.— .— Arbeits- ö
+    to: ""
+    by: scan
+  - page: 191
+    from: Zusammensetzung der Profit- lohn Profit Rente Rente
+    to: ""
+    by: scan
+  - page: 191
+    from: des Ar- Srate in in in
+    to: ""
+    by: scan
+  - page: 191
+    from: ö Kapitals beiter Proz. Proz. Tonnen E 2 Tonnen
+    to: ""
+    by: scan
+  - page: 191
+    from: diese Tonnenzahl macht jene Differenz S 62½ L. Und der
+    to: diese Tonnenzahl macht jene Differenz = 62½ £. Und der
+    by: scan
+  - page: 191
+    from: Marktwert des Produkts = 162⅛½ 4. In Tonnen aus-
+    to: Marktwert des Produkts = 162½ £. In Tonnen aus-
+    by: scan
+  - page: 191
+    from: gedrückt ist die Rente = 20/ Tonnen.
+    to: gedrückt ist die Rente = 20⅚ Tonnen.
+    by: scan
+  - page: 191
+    from: In J ist der individuelle Wert der Tonne = 2 £. Also
+    to: In I ist der individuelle Wert der Tonne = 2 £. Also
+    by: scan
+  - page: 191
+    from: Differentialwert 3 — 2 ⸗ 1 £. Da der individuelle Wert
+    to: Differentialwert = 3 — 2 = 1 £. Da der individuelle Wert
+    by: scan
+  - page: 191
+    from: der Tonne hier gleich 2 £, so werden mit einem Kapital
+    to: der Tonne hier gleich = 2 £, so werden mit einem Kapital
+    by: scan
+  - page: 191
+    from: von 100 50 Tonnen produziert. Dieses macht 50 „ Differenz.
+    to: von 100 50 Tonnen produziert. Dieses macht 50 £ Differenz.
+    by: scan
+  - page: 191
+    from: Marktwert des Produkts S 150 L iund Rente S 16/ Tonnen.
+    to: Marktwert des Produkts = 150 £ und Rente = 16⅔ Tonnen.
+    by: scan
+  - page: 191
+    from: Hier ist der individuelle Wert 2½ 4. Also Differential-
+    to: Hier ist der individuelle Wert = 2½ £. Also Differential-
+    by: scan
+  - page: 191
+    from: wert =E 3 — 2½ ½ L. Und da der individuelle Wert
+    to: wert = 3 — 2½ £ = ½ £. Und da der individuelle Wert
+    by: scan
+  - page: 191
+    from: der Tonne hier = 2½ oder /½ £, produziert 100 hier
+    to: der Tonne hier = 2½ oder ⁵⁄₂ £, produziert 100 hier
+    by: scan
+  - page: 191
+    from: 40 Tonnen. Auf diese macht der differentielle Wert 20
+    to: 40 Tonnen. Auf diese macht der differentielle Wert 20 £
+    by: scan
+  - page: 191
+    from: auf, so daß der Gesamtmarktwert - 120 £ beträgt. Und
+    to: auf, so daß der Gesamtmarktwert = 120 £ beträgt. Und
+    by: scan
+  - page: 191
+    from: die Rente in Tonnen 6¼8 Tonnen.
+    to: die Rente in Tonnen 6⅔ Tonnen.
+    by: scan
+  - page: 191
+    from: ist hier in der letzten Klasse La die Sache sehr klar. Der
+    to: ist hier in der letzten Klasse I a die Sache sehr klar. Der
+    by: scan
+  - page: 192
+    from: ——%———ͤ — τετ — τε–ε- ——— ᷑ τ- —τι- —4 +— ——— ————— — πεπε- —
+    to: ""
+    by: scan
+  - page: 192
+    from: Klasse Kapital Tonnen W. G. W. G. M. W. M. W. I. W. D. W.
+    to: Klasse | Kapital £ | Tonnen | W. G. W. £ | G. M. W. £ | M. W. £ | I. W. £ | D. W. £ | Zusammensetzung des Kapitals | Anzahl der Arbeiter | Mehrwert Proz. | Profitrate Proz. | Arbeitslohn in Tonnen | Rente £ | Rente in Tonnen
+    by: scan
+  - page: 192
+    from: III 100 6½ 100 187½ 3 1½ 1/½
+    to: |-
+      III | 100 | 62½ | 100 | 187½ | 3 | 1⅗ | 1⅖ | 50 c + 50 v | 16⅔ | 0 | 0 | 16⅔ | 87½ | 29⅙
+      II | 100 | 54⅙ | 100 | 162½ | 3 | 1¹¹⁄₁₃ | 1²⁄₁₃ | 50 c + 50 v | 16⅔ | 0 | 0 | 16⅔ | 62½ | 20⅚
+      I | 100 | 50 | 100 | 150 | 3 | 2 | 1 | 50 c + 50 v | 16⅔ | 0 | 0 | 16⅔ | 50 | 16⅔
+      Ib | 100 | 40 | 100 | 120 | 3 | 2½ | ½ | 50 c + 50 v | 16⅔ | 0 | 0 | 16⅔ | 20 | 6⅔
+      Ia | 100 | 33⅓ | 100 | 100 | 3 | 3 | 0 | 50 c + 50 v | 16⅔ | 0 | 0 | 16⅔ | 0 | 0
+    by: scan
+  - page: 192
+    from: III 29 Tonnen. Dagegen in Tabelle A, wo nur noch
+    to: III 29⅙ Tonnen. Dagegen in Tabelle A, wo nur noch
+    by: scan
+  - page: 192
+    from: dem 211½8 Mann angewandt waren, während jetzt nur
+    to: dem 21¹⁷⁄₂₃ Mann angewandt waren, während jetzt nur
+    by: scan
+  - page: 192
+    from: "16⅛ Mann: hier beträgt der Profit, der den ganzen Mehr-"
+    to: "16⅔ Mann: hier beträgt der Profit, der den ganzen Mehr-"
+    by: scan
+  - page: 192
+    from: wert absorbierte, nur 19¼½88 Tonnen.
+    to: wert absorbierte, nur 19¹⁄₄₆ Tonnen.
+    by: scan
+  - page: 192
+    from: Tabelle E = 20⅝ Tonnen ausmacht, indes in Tabelle B
+    to: Tabelle E = 20⅚ Tonnen ausmacht, indes in Tabelle B
+    by: scan
+  - page: 192
+    from: 20/ statt 16⅛ Mann angewandt wurden), nur 12/126
+    to: 20⁴⁰⁄₆₃ statt 16⅔ Mann angewandt wurden), nur 12¹¹³⁄₁₂₆
+    by: scan
+  - page: 193
+    from: der 1— a ohn Rente ente
+    to: ""
+    by: scan
+  - page: 193
+    from: Kapitals Aderter
+    to: ""
+    by: scan
+  - page: 193
+    from: des wert rate in in
+    to: ""
+    by: scan
+  - page: 193
+    from: Proz. Proz. Tonnen Tonnen
+    to: ""
+    by: scan
+  - page: 193
+    from: Ebenso in IJ, wo die Rente in Tabelle E = 167/ Tonnen,
+    to: Ebenso in I, wo die Rente in Tabelle E = 16⅔ Tonnen,
+    by: scan
+  - page: 193
+    from: während in Tabelle C der Profit von J, der den ganzen
+    to: während in Tabelle C der Profit von I, der den ganzen
+    by: scan
+  - page: 193
+    from: angewandt wurden, statt jetzt 16 /8).
+    to: angewandt wurden, statt jetzt 16⅔).
+    by: scan
+  - page: 193
+    from: Endlich in Ib, wo die Rente in Tabelle E == 6 / Tonnen,
+    to: Endlich in Ib, wo die Rente in Tabelle E = 6⅔ Tonnen,
+    by: scan
+  - page: 193
+    from: den ganzen Mehrwert absorbierte, nur 3¾¼1 Tonnen
+    to: den ganzen Mehrwert absorbierte, nur = 3⁷⁄₁₁ Tonnen
+    by: scan
+  - page: 193
+    from: (während 18½1 Mann angewandt wurden, statt jetzt 16/).
+    to: (während 18²⁄₁₁ Mann angewandt wurden, statt jetzt 16⅔).
+    by: scan
+  - page: 193
+    from: duzieren 16/ Mann 50 «&. Und da in der Bodenklasse III
+    to: duzieren 16⅔ Mann 50 £. Und da in der Bodenklasse III
+    by: scan
+  - page: 193
+    from: die in 1⅛½ 4 enthaltene Arbeitszeit sich in 1 Tonne dar-
+    to: die in 1⅗ £ enthaltene Arbeitszeit sich in 1 Tonne dar-
+    by: scan
+  - page: 193
+    from: stellt, stellen sich 50 dar in 31¼ Tonnen. Es gehen davon
+    to: stellt, stellen sich 50 £ dar in 31¼ Tonnen. Es gehen davon
+    by: scan
+  - page: 193
+    from: ab 16 ⅛8 Tonnen für Arbeitslohn, bleiben also als Mehr-
+    to: ab 16⅔ Tonnen für Arbeitslohn, bleiben also als Mehr-
+    by: scan
+  - page: 193
+    from: wert 14 /12 Tonnen.
+    to: wert 14⁷⁄₁₂ Tonnen.
+    by: scan
+  - page: 193
+    from: Marx, Theorien über den Mehrwert. II, 2. Teil. 13
+    to: ""
+    by: scan
+  - page: 194
+    from: 194 Die Grundrente
+    to: ""
+    by: scan
+  - page: 194
+    from: Gang der Rente
+    to: Gang der Rente nach Ricardo.
+    by: scan
+  - page: 194
+    from: A. (Beste Klasse III allein bebaut.) Nicht Existenz der Rente. Bloß
+    to: A. (Beste Klasse III allein bebaut.) Nicht Existenz der Rente. Bloß das fruchtbarste Land oder Mine bebaut.
+    by: scan
+  - page: 194
+    from: Wirtlicher Gesamt- Markt- Individ. Diff.⸗
+    to: Klasse | Kapital £ | Tonnen | Wirklicher Gesamtwert £ | Gesamtmarktwert £ | Marktwert pro Tonne £ | Individ. Wert pro Tonne £ | Diff.-Wert pro Tonne £ | Zusammensetzung des Kapitals | Anzahl der Arbeiter | Mehrwertsrate Proz. | Profit £ | Profit in Tonnen | Arbeitslohn in Tonnen | Geldrente £ | Rente in Tonnen
+    by: scan
+  - page: 194
+    from: Klasse Kapital Tonnen Gesamit- markt- —3 Pro re.
+    to: ""
+    by: scan
+  - page: 194
+    from: wert wert Tonne Tonne Tonne
+    to: ""
+    by: scan
+  - page: 194
+    from: . IE
+    to: ""
+    by: scan
+  - page: 194
+    from: III ö 100 81½j 13023 130½23 175⁵ 15/½5 0
+    to: III | 100 | 81¹²⁄₂₃ | 130¹⁰⁄₂₃ | 130¹⁰⁄₂₃ | 1⅗ | 1⅗ | 0 | 65⁵⁄₂₃ c + 34¹⁸⁄₂₃ v | 21¹⁷⁄₂₃ | 87½ | 30¹⁰⁄₂₃ | 19¹⁄₄₆ | 21¹⁷⁄₂₃ | 0 | 0
+    by: scan
+  - page: 194
+    from: B. Zweite Klasse II tritt ein. Entstehung der Rente auf Boden
+    to: B. Zweite Klasse II tritt ein. Entstehung der Rente auf Boden (Mine) III.
+    by: scan
+  - page: 194
+    from: III 100 77½²¹ 123½11427/7 1427¹³ 197ĩ 4//%85
+    to: III | 100 | 77⁸⁄₂₁ | 123¹⁷⁄₂₁ | 142⁶⁄₇ | 1¹¹⁄₁₃ | 1⅗ | ¹⁶⁄₆₅ | 61¹⁹⁄₂₁ c + 38²⁄₂₁ v | 20⁴⁰⁄₆₃ | 62½ | 23¹⁷⁄₂₁ | 12¹¹³⁄₁₂₆ | 20⁴⁰⁄₆₃ | 19¹⁄₂₁ | 10²⁰⁄₆₃
+    by: scan
+  - page: 194
+    from: II 100 67½/63 1237½¹ 123, 1½s 14½3 0
+    to: II | 100 | 67⁴⁄₆₃ | 123¹⁷⁄₂₁ | 123¹⁷⁄₂₁ | 1¹¹⁄₁₃ | 1¹¹⁄₁₃ | 0 | 61¹⁹⁄₂₁ c + 38²⁄₂₁ v | 20⁴⁰⁄₆₃ | 62½ | 23¹⁷⁄₂₁ | 12¹¹³⁄₁₂₆ | 20⁴⁰⁄₆₃ | 0 | 0
+    by: scan
+  - page: 194
+    from: Totals 200 1II%% 2 266¹ù-
+    to: Total | 200 | 144²⁸⁄₆₃ | 247¹³⁄₂₁ | 266¹⁴⁄₂₁ | | | | | 41¹⁷⁄₆₃ | | 47¹³⁄₂₁ | 25⁵⁰⁄₆₃ | 41¹⁷⁄₆₃ | 19¹⁄₂₁ | 10²⁰⁄₆₃
+    by: scan
+  - page: 194
+    from: C. Dritte Klasse J tritt ein. Entstehung der Rente auf Boden (Mine) II.
+    to: C. Dritte Klasse I tritt ein. Entstehung der Rente auf Boden (Mine) II.
+    by: scan
+  - page: 194
+    from: III 100 75 12⁰ 15⁰ 2 1/½ ½
+    to: III | 100 | 75 | 120 | 150 | 2 | 1⅗ | ⅖ | 60 c + 40 v | 20 | 50 | 20 | 10 | 20 | 30 | 15
+    by: scan
+  - page: 194
+    from: II100 6⁵ 12⁰ 13⁰ 2 14½¹j32/8
+    to: II | 100 | 65 | 120 | 130 | 2 | 1¹¹⁄₁₃ | ²⁄₁₃ | 60 c + 40 v | 20 | 50 | 20 | 10 | 20 | 10 | 5
+    by: scan
+  - page: 194
+    from: 1100 6⁰ 12⁰ 12⁰ 2 2 0
+    to: I | 100 | 60 | 120 | 120 | 2 | 2 | 0 | 60 c + 40 v | 20 | 50 | 20 | 10 | 20 | 0 | 0
+    by: scan
+  - page: 194
+    from: Total 300 200360400
+    to: Total | 300 | 200 | 360 | 400 | | | | | 60 | | 60 | 30 | 60 | 40 | 20
+    by: scan
+  - page: 194
+    from: D. Vierte Klasse Ib tritt ein. Entstehung der Rente auf Boden
+    to: D. Vierte Klasse Ib tritt ein. Entstehung der Rente auf Boden (Mine) I.
+    by: scan
+  - page: 194
+    from: III 100 68711 109/11 170⁵½1¹ 2½ 17⁵ 71⁰
+    to: III | 100 | 68²⁄₁₁ | 109¹⁄₁₁ | 170⁵⁄₁₁ | 2½ | 1⅗ | ⁹⁄₁₀ | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 3⁷⁄₁₁ | 18²⁄₁₁ | 61⁴⁄₁₁ | 24⁶⁄₁₁
+    by: scan
+  - page: 194
+    from: II 100 59½11 109 ½11 147²½¹¹ 2½ 14/½13 17/½26
+    to: II | 100 | 59¹⁄₁₁ | 109¹⁄₁₁ | 147⁸⁄₁₁ | 2½ | 1¹¹⁄₁₃ | ¹⁷⁄₂₆ | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 3⁷⁄₁₁ | 18²⁄₁₁ | 38⁷⁄₁₁ | 15⁵⁄₁₁
+    by: scan
+  - page: 194
+    from: 1 100 54%1109½/11 136/11 2½ 2 —Ʒ7²9
+    to: I | 100 | 54⁶⁄₁₁ | 109¹⁄₁₁ | 136⁴⁄₁₁ | 2½ | 2 | ½ | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 3⁷⁄₁₁ | 18²⁄₁₁ | 27³⁄₁₁ | 10¹⁰⁄₁₁
+    by: scan
+  - page: 194
+    from: 1b 100 43²⁷n1¹¹ 1097¹ 109²½1¹ 2½ 2½2 0
+    to: Ib | 100 | 43⁷⁄₁₁ | 109¹⁄₁₁ | 109¹⁄₁₁ | 2½ | 2½ | 0 | 54⁶⁄₁₁ c + 45⁵⁄₁₁ v | 18²⁄₁₁ | 20 | 9¹⁄₁₁ | 3⁷⁄₁₁ | 18²⁄₁₁ | 0 | 0
+    by: scan
+  - page: 194
+    from: Total 400 225/ 436½/ 563%
+    to: Total | 400 | 225⁵⁄₁₁ | 436⁴⁄₁₁ | 563⁷⁄₁₁ | | | | | 72⁸⁄₁₁ | | 36⁴⁄₁₁ | 14⁶⁄₁₁ | 72⁸⁄₁₁ | 127³⁄₁₁ | 50¹⁰⁄₁₁
+    by: scan
+  - page: 194
+    from: F. Fünfte Klasse La tritt ein. Wegfall von Mehrwert und Profit
+    to: E. Fünfte Klasse Ia tritt ein. Wegfall von Mehrwert und Profit insgesamt.
+    by: scan
+  - page: 194
+    from: III 100 62½ 100 187½ 9 11½ 17⁵
+    to: III | 100 | 62½ | 100 | 187½ | 3 | 1⅗ | 1⅖ | 50 c + 50 v | 16⅔ | 0 | 0 | 0 | 16⅔ | 87½ | 29⅙
+    by: scan
+  - page: 194
+    from: II 100 54½ 100 162¼j 3 14/½j3817/—8
+    to: II | 100 | 54⅙ | 100 | 162½ | 3 | 1¹¹⁄₁₃ | 1²⁄₁₃ | 50 c + 50 v | 16⅔ | 0 | 0 | 0 | 16⅔ | 62½ | 20⅚
+    by: scan
+  - page: 194
+    from: 1 100 50 100 150 3 2 1
+    to: I | 100 | 50 | 100 | 150 | 3 | 2 | 1 | 50 c + 50 v | 16⅔ | 0 | 0 | 0 | 16⅔ | 50 | 16⅔
+    by: scan
+  - page: 194
+    from: Ib 100 40 100 120 3 2½ 7—e
+    to: Ib | 100 | 40 | 100 | 120 | 3 | 2½ | ½ | 50 c + 50 v | 16⅔ | 0 | 0 | 0 | 16⅔ | 20 | 6⅔
+    by: scan
+  - page: 194
+    from: 1 100 33½3 100 100 3 3 0
+    to: Ia | 100 | 33⅓ | 100 | 100 | 3 | 3 | 0 | 50 c + 50 v | 16⅔ | 0 | 0 | 0 | 16⅔ | 0 | 0
+    by: scan
+  - page: 194
+    from: Totals 500 240 5⁰0 720
+    to: Total | 500 | 240 | 500 | 720 | | | | | 83⅓ | | | | 83⅓ | 220 | 73⅓
+    by: scan
+  - page: 195
+    from: Die Ricardosche Rententheorie 195
+    to: ""
+    by: scan
+  - page: 195
+    from: ach Ricardo.
+    to: ""
+    by: scan
+  - page: 195
+    from: s fruchtbarste Land oder Mine bebaut.
+    to: ""
+    by: scan
+  - page: 195
+    from: Anzahl Mehr-
+    to: ""
+    by: scan
+  - page: 195
+    from: Ar- rate e .
+    to: ""
+    by: scan
+  - page: 195
+    from: Kapitals Tonnen Tonnen Tonnen
+    to: ""
+    by: scan
+  - page: 195
+    from: beiter Proz.
+    to: ""
+    by: scan
+  - page: 195
+    from: 5/%3 C + 34½8 v 21⁴½43
+    to: ""
+    by: scan
+  - page: 195
+    from: 87½ 30½ 19½46 211
+    to: ""
+    by: scan
+  - page: 195
+    from: Mine) III.
+    to: ""
+    by: scan
+  - page: 195
+    from: 1½1 C + 38²½1 v 20—)8 62½ 234⁰ 12/1% 20%3
+    to: ""
+    by: scan
+  - page: 195
+    from: 19½1 — 38²½21 v 20.nH⁰ 62½ 231 12¹³/½126 20⁴½%8 0 0
+    to: ""
+    by: scan
+  - page: 195
+    from: 4¹½Hj 47½125% 41/¼ 19½ 10²n
+    to: ""
+    by: scan
+  - page: 195
+    from: 19⁷½²¹ 10²½3
+    to: ""
+    by: scan
+  - page: 195
+    from: 60 C + 40 v 20 5020 (10 20 30 15
+    to: ""
+    by: scan
+  - page: 195
+    from: 60 C + 40 v 20 50 20 10 20 10 5
+    to: ""
+    by: scan
+  - page: 195
+    from: 60 C + 40 v 20 50 20 10 20 0 0
+    to: ""
+    by: scan
+  - page: 195
+    from: 60 60 30 60 40(20
+    to: ""
+    by: scan
+  - page: 195
+    from: Mine) J.
+    to: ""
+    by: scan
+  - page: 195
+    from: 54%1 C + 45 /11 vä18/11209½137/%1 18/1161¾/124½11
+    to: ""
+    by: scan
+  - page: 195
+    from: 54%1 C + 45/1v 18/1120..9½f3/1118/11387/11155/11
+    to: ""
+    by: scan
+  - page: 195
+    from: 54%1 C + 45½—1vVfI8%209 ½3/½1 8%27/11 10ʃ/11
+    to: ""
+    by: scan
+  - page: 195
+    from: 54%1 +E 455/11 v 18/j—f20f9½1 3711ʃ18½11 0 0
+    to: ""
+    by: scan
+  - page: 195
+    from: 72½11 36½ 14⁵½1¹¹ 72/1¹ 127⁵½1¹ 500/%11
+    to: ""
+    by: scan
+  - page: 195
+    from: nsgesamt.
+    to: ""
+    by: scan
+  - page: 195
+    from: 50 C + 50 v 16²½3
+    to: ""
+    by: scan
+  - page: 195
+    from: 50 C +E 50 v 16/
+    to: ""
+    by: scan
+  - page: 195
+    from: 50 C + 50 v 16²½/3
+    to: ""
+    by: scan
+  - page: 195
+    from: 50 c +E 50 v 16²½
+    to: ""
+    by: scan
+  - page: 195
+    from: 50 C — 50 v 16²½
+    to: ""
+    by: scan
+  - page: 195
+    from: 16²½ 87½ 29½
+    to: ""
+    by: scan
+  - page: 195
+    from: 16½ 62½ 20½
+    to: ""
+    by: scan
+  - page: 195
+    from: 16²½ 50 16²½
+    to: ""
+    by: scan
+  - page: 195
+    from: 16½/ 20 6½/
+    to: ""
+    by: scan
+  - page: 195
+    from: 16²½ 0 0
+    to: ""
+    by: scan
+  - page: 195
+    from: 83¼hj 83½ 2²⁰ 73 ½
+    to: ""
+    by: scan
+  - page: 195
+    from: —290000
+    to: ""
+    by: scan
+  - page: 195
+    from: —008009
+    to: ""
+    by: scan
+  - page: 195
+    from: —2— τ- — 82
+    to: ""
+    by: scan
+  - page: 196
+    from: Ferner, weil der Marktwert der Tonne von 1/ ge-
+    to: Ferner, weil der Marktwert der Tonne von 1⅗ ge-
+    by: scan
+  - page: 196
+    from: stiegen ist auf 3 , genügen vom Produkt, den 62 ⅛ Tonnen,
+    to: stiegen ist auf 3 £, genügen vom Produkt, den 62½ Tonnen,
+    by: scan
+  - page: 196
+    from: 16⅛ Tonnen, um den Wert des konstanten Kapitals zu
+    to: 16⅔ Tonnen, um den Wert des konstanten Kapitals zu
+    by: scan
+  - page: 196
+    from: 31⅛ Tonnen, diesem aliquoten Teile des Produkts, der
+    to: 31¼ Tonnen, diesem aliquoten Teile des Produkts, der
+    by: scan
+  - page: 196
+    from: nötig war, bei dem Werte der Tonne von 1/ 4 das Kapital
+    to: nötig war, bei dem Werte der Tonne von 1⅗ £ das Kapital
+    by: scan
+  - page: 196
+    from: zu ersetzen, sind jetzt nur noch 16 ⅛ nötig. Es bleiben also
+    to: zu ersetzen, sind jetzt nur noch 16⅔ nötig. Es bleiben also
+    by: scan
+  - page: 196
+    from: disponibel und fallen der Rente anheim 31/ — 16/, also
+    to: disponibel und fallen der Rente anheim 31¼ — 16⅔, also
+    by: scan
+  - page: 196
+    from: 14/2 Tonnen.
+    to: 14⁷⁄₁₂ Tonnen.
+    by: scan
+  - page: 196
+    from: Rechnen wir nun zusammen, den von 16/ Arbeitern
+    to: Rechnen wir nun zusammen, den von 16⅔ Arbeitern
+    by: scan
+  - page: 196
+    from: wert von 14/2e Tonnen und den Teil des Produkts sim
+    to: wert von 14⁷⁄₁₂ Tonnen und den Teil des Produkts [im
+    by: scan
+  - page: 196
+    from: Betrag) von 14/12 Tonnen, der jetzt, statt das konstante
+    to: Betrag] von 14⁷⁄₁₂ Tonnen, der jetzt, statt das konstante
+    by: scan
+  - page: 196
+    from: scheint, so beträgt das gesamte Mehrprodukt 29¼ Tonnen.
+    to: scheint, so beträgt das gesamte Mehrprodukt 29⅙ Tonnen.
     by: scan
   - page: 205
     from: 5) Ricardos Äußerungen über den Fall.
@@ -6073,7 +8309,7 @@ enthullungen-1885:
     to: "Man sieht: es waren nicht persönliche Gründe, die die Zentralbehörde"
     by: scan
   - page: 21
-    from: alteten. Es würe indeß benso falsch, ＋* —8——— Differen gu
+    from: alteten. Es würe indeß benso falsch, +* —8——— Differen gu
     to: spalteten. Es wäre indeß ebenso falsch, von prinzipieller Differenz zu
     by: scan
   - page: 21
@@ -6357,7 +8593,7 @@ enthullungen-1885:
     to: sechs Berichte des von Willich-Schapper abgesandten Emissärs Adolph
     by: scan
   - page: 24
-    from: aier d. d. Ln oahser, Sedgepouspoge Ee ＋*
+    from: aier d. d. Ln oahser, Sedgepouspoge Ee +*
     to: Majer d. d. Paris und fünf Berichte des leitenden Kreises Paris an
     by: scan
   - page: 24
@@ -6693,7 +8929,7 @@ enthullungen-1885:
     to: „Cherval,“ schwört Stieber (Sitzung vom 18. Oktober), „legte mir im Gefängniß, nachdem ich ihm zu seinem größten Erstaunen alle seine
     by: scan
   - page: 28
-    from: Driginalberichte welche er nach Ipdon ges Gdt ＋½½ und nachdem
+    from: Driginalberichte welche er nach Ipdon ges Gdt +½½ und nachdem
     to: Originalberichte, welche er nach London geschickt, vorgelegt, und nachdem
     by: scan
   - page: 28
@@ -7413,7 +9649,7 @@ enthullungen-1885:
     to: August 1852 wußte, daß
     by: reference
   - page: 58
-    from: ihm nämlich ＋* Denden
+    from: ihm nämlich +* Denden
     to: ihm nämlich den Fleury
     by: reference
   - page: 58
@@ -7869,7 +10105,7 @@ enthullungen-1885:
     to: fränkischen, hessischen und nassauischen Arbeiter-
     by: scan
   - page: 86
-    from: Die —＋ Mitglieber der
+    from: Die —+ Mitglieber der
     to: Die einflußreichsten Mitglieder der
     by: scan
   - page: 87

@@ -231,6 +231,11 @@ function isRule(line: Line, bodySize: number): boolean {
 }
 
 /** Letters mostly in capitals, off the centre: the facing page's edge. */
+/** A table's row read from the scan, its cells parted by bars. */
+function isTableRow(line: Line): boolean {
+  return line.corrected === true && /\s\|\s|^\[?\p{L}*\]? \|/u.test(line.text);
+}
+
 function isEdgeNoise(text: string): boolean {
   const letters = text.match(/\p{L}/gu) ?? [];
   const capitals = text.match(/\p{Lu}/gu) ?? [];
@@ -732,10 +737,11 @@ function bodyLines(page: Page, volume: Volume): Line[] {
 /** A token that reads as a word of three letters or more, with its punctuation. */
 const WORDLIKE = /^[„“"‚‘'(»«]*\p{L}{3,}[\p{L}-]*[.,;:!?“"'’)»«]*$/u;
 
-/** A line mostly of words: text or a heading, not a picture's scraps. */
+/** A line mostly of words, or a table's row read from the scan: text or a heading, not a picture's scraps. */
 function isClean(line: Line): boolean {
   const tokens = line.text.split(" ");
   return (
+    isTableRow(line) ||
     tokens.filter((token) => WORDLIKE.test(token)).length / tokens.length >= 0.5
   );
 }
@@ -759,6 +765,11 @@ function normalised(text: string): string {
       .replace(/(?<=\p{L})¬$/u, "-")
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
+      // The Fraktur model reads a plus and an equals sign at full width,
+      // and a pound after a figure as an ampersand.
+      .replace(/＋/g, "+")
+      .replace(/＝/g, "=")
+      .replace(/(?<=(?:^|[^\p{L}\d])[\d½¼¾⅓⅔⅛⅕⅖⅗⅙⅚⅐⁄¹²³⁰-⁹₀-₉]+ ?)&/gu, "£")
   );
 }
 
@@ -881,9 +892,18 @@ function correctedLines(
       const text = (fixed[index] ?? "").trim();
       // A line a correction empties was the scan's noise.
       if (text === "") return [];
-      return [
-        text === lines[index] ? line : { ...line, text, corrected: true },
-      ];
+      if (text === lines[index]) return [line];
+      // A correction that gives several lines restores those the OCR lost
+      // below this one, each in its share of the line's height.
+      const parts = text.split("\n").map((part) => part.trim());
+      const height = (line.bottom - line.y) / parts.length;
+      return parts.map((part, at) => ({
+        ...line,
+        y: line.y + at * height,
+        bottom: line.y + (at + 1) * height,
+        text: part,
+        corrected: true,
+      }));
     }),
   };
 }
@@ -1269,8 +1289,16 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           rest.every((other) => other.size < footSize * SAME_SIZE)))
     );
   };
+  // A table's row read from the scan, and a line the manifest names as
+  // opening a paragraph, is the text's, never the notes'.
+  const named = (line: Line): boolean =>
+    isTableRow(line) ||
+    (volume.paragraphOpenings ?? []).some((opens) =>
+      line.text.startsWith(opens),
+    );
   const footAt = headless.findIndex(
     (line, index) =>
+      !named(line) &&
       line.y > page.height * (isRule(line, footSize) ? RULE_ZONE : 0.5) &&
       (isRule(line, footSize)
         ? notesBelowRule(line, index)
@@ -1434,7 +1462,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
         isRule(line, bodySize) ||
         SIGNATURE.test(line.text) ||
         isEdgeNoise(line.text) ||
-        isScraps(line.text)
+        (!isTableRow(line) && isScraps(line.text))
       ) {
         return pieces;
       }
@@ -1459,6 +1487,14 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       line.width < volume.column / 2
     ) {
       return pieces;
+    }
+    // A table's row is text, however large the OCR read the line it fixes,
+    // and so is a line the manifest names as opening a paragraph.
+    if (isTableRow(line) || named(line)) {
+      return [
+        ...pieces,
+        { kind: "text", text: line.text, opens: opensParagraph(line, index) },
+      ];
     }
     const article = articleLines.get(index);
     if (article !== undefined) return withArticleLine(pieces, line, article);
@@ -1884,7 +1920,9 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     if (SIGNATURE.test(line.text) || isEdgeNoise(line.text)) return pieces;
     // Scraps without a word, away from the margin or several of them, are
     // marks on the scan, such as a rule read as letters; not a line's end.
+    // A table's row read from the scan is no scrap.
     if (
+      !isTableRow(line) &&
       !/\p{L}{3}/u.test(line.text) &&
       (Math.abs(line.x - margin) > page.width * INDENT || isScraps(line.text))
     ) {
