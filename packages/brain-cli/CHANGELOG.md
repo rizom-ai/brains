@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- [#598](https://github.com/rizom-ai/brains/pull/598) [`b282632`](https://github.com/rizom-ai/brains/commit/b282632c6dee99ffd42f8f3f1882826c61298797) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a brain's prompts takes effect on the next call instead of after a restart. For topics, an edited votes prompt re-reads every source, and topics chosen under the earlier prompt leave once the corpus has been read again, unless the new votes support them.
+
 ## 0.2.0-alpha.524
 
 ### Patch Changes

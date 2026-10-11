@@ -1,5 +1,17 @@
 # @brains/social-media
 
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.525
+  - @brains/contracts@0.2.0-alpha.525
+  - @brains/ui-library@0.2.0-alpha.525
+  - @brains/utils@0.2.0-alpha.525
+  - @brains/plugins@0.2.0-alpha.525
+  - @brains/templates@0.2.0-alpha.525
+
 ## 0.2.0-alpha.524
 
 ### Patch Changes
