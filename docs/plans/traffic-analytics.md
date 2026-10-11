@@ -2,11 +2,10 @@
 
 ## Status
 
-Phases 1 (capture) and 2 (reports) shipped: daily snapshots on the yeehaa
-rover since 2026-10-10, backfilled to 2026-04-13, and `traffic-overview` /
-`traffic-series` in `system_analytics`, with `analytics_query` removed.
-Snapshots are read-only system records. Phases 3 (traffic per entity) and 4
-(Studio) remain.
+Phases 1–3 shipped: daily snapshots on the yeehaa rover since 2026-10-10,
+backfilled to 2026-04-13; `traffic-overview`, `traffic-series` and
+`traffic-by-entity` in `system_analytics`, with `analytics_query` removed.
+Snapshots are read-only system records. Phase 4 (Studio) remains.
 
 ## Goal
 

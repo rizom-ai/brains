@@ -49,7 +49,11 @@ describe("AnalyticsPlugin Integration", () => {
 
     expect(capabilities.tools).toEqual([]);
     expect(reportTypes()).toEqual(
-      expect.arrayContaining(["traffic-overview", "traffic-series"]),
+      expect.arrayContaining([
+        "traffic-overview",
+        "traffic-series",
+        "traffic-by-entity",
+      ]),
     );
   });
 
@@ -59,7 +63,11 @@ describe("AnalyticsPlugin Integration", () => {
     await harness.installPlugin(new AnalyticsPlugin({}));
 
     expect(reportTypes()).toEqual(
-      expect.arrayContaining(["traffic-overview", "traffic-series"]),
+      expect.arrayContaining([
+        "traffic-overview",
+        "traffic-series",
+        "traffic-by-entity",
+      ]),
     );
   });
 });

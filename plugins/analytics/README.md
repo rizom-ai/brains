@@ -5,7 +5,7 @@ Keeps the brain's site traffic from Cloudflare Web Analytics and answers traffic
 ## Features
 
 - **Daily snapshots**: a daily check stores each day's traffic in weekly `traffic-snapshot` entities (restricted, read-only system records) while Cloudflare's counts are still exact, and backfills every earlier day Cloudflare still returns
-- **Traffic reports**: `traffic-overview` and `traffic-series` in `system_analytics`, read from the snapshots
+- **Traffic reports**: `traffic-overview`, `traffic-series` and `traffic-by-entity` in `system_analytics`, read from the snapshots
 - **Privacy-Focused**: Uses Cloudflare Web Analytics (no cookies, GDPR compliant)
 
 ## Configuration
@@ -55,6 +55,17 @@ Pageviews and visits per day (missing days without numbers) or per ISO week. Ext
 system_analytics({
   type: "traffic-series",
   params: { startDate: "2026-09-01", endDate: "2026-09-30", interval: "week" },
+});
+```
+
+### `traffic-by-entity`
+
+Pageviews per published piece over the range, busiest first, with each piece's top referrers. Pieces are the public, published entities of every type the site has pages for, each matched to its page through the site's entity display (the same routes the site builds). Extra params: `entityType` (one type), `limit` (default 10), `firstDays` (also count views in the first N days after `publishedAt`). Counts come from each day's top 25 pages, so a quiet page can read low.
+
+```typescript
+system_analytics({
+  type: "traffic-by-entity",
+  params: { entityType: "post", days: 30, firstDays: 7 },
 });
 ```
 
