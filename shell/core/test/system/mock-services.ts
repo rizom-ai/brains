@@ -37,7 +37,7 @@ interface Parser<T> {
   parse(input: unknown): T;
 }
 
-import { createInsightsRegistry } from "../../src/system/insights";
+import { createAnalyticsRegistry } from "../../src/system/analytics";
 
 /**
  * Create mock SystemServices for testing system tools.
@@ -591,7 +591,7 @@ export function createMockSystemServices(
       interactions: [],
     }),
     searchLimit: 10,
-    insights: createInsightsRegistry(entityRegistry),
+    analytics: createAnalyticsRegistry(entityRegistry),
     permissionService: new PermissionService({}),
     ...overrides,
     conversationService: {

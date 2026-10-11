@@ -2,9 +2,9 @@ import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
-  createTopicDistributionInsight,
+  createTopicDistributionReport,
   type TopicDistributionEntry,
-} from "../../src/insights/topic-distribution";
+} from "../../src/reports/topic-distribution";
 import type { BaseEntity, ContentVisibility } from "@brains/plugins";
 
 import { TopicAdapter } from "../../src/lib/topic-adapter";
@@ -14,6 +14,18 @@ const topicDistributionSchema = z.array(
 );
 
 const adapter = new TopicAdapter();
+
+/** The report's handler, called as the registry calls it. */
+function runReport(
+  options: Parameters<typeof createTopicDistributionReport>[0],
+): (
+  entityService: ReturnType<MockShell["getEntityService"]>,
+  visibilityScope: ContentVisibility,
+) => Promise<Record<string, unknown>> {
+  const report = createTopicDistributionReport(options);
+  return (entityService, visibilityScope) =>
+    report.handler({}, { entityService, visibilityScope });
+}
 
 /**
  * Fixed timestamps rather than `new Date()`: listings default to `updated`
@@ -78,14 +90,14 @@ function getTopicDistribution(
   return topicDistributionSchema.parse(result["topics"]);
 }
 
-describe("topic-distribution insight", () => {
+describe("topic-distribution report", () => {
   it("should return topics with titles", async () => {
     const shell = topicShell([
       makeTopicEntity("education", "Education"),
       makeTopicEntity("typescript", "TypeScript"),
     ]);
 
-    const handler = createTopicDistributionInsight(options);
+    const handler = runReport(options);
     const result = await handler(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)).toEqual([
@@ -100,7 +112,7 @@ describe("topic-distribution insight", () => {
       makeTopicEntity("private-topic", "Private Topic", "restricted"),
     ]);
 
-    const handler = createTopicDistributionInsight(options);
+    const handler = runReport(options);
     const result = await handler(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)).toEqual([]);
@@ -112,7 +124,7 @@ describe("topic-distribution insight", () => {
       makeTopicEntity("shared-topic", "Shared Topic", "shared"),
       makeTopicEntity("restricted-topic", "Restricted Topic", "restricted"),
     ]);
-    const handler = createTopicDistributionInsight(options);
+    const handler = runReport(options);
 
     const sharedResult = await handler(shell.getEntityService(), "shared");
     expect(
@@ -126,7 +138,7 @@ describe("topic-distribution insight", () => {
   });
 
   it("should return empty when topic entity type is not registered", async () => {
-    const handler = createTopicDistributionInsight(options);
+    const handler = runReport(options);
     const result = await handler(
       createMockShell().getEntityService(),
       "public",
@@ -143,10 +155,7 @@ describe("topic-distribution insight", () => {
       makeNote("private-note", "restricted"),
     ]);
 
-    const result = await createTopicDistributionInsight(options)(
-      shell.getEntityService(),
-      "public",
-    );
+    const result = await runReport(options)(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)).toEqual([]);
     const unextracted = unextractedSchema.parse(result["unextracted"]);
@@ -161,13 +170,13 @@ describe("topic-distribution insight", () => {
       makeNote("public-draft", "public", "draft"),
     ]);
 
-    const publicResult = await createTopicDistributionInsight(options)(
+    const publicResult = await runReport(options)(
       shell.getEntityService(),
       "public",
     );
     expect(publicResult).toEqual({ topics: [] });
 
-    const sharedResult = await createTopicDistributionInsight(options)(
+    const sharedResult = await runReport(options)(
       shell.getEntityService(),
       "shared",
     );
@@ -182,7 +191,7 @@ describe("topic-distribution insight", () => {
       makeNote("public-note"),
     ]);
 
-    const result = await createTopicDistributionInsight({
+    const result = await runReport({
       ...options,
       autoExtraction: false,
     })(shell.getEntityService(), "public");
@@ -198,7 +207,7 @@ describe("topic-distribution insight", () => {
       makeNote("public-note"),
     ]);
 
-    const result = await createTopicDistributionInsight({
+    const result = await runReport({
       ...options,
       isSourceType: (type) => type === "post",
     })(shell.getEntityService(), "public");
@@ -212,10 +221,7 @@ describe("topic-distribution insight", () => {
       makeNote("public-note"),
     ]);
 
-    const result = await createTopicDistributionInsight(options)(
-      shell.getEntityService(),
-      "public",
-    );
+    const result = await runReport(options)(shell.getEntityService(), "public");
 
     expect(result["unextracted"]).toBeUndefined();
   });

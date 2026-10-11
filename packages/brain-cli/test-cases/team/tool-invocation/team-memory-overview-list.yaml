@@ -27,7 +27,7 @@ successCriteria:
   expectedTools:
     - toolName: system_list
       shouldBeCalled: true
-    - toolName: system_insights
+    - toolName: system_analytics
       shouldBeCalled: false
   responseContains:
     - "Team Brain"

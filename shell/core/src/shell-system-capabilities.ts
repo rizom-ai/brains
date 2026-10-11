@@ -6,7 +6,7 @@ import {
 } from "@brains/job-queue";
 import type {
   DefaultQueryResponse,
-  IInsightsRegistry,
+  IAnalyticsRegistry,
   QueryContext,
 } from "@brains/plugins";
 import {
@@ -19,7 +19,7 @@ import { registerSystemCapabilities } from "./system/register";
 export interface ShellSystemCapabilityOptions {
   services: ShellServices;
   jobs: IJobsNamespace;
-  insights: IInsightsRegistry;
+  analytics: IAnalyticsRegistry;
   query: (
     prompt: string,
     context?: QueryContext,
@@ -30,7 +30,7 @@ export interface ShellSystemCapabilityOptions {
 export function registerShellSystemCapabilities(
   options: ShellSystemCapabilityOptions,
 ): void {
-  const { services, jobs, insights, query, getAppInfo } = options;
+  const { services, jobs, analytics, query, getAppInfo } = options;
   const jobQueueService = services.jobQueueService;
   const systemLogger = services.logger.child("system");
 
@@ -53,7 +53,7 @@ export function registerShellSystemCapabilities(
       getProfile: () => services.profileService.getProfile(),
       getAppInfo,
       searchLimit: 10,
-      insights,
+      analytics,
       permissionService: services.permissionService,
     },
     services.mcpService,

@@ -12,7 +12,7 @@ import {
   CloudflareClient,
   type CloudflareClientDeps,
 } from "./lib/cloudflare-client";
-import { createTrafficOverviewInsight } from "./insights/traffic-overview";
+import { createTrafficOverviewReport } from "./reports/traffic-overview";
 import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
 import { TrafficSnapshotPlugin } from "./entity/plugin";
 import { getErrorMessage } from "@brains/utils/error";
@@ -54,9 +54,8 @@ export class AnalyticsPlugin extends ServicePlugin<
       ? new CloudflareClient(this.config.cloudflare, this.deps)
       : undefined;
 
-    context.insights.register(
-      "traffic-overview",
-      createTrafficOverviewInsight(this.cloudflareClient),
+    context.analytics.register(
+      createTrafficOverviewReport(this.cloudflareClient),
     );
 
     // Site builds run in the worker and ask for head scripts as they render,

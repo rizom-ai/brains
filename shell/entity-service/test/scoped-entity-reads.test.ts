@@ -3,7 +3,7 @@ import { scopeEntityReads } from "../src/scoped-entity-reads";
 import { createMockEntityService } from "../src/test/mock-entity-service";
 
 // One read view for people who may see only part of a brain: a site build, a
-// visitor's insight. Every read it offers applies the scope it was made with,
+// visitor's report. Every read it offers applies the scope it was made with,
 // and a caller cannot widen it.
 describe("scopeEntityReads", () => {
   it("returns the service itself when there is nothing to scope", () => {

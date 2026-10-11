@@ -208,7 +208,7 @@ export type {
   IIdentityNamespace,
   IConversationsNamespace,
   IEvalNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IProfileKindsNamespace,
   IChannelsNamespace,
   IInboxNamespace,
@@ -377,8 +377,6 @@ export type {
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
-  IInsightsRegistry,
-  InsightHandler,
   QueryContext,
   JudgeInput,
   IMCPTransport,
@@ -995,3 +993,14 @@ export {
   type ConsoleSurface,
   type SurfacePermissionLevel,
 } from "./console-surfaces";
+
+export { AnalyticsRegistry } from "./analytics-registry";
+export type {
+  IAnalyticsRegistry,
+  RunAnalyticsReportRequest,
+} from "./analytics-registry";
+export { defineAnalyticsReport } from "./contracts/analytics";
+export type {
+  AnalyticsReportContext,
+  AnalyticsReportDefinition,
+} from "./contracts/analytics";

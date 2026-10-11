@@ -1,7 +1,7 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
-import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
-import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
+import { createTrafficOverviewReport } from "../../src/reports/traffic-overview";
+import type { TrafficStatsClient } from "../../src/reports/traffic-overview";
 import type { ICoreEntityService } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
@@ -10,7 +10,7 @@ const topPagesSchema = z.array(
 );
 
 // A real mock: an empty object asserted into the interface would keep
-// compiling after the insight started reading from the entity service.
+// compiling after the report started reading from the entity service.
 const mockEntityService: ICoreEntityService = createMockEntityService();
 
 function createMockClient(
@@ -33,11 +33,17 @@ function createMockClient(
   } satisfies TrafficStatsClient;
 }
 
-describe("traffic-overview insight", () => {
+describe("traffic-overview report", () => {
   it("should return pageviews, visitors, and top pages", async () => {
     const client = createMockClient();
-    const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService, "public");
+    const { handler } = createTrafficOverviewReport(client);
+    const result = await handler(
+      {},
+      {
+        entityService: mockEntityService,
+        visibilityScope: "restricted",
+      },
+    );
 
     expect(result["pageviews"]).toBe(1200);
     expect(result["visitors"]).toBe(450);
@@ -52,8 +58,14 @@ describe("traffic-overview insight", () => {
 
   it("should include date range in result", async () => {
     const client = createMockClient();
-    const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService, "public");
+    const { handler } = createTrafficOverviewReport(client);
+    const result = await handler(
+      {},
+      {
+        entityService: mockEntityService,
+        visibilityScope: "restricted",
+      },
+    );
 
     expect(result["days"]).toBe(7);
   });
@@ -65,16 +77,28 @@ describe("traffic-overview insight", () => {
       }),
     });
 
-    const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService, "public");
+    const { handler } = createTrafficOverviewReport(client);
+    const result = await handler(
+      {},
+      {
+        entityService: mockEntityService,
+        visibilityScope: "restricted",
+      },
+    );
 
     expect(result["error"]).toBe("API rate limited");
     expect(result["pageviews"]).toBeUndefined();
   });
 
   it("should return unavailable when no client provided", async () => {
-    const handler = createTrafficOverviewInsight(undefined);
-    const result = await handler(mockEntityService, "public");
+    const { handler } = createTrafficOverviewReport(undefined);
+    const result = await handler(
+      {},
+      {
+        entityService: mockEntityService,
+        visibilityScope: "restricted",
+      },
+    );
 
     expect(result["unavailable"]).toBe(true);
   });

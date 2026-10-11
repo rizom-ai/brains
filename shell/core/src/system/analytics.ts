@@ -1,11 +1,11 @@
-import { scopeEntityReads } from "@brains/entity-service";
 import type {
   BaseEntity,
   ContentVisibility,
   ReadOnlyEntityService,
   EntityRegistry,
 } from "@brains/entity-service";
-import type { IInsightsRegistry, InsightHandler } from "@brains/plugins";
+import { AnalyticsRegistry, defineAnalyticsReport } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 
 interface CadenceEntry {
   month: string;
@@ -28,67 +28,49 @@ interface StaleEntry {
   daysSinceUpdate: number;
 }
 
-/**
- * Registry for insight types.
- * Core registers generic insights; plugins register domain-specific ones.
- */
-export class InsightsRegistry implements IInsightsRegistry {
-  private handlers = new Map<string, InsightHandler>();
-
-  register(type: string, handler: InsightHandler): void {
-    this.handlers.set(type, handler);
-  }
-
-  unregister(type: string): void {
-    this.handlers.delete(type);
-  }
-
-  getTypes(): string[] {
-    return Array.from(this.handlers.keys());
-  }
-
-  async get(
-    type: string,
-    entityService: ReadOnlyEntityService,
-    visibilityScope: ContentVisibility,
-  ): Promise<Record<string, unknown>> {
-    const handler = this.handlers.get(type);
-    if (!handler) {
-      throw new Error(
-        `Unknown insight type: ${type}. Available: ${this.getTypes().join(", ")}`,
-      );
-    }
-    // A public caller is a site's visitor: every insight, a plugin's too,
-    // reads their view, where drafts are not there to count or list.
-    const reads =
-      visibilityScope === "public"
-        ? scopeEntityReads(entityService, {
-            publishedOnly: true,
-            visibilityScope,
-          })
-        : entityService;
-    return handler(reads, visibilityScope);
-  }
-}
+const noParams = z.object({});
 
 /**
- * Create an InsightsRegistry with the built-in generic insights.
+ * The analytics registry with core's generic reports; plugins add theirs.
  */
-export function createInsightsRegistry(
+export function createAnalyticsRegistry(
   entityRegistry: Pick<EntityRegistry, "getEntityTypeConfig">,
-): InsightsRegistry {
-  const registry = new InsightsRegistry();
+): AnalyticsRegistry {
+  const registry = new AnalyticsRegistry();
 
-  registry.register("overview", getOverview);
-  registry.register("publishing-cadence", getPublishingCadence);
-  registry.register("content-health", (entityService, visibilityScope) =>
-    getContentHealth(entityService, visibilityScope, entityRegistry),
+  registry.register(
+    defineAnalyticsReport({
+      type: "overview",
+      description:
+        "Entity counts by type, recent activity, and draft and published totals.",
+      params: noParams,
+      handler: async (_params, { entityService, visibilityScope }) =>
+        getOverview(entityService, visibilityScope),
+    }),
+  );
+  registry.register(
+    defineAnalyticsReport({
+      type: "publishing-cadence",
+      description: "Entities created per month, by type.",
+      params: noParams,
+      handler: async (_params, { entityService, visibilityScope }) =>
+        getPublishingCadence(entityService, visibilityScope),
+    }),
+  );
+  registry.register(
+    defineAnalyticsReport({
+      type: "content-health",
+      description: "Drafts and content not updated for a long time.",
+      params: noParams,
+      handler: async (_params, { entityService, visibilityScope }) =>
+        getContentHealth(entityService, visibilityScope, entityRegistry),
+    }),
   );
 
   return registry;
 }
 
-// ── Built-in insight handlers (entity-type agnostic) ──
+// ── Built-in report handlers (entity-type agnostic) ──
 
 async function getOverview(
   entityService: ReadOnlyEntityService,
