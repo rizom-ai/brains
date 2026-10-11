@@ -76,12 +76,14 @@ describe("declared binary entity types", () => {
       expect(JSON.stringify([get, search])).not.toContain("PRIVATE_BYTES");
     });
 
-    it(`${type}: excluded from stale insights`, async () => {
+    it(`${type}: excluded from stale content-health`, async () => {
       const { exec } = setup(type, "data-url");
-      expect(await exec("insights", { type: "content-health" })).toMatchObject({
-        success: true,
-        data: { stale: [] },
-      });
+      expect(await exec("analytics", { type: "content-health" })).toMatchObject(
+        {
+          success: true,
+          data: { stale: [] },
+        },
+      );
     });
 
     it.each(["prompt", "prompt-from-source"])(
@@ -125,7 +127,7 @@ describe("declared binary entity types", () => {
       success: true,
       data: { entity: { content: entity("text-type").content } },
     });
-    expect(await exec("insights", { type: "content-health" })).toMatchObject({
+    expect(await exec("analytics", { type: "content-health" })).toMatchObject({
       success: true,
       data: { stale: [{ id: "text-type-1" }] },
     });

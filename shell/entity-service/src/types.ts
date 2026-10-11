@@ -1059,7 +1059,7 @@ export interface ICoreEntityService {
   countEntities(request: CountEntitiesRequest): Promise<number>;
   /**
    * Group counts by entity type. Fails closed: undefined visibilityScope
-   * filters to public-only counts so aggregate insights cannot reveal
+   * filters to public-only counts so aggregate reports cannot reveal
    * non-public entity existence.
    */
   getEntityCounts(
@@ -1445,7 +1445,7 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
 /**
  * The read-only projection of the entity service.
  *
- * What a plugin is handed when it has no business writing: insight handlers
+ * What a plugin is handed when it has no business writing: analytics reports
  * compute over entities and return a summary. A projection of
  * `ICoreEntityService` rather than a hand-written parallel interface, so a
  * method that changes shape fails to compile here instead of drifting.

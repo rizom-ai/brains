@@ -2,8 +2,11 @@
 
 ## Status
 
-Proposed. Depends on [system-analytics-tool.md](./system-analytics-tool.md)
-for the agent surface; everything else here is new.
+Phases 1 (capture) and 2 (reports) shipped: daily snapshots on the yeehaa
+rover since 2026-10-10, backfilled to 2026-04-13, and `traffic-overview` /
+`traffic-series` in `system_analytics`, with `analytics_query` removed.
+Snapshots are read-only system records. Phases 3 (traffic per entity) and 4
+(Studio) remain.
 
 ## Goal
 
@@ -111,7 +114,9 @@ The traffic reports become `system_analytics` report definitions (see
 snapshots, with today added live when the range includes it:
 
 - `traffic-overview` — totals, change against the previous period, top
-  paths, referrers, countries; params `days` or a date range, `limit`.
+  paths, referrers, countries; params `days` or a date range, `limit`. The
+  owner's own pages (Studio, sign-in, API, operator surfaces) are kept out
+  of the top paths and counted apart.
 - `traffic-series` — pageviews and visits per day or week; params as above
   plus `interval`.
 - `traffic-by-entity` — views per published entity; params range, entity
@@ -145,7 +150,8 @@ subscriptions:
    `system_analytics` definitions over snapshots; `analytics_query` gone.
    Lands with or after system-analytics-tool phase 2.
 3. **Traffic per entity.** The path join and `traffic-by-entity`.
-4. **Studio.** Chart view, Traffic workspace, dashboard widget.
+4. **Studio.** Chart view, Traffic workspace, dashboard widget; the traffic
+   reports gain output schemas here, for the workspace to render.
 
 ## Validation
 

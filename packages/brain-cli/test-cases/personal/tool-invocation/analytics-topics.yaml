@@ -1,6 +1,6 @@
-id: tool-invocation-insights-topics
-name: Content Insights — Topics
-description: Tests that the agent uses system_insights when asked about topic distribution
+id: tool-invocation-analytics-topics
+name: Content Analytics — Topics
+description: Tests that the agent uses system_analytics when asked about topic distribution
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -8,7 +8,7 @@ tags:
   - recipe-headless
   - core
   - system
-  - insights
+  - analytics
   - bundle-core
 
 turns:
@@ -16,7 +16,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_insights
+    - toolName: system_analytics
       shouldBeCalled: true
   responseNotContains:
     - "I cannot"

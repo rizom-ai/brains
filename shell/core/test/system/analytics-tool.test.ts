@@ -4,6 +4,11 @@ import { createMockSystemServices } from "./mock-services";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
+import {
+  defineAnalyticsReport,
+  type AnalyticsReportDefinition,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 
 // The brain's owner, who sees work in progress; public callers are below.
 const toolContext: ToolContext = {
@@ -52,7 +57,7 @@ function makeEntity(
   };
 }
 
-describe("system_insights tool", () => {
+describe("system_analytics tool", () => {
   let services: ReturnType<typeof createMockSystemServices>;
   let tool: Tool;
 
@@ -87,7 +92,7 @@ describe("system_insights tool", () => {
     ]);
 
     const tools = createSystemTools(services);
-    tool = findTool(tools, "system_insights");
+    tool = findTool(tools, "system_analytics");
   });
 
   describe("overview", () => {
@@ -207,10 +212,10 @@ describe("system_insights tool", () => {
       ]);
 
       const tools = createSystemTools(services);
-      const insightsTool = findTool(tools, "system_insights");
+      const analyticsTool = findTool(tools, "system_analytics");
       expect(
         expectSuccessData(
-          await insightsTool.handler({ type: "content-health" }, toolContext),
+          await analyticsTool.handler({ type: "content-health" }, toolContext),
         ),
       ).toEqual(
         expect.objectContaining({
@@ -225,38 +230,112 @@ describe("system_insights tool", () => {
     });
   });
 
-  describe("extensibility", () => {
-    it("should support plugin-registered insight types", async () => {
-      services.insights.register("custom-metric", async () => ({
-        customValue: 42,
-      }));
+  describe("plugin reports", () => {
+    function rangeReport(seen: number[]): AnalyticsReportDefinition {
+      return defineAnalyticsReport({
+        type: "custom-range",
+        description: "A plugin report over a number of days.",
+        params: z.object({
+          days: z.number().int().min(1).default(7).describe("Days to cover"),
+        }),
+        handler: async ({ days }) => {
+          seen.push(days);
+          return { days };
+        },
+      });
+    }
 
-      const tools = createSystemTools(services);
-      const insightsTool = findTool(tools, "system_insights");
+    it("runs a plugin's report with its typed params", async () => {
+      const seen: number[] = [];
+      services.analytics.register(rangeReport(seen));
+      const analyticsTool = findTool(
+        createSystemTools(services),
+        "system_analytics",
+      );
+
       expect(
         expectSuccessData(
-          await insightsTool.handler({ type: "custom-metric" }, toolContext),
+          await analyticsTool.handler(
+            { type: "custom-range", params: { days: 30 } },
+            toolContext,
+          ),
         ),
-      ).toMatchObject({ customValue: 42 });
+      ).toEqual({ days: 30 });
+      await analyticsTool.handler({ type: "custom-range" }, toolContext);
+      expect(seen).toEqual([30, 7]);
     });
 
-    it("should list registered types in description", async () => {
-      services.insights.register("topic-distribution", async () => ({}));
+    it("refuses params the report does not accept, naming the report", async () => {
+      services.analytics.register(rangeReport([]));
+      const analyticsTool = findTool(
+        createSystemTools(services),
+        "system_analytics",
+      );
 
-      const tools = createSystemTools(services);
-      const insightsTool = findTool(tools, "system_insights");
+      const error = expectError(
+        await analyticsTool.handler(
+          { type: "custom-range", params: { days: 0 } },
+          toolContext,
+        ),
+      );
+      expect(error).toContain("custom-range");
+      expect(error).toContain("days");
+    });
 
-      expect(insightsTool.description).toContain("topic-distribution");
+    it("shows every report and its params in the tool's input schema", () => {
+      services.analytics.register(rangeReport([]));
+      const analyticsTool = findTool(
+        createSystemTools(services),
+        "system_analytics",
+      );
+
+      const schema = JSON.stringify(
+        z.toJSONSchema(z.object(analyticsTool.inputSchema)),
+      );
+      for (const type of ["overview", "content-health", "custom-range"]) {
+        expect(schema).toContain(`"${type}"`);
+      }
+      expect(schema).toContain("Days to cover");
+      expect(analyticsTool.description).toContain("custom-range");
+    });
+
+    it("keeps a report above the caller's level from them", async () => {
+      services.analytics.register(
+        defineAnalyticsReport({
+          type: "operational",
+          description: "Operational numbers for the owner.",
+          params: z.object({}),
+          minVisibility: "admin",
+          handler: async () => ({ secret: 1 }),
+        }),
+      );
+      const analyticsTool = findTool(
+        createSystemTools(services),
+        "system_analytics",
+      );
+
+      const error = expectError(
+        await analyticsTool.handler(
+          { type: "operational" },
+          { ...toolContext, userPermissionLevel: "trusted" },
+        ),
+      );
+      expect(error).toContain("operational");
+      expect(
+        expectSuccessData(
+          await analyticsTool.handler({ type: "operational" }, toolContext),
+        ),
+      ).toEqual({ secret: 1 });
     });
   });
 
   describe("invalid type", () => {
-    it("should return error for unknown insight type", async () => {
+    it("names the reports it has when asked for another", async () => {
       const error = expectError(
         await tool.handler({ type: "nonexistent" }, toolContext),
       );
 
-      expect(error).toContain("Unknown insight type");
+      expect(error).toContain("overview");
     });
   });
 
@@ -334,7 +413,7 @@ describe("system_insights tool", () => {
 
   describe("tool metadata", () => {
     it("should have correct name", () => {
-      expect(tool.name).toBe("system_insights");
+      expect(tool.name).toBe("system_analytics");
     });
 
     it("should be publicly visible", () => {

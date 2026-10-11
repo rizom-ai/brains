@@ -657,16 +657,6 @@ export const jobStatusInputSchema: z.ZodObject<{
   jobTypes: z.array(z.string()).optional().describe("Filter by job types"),
 });
 
-export const insightsInputSchema: z.ZodObject<{
-  type: z.ZodString;
-}> = z.object({
-  type: z
-    .string()
-    .describe(
-      "Type of insight to retrieve. Built-in: overview, publishing-cadence, content-health. Plugins may register additional types.",
-    ),
-});
-
 // ── Output schemas ──
 
 const createResultAttachmentSourceSchema: z.ZodObject<{

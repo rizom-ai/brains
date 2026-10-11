@@ -10,7 +10,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { IShell } from "../interfaces";
-import type { EvalHandler, InsightHandler } from "../contracts/handlers";
+import type { EvalHandler } from "../contracts/handlers";
 import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
 
@@ -44,7 +44,7 @@ import type {
   IIdentityNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
-  IInsightsNamespace,
+  IAnalyticsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
@@ -291,10 +291,10 @@ export function createEvalNamespace(
   };
 }
 
-export function createInsightsNamespace(shell: IShell): IInsightsNamespace {
+export function createAnalyticsNamespace(shell: IShell): IAnalyticsNamespace {
   return {
-    register: (type: string, handler: InsightHandler): void => {
-      shell.getInsightsRegistry().register(type, handler);
+    register: (definition): void => {
+      shell.getAnalyticsRegistry().register(definition);
     },
   };
 }

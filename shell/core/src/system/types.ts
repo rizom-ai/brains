@@ -9,7 +9,7 @@ import type {
   IRuntimeUploadsNamespace,
   RuntimeAppInfo,
 } from "@brains/plugins";
-import type { IInsightsRegistry } from "@brains/plugins";
+import type { IAnalyticsRegistry } from "@brains/plugins";
 import type { PermissionService } from "@brains/templates";
 
 /**
@@ -39,8 +39,8 @@ export interface SystemServices {
   /** Search config */
   searchLimit: number;
 
-  /** Extensible insights registry */
-  insights: IInsightsRegistry;
+  /** The system_analytics reports, core's and plugins' */
+  analytics: IAnalyticsRegistry;
 
   /** Permission checks for entity mutations */
   permissionService: PermissionService;

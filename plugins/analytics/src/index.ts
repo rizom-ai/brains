@@ -1,4 +1,4 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import {
@@ -6,17 +6,19 @@ import {
   type AnalyticsConfig,
   type AnalyticsConfigInput,
 } from "./config";
-import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
 import {
   CloudflareClient,
   type CloudflareClientDeps,
 } from "./lib/cloudflare-client";
-import { createTrafficOverviewInsight } from "./insights/traffic-overview";
+import { createTrafficReports } from "./reports/traffic-reports";
 import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
 import { TrafficSnapshotPlugin } from "./entity/plugin";
+import type { TrafficDay } from "./entity/schema";
 import { getErrorMessage } from "@brains/utils/error";
 import packageJson from "../package.json";
+
+const utcToday = (): string => new Date().toISOString().slice(0, 10);
 
 /**
  * Analytics plugin for querying website metrics from Cloudflare
@@ -54,10 +56,16 @@ export class AnalyticsPlugin extends ServicePlugin<
       ? new CloudflareClient(this.config.cloudflare, this.deps)
       : undefined;
 
-    context.insights.register(
-      "traffic-overview",
-      createTrafficOverviewInsight(this.cloudflareClient),
-    );
+    // Read from the snapshots; Cloudflare only adds today's numbers so far.
+    const client = this.cloudflareClient;
+    const traffic = createTrafficReports({
+      today: utcToday,
+      ...(client && {
+        liveDay: (date): Promise<TrafficDay> => client.getDailyTraffic(date),
+      }),
+    });
+    context.analytics.register(traffic.overview);
+    context.analytics.register(traffic.series);
 
     // Site builds run in the worker and ask for head scripts as they render,
     // so the beacon answers there; that process never runs the ready phase.
@@ -78,7 +86,7 @@ export class AnalyticsPlugin extends ServicePlugin<
       const capture = new TrafficCapture({
         client: this.cloudflareClient,
         store: entitySnapshotStore(context.entityService),
-        today: (): string => new Date().toISOString().slice(0, 10),
+        today: utcToday,
       });
       context.recurringChecks.register({
         id: "traffic-capture",
@@ -102,14 +110,6 @@ export class AnalyticsPlugin extends ServicePlugin<
         },
       });
     }
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return createAnalyticsTools(
-      this.id,
-      this.getContext(),
-      this.cloudflareClient,
-    );
   }
 }
 

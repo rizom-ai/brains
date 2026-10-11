@@ -136,7 +136,7 @@ The team recipe explicitly adds `docs`; assessment, decks, and other optional pr
 | `system_generate`   | Generate content or media artifacts              |
 | `system_update`     | Change fields, visibility, status, or content    |
 | `system_delete`     | Delete an item when the caller has permission    |
-| `system_insights`   | Return aggregate content or plugin reports       |
+| `system_analytics`  | Return aggregate content or plugin reports       |
 | `system_job_status` | Check background-job progress and results        |
 | `system_status`     | Report brain and service status                  |
 | `inbox_list`        | Read the live operator-attention projection      |

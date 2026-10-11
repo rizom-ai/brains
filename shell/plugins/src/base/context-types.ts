@@ -17,7 +17,9 @@ import type {
   ProfileKindDefinition,
   ResolvedProfileSelection,
 } from "@brains/identity-service";
-import type { EvalHandler, InsightHandler } from "../contracts/handlers";
+import type { EvalHandler } from "../contracts/handlers";
+import type { z } from "@brains/utils/zod";
+import type { AnalyticsReportDefinition } from "../contracts/analytics";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type {
   ChannelDeliveryProvider,
@@ -191,11 +193,13 @@ export interface IEvalNamespace {
 }
 
 /**
- * Insights namespace — register domain-specific insight handlers
+ * Analytics namespace — add reports to `system_analytics`
  */
-export interface IInsightsNamespace {
-  /** Register a named insight handler */
-  register: (type: string, handler: InsightHandler) => void;
+export interface IAnalyticsNamespace {
+  /** Register a report; one with the same type replaces it */
+  register: <TParams extends z.ZodObject>(
+    definition: AnalyticsReportDefinition<TParams>,
+  ) => void;
 }
 
 export interface IPermissionsNamespace {
