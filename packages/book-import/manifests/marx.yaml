@@ -821,6 +821,38 @@ books:
     lastPage: 600
     spacedNotes: true
     skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 248, opens: "Früher gaben" }
+      - { page: 248, opens: "Ausgelegtes Kapital |" }
+      - { page: 248, opens: "60 Quarters |" }
+      - { page: 248, opens: "10 Quarters |" }
+      - { page: 248, opens: "100 Quarters |" }
+      - { page: 248, opens: "Der Mehrwert ist also" }
+      - { page: 248, opens: "Betrachten wir ferner" }
+      - { page: 249, opens: "Wir hätten also" }
+      - { page: 249, opens: "Konstantes Kapital |" }
+      - { page: 249, opens: "66⅔ Quarters =" }
+      - { page: 249, opens: "Auf ein Gesamtprodukt" }
+      - { page: 358, opens: "Jahr |" }
+      - { page: 358, opens: "Erstes Jahr |" }
+      - { page: 358, opens: "Zweites Jahr |" }
+      - { page: 358, opens: "Drittes Jahr |" }
+      - { page: 358, opens: "Viertes Jahr |" }
+      - { page: 358, opens: "Fünftes Jahr |" }
+      - { page: 358, opens: "Sechstes Jahr |" }
+      - { page: 358, opens: "Siebentes Jahr |" }
+      - { page: 358, opens: "Achtes Jahr |" }
+      - { page: 358, opens: "Oder im achten" }
+      - { page: 400, opens: "Die Rechnung wäre" }
+      - { page: 400, opens: "1. Fall." }
+      - { page: 400, opens: "2. Fall." }
+      - { page: 400, opens: "3. Fall." }
+      - { page: 400, opens: "Der Wert des Produkts wäre" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 249, opens: "¹) Im Original steht" }
+      - { page: 400, opens: "¹) Im Original lautet" }
     slug: theorien-ueber-den-mehrwert-3
     title: "Theorien über den Mehrwert. Dritter Band: Von Ricardo zur Vulgärökonomie"
     shortTitle: Theorien über den Mehrwert III

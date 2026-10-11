@@ -7314,9 +7314,69 @@ theorienberden03marxuoft:
     from: Z. Variables Rapital und Akkumulation.
     to: 2. Variables Kapital und Akkumulation.
     by: scan
+  - page: 32
+    from: 1/½1 davon erfordert, die Arbeiter zu bezahlen, und der Profit
+    to: ¹⁰⁄₁₁ davon erfordert, die Arbeiter zu bezahlen, und der Profit
+    by: scan
+  - page: 32
+    from: der auf Bezahlung der Arbeit entfallende Anteil ½¼½2 und der
+    to: der auf Bezahlung der Arbeit entfallende Anteil ¹⁰⁄₁₂ und der
+    by: scan
+  - page: 32
+    from: die Arbeiter gleich ½1, und der Profit 30 Prozent.“
+    to: die Arbeiter gleich ¹⁰⁄₁₃, und der Profit 30 Prozent.“
+    by: scan
+  - page: 32
+    from: Landwirt wende im Landbau 2000 E an, davon 1500 in Samen,
+    to: Landwirt wende im Landbau 2000 £ an, davon 1500 in Samen,
+    by: scan
+  - page: 32
+    from: des Jahres sei 2400 C. Es ist klar, daß der Profit des Land-
+    to: des Jahres sei 2400 £. Es ist klar, daß der Profit des Land-
+    by: scan
+  - page: 32
+    from: des Produkts, nämlich 600 E nehmen und mit der Summe ver-
+    to: des Produkts, nämlich 600 £ nehmen und mit der Summe ver-
+    by: scan
   - page: 35
     from: 3. Uverproduktion und Upernonfumtion.
     to: 3. Überproduktion und Überkonsumtion.
+    by: scan
+  - page: 37
+    from: zent), so erhält der Arbeiter nur /8 und der Kapitalist
+    to: zent), so erhält der Arbeiter nur ¹⁰⁄₁₃ und der Kapitalist
+    by: scan
+  - page: 37
+    from: ½is des Produkts. Verkauft er zu 50 Prozent, also zu
+    to: ³⁄₁₃ des Produkts. Verkauft er zu 50 Prozent, also zu
+    by: scan
+  - page: 37
+    from: 150, so erhält der Arbeiter /8, der Kapitalist /8 des Pro-
+    to: 150, so erhält der Arbeiter ⅔, der Kapitalist ⅓ des Pro-
+    by: scan
+  - page: 38
+    from: gleich 10 Prozent, mit einem Kostenpreis von 90 ½1 pro-
+    to: gleich 10 Prozent, mit einem Kostenpreis von 90¹⁰⁄₁₁ pro-
+    by: scan
+  - page: 38
+    from: "duziert, verkauft es aber zu 100 (90 /½1: 9 ½1 100 10)."
+    to: "duziert, verkauft es aber zu 100 (90¹⁰⁄₁₁ : 9¹⁄₁₁ = 100 : 10)."
+    by: scan
+  - page: 38
+    from: 100, statt nur 901/1 zu bekommen, mit denen er, wir wollen
+    to: 100, statt nur 90¹⁰⁄₁₁ zu bekommen, mit denen er, wir wollen
+    by: scan
+  - page: 38
+    from: zum Werte von 90 5/ er ihnen nicht zu 100 wiederverkaufen
+    to: zum Werte von 90¹⁰⁄₁₁ er ihnen nicht zu 100 wiederverkaufen
+    by: scan
+  - page: 38
+    from: geht es den Arbeitern von B wie denen von A. Für 90 ½1
+    to: geht es den Arbeitern von B wie denen von A. Für 90¹⁰⁄₁₁
+    by: scan
+  - page: 38
+    from: Wert von 90½1 hat, denn jeder Teil des Produkts von
+    to: Wert von 90¹⁰⁄₁₁ hat, denn jeder Teil des Produkts von
     by: scan
   - page: 51
     from: Ricardos „Prineiples“ gelernten
@@ -7486,6 +7546,285 @@ theorienberden03marxuoft:
     from: speécie berechneter
     to: specie berechneter
     by: scan
+  - page: 248
+    from: Ausgelegtes Kapital Gesamtprodukt Mehrwert
+    to: Ausgelegtes Kapital | Gesamtprodukt | Mehrwert
+    by: scan
+  - page: 248
+    from: 60 Quarters 120 Quarters 60 Quarters
+    to: |-
+      60 Quarters | 120 Quarters | 60 Quarters
+      10 Quarters | 20 Quarters | 10 Quarters
+      100 Quarters | 200 Quarters | 100 Quarters
+    by: scan
+  - page: 248
+    from: Quarters. Früher waren 2 Quarters — 1 Arbeitstag oder
+    to: Quarters. Früher waren 2 Quarters = 1 Arbeitstag oder
+    by: scan
+  - page: 248
+    from: 1 Quarter = ½ Arbeitstag oder /s von eines Mannes
+    to: 1 Quarter = ½ Arbeitstag oder ⁹⁄₁₈ von eines Mannes
+    by: scan
+  - page: 248
+    from: 100 Arbeitstagen, also 1 Quarter das Produkt von /180
+    to: 100 Arbeitstagen, also 1 Quarter das Produkt von ¹⁰⁰⁄₁₈₀
+    by: scan
+  - page: 248
+    from: Arbeitstag ½is Arbeitstag. Mit anderen Worten, das
+    to: Arbeitstag = ¹⁰⁄₁₈ Arbeitstag. Mit anderen Worten, das
+    by: scan
+  - page: 248
+    from: Produkt ist um /1s Arbeitstag teurer oder die Arbeit ist un-
+    to: Produkt ist um ¹⁄₁₈ Arbeitstag teurer oder die Arbeit ist un-
+    by: scan
+  - page: 248
+    from: produktiver geworden, indem der Mann früher nur /s Ar-
+    to: produktiver geworden, indem der Mann früher nur ⁹⁄₁₈ Ar-
+    by: scan
+  - page: 248
+    from: er jetzt ½s braucht. Die Profitrate ist gestiegen, obgleich
+    to: er jetzt ¹⁰⁄₁₈ braucht. Die Profitrate ist gestiegen, obgleich
+    by: scan
+  - page: 248
+    from: Löhne, sind um ½s oder 5d Prozent gestiegen. Die 180
+    to: Löhne, sind um ¹⁄₁₈ oder 5⁵⁄₉ Prozent gestiegen. Die 180
+    by: scan
+  - page: 248
+    from: Der 18. Teil eines Arbeitstags also == 4 — 40 Minuten.
+    to: Der 18. Teil eines Arbeitstags also = ⁷²⁰⁄₁₈ = 40 Minuten.
+    by: scan
+  - page: 248
+    from: Falle dem Kapitalisten /¾8 360 Minuten. Also geben ihm
+    to: Falle dem Kapitalisten ⁹⁄₁₈ = 360 Minuten. Also geben ihm
+    by: scan
+  - page: 248
+    from: 60 Arbeiter 360 £ 60 Minuten. Von diesen 720 Minuten
+    to: 60 Arbeiter 360 × 60 Minuten. Von diesen 720 Minuten
+    by: scan
+  - page: 248
+    from: gibt der Arbeiter in dem zweiten Falle ½ms, also nur 320.
+    to: gibt der Arbeiter in dem zweiten Falle ⁸⁄₁₈, also nur 320.
+    by: scan
+  - page: 248
+    from: also 360 4 60 = 21600 Minuten. Der zweite wendet 100
+    to: also 360 × 60 = 21600 Minuten. Der zweite wendet 100
+    by: scan
+  - page: 248
+    from: an, gewinnt also 320 £ 100 = 32000 Minuten, demnach
+    to: an, gewinnt also 320 × 100 = 32000 Minuten, demnach
+    by: scan
+  - page: 249
+    from: anwenden, wovon 3½ für sein konstantes Kapital (Samen
+    to: anwenden, wovon 3⅓ für sein konstantes Kapital (Samen
+    by: scan
+  - page: 249
+    from: und fixes Kapital), 3⅛ für Arbeitslohn. Das Produkt
+    to: und fixes Kapital), 3⅓ für Arbeitslohn.¹ Das Produkt
+    by: scan
+  - page: 249
+    from: gleich 20 Quarters, wovon aber 6⅛ Quarters für fixes
+    to: gleich 20 Quarters, wovon aber 6⅔ Quarters für fixes
+    by: scan
+  - page: 249
+    from: Kapital abgehen, 12¾ das Produkt von 6/8 Arbeitstagen.
+    to: Kapital abgehen, 12⁴⁄₃ das Produkt von 6⅔ Arbeitstagen.
+    by: scan
+  - page: 249
+    from: Davon bilden 6¾ Arbeitslohn und 6⅝ Mehrwert.
+    to: Davon bilden 6⅔ Arbeitslohn und 6⅔ Mehrwert.
+    by: scan
+  - page: 249
+    from: Konstantes Kapital Arbeitslohn Gesamtprodukt Mehrwert
+    to: Konstantes Kapital | Arbeitslohn | Gesamtprodukt | Mehrwert
+    by: scan
+  - page: 249
+    from: 66½/ Quarters 66½ Quarters 200 Quarters 66½ Quarters
+    to: 66⅔ Quarters = 33⅓ Arbeitstage | 66⅔ Quarters (Lohn für 66⅔ Arbeitstage) | 200 Quarters = 100 Arbeitstage | 66⅔ Quarters = 33⅓ Arbeitstage, Mehrwert = 100 Proz.
+    by: scan
+  - page: 249
+    from: 33½ Arbeitstage (Lohn für 100 Arbeitstage 33½ Arbeitstage
+    to: ""
+    by: scan
+  - page: 249
+    from: 66/9 Arbeitstage) Mehrwert SZT 100 Proz.
+    to: ""
+    by: scan
+  - page: 249
+    from: Kapitalist einen Profit von 33 / Arbeitstagen. Oder auf
+    to: Kapitalist einen Profit von 33⅓ Arbeitstagen. Oder auf
+    by: scan
+  - page: 249
+    from: 200 Quarters 66 /8 Quarters. Oder wenn wir das ausgelegte
+    to: 200 Quarters 66⅔ Quarters. Oder wenn wir das ausgelegte
+    by: scan
+  - page: 249
+    from: Kapital in Quarters berechnen, auf 133 ¼ Quarters (das Pro-
+    to: Kapital in Quarters berechnen, auf 133⅓ Quarters (das Pro-
+    by: scan
+  - page: 249
+    from: dukt von 66 / Arbeitstagen), hat der Kapitalist 66 /8 Profit
+    to: dukt von 66⅔ Arbeitstagen), hat der Kapitalist 66⅔ Profit
+    by: scan
+  - page: 249
+    from: seine Profitrate von 50 Prozent], während der Kapitalist II
+    to: "[eine Profitrate von 50 Prozent], während der Kapitalist II"
+    by: scan
+  - page: 249
+    from: auf 100 Quarters Auslage 80 Profit hatte seine Profitrate
+    to: auf 100 Quarters Auslage 80 Profit hatte [eine Profitrate
+    by: scan
+  - page: 249
+    from: von J. Aber Jliefert mit derselben Arbeitszeit 200 Quarters,
+    to: von I. Aber I liefert mit derselben Arbeitszeit 200 Quarters,
+    by: scan
+  - page: 249
+    from: worin der andere 180; 1 Quarter von I ½ Arbeitstag,
+    to: worin der andere 180; 1 Quarter von I = ½ Arbeitstag,
+    by: scan
+  - page: 249
+    from: "Im Original steht: „6⅛ für Arbeitslohn.“ Aber 3½ Arbeitstage"
+    to: "¹) Im Original steht: „6⅔ für Arbeitslohn.“ Aber 3⅓ Arbeitstage"
+    by: scan
+  - page: 250
+    from: 1 Quarter von II ½is Arbeitstag, enthält also um /is mehr
+    to: 1 Quarter von II = ¹⁰⁄₁₈ Arbeitstag, enthält also um ¹⁄₁₈ mehr
+    by: scan
+  - page: 250
+    from: Arbeitszeit, wäre also teurer. Daher würde J den II aus
+    to: Arbeitszeit, wäre also teurer. Daher würde I den II aus
+    by: scan
+  - page: 250
+    from: Korn zu ½ Arbeitstag produziert oder /s Tag; also mit
+    to: Korn zu ½ Arbeitstag produziert oder ⁹⁄₁₈ Tag; also mit
+    by: scan
+  - page: 250
+    from: dieses Kapitals J ist gleich 100 Prozent. Sein Profit gleich
+    to: dieses Kapitals I ist gleich 100 Prozent. Sein Profit gleich
+    by: scan
+  - page: 250
+    from: Quarters liefert; also das Quarter gleich /8s Tag oder
+    to: Quarters liefert; also das Quarter gleich ¹⁰⁄₁₈ Tag oder
+    by: scan
+  - page: 250
+    from: ½½is Tag (40 Minuten) teurer als Nr. J. Die Arbeit sseiner
+    to: ¹⁄₁₈ Tag (40 Minuten) teurer als Nr. I. Die Arbeit [seiner
+    by: scan
+  - page: 250
+    from: Arbeiter] ist um ½s unproduktiver. Ihr Arbeitslohn, da
+    to: Arbeiter] ist um ¹⁄₁₈ unproduktiver. Ihr Arbeitslohn, da
+    by: scan
+  - page: 250
+    from: hält, ist um ½s gestiegen an realem Werte, das heißt in
+    to: hält, ist um ¹⁄₁₈ gestiegen an realem Werte, das heißt in
+    by: scan
+  - page: 250
+    from: gleich nun die Produktionskosten des Lohnes um ½s ge-
+    to: gleich nun die Produktionskosten des Lohnes um ¹⁄₁₈ ge-
+    by: scan
+  - page: 251
+    from: werden durch eine Auslage von bloß 100 Quarters.“
+    to: werden durch eine Auslage von bloß 100 Quarters.“¹
+    by: scan
+  - page: 251
+    from: derselben Menge Arbeit, der Arbeit von 100 Mann.“?
+    to: derselben Menge Arbeit, der Arbeit von 100 Mann.“²
+    by: scan
+  - page: 251
+    from: „Ein Quarter Korn ist nach wie vor das Produkt von 9½8
+    to: „Ein Quarter Korn ist nach wie vor das Produkt von ¹⁰⁄₁₈
+    by: scan
+  - page: 251
+    from: der Jahresarbeit eines Mannes. Jeder Arbeiter erhält wie
+    to: der Jahresarbeit eines Mannes.³ Jeder Arbeiter erhält wie
+    by: scan
+  - page: 251
+    from: bisher ein Quarter Korn, jeder also das Produkt von 9/18
+    to: bisher ein Quarter Korn, jeder also das Produkt von ¹⁰⁄₁₈
+    by: scan
+  - page: 251
+    from: der Jahresarbeit eines Mannes ... der Arbeitslohn ist noch das
+    to: der Jahresarbeit eines Mannes ..., der Arbeitslohn ist noch das
+    by: scan
+  - page: 251
+    from: Produkt derselben Arbeit wie bisher.“ . . . Es (das Quarter Korn)
+    to: Produkt derselben Arbeit wie bisher.⁴ ... Es (das Quarter Korn)
+    by: scan
+  - page: 251
+    from: Herr Mill vergißt, daß im ersten Falle die Auslage von 120
+    to: ¹) Herr Mill vergißt, daß im ersten Falle die Auslage von 120
+    by: scan
+  - page: 251
+    from: von 551½ Arbeitstagen (also im ersten Falle 1 Quarter gleich /s Ar-
+    to: von 55¹⁰⁄₁₈ Arbeitstagen (also im ersten Falle 1 Quarter gleich ⁹⁄₁₈ Ar-
+    by: scan
+  - page: 251
+    from: beitstag, im zweiten gleich /18).
+    to: beitstag, im zweiten gleich ¹⁰⁄₁₈).
+    by: scan
+  - page: 251
+    from: 2 Pardon! Die 180 Quarters waren früher das Resultat von 90 Ar-
+    to: ²) Pardon! Die 180 Quarters waren früher das Resultat von 90 Ar-
+    by: scan
+  - page: 251
+    from: Pardon! Es war früher das Produkt von ½s eines Mannes
+    to: ³) Pardon! Es war früher das Produkt von ⁹⁄₁₈ eines Mannes
+    by: scan
+  - page: 251
+    from: Pardon! Erstens ist 1 Quarter Korn jetzt in der Tat das Produkt
+    to: ⁴) Pardon! Erstens ist 1 Quarter Korn jetzt in der Tat das Produkt
+    by: scan
+  - page: 251
+    from: von ½s Tag, während es früher das Produkt von ½is war, es kostet
+    to: von ¹⁰⁄₁₈ Tag, während es früher das Produkt von ⁹⁄₁₈ war, es kostet
+    by: scan
+  - page: 252
+    from: ist nun das Produkt von ½s der Arbeit eines Mannes und
+    to: ist nun das Produkt von ¹⁰⁄₁₈ der Arbeit eines Mannes und
+    by: scan
+  - page: 252
+    from: sonst nichts.. Vordem erforderte es dagegen zu seiner Pro-
+    to: sonst nichts.¹ Vordem erforderte es dagegen zu seiner Pro-
+    by: scan
+  - page: 252
+    from: der eine Quarter früher ½/s des Arbeitstags kostete; er
+    to: der eine Quarter früher ¹⁰⁄₁₈ des Arbeitstags kostete; er
+    by: scan
+  - page: 252
+    from: kostete nur ½8. Noch falscher (wäre eine Gradation in
+    to: kostete nur ⁹⁄₁₈. Noch falscher (wäre eine Gradation in
+    by: scan
+  - page: 252
+    from: absolut Falschem möglich), daß zu diesen ½s Arbeitstag
+    to: absolut Falschem möglich), daß zu diesen ⁹⁄₁₈ Arbeitstag
+    by: scan
+  - page: 252
+    from: "beitstagen: 1 Quarter =E /80 ½ Arbeitstag ½1s. Es"
+    to: "beitstagen: 1 Quarter = ⁹⁰⁄₁₈₀ = ½ Arbeitstag = ⁹⁄₁₈. Es"
+    by: scan
+  - page: 252
+    from: kommt also durchaus kein Zusatz zu ihrem /1s oder dem
+    to: kommt also durchaus kein Zusatz zu ihrem ⁹⁄₁₈ oder dem
+    by: scan
+  - page: 252
+    from: halben Arbeitstag hinzu, den 1 Quarter im Falle Nr. kostete.
+    to: halben Arbeitstag hinzu, den 1 Quarter im Falle Nr. I kostete.
+    by: scan
+  - page: 252
+    from: Produkt zu gleichen Teilen zwischen den 60 Arbeitern und TTTTTTTTTTTTTTTCTCTCWTWTWWWC CC
+    to: Produkt zu gleichen Teilen zwischen den 60 Arbeitern und
+    by: scan
+  - page: 252
+    from: also ½s mehr Arbeit, und zweitens ist die Entlohnung eines einzelnen
+    to: also ¹⁄₁₈ mehr Arbeit, und zweitens ist die Entlohnung eines einzelnen
+    by: scan
+  - page: 252
+    from: Arbeiters, ob das Quarter ½s oder ½s seines Tages koste, nie mit
+    to: Arbeiters, ob das Quarter ⁹⁄₁₈ oder ¹⁰⁄₁₈ seines Tages koste, nie mit
+    by: scan
+  - page: 252
+    from: Das ist nicht richtig.
+    to: ¹) Das ist nicht richtig.
+    by: scan
   - page: 270
     from: Peel ete. on
     to: Peel etc. on
@@ -7493,6 +7832,18 @@ theorienberden03marxuoft:
   - page: 270
     from: England ete.
     to: England etc.
+    by: scan
+  - page: 272
+    from: frage und deren Effekt, den dasselbe 6 den Marktpreis
+    to: frage und deren Effekt, den dasselbe auf den Marktpreis
+    by: scan
+  - page: 272
+    from: 11 Pence (in der Tat 11/, da sein Preis nicht ganz wie
+    to: 11 Pence (in der Tat 11⁶⁄₈, da sein Preis nicht ganz wie
+    by: scan
+  - page: 272
+    from: Tat 87/), im zweiten 7 (in der Tat 7/). Hier war also
+    to: Tat 8⅛), im zweiten 7 (in der Tat 7⅜). Hier war also
     by: scan
   - page: 281
     from: III. õegensatz gegen die öRonomen auf Basis dler
@@ -7542,6 +7893,46 @@ theorienberden03marxuoft:
     from: (Labour deéfended, S.
     to: (Labour defended, S.
     by: scan
+  - page: 358
+    from: tal + 10 Zins) + 10 Zins + 1 Zins 121 usw. Die Steige-
+    to: tal + 10 Zins) + 10 Zins + 1 Zins = 121 usw. Die Steige-
+    by: scan
+  - page: 358
+    from: Kapital Zins Summe
+    to: Jahr | Kapital | Zins | Summe
+    by: scan
+  - page: 358
+    from: Erstes Jahr.. 100 10 110⁰
+    to: Erstes Jahr | 100 | 10 | 110
+    by: scan
+  - page: 358
+    from: Zweites Jahr .. 110 10 + 1 121
+    to: Zweites Jahr | 110 | 10 + 1 | 121
+    by: scan
+  - page: 358
+    from: Drittes Jahr. . 121 10 + 2 ½10 133 ½10
+    to: Drittes Jahr | 121 | 10 + 2¹⁄₁₀ | 133¹⁄₁₀
+    by: scan
+  - page: 358
+    from: Viertes Joahr.. 133½/10 10 + 3½½10 146 ½100
+    to: Viertes Jahr | 133¹⁄₁₀ | 10 + 3³¹⁄₁₀₀ | 146⁴¹⁄₁₀₀
+    by: scan
+  - page: 358
+    from: Fünftes Jahr. . 146 ½/100 10 + 4%¼½100 161½1000
+    to: Fünftes Jahr | 146⁴¹⁄₁₀₀ | 10 + 4⁶⁴¹⁄₁₀₀₀ | 161⁵¹⁄₁₀₀₀
+    by: scan
+  - page: 358
+    from: Sechstes Jahr. . 161/100 10 + 6½/10 177½100
+    to: Sechstes Jahr | 161⁵⁄₁₀₀ | 10 + 6¹⁄₁₀ | 177¹⁵⁄₁₀₀
+    by: scan
+  - page: 358
+    from: Siebentes Jahr . 177½100 10 + 77½1000 19486½1000
+    to: Siebentes Jahr | 177¹⁵⁄₁₀₀ | 10 + 7⁷¹⁵⁄₁₀₀₀ | 194⁸⁶⁵⁄₁₀₀₀
+    by: scan
+  - page: 358
+    from: Achtes Jahr. 1947/100 10 + 97½1000 214½1000
+    to: Achtes Jahr | 194⁸⁷⁄₁₀₀ | 10 + 9⁴⁸⁷⁄₁₀₀₀ | 214³⁵⁷⁄₁₀₀₀
+    by: scan
   - page: 371
     from: Demand ete.“ London
     to: Demand etc.“ London
@@ -7571,6 +7962,18 @@ theorienberden03marxuoft:
     to: 1. Das Kapital eine historische Kategorie.
     by: scan
   - page: 386
+    from: Produkt der Arbeit von 66 /8 Mann oder nur zwei Drittel
+    to: Produkt der Arbeit von 66⅔ Mann oder nur zwei Drittel
+    by: scan
+  - page: 386
+    from: Arbeitszeit von 66½8s Mann zu zahlen, und den Rest in die
+    to: Arbeitszeit von 66⅔ Mann zu zahlen, und den Rest in die
+    by: scan
+  - page: 386
+    from: an, statt früher nur von 33/.
+    to: an, statt früher nur von 33⅓.
+    by: scan
+  - page: 386
     from: z2. Wert und Produktionspreis.
     to: 2. Wert und Produktionspreis.
     by: scan
@@ -7581,6 +7984,138 @@ theorienberden03marxuoft:
   - page: 396
     from: 3. Ronstantes RKapital und Profitrate.
     to: 3. Konstantes Kapital und Profitrate.
+    by: scan
+  - page: 400
+    from: gleich 80 H oder haben nicht mehr Wert wie früher die
+    to: gleich 80 £ oder haben nicht mehr Wert wie früher die
+    by: scan
+  - page: 400
+    from: Quarters zu 14 (wenn er sein ganzes Produkt verkauft).
+    to: Quarters zu 1 £ (wenn er sein ganzes Produkt verkauft).
+    by: scan
+  - page: 400
+    from: Und nimmt so 200 L ein. Aber von den 200 Quarters
+    to: Und nimmt so 200 £ ein. Aber von den 200 Quarters
+    by: scan
+  - page: 400
+    from: haben ihn 60 jedes 2 4 gekostet; die restierenden bringen
+    to: haben ihn 60 jedes 2 £ gekostet; die restierenden bringen
+    by: scan
+  - page: 400
+    from: ihm daher nur ½ H.
+    to: ihm daher nur ⁴⁄₇ £.
+    by: scan
+  - page: 400
+    from: legt (gleich 20 4%), 40 Quarters Arbeitslohn (40 4) und
+    to: legt (gleich 20 £), 40 Quarters Arbeitslohn (40 £) und
+    by: scan
+  - page: 400
+    from: 40 Quarters anderes konstantes Kapital (40 H), also im
+    to: 40 Quarters anderes konstantes Kapital (40 £), also im
+    by: scan
+  - page: 400
+    from: um 20 £, da in den Wert des Gesamtprodukts jetzt um 20
+    to: um 20 £, da in den Wert des Gesamtprodukts jetzt um 20 £
+    by: scan
+  - page: 400
+    from: ters enthalten nun an Wert 20 4 Aussaat, 40 £ anderes
+    to: ters enthalten nun an Wert 20 £ Aussaat, 40 £ anderes
+    by: scan
+  - page: 400
+    from: 180 4£. Der Wert des Quarters sinkt auf /0 . Von dem
+    to: 180 £. Der Wert des Quarters sinkt auf ⁹⁄₁₀ £. Von dem
+    by: scan
+  - page: 400
+    from: Profit 80 £, Profitrate 66 / Prozent.
+    to: Profit 80 £, Profitrate 66⅔ Prozent.
+    by: scan
+  - page: 400
+    from: "2. Fall. Produkt: 200 Quarters = 200 , Auslagen 120 £,"
+    to: "2. Fall. Produkt: 200 Quarters = 200 £, Auslagen 120 £,"
+    by: scan
+  - page: 400
+    from: Profit 80 £, Profitrate 66 /8 Prozent.
+    to: Profit 80 £, Profitrate 66⅔ Prozent.
+    by: scan
+  - page: 400
+    from: "3. Fall. Produkt: 200 Quarters = 180 E, Auslagen 100 £,"
+    to: "3. Fall. Produkt: 200 Quarters = 180 £, Auslagen 100 £,"
+    by: scan
+  - page: 400
+    from: Profitrate gestiegen.])
+    to: Profitrate gestiegen.]¹
+    by: scan
+  - page: 400
+    from: "Im Original lautet dieser Passus:"
+    to: "¹) Im Original lautet dieser Passus:"
+    by: scan
+  - page: 400
+    from: „Wenn er nun wieder 20 Quarters auslegt (S 10 £), 40 Quarters
+    to: „Wenn er nun wieder 20 Quarters auslegt (= 10 £), 40 Quarters
+    by: scan
+  - page: 400
+    from: Arbeitslohn ( 20 £) und 40 Quarters anderes konstantes Kapital
+    to: Arbeitslohn (= 20 £) und 40 Quarters anderes konstantes Kapital
+    by: scan
+  - page: 400
+    from: (Sᷓ 20 S), also im ganzen 100 Quarters, statt früher 60, und er macht
+    to: (= 20 £), also im ganzen 100 Quarters, statt früher 60, und er macht
+    by: scan
+  - page: 400
+    from: "noch gleich 10. — Die Rechnung macht sich also so:"
+    to: "noch gleich 10. — Die Rechnung macht sich also so: Konstantes Kapital | Variables Kapital | Mehrwert. 1. 20 Qu. = 20 £ Aussaat, 20 Qu. = 20 £ Arbeitsinstrument usw. | 20 Qu. (20 £) | 40 Qu. (40 £). 2. 20 Qu. = 10 £ Aussaat, 40 Qu. = 20 £ Arbeitsinstrument usw. | 40 Qu. (20 £) | 80 Qu. (40 £). Produkt im ersten Falle 100 Qu. = 100 £. Produkt im zweiten Falle 180 Qu. = 90 £. Dennoch wäre die Rate des Profits gestiegen; denn im ersten Falle 40 £ auf Auslage von 60 £ und im zweiten 40 auf Auslage von 50. Das erste 66⅔ Prozent. Das zweite 80 Prozent.“ K."
+    by: scan
+  - page: 401
+    from: 20 Quarters Aussaat (40 £%) (und die übrigen Auslagen
+    to: 20 Quarters Aussaat (40 £) (und die übrigen Auslagen
+    by: scan
+  - page: 401
+    from: — 40 Quarters = 80 £) statt wie in der vorigen Ernte
+    to: = 40 Quarters = 80 £) statt wie in der vorigen Ernte
+    by: scan
+  - page: 401
+    from: Konstantes Kapital Variables Kapital Mehrwert
+    to: ""
+    by: scan
+  - page: 401
+    from: 1. 20 Qu. = 20 Aussaat 20 Qu. (20 4) 40 Qu. (40 )
+    to: ""
+    by: scan
+  - page: 401
+    from: 20 Qu. = 20 £ Arbeitsinstrument usw.
+    to: ""
+    by: scan
+  - page: 401
+    from: 2. 20 Qu. —= 10 £ Aussaat 40 Qu. (20 4) 80 Qu. (40 4)
+    to: ""
+    by: scan
+  - page: 401
+    from: 40 Qu. = 20 £ Arbeitsinstrument usw.
+    to: ""
+    by: scan
+  - page: 401
+    from: Produkt im ersten Falle 100 Qu. S 100 £
+    to: ""
+    by: scan
+  - page: 401
+    from: Produkt im zweiten Falle 180 Qu. = 90 K.
+    to: ""
+    by: scan
+  - page: 401
+    from: Dennoch wäre die Rate des Profits gestiegen; denn im ersten Falle
+    to: ""
+    by: scan
+  - page: 401
+    from: 40 £ auf Auslage von 60 £ und im zweiten 40 auf Auslage von 50.
+    to: ""
+    by: scan
+  - page: 401
+    from: Das erste 66 ⅛ Prozent. Das zweite 80 Prozent.“ K.
+    to: ""
+    by: scan
+  - page: 401
+    from: Marx, Theorien über den Mehrwert. III. 26
+    to: ""
     by: scan
   - page: 424
     from: 1. Konstantes und variables Rapital.
