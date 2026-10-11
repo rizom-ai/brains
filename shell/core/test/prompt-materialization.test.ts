@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { materializePrompts, resetPromptCache } from "@brains/plugins";
+import {
+  materializePrompts,
+  resetPromptMaterialization,
+} from "@brains/plugins";
 
 describe("materializePrompts", () => {
   let mockEntityService: {
@@ -11,7 +14,7 @@ describe("materializePrompts", () => {
   };
 
   beforeEach(() => {
-    resetPromptCache();
+    resetPromptMaterialization();
 
     mockEntityService = {
       getEntity: mock(() => Promise.resolve(null)),

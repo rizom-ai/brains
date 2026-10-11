@@ -7,10 +7,12 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { createId } from "@brains/utils/id";
+import { computeContentHash } from "@brains/utils/hash";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { TopicsPluginConfig } from "../schemas/config";
 import {
+  topicSelectionSchema,
   topicVoteSchema,
   topicVoteResponseSchema,
   topicDescriptionResponseSchema,
@@ -35,6 +37,7 @@ import {
 import { TopicAdapter } from "./topic-adapter";
 import { TopicService } from "./topic-service";
 import { TOPICS_BATCH_COMPLETED_EVENT } from "./constants";
+import { topicVoteTemplate } from "../templates/vote-template";
 
 const MAX_AI_CALLS = 10;
 const EXECUTION_TIMEOUT_MS = 180_000;
@@ -175,6 +178,7 @@ async function loadSources(
 
 function normalizeVote(
   source: BaseEntity,
+  promptVersion: string,
   result: TopicVoteResponse["sources"][number],
   listedTitles: ReadonlySet<string>,
   context: EntityPluginContext,
@@ -200,6 +204,7 @@ function normalizeVote(
   const slug = proposal ? generateIdFromText(proposal.title) : "";
   return {
     contentHash: source.contentHash,
+    promptVersion,
     visibility: config.extractionVisibility,
     supported: [...supported.values()].sort((left, right) =>
       left.slug.localeCompare(right.slug),
@@ -235,6 +240,10 @@ export function createRankedTopicJobHandler(
   const leases = context.runtimeState.scoped({
     namespace: "topics.extraction",
     schema: leaseSchema,
+  });
+  const selections = context.runtimeState.scoped({
+    namespace: "topics.selection",
+    schema: topicSelectionSchema,
   });
   const topics = new TopicService(context.entityService, logger);
   const adapter = new TopicAdapter();
@@ -272,6 +281,13 @@ export function createRankedTopicJobHandler(
       let calls = 0;
       let changed = 0;
       try {
+        // Votes are cast under the votes prompt; an edited prompt re-reads all.
+        const promptVersion = computeContentHash(
+          await context.prompts.resolve(
+            topicVoteTemplate.name,
+            topicVoteTemplate.basePrompt ?? "",
+          ),
+        );
         let sources = await readSources(context, config, signal);
         const saved = new Map(
           (await votes.list()).map(({ key, value }) => [key, value]),
@@ -299,6 +315,7 @@ export function createRankedTopicJobHandler(
           const vote = saved.get(source.key);
           return (
             vote?.contentHash === source.contentHash &&
+            vote.promptVersion === promptVersion &&
             vote.visibility === config.extractionVisibility
           );
         };
@@ -340,6 +357,25 @@ export function createRankedTopicJobHandler(
             return { id: topic.id, title, slug: generateIdFromText(title) };
           });
         let active = await readActive();
+        // Topics chosen under an earlier prompt no longer steer the votes; once
+        // every source is read again they stay only if the new votes support them.
+        const selection = await selections.get("current");
+        let earlier = new Set(
+          selection?.promptVersion === promptVersion
+            ? selection.earlier
+            : selection
+              ? active.map(({ id }) => id)
+              : [],
+        );
+        const recordSelection = async (): Promise<void> => {
+          const ids = new Set(active.map(({ id }) => id));
+          earlier = new Set([...earlier].filter((id) => ids.has(id)));
+          await selections.set("current", {
+            promptVersion,
+            earlier: [...earlier].sort(),
+          });
+        };
+        if (selection?.promptVersion !== promptVersion) await recordSelection();
         const ceiling = (): number =>
           topicSoftCeiling(sources.length, config.topicSoftCeilingSourceRatio);
         const choose = (): ReturnType<typeof chooseTopicChallenger> => {
@@ -359,6 +395,17 @@ export function createRankedTopicJobHandler(
 
         const select = async (): Promise<void> => {
           const support = tally();
+          if (allRead() && earlier.size > 0) {
+            for (const topic of active.filter(({ id }) => earlier.has(id))) {
+              signal.throwIfAborted();
+              if ((support.get(topic.slug)?.support ?? 0) > 0) continue;
+              await topics.deleteTopic(topic.id);
+              active = active.filter(({ id }) => id !== topic.id);
+              changed++;
+            }
+            earlier = new Set();
+            await recordSelection();
+          }
           while (allRead() && active.length > ceiling()) {
             signal.throwIfAborted();
             const weakest = weakestTopic(active, support);
@@ -454,6 +501,7 @@ export function createRankedTopicJobHandler(
           const batch = await loadSources(context, config, refs);
           if (batch.length === 0) continue;
           const currentTitles = active
+            .filter(({ id }) => !earlier.has(id))
             .map(({ title }) => title)
             .sort()
             .slice(0, ceiling());
@@ -509,7 +557,14 @@ export function createRankedTopicJobHandler(
             signal.throwIfAborted();
             await checkpoint(
               sourceKey(source),
-              normalizeVote(source, result, listedTitles, context, config),
+              normalizeVote(
+                source,
+                promptVersion,
+                result,
+                listedTitles,
+                context,
+                config,
+              ),
             );
           }
         }
@@ -535,6 +590,7 @@ export function createRankedTopicJobHandler(
             );
             await checkpoint(key, {
               contentHash: source.contentHash,
+              promptVersion,
               visibility: config.extractionVisibility,
               supported: [],
               proposal: null,

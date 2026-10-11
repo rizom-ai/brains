@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
 import {
   createTestEntity,
   createMockEntityService,
@@ -395,6 +395,7 @@ describe("bounded ranked topic extraction", () => {
     await f.run("abstained");
     expect(await f.store.get("note:note-002")).toEqual({
       contentHash: "hash-2",
+      promptVersion: expect.any(String),
       visibility: "public",
       supported: [],
       proposal: null,
@@ -439,6 +440,49 @@ describe("bounded ranked topic extraction", () => {
     expect(await failures.list()).toHaveLength(0);
   });
 
+  /** An owner's edit to the votes prompt, as directory-sync would import it. */
+  const editVotesPrompt = (f: Fixture, body: string): void => {
+    f.entities.set(
+      "prompt:topics-votes",
+      createTestEntity("prompt", {
+        id: "topics-votes",
+        content: `---\ntitle: Topics Votes\ntarget: 'topics:votes'\n---\n${body}`,
+      }),
+    );
+  };
+
+  it("re-reads every source when the votes prompt changes", async () => {
+    const f = fixture(8);
+    await f.run();
+    expect(f.calls).toHaveLength(2);
+    await f.run("unchanged");
+    expect(f.calls).toHaveLength(2);
+
+    editVotesPrompt(f, "Name each topic in the author's own terms.");
+    await f.run("edited");
+    expect(f.calls).toHaveLength(4);
+    await f.run("settled");
+    expect(f.calls).toHaveLength(4);
+  });
+
+  it("lets topics chosen under an earlier prompt go once the corpus is re-read", async () => {
+    const f = fixture(8, { propose: true });
+    f.addTopic("Legacy");
+    await f.run();
+    expect(f.calls[0]?.prompt).toContain("Current topics:\nLegacy");
+
+    editVotesPrompt(f, "Name each topic in the author's own terms.");
+    await f.run("edited");
+    // The earlier prompt's topics no longer steer the votes...
+    const votes = f.calls.filter(
+      ({ templateName }) => templateName === "topics:votes",
+    );
+    expect(votes.at(-1)?.prompt).not.toContain("Legacy");
+    // ...and without support under the current prompt, they leave.
+    expect(f.entities.has("topic:legacy")).toBe(false);
+    expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
   it("defers replacing topics until every source has a current vote", async () => {
     const f = fixture(45, { propose: true });
     for (const title of [
@@ -466,10 +510,14 @@ describe("bounded ranked topic extraction", () => {
 
   it("reads sources in pages and loads full content only for prompted sources", async () => {
     const f = fixture(45);
+    const reads = spyOn(f.service, "getEntity");
     await f.run();
     expect(f.sourceListLimits.length).toBeGreaterThan(0);
     expect(f.sourceListLimits.every((limit) => limit !== undefined)).toBe(true);
-    expect(f.service.getEntity).toHaveBeenCalledTimes(40);
+    const sourceReads = reads.mock.calls.filter(
+      ([request]) => request.entityType === "note",
+    );
+    expect(sourceReads).toHaveLength(40);
   });
 
   it("does not publish evidence that became private during description generation", async () => {
