@@ -72,6 +72,20 @@ describe("AnchorProfileAdapter", () => {
   });
 
   describe("toMarkdown", () => {
+    it("keeps changed content authoritative over stale projected metadata", () => {
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
+        content:
+          "---\nname: Current Anchor\ncustomField: retained\n---\n\nCurrent story\n",
+        metadata: { name: "Previous Anchor", email: "removed@example.com" },
+      });
+      const markdown = adapter.toMarkdown(entity);
+      expect(adapter.parseProfileBody(markdown).name).toBe("Current Anchor");
+      expect(adapter.parseProfileBody(markdown).email).toBeUndefined();
+      expect(markdown).toContain("customField: retained");
+      expect(markdown).toContain("Current story");
+    });
+
     it("should convert profile entity to frontmatter format", () => {
       const content = adapter.createProfileContent({
         name: "Rizom",

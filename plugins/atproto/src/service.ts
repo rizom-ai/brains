@@ -154,7 +154,11 @@ export function atprotoService(
         return {
           publisher,
           tasks,
-          boot: { fullBootObserved: false },
+          boot: {
+            fullBootObserved: false,
+            cardTriggersArmed: false,
+            cardPublishPending: undefined,
+          },
           runtime: { logger, runtimeState },
           jetstream,
           logger,
@@ -173,6 +177,7 @@ export function atprotoService(
         if (!config.enabled || !state.boot.fullBootObserved) return;
 
         void scheduleBrainCardPublish(state, messaging);
+        state.boot.cardTriggersArmed = true;
 
         if (config.lexiconAuthority) {
           void state.tasks.run(LEXICON_SCHEMA_COLLECTION, () =>

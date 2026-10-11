@@ -17,11 +17,6 @@ import {
 
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
 const BRAIN_CARD_TASK_KEY = `${BRAIN_CARD_COLLECTION}/${BRAIN_CARD_RKEY}`;
-const BRAIN_CARD_INPUT_ENTITY_TYPES = new Set([
-  "brain-character",
-  "anchor-profile",
-  "skill",
-]);
 
 const entityTriggerPayloadSchema = z.looseObject({
   entityType: z.string().min(1),
@@ -48,6 +43,9 @@ function entityTaskKey(payload: EntityTriggerPayload): string {
  */
 export interface BootGate {
   fullBootObserved: boolean;
+  cardTriggersArmed: boolean;
+  /** Waiting work has not read its inputs; changes can share that publish. */
+  cardPublishPending: Promise<void> | undefined;
 }
 
 export interface AmbientPublishing {
@@ -68,11 +66,17 @@ export function scheduleBrainCardPublish(
   ambient: AmbientPublishing,
   announce: AtprotoAnnouncer,
 ): Promise<void> {
-  return ambient.tasks.run(BRAIN_CARD_TASK_KEY, () =>
-    ambient.tasks.runTrigger(announce, brainCardDetails, () =>
+  const { boot, tasks } = ambient;
+  if (boot.cardPublishPending) return boot.cardPublishPending;
+  const pending = tasks.run(BRAIN_CARD_TASK_KEY, () => {
+    // A change after input reading starts needs one queued successor.
+    boot.cardPublishPending = undefined;
+    return tasks.runTrigger(announce, brainCardDetails, () =>
       ambient.publisher.publishBrainCard(),
-    ),
-  );
+    );
+  });
+  boot.cardPublishPending = pending;
+  return pending;
 }
 
 /**
@@ -230,6 +234,14 @@ export function ambientSubscriptions(
   ambient: AmbientPublishing,
 ): AnySubscriptionDefinition[] {
   const { tasks, boot } = ambient;
+  const scheduleForSkill = (
+    payload: EntityTriggerPayload,
+    announce: AtprotoAnnouncer,
+  ): void => {
+    if (boot.cardTriggersArmed && payload.entityType === "skill") {
+      void scheduleBrainCardPublish(ambient, announce);
+    }
+  };
   return [
     defineSubscription({
       topic: SYSTEM_CHANNELS.pluginsRegistered,
@@ -256,15 +268,34 @@ export function ambientSubscriptions(
         void tasks.run(entityTaskKey(payload), () =>
           reconcileProjectedEntity(ambient, messaging, payload),
         );
-        if (
-          boot.fullBootObserved &&
-          BRAIN_CARD_INPUT_ENTITY_TYPES.has(payload.entityType)
-        ) {
-          void scheduleBrainCardPublish(ambient, messaging);
-        }
+        scheduleForSkill(payload, messaging);
         return {};
       },
     }),
+    defineSubscription({
+      topic: ENTITY_CHANNELS.created,
+      payload: entityTriggerPayloadSchema,
+      handle: ({ payload, messaging }) => {
+        scheduleForSkill(payload, messaging);
+        return {};
+      },
+    }),
+    ...[
+      SYSTEM_CHANNELS.identityChanged,
+      SYSTEM_CHANNELS.startupContentSettled,
+    ].map((topic) =>
+      defineSubscription({
+        topic,
+        payload: z.looseObject({}),
+        handle: ({ messaging }) => {
+          // Pending imports can finish in a worker. The scheduler refreshes
+          // its identity caches before announcing startup content settled.
+          if (boot.cardTriggersArmed)
+            void scheduleBrainCardPublish(ambient, messaging);
+          return {};
+        },
+      }),
+    ),
     defineSubscription({
       topic: ENTITY_CHANNELS.deleted,
       payload: entityTriggerPayloadSchema,
@@ -272,6 +303,7 @@ export function ambientSubscriptions(
         void tasks.run(entityTaskKey(payload), () =>
           deleteProjectedEntityFromTrigger(ambient, messaging, payload),
         );
+        scheduleForSkill(payload, messaging);
         return {};
       },
     }),

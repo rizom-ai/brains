@@ -103,20 +103,13 @@ export function a2aInterface(
           deps.fetch ? { fetch: deps.fetch } : {},
         );
 
-        // Built on first request and kept: the card describes the brain after
-        // every plugin has registered and the profile has loaded, which no
-        // moment during registration can promise.
-        let card: Promise<AgentCard> | undefined;
-        const agentCard = (): Promise<AgentCard> => {
-          card ??= describeBrain(
+        // Identity and skills can arrive after the first request. Rebuild
+        // from the current public presentation, never a retained snapshot.
+        const agentCard = (): Promise<AgentCard> =>
+          describeBrain(
             { identity, profileKinds, tools, publicSkills, domain },
             { organization: config.organization },
-          ).catch((error: unknown) => {
-            card = undefined;
-            throw error;
-          });
-          return card;
-        };
+          );
 
         // Remote peers cannot resolve loopback JWKS, and signature key ids
         // require HTTPS; anything else goes out unsigned.

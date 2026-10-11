@@ -19,6 +19,12 @@ export const SYSTEM_CHANNELS = {
   startupContentSettled: "system:startup-content:settled",
   /** Emitted after shell boot completes and guarded shell APIs are available. */
   shellReady: "system:shell:ready",
+  /**
+   * Emitted after the brain character or anchor profile changed and the
+   * shell's identity caches hold the new values. React to identity here,
+   * not to the raw entity events, which race the cache refresh.
+   */
+  identityChanged: "system:identity:changed",
 } as const;
 
 export type SystemChannelName =

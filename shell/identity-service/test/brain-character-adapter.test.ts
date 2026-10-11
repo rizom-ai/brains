@@ -81,6 +81,23 @@ describe("BrainCharacterAdapter", () => {
   });
 
   describe("toMarkdown", () => {
+    it("keeps changed content authoritative over stale projected metadata", () => {
+      const content = adapter.createCharacterContent({
+        name: "Current Brain",
+        role: "Current role",
+        purpose: "Help",
+        values: ["clarity"],
+      });
+      const entity = createTestEntity<BrainCharacterEntity>("brain-character", {
+        id: "brain-character",
+        content,
+        metadata: { name: "Previous Brain", role: "Previous role" },
+      });
+      const body = adapter.parseCharacterBody(adapter.toMarkdown(entity));
+      expect(body.name).toBe("Current Brain");
+      expect(body.role).toBe("Current role");
+    });
+
     it("should convert character entity to frontmatter format", () => {
       const content = adapter.createCharacterContent({
         name: "Brain",

@@ -2,6 +2,7 @@ import { createMockShell as createBaseMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,
@@ -228,29 +229,188 @@ describe("AT Protocol ambient publishing triggers", () => {
     );
   });
 
-  it("republishes the brain card when identity or skill inputs change", async () => {
+  function countCardWrites(
+    client: ReturnType<typeof createClientMocks>,
+  ): number {
+    return client.putRecord.mock.calls.filter(
+      ([input]) =>
+        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
+    ).length;
+  }
+
+  async function countCardWritesAfter(
+    messages: Array<{ type: string; payload: Record<string, unknown> }>,
+    concurrent = false,
+  ): Promise<number> {
     const client = createClientMocks();
     const plugin = createConfiguredPlugin(createRegistry(), client.client);
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
     await armFullBoot(shell);
     await plugin.ready?.();
+    await waitUntil(() => countCardWrites(client) === 1, "boot card publish");
+    const send = (message: (typeof messages)[number]): Promise<unknown> =>
+      shell
+        .getMessageBus()
+        .send({ ...message, sender: "test", broadcast: true });
+    if (concurrent) await Promise.all(messages.map(send));
+    else for (const message of messages) await send(message);
+    await plugin.shutdown();
+    return countCardWrites(client);
+  }
 
-    for (const entityType of ["brain-character", "anchor-profile", "skill"]) {
+  it("republishes after the shell refreshes its identity cache", async () => {
+    expect(
+      await countCardWritesAfter([
+        {
+          type: SYSTEM_CHANNELS.identityChanged,
+          payload: { entityType: "anchor-profile" },
+        },
+      ]),
+    ).toBe(2);
+  });
+
+  it.each(["entity:created", "entity:updated", "entity:deleted"])(
+    "republishes on skill %s",
+    async (type) => {
+      expect(
+        await countCardWritesAfter([
+          { type, payload: { entityType: "skill", entityId: "late-skill" } },
+        ]),
+      ).toBe(2);
+    },
+  );
+
+  it("coalesces a burst into one waiting card publish", async () => {
+    expect(
+      await countCardWritesAfter(
+        Array.from({ length: 5 }, (_, index) => ({
+          type: "entity:created",
+          payload: { entityType: "skill", entityId: `skill-${index}` },
+        })),
+        true,
+      ),
+    ).toBe(2);
+  });
+
+  it("leaves raw identity events to the refreshed identity signal", async () => {
+    expect(
+      await countCardWritesAfter(
+        ["brain-character", "anchor-profile"].map((entityType) => ({
+          type: "entity:updated",
+          payload: { entityType, entityId: entityType },
+        })),
+      ),
+    ).toBe(1);
+  });
+
+  it("republishes after pending startup content settles in the scheduler", async () => {
+    expect(
+      await countCardWritesAfter([
+        { type: SYSTEM_CHANNELS.startupContentSettled, payload: {} },
+      ]),
+    ).toBe(2);
+  });
+
+  it.each([false, true])(
+    "does not treat import completion as settled identity (%s)",
+    async (success) => {
+      expect(
+        await countCardWritesAfter([
+          { type: SYSTEM_CHANNELS.initialSyncCompleted, payload: { success } },
+        ]),
+      ).toBe(1);
+    },
+  );
+
+  it("permits a later card publish after a failed attempt", async () => {
+    const client = createClientMocks();
+    client.putRecord.mockImplementationOnce(async () => {
+      throw new Error("PDS refused card");
+    });
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    const reported = mock(async () => ({ success: true }));
+    shell.getMessageBus().subscribe(ATPROTO_PUBLISH_FAILED, reported);
+    await plugin.register(shell);
+    await armFullBoot(shell);
+    await plugin.ready?.();
+    await waitUntil(
+      () => reported.mock.calls.length === 1,
+      "failed card report",
+    );
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.identityChanged,
+      payload: { entityType: "anchor-profile" },
+      sender: "test",
+      broadcast: true,
+    });
+    await plugin.shutdown();
+    expect(countCardWrites(client)).toBe(2);
+    expect(reported).toHaveBeenCalledTimes(1);
+  });
+
+  it("covers signals before ready with the boot publish", async () => {
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    await armFullBoot(shell);
+    for (const type of [
+      SYSTEM_CHANNELS.identityChanged,
+      SYSTEM_CHANNELS.startupContentSettled,
+    ]) {
       await shell.getMessageBus().send({
-        type: "entity:updated",
-        payload: { entityType, entityId: entityType },
-        sender: "entity-service",
+        type,
+        payload: { entityType: "anchor-profile" },
+        sender: "test",
         broadcast: true,
       });
     }
+    await plugin.ready?.();
     await plugin.shutdown();
+    expect(countCardWrites(client)).toBe(1);
+  });
 
-    const cardWrites = client.putRecord.mock.calls.filter(
-      ([input]) =>
-        input.collection === "ai.rizom.brain.card" && input.rkey === "self",
-    );
-    expect(cardWrites).toHaveLength(4);
+  it("keeps one fresh successor behind an in-flight publish and drains both", async () => {
+    const gate = deferred();
+    const client = createClientMocks();
+    client.putRecord.mockImplementationOnce(async () => {
+      await gate.promise;
+      return { uri: "at://did:plc:repo/record", cid: "cid" };
+    });
+    const plugin = createConfiguredPlugin(createRegistry(), client.client);
+    const shell = createMockShell({ domain: "brain.example.com" });
+    await plugin.register(shell);
+    await armFullBoot(shell);
+    await plugin.ready?.();
+    try {
+      await waitUntil(
+        () => countCardWrites(client) === 1,
+        "in-flight boot card",
+      );
+      shell.getProfile = (): ReturnType<typeof shell.getProfile> => ({
+        name: "Latest Anchor",
+      });
+      await Promise.all(
+        Array.from({ length: 5 }, () =>
+          shell.getMessageBus().send({
+            type: SYSTEM_CHANNELS.identityChanged,
+            payload: { entityType: "anchor-profile" },
+            sender: "test",
+            broadcast: true,
+          }),
+        ),
+      );
+      expect(countCardWrites(client)).toBe(1);
+    } finally {
+      gate.resolve();
+      await plugin.shutdown();
+    }
+    expect(countCardWrites(client)).toBe(2);
+    expect(client.putRecord.mock.calls.at(-1)?.[0]).toMatchObject({
+      record: { anchor: { name: "Latest Anchor" } },
+    });
   });
 
   it("upserts every canonical lexicon schema when this repo is the authority", async () => {

@@ -1,12 +1,16 @@
 import { defineEntity, z } from "@rizom/brain/entities";
 import {
   defineServicePlugin,
+  SYSTEM_CHANNELS,
   type InterfaceCaller,
   type OperatorEntityWrites,
   type ServiceGroupingDeclaration,
   type GroupingDefinitionsSnapshot,
   type GroupingDefinition,
 } from "@rizom/brain/services";
+
+/** Advanced notification contract; named consumer is ATProto card refresh. */
+export const identityChanged = SYSTEM_CHANNELS.identityChanged;
 
 const document = defineEntity({
   type: "collection-policy",

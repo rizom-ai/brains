@@ -29,7 +29,7 @@ const A2A_CORS_HEADERS = {
 
 /** What the A2A HTTP surface answers with: the card, the directory, the peers. */
 export interface A2AServerDependencies {
-  /** The card, built on first request and kept. */
+  /** The current public card, rebuilt for each request. */
   readonly agentCard: () => Promise<AgentCard>;
   readonly entities: InterfaceEntityReader;
   readonly agent: AgentNamespace;
@@ -117,7 +117,7 @@ export function createA2AServer(deps: A2AServerDependencies): Hono {
 
   app.get("/.well-known/agent-directory.json", async (c) => {
     // Built per request: the directory must reflect approvals and
-    // archivals live, unlike the identity-shaped cached Agent Card.
+    // archivals live, just as the card reflects current identity and skills.
     return withCors(c.json(await buildAgentDirectory(deps.entities)));
   });
 

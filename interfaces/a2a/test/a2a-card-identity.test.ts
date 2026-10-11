@@ -1,68 +1,101 @@
-import { describe, expect, test } from "bun:test";
-import { buildAgentCard } from "../src/agent-card";
-import type { AnchorProfile, BrainCharacter } from "@brains/plugins";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  parseAgentCard,
+  type AnchorProfile,
+  type BrainCharacter,
+} from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import { expectDefined } from "@brains/utils/expect-defined";
+import { installA2A } from "./helpers/install";
 
-/**
- * Regression: Agent Card shows "Unknown" as anchor name.
- *
- * Timeline:
- * 1. Shell creates AnchorProfileService with default { name: "Unknown" }
- * 2. Initial sync imports profile data
- * 3. Bootloader initializes profile service from DB
- *    → getProfile() now returns "Jan Hein"
- * 4. A2A onReady builds the Agent Card from initialized services
- *
- * The fix must build the card from the ready lifecycle, after the profile service initializes.
- * entity:created/updated won't help because the entity already exists —
- * the issue is that the service cache hasn't been populated yet.
- */
-describe("Agent Card identity timing", () => {
-  test("card shows 'Unknown' when profile service has not initialized", () => {
-    // This is what used to happen before ready-state initialization.
-    const uninitializedProfile: AnchorProfile = { name: "Unknown" };
-    const defaultCharacter: BrainCharacter = {
-      name: "Brain",
-      role: "Knowledge assistant",
-      purpose: "Help organize and retrieve information",
-      values: ["clarity"],
-    };
+describe("served Agent Card follows current identity and skills", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
 
-    const card = buildAgentCard({
-      character: defaultCharacter,
-      profile: uninitializedProfile,
-      version: "1.0.0",
-      tools: [],
-    });
-
-    // Bug: this is what gets served at /.well-known/agent-card.json
-    expect(card.description).toContain("Unknown's");
-    expect(card.capabilities.extensions?.[0]?.params?.["name"]).toBe("Unknown");
+  beforeEach(() => {
+    harness = createPluginHarness();
+  });
+  afterEach(async () => {
+    await harness.reset();
   });
 
-  test("card shows real name when profile service has initialized", () => {
-    // This is what A2A should use when onReady builds the card.
-    const initializedProfile: AnchorProfile = {
-      name: "Jan Hein",
-      description: "Builder of things",
-    };
-    const realCharacter: BrainCharacter = {
-      name: "Rover",
-      role: "Knowledge manager",
-      purpose: "Organize and surface knowledge",
-      values: ["clarity", "accuracy"],
-    };
+  test("refuses unresolved presentation and retries once it is available", async () => {
+    const a2a = await installA2A(harness, { inbound: true });
+    const response = await a2a
+      .route("/.well-known/agent-card.json", "GET")
+      .handler(new Request("http://brain/.well-known/agent-card.json"));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    harness.getMockShell().getProfileKindRegistry().finalize();
+    expect((await a2a.agentCard()).name).toBeTruthy();
+  });
 
-    const card = buildAgentCard({
-      character: realCharacter,
-      profile: initializedProfile,
-      version: "1.0.0",
-      tools: [],
+  test("serves identity changed after the first request", async () => {
+    const a2a = await installA2A(harness, { inbound: true });
+    const shell = harness.getMockShell();
+    shell.getProfileKindRegistry().finalize();
+    const before = expectDefined(parseAgentCard(await a2a.agentCard()));
+    expect(before.description).toContain("Test Owner's");
+
+    shell.getProfile = (): AnchorProfile => ({ name: "Taeke" });
+    shell.getIdentity = (): BrainCharacter => ({
+      name: "Swift Specialist",
+      role: "Knowledge organization assistant",
+      purpose: "Organize knowledge",
+      values: ["clarity"],
     });
+    const after = expectDefined(parseAgentCard(await a2a.agentCard()));
+    expect(after.brainName).toBe("Swift Specialist");
+    expect(after.description).toContain("Taeke's");
+    expect(after.anchor?.name).toBe("Taeke");
+    expect(before.description).toContain("Test Owner's");
+  });
 
-    expect(card.description).toContain("Jan Hein");
-    expect(card.description).not.toContain("Unknown");
-    expect(card.capabilities.extensions?.[0]?.params?.["name"]).toBe(
-      "Jan Hein",
+  test("follows skill creation, editing, visibility withdrawal and deletion", async () => {
+    const a2a = await installA2A(harness, { inbound: true });
+    const shell = harness.getMockShell();
+    shell.getProfileKindRegistry().finalize();
+    const names = async (): Promise<string[]> =>
+      (await a2a.agentCard()).skills.map((skill) => skill.name);
+    expect(await names()).not.toContain("Late Skill");
+    const entities = shell.getEntityService();
+    await entities.createEntity({
+      entity: {
+        id: "late-skill",
+        entityType: "skill",
+        content: "",
+        visibility: "public",
+        metadata: {
+          name: "Late Skill",
+          description: "Derived after startup",
+          tags: [],
+          examples: [],
+        },
+      },
+    });
+    expect(await names()).toContain("Late Skill");
+    const skill = expectDefined(
+      await entities.getEntity({ entityType: "skill", id: "late-skill" }),
     );
+    await entities.updateEntity({
+      entity: {
+        ...skill,
+        metadata: { ...skill.metadata, name: "Updated Skill" },
+      },
+    });
+    expect(await names()).toContain("Updated Skill");
+    expect(await names()).not.toContain("Late Skill");
+    const updated = expectDefined(
+      await entities.getEntity({ entityType: "skill", id: "late-skill" }),
+    );
+    await entities.updateEntity({
+      entity: { ...updated, visibility: "restricted" },
+    });
+    expect(await names()).not.toContain("Updated Skill");
+    await entities.updateEntity({
+      entity: { ...updated, visibility: "public" },
+    });
+    expect(await names()).toContain("Updated Skill");
+    await entities.deleteEntity({ entityType: "skill", id: "late-skill" });
+    expect(await names()).not.toContain("Updated Skill");
   });
 });
