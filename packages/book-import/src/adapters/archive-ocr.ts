@@ -79,6 +79,8 @@ export interface ArchiveOcrWork {
    * short of the measure or the line below it is set in.
    */
   curved?: boolean;
+  /** The edition glosses its paragraphs in the margin, which the text leaves out. */
+  marginalia?: boolean;
   /**
    * A volume of newspaper articles: each article is titled above its
    * dateline (London, 9. Juni 1854), a series' parts numbered there, and
@@ -112,6 +114,8 @@ interface Line {
   numbered?: boolean;
   /** Set by a correction: read by eye, its words are the work's. */
   corrected?: boolean;
+  /** Where each of its words starts, as the OCR placed them. */
+  starts?: number[];
 }
 
 interface Page {
@@ -216,6 +220,7 @@ function joinSplitLines(lines: Line[]): Line[] {
             width: line.x + line.width - last.x,
             bottom: Math.max(last.bottom, line.bottom),
             text: `${last.text} ${line.text}`,
+            starts: [...(last.starts ?? []), ...(line.starts ?? [])],
           },
         ];
       }
@@ -385,6 +390,13 @@ function readPages(hocr: string): Page[] {
                 bottom: y1,
                 width: placed ? right - left : x1 - x0,
                 size: numbers(title, "x_size")[0] ?? 0,
+                starts: kept
+                  .filter((word) => word.textContent.trim() !== "")
+                  .map(
+                    (word) =>
+                      numbers(word.getAttribute("title") ?? "", "bbox")[0] ??
+                      x0,
+                  ),
                 text: (kept.length < read.length
                   ? kept.map((word) => word.textContent).join(" ")
                   : element.textContent
@@ -432,6 +444,7 @@ function atOneScale(pages: Page[]): Page[] {
         bottom: scaled(line.bottom),
         width: scaled(line.width),
         size: line.size * factor,
+        ...(line.starts ? { starts: line.starts.map(scaled) } : {}),
       })),
     };
   });
@@ -2029,10 +2042,15 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
 /**
  * Join a line onto the text before it. A word broken at the line end loses
  * its hyphen when it continues in lower case; a capitalised continuation is a
- * compound and keeps it. The OCR sometimes reads the break as a stray dot.
+ * compound and keeps it, as does a first part set apart before und or oder. The OCR sometimes reads the break as a stray dot.
  */
+/** A compound's first part set apart, its last part after the conjunction: Kredit- und Bankwesen. */
+const SET_APART = /^(?:und|oder|bis|sowie)(?![\p{L}-])/u;
+
 function joinLine(before: string, line: string): string {
   if (before.length === 0) return line;
+  if (/\p{L}-$/u.test(before) && SET_APART.test(line))
+    return `${before} ${line}`;
   if (/\p{L}-$/u.test(before)) {
     const rest = line.replace(/^[.·,'’]+/, "");
     return /^\p{Ll}/u.test(rest) ? before.slice(0, -1) + rest : before + rest;
@@ -2473,8 +2491,56 @@ function withUmlauts(pages: Page[]): Page[] {
   }));
 }
 
+/** A signature opens so many letters alike on each page it closes. */
+const SIGNATURE_LETTERS = 8;
+/** A line closes this many pages alike, its sheet number aside, to be the printer's signature. */
+const SIGNATURE_PAGES = 3;
+
+/**
+ * A signature names the book, author first and a comma after, and ends in
+ * the sheet's number or the volume's numeral, a speck the OCR read after
+ * it aside.
+ */
+const SHEET_SIGNATURE =
+  /^\p{Lu}[\p{L}-]+, \S.*[ .,](?:\d{1,2}\*?|[IVXivxl]+\.?)(?: \S{1,3})?$/u;
+
+/** A line's letters, in small type, without its figures and marks: a signature's, whatever its sheet. */
+function signatureKey(text: string): string {
+  if (!SHEET_SIGNATURE.test(text.trim())) return "";
+  return (text.toLowerCase().match(/\p{L}/gu) ?? [])
+    .join("")
+    .slice(0, SIGNATURE_LETTERS);
+}
+
+/**
+ * The pages without the printer's signature: the line at a sheet's foot
+ * naming the book and counting its sheets, which closes several pages
+ * alike but for its number.
+ */
+function withoutSignatures(pages: Page[]): Page[] {
+  const lastOf = (page: Page): Line | undefined =>
+    page.lines.reduce<Line | undefined>(
+      (low, line) => (low === undefined || line.y > low.y ? line : low),
+      undefined,
+    );
+  const counts = pages.reduce((seen, page) => {
+    const key = signatureKey(lastOf(page)?.text ?? "");
+    return key.length === SIGNATURE_LETTERS
+      ? seen.set(key, (seen.get(key) ?? 0) + 1)
+      : seen;
+  }, new Map<string, number>());
+  return pages.map((page) => {
+    const last = lastOf(page);
+    return last && (counts.get(signatureKey(last.text)) ?? 0) >= SIGNATURE_PAGES
+      ? { ...page, lines: page.lines.filter((line) => line !== last) }
+      : page;
+  });
+}
+
 function readVolume(hocr: string): ReadVolume {
-  const pages = withUmlauts(withoutTopMargin(atOneScale(readPages(hocr))));
+  const pages = withoutSignatures(
+    withUmlauts(withoutTopMargin(atOneScale(readPages(hocr)))),
+  );
   const printed = printedPageNumbers(pages.map(readingOf));
   // The leaves before the first page are the front matter.
   const firstLeaf = Math.min(
@@ -2671,6 +2737,48 @@ function opened(page: Page, work: ArchiveOcrWork): Page {
   return { ...page, lines: page.lines.slice(at) };
 }
 
+/** A gloss starts this share of the page's width left of the text column. */
+const MARGIN = 0.04;
+
+/**
+ * A page without the glosses its edition sets in the margin: the words a
+ * line opens with left of the text column, and the lines set wholly there.
+ */
+function withoutMarginalia(page: Page): Page {
+  const column = median(
+    page.lines
+      .filter((line) => line.width > page.width / 2)
+      .map((line) => line.x),
+  );
+  const edge = column - page.width * MARGIN;
+  return {
+    ...page,
+    lines: page.lines.flatMap((line): Line[] => {
+      const words = line.text.split(" ");
+      const starts = line.starts ?? [];
+      const glossed = starts.findIndex((start) => start >= edge);
+      // A line set wholly in the margin is a gloss.
+      if (line.x < edge && line.x + line.width <= column && glossed <= 0) {
+        return glossed === 0 ? [line] : [];
+      }
+      // The words the OCR ran on from a gloss into the line.
+      if (glossed > 0 && starts.length === words.length) {
+        const x = starts[glossed] ?? line.x;
+        return [
+          {
+            ...line,
+            x,
+            width: line.x + line.width - x,
+            text: words.slice(glossed).join(" "),
+            starts: starts.slice(glossed),
+          },
+        ];
+      }
+      return [line];
+    }),
+  };
+}
+
 /**
  * Parse a work from a scanned volume's hOCR: its parts, chapters and
  * subsections by their headings, paragraphs by first-line indent across
@@ -2711,7 +2819,16 @@ export function parseArchiveOcrWork(
         number >= firstPage &&
         number <= work.lastPage &&
         !(work.skipPages ?? []).includes(number)
-        ? [{ page: number === firstPage ? opened(page, work) : page, number }]
+        ? [
+            {
+              page: (work.marginalia === true
+                ? withoutMarginalia
+                : (same: Page): Page => same)(
+                number === firstPage ? opened(page, work) : page,
+              ),
+              number,
+            },
+          ]
         : [];
     })
     .reduce<WorkState>(

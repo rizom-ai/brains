@@ -3545,10 +3545,6 @@ theorienberden01marxuoft:
     from: setzen von dem Werte von 7/½ Ellen 1 für Eisen usw., ½ für
     to: setzen von dem Werte von ⁴⁄₃ Ellen 1 für Eisen usw., ⅓ für
     by: scan
-  - page: 209
-    from: Marx, Theorien über den Mehrwert. I. 14
-    to: ""
-    by: scan
   - page: 210
     from: zugesetzte Arbeit, so würden 2 Ellen von den 3 unter dieser — — 2 — —.—* **** 2
     to: zugesetzte Arbeit, so würden 2 Ellen von den 3 unter dieser
@@ -5814,6 +5810,10 @@ p1theorienberden02marxuoft:
     from: das!
     to: das]
     by: scan
+  - page: 241
+    from: lebenfalls doppelt
+    to: "[ebenfalls doppelt"
+    by: scan
   - page: 243
     from: wollreinigungsmaschine!
     to: wollreinigungsmaschine]
@@ -7136,10 +7136,6 @@ p1theorienberden02marxuoft:
     from: so wären 10 Prozent darauf ½½ 4, und erst in 10 Jahren,
     to: so wären 10 Prozent darauf ²⁄₁₁ £, und erst in 10 Jahren,
     by: scan
-  - page: 337
-    from: Marx, Theorien über den Mehrwert. II, 1. Teil. 22
-    to: ""
-    by: scan
   - page: 338
     from: e) Diverse Autoren über die Rententheorie.“
     to: e) Diverse Autoren über die Rententheorie.
@@ -7533,10 +7529,6 @@ p2theorienberd02marx:
   - page: 33
     from: Da bei J von dem Gesamtwert der Ware 120 die Rente
     to: Da bei I von dem Gesamtwert der Ware 120 die Rente
-    by: scan
-  - page: 33
-    from: Marx, Theorien über den Mehrwert. II, 2. Teil. 3
-    to: ""
     by: scan
   - page: 34
     from: — 10 oder ½2 des Gesamtwerts ist, so gilt das auch auf
@@ -9462,6 +9454,10 @@ p2theorienberd02marx:
     from: I. W. D. W. P. P.
     to: ""
     by: scan
+  - page: 183
+    from: (da die Rente
+    to: "[da die Rente"
+    by: scan
   - page: 184
     from: "schaffen von 130 /, denn 92: 120 = 100: 130 /8. Und"
     to: "schaffen von 130¹⁰⁄₂₃, denn 92 : 120 = 100 : 130¹⁰⁄₂₃. Und"
@@ -10134,10 +10130,6 @@ p2theorienberd02marx:
   - page: 193
     from: wert 14 /12 Tonnen.
     to: wert 14⁷⁄₁₂ Tonnen.
-    by: scan
-  - page: 193
-    from: Marx, Theorien über den Mehrwert. II, 2. Teil. 13
-    to: ""
     by: scan
   - page: 194
     from: 194 Die Grundrente
@@ -10977,10 +10969,6 @@ p2theorienberd02marx:
     from: während die 84/½ Rest nur 1263/6 Pfund Baum-
     to: während die 84⁴⁄₁₉ £ Rest nur 1263³⁄₁₉ Pfund Baum-
     by: scan
-  - page: 225
-    from: Marx, Theorien über den Mehrwert. II, 2. Teil. 15
-    to: ""
-    by: scan
   - page: 226
     from: ringerer! Mehrwert auf dieselbe Kapitalauslage berechnet
     to: ringerer¹ Mehrwert auf dieselbe Kapitalauslage berechnet
@@ -11246,10 +11234,6 @@ p2theorienberd02marx:
   - page: 241
     from: "lische zu 3/ 4, denn 2:3 / = 6: 11. Der Geldpreis und"
     to: "lische zu 3⅔ £, denn 2 : 3⅔ = 6 : 11. Der Geldpreis und"
-    by: scan
-  - page: 241
-    from: Marx, Theorien über den Mehrwert. II, 2. Teil. 16
-    to: ""
     by: scan
   - page: 241
     from: saber
@@ -13367,9 +13351,9 @@ theorienberden03marxuoft:
     from: ([keine]
     to: "[keine]"
     by: scan
-  - page: 357
-    from: sin
-    to: "[in"
+  - page: 358
+    from: sin diesem
+    to: "[in diesem"
     by: scan
   - page: 358
     from: tal + 10 Zins) + 10 Zins + 1 Zins 121 usw. Die Steige-
@@ -13761,10 +13745,6 @@ theorienberden03marxuoft:
     by: scan
   - page: 401
     from: Das erste 66 ⅛ Prozent. Das zweite 80 Prozent.“ K.
-    to: ""
-    by: scan
-  - page: 401
-    from: Marx, Theorien über den Mehrwert. III. 26
     to: ""
     by: scan
   - page: 403
@@ -16496,18 +16476,6 @@ zur-kritik-der-politischen-okonomie:
     from: zur Gesammtceirkulation — G — Wzurück,
     to: zur Gesammtcirkulation W — G — W zurück,
     by: scan
-  - page: 71
-    from: vollzieht. Die Gesammtceirkulation W — G
-    to: vollzieht. Die Gesammtcirkulation W — G
-    by: reference
-  - page: 71
-    from: zu unterscheiden, Wuein beiden Extremen
-    to: zu unterscheiden, W in beiden Extremen
-    by: reference
-  - page: 71
-    from: einzelne-Waare die Cirkulation — & — W edurchläuft,
-    to: einzelne Waare die Cirkulation W — G — W durchläuft,
-    by: scan
   - page: 73
     from: société. II
     to: société. Il
@@ -16618,7 +16586,7 @@ zur-kritik-der-politischen-okonomie:
     by: scan
   - page: 90
     from: W- G efällt es aus
-    to: W- G fällt es aus
+    to: W — G fällt es aus
     by: reference
   - page: 92
     from: Doctor Smith's Inquiry on the wealth of nations ete. Edinburgh 1814
@@ -16647,10 +16615,6 @@ zur-kritik-der-politischen-okonomie:
   - page: 97
     from: ) Berkeley l. c. „Wenn die Denomination der Münze beibehalten
     to: 3) Berkeley l. c. „Wenn die Denomination der Münze beibehalten
-    by: scan
-  - page: 102
-    from: G — W ebildet die Waare
-    to: G — W bildet die Waare
     by: scan
   - page: 103
     from: ½) „Non solo i metalli riechi son segni delle cose..; ma vicendevolmente
@@ -17195,6 +17159,222 @@ zur-kritik-der-politischen-okonomie:
   - page: 169
     from: descrip.
     to: descrip-
+    by: scan
+  - page: 71
+    from: morphose vollzieht. Die Gesammtceirkulation W — G — W als
+    to: morphose vollzieht. Die Gesammtcirkulation W — G — W als
+    by: scan
+  - page: 71
+    from: ren zu unterscheiden, Wuein beiden Extremen verschieden, z. B. als
+    to: ren zu unterscheiden, W in beiden Extremen verschieden, z. B. als
+    by: scan
+  - page: 71
+    from: W. — G W“. In der That das erste Glied W“‘ — G unterstellt
+    to: W′ — G — W″. In der That das erste Glied W′ — G unterstellt
+    by: scan
+  - page: 71
+    from: Glied von W — G — W-, während das zweite Glied &G — W“
+    to: Glied von W — G — W′, während das zweite Glied G — W″
+    by: scan
+  - page: 71
+    from: in seinem Resultat W“ — G ist, also selbst sich darstellt als erstes
+    to: in seinem Resultat W″ — G ist, also selbst sich darstellt als erstes
+    by: scan
+  - page: 71
+    from: Glied von W“ — G — W““ u. s. w. Ferner zeigt es sich, daß
+    to: Glied von W″ — G — W‴ u. s. w. Ferner zeigt es sich, daß
+    by: scan
+  - page: 71
+    from: ist, sich darstellen kann als &E — W“ + AG — W“ + G —
+    to: ist, sich darstellen kann als G — W′ + G — W″ + G —
+    by: scan
+  - page: 71
+    from: W““ +L etc., sich also in eine Masse Käufe, d. h. eine Masse Ver-
+    to: W‴ + etc., sich also in eine Masse Käufe, d. h. eine Masse Ver-
+    by: scan
+  - page: 71
+    from: da jede einzelne-Waare die Cirkulation — & — W edurchläuft,
+    to: da jede einzelne Waare die Cirkulation W — G — W durchläuft,
+    by: scan
+  - page: 72
+    from: reiht sich in der wirklichen Cirkulation ein beliebiges E — Wean
+    to: reiht sich in der wirklichen Cirkulation ein beliebiges G — W an
+    by: scan
+  - page: 72
+    from: ein beliebiges V — G, das zweite Kapitel im Lebenslauf einer
+    to: ein beliebiges W — G, das zweite Kapitel im Lebenslauf einer
+    by: scan
+  - page: 72
+    from: Waare an das erste Kapitel im Lebenslauf der andern. & z. B.
+    to: Waare an das erste Kapitel im Lebenslauf der andern. A z. B.
+    by: scan
+  - page: 72
+    from: verkauft Eisen für 2 E&, vollzieht also W — G oder die erste Me-
+    to: verkauft Eisen für 2 £, vollzieht also W — G oder die erste Me-
+    by: scan
+  - page: 72
+    from: für 64 verkauft hatte, mit denselben 6 E Rock und Hose von Moses
+    to: für 6 £ verkauft hatte, mit denselben 6 £ Rock und Hose von Moses
+    by: scan
+  - page: 72
+    from: und Sohn, vollzieht also E — Woder die zweite Metamorphose
+    to: und Sohn, vollzieht also G — W oder die zweite Metamorphose
+    by: scan
+  - page: 72
+    from: der Waare Weizen. Diese beiden Akte E — Wueund W — G eer-
+    to: der Waare Weizen. Diese beiden Akte G — W und W — G er-
+    by: scan
+  - page: 79
+    from: Betrachten wir z. B. W — 6 — W“ — 6 — W“ — 64 —
+    to: Betrachten wir z. B. W — G — W′ — G — W″ — G —
+    by: scan
+  - page: 79
+    from: W“% zc., ohne Rücksicht auf die qualitativen Momente, die im
+    to: W‴⁴ etc., ohne Rücksicht auf die qualitativen Momente, die im
+    by: scan
+  - page: 79
+    from: realisirt hat, realisirt der Reihe nach die Preise von W“ — W“
+    to: realisirt hat, realisirt der Reihe nach die Preise von W′ — W″
+    by: scan
+  - page: 79
+    from: u. s. w., und die Waaren W“ — W“ — W““ u. s. w. treten stets
+    to: u. s. w., und die Waaren W′ — W″ — W‴ u. s. w. treten stets
+    by: scan
+  - page: 102
+    from: schen. In der Form W — G — W ebildet die Waare, in der
+    to: schen. In der Form W — G — W bildet die Waare, in der
+    by: scan
+  - page: 102
+    from: sultat der Cirkulation W — G — M,, erscheint in der Form G& —
+    to: sultat der Cirkulation W — G — W, erscheint in der Form G —
+    by: scan
+  - page: 102
+    from: punkt. Während in W — G — Weder Stoffwechsel, bildet das
+    to: punkt. Während in W — G — W der Stoffwechsel, bildet das
+    by: scan
+  - page: 102
+    from: selbst den wirklichen Inhalt des zweiten Processes &E — W — G.
+    to: selbst den wirklichen Inhalt des zweiten Processes G — W — G.
+    by: scan
+  - page: 102
+    from: dene Gebrauchswerthe. Ihr Austausch W — M ist wirklicher
+    to: dene Gebrauchswerthe. Ihr Austausch W — W ist wirklicher
+    by: scan
+  - page: 102
+    from: Stoffwechsel. In der Form & — W — G dagegen sind beide
+    to: Stoffwechsel. In der Form G — W — G dagegen sind beide
+    by: scan
+  - page: 102
+    from: oder wenn wir das Resultat & — G betrachten, Gold gegen Gold
+    to: oder wenn wir das Resultat G — G betrachten, Gold gegen Gold
+    by: scan
+  - page: 102
+    from: austauschen, scheint abgeschmackt. Uebersetzt man aber &E — W —
+    to: austauschen, scheint abgeschmackt. Uebersetzt man aber G — W —
+    by: scan
+  - page: 65
+    from: in die entgegengesetzte Bewegung &E — W, Austauschen von Geld
+    to: in die entgegengesetzte Bewegung G — W, Austauschen von Geld
+    by: scan
+  - page: 65
+    from: W- 6 — W, Austauschen von Waare gegen Geld, um Geld
+    to: W — G — W, Austauschen von Waare gegen Geld, um Geld
+    by: scan
+  - page: 66
+    from: Das Ganze der Cirkulation V — G — W ist daher zunächst die
+    to: Das Ganze der Cirkulation W — G — W ist daher zunächst die
+    by: scan
+  - page: 66
+    from: kulation V — G, die zweite in der andern Hälfte G W und
+    to: kulation W — G, die zweite in der andern Hälfte G — W und
+    by: scan
+  - page: 66
+    from: die Cirkulation V — G — W ist nur die Gesammtmetamorphose
+    to: die Cirkulation W — G — W ist nur die Gesammtmetamorphose
+    by: scan
+  - page: 67
+    from: die beiden Extreme von W — 6, so daß die Waare dem Gold
+    to: die beiden Extreme von W — G, so daß die Waare dem Gold
+    by: scan
+  - page: 68
+    from: andern Extrems, so erscheint derselbe Proceß vielmehr als & — W,
+    to: andern Extrems, so erscheint derselbe Proceß vielmehr als G — W,
+    by: scan
+  - page: 68
+    from: Waare oder des Verkäufers, in &E — Whvom Extrem des Geldes
+    to: Waare oder des Verkäufers, in G — W vom Extrem des Geldes
+    by: scan
+  - page: 70
+    from: realisirt, realisirt sie in der Bewegung E — Wdurch ihre Ent-
+    to: realisirt, realisirt sie in der Bewegung G — W durch ihre Ent-
+    by: scan
+  - page: 70
+    from: Kauf, so ist der Kauf zugleich Verkauf, E — Wzugleich W — G,
+    to: Kauf, so ist der Kauf zugleich Verkauf, G — W zugleich W — G,
+    by: scan
+  - page: 71
+    from: jeder besondere Cirkulationsproceß W — G oder & — W als Ver-
+    to: jeder besondere Cirkulationsproceß W — G oder G — W als Ver-
+    by: scan
+  - page: 72
+    from: Im wirklichen Cirkulationsproceß stellt sich also V — A — Wsedar
+    to: Im wirklichen Cirkulationsproceß stellt sich also W — G — W dar
+    by: scan
+  - page: 74
+    from: W- W und daher blos durch Geld vermittelter Tauschhandel
+    to: W — W und daher blos durch Geld vermittelter Tauschhandel
+    by: scan
+  - page: 77
+    from: (W- G), oder weil sie vom Gold angezogen wird (EG — W),
+    to: (W — G), oder weil sie vom Gold angezogen wird (G — W),
+    by: scan
+  - page: 81
+    from: isolirten Cirkulationsakten &E — W und W — G dieselbe Werth-
+    to: isolirten Cirkulationsakten G — W und W — G dieselbe Werth-
+    by: scan
+  - page: 93
+    from: Sofern die Bewegung W — G — Wprocessirende Einheit
+    to: Sofern die Bewegung W — G — W processirende Einheit
+    by: scan
+  - page: 101
+    from: tionsprocesses in der Form W — GG — W,, bildet den Ausgangs-
+    to: tionsprocesses in der Form W — G — W, bildet den Ausgangs-
+    by: scan
+  - page: 101
+    from: "punkt des Cirkulationsprocesses in der Form: & — W — G, d. h."
+    to: "punkt des Cirkulationsprocesses in der Form: G — W — G, d. h."
+    by: scan
+  - page: 102
+    from: größe. Der Kreislauf E — W — G birgt also unter den For-
+    to: größe. Der Kreislauf G — W — G birgt also unter den For-
+    by: scan
+  - page: 103
+    from: W- G — Wzu entwickeln.
+    to: W — G — W zu entwickeln.
+    by: scan
+  - page: 117
+    from: G — W, der Kauf & — W,, sich innerhalb einer bestimmten Cir-
+    to: G — W, der Kauf G — W, sich innerhalb einer bestimmten Cir-
+    by: scan
+  - page: 117
+    from: W- G der nicht zu G — W fortging, oder war nur selbststän-
+    to: W — G der nicht zu G — W fortging, oder war nur selbststän-
+    by: scan
+  - page: 117
+    from: V — G — We und 6 — W- G
+    to: W — G — W und G — W — G
+    by: scan
+  - page: 119
+    from: Umgekehrt kann im Proceß G — Wdas Geld als wirkliches
+    to: Umgekehrt kann im Proceß G — W das Geld als wirkliches
+    by: scan
+  - page: 120
+    from: die verwandelte Gestalt, worin beide Processe &E — Wund W — G
+    to: die verwandelte Gestalt, worin beide Processe G — W und W — G
+    by: scan
+  - page: 68
+    from: Cirkulationsstadium & —
+    to: Cirkulationsstadium G —
     by: scan
 enthullungen-1885:
   - page: 18
@@ -20183,6 +20363,10 @@ ldpd_13048930_000:
   - page: 19
     from: "Geschicke: zu"
     to: Geschicke zu
+    by: scan
+  - page: 19
+    from: städtischeund
+    to: städtische und
     by: scan
   - page: 20
     from: einzigen Heldenthat dvom Juni blieb

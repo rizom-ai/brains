@@ -554,6 +554,8 @@ books:
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 210, opens: "¹) Marx nimmt hier an" }
+      - { page: 49, opens: "Seite 229" }
+      - { page: 401, opens: "Im Original" }
     slug: theorien-ueber-den-mehrwert-1
     title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
     shortTitle: Theorien über den Mehrwert I

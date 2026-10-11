@@ -280,6 +280,8 @@ books:
     citation: GW V
     firstPage: 27
     lastPage: 146
+    # Freud glosses its paragraphs in the margin.
+    marginalia: true
     slug: drei-abhandlungen-zur-sexualtheorie
     references: [https://www.gutenberg.org/cache/epub/39938/pg39938.txt]
     title: Drei Abhandlungen zur Sexualtheorie

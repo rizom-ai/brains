@@ -2414,3 +2414,142 @@ describe("parseArchiveOcrWork, a table of two columns", () => {
     );
   });
 });
+
+describe("parseArchiveOcrWork, the printer's signature", () => {
+  it("drops a line that closes several pages alike, its sheet number aside", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 9,
+        lastPage: 11,
+        spacedNotes: true,
+      },
+    );
+    const text = units.flatMap((unit) => unit.paragraphs);
+
+    expect(text.some((paragraph) => paragraph.includes("Marx, Theorien"))).toBe(
+      false,
+    );
+    expect(
+      text.some((paragraph) =>
+        paragraph.includes("Ricardo ist hier keineswegs"),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("parseArchiveOcrWork, a signature the OCR misread", () => {
+  it("drops it short as it is, its numeral in small letters or a speck after", async () => {
+    const hocr = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+      "utf8",
+    );
+    const signed = [
+      "Freud, Vol. VII.",
+      "Freud, Vol. vIl. er",
+      "Freud, Vol. VII. 3:",
+    ];
+    let at = 0;
+    const alike = hocr.replace(
+      /(<span class='ocr_line'[^>]*>)(niemand weiß, wohin er ging\.|Totals 200[^<]*|Boden keine Rente zahlt\.)(<\/span>)/gu,
+      (_, open: string, text: string, close: string) =>
+        `${open}${text}${close}\n  <span class='ocr_line' title='bbox 400 5300 1400 5400; x_size 90'>${signed[at++]}</span>`,
+    );
+    const units = parseArchiveOcrWork(alike, {
+      item: "p1theorienberden02marxuoft",
+      title: "Theorien über den Mehrwert",
+      citation: "Theorien II.1",
+      firstPage: 13,
+      lastPage: 15,
+      spacedNotes: true,
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join(" ");
+
+    expect(text).not.toContain("Freud, Vol");
+  });
+});
+
+describe("parseArchiveOcrWork, a page's last line that is no signature", () => {
+  it("keeps a line of text, though other pages close alike, unless it names the book and counts the sheet", async () => {
+    const hocr = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+      "utf8",
+    );
+    // Pages 13, 14 and 15 close with the same words, as text may.
+    const alike = hocr.replace(
+      /(<span class='ocr_line'[^>]*>)(niemand weiß, wohin er ging\.|Totals 200[^<]*|Boden keine Rente zahlt\.)(<\/span>)/gu,
+      "$1$2$3\n  <span class='ocr_line' title='bbox 400 4900 3050 5030; x_size 104'>Psychoanalyse, die einerseits physiologische Denkweise</span>",
+    );
+    const units = parseArchiveOcrWork(alike, {
+      item: "p1theorienberden02marxuoft",
+      title: "Theorien über den Mehrwert",
+      citation: "Theorien II.1",
+      firstPage: 13,
+      lastPage: 15,
+      spacedNotes: true,
+    });
+    const text = units.flatMap((unit) => unit.paragraphs).join(" ");
+
+    expect(text.split("physiologische Denkweise").length - 1).toBe(3);
+  });
+});
+
+describe("parseArchiveOcrWork, a compound's first part set apart", () => {
+  it("keeps its hyphen where the next line opens with und, oder or bis", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 15,
+        lastPage: 15,
+        spacedNotes: true,
+        corrections: [
+          {
+            page: 15,
+            from: "niemand weiß, wohin er ging.",
+            to: "niemand weiß, wohin er ging, ob ins Kredit-\nund Bankwesen, drei-\nbis vierfach ver-\nschuldet.",
+          },
+        ],
+        paragraphs: [{ page: 15, opens: "Wie Frazer" }],
+      },
+    );
+
+    expect(units[0]?.paragraphs.at(-1)).toEndWith(
+      "wohin er ging, ob ins Kredit- und Bankwesen, drei- bis vierfach verschuldet.",
+    );
+  });
+});
+
+describe("parseArchiveOcrWork, glosses in the margin", () => {
+  const work = {
+    item: "p1theorienberden02marxuoft",
+    title: "Theorien über den Mehrwert",
+    citation: "Theorien II.1",
+    firstPage: 17,
+    lastPage: 17,
+    spacedNotes: true,
+  };
+  const paragraph =
+    "Die Neigung, dem Sexualobjekt Schmerz zuzufügen und ihr Gegenstück, diese häufigste und bedeutsamste aller Perversionen, ist von v. Krafft-Ebing benannt worden.";
+
+  it("leaves a gloss out of the text where the edition sets them", async () => {
+    const hocr = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+      "utf8",
+    );
+    const units = parseArchiveOcrWork(hocr, { ...work, marginalia: true });
+
+    expect(units.flatMap((unit) => unit.paragraphs)).toEqual([paragraph]);
+  });
+});
