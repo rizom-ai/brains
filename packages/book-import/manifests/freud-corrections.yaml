@@ -309,7 +309,7 @@ freud-1940-gw-13:
     by: scan
   - page: 219
     from: wurde. den
-    to: wurde den
+    to: wurde, den
     by: scan
   - page: 223
     from: Patienten. entlehnt
@@ -333,11 +333,11 @@ freud-1940-gw-13:
     by: scan
   - page: 229
     from: müsse. sah
-    to: müsse sah
+    to: müsse, sah
     by: scan
   - page: 230
     from: konnte. aber
-    to: konnte, aber
+    to: konnte aber
     by: scan
   - page: 231
     from: rektur. aber
@@ -402,10 +402,6 @@ freud-1940-gw-13:
   - page: 321
     from: Tagebuch. des
     to: Tagebuch, des
-    by: scan
-  - page: 333
-    from: troffen. des
-    to: troffen des
     by: scan
   - page: 389
     from: es. wird
@@ -496,10 +492,6 @@ freud-1940-gw-6:
     from: Hier ist nür ein einziger
     to: Hier ist nur ein einziger
     by: reference
-  - page: 40
-    from: Sch. grüßte
-    to: Sch grüßte
-    by: scan
   - page: 40
     from: Witz. auf
     to: Witz auf
@@ -1201,10 +1193,6 @@ freud-1940-gw-9:
     from: Herkunft der Erogamie und ihre
     to: Herkunft der Exogamie und ihre
     by: reference
-  - page: 148
-    from: Ehe. igog
-    to: Ehe igog
-    by: scan
   - page: 150
     from: nicht. begangen
     to: nicht begangen
@@ -1366,21 +1354,13 @@ freud-1941-gw-4:
     from: mir Furcht einlagen‘. Ich wurde
     to: mir Furcht ein=l=agen.“ Ich wurde
     by: reference
-  - page: 65
-    from: Ru. erzählt
-    to: Ru erzählt
-    by: scan
-  - page: 65
-    from: Li. sagte
-    to: Li sagte
-    by: scan
   - page: 66
     from: Anteil die Verdichtun gsarbeit an der
     to: Anteil die Verdichtungsarbeit an der
     by: reference
   - page: 69
     from: raum. der
-    to: raum der
+    to: raum, der
     by: scan
   - page: 71
     from: durch einen üunbewußten Gedanken aus
@@ -1448,7 +1428,7 @@ freud-1941-gw-4:
     by: reference
   - page: 102
     from: Glauben. der
-    to: Glauben, der
+    to: Glauben der
     by: scan
   - page: 114
     from: ii. einen
@@ -1501,10 +1481,6 @@ freud-1941-gw-4:
   - page: 165
     from: Träumerei. des
     to: Träumerei des
-    by: scan
-  - page: 166
-    from: gefirdet. male
-    to: gefirdet male
     by: scan
   - page: 168
     from: der These, daB die Geringfügigkeit
@@ -1565,10 +1541,6 @@ freud-1941-gw-4:
   - page: 260
     from: etwa. besagt
     to: etwa besagt
-    by: scan
-  - page: 263
-    from: holl. zweite
-    to: holl zweite
     by: scan
   - page: 268
     from: Seit. längerer
@@ -1927,17 +1899,9 @@ freud-1941-gw-7:
     from: Lust. war
     to: Lust war
     by: scan
-  - page: 294
-    from: fehlschlägt. piel
-    to: fehlschlägt piel
-    by: scan
   - page: 305
     from: Wenn. wir
     to: Wenn wir
-    by: scan
-  - page: 315
-    from: dar. hab
-    to: dar hab
     by: scan
   - page: 327
     from: eins. drin
@@ -2052,10 +2016,6 @@ freud-1942-gw-2-3:
     from: de l’äme, 1865) bei Radestock
     to: de l'âme, 1865) bei Radestock
     by: reference
-  - page: 28
-    from: Uninap. kann
-    to: Uninap kann
-    by: scan
   - page: 30
     from: ist von Strüm pell—-und fast
     to: ist von Strümpell — und fast
@@ -2264,10 +2224,6 @@ freud-1942-gw-2-3:
     from: sehe einen Sat yros auf seinem
     to: sehe einen Satyros auf seinem
     by: reference
-  - page: 104
-    from: fahrens. ymbolik
-    to: fahrens ymbolik
-    by: scan
   - page: 107
     from: Kopfe hingegen, deucht mir, hat
     to: Kopfe hingegen, däucht mir, hat
@@ -2486,7 +2442,7 @@ freud-1942-gw-2-3:
     by: reference
   - page: 281
     from: Doktoru. dgl
-    to: Doktoru dgl
+    to: Doktor u. dgl
     by: scan
   - page: 288
     from: den vergessenen Blu men erzählt habe
@@ -2610,7 +2566,7 @@ freud-1942-gw-2-3:
     by: reference
   - page: 421
     from: trägt. jedenfalls
-    to: trägt jedenfalls
+    to: trägt. Jedenfalls
     by: scan
   - page: 422
     from: Aufbau eines Brecciengesteines, in dem
@@ -2652,10 +2608,6 @@ freud-1942-gw-2-3:
     from: damals den Unfriedenstifter machte, war
     to: damals den Unfriedensstifter machte, war
     by: reference
-  - page: 486
-    from: DingenichP. denn
-    to: DingenichP denn
-    by: scan
   - page: 496
     from: ein solcher Taagtraum bereits im
     to: ein solcher Tagtraum bereits im
@@ -2997,17 +2949,9 @@ freud-1942-gw-5:
     from: sucht der Marn nach dem
     to: sucht der Mann nach dem
     by: reference
-  - page: 130
-    from: wird. iere
-    to: wird iere
-    by: scan
   - page: 168
     from: ließ. sich
     to: ließ sich
-    by: scan
-  - page: 174
-    from: Ol. cinereum
-    to: Ol cinereum
     by: scan
   - page: 181
     from: und. als
@@ -3047,15 +2991,11 @@ freud-1942-gw-5:
     by: scan
   - page: 230
     from: Sinn. der
-    to: Sinn, der
+    to: Sinn der
     by: scan
   - page: 231
     from: wie. die
     to: wie die
-    by: scan
-  - page: 232
-    from: werde. inzugehen
-    to: werde inzugehen
     by: scan
   - page: 235
     from: werde. sich
@@ -3318,10 +3258,6 @@ freud-1943-gw-8:
     from: zu. folgen
     to: zu folgen
     by: scan
-  - page: 230
-    from: vroses. igog
-    to: vroses igog
-    by: scan
   - page: 250
     from: sie. zuerst
     to: sie zuerst
@@ -3336,7 +3272,7 @@ freud-1943-gw-8:
     by: scan
   - page: 283
     from: Gründen. die
-    to: Gründen, die
+    to: Gründen die
     by: scan
   - page: 308
     from: hat. sich
@@ -3361,10 +3297,6 @@ freud-1943-gw-8:
   - page: 434
     from: Bezug. nehmen
     to: Bezug nehmen
-    by: scan
-  - page: 451
-    from: Traumes. igii
-    to: Traumes igii
     by: scan
   - page: 475
     from: nicht. mehr
@@ -3808,34 +3740,10 @@ freud-1947-gw-12:
     from: von Thieren zahim, sich den
     to: von Thieren zahm, sich den
     by: reference
-  - page: 233
-    from: Schriftst. oft
-    to: Schriftst oft
-    by: scan
-  - page: 233
-    from: gw. nicht
-    to: gw nicht
-    by: scan
-  - page: 234
-    from: bewahren. vgl
-    to: bewahren vgl
-    by: scan
-  - page: 234
-    from: namentl. schles
-    to: namentl schles
-    by: scan
   - page: 235
     from: verschwiegener H. Schr. 495b; Ihr
     to: verschwiegener H. Sch. 495b; Ihr
     by: reference
-  - page: 235
-    from: nam. der
-    to: nam der
-    by: scan
-  - page: 236
-    from: mhd. heimelich
-    to: mhd heimelich
-    by: scan
   - page: 237
     from: bedeutung. des
     to: bedeutung des
@@ -3950,7 +3858,7 @@ freud-1947-gw-12:
     by: scan
   - page: 316
     from: einberufen. hat
-    to: einberufen hat
+    to: einberufen, hat
     by: scan
   - page: 329
     from: des. religiösen
@@ -3969,10 +3877,6 @@ freud-1948-gw-14:
     from: Symptome. eingeführt
     to: Symptome eingeführt
     by: scan
-  - page: 24
-    from: entscheiden. werden
-    to: entscheiden werden
-    by: scan
   - page: 36
     from: zu. lokalisieren
     to: zu lokalisieren
@@ -3980,10 +3884,6 @@ freud-1948-gw-14:
   - page: 78
     from: sie. ist
     to: sie ist
-    by: scan
-  - page: 85
-    from: erreichen. igii
-    to: erreichen igii
     by: scan
   - page: 96
     from: „Nachschrift 1935* zur Selbstdarstellung ist im
@@ -4049,10 +3949,6 @@ freud-1948-gw-14:
     from: und. wann
     to: und wann
     by: scan
-  - page: 245
-    from: der. der
-    to: der der
-    by: scan
   - page: 253
     from: Kranksein. festzuhalten
     to: Kranksein festzuhalten
@@ -4075,7 +3971,7 @@ freud-1948-gw-14:
     by: scan
   - page: 333
     from: Bei. den
-    to: Bei, den
+    to: Bei den
     by: scan
   - page: 468
     from: Bevorzugung. geschätzt
@@ -4084,10 +3980,6 @@ freud-1948-gw-14:
   - page: 500
     from: Interferenz. zweier
     to: Interferenz zweier
-    by: scan
-  - page: 558
-    from: se. sent
-    to: se sent
     by: scan
   - page: 572
     from: zur Broschüre „ZEHN JAHRE BERLINER PSYCHO-
@@ -4279,10 +4171,6 @@ freud-1950-gw-16:
     from: mit. der
     to: mit der
     by: scan
-  - page: 127
-    from: Antiqu. jud
-    to: Antiqu jud
-    by: scan
   - page: 133
     from: dem. östlichen
     to: dem östlichen
@@ -4313,7 +4201,7 @@ freud-1950-gw-16:
     by: scan
   - page: 217
     from: Übereinstimmung. das
-    to: Übereinstimmung, das
+    to: Übereinstimmung das
     by: scan
   - page: 219
     from: c) Der Fortschrüt in der Geistigkeit
@@ -4410,7 +4298,7 @@ freud-1940-gw-11:
     by: scan
   - page: 179
     from: KlementineK. wegenEhebruches
-    to: KlementineK wegenEhebruches
+    to: Klementine K. wegen Ehebruches
     by: scan
   - page: 182
     from: Modifikationen. des
@@ -4470,7 +4358,7 @@ freud-1940-gw-11:
     by: scan
   - page: 365
     from: vorführen. das
-    to: vorführen das
+    to: vorführen, das
     by: scan
   - page: 370
     from: daß. seine
@@ -4531,7 +4419,7 @@ freud-1940-gw-15:
     by: scan
   - page: 51
     from: Künste. der
-    to: Künste, der
+    to: Künste der
     by: scan
   - page: 63
     from: Beginn. unserer
@@ -4567,7 +4455,7 @@ freud-1940-gw-15:
     by: scan
   - page: 115
     from: Basis. entfernt
-    to: Basis entfernt
+    to: Basis, entfernt
     by: scan
   - page: 128
     from: fast. alle
