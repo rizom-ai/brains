@@ -17,6 +17,7 @@ import {
   registerTrafficWorkspace,
   type TrafficWorkspaceReports,
 } from "./studio/traffic-workspace";
+import { registerTrafficWidget } from "./studio/traffic-widget";
 import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
 import { TrafficSnapshotPlugin } from "./entity/plugin";
 import type { TrafficDay } from "./entity/schema";
@@ -139,6 +140,7 @@ export class AnalyticsPlugin extends ServicePlugin<
     if (!this.trafficReports) return;
     const url = await registerTrafficWorkspace(context, this.trafficReports);
     this.studioRegistered = url !== undefined;
+    await registerTrafficWidget(context, this.trafficReports);
   }
 
   protected override async onShutdown(): Promise<void> {

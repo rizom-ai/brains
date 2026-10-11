@@ -23,9 +23,10 @@ metrics, distributions, report-style answers — kept apart from entity reads
 - Plugins register with
   `context.analytics.register(defineAnalyticsReport({ type, description, params, minVisibility?, handler }))`.
 - Reports: `overview`, `publishing-cadence` and `content-health` (core),
-  `topic-distribution` (topics), `traffic-overview` and `traffic-series`
-  (analytics, admin-only, read from traffic snapshots; see
-  [traffic-analytics.md](./traffic-analytics.md)).
+  `topic-distribution` (topics), `traffic-overview`, `traffic-series` and
+  `traffic-by-entity` (analytics, admin-only, read from the daily
+  `traffic-snapshot` entities; Studio's Traffic workspace and dashboard
+  widget read the same reports).
 
 ## Phase 4 — Tighten report quality
 
@@ -34,8 +35,10 @@ metrics, distributions, report-style answers — kept apart from entity reads
 - Give the core reports params where a caller needs them: a date range and
   entity types for `publishing-cadence`, a stale threshold and entity types for
   `content-health`.
-- Add an optional output schema to report definitions, starting with the
-  traffic reports when the Studio Traffic workspace renders them.
+- Enable the analytics plugin in evals (it is `evalDisable`d in the canonical
+  bundle from when it needed Cloudflare) with traffic cases: a traffic question
+  uses `traffic-overview`, "how did my last essay do" uses
+  `traffic-by-entity` with `firstDays`.
 
 ## Validation
 
@@ -45,5 +48,6 @@ metrics, distributions, report-style answers — kept apart from entity reads
 
 ## Decisions
 
-- Output schemas arrive with their first consumer, the Studio Traffic
-  workspace, not ahead of it: a schema nothing renders is untested contract.
+- Report definitions carry no output schema. The Traffic workspace and widget
+  parse what the traffic reports return with their own schemas, so drift fails
+  them; a field on the definition waits for a consumer that reads any report.

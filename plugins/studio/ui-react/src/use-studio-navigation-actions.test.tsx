@@ -229,5 +229,13 @@ describe("useStudioNavigationActions", () => {
     expect(decodeURIComponent(harness.history.location.pathname)).toBe(
       "/studio/workspaces/site-builder:site",
     );
+
+    await act(async () =>
+      harness.actions().openWorkspaceLaunch({ target: "traffic" }),
+    );
+
+    expect(decodeURIComponent(harness.history.location.pathname)).toBe(
+      "/studio/workspaces/analytics:traffic",
+    );
   });
 });

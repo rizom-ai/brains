@@ -165,6 +165,13 @@ describe("widget UI primitives", () => {
                     },
                   },
                   {
+                    label: "Traffic",
+                    target: {
+                      kind: "launch",
+                      launch: { target: "traffic" },
+                    },
+                  },
+                  {
                     label: "Inbox",
                     target: {
                       kind: "launch",
@@ -198,6 +205,7 @@ describe("widget UI primitives", () => {
       'href="/studio/workspaces/content-pipeline%3Apublishing"',
     );
     expect(html).toContain('href="/studio/workspaces/site-builder%3Asite"');
+    expect(html).toContain('href="/studio/workspaces/analytics%3Atraffic"');
     expect(html).toContain('href="/studio/workspaces/unified-inbox%3Ainbox"');
     expect(html).toContain(
       'href="/studio/workspaces/admin%3Aadministration?tab=invitations&amp;peerId=did%3Aweb%3Agrace.example&amp;displayName=Grace+Hopper"',

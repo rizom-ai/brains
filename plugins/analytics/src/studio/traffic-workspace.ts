@@ -6,6 +6,7 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { shortDate } from "../lib/short-date";
 import type { TrafficReports } from "../reports/traffic-reports";
 import type { createTrafficByEntityReport } from "../reports/traffic-by-entity";
 
@@ -78,27 +79,6 @@ const publishedWork = defineEntityCatalog({
   id: "traffic-published-work",
   label: "Published work",
 });
-
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-/** `2026-10-09` as `9 Oct`, the same in every locale. */
-function shortDate(date: string): string {
-  const [, month, dayOfMonth] = date.split("-");
-  return `${Number(dayOfMonth)} ${MONTHS[Number(month) - 1] ?? month}`;
-}
 
 function changeCaption(change: number | null): string {
   if (change === null) return "nothing to compare with";

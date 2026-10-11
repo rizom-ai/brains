@@ -416,6 +416,7 @@ export type OperatorLaunchIntent =
     }
   | { readonly target: "publishing" }
   | { readonly target: "site" }
+  | { readonly target: "traffic" }
   | {
       readonly target: "inbox-open-entity";
       readonly entityType: string;
