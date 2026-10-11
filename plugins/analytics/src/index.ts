@@ -13,6 +13,10 @@ import {
 } from "./lib/cloudflare-client";
 import { createTrafficReports } from "./reports/traffic-reports";
 import { createTrafficByEntityReport } from "./reports/traffic-by-entity";
+import {
+  registerTrafficWorkspace,
+  type TrafficWorkspaceReports,
+} from "./studio/traffic-workspace";
 import { TrafficCapture, entitySnapshotStore } from "./lib/traffic-capture";
 import { TrafficSnapshotPlugin } from "./entity/plugin";
 import type { TrafficDay } from "./entity/schema";
@@ -39,6 +43,9 @@ export class AnalyticsPlugin extends ServicePlugin<
   AnalyticsConfigInput
 > {
   private cloudflareClient: CloudflareClient | undefined;
+  private trafficReports: TrafficWorkspaceReports | undefined;
+  private pluginContext: ServicePluginContext | undefined;
+  private studioRegistered = false;
 
   private deps: CloudflareClientDeps;
 
@@ -66,16 +73,19 @@ export class AnalyticsPlugin extends ServicePlugin<
           client.getDailyTraffic(date),
       }),
     };
-    const traffic = createTrafficReports(trafficDeps);
-    context.analytics.register(traffic.overview);
-    context.analytics.register(traffic.series);
-    // Pages map to entities through the site's own routes.
-    context.analytics.register(
-      createTrafficByEntityReport({
+    const traffic = {
+      ...createTrafficReports(trafficDeps),
+      // Pages map to entities through the site's own routes.
+      byEntity: createTrafficByEntityReport({
         ...trafficDeps,
         entityDisplay: context.entityDisplay,
       }),
-    );
+    };
+    context.analytics.register(traffic.overview);
+    context.analytics.register(traffic.series);
+    context.analytics.register(traffic.byEntity);
+    this.trafficReports = traffic;
+    this.pluginContext = context;
 
     // Site builds run in the worker and ask for head scripts as they render,
     // so the beacon answers there; that process never runs the ready phase.
@@ -120,6 +130,21 @@ export class AnalyticsPlugin extends ServicePlugin<
         },
       });
     }
+  }
+
+  // Studio runs in the web process, which alone has a ready phase.
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (!this.trafficReports) return;
+    const url = await registerTrafficWorkspace(context, this.trafficReports);
+    this.studioRegistered = url !== undefined;
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    if (!this.studioRegistered) return;
+    await this.pluginContext?.studio.unregisterWorkspace("analytics:traffic");
+    this.studioRegistered = false;
   }
 }
 
