@@ -716,7 +716,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     try {
       return Response.json(parseAgentResponse(response.data));
     } catch {
-      return new Response("Invalid runtime action response", { status: 502 });
+      // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
+      // origin 502 with its own page, and the reason never reaches the caller.
+      return new Response("Invalid runtime action response", { status: 500 });
     }
   }
 

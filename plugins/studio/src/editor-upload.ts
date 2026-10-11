@@ -89,12 +89,14 @@ export async function handleUpload(
     // The staged upload is discarded and the caller told the promotion
     // failed. The reason stays server-side rather than in the response.
     await store.remove(record.id);
-    return jsonResponse({ error: "Upload promotion failed" }, 502);
+    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
+    // origin 502 with its own page, and the reason never reaches the caller.
+    return jsonResponse({ error: "Upload promotion failed" }, 500);
   }
 
   if (!result.success) {
     await store.remove(record.id);
-    return jsonResponse({ error: result.error }, 502);
+    return jsonResponse({ error: result.error }, 500);
   }
   await recordStudioMutationAudit(
     recordAuditEvent,
