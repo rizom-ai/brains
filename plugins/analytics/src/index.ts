@@ -75,6 +75,7 @@ export class AnalyticsPlugin extends ServicePlugin<
       }),
     };
     const traffic = {
+      today: utcToday,
       ...createTrafficReports(trafficDeps),
       // Pages map to entities through the site's own routes.
       byEntity: createTrafficByEntityReport({

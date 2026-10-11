@@ -125,6 +125,7 @@ async function registered(
   const deps = { today: (): string => TODAY };
   const { overview, series } = createTrafficReports(deps);
   await registerTrafficWorkspace(context, {
+    today: deps.today,
     overview,
     series,
     byEntity: createTrafficByEntityReport({
@@ -170,5 +171,24 @@ describe("the Traffic workspace", () => {
     expect(week).not.toContain('"id":"2026-10-04"');
     expect(month).toContain('"value":"30"');
     expect(month).toContain('"id":"2026-09-12"');
+  });
+
+  // Studio's period select always offers "All" (an empty value): it covers
+  // every day the snapshots hold, and an unknown value reads as the default.
+  it("covers every recorded day for All, and the default for anything else", async () => {
+    const registration = await registered(await brain());
+    const all = JSON.stringify(
+      await registration.dataProvider(adminActor, { days: "" }),
+    );
+    const bogus = JSON.stringify(
+      await registration.dataProvider(adminActor, { days: "all" }),
+    );
+
+    expect(all).toContain('"allLabel":"All recorded days"');
+    expect(all).toContain('"description":"9 Oct – 11 Oct"');
+    expect(all).toContain('"id":"2026-10-09"');
+    expect(all).not.toContain('"id":"2026-10-08"');
+    expect(bogus).toContain('"value":"30"');
+    expect(bogus).toContain('"id":"2026-09-12"');
   });
 });
