@@ -1,5 +1,14 @@
 # @brains/onboarding
 
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.530
+  - @brains/utils@0.2.0-alpha.530
+  - @brains/plugins@0.2.0-alpha.530
+
 ## 0.2.0-alpha.529
 
 ### Patch Changes

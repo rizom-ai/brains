@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- [#606](https://github.com/rizom-ai/brains/pull/606) [`ea43e46`](https://github.com/rizom-ai/brains/commit/ea43e4648a979c7abe907dade6157c20b56c3b1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio collections that are still initializing end their wait with "Collections are not ready yet. Try again." even when the wait budget runs out as a response arrives, instead of surfacing the raw initializing error.
+
+- [#604](https://github.com/rizom-ai/brains/pull/604) [`9b457d1`](https://github.com/rizom-ai/brains/commit/9b457d13c022ec1a98c70cf4ae9336ff59422f9f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Traffic workspace chart draws a day Cloudflare sampled like any other day, naming it an estimate on hover, instead of in the warning colour that made the estimated history its boldest bars.
+
 ## 0.2.0-alpha.529
 
 ### Patch Changes
