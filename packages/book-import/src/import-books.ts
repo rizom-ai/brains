@@ -125,6 +125,7 @@ const archiveOcrBookSchema: z.ZodObject<
       paragraphs: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
+      curved: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
       opensWith: z.ZodOptional<z.ZodString>;
     }
@@ -170,6 +171,8 @@ const archiveOcrBookSchema: z.ZodObject<
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
   spacedNotes: z.boolean().default(false),
+  /** The scan's lines curve, so their starts tell no indent: a paragraph opens only below a sentence's end. */
+  curved: z.boolean().default(false),
   /** A volume of newspaper articles, each titled above its dateline: London, 9. Juni 1854. */
   datelined: z.boolean().default(false),
   /** The line the first page opens the work with, after another work's end. */

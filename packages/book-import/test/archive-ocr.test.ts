@@ -2118,3 +2118,36 @@ describe("parseArchiveOcrWork, a title in display type across the column", () =>
     expect(paragraphs).toContain("1) Marx schrieb: der Tauschwert. K.");
   });
 });
+
+describe("parseArchiveOcrWork, a scan whose lines curve", () => {
+  it("opens a paragraph only below a sentence's end, where the line above stops short or the line is set in", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-curved.html"),
+        "utf8",
+      ),
+      {
+        item: "ldpd_13048930_000",
+        title: "Der Bürgerkrieg in Frankreich",
+        citation: "Bürgerkrieg",
+        firstPage: 1,
+        lastPage: 2,
+        opensWith: "Am 4. September",
+        curved: true,
+      },
+    );
+
+    // A paragraph whose last line runs full, its next line set in no further
+    // than the curve moves lines, stays joined: In einem Brief, below a quotation.
+    expect(
+      units.flatMap((unit) =>
+        unit.paragraphs.map((paragraph) => paragraph.slice(0, 20)),
+      ),
+    ).toEqual([
+      "Am 4. September 187⁰",
+      "V. Das erste, was si",
+      "D Die erste Frage, d",
+      "Also: Am selben Aben",
+    ]);
+  });
+});

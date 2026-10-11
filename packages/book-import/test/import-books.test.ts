@@ -851,6 +851,16 @@ books:
     ).toEqual([{ page: 19, opens: "Vor dieser Jury" }]);
   });
 
+  it("names a scan whose lines curve, so their starts tell no indent", () => {
+    const manifest = parseManifest(ocrManifest + "    curved: true\n");
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].curved
+        : null,
+    ).toBe(true);
+  });
+
   it("names an edition that sets its notes as large as the text", () => {
     const manifest = parseManifest(ocrManifest + "    spacedNotes: true\n");
 

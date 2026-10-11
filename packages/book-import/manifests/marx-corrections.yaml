@@ -988,6 +988,14 @@ dieklassenkmpf00marxuoft:
     to: ""
     by: scan
 ldpd_14861084_000:
+  - page: 5
+    from: — - den Tauschwerth
+    to: — den Tauschwerth
+    by: scan
+  - page: 8
+    from: ",,So dass,"
+    to: „So dass,
+    by: scan
   - page: 14
     from: freien Willen ahhängt. Mehr noch
     to: freien Willen abhängt. Mehr noch
@@ -1012,6 +1020,18 @@ ldpd_14861084_000:
     from: der Werth besimmt werden durch
     to: der Werth bestimmt werden durch
     by: reference
+  - page: 60
+    from: -das Produkt
+    to: das Produkt
+    by: scan
+  - page: 60
+    from: ■verzehren. Aber
+    to: verzehren. Aber
+    by: scan
+  - page: 62
+    from: •Gestalt der
+    to: Gestalt der
+    by: scan
   - page: 63
     from: Silber vorgehenden Yeränderungen stets ihre
     to: Silber vorgehenden Veränderungen stets ihre
@@ -1080,6 +1100,10 @@ ldpd_14861084_000:
     from: des Herrn Proudhou besser in
     to: des Herrn Proudhon besser in
     by: reference
+  - page: 114
+    from: "' diese Industrie"
+    to: diese Industrie
+    by: scan
   - page: 117
     from: dass eine iD den Produktivkräften
     to: dass eine in den Produktivkräften
@@ -1100,10 +1124,22 @@ ldpd_14861084_000:
     from: den freiwilligen Irrtlium von fünfundzwanzig
     to: den freiwilligen Irrthum von fünfundzwanzig
     by: reference
+  - page: 153
+    from: ■wenn er
+    to: wenn er
+    by: scan
   - page: 155
     from: und erheben dahern Steuern auf
     to: und erheben daher Steuern auf
     by: reference
+  - page: 155
+    from: "- Verbrauchssteuer ein"
+    to: Verbrauchssteuer ein
+    by: scan
+  - page: 158
+    from: ",,Die Theorie"
+    to: „Die Theorie
+    by: scan
   - page: 159
     from: den landläufigen Kapitalgewünn und Kapitalzins
     to: den landläufigen Kapitalgewinn und Kapitalzins
@@ -1116,10 +1152,74 @@ ldpd_14861084_000:
     from: andere Umstände wdrken auf die
     to: andere Umstände wirken auf die
     by: reference
+  - page: 166
+    from: ",,ein ungeheurer"
+    to: „ein ungeheurer
+    by: scan
   - page: 168
     from: solcher zu tlxun. Der Zins
     to: solcher zu thun. Der Zins
     by: reference
+  - page: 169
+    from: "| der Pacht"
+    to: der Pacht
+    by: scan
+  - page: 169
+    from: "| zu sprechen"
+    to: zu sprechen
+    by: scan
+  - page: 169
+    from: \ die Grundstücke,
+    to: die Grundstücke,
+    by: scan
+  - page: 169
+    from: "| braucht nur"
+    to: braucht nur
+    by: scan
+  - page: 169
+    from: "| Grundstücke weitere"
+    to: Grundstücke weitere
+    by: scan
+  - page: 169
+    from: . Der Bodenstoff
+    to: Der Bodenstoff
+    by: scan
+  - page: 169
+    from: "| Boden beilegt,"
+    to: Boden beilegt,
+    by: scan
+  - page: 169
+    from: "| dauerhaft und"
+    to: dauerhaft und
+    by: scan
+  - page: 169
+    from: .Gold und
+    to: Gold und
+    by: scan
+  - page: 169
+    from: ■ kommt, das
+    to: kommt, das
+    by: scan
+  - page: 174
+    from: -der Radikalismus
+    to: der Radikalismus
+    by: scan
+  - page: 175
+    from: "| meeting. Man"
+    to: meeting. Man
+    by: scan
+  - page: 175
+    from: "| englische Industrie"
+    to: englische Industrie
+    by: scan
+  - page: 175
+    from: "* den Zweck"
+    to: den Zweck
+    by: scan
+  - page: 176
+    from: ",,Der Strike"
+    to: „Der Strike
+    by: scan
   - page: 178
     from: Industrie am höchten entwickelt ist
     to: Industrie am höchsten entwickelt ist
@@ -3318,6 +3418,22 @@ theorienberden03marxuoft:
     from: II. Iuther über den Wucher.
     to: II. Luther über den Wucher.
     by: scan
+  - page: 589
+    from: IIIXLIRRNNNNNN 1K rfPReer!irnt 4 er den Leuten
+    to: er den Leuten
+    by: scan
+  - page: 589
+    from: .4.8 Leihen und Borgen.
+    to: Leihen und Borgen.
+    by: scan
+  - page: 589
+    from: "** oder besseres fordert oder nimmt"
+    to: oder besseres fordert oder nimmt
+    by: scan
+  - page: 589
+    from: rννινι oder besseres dafür fordert
+    to: oder besseres dafür fordert
+    by: scan
   - page: 593
     from: sedephantasticum inteéresse. Ein
     to: sedephantasticum interesse. Ein
@@ -4004,6 +4120,10 @@ mehring-nachlass-3:
     from: Der Fall Uiens.
     to: Der Fall Wiens.
     by: scan
+  - page: 216
+    from: — — —— großen Debatte
+    to: großen Debatte
+    by: scan
   - page: 230
     from: Deujahr 1849.
     to: Neujahr 1849.
@@ -4069,8 +4189,40 @@ mehring-nachlass-3:
     to: Londoner panic vom
     by: scan
   - page: 478
-    from: an deé demokratische
-    to: an de demokratische
+    from: aufgiebt, beweist unser Arnold Winkelried Ruge, der zur großen 1161
+    to: aufgiebt, beweist unser Arnold Winkelried Ruge, der zur großen Freude
+    by: scan
+  - page: 478
+    from: von Leo diesmal n manthid müden Kahet un dertet
+    to: von Leo diesmal den Unterschied zwischen Gottheit und Menschheit zu
+    by: scan
+  - page: 478
+    from: "Das Manifest endet mit den Worten: „Es handelt sich um die K"
+    to: "Das Manifest endet mit den Worten: „Es handelt sich um die Kon-"
+    by: scan
+  - page: 478
+    from: stitution der europäischen Demokratie, um die Gründung eines X
+    to: stitution der europäischen Demokratie, um die Gründung eines Budgets,
+    by: scan
+  - page: 478
+    from: einer Schatzkammer des Volks. Es handelt sich um die O ——
+    to: einer Schatzkammer des Volks. Es handelt sich um die Organisation
+    by: scan
+  - page: 478
+    from: der Armee der Initiatoren.“ *
+    to: der Armee der Initiatoren.“
+    by: scan
+  - page: 478
+    from: Ruge, um der erste Initiator dieses Volksbudgets zu Hr
+    to: Ruge, um der erste Initiator dieses Volksbudgets zu sein, hat sich
+    by: scan
+  - page: 478
+    from: an deé demokratische Jantjes van Amsterdam gewandt und
+    to: an de demokratische Jantjes van Amsterdam gewandt und ihnen
+    by: scan
+  - page: 478
+    from: ihren speziellen Beruf zum Zahlen erklärt. Holland in Nothl
+    to: ihren speziellen Beruf zum Zahlen erklärt. Holland in Noth!
     by: scan
 gesammelteschrif01marxuoft:
   - page: 1
@@ -4265,6 +4417,10 @@ ao391_die_neue_zeit:
   - page: 562
     from: einer füngst erschienenen
     to: einer jüngst erschienenen
+    by: scan
+  - page: 562
+    from: . Man weiß,
+    to: .... Man weiß,
     by: scan
   - page: 563
     from: Nandglossen zum Programm der deutschen Arbeiterpartei.
@@ -5977,17 +6133,97 @@ enthullungen-1885:
     to: einer geheimen Propagandagesellschaft, aber der Code pénal enthält
     by: scan
   - page: 22
-    from: Schapper, in VBerbindung mit der
-    to: Schapper, in Verbindung mit der
-    by: reference
+    from: kann noch gehnmal wieder untergehen und definitiv untergehen, ohne daß
+    to: kann noch zehnmal wieder untergehen und definitiv untergehen, ohne daß
+    by: scan
   - page: 22
-    from: „hochverrütherischen Komplotts“ schuldig
-    to: „hochverrätherischen Komplotts“ schuldig
-    by: reference
+    from: der bestehenden u Nusloiun auch nur ein Haar ausfällt. Die Kommu-
+    to: der bestehenden Gesellschaft auch nur ein Haar ausfällt. Die Kommu-
+    by: scan
   - page: 22
-    from: und die „Partel
-    to: und die „Partei
-    by: reference
+    from: preu Staates überlassen. Wessen direkter Zweck es wäre, den
+    to: preußischen Staates überlassen. Wessen direkter Zweck es wäre, den
+    by: scan
+  - page: 22
+    from: merung der Gesells aft als Mittel lehrte, der gliche jenem verrückten
+    to: merung der Gesellschaft als Mittel lehrte, der gliche jenem verrückten
+    by: scan
+  - page: 22
+    from: D der die Erde sprengen wollte, um einen Misthaufen aus dem
+    to: Ingenieur, der die Erde sprengen wollte, um einen Misthaufen aus dem
+    by: scan
+  - page: 22
+    from: eg zu raͤumen.
+    to: Weg zu räumen.
+    by: scan
+  - page: 22
+    from: Regierung auch ohne sie fallen werde. Sie stifteten r n Bund
+    to: Regierung auch ohne sie fallen werde. Sie stifteten daher keinen Bund
+    by: scan
+  - page: 22
+    from: zum Sturz der 1200 preußischen Regierung, sie machten sich keines
+    to: zum Sturz der jetzigen preußischen Regierung, sie machten sich keines
+    by: scan
+  - page: 22
+    from: „hochverrütherischen Komplotts“ schuldig.
+    to: „hochverrätherischen Komplotts“ schuldig.
+    by: scan
+  - page: 22
+    from: besten römischen Winkelpräfekten zu stürzen ? Die preußischen Staats-
+    to: besten römischen Winkelpräfekten zu stürzen? Die preußischen Staats-
+    by: scan
+  - page: 22
+    from: — 4 Hat man sie aber wegen Attentat auf das Haus Hohenzollern
+    to: gnaden ab. Hat man sie aber wegen Attentat auf das Haus Hohenzollern verfolgt?
+    by: scan
+  - page: 22
+    from: Tageslicht der Oeffentlichkeit. Es blieb bei der Klage des Anklagesenats
+    to: Tageslicht der Oeffentlichkeit. Es blieb bei der Klage des Anklagesenats,
+    by: scan
+  - page: 22
+    from: daß „teinobjektiver Thatbestand“ vorliege und die „Partel
+    to: daß „kein objektiver Thatbestand“ vorliege und die „Partei
+    by: scan
+  - page: 22
+    from: Diesem Mißstand mußte abgeholfen werden. Die Partei Willi
+    to: Diesem Mißstand mußte abgeholfen werden. Die Partei Willich-
+    by: scan
+  - page: 22
+    from: Schapper, in VBerbindung mit der Polizei, half ihm ab. Sehen wir, wie
+    to: Schapper, in Verbindung mit der Polizei, half ihm ab. Sehen wir, wie
+    by: scan
+  - page: 22
+    from: Nothjung 9 9 Papiere, „namentlich, schwört Stieber,
+    to: Nothjung gefundenen Papiere, „namentlich, schwört Stieber,
+    by: scan
+  - page: 22
+    from: don bei einem gewissen Oswald Diet liegen und die
+    to: don bei einem gewissen Oswald Dietz liegen und die
+    by: scan
+  - page: 22
+    from: anze Korrespondenz der Bundesmitglieder ent-
+    to: ganze Korrespondenz der Bundesmitglieder ent-
+    by: scan
+  - page: 22
+    from: harken mußte.“
+    to: halten mußte.“
+    by: scan
+  - page: 22
+    from: Mitglieder? Aber Tarß war der Sekretär der Willich-Schapper'schen
+    to: Mitglieder? Aber Dietz war der Sekretär der Willich-Schapper'schen
+    by: scan
+  - page: 22
+    from: ihm, so war es das Archiv der Willich Schapper'schen Verschwörung.
+    to: ihm, so war es das Archiv der Willich-Schapper'schen Verschwörung.
+    by: scan
+  - page: 22
+    from: and sich bei Dietz eine Bundeskorrespondenz, so konnte es nur die
+    to: Fand sich bei Dietz eine Bundeskorrespondenz, so konnte es nur die
+    by: scan
+  - page: 22
+    from: orrespondenz des den Kölner Angeklagten feindlichen Sonderbundes-
+    to: Korrespondenz des den Kölner Angeklagten feindlichen Sonderbundes
+    by: scan
   - page: 23
     from: sein. Aus der Musterung der bei Nothiung oorgefundenen Dokumente
     to: sein. Aus der Musterung der bei Nothjung vorgefundenen Dokumente
@@ -7048,6 +7284,50 @@ enthullungen-1885:
     from: länger zu halien, selbst nicht
     to: länger zu halten, selbst nicht
     by: reference
+  - page: 53
+    from: dieser preußiichen Polizei-Tragikomödie
+    to: dieser preußischen Polizei-Tragikomödie
+    by: scan
+  - page: 53
+    from: amphitheatralische Werestätte, worin das Ociginal-Pro-
+    to: amphitheatralische Werkstätte, worin das Original-Pro-
+    by: scan
+  - page: 53
+    from: provocateur, Citiy-
+    to: provocateur, City-
+    by: scan
+  - page: 53
+    from: auf dritter Stuse den
+    to: auf dritter Stufe den
+    by: scan
+  - page: 53
+    from: der höchsten Stuse die
+    to: der höchsten Stufe die
+    by: scan
+  - page: 53
+    from: Exemplaren des rotthen
+    to: Exemplaren des rothen
+    by: scan
+  - page: 53
+    from: Sachverständige (??7)
+    to: Sachverständige (???)
+    by: scan
+  - page: 53
+    from: nen hiermit 50 Exemplare
+    to: Ihnen hiermit 50 Exemplare
+    by: scan
+  - page: 53
+    from: chrift. Die Revolution
+    to: schrift. Die Revolution
+    by: scan
+  - page: 53
+    from: evolution!
+    to: Revolution!
+    by: scan
+  - page: 53
+    from: Polizei Präsident Hinkel dey von Berlin leitet während der Unter-
+    to: Polizei-Präsident Hinkeldey von Berlin leitet während der Unter-
+    by: scan
   - page: 54
     from: der Berhandlungen figuriren
     to: der Verhandlungen figuriren
@@ -7265,17 +7545,93 @@ enthullungen-1885:
     to: Regierungs-Steckbriefen
     by: scan
   - page: 76
-    from: daß der Emiỹãr gerade in
-    to: daß der Emissär gerade in
-    by: reference
+    from: eine Neihe von RNifionzreisen nu großen Erolg arigefrset hatte.
+    to: eine Reihe von Missionsreisen mit großem Erfolg ausgeführt hatte.
+    by: scan
   - page: 76
-    from: eine neue Nevolution bevorsteht, wo
-    to: eine neue Revolution bevorsteht, wo
-    by: reference
+    from: NLach der Xiederlage der revolutionaren Partieen Deurt'clands und
+    to: Nach der Niederlage der revolutionären Parteien Deutschlands und
+    by: scan
   - page: 76
-    from: sagten Euch, Brũder, schon im
-    to: sagten Euch, Brüder, schon im
-    by: reference
+    from: Frankreichs in Juli 1849 haden sich faün alle Ruglieder der Zentral-
+    to: Frankreichs im Juli 1849 haben sich fast alle Mitglieder der Zentral-
+    by: scan
+  - page: 76
+    from: behõrde in London wieder zuiammengefunden. sich au neuen repolutio-
+    to: behörde in London wieder zusammengefunden, sich mit neuen revolutio-
+    by: scan
+  - page: 76
+    from: nãren Rrãten ergãmzt und mu ernentem Eiier die Neor ganiiatioa dea
+    to: nären Kräften ergänzt und mit erneuertem Eifer die Reorganisation des
+    by: scan
+  - page: 76
+    from: Bundeã betrieben.
+    to: Bundes betrieben.
+    by: scan
+  - page: 76
+    from: Die Neorganisation kann nur durch einen Erri Fãr erfolaen und die
+    to: Die Reorganisation kann nur durch einen Emissär erfolgen und die
+    by: scan
+  - page: 76
+    from: Zentralbehõrde hãlt für höchnũ wichtig, daß der Emiỹãr gerade in diesem
+    to: Zentralbehörde hält für höchst wichtig, daß der Emissär gerade in diesem
+    by: scan
+  - page: 76
+    from: Augenblicke abgeht, wo eine neue Nevolution bevorsteht, wo die Arbeiter-
+    to: Augenblicke abgeht, wo eine neue Revolution bevorsteht, wo die Arbeiter-
+    by: scan
+  - page: 76
+    from: vartei also mõglichst organifirt, mõglichũ einstunmmig and möslichst selb-
+    to: partei also möglichst organisirt, möglichst einstimmig und möglichst selb-
+    by: scan
+  - page: 76
+    from: stãndig auftreten muß, wenn sie nicht wieder wie 1848 von der Bour-
+    to: ständig auftreten muß, wenn sie nicht wieder wie 1848 von der Bour-
+    by: scan
+  - page: 76
+    from: geoisie exvlouirt und in3 Schlepytau genommen werden soll.
+    to: geoisie exploitirt und in's Schlepptau genommen werden soll.
+    by: scan
+  - page: 76
+    from: Wir sagten Euch, Brũder, schon im Jahre 1818, daß die deutschen
+    to: Wir sagten Euch, Brüder, schon im Jahre 1848, daß die deutschen
+    by: scan
+  - page: 76
+    from: liberalen Bourgeois bald zur Herrschaft kommen und ihre nen errungene
+    to: liberalen Bourgeois bald zur Herrschaft kommen und ihre neu errungene
+    by: scan
+  - page: 76
+    from: Nacht sosort gegen die Arbeiter kehren würden. Ihr habt gesehen, wie
+    to: Macht sofort gegen die Arbeiter kehren würden. Ihr habt gesehen, wie
+    by: scan
+  - page: 76
+    from: die nach der Narzbewegung 1848 sofort Besitz von der Staatsgewalt
+    to: die nach der Märzbewegung 1848 sofort Besitz von der Staatsgewalt
+    by: scan
+  - page: 76
+    from: ergrifsen und diese Macht dazu benutzten, die Arbeiter, ihre Bundes-
+    to: ergriffen und diese Macht dazu benutzten, die Arbeiter, ihre Bundes-
+    by: scan
+  - page: 76
+    from: sogar dieser feudalen absolutistischen Parter die Herrichaft wieder abzu-
+    to: sogar dieser feudalen absolutistischen Partei die Herrschaft wieder abzu-
+    by: scan
+  - page: 76
+    from: bas Volk verhaßt zu machen, da alle diese Gewaltschritte schon durch
+    to: das Volk verhaßt zu machen, da alle diese Gewaltschritte schon durch
+    by: scan
+  - page: 76
+    from: den Arbeitern weit gefährlicher ist als die frũhere liberale, besteht au
+    to: den Arbeitern weit gefährlicher ist als die frühere liberale, besteht aus
+    by: scan
+  - page: 76
+    from: den sofortigen vollständigen Sturz des Feudalismus und Autullemat
+    to: I. Aus den fortgeschrittensten Theilen der großen Bourgeoisie, die
+    by: scan
+  - page: 76
+    from: I. Aus den sortgeschrittensten Theilen der großen Bourgeoisie, die
+    to: den sofortigen vollständigen Sturz des Feudalismus und Absolutismus
+    by: scan
   - page: 77
     from: und die Wan jetzt roth
     to: und die sich jetzt roth
@@ -7400,6 +7756,10 @@ enthullungen-1885:
     from: Arbeiter bewassnet und
     to: Arbeiter bewaffnet und
     by: reference
+  - page: 81
+    from: "* Wahlen schon"
+    to: Wahlen schon
+    by: scan
   - page: 84
     from: Angelegenheit in Frantfurt wurde durch
     to: Angelegenheit in Frankfurt wurde durch
@@ -7629,6 +7989,46 @@ enthullungen-1885:
     to: schleunigsten Ver-
     by: scan
 ldpd_13048930_000:
+  - page: 1
+    from: Am 4. September 187⁰0, als die Pariser Arbeiter die
+    to: Am 4. September 1870, als die Pariser Arbeiter die
+    by: scan
+  - page: 1
+    from: Republik. proklamirten, der fast in demselben Augenblick ganz
+    to: Republik proklamirten, der fast in demselben Augenblick ganz
+    by: scan
+  - page: 1
+    from: Nals Staatsmann und Trochu als General, Besitz vom Hotel
+    to: als Staatsmann und Trochu als General, Besitz vom Hotel
+    by: scan
+  - page: 1
+    from: de ville (Stadthaus). Diese Leute waren damals durchdrungen ö
+    to: de Ville (Stadthaus). Diese Leute waren damals durchdrungen
+    by: scan
+  - page: 1
+    from: in allen Epochen geschichtlicher Krisis Frankreich zu verireten,
+    to: in allen Epochen geschichtlicher Krisis Frankreich zu vertreten,
+    by: scan
+  - page: 1
+    from: Dals Abgeordnete sür Paris vorzuzeigen. In unserer zweiten
+    to: als Abgeordnete für Paris vorzuzeigen. In unserer zweiten
+    by: scan
+  - page: 1
+    from: im Sturm der Ueberrumpelung, mit den wirllichen Führern der
+    to: im Sturm der Ueberrumpelung, mit den wirklichen Führern der
+    by: scan
+  - page: 1
+    from: Ddingung hin, daß diese Staatsmacht dienen sollte einzig und
+    to: dingung hin, daß diese Staatsmacht dienen sollte einzig und
+    by: scan
+  - page: 1
+    from: / Paris über den preußischen Angreifer wäre ein Sieg gewesen
+    to: Paris über den preußischen Angreifer wäre ein Sieg gewesen
+    by: scan
+  - page: 1
+    from: des französischen Arbeiters über den . Iime
+    to: des französischen Arbeiters über den französischen Kapitalisten
+    by: scan
   - page: 2
     from: Gambetta bekennt werselbe Jules Favre
     to: Gambetta bekennt derselbe Jules Favre
@@ -7636,6 +8036,10 @@ ldpd_13048930_000:
   - page: 2
     from: n einem
     to: In einem
+    by: scan
+  - page: 2
+    from: — anwesenden Maires,
+    to: anwesenden Maires,
     by: scan
   - page: 3
     from: daß bas wogegen
@@ -7668,6 +8072,10 @@ ldpd_13048930_000:
   - page: 3
     from: verlästern als n- VBande
     to: verlästern als eine Bande
+    by: scan
+  - page: 3
+    from: — Soldaten waren,
+    to: Soldaten waren,
     by: scan
   - page: 4
     from: Nihre Zuchthäusler freiließen
@@ -7805,6 +8213,10 @@ ldpd_13048930_000:
     from: eröffnet war- machte Thiers es ihnen. Alan- ah
     to: eröffnet war, machte Thiers es ihnen klar,
     by: scan
+  - page: 10
+    from: —einen Bürgerkrieg,
+    to: einen Bürgerkrieg,
+    by: scan
   - page: 11
     from: — Paris war das einzige ernstliche Hinderniß auf dem Wege
     to: Paris war das einzige ernstliche Hinderniß auf dem Wege
@@ -7876,6 +8288,18 @@ ldpd_13048930_000:
   - page: 14
     from: "*gend welche"
     to: gend welche
+    by: scan
+  - page: 14
+    from: —als. die
+    to: als die
+    by: scan
+  - page: 14
+    from: —Leute richteten
+    to: Leute richteten
+    by: scan
+  - page: 14
+    from: . Arbeiter ihr
+    to: Arbeiter ihr
     by: scan
   - page: 15
     from: und löste, unker dem Brandmal
@@ -8069,6 +8493,10 @@ ldpd_13048930_000:
     from: Obhne diese
     to: Ohne diese
     by: scan
+  - page: 26
+    from: — unterlag, und
+    to: unterlag, und
+    by: scan
   - page: 27
     from: einem gemeinsamen Plau regeln
     to: einem gemeinsamen Plan regeln
@@ -8197,6 +8625,10 @@ ldpd_13048930_000:
     from: Saint-Germain drängtez
     to: Saint-Germain drängte;
     by: scan
+  - page: 34
+    from: wie welthistorisch war nicht die ganze-
+    to: wie welthistorisch war nicht die ganze Sache!
+    by: scan
   - page: 35
     from: IV
     to: ""
@@ -8256,6 +8688,10 @@ ldpd_13048930_000:
   - page: 39
     from: Lecomto».
     to: Lecomte.
+    by: scan
+  - page: 39
+    from: . Einige Tage
+    to: Einige Tage
     by: scan
   - page: 40
     from: dem General Douai die Thore
@@ -8361,6 +8797,18 @@ ldpd_13048930_000:
     from: huelle alles
     to: quelle alles
     by: scan
+  - page: 48
+    from: — Eccarius, für
+    to: Eccarius, für
+    by: scan
+  - page: 48
+    from: — Sekretär.
+    to: Sekretär.
+    by: scan
+  - page: 48
+    from: 256, High, Hubarn, London
+    to: 256, High Holborn, London
+    by: scan
   - page: 50
     from: — „IÜAn den Redakteur
     to: — „An den Redakteur
@@ -8380,6 +8828,14 @@ ldpd_13048930_000:
   - page: 52
     from: Milliére in
     to: Millière in
+    by: scan
+  - page: 52
+    from: Internationalen Arbeite-
+    to: Internationalen Arbeiter-
+    by: scan
+  - page: 52
+    from: 256, digh Holborn, W. C., London, 12. Juni 1871.
+    to: 256, High Holborn, W. C., London, 12. Juni 1871.“
     by: scan
 lohnarbeitundka00marxgoog:
   - page: 15

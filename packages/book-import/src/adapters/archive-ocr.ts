@@ -68,6 +68,12 @@ export interface ArchiveOcrWork {
    */
   spacedNotes?: boolean;
   /**
+   * The scan's lines curve, so their starts tell no indent: a paragraph
+   * opens only below a line that ends a sentence, where that line stops
+   * short of the measure or the line below it is set in.
+   */
+  curved?: boolean;
+  /**
    * A volume of newspaper articles: each article is titled above its
    * dateline (London, 9. Juni 1854), a series' parts numbered there, and
    * articles stand under topics set in display type.
@@ -688,6 +694,8 @@ type Piece =
 interface Volume {
   /** Notes set as large as the text, below a rule the OCR leaves unread. */
   spacedNotes?: boolean;
+  /** Lines that curve, their starts no sign of an indent. */
+  curved?: boolean;
   /** Newspaper articles, each titled above its dateline. */
   datelined?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
@@ -969,6 +977,10 @@ const UPPER_LINES = 5;
 const RULE_ZONE = 0.25;
 /** A line ending this share of the page short of the right margin ends its paragraph. */
 const SHORT_END = 0.1;
+/** A line that ends further than this share of the page short of the measure stops short. */
+const FULL_END = 0.025;
+/** A sentence’s end or a colon, its quotation or bracket closed, specks the OCR read after it. */
+const CLAUSE_END = /[.!?:][“”"»)]?[\s*'‘’`·]*$/u;
 /** Lines starting further left than this share of the page stand in another column. */
 const NEAR_COLUMN = 0.3;
 /** A title's second line is set this large at least, against its first. */
@@ -1371,10 +1383,20 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
       justified || near - margin > page.width * NEAR_COLUMN
         ? Math.max(margin, near)
         : margin;
+    const above = textLines[index - 1];
+    // On a curved scan a paragraph ends with a sentence, or a colon before a
+    // quotation, a speck the OCR read after it: below it, a line
+    // opens one where the line above stops short or the line is set in.
+    if (volume.curved === true && above !== undefined) {
+      return (
+        CLAUSE_END.test(above.text) &&
+        (above.x + above.width < rightMargin - page.width * FULL_END ||
+          line.x - reference > page.width * INDENT)
+      );
+    }
     if (line.x - reference > page.width * INDENT) return true;
     // A paragraph's last line starts at the margin and ends short of the
     // right one; below it, a line set in however little opens the next.
-    const above = textLines[index - 1];
     return (
       justified &&
       above !== undefined &&
@@ -2462,6 +2484,7 @@ export function parseArchiveOcrWork(
   const volume = {
     ...read.volume,
     spacedNotes: work.spacedNotes === true,
+    curved: work.curved === true,
     datelined: work.datelined === true,
   };
   const { cased } = volume.spelling;

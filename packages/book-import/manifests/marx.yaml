@@ -765,6 +765,12 @@ books:
       - { page: 21, opens: Herr Schapper sagte }
       - { page: 21, opens: "Man sieht:" }
       - { page: 21, opens: Das bei den Angeklagten }
+      - { page: 22, opens: Aber wenn das Endziel }
+      - { page: 22, opens: Hat man die ersten }
+      - { page: 22, opens: Man konnte also }
+      - { page: 22, opens: Diesem Mißstand }
+      - { page: 22, opens: Während Stieber sich }
+      - { page: 22, opens: Das Archiv der Verschwörung? }
       - { page: 23, opens: Stieber konnte nicht }
       - { page: 23, opens: Stieber schwört nun }
       - { page: 23, opens: Am 5. August 1851 }
@@ -775,6 +781,15 @@ books:
       - { page: 24, opens: Stieber wußte indeß }
       - { page: 24, opens: „Demgemäß reiste }
       - { page: 24, opens: Im September reiste }
+      - { page: 53, opens: Das Original Protokollbuch }
+      - { page: 53, opens: Man war also }
+      - { page: 53, opens: In der Sitzung vom 27. }
+      - { page: 53, opens: In der Sitzung vom 28. }
+      - { page: 53, opens: „Bürger! }
+      - { page: 53, opens: Berlin, Mai 1852. }
+      - { page: 53, opens: Gruß und Bruderschaft. }
+      - { page: 53, opens: Zeuge Junkermann }
+      - { page: 53, opens: Polizei-Präsident Hinkeldey }
     # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm
@@ -803,6 +818,13 @@ books:
     opensWith: Die Zentralbehörde an den Bund.
     skipHeadings:
       [Ansprache derselben Zentralbehörde an den Bund vom Juni 1850.]
+    # Pages the OCR set askew, their paragraphs named.
+    paragraphs:
+      - { page: 76, opens: Die Reorganisation kann }
+      - { page: 76, opens: Wir sagten Euch }
+      - { page: 76, opens: Und die Rolle }
+      - { page: 76, opens: I. Aus den }
+      - { page: 76, opens: II. Aus den }
     # MEW 7, Dietz 1960, as mlwerke.de published it.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_244.htm
@@ -841,6 +863,7 @@ books:
     ocr: frak2021
     # Yellowed paper, its lines askew.
     binarise: true
+    curved: true
     firstPage: 1
     lastPage: 52
     # The address opens without a numeral, its second section with II.
@@ -851,6 +874,13 @@ books:
       - { page: 11, opens: Paris war das einzige, numeral: II }
       - { page: 19, opens: Am Morgen des 18. März, numeral: III }
       - { page: 35, opens: Der erste Versuch der Sklavenhalter, numeral: IV }
+    # Pages the OCR set askew, their paragraphs named.
+    paragraphs:
+      - { page: 52, opens: Ich bin, mein Herr }
+      - { page: 52, opens: "John Hales," }
+      - { page: 52, opens: Sekretär des Generalraths }
+      - { page: 52, opens: "256, High Holborn" }
+      - { page: 52, opens: In einem Artikel }
     # MEW 17, Dietz 1962, as mlwerke.de published it: the edition of 1891.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me17/me17_319.htm
