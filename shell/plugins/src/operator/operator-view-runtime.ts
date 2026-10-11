@@ -37,6 +37,8 @@ export type {
   RuntimeOperatorMeterItem,
   RuntimeOperatorMeterBlock,
   RuntimeOperatorProgressBlock,
+  RuntimeOperatorSeriesPoint,
+  RuntimeOperatorSeriesBlock,
   RuntimeOperatorQueryOption,
   RuntimeOperatorQueryDefinition,
   RuntimeOperatorQueryBlock,
