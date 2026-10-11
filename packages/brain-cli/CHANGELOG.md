@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.529
+
+### Patch Changes
+
+- [#605](https://github.com/rizom-ai/brains/pull/605) [`b8ec541`](https://github.com/rizom-ai/brains/commit/b8ec54114b82ba94416293c7586f1f9bc1c9796b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Near-duplicate topics merge again. Once every source has been read, topics whose stored embeddings sit close together are judged once by the merge prompt. A duplicate leaves, and its votes count for the topic it duplicates, so "Bildung", "Cultural Education" and "Educational Formation" no longer take three of a brain's topic slots. Distinct verdicts are remembered, and a brain without embeddings keeps every topic.
+
 ## 0.2.0-alpha.528
 
 ### Patch Changes
