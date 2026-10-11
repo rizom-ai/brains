@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.523
+
+### Minor Changes
+
+- [#596](https://github.com/rizom-ai/brains/pull/596) [`dbebce1`](https://github.com/rizom-ai/brains/commit/dbebce11cae17d6389f3145636b24793245fddf0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `system_insights` is now `system_analytics`, and its reports take typed params. A plugin registers a report with `context.analytics.register(defineAnalyticsReport({ type, description, params, minVisibility?, handler }))`; the tool shows every report and its params to the model, validates params against the report's schema, and refuses a report to callers below its `minVisibility`. `context.insights` and the `(type, handler)` registration are removed, with no alias.
+
+- [#596](https://github.com/rizom-ai/brains/pull/596) [`7ba473f`](https://github.com/rizom-ai/brains/commit/7ba473fcdf7429a1427b2779459eeb6ffe7e462d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic is asked through `system_analytics`: `traffic-overview` (pageviews and visits against the period before, top pages without the owner's own pages, referrers, countries, days missing or sampled) and `traffic-series` (per day or ISO week) read the brain's traffic snapshots, admin callers only, with today's numbers so far added from Cloudflare when a range reaches today. `analytics_query` is removed.
+
 ## 0.2.0-alpha.522
 
 ### Patch Changes
