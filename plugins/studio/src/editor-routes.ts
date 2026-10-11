@@ -738,11 +738,13 @@ async function handleGetWorkspace(
       },
     });
   } catch (error) {
+    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
+    // origin 502 with its own page, and the reason never reaches the caller.
     return jsonResponse(
       {
         error: getErrorMessage(error, "Studio workspace data provider failed"),
       },
-      502,
+      500,
     );
   }
 }

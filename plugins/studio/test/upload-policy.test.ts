@@ -178,7 +178,7 @@ describe("Studio upload policy", () => {
 
       const response = await fixture.uploadRoute.handler(uploadRequest());
 
-      expect(response.status).toBe(502);
+      expect(response.status).toBe(500);
       expect(promotions).toBe(1);
       expect(await temporaryUploads(fixture.dataDir)).toEqual([]);
     }
