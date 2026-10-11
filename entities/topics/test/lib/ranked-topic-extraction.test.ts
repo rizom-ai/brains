@@ -9,6 +9,7 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { SemanticIndexingDisabledError } from "@brains/plugins";
 import type {
   BaseEntity,
   EntityPluginContext,
@@ -49,6 +50,7 @@ function fixture(
   options: {
     config?: z.input<typeof topicsPluginConfigSchema>;
     propose?: boolean;
+    mergeVerdict?: "merge" | "distinct";
   } = {},
 ): Fixture {
   const entities = new Map<string, BaseEntity>();
@@ -111,6 +113,12 @@ function fixture(
         });
         if (config.templateName === "topics:description")
           return schema.parse({ content: "A durable knowledge domain." });
+        if (config.templateName === "topics:merge-synthesis")
+          return schema.parse({
+            verdict: options.mergeVerdict ?? "distinct",
+            title: "Merged",
+            content: "Merged description.",
+          });
         const keys = [...config.prompt.matchAll(/Source key: ([^\n]+)/g)].map(
           (match) => match[1],
         );
@@ -472,6 +480,62 @@ describe("bounded ranked topic extraction", () => {
     expect(f.calls[0]?.prompt).not.toContain("Design and Craft");
     expect(f.entities.has("topic:design-and-craft")).toBe(false);
     expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
+  /** Two topics whose stored embeddings sit within the merge distance. */
+  const neighbours = (f: Fixture, left: string, right: string): void => {
+    f.service.nearestToEntity = mock(async ({ origin }) => {
+      const other =
+        origin.entityId === left
+          ? right
+          : origin.entityId === right
+            ? left
+            : null;
+      return other
+        ? [{ entityId: other, entityType: "topic", distance: 0.1 }]
+        : [];
+    });
+  };
+  const mergeCalls = (f: Fixture): number =>
+    f.calls.filter(
+      ({ templateName }) => templateName === "topics:merge-synthesis",
+    ).length;
+
+  it("merges a near-duplicate topic into the one it duplicates, once", async () => {
+    const f = fixture(8, { mergeVerdict: "merge" });
+    f.addTopic("Bildung");
+    f.addTopic("Education");
+    neighbours(f, "bildung", "education");
+    await f.run();
+    expect(mergeCalls(f)).toBe(1);
+    expect(f.entities.has("topic:bildung")).toBe(true);
+    expect(f.entities.has("topic:education")).toBe(false);
+    await f.run("again");
+    expect(mergeCalls(f)).toBe(1);
+  });
+
+  it("skips merging on a brain that keeps no embeddings", async () => {
+    const f = fixture(8, { propose: true, mergeVerdict: "merge" });
+    f.addTopic("Bildung");
+    f.service.nearestToEntity = mock(async () => {
+      throw new SemanticIndexingDisabledError();
+    });
+    await f.run();
+    expect(mergeCalls(f)).toBe(0);
+    expect(f.entities.has("topic:bildung")).toBe(true);
+    expect(f.entities.has("topic:architecture")).toBe(true);
+  });
+
+  it("remembers that two near topics are distinct", async () => {
+    const f = fixture(8, { mergeVerdict: "distinct" });
+    f.addTopic("Pity");
+    f.addTopic("Compassion");
+    neighbours(f, "pity", "compassion");
+    await f.run();
+    await f.run("again");
+    expect(mergeCalls(f)).toBe(1);
+    expect(f.entities.has("topic:pity")).toBe(true);
+    expect(f.entities.has("topic:compassion")).toBe(true);
   });
 
   it("lets topics chosen under an earlier prompt go once the corpus is re-read", async () => {

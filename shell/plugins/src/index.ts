@@ -484,6 +484,7 @@ export {
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,
