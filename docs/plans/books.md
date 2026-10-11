@@ -156,7 +156,7 @@ bun packages/book-import/src/cli.ts <manifest> <content-repo>/brain-data
 - deterministic: rerunning on the same sources yields byte-identical files
 - downloads are cached locally and never committed
 - a scanned book may name an OCR model (`ocr: frak2021`): its page images are read anew with Tesseract after ImageMagick doubles them in grey, both on the path, each page recognised once into the cache; its OCR is checked against transcriptions of any edition (`references`), whose spelling is mapped to the edition’s before a fix is made
-- a scanned book leaves out notes not the author’s, by page and opening words (`skipNotes`) or by the editor’s signature (`skipNotesSigned: [K.]`); an edition that sets its notes as large as the text, below a rule the OCR does not read, says so (`spacedNotes`)
+- a scanned book leaves out notes not the author’s, by page and opening words (`skipNotes`) or by the editor’s signature (`skipNotesSigned: [K.]`); an edition that sets its notes as large as the text, below a rule the OCR does not read, says so (`spacedNotes`); a page the OCR set too askew to tell paragraphs by their indent names the lines that open them (`paragraphs`)
 - emphasis (Sperrsatz) becomes markdown emphasis; spans that touch in reading order merge, also across an editor's correction wrapped around a word, and space at a span's edge stays outside the markers
 - file and entry slugs transliterate letters (ü → ue, ß → ss, é → e) instead of dropping them
 

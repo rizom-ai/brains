@@ -122,6 +122,7 @@ const archiveOcrBookSchema: z.ZodObject<
       printedWords: z.ZodDefault<z.ZodArray<z.ZodString>>;
       skipNotes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       headings: z.ZodDefault<z.ZodArray<typeof headingLineSchema>>;
+      paragraphs: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       datelined: z.ZodDefault<z.ZodBoolean>;
@@ -163,6 +164,8 @@ const archiveOcrBookSchema: z.ZodObject<
    * numbered by place; a section's numeral the scan lost stands above it.
    */
   headings: z.array(headingLineSchema).default([]),
+  /** Pages the OCR read too askew to tell paragraphs by their indent: on each, the lines that open one, by their opening words; no other line there opens one. */
+  paragraphs: z.array(pageLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */

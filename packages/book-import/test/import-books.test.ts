@@ -838,6 +838,19 @@ books:
     ).toEqual(["Glaceephrasen", "Sieyes"]);
   });
 
+  it("names the lines that open paragraphs on a page the OCR set askew", () => {
+    const manifest = parseManifest(
+      ocrManifest +
+        "    paragraphs:\n      - { page: 19, opens: Vor dieser Jury }\n",
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].paragraphs
+        : null,
+    ).toEqual([{ page: 19, opens: "Vor dieser Jury" }]);
+  });
+
   it("names an edition that sets its notes as large as the text", () => {
     const manifest = parseManifest(ocrManifest + "    spacedNotes: true\n");
 

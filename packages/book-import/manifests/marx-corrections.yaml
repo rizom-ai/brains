@@ -199,6 +199,10 @@ dieklassenkmpf00marxuoft:
     from: Von Caussidiêre ließ
     to: Von Caussidière ließ
     by: scan
+  - page: 30
+    from: Louis Blane
+    to: Louis Blanc
+    by: scan
   - page: 31
     from: den Tausch
     to: den Tausch-
@@ -211,9 +215,25 @@ dieklassenkmpf00marxuoft:
     from: Pariser Proletariat exklickte er den
     to: Pariser Proletariat erblickte er den
     by: reference
+  - page: 34
+    from: Louis Blane im
+    to: Louis Blanc im
+    by: scan
+  - page: 34
+    from: Louis Blane, der
+    to: Louis Blanc, der
+    by: scan
   - page: 35
     from: ihrer Misére. Und
     to: ihrer Misère. Und
+    by: scan
+  - page: 36
+    from: Louis Blane's, Blanqui's,
+    to: Louis Blanc's, Blanqui's,
+    by: scan
+  - page: 36
+    from: Louis Blane, mit
+    to: Louis Blanc, mit
     by: scan
   - page: 37
     from: datirt die Repu
@@ -239,6 +259,10 @@ dieklassenkmpf00marxuoft:
     from: wir gesehen häben, in den
     to: wir gesehen haben, in den
     by: reference
+  - page: 38
+    from: Louis Blane und
+    to: Louis Blanc und
+    by: scan
   - page: 39
     from: 3000 Ge
     to: 3000 Ge-
@@ -298,6 +322,18 @@ dieklassenkmpf00marxuoft:
   - page: 44
     from: und Caussidièêére wurden
     to: und Caussidière wurden
+    by: scan
+  - page: 44
+    from: Louis Blane, Ledru-Rollin
+    to: Louis Blanc, Ledru-Rollin
+    by: scan
+  - page: 44
+    from: Raneune konnten
+    to: Rancune konnten
+    by: scan
+  - page: 44
+    from: Louis Blane und
+    to: Louis Blanc und
     by: scan
   - page: 45
     from: als die Barri
@@ -391,6 +427,10 @@ dieklassenkmpf00marxuoft:
     from: Salzsteuer verlor Vonaparte sein revolutionäres
     to: Salzsteuer verlor Bonaparte sein revolutionäres
     by: reference
+  - page: 55
+    from: Louis Blane, haben
+    to: Louis Blanc, haben
+    by: scan
   - page: 57
     from: Barrot über
     to: Barrot über-
@@ -627,6 +667,10 @@ dieklassenkmpf00marxuoft:
     from: zertrümmert, die Bureaux der republikanischen
     to: zertrümmert, die Büros der republikanischen
     by: reference
+  - page: 76
+    from: den Massaeres und
+    to: den Massacres und
+    by: scan
   - page: 77
     from: der ver
     to: der ver-
@@ -1165,6 +1209,14 @@ mehring-nachlass-1:
     from: Fünftes Rapitel.
     to: Fünftes Kapitel.
     by: scan
+  - page: 114
+    from: ihr eurriculum vitae
+    to: ihr curriculum vitae
+    by: scan
+  - page: 145
+    from: c'est I'homme.
+    to: c'est l'homme.
+    by: scan
   - page: 149
     from: in irgend
     to: in irgend-
@@ -1366,6 +1418,10 @@ mehring-nachlass-2:
     from: sans m'arréter aux
     to: sans m'arrêter aux
     by: scan
+  - page: 119
+    from: générale, ete.
+    to: générale, etc.
+    by: scan
   - page: 124
     from: des massenhaften Prondhon, so feine
     to: des massenhaften Proudhon, so feine
@@ -1374,17 +1430,37 @@ mehring-nachlass-2:
     from: heißt sacrilége nicht,
     to: heißt sacrilège nicht,
     by: scan
+  - page: 127
+    from: nur aceidentellement zu
+    to: nur accidentellement zu
+    by: scan
+  - page: 141
+    from: terra ete. interdicti
+    to: terra etc. interdicti
+    by: scan
   - page: 142
     from: der Nahrung nud für gewisse
     to: der Nahrung und für gewisse
     by: reference
+  - page: 144
+    from: de I'égalité)
+    to: de l'égalité)
+    by: scan
   - page: 145
     from: (valeur intrinséque),
     to: (valeur intrinsèque),
     by: scan
+  - page: 145
+    from: toute distinetion de
+    to: toute distinction de
+    by: scan
   - page: 148
     from: vous étes ete.)
     to: vous êtes ete.)
+    by: scan
+  - page: 148
+    from: ete.) Er
+    to: etc.) Er
     by: scan
   - page: 149
     from: bourgeois juste-milien) in „unsere
@@ -1434,6 +1510,10 @@ mehring-nachlass-2:
     from: weil sie troz des Augenscheins
     to: weil sie trotz des Augenscheins
     by: reference
+  - page: 168
+    from: doux commeree
+    to: doux commerce
+    by: scan
   - page: 169
     from: 4. Das Geheimniss der Kechtschaffenheit und Frömmigkeit.
     to: 4. Das Geheimniss der Rechtschaffenheit und Frömmigkeit.
@@ -1485,6 +1565,10 @@ mehring-nachlass-2:
   - page: 197
     from: Jurisprudenz und Politik (nationalität). ＋
     to: ""
+    by: scan
+  - page: 225
+    from: Bahn Leclere und
+    to: Bahn Leclerc und
     by: scan
   - page: 241
     from: nous fait halr ou aimer
@@ -1554,6 +1638,10 @@ mehring-nachlass-2:
     from: intéréts réels.
     to: intérêts réels.
     by: scan
+  - page: 242
+    from: récompenses, ete.
+    to: récompenses, etc.
+    by: scan
   - page: 253
     from: Die RKorrespondenz der kritischen Kritik.
     to: Die Korrespondenz der kritischen Kritik.
@@ -1610,6 +1698,10 @@ mehring-nachlass-2:
     from: d'etre honnéte. Auf
     to: d'etre honnête. Auf
     by: scan
+  - page: 279
+    from: der rne aux
+    to: der rue aux
+    by: scan
   - page: 280
     from: "sie aus: Honnéte, mon dieu"
     to: "sie aus: Honnête, mon dieu"
@@ -1617,6 +1709,14 @@ mehring-nachlass-2:
   - page: 280
     from: Fleur deé Marie
     to: Fleur de Marie
+    by: scan
+  - page: 280
+    from: et avee quoi
+    to: et avec quoi
+    by: scan
+  - page: 281
+    from: bonheur . . de I'herbe,
+    to: bonheur . . . de l'herbe,
     by: scan
   - page: 286
     from: plus, ma chére fille, avant
@@ -1630,6 +1730,10 @@ mehring-nachlass-2:
     from: aussi égaréëe, qu'elle
     to: aussi égarée, qu'elle
     by: scan
+  - page: 286
+    from: commun avee lui.
+    to: commun avec lui.
+    by: scan
   - page: 287
     from: 3. Enthüllung der Geheimnisse des Kechts.
     to: 3. Enthüllung des Geheimnisses des Rechts.
@@ -1641,6 +1745,10 @@ mehring-nachlass-2:
   - page: 287
     from: Sainte mére —
     to: Sainte mère —
+    by: scan
+  - page: 287
+    from: erois maintenant
+    to: crois maintenant
     by: scan
   - page: 291
     from: à téte mit
@@ -1670,6 +1778,10 @@ mehring-nachlass-2:
     from: que d'étre seul.
     to: que d'être seul.
     by: scan
+  - page: 293
+    from: m'enträinant iei dans
+    to: m'enträinant ici dans
+    by: scan
   - page: 296
     from: mais cçe serait
     to: mais ce serait
@@ -1694,9 +1806,25 @@ mehring-nachlass-2:
     from: et exasperés par
     to: et exaspérés par
     by: scan
+  - page: 297
+    from: un eri de
+    to: un cri de
+    by: scan
+  - page: 297
+    from: ses instinets sanguinairs
+    to: ses instincts sanguinairs
+    by: scan
+  - page: 298
+    from: détenus eriminels.
+    to: détenus criminels.
+    by: scan
   - page: 300
     from: der Siécle, die
     to: der Siècle, die
+    by: scan
+  - page: 301
+    from: du erime, Assisen
+    to: du crime, Assisen
     by: scan
   - page: 302
     from: 4. Aufhebung der Uerwilderung innerhalb der Zivilisation,
@@ -1718,6 +1846,14 @@ mehring-nachlass-2:
     from: utiliser le goüt naturel, régler
     to: utiliser le goût naturel, régler
     by: reference
+  - page: 306
+    from: des instinets impérieux,
+    to: des instincts impérieux,
+    by: scan
+  - page: 306
+    from: inexorables ete. —
+    to: inexorables etc. —
+    by: scan
   - page: 307
     from: . Enthüllung des Geheimnisses der Emanzipation der Weiber,
     to: 6. Enthüllung des Geheimnisses der Emanzipation der Weiber, oder Louise Morel.
@@ -1750,6 +1886,10 @@ mehring-nachlass-2:
     from: les intéréts les
     to: les intérêts les
     by: scan
+  - page: 317
+    from: rapports oecultes, qui
+    to: rapports occultes, qui
+    by: scan
   - page: 318
     from: bien chéères, certaines
     to: bien chères, certaines
@@ -1761,6 +1901,10 @@ mehring-nachlass-2:
   - page: 320
     from: tant d'intérét à
     to: tant d'intérêt à
+    by: scan
+  - page: 320
+    from: Rodolphe avee une
+    to: Rodolphe avec une
     by: scan
   - page: 323
     from: Beuntes Kapitel.
@@ -1774,10 +1918,18 @@ mehring-nachlass-2:
     from: V
     to: ""
     by: scan
+  - page: 323
+    from: dicturus? ete.
+    to: dicturus? etc.
+    by: scan
   - page: 418
     from: von New ork, gegen die
     to: von New York, gegen die
     by: reference
+  - page: 418
+    from: lionen Aeres nordamerikanischer
+    to: lionen Acres nordamerikanischer
+    by: scan
   - page: 428
     from: und Zweifel (ef. Nr. 14 Antwort
     to: und Zweifel (cf. Nr. 14 Antwort
@@ -1807,6 +1959,10 @@ theorienberden01marxuoft:
     from: und einige ihrer vorgänger und Zeitgenossen.
     to: und einige ihrer Vorgänger und Zeitgenossen.
     by: scan
+  - page: 6
+    from: des Aere gleich
+    to: des Acre gleich
+    by: scan
   - page: 11
     from: 2. Ch. d'Avenant.
     to: 2. Charles D’Avenant.
@@ -1819,6 +1975,10 @@ theorienberden01marxuoft:
     from: 3. Sir Dbudleh north und John Locke.!
     to: 3. Sir Dudley North und John Locke.
     by: scan
+  - page: 22
+    from: Immorality ete. London
+    to: Immorality etc. London
+    by: scan
   - page: 23
     from: 4. David hume und I. Massle.
     to: 4. David Hume und J. Massie.
@@ -1826,6 +1986,14 @@ theorienberden01marxuoft:
   - page: 29
     from: 5. Sir James Steuart.“
     to: 5. Sir James Steuart.
+    by: scan
+  - page: 30
+    from: Steuart ete. Ed.
+    to: Steuart etc. Ed.
+    by: scan
+  - page: 30
+    from: son ete. in
+    to: son etc. in
     by: scan
   - page: 33
     from: 6. Der allgemeine Charakter des Sistems der Physlokraten.“
@@ -1847,6 +2015,10 @@ theorienberden01marxuoft:
     from: produit neét der
     to: produit net der
     by: scan
+  - page: 47
+    from: de 1'Economie politique,
+    to: de l'Économie politique,
+    by: scan
   - page: 48
     from: des sociéëtés politiques,
     to: des sociétés politiques,
@@ -1862,6 +2034,10 @@ theorienberden01marxuoft:
   - page: 49
     from: édition Eugéêne Daire.
     to: édition Eugène Daire.
+    by: scan
+  - page: 49
+    from: ete.
+    to: etc.
     by: scan
   - page: 56
     from: la Riviéêére eine
@@ -1879,6 +2055,14 @@ theorienberden01marxuoft:
     from: Sein Übersetzer 6. Garnier.
     to: ""
     by: scan
+  - page: 63
+    from: Malthus ete. London
+    to: Malthus etc. London
+    by: scan
+  - page: 65
+    from: (Economie) es
+    to: (économie) es
+    by: scan
   - page: 66
     from: 10. TCh. A. h. Schmalz und Graf de Buat.
     to: 10. Th. A. H. Schmalz und Graf de Buat.
@@ -1894,6 +2078,10 @@ theorienberden01marxuoft:
   - page: 73
     from: 12. necker.
     to: 12. Necker.
+    by: scan
+  - page: 75
+    from: Staatsbürger (eitoyens) immer
+    to: Staatsbürger (citoyens) immer
     by: scan
   - page: 77
     from: 13. linguet.“
@@ -1927,6 +2115,10 @@ theorienberden01marxuoft:
     from: „Tableau économique“.
     to: ""
     by: scan
+  - page: 104
+    from: Geschäftsanteile (eommandite)
+    to: Geschäftsanteile (commandite)
+    by: scan
   - page: 105
     from: erédit.“ Discussion
     to: crédit.“ Discussion
@@ -1947,6 +2139,10 @@ theorienberden01marxuoft:
     from: 1. Seine Bestimmung des Wertes durch die Arbeit.“
     to: 1. Seine Bestimmung des Wertes durch die Arbeit.
     by: scan
+  - page: 128
+    from: also cerele
+    to: also cercle
+    by: scan
   - page: 137
     from: z. der Ursprung des Mehrwerts.“
     to: 2. Der Ursprung des Mehrwerts.
@@ -1959,6 +2155,10 @@ theorienberden01marxuoft:
     from: ) Der Austausch von mehr Arbeit mit weniger
     to: f) Der Austausch von mehr Arbeit mit weniger
     by: scan
+  - page: 153
+    from: Economy ete. London
+    to: Economy etc. London
+    by: scan
   - page: 158
     from: 3. Rapital und 6rundeigentum auellen von wert.“
     to: 3. Kapital und Grundeigentum Quellen von Wert.
@@ -1970,6 +2170,18 @@ theorienberden01marxuoft:
   - page: 164
     from: des Preises in Arbeitslohn, Profit und rundrente.“
     to: ""
+    by: scan
+  - page: 174
+    from: „Traité d'Economie Politique“
+    to: „Traité d'Économie Politique“
+    by: scan
+  - page: 174
+    from: (Traité d'Economie
+    to: (Traité d'Économie
+    by: scan
+  - page: 175
+    from: de I'Economie Politique,
+    to: de l'Économie Politique,
     by: scan
   - page: 179
     from: 1. Untersuchung des Problems der Auflösung des
@@ -1999,6 +2211,22 @@ theorienberden01marxuoft:
     from: Einfluß des Wertwechsels darauf.“
     to: ""
     by: scan
+  - page: 230
+    from: 20 Penee auf
+    to: 20 Pence auf
+    by: scan
+  - page: 230
+    from: 8 Penee für
+    to: 8 Pence für
+    by: scan
+  - page: 230
+    from: 80 Penee.
+    to: 80 Pence.
+    by: scan
+  - page: 230
+    from: 80 Penee kosten,
+    to: 80 Pence kosten,
+    by: scan
   - page: 252
     from: und deéaler. Der
     to: und dealer. Der
@@ -2027,9 +2255,17 @@ theorienberden01marxuoft:
     from: Pettys „Treéatise on
     to: Pettys „Treatise on
     by: scan
+  - page: 290
+    from: contributions ete.“, London
+    to: contributions etc.“, London
+    by: scan
   - page: 295
     from: tical éeconomy, Edition
     to: tical economy, Edition
+    by: scan
+  - page: 306
+    from: des Princeipes de I'Economie
+    to: des Principes de l'Economie
     by: scan
   - page: 308
     from: f) Ganilh.“
@@ -2043,6 +2279,10 @@ theorienberden01marxuoft:
     from: „Principes d'ëconomie politique“
     to: „Principes d'économie politique“
     by: scan
+  - page: 308
+    from: d'economie politique“.
+    to: d'économie politique“.
+    by: scan
   - page: 312
     from: (valeur intrinséque), was
     to: (valeur intrinsèque), was
@@ -2055,6 +2295,10 @@ theorienberden01marxuoft:
     from: Eine neue Definition der produktiven Arbeit.!
     to: Eine neue Definition der produktiven Arbeit.
     by: scan
+  - page: 339
+    from: rapports avee
+    to: rapports avec
+    by: scan
   - page: 354
     from: i) Lauderdale und J. B. Say.“
     to: i) Lauderdale und J. B. Say.
@@ -2063,9 +2307,17 @@ theorienberden01marxuoft:
     from: "Übersetzung: „Reécherches sur"
     to: "Übersetzung: „Recherches sur"
     by: scan
+  - page: 354
+    from: wealth ete.“ London
+    to: wealth etc.“ London
+    by: scan
   - page: 368
     from: 100 ëH an
     to: 100 £ an
+    by: scan
+  - page: 378
+    from: Principes d'Economie Politique.“
+    to: Principes d'Économie Politique.“
     by: scan
   - page: 380
     from: J) Henri Storch. Die geistige Produktion.
@@ -2075,13 +2327,25 @@ theorienberden01marxuoft:
     from: m) W. Nassau Senior.!
     to: m) W. Nassau Senior.
     by: scan
+  - page: 387
+    from: („Princeipes fondamentaux
+    to: („Principes fondamentaux
+    by: scan
   - page: 393
     from: Térum.
     to: rerum.
     by: scan
+  - page: 394
+    from: d' Economie
+    to: d' Économie
+    by: scan
   - page: 403
     from: A. Smith.“
     to: A. Smith.
+    by: scan
+  - page: 404
+    from: moral prospeets of
+    to: moral prospects of
     by: scan
   - page: 407
     from: Der Begriff der produktiven Arbeit.!
@@ -2100,6 +2364,14 @@ p1theorienberden02marxuoft:
     from: 2. Ricardos cheorie des Profits.
     to: 2. Ricardos Theorie des Profits.
     by: scan
+  - page: 11
+    from: Review ete. London
+    to: Review etc. London
+    by: scan
+  - page: 53
+    from: den Aere, sondern
+    to: den Acre, sondern
+    by: scan
   - page: 54
     from: 4) Ricardos Anschauungen.
     to: α) Ricardos Anschauungen.
@@ -2116,6 +2388,18 @@ p1theorienberden02marxuoft:
     from: Abnutzung (Weéar
     to: Abnutzung (wear
     by: scan
+  - page: 89
+    from: 2 Penee täglich
+    to: 2 Pence täglich
+    by: scan
+  - page: 89
+    from: 2 Penee heben,
+    to: 2 Pence heben,
+    by: scan
+  - page: 91
+    from: einen Aere oder
+    to: einen Acre oder
+    by: scan
   - page: 92
     from: hauteé finance
     to: haute finance
@@ -2124,9 +2408,21 @@ p1theorienberden02marxuoft:
     from: 3. Kicardos Darstellung des Mehrwerts.
     to: 3. Ricardos Darstellung des Mehrwerts.
     by: scan
+  - page: 108
+    from: wichtig. Rieardo betrachtet
+    to: wichtig. Ricardo betrachtet
+    by: scan
   - page: 117
     from: wages deépend upon
     to: wages depend upon
+    by: scan
+  - page: 120
+    from: value ete.
+    to: value etc.
+    by: scan
+  - page: 122
+    from: den cerele vicieux.
+    to: den cercle vicieux.
     by: scan
   - page: 129
     from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ＋æꝓ S
@@ -2136,17 +2432,45 @@ p1theorienberden02marxuoft:
     from: schritts (improveément), die
     to: schritts (improvement), die
     by: scan
+  - page: 150
+    from: wie Rieardo
+    to: wie Ricardo
+    by: scan
   - page: 152
     from: sub speécié des
     to: sub specie des
+    by: scan
+  - page: 155
+    from: 10 Penee
+    to: 10 Pence
+    by: scan
+  - page: 156
+    from: von Riecardo selbst
+    to: von Ricardo selbst
     by: scan
   - page: 167
     from: 1. RKodbertus.
     to: 1. Rodbertus.
     by: scan
+  - page: 170
+    from: das Aere. Er
+    to: das Acre. Er
+    by: scan
   - page: 172
     from: Stammbaumweizen (pédigrèe nursery
     to: Stammbaumweizen (pedigree nursery
+    by: scan
+  - page: 172
+    from: eines Aeres mußte
+    to: eines Acres mußte
+    by: scan
+  - page: 174
+    from: ein Aere mehr
+    to: ein Acre mehr
+    by: scan
+  - page: 174
+    from: mehr Aeres be-
+    to: mehr Acres be-
     by: scan
   - page: 178
     from: Ist é von
@@ -2159,6 +2483,22 @@ p1theorienberden02marxuoft:
   - page: 179
     from: von é modifiziert
     to: von c modifiziert
+    by: scan
+  - page: 181
+    from: agricoles ete.“,
+    to: agricoles etc.“,
+    by: scan
+  - page: 189
+    from: Durchschnittspreis lim obigen
+    to: Durchschnittspreis [im obigen
+    by: scan
+  - page: 229
+    from: mit Aere und
+    to: mit Acre und
+    by: scan
+  - page: 229
+    from: ein Aere ab-
+    to: ein Acre ab-
     by: scan
   - page: 230
     from: Ee) Fortsetzung der Kritik.
@@ -2176,9 +2516,45 @@ p1theorienberden02marxuoft:
     from: „) Dritte Formel.
     to: γ) Dritte Formel.
     by: scan
+  - page: 263
+    from: pro Aere zahlen
+    to: pro Acre zahlen
+    by: scan
+  - page: 279
+    from: konstanten lim Durchschnitt!
+    to: konstanten [im Durchschnitt!
+    by: scan
+  - page: 284
+    from: Aere überhaupt,
+    to: Acre überhaupt,
+    by: scan
+  - page: 288
+    from: fruchtbarsten Aeres, die
+    to: fruchtbarsten Acres, die
+    by: scan
+  - page: 288
+    from: Enquiries ete.
+    to: Enquiries etc.
+    by: scan
+  - page: 291
+    from: en bloe
+    to: en bloc
+    by: scan
   - page: 294
     from: ditferentia speécifica aus.
     to: ditferentia specifica aus.
+    by: scan
+  - page: 300
+    from: Millionen Aeres von
+    to: Millionen Acres von
+    by: scan
+  - page: 300
+    from: Aeres auch
+    to: Acres auch
+    by: scan
+  - page: 300
+    from: 3511770 Aeres Gemeinland,
+    to: 3511770 Acres Gemeinland,
     by: scan
   - page: 302
     from: hat.“ (Misére de
@@ -2200,9 +2576,17 @@ p1theorienberden02marxuoft:
     from: „Essays reéelating
     to: „Essays relating
     by: scan
+  - page: 310
+    from: Stockt ete. 2nd
+    to: Stockt etc. 2nd
+    by: scan
   - page: 311
     from: (On Proteéction to
     to: (On Protection to
+    by: scan
+  - page: 311
+    from: Political Eeonomy.
+    to: Political Economy.
     by: scan
   - page: 312
     from: political économy“, gegen
@@ -2236,6 +2620,10 @@ p1theorienberden02marxuoft:
     from: for lifeé (2.
     to: for life (2.
     by: scan
+  - page: 315
+    from: Nature ofe the
+    to: Nature of the
+    by: scan
   - page: 316
     from: have leéed to
     to: have led to
@@ -2248,6 +2636,10 @@ p1theorienberden02marxuoft:
     from: interést berührte.“
     to: interest berührte.“
     by: scan
+  - page: 316
+    from: Wilhelm Thueydides Roscher
+    to: Wilhelm Thucydides Roscher
+    by: scan
   - page: 317
     from: als „moniéd class“,
     to: als „monied class“,
@@ -2259,6 +2651,26 @@ p1theorienberden02marxuoft:
   - page: 317
     from: „landed interést“.
     to: „landed interest“.
+    by: scan
+  - page: 317
+    from: von Wilhelm Thueydides
+    to: von Wilhelm Thucydides
+    by: scan
+  - page: 317
+    from: Wilhelm Thueydides ersehen
+    to: Wilhelm Thucydides ersehen
+    by: scan
+  - page: 317
+    from: Thueydides sehen,
+    to: Thucydides sehen,
+    by: scan
+  - page: 317
+    from: Wilhelm Thueydides weiter
+    to: Wilhelm Thucydides weiter
+    by: scan
+  - page: 317
+    from: Wilhelm Thueydides die
+    to: Wilhelm Thucydides die
     by: scan
   - page: 318
     from: intérést) und
@@ -2300,9 +2712,61 @@ p1theorienberden02marxuoft:
     from: "sagen: „matériam superabat"
     to: "sagen: „materiam superabat"
     by: scan
+  - page: 318
+    from: Thueydides weiter
+    to: Thucydides weiter
+    by: scan
+  - page: 318
+    from: Wilhelm Thueydides in
+    to: Wilhelm Thucydides in
+    by: scan
+  - page: 318
+    from: Wilhelm Thueydides wieder
+    to: Wilhelm Thucydides wieder
+    by: scan
+  - page: 318
+    from: Wilhelm Thueydides als
+    to: Wilhelm Thucydides als
+    by: scan
+  - page: 319
+    from: helm Thueydides vor.
+    to: helm Thucydides vor.
+    by: scan
+  - page: 319
+    from: ist Wilhelm Thueydides
+    to: ist Wilhelm Thucydides
+    by: scan
+  - page: 319
+    from: Thueydides auch
+    to: Thucydides auch
+    by: scan
+  - page: 319
+    from: Wilhelm Thueydides.
+    to: Wilhelm Thucydides.
+    by: scan
   - page: 324
     from: e) Die Bewegung der Kornpreise von 1641 bis 1859.
     to: c) Die Bewegung der Kornpreise von 1641 bis 1859.
+    by: scan
+  - page: 324
+    from: helm Thueydides sich
+    to: helm Thucydides sich
+    by: scan
+  - page: 324
+    from: wie Thueydides herablassend
+    to: wie Thucydides herablassend
+    by: scan
+  - page: 326
+    from: 44 Schilling 2⅛ Pencee.
+    to: 44 Schilling 2⅕ Pence.
+    by: scan
+  - page: 326
+    from: 35 Schilling 96/0 Pence.
+    to: 35 Schilling 9²⁹⁄₅₀ Pence.
+    by: scan
+  - page: 332
+    from: present scareity
+    to: present scarcity
     by: scan
   - page: 335
     from: hitherto reéetarded the
@@ -2320,6 +2784,14 @@ p1theorienberden02marxuoft:
     from: (The Queèrist. Dr.
     to: (The Querist. Dr.
     by: scan
+  - page: 339
+    from: Provenances ete. London
+    to: Provenances etc. London
+    by: scan
+  - page: 340
+    from: Laws ete. London
+    to: Laws etc. London
+    by: scan
 p2theorienberd02marx:
   - page: 1
     from: II. Die 6rundrente.
@@ -2328,6 +2800,10 @@ p2theorienberd02marx:
   - page: 1
     from: 3. Die Kicardosche Kententheorie.
     to: 3. Die Ricardosche Rententheorie.
+    by: scan
+  - page: 6
+    from: dieses „elearing ef
+    to: dieses „clearing ef
     by: scan
   - page: 23
     from: C4õ) Veränderungen der Masse der Rente.
@@ -2413,6 +2889,10 @@ p2theorienberd02marx:
     from: und konstantes Kapital.
     to: ""
     by: scan
+  - page: 257
+    from: einen cerele vicieux
+    to: einen cercle vicieux
+    by: scan
   - page: 262
     from: 4. Die KRrisen.
     to: 4. Die Krisen.
@@ -2429,6 +2909,10 @@ p2theorienberd02marx:
     from: 1. Brutto- und nettoeinkommen.
     to: 1. Brutto- und Nettoeinkommen.
     by: scan
+  - page: 334
+    from: Riecardo begeht
+    to: Ricardo begeht
+    by: scan
   - page: 342
     from: Hände, kfrée hands,
     to: Hände, free hands,
@@ -2438,6 +2922,34 @@ theorienberden03marxuoft:
     from: I. Cyomas Robert malthus.
     to: I. Thomas Robert Malthus.
     by: scan
+  - page: 1
+    from: Economy ete. London
+    to: Economy etc. London
+    by: scan
+  - page: 3
+    from: „Definitions ete.“, fühlt
+    to: „Definitions etc.“, fühlt
+    by: scan
+  - page: 5
+    from: Economy ete. S.
+    to: Economy etc. S.
+    by: scan
+  - page: 6
+    from: Economy ete. S.
+    to: Economy etc. S.
+    by: scan
+  - page: 18
+    from: value ete.,
+    to: value etc.,
+    by: scan
+  - page: 19
+    from: value ete.,
+    to: value etc.,
+    by: scan
+  - page: 20
+    from: (Definitions ete., S.
+    to: (Definitions etc., S.
+    by: scan
   - page: 29
     from: Z. Variables Rapital und Akkumulation.
     to: 2. Variables Kapital und Akkumulation.
@@ -2446,13 +2958,37 @@ theorienberden03marxuoft:
     from: 3. Uverproduktion und Upernonfumtion.
     to: 3. Überproduktion und Überkonsumtion.
     by: scan
+  - page: 51
+    from: Ricardos „Prineiples“ gelernten
+    to: Ricardos „Principles“ gelernten
+    by: scan
+  - page: 56
+    from: Political Eeonomy. 2.
+    to: Political Economy. 2.
+    by: scan
+  - page: 58
+    from: Definitions ete. London
+    to: Definitions etc. London
+    by: scan
   - page: 61
     from: 4. der verfafler der Inquiry'.
     to: 4. Der Verfasser der „Inquiry“.
     by: scan
+  - page: 62
+    from: Malthus ete. London
+    to: Malthus etc. London
+    by: scan
   - page: 65
     from: 5. Dder verfasler der „Outlines“.
     to: 5. Der Verfasser der „Outlines“.
+    by: scan
+  - page: 65
+    from: Political Eeonomy, being
+    to: Political Economy, being
+    by: scan
+  - page: 65
+    from: wealth ete.“ London
+    to: wealth etc.“ London
     by: scan
   - page: 73
     from: II. Auf losung der Ricardoschen Schule.
@@ -2462,13 +2998,61 @@ theorienberden03marxuoft:
     from: 1. K. Torrens.
     to: 1. R. Torrens.
     by: scan
+  - page: 76
+    from: Wealth ete.“, London
+    to: Wealth etc.“, London
+    by: scan
+  - page: 82
+    from: schöner cerele vicieux,
+    to: schöner cercle vicieux,
+    by: scan
   - page: 94
     from: duktivität éo ipso
     to: duktivität eo ipso
     by: scan
+  - page: 119
+    from: Elements ete.
+    to: Elements etc.
+    by: scan
+  - page: 119
+    from: letzten Aere seinen
+    to: letzten Acre seinen
+    by: scan
+  - page: 120
+    from: einen Aere von
+    to: einen Acre von
+    by: scan
+  - page: 120
+    from: einzigen Aere
+    to: einzigen Acre
+    by: scan
+  - page: 120
+    from: Millionen Aeres dadurch
+    to: Millionen Acres dadurch
+    by: scan
+  - page: 120
+    from: eine Aere gar
+    to: eine Acre gar
+    by: scan
   - page: 121
     from: "Reichtums (progréès divitial):"
     to: "Reichtums (progrès divitial):"
+    by: scan
+  - page: 136
+    from: hus ete. London
+    to: hus etc. London
+    by: scan
+  - page: 145
+    from: Political Eeonomy, chiefly
+    to: Political Economy, chiefly
+    by: scan
+  - page: 145
+    from: gegen Rieardo eine
+    to: gegen Ricardo eine
+    by: scan
+  - page: 146
+    from: Political Eeonomy“ sich
+    to: Political Economy“ sich
     by: scan
   - page: 176
     from: 6. Der Wert der Arbeit.
@@ -2506,6 +3090,30 @@ theorienberden03marxuoft:
     from: sie sich auch wie —— die in ihnen enthaltenen Quanta
     to: "sie sich auch wie A/x : A′/x, die in ihnen enthaltenen Quanta"
     by: scan
+  - page: 197
+    from: verhalten. Rieardo
+    to: verhalten. Ricardo
+    by: scan
+  - page: 210
+    from: Erfindung Maes, sehr
+    to: Erfindung Macs, sehr
+    by: scan
+  - page: 210
+    from: Darstellung Maes in
+    to: Darstellung Macs in
+    by: scan
+  - page: 221
+    from: Manier Maes, den
+    to: Manier Macs, den
+    by: scan
+  - page: 223
+    from: Principles ete.,
+    to: Principles etc.,
+    by: scan
+  - page: 224
+    from: als Thueydides an.
+    to: als Thucydides an.
+    by: scan
   - page: 230
     from: 6. John Stuart mill.
     to: 6. John Stuart Mill.
@@ -2518,6 +3126,14 @@ theorienberden03marxuoft:
     from: speécie berechneter
     to: specie berechneter
     by: scan
+  - page: 270
+    from: Peel ete. on
+    to: Peel etc. on
+    by: scan
+  - page: 270
+    from: England ete.
+    to: England etc.
+    by: scan
   - page: 281
     from: III. õegensatz gegen die öRonomen auf Basis dler
     to: III. Gegensatz gegen die Ökonomen auf Basis der Ricardoschen Theorie.
@@ -2525,6 +3141,14 @@ theorienberden03marxuoft:
   - page: 281
     from: Ricardoschen Theorie.
     to: ""
+    by: scan
+  - page: 281
+    from: Remedy ofe the
+    to: Remedy of the
+    by: scan
+  - page: 281
+    from: Difficulties ete. A
+    to: Difficulties etc. A
     by: scan
   - page: 306
     from: 2. Percy Kavenstone.
@@ -2538,6 +3162,18 @@ theorienberden03marxuoft:
     from: Labour deéfended against
     to: Labour defended against
     by: scan
+  - page: 313
+    from: claims ofe capital;
+    to: claims of capital;
+    by: scan
+  - page: 313
+    from: defended ete.
+    to: defended etc.
+    by: scan
+  - page: 313
+    from: Bei Rieardo
+    to: Bei Ricardo
+    by: scan
   - page: 318
     from: Modéerna. 3.
     to: Moderna. 3.
@@ -2546,9 +3182,17 @@ theorienberden03marxuoft:
     from: (Labour deéfended, S.
     to: (Labour defended, S.
     by: scan
+  - page: 371
+    from: Demand ete.“ London
+    to: Demand etc.“ London
+    by: scan
   - page: 372
     from: Remeédy etc.“
     to: Remedy etc.“
+    by: scan
+  - page: 372
+    from: defended ete.“
+    to: defended etc.“
     by: scan
   - page: 374
     from: Political Eeonomy. Four Lectures deli-
@@ -2558,6 +3202,10 @@ theorienberden03marxuoft:
     from: vereéd at the London Mechanies'
     to: vered at the London Mechanics'
     by: scan
+  - page: 374
+    from: Political Eeonomy.
+    to: Political Economy.
+    by: scan
   - page: 381
     from: 1. Das Hapital eine historische Kategorie.
     to: 1. Das Kapital eine historische Kategorie.
@@ -2565,6 +3213,10 @@ theorienberden03marxuoft:
   - page: 386
     from: z2. Wert und Produktionspreis.
     to: 2. Wert und Produktionspreis.
+    by: scan
+  - page: 390
+    from: weil Rieardo
+    to: weil Ricardo
     by: scan
   - page: 396
     from: 3. Ronstantes RKapital und Profitrate.
@@ -2578,6 +3230,10 @@ theorienberden03marxuoft:
     from: z. Maschine und Arbeiter.
     to: 2. Maschine und Arbeiter.
     by: scan
+  - page: 436
+    from: im „Approvifionnement“
+    to: im „Approvisionnement“
+    by: scan
   - page: 444
     from: 4. Anklänge an Kicardo und Sismondi.
     to: 4. Anklänge an Ricardo und Sismondi.
@@ -2585,6 +3241,10 @@ theorienberden03marxuoft:
   - page: 450
     from: I. An Eay on the Distribution of Wealth. 6rundrente.
     to: 1. An Essay on the Distribution of Wealth. Grundrente.
+    by: scan
+  - page: 459
+    from: pro Aere. Er
+    to: pro Acre. Er
     by: scan
   - page: 470
     from: z. An Introductory lecture. Arbeitsfonds und Profitrate.
@@ -2594,6 +3254,18 @@ theorienberden03marxuoft:
     from: Economy, deéelivered at
     to: Economy, delivered at
     by: scan
+  - page: 470
+    from: An Introduetory Lecture
+    to: An Introductory Lecture
+    by: scan
+  - page: 470
+    from: ofa Course
+    to: of a Course
+    by: scan
+  - page: 473
+    from: Inhaber (oecupiers), Eigentümer,
+    to: Inhaber (occupiers), Eigentümer,
+    by: scan
   - page: 477
     from: 3. Tertbook.
     to: 3. Textbook.
@@ -2601,6 +3273,10 @@ theorienberden03marxuoft:
   - page: 487
     from: Verwalter (trusteées)
     to: Verwalter (trustees)
+    by: scan
+  - page: 510
+    from: Manufactures ete. London
+    to: Manufactures etc. London
     by: scan
   - page: 521
     from: VII. Profit, Zins und vulgäarokonomie.
@@ -2618,6 +3294,10 @@ theorienberden03marxuoft:
     from: 5. die veräußerlichung des Mehrwerts.
     to: 5. Die Veräußerlichung des Mehrwerts.
     by: scan
+  - page: 557
+    from: viel Aeres
+    to: viel Acres
+    by: scan
   - page: 561
     from: 6. Der Auffichtslohn.
     to: 6. Der Aufsichtslohn.
@@ -2626,6 +3306,14 @@ theorienberden03marxuoft:
     from: 7. Rlassische IRonomie und vulgärökonomie.
     to: 7. Klassische Ökonomie und Vulgärökonomie.
     by: scan
+  - page: 574
+    from: mit Thueydides mag
+    to: mit Thucydides mag
+    by: scan
+  - page: 574
+    from: von Thueydides
+    to: von Thucydides
+    by: scan
   - page: 586
     from: II. Iuther über den Wucher.
     to: II. Luther über den Wucher.
@@ -2633,6 +3321,10 @@ theorienberden03marxuoft:
   - page: 593
     from: sedephantasticum inteéresse. Ein
     to: sedephantasticum interesse. Ein
+    by: scan
+  - page: 599
+    from: Aber Hereules soll
+    to: Aber Hercules soll
     by: scan
 gesammelteschrif02marxuoft:
   - page: 2
@@ -2674,6 +3366,10 @@ gesammelteschrif02marxuoft:
   - page: 12
     from: Der Krieg. — Parlamenksdebatte.
     to: Der Krieg. — Parlamentsdebatte.
+    by: scan
+  - page: 13
+    from: Neweastle den
+    to: Newcastle den
     by: scan
   - page: 20
     from: Verkrag zwischen OÖsterreich und der Türkei. — Die Moldau
@@ -2735,9 +3431,21 @@ gesammelteschrif02marxuoft:
     from: la gueérre. „Wenn
     to: la guerre. „Wenn
     by: scan
+  - page: 83
+    from: von Neweastle tadeln,
+    to: von Newcastle tadeln,
+    by: scan
+  - page: 83
+    from: von Neweastle sein
+    to: von Newcastle sein
+    by: scan
   - page: 84
     from: Zum englischen Milikärwesen.
     to: Zum englischen Militärwesen.
+    by: scan
+  - page: 84
+    from: Aberdeen, Neweastle
+    to: Aberdeen, Newcastle
     by: scan
   - page: 85
     from: der „Secrétary at
@@ -2775,9 +3483,17 @@ gesammelteschrif02marxuoft:
     from: Die Patreés conscripti
     to: Die Patres conscripti
     by: scan
+  - page: 109
+    from: von Neweastle, Mi-
+    to: von Newcastle, Mi-
+    by: scan
   - page: 111
     from: II. Erläukerungen zur Kabinelkskrisis.
     to: II. Erläuterungen zur Kabinettskrisis.
+    by: scan
+  - page: 112
+    from: of Neweastle erzählt
+    to: of Newcastle erzählt
     by: scan
   - page: 114
     from: III. Parlamenkarisches.
@@ -2791,17 +3507,93 @@ gesammelteschrif02marxuoft:
     from: des Secrétary at
     to: des Secretary at
     by: scan
+  - page: 115
+    from: von Neweastle zum
+    to: von Newcastle zum
+    by: scan
+  - page: 115
+    from: von Neweastle abzusetzen.
+    to: von Newcastle abzusetzen.
+    by: scan
+  - page: 115
+    from: Mann, Neweastle durch
+    to: Mann, Newcastle durch
+    by: scan
   - page: 117
     from: IV. Aus dem Parlamenk. — Vom Kriegsschauplah.
     to: IV. Aus dem Parlament. — Vom Kriegsschauplatz.
+    by: scan
+  - page: 123
+    from: von Neweastle, und
+    to: von Newcastle, und
+    by: scan
+  - page: 123
+    from: von Neweastle, sich
+    to: von Newcastle, sich
+    by: scan
+  - page: 124
+    from: Er, Neweastle, scheine
+    to: Er, Newcastle, scheine
+    by: scan
+  - page: 124
+    from: Neweastle und
+    to: Newcastle und
+    by: scan
+  - page: 124
+    from: Er (Neweastle) habe
+    to: Er (Newcastle) habe
+    by: scan
+  - page: 124
+    from: während er (Neweastle)
+    to: während er (Newcastle)
+    by: scan
+  - page: 124
+    from: er (Neweastle) im
+    to: er (Newcastle) im
     by: scan
   - page: 125
     from: Das gestürzle Ministerium.
     to: Das gestürzte Ministerium.
     by: scan
+  - page: 125
+    from: von Neweastle
+    to: von Newcastle
+    by: scan
+  - page: 125
+    from: er (Neweastle) dem
+    to: er (Newcastle) dem
+    by: scan
   - page: 129
     from: Die Parkeien und Cliquen.
     to: Die Parteien und Cliquen.
+    by: scan
+  - page: 129
+    from: von Neweastle oder
+    to: von Newcastle oder
+    by: scan
+  - page: 131
+    from: von Neweastle. Die
+    to: von Newcastle. Die
+    by: scan
+  - page: 131
+    from: und Neweastle)
+    to: und Newcastle)
+    by: scan
+  - page: 132
+    from: zu Neweastle upon
+    to: zu Newcastle upon
+    by: scan
+  - page: 133
+    from: Kollege Neweastle befreit.
+    to: Kollege Newcastle befreit.
+    by: scan
+  - page: 135
+    from: von Neweastle eben
+    to: von Newcastle eben
+    by: scan
+  - page: 137
+    from: von Neweastle
+    to: von Newcastle
     by: scan
   - page: 145
     from: Herberls Wiederwahl. — Die ersten Schritte des neuen
@@ -2810,6 +3602,10 @@ gesammelteschrif02marxuoft:
   - page: 149
     from: den Secereétary at
     to: den Secretary at
+    by: scan
+  - page: 151
+    from: von Neweastle auf.
+    to: von Newcastle auf.
     by: scan
   - page: 152
     from: Kabinettsministern éx officio
@@ -2822,6 +3618,10 @@ gesammelteschrif02marxuoft:
   - page: 155
     from: Justand der Armeen.
     to: Zustand der Armeen.
+    by: scan
+  - page: 159
+    from: und Neweastle
+    to: und Newcastle
     by: scan
   - page: 163
     from: er „eléver“ ist.
@@ -2851,6 +3651,10 @@ gesammelteschrif02marxuoft:
     from: Unkersuchungskomitee. — Das Brüsseler Memoire.
     to: Untersuchungskomitee. — Das Brüsseler Memoire.
     by: scan
+  - page: 182
+    from: den Clere of
+    to: den Clerc of
+    by: scan
   - page: 189
     from: cul deé sac
     to: cul de sac
@@ -2866,6 +3670,10 @@ gesammelteschrif02marxuoft:
   - page: 193
     from: Balaklawa. — Die Times. — Ein Meeling.
     to: Balaklawa. — Die Times. — Ein Meeting.
+    by: scan
+  - page: 193
+    from: von Neweastle verordnete
+    to: von Newcastle verordnete
     by: scan
   - page: 194
     from: ihr „Céêtérum cen-
@@ -3011,6 +3819,10 @@ gesammelteschrif02marxuoft:
     from: dissolving viéws den
     to: dissolving views den
     by: scan
+  - page: 283
+    from: zu Neweastle upon
+    to: zu Newcastle upon
+    by: scan
   - page: 285
     from: Der lokale Krieg. — Debalte über die Administralivreform. —
     to: Der lokale Krieg. — Debatte über die Administrativreform. —
@@ -3026,6 +3838,10 @@ gesammelteschrif02marxuoft:
   - page: 294
     from: Der Unfall des 18. Juni (Sturm auf den Malakhoff).
     to: Der Unfall des 18. Juni (Sturm auf den Malakoff).
+    by: scan
+  - page: 296
+    from: über Neweastle am
+    to: über Newcastle am
     by: scan
   - page: 301
     from: the Guéen!“
@@ -3046,6 +3862,10 @@ gesammelteschrif02marxuoft:
   - page: 308
     from: IJ.
     to: I.
+    by: scan
+  - page: 308
+    from: Sheffield, Neweastle usw.
+    to: Sheffield, Newcastle usw.
     by: scan
   - page: 311
     from: ein Committée of
@@ -3074,6 +3894,10 @@ gesammelteschrif02marxuoft:
   - page: 330
     from: W.
     to: IV.
+    by: scan
+  - page: 336
+    from: seine „Eeclesiastical Titles
+    to: seine „Ecclesiastical Titles
     by: scan
   - page: 338
     from: of eéquity, vermittels
@@ -3200,9 +4024,25 @@ mehring-nachlass-3:
     from: la preéfecture de
     to: la préfecture de
     by: scan
+  - page: 433
+    from: de I'Unité universelle
+    to: de l'Unité universelle
+    by: scan
   - page: 436
     from: die baénale bürgerliche
     to: die banale bürgerliche
+    by: scan
+  - page: 447
+    from: vollständigen panie steigerte.
+    to: vollständigen panic steigerte.
+    by: scan
+  - page: 451
+    from: dem panie von
+    to: dem panic von
+    by: scan
+  - page: 451
+    from: diesem panie, als
+    to: diesem panic, als
     by: scan
   - page: 452
     from: Sonth Wales Bank
@@ -3219,6 +4059,14 @@ mehring-nachlass-3:
   - page: 453
     from: vor in New Nork,
     to: vor in New York,
+    by: scan
+  - page: 453
+    from: Commercial erisis of
+    to: Commercial crisis of
+    by: scan
+  - page: 453
+    from: Londoner panie vom
+    to: Londoner panic vom
     by: scan
   - page: 478
     from: an deé demokratische
@@ -3241,6 +4089,10 @@ gesammelteschrif01marxuoft:
     from: Conditio sineé qua
     to: Conditio sine qua
     by: scan
+  - page: 44
+    from: von Neweastle, Lord
+    to: von Newcastle, Lord
+    by: scan
   - page: 59
     from: Eine alkersschwache Regierung. — Aussichten des Koalitions-
     to: Eine altersschwache Regierung. — Aussichten des Koalitions-
@@ -3248,6 +4100,10 @@ gesammelteschrif01marxuoft:
   - page: 60
     from: die „Enteénte cordiale“
     to: die „Entente cordiale“
+    by: scan
+  - page: 68
+    from: in Neweastle und
+    to: in Newcastle und
     by: scan
   - page: 73
     from: und die Sklaveren.
@@ -3301,6 +4157,18 @@ gesammelteschrif01marxuoft:
     from: Koalitionsbudgek.
     to: Koalitionsbudget.
     by: scan
+  - page: 132
+    from: 6 Penee 160000
+    to: 6 Pence 160000
+    by: scan
+  - page: 133
+    from: 6 Penee 87000
+    to: 6 Pence 87000
+    by: scan
+  - page: 133
+    from: (6 Penee 2
+    to: (6 Pence 2
+    by: scan
   - page: 139
     from: „Dio é popolo“
     to: „Dio e popolo“
@@ -3336,6 +4204,10 @@ gesammelteschrif01marxuoft:
   - page: 203
     from: Urquharkt. — Bem. — Die kürkische Frage im Oberhaus.
     to: Urquhart. — Bem. — Die türkische Frage im Oberhaus.
+    by: scan
+  - page: 220
+    from: von Neweastle on
+    to: von Newcastle on
     by: scan
   - page: 225
     from: zum béte noire
@@ -3595,18 +4467,6 @@ zur-kritik-der-politischen-okonomie:
     from: gesellschaftliche vorausg esetzt
     to: gesellschaftliche vorausgesetzt
     by: scan
-  - page: 22
-    from: Gebrauchswerths als rirelte Materiatur der
-    to: Gebrauchswerths als direkte Materiatur der
-    by: reference
-  - page: 22
-    from: seinen realen Ausrruck fret, z. B
-    to: seinen realen Ausdruck findet, z. B
-    by: reference
-  - page: 22
-    from: Waare aber ift die Waare
-    to: Waare aber ist die Waare
-    by: reference
   - page: 23
     from: 8 Pfo. Brod
     to: 8 Pfd. Brod
@@ -4240,8 +5100,8 @@ zur-kritik-der-politischen-okonomie:
     to: 1) Montanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
     by: scan
   - page: 133
-    from: che é la
-    to: che è la
+    from: Ie ragioni siriducono ad una che é la loro quantita, non
+    to: le ragioni siriducono ad una che è la loro quantità, non
     by: scan
   - page: 133
     from: diversa qualitaà né
@@ -4403,75 +5263,535 @@ zur-kritik-der-politischen-okonomie:
     from: appreciêes.“
     to: appreciées.“
     by: scan
+  - page: 28
+    from: the scienee
+    to: the science
+    by: scan
+  - page: 33
+    from: curreney.“
+    to: currency.“
+    by: scan
+  - page: 84
+    from: had searcely anything
+    to: had scarcely anything
+    by: scan
+  - page: 87
+    from: industry ete. London
+    to: industry etc. London
+    by: scan
+  - page: 88
+    from: The curreney question
+    to: The currency question
+    by: scan
+  - page: 88
+    from: la cireulation se
+    to: la circulation se
+    by: scan
+  - page: 96
+    from: politique ete. avec
+    to: politique etc. avec
+    by: scan
+  - page: 97
+    from: no intrinsie value;
+    to: no intrinsic value;
+    by: scan
+  - page: 113
+    from: contingere saerum?“
+    to: contingere sacrum?“
+    by: scan
+  - page: 123
+    from: metallie currency,
+    to: metallic currency,
+    by: scan
+  - page: 144
+    from: like effeet follows.
+    to: like effect follows.
+    by: scan
+  - page: 148
+    from: in eirculation, but
+    to: in circulation, but
+    by: scan
+  - page: 148
+    from: own eirculation, into
+    to: own circulation, into
+    by: scan
+  - page: 148
+    from: in eirculating specie.“
+    to: in circulating specie.“
+    by: scan
+  - page: 151
+    from: economy ete.“
+    to: economy etc.“
+    by: scan
+  - page: 152
+    from: eurrency“, London,
+    to: currency“, London,
+    by: scan
+  - page: 152
+    from: "2) Rieardo: Principles"
+    to: "2) Ricardo: Principles"
+    by: scan
+  - page: 155
+    from: aggregate curreney
+    to: aggregate currency
+    by: scan
+  - page: 159
+    from: die eurrency des
+    to: die currency des
+    by: scan
+  - page: 159
+    from: of eirculating
+    to: of circulating
+    by: scan
+  - page: 168
+    from: the prineiples on
+    to: the principles on
+    by: scan
+  - page: 169
+    from: the cireumstance of
+    to: the circumstance of
+    by: scan
+  - page: 39
+    from: sur I'Economie politique
+    to: sur l'Economie politique
+    by: scan
+  - page: 103
+    from: metalli riechi son segni delle cose..; ma
+    to: metalli ricchi son segni delle cose...; ma
+    by: scan
+  - page: 103
+    from: Ie cose.. . sono
+    to: le cose... sono
+    by: scan
+  - page: 113
+    from: de I'Ee. pol. traduit par Ie Comte
+    to: de l'Ec. pol. traduit par le Comte
+    by: scan
+  - page: 22
+    from: wertbe, sondern als Tauichwertbe für einander da sein, und dies
+    to: werthe, sondern als Tauschwerthe für einander da sein, und dies
+    by: scan
+  - page: 22
+    from: ibr Daiein als ibre eigene Beziebung aufemnander ericheinen. Die
+    to: ihr Dasein als ihre eigene Beziehung aufeinander erscheinen. Die
+    by: scan
+  - page: 22
+    from: Schwierigken, an der wir zunschit fieckten, war, das um sich als
+    to: Schwierigkeit, an der wir zunächst steckten, war, daß um sich als
+    by: scan
+  - page: 22
+    from: Tauichwertb, als vergegennndlichte allgemeine Arbeitszeit rarzu-
+    to: Tauschwerth, als vergegenständlichte allgemeine Arbeitszeit darzu-
+    by: scan
+  - page: 22
+    from: stellen, die Waare zurer als Gebrauchswerth emänsert, an den
+    to: stellen, die Waare zuvor als Gebrauchswerth entäußert, an den
+    by: scan
+  - page: 22
+    from: Mann gebracht sein muß, wäbrend ibre Eazzußrrung als Gebrauchs-
+    to: Mann gebracht sein muß, während ihre Entäußerung als Gebrauchs-
+    by: scan
+  - page: 22
+    from: werth umgekehrt ibr Daiein als Tauichoertb vorausietzt. Aber ge-
+    to: werth umgekehrt ihr Dasein als Tauschwerth voraussetzt. Aber ge-
+    by: scan
+  - page: 22
+    from: setzt, diese Schwierigzkeit sei zelsst. Die Waare babe ibren beson-
+    to: setzt, diese Schwierigkeit sei gelöst. Die Waare habe ihren beson-
+    by: scan
+  - page: 22
+    from: dern Gebrauchswerth abgeitreift und durch dessen Emäanterung die
+    to: dern Gebrauchswerth abgestreift und durch dessen Entäußerung die
+    by: scan
+  - page: 22
+    from: steffliche Bedingung erfünt, gciellschaftlich nszliche Arbeit zu sein,
+    to: stoffliche Bedingung erfüllt, gesellschaftlich nützliche Arbeit zu sein,
+    by: scan
+  - page: 22
+    from: stan besondre Arben des Einzelnen für zch jelbst. So muj sie
+    to: statt besondre Arbeit des Einzelnen für sich selbst. So muß sie
+    by: scan
+  - page: 22
+    from: dann im Azstauichrreceß als Tauichwertb, allzemeines Acauivalent,
+    to: dann im Austauschproceß als Tauschwerth, allgemeines Aequivalent,
+    by: scan
+  - page: 22
+    from: vergegenstentlichte alzemtine Arbeitszcit für die andern Waaren
+    to: vergegenständlichte allgemeine Arbeitszeit für die andern Waaren
+    by: scan
+  - page: 22
+    from: werren und so nicht mebr die bescrenkhe Wirkung eines besenderen
+    to: werden und so nicht mehr die beschränkte Wirkung eines besonderen
+    by: scan
+  - page: 22
+    from: Gebrarchswertbs, sendern die unmittelbare Darnteunzsfäbrzkeit in
+    to: Gebrauchswerths, sondern die unmittelbare Darstellungsfähigkeit in
+    by: scan
+  - page: 22
+    from: allen Gebrauchswertben als ibren Aeauidslenten erbalten. Iede
+    to: allen Gebrauchswerthen als ihren Aequivalenten erhalten. Jede
+    by: scan
+  - page: 22
+    from: Waare aber ift die Waare, die so durch Enizuserung ihres beson-
+    to: Waare aber ist die Waare, die so durch Entäußerung ihres beson-
+    by: scan
+  - page: 22
+    from: dern Gebrauchswerths als rirelte Materiatur der allgemeinen Arbeits-
+    to: dern Gebrauchswerths als direkte Materiatur der allgemeinen Arbeits-
+    by: scan
+  - page: 22
+    from: zeit ericheinen muß. Andrerieits aber sieben sich im Anstauichrreceß
+    to: zeit erscheinen muß. Andrerseits aber stehen sich im Austauschproceß
+    by: scan
+  - page: 22
+    from: nur beiendere Raaren gegenùber, in bejoenderen Gebrauchsweriben
+    to: nur besondere Waaren gegenüber, in besonderen Gebrauchswerthen
+    by: scan
+  - page: 22
+    from: verkõrperie Arbeiten ven Privatintidicduen. Die allzemeine Arbeitszeit
+    to: verkörperte Arbeiten von Privatindividuen. Die allgemeine Arbeitszeit
+    by: scan
+  - page: 22
+    from: selbũ iñt eine Abstraktien, rie als solche fũr die Baaren nicht exiitirt.
+    to: selbst ist eine Abstraktion, die als solche für die Waaren nicht existirt.
+    by: scan
+  - page: 22
+    from: Betrachten rir die Sirmme ven Gleichungen, werin der Tauich-
+    to: Betrachten wir die Summe von Gleichungen, worin der Tausch-
+    by: scan
+  - page: 22
+    from: "werth einer Baare seinen realen Ausrruck fret, z. B.:"
+    to: "werth einer Waare seinen realen Ausdruck findet, z. B.:"
+    by: scan
+  - page: 22
+    from: 1 Elle Leimpand = 2 Pft. Kaeñee,
+    to: 1 Elle Leinwand = 2 Pfd. Kaffee,
+    by: scan
+  - page: 22
+    from: 1 Eile Leinwand — 2 ⸗ Tbee,
+    to: 1 Elle Leinwand = ½ ⸗ Thee,
+    by: scan
+  - page: 22
+    from: 1 Elle Leinwand 2 8 ⸗ Bred u. s. w.,
+    to: 1 Elle Leinwand = 8 ⸗ Brod u. s. w.,
+    by: scan
+  - page: 22
+    from: so beiagen diese Eleichungen zwar nur, daß allgemeine, gesellschait-
+    to: so besagen diese Gleichungen zwar nur, daß allgemeine, gesellschaft-
+    by: scan
+  - page: 22
+    from: liche Arbeits;eit ven gleicher Erefe sich in 1 Eue Leirwenr, 2 Pir.
+    to: liche Arbeitszeit von gleicher Größe sich in 1 Elle Leinwand, 2 Pfd.
+    by: scan
+  - page: 22
+    from: Kafee, 2 Pid. Thee nu. s. w. verzegensändlicht. Ader in der Tbat
+    to: Kaffee, ½ Pfd. Thee u. s. w. vergegenständlicht. Aber in der That
+    by: scan
+  - page: 22
+    from: werten die inrirituellen Arbeiten, die sich in diesen besendern Ge-
+    to: werden die individuellen Arbeiten, die sich in diesen besondern Ge-
+    by: scan
+  - page: 22
+    from: brauchswertben darstellen, nur zu allgemeiner und in diejer Ferm
+    to: brauchswerthen darstellen, nur zu allgemeiner und in dieser Form
+    by: scan
+  - page: 22
+    from: "* geiclichaftlicher Arbeit, inrem me sich wirklich gegen einander"
+    to: zu gesellschaftlicher Arbeit, indem sie sich wirklich gegen einander
+    by: reference
+  - page: 22
+    from: austauschen im Verboltaiß ibrer Zeitrauer. Die geithichsftliche Ar-
+    to: austauschen im Verhältniß ihrer Zeitdauer. Die gesellschaftliche Ar-
+    by: scan
+  - page: 22
+    from: beits zeit exiitirt jo zu sagen nur latent in diesen Waaren unt oñen-
+    to: beitszeit existirt so zu sagen nur latent in diesen Waaren und offen-
+    by: scan
+  - page: 22
+    from: bart sich erũu in ihrem Austauschrreceß. Es wirr nicht ausgegangen
+    to: bart sich erst in ihrem Austauschproceß. Es wird nicht ausgegangen
+    by: scan
+  - page: 22
+    from: von der Arkeit der Jatiriruen als gemeinschaftlicher, sonrern um-
+    to: von der Arbeit der Individuen als gemeinschaftlicher, sondern um-
+    by: scan
 enthullungen-1885:
   - page: 18
-    from: Dauer der uchungshaft wurde in
-    to: Dauer der Untersuchungshaft wurde in
-    by: reference
-  - page: 18
-    from: der That beschränkie sich der
-    to: der That beschränkte sich der
-    by: reference
-  - page: 18
-    from: eben erlassenes Disziplinargeset, das die
-    to: eben erlassenes Disziplinargesetz, das die
-    by: reference
-  - page: 18
-    from: Bürgers und Nothj wurden
-    to: Bürgers und Nothjung wurden
-    by: reference
-  - page: 18
-    from: von Nothijung und
-    to: von Nothjung und
-    by: reference
-  - page: 18
-    from: war, sielen Haussuchungen
-    to: war, fielen Haussuchungen
-    by: reference
-  - page: 18
-    from: Hagesenat entschied
-    to: Anklagesenat entschied
-    by: reference
-  - page: 18
-    from: zu sin gewesen
-    to: zu finden gewesen
+    from: Vorläusiges.
+    to: Vorläufiges.
     by: scan
   - page: 18
-    from: Berlin, das h
-    to: Berlin, das Ministe-
+    from: Nothi wurde am 10. Mai 1851 in Leipzig verhaftet, kurz darauf
+    to: Nothjung wurde am 10. Mai 1851 in Leipzig verhaftet, kurz darauf
     by: scan
   - page: 18
-    from: rium gu Berlin
-    to: rium zu Berlin
+    from: die Lerhafteten vor den Kölner Assisen unter der Anklage „hochver-
+    to: die Verhafteten vor den Kölner Assisen unter der Anklage „hochver-
     by: scan
   - page: 18
-    from: soweit alge. daß
-    to: soweit gediehen, daß
+    from: Bei der Verhaftung von Nothijung und * fand man das „Ma-
+    to: Bei der Verhaftung von Nothjung und Bürgers fand man das „Ma-
     by: scan
   - page: 18
-    from: Der Di fer der
-    to: Der Diensteifer der
+    from: bekannt war, sielen Haussuchungen und Verhaftungen in Köln vor.
+    to: bekannt war, fielen Haussuchungen und Verhaftungen in Köln vor.
     by: scan
   - page: 18
-    from: die preußische eentNiar cue
-    to: die preußische Regierung befähigte,
+    from: Wenn also noch etwas zu sin gewesen wäre, so war es jetzt sicher
+    to: Wenn also noch etwas zu finden gewesen wäre, so war es jetzt sicher
     by: scan
   - page: 18
-    from: I. Vorläusiges.
-    to: I. Vorläufiges.
+    from: verschwunden. In der That beschränkie sich der Fang auf einige irrele-
+    to: verschwunden. In der That beschränkte sich der Fang auf einige irrele-
+    by: scan
+  - page: 18
+    from: WJie ungewöhnlig D der Untersuchu ü
+    to: Nous verrons!
+    by: scan
+  - page: 18
+    from: ungew e Dauer der uchungshaft wurde in der sinn-
+    to: Die ungewöhnliche Dauer der Untersuchungshaft wurde in der sinn-
+    by: scan
+  - page: 18
+    from: Bürgers und Nothjung 11 an Preußen ausliefern. Das Gericht zu
+    to: Bürgers und Nothjung nicht an Preußen ausliefern. Das Gericht zu
+    by: scan
+  - page: 18
+    from: Köln reklamirte vergeblich bei dem Ministerium zu Berlin, das h
+    to: Köln reklamirte vergeblich bei dem Ministerium zu Berlin, das Ministe-
+    by: scan
+  - page: 18
+    from: rium gu Berlin vergeblich bei den Behörden in Sachsen. Indeß
+    to: rium zu Berlin vergeblich bei den Behörden in Sachsen. Indeß der
+    by: scan
+  - page: 18
+    from: sächsische Staat ließ 55⁰ erweichen. Bürgers und Nothj wurden
+    to: sächsische Staat ließ sich erweichen. Bürgers und Nothjung wurden
+    by: scan
+  - page: 18
+    from: ausgeliefert. Endlich Oktober 1851 war die Sache soweit alge. daß
+    to: ausgeliefert. Endlich Oktober 1851 war die Sache soweit gediehen, daß
+    by: scan
+  - page: 18
+    from: die Akten dem Anklagesenat des Kölner Appellhofs vorlagen. An-
+    to: die Akten dem Anklagesenat des Kölner Appellhofs vorlagen. Der An-
+    by: scan
+  - page: 18
+    from: Hagesenat entschied, „daß kein objektiver Thatbestand für die Anklage
+    to: klagesenat entschied, „daß kein objektiver Thatbestand für die Anklage
+    by: scan
+  - page: 18
+    from: Der Di fer der Gerichte war unterdeß angefacht worden durch ein
+    to: Der Diensteifer der Gerichte war unterdeß angefacht worden durch ein
+    by: scan
+  - page: 18
+    from: eben erlassenes Disziplinargeset, das die preußische eentNiar cue
+    to: eben erlassenes Disziplinargesetz, das die preußische Regierung befähigte,
+    by: scan
+  - page: 18
+    from: jeden 297½ richterlichen Beamten zu beseitigen. Diesmal also
+    to: jeden ihr mißliebigen richterlichen Beamten zu beseitigen. Diesmal also
+    by: scan
+  - page: 18
+    from: wurde Prozeß sistirt, weil kein Thatbestand vorlag. In dem fol-
+    to: wurde der Prozeß sistirt, weil kein Thatbestand vorlag. In dem fol-
     by: scan
   - page: 19
-    from: Bianca, vom Nalh, Krautjunker (Häbling
-    to: Bianca, vom Rath), Krautjunker (Häbling
-    by: reference
+    from: 1 Assisen 1* Mtnn er aufgeschoben werden, weil 1 That-
+    to: genden Assisenquartal mußte er aufgeschoben werden, weil zu viel That-
+    by: scan
   - page: 19
-    from: den Verhafteten gug dell, die Eröffnung
-    to: den Verhafteten zugestellt, die Eröffnung
-    by: reference
+    from: t Duechardeiten u Hane Er arbeitet nach 1 —— durch,
+    to: bestand vorlag. Der Aktenstoß, hieß es, sei so enorm, daß der Ankläger sich nicht durcharbeiten könne. Er arbeitete sich nach und nach durch,
+    by: scan
   - page: 19
-    from: Ier gand etc.), zwei
-    to: Fürstenberg etc.), zwei
-    by: reference
+    from: bu lageakt wurde den Verhafteten gug dell, die Eröffnung der Ver-
+    to: der Anklageakt wurde den Verhafteten zugestellt, die Eröffnung der Ver-
+    by: scan
+  - page: 19
+    from: lungen für den 28. Juli zugesagt. Unterdeß war aber das große
+    to: handlungen für den 28. Juli zugesagt. Unterdeß war aber das große
+    by: scan
+  - page: 19
+    from: Angeklagten hatten auf Sgulhens Gesundheit drei fernere e Mopale . zu
+    to: Regierungstriebrad des Prozesses, Polizeidirektor Schulze, erkrankt. Die
+    by: scan
+  - page: 19
+    from: erungstriebrad des Prozesses, Polizeidirektor Schulze, erkrankt. Die
+    to: Angeklagten hatten auf Schulzens Gesundheit drei fernere Monate zu
+    by: scan
+  - page: 19
+    from: — Zum N4 ——* v pie Publikum ward ungeduldig, die
+    to: sitzen. Zum Glück starb Schulze, das Publikum ward ungeduldig, die
+    by: scan
+  - page: 19
+    from: orhang aufziehen.
+    to: Regierung mußte den Vorhang aufziehen.
+    by: scan
+  - page: 19
+    from: ährend dieser ganzen Periode hatten die her Justz un *
+    to: Während dieser ganzen Periode hatten die Polizeidirektion in Köln,
+    by: scan
+  - page: 19
+    from: das Iinten Pelwönresb in Berlin, die Mi
+    to: das Polizeipräsidium in Berlin, die Ministerien der Justiz und des
+    by: scan
+  - page: 19
+    from: rtwährend in den Gang der Untersuchung 169— 410 „Über-
+    to: Innern fortwährend in den Gang der Untersuchung eingegriffen, in der-
+    by: scan
+  - page: 19
+    from: sben Weis wie spaüͤter ihr würdiger Repräsentant Stieber
+    to: selben Weise wie später ihr würdiger Repräsentant Stieber als Zeuge
+    by: scan
+  - page: 19
+    from: die öffentlichen Gerichtsverhandlungen zu Köln ein 6 gelang
+    to: in die öffentlichen Gerichtsverhandlungen zu Köln eingriff. Es gelang
+    by: scan
+  - page: 19
+    from: ng, ein Geschworen t zu Stande gu brin wie eñ
+    to: der Regierung, ein Geschworenengericht zu Stande zu bringen, wie es
+    by: scan
+  - page: 19
+    from: 22— Sourgedife'(Hertabt, Leden, Joet) Ruwdisheh Palehiat (66a
+    to: in den Annalen der Rheinprovinz unerhört ist. Neben Mitgliedern der
+    by: scan
+  - page: 19
+    from: ohen Bourgeoisie (Her en, Jo 2* von
+    to: hohen Bourgeoisie (Herstadt, Leiden, Joest) städtisches Patriziat (von
+    by: scan
+  - page: 19
+    from: Bianca, vom Nalh, Krautjunker (Häbling von Lanzenauer, Freiherr von
+    to: Bianca, vom Rath), Krautjunker (Häbling von Lanzenauer, Freiherr von
+    by: scan
+  - page: 19
+    from: Ier gand etc.), zwei preußische Regierungsräthe, darunter ein Wönis-
+    to: Fürstenberg etc.), zwei preußische Regierungsräthe, darunter ein könig-
+    by: scan
+  - page: 19
+    from: licher Kammerherr (von Woeser Jundaaen endlich ein preußischer
+    to: licher Kammerherr (von Münch-Bellinghausen), endlich ein preußischer
+    by: scan
+  - page: 19
+    from: .utkarn (Kräusler). In dieser Jury waren also sämmtliche der in
+    to: Professor (Kräusler). In dieser Jury waren also sämmtliche der in
+    by: scan
+  - page: 19
+    from: chland h nden en vertreten und bih Itentetrnz vm à.
+    to: Deutschland herrschenden Klassen vertreten und nur sie waren vertreten.
+    by: scan
+  - page: 19
+    from: e W Jury, scheint es, 4.* die preu den
+    to: Vor dieser Jury, scheint es, konnte die preußische Regierung den ge-
+    by: scan
+  - page: 19
+    from: Weg einschlagen und einen einfachen ** e
+    to: raden Weg einschlagen und einen einfachen Tendenzprozeß machen. Die
+    by: scan
+  - page: 19
+    from: "* Wenen 2 ene bn als ht anerkannten"
+    to: von Bürgers, Nothjung etc. als echt anerkannten und bei ihnen selbst
+    by: scan
+  - page: 19
+    from: Dokumente bewiesen zwar kein 54 fie d
+    to: abgefaßten Dokumente bewiesen zwar kein Komplott; sie bewiesen über-
+    by: scan
+  - page: 19
+    from: lein Handlung, die durch den code ber u vorgesehen „ alein
+    to: haupt keine Handlung, die durch den code pénal vorgesehen ist, allein
+    by: scan
+  - page: 19
+    from: 4 Nalupng uub bis bechnd die Feindschaft der Ang en geg die
+    to: sie bewiesen unwiderleglich die Feindschaft der Angeklagten gegen die
+    by: scan
+  - page: 19
+    from: —* kgebers versäumte, konnte das Gewissen der Ge ndwal
+    to: bestehende Regierung und die bestehende Gesellschaft. Was der Verstand
+    by: scan
+  - page: 19
+    from: Regierung und bestehende Gesellschaft. 6½10 der
+    to: des Gesetzgebers versäumte, konnte das Gewissen der Geschworenen nach-
+    by: scan
+  - page: 19
+    from: 197. ar es nicht eine List der Angeklagten, ihre Feindschaft ——
+    to: holen. War es nicht eine List der Angeklagten, ihre Feindschaft gegen
+    by: scan
+  - page: 19
+    from: e Gesellschaft so art ennr) daß sie gegen keine duß au tetn
+    to: die bestehende Gesellschaft so einzurichten, daß sie gegen keine Paragraphen
+    by: scan
+  - page: 19
+    from: des Gesehbuchs verstieß? Hört eine Krankheit auf ansteckend zu ar
+    to: des Gesetzbuchs verstieß? Hört eine Krankheit auf ansteckend zu sein,
+    by: scan
+  - page: 19
+    from: weil sie in der Nomenklatur der Neh inalpolizeiordnung 9910 Hätte
+    to: weil sie in der Nomenklatur der Medizinalpolizeiordnung fehlt? Hätte
+    by: scan
+  - page: 19
+    from: n Neiernt N . 800 darauf beschrünkt, aus dem ͤchlich vor-
+    to: sich die preußische Regierung darauf beschränkt, aus dem thatsächlich vor-
+    by: scan
+  - page: 19
+    from: 90 a sich damit ann e durch ihr ) 9865 n 4 19 —
+    to: liegenden Material die Schädlichkeit der Angeklagten nachzuweisen und
+    by: scan
+  - page: 19
+    from: Jury „ sie dur N. un
+    to: die Jury sich damit begnügt, sie durch ihr „schuldig“ unschädlich zu
+    by: scan
+  - page: 19
+    from: "1585: E Der Lonate Newerung und Jury angreifen? 5 Rn 4"
+    to: machen, wer konnte Regierung und Jury angreifen? Niemand als der
+    by: scan
+  - page: 19
+    from: eaden Aaf- 4 — preußischen , uu U und bnn. 5—
+    to: blöde Schwärmer, der einer preußischen Regierung und den in Preußen
+    by: scan
+  - page: 19
+    from: 2.— auf dem Gebiete en und der Propaganda halten,
+    to: herrschenden Klassen Stärke genug zutraut, auch ihren Feinden, so lange
+    by: scan
+  - page: 19
+    from: en e zutraut ihren Feinden, so lange
+    to: sie sich auf dem Gebiete der Diskussion und der Propaganda halten,
+    by: scan
+  - page: 19
+    from: eien BuNie vxendi ewähren zu kön
+    to: freien Spielraum gewähren zu können.
+    by: scan
+  - page: 19
+    from: Indeß die preu zische Regetung uhatte len selbst von mermb breiten
+    to: Indeß die preußische Regierung hatte sich selbst von dieser breiten
+    by: scan
+  - page: 19
+    from: Lab polltischer Prozesse dec de die Durch die ungewd nliche
+    to: Heerstraße politischer Prozesse abgeschnitten. Durch die ungewöhnliche
+    by: scan
+  - page: 19
+    from: Tumts in .0 des Prerssun durch die direkten Eingriffe des iste-
+    to: Verschleppung des Prozesses, durch die direkten Eingriffe des Ministe-
+    by: scan
+  - page: 19
+    from: den Gang der Untersuchung, durch die geheimnißvollen Hin-
+    to: riums in den Gang der Untersuchung, durch die geheimnißvollen Hin-
+    by: scan
+  - page: 19
+    from: rri. auf chwörung, Schrecken, ** Prahlereien mit Europa der
+    to: weisungen auf ungeahnte Schrecken, durch Prahlereien mit Europa um-
+    by: scan
+  - page: 19
+    from: „ durch die eklatant brutale Behandlung der
+    to: strickender Verschwörung, durch die eklatant brutale Behandlung der
+    by: scan
+  - page: 19
+    from: gen —1 ozeß zu einem proods monstre aufgeschwellt,
+    to: Gefangenen war der Prozeß zu einem procès monstre aufgeschwellt,
+    by: scan
+  - page: 19
+    from: die Aufmerkfamtteit der europäischen Presse auf ihn gelenkt und die
+    to: die Aufmerksamkeit der europäischen Presse auf ihn gelenkt und die
+    by: scan
   - page: 20
     from: Die Jury siand wieder selbst
     to: Die Jury stand wieder selbst
@@ -4494,23 +5814,167 @@ enthullungen-1885:
     by: reference
   - page: 20
     from: lage anstands halber . liefern
-    to: lage anstandshalber Beweise liefern
+    to: klage anstandshalber Beweise liefern
+    by: scan
+  - page: 20
+    from: Die Polizei, ie während
+    to: Die Polizei, die während
+    by: scan
+  - page: 20
+    from: nicht gu
+    to: nicht zu
+    by: scan
+  - page: 20
+    from: daß eine deuische kommunistische
+    to: daß eine deutsche kommunistische
+    by: scan
+  - page: 20
+    from: Die Majio-
+    to: Die Majo-
+    by: scan
+  - page: 20
+    from: fländige Zentralbehörde
+    to: ständige Zentralbehörde
     by: scan
   - page: 21
-    from: um die Berhältnisse zu ändern
-    to: um die Verhältnisse zu ändern
-    by: reference
+    from: ddealistische. Statt der wirklichen Verhältnisse wird der bloße
+    to: idealistische. Statt der wirklichen Verhältnisse wird ihr der bloße
+    by: scan
   - page: 21
-    from: im Anfange ahre,
-    to: im Anfange selbst
-    by: reference
+    from: "sagen: Ihr habt 15, 20, 50 Jahre Bürgerkriege und VBölkerkämpfe uh"
+    to: "sagen: Ihr habt 15, 20, 50 Jahre Bürgerkriege und Völkerkämpfe durch-"
+    by: scan
   - page: 21
-    from: Iu bezeichnen, es
-    to: That“ zu bezeichnen, es
-    by: reference
+    from: umachen, nicht nur um die Berhältnisse zu ändern, sondern um Eu
+    to: zumachen, nicht nur um die Verhältnisse zu ändern, sondern um Euch
+    by: scan
   - page: 21
-    from: Code pënal enthält
-    to: Code pénal enthält
+    from: felbst zu ändern und zur politischen Herrschaft zu — sagt
+    to: selbst zu ändern und zur politischen Herrschaft zu befähigen, sagt Ihr
+    by: scan
+  - page: 21
+    from: können uns schlafen legen.“ —71 wir speziell die deutschen Arbeiter
+    to: können uns schlafen legen.“ Während wir speziell die deutschen Arbeiter
+    by: scan
+  - page: 21
+    from: vorurtheil der deutschen Handwerker, was allerdings en Weje ist. Wie
+    to: vorurtheil der deutschen Handwerker, was allerdings populärer ist. Wie
+    by: scan
+  - page: 21
+    from: von den Demokraten das Wort Volk zu einem heiligen Wesen ——
+    to: von den Demokraten das Wort Volk zu einem heiligen Wesen gemacht
+    by: scan
+  - page: 21
+    from: wird, so von Euch das Wort Proletariat. Wie die Demokraten
+    to: schiebt Ihr der revolutionären Entwicklung die Phrase der Revolution
+    by: scan
+  - page: 21
+    from: — Ihr der revolutionären Entwicklung die Phrase der Revolution
+    to: wird, so von Euch das Wort Proletariat. Wie die Demokraten
+    by: scan
+  - page: 21
+    from: er etc. etc.“
+    to: unter etc. etc.“
+    by: scan
+  - page: 21
+    from: Herr Schapper sagte in seiner Antwort 1½½5 haupt in die die hier
+    to: "Herr Schapper sagte in seiner Antwort wörtlich: „Ich habe die hier"
+    by: scan
+  - page: 21
+    from: angefochtene „M Arandeit sich weil ich dieser Sache
+    to: angefochtene Ansicht ausgesprochen, weil ich überhaupt in dieser Sache
+    by: scan
+  - page: 21
+    from: enthusiastisch bin. Es handelt sich —. 15 1˙1 im Anfange ahre,
+    to: enthusiastisch bin. Es handelt sich darum, ob wir im Anfange selbst
+    by: scan
+  - page: 21
+    from: köpfen oder geköpft werden. (Schapper versprach sogar, in einem
+    to: köpfen oder geköpft werden. (Schapper versprach sogar, in einem Jahre,
+    by: scan
+  - page: 21
+    from: also am 15. September 1851, geköpft zu sein.) In Frankreich wer
+    to: also am 15. September 1851, geköpft zu sein.) In Frankreich werden
+    by: scan
+  - page: 21
+    from: eine andere materielle Stellung dch wir die derr aft —4 so können
+    to: eine andere materielle Stellung haben. Kommen wir dran, so können
+    by: scan
+  - page: 21
+    from: wir em. 3c Maßregeln ergreifen, daß cber vat
+    to: wir solche Maßregeln ergreifen, daß wir die Herrschaft des Proletariats
+    by: scan
+  - page: 21
+    from: bin janati anatisch für diese Asict, 1, vie 8 Zentralbeher
+    to: sichern. Ich bin fanatisch für diese Ansicht, die Zentralbehörde aber hat
+    by: scan
+  - page: 21
+    from: "Man sieht: es waren nicht persönliche Gründe, die . been"
+    to: das Gegentheil gewollt etc. etc.“
+    by: scan
+  - page: 21
+    from: 8 gewollt etc. etc.“
+    to: "Man sieht: es waren nicht persönliche Gründe, die die Zentralbehörde"
+    by: scan
+  - page: 21
+    from: alteten. Es würe indeß benso falsch, ＋* —8——— Differen gu
+    to: spalteten. Es wäre indeß ebenso falsch, von prinzipieller Differenz zu
+    by: scan
+  - page: 21
+    from: en. Die Partei Schapper-Willich hat ie auf die 14.1 Unspruch
+    to: sprechen. Die Partei Schapper-Willich hat nie auf die Ehre Anspruch
+    by: scan
+  - page: 21
+    from: gemacht, eigne Ideen zu besitzen. Was ihr e ist da enihüm-
+    to: gemacht, eigne Ideen zu besitzen. Was ihr gehört, ist das eigenthüm-
+    by: scan
+  - page: 21
+    from: liche Mipverständniß fremder Ideen, die sie al à Giaubenäat ikel fixirt
+    to: liche Mißverständniß fremder Ideen, die sie als Glaubensartikel fixirt
+    by: scan
+  - page: 21
+    from: und als Phrase sich angeeignet zu haben meint. Nicht minder 30 56
+    to: und als Phrase sich angeeignet zu haben meint. Nicht minder unrichtig
+    by: scan
+  - page: 21
+    from: Iu bezeichnen, es sei denn, daß man unter That einen unter
+    to: That“ zu bezeichnen, es sei denn, daß man unter That einen unter
+    by: scan
+  - page: 21
+    from: Wurthsbauspolterei, erlogenen Konspirationen und inhaltslosen Schein-
+    to: Wirthshauspolterei, erlogenen Konspirationen und inhaltslosen Schein-
+    by: scan
+  - page: 21
+    from: Das bei den Angellagten vorgefundene „Manifest der kommunistischen
+    to: Das bei den Angeklagten vorgefundene „Manifest der kommunistischen
+    by: scan
+  - page: 21
+    from: AmHrr. 4„ Janer dorn und gedruckt, seit uicht büe 5155
+    to: Partei“, vor der Februar-Revolution gedruckt, seit Jahren im Buchhandel
+    by: scan
+  - page: 21
+    from: befindlich, einer Form Bestimmung nach nicht das Programm
+    to: befindlich, konnte seiner Form und Bestimmung nach nicht das Programm
+    by: scan
+  - page: 21
+    from: eine „Komplots sein. Die 459551 7 Ansprachen der rn
+    to: eines „Komplotts“ sein. Die saisirten Ansprachen der Zentral-
+    by: scan
+  - page: 21
+    from: Daunn örde beschäftigten sich ausschließlich mit . Berhältniß der Kommu-
+    to: behörde beschäftigten sich ausschließlich mit dem Verhältniß der Kommu-
+    by: scan
+  - page: 21
+    from: zur künftigen Regierung der Demokratie, also nicht mit der Re-
+    to: nisten zur künftigen Regierung der Demokratie, also nicht mit der Re-
+    by: scan
+  - page: 21
+    from: g Friedrich W IV. Die Statuten endlich waren Statuten
+    to: gierung Friedrich Wilhelm IV. Die Statuten endlich waren Statuten
+    by: scan
+  - page: 21
+    from: einer geheimen Prop agandagesellschaft, aber der Code pënal enthält
+    to: einer geheimen Propagandagesellschaft, aber der Code pénal enthält
     by: scan
   - page: 22
     from: Schapper, in VBerbindung mit der
@@ -4525,77 +5989,217 @@ enthullungen-1885:
     to: und die „Partei
     by: reference
   - page: 23
-    from: Als Stieber sic im Besitz
-    to: Als Stieber sich im Besitz
-    by: reference
-  - page: 23
-    from: der „Partei Rarx“ zu London
-    to: der „Partei Marx“ zu London
+    from: sein. Aus der Musterung der bei Nothiung oorgefundenen Dokumente
+    to: sein. Aus der Musterung der bei Nothjung vorgefundenen Dokumente
     by: scan
   - page: 23
-    from: königlich preußischer Raih dasselbe Recht
-    to: königlich preußischer Rath dasselbe Recht
-    by: reference
-  - page: 23
-    from: "konnte nicht dirert sagen: Nun"
-    to: "konnte nicht direkt sagen: Nun"
-    by: reference
-  - page: 23
-    from: der bei Nothiung oorgefundenen Dokumente
-    to: der bei Nothjung vorgefundenen Dokumente
-    by: reference
-  - page: 23
-    from: Drug Austritt aus
-    to: ihren Austritt aus
-    by: reference
-  - page: 23
-    from: mehrerer Mirglieder der Zentralbehörde
-    to: mehrerer Mitglieder der Zentralbehörde
-    by: reference
-  - page: 23
-    from: Wie sollte Nothiung auch in
-    to: Wie sollte Nothjung auch in
-    by: reference
-  - page: 23
-    from: ihm erboten, das
-    to: ihm erbeten, das
-    by: reference
-  - page: 23
-    from: nistischen Gesellschast angehört
-    to: nistischen Gesellschaft angehört
-    by: reference
-  - page: 23
-    from: einzelnen Pidcen.“ So
-    to: einzelnen Piecen.“ So
-    by: reference
-  - page: 23
-    from: andern Briese des
-    to: andern Briefe des
-    by: reference
-  - page: 23
-    from: ortwährend Mittel
-    to: fortwährend Mittel
-    by: reference
-  - page: 23
-    from: olizei gelangen
-    to: Polizei gelangen
-    by: reference
-  - page: 23
-    from: Nothiung's Intervention
-    to: Nothjung's Intervention
+    from: Dietz als Archiv-Verwahrer hinwies. Wie sollte Nothiung auch in Leipzig
+    to: Dietz als Archiv-Verwahrer hinwies. Wie sollte Nothjung auch in Leipzig
     by: scan
   - page: 23
-    from: dayn mit ver und aufgestöberten
-    to: Enthüllungen und aufgestöberten
+    from: wissen, was der „Partei Rarx“ zu London selbst unbekannt war.
+    to: wissen, was der „Partei Marx“ zu London selbst unbekannt war.
     by: scan
   - page: 23
-    from: in einen Scheinzusammen-
-    to: in einen Scheinzusammenhang
+    from: "Stieber konnte nicht dirert sagen: Nun passen Sie auf, meine Herren"
+    to: "Stieber konnte nicht direkt sagen: Nun passen Sie auf, meine Herren"
+    by: scan
+  - page: 23
+    from: Nothiung's Intervention war unerläßlich, um die in London gemachten
+    to: Nothjung's Intervention war unerläßlich, um die in London gemachten
+    by: scan
+  - page: 23
+    from: dayn mit ver und aufgestöberten Dokumente in einen Scheinzusammen-
+    to: Enthüllungen und aufgestöberten Dokumente in einen Scheinzusammen-
+    by: scan
+  - page: 23
+    from: mit dem Kölner Prozeß zu bringen.
+    to: hang mit dem Kölner Prozeß zu bringen.
+    by: scan
+  - page: 23
+    from: nistischen Gesellschast angehört hat, wohnte in demselben Haus mit Dietz,
+    to: nistischen Gesellschaft angehört hat, wohnte in demselben Haus mit Dietz,
+    by: reference
+  - page: 23
+    from: von Dokumenten, von „sechszig einzelnen Pidcen.“ So schwört Stieber
+    to: von Dokumenten, von „sechszig einzelnen Piècen.“ So schwört Stieber
+    by: scan
+  - page: 23
+    from: erhielt, unter andern Briese des leitenden Kreises Berlin vom zwan-
+    to: erhielt, unter andern Briefe des leitenden Kreises Berlin vom zwan-
+    by: scan
+  - page: 23
+    from: worten, daß ein königlich preußischer Raih dasselbe Recht hat wie der
+    to: worten, daß ein königlich preußischer Rath dasselbe Recht hat wie der
+    by: scan
+  - page: 23
+    from: ortwährend Mittel fand, sich Dokumente stehlen und sie an die preußische
+    to: fortwährend Mittel fand, sich Dokumente stehlen und sie an die preußische
+    by: scan
+  - page: 23
+    from: olizei gelangen zu lassen.
+    to: Polizei gelangen zu lassen.
+    by: scan
+  - page: 23
+    from: Als Stieber sic im Besitz des in starker Wachsleinwand eingewickelten
+    to: Als Stieber sich im Besitz des in starker Wachsleinwand eingewickelten
+    by: scan
+  - page: 23
+    from: Bezug auf die „Partei Marx“ und die Kölner 7Nach
+    to: Bezug auf die „Partei Marx“ und die Kölner Angeklagten? Nach
+    by: scan
+  - page: 23
+    from: mehrerer Mirglieder der Zentralbehörde, welche offenbar den Kern der
+    to: mehrerer Mitglieder der Zentralbehörde, welche offenbar den Kern der
+    by: scan
+  - page: 23
+    from: Drug Austritt aus der Kommunisten-Gesellschaft in Folge des bekannten
+    to: ihren Austritt aus der Kommunisten-Gesellschaft in Folge des bekannten
+    by: scan
+  - page: 23
+    from: chs am 15. September 1850.“ So sagt Stieber selbst, aber auch in
+    to: Bruchs am 15. September 1850.“ So sagt Stieber selbst, aber auch in
+    by: scan
+  - page: 23
+    from: dieser harmlosen Nussage vermag er nicht einfach das Faltum zu sagen.
+    to: dieser harmlosen Aussage vermag er nicht einfach das Faktum zu sagen.
+    by: scan
+  - page: 23
+    from: Er ist 155ctaalent es in eine höhere Potenz zu erheben, um ihm poli-
+    to: Er ist gezwungen, es in eine höhere Potenz zu erheben, um ihm poli-
     by: scan
   - page: 24
-    from: Korrespondenten die ahhleinwand und seiner
-    to: Korrespondenten die Wachsleinwand und seiner
+    from: ½½ entralbehörde und eunde, da aus dem öffent-
+    to: ehemaligen Zentralbehörde und ihrer Freunde, daß sie aus dem öffent-
+    by: scan
+  - page: 24
+    from: 37 Uebeiterdereln der Grent- Winbmill Street austreten Ken. nicht
+    to: lichen Arbeiterverein der Great-Windmill-Street austreten, nicht
+    by: scan
+  - page: 24
+    from: 3 icher seinen Korrespondenten die ahhleinwand und seiner
+    to: aber aus einer „Kommunisten-Gesellschaft“.
+    by: scan
+  - page: 24
+    from: aus einer „Kommunisten-Gesellschaft“.
+    to: Stieber konnte seinen Korrespondenten die Wachsleinwand und seiner
+    by: scan
+  - page: 24
+    from: Behörde die Portokosten ersparen. Er brauchte nur verschiedene *
+    to: Behörde die Portokosten ersparen. Er brauchte nur verschiedene deutsche
+    by: scan
+  - page: 24
+    from: Blätter vom September 1850 durchzustiebern, und Stieber fand Hdru
+    to: Blätter vom September 1850 durchzustiebern, und Stieber fand gedruckt, schwarz auf weiß, eine Erklärung des „Kernes der Partei Marx“, worin
+    by: scan
+  - page: 24
+    from: dem Arbeiterverein der Windmill-Street an
+    to: sie mit ihrem Austritt aus dem Flüchtlingskomité zugleich ihren Austritt aus dem Arbeiterverein der Great-Windmill-Street anzeigt.
     by: reference
+  - page: 24
+    from: Recherchen war also die uner-
+    to: Das nächste Resultat der Stieber'schen Recherchen war also die unerhörte Entdeckung, daß der „Kern der Partei Marx“ aus dem öffentlichen
+    by: scan
+  - page: 24
+    from: r Das Publikum ⁴½½½ einen Hugen aichl. Uur
+    to: Verein der Great-Windmill-Street am 17. September 1850 ausgetreten sei. „Das ganze Gewebe des kölnischen Komplotts lag klar vor seinen
+    by: scan
+  - page: 24
+    from: Gewebe des köln Lomplotta Har
+    to: Augen enthüllt.“ Das Publikum aber traute seinen Augen nicht.
+    by: scan
+  - page: 24
+    from: Masteenh 1unbaußsch Papiere führten en
+    to: ihm am 5. August 1851 zugekommenen Papiere führten zur Entdeckung
+    by: scan
+  - page: 24
+    from: e des v on Wilich Schapper abgesandten Emissars Adolph
+    to: des sogenannten „deutsch-französischen Komplotts zu Paris“. Sie enthielten
+    by: scan
+  - page: 24
+    from: deb s französischen Komplotts * 74˙t ie enthielten
+    to: sechs Berichte des von Willich-Schapper abgesandten Emissärs Adolph
+    by: scan
+  - page: 24
+    from: aier d. d. Ln oahser, Sedgepouspoge Ee ＋*
+    to: Majer d. d. Paris und fünf Berichte des leitenden Kreises Paris an
+    by: scan
+  - page: 24
+    from: die „Zentralbehörde Willich-Schay (ernamot eud
+    to: die Zentralbehörde Willich-Schapper. (Zeugenaussage Stieber's in der
+    by: scan
+  - page: 24
+    from: Sitzung vom 18. Oktober.) Etleber untern eine wolomathche Rast
+    to: Sitzung vom 18. Oktober.) Stieber unternimmt eine diplomatische Lust-
+    by: scan
+  - page: 24
+    from: reise nach Paris und — dort die persönliche Bekanntschaft des großen
+    to: reise nach Paris und macht dort die persönliche Bekanntschaft des großen
+    by: scan
+  - page: 24
+    from: Carlier, der soeben in der berüchtigten Affäre der ** den
+    to: Carlier, der soeben in der berüchtigten Affäre der Goldbarrenlotterie den
+    by: scan
+  - page: 24
+    from: aber ein noch größerer 89 8 von fremdem Privateigenthum sei.
+    to: aber ein noch größerer Freund von fremdem Privateigenthum sei.
+    by: scan
+  - page: 24
+    from: „Demgemüß ich im September 1851 nach Paris ab. Ich fand
+    to: „Demgemäß reiste ich im September 1851 nach Paris ab. Ich fand
+    by: scan
+  - page: 24
+    from: in dem damaligen dortigen 10 eipräfekt Carlier die bereitwi
+    to: in dem damaligen dortigen Polizeipräfekt Carlier die bereitwilligste
+    by: scan
+  - page: 24
+    from: Unterstützung. . . . Durch Polizeiagenten wurden die in
+    to: Unterstützung. . . . Durch französische Polizeiagenten wurden die in den
+    by: scan
+  - page: 24
+    from: Londoner Beiesen enthullten —— schnell und der Ber scloöenden; 2
+    to: Londoner Briefen enthüllten Fäden schnell und sicher aufgefunden; es
+    by: scan
+  - page: 24
+    from: mitteln und alle ihre Bewegungen, Ale Ure
+    to: gelang, die Wohnungen der einzelnen Chefs der Verschwörung zu er-
+    by: scan
+  - page: 24
+    from: gelang, die Wohnungen der einzelnen Chefs ½½ zu er-
+    to: mitteln und alle ihre Bewegungen, namentlich alle ihre Versammlungen
+    by: scan
+  - page: 24
+    from: und Korrespondenzen, zu beobachten. Man ernutelte dat schr .E sehr
+    to: und Korrespondenzen, zu beobachten. Man ermittelte dort sehr arge
+    by: scan
+  - page: 24
+    from: Dinge. . . . Ich mußte den Anforderungen des Präfekten Carlier 25
+    to: Dinge. . . . Ich mußte den Anforderungen des Präfekten Carlier nach-
+    by: scan
+  - page: 24
+    from: aeben, und es wurde in der Nacht vom 4. zum 5. September 1851
+    to: geben, und es wurde in der Nacht vom 4. zum 5. September 1851
+    by: scan
+  - page: 24
+    from: —.— te Stieber's vom 18. 0.
+    to: eingeschritten.“ (Aussage Stieber's vom 18. Oktober.)
+    by: scan
+  - page: 24
+    from: tember er im ½½ Falle
+    to: Im September reiste Stieber von Berlin ab. Nehmen wir an den
+    by: scan
+  - page: 24
+    from: "* daen ** . 263 K1 n cht nur de W0"
+    to: 1. September. Abends den 2. September traf er im besten Falle zu Paris ein. In der Nacht vom 4. wird eingeschritten. Bleiben also für
+    by: scan
+  - page: 24
+    from: Ltesmuhmngen, 4 Ile „0 Aerteiponderzen der
+    to: die Besprechung mit Carlier und die Ergreifung der nöthigen Maßregeln 36 Stunden. In diesen 36 Stunden werden nicht nur die Wohnungen
+    by: reference
+  - page: 24
+    from: erm 1 20
+    to: der einzelnen Chefs „ermittelt“; alle ihre Bewegungen, alle ihre Versammlungen, alle ihre Korrespondenzen werden „beobachtet“, natür-
+    by: scan
   - page: 25
     from: bei der nachsten Revolution mit
     to: bei der nächsten Revolution mit
@@ -7153,6 +8757,10 @@ lohnarbeitundka00marxgoog:
   - page: 36
     from: dieselbe Preissumme) zu
     to: dieselbe Preissumme¹) zu
+    by: scan
+  - page: 36
+    from: "beständig rnt:"
+    to: "beständig zuraunt:"
     by: scan
   - page: 37
     from: bis die Wonrurrenz

@@ -754,6 +754,27 @@ books:
     # The addition from Herr Vogt is titled in the text's type.
     headings:
       - { page: 64, opens: 1) Beilage 4 }
+    # Pages the OCR set askew, their paragraphs named.
+    paragraphs:
+      - { page: 18, opens: Nothjung wurde am }
+      - { page: 18, opens: Bei der Verhaftung }
+      - { page: 18, opens: Die ungewöhnliche Dauer }
+      - { page: 19, opens: Während dieser ganzen }
+      - { page: 19, opens: Vor dieser Jury }
+      - { page: 19, opens: Indeß die preußische Regierung }
+      - { page: 21, opens: Herr Schapper sagte }
+      - { page: 21, opens: "Man sieht:" }
+      - { page: 21, opens: Das bei den Angeklagten }
+      - { page: 23, opens: Stieber konnte nicht }
+      - { page: 23, opens: Stieber schwört nun }
+      - { page: 23, opens: Am 5. August 1851 }
+      - { page: 23, opens: En passant. }
+      - { page: 23, opens: Als Stieber sich }
+      - { page: 24, opens: Stieber konnte seinen }
+      - { page: 24, opens: Das nächste Resultat }
+      - { page: 24, opens: Stieber wußte indeß }
+      - { page: 24, opens: „Demgemäß reiste }
+      - { page: 24, opens: Im September reiste }
     # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm

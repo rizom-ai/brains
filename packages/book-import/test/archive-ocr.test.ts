@@ -132,6 +132,24 @@ describe("parseArchiveOcrWork on pages left out", () => {
   });
 });
 
+describe("parseArchiveOcrWork on a page whose paragraphs the manifest names", () => {
+  it("opens a paragraph at the lines it names on that page, and at no other", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      paragraphs: [
+        { page: 5, opens: "Ein Satz" },
+        { page: 5, opens: "läuft weiter" },
+      ],
+    });
+
+    expect(units[0]?.paragraphs.slice(1, 4)).toEqual([
+      "Es hat dabei für uns kein Interesse, zu untersuchen, inwieweit wir uns mit der Aufstellung des Lustprinzips einem bestimmten, historisch festgelegten System angenähert haben.¹) Wir gelangen zu solchen Annahmen bei dem Bemühen, von den Tatsachen einerseits Beschreibung und Rechenschaft zu geben. Die Ich-Analyse beginnt hier.",
+      "Ein Satz unten auf der Seite",
+      "läuft weiter, und am Rand rutscht ein Wort nach unten.",
+    ]);
+  });
+});
+
 describe("parseArchiveOcrWork with corrections", () => {
   it("replaces a line's misread words on the page the correction names", async () => {
     const units = parseArchiveOcrWork(await fixture(), {

@@ -52,6 +52,12 @@ export interface ArchiveOcrWork {
    */
   headings?: Array<PageLine & { numeral?: string | undefined }>;
   /**
+   * Pages the OCR read too askew to tell paragraphs by their indent: on each,
+   * the lines that open one, by their opening words; no other line there
+   * opens one.
+   */
+  paragraphs?: PageLine[];
+  /**
    * An editor's signatures (K.): the notes ending in one are the editor's,
    * and so are paragraphs ending in one, notes the page set as text.
    */
@@ -686,6 +692,8 @@ interface Volume {
   datelined?: boolean;
   /** The page's lines that open a heading set in the text's type, by their opening words. */
   headingOpenings?: Array<{ opens: string; numeral?: string }>;
+  /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
+  paragraphOpenings?: string[];
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -1339,6 +1347,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     leading * TITLE_LEADING,
   );
   const opensParagraph = (line: Line, index: number): boolean => {
+    const named = volume.paragraphOpenings;
+    if (named !== undefined) {
+      return named.some((opens) => line.text.startsWith(opens));
+    }
     // No paragraph opens in lower case but a list's lettered item: such a
     // line runs on the one above, a word it broke or a quotation set in. A
     // small umlaut opening a word may be a capital the Fraktur model read
@@ -2406,6 +2418,19 @@ function volumeOf(hocr: string): ReadVolume {
   return lastRead.volume;
 }
 
+/** The lines the manifest names as opening a printed page's paragraphs, if it names any there. */
+function paragraphOpeningsOn(
+  work: ArchiveOcrWork,
+  page: number,
+): { paragraphOpenings?: string[] } {
+  const named = (work.paragraphs ?? []).filter(
+    (line) => String(line.page) === String(page),
+  );
+  return named.length === 0
+    ? {}
+    : { paragraphOpenings: named.map((line) => line.opens) };
+}
+
 /** A work's first page from the line it opens with, if the manifest names one. */
 function opened(page: Page, work: ArchiveOcrWork): Page {
   const opening = work.opensWith;
@@ -2472,6 +2497,7 @@ export function parseArchiveOcrWork(
               .map(({ opens, numeral }) =>
                 numeral === undefined ? { opens } : { opens, numeral },
               ),
+            ...paragraphOpeningsOn(work, number),
           },
           work.corrections ?? [],
           labelOf(number, page.leaf),
