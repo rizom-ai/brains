@@ -2,7 +2,9 @@
 
 ## Status
 
-Phases 1–3 shipped: `system_insights` became `system_analytics`, reports are
+Phases 1–3 shipped, and the core reports take params (`publishing-cadence`:
+entity types and a month range, counted by publish date; `content-health`:
+stale threshold and entity types): `system_insights` became `system_analytics`, reports are
 typed definitions, and the traffic reports replaced `analytics_query`. Phase 4
 remains.
 
@@ -32,9 +34,6 @@ metrics, distributions, report-style answers — kept apart from entity reads
 
 - Make `topic-distribution` a real distribution once topic projection can give
   counts or source coverage; today it lists topics and titles.
-- Give the core reports params where a caller needs them: a date range and
-  entity types for `publishing-cadence`, a stale threshold and entity types for
-  `content-health`.
 - Enable the analytics plugin in evals (it is `evalDisable`d in the canonical
   bundle from when it needed Cloudflare) with traffic cases: a traffic question
   uses `traffic-overview`, "how did my last essay do" uses
