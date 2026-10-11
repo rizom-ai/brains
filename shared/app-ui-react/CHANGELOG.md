@@ -1,5 +1,7 @@
 # @brains/app-ui-react
 
+## 0.2.0-alpha.527
+
 ## 0.2.0-alpha.526
 
 ## 0.2.0-alpha.525

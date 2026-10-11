@@ -735,6 +735,7 @@
     "core--test-suite-hardening-type-narrowing",
     "core--theme-canvas-colour",
     "core--theme-package-build-helper",
+    "core--topic-title-rules",
     "core--topics-follow-votes-prompt",
     "core--topics-narrow-distance",
     "core--topics-unextracted-hint",

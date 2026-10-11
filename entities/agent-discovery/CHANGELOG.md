@@ -1,5 +1,22 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.527
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.527
+  - @brains/atproto-contracts@0.2.0-alpha.527
+  - @brains/content-formatters@0.2.0-alpha.527
+  - @brains/contracts@0.2.0-alpha.527
+  - @brains/http-signatures@0.2.0-alpha.527
+  - @brains/ui-library@0.2.0-alpha.527
+  - @brains/utils@0.2.0-alpha.527
+  - @brains/auth-service@0.2.0-alpha.527
+  - @brains/mcp-service@0.2.0-alpha.527
+  - @brains/plugins@0.2.0-alpha.527
+  - @brains/templates@0.2.0-alpha.527
+
 ## 0.2.0-alpha.526
 
 ### Patch Changes
