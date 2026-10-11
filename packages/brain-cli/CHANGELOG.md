@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.524
+
+### Patch Changes
+
+- [#597](https://github.com/rizom-ai/brains/pull/597) [`ca345ba`](https://github.com/rizom-ai/brains/commit/ca345bab558ac68e68b48c7212583e3cc147286e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `traffic-by-entity` joins the traffic reports in `system_analytics`: pageviews per published piece, matched to its page through the site's entity display, busiest first, with its top referrers and, with `firstDays`, its views in the first days after publishing. Admin callers only.
+
 ## 0.2.0-alpha.523
 
 ### Minor Changes

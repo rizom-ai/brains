@@ -736,6 +736,7 @@
     "core--theme-package-build-helper",
     "core--topics-narrow-distance",
     "core--topics-unextracted-hint",
+    "core--traffic-by-entity",
     "core--traffic-capture",
     "core--traffic-reports",
     "core--traffic-snapshots-system",
