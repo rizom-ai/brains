@@ -1,5 +1,15 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.500
+  - @brains/contracts@0.2.0-alpha.500
+  - @brains/utils@0.2.0-alpha.500
+  - @brains/templates@0.2.0-alpha.500
+
 ## 0.2.0-alpha.499
 
 ### Patch Changes

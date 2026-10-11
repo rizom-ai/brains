@@ -1,6 +1,6 @@
 {
   "name": "@rizom/ops",
-  "version": "0.2.0-alpha.499",
+  "version": "0.2.0-alpha.500",
   "description": "Operator CLI for managing private brain fleet registry repos",
   "keywords": [
     "brains",

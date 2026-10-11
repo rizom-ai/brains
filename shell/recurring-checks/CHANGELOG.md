@@ -1,5 +1,17 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.500
+
+### Patch Changes
+
+- [`c7614c9`](https://github.com/rizom-ai/brains/commit/c7614c957ae37e258ada6647b1090d5a6d86bf65) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep recurring-check service shutdown and plugin unregistration behind their cleanup barriers when a scheduler adapter throws synchronously from `stop()`. Cancel and drain admitted checks and catch-up enqueue work before reporting the original failure, and retain declaration-order aggregation of synchronous and asynchronous failures.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.500
+  - @brains/job-queue@0.2.0-alpha.500
+  - @brains/runtime-state@0.2.0-alpha.500
+  - @brains/scheduler@0.2.0-alpha.500
+
 ## 0.2.0-alpha.499
 
 ### Patch Changes
