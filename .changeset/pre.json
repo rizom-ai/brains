@@ -653,6 +653,7 @@
     "core--script-fingerprint",
     "core--search-below-threshold-hint",
     "core--section-template-default-unwrap",
+    "core--security-dependency-overrides",
     "core--security-dependency-patches",
     "core--serialized-status-store",
     "core--setup-link-processes",
