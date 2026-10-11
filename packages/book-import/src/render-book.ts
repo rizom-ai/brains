@@ -149,9 +149,9 @@ function tableOfContents(book: BookDetails, entries: PlacedEntry[]): string {
   return `## Contents\n\n${lines.join("\n")}\n`;
 }
 
-/** Where a book is written: the book itself, then a folder of its sections. */
+/** Where a book is written: the book itself, and beside it the folder of its sections. */
 export function bookPaths(slug: string): { book: string; sections: string } {
-  return { book: `book/${slug}.md`, sections: `book-section/${slug}` };
+  return { book: `book/${slug}.md`, sections: `book/${slug}` };
 }
 
 /** Render a book and its sections as markdown files, deterministically. */

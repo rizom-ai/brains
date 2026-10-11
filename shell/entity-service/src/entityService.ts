@@ -616,6 +616,22 @@ export class EntityService implements IEntityService {
     return result;
   }
 
+  public async purgeEntityType(entityType: string): Promise<number> {
+    await this.initialize();
+    if (this.entityRegistry.hasEntityType(entityType)) {
+      throw new Error(
+        `${entityType} is a registered entity type; delete its entities instead`,
+      );
+    }
+    const ids = await this.entityQueries.listStoredIds(entityType);
+    return ids.reduce<Promise<number>>(
+      async (count, id) =>
+        (await count) +
+        ((await this.entityMutations.deleteEntity({ entityType, id })) ? 1 : 0),
+      Promise.resolve(0),
+    );
+  }
+
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {

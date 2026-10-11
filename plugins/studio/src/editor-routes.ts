@@ -637,7 +637,15 @@ async function handleListTypes(
         (entry) => [entry.entityType, entry.count],
       ),
     );
-    for (const entityType of context.entityService.getEntityTypes()) {
+    const registered = context.entityService.getEntityTypes();
+    const containers = new Set(
+      registered.flatMap((type) => {
+        const container =
+          context.entityService.getEntityTypeConfig(type).containedIn;
+        return container === undefined ? [] : [container];
+      }),
+    );
+    for (const entityType of registered) {
       const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
       if (!schema) continue;
       const count = counts.get(entityType) ?? 0;
@@ -649,6 +657,8 @@ async function handleListTypes(
       );
       if (!capabilities) continue;
       const adapter = context.entities.getAdapter(entityType);
+      const containedIn =
+        context.entityService.getEntityTypeConfig(entityType).containedIn;
       types.push({
         entityType,
         classification: entityTypeClassificationSchema.parse(
@@ -660,7 +670,11 @@ async function handleListTypes(
         hasBody: adapter?.hasBody !== false,
         count,
         capabilities,
-        hierarchy: studioTypeHierarchy(entityType),
+        // A container's ids are flat; its folders hold its contents.
+        hierarchy: containers.has(entityType)
+          ? { ...studioTypeHierarchy(entityType), nested: false }
+          : studioTypeHierarchy(entityType),
+        ...(containedIn !== undefined && { containedIn }),
       });
     }
   }

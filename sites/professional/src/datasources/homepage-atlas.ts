@@ -84,7 +84,7 @@ export async function loadHomepageAtlas(
 ): Promise<HomepageAtlasData | null> {
   try {
     const [map, listed] = await Promise.all([
-      buildKnowledgeMapData(source),
+      buildKnowledgeMapData(source, "public"),
       Promise.all(
         atlasEntityTypeSchema.options.map((entityType) =>
           source.entityService.listEntities({ entityType }),

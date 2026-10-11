@@ -15,9 +15,11 @@ import {
 } from "./document-file-utils";
 import {
   buildEntityFilePath,
+  containmentOf,
   getEntityFileExtension,
   parseEntityPath,
   resolveEntityPlacement,
+  type Containment,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
 import { mkdir, readFile, unlink, stat, utimes } from "fs/promises";
@@ -40,7 +42,7 @@ export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   EntityServiceClient,
-  "serializeEntity" | "hasEntityType"
+  "serializeEntity" | "hasEntityType" | "getEntityTypes" | "getEntityTypeConfig"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -58,7 +60,12 @@ export class FileOperations {
   }
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
-    return parseEntityPath(this.syncPath, filePath);
+    return parseEntityPath(this.syncPath, filePath, this.containment());
+  }
+
+  /** Where contained types live, as the registry holds it now. */
+  private containment(): Containment {
+    return containmentOf(this.entityService);
   }
 
   getPendingDeleteTarget(filePath: string): PendingDeleteTarget | undefined {
@@ -177,6 +184,7 @@ export class FileOperations {
       entityType,
       entityId,
       extension,
+      this.containment(),
     );
     if (!placement.writable) {
       throw new EntityPlacementError(
@@ -320,7 +328,13 @@ export class FileOperations {
     entityType: string,
     extension: string = ".md",
   ): string {
-    return buildEntityFilePath(this.syncPath, entityId, entityType, extension);
+    return buildEntityFilePath(
+      this.syncPath,
+      entityId,
+      entityType,
+      extension,
+      this.containment(),
+    );
   }
 
   getEntityFilePath(entity: BaseEntity): string {
@@ -401,7 +415,12 @@ export class FileOperations {
    * Ensure directory structure exists
    */
   async ensureDirectoryStructure(entityTypes: string[]): Promise<void> {
-    await ensureSyncDirectoryStructure(this.syncPath, entityTypes);
+    // A contained type lives in its container's folder, not one of its own.
+    const containment = this.containment();
+    await ensureSyncDirectoryStructure(
+      this.syncPath,
+      entityTypes.filter((type) => !containment.has(type)),
+    );
   }
 
   /**
@@ -420,7 +439,11 @@ export class FileOperations {
     files: DirectorySyncStatus["files"];
     stats: DirectorySyncStatus["stats"];
   }> {
-    return gatherSyncFileStatus(this.syncPath, this.entityService);
+    return gatherSyncFileStatus(
+      this.syncPath,
+      this.entityService,
+      this.containment(),
+    );
   }
 
   async syncDirectoryExists(): Promise<boolean> {

@@ -125,6 +125,7 @@ Prioritize collaboration connected to Project Aurora.`,
     });
     const items = await harness.getEntityService().listEntities({
       entityType: "mail-item",
+      options: { filter: { visibilityScope: "restricted" } },
     });
 
     expect(response).toEqual({ success: true });

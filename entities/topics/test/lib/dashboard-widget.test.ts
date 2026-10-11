@@ -109,4 +109,40 @@ describe("registerTopicsDashboardWidget", () => {
       },
     });
   });
+
+  // An unscoped read sees public topics only, so the owner saw none of the
+  // topics derived from their non-public work.
+  it("reads topics at the caller's scope", async () => {
+    const requests: Array<{ entityType: string }> = [];
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async (request): Promise<BaseEntity[]> => {
+        requests.push(request);
+        return [];
+      },
+    });
+    context.messaging.subscribe(
+      DASHBOARD_CHANNELS.registerWidget,
+      async () => ({ success: true }),
+    );
+    registerTopicsDashboardWidget({ context });
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+    const registered = context.dashboard.registerWidget.mock.calls[0]?.[0];
+    if (!registered) throw new Error("Widget was not registered");
+
+    await registered.dataProvider({
+      caller: { actor: { id: "owner" }, permission: "admin", isAnchor: true },
+      signal: new AbortController().signal,
+    });
+
+    expect(requests).toEqual([
+      expect.objectContaining({
+        options: expect.objectContaining({
+          filter: { visibilityScope: "restricted" },
+        }),
+      }),
+    ]);
+  });
 });

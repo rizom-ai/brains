@@ -38,6 +38,8 @@ describe("BookPlugin", () => {
       projectionSourceRole: "canonical",
       defaultSort: [{ field: "id", direction: "asc" }],
       actionPolicy: readOnly,
+      // A section lives in its book: stored, shown and deleted with it.
+      containedIn: "book",
     });
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("book-section")

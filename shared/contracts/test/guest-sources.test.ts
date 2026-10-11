@@ -103,10 +103,10 @@ describe("a guest source's brain", () => {
       id: "sources:tool-results",
       sources: [
         {
-          id: "network-piece:becca/post/handoffs",
-          source: "network-piece",
-          entityType: "network-piece",
-          entityId: "becca/post/handoffs",
+          id: "post:handoffs",
+          source: "post",
+          entityType: "post",
+          entityId: "handoffs",
           title: "Handoffs",
           brain,
         },

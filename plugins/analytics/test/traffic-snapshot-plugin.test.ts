@@ -24,6 +24,19 @@ describe("TrafficSnapshotPlugin", () => {
       projectionSourceRole: "excluded",
     });
     expect(capabilities.tools).toEqual([]);
+
+    // A snapshot is the capture's record of what Cloudflare counted: it sits
+    // with the system's records, and no one creates, edits or deletes it.
+    expect(registry.getEntityTypeConfig("traffic-snapshot")).toMatchObject({
+      classification: "system",
+      actionPolicy: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
+    });
     if (!validator) throw new Error("Missing persist validator");
 
     const entity = {

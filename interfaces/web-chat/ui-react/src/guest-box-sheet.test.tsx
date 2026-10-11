@@ -580,19 +580,19 @@ describe("sources from other brains", () => {
               url: "https://brain.test/brain",
             },
             {
-              id: "network-piece:becca/post/handoffs",
-              source: "network-piece",
-              entityType: "network-piece",
-              entityId: "becca/post/handoffs",
+              id: "post:handoffs",
+              source: "post",
+              entityType: "post",
+              entityId: "handoffs",
               title: "Handoffs between teams",
               url: "https://becca.rizom.ai/essays/handoffs",
               brain: { name: "Becca", url: "https://becca.rizom.ai" },
             },
             {
-              id: "network-piece:jo/note/x",
-              source: "network-piece",
-              entityType: "network-piece",
-              entityId: "jo/note/x",
+              id: "note:x",
+              source: "note",
+              entityType: "note",
+              entityId: "x",
               title: "Who to ask",
               brain: { name: "Jo" },
             },
@@ -610,9 +610,7 @@ describe("sources from other brains", () => {
     expect(host.querySelector(".brain-box-answered-by")?.textContent).toBe(
       "Rizom, with Becca and Jo",
     );
-    const row = host.querySelector(
-      `[${ASK_SOURCE_ATTRIBUTE}="network-piece:becca/post/handoffs"]`,
-    );
+    const row = host.querySelector(`[${ASK_SOURCE_ATTRIBUTE}="post:handoffs"]`);
     expect(row?.getAttribute("data-ask-brain")).toBe("Becca");
     expect(row?.querySelector(".brain-box-source-brain")?.textContent).toBe(
       "Becca",

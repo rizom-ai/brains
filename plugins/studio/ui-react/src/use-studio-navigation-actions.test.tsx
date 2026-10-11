@@ -85,6 +85,7 @@ async function renderActions(
       studioBasePath: "/studio",
       routeSearch: "",
       entityType: "note",
+      collectionType: "note",
       entityCollectionQuery: studioCollectionQuerySchema.parse({}),
       groupReturnPath: undefined,
       workspaces: [],
@@ -188,6 +189,22 @@ describe("useStudioNavigationActions", () => {
 
     expect(harness.history.location.pathname).toBe("/studio/entities/note");
     expect(harness.history.length).toBe(1);
+  });
+
+  it("keeps a contained entry's collection on its container", async () => {
+    const harness = await renderActions(
+      { entityType: "memo", collectionType: "note" },
+      "/studio/entities/memo/n1%3As1",
+    );
+
+    await act(async () => harness.actions().backToList());
+    expect(harness.history.location.pathname).toBe("/studio/entities/note");
+
+    await act(async () => harness.actions().selectFolder(["n1"]));
+    expect(harness.history.location.pathname).toBe("/studio/entities/note");
+
+    await act(async () => harness.actions().changeEntityPage(50));
+    expect(harness.history.location.pathname).toBe("/studio/entities/note");
   });
 
   it("stores a workspace query without a url search for a workspace it does not know", async () => {

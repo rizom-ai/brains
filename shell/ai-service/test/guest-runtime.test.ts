@@ -489,10 +489,10 @@ describe("guest runtime boundary", () => {
       answer: "Rizom keeps memory in the brains of the people who hold it.",
       sources: [
         {
-          id: "network-piece:plc-peer--post--3kabc",
-          source: "network-piece",
-          entityType: "network-piece",
-          entityId: "plc-peer--post--3kabc",
+          id: "post:handoffs",
+          source: "post",
+          entityType: "post",
+          entityId: "handoffs",
           title: "Handoffs between teams",
           url: "https://becca.rizom.ai/essays/handoffs",
           brain: { name: "Becca", url: "https://becca.rizom.ai" },
@@ -533,16 +533,14 @@ describe("guest runtime boundary", () => {
       expect(response.askedBefore).toEqual({
         faqId: "how-does-rizom-keep-memory",
       });
-      expect(citedIds(response.cards)).toEqual([
-        "network-piece:plc-peer--post--3kabc",
-      ]);
+      expect(citedIds(response.cards)).toEqual(["post:handoffs"]);
       // The question and the answer are the conversation's, as any turn's.
       const roles = h.conversations.addMessage.mock.calls.map(
         ([message]) => message.role,
       );
       expect(roles).toEqual(["user", "assistant"]);
       const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
-      expect(stored).toContain("network-piece:plc-peer--post--3kabc");
+      expect(stored).toContain("post:handoffs");
       expect(stored).toContain("Becca");
       // History knows a FAQ answered, as the live box does.
       const [, reply] = h.conversations.addMessage.mock.calls;

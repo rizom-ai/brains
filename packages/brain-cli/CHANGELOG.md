@@ -1,5 +1,37 @@
 # @rizom/brain
 
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- [#595](https://github.com/rizom-ai/brains/pull/595) [`1fe3a30`](https://github.com/rizom-ai/brains/commit/1fe3a30f973b34496c7fcffe93173293f9f93d94) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Inside a book in Studio, parts and divisions are titled by the headings the edition prints ("Dritter Theil", "Von der verkleinernden Tugend") in the folder list and the folder trail, rather than by their slugs. An entity adapter can name the folders a nested id stands in; a book section names them by its headings.
+
+- [#594](https://github.com/rizom-ai/brains/pull/594) [`6404cb1`](https://github.com/rizom-ai/brains/commit/6404cb11133763e8c3dc2e3787ebe6103ca3994b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic snapshots are system records: Studio lists them under System, not Library, and no one creates, edits or deletes them by hand. The daily capture still writes them.
+
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- [#593](https://github.com/rizom-ai/brains/pull/593) [`2490d2a`](https://github.com/rizom-ai/brains/commit/2490d2aa5ce6267e30d209608b43694ae37b97b7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain no longer copies what other brains publish. The `network-piece` entity type, its daily sync and its citations are gone; the live `network_ask` lane answers from other brains instead. On start, a brain deletes the pieces it kept before, with their search index, embeddings and files. FAQs no longer wait for review when a cited piece is withdrawn. The entity service can purge a type no plugin registers any more (`purgeEntityType`).
+
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- [#592](https://github.com/rizom-ai/brains/pull/592) [`5c51b8f`](https://github.com/rizom-ai/brains/commit/5c51b8f690f63f79940d96f29f1b55ad36eb363a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Web chat initialises again. It reads the brain's app info while registering, to name the configured model to guests, and app info used to throw until every plugin had registered its job handlers. App info is now available throughout boot; its background-work summary checks undeclared job types once the handler declarations are final.
+
+- [#591](https://github.com/rizom-ai/brains/pull/591) [`d652301`](https://github.com/rizom-ai/brains/commit/d652301da8bf5e7ca9eb2ea6a054d3110f0bd30f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity type can be contained in another: a book's sections live in the book's own folder (`book/<slug>.md` beside `book/<slug>/`), are deleted with their book, and appear inside Books in Studio rather than as a separate collection. Each book is a folder titled by the book; opening one shows the book's record first, then its sections. Contained ids start with their container's id, and a container's ids stay flat.
+
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- [#589](https://github.com/rizom-ai/brains/pull/589) [`a2566b1`](https://github.com/rizom-ai/brains/commit/a2566b1df0f59902665386789932ce80fbabe371) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Built-in dashboard widgets read entities at the viewer's visibility, which `registerBuiltInDashboardWidget` now passes to `load` as `visibilityScope`. They read public entities only before, so the owner's dashboard showed none of their restricted conversation memory (summaries, decisions, action items, coverage) or non-public topics, wishes, skills and pipeline drafts.
+
+- [#589](https://github.com/rizom-ai/brains/pull/589) [`780b089`](https://github.com/rizom-ai/brains/commit/780b0898aec4b1a3de9f04f1b3101b4acdbe7180) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reads of non-public entities that relied on an unscoped lookup now pass a scope: a restricted artifact is withheld from callers who cannot see it instead of passing as missing; publishing a non-public post names why it is refused; reordering or restarting the publication queue keeps non-public queued posts; a redelivered email is not classified twice; note capture and markdown imports find their own private notes.
+
+## 0.2.0-alpha.517
+
 ## 0.2.0-alpha.516
 
 ### Minor Changes
