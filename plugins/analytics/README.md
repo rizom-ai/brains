@@ -1,12 +1,11 @@
 # Analytics Plugin
 
-Query website analytics directly from Cloudflare Web Analytics.
+Keeps the brain's site traffic from Cloudflare Web Analytics and answers traffic questions through `system_analytics`.
 
 ## Features
 
-- **Real-time Queries**: Fetch metrics directly from Cloudflare (no local storage)
-- **Flexible Date Ranges**: Single day, last N days, or custom date ranges
-- **Comprehensive Data**: Pageviews, visitors, top pages, referrers, devices, countries
+- **Daily snapshots**: a daily check stores each day's traffic in weekly `traffic-snapshot` entities (restricted, read-only system records) while Cloudflare's counts are still exact, and backfills every earlier day Cloudflare still returns
+- **Traffic reports**: `traffic-overview` and `traffic-series` in `system_analytics`, read from the snapshots
 - **Privacy-Focused**: Uses Cloudflare Web Analytics (no cookies, GDPR compliant)
 
 ## Configuration
@@ -34,57 +33,29 @@ CLOUDFLARE_ANALYTICS_SITE_TAG=your_site_tag
 CLOUDFLARE_ANALYTICS_BEACON_TOKEN=your_site_token  # Optional, see below
 ```
 
-## MCP Tools
+## Reports
 
-### `analytics_query`
+Both reports answer admin callers only: traffic is operational data. They read the stored snapshots; a range that reaches today adds today's numbers so far from Cloudflare when it is configured.
 
-Query website analytics from Cloudflare.
+**Range params** (both reports): `days` (last N days ending yesterday, default 7), or `startDate` and `endDate` together (`YYYY-MM-DD`).
 
-**Date range options** (use only one):
+### `traffic-overview`
 
-- No params: yesterday only
-- `date`: single specific day (YYYY-MM-DD)
-- `days`: last N days from yesterday (e.g., 7 for last week, 30 for last month)
-- `startDate` + `endDate`: custom date range
-
-**Parameters:**
-
-- `date` (optional): Single date in YYYY-MM-DD format
-- `days` (optional): Number of days back from yesterday (1-365)
-- `startDate` (optional): Start date for custom range
-- `endDate` (optional): End date for custom range
-- `limit` (optional): Max items for breakdowns (default: 20, max: 100)
-
-**Returns:**
+Pageviews and visits for the range against the period before it, top pages, referrers and countries. The owner's own pages (`/studio`, `/login`, `/api`, `/dashboard`, …) are left out of the top pages and counted in `ownerPageviews`. `missingDays` names days without a snapshot; `estimated` says some days were sampled by Cloudflare. Extra param: `limit` (entries per top list, default 10).
 
 ```typescript
-{
-  range: { startDate: string, endDate: string },
-  summary: { pageviews: number, visitors: number },
-  topPages: Array<{ path: string, views: number }>,
-  topReferrers: Array<{ host: string, visits: number }>,
-  devices: { desktop: number, mobile: number, tablet: number },
-  topCountries: Array<{ country: string, visits: number }>,
-}
+system_analytics({ type: "traffic-overview", params: { days: 30 } });
 ```
 
-**Examples:**
+### `traffic-series`
+
+Pageviews and visits per day (missing days without numbers) or per ISO week. Extra param: `interval` (`day` or `week`, default `day`).
 
 ```typescript
-// Yesterday's stats
-analytics_query({});
-
-// Specific day
-analytics_query({ date: "2025-01-15" });
-
-// Last 7 days
-analytics_query({ days: 7 });
-
-// Last 30 days with more results
-analytics_query({ days: 30, limit: 50 });
-
-// Custom date range
-analytics_query({ startDate: "2025-01-01", endDate: "2025-01-31" });
+system_analytics({
+  type: "traffic-series",
+  params: { startDate: "2026-09-01", endDate: "2026-09-30", interval: "week" },
+});
 ```
 
 ## Infrastructure Setup
