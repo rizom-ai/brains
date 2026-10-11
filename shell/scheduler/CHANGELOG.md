@@ -1,5 +1,14 @@
 # @brains/scheduler
 
+## 0.2.0-alpha.501
+
+### Patch Changes
+
+- [`8932425`](https://github.com/rizom-ai/brains/commit/8932425101438c3eef1f60ac0f584b2974e9a465) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A native cron-stop failure no longer bypasses admitted callback draining or scheduler scope finalizers. Scheduled jobs prevent further callback admission and finish cleanup before reporting failures, preserving a single failure's identity and aggregating multiple failures in cleanup order.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.501
+
 ## 0.2.0-alpha.500
 
 ### Patch Changes
