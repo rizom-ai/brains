@@ -596,7 +596,7 @@ books:
       - { page: 171, opens: "II. 66" }
       - { page: 171, opens: "III. 88" }
       - { page: 171, opens: "IV. 90" }
-      - { page: 171, opens: "Zusammen 400" }
+      - { page: 171, opens: "Zusammen 400 |" }
       - { page: 171, opens: "Die Durchschnittsprofitrate" }
       - { page: 183, opens: "Wir wollen nun" }
       - { page: 183, opens: "Klasse |" }
@@ -675,6 +675,33 @@ books:
       - { page: 194, opens: "C. Dritte" }
       - { page: 194, opens: "D. Vierte" }
       - { page: 194, opens: "E. Fünfte" }
+      - { page: 40, opens: "A." }
+      - { page: 40, opens: "Klasse " }
+      - { page: 40, opens: "I " }
+      - { page: 40, opens: "II " }
+      - { page: 40, opens: "III " }
+      - { page: 40, opens: "IV " }
+      - { page: 40, opens: "Total " }
+      - { page: 40, opens: "B." }
+      - { page: 40, opens: "C." }
+      - { page: 40, opens: "D." }
+      - { page: 40, opens: "E." }
+      - { page: 102, opens: "A." }
+      - { page: 102, opens: "B." }
+      - { page: 102, opens: "C." }
+      - { page: 102, opens: "D." }
+      - { page: 102, opens: "Klasse " }
+      - { page: 102, opens: "I " }
+      - { page: 102, opens: "II " }
+      - { page: 102, opens: "III " }
+      - { page: 102, opens: "Total " }
+      - { page: 102, opens: "Man sieht aus" }
+      - { page: 102, opens: "Ursprünglich bestand" }
+      - { page: 102, opens: "In B verwohlfeilert" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 171, opens: "¹) Mit Überschlagung" }
+      - { page: 188, opens: "¹) Im Manuskript" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2

@@ -58,6 +58,12 @@ export interface ArchiveOcrWork {
    */
   paragraphs?: PageLine[];
   /**
+   * Pages whose notes the OCR set as the text, too close below it to tell:
+   * on each, the lines that open a note, by their opening words; no other
+   * line there opens one.
+   */
+  notes?: PageLine[];
+  /**
    * An editor's signatures (K.): the notes ending in one are the editor's,
    * and so are paragraphs ending in one, notes the page set as text.
    */
@@ -707,6 +713,8 @@ interface Volume {
   headingOpenings?: Array<{ opens: string; numeral?: string }>;
   /** The lines that open the page's paragraphs, by their opening words, where the manifest names them. */
   paragraphOpenings?: string[];
+  /** The lines that open the page's notes, by their opening words, where the manifest names them. */
+  noteOpenings?: string[];
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -1296,41 +1304,44 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     (volume.paragraphOpenings ?? []).some((opens) =>
       line.text.startsWith(opens),
     );
+  const noteNamed = (line: Line): boolean =>
+    (volume.noteOpenings ?? []).some((opens) => line.text.startsWith(opens));
   const footAt = headless.findIndex(
     (line, index) =>
-      !named(line) &&
-      line.y > page.height * (isRule(line, footSize) ? RULE_ZONE : 0.5) &&
-      (isRule(line, footSize)
-        ? notesBelowRule(line, index)
-        : // A numbered line set small opens the notes; one only a little
-          // smaller than the text does below the space of a rule, more
-          // than lines leave, where a list's item is spaced as the text,
-          // and the notes run to the page's foot, smaller than the text. A
-          // title numbered so is centred, a note nearly the text's size not.
-          (NOTE_START.test(line.text) &&
-            (line.size < footSize * NOTE_SIZE ||
-              (index > 0 &&
-                line.y - (headless[index - 1]?.bottom ?? line.y) >
-                  bodyHeight * SECTION_SPACE &&
-                headless
-                  .slice(index + 1)
-                  .filter((below) => /\p{L}/u.test(below.text))
-                  .every((below) => below.size < footSize * SAME_SIZE) &&
-                (line.size < footSize * FOOT_TEXT_SIZE ||
-                  (line.size < footSize * SAME_SIZE &&
-                    !isCentredShort(line)))))) ||
-          // No line of text opens with an asterisk's mark; a note may be
-          // set, or measured, as large as the text.
-          STAR_NOTE_START.test(line.text) ||
-          // Below a line's height of space, a line that opens with a note's
-          // mark is a note, though set nearly as large as the text; a title
-          // numbered so is centred, and set as large as the text. A note set
-          // in from the margin and short of the line may sit as centred.
-          (MARKED_NOTE_START.test(line.text) &&
-            (!isCentredShort(line) || line.size < footSize * SAME_SIZE) &&
-            index > 0 &&
-            line.y - (headless[index - 1]?.bottom ?? line.y) > bodyHeight) ||
-          spacedFoot(line, headless[index - 1], headless[index + 1])),
+      noteNamed(line) ||
+      (!named(line) &&
+        line.y > page.height * (isRule(line, footSize) ? RULE_ZONE : 0.5) &&
+        (isRule(line, footSize)
+          ? notesBelowRule(line, index)
+          : // A numbered line set small opens the notes; one only a little
+            // smaller than the text does below the space of a rule, more
+            // than lines leave, where a list's item is spaced as the text,
+            // and the notes run to the page's foot, smaller than the text. A
+            // title numbered so is centred, a note nearly the text's size not.
+            (NOTE_START.test(line.text) &&
+              (line.size < footSize * NOTE_SIZE ||
+                (index > 0 &&
+                  line.y - (headless[index - 1]?.bottom ?? line.y) >
+                    bodyHeight * SECTION_SPACE &&
+                  headless
+                    .slice(index + 1)
+                    .filter((below) => /\p{L}/u.test(below.text))
+                    .every((below) => below.size < footSize * SAME_SIZE) &&
+                  (line.size < footSize * FOOT_TEXT_SIZE ||
+                    (line.size < footSize * SAME_SIZE &&
+                      !isCentredShort(line)))))) ||
+            // No line of text opens with an asterisk's mark; a note may be
+            // set, or measured, as large as the text.
+            STAR_NOTE_START.test(line.text) ||
+            // Below a line's height of space, a line that opens with a note's
+            // mark is a note, though set nearly as large as the text; a title
+            // numbered so is centred, and set as large as the text. A note set
+            // in from the margin and short of the line may sit as centred.
+            (MARKED_NOTE_START.test(line.text) &&
+              (!isCentredShort(line) || line.size < footSize * SAME_SIZE) &&
+              index > 0 &&
+              line.y - (headless[index - 1]?.bottom ?? line.y) > bodyHeight) ||
+            spacedFoot(line, headless[index - 1], headless[index + 1]))),
   );
   const noteFrom = footAt < 0 ? headless.length : footAt;
   const textLines = headless.slice(0, noteFrom);
@@ -1473,12 +1484,14 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           text: line.text,
           // A note opens with its mark, its digit read amiss or lost; in
           // notes set as the text is, it is set in where the OCR lost its
-          // mark.
+          // mark; where the manifest names a page's notes, there alone.
           opens:
-            NOTE_START.test(line.text) ||
-            MARKED_NOTE_START.test(line.text) ||
-            (volume.spacedNotes === true &&
-              line.x - margin > page.width * INDENT),
+            volume.noteOpenings !== undefined
+              ? noteNamed(line)
+              : NOTE_START.test(line.text) ||
+                MARKED_NOTE_START.test(line.text) ||
+                (volume.spacedNotes === true &&
+                  line.x - margin > page.width * INDENT),
         },
       ];
     }
@@ -2491,6 +2504,19 @@ function paragraphOpeningsOn(
     : { paragraphOpenings: named.map((line) => line.opens) };
 }
 
+/** The lines the manifest names as opening a printed page's notes, if it names any there. */
+function noteOpeningsOn(
+  work: ArchiveOcrWork,
+  page: number,
+): { noteOpenings?: string[] } {
+  const named = (work.notes ?? []).filter(
+    (line) => String(line.page) === String(page),
+  );
+  return named.length === 0
+    ? {}
+    : { noteOpenings: named.map((line) => line.opens) };
+}
+
 /** A work's first page from the line it opens with, if the manifest names one. */
 function opened(page: Page, work: ArchiveOcrWork): Page {
   const opening = work.opensWith;
@@ -2559,6 +2585,7 @@ export function parseArchiveOcrWork(
                 numeral === undefined ? { opens } : { opens, numeral },
               ),
             ...paragraphOpeningsOn(work, number),
+            ...noteOpeningsOn(work, number),
           },
           work.corrections ?? [],
           labelOf(number, page.leaf),

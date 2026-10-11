@@ -123,6 +123,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipNotes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       headings: z.ZodDefault<z.ZodArray<typeof headingLineSchema>>;
       paragraphs: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
+      notes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       curved: z.ZodDefault<z.ZodBoolean>;
@@ -167,6 +168,8 @@ const archiveOcrBookSchema: z.ZodObject<
   headings: z.array(headingLineSchema).default([]),
   /** Pages the OCR read too askew to tell paragraphs by their indent: on each, the lines that open one, by their opening words; no other line there opens one. */
   paragraphs: z.array(pageLineSchema).default([]),
+  /** Pages whose notes the OCR set as the text, too close below it to tell: on each, the lines that open a note, by their opening words; no other line there opens one. */
+  notes: z.array(pageLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */

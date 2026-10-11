@@ -851,6 +851,18 @@ books:
     ).toEqual([{ page: 19, opens: "Vor dieser Jury" }]);
   });
 
+  it("names the lines that open notes the OCR set as the text", () => {
+    const manifest = parseManifest(
+      ocrManifest + "    notes:\n      - { page: 188, opens: Im Manuskript }\n",
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].notes
+        : null,
+    ).toEqual([{ page: 188, opens: "Im Manuskript" }]);
+  });
+
   it("names a scan whose lines curve, so their starts tell no indent", () => {
     const manifest = parseManifest(ocrManifest + "    curved: true\n");
 

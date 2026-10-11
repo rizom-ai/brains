@@ -3232,11 +3232,11 @@ p2theorienberd02marx:
     by: scan
   - page: 35
     from: Im Manuskript steht 17/½8 £. Dies ist der Produktionspreis von
-    to: ¹ Im Manuskript steht 1⁷⁄₁₅ £. Dies ist der Produktionspreis von III B, nicht II B. K.
+    to: ¹) Im Manuskript steht 1⁷⁄₁₅ £. Dies ist der Produktionspreis von III B, nicht II B. K.
     by: scan
   - page: 35
     from: 2Im Manufkript wird der Produktionspreis von J4 reduziert nicht
-    to: ² Im Manuskript wird der Produktionspreis von I A reduziert nicht
+    to: ²) Im Manuskript wird der Produktionspreis von I A reduziert nicht
     by: scan
   - page: 35
     from: "auf 1½¼, sondern auf 1/12 = 1⅛ E und hinzugefügt: „Er stände"
@@ -3245,6 +3245,234 @@ p2theorienberd02marx:
   - page: 35
     from: Das gälte, wenn dieser 1/s wäre und nicht 19/18 E. K.
     to: Das gälte, wenn dieser 1⁷⁄₁₅ wäre und nicht 1⁹⁄₁₃ £. K.
+    by: scan
+  - page: 40
+    from: 40 Die Grundrente
+    to: ""
+    by: scan
+  - page: 40
+    from: liunenzn... n
+    to: |-
+      A.
+      Klasse | Kapital £ | Tonnenzahl | Gesamt[markt]wert £ | Marktwert pro Tonne £ | Individueller Wert pro Tonne £ | Differentialwert pro Tonne £ | Produktionspreis pro Tonne £ | Absolute Rente £ | Differentialrente £ | Absolute Rente Tonnen | Differentialrente Tonnen | Rental £ | Rental Tonnen
+    by: scan
+  - page: 40
+    from: ö Individueller Differential-
+    to: ""
+    by: scan
+  - page: 40
+    from: Klasse Kapital Tonnenzahl Cesn- Wan kildert Wert wert
+    to: ""
+    by: scan
+  - page: 40
+    from: I[marktjwert pro Tonne pro Tonne pro Tonne
+    to: ""
+    by: scan
+  - page: 40
+    from: "& —"
+    to: ""
+    by: scan
+  - page: 40
+    from: 2 2 9
+    to: I | 100 | 60 | 120 | 2 | 2 | 0 | 1⅚ | 10 | 0 | 5 | 0 | 10 | 5
+    by: scan
+  - page: 40
+    from: 2 1117½13 271³
+    to: II | 100 | 65 | 130 | 2 | 1¹¹⁄₁₃ | ²⁄₁₃ | 1⁹⁄₁₃ | 10 | 10 | 5 | 5 | 20 | 10
+    by: scan
+  - page: 40
+    from: 2 176
+    to: III | 100 | 75 | 150 | 2 | 1⅗ | ⅖ | 1⁷⁄₁₅ | 10 | 30 | 5 | 15 | 40 | 20
+    by: scan
+  - page: 40
+    from: Total 300 20⁰ 400
+    to: Total | 300 | 200 | 400 | | | | | 30 | 40 | 15 | 20 | 70 | 35
+    by: scan
+  - page: 40
+    from: R 0 32½ 6⁰ 11½13 1713 0
+    to: II | 50 | 32½ | 60 | 1¹¹⁄₁₃ | 1¹¹⁄₁₃ | 0 | 1⁹⁄₁₃ | 5 | 0 | 2¹⁷⁄₂₄ | 0 | 5 | 2¹⁷⁄₂₄
+    by: scan
+  - page: 40
+    from: Ni 0 75 138/1³ 17½18 175 16/6⁵
+    to: III | 100 | 75 | 138⁶⁄₁₃ | 1¹¹⁄₁₃ | 1⅗ | ¹⁶⁄₆₅ | 1⁷⁄₁₅ | 10 | 18⁶⁄₁₃ | 5⁵⁄₁₂ | 10 | 28⁶⁄₁₃ | 15⁵⁄₁₂
+    by: scan
+  - page: 40
+    from: IV 100 92772 170/½13 1117½13 117773⁷ 2647481
+    to: IV | 100 | 92½ | 170¹⁰⁄₁₃ | 1¹¹⁄₁₃ | 1¹¹⁄₃₇ | ²⁶⁴⁄₄₈₁ | 1⁷⁄₃₇ | 10 | 50¹⁰⁄₁₃ | 5⁵⁄₁₂ | 27½ | 60¹⁰⁄₁₃ | 32¹¹⁄₁₂
+    by: scan
+  - page: 40
+    from: Total 25⁰ 1 20⁰ 3695/18
+    to: Total | 250 | 200 | 369³⁄₁₃ | | | | | 25 | 69³⁄₁₃ | 13¹³⁄₂₄ | 37½ | 94³⁄₁₃ | 51¹⁄₂₄
+    by: scan
+  - page: 40
+    from: 100 60 11043 1 713 2 — /4³
+    to: I | 100 | 60 | 110¹⁰⁄₁₃ | 1¹¹⁄₁₃ | 2 | — ²⁄₁₃ | 1⅚ | ¹⁰⁄₁₃ | 0 | ⁵⁄₁₂ | 0 | ¹⁰⁄₁₃ | ⁵⁄₁₂
+    by: scan
+  - page: 40
+    from: II 100 6⁵ 120 11²718 1/13 0
+    to: II | 100 | 65 | 120 | 1¹¹⁄₁₃ | 1¹¹⁄₁₃ | 0 | 1⁹⁄₁₃ | 10 | 0 | 5⁵⁄₁₂ | 0 | 10 | 5⁵⁄₁₂
+    by: scan
+  - page: 40
+    from: III 100 75 138713 111718 1675 —75⁵
+    to: III | 100 | 75 | 138⁶⁄₁₃ | 1¹¹⁄₁₃ | 1⅗ | ¹⁶⁄₆₅ | 1⁷⁄₁₅ | 10 | 18⁶⁄₁₃ | 5⁵⁄₁₂ | 10 | 28⁶⁄₁₃ | 15⁵⁄₁₂
+    by: scan
+  - page: 40
+    from: IV. 100 9½/ 170½½ 13
+    to: IV | 100 | 92½ | 170¹⁰⁄₁₃ | 1¹¹⁄₁₃ | 1¹¹⁄₃₇ | ²⁶⁴⁄₄₈₁ | 1⁷⁄₃₇ | 10 | 50¹⁰⁄₁₃ | 5⁵⁄₁₂ | 27½ | 60¹⁰⁄₁₃ | 32¹¹⁄₁₂
+    by: scan
+  - page: 40
+    from: Total ü 400 292½ 5⁴⁰
+    to: Total | 400 | 292½ | 540 | | | | | 30¹⁰⁄₁₃ | 69³⁄₁₃ | 16⅔ | 37½ | 100 | 54⅙
+    by: scan
+  - page: 40
+    from: 100 6⁰ 11⁰ 17½6 2 — 7—
+    to: I | 100 | 60 | 110 | 1⅚ | 2 | — ⅙ | 1⅚ | 0 | 0 | 0 | 0 | 0 | 0
+    by: scan
+  - page: 40
+    from: II 100 6⁵ 119⁸ 1½% 13 — ½8
+    to: II | 100 | 65 | 119⅙ | 1⅚ | 1¹¹⁄₁₃ | — ¹⁄₇₈ | 1⁹⁄₁₃ | 9⅙ | 0 | 5 | 0 | 9⅙ | 5
+    by: scan
+  - page: 40
+    from: AI 100 75 137 ½2 1½/6 167½5 7/¼3⁰
+    to: III | 100 | 75 | 137½ | 1⅚ | 1⅗ | ⁷⁄₃₀ | 1⁷⁄₁₅ | 10 | 17½ | 5⁵⁄₁₁ | 9⁶⁄₁₁ | 27½ | 15
+    by: scan
+  - page: 40
+    from: 100 2½ 169½%j 1½ 1½½ /r
+    to: IV | 100 | 92½ | 169⁷⁄₁₂ | 1⅚ | 1¹¹⁄₃₇ | ¹¹⁹⁄₂₂₂ | 1⁷⁄₃₇ | 10 | 49⁷⁄₁₂ | 5⁵⁄₁₁ | 27¹⁄₂₂ | 59⁷⁄₁₂ | 32½
+    by: scan
+  - page: 40
+    from: Total — 292½ 536/
+    to: Total | 400 | 292½ | 536¼ | | | | | 29⅙ | 67¹⁄₁₂ | 15¹⁰⁄₁₁ | 36¹³⁄₂₂ | 96¼ | 52½
+    by: scan
+  - page: 40
+    from: 100 65⁵ 1137½ 1½ 17½— 7/52
+    to: |-
+      E.
+      II | 100 | 65 | 113¾ | 1¾ | 1¹¹⁄₁₃ | — ⁵⁄₅₂ | 1⁹⁄₁₃ | 3¾ | 0 | 2⅐ | 0 | 3¾ | 2⅐
+    by: scan
+  - page: 40
+    from: 10⁰ 75 131½ 17½4 1½/½ ½0
+    to: III | 100 | 75 | 131¼ | 1¾ | 1⅗ | ³⁄₂₀ | 1⁷⁄₁₅ | 10 | 11¼ | 5⁵⁄₇ | 6³⁄₇ | 21¼ | 12⅐
+    by: scan
+  - page: 40
+    from: 100 92 7½2 161⁷½/8 1674 17—⁷ 67/½148
+    to: IV | 100 | 92½ | 161⅞ | 1¾ | 1¹¹⁄₃₇ | ⁶⁷⁄₁₄₈ | 1⁷⁄₃₇ | 10 | 41⅞ | 5⁵⁄₇ | 23¹³⁄₁₄ | 51⅞ | 29⁹⁄₁₄
+    by: scan
+  - page: 40
+    from: 908 300 232½ 406½
+    to: Total | 300 | 232½ | 406⅞ | | | | | 23¾ | 53⅛ | 13⁴⁄₇ | 30⁵⁄₁₄ | 76⅞ | 43¹³⁄₁₄
+    by: scan
+  - page: 40
+    from: A.
+    to: ""
+    by: scan
+  - page: 41
+    from: Die Ricardosche Rententheorie 41
+    to: ""
+    by: scan
+  - page: 41
+    from: Absolute Differential- Absolute Diserenlal Hene de
+    to: ""
+    by: scan
+  - page: 41
+    from: pro Tonne Rente rente Rente rente
+    to: ""
+    by: scan
+  - page: 41
+    from: "& Tonnen Tonnen E Tonnen"
+    to: ""
+    by: scan
+  - page: 41
+    from: 1½6 10 0 5 0 10 5
+    to: ""
+    by: scan
+  - page: 41
+    from: 1713 10 10 5 5 20 10
+    to: ""
+    by: scan
+  - page: 41
+    from: 17½15 10 30 85 40 20
+    to: ""
+    by: scan
+  - page: 41
+    from: 30 40 15 20 7⁰ 35
+    to: ""
+    by: scan
+  - page: 41
+    from: 19713 5 0 27/24 0 5 2177½24
+    to: ""
+    by: scan
+  - page: 41
+    from: 1½8j 10 18%½s 55/12 1⁰ 28%3 155/12
+    to: ""
+    by: scan
+  - page: 41
+    from: 17½4 10 500½13 5/12 27 ½ 60/1 321½/12
+    to: ""
+    by: scan
+  - page: 41
+    from: 25 69½/18 13 *724 7 72 94½/13 51½4
+    to: ""
+    by: scan
+  - page: 41
+    from: 15½/ 1713 0 712 + 10713 7½e
+    to: ""
+    by: scan
+  - page: 41
+    from: 19713 10 0 5/2 0 — 5/12
+    to: ""
+    by: scan
+  - page: 41
+    from: 1½4½9 10 18%½ 5/2 10 28%½% 15%/8
+    to: ""
+    by: scan
+  - page: 41
+    from: 17½3² 10 50./%½ 5//½12 27½2 600/13 321½12
+    to: ""
+    by: scan
+  - page: 41
+    from: 306%669/ 16/½ 37½ 100 54½
+    to: ""
+    by: scan
+  - page: 41
+    from: 1½ 0 99 0 0
+    to: ""
+    by: scan
+  - page: 41
+    from: 1%/18 9½ 0 5 0 9½½ 5
+    to: ""
+    by: scan
+  - page: 41
+    from: 17/15 10 17½ 55/11 9½½ 27½ 15
+    to: ""
+    by: scan
+  - page: 41
+    from: 17½⁷ 10 49²⁵õ⁊¹² 5/11 27½ 597/12 32 ½
+    to: ""
+    by: scan
+  - page: 41
+    from: 29½ 67½ 150½1 36%% 96 5²½
+    to: ""
+    by: scan
+  - page: 41
+    from: 1713 97j 0 2½ 0 37½4 2½7
+    to: ""
+    by: scan
+  - page: 41
+    from: 17/15⁵ 10 11 74 5½/7 6½½ 21½4 12 7½7
+    to: ""
+    by: scan
+  - page: 41
+    from: 17½/½7 10 4178 5½ 23½4 5178 2914
+    to: ""
+    by: scan
+  - page: 41
+    from: N, 3575)]35 „pHHH„H»HH)„ßHywᷣpỹH)sͤw,,thñhũHhüqͤdõc.,“ͤI]w;fʃr:s̊̃FVWwitzdeOìt ́ꝙ℔z MRH JK q. W 0—; rIn)z na. maaacdmdddeiad :smggiʃii‚ ⸗ͤdIVN dd aàͤaaqdii,dLddmai idͤlddLse:e;eds;dmödliomͤddy y:GAaARLARÄ—pṽF˖A oWi dbd
+    to: ""
+    by: scan
+  - page: 41
+    from: 3½ 53½ 13½ 30%½14 76½/ 4350½
+    to: ""
     by: scan
   - page: 47
     from: 1/8 4 ist, = / L. Und da in der Klasse, wo der in-
@@ -3651,7 +3879,7 @@ p2theorienberd02marx:
     to: von II und I. Also könnte III usw. keine Konkurrenz machen,
     by: scan
   - page: 69
-    from: — dieses tut zur Theorie gar nichts — nehmen wir an,
+    from: beste oder schlechteste Bodenart IV oder Joder III oder II
     to: beste oder schlechteste Bodenart IV oder I oder III oder II
     by: scan
   - page: 73
@@ -3801,6 +4029,284 @@ p2theorienberd02marx:
   - page: 101
     from: "[Der Wert der 60 Quarter betrüge dann 110 K&.)"
     to: "[Der Wert der 60 Quarter betrüge dann 110 £.]"
+    by: scan
+  - page: 102
+    from: der Wert von cab, nicht der von v. Stellen wir diese drei
+    to: der Wert von c ab, nicht der von v. Stellen wir diese drei
+    by: scan
+  - page: 102
+    from: M. w. 1. W.
+    to: ""
+    by: scan
+  - page: 102
+    from: Klasse Kapital Lorn G. W. pro pro pro pro
+    to: Klasse | Kapital £ | Quarter Korn | G. W. £ | M. W. pro Quarter £ | I. W. pro Quarter £ | D. W. pro Quarter £ | P. P. pro Quarter £ | A. R. £ | D. R. £ | A. R. Quarter | D. R. Quarter | Rental £ | Rental Quarter | Zusammensetzung des Kapitals
+    by: scan
+  - page: 102
+    from: Quarter
+    to: ""
+    by: scan
+  - page: 102
+    from: Quarter
+    to: ""
+    by: scan
+  - page: 102
+    from: .
+    to: ""
+    by: scan
+  - page: 102
+    from: / .
+    to: ""
+    by: scan
+  - page: 102
+    from: I 100 6⁰ 12⁰
+    to: I | 100 | 60 | 120 | 2 | 2 | 0 | 1⅚ | 10 | 0 | 5 | 0 | 10 | 5 | 80 c + 20 v für industr. Kap., 60 c + 40 v für agrar. Kapital, 10 % abs. Rente.
+    by: scan
+  - page: 102
+    from: 65⁵ 130⁰
+    to: ""
+    by: scan
+  - page: 102
+    from: II 100 147/13
+    to: II | 100 | 65 | 130 | 2 | 1¹¹⁄₁₃ | ²⁄₁₃ | 1⁹⁄₁₃ | 10 | 10 | 5 | 5 | 20 | 10 |
+    by: scan
+  - page: 102
+    from: III 100 155⁵
+    to: III | 100 | 75 | 150 | 2 | 1⅗ | ⅖ | 1⁷⁄₁₅ | 10 | 30 | 5 | 15 | 40 | 20 |
+    by: scan
+  - page: 102
+    from: 75 15⁰
+    to: ""
+    by: scan
+  - page: 102
+    from: 200 400
+    to: Total | 300 | 200 | 400 | | | | | 30 | 40 | 15 | 20 | 70 | 35 |
+    by: scan
+  - page: 102
+    from: "300"
+    to: ""
+    by: scan
+  - page: 102
+    from: 60⁰ 108
+    to: ""
+    by: scan
+  - page: 102
+    from: I 90 17/
+    to: I | 90 | 60 | 108 | 1⅘ | 1⅘ | 0 | 1¹³⁄₂₀ | 9 | 0 | 5 | 0 | 9 | 5 | 54 c + 36 v für 90 agrar. Kap., 60 c + 40 v für 100 agr. Kap., 10 % abs. Rente.
+    by: scan
+  - page: 102
+    from: 65⁵ 117
+    to: ""
+    by: scan
+  - page: 102
+    from: II 90 14½6⁵
+    to: II | 90 | 65 | 117 | 1⅘ | 1⁴³⁄₆₅ | ⁹⁄₆₅ | 1³⁴⁄₆₅ | 9 | 9 | 5 | 5 | 18 | 10 |
+    by: scan
+  - page: 102
+    from: 17½5
+    to: ""
+    by: scan
+  - page: 102
+    from: 1/½5
+    to: ""
+    by: scan
+  - page: 102
+    from: III 90 177⁵
+    to: III | 90 | 75 | 135 | 1⅘ | 1³³⁄₇₅ | ²⁷⁄₇₅ | 1²⁴⁄₇₅ | 9 | 27 | 5 | 15 | 36 | 20 |
+    by: scan
+  - page: 102
+    from: 75 13⁵
+    to: ""
+    by: scan
+  - page: 102
+    from: 270 200 360
+    to: Total | 270 | 200 | 360 | | | | | 27 | 36 | 15 | 20 | 63 | 35 |
+    by: scan
+  - page: 102
+    from: 17½100 17½1⁰0
+    to: ""
+    by: scan
+  - page: 102
+    from: 86² 60 102½5
+    to: I | 86⅖ | 60 | 102⅗ | 1⁷¹⁄₁₀₀ | 1⁷¹⁄₁₀₀ | 0 | 1⁷³⁄₁₂₅ | 7¹⁴⁄₂₅ | 0 | 4⁸⁄₁₉ | 0 | 7¹⁴⁄₂₅ | 4⁸⁄₁₉ | 54 c + 32⅖ v für 86⅖ agrar. Kap. = 62½ c + 37½ v für 100. Auf 100 = 118¾, also 8¾ % abs. Rente.
+    by: scan
+  - page: 102
+    from: II 86²½ 65 111½⁰ 17½10⁰ 118½32⁵
+    to: II | 86⅖ | 65 | 111³⁄₂₀ | 1⁷¹⁄₁₀₀ | 1¹⁸⁸⁄₃₂₅ | ¹⁷¹⁄₁₃₀₀ | 1⁷⁵¹⁄₁₆₂₅ | 7¹⁴⁄₂₅ | 8¹¹⁄₂₀ | 4⁸⁄₁₉ | 5 | 16¹¹⁄₁₀₀ | 9⁸⁄₁₉ |
+    by: scan
+  - page: 102
+    from: I 86½/ 128½ 17½100 1/123
+    to: III | 86⅖ | 75 | 128¼ | 1⁷¹⁄₁₀₀ | 1⁴⁶⁄₁₂₅ | ¹⁷¹⁄₅₀₀ | 1¹⁶⁷⁄₆₂₅ | 7¹⁴⁄₂₅ | 25¹³⁄₂₀ | 4⁸⁄₁₉ | 15 | 33²¹⁄₁₀₀ | 19⁸⁄₁₉ |
+    by: scan
+  - page: 102
+    from: "75"
+    to: ""
+    by: scan
+  - page: 102
+    from: 259/j 200 342
+    to: Total | 259⅕ | 200 | 342 | | | | | 22¹⁷⁄₂₅ | 34⅕ | 13⁵⁄₁₉ | 20 | 56²²⁄₂₅ | 33⁵⁄₁₉ |
+    by: scan
+  - page: 102
+    from: I 90 60 110 1/6
+    to: |-
+      D.
+      I | 90 | 60 | 110 | 1⅚ | 1⅚ | 0 | 1¹³⁄₂₀ | 11 | 0 | 6 | 0 | 11 | 6 | 50 c + 40 v für 90 agrar. Kap., 55⁵⁄₉ c + 44⁴⁄₉ v für 100 agrar. Kap. Auf 100 = 122²⁄₉, also 12²⁄₉ % abs. Rente.¹
+    by: scan
+  - page: 102
+    from: 15/6
+    to: ""
+    by: scan
+  - page: 102
+    from: 65⁵ 119½ 15713 1½¼8
+    to: ""
+    by: scan
+  - page: 102
+    from: II 90 15/6
+    to: II | 90 | 65 | 119⅙ | 1⅚ | 1⁹⁄₁₃ | ¹¹⁄₇₈ | 1³⁴⁄₆₅ | 11 | 9⅙ | 6 | 5 | 20⅙ | 11 |
+    by: scan
+  - page: 102
+    from: m 00 171⁵ 28/00
+    to: III | 90 | 75 | 137½ | 1⅚ | 1⁷⁄₁₅ | ²³⁄₉₀ | 1⁸⁄₂₅ | 11 | 27½ | 6 | 15 | 38½ | 21 |
+    by: scan
+  - page: 102
+    from: 75 137½ 1/3
+    to: ""
+    by: scan
+  - page: 102
+    from: ö
+    to: ""
+    by: scan
+  - page: 102
+    from: 200 366½
+    to: Total | 270 | 200 | 366⅔ | | | | | 33 | 36⅔ | 18 | 20 | 69⅔ | 38 |
+    by: scan
+  - page: 102
+    from: Ursprünglich bestand in A das Verhältnis von 60 e
+    to: Ursprünglich bestand in A das Verhältnis von 60 c
+    by: scan
+  - page: 102
+    from: + 40 v; das angelegte Kapital in jeder Klasse betrug 100 L.
+    to: + 40 v; das angelegte Kapital in jeder Klasse betrug 100 £.
+    by: scan
+  - page: 102
+    from: Die Rente in Geld 70 , in Korn 35 Quarter.
+    to: Die Rente in Geld 70 £, in Korn 35 Quarter.
+    by: scan
+  - page: 102
+    from: In B everwohlfeilert sich das konstante Kapital, so daß
+    to: In B verwohlfeilert sich das konstante Kapital, so daß
+    by: scan
+  - page: 102
+    from: nur 90 £ in jeder Klasse angelegt werden, aber im selben
+    to: nur 90 £ in jeder Klasse angelegt werden, aber im selben
+    by: scan
+  - page: 103
+    from: D. R. A. R. B5. R. Rental an ndes eruns
+    to: |-
+      Rente bleibt ebenfalls derselbe.] Die Geldrente nimmt ab,
+      weil das angelegte Kapital abnimmt. Die Kornrente bleibt
+      dieselbe, weil für weniger Geld mehr Korn im alten Ver-
+      hältnis [entfällt].
+    by: scan
+  - page: 103
+    from: Quarter Quarter — Quarter * Kapitals
+    to: ""
+    by: scan
+  - page: 103
+    from: 10 0 5 0 10 5 80% +L 20v für industr. Kap.,
+    to: ""
+    by: scan
+  - page: 103
+    from: 10 10 5 20 10 60+ 40 vfür agrar. Kapital,
+    to: ""
+    by: scan
+  - page: 103
+    from: 10 30 5 15 40 20 10/ abs. Rente.
+    to: ""
+    by: scan
+  - page: 103
+    from: 30 015 20 708
+    to: ""
+    by: scan
+  - page: 103
+    from: 546 +E 36 v für 90 agrar. Ka
+    to: ""
+    by: scan
+  - page: 103
+    from: ns 10 c . 4ov für 100 agr. Kap,
+    to: ""
+    by: scan
+  - page: 103
+    from: V 5
+    to: ""
+    by: scan
+  - page: 103
+    from: 9 2 515. 3 20 10 / abs. Rente.
+    to: ""
+    by: scan
+  - page: 103
+    from: 27 364 15 200634 35
+    to: ""
+    by: scan
+  - page: 103
+    from: 772 0 4½/16 0 7½54/10 546 + 32½/ vV für 86½¾ agrar.
+    to: ""
+    by: scan
+  - page: 103
+    from: 15 2 —0 2j75 3960 29— 2 — Auf 100 = 118¾, also 8¾ %/
+    to: ""
+    by: scan
+  - page: 103
+    from: 714½ 11½½ 80 11 8 Kap. = 62½e + 37½ V für 100.
+    to: ""
+    by: scan
+  - page: 103
+    from: 5² 25½⁰ 1 710 15 33 700 198/10 abs. Rente.
+    to: ""
+    by: scan
+  - page: 103
+    from: 22½j8 34½ 13/1—8 20 56½ 335/19
+    to: ""
+    by: scan
+  - page: 103
+    from: 11 0 0 11 6 50C 40 v für 90 agrar. Kap.,
+    to: ""
+    by: scan
+  - page: 103
+    from: 11 9¹ 50 6 5 201 96 11 55/ + 44% v für 100 agrar.
+    to: ""
+    by: scan
+  - page: 103
+    from: Kap. Auf 100 - 122½/, also
+    to: ""
+    by: scan
+  - page: 103
+    from: 11 27 72 6 15 38 ½ 21 122/% abs. Rente.!“
+    to: ""
+    by: scan
+  - page: 103
+    from: 33 36/ 18 20 69¼38
+    to: ""
+    by: scan
+  - page: 103
+    from: Rente bleibt ebenfalls derselbe.) Die Geldrente nimmt ab,
+    to: ""
+    by: scan
+  - page: 103
+    from: weil das angelegte Kapital abnimmt. Die Kornrente bleibt
+    to: ""
+    by: scan
+  - page: 103
+    from: dieselbe, weil für weniger Geld mehr Korn im alten Ver-
+    to: ""
+    by: scan
+  - page: 103
+    from: hältnis sentfällt!.
+    to: ""
+    by: scan
+  - page: 103
+    from: Die Tabellen C und D sind im Manuskript zum Teil nur an-
+    to: ¹) Die Tabellen C und D sind im Manuskript zum Teil nur an-
     by: scan
   - page: 108
     from: t) Ricardos Kritik der Smithschen Rententheorie.
@@ -3993,8 +4499,16 @@ p2theorienberd02marx:
     to: rate = 3⁶³⁄₇₉. Der Wert des Produkts macht = 103⁶³⁄₇₉ £
     by: scan
   - page: 171
-    from: Profit es zw. Produktions-
+    from: Produktionspreis Differentialwert
     to: Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert
+    by: scan
+  - page: 171
+    from: Profit es zw. Produktions-
+    to: ""
+    by: scan
+  - page: 171
+    from: d
+    to: ""
     by: scan
   - page: 171
     from: Produkts preis und Wert
@@ -4002,35 +4516,39 @@ p2theorienberd02marx:
     by: scan
   - page: 171
     from: I. 84½e e + 151½1 v 1515/10 116 (Wert = 11515/10) + /10
-    to: ""
-    by: scan
-  - page: 171
-    from: II. 66¾ c + 33¼½ v 33¼ 116 (Wert ⸗ 133½) = — 17½
     to: I. 84⁴⁄₁₉ c + 15¹⁵⁄₁₉ v | 15¹⁵⁄₁₉ | 116 (Wert = 115¹⁵⁄₁₉) | = + ⁴⁄₁₉
     by: scan
   - page: 171
-    from: III. 882½¼7 C + 11½½ v 11½½7 116(Wert 111777) — 4½7
+    from: II. 66¾ c + 33¼½ v 33¼ 116 (Wert ⸗ 133½) = — 17½
     to: II. 66⅔ c + 33⅓ v | 33⅓ | 116 (Wert = 133⅓) | = — 17⅓
     by: scan
   - page: 171
-    from: IV. 901%½ 3½ο 36½ 116 (Wert S 103½0) + 121½0
+    from: III. 882½¼7 C + 11½½ v 11½½7 116(Wert 111777) — 4½7
     to: III. 88²⁴⁄₇₇ c + 11⁵³⁄₇₇ v | 11⁵³⁄₇₇ | 116 (Wert = 111⁵³⁄₇₇) | = + 4²⁴⁄₇₇
     by: scan
   - page: 171
-    from: Zusammen 400 641
+    from: IV. 901%½ 3½ο 36½ 116 (Wert S 103½0) + 121½0
     to: IV. 90¹⁶⁄₇₉ c + 3⁶³⁄₇₉ v | 3⁶³⁄₇₉ | 116 (Wert = 103⁶³⁄₇₉) | = + 12¹⁶⁄₇₉
     by: scan
   - page: 171
-    from: Die Durchschnittsprofitrate macht also rund 16 Prozent.
+    from: Zusammen 400 641
     to: Zusammen 400 | 64¹
+    by: scan
+  - page: 171
+    from: zu groß und ([die positivel bei I, III, IV setwas zu klein
+    to: zu groß und [die positive] bei I, III, IV etwas zu klein
     by: scan
   - page: 171
     from: genau 116¾46731, also etwa 116½.] Man sieht aber,
     to: genau 116⁵²⁷⁵⁴⁄₃₄₆₇₃₁, also etwa 116⅐.] Man sieht aber,
     by: scan
   - page: 171
+    from: senkung einerseits der [Preis! von II stärker unter seinen
+    to: senkung einerseits der [Preis] von II stärker unter seinen
+    by: scan
+  - page: 171
     from: Mit Überschlagung einer Bruchzahl (21106/487e1].
-    to: ¹ Mit Überschlagung einer Bruchzahl [²¹¹⁰¹⁶⁄₃₄₆₇₃₁].
+    to: ¹) Mit Überschlagung einer Bruchzahl [²¹¹⁰¹⁶⁄₃₄₆₇₃₁].
     by: scan
   - page: 173
     from: "auf 100: 66 /8 cC + 33 ⅛ v. Und da die Arbeit, die mit 40"
@@ -4246,11 +4764,11 @@ p2theorienberd02marx:
     by: scan
   - page: 184
     from: Im Manuskript steht 181½26 Tonnen. K.
-    to: ¹ Im Manuskript steht 18¹¹¹⁄₁₂₈ Tonnen. K.
+    to: ¹) Im Manuskript steht 18¹¹¹⁄₁₂₈ Tonnen. K.
     by: scan
   - page: 184
     from: 2 Im Manuskript steht 75/38 L. K.
-    to: ² Im Manuskript steht 75⁵⁄₂₃ £. K.
+    to: ²) Im Manuskript steht 75⁵⁄₂₃ £. K.
     by: scan
   - page: 185
     from: e 1 7718 V, kosten 20 Arbeiter 36 ½/13 L.
@@ -4346,7 +4864,7 @@ p2theorienberd02marx:
     by: scan
   - page: 185
     from: Im Manuskript steht 23½8 Prozent, so hoch wird auch in den
-    to: ¹ Im Manuskript steht 23¹⁄₁₃ Prozent, so hoch wird auch in den
+    to: ¹) Im Manuskript steht 23¹⁄₁₃ Prozent, so hoch wird auch in den
     by: scan
   - page: 185
     from: folgenden Rechnungen der Profit pro 100 gerechnet, statt 2317/1. Ich
@@ -4522,7 +5040,7 @@ p2theorienberd02marx:
     by: scan
   - page: 188
     from: "Im Manuskript steht 14¾1 Prozent. Aber 9¼ 100: 45/11"
-    to: "¹ Im Manuskript steht 14⁶⁄₁₁ Prozent. Aber 9¹⁄₁₁ × 100 : 45⁵⁄₁₁"
+    to: "¹) Im Manuskript steht 14⁶⁄₁₁ Prozent. Aber 9¹⁄₁₁ × 100 : 45⁵⁄₁₁"
     by: scan
   - page: 188
     from: — 20. Auch im weiteren Verlauf der Rechnung finden sich zahlreiche

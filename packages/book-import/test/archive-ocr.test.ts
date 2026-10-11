@@ -2309,3 +2309,19 @@ describe("parseArchiveOcrWork, a page of a table alone", () => {
     ]);
   });
 });
+
+describe("parseArchiveOcrWork on a page whose note the manifest names", () => {
+  it("reads the notes from the line it names, set as the text is, and opens no other note there", async () => {
+    const units = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      spacedNotes: true,
+      notes: [{ page: 5, opens: "Die Ich-" }],
+    });
+
+    // No other line on that page opens a note, however set in.
+    expect(units[0]?.paragraphs.slice(-2)).toEqual([
+      "¹) Vgl. Zur Psychoanalyse der Kriegsneurosen. Mit Beiträgen von Ferenczi, Abraham, Simmel und E. Jones, 1919.",
+      "Die Ich-Analyse beginnt hier. Ein Satz unten auf der Seite läuft weiter, und am Rand rutscht ein Wort nach unten.",
+    ]);
+  });
+});
