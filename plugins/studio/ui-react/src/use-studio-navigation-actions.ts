@@ -217,6 +217,11 @@ export function useStudioNavigationActions(
             studioWorkspacePath(studioBasePath, "site-builder:site"),
           );
           return;
+        case "traffic":
+          history.push(
+            studioWorkspacePath(studioBasePath, "analytics:traffic"),
+          );
+          return;
         case "inbox-open-entity":
           openWorkspaceEntity(launch.entityType, launch.entityId);
           return;

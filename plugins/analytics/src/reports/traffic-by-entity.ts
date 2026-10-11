@@ -100,7 +100,7 @@ export function createTrafficByEntityReport(
   return defineAnalyticsReport({
     type: "traffic-by-entity",
     description:
-      "Pageviews per published piece (posts, decks and other types with pages) from the brain's daily snapshots, busiest first, with each piece's top referrers and, on request, its views in the first days after publishing.",
+      "Pageviews per published piece (posts, decks and other types with pages) from the brain's daily snapshots, busiest first, with each piece's top referrers. For how a piece did after it was published (its first week, its launch), set firstDays, e.g. 7, rather than choosing dates: the window starts on its publish date.",
     params: byEntityParams,
     minVisibility: "admin",
     handler: async (params, context) => {

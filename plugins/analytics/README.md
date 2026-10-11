@@ -69,6 +69,11 @@ system_analytics({
 });
 ```
 
+## Studio
+
+- **Traffic workspace** (admin): the last 7, 30 or 90 days — pageviews and visits against the period before, the busiest day, the owner's own pageviews counted apart, a daily chart with publish dates marked, the most-read published pieces (opening their entities), top pages, referrers and countries.
+- **Traffic widget** (dashboard, admin): the last 7 days against the 7 before, with a link into the workspace.
+
 ## Infrastructure Setup
 
 Create a Cloudflare Web Analytics site for your domain in the Cloudflare dashboard (Analytics & Logs → Web Analytics) and give the brain its **site tag** in `CLOUDFLARE_ANALYTICS_SITE_TAG`; the metrics queries filter on it.
