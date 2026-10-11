@@ -209,10 +209,11 @@ const trafficWorkspace = defineStudioWorkspace({
             const published = publishedOn.get(point.period);
             return {
               id: point.period,
-              label: shortDate(point.period),
+              label: point.estimated
+                ? `${shortDate(point.period)} (estimated)`
+                : shortDate(point.period),
               value: point.pageviews,
               ...(published ? { marker: `Published: ${published}` } : {}),
-              ...(point.estimated ? { tone: "warn" as const } : {}),
             };
           }),
         },
