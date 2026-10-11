@@ -710,6 +710,10 @@ freud-1941-gw-4:
     from: "ich wohl gedächt haben: Die"
     to: "ich wohl gedacht haben: Die"
     by: reference
+  - page: 132
+    from: 10°/o Rabatt
+    to: 10 % Rabatt
+    by: scan
   - page: 149
     from: ich zur VergeBlichkeit im allgemeinen
     to: ich zur Vergesslichkeit im allgemeinen

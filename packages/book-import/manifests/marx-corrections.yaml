@@ -1048,6 +1048,22 @@ ldpd_14861084_000:
     from: Menschen besteht, 4/io ooo dar.“ Einverstanden
     to: Menschen besteht, 4/10,000 dar.“ Einverstanden
     by: scan
+  - page: 81
+    from: von 10 °/0 vierzigmal
+    to: von 10 % vierzigmal
+    by: scan
+  - page: 81
+    from: Vortheil von 400 °/0 wird
+    to: Vortheil von 400 % wird
+    by: scan
+  - page: 81
+    from: um 400 °/0 , und ein
+    to: um 400 %, und ein
+    by: scan
+  - page: 82
+    from: 33°/0 sich das
+    to: 33 % sich das
+    by: scan
   - page: 86
     from: nach dem Wertlie dieser Arbeit
     to: nach dem Werthe dieser Arbeit
@@ -2779,6 +2795,18 @@ theorienberden01marxuoft:
     from: setzen haben, nämlich ¾ Ellen, bereits dem Maschinisten in
     to: setzen haben, nämlich ⅔ Ellen, bereits dem Maschinisten in
     by: scan
+  - page: 214
+    from: "sich darauf reduziert: Was wird aus den 7¾¼e Ellen für den Ver-"
+    to: "sich darauf reduziert: Was wird aus den ⁷⁄₉ Ellen für den Ver-"
+    by: scan
+  - page: 214
+    from: as als solches selbst kein kostendes Ro hmaterial hat, die Form
+    to: das als solches selbst kein kostendes Rohmaterial hat, die Form
+    by: scan
+  - page: 214
+    from: Bedingungen kann dieser Maschinist die ½¼ Ellen in Leinwand
+    to: Bedingungen kann dieser Maschinist die ⁷⁄₉ Ellen in Leinwand
+    by: scan
   - page: 221
     from: 3. Austausch zwischen Kapital und Kapital und der
     to: 3. Austausch zwischen Kapital und Kapital und der Einfluß des Wertwechsels darauf.
@@ -2926,6 +2954,34 @@ theorienberden01marxuoft:
   - page: 407
     from: Der Begriff der produktiven Arbeit.!
     to: Der Begriff der produktiven Arbeit.
+    by: scan
+  - page: 410
+    from: — + (konstantes und variables Kapital). Im Prozeß wird
+    to: = c + v (konstantes und variables Kapital). Im Prozeß wird
+    by: scan
+  - page: 410
+    from: er c + (EV); letzteres ist der reproduzierte Teil, der durch
+    to: er c + (v + Δv); letzteres ist der reproduzierte Teil, der durch
+    by: scan
+  - page: 410
+    from: wird durch den Austausch von gegen Arbeitskraft oder seine
+    to: wird durch den Austausch von v gegen Arbeitskraft oder seine
+    by: scan
+  - page: 410
+    from: Verwandlung in Arbeitslohn. Aber c +E EAV ecCÆE vV (das
+    to: Verwandlung in Arbeitslohn. Aber c + (v + Δv) = c + v (das
+    by: scan
+  - page: 410
+    from: ursprüngliche Kapital) + . Außerdem konnte die Verwand-
+    to: ursprüngliche Kapital) + Δv. Außerdem konnte die Verwand-
+    by: scan
+  - page: 410
+    from: lung von v in v+, also von (e ÆEV in (CÆ v)AV
+    to: lung von v in v + Δv, also von (c + v) in (c + v) + Δv
+    by: scan
+  - page: 410
+    from: nur vorgehen, indem ein Teil des Geldes in e verwandelt
+    to: nur vorgehen, indem ein Teil des Geldes in c verwandelt
     by: scan
 p1theorienberden02marxuoft:
   - page: 1
