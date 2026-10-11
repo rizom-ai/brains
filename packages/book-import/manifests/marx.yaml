@@ -1128,6 +1128,17 @@ books:
       - { page: 53, opens: Gruß und Bruderschaft. }
       - { page: 53, opens: Zeuge Junkermann }
       - { page: 53, opens: Polizei-Präsident Hinkeldey }
+      - { page: 58, opens: "Es war von" }
+      - { page: 58, opens: "Willich unterrichtet" }
+      - { page: 58, opens: "Willich gesteht" }
+      - { page: 58, opens: "Willich war notorisch" }
+      - { page: 58, opens: "Daß er erst" }
+      - { page: 58, opens: "Daß er in einer" }
+      - { page: 58, opens: "Daß er fortfuhr" }
+      - { page: 58, opens: "Daß Fleury" }
+      - { page: 58, opens: "Daß er dem Fleury" }
+      - { page: 58, opens: "Daß er den Fleury" }
+      - { page: 58, opens: "Daß er endlich" }
     # MEW 8 and 18, Dietz 1960 and 1962, as mlwerke.de published them.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me08/me08_409.htm

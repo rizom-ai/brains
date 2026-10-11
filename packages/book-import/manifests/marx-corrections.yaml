@@ -1232,10 +1232,6 @@ ldpd_14861084_000:
     from: gutes und sö billiges Getreide
     to: gutes und so billiges Getreide
     by: reference
-  - page: 192
-    from: machen, dass sic den Preis
-    to: machen, dass sie den Preis
-    by: reference
   - page: 193
     from: Bemerkungen waren notlnvendig, um die
     to: Bemerkungen waren nothwendig, um die
@@ -1479,6 +1475,394 @@ ldpd_14861084_000:
   - page: 170
     from: wie. die
     to: wie die
+    by: scan
+  - page: 192
+    from: saclie an, dass stets, wenn ausländisches Getreide einge. hi „
+    to: sache an, dass stets, wenn ausländisches Getreide eingeführt
+    by: scan
+  - page: 192
+    from: wurde, der Getreidepreis in England beträchtlich sji,;,
+    to: wurde, der Getreidepreis in England beträchtlich stieg,
+    by: scan
+  - page: 192
+    from: Ganz im Gegensatz zu seinem Mitpreisgekrönlen be-
+    to: Ganz im Gegensatz zu seinem Mitpreisgekrönten be-
+    by: scan
+  - page: 192
+    from: Der dritte Laureat, Herr Greg* der Grossfabrikant ist,
+    to: Der dritte Laureat, Herr Greg,* der Grossfabrikant ist,
+    by: scan
+  - page: 192
+    from: Er gibt zu, dass die Korngesetze die Keilte nur da-
+    to: Er gibt zu, dass die Korngesetze die Rente nur da-
+    by: scan
+  - page: 192
+    from: durch steigen machen, dass sic den Preis des Getreides
+    to: durch steigen machen, dass sie den Preis des Getreides
+    by: scan
+  - page: 192
+    from: erhöhen , und dass sie den Getreidepreis nur dadurch er-
+    to: erhöhen, und dass sie den Getreidepreis nur dadurch er-
+    by: scan
+  - page: 192
+    from: Da für das sämmtliclie so produzirte Getreide Bedarf
+    to: Da für das sämmtliche so produzirte Getreide Bedarf
+    by: scan
+  - page: 2
+    from: im Kreise zn
+    to: im Kreise zu
+    by: reference
+  - page: 4
+    from: den Ueherfluss austauschte, den
+    to: den Ueberfluss austauschte, den
+    by: reference
+  - page: 4
+    from: nur der Ueherfluss,
+    to: nur der Ueberfluss,
+    by: reference
+  - page: 12
+    from: Aveil sie die
+    to: weil sie die
+    by: reference
+  - page: 16
+    from: Synthese zwischen Gebrau chswerth
+    to: Synthese zwischen Gebrauchswerth
+    by: reference
+  - page: 19
+    from: Antinomie, des Tauschwer thes,
+    to: Antinomie, des Tauschwerthes,
+    by: reference
+  - page: 24
+    from: Lehens, die Werththeorie
+    to: Lebens, die Werththeorie
+    by: reference
+  - page: 29
+    from: für die verschiedenden Arbeitstage
+    to: für die verschiedenen Arbeitstage
+    by: reference
+  - page: 31
+    from: erst wieder bestimm
+    to: erst wieder bestimmt
+    by: reference
+  - page: 43
+    from: es richtig istr
+    to: es richtig ist,
+    by: reference
+  - page: 56
+    from: den wrir alle wünschen
+    to: den wir alle wünschen
+    by: reference
+  - page: 63
+    from: Eede sein kann
+    to: Rede sein kann
+    by: reference
+  - page: 65
+    from: Herr Proudhon vorwirf^
+    to: Herr Proudhon vorwirft,
+    by: reference
+  - page: 69
+    from: Einern Stücke gemünzten
+    to: einem Stücke gemünzten
+    by: reference
+  - page: 81
+    from: daher, scliliesst Herr Proudhon
+    to: daher, schliesst Herr Proudhon
+    by: reference
+  - page: 83
+    from: Rumpelkasten zurückkehren. WTenn
+    to: Rumpelkasten zurückkehren. Wenn
+    by: reference
+  - page: 91
+    from: des Nationalreich thums betrifft, so
+    to: des Nationalreichthums betrifft, so
+    by: reference
+  - page: 95
+    from: Lehen ruft. Herr
+    to: Leben ruft. Herr
+    by: reference
+  - page: 98
+    from: Oekonomie zu tliun.
+    to: Oekonomie zu thun.
+    by: reference
+  - page: 104
+    from: Er kennt nür
+    to: Er kennt nur
+    by: reference
+  - page: 106
+    from: Kategorien. Die Aufeinderfolge der
+    to: Kategorien. Die Aufeinanderfolge der
+    by: reference
+  - page: 116
+    from: Bewegung ins Lehen
+    to: Bewegung ins Leben
+    by: reference
+  - page: 120
+    from: leugnet die Nothwrendigkeit des
+    to: leugnet die Nothwendigkeit des
+    by: reference
+  - page: 120
+    from: sie rätli den Arbeitern
+    to: sie räth den Arbeitern
+    by: reference
+  - page: 124
+    from: auf die letzeren
+    to: auf die letzteren
+    by: reference
+  - page: 134
+    from: hob sieb die Klasse
+    to: hob sich die Klasse
+    by: reference
+  - page: 138
+    from: Arbeitstheiluug abhängt. Kurz
+    to: Arbeitstheilung abhängt. Kurz
+    by: reference
+  - page: 138
+    from: und allein ?om Welthandel
+    to: und allein vom Welthandel
+    by: reference
+  - page: 139
+    from: „Wyalt“, sagt Dr
+    to: „Wyatt“, sagt Dr
+    by: reference
+  - page: 143
+    from: der gleichen Vertheiluug
+    to: der gleichen Vertheilung
+    by: reference
+  - page: 157
+    from: war der Treis
+    to: war der Preis
+    by: reference
+  - page: 159
+    from: Gegenwärtig, wro die moralische
+    to: Gegenwärtig, wo die moralische
+    by: reference
+  - page: 160
+    from: wenn Herr Froudhon
+    to: wenn Herr Proudhon
+    by: reference
+  - page: 202
+    from: Kattun nach Potugal.
+    to: Kattun nach Portugal.
+    by: reference
+  - page: 204
+    from: wir noch Aveniger, dass
+    to: wir noch weniger, dass
+    by: reference
+  - page: 208
+    from: den sie vörzugsweis
+    to: den sie vorzugsweise
+    by: reference
+  - page: 209
+    from: soziale Revolution. IJnd
+    to: soziale Revolution. Und
+    by: reference
+  - page: 3
+    from: zweige, Arheitstheilung
+    to: zweige, Arbeitstheilung
+    by: scan
+  - page: 3
+    from: auf Arheitstheilung
+    to: auf Arbeitstheilung
+    by: scan
+  - page: 3
+    from: Arheitstheilung.
+    to: Arbeitstheilung.
+    by: scan
+  - page: 3
+    from: Arheitstheilung nöthig
+    to: Arbeitstheilung nöthig
+    by: scan
+  - page: 13
+    from: anhietet.
+    to: anbietet.
+    by: scan
+  - page: 13
+    from: Kesultante
+    to: Resultante
+    by: scan
+  - page: 21
+    from: ausühen
+    to: ausüben
+    by: scan
+  - page: 24
+    from: Tauschwcrtli.
+    to: Tauschwerth.
+    by: scan
+  - page: 26
+    from: mau
+    to: man
+    by: scan
+  - page: 27
+    from: Arheitsquantum
+    to: Arbeitsquantum
+    by: scan
+  - page: 34
+    from: Lehensmittelpreise
+    to: Lebensmittelpreise
+    by: scan
+  - page: 35
+    from: dtrss
+    to: dass
+    by: scan
+  - page: 35
+    from: oinem
+    to: einem
+    by: scan
+  - page: 42
+    from: Nützlichzeitsgrades
+    to: Nützlichkeitsgrades
+    by: scan
+  - page: 45
+    from: Arheitsminimum
+    to: Arbeitsminimum
+    by: scan
+  - page: 62
+    from: amnimmt,
+    to: annimmt,
+    by: scan
+  - page: 80
+    from: hersteilen
+    to: herstellen
+    by: scan
+  - page: 80
+    from: selbst hei
+    to: selbst bei
+    by: scan
+  - page: 89
+    from: hasirt
+    to: basirt
+    by: scan
+  - page: 108
+    from: offenhart
+    to: offenbart
+    by: scan
+  - page: 112
+    from: veritablc
+    to: veritable
+    by: scan
+  - page: 120
+    from: wrerden.
+    to: werden.
+    by: scan
+  - page: 128
+    from: die Arheitstheilung
+    to: die Arbeitstheilung
+    by: scan
+  - page: 128
+    from: Arheitstheilung einer
+    to: Arbeitstheilung einer
+    by: scan
+  - page: 128
+    from: Arheitstheilung im
+    to: Arbeitstheilung im
+    by: scan
+  - page: 128
+    from: Arheitstheilung als
+    to: Arbeitstheilung als
+    by: scan
+  - page: 133
+    from: Arheitstheilung
+    to: Arbeitstheilung
+    by: scan
+  - page: 135
+    from: nnd
+    to: und
+    by: scan
+  - page: 137
+    from: Arheitstheilung sind
+    to: Arbeitstheilung sind
+    by: scan
+  - page: 137
+    from: Arheitstheilung in
+    to: Arbeitstheilung in
+    by: scan
+  - page: 137
+    from: Arheitstheilung.
+    to: Arbeitstheilung.
+    by: scan
+  - page: 170
+    from: Keproduktion
+    to: Reproduktion
+    by: scan
+  - page: 170
+    from: Naturstoif
+    to: Naturstoff
+    by: scan
+  - page: 170
+    from: Oampagna,
+    to: Campagna,
+    by: scan
+  - page: 193
+    from: Treis
+    to: Preis
+    by: scan
+  - page: 193
+    from: angetlian
+    to: angethan
+    by: scan
+  - page: 199
+    from: Arheitstheilung
+    to: Arbeitstheilung
+    by: scan
+  - page: 202
+    from: ühergegangen.
+    to: übergegangen.
+    by: scan
+  - page: 12
+    from: d’dconomie
+    to: d’économie
+    by: scan
+  - page: 44
+    from: w'elche
+    to: welche
+    by: scan
+  - page: 73
+    from: W7eihe“,
+    to: Weihe“,
+    by: scan
+  - page: 120
+    from: ei'halten,
+    to: erhalten,
+    by: scan
+  - page: 120
+    from: w'elche
+    to: welche
+    by: scan
+  - page: 137
+    from: l’dconomie
+    to: l’économie
+    by: scan
+  - page: 160
+    from: yidentiellen,
+    to: videntiellen,
+    by: scan
+  - page: 34
+    from: servus vo^
+    to: servus von
+    by: scan
+  - page: 58
+    from: neben dem gemeinschafU
+    to: neben dem gemeinschaft-
+    by: scan
+  - page: 58
+    from: liehen Eigen thum
+    to: lichen Eigenthum
+    by: scan
+  - page: 76
+    from: "V aaren aus :"
+    to: "Waaren aus:"
+    by: scan
+  - page: 89
+    from: der Ai'beits-
+    to: der Arbeits-
+    by: scan
+  - page: XXXII
+    from: de la Misere'1
+    to: de la Misere“
+    by: scan
+  - page: 126
+    from: sociöt6 civile
+    to: société civile
     by: scan
 mehring-nachlass-1:
   - page: 67
@@ -2461,9 +2845,21 @@ theorienberden01marxuoft:
     from: und einige ihrer vorgänger und Zeitgenossen.
     to: und einige ihrer Vorgänger und Zeitgenossen.
     by: scan
+  - page: 3
+    from: Stunden!
+    to: Stunden]
+    by: scan
   - page: 6
     from: des Aere gleich
     to: des Acre gleich
+    by: scan
+  - page: 8
+    from: (Political
+    to: „Political
+    by: scan
+  - page: 9
+    from: trägt,!
+    to: trägt,¹
     by: scan
   - page: 11
     from: 2. Ch. d'Avenant.
@@ -2489,6 +2885,18 @@ theorienberden01marxuoft:
     from: 4. David hume und I. Massle.
     to: 4. David Hume und J. Massie.
     by: scan
+  - page: 24
+    from: "[nach!"
+    to: "[nach]"
+    by: scan
+  - page: 24
+    from: svon
+    to: "[von"
+    by: scan
+  - page: 28
+    from: Handels!
+    to: Handels¹
+    by: scan
   - page: 29
     from: 5. Sir James Steuart.“
     to: 5. Sir James Steuart.
@@ -2504,6 +2912,10 @@ theorienberden01marxuoft:
   - page: 33
     from: 6. Der allgemeine Charakter des Sistems der Physlokraten.“
     to: 6. Der allgemeine Charakter des Systems der Physiokraten.
+    by: scan
+  - page: 43
+    from: sauf
+    to: "[auf"
     by: scan
   - page: 46
     from: "la Riviére sagt:"
@@ -2545,6 +2957,10 @@ theorienberden01marxuoft:
     from: ete.
     to: etc.
     by: scan
+  - page: 50
+    from: zurück,!
+    to: zurück,¹
+    by: scan
   - page: 56
     from: la Riviéêére eine
     to: la Rivière eine
@@ -2581,6 +2997,18 @@ theorienberden01marxuoft:
     from: „Britain indeépendent of
     to: „Britain independent of
     by: scan
+  - page: 68
+    from: lüber
+    to: "[über"
+    by: scan
+  - page: 69
+    from: unproduktiv.!
+    to: unproduktiv.¹
+    by: scan
+  - page: 70
+    from: verkaufte,!
+    to: verkaufte,¹
+    by: scan
   - page: 73
     from: 12. necker.
     to: 12. Necker.
@@ -2589,6 +3017,14 @@ theorienberden01marxuoft:
     from: Einkommen —*— — ** —223 — * tN SSSSSn 1..
     to: Einkommen
     by: scan
+  - page: 74
+    from: Rente!
+    to: Rente¹
+    by: scan
+  - page: 74
+    from: Eigentümer?
+    to: Eigentümer²
+    by: scan
   - page: 75
     from: Staatsbürger (eitoyens) immer
     to: Staatsbürger (citoyens) immer
@@ -2596,6 +3032,18 @@ theorienberden01marxuoft:
   - page: 77
     from: 13. linguet.“
     to: 13. Linguet.
+    by: scan
+  - page: 78
+    from: ssie
+    to: "[sie"
+    by: scan
+  - page: 78
+    from: sbewirkt],
+    to: "[bewirkt],"
+    by: scan
+  - page: 78
+    from: bezahlen.!
+    to: bezahlen.¹
     by: scan
   - page: 85
     from: 14. dDie Reproduktion und Zirkulation des gesellschaftlichen
@@ -2637,6 +3085,14 @@ theorienberden01marxuoft:
     from: erédit.“ Discussion
     to: crédit.“ Discussion
     by: scan
+  - page: 112
+    from: sgibt
+    to: gibt
+    by: scan
+  - page: 112
+    from: streten
+    to: "[treten"
+    by: scan
   - page: 117
     from: 6. Erklärung des Kapitalprofits daraus, daß der
     to: 6. Erklärung des Kapitalprofits daraus, daß der Arbeitslohn vorgeschossen wird, ehe die Ware verkauft ist.
@@ -2653,6 +3109,10 @@ theorienberden01marxuoft:
     from: 1. Seine Bestimmung des Wertes durch die Arbeit.“
     to: 1. Seine Bestimmung des Wertes durch die Arbeit.
     by: scan
+  - page: 127
+    from: Schrift?
+    to: Schrift¹
+    by: scan
   - page: 128
     from: also cerele
     to: also cercle
@@ -2660,6 +3120,10 @@ theorienberden01marxuoft:
   - page: 137
     from: z. der Ursprung des Mehrwerts.“
     to: 2. Der Ursprung des Mehrwerts.
+    by: scan
+  - page: 139
+    from: Arbeit!
+    to: Arbeit¹
     by: scan
   - page: 144
     from: e) Der Kapitalzins.
@@ -2685,6 +3149,14 @@ theorienberden01marxuoft:
     from: des Preises in Arbeitslohn, Profit und rundrente.“
     to: ""
     by: scan
+  - page: 169
+    from: Kapitals;?
+    to: Kapitals;²
+    by: scan
+  - page: 172
+    from: Konsumenten.!
+    to: Konsumenten.¹
+    by: scan
   - page: 174
     from: „Traité d'Economie Politique“
     to: „Traité d'Économie Politique“
@@ -2696,6 +3168,10 @@ theorienberden01marxuoft:
   - page: 175
     from: de I'Economie Politique,
     to: de l'Économie Politique,
+    by: scan
+  - page: 176
+    from: Kapital!
+    to: Kapital¹
     by: scan
   - page: 179
     from: 1. Untersuchung des Problems der Auflösung des
@@ -2728,6 +3204,34 @@ theorienberden01marxuoft:
   - page: 183
     from: zeit sei = 10 Stunden, also die Mehrarbeit S 2 Stunden.
     to: zeit sei = 10 Stunden, also die Mehrarbeit = 2 Stunden.
+    by: scan
+  - page: 190
+    from: B?
+    to: B²
+    by: scan
+  - page: 191
+    from: und B?
+    to: und B²
+    by: scan
+  - page: 192
+    from: B? mit
+    to: B² mit
+    by: scan
+  - page: 192
+    from: B? bezahlt
+    to: B² bezahlt
+    by: scan
+  - page: 192
+    from: B? placiert
+    to: B² placiert
+    by: scan
+  - page: 195
+    from: B?
+    to: B²
+    by: scan
+  - page: 196
+    from: B?
+    to: B²
     by: scan
   - page: 198
     from: 2. Weitere Untersuchung des Problems. Zweite
@@ -3205,6 +3709,10 @@ theorienberden01marxuoft:
     from: Bedingungen kann dieser Maschinist die ½¼ Ellen in Leinwand
     to: Bedingungen kann dieser Maschinist die ⁷⁄₉ Ellen in Leinwand
     by: scan
+  - page: 218
+    from: Abnutzung!
+    to: Abnutzung]
+    by: scan
   - page: 221
     from: 3. Austausch zwischen Kapital und Kapital und der
     to: 3. Austausch zwischen Kapital und Kapital und der Einfluß des Wertwechsels darauf.
@@ -3212,6 +3720,18 @@ theorienberden01marxuoft:
   - page: 221
     from: Einfluß des Wertwechsels darauf.“
     to: ""
+    by: scan
+  - page: 227
+    from: sentsprechend!
+    to: "[entsprechend]"
+    by: scan
+  - page: 227
+    from: "[Mehr!"
+    to: "[Mehr]"
+    by: scan
+  - page: 228
+    from: sphäre!
+    to: sphäre]
     by: scan
   - page: 230
     from: 20 Penee auf
@@ -3228,6 +3748,22 @@ theorienberden01marxuoft:
   - page: 230
     from: 80 Penee kosten,
     to: 80 Pence kosten,
+    by: scan
+  - page: 243
+    from: Wert!
+    to: Wert]
+    by: scan
+  - page: 244
+    from: Falle!
+    to: Falle]
+    by: scan
+  - page: 245
+    from: daß!
+    to: daß]
+    by: scan
+  - page: 251
+    from: loder
+    to: "[oder"
     by: scan
   - page: 252
     from: und deéaler. Der
@@ -3249,6 +3785,18 @@ theorienberden01marxuoft:
     from: Waren produzierenden.!“
     to: Waren produzierenden.
     by: scan
+  - page: 262
+    from: sihrer
+    to: "[ihrer"
+    by: scan
+  - page: 264
+    from: Dienstboten!
+    to: Dienstboten¹
+    by: scan
+  - page: 284
+    from: "[kam!)"
+    to: "[kam]"
+    by: scan
   - page: 285
     from: e) Die Polemik gegen die Smithsche Definition.)
     to: c) Die Polemik gegen die Smithsche Definition.
@@ -3264,6 +3812,10 @@ theorienberden01marxuoft:
   - page: 290
     from: contributions ete.“, London
     to: contributions etc.“, London
+    by: scan
+  - page: 294
+    from: Wertes!
+    to: Wertes]
     by: scan
   - page: 295
     from: tical éeconomy, Edition
@@ -3289,9 +3841,21 @@ theorienberden01marxuoft:
     from: d'economie politique“.
     to: d'économie politique“.
     by: scan
+  - page: 308
+    from: erspare.!
+    to: erspare.¹
+    by: scan
   - page: 312
     from: (valeur intrinséque), was
     to: (valeur intrinsèque), was
+    by: scan
+  - page: 315
+    from: (im]materielle
+    to: "[im]materielle"
+    by: scan
+  - page: 316
+    from: liefern.!
+    to: liefern.¹
     by: scan
   - page: 321
     from: g) Ganilh und Riceardo über Brutto- und Netto-
@@ -3301,6 +3865,18 @@ theorienberden01marxuoft:
     from: daß also SSSS
     to: daß also
     by: scan
+  - page: 330
+    from: machen,!
+    to: machen,¹
+    by: scan
+  - page: 335
+    from: zieht.!
+    to: zieht.¹
+    by: scan
+  - page: 336
+    from: ginge.!
+    to: ginge.¹
+    by: scan
   - page: 339
     from: Eine neue Definition der produktiven Arbeit.!
     to: Eine neue Definition der produktiven Arbeit.
@@ -3308,6 +3884,30 @@ theorienberden01marxuoft:
   - page: 339
     from: rapports avee
     to: rapports avec
+    by: scan
+  - page: 340
+    from: verfügt!
+    to: verfügt]
+    by: scan
+  - page: 343
+    from: ssich
+    to: "[sich"
+    by: scan
+  - page: 346
+    from: halten.!
+    to: halten.¹
+    by: scan
+  - page: 346
+    from: nur!
+    to: nur]
+    by: scan
+  - page: 347
+    from: muß,!
+    to: muß,¹
+    by: scan
+  - page: 352
+    from: wenden.!
+    to: wenden.¹
     by: scan
   - page: 354
     from: i) Lauderdale und J. B. Say.“
@@ -3325,9 +3925,41 @@ theorienberden01marxuoft:
     from: produktiver Arbeiter.
     to: "produktiver Arbeiter:"
     by: scan
+  - page: 356
+    from: Kapital?
+    to: Kapital²
+    by: scan
+  - page: 356
+    from: Geld!
+    to: Geld]
+    by: scan
+  - page: 358
+    from: ist.!
+    to: ist.¹
+    by: scan
+  - page: 361
+    from: Müßiggänger!
+    to: Müßiggänger]
+    by: scan
+  - page: 367
+    from: shier
+    to: "[hier"
+    by: scan
   - page: 368
     from: 100 ëH an
     to: 100 £ an
+    by: scan
+  - page: 369
+    from: "[damit!"
+    to: "[damit]"
+    by: scan
+  - page: 374
+    from: werden.!
+    to: werden.¹
+    by: scan
+  - page: 374
+    from: selbst?
+    to: selbst²
     by: scan
   - page: 378
     from: Principes d'Economie Politique.“
@@ -3337,6 +3969,18 @@ theorienberden01marxuoft:
     from: J) Henri Storch. Die geistige Produktion.
     to: l) Henri Storch. Die geistige Produktion.
     by: scan
+  - page: 381
+    from: Untersuchung!
+    to: Untersuchung]
+    by: scan
+  - page: 381
+    from: ([dann]
+    to: "[dann]"
+    by: scan
+  - page: 385
+    from: durch!
+    to: durch]
+    by: scan
   - page: 387
     from: m) W. Nassau Senior.!
     to: m) W. Nassau Senior.
@@ -3344,6 +3988,10 @@ theorienberden01marxuoft:
   - page: 387
     from: („Princeipes fondamentaux
     to: („Principes fondamentaux
+    by: scan
+  - page: 392
+    from: Resultate!
+    to: Resultate¹
     by: scan
   - page: 393
     from: Térum.
@@ -3353,6 +4001,10 @@ theorienberden01marxuoft:
     from: d' Economie
     to: d' Économie
     by: scan
+  - page: 395
+    from: Aufgabe!
+    to: Aufgabe]
+    by: scan
   - page: 403
     from: A. Smith.“
     to: A. Smith.
@@ -3361,9 +4013,17 @@ theorienberden01marxuoft:
     from: moral prospeets of
     to: moral prospects of
     by: scan
+  - page: 405
+    from: Wert!
+    to: Wert¹
+    by: scan
   - page: 407
     from: Der Begriff der produktiven Arbeit.!
     to: Der Begriff der produktiven Arbeit.
+    by: scan
+  - page: 408
+    from: (lzur
+    to: "[zur"
     by: scan
   - page: 410
     from: — + (konstantes und variables Kapital). Im Prozeß wird
@@ -3410,17 +4070,125 @@ p1theorienberden02marxuoft:
     from: Review ete. London
     to: Review etc. London
     by: scan
+  - page: 13
+    from: lindustrielles
+    to: "[industrielle]"
+    by: scan
+  - page: 15
+    from: sauf
+    to: "[auf"
+    by: scan
+  - page: 20
+    from: Kapitals!
+    to: Kapitals¹
+    by: scan
+  - page: 22
+    from: svon
+    to: "[von"
+    by: scan
+  - page: 23
+    from: Arbeitsslohn!
+    to: Arbeit[slohn]
+    by: scan
+  - page: 24
+    from: hat,?
+    to: hat,²
+    by: scan
+  - page: 25
+    from: Daher!
+    to: Daher¹
+    by: scan
+  - page: 29
+    from: Arbeit!
+    to: Arbeit¹
+    by: scan
+  - page: 29
+    from: verschieden?
+    to: verschieden²
+    by: scan
+  - page: 30
+    from: hatte.?
+    to: hatte.²
+    by: scan
+  - page: 32
+    from: (auch!
+    to: "[auch]"
+    by: scan
+  - page: 41
+    from: Waren?
+    to: Waren²
+    by: scan
+  - page: 42
+    from: Verhältnis!
+    to: Verhältnis]
+    by: scan
+  - page: 44
+    from: Dauerhaftigkeit!
+    to: Dauerhaftigkeit]
+    by: scan
+  - page: 45
+    from: übertragen.?
+    to: übertragen.²
+    by: scan
+  - page: 45
+    from: (Mehrwert],
+    to: "[Mehrwert],"
+    by: scan
+  - page: 49
+    from: limmer
+    to: "[immer"
+    by: scan
+  - page: 49
+    from: ziehen.!
+    to: ziehen.¹
+    by: scan
+  - page: 49
+    from: wurde,?
+    to: wurde,²
+    by: scan
+  - page: 50
+    from: "[Kombination!"
+    to: "[Kombination]"
+    by: scan
+  - page: 50
+    from: (lebendige!]
+    to: "[lebendige]"
+    by: scan
   - page: 53
     from: den Aere, sondern
     to: den Acre, sondern
+    by: scan
+  - page: 53
+    from: saus
+    to: "[aus"
+    by: scan
+  - page: 53
+    from: Fallen!
+    to: Fallen]
     by: scan
   - page: 54
     from: 4) Ricardos Anschauungen.
     to: α) Ricardos Anschauungen.
     by: scan
+  - page: 55
+    from: wolmit!
+    to: wo[mit]
+    by: scan
+  - page: 55
+    from: "[möglich),"
+    to: "[möglich],"
+    by: scan
+  - page: 58
+    from: hier!
+    to: hier]
+    by: scan
   - page: 63
     from: Geldleute (monièd class)
     to: Geldleute (monied class)
+    by: scan
+  - page: 66
+    from: Tauschwerte!
+    to: Tauschwerte¹
     by: scan
   - page: 68
     from: 46/%3 Prozent. Der neue natürliche Preis wird also in-
@@ -3438,9 +4206,53 @@ p1theorienberden02marxuoft:
     from: jetzt 8½ 467/ Prozent. K.
     to: jetzt ³⁵⁄₇₅ = 46⅔ Prozent. K.
     by: scan
+  - page: 68
+    from: steigen!
+    to: steigen]
+    by: scan
+  - page: 68
+    from: sinkt loder
+    to: sinkt [oder
+    by: scan
+  - page: 68
+    from: gefallen loder
+    to: gefallen [oder
+    by: scan
+  - page: 68
+    from: gestiegen!
+    to: gestiegen]
+    by: scan
   - page: 71
     from: 3) Smith über Produktionspreise und Marktpreise.
     to: β) Smith über Produktionspreise und Marktpreise.
+    by: scan
+  - page: 72
+    from: kurrenz!
+    to: kurrenz]
+    by: scan
+  - page: 74
+    from: ssie
+    to: "[sie"
+    by: scan
+  - page: 79
+    from: sauf
+    to: "[auf"
+    by: scan
+  - page: 80
+    from: swill
+    to: "[will"
+    by: scan
+  - page: 80
+    from: er!
+    to: er]
+    by: scan
+  - page: 80
+    from: steigt!
+    to: steigt]
+    by: scan
+  - page: 80
+    from: Profits!
+    to: Profits]
     by: scan
   - page: 82
     from: Abnutzung (Weéar
@@ -3454,6 +4266,14 @@ p1theorienberden02marxuoft:
     from: 2 Penee heben,
     to: 2 Pence heben,
     by: scan
+  - page: 89
+    from: hört!
+    to: hört]
+    by: scan
+  - page: 89
+    from: in!
+    to: in]
+    by: scan
   - page: 91
     from: einen Aere oder
     to: einen Acre oder
@@ -3461,6 +4281,14 @@ p1theorienberden02marxuoft:
   - page: 92
     from: hauteé finance
     to: haute finance
+    by: scan
+  - page: 93
+    from: "[bestimmt)/,"
+    to: "[bestimmt],"
+    by: scan
+  - page: 94
+    from: sohne
+    to: "[ohne"
     by: scan
   - page: 97
     from: 3. Kicardos Darstellung des Mehrwerts.
@@ -3470,13 +4298,41 @@ p1theorienberden02marxuoft:
     from: wichtig. Rieardo betrachtet
     to: wichtig. Ricardo betrachtet
     by: scan
+  - page: 111
+    from: Markte?
+    to: Markte¹
+    by: scan
+  - page: 115
+    from: daß!
+    to: daß]
+    by: scan
+  - page: 116
+    from: setwas!
+    to: "[etwas]"
+    by: scan
   - page: 117
     from: wages deépend upon
     to: wages depend upon
     by: scan
+  - page: 118
+    from: Abnahme.?
+    to: Abnahme.²
+    by: scan
   - page: 120
     from: value ete.
     to: value etc.
+    by: scan
+  - page: 120
+    from: (Acritical
+    to: (A critical
+    by: scan
+  - page: 121
+    from: Monat!
+    to: Monat]
+    by: scan
+  - page: 121
+    from: lüberhaupt!
+    to: "[überhaupt]"
     by: scan
   - page: 122
     from: den cerele vicieux.
@@ -3658,9 +4514,33 @@ p1theorienberden02marxuoft:
     from: versponnen. Dazu 28 Neuwert macht 121½ . K.
     to: versponnen. Dazu 28 £ Neuwert macht 121⅓ £. K.
     by: scan
+  - page: 135
+    from: saber!
+    to: "[aber]"
+    by: scan
   - page: 144
     from: schritts (improveément), die
     to: schritts (improvement), die
+    by: scan
+  - page: 144
+    from: wird,!
+    to: wird,¹
+    by: scan
+  - page: 144
+    from: Produzenten?
+    to: Produzenten²
+    by: scan
+  - page: 146
+    from: Sparen?
+    to: Sparen¹
+    by: scan
+  - page: 147
+    from: Konsumenten;!
+    to: Konsumenten;¹
+    by: scan
+  - page: 149
+    from: Arbeitslohnes!
+    to: Arbeitslohnes]
     by: scan
   - page: 150
     from: wie Rieardo
@@ -3669,6 +4549,10 @@ p1theorienberden02marxuoft:
   - page: 152
     from: sub speécié des
     to: sub specie des
+    by: scan
+  - page: 152
+    from: soder
+    to: "[oder"
     by: scan
   - page: 155
     from: 10 Penee
@@ -3682,13 +4566,53 @@ p1theorienberden02marxuoft:
     from: Möbelfabrikantenusw.
     to: Möbelfabrikanten usw.
     by: scan
+  - page: 165
+    from: Ökonomen!
+    to: Ökonomen]
+    by: scan
   - page: 167
     from: 1. RKodbertus.
     to: 1. Rodbertus.
     by: scan
+  - page: 167
+    from: betrage!
+    to: betrage]
+    by: scan
+  - page: 168
+    from: sins
+    to: "[ins"
+    by: scan
+  - page: 168
+    from: Bedarfssniveau!
+    to: Bedarf[sniveau]
+    by: scan
+  - page: 168
+    from: (Kleinheit!
+    to: "[Kleinheit]"
+    by: scan
+  - page: 168
+    from: Verhältnis!
+    to: Verhältnis]
+    by: scan
+  - page: 168
+    from: "[Ausdehnung!"
+    to: "[Ausdehnung]"
+    by: scan
+  - page: 169
+    from: fällt, der Arbeitslohn!
+    to: fällt, der Arbeitslohn]
+    by: scan
+  - page: 169
+    from: Arbeitslohn! ist
+    to: Arbeitslohn] ist
+    by: scan
   - page: 170
     from: das Aere. Er
     to: das Acre. Er
+    by: scan
+  - page: 171
+    from: lärmeren!
+    to: "[ärmeren]"
     by: scan
   - page: 172
     from: Stammbaumweizen (pédigrèe nursery
@@ -3698,6 +4622,14 @@ p1theorienberden02marxuoft:
     from: eines Aeres mußte
     to: eines Acres mußte
     by: scan
+  - page: 172
+    from: Beispiel:!
+    to: Beispiel:]
+    by: scan
+  - page: 173
+    from: (Verzehnfacht!
+    to: "[Verzehnfacht]"
+    by: scan
   - page: 174
     from: ein Aere mehr
     to: ein Acre mehr
@@ -3706,13 +4638,29 @@ p1theorienberden02marxuoft:
     from: mehr Aeres be-
     to: mehr Acres be-
     by: scan
+  - page: 174
+    from: Entwicklunglüsstufe!
+    to: Entwicklung[sstufe]
+    by: scan
+  - page: 175
+    from: swäre!
+    to: "[wäre]"
+    by: scan
   - page: 177
     from: Zi. sich
     to: m/(c + v) [sich
     by: scan
+  - page: 177
+    from: wo!
+    to: wo]
+    by: scan
   - page: 178
     from: Ist é von
     to: Ist c von
+    by: scan
+  - page: 178
+    from: verändern!
+    to: verändern]
     by: scan
   - page: 179
     from: von ée, Roh-
@@ -3770,9 +4718,149 @@ p1theorienberden02marxuoft:
     from: produkt von 1500 750, verliert also 250 Franes von seinem
     to: produkt von 1500 750, verliert also 250 Francs von seinem
     by: scan
+  - page: 184
+    from: "[geschieht!"
+    to: "[geschieht]"
+    by: scan
+  - page: 188
+    from: Ausgleichungen.!
+    to: Ausgleichungen.¹
+    by: scan
+  - page: 188
+    from: soder
+    to: "[oder"
+    by: scan
   - page: 189
     from: Durchschnittspreis lim obigen
     to: Durchschnittspreis [im obigen
+    by: scan
+  - page: 189
+    from: saber!
+    to: "[aber]"
+    by: scan
+  - page: 192
+    from: sist
+    to: "[ist"
+    by: scan
+  - page: 193
+    from: sind!
+    to: sind]
+    by: scan
+  - page: 194
+    from: man!
+    to: man]
+    by: scan
+  - page: 194
+    from: sihre
+    to: "[ihre"
+    by: scan
+  - page: 195
+    from: soder
+    to: "[oder"
+    by: scan
+  - page: 195
+    from: ebensowenig!
+    to: ebensowenig]
+    by: scan
+  - page: 198
+    from: sgegebene
+    to: "[gegebene"
+    by: scan
+  - page: 198
+    from: Niveau!
+    to: Niveau]
+    by: scan
+  - page: 201
+    from: shohen!
+    to: "[hohen]"
+    by: scan
+  - page: 204
+    from: sihn
+    to: "[ihn"
+    by: scan
+  - page: 206
+    from: lauch
+    to: "[auch"
+    by: scan
+  - page: 206
+    from: wenn!
+    to: wenn]
+    by: scan
+  - page: 206
+    from: "[wird!"
+    to: "[wird]"
+    by: scan
+  - page: 208
+    from: Kapitalisten!
+    to: Kapitalisten]
+    by: scan
+  - page: 208
+    from: vielmehr!
+    to: vielmehr]
+    by: scan
+  - page: 208
+    from: sunbezahlte
+    to: "[unbezahlte"
+    by: scan
+  - page: 208
+    from: Arbeit!
+    to: Arbeit]
+    by: scan
+  - page: 209
+    from: économique!
+    to: économique]
+    by: scan
+  - page: 210
+    from: "[keines)"
+    to: "[keines]"
+    by: scan
+  - page: 210
+    from: Produktion!
+    to: Produktion¹
+    by: scan
+  - page: 211
+    from: Produktion!
+    to: Produktion]
+    by: scan
+  - page: 211
+    from: oder!
+    to: oder]
+    by: scan
+  - page: 214
+    from: ist!
+    to: ist]
+    by: scan
+  - page: 215
+    from: (wird!
+    to: "[wird]"
+    by: scan
+  - page: 216
+    from: vornherein!
+    to: vornherein]
+    by: scan
+  - page: 217
+    from: schaffend!
+    to: schaffend]
+    by: scan
+  - page: 220
+    from: ssein
+    to: "[sein"
+    by: scan
+  - page: 223
+    from: srichtig),
+    to: "[richtig],"
+    by: scan
+  - page: 224
+    from: lerscheint
+    to: "[erscheint"
+    by: scan
+  - page: 228
+    from: "[davon!"
+    to: "[davon]"
+    by: scan
+  - page: 228
+    from: solche!
+    to: solche]
     by: scan
   - page: 229
     from: mit Aere und
@@ -3781,6 +4869,22 @@ p1theorienberden02marxuoft:
   - page: 229
     from: ein Aere ab-
     to: ein Acre ab-
+    by: scan
+  - page: 229
+    from: sjener
+    to: "[jener"
+    by: scan
+  - page: 229
+    from: Teil!
+    to: Teil]
+    by: scan
+  - page: 229
+    from: (vor],
+    to: "[vor],"
+    by: scan
+  - page: 229
+    from: swird!],
+    to: "[wird],"
     by: scan
   - page: 230
     from: Ee) Fortsetzung der Kritik.
@@ -3794,9 +4898,161 @@ p1theorienberden02marxuoft:
     from: ) Zweite Formel.
     to: β) Zweite Formel.
     by: scan
+  - page: 233
+    from: nun!
+    to: nun]
+    by: scan
+  - page: 234
+    from: "[Gesetz)"
+    to: "[Gesetz]"
+    by: scan
+  - page: 234
+    from: ssein
+    to: "[sein"
+    by: scan
+  - page: 235
+    from: "[Wert!"
+    to: "[Wert]"
+    by: scan
+  - page: 235
+    from: Summe!
+    to: Summe]
+    by: scan
+  - page: 236
+    from: lsauch!
+    to: "[auch]"
+    by: scan
+  - page: 236
+    from: soder
+    to: "[oder"
+    by: scan
+  - page: 236
+    from: "[sol"
+    to: "[so]"
+    by: scan
+  - page: 241
+    from: J. Industrieprodukt Agrikulturprodukt (Mehrwert!
+    to: "| Industrieprodukt | Agrikulturprodukt | [Mehrwert]"
+    by: scan
+  - page: 241
+    from: 600 4 300 4 — 100 E 1200 (Arbeits-
+    to: I. | 600 £ = [7200 Arbeitsstunden] | 300 £ = [3600 Arbeitsstunden] | [100 £ =] 1200 [Arbeitsstunden für Profit] der Industrie, [50 £ =] 600 [Arbeitsstunden für Profit] der Agrikultur, [5 £ =] 60 [Arbeitsstunden] für Grundrente. Zusammen [155 £ =] 1860 [Arbeitsstunden]; davon [150 £ =] 1800 für Profit.
+    by: scan
+  - page: 241
+    from: 7200 Arbeits- (3600 Arbeits- stunden für Profit] der In-
+    to: II. | 300 £ = [3600 Arbeitsstunden] | 600 £ = [7200 Arbeitsstunden] | [50 £ =] 600 [Arbeitsstunden für Profit] der Industrie, [100 £ =] 1200 [Arbeitsstunden für Profit] der Agrikultur, [10 £ =] 120 [Arbeitsstunden] für Grundrente. Zusammen [160 £ =] 1920 [Arbeitsstunden], davon [150 £ =] 1800 für Profit.
+    by: scan
+  - page: 241
+    from: stunden! stunden! dustrie, (50 H = 600 (Ar-
+    to: ""
+    by: scan
+  - page: 241
+    from: beitsstunden für Profit!] der
+    to: ""
+    by: scan
+  - page: 241
+    from: Agrikultur, (5 60
+    to: ""
+    by: scan
+  - page: 241
+    from: (Arbeitsstunden! für Grund-
+    to: ""
+    by: scan
+  - page: 241
+    from: rente.
+    to: ""
+    by: scan
+  - page: 241
+    from: Zusammen (155 £ ] 1860
+    to: ""
+    by: scan
+  - page: 241
+    from: Arbeitsstunden]; davon
+    to: ""
+    by: scan
+  - page: 241
+    from: 150 1800 für Profit.
+    to: ""
+    by: scan
+  - page: 241
+    from: U. 300 600 50 H ] 600 Arbeits-
+    to: ""
+    by: scan
+  - page: 241
+    from: 3600 Arbeits- (7200 Arbeits- stunden für Profit] der In-
+    to: ""
+    by: scan
+  - page: 241
+    from: stunden! stunden! dustrie, (100 S˙¼ 1200
+    to: ""
+    by: scan
+  - page: 241
+    from: (Arbeitsstunden für Profit!
+    to: ""
+    by: scan
+  - page: 241
+    from: der Agrikultur, 10 £
+    to: ""
+    by: scan
+  - page: 241
+    from: 120 ([Arbeitsstunden! für
+    to: ""
+    by: scan
+  - page: 241
+    from: Grundrente.
+    to: ""
+    by: scan
+  - page: 241
+    from: Zusammen (160 £ =] 1920
+    to: ""
+    by: scan
+  - page: 241
+    from: "[Arbeitsstunden], davon"
+    to: ""
+    by: scan
+  - page: 241
+    from: 1150 1800 für Profit.
+    to: ""
+    by: scan
+  - page: 243
+    from: wollreinigungsmaschine!
+    to: wollreinigungsmaschine]
+    by: scan
+  - page: 244
+    from: dieser!
+    to: dieser
+    by: scan
+  - page: 245
+    from: wäre!
+    to: wäre]
+    by: scan
+  - page: 246
+    from: Mehrwert!
+    to: Mehrwert]
+    by: scan
+  - page: 246
+    from: sindustriellen!
+    to: "[industriellen]"
+    by: scan
   - page: 249
     from: „) Dritte Formel.
     to: γ) Dritte Formel.
+    by: scan
+  - page: 251
+    from: Rodbertus!
+    to: Rodbertus]
+    by: scan
+  - page: 253
+    from: (50],
+    to: "[50],"
+    by: scan
+  - page: 254
+    from: die!
+    to: die]
+    by: scan
+  - page: 255
+    from: (Garn!
+    to: "[Garn]"
     by: scan
   - page: 256
     from: Produktionskosten 960, Profit 60, Profitrate 6⅛ Prozent.
@@ -3830,9 +5086,25 @@ p1theorienberden02marxuoft:
     from: Im Manufkript steht versehentlich 150 Schilling. K.
     to: ¹) Im Manuskript steht versehentlich 150 Schilling. K.
     by: scan
+  - page: 257
+    from: ab!
+    to: ab]
+    by: scan
+  - page: 261
+    from: ([wieder!
+    to: "[wieder]"
+    by: scan
   - page: 263
     from: pro Aere zahlen
     to: pro Acre zahlen
+    by: scan
+  - page: 263
+    from: wenn!
+    to: wenn]
+    by: scan
+  - page: 263
+    from: smit
+    to: "[mit"
     by: scan
   - page: 264
     from: Bushels ½ £. Der Wert stände 10 Prozent über dem Pro-
@@ -3877,6 +5149,10 @@ p1theorienberden02marxuoft:
   - page: 264
     from: Boden von 10 E abwarf, waren gleich dem Werte des auf diesem
     to: Boden von 10 £ abwarf, waren gleich dem Werte des auf diesem
+    by: scan
+  - page: 264
+    from: sauf
+    to: "[auf"
     by: scan
   - page: 265
     from: Rente tragenden Boden. Klasse II, die über J, dem letzten
@@ -3945,6 +5221,30 @@ p1theorienberden02marxuoft:
   - page: 265
     from: bleibt eine Rente von 34 E, nicht 12 L. K.
     to: bleibt eine Rente von 34 £, nicht 12 £. K.
+    by: scan
+  - page: 265
+    from: (Wenn!
+    to: "[Wenn]"
+    by: scan
+  - page: 266
+    from: (Ebenso!
+    to: "[Ebenso]"
+    by: scan
+  - page: 266
+    from: "[Angenommen,)"
+    to: "[Angenommen,]"
+    by: scan
+  - page: 266
+    from: sist
+    to: "[ist"
+    by: scan
+  - page: 269
+    from: (nicht!
+    to: "[nicht]"
+    by: scan
+  - page: 270
+    from: "[bloß!"
+    to: "[bloß]"
     by: scan
   - page: 274
     from: IV zu III, II, Iüber, so würde der Preis steigen bis (zur
@@ -4018,6 +5318,10 @@ p1theorienberden02marxuoft:
     from: 2 Hier ist ein Wort unleserlich. K.
     to: ²) Hier ist ein Wort unleserlich. K.
     by: scan
+  - page: 277
+    from: Bushel?
+    to: Bushel²
+    by: scan
   - page: 278
     from: in bezug auf das Produkt, so swaren!] in I nötig 100, um
     to: in bezug auf das Produkt, so [waren] in I nötig 100, um
@@ -4089,6 +5393,10 @@ p1theorienberden02marxuoft:
   - page: 279
     from: konstanten lim Durchschnitt!
     to: konstanten [im Durchschnitt!
+    by: scan
+  - page: 279
+    from: Durchschnitt!
+    to: Durchschnitt]
     by: scan
   - page: 282
     from: duktionsbedingungen nach 500 in Rohstoff und Maschi-
@@ -4166,9 +5474,37 @@ p1theorienberden02marxuoft:
     from: Im Manufsktript sieht Surplusvalue. K.
     to: ¹) Im Manuskript steht surplusvalue. K.
     by: scan
+  - page: 283
+    from: Gesamtkapital!
+    to: Gesamtkapital]
+    by: scan
+  - page: 283
+    from: Nation!
+    to: Nation¹
+    by: scan
   - page: 284
     from: Aere überhaupt,
     to: Acre überhaupt,
+    by: scan
+  - page: 284
+    from: der Bebauung!
+    to: der Bebauung]
+    by: scan
+  - page: 284
+    from: die Bebauung!
+    to: die Bebauung]
+    by: scan
+  - page: 285
+    from: sind!
+    to: sind]
+    by: scan
+  - page: 285
+    from: leine
+    to: "[eine"
+    by: scan
+  - page: 286
+    from: Mehrwerts!
+    to: Mehrwerts]
     by: scan
   - page: 288
     from: fruchtbarsten Aeres, die
@@ -4178,13 +5514,41 @@ p1theorienberden02marxuoft:
     from: Enquiries ete.
     to: Enquiries etc.
     by: scan
+  - page: 290
+    from: ist.!
+    to: ist.¹
+    by: scan
   - page: 291
     from: en bloe
     to: en bloc
     by: scan
+  - page: 292
+    from: sund
+    to: "[und"
+    by: scan
+  - page: 292
+    from: Mehrwert!
+    to: Mehrwert]
+    by: scan
   - page: 294
     from: ditferentia speécifica aus.
     to: ditferentia specifica aus.
+    by: scan
+  - page: 295
+    from: Eigentum!
+    to: Eigentum]
+    by: scan
+  - page: 298
+    from: sarbeitenden]
+    to: "[arbeitenden]"
+    by: scan
+  - page: 299
+    from: Verhältnis!
+    to: Verhältnis]
+    by: scan
+  - page: 299
+    from: Kapital!
+    to: Kapital]
     by: scan
   - page: 300
     from: Millionen Aeres von
@@ -4202,6 +5566,10 @@ p1theorienberden02marxuoft:
     from: hat.“ (Misére de
     to: hat.“ (Misère de
     by: scan
+  - page: 302
+    from: (dort!
+    to: "[dort]"
+    by: scan
   - page: 304
     from: z. bemerkungen über dlie Geschichte der Entdeckung des
     to: 2. Bemerkungen über die Geschichte der Entdeckung des sogenannten Ricardoschen Gesetzes.
@@ -4218,6 +5586,18 @@ p1theorienberden02marxuoft:
     from: „Essays reéelating
     to: „Essays relating
     by: scan
+  - page: 307
+    from: lauch!
+    to: "[auch]"
+    by: scan
+  - page: 308
+    from: ein!
+    to: ein
+    by: scan
+  - page: 309
+    from: "[vollzieht!),"
+    to: "[vollzieht],"
+    by: scan
   - page: 310
     from: Stockt ete. 2nd
     to: Stockt etc. 2nd
@@ -4230,6 +5610,10 @@ p1theorienberden02marxuoft:
     from: Political Eeonomy.
     to: Political Economy.
     by: scan
+  - page: 311
+    from: wir!
+    to: wir
+    by: scan
   - page: 312
     from: political économy“, gegen
     to: political economy“, gegen
@@ -4237,6 +5621,14 @@ p1theorienberden02marxuoft:
   - page: 312
     from: ciplés of political
     to: ciples of political
+    by: scan
+  - page: 313
+    from: auch!
+    to: auch
+    by: scan
+  - page: 313
+    from: (laber!
+    to: "[aber]"
     by: scan
   - page: 314
     from: of spécies by
@@ -4261,6 +5653,14 @@ p1theorienberden02marxuoft:
   - page: 314
     from: for lifeé (2.
     to: for life (2.
+    by: scan
+  - page: 314
+    from: sist
+    to: "[ist"
+    by: scan
+  - page: 314
+    from: leinziges
+    to: "[einziges"
     by: scan
   - page: 315
     from: Nature ofe the
@@ -4313,6 +5713,10 @@ p1theorienberden02marxuoft:
   - page: 317
     from: Wilhelm Thueydides die
     to: Wilhelm Thucydides die
+    by: scan
+  - page: 317
+    from: weder!
+    to: weder]
     by: scan
   - page: 318
     from: intérést) und
@@ -4369,6 +5773,10 @@ p1theorienberden02marxuoft:
   - page: 318
     from: Wilhelm Thueydides als
     to: Wilhelm Thucydides als
+    by: scan
+  - page: 318
+    from: Beobachtung?
+    to: Beobachtung²
     by: scan
   - page: 319
     from: helm Thueydides vor.
@@ -4616,9 +6024,25 @@ p1theorienberden02marxuoft:
     from: 1850—1859 53 4771⁰
     to: 1850—1859 | 53 | 4⁷⁄₁₀
     by: scan
+  - page: 328
+    from: der!
+    to: der]
+    by: scan
+  - page: 330
+    from: Produktionsskosten!
+    to: Produktion[skosten]
+    by: scan
+  - page: 330
+    from: Kulturboden!
+    to: Kulturboden]
+    by: scan
   - page: 332
     from: present scareity
     to: present scarcity
+    by: scan
+  - page: 334
+    from: Böden,!
+    to: Böden,¹
     by: scan
   - page: 335
     from: hitherto reéetarded the
@@ -4692,9 +6116,17 @@ p1theorienberden02marxuoft:
     from: Provenances ete. London
     to: Provenances etc. London
     by: scan
+  - page: 339
+    from: swiderlegt],
+    to: "[widerlegt],"
+    by: scan
   - page: 340
     from: Laws ete. London
     to: Laws etc. London
+    by: scan
+  - page: 341
+    from: Boden!
+    to: Boden]
     by: scan
   - page: 344
     from: stets.
@@ -4713,9 +6145,45 @@ p2theorienberd02marx:
     from: 3. Die Kicardosche Kententheorie.
     to: 3. Die Ricardosche Rententheorie.
     by: scan
+  - page: 1
+    from: Quantum Arbeit!
+    to: Quantum Arbeit]
+    by: scan
+  - page: 4
+    from: Grundrente!
+    to: Grundrente]
+    by: scan
   - page: 6
     from: dieses „elearing ef
     to: dieses „clearing ef
+    by: scan
+  - page: 10
+    from: (jene]
+    to: "[jene]"
+    by: scan
+  - page: 12
+    from: sunter
+    to: "[unter"
+    by: scan
+  - page: 16
+    from: lüber
+    to: "[über"
+    by: scan
+  - page: 16
+    from: Grundrente!
+    to: Grundrente]
+    by: scan
+  - page: 17
+    from: genommen!
+    to: genommen]
+    by: scan
+  - page: 22
+    from: ssie
+    to: "[sie"
+    by: scan
+  - page: 22
+    from: steht!
+    to: steht]
     by: scan
   - page: 23
     from: C4õ) Veränderungen der Masse der Rente.
@@ -4724,6 +6192,14 @@ p2theorienberd02marx:
   - page: 27
     from: 5) Veränderungen der Differentialrente.
     to: β) Veränderungen der Differentialrente.
+    by: scan
+  - page: 27
+    from: sindividuelle)
+    to: "[individuelle]"
+    by: scan
+  - page: 30
+    from: sindividuellen!
+    to: "[individuellen]"
     by: scan
   - page: 31
     from: 5 H gefallen. Wäre noch dieselbe Menge Kapital angewandt,
@@ -5057,6 +6533,10 @@ p2theorienberd02marx:
   - page: 35
     from: Das gälte, wenn dieser 1/s wäre und nicht 19/18 E. K.
     to: Das gälte, wenn dieser 1⁷⁄₁₅ wäre und nicht 1⁹⁄₁₃ £. K.
+    by: scan
+  - page: 36
+    from: sund
+    to: "[und"
     by: scan
   - page: 40
     from: 40 Die Grundrente
@@ -5662,6 +7142,10 @@ p2theorienberd02marx:
     from: Es kann also ebenfalls gesagt werden, daß Jwegen der
     to: Es kann also ebenfalls gesagt werden, daß I wegen der
     by: scan
+  - page: 67
+    from: swäre
+    to: "[wäre"
+    by: scan
   - page: 69
     from: das heißt wenn J durch die Konkurrenz von IV, III und II,
     to: das heißt wenn I durch die Konkurrenz von IV, III und II,
@@ -5693,6 +7177,10 @@ p2theorienberd02marx:
   - page: 69
     from: beste oder schlechteste Bodenart IV oder Joder III oder II
     to: beste oder schlechteste Bodenart IV oder I oder III oder II
+    by: scan
+  - page: 71
+    from: sjener
+    to: "[jener"
     by: scan
   - page: 73
     from: Geht man von J aus, so ist es klar, daß II, III, IV,
@@ -5766,9 +7254,25 @@ p2theorienberd02marx:
     from: in II.
     to: in II
     by: scan
+  - page: 78
+    from: sauch
+    to: "[auch"
+    by: scan
+  - page: 78
+    from: die!
+    to: die]
+    by: scan
   - page: 79
     from: 0) Ricardos Darstellung seines Normalfalles.
     to: δ) Ricardos Darstellung seines Normalfalles.
+    by: scan
+  - page: 79
+    from: werden,?
+    to: werden,²
+    by: scan
+  - page: 80
+    from: gewährt.!
+    to: gewährt.¹
     by: scan
   - page: 82
     from: ꝛ1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
@@ -5777,6 +7281,26 @@ p2theorienberd02marx:
   - page: 85
     from: von. dem
     to: von dem
+    by: scan
+  - page: 86
+    from: "[bedenklich),"
+    to: "[bedenklich],"
+    by: scan
+  - page: 95
+    from: (bestimmenden]
+    to: "[bestimmenden]"
+    by: scan
+  - page: 95
+    from: steigt.!
+    to: steigt.¹
+    by: scan
+  - page: 98
+    from: Landbau!
+    to: Landbau]
+    by: scan
+  - page: 99
+    from: Böden!
+    to: Böden]
     by: scan
   - page: 100
     from: bildet die Grundrente.“ (I. c. S. 73, 74.)
@@ -6128,29 +7652,113 @@ p2theorienberd02marx:
     from: Die Tabellen C und D sind im Manuskript zum Teil nur an-
     to: ¹) Die Tabellen C und D sind im Manuskript zum Teil nur an-
     by: scan
+  - page: 104
+    from: abgenommen hat, und sanderseits, weil! die Kornrente ([ge-
+    to: abgenommen hat, und [anderseits, weil] die Kornrente [ge-
+    by: scan
+  - page: 104
+    from: fallen ist, die fiell, weil die absolute Rente sauch in Korn!
+    to: fallen ist, die fiel], weil die absolute Rente [auch in Korn]
+    by: scan
+  - page: 104
+    from: abgenommen hat, während die Differentialrente in Korn!
+    to: abgenommen hat, während die Differentialrente [in Korn]
+    by: scan
   - page: 108
     from: t) Ricardos Kritik der Smithschen Rententheorie.
     to: f) Ricardos Kritik der Smithschen Rententheorie.
+    by: scan
+  - page: 110
+    from: gemeinen!
+    to: gemeinen]
     by: scan
   - page: 111
     from: Ländern. ist
     to: Ländern ist
     by: scan
+  - page: 116
+    from: Ackerland!
+    to: Ackerland]
+    by: scan
+  - page: 116
+    from: sbildet,
+    to: "[bildet],"
+    by: scan
+  - page: 117
+    from: Boden!
+    to: Boden]
+    by: scan
+  - page: 118
+    from: des!
+    to: des]
+    by: scan
+  - page: 122
+    from: svom
+    to: "[vom"
+    by: scan
+  - page: 122
+    from: Produktionskosten!
+    to: Produktionskosten]
+    by: scan
   - page: 124
     from: g4) Wert, Preis und Rente.
     to: α) Wert, Preis und Rente.
+    by: scan
+  - page: 128
+    from: Landes?
+    to: Landes²
+    by: scan
+  - page: 129
+    from: Arbeit!
+    to: Arbeit¹
+    by: scan
+  - page: 132
+    from: sins
+    to: "[ins"
     by: scan
   - page: 140
     from: 5) Bodenprodukte, die immer eine Rente liefern.
     to: β) Bodenprodukte, die immer eine Rente liefern.
     by: scan
+  - page: 142
+    from: Schlachtfleisch?
+    to: Schlachtfleisch²
+    by: scan
+  - page: 142
+    from: Überschuß?
+    to: Überschuß³
+    by: scan
+  - page: 143
+    from: Viehs.!
+    to: Viehs.¹
+    by: scan
   - page: 146
     from: „) Bodenprodukte, die manchmal eine Rente liefern und
     to: γ) Bodenprodukte, die manchmal eine Rente liefern und
     by: scan
+  - page: 146
+    from: notwendigerweise!
+    to: notwendigerweise¹
+    by: scan
+  - page: 156
+    from: wird,?
+    to: wird,²
+    by: scan
+  - page: 156
+    from: Boden!
+    to: Boden]
+    by: scan
   - page: 157
     from: 0) Veränderungen im Verhältnis der Werte der beiden Arten
     to: δ) Veränderungen im Verhältnis der Werte der beiden Arten
+    by: scan
+  - page: 159
+    from: Sektion!
+    to: Sektion]
+    by: scan
+  - page: 164
+    from: Arbeitskraft!
+    to: Arbeitskraft]
     by: scan
   - page: 169
     from: Masse Waren hätten den Wert von 80 cC + 15 v&ÆL 15 m,
@@ -6374,6 +7982,10 @@ p2theorienberd02marx:
     from: Mit Überschlagung einer Bruchzahl (21106/487e1].
     to: ¹) Mit Überschlagung einer Bruchzahl [²¹¹⁰¹⁶⁄₃₄₆₇₃₁].
     by: scan
+  - page: 172
+    from: (da!]
+    to: "[da]"
+    by: scan
   - page: 173
     from: "auf 100: 66 /8 cC + 33 ⅛ v. Und da die Arbeit, die mit 40"
     to: "auf 100: 66⅔ c + 33⅓ v. Und da die Arbeit, die mit 40"
@@ -6410,9 +8022,21 @@ p2theorienberd02marx:
     from: 10 Prozent. Die Rente fiele von 10 auf 6 /8, und zwar hätte
     to: 10 Prozent. Die Rente fiele von 10 auf 6⅔, und zwar hätte
     by: scan
+  - page: 175
+    from: sihn
+    to: "[ihn"
+    by: scan
+  - page: 176
+    from: smehreren
+    to: "[mehreren"
+    by: scan
   - page: 178
     from: 4) Untersuchung der Ricardoschen Voraussetzungen.
     to: α) Untersuchung der Ricardoschen Voraussetzungen.
+    by: scan
+  - page: 180
+    from: Boden!
+    to: Boden]
     by: scan
   - page: 182
     from: — 2 H), so jetzt die 50J von 16 /8 Mann, die 50 £ erhalten,
@@ -7695,9 +9319,45 @@ p2theorienberd02marx:
     from: nung durch, 427/ Tonnen. K.
     to: nung durch, 42⁷⁄₁₂ Tonnen. K.
     by: scan
+  - page: 201
+    from: wenn!
+    to: wenn]
+    by: scan
+  - page: 203
+    from: sihn!
+    to: "[ihn]"
+    by: scan
+  - page: 204
+    from: limmer!
+    to: "[immer]"
+    by: scan
   - page: 205
     from: 5) Ricardos Äußerungen über den Fall.
     to: β) Ricardos Äußerungen über den Fall.
+    by: scan
+  - page: 209
+    from: sauf
+    to: "[auf"
+    by: scan
+  - page: 209
+    from: Profit!
+    to: Profit]
+    by: scan
+  - page: 213
+    from: deswegen!
+    to: deswegen]
+    by: scan
+  - page: 214
+    from: kann,!
+    to: kann,¹
+    by: scan
+  - page: 214
+    from: Arbeitslohns?
+    to: Arbeitslohns²
+    by: scan
+  - page: 215
+    from: sindustrieller]
+    to: "[industrieller]"
     by: scan
   - page: 218
     from: Einfluß des Wertwechsels auf die organische
@@ -8001,6 +9661,10 @@ p2theorienberd02marx:
     from: per cçent
     to: per cent
     by: scan
+  - page: 227
+    from: sbei
+    to: "[bei"
+    by: scan
   - page: 228
     from: Das Pfund Garn steigt in diesem Falle von / & auf
     to: Das Pfund Garn steigt in diesem Falle von ⁹⁄₁₂₀ £ auf
@@ -8195,6 +9859,22 @@ p2theorienberd02marx:
     from: III. ARkumulation von Kapital und Krisen.
     to: III. Akkumulation von Kapital und Krisen.
     by: scan
+  - page: 233
+    from: Revenue!
+    to: Revenue]
+    by: scan
+  - page: 239
+    from: Menschen!
+    to: Menschen]
+    by: scan
+  - page: 240
+    from: skonstante!]
+    to: "[konstante]"
+    by: scan
+  - page: 240
+    from: salso!
+    to: "[also]"
+    by: scan
   - page: 241
     from: dukt GW 10 c Æv½ 11 Arbeitstagen und das des Russen
     to: dukt = 10 c + 1 v = 11 Arbeitstagen und das des Russen
@@ -8211,9 +9891,37 @@ p2theorienberd02marx:
     from: Marx, Theorien über den Mehrwert. II, 2. Teil. 16
     to: ""
     by: scan
+  - page: 241
+    from: saber
+    to: "[aber"
+    by: scan
+  - page: 242
+    from: sunmittelbarer)
+    to: "[unmittelbarer]"
+    by: scan
+  - page: 242
+    from: Summe!
+    to: Summe]
+    by: scan
   - page: 243
     from: z. verwandlung von Revenue in Rapital.
     to: 2. Verwandlung von Revenue in Kapital.
+    by: scan
+  - page: 244
+    from: "[ganz!"
+    to: "[ganz]"
+    by: scan
+  - page: 246
+    from: (vermögen!
+    to: "[vermögen]"
+    by: scan
+  - page: 249
+    from: "[Garn!"
+    to: "[Garn]"
+    by: scan
+  - page: 254
+    from: soder
+    to: "[oder"
     by: scan
   - page: 255
     from: 3. Verwandlung des akkumulierten Mehrwerts in variables
@@ -8235,13 +9943,121 @@ p2theorienberd02marx:
     from: Krisen.
     to: Krisen
     by: scan
+  - page: 263
+    from: "[begrenzt]!"
+    to: "[begrenzt]¹"
+    by: scan
+  - page: 264
+    from: "[was!"
+    to: "[was]"
+    by: scan
+  - page: 268
+    from: Aber!
+    to: "[Aber]"
+    by: scan
+  - page: 272
+    from: Streben,!
+    to: Streben,]
+    by: scan
   - page: 274
     from: spéecificae, kurz
     to: specificae, kurz
     by: scan
+  - page: 274
+    from: Momente!
+    to: "[Momente]"
+    by: scan
+  - page: 279
+    from: sansieht!,
+    to: "[ansieht],"
+    by: scan
+  - page: 279
+    from: sebenso
+    to: "[ebenso"
+    by: scan
+  - page: 279
+    from: wie!
+    to: wie]
+    by: scan
+  - page: 284
+    from: Produktionsprozeß!
+    to: Produktionsprozeß]
+    by: scan
+  - page: 286
+    from: "[nur!"
+    to: "[nur]"
+    by: scan
+  - page: 286
+    from: ([wirklich]
+    to: "[wirklich]"
+    by: scan
+  - page: 287
+    from: seinmal!],
+    to: "[einmal],"
+    by: scan
+  - page: 287
+    from: ([dann!],
+    to: "[dann],"
+    by: scan
+  - page: 291
+    from: sakkumulierten!
+    to: "[akkumulierten]"
+    by: scan
+  - page: 291
+    from: sausgelegt],
+    to: "[ausgelegt],"
+    by: scan
+  - page: 295
+    from: Sinne!
+    to: Sinne]
+    by: scan
+  - page: 296
+    from: sihrer)
+    to: "[ihrer]"
+    by: scan
+  - page: 305
+    from: auch!
+    to: auch]
+    by: scan
+  - page: 306
+    from: kann,?
+    to: kann,²
+    by: scan
+  - page: 307
+    from: Menge?
+    to: Menge²
+    by: scan
+  - page: 312
+    from: Unmöglichkeit!
+    to: Unmöglichkeit]
+    by: scan
+  - page: 312
+    from: ssie
+    to: "[sie"
+    by: scan
+  - page: 312
+    from: ssoll
+    to: "[soll"
+    by: scan
+  - page: 315
+    from: landeres
+    to: "[anderes"
+    by: scan
   - page: 319
     from: 5. AkkUmulation und Ronsum.
     to: 5. Akkumulation und Konsum.
+    by: scan
+  - page: 321
+    from: Reichtum!
+    to: Reichtum¹
+    by: scan
+  - page: 323
+    from: Reichtum.!
+    to: Reichtum.¹
+    by: scan
+  - page: 324
+    from: vergrößern,!
+    to: vergrößern,¹
     by: scan
   - page: 333
     from: 1. Brutto- und nettoeinkommen.
@@ -8251,9 +10067,105 @@ p2theorienberd02marx:
     from: Riecardo begeht
     to: Ricardo begeht
     by: scan
+  - page: 335
+    from: Produktionskosten.?
+    to: Produktionskosten.²
+    by: scan
+  - page: 340
+    from: Aber!
+    to: "[Aber]"
+    by: scan
+  - page: 340
+    from: "[vermehrte!"
+    to: "[vermehrte]"
+    by: scan
   - page: 342
     from: Hände, kfrée hands,
     to: Hände, free hands,
+    by: scan
+  - page: 343
+    from: Voraussetzung! der
+    to: Voraussetzung] der
+    by: scan
+  - page: 343
+    from: Kapitel!
+    to: Kapitel]
+    by: scan
+  - page: 343
+    from: der Ricardoschen Voraussetzung!
+    to: der Ricardoschen Voraussetzung]
+    by: scan
+  - page: 344
+    from: Verwandlung!
+    to: Verwandlung]
+    by: scan
+  - page: 344
+    from: darzulegen,!
+    to: darzulegen,¹
+    by: scan
+  - page: 352
+    from: ihn!
+    to: ihn]
+    by: scan
+  - page: 353
+    from: labnimmt).
+    to: "[abnimmt]."
+    by: scan
+  - page: 354
+    from: diese!
+    to: diese]
+    by: scan
+  - page: 354
+    from: Teil!
+    to: Teil]
+    by: scan
+  - page: 359
+    from: sund
+    to: "[und"
+    by: scan
+  - page: 360
+    from: Preisfall!
+    to: Preisfall]
+    by: scan
+  - page: 361
+    from: herrschen.?
+    to: herrschen.²
+    by: scan
+  - page: 361
+    from: Bedürfnissen?
+    to: Bedürfnissen³
+    by: scan
+  - page: 362
+    from: notwendigerweise?
+    to: notwendigerweise²
+    by: scan
+  - page: 362
+    from: sjetzt)
+    to: "[jetzt]"
+    by: scan
+  - page: 363
+    from: Seiten!
+    to: Seiten]
+    by: scan
+  - page: 364
+    from: ist;!
+    to: ist;¹
+    by: scan
+  - page: 367
+    from: seinmal
+    to: "[einmal"
+    by: scan
+  - page: 369
+    from: groß!
+    to: groß¹
+    by: scan
+  - page: 376
+    from: sund
+    to: "[und"
+    by: scan
+  - page: 381
+    from: Jahren!
+    to: Jahren
     by: scan
 theorienberden03marxuoft:
   - page: 1
@@ -8264,6 +10176,10 @@ theorienberden03marxuoft:
     from: Economy ete. London
     to: Economy etc. London
     by: scan
+  - page: 1
+    from: Arbeit!
+    to: Arbeit¹
+    by: scan
   - page: 3
     from: „Definitions ete.“, fühlt
     to: „Definitions etc.“, fühlt
@@ -8272,13 +10188,45 @@ theorienberden03marxuoft:
     from: Economy ete. S.
     to: Economy etc. S.
     by: scan
+  - page: 5
+    from: nirgends!
+    to: nirgends¹
+    by: scan
   - page: 6
     from: Economy ete. S.
     to: Economy etc. S.
     by: scan
+  - page: 11
+    from: Verkäufer!
+    to: Verkäufer]
+    by: scan
+  - page: 13
+    from: Kapitalisten!
+    to: Kapitalisten]
+    by: scan
+  - page: 13
+    from: sei!
+    to: "[sei]"
+    by: scan
+  - page: 14
+    from: Zitate!
+    to: Zitate]
+    by: scan
+  - page: 15
+    from: unbefangenen!
+    to: "[unbefangenen]"
+    by: scan
   - page: 18
     from: value ete.,
     to: value etc.,
+    by: scan
+  - page: 18
+    from: hierher!
+    to: hierher]
+    by: scan
+  - page: 18
+    from: sein!
+    to: sein]
     by: scan
   - page: 19
     from: value ete.,
@@ -8288,6 +10236,14 @@ theorienberden03marxuoft:
     from: (Definitions ete., S.
     to: (Definitions etc., S.
     by: scan
+  - page: 27
+    from: saufgewendeten! Ar-
+    to: "[aufgewendeten] Ar-"
+    by: scan
+  - page: 27
+    from: „Wert der saufgewendeten!
+    to: „Wert der [aufgewendeten]
+    by: scan
   - page: 29
     from: Z. Variables Rapital und Akkumulation.
     to: 2. Variables Kapital und Akkumulation.
@@ -8295,6 +10251,10 @@ theorienberden03marxuoft:
   - page: 29
     from: ODefin. in
     to: (Defin. in
+    by: scan
+  - page: 31
+    from: Arbeit!
+    to: Arbeit¹
     by: scan
   - page: 32
     from: 1/½1 davon erfordert, die Arbeiter zu bezahlen, und der Profit
@@ -8360,9 +10320,25 @@ theorienberden03marxuoft:
     from: Wert von 90½1 hat, denn jeder Teil des Produkts von
     to: Wert von 90¹⁰⁄₁₁ hat, denn jeder Teil des Produkts von
     by: scan
+  - page: 42
+    from: nicht!
+    to: "[nicht]"
+    by: scan
+  - page: 47
+    from: (Klasse]
+    to: "[Klasse]"
+    by: scan
   - page: 51
     from: Ricardos „Prineiples“ gelernten
     to: Ricardos „Principles“ gelernten
+    by: scan
+  - page: 51
+    from: wettgemacht!
+    to: wettgemacht]
+    by: scan
+  - page: 53
+    from: (haben!
+    to: "[haben]"
     by: scan
   - page: 56
     from: Political Eeonomy. 2.
@@ -8396,9 +10372,17 @@ theorienberden03marxuoft:
     from: wealth ete.“ London
     to: wealth etc.“ London
     by: scan
+  - page: 66
+    from: sihres!
+    to: "[ihres]"
+    by: scan
   - page: 68
     from: XXXXXXeeeeee —.a!“
     to: ""
+    by: scan
+  - page: 68
+    from: laußer
+    to: "[außer"
     by: scan
   - page: 73
     from: II. Auf losung der Ricardoschen Schule.
@@ -8420,6 +10404,18 @@ theorienberden03marxuoft:
     from: — * — * SIZIXUE]B]—; eeeere,,,,,,s,,
     to: ""
     by: scan
+  - page: 85
+    from: skönnten
+    to: "[könnten"
+    by: scan
+  - page: 85
+    from: sonst!
+    to: sonst]
+    by: scan
+  - page: 90
+    from: sseines]
+    to: "[seines]"
+    by: scan
   - page: 94
     from: duktivität éo ipso
     to: duktivität eo ipso
@@ -8427,6 +10423,10 @@ theorienberden03marxuoft:
   - page: 108
     from: Arbeit. riIANR
     to: Arbeit.
+    by: scan
+  - page: 117
+    from: ist,?
+    to: ist,²
     by: scan
   - page: 119
     from: Elements ete.
@@ -8456,13 +10456,49 @@ theorienberden03marxuoft:
     from: "Reichtums (progréès divitial):"
     to: "Reichtums (progrès divitial):"
     by: scan
+  - page: 125
+    from: "[Zufuhr!"
+    to: "[Zufuhr]"
+    by: scan
+  - page: 125
+    from: Arbeitslohn!
+    to: Arbeitslohn]
+    by: scan
   - page: 126
     from: erzeugt eine —* 22 X eeeeeeesssss,s,,
     to: erzeugt eine
     by: scan
+  - page: 127
+    from: Phrase list
+    to: Phrase [ist
+    by: scan
+  - page: 134
+    from: lauch
+    to: "[auch"
+    by: scan
+  - page: 134
+    from: er!
+    to: er]
+    by: scan
   - page: 136
     from: hus ete. London
     to: hus etc. London
+    by: scan
+  - page: 137
+    from: (vermehrt!
+    to: "[vermehrt]"
+    by: scan
+  - page: 138
+    from: "[diesel"
+    to: "[diese]"
+    by: scan
+  - page: 140
+    from: viel!
+    to: viel]
+    by: scan
+  - page: 141
+    from: (Industriezweige!]
+    to: "[Industriezweige]"
     by: scan
   - page: 145
     from: Political Eeonomy, chiefly
@@ -8480,13 +10516,61 @@ theorienberden03marxuoft:
     from: verbal.
     to: verbal
     by: scan
+  - page: 146
+    from: von:!
+    to: von:]
+    by: scan
   - page: 159
     from: sondern.
     to: sondern
     by: scan
+  - page: 162
+    from: "[freier)"
+    to: "[freier]"
+    by: scan
+  - page: 165
+    from: Wert!
+    to: Wert]
+    by: scan
+  - page: 166
+    from: Produzenten!
+    to: Produzenten¹
+    by: scan
+  - page: 172
+    from: (zweil
+    to: "[zwei]"
+    by: scan
+  - page: 173
+    from: shat!],
+    to: "[hat],"
+    by: scan
   - page: 176
     from: 6. Der Wert der Arbeit.
     to: β. Der Wert der Arbeit.
+    by: scan
+  - page: 179
+    from: Auffassung!
+    to: Auffassung]
+    by: scan
+  - page: 179
+    from: "[dafür!"
+    to: "[dafür]"
+    by: scan
+  - page: 179
+    from: saus-
+    to: "[aus-"
+    by: scan
+  - page: 179
+    from: sausgedrückt],
+    to: "[ausgedrückt],"
+    by: scan
+  - page: 179
+    from: (Baileys]
+    to: "[Baileys]"
+    by: scan
+  - page: 182
+    from: kommandieren.?
+    to: kommandieren.²
     by: scan
   - page: 183
     from: Malthusscher Manieꝛ).
@@ -8495,6 +10579,14 @@ theorienberden03marxuoft:
   - page: 186
     from: unab- — rreeeennreeeee-it,
     to: unab-
+    by: scan
+  - page: 186
+    from: ([deren]
+    to: "[deren]"
+    by: scan
+  - page: 188
+    from: "[für!"
+    to: "[für]"
     by: scan
   - page: 189
     from: "W:ꝗWÄ—“.= GA: GA“"
@@ -8524,17 +10616,45 @@ theorienberden03marxuoft:
     from: sie sich auch wie —— die in ihnen enthaltenen Quanta
     to: "sie sich auch wie A/x : A′/x, die in ihnen enthaltenen Quanta"
     by: scan
+  - page: 189
+    from: Waren!
+    to: Waren]
+    by: scan
+  - page: 193
+    from: wir!
+    to: wir]
+    by: scan
+  - page: 193
+    from: "[verwandelt),"
+    to: "[verwandelt],"
+    by: scan
   - page: 194
     from: sogl. das
     to: "[vgl. das"
+    by: scan
+  - page: 194
+    from: Gebrauchswert!
+    to: Gebrauchswert]
     by: scan
   - page: 197
     from: verhalten. Rieardo
     to: verhalten. Ricardo
     by: scan
+  - page: 199
+    from: Waren!
+    to: Waren¹
+    by: scan
+  - page: 202
+    from: shängt
+    to: ‚hängt
+    by: scan
   - page: 208
     from: ein- errrrrte:.:,
     to: ein-
+    by: scan
+  - page: 208
+    from: Motiv,?
+    to: Motiv,²
     by: scan
   - page: 210
     from: Erfindung Maes, sehr
@@ -8544,6 +10664,22 @@ theorienberden03marxuoft:
     from: Darstellung Maes in
     to: Darstellung Macs in
     by: scan
+  - page: 211
+    from: saber]
+    to: "[aber]"
+    by: scan
+  - page: 211
+    from: Gesetz!
+    to: Gesetz]
+    by: scan
+  - page: 211
+    from: setwas
+    to: "[etwas"
+    by: scan
+  - page: 219
+    from: "[Anschauungen!"
+    to: "[Anschauungen]"
+    by: scan
   - page: 221
     from: Manier Maes, den
     to: Manier Macs, den
@@ -8552,9 +10688,25 @@ theorienberden03marxuoft:
     from: Principles ete.,
     to: Principles etc.,
     by: scan
+  - page: 223
+    from: "[gezahlt!"
+    to: "[gezahlt]"
+    by: scan
   - page: 224
     from: als Thueydides an.
     to: als Thucydides an.
+    by: scan
+  - page: 224
+    from: seben
+    to: "[eben"
+    by: scan
+  - page: 225
+    from: plündert!
+    to: plündert]
+    by: scan
+  - page: 229
+    from: Ware!
+    to: Ware]
     by: scan
   - page: 230
     from: 6. John Stuart mill.
@@ -8571,6 +10723,10 @@ theorienberden03marxuoft:
   - page: 232
     from: NNNN
     to: ""
+    by: scan
+  - page: 234
+    from: Mill!
+    to: Mill]
     by: scan
   - page: 248
     from: Ausgelegtes Kapital Gesamtprodukt Mehrwert
@@ -8851,6 +11007,22 @@ theorienberden03marxuoft:
     from: Das ist nicht richtig.
     to: ¹) Das ist nicht richtig.
     by: scan
+  - page: 254
+    from: sstatt
+    to: "[statt"
+    by: scan
+  - page: 254
+    from: saus
+    to: aus
+    by: scan
+  - page: 261
+    from: Kapitals!
+    to: Kapitals]
+    by: scan
+  - page: 261
+    from: svariable
+    to: "[variable"
+    by: scan
   - page: 264
     from: wo der ——— ,⏑ rtreen I‚IJNNNNNRTT
     to: wo der
@@ -8858,6 +11030,14 @@ theorienberden03marxuoft:
   - page: 266
     from: aus- —24 mmeeee,
     to: aus-
+    by: scan
+  - page: 267
+    from: sseine
+    to: "[seine"
+    by: scan
+  - page: 267
+    from: eintauscht!
+    to: eintauscht]
     by: scan
   - page: 270
     from: Peel ete. on
@@ -8879,6 +11059,14 @@ theorienberden03marxuoft:
     from: Tat 87/), im zweiten 7 (in der Tat 7/). Hier war also
     to: Tat 8⅛), im zweiten 7 (in der Tat 7⅜). Hier war also
     by: scan
+  - page: 273
+    from: sbloß!
+    to: "[bloß]"
+    by: scan
+  - page: 275
+    from: steigen.!
+    to: steigen.¹
+    by: scan
   - page: 281
     from: III. õegensatz gegen die öRonomen auf Basis dler
     to: III. Gegensatz gegen die Ökonomen auf Basis der Ricardoschen Theorie.
@@ -8895,13 +11083,73 @@ theorienberden03marxuoft:
     from: Difficulties ete. A
     to: Difficulties etc. A
     by: scan
+  - page: 281
+    from: sersteht!
+    to: "[ersteht]"
+    by: scan
+  - page: 281
+    from: steckt!
+    to: "[steckt]"
+    by: scan
+  - page: 286
+    from: "[bestimmt!"
+    to: "[bestimmt]"
+    by: scan
+  - page: 286
+    from: Arbeitsskraft!
+    to: Arbeit[skraft]
+    by: scan
+  - page: 289
+    from: "[Zunahme!"
+    to: "[Zunahme]"
+    by: scan
+  - page: 294
+    from: Produkt!
+    to: Produkt]
+    by: scan
+  - page: 294
+    from: Kategorie!
+    to: Kategorie]
+    by: scan
   - page: 295
     from: Konsumtion. yY“+r“
     to: Konsumtion. v“ + r“
     by: scan
+  - page: 299
+    from: ihre.!
+    to: ihre.¹
+    by: scan
+  - page: 300
+    from: Reichtum?
+    to: Reichtum²
+    by: scan
+  - page: 301
+    from: "[möglich!"
+    to: "[möglich]"
+    by: scan
+  - page: 304
+    from: "[jetzigel"
+    to: "[jetzige]"
+    by: scan
   - page: 306
     from: 2. Percy Kavenstone.
     to: 2. Percy Ravenstone.
+    by: scan
+  - page: 307
+    from: "[Grundlage!"
+    to: "[Grundlage]"
+    by: scan
+  - page: 307
+    from: "[weder!"
+    to: "[weder]"
+    by: scan
+  - page: 307
+    from: durch!
+    to: durch]
+    by: scan
+  - page: 312
+    from: Rente!
+    to: Rente]
     by: scan
   - page: 313
     from: 3. TChomas hodgskin.
@@ -8923,17 +11171,65 @@ theorienberden03marxuoft:
     from: Bei Rieardo
     to: Bei Ricardo
     by: scan
+  - page: 317
+    from: (durchgehenden!],
+    to: "[durchgehenden],"
+    by: scan
   - page: 318
     from: Modéerna. 3.
     to: Moderna. 3.
+    by: scan
+  - page: 318
+    from: (wieder]
+    to: "[wieder]"
     by: scan
   - page: 319
     from: (Labour deéfended, S.
     to: (Labour defended, S.
     by: scan
+  - page: 320
+    from: Ware!
+    to: Ware]
+    by: scan
+  - page: 320
+    from: ([bilden]
+    to: "[bilden]"
+    by: scan
+  - page: 320
+    from: Markt!
+    to: Markt]
+    by: scan
+  - page: 321
+    from: Berufe!
+    to: Berufe]
+    by: scan
+  - page: 323
+    from: Arbeitsmittel!
+    to: Arbeitsmittel]
+    by: scan
+  - page: 326
+    from: "[procura!"
+    to: "[procura]"
+    by: scan
+  - page: 327
+    from: sohne
+    to: "[ohne"
+    by: scan
   - page: 332
     from: über- PRN e‚ „* —— — eeeeenn
     to: über-
+    by: scan
+  - page: 339
+    from: Händler!
+    to: Händler]
+    by: scan
+  - page: 345
+    from: Produzenten!
+    to: Produzenten]
+    by: scan
+  - page: 347
+    from: ([keine]
+    to: "[keine]"
     by: scan
   - page: 358
     from: tal + 10 Zins) + 10 Zins + 1 Zins 121 usw. Die Steige-
@@ -8975,9 +11271,49 @@ theorienberden03marxuoft:
     from: Achtes Jahr. 1947/100 10 + 97½1000 214½1000
     to: Achtes Jahr | 194⁸⁷⁄₁₀₀ | 10 + 9⁴⁸⁷⁄₁₀₀₀ | 214³⁵⁷⁄₁₀₀₀
     by: scan
+  - page: 358
+    from: Generation!
+    to: Generation]
+    by: scan
+  - page: 358
+    from: Zusammenhang!
+    to: Zusammenhang]
+    by: scan
+  - page: 360
+    from: Mehrwertrate!
+    to: Mehrwertrate]
+    by: scan
+  - page: 362
+    from: sseine
+    to: "[seine"
+    by: scan
+  - page: 362
+    from: Arbeitszeit!
+    to: Arbeitszeit]
+    by: scan
+  - page: 363
+    from: (jährlicher]
+    to: "[jährlicher]"
+    by: scan
+  - page: 363
+    from: Jahr!
+    to: Jahr]
+    by: scan
   - page: 364
     from: zusammengesetzt nt.,tt.
     to: zusammengesetzt
+    by: scan
+  - page: 365
+    from: Umständen!
+    to: Umständen]
+    by: scan
+  - page: 368
+    from: Überzeit!
+    to: Überzeit]
+    by: scan
+  - page: 368
+    from: lals
+    to: "[als"
     by: scan
   - page: 371
     from: Demand ete.“ London
@@ -8991,6 +11327,10 @@ theorienberden03marxuoft:
     from: defended ete.“
     to: defended etc.“
     by: scan
+  - page: 373
+    from: bildet.!
+    to: bildet.¹
+    by: scan
   - page: 374
     from: Political Eeonomy. Four Lectures deli-
     to: Political Economy. Four Lectures deli-
@@ -9003,9 +11343,17 @@ theorienberden03marxuoft:
     from: Political Eeonomy.
     to: Political Economy.
     by: scan
+  - page: 375
+    from: sich!
+    to: sich]
+    by: scan
   - page: 378
     from: be- nnrteeeeeeteeeeeeeetet
     to: be-
+    by: scan
+  - page: 379
+    from: Vulgärökonomen.!
+    to: Vulgärökonomen.¹
     by: scan
   - page: 381
     from: 1. Das Hapital eine historische Kategorie.
@@ -9027,13 +11375,49 @@ theorienberden03marxuoft:
     from: z2. Wert und Produktionspreis.
     to: 2. Wert und Produktionspreis.
     by: scan
+  - page: 388
+    from: lals
+    to: "[als"
+    by: scan
+  - page: 388
+    from: Lohnarbeiter!
+    to: Lohnarbeiter]
+    by: scan
   - page: 390
     from: weil Rieardo
     to: weil Ricardo
     by: scan
+  - page: 391
+    from: laus
+    to: "[aus"
+    by: scan
+  - page: 391
+    from: Kapital!
+    to: Kapital]
+    by: scan
   - page: 392
     from: auftut. I nnererreeeerreeeeee
     to: auftut.
+    by: scan
+  - page: 392
+    from: ist,!
+    to: ist,¹
+    by: scan
+  - page: 393
+    from: vorübergehend!
+    to: vorübergehend]
+    by: scan
+  - page: 395
+    from: gegenüberstellt!
+    to: gegenüberstellt]
+    by: scan
+  - page: 395
+    from: bildet.?
+    to: bildet.²
+    by: scan
+  - page: 395
+    from: Arbeitslohn!
+    to: Arbeitslohn]
     by: scan
   - page: 396
     from: 3. Ronstantes RKapital und Profitrate.
@@ -9171,6 +11555,10 @@ theorienberden03marxuoft:
     from: Marx, Theorien über den Mehrwert. III. 26
     to: ""
     by: scan
+  - page: 403
+    from: sstatt
+    to: "[statt"
+    by: scan
   - page: 404
     from: fluktuieren und n 8 7 42
     to: fluktuieren und
@@ -9179,17 +11567,69 @@ theorienberden03marxuoft:
     from: ausgleichen. . **
     to: ausgleichen.
     by: scan
+  - page: 404
+    from: Steigen!
+    to: Steigen]
+    by: scan
+  - page: 404
+    from: sunter
+    to: "[unter"
+    by: scan
+  - page: 407
+    from: "[Zunahme!"
+    to: "[Zunahme]"
+    by: scan
+  - page: 409
+    from: prozeß!
+    to: prozeß]
+    by: scan
+  - page: 413
+    from: ([dort]
+    to: "[dort]"
+    by: scan
+  - page: 417
+    from: (ganz!
+    to: "[ganz]"
+    by: scan
+  - page: 419
+    from: Betrachtung!
+    to: Betrachtung]
+    by: scan
   - page: 424
     from: 1. Konstantes und variables Rapital.
     to: 1. Konstantes und variables Kapital.
+    by: scan
+  - page: 424
+    from: "[Sismondil"
+    to: "[Sismondi]"
     by: scan
   - page: 427
     from: z. Maschine und Arbeiter.
     to: 2. Maschine und Arbeiter.
     by: scan
+  - page: 428
+    from: "[Werkzeug!"
+    to: "[Werkzeug]"
+    by: scan
+  - page: 428
+    from: Maschinerie!
+    to: Maschinerie]
+    by: scan
   - page: 431
     from: für. den
     to: für den
+    by: scan
+  - page: 432
+    from: ([bestimmt!
+    to: "[bestimmt]"
+    by: scan
+  - page: 433
+    from: (benutzt!
+    to: "[benutzt]"
+    by: scan
+  - page: 434
+    from: genommen!
+    to: genommen]
     by: scan
   - page: 436
     from: im „Approvifionnement“
@@ -9199,6 +11639,18 @@ theorienberden03marxuoft:
     from: 4. Anklänge an Kicardo und Sismondi.
     to: 4. Anklänge an Ricardo und Sismondi.
     by: scan
+  - page: 446
+    from: bestimmen,!
+    to: bestimmen,¹
+    by: scan
+  - page: 447
+    from: ssich
+    to: sich
+    by: scan
+  - page: 449
+    from: sreimt
+    to: "[reimt"
+    by: scan
   - page: 450
     from: I. An Eay on the Distribution of Wealth. 6rundrente.
     to: 1. An Essay on the Distribution of Wealth. Grundrente.
@@ -9206,6 +11658,22 @@ theorienberden03marxuoft:
   - page: 459
     from: pro Aere. Er
     to: pro Acre. Er
+    by: scan
+  - page: 462
+    from: (relativ]
+    to: "[relativ]"
+    by: scan
+  - page: 463
+    from: wirtschaft!
+    to: wirtschaft]
+    by: scan
+  - page: 464
+    from: umgekehrt,?
+    to: umgekehrt,²
+    by: scan
+  - page: 468
+    from: swie
+    to: "[wie"
     by: scan
   - page: 470
     from: z. An Introductory lecture. Arbeitsfonds und Profitrate.
@@ -9227,17 +11695,57 @@ theorienberden03marxuoft:
     from: Inhaber (oecupiers), Eigentümer,
     to: Inhaber (occupiers), Eigentümer,
     by: scan
+  - page: 475
+    from: ssich!
+    to: "[sich]"
+    by: scan
+  - page: 476
+    from: srührt
+    to: "[rührt"
+    by: scan
+  - page: 476
+    from: daher,!
+    to: daher,]
+    by: scan
   - page: 477
     from: 3. Tertbook.
     to: 3. Textbook.
+    by: scan
+  - page: 480
+    from: akkumulieren!
+    to: akkumulieren]
+    by: scan
+  - page: 485
+    from: Falle!
+    to: Falle]
     by: scan
   - page: 487
     from: Verwalter (trusteées)
     to: Verwalter (trustees)
     by: scan
+  - page: 509
+    from: so mußte der Kapitalist (früher! jährlich 500 £ auslegen,
+    to: so mußte der Kapitalist [früher] jährlich 500 £ auslegen,
+    by: scan
+  - page: 509
+    from: gewandten Arbeiter, ist das Kapital, das die [Gegenleistung!
+    to: gewandten Arbeiter, ist das Kapital, das die [Gegenleistung]
+    by: scan
+  - page: 509
+    from: oder Wind s[bewegen sie jetztl, wo sie früher (Arbeiter!] be-
+    to: oder Wind [bewegen sie jetzt], wo sie früher [Arbeiter] be-
+    by: scan
+  - page: 509
+    from: in der Zahlung (der Arbeiter] früher angewandt wurde,
+    to: in der Zahlung [der Arbeiter] früher angewandt wurde,
+    by: scan
   - page: 510
     from: Manufactures ete. London
     to: Manufactures etc. London
+    by: scan
+  - page: 519
+    from: ist!
+    to: ist]
     by: scan
   - page: 520
     from: Größel. erneessps
@@ -9247,13 +11755,33 @@ theorienberden03marxuoft:
     from: VII. Profit, Zins und vulgäarokonomie.
     to: VII. Profit, Zins und Vulgärökonomie.
     by: scan
+  - page: 532
+    from: seigentümliche
+    to: "[eigentümliche"
+    by: scan
   - page: 538
     from: 3. der Kampf gegen das zinstragende Kapital.
     to: 3. Der Kampf gegen das zinstragende Kapital.
     by: scan
+  - page: 539
+    from: ist!
+    to: ist]
+    by: scan
+  - page: 542
+    from: "[Kapital)"
+    to: "[Kapital]"
+    by: scan
   - page: 543
     from: résultent deè la
     to: résultent de la
+    by: scan
+  - page: 548
+    from: sie!
+    to: sie]
+    by: scan
+  - page: 549
+    from: "[Kapitalisten)"
+    to: "[Kapitalisten]"
     by: scan
   - page: 553
     from: 5. die veräußerlichung des Mehrwerts.
@@ -9267,6 +11795,10 @@ theorienberden03marxuoft:
     from: 6. Der Auffichtslohn.
     to: 6. Der Aufsichtslohn.
     by: scan
+  - page: 565
+    from: Unternehmer!
+    to: Unternehmer]
+    by: scan
   - page: 569
     from: bRSRIIIIIIIIRR ist,
     to: ist,
@@ -9275,9 +11807,17 @@ theorienberden03marxuoft:
     from: 7. Rlassische IRonomie und vulgärökonomie.
     to: 7. Klassische Ökonomie und Vulgärökonomie.
     by: scan
+  - page: 570
+    from: sauftreten!],
+    to: "[auftreten],"
+    by: scan
   - page: 573
     from: Wrr reeeeeeerrsnnn N selbst
     to: selbst
+    by: scan
+  - page: 573
+    from: "[beil"
+    to: "[bei]"
     by: scan
   - page: 574
     from: mit Thueydides mag
@@ -9286,6 +11826,14 @@ theorienberden03marxuoft:
   - page: 574
     from: von Thueydides
     to: von Thucydides
+    by: scan
+  - page: 577
+    from: durchschnittlichen!
+    to: durchschnittlichen]
+    by: scan
+  - page: 581
+    from: setwas
+    to: "[etwas"
     by: scan
   - page: 582
     from: Hand.
@@ -9310,6 +11858,14 @@ theorienberden03marxuoft:
   - page: 589
     from: rννινι oder besseres dafür fordert
     to: oder besseres dafür fordert
+    by: scan
+  - page: 591
+    from: (wurde er!
+    to: (wurde er]
+    by: scan
+  - page: 591
+    from: gegenüber!
+    to: gegenüber]
     by: scan
   - page: 593
     from: sedephantasticum inteéresse. Ein
@@ -13846,92 +16402,186 @@ enthullungen-1885:
     to: während der Ver-
     by: scan
   - page: 57
-    from: Dieser Emissär hatie keine andere
-    to: Dieser Emissär hatte keine andere
-    by: reference
-  - page: 57
-    from: sein. Man mu
-    to: sein. Man muß
-    by: reference
-  - page: 57
-    from: mit Deulschland, theils
-    to: mit Deutschland, theils
-    by: reference
-  - page: 57
-    from: s Bekenniniß wurde
-    to: s Bekenntniß wurde
+    from: dlungen austritt, erscheint sie nicht auf der Bank der Angeklagten,
+    to: handlungen auftritt, erscheint sie nicht auf der Bank der Angeklagten,
     by: scan
   - page: 57
-    from: ausgesertigt und
-    to: ausgefertigt und
-    by: reference
-  - page: 57
-    from: dlungen austritt
-    to: handlungen auftritt
+    from: ondern als „Königszeuge“. ö
+    to: sondern als „Königszeuge“.
     by: scan
   - page: 57
-    from: und die Reife-
-    to: und die Reise-
+    from: Bunde gefländig, bringt einige Wochen bei Willich in London zu und
+    to: Bunde geständig, bringt einige Wochen bei Willich in London zu und
+    by: scan
+  - page: 57
+    from: reist dann nach Köln, um gegen Becker, Lehrn den viel weniger Indizien
+    to: reist dann nach Köln, um gegen Becker, gegen den viel weniger Indizien
+    by: scan
+  - page: 57
+    from: Er zeugt falsch, indem er die exzeptionelle Bewassnung des Berliner
+    to: Er zeugt falsch, indem er die exzeptionelle Bewaffnung des Berliner
+    by: scan
+  - page: 57
+    from: 946 mit den Bundes-Statuten bringt.
+    to: hang mit den Bundes-Statuten bringt.
+    by: scan
+  - page: 57
+    from: teingens, durch seine eigene Briefe überführt (s. Sitzung vom
+    to: Steingens, durch seine eigene Briefe überführt (s. Sitzung vom
+    by: scan
+  - page: 57
+    from: korrespondenzen mit Deulschland, theils um zu zeigen, daß dort über-
+    to: korrespondenzen mit Deutschland, theils um zu zeigen, daß dort über-
+    by: scan
+  - page: 57
+    from: bundes. Dieser Emissär hatie keine andere Aufgabe, als gegen die Partei
+    to: bundes. Dieser Emissär hatte keine andere Aufgabe, als gegen die Partei
+    by: scan
+  - page: 57
+    from: der Kölner Angeklagten unter den Arbeitern thätig zu sein. Man mu
+    to: der Kölner Angeklagten unter den Arbeitern thätig zu sein. Man muß
+    by: scan
+  - page: 57
+    from: war vollständig über die Person, den Tag der Abreise und die Reife-
+    to: war vollständig über die Person, den Tag der Abreise und die Reise-
+    by: scan
+  - page: 57
+    from: von Greif und Fleury fabrizirt zu haben; Willich ver mochte ihn zu
+    to: von Greif und Fleury fabrizirt zu haben; Willich vermochte ihn zu
+    by: scan
+  - page: 57
+    from: Magistrat. Hirsch's Bekenniniß wurde in drei verschiedenen Exemplaren
+    to: Magistrat. Hirsch's Bekenntniß wurde in drei verschiedenen Exemplaren
+    by: scan
+  - page: 57
+    from: ausgesertigt und diese unter verschiedenen Adressen durch die Post nach
+    to: ausgefertigt und diese unter verschiedenen Adressen durch die Post nach
     by: scan
   - page: 58
-    from: auf und erkärt in einer
-    to: auf und erklärt in einer
-    by: reference
-  - page: 58
-    from: ihm erhaltenen regu von 15 Pfund
-    to: ihm erhaltenen reçu von 15 Pfund
-    by: reference
-  - page: 58
-    from: und sogar GSeld für diese
-    to: und sogar Geld für diese
-    by: reference
-  - page: 58
-    from: Augu 1852 wußte, daß
-    to: August 1852 wußte, daß
-    by: reference
-  - page: 58
-    from: ihm nämlich +* Denden
-    to: ihm nämlich den Fleury
-    by: reference
-  - page: 58
-    from: Treiben lanntef war, wie
-    to: Treiben unterrichtet war, wie
-    by: reference
-  - page: 58
-    from: eine diesbezüglich Interpellation
-    to: eine diesbezügliche Interpellation
-    by: reference
-  - page: 58
-    from: Es war von der hö W eit, den Hirsch
-    to: Es war von der höchsten Wichtigkeit, den Hirsch
+    from: Es war von der hö W eit, den Hirsch, wie er die Schwelle
+    to: Es war von der höchsten Wichtigkeit, den Hirsch, wie er die Schwelle
     by: scan
   - page: 58
     from: des . IA vechasten af Srund der bei ihm
     to: des Gerichtshofes verließ, sofort zu verhaften. Auf Grund der bei ihm
     by: scan
   - page: 58
-    from: besindli amilich be ussage konnte
-    to: befindlichen, amtlich beglaubigten Aussage konnte
+    from: besindli amilich be ussage konnte der in Köln verlorene
+    to: befindlichen, amtlich beglaubigten Aussage konnte der in Köln verlorene
     by: scan
   - page: 58
-    from: Prozeß London wie Eann werden.
-    to: Prozeß in London wieder gewonnen werden.
+    from: Prozeß London wie Eann werden. Wenn nicht für die Ange-
+    to: Prozeß in London wieder gewonnen werden. Wenn nicht für die Ange-
     by: scan
   - page: 58
-    from: nehmen werden, Lirs die
-    to: nehmen werden, Hirsch die
+    from: die direkt betheiligte „Partei Marx, sondern gegen seine eigenen 4*
+    to: die direkt betheiligte „Partei Marx, sondern gegen seine eigenen Leute,
     by: scan
   - page: 58
-    from: brt die Post.
-    to: sandtschaft die Post.
+    from: ar gegen Schapper, das tiesste Stillschweigen. Nur Schertner war
+    to: sogar gegen Schapper, das tiefste Stillschweigen. Nur Schertner war in
     by: scan
   - page: 58
-    from: indmill-Verein
-    to: Windmill-Verein
+    from: — eingeweiht. Schertner erkärt, er und Willich hätten n dea
+    to: sein Geheimniß eingeweiht. Schertner erkärt, er und Willich hätten den
     by: scan
   - page: 58
-    from: chafft für die Schuld
-    to: schaft für die Schuld
+    from: Hirsch an's Schif begleitet. Hirsch habe nämlich, Willich's Intention
+    to: Hirsch an's Schiff begleitet. Hirsch habe nämlich, Willich's Intention
+    by: scan
+  - page: 58
+    from: gemaß, in ute —— 4 b selbst Zeugniß ablegen sollen.
+    to: gemäß, in Köln gegen sich selbst Zeugniß ablegen sollen.
+    by: scan
+  - page: 58
+    from: Willich Hirsch von dem Wege, den die Dokumente
+    to: Willich unterrichtet den Hirsch von dem Wege, den die Dokumente
+    by: scan
+  - page: 58
+    from: nehmen werden, Lirs die preußische Gesandtschaft, die preußische Ge-
+    to: nehmen werden, Hirsch die preußische Gesandtschaft, die preußische Ge-
+    by: scan
+  - page: 58
+    from: brt die Post. Dokumente kommen * an ihrem Bestimmungs-
+    to: sandtschaft die Post. Die Dokumente kommen nicht an ihrem Bestimmungs-
+    by: scan
+  - page: 58
+    from: wieder zu London auf und erkärt in einer öffentlichen Demokraten-
+    to: wieder zu London auf und erklärt in einer öffentlichen Demokraten-
+    by: scan
+  - page: 58
+    from: Willich gesteht, auf eine diesbezüglich Interpellation, mit Hirsch, der
+    to: Willich gesteht, auf eine diesbezügliche Interpellation, mit Hirsch, der
+    by: scan
+  - page: 58
+    from: Bau im Jahre 1851 auf seinen Antrag als Spion aus dem Great-
+    to: schon im Jahre 1851 auf seinen Antrag als Spion aus dem Great-
+    by: scan
+  - page: 58
+    from: indmill-Verein ausgestoßen wurde, seit Anfang August 1852 wieder
+    to: Windmill-Verein ausgestoßen wurde, seit Anfang August 1852 wieder
+    by: scan
+  - page: 58
+    from: in Verbindung gestanden zu haben. Hirsch habe ihm nämlich +* Denden
+    to: in Verbindung gestanden zu haben. Hirsch habe ihm nämlich den Fleury
+    by: scan
+  - page: 58
+    from: als preußischen Spion verrathen und ihm dann alle an Fleury end O.
+    to: als preußischen Spion verrathen und ihm dann alle an Fleury eingehenden
+    by: scan
+  - page: 58
+    from: und von ihm ausgehenden Briese zur Kenntnißnahme mitg
+    to: und von ihm ausgehenden Briefe zur Kenntnißnahme mitgetheilt. Er,
+    by: scan
+  - page: 58
+    from: Werwachen. sich dieses Mittels bedient, um 4 Preuhische albel *
+    to: |-
+      Willich, habe sich dieses Mittels bedient, um die preußische Polizei, zu
+      überwachen.
+    by: scan
+  - page: 58
+    from: 2•2 war notorisch seit ungefähr einem e der intime Freund
+    to: Willich war notorisch seit ungefähr einem Jahre der intime Freund
+    by: scan
+  - page: 58
+    from: Augu 1852 wußte, daß er preußischer Spion und zugleich von dessen
+    to: August 1852 wußte, daß er preußischer Spion und zugleich von dessen
+    by: scan
+  - page: 58
+    from: Treiben lanntef war, wie kommt es, daß er das Originalprotokoll-
+    to: Treiben unterrichtet war, wie kommt es, daß er das Originalprotokoll-
+    by: scan
+  - page: 58
+    from: chafft für die Schuld Fleury's aus den Händen der „Partei Marx“
+    to: |-
+      mittel für die Schuld Fleury's aus den Händen der „Partei Marx“
+      schafft?
+    by: scan
+  - page: 58
+    from: einem von ihm erhaltenen regu von 15 Pfund Sterling renommirt?
+    to: einem von ihm erhaltenen reçu von 15 Pfund Sterling renommirt?
+    by: scan
+  - page: 58
+    from: ½3 Fleury in der deutsch-amerikanischen Revolutions-Anleihe fort-
+    to: |-
+      Daß Fleury in der deutsch-amerikanischen Revolutions-Anleihe fort-
+      operirt?
+    by: scan
+  - page: 58
+    from: 4—G70 er dem Fleury Lokal und Zusammenkunftsort seiner eigenen
+    to: Daß er dem Fleury Lokal und Zusammenkunftsort seiner eigenen
+    by: scan
+  - page: 58
+    from: 150 Gesellschaft angibt, so *7„ preußische Agenten im Nebenzimmer
+    to: geheimen Gesellschaft angibt, so daß preußische Agenten im Nebenzimmer
+    by: scan
+  - page: 58
+    from: ie Debatten zu Protokoll nehmen?
+    to: die Debatten zu Protokoll nehmen?
+    by: scan
+  - page: 58
+    from: des Schneidergesellen, 47 und sogar GSeld für diese Missions-
+    to: des Schneidergesellen, unterrichtet und sogar Geld für diese Missions-
     by: scan
   - page: 61
     from: beschäftigen. Er sühlte sich deshalb
@@ -14008,6 +16658,30 @@ enthullungen-1885:
   - page: 64
     from: „Herr Sogt“
     to: „Herr Vogt“
+    by: scan
+  - page: 67
+    from: eheimen Bundessitzungen der Partei Marx. iout prix,
+    to: geheimen Bundessitzungen der Partei Marx. A tout prix,
+    by: scan
+  - page: 67
+    from: chloß der Polizeilieutenant, müssen wir Berichte über die Bundes-
+    to: schloß der Polizeilieutenant, müssen wir Berichte über die Bundes-
+    by: scan
+  - page: 67
+    from: leinen neuen Bundes-Zentralverein gegründet habe . verabredete Greif mit
+    to: keinen neuen Bundes-Zentralverein gegründet habe .. verabredete Greif mit
+    by: scan
+  - page: 67
+    from: richte uber die Bundessitzungen anfertigen sollten; er, Greif, wollte die Echt-
+    to: richte über die Bundessitzungen anfertigen sollten; er, Greif, wollte die Echt-
+    by: scan
+  - page: 67
+    from: beit übernehmen und vertreten und was er vorlege, werde so wie so acceptirt.“
+    to: heit übernehmen und vertreten und was er vorlege, werde so wie so acceptirt.“
+    by: scan
+  - page: 67
+    from: es ihm unmöglich war, die geringste Kleinigkeit richtig zu slylisiren. So
+    to: es ihm unmöglich war, die geringste Kleinigkeit richtig zu stylisiren. So
     by: scan
   - page: 72
     from: 2) Nachvort von Marr.
