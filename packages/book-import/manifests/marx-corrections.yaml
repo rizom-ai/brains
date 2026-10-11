@@ -2480,6 +2480,22 @@ p1theorienberden02marxuoft:
     from: Geldleute (monièd class)
     to: Geldleute (monied class)
     by: scan
+  - page: 68
+    from: 46/%3 Prozent. Der neue natürliche Preis wird also in-
+    to: 46⅔ Prozent.¹ Der neue natürliche Preis wird also in-
+    by: scan
+  - page: 68
+    from: ꝛ1Im Manustript steht hier und oben 13½/ statt 46 ¼ Prozent.
+    to: ¹) Im Manuskript steht hier und oben 13⅓ statt 46⅔ Prozent.
+    by: scan
+  - page: 68
+    from: Profit also 35, die Profitrate, die früher 6/½o 10 Prozent war, ist
+    to: Profit also 35, die Profitrate, die früher ¹⁰⁄₁₀₀ = 10 Prozent war, ist
+    by: scan
+  - page: 68
+    from: jetzt 8½ 467/ Prozent. K.
+    to: jetzt ³⁵⁄₇₅ = 46⅔ Prozent. K.
+    by: scan
   - page: 71
     from: 3) Smith über Produktionspreise und Marktpreise.
     to: β) Smith über Produktionspreise und Marktpreise.
@@ -2524,9 +2540,181 @@ p1theorienberden02marxuoft:
     from: den cerele vicieux.
     to: den cercle vicieux.
     by: scan
+  - page: 127
+    from: Die notwendige Arbeitszeit sei S 10, die Mehrarbeit = 2;
+    to: Die notwendige Arbeitszeit sei = 10, die Mehrarbeit = 2;
+    by: scan
+  - page: 127
+    from: der Gesamtarbeitstag S 12 Stunden. Wäre die notwendige
+    to: der Gesamtarbeitstag = 12 Stunden. Wäre die notwendige
+    by: scan
+  - page: 127
+    from: Arbeitszeit = 12, die Mehrarbeit - 2/8 und der Gesamt-
+    to: Arbeitszeit = 12, die Mehrarbeit = 2⅖ und der Gesamt-
+    by: scan
+  - page: 127
+    from: arbeitstag S 14/8 Stunden, so wären die produzierten Werte
+    to: arbeitstag = 14⅖ Stunden, so wären die produzierten Werte
+    by: scan
+  - page: 127
+    from: sehr verschieden. Im ersten Falle - 12 Stunden, im zweiten
+    to: sehr verschieden. Im ersten Falle = 12 Stunden, im zweiten
+    by: scan
+  - page: 127
+    from: —= 14/8 Stunden. Ebenso die absoluten Größen der Mehr-
+    to: = 14⅖ Stunden. Ebenso die absoluten Größen der Mehr-
+    by: scan
+  - page: 128
+    from: werte. In einem Falle - 2 Stunden, im anderen = 2/8.
+    to: werte. In einem Falle = 2 Stunden, im anderen = 2⅖.
+    by: scan
+  - page: 128
+    from: "arbeit dieselbe, weil 2:10 2/: 12. Wäre im zweiten"
+    to: "arbeit dieselbe, weil 2 : 10 = 2⅖ : 12. Wäre im zweiten"
+    by: scan
+  - page: 128
+    from: Stiege im letzteren Falle die Mehrarbeit statt um / um
+    to: Stiege im letzteren Falle die Mehrarbeit statt um ⅖ um
+    by: scan
+  - page: 128
+    from: s Stunden, so daß sie gleich wäre 3 Stunden, und der
+    to: ⁵⁄₅ Stunden, so daß sie gleich wäre 3 Stunden, und der
+    by: scan
+  - page: 128
+    from: 2:10 ½; aber 3:12 ½. Beides könnte eintreten,
+    to: "2 : 10 = ⅕; aber 3 : 12 = ¼. Beides könnte eintreten,"
+    by: scan
+  - page: 128
+    from: vor - 10, die Mehrarbeit - 2; alle anderen Verhältnisse
+    to: vor = 10, die Mehrarbeit = 2; alle anderen Verhältnisse
+    by: scan
+  - page: 128
+    from: Arbeiter arbeite nun 25/8 Stunden mehr, wovon er selbst
+    to: Arbeiter arbeite nun 2⅖ Stunden mehr, wovon er selbst
+    by: scan
+  - page: 128
+    from: 2 Stunden sich aneignet, die /8 aber Mehrarbeit bilden.
+    to: 2 Stunden sich aneignet, die ⅖ aber Mehrarbeit bilden.
+    by: scan
   - page: 129
     from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ+æꝓ S
     to: ""
+    by: scan
+  - page: 131
+    from: anzeigt. Ist der Mehrwert —- 2 Stunden, so ist er ½8,
+    to: anzeigt. Ist der Mehrwert = 2 Stunden, so ist er = ⅕,
+    by: scan
+  - page: 131
+    from: wenn die notwendige Arbeitszeit S 10, und S ½, wenn
+    to: wenn die notwendige Arbeitszeit = 10, und = ⅙, wenn
+    by: scan
+  - page: 131
+    from: die notwendige Arbeitszeit S 12. Im einen Falle ist der
+    to: die notwendige Arbeitszeit = 12. Im einen Falle ist der
+    by: scan
+  - page: 131
+    from: Arbeitstag -S 12 Stunden; im anderen - 14. Im ersten
+    to: Arbeitstag = 12 Stunden; im anderen = 14. Im ersten
+    by: scan
+  - page: 131
+    from: "früheren Falle 10: ½ und 9: /8 sehen wir, wie bei gleich-"
+    to: "früheren Falle 10 : ¹⁰⁄₅ und 9 : ⁹⁄₅ sehen wir, wie bei gleich-"
+    by: scan
+  - page: 131
+    from: Falle 2, im anderen 1½8.
+    to: Falle 2, im anderen 1⅘.
+    by: scan
+  - page: 133
+    from: 14 und 1600 Pfund kosten 80 L. Wenn 20 Arbeiter in
+    to: 1 £ und 1600 Pfund kosten 80 £. Wenn 20 Arbeiter in
+    by: scan
+  - page: 133
+    from: 12 Stunden 1600 j Pfund Baumwolle verspinnen, so in
+    to: 12 Stunden 1600 Pfund Baumwolle verspinnen, so in
+    by: scan
+  - page: 133
+    from: 1 Stunde ½ Pfund S 133½ Pfund. Ist also die not-
+    to: 1 Stunde ¹⁶⁰⁰⁄₁₂ Pfund = 133⅓ Pfund. Ist also die not-
+    by: scan
+  - page: 133
+    from: wendige Arbeitszeit S 10 Stunden, so die Mehrarbeitszeit
+    to: wendige Arbeitszeit = 10 Stunden, so die Mehrarbeitszeit
+    by: scan
+  - page: 133
+    from: — 2 Stunden und diese - 266/8 Pfund Garn. Der Wert
+    to: = 2 Stunden und diese = 266⅔ Pfund Garn. Der Wert
+    by: scan
+  - page: 133
+    from: der 1600 Pfund Garn wäre - 104 L. Denn wenn 10 Arbeits-
+    to: der 1600 Pfund Garn wäre = 104 £. Denn wenn 10 Arbeits-
+    by: scan
+  - page: 133
+    from: stunden einen Wert von 20 produzieren, so 1 Arbeits-
+    to: stunden einen Wert von 20 £ produzieren, so 1 Arbeits-
+    by: scan
+  - page: 133
+    from: stunde 2 £, also 12 Arbeitsstunden 24 L. Dazu kommen
+    to: stunde 2 £, also 12 Arbeitsstunden 24 £. Dazu kommen
+    by: scan
+  - page: 133
+    from: 80 LRohmaterial.
+    to: 80 £ Rohmaterial.
+    by: scan
+  - page: 133
+    from: arbeitszeit, so beträgt das Produkt dieser 4 Stunden 8 L.
+    to: arbeitszeit, so beträgt das Produkt dieser 4 Stunden 8 £.
+    by: scan
+  - page: 133
+    from: Das Gesamtprodukt hat einen Wert von 121½ L.“ Und
+    to: Das Gesamtprodukt hat einen Wert von 121⅓ £.¹ Und
+    by: scan
+  - page: 133
+    from: diese 121½8 L sind gleich 18668/8 Pfund. Nach wie vor,
+    to: diese 121⅓ £ sind gleich 1866⅔ Pfund. Nach wie vor,
+    by: scan
+  - page: 133
+    from: 1 Pfund Garn denselben Wert haben (1½0 Schilling!]; es
+    to: 1 Pfund Garn denselben Wert haben [1³⁄₁₀ Schilling]; es
+    by: scan
+  - page: 133
+    from: — 20 (, die Mehrarbeit - 4 , oder die erste S 10 Stunden,
+    to: = 20 £, die Mehrarbeit = 4 £, oder die erste = 10 Stunden,
+    by: scan
+  - page: 133
+    from: die zweite 2 Stunden, verhält sich die Mehrarbeit zur
+    to: die zweite = 2 Stunden, verhält sich die Mehrarbeit zur
+    by: scan
+  - page: 133
+    from: notwendigen = 2:10. In den %½0 Schilling -S neu zu-
+    to: "notwendigen = 2 : 10. In den ³⁄₁₀ Schilling = [neu zu-"
+    by: scan
+  - page: 133
+    from: Falle ½8 unbezahlte Arbeit ½0 Schilling. Dagegen be-
+    to: Falle ⅕ unbezahlte Arbeit = ³⁄₅₀ Schilling. Dagegen be-
+    by: scan
+  - page: 133
+    from: Mehrarbeit = 8 L. Die Mehrarbeit verhielte sich zur not-
+    to: Mehrarbeit = 8 £. Die Mehrarbeit verhielte sich zur not-
+    by: scan
+  - page: 133
+    from: wendigen wie 8:20. Also steckten in den ½0 Schilling
+    to: "wendigen wie 8 : 20. Also steckten in den ³⁄₁₀ Schilling"
+    by: scan
+  - page: 133
+    from: neu zugesetzter Arbeit) des Pfundes Garn 7½5 unbezahlte
+    to: "[neu zugesetzter Arbeit] des Pfundes Garn ⅖ unbezahlte"
+    by: scan
+  - page: 133
+    from: Im Manusktript steht 108 K. Das ist falsch. Es werden nicht
+    to: ¹) Im Manuskript steht 108 £. Das ist falsch. Es werden nicht
+    by: scan
+  - page: 133
+    from: mehr 1600, sondern 1866½ Pfund Baumwolle im Werte von 93½
+    to: mehr 1600, sondern 1866⅔ Pfund Baumwolle im Werte von 93⅓ £
+    by: scan
+  - page: 133
+    from: versponnen. Dazu 28 Neuwert macht 121½ . K.
+    to: versponnen. Dazu 28 £ Neuwert macht 121⅓ £. K.
     by: scan
   - page: 144
     from: schritts (improveément), die
@@ -2585,8 +2773,52 @@ p1theorienberden02marxuoft:
     to: von c modifiziert
     by: scan
   - page: 181
-    from: agricoles ete.“,
-    to: agricoles etc.“,
+    from: 50 berechnet, (gibt es einen ÜUberschuß von 50] - 100 Prozent.
+    to: 50 berechnet, [gibt es einen Überschuß von 50] = 100 Prozent.
+    by: scan
+  - page: 181
+    from: Geht nun ein Drittel von den 50 für Rente ab (16/8) und
+    to: Geht nun ein Drittel von den 50 für Rente ab (16⅔) und
+    by: scan
+  - page: 181
+    from: ein Drittel für Steuern (zusammen 33½/8), so bleiben ihm
+    to: ein Drittel für Steuern (zusammen 33⅓), so bleiben ihm
+    by: scan
+  - page: 181
+    from: 16/¾8 auf 50, was 33/ Prozent ist. In der Tat hatte er
+    to: 16⅔ auf 50, was 33⅓ Prozent ist. In der Tat hatte er
+    by: scan
+  - page: 181
+    from: aber nur 16½/ Prozents, da der Wert seiner Auslagen nicht
+    to: aber nur 16⅓ Prozent[, da der Wert seiner Auslagen nicht
+    by: scan
+  - page: 181
+    from: 50, sondern 100 istJ. Der Bauer hatte einfach falsch ge-
+    to: 50, sondern 100 ist]. Der Bauer hatte einfach falsch ge-
+    by: scan
+  - page: 181
+    from: rechnets, da er nur die Geldausgaben rechnete,! und sich
+    to: rechnet[, da er nur die Geldausgaben rechnete,] und sich
+    by: scan
+  - page: 181
+    from: Mathieu de Dombasle, „Annales agricoles ete.“,
+    to: Mathieu de Dombasle, „Annales agricoles etc.“,
+    by: scan
+  - page: 181
+    from: Paris 1829 (4 livraison, 1828), liefert der Grundbesitzer
+    to: Paris 1829 (4ᵉ livraison, 1828), liefert der Grundbesitzer
+    by: scan
+  - page: 181
+    from: 1500 Franes erzielt durch eine Ausgabe von 1000 Franes,
+    to: 1500 Francs erzielt durch eine Ausgabe von 1000 Francs,
+    by: scan
+  - page: 181
+    from: so daß 500 Franes Bruttogewinn darstellen, muß er zur
+    to: so daß 500 Francs Bruttogewinn darstellen, muß er zur
+    by: scan
+  - page: 181
+    from: produkt von 1500 750, verliert also 250 Franes von seinem
+    to: produkt von 1500 750, verliert also 250 Francs von seinem
     by: scan
   - page: 189
     from: Durchschnittspreis lim obigen
@@ -2616,13 +2848,373 @@ p1theorienberden02marxuoft:
     from: „) Dritte Formel.
     to: γ) Dritte Formel.
     by: scan
+  - page: 256
+    from: Produktionskosten 960, Profit 60, Profitrate 6⅛ Prozent.
+    to: Produktionskosten 960, Profit 60, Profitrate 6¼ Prozent.
+    by: scan
+  - page: 256
+    from: Produktionskosten 460, Profit 40, Profitrate 89½3 Prozent.
+    to: Produktionskosten 460, Profit 40, Profitrate 8¹⁶⁄₂₃ Prozent.
+    by: scan
+  - page: 256
+    from: sie im ersten Falle, Wert des Rohmaterials 600 Schilling!
+    to: sie im ersten Falle, [Wert des Rohmaterials 600 Schilling]
+    by: scan
+  - page: 256
+    from: 200 Schilling, im zweiten, (Rohmaterial 300 Schilling!
+    to: 200 Schilling, im zweiten, [Rohmaterial 300 Schilling]
+    by: scan
+  - page: 256
+    from: 100 Schilling. Die Rente ist hier gefallen, weil das Roh-
+    to: 100 Schilling.¹ Die Rente ist hier gefallen, weil das Roh-
+    by: scan
+  - page: 256
+    from: "wie 1:17/8; im zweiten Falle wie 140: 300 1: 2½. Die"
+    to: "wie 1 : 1⅔; im zweiten Falle wie 140 : 300 = 1 : 2⅐. Die"
+    by: scan
+  - page: 256
+    from: hat eintreten können.“ (I. c. S. 139.)
+    to: hat eintreten können.“ (l. c. S. 139.)
+    by: scan
+  - page: 256
+    from: Im Manufkript steht versehentlich 150 Schilling. K.
+    to: ¹) Im Manuskript steht versehentlich 150 Schilling. K.
+    by: scan
   - page: 263
     from: pro Aere zahlen
     to: pro Acre zahlen
     by: scan
+  - page: 264
+    from: Bushels ½ £. Der Wert stände 10 Prozent über dem Pro-
+    to: Bushels ¹¹⁄₃₆ £. Der Wert stände 10 Prozent über dem Pro-
+    by: scan
+  - page: 264
+    from: duktionspreis. Und da der Durchschnittsprofit - 10 Prozent,
+    to: duktionspreis. Und da der Durchschnittsprofit = 10 Prozent,
+    by: scan
+  - page: 264
+    from: 10 4 oder ½e & auf 1 Bushel. Höhere Bodenarten, die für
+    to: 10 £ oder ¹⁄₃₆ £ auf 1 Bushel. Höhere Bodenarten, die für
+    by: scan
+  - page: 264
+    from: mehr Bushel abwürfen, würden zu dem Preise von ½6
+    to: mehr Bushel abwürfen, würden zu dem Preise von ¹¹⁄₃₆ £
+    by: scan
+  - page: 264
+    from: oder von ½ £ auf das Bushel Weizen ab.
+    to: oder von ¹⁄₃₆ £ auf das Bushel Weizen ab.
+    by: scan
+  - page: 264
+    from: jetzt gleich 26/1 Arbeitsstunden, während er früher nur
+    to: jetzt gleich 26²⁄₁₁ Arbeitsstunden, während er früher nur
+    by: scan
+  - page: 264
+    from: ½¼3 L, jetzt ist er ½ . Das Bushel müßte jetzt um ½¼8 £
+    to: ¹¹⁄₃₃ £, jetzt ist er ¹²⁄₃₃ £. Das Bushel müßte jetzt um ¹⁄₃₃ £
+    by: scan
+  - page: 264
+    from: Bushels Weizen über ½ E stände;‘ wenn also der früher
+    to: Bushels Weizen über ⅓ £ stände;¹ wenn also der früher
+    by: scan
+  - page: 264
+    from: Sein Preis könnte über ½/ „, das heißt über seinem Werte
+    to: ¹) Sein Preis könnte über ⅓ £, das heißt über seinem Werte
+    by: scan
+  - page: 264
+    from: ½ E, der Preis des Bushels, der eine Rente für den früher schlechtesten
+    to: ⅓ £, der Preis des Bushels, der eine Rente für den früher schlechtesten
+    by: scan
+  - page: 264
+    from: Boden von 10 E abwarf, waren gleich dem Werte des auf diesem
+    to: Boden von 10 £ abwarf, waren gleich dem Werte des auf diesem
+    by: scan
+  - page: 265
+    from: Rente tragenden Boden. Klasse II, die über J, dem letzten
+    to: Rente tragenden Boden. Klasse II, die über I, dem letzten
+    by: scan
+  - page: 265
+    from: um ein Fünftel fruchtbarer als Klasse J; Klasse III wieder
+    to: um ein Fünftel fruchtbarer als Klasse I; Klasse III wieder
+    by: scan
+  - page: 265
+    from: die Rente in Klasse Jgleich ist 120 — 110 ⸗ 10 £, ist sie in
+    to: die Rente in Klasse I gleich ist 120 — 110 = 10 £, ist sie in
+    by: scan
+  - page: 265
+    from: Klasse II- 144 — 110 E 34 L, in Klasse III- 172/ — 110
+    to: Klasse II = 144 — 110 = 34 £, in Klasse III = 172⅘ — 110
+    by: scan
+  - page: 265
+    from: 62½8 £, und in IxV 207 /5 — 110 ⸗ 97½8 L. Wäre die
+    to: = 62⅘ £, und in IV = 207⁹⁄₂₅ — 110 = 97⁹⁄₂₅ £.¹ Wäre die
+    by: scan
+  - page: 265
+    from: Fruchtbarkeit von IV kleiner, so die Rente von IIII uin-
+    to: Fruchtbarkeit von IV kleiner, so die Rente von III—I in-
+    by: scan
+  - page: 265
+    from: "Im Manustript geht die Rechnung anders. Es heißt dort:"
+    to: "¹) Im Manuskript geht die Rechnung anders. Es heißt dort:"
+    by: scan
+  - page: 265
+    from: „Klasse II, die über J, dem letzten Rente tragenden Boden steht,
+    to: „Klasse II, die über I, dem letzten Rente tragenden Boden steht,
+    by: scan
+  - page: 265
+    from: trägt Rente von ½8 mehr, weil dieser Boden ½8 fruchtbarer als Klasse I;
+    to: trägt Rente von ⅕ mehr, weil dieser Boden ⅕ fruchtbarer als Klasse I;
+    by: scan
+  - page: 265
+    from: Klasse III wieder ½/ mehr, weil ½ fruchtbarer als Klasse II, so Klasse IV,
+    to: Klasse III wieder ⅕ mehr, weil ⅕ fruchtbarer als Klasse II, so Klasse IV,
+    by: scan
+  - page: 265
+    from: weil ½s fruchtbarer als Klasse III. Da die Rente in Klasse I S 10 £,
+    to: weil ⅕ fruchtbarer als Klasse III. Da die Rente in Klasse I = 10 £,
+    by: scan
+  - page: 265
+    from: ist sie in Klasse II 10 + ½ 12 £, in Klasse III- 12 + 7/½5
+    to: ist sie in Klasse II = 10 + ⅕ = 12 £, in Klasse III = 12 + ⅕
+    by: scan
+  - page: 265
+    from: 146 und in IV =S 14/ + 75 167½25 L.“
+    to: = 14⅖ £ und in IV = 14⅖ + ⅕ = 16²²⁄₂₅ £.“
+    by: scan
+  - page: 265
+    from: 17½8 E. Aber auch sonst ist die Rechnung falsch, da die Grundrente
+    to: 17⁷⁄₂₅ £. Aber auch sonst ist die Rechnung falsch, da die Grundrente
+    by: scan
+  - page: 265
+    from: Ertrag in J bei einer Kapitalauslage von 100 £„ gleich 360 Bushel,
+    to: Ertrag in I bei einer Kapitalauslage von 100 £ gleich 360 Bushel,
+    by: scan
+  - page: 265
+    from: 432 Bushel gleich 144 L. Davon ab der Produktionspreis von 110 £,
+    to: 432 Bushel gleich 144 £. Davon ab der Produktionspreis von 110 £,
+    by: scan
+  - page: 265
+    from: bleibt eine Rente von 34 E, nicht 12 L. K.
+    to: bleibt eine Rente von 34 £, nicht 12 £. K.
+    by: scan
+  - page: 274
+    from: IV zu III, II, Iüber, so würde der Preis steigen bis (zur
+    to: IV zu III, II, I über, so würde der Preis steigen bis [zur
+    by: scan
+  - page: 274
+    from: Höhe von] ½8 , zu der der Weizen auf J noch eine Rente
+    to: Höhe von] ⅓ £, zu der der Weizen auf I noch eine Rente
+    by: scan
+  - page: 274
+    from: von 10 £ auf 100 Tabwirft. Igab mit einem Kapital von!
+    to: von 10 £ auf 100 £ abwirft. I gab [mit einem Kapital von]
+    by: scan
+  - page: 274
+    from: 100 L und mit einer Rente von 10 L und zum Werte des
+    to: 100 £ und mit einer Rente von 10 £ und zum Werte des
+    by: scan
+  - page: 274
+    from: Bushels zu ¾/ 360 Bushel, II 432 Bushel, III
+    to: Bushels zu ⅓ £ 360 Bushel, II 432 Bushel, III
+    by: scan
+  - page: 274
+    from: 518/8 Bushel und IV 622/8 Bushel. Aber der Preis
+    to: 518⅖ Bushel und IV 622²⁄₂₅ Bushel.¹ Aber der Preis
+    by: scan
+  - page: 274
+    from: des Bushels von IV zu ½ warf IV eine Überrente von
+    to: des Bushels von IV zu ⅓ £ warf IV eine Überrente von
+    by: scan
+  - page: 274
+    from: 87%½5 L ab. IV verkauft 3 Bushel zu 1 oder 622½5
+    to: 87⁹⁄₂₅ £ ab. IV verkauft 3 Bushel zu 1 £ oder 622²⁄₂₅
+    by: scan
+  - page: 274
+    from: zu 207/ &. Der Wert seines Produkts beträgt aber nur
+    to: zu 207⁹⁄₂₅ £. Der Wert seines Produkts beträgt aber nur
+    by: scan
+  - page: 274
+    from: 120 4 wie in J; was darüber, ist Überschuß seines Preises
+    to: 120 £ wie in I; was darüber, ist Überschuß seines Preises
+    by: scan
+  - page: 274
+    from: über seinen Wert. IVXV würde den Bushel zu seinem Werte
+    to: über seinen Wert. IV würde den Bushel zu seinem Werte
+    by: scan
+  - page: 274
+    from: verkaufen, wenn es ihn verkaufte zu ½s &, und bei diesem
+    to: verkaufen, wenn es ihn verkaufte zu ¹²⁵⁄₆₄₈ £, und bei diesem
+    by: scan
+  - page: 274
+    from: Preise hätte es 10 L Rente auf 100 L. Wird nun von IV
+    to: Preise hätte es 10 £ Rente auf 100 £. Wird nun von IV
+    by: scan
+  - page: 274
+    from: auf III, III auf II und II auf J übergegangen, so steigt
+    to: auf III, III auf II und II auf I übergegangen, so steigt
+    by: scan
+  - page: 274
+    from: lich ½8 £ bei J beträgt, wo dieser Preis jetzt dieselbe Grund-
+    to: lich ⅓ £ bei I beträgt, wo dieser Preis jetzt dieselbe Grund-
+    by: scan
+  - page: 274
+    from: des Preises würde die Profitrate fallen, (e]? soweit die
+    to: des Preises würde die Profitrate fallen, [?]² soweit die
+    by: scan
+  - page: 274
+    from: Im Manuskript steht 430, dann 516 und 619½, dem ent-
+    to: ¹) Im Manuskript steht 430, dann 516 und 619⅕, dem ent-
+    by: scan
+  - page: 274
+    from: 2 Hier ist ein Wort unleserlich. K.
+    to: ²) Hier ist ein Wort unleserlich. K.
+    by: scan
+  - page: 278
+    from: in bezug auf das Produkt, so swaren!] in I nötig 100, um
+    to: in bezug auf das Produkt, so [waren] in I nötig 100, um
+    by: scan
+  - page: 278
+    from: produzieren. Jetzt aber sind nur 100 + 92/½8 + 85/ — 80
+    to: produzieren. Jetzt aber sind nur 100 + 92⁴⁄₁₃ + 85⁵⁄₇ + 80
+    by: scan
+  - page: 278
+    from: nötig, also 358½½ , um 1440 Busöshel zu produzieren.
+    to: nötig, also 358²⁄₉₁ £, um 1440 Bushel zu produzieren.
+    by: scan
+  - page: 278
+    from: 92/13 produzieren in II soviel wie 100 in I, 85/ in III
+    to: 92⁴⁄₁₃ £ produzieren in II soviel wie 100 in I, 85⁵⁄₇ in III
+    by: scan
+  - page: 278
+    from: soviel wie 92½8 in II und 80 in IV soviel wie 85½ in III.“
+    to: soviel wie 92⁴⁄₁₃ in II und 80 in IV soviel wie 85⁵⁄₇ in III.¹
+    by: scan
+  - page: 278
+    from: J, gestiegen.
+    to: I, gestiegen.
+    by: scan
+  - page: 278
+    from: selbe Produkt hervorzubringen, 358/ Kapital angewandt
+    to: selbe Produkt hervorzubringen, 358²⁄₉₁ Kapital angewandt
+    by: scan
+  - page: 278
+    from: Falle. Der Pächter muß auf 92½8 soviel abgeben wie
+    to: Falle. Der Pächter muß auf 92⁴⁄₁₃ soviel abgeben wie
+    by: scan
+  - page: 278
+    from: früher auf 100, auf 85¾ soviel wie früher auf 92½8 und
+    to: früher auf 100, auf 85⁵⁄₇ soviel wie früher auf 92⁴⁄₁₃ und
+    by: scan
+  - page: 278
+    from: auf 80 soviel wie früher auf 85/. Aber die Kapital-
+    to: auf 80 soviel wie früher auf 85⁵⁄₇. Aber die Kapital-
+    by: scan
+  - page: 278
+    from: auslagen von 92½18, 85/½, 80 geben ihm gerade soviel
+    to: auslagen von 92⁴⁄₁₃, 85⁵⁄₇, 80 geben ihm gerade soviel
+    by: scan
+  - page: 278
+    from: Produkt wie die früheren auf 100. Er gibt mehr ab spro
+    to: Produkt wie die früheren auf 100. Er gibt mehr ab [pro
+    by: scan
+  - page: 278
+    from: 100), nicht weil er größeres Kapital anwenden muß, um
+    to: 100], nicht weil er größeres Kapital anwenden muß, um
+    by: scan
+  - page: 278
+    from: Preise von J verkauft, verkauft, als ob er nach wie vor
+    to: Preise von I verkauft, verkauft, als ob er nach wie vor
+    by: scan
+  - page: 278
+    from: "1 Im Manustript lautet die Stelle: „Berechnen wir nämlich die"
+    to: "¹) Im Manuskript lautet die Stelle: „Berechnen wir nämlich die"
+    by: scan
+  - page: 278
+    from: Auslage des Kapitals in bezug auf das Produkt, so in J nötig 100,
+    to: Auslage des Kapitals in bezug auf das Produkt, so in I nötig 100,
+    by: scan
+  - page: 278
+    from: duzieren. Jetzt aber nur 100 + 90 80 — 70, nämlich 340 L, um
+    to: duzieren. Jetzt aber nur 100 + 90 + 80 + 70, nämlich 340 £, um
+    by: scan
   - page: 279
     from: konstanten lim Durchschnitt!
     to: konstanten [im Durchschnitt!
+    by: scan
+  - page: 282
+    from: duktionsbedingungen nach 500 in Rohstoff und Maschi-
+    to: duktionsbedingungen nach 500 £ in Rohstoff und Maschi-
+    by: scan
+  - page: 282
+    from: kultur zu beschäftigen, für 150 Rohstoff und Maschinerie
+    to: kultur zu beschäftigen, für 150 £ Rohstoff und Maschinerie
+    by: scan
+  - page: 282
+    from: nötig wären, dann bildete das variable Kapital in I½ von
+    to: nötig wären, dann bildete das variable Kapital in I ⅙ von
+    by: scan
+  - page: 282
+    from: den 600 £ Gesamtkapital und ½ vom konstanten; in II von
+    to: den 600 £ Gesamtkapital und ⅕ vom konstanten; in II von
+    by: scan
+  - page: 282
+    from: den 250 £ Gesamtkapital das variable Kapital /8 und von
+    to: den 250 £ Gesamtkapital das variable Kapital ⅖ und von
+    by: scan
+  - page: 282
+    from: dem konstanten Kapital /. Jedes Hundert Pfund, das
+    to: dem konstanten Kapital ⅔. Jedes Hundert Pfund, das
+    by: scan
+  - page: 282
+    from: also in Jausgelegt ist, kann nur 16/ 4 variables Kapital
+    to: also in I ausgelegt ist, kann nur 16⅔ £ variables Kapital
+    by: scan
+  - page: 282
+    from: und muß 83/ konstantes Kapital enthalten; in II da-
+    to: und muß 83⅓ £ konstantes Kapital enthalten; in II da-
+    by: scan
+  - page: 282
+    from: gegen 40 E variables Kapital und 60 L konstantes. Wie er-
+    to: gegen 40 £ variables Kapital und 60 £ konstantes. Wie er-
+    by: scan
+  - page: 282
+    from: geben, zum Beispiel - 20 Prozent, so betrüge spro hundert
+    to: geben, zum Beispiel = 20 Prozent, so betrüge [pro hundert
+    by: scan
+  - page: 282
+    from: Mann! der Mehrwert in I 20 £ [bei einem Gesamtkapital
+    to: Mann] der Mehrwert in I 20 £ [bei einem Gesamtkapital
+    by: scan
+  - page: 282
+    from: von 600 T)], also der Profit 3¼ Prozent. In II dagegen
+    to: von 600 £], also der Profit 3⅓ Prozent. In II dagegen
+    by: scan
+  - page: 282
+    from: 20 E s[bei einem Gesamtkapital von 250 T), also der Profit
+    to: 20 £ [bei einem Gesamtkapital von 250 £], also der Profit
+    by: scan
+  - page: 282
+    from: 8 Prozent. Die Arbeit in J wäre nicht so produktiv wie
+    to: 8 Prozent. Die Arbeit in I wäre nicht so produktiv wie
+    by: scan
+  - page: 282
+    from: duktiv an Profit, weil sie produktiver an Produkt wäre.
+    to: duktiv an Profit,¹ weil sie produktiver an Produkt wäre.
+    by: scan
+  - page: 282
+    from: Baumwollindustrie das Verhältnis von IV:6 (VÆc) nur
+    to: "Baumwollindustrie das Verhältnis von 1 v : 6 (v + c) nur"
+    by: scan
+  - page: 282
+    from: von den Maschinen usw. ab, zum Betrag von 10000 Y
+    to: von den Maschinen usw. ab, zum Betrag von 10000 £
+    by: scan
+  - page: 282
+    from: Maschinerie unproduktiver usw. Zu 100 könnte die Fabrik!
+    to: Maschinerie unproduktiver usw. Zu 100 könnte [die Fabrik]
+    by: scan
+  - page: 282
+    from: Im Manufsktript sieht Surplusvalue. K.
+    to: ¹) Im Manuskript steht surplusvalue. K.
     by: scan
   - page: 284
     from: Aere überhaupt,
@@ -2857,12 +3449,222 @@ p1theorienberden02marxuoft:
     to: wie Thucydides herablassend
     by: scan
   - page: 326
-    from: 44 Schilling 2⅛ Pencee.
-    to: 44 Schilling 2⅕ Pence.
+    from: Jährl. Durch- Höchster Niedrigster
+    to: Jahrzehnt | Jährl. Durchschnittspreis sh d | Höchster Preis sh d | Niedrigster Preis sh d
+    by: scan
+  - page: 326
+    from: schnittspreis Preis Preis
+    to: ""
+    by: scan
+  - page: 326
+    from: SH (0 81 (0 sd Gd
+    to: ""
+    by: scan
+  - page: 326
+    from: 1611—1649 . . 60 5¾ 75 6 (1645) 42 8 (1646)
+    to: 1641—1649 | 60 5⅔ | 75 6 (1645) | 42 8 (1646)
+    by: scan
+  - page: 326
+    from: 1650—1659 . . 45 8/0 68 1 (1650) 23 1 (1659)
+    to: 1650—1659 | 45 8⁹⁄₁₀ | 68 1 (1650) | 23 1 (1659)
+    by: scan
+  - page: 326
+    from: 1660— 1669 . .44 9 65 9 (1662) 32 0 (1666 u. 1667)
+    to: 1660—1669 | 44 9 | 65 9 (1662) | 32 0 (1666 u. 1667)
+    by: scan
+  - page: 326
+    from: 1670—1679 . . 44 8/10; 61 0 (1674) 33 0 (1676)
+    to: 1670—1679 | 44 8⁹⁄₁₀ | 61 0 (1674) | 33 0 (1676)
+    by: scan
+  - page: 326
+    from: 1680—1689 . . 35 7/0 41 5 (1681) 22 4 (1687)
+    to: 1680—1689 | 35 7⁸⁄₁₀ | 41 5 (1681) | 22 4 (1687)
+    by: scan
+  - page: 326
+    from: 1690—1699 . . 50 ½ 63 1 (1695) 30 2 (1691)
+    to: 1690—1699 | 50 ⁴⁄₁₀ | 63 1 (1695) | 30 2 (1691)
+    by: scan
+  - page: 326
+    from: der Durchschnittspreis (jährlich) 44 Schilling 2⅛ Pencee.
+    to: der Durchschnittspreis (jährlich) 44 Schilling 2⅕ Pence.
+    by: scan
+  - page: 326
+    from: Jährl. Durch- Höchster Niedrigster
+    to: Jahrzehnt | Jährl. Durchschnittspreis sh d | Höchster Preis sh d | Niedrigster Preis sh d
+    by: scan
+  - page: 326
+    from: schnittspreis Preis Preis
+    to: ""
+    by: scan
+  - page: 326
+    from: sh (0 shü Gd su d
+    to: ""
+    by: scan
+  - page: 326
+    from: 170017039. 35 £ 89 9 (1709) 25 4 (1707)
+    to: 1700—1709 | 35 ¹⁄₁₀ | 69 9 (1709) | 25 4 (1707)
+    by: scan
+  - page: 326
+    from: 1710—1719 . . 43 67¾0 69 4 (1710) 31 1 (1719)
+    to: 1710—1719 | 43 6⁷⁄₁₀ | 69 4 (1710) | 31 1 (1719)
+    by: scan
+  - page: 326
+    from: 1720—1729 . . 37 37/10 48 5 (1728) 30 10 (1723)
+    to: 1720—1729 | 37 3⁷⁄₁₀ | 48 5 (1728) | 30 10 (1723)
+    by: scan
+  - page: 326
+    from: 1730 — 1739 . . 31 5/0 38 2 (1735) 23 8 (1732)
+    to: 1730—1739 | 31 5⁵⁄₁₀ | 38 2 (1735) | 23 8 (1732)
+    by: scan
+  - page: 326
+    from: 1740—1749 . . 31 7/0 45 1 (1740)0 22 1 (1743 u. 1744)
+    to: 1740—1749 | 31 7⁹⁄₁₀ | 45 1 (1740) | 22 1 (1743 u. 1744)
     by: scan
   - page: 326
     from: 35 Schilling 96/0 Pence.
     to: 35 Schilling 9²⁹⁄₅₀ Pence.
+    by: scan
+  - page: 327
+    from: III.
+    to: III.
+    by: scan
+  - page: 327
+    from: Jährl. Durch- Höchster Niedrigster
+    to: Jahrzehnt | Jährl. Durchschnittspreis sh d | Höchster Preis sh d | Niedrigster Preis sh d
+    by: scan
+  - page: 327
+    from: schnittspreis Preis Preis
+    to: ""
+    by: scan
+  - page: 327
+    from: Sh d sh d S8h d
+    to: ""
+    by: scan
+  - page: 327
+    from: 1750—1759. 36 4/10 53 4 (1757) 28 10 (1750)
+    to: 1750—1759 | 36 4⁵⁄₁₀ | 53 4 (1757) | 28 10 (1750)
+    by: scan
+  - page: 327
+    from: 1760—1769 ꝛ :u40 4/b 53 9 (1768) 26 9 (1761)
+    to: 1760—1769 | 40 4⁹⁄₁₀ | 53 9 (1768) | 26 9 (1761)
+    by: scan
+  - page: 327
+    from: 1770—17799 45 3/0 52 8 (1774) 33 8 (1779)
+    to: 1770—1779 | 45 3²⁄₁₀ | 52 8 (1774) | 33 8 (1779)
+    by: scan
+  - page: 327
+    from: 1780—17899 ꝛ :46 9/0 52 8 (1783) 35 8 (1780)
+    to: 1780—1789 | 46 9²⁄₁₀ | 52 8 (1783) | 35 8 (1780)
+    by: scan
+  - page: 327
+    from: 1799... 57 6½0 78 7 (1796) 43 0 (1792)
+    to: 1790—1799 | 57 6⁵⁄₁₀ | 78 7 (1796) | 43 0 (1792)
+    by: scan
+  - page: 327
+    from: 45 Schilling 36½60 Penee.
+    to: 45 Schilling 3²³⁄₅₀ Pence.
+    by: scan
+  - page: 327
+    from: IV.
+    to: IV.
+    by: scan
+  - page: 327
+    from: Jährl. Durch- Höchster Niedrigster
+    to: Jahrzehnt | Jährl. Durchschnittspreis sh d | Höchster Preis sh d | Niedrigster Preis sh d
+    by: scan
+  - page: 327
+    from: schnittspreis Preis Preis
+    to: ""
+    by: scan
+  - page: 327
+    from: 8h d sh d sh d
+    to: ""
+    by: scan
+  - page: 327
+    from: 1800—1809 . . 84 8/ 119 6 (1801) 58 10 (1803)
+    to: 1800—1809 | 84 8⁵⁄₁₀ | 119 6 (1801), 113 10 (1800) | 58 10 (1803)
+    by: scan
+  - page: 327
+    from: 113 10 (1800)
+    to: ""
+    by: scan
+  - page: 327
+    from: 1810—1819. . 91 4d¾0 126 6 (1812) 65 7 (18ʃ15)
+    to: 1810—1819 | 91 4⁸⁄₁₀ | 126 6 (1812), 109 9 (1813), 106 5 (1810) | 65 7 (1815), 74 4 (1814), 74 6 (1819)
+    by: scan
+  - page: 327
+    from: 109 9 (1813) 74 4 (1814)
+    to: ""
+    by: scan
+  - page: 327
+    from: 106 5 (1810) 74 6 (1819)
+    to: ""
+    by: scan
+  - page: 327
+    from: 1820—18209. 58 97/½10 68 6 (1825) 44 7 (1822)
+    to: 1820—1829 | 58 9⁷⁄₁₀ | 68 6 (1825) | 44 7 (1822)
+    by: scan
+  - page: 327
+    from: 1830—1839. . 56 8/0 66 4 (1831) 39 4 (1835)
+    to: 1830—1839 | 56 8⁵⁄₁₀ | 66 4 (1831) | 39 4 (1835)
+    by: scan
+  - page: 327
+    from: 1840—1849 . . 55 11½/10 69 5 (1847) 44 6 (1849)
+    to: 1840—1849 | 55 11⁴⁄₁₀ | 69 5 (1847) | 44 6 (1849)
+    by: scan
+  - page: 327
+    from: 1850— 1859. 53 47/10 74 9 (1855) 40 4 (1850)
+    to: 1850—1859 | 53 4⁷⁄₁₀ | 74 9 (1855) | 40 4 (1850)
+    by: scan
+  - page: 327
+    from: Jährlicher Durchschnitt für die 50 Jahre 1800 bis 1849
+    to: |-
+      Jährlicher Durchschnitt für die 50 Jahre 1800 bis 1849
+      69 Schilling 6⁹⁄₅₀ Pence.
+    by: scan
+  - page: 327
+    from: 69 Schilling 6/0 Pence.
+    to: ""
+    by: scan
+  - page: 327
+    from: für die 60 Jahre 1800 bis 1859
+    to: ""
+    by: scan
+  - page: 327
+    from: Jährlicher Durchschnitt
+    to: Jährlicher Durchschnitt für die 60 Jahre 1800 bis 1859
+    by: scan
+  - page: 327
+    from: 66 Schilling 10/8 Pence.
+    to: 66 Schilling 10⁸⁄₂₅ Pence.
+    by: scan
+  - page: 327
+    from: Schilling Pence
+    to: Jahre | Schilling | Pence
+    by: scan
+  - page: 327
+    from: 1641—1649. 60 5/
+    to: 1641—1649 | 60 | 5⅔
+    by: scan
+  - page: 327
+    from: 1650—16999. 44 2½
+    to: 1650—1699 | 44 | 2⅕
+    by: scan
+  - page: 327
+    from: 1700—1749. 35 9²½50
+    to: 1700—1749 | 35 | 9²⁹⁄₅₀
+    by: scan
+  - page: 327
+    from: 1750—1799 4»5 3½50
+    to: 1750—1799 | 45 | 3²³⁄₅₀
+    by: scan
+  - page: 327
+    from: 1800—1849. 69 6½50
+    to: 1800—1849 | 69 | 6⁹⁄₅₀
+    by: scan
+  - page: 327
+    from: 1850—1859 53 4771⁰
+    to: 1850—1859 | 53 | 4⁷⁄₁₀
     by: scan
   - page: 332
     from: present scareity
@@ -2871,6 +3673,54 @@ p1theorienberden02marxuoft:
   - page: 335
     from: hitherto reéetarded the
     to: hitherto retarded the
+    by: scan
+  - page: 336
+    from: rural affairs. London 1777—-1796. S. 107.)
+    to: rural affairs. London 1777—1796. S. 107.)
+    by: scan
+  - page: 336
+    from: verdankt.“ (I. c. S. 109, 110.)
+    to: verdankt.“ (l. c. S. 109, 110.)
+    by: scan
+  - page: 336
+    from: Aecre zum Beispiel 20 Bushel; davon zahlen 12 Bushel
+    to: Acre zum Beispiel 20 Bushel; davon zahlen 12 Bushel
+    by: scan
+  - page: 336
+    from: Rente zahlen. Nimm an, der Bushel sei -- 5 Schilling.
+    to: Rente zahlen. Nimm an, der Bushel sei = 5 Schilling.
+    by: scan
+  - page: 336
+    from: Dann sind 8 Bushel oder 1 Quarter - 40 Schilling oder
+    to: Dann sind 8 Bushel oder 1 Quarter = 40 Schilling oder
+    by: scan
+  - page: 336
+    from: 2 % und 20 Bushel - 5 L. Von diesen 5 L gehen ab als
+    to: 2 £ und 20 Bushel = 5 £. Von diesen 5 £ gehen ab als
+    by: scan
+  - page: 336
+    from: Kosten 12 Bushel oder 60 Schilling S 3 L. Davon sind,
+    to: Kosten 12 Bushel oder 60 Schilling = 3 £. Davon sind,
+    by: scan
+  - page: 336
+    from: "2/1 und der Profit gleich / (%½1 /⁷ 100: 10)."
+    to: "2⁸⁄₁₁ £ und der Profit gleich ³⁄₁₁ £ (³⁰⁄₁₁ : ³⁄₁₁ = 100 : 10)."
+    by: scan
+  - page: 336
+    from: der Auslage von 2½½ 4, oöder wenn wir den Profit in die
+    to: der Auslage von 2⁸⁄₁₁ £, oder wenn wir den Profit in die
+    by: scan
+  - page: 337
+    from: Kosten rechnen, außer den 3 noch eine Auslage von 17½1 4,
+    to: Kosten rechnen, außer den 3 £ noch eine Auslage von 1⁹⁄₁₁ £,
+    by: scan
+  - page: 337
+    from: so wären 10 Prozent darauf ½½ 4, und erst in 10 Jahren,
+    to: so wären 10 Prozent darauf ²⁄₁₁ £, und erst in 10 Jahren,
+    by: scan
+  - page: 337
+    from: Marx, Theorien über den Mehrwert. II, 1. Teil. 22
+    to: ""
     by: scan
   - page: 338
     from: e) Diverse Autoren über die Rententheorie.“

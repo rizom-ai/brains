@@ -526,6 +526,68 @@ books:
     lastPage: 344
     spacedNotes: true
     skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 327, opens: "III." }
+      - { page: 327, opens: "Jahrzehnt |" }
+      - { page: 327, opens: "Jährlicher Durchschnitt für die 50 Jahre 1750" }
+      - { page: 327, opens: "45 Schilling" }
+      - { page: 327, opens: "IV." }
+      - { page: 327, opens: "Jährlicher Durchschnitt für die 50 Jahre 1800" }
+      - { page: 327, opens: "69 Schilling" }
+      - { page: 327, opens: "Jährlicher Durchschnitt für die 60" }
+      - { page: 327, opens: "Also jährliche" }
+      - { page: 327, opens: "Jahre |" }
+      - { page: 327, opens: "Vergleichen wir" }
+      - { page: 327, opens: "1750—1759 |" }
+      - { page: 327, opens: "1760—1769 |" }
+      - { page: 327, opens: "1770—1779 |" }
+      - { page: 327, opens: "1780—1789 |" }
+      - { page: 327, opens: "1790—1799 |" }
+      - { page: 327, opens: "1800—1809 |" }
+      - { page: 327, opens: "1810—1819 |" }
+      - { page: 327, opens: "1820—1829 |" }
+      - { page: 327, opens: "1830—1839 |" }
+      - { page: 327, opens: "1840—1849 |" }
+      - { page: 327, opens: "1850—1859 |" }
+      - { page: 327, opens: "1641—1649 |" }
+      - { page: 327, opens: "1650—1699 |" }
+      - { page: 327, opens: "1700—1749 |" }
+      - { page: 327, opens: "1750—1799 |" }
+      - { page: 327, opens: "1800—1849 |" }
+      - { page: 327, opens: "66 Schilling" }
+      - { page: 326, opens: "I." }
+      - { page: 326, opens: "Durchschnittliche Weizenpreise" }
+      - { page: 326, opens: "Die höchsten und" }
+      - { page: 326, opens: "Jahrzehnt |" }
+      - { page: 326, opens: "1641—1649 |" }
+      - { page: 326, opens: "1650—1659 |" }
+      - { page: 326, opens: "1660—1669 |" }
+      - { page: 326, opens: "1670—1679 |" }
+      - { page: 326, opens: "1680—1689 |" }
+      - { page: 326, opens: "1690—1699 |" }
+      - { page: 326, opens: "Zählen wir" }
+      - { page: 326, opens: "Während des" }
+      - { page: 326, opens: "II." }
+      - { page: 326, opens: "1700—1709 |" }
+      - { page: 326, opens: "1710—1719 |" }
+      - { page: 326, opens: "1720—1729 |" }
+      - { page: 326, opens: "1730—1739 |" }
+      - { page: 326, opens: "1740—1749 |" }
+      - { page: 326, opens: "Durchschnittspreis (jährlich)" }
+      - { page: 326, opens: "35 Schilling" }
+      - { page: 326, opens: "Bei dem Vergleichen" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 68, opens: "¹) Im Manuskript" }
+      - { page: 133, opens: "¹) Im Manuskript steht 108" }
+      - { page: 256, opens: "¹) Im Manuskript steht versehentlich" }
+      - { page: 264, opens: "¹) Sein Preis" }
+      - { page: 265, opens: "¹) Im Manuskript geht" }
+      - { page: 274, opens: "¹) Im Manuskript steht 430" }
+      - { page: 274, opens: "²) Hier ist ein Wort" }
+      - { page: 278, opens: "¹) Im Manuskript lautet" }
+      - { page: 282, opens: "¹) Im Manuskript steht surplusvalue" }
     slug: theorien-ueber-den-mehrwert-2-1
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
     shortTitle: Theorien über den Mehrwert II.1
