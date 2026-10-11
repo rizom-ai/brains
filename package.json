@@ -46,7 +46,12 @@
   },
   "overrides": {
     "@effect/platform-node-shared": "4.0.1",
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    },
     "@types/node": "^24.13.3",
+    "katex": "0.18.2",
+    "postcss-selector-parser": "7.1.6",
     "zod": "^4.2.0"
   },
   "packageManager": "bun@1.4.0",
@@ -67,7 +72,7 @@
     "changeset:version:site": "bun scripts/release-lane.ts version site",
     "clean": "turbo run clean",
     "clean:all": "turbo run clean && rm -rf node_modules .turbo",
-    "deps:check": "syncpack lint",
+    "deps:check": "syncpack lint && bun test scripts/security-dependency-overrides.test.ts",
     "deps:fix": "syncpack fix",
     "deps:format": "syncpack format",
     "deps:update": "syncpack update",
