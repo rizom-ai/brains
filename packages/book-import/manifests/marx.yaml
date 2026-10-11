@@ -510,6 +510,45 @@ books:
     # Kautsky sets his notes as large as the text and signs them K.
     spacedNotes: true
     skipNotesSigned: [K.]
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 202, opens: "Spinnmaschine. Gesamtprodukt" }
+      - { page: 202, opens: "Konstantes Kapital |" }
+      - { page: 202, opens: "⅔ Ellen =" }
+      - { page: 202, opens: "Ferner ist die" }
+      - { page: 202, opens: "Ackerbaumaschine. Gesamtprodukt" }
+      - { page: 203, opens: "[Posten] |" }
+      - { page: 203, opens: "Gesamtprodukt |" }
+      - { page: 203, opens: "Konstantes Kapital |" }
+      - { page: 203, opens: "Zugesetzte Arbeit |" }
+      - { page: 203, opens: "Konsum |" }
+      - { page: 203, opens: "Nehmen wir also" }
+      - { page: 203, opens: "Worin löst" }
+      - { page: 210, opens: "Die Gesamtrechnung" }
+      - { page: 210, opens: "Konstantes Kapital des Maschinisten" }
+      - { page: 210, opens: "[Posten] |" }
+      - { page: 210, opens: "Für den Webstuhl |" }
+      - { page: 210, opens: "Für Spinnmaschine und Ackerbaugerät |" }
+      - { page: 210, opens: "Also |" }
+      - { page: 210, opens: "Zieht man die" }
+      - { page: 210, opens: "Auf seiten des" }
+      - { page: 210, opens: "Die Rechnung des" }
+      - { page: 210, opens: "Von den ⁴⁄₃" }
+      - { page: 212, opens: "Um die Sache" }
+      - { page: 212, opens: "Für Maschinerie hat zu ersetzen |" }
+      - { page: 212, opens: "der Weber |" }
+      - { page: 212, opens: "der Spinner |" }
+      - { page: 212, opens: "der Flachsbauer |" }
+      - { page: 212, opens: "der Eisen- und Holzproduzent |" }
+      - { page: 212, opens: "[Summe] |" }
+      - { page: 212, opens: "Summe der in" }
+      - { page: 212, opens: "Von diesen 4⅔" }
+      - { page: 212, opens: "Bleiben für konstantes" }
+      - { page: 212, opens: "Diese ⁷⁄₉ Ellen" }
+      - { page: 212, opens: "Es ist nun falsch" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 210, opens: "¹) Marx nimmt hier an" }
     slug: theorien-ueber-den-mehrwert-1
     title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
     shortTitle: Theorien über den Mehrwert I

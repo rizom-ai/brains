@@ -2295,6 +2295,26 @@ theorienberden01marxuoft:
     from: Stellung der Frage.!“
     to: ""
     by: scan
+  - page: 183
+    from: duktion seiner Arbeitskraft bedarf, hätten nur 3/ Stunden Arbeit
+    to: duktion seiner Arbeitskraft bedarf, hätten nur 3⅓ Stunden Arbeit
+    by: scan
+  - page: 183
+    from: gekostet. In diesem Falle brauchte der Arbeiter nur 3/ Stunden
+    to: gekostet. In diesem Falle brauchte der Arbeiter nur 3⅓ Stunden
+    by: scan
+  - page: 183
+    from: Tat auf 3½ vergegenständlichte Arbeitsstunden fallen.
+    to: Tat auf 3⅓ vergegenständlichte Arbeitsstunden fallen.
+    by: scan
+  - page: 183
+    from: hier gar nicht auf den wirklichen Preis an) — 36 Schilling.
+    to: hier gar nicht auf den wirklichen Preis an) = 36 Schilling.
+    by: scan
+  - page: 183
+    from: zeit sei = 10 Stunden, also die Mehrarbeit S 2 Stunden.
+    to: zeit sei = 10 Stunden, also die Mehrarbeit = 2 Stunden.
+    by: scan
   - page: 198
     from: 2. Weitere Untersuchung des Problems. Zweite
     to: 2. Weitere Untersuchung des Problems. Zweite Stellung der Frage.
@@ -2302,6 +2322,462 @@ theorienberden01marxuoft:
   - page: 198
     from: Stellung der Frage.!
     to: ""
+    by: scan
+  - page: 201
+    from: ihr Gesamtprodukt ersetzen, ein Drittel verzehren, 2/ Ellen
+    to: ihr Gesamtprodukt ersetzen, ein Drittel verzehren, 2⅔ Ellen
+    by: scan
+  - page: 201
+    from: setzen, werden konsumiert 2 Ellen - 6 Schilling = 6 Stunden
+    to: setzen, werden konsumiert 2 Ellen = 6 Schilling = 6 Stunden
+    by: scan
+  - page: 201
+    from: vom Spinner und ½ Ellen (2 Schilling, 2 Arbeitsstunden) vom
+    to: vom Spinner und ⅔ Ellen (2 Schilling, 2 Arbeitsstunden) vom
+    by: scan
+  - page: 201
+    from: Es bleibt uns also Rechenschaft abzulegen für 8 — 2/ Ellen
+    to: Es bleibt uns also Rechenschaft abzulegen für 8 — 2⅔ Ellen
+    by: scan
+  - page: 201
+    from: = 5½ Ellen ( 16 Schilling - 16 Arbeitsstunden). Diese
+    to: = 5⅓ Ellen (= 16 Schilling = 16 Arbeitsstunden). Diese
+    by: scan
+  - page: 201
+    from: restierenden 5⅛½ Ellen lösen sich auf wie folgt. Wir nehmen
+    to: restierenden 5⅓ Ellen lösen sich auf wie folgt. Wir nehmen
+    by: scan
+  - page: 202
+    from: 1½ Ellen das konstante Kapital des Webstuhlfabrikanten. Von
+    to: 1⅓ Ellen das konstante Kapital des Webstuhlfabrikanten. Von
+    by: scan
+  - page: 202
+    from: sein konstantes Kapital gleich 1¼⅛ Elle (S 4 Schilling = 4 Ar-
+    to: sein konstantes Kapital gleich 1⅓ Elle (= 4 Schilling = 4 Ar-
+    by: scan
+  - page: 202
+    from: Spinnmaschine. Gesamtprodukt = IElle Aadesdunden
+    to: Spinnmaschine. Gesamtprodukt = 1 Elle = 3 Schilling = 3 Arbeitsstunden
+    by: scan
+  - page: 202
+    from: Konstantes Kapital Arbeit zugesetzt Konsumierbar
+    to: Konstantes Kapital | Arbeit zugesetzt | Konsumierbar
+    by: scan
+  - page: 202
+    from: ½ Ellen ½¼ Elle ½/ Elle
+    to: ⅔ Ellen = 2 Schilling = 2 Arbeitsstunden | ⅓ Elle = 1 Schilling = 1 Arbeitsstunde | ⅓ Elle = 1 Schilling = 1 Arbeitsstunde
+    by: scan
+  - page: 202
+    from: 2 Schilling 1 Schilling 1 Schilling
+    to: ""
+    by: scan
+  - page: 202
+    from: 2 Arbeitsstunden 1 Arbeitsstunde 1 Arbeitsstunde
+    to: ""
+    by: scan
+  - page: 202
+    from: Ackerbaumaschine. Gesamtprodukt-SIElle WMbeitsnen
+    to: Ackerbaumaschine. Gesamtprodukt = 1 Elle = 3 Schilling = 3 Arbeitsstdn.
+    by: scan
+  - page: 202
+    from: Konstantes Kapital Arbeit zugesetzt Konsumierbar
+    to: Konstantes Kapital | Arbeit zugesetzt | Konsumierbar
+    by: scan
+  - page: 202
+    from: ½ Ellen ½ Elle ½ Elle
+    to: ⅔ Ellen = 2 Schilling = 2 Arbeitsstunden | ⅓ Elle = 1 Schilling = 1 Arbeitsstunde | ⅓ Elle = 1 Schilling = 1 Arbeitsstunde
+    by: scan
+  - page: 202
+    from: 2 Schilling 1 Schilling 1 Schilling
+    to: ""
+    by: scan
+  - page: 202
+    from: 2 Arbeitsstunden 1 Arbeitsstunde 1 Arbeitsstunde
+    to: ""
+    by: scan
+  - page: 203
+    from: "Weber:"
+    to: "[Posten] | Weber | Spinner | Flachsbauer | Maschinist für Webstuhl | Maschinist für Spinnmaschine | Maschinist für Ackerbaumaschine"
+    by: scan
+  - page: 203
+    from: Gesamtproduktt 12 Ellen
+    to: Gesamtprodukt | 12 Ellen | 6 Ellen | 3 Ellen | 2 Ellen | 1 Elle | 1 Elle
+    by: scan
+  - page: 203
+    from: Konstantes Kapital % 8 Ellen
+    to: Konstantes Kapital | 8 Ellen | 4 Ellen | 1 Elle | ⁴⁄₃ Ellen | ⅔ Ellen | ⅔ Ellen
+    by: scan
+  - page: 203
+    from: Zugesetzte Weberarbeit 12 Stunden 4 Ellen
+    to: Zugesetzte Arbeit | 12 Stunden = 4 Ellen | 2 Ellen | 2 Ellen | ⅔ Ellen | ⅓ Elle | ⅓ Elle
+    by: scan
+  - page: 203
+    from: Konsunnm .4 Ellen
+    to: Konsum | 4 Ellen | 2 Ellen | 2 Ellen | ⅔ Ellen | ⅓ Elle | ⅓ Elle
+    by: scan
+  - page: 203
+    from: "Spinner: Maschinist für Webstuhl:"
+    to: ""
+    by: scan
+  - page: 203
+    from: Gesamtprodukt. . 6 Ellen Gesamtprodukt .. 2 Ellen
+    to: ""
+    by: scan
+  - page: 203
+    from: Konstantes Kapital. 4 Ellen Konstantes Kapital . ½ Ellen
+    to: ""
+    by: scan
+  - page: 203
+    from: Spinnerarbeit.. 2 Ellen Maschinistenarbeit „½ Ellen
+    to: ""
+    by: scan
+  - page: 203
+    from: Konsum. 2 Ellen Konsum. ½ Ellen
+    to: ""
+    by: scan
+  - page: 203
+    from: Maschinist für Spinn-
+    to: ""
+    by: scan
+  - page: 203
+    from: "Flachsbauer: maschine:"
+    to: ""
+    by: scan
+  - page: 203
+    from: Gesamtprodukt .. 3 Ellen Gesamtprodukt. . 1 Elle
+    to: ""
+    by: scan
+  - page: 203
+    from: Konstantes Kapital. 1 Elle Konstantes Kapital .½ Ellen
+    to: ""
+    by: scan
+  - page: 203
+    from: Ackerbauarbeit .. 2 Ellen Maschinistenarbeit . ½ Elle
+    to: ""
+    by: scan
+  - page: 203
+    from: Konsum 2 Ellen Konsunum 8 Elle
+    to: ""
+    by: scan
+  - page: 203
+    from: Maschinist für Ackerbau-
+    to: ""
+    by: scan
+  - page: 203
+    from: "maschine:"
+    to: ""
+    by: scan
+  - page: 203
+    from: Gesamtprodukt. . 1 Elle
+    to: ""
+    by: scan
+  - page: 203
+    from: Konstantes Kapital . ¾ Ellen
+    to: ""
+    by: scan
+  - page: 203
+    from: Maschinistenarbeit . Elle
+    to: ""
+    by: scan
+  - page: 203
+    from: Konsum ½ Elle
+    to: ""
+    by: scan
+  - page: 203
+    from: verzehrbar vom Maschinisten am Webstuhl / Ellen, an der
+    to: verzehrbar vom Maschinisten am Webstuhl ⅔ Ellen, an der
+    by: scan
+  - page: 203
+    from: Spinnmaschine ½, an der Ackerbaumaschine ditto /8, zusammen
+    to: Spinnmaschine ⅓, an der Ackerbaumaschine ditto ⅓, zusammen
+    by: scan
+  - page: 203
+    from: 1½ Ellen. Bleiben 2¾ Ellen, nämlich / konstantes Kapital
+    to: 1⅓ Ellen. Bleiben 2⅔ Ellen, nämlich ⁴⁄₃ konstantes Kapital
+    by: scan
+  - page: 203
+    from: für den Webstuhl, /% für die Spinnmaschine und 7/ für die
+    to: für den Webstuhl, ⅔ für die Spinnmaschine und ⅔ für die
+    by: scan
+  - page: 204
+    from: Eisen betragen drei Viertel von den 2½/ Ellen, also 2 Ellen.“
+    to: Eisen betragen drei Viertel von den 2⅔ Ellen, also 2 Ellen.¹
+    by: scan
+  - page: 204
+    from: zugefügte Arbeit und ein Drittel davon, ⅝ Ellen, Maschinerie.
+    to: zugefügte Arbeit und ein Drittel davon, ⅔ Ellen, Maschinerie.
+    by: scan
+  - page: 204
+    from: Ein Viertel von den 2/ Ellen des konstanten Kapitals des
+    to: Ein Viertel von den 2⅔ Ellen des konstanten Kapitals des
+    by: scan
+  - page: 204
+    from: Maschinenbauers, das sind also / Ellen, bilden den Ersatz
+    to: Maschinenbauers, das sind also ⅔ Ellen, bilden den Ersatz
+    by: scan
+  - page: 204
+    from: Arbeit abgehen = ½¼ Ellen, und es blieben ½ Ellen für das in
+    to: Arbeit abgehen = ²⁄₉ Ellen, und es blieben ⁴⁄₉ Ellen für das in
+    by: scan
+  - page: 204
+    from: also ½ Ellen für Rohmaterial und ¼ Ellen für den Ersatz des
+    to: also ³⁄₉ Ellen für Rohmaterial und ¹⁄₉ Ellen für den Ersatz des
+    by: scan
+  - page: 204
+    from: Andererseits lösen sich die ¾/ Ellen, die die Maschinerie der
+    to: Andererseits lösen sich die ⅔ Ellen, die die Maschinerie der
+    by: scan
+  - page: 209
+    from: 6 Schilling oder 6 Arbeitsstunden - 2 Ellen.
+    to: 6 Schilling oder 6 Arbeitsstunden = 2 Ellen.
+    by: scan
+  - page: 209
+    from: — 2 Ellen selbst verzehren (gleich neuzugesetzte Arbeit, Profit
+    to: = 2 Ellen selbst verzehren (gleich neuzugesetzte Arbeit, Profit
+    by: scan
+  - page: 209
+    from: Von diesen kann der Maschinist , Ellen selbst verzehren; aber
+    to: Von diesen kann der Maschinist ⅔ Ellen selbst verzehren; aber
+    by: scan
+  - page: 209
+    from: ¾8 ersetzen ihm nur Eisen und Holz, kurz Rohmaterial, und
+    to: ⁴⁄₃ ersetzen ihm nur Eisen und Holz, kurz Rohmaterial, und
+    by: scan
+  - page: 209
+    from: den ½ Ellen 1 Elle für Rohmaterial und ½ Elle für Maschine.
+    to: den ⁴⁄₃ Ellen 1 Elle für Rohmaterial und ⅓ Elle für Maschine.
+    by: scan
+  - page: 209
+    from: Weber, 2. 2 für den Spinner und 3. ¼ für den Maschinisten;
+    to: Weber, 2. 2 für den Spinner und 3. ⅔ für den Maschinisten;
+    by: scan
+  - page: 209
+    from: zusammen 6/8. Bleiben also zu berechnen 5/. Und zwar
+    to: zusammen 6⅔. Bleiben also zu berechnen 5⅓. Und zwar
+    by: scan
+  - page: 209
+    from: "lösen sich diese 5½ auf wie folgt:"
+    to: "lösen sich diese 5⅓ auf wie folgt:"
+    by: scan
+  - page: 209
+    from: setzen von dem Werte von 7/½ Ellen 1 für Eisen usw., ½ für
+    to: setzen von dem Werte von ⁴⁄₃ Ellen 1 für Eisen usw., ⅓ für
+    by: scan
+  - page: 209
+    from: Marx, Theorien über den Mehrwert. I. 14
+    to: ""
+    by: scan
+  - page: 210
+    from: zugesetzte Arbeit, so würden 2 Ellen von den 3 unter dieser — — 2 — —.—* **** 2
+    to: zugesetzte Arbeit, so würden 2 Ellen von den 3 unter dieser
+    by: scan
+  - page: 210
+    from: Kategorie abgehen. Die restliche Elle entfiel auf Maschinerie.“
+    to: Kategorie abgehen. Die restliche Elle entfiel auf Maschinerie.¹
+    by: scan
+  - page: 210
+    from: Zieht man die 2 Ellen ab von den 5½ Ellen, die wir noch
+    to: Zieht man die 2 Ellen ab von den 5⅓ Ellen, die wir noch
+    by: scan
+  - page: 210
+    from: zu konsumieren hatten, dann bleiben noch 3⅛ Ellen.
+    to: zu konsumieren hatten, dann bleiben noch 3⅓ Ellen.
+    by: scan
+  - page: 210
+    from: anzuwenden ist, um Maschinerie zu kaufen. 7
+    to: anzuwenden ist, um Maschinerie zu kaufen.
+    by: scan
+  - page: 210
+    from: ausgegeben; ½ Elle für die Abnützung der maschinenbauenden
+    to: ausgegeben; ⅓ Elle für die Abnützung der maschinenbauenden
+    by: scan
+  - page: 210
+    from: Also ½ Ellen hätte der Maschinist wieder zu verzehren; ½ Ellen
+    to: Also ⅔ Ellen hätte der Maschinist wieder zu verzehren; ⁴⁄₃ Ellen
+    by: scan
+  - page: 210
+    from: in konstantes Kapital aufzulösen. Von den 3½ noch nicht kon-
+    to: in konstantes Kapital aufzulösen. Von den 3⅓ noch nicht kon-
+    by: scan
+  - page: 210
+    from: sumierten Ellen gehen jetzt also ½ Ellen ab. Bleiben 2/ Ellen.
+    to: sumierten Ellen gehen jetzt also ⅔ Ellen ab. Bleiben 2⅔ Ellen.
+    by: scan
+  - page: 210
+    from: Von den 7½ in konstantes Kapital aufzulösenden Ellen hatte
+    to: Von den ⁴⁄₃ in konstantes Kapital aufzulösenden Ellen hatte
+    by: scan
+  - page: 210
+    from: Holz usw. auszulegen, ein Viertel, ½ Elle zum Ersatz sich selbst
+    to: Holz usw. auszulegen, ein Viertel, ⅓ Elle zum Ersatz sich selbst
+    by: scan
+  - page: 210
+    from: Für Abnützung
+    to: "[Posten] | Für Rohmaterial | Für Abnützung seiner eigenen Maschine"
+    by: scan
+  - page: 210
+    from: seiner eigenen
+    to: ""
+    by: scan
+  - page: 210
+    from: Rohmaterial Maschine
+    to: ""
+    by: scan
+  - page: 210
+    from: Für den Webstuhl Elle ½¼/ Elle
+    to: Für den Webstuhl | 1 Elle | ⅓ Elle
+    by: scan
+  - page: 210
+    from: Für Spinnmaschine und Ackerbaugerät 1 Elle ½ Elle
+    to: Für Spinnmaschine und Ackerbaugerät | 1 Elle | ⅓ Elle
+    by: scan
+  - page: 210
+    from: Also 2 Ellen ½ Ellen
+    to: Also | 2 Ellen | ⅔ Ellen
+    by: scan
+  - page: 210
+    from: Marx nimmt hier an, bloß ½ Elle, während er früher 1 Elle
+    to: ¹) Marx nimmt hier an, bloß ½ Elle, während er früher 1 Elle
+    by: scan
+  - page: 211
+    from: Drittel ausmacht, so wären von den 2 Ellen verzehrbar 7½8.
+    to: Drittel ausmacht, so wären von den 2 Ellen verzehrbar ⁴⁄₃.
+    by: scan
+  - page: 211
+    from: Und es blieben als konstantes Kapital ¼ Ellen für Maschinerie.
+    to: Und es blieben als konstantes Kapital ⅔ Ellen für Maschinerie.
+    by: scan
+  - page: 211
+    from: Diese ½ Ellen würden zum Maschinisten zurückkehren. Der
+    to: Diese ⅔ Ellen würden zum Maschinisten zurückkehren. Der
+    by: scan
+  - page: 211
+    from: Rest der 12 Ellen bestände also aus ½ Ellen, die der Maschinist
+    to: Rest der 12 Ellen bestände also aus ⅔ Ellen, die der Maschinist
+    by: scan
+  - page: 211
+    from: und aus ½ Ellen, die ihm der Eisen- und Holzfabrikant für
+    to: und aus ⅔ Ellen, die ihm der Eisen- und Holzfabrikant für
+    by: scan
+  - page: 211
+    from: Maschinerie retourniert, zusammen 7½ Ellen.
+    to: Maschinerie retourniert, zusammen ⁴⁄₃ Ellen.
+    by: scan
+  - page: 211
+    from: Von den ½ ½ Ellen, die der Eisen- und Holzfabrikant
+    to: Von den ⅔ = ⁶⁄₉ Ellen, die der Eisen- und Holzfabrikant
+    by: scan
+  - page: 211
+    from: dem Maschinisten retourniert, seien ein Drittel ½ Ellen zu-
+    to: dem Maschinisten retourniert, seien ein Drittel = ²⁄₉ Ellen zu-
+    by: scan
+  - page: 211
+    from: gesetzte Arbeit. Diese ½% Ellen können also auch konsumiert
+    to: gesetzte Arbeit. Diese ²⁄₉ Ellen können also auch konsumiert
+    by: scan
+  - page: 211
+    from: werden, die übrigen ¾¼ Ellen stellen das in der Axt des Holz-
+    to: werden, die übrigen ⁴⁄₉ Ellen stellen das in der Axt des Holz-
+    by: scan
+  - page: 211
+    from: stante Kapital vor. Drei Viertel, ½ Ellen, gleich Roheisen,
+    to: stante Kapital vor. Drei Viertel, ³⁄₉ Ellen, gleich Roheisen,
+    by: scan
+  - page: 211
+    from: Holz usw., und ein Viertel, ½ Elle, gleich abgenützte Maschinerie.
+    to: Holz usw., und ein Viertel, ¹⁄₉ Elle, gleich abgenützte Maschinerie.
+    by: scan
+  - page: 211
+    from: fallen also jetzt ½ + ½½ /½ Ellen.
+    to: fallen also jetzt ⅔ + ¹⁄₉ = ⁷⁄₉ Ellen.
+    by: scan
+  - page: 211
+    from: Die ½ Ellen für Holz und Eisen wäre es nun ganz nutzlos,
+    to: Die ³⁄₉ Ellen für Holz und Eisen wäre es nun ganz nutzlos,
+    by: scan
+  - page: 211
+    from: "% sEllen Wert behält der Maschinist sich selbst, um die ab-"
+    to: ⁷⁄₉ Ellen Wert behält der Maschinist sich selbst, um die ab-
+    by: scan
+  - page: 211
+    from: "%e Ellen stellen ebensoviel Wert an Holz und Eisen vor."
+    to: ³⁄₉ Ellen stellen ebensoviel Wert an Holz und Eisen vor.
+    by: scan
+  - page: 211
+    from: um sein Rohmaterial zu ersetzen. ¾% + ½ % Ellen erhalten
+    to: um sein Rohmaterial zu ersetzen. ⁷⁄₉ + ³⁄₉ = ¹⁰⁄₉ Ellen erhalten
+    by: scan
+  - page: 211
+    from: Die ½ Ellen, die der Maschinist als Residuum behält, zum
+    to: Die ⁷⁄₉ Ellen, die der Maschinist als Residuum behält, zum
+    by: scan
+  - page: 211
+    from: Ersatz für Verschleiß seiner Maschinerie, sind gleich / oder
+    to: Ersatz für Verschleiß seiner Maschinerie, sind gleich ⁷⁄₃ oder
+    by: scan
+  - page: 212
+    from: 2¼½ Schilling oder 2½¼ Arbeitsstunden. Für diesen Wert kann
+    to: 2⅓ Schilling oder 2⅓ Arbeitsstunden. Für diesen Wert kann
+    by: scan
+  - page: 212
+    from: wieder verkaufen um 2½ Schilling, den Verschleiß seiner
+    to: wieder verkaufen um 2⅓ Schilling, den Verschleiß seiner
+    by: scan
+  - page: 212
+    from: Für Maschinerie hat zu ersetzen
+    to: "Für Maschinerie hat zu ersetzen |  |  | "
+    by: scan
+  - page: 212
+    from: der Weber ... 2Ellen —= 6 Sch. — 6 Arbeitsstunden
+    to: der Weber | 2 Ellen | 6 Sch. | 6 Arbeitsstunden
+    by: scan
+  - page: 212
+    from: der Spinner. lIElle 3 Sch. — 3 Arbeitsstunden
+    to: der Spinner | 1 Elle | 3 Sch. | 3 Arbeitsstunden
+    by: scan
+  - page: 212
+    from: der Flachsbauer .. IElle 3 Sch. — 3 Arbeitsstunden
+    to: der Flachsbauer | 1 Elle | 3 Sch. | 3 Arbeitsstunden
+    by: scan
+  - page: 212
+    from: der Eisen- und Holz-
+    to: ""
+    by: scan
+  - page: 212
+    from: produzent ... ½ Ellen —- 2 Sch. — 2 Arbeitsstunden
+    to: der Eisen- und Holzproduzent | ⅔ Ellen | 2 Sch. | 2 Arbeitsstunden
+    by: scan
+  - page: 212
+    from: 4/8 Ellen — 14 Sch. — 14 Arbeitsstunden
+    to: "[Summe] | 4⅔ Ellen | 14 Sch. | 14 Arbeitsstunden"
+    by: scan
+  - page: 212
+    from: Von diesen 4½ Ellen geht für Profit und Arbeitslohn ein
+    to: Von diesen 4⅔ Ellen geht für Profit und Arbeitslohn ein
+    by: scan
+  - page: 212
+    from: Drittel ab, ½½ Ellen.
+    to: Drittel ab, ¹⁴⁄₉ Ellen.
+    by: scan
+  - page: 212
+    from: Bleiben für konstantes Kapital ⅛ Ellen. Davon drei Viertel
+    to: Bleiben für konstantes Kapital ²⁸⁄₉ Ellen. Davon drei Viertel
+    by: scan
+  - page: 212
+    from: für Rohmaterial, ½ Ellen, ein Viertel, 7½/e Ellen, für Verschleiß
+    to: für Rohmaterial, ²¹⁄₉ Ellen, ein Viertel, ⁷⁄₉ Ellen, für Verschleiß
+    by: scan
+  - page: 212
+    from: Diese 7 Ellen für Verschleiß der Maschinerie sind alles, was
+    to: Diese ⁷⁄₉ Ellen für Verschleiß der Maschinerie sind alles, was
+    by: scan
+  - page: 212
+    from: auf dem Konto des Maschinisten bleibt. Denn 2½ oder 2½ Ellen
+    to: auf dem Konto des Maschinisten bleibt. Denn ²¹⁄₉ oder 2⅓ Ellen
+    by: scan
+  - page: 212
+    from: setzen haben, nämlich ¾ Ellen, bereits dem Maschinisten in
+    to: setzen haben, nämlich ⅔ Ellen, bereits dem Maschinisten in
     by: scan
   - page: 221
     from: 3. Austausch zwischen Kapital und Kapital und der
