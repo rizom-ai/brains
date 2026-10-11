@@ -30,6 +30,30 @@ interface StaleEntry {
 
 const noParams = z.object({});
 
+const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Expected YYYY-MM");
+const entityTypes = z
+  .array(z.string().min(1))
+  .min(1)
+  .optional()
+  .describe("Only these entity types");
+
+const cadenceParams = z.object({
+  entityTypes,
+  from: month.optional().describe("First month, YYYY-MM"),
+  to: month.optional().describe("Last month, YYYY-MM"),
+});
+
+const healthParams = z.object({
+  staleDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(3650)
+    .default(90)
+    .describe("Days without an update before content counts as stale"),
+  entityTypes,
+});
+
 /**
  * The analytics registry with core's generic reports; plugins add theirs.
  */
@@ -51,19 +75,25 @@ export function createAnalyticsRegistry(
   registry.register(
     defineAnalyticsReport({
       type: "publishing-cadence",
-      description: "Entities created per month, by type.",
-      params: noParams,
-      handler: async (_params, { entityService, visibilityScope }) =>
-        getPublishingCadence(entityService, visibilityScope),
+      description:
+        "Pieces per month, by type: counted in the month they were published, or created when never published.",
+      params: cadenceParams,
+      handler: async (params, { entityService, visibilityScope }) =>
+        getPublishingCadence(entityService, visibilityScope, params),
     }),
   );
   registry.register(
     defineAnalyticsReport({
       type: "content-health",
       description: "Drafts and content not updated for a long time.",
-      params: noParams,
-      handler: async (_params, { entityService, visibilityScope }) =>
-        getContentHealth(entityService, visibilityScope, entityRegistry),
+      params: healthParams,
+      handler: async (params, { entityService, visibilityScope }) =>
+        getContentHealth(
+          entityService,
+          visibilityScope,
+          entityRegistry,
+          params,
+        ),
     }),
   );
 
@@ -113,18 +143,46 @@ async function getOverview(
   };
 }
 
+/** When a piece came out: its publish date, or its creation when never published. */
+function cameOut(entity: BaseEntity): Date {
+  const publishedAt = entity.metadata["publishedAt"];
+  return new Date(
+    typeof publishedAt === "string" && publishedAt
+      ? publishedAt
+      : entity.created,
+  );
+}
+
+function ofTypes(
+  entities: BaseEntity[],
+  types: readonly string[] | undefined,
+): BaseEntity[] {
+  return types
+    ? entities.filter((e) => types.includes(e.entityType))
+    : entities;
+}
+
 async function getPublishingCadence(
   entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
+  params: z.output<typeof cadenceParams>,
 ): Promise<Record<string, unknown>> {
-  const allEntities = await getAllEntities(entityService, visibilityScope);
+  const allEntities = ofTypes(
+    await getAllEntities(entityService, visibilityScope),
+    params.entityTypes,
+  );
   const monthMap = new Map<string, Record<string, number>>();
 
   for (const entity of allEntities) {
-    const date = new Date(entity.created);
+    const date = cameOut(entity);
     if (isNaN(date.getTime())) continue;
 
     const month = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (
+      (params.from && month < params.from) ||
+      (params.to && month > params.to)
+    )
+      continue;
     let counts = monthMap.get(month);
     if (!counts) {
       counts = {};
@@ -148,8 +206,12 @@ async function getContentHealth(
   entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
   entityRegistry: Pick<EntityRegistry, "getEntityTypeConfig">,
+  params: z.output<typeof healthParams>,
 ): Promise<Record<string, unknown>> {
-  const allEntities = await getAllEntities(entityService, visibilityScope);
+  const allEntities = ofTypes(
+    await getAllEntities(entityService, visibilityScope),
+    params.entityTypes,
+  );
 
   const drafts: DraftEntry[] = getDrafts(allEntities).map((e) => ({
     id: e.id,
@@ -159,7 +221,7 @@ async function getContentHealth(
   }));
 
   const now = Date.now();
-  const staleThreshold = now - 90 * 24 * 60 * 60 * 1000;
+  const staleThreshold = now - params.staleDays * 24 * 60 * 60 * 1000;
   const stale: StaleEntry[] = allEntities
     .filter((e) => {
       if (entityRegistry.getEntityTypeConfig(e.entityType).binaryStorage)

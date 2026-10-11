@@ -230,6 +230,87 @@ describe("system_analytics tool", () => {
     });
   });
 
+  describe("core report params", () => {
+    const cadence = async (
+      params: Record<string, unknown>,
+    ): Promise<
+      Array<{ month: string; counts: Record<string, number>; total: number }>
+    > => {
+      const data = expectSuccessData(
+        await tool.handler({ type: "publishing-cadence", params }, toolContext),
+      );
+      if (
+        typeof data !== "object" ||
+        data === null ||
+        !("months" in data) ||
+        !Array.isArray(data.months)
+      )
+        throw new Error("Expected cadence months");
+      return data.months;
+    };
+
+    it("counts a piece in the month it was published, not imported", async () => {
+      services.addEntities([
+        makeEntity("imported", "post", {
+          created: "2026-03-28T10:00:00Z",
+          metadata: {
+            title: "Imported",
+            status: "published",
+            publishedAt: "2024-09-15T10:00:00Z",
+          },
+        }),
+      ]);
+      tool = findTool(createSystemTools(services), "system_analytics");
+
+      const months = await cadence({ entityTypes: ["post"] });
+      expect(months.find((m) => m.month === "2024-09")?.counts).toEqual({
+        post: 1,
+      });
+      expect(months.find((m) => m.month === "2026-03")?.counts).toEqual({
+        post: 2,
+      });
+    });
+
+    it("narrows the cadence to types and months", async () => {
+      expect(
+        await cadence({
+          entityTypes: ["note"],
+          from: "2026-03",
+          to: "2026-03",
+        }),
+      ).toEqual([{ month: "2026-03", counts: { note: 2 }, total: 2 }]);
+      expect(await cadence({ from: "2026-04" })).toEqual([]);
+    });
+
+    it("calls content stale after the days asked for, within the types asked for", async () => {
+      const fortyDaysAgo = new Date(
+        Date.now() - 40 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      services.addEntities([
+        makeEntity("quiet-note", "note", {
+          updated: fortyDaysAgo,
+          metadata: { title: "Quiet note" },
+        }),
+      ]);
+      tool = findTool(createSystemTools(services), "system_analytics");
+      const stale = async (params: Record<string, unknown>): Promise<unknown> =>
+        expectSuccessData(
+          await tool.handler({ type: "content-health", params }, toolContext),
+        );
+
+      expect(await stale({})).toMatchObject({ stale: [] });
+      expect(await stale({ staleDays: 30 })).toMatchObject({
+        stale: [expect.objectContaining({ id: "quiet-note" })],
+      });
+      expect(
+        await stale({ staleDays: 30, entityTypes: ["post"] }),
+      ).toMatchObject({
+        stale: [],
+        drafts: [expect.objectContaining({ id: "post-2" })],
+      });
+    });
+  });
+
   describe("plugin reports", () => {
     function rangeReport(seen: number[]): AnalyticsReportDefinition {
       return defineAnalyticsReport({
