@@ -876,6 +876,42 @@ books:
       - { page: 35, opens: Der erste Versuch der Sklavenhalter, numeral: IV }
     # Pages the OCR set askew, their paragraphs named.
     paragraphs:
+      - { page: 4, opens: Jules Ferry, ein }
+      - { page: 4, opens: Ernest Picard, der }
+      - { page: 4, opens: Diese Männer. }
+      - { page: 6, opens: Wenige Tage vor }
+      - { page: 6, opens: Achtzehn Monate später }
+      - { page: 6, opens: "— „Ich gehöre zur" }
+      - { page: 6, opens: Die Februar-Revolution kam. }
+      - { page: 11, opens: Und nun haben wir }
+      - { page: 11, opens: 1) daß dies }
+      - { page: 11, opens: 2) daß keine }
+      - { page: 11, opens: In jedem Falle }
+      - { page: 11, opens: Paris war das einzige }
+      - { page: 15, opens: Die „Ordnungsmänner“ }
+      - { page: 15, opens: Die angebliche Schlächterei }
+      - { page: 19, opens: „Die Proletarier von Paris“ }
+      - { page: 19, opens: Am Morgen des 18. }
+      - { page: 22, opens: Deer gerade Gegensatz }
+      - { page: 22, opens: Die Kommune bildete }
+      - { page: 22, opens: Paris, der Mittelpunkt }
+      - { page: 23, opens: Das stehende Heer }
+      - { page: 23, opens: Die Pariser Kommune sollte }
+      - { page: 23, opens: Die richterlichen Beamten }
+      - { page: 24, opens: Es ist das gewöhnliche }
+      - { page: 26, opens: Es ist eine eigenthümliche }
+      - { page: 26, opens: Ohne diese letzte }
+      - { page: 27, opens: Als die Pariser Kommune }
+      - { page: 27, opens: Die Arbeiterklasse verlangte }
+      - { page: 33, opens: Und nun, gegenüber }
+      - { page: 39, opens: In der Zwischenzeit vom }
+      - { page: 39, opens: Als dies fürtreffliche }
+      - { page: 39, opens: Einige Tage nachher }
+      - { page: 41, opens: Und nach diesen }
+      - { page: 41, opens: „Während, schreibt }
+      - { page: 42, opens: Was beweist das? }
+      - { page: 42, opens: Wenn Regierungen }
+      - { page: 42, opens: Das Paris der Arbeiter }
       - { page: 52, opens: Ich bin, mein Herr }
       - { page: 52, opens: "John Hales," }
       - { page: 52, opens: Sekretär des Generalraths }

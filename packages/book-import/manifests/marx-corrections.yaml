@@ -8398,10 +8398,6 @@ ldpd_13048930_000:
     to: Revolution des achtzehnten Jahrhunderts fegte
     by: scan
   - page: 19
-    from: sagte das Centraltomitee
-    to: sagte das Centralkomitee
-    by: reference
-  - page: 19
     from: und die Regierungégewalt.
     to: und die Regierungsgewalt.
     by: scan
@@ -8412,6 +8408,10 @@ ldpd_13048930_000:
   - page: 19
     from: Clement Thomasn.
     to: Clement Thomas.
+    by: scan
+  - page: 19
+    from: D Die Proletarier von Paris“, sagte das Centraltomitee
+    to: „Die Proletarier von Paris“, sagte das Centralkomitee
     by: scan
   - page: 20
     from: einzigen Heldenthat dvom Juni blieb
@@ -8508,6 +8508,10 @@ ldpd_13048930_000:
   - page: 27
     from: ökonomische Eni-
     to: ökonomische Ent-
+    by: scan
+  - page: 27
+    from: Kommunismuss
+    to: Kommunismus?
     by: scan
   - page: 28
     from: Mittelklasse die jetigen schweren Prüfungen
@@ -8673,6 +8677,10 @@ ldpd_13048930_000:
     from: auch lorwährend in. Ton und Burbung wechselten- — iefen
     to: auch fortwährend in Ton und Färbung wechselten —, liefen
     by: scan
+  - page: 36
+    from: In, Wirklichkeit unterdrückte
+    to: In Wirklichkeit unterdrückte
+    by: scan
   - page: 37
     from: seine RNache sich
     to: seine Rache sich
@@ -8692,6 +8700,10 @@ ldpd_13048930_000:
   - page: 39
     from: . Einige Tage
     to: Einige Tage
+    by: scan
+  - page: 39
+    from: sein ganzes Werk krönenden Verrath
+    to: sein ganzes Werk krönenden Verrath?
     by: scan
   - page: 40
     from: dem General Douai die Thore
