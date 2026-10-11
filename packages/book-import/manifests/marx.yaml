@@ -836,6 +836,7 @@ books:
       - { page: 230, opens: "Wie verhält sich" }
       - { page: 230, opens: "Wäre nur der Arbeitslohn" }
       - { page: 230, opens: "Soviel ergibt" }
+      - { page: 42, opens: "oder gleich dem Preise" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 171, opens: "¹) Mit Überschlagung" }

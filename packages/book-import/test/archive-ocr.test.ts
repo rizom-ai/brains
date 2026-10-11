@@ -195,20 +195,20 @@ describe("parseArchiveOcrWork with corrections", () => {
         {
           page: 5,
           from: "Ein Satz unten auf der Seite",
-          to: "Ein Satz unten auf der Seite\nI | 100 | 60\nII | 100 | 65",
+          to: "Ein Satz unten auf der Seite\nund eine verlorene Zeile\nund noch eine",
         },
       ],
       paragraphs: [
         { page: 5, opens: "Ein Satz" },
-        { page: 5, opens: "I |" },
-        { page: 5, opens: "II |" },
+        { page: 5, opens: "und eine" },
+        { page: 5, opens: "und noch" },
       ],
     });
 
     expect(units[0]?.paragraphs.slice(2, 5)).toEqual([
       "Ein Satz unten auf der Seite",
-      "I | 100 | 60",
-      "II | 100 | 65 läuft weiter, und am Rand rutscht ein Wort nach unten.",
+      "und eine verlorene Zeile",
+      "und noch eine läuft weiter, und am Rand rutscht ein Wort nach unten.",
     ]);
   });
 
@@ -223,7 +223,9 @@ describe("parseArchiveOcrWork with corrections", () => {
       ],
     });
 
-    expect(units[0]?.paragraphs[0]).toBe("I | 100 | 60");
+    expect(units[0]?.paragraphs[0]).toBe(
+      "|  |  |  |\n| --- | --- | --- |\n| I | 100 | 60 |",
+    );
   });
 
   it("fixes a heading's line before the heading is read, where no text line is the correction's", async () => {
@@ -2239,16 +2241,14 @@ describe("parseArchiveOcrWork, a table read anew from the scan", () => {
           { page: 13, opens: "Klasse |" },
           { page: 13, opens: "I |" },
           { page: 13, opens: "II |" },
-          { page: 13, opens: "Würde diese" },
         ],
       },
     );
 
     expect(units.map((unit) => unit.title)).toEqual(["Theorien II.1, 13"]);
     expect(units[0]?.paragraphs.slice(4)).toEqual([
-      "Klasse | Kapital | Tonnen",
-      "I | 100 | 60",
-      "II | 100 | 65",
+      // Its rows one markdown table, the row without figures its head.
+      "| Klasse | Kapital | Tonnen |\n| --- | --- | --- |\n| I | 100 | 60 |\n| II | 100 | 65 |",
       "Würde diese Tabelle nun umgekehrt dargestellt nach Ricardos absteigender Linie, also von III begonnen und zugleich angenommen, daß der zuerst bebaute fruchtbarere Boden keine Rente zahlt.",
     ]);
   });
@@ -2302,10 +2302,9 @@ describe("parseArchiveOcrWork, a page of a table alone", () => {
 
     expect(units.flatMap((unit) => unit.paragraphs)).toEqual([
       "Gang der Rente",
-      "III | 100 | 81",
-      "B. Zweite Klasse II tritt ein. Entstehung der Rente auf Boden III.",
-      "II | 100 | 67",
-      "Total | 200 | 148",
+      // A table without a head of its own has an empty one; a lettered caption
+      // between its rows is one of them.
+      "|  |  |  |\n| --- | --- | --- |\n| III | 100 | 81 |\n| B. Zweite Klasse II tritt ein. Entstehung der Rente auf Boden III. |  |  |\n| II | 100 | 67 |\n| Total | 200 | 148 |",
     ]);
   });
 });
@@ -2322,6 +2321,63 @@ describe("parseArchiveOcrWork on a page whose note the manifest names", () => {
     expect(units[0]?.paragraphs.slice(-2)).toEqual([
       "¹) Vgl. Zur Psychoanalyse der Kriegsneurosen. Mit Beiträgen von Ferenczi, Abraham, Simmel und E. Jones, 1919.",
       "Die Ich-Analyse beginnt hier. Ein Satz unten auf der Seite läuft weiter, und am Rand rutscht ein Wort nach unten.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, bars the OCR read", () => {
+  it("reads a bar as the letter or figure it stands for, else as a speck, and keeps a table's", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 15,
+        lastPage: 15,
+        spacedNotes: true,
+        corrections: [
+          {
+            page: 15,
+            from: "niemand weiß, wohin er ging.",
+            to: "niemand weiß, wohin er ging.\nJahr | Ort | Dauer\nund damit ist es aus.",
+          },
+        ],
+        paragraphs: [{ page: 15, opens: "Wie Frazer" }],
+      },
+    );
+
+    expect(units[0]?.paragraphs).toEqual([
+      "Wie Frazer, l. c., p. 106, schreibt, kam er 1847 aus der Herzegowina zurück und blieb dort bis 1905, wie er sagt. Seither ist er nicht wiedergekommen, so heißt es, und niemand weiß, wohin er ging.",
+      "| Jahr | Ort | Dauer |\n| --- | --- | --- |",
+      // No line runs on a table's row.
+      "und damit ist es aus.",
+    ]);
+  });
+});
+
+describe("parseArchiveOcrWork, the page edge's shadow", () => {
+  it("drops a glyph the OCR read at the scan's edge, and keeps a word there", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 16,
+        lastPage: 16,
+        spacedNotes: true,
+      },
+    );
+
+    expect(units[0]?.paragraphs).toEqual([
+      "Wenn dann die wirklichen Arbeiter daran Theil zu nehmen versuchten, um gegen diese Demonstrationen in ihre eignen Hände zu protestiren, verbot man ihnen den Eintritt.",
     ]);
   });
 });

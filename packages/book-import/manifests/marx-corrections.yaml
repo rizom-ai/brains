@@ -1177,60 +1177,12 @@ ldpd_14861084_000:
     to: solcher zu thun. Der Zins
     by: reference
   - page: 169
-    from: "| der Pacht"
-    to: der Pacht
-    by: scan
-  - page: 169
-    from: "| zu sprechen"
-    to: zu sprechen
-    by: scan
-  - page: 169
-    from: \ die Grundstücke,
-    to: die Grundstücke,
-    by: scan
-  - page: 169
-    from: "| braucht nur"
-    to: braucht nur
-    by: scan
-  - page: 169
-    from: "| Grundstücke weitere"
-    to: Grundstücke weitere
-    by: scan
-  - page: 169
-    from: . Der Bodenstoff
-    to: Der Bodenstoff
-    by: scan
-  - page: 169
-    from: "| Boden beilegt,"
-    to: Boden beilegt,
-    by: scan
-  - page: 169
-    from: "| dauerhaft und"
-    to: dauerhaft und
-    by: scan
-  - page: 169
     from: .Gold und
     to: Gold und
-    by: scan
-  - page: 169
-    from: ■ kommt, das
-    to: kommt, das
     by: scan
   - page: 174
     from: -der Radikalismus
     to: der Radikalismus
-    by: scan
-  - page: 175
-    from: "| meeting. Man"
-    to: meeting. Man
-    by: scan
-  - page: 175
-    from: "| englische Industrie"
-    to: englische Industrie
-    by: scan
-  - page: 175
-    from: "* den Zweck"
-    to: den Zweck
     by: scan
   - page: 176
     from: ",,Der Strike"
@@ -1276,6 +1228,218 @@ ldpd_14861084_000:
     from: Ruin eines Tlieils der Pächter
     to: Ruin eines Theils der Pächter
     by: reference
+  - page: XXVIII
+    from: Oe ko-
+    to: Oeko-
+    by: scan
+  - page: 57
+    from: erzielte , den
+    to: erzielte, den
+    by: scan
+  - page: 58
+    from: Thätigkeit ■
+    to: Thätigkeit
+    by: scan
+  - page: 58
+    from: an allen j
+    to: an allen
+    by: scan
+  - page: 127
+    from: „alle Oeltonomen
+    to: „alle Oekonomen
+    by: scan
+  - page: 175
+    from: ein ticket-
+    to: ein ticket-meeting.
+    by: scan
+  - page: 175
+    from: meeting. Man
+    to: Man
+    by: scan
+  - page: 6
+    from: Yerhältnis
+    to: Verhältnis
+    by: scan
+  - page: 6
+    from: Yerhältnis
+    to: Verhältnis
+    by: scan
+  - page: 10
+    from: Ygl
+    to: Vgl
+    by: scan
+  - page: 27
+    from: Yertheilung
+    to: Vertheilung
+    by: scan
+  - page: 53
+    from: Yerschiedenheit
+    to: Verschiedenheit
+    by: scan
+  - page: 57
+    from: Yerlust
+    to: Verlust
+    by: scan
+  - page: 57
+    from: Yerlust
+    to: Verlust
+    by: scan
+  - page: 57
+    from: Yertheilung
+    to: Vertheilung
+    by: scan
+  - page: 58
+    from: Yortheilen
+    to: Vortheilen
+    by: scan
+  - page: 60
+    from: Yertheilung
+    to: Vertheilung
+    by: scan
+  - page: 75
+    from: Yerhältnis
+    to: Verhältnis
+    by: scan
+  - page: 75
+    from: Yerhältnis
+    to: Verhältnis
+    by: scan
+  - page: 75
+    from: Yermehrung
+    to: Vermehrung
+    by: scan
+  - page: 80
+    from: Yortheil
+    to: Vortheil
+    by: scan
+  - page: 80
+    from: Yortheil
+    to: Vortheil
+    by: scan
+  - page: 80
+    from: Yerlust
+    to: Verlust
+    by: scan
+  - page: 80
+    from: Yortheil
+    to: Vortheil
+    by: scan
+  - page: 80
+    from: Yerlust
+    to: Verlust
+    by: scan
+  - page: 80
+    from: Yortheil
+    to: Vortheil
+    by: scan
+  - page: 80
+    from: Yerlust
+    to: Verlust
+    by: scan
+  - page: 86
+    from: Yerhältnis
+    to: Verhältnis
+    by: scan
+  - page: 92
+    from: Yorurtheilen
+    to: Vorurtheilen
+    by: scan
+  - page: 114
+    from: Yerwirklichung
+    to: Verwirklichung
+    by: scan
+  - page: 125
+    from: Yortheil
+    to: Vortheil
+    by: scan
+  - page: 125
+    from: Yerschiedenheit
+    to: Verschiedenheit
+    by: scan
+  - page: 127
+    from: Yortheile
+    to: Vortheile
+    by: scan
+  - page: 127
+    from: Yortheile
+    to: Vortheile
+    by: scan
+  - page: 127
+    from: Yertheilung
+    to: Vertheilung
+    by: scan
+  - page: 151
+    from: Yerhältnisse
+    to: Verhältnisse
+    by: scan
+  - page: 151
+    from: Yerhältnisse
+    to: Verhältnisse
+    by: scan
+  - page: 157
+    from: Yertheilung
+    to: Vertheilung
+    by: scan
+  - page: 157
+    from: Yerlaub
+    to: Verlaub
+    by: scan
+  - page: 159
+    from: Yertheilung
+    to: Vertheilung
+    by: scan
+  - page: 160
+    from: Yerschiedenheit
+    to: Verschiedenheit
+    by: scan
+  - page: 163
+    from: Yerhältnisse
+    to: Verhältnisse
+    by: scan
+  - page: 172
+    from: Yertheuerung
+    to: Vertheuerung
+    by: scan
+  - page: 173
+    from: Yertheuerung
+    to: Vertheuerung
+    by: scan
+  - page: 175
+    from: Yersammlungen
+    to: Versammlungen
+    by: scan
+  - page: 177
+    from: Yerurtheilung
+    to: Verurtheilung
+    by: scan
+  - page: 181
+    from: Yon
+    to: Von
+    by: scan
+  - page: 182
+    from: Yorahend
+    to: Vorabend
+    by: scan
+  - page: 188
+    from: Yolks
+    to: Volks
+    by: scan
+  - page: 195
+    from: Yerwaltungs
+    to: Verwaltungs
+    by: scan
+  - page: 197
+    from: Yieh
+    to: Vieh
+    by: scan
+  - page: 198
+    from: Yerlässt
+    to: Verlässt
+    by: scan
+  - page: 207
+    from: Yortheilen
+    to: Vortheilen
+    by: scan
 mehring-nachlass-1:
   - page: 67
     from: Uorrede.
@@ -2087,6 +2251,10 @@ theorienberden01marxuoft:
     from: probable meéethods of
     to: probable methods of
     by: scan
+  - page: 12
+    from: D'Ave- 23890 RWIIRIRIIIIIII
+    to: D'Ave-
+    by: scan
   - page: 13
     from: 3. Sir Dbudleh north und John Locke.!
     to: 3. Sir Dudley North und John Locke.
@@ -2194,6 +2362,10 @@ theorienberden01marxuoft:
   - page: 73
     from: 12. necker.
     to: 12. Necker.
+    by: scan
+  - page: 74
+    from: Einkommen —*— — ** —223 — * tN SSSSSn 1..
+    to: Einkommen
     by: scan
   - page: 75
     from: Staatsbürger (eitoyens) immer
@@ -2895,6 +3067,10 @@ theorienberden01marxuoft:
     from: g) Ganilh und Riceardo über Brutto- und Netto-
     to: g) Ganilh und Ricardo über Brutto- und Netto-
     by: scan
+  - page: 322
+    from: daß also SSSS
+    to: daß also
+    by: scan
   - page: 339
     from: Eine neue Definition der produktiven Arbeit.!
     to: Eine neue Definition der produktiven Arbeit.
@@ -3129,7 +3305,7 @@ p1theorienberden02marxuoft:
     to: 2 Stunden sich aneignet, die ⅖ aber Mehrarbeit bilden.
     by: scan
   - page: 129
-    from: „ ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ+æꝓ S
+    from: ꝛꝛì QTS TZTZ. -S ⸗ ↄ ↄ+æꝓ S
     to: ""
     by: scan
   - page: 131
@@ -4849,7 +5025,7 @@ p2theorienberd02marx:
     to: ""
     by: scan
   - page: 41
-    from: N, 3575)]35 „pHHH„H»HH)„ßHywᷣpỹH)sͤw,,thñhũHhüqͤdõc.,“ͤI]w;fʃr:s̊̃FVWwitzdeOìt ́ꝙ℔z MRH JK q. W 0—; rIn)z na. maaacdmdddeiad :smggiʃii‚ ⸗ͤdIVN dd aàͤaaqdii,dLddmai idͤlddLse:e;eds;dmödliomͤddy y:GAaARLARÄ—pṽF˖A oWi dbd
+    from: 3575)]35 „pHHH„H»HH)„ßHywᷣpỹH)sͤw,,thñhũHhüqͤdõc.,“ͤI]w;fʃr:s̊̃FVWwitzdeOìt ́ꝙ℔z MRH JK q. W 0—; rIn)z na. maaacdmdddeiad :smggiʃii‚ ⸗ͤdIVN dd aàͤaaqdii,dLddmai idͤlddLse:e;eds;dmödliomͤddy y:GAaARLARÄ—pṽF˖A oWi dbd
     to: ""
     by: scan
   - page: 41
@@ -5754,7 +5930,7 @@ p2theorienberd02marx:
     by: scan
   - page: 170
     from: Produktionspreis Differentialwert
-    to: Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert
+    to: "[Kapital] | Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert"
     by: scan
   - page: 170
     from: Profit des zw. Produktionspreis
@@ -5882,7 +6058,7 @@ p2theorienberd02marx:
     by: scan
   - page: 171
     from: Produktionspreis Differentialwert
-    to: Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert
+    to: "[Kapital] | Profit | Produktionspreis des Produkts | Differentialwert zw. Produktionspreis und Wert"
     by: scan
   - page: 171
     from: Profit es zw. Produktions-
@@ -6898,7 +7074,7 @@ p2theorienberd02marx:
     to: ""
     by: scan
   - page: 195
-    from: s fruchtbarste Land oder Mine bebaut.
+    from: fruchtbarste Land oder Mine bebaut.
     to: ""
     by: scan
   - page: 195
@@ -7942,6 +8118,10 @@ theorienberden03marxuoft:
     from: wealth ete.“ London
     to: wealth etc.“ London
     by: scan
+  - page: 68
+    from: XXXXXXeeeeee —.a!“
+    to: ""
+    by: scan
   - page: 73
     from: II. Auf losung der Ricardoschen Schule.
     to: II. Auflösung der Ricardoschen Schule.
@@ -7957,6 +8137,10 @@ theorienberden03marxuoft:
   - page: 82
     from: schöner cerele vicieux,
     to: schöner cercle vicieux,
+    by: scan
+  - page: 82
+    from: — * — * SIZIXUE]B]—; eeeere,,,,,,s,,
+    to: ""
     by: scan
   - page: 94
     from: duktivität éo ipso
@@ -7990,6 +8174,10 @@ theorienberden03marxuoft:
     from: "Reichtums (progréès divitial):"
     to: "Reichtums (progrès divitial):"
     by: scan
+  - page: 126
+    from: erzeugt eine —* 22 X eeeeeeesssss,s,,
+    to: erzeugt eine
+    by: scan
   - page: 136
     from: hus ete. London
     to: hus etc. London
@@ -8013,6 +8201,10 @@ theorienberden03marxuoft:
   - page: 183
     from: Malthusscher Manieꝛ).
     to: Malthusscher Manier).
+    by: scan
+  - page: 186
+    from: unab- — rreeeennreeeee-it,
+    to: unab-
     by: scan
   - page: 189
     from: "W:ꝗWÄ—“.= GA: GA“"
@@ -8046,6 +8238,10 @@ theorienberden03marxuoft:
     from: verhalten. Rieardo
     to: verhalten. Ricardo
     by: scan
+  - page: 208
+    from: ein- errrrrte:.:,
+    to: ein-
+    by: scan
   - page: 210
     from: Erfindung Maes, sehr
     to: Erfindung Macs, sehr
@@ -8077,6 +8273,10 @@ theorienberden03marxuoft:
   - page: 231
     from: speécie berechneter
     to: specie berechneter
+    by: scan
+  - page: 232
+    from: NNNN
+    to: ""
     by: scan
   - page: 248
     from: Ausgelegtes Kapital Gesamtprodukt Mehrwert
@@ -8357,6 +8557,14 @@ theorienberden03marxuoft:
     from: Das ist nicht richtig.
     to: ¹) Das ist nicht richtig.
     by: scan
+  - page: 264
+    from: wo der ——— ,⏑ rtreen I‚IJNNNNNRTT
+    to: wo der
+    by: scan
+  - page: 266
+    from: aus- —24 mmeeee,
+    to: aus-
+    by: scan
   - page: 270
     from: Peel ete. on
     to: Peel etc. on
@@ -8425,6 +8633,10 @@ theorienberden03marxuoft:
     from: (Labour deéfended, S.
     to: (Labour defended, S.
     by: scan
+  - page: 332
+    from: über- PRN e‚ „* —— — eeeeenn
+    to: über-
+    by: scan
   - page: 358
     from: tal + 10 Zins) + 10 Zins + 1 Zins 121 usw. Die Steige-
     to: tal + 10 Zins) + 10 Zins + 1 Zins = 121 usw. Die Steige-
@@ -8489,6 +8701,10 @@ theorienberden03marxuoft:
     from: Political Eeonomy.
     to: Political Economy.
     by: scan
+  - page: 378
+    from: be- nnrteeeeeeteeeeeeeetet
+    to: be-
+    by: scan
   - page: 381
     from: 1. Das Hapital eine historische Kategorie.
     to: 1. Das Kapital eine historische Kategorie.
@@ -8512,6 +8728,10 @@ theorienberden03marxuoft:
   - page: 390
     from: weil Rieardo
     to: weil Ricardo
+    by: scan
+  - page: 392
+    from: auftut. I nnererreeeerreeeeee
+    to: auftut.
     by: scan
   - page: 396
     from: 3. Ronstantes RKapital und Profitrate.
@@ -8649,6 +8869,14 @@ theorienberden03marxuoft:
     from: Marx, Theorien über den Mehrwert. III. 26
     to: ""
     by: scan
+  - page: 404
+    from: fluktuieren und n 8 7 42
+    to: fluktuieren und
+    by: scan
+  - page: 404
+    from: ausgleichen. . **
+    to: ausgleichen.
+    by: scan
   - page: 424
     from: 1. Konstantes und variables Rapital.
     to: 1. Konstantes und variables Kapital.
@@ -8729,9 +8957,17 @@ theorienberden03marxuoft:
     from: 6. Der Auffichtslohn.
     to: 6. Der Aufsichtslohn.
     by: scan
+  - page: 569
+    from: bRSRIIIIIIIIRR ist,
+    to: ist,
+    by: scan
   - page: 570
     from: 7. Rlassische IRonomie und vulgärökonomie.
     to: 7. Klassische Ökonomie und Vulgärökonomie.
+    by: scan
+  - page: 573
+    from: Wrr reeeeeeerrsnnn N selbst
+    to: selbst
     by: scan
   - page: 574
     from: mit Thueydides mag
@@ -8863,7 +9099,7 @@ gesammelteschrif02marxuoft:
     to: Die Presse und das Militärsystem.
     by: scan
   - page: 81
-    from: —3—— ——ßꝛ7 ———— ———⅛ — —— „
+    from: ——ßꝛ7 ———— ———⅛ — —— „
     to: ""
     by: scan
   - page: 82
@@ -9635,6 +9871,34 @@ gesammelteschrif01marxuoft:
   - page: 130
     from: Koalitionsbudgek.
     to: Koalitionsbudget.
+    by: scan
+  - page: 131
+    from: Für die Marine, inklusive Postschiffe. .. 617000 Pfund Sterling
+    to: Für die Marine, inklusive Postschiffe | 617000 | Pfund Sterling
+    by: scan
+  - page: 131
+    from: Für Armee und Verpflegungsammmmtmt.. 90000
+    to: Für Armee und Verpflegungsamt | 90000 | „ „
+    by: scan
+  - page: 131
+    from: Für den Kaffernkrieg (kein Frieden?)... . 270000 Pfund Sterling
+    to: Für den Kaffernkrieg (kein Frieden?) | 270000 | Pfund Sterling
+    by: scan
+  - page: 131
+    from: Snns des Artilleriebudges 616000
+    to: Erhöhung des Artilleriebudgets | 616000 | „ „
+    by: scan
+  - page: 131
+    from: „ Milizbudgets 230000
+    to: „ „ Milizbudgets | 230000 | „ „
+    by: scan
+  - page: 131
+    from: Öffentliches ((ies privates) Schulwesen.. 100000
+    to: Öffentliches (lies privates) Schulwesen | 100000 | „ „
+    by: scan
+  - page: 131
+    from: Totalsumme 1923000 Pfund Sterling
+    to: Totalsumme | 1923000 | Pfund Sterling
     by: scan
   - page: 132
     from: 6 Penee 160000
@@ -14119,10 +14383,6 @@ ldpd_13048930_000:
   - page: 46
     from: der neueren geit, die
     to: der neueren Zeit, die
-    by: scan
-  - page: 46
-    from: — eigniß beweist
-    to: eigniß beweist
     by: scan
   - page: 46
     from: reiner Regierungss schwindel

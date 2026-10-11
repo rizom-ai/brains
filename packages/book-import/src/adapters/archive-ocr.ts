@@ -237,6 +237,33 @@ function isRule(line: Line, bodySize: number): boolean {
 }
 
 /** Letters mostly in capitals, off the centre: the facing page's edge. */
+/**
+ * A line's text with the bars the OCR read made what they stand for: an l
+ * before „. c.“ (l. c.), a 1 opening figures (1905), else a speck at the
+ * line's edge, between words or inside one.
+ */
+function withoutBars(text: string): string {
+  return text
+    .replace(/(?<![\p{L}\d])\|[.,]\s?c\./gu, "l. c.")
+    .replace(/(?<![\p{L}\d|])\|(?=\d{2,})/gu, "1")
+    .replace(/(?<=\p{L})\|(?=\p{Ll})/gu, "")
+    .replace(/\s*\|\s*/gu, " ")
+    .replace(/\s{2,}/gu, " ")
+    .trim();
+}
+
+/** A page's lines without the bars the OCR read, but in a table's rows read from the scan; a line of bars alone is gone. */
+function debarred(page: Page): Page {
+  return {
+    ...page,
+    lines: page.lines.flatMap((line) => {
+      if (isTableRow(line) || !line.text.includes("|")) return [line];
+      const text = withoutBars(line.text);
+      return text === "" ? [] : [{ ...line, text }];
+    }),
+  };
+}
+
 /** A table's row read from the scan, its cells parted by bars. */
 function isTableRow(line: Line): boolean {
   return line.corrected === true && /\s\|\s|^\[?\p{L}*\]? \|/u.test(line.text);
@@ -285,6 +312,39 @@ function numbers(title: string, key: string): number[] {
   return match?.[1] ? match[1].trim().split(/\s+/).map(Number) : [];
 }
 
+/** A word as the hOCR gives it: its text and its box. */
+interface ReadWord {
+  textContent: string;
+  getAttribute(name: string): string | null;
+}
+
+/** A scan's edge: this share of its width from either side. */
+const SCAN_EDGE = 0.01;
+
+/**
+ * The page edge's shadow, read as a glyph: a line's first or last word, of
+ * one letter or figure at most, touching the scan's edge beside the line's
+ * other words.
+ */
+function isEdgeShadow(
+  word: ReadWord,
+  index: number,
+  words: ReadWord[],
+  width: number,
+): boolean {
+  if (words.length < 2) return false;
+  if (index !== 0 && index !== words.length - 1) return false;
+  if (!/^[^\s\p{L}\d]*[\p{L}\d]?[^\s\p{L}\d]*$/u.test(word.textContent.trim()))
+    return false;
+  const [left = 0, , right = 0] = numbers(
+    word.getAttribute("title") ?? "",
+    "bbox",
+  );
+  return index === 0
+    ? left <= width * SCAN_EDGE
+    : right >= width * (1 - SCAN_EDGE);
+}
+
 /** The scan's pages, each with its lines, position and type size. */
 function readPages(hocr: string): Page[] {
   const window = new Window();
@@ -305,9 +365,13 @@ function readPages(hocr: string): Page[] {
             .map((element) => {
               const title = element.getAttribute("title") ?? "";
               const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = numbers(title, "bbox");
+              const read = Array.from(element.querySelectorAll(".ocrx_word"));
+              const kept = read.filter(
+                (word, index) => !isEdgeShadow(word, index, read, width),
+              );
               // A stray mark beside the line would move its edges; its words
               // of letters and digits place it.
-              const words = Array.from(element.querySelectorAll(".ocrx_word"))
+              const words = kept
                 .filter((word) => /[\p{L}\d]/u.test(word.textContent))
                 .map((word) =>
                   numbers(word.getAttribute("title") ?? "", "bbox"),
@@ -321,7 +385,12 @@ function readPages(hocr: string): Page[] {
                 bottom: y1,
                 width: placed ? right - left : x1 - x0,
                 size: numbers(title, "x_size")[0] ?? 0,
-                text: element.textContent.replace(/\s+/g, " ").trim(),
+                text: (kept.length < read.length
+                  ? kept.map((word) => word.textContent).join(" ")
+                  : element.textContent
+                )
+                  .replace(/\s+/g, " ")
+                  .trim(),
               };
             })
             .filter((line) => line.text.length > 0),
@@ -941,7 +1010,7 @@ function readPage(
   const whole = own.filter((correction) => lines.includes(correction.from));
   const lined = correctedLines(page, whole, label);
   const rest = own.filter((correction) => !whole.includes(correction));
-  const pieces = piecesOf(lined, volume);
+  const pieces = piecesOf(debarred(lined), volume);
   const texts = pieces.flatMap((piece) =>
     piece.kind === "heading" ? [] : [normalised(piece.text)],
   );
@@ -951,7 +1020,7 @@ function readPage(
   return correctedPieces(
     inScan.length === 0
       ? pieces
-      : piecesOf(correctedLines(lined, inScan, label), volume),
+      : piecesOf(debarred(correctedLines(lined, inScan, label)), volume),
     rest.filter((correction) => !inScan.includes(correction)),
     label,
   );
@@ -1998,7 +2067,13 @@ function addLine(
   place: Place,
 ): Block[] {
   const last = blocks.at(-1);
-  if (opens || last === undefined) {
+  // A table's row stands alone: it runs on no line, and no line on it.
+  if (
+    opens ||
+    last === undefined ||
+    tableCells(line) !== null ||
+    tableCells(last.text) !== null
+  ) {
     return [...blocks, { text: line, ...place, lastLeaf: place.leaf }];
   }
   // A page that opens in lower case ends the word the page before broke
@@ -2496,6 +2571,69 @@ function volumeOf(hocr: string): ReadVolume {
   return lastRead.volume;
 }
 
+/** A table's caption between its rows: B., or B. Zweite Klasse II tritt ein. */
+const TABLE_CAPTION = /^[A-H]\.(?:\s|$)/u;
+/** A table's cell is short; a bar the OCR read in a paragraph parts no cells. */
+const TABLE_CELL = 120;
+
+/** A paragraph's cells, if it is a table's row: parted by bars, each short. */
+function tableCells(text: string): string[] | null {
+  if (!/ \| |^\| | \|$/u.test(text)) return null;
+  const cells = text.split("|").map((cell) => cell.trim());
+  return cells.every((cell) => cell.length <= TABLE_CELL) ? cells : null;
+}
+
+/** A table's rows as a markdown table: its first row heads it unless it holds figures, then its head is empty. */
+function markdownTable(rows: string[][]): string {
+  const width = Math.max(...rows.map((cells) => cells.length));
+  const line = (cells: string[]): string =>
+    `| ${[...cells, ...Array<string>(width - cells.length).fill("")].join(" | ")} |`;
+  const [first = [], ...rest] = rows;
+  const headed = !first.some((cell) => /\d/u.test(cell));
+  const head = headed ? first : [];
+  const body = headed ? rest : rows;
+  return [
+    line(head),
+    line(Array<string>(width).fill("---")),
+    ...body.map(line),
+  ].join("\n");
+}
+
+/**
+ * Paragraphs with each run of a table's rows, read from the scan with their
+ * short cells parted by bars, made one markdown table; a lettered caption
+ * between two rows is one of its rows.
+ */
+function tabled<Paragraph extends { text: string }>(
+  paragraphs: Paragraph[],
+): Paragraph[] {
+  const isRow = (index: number): boolean =>
+    tableCells(paragraphs[index]?.text ?? "") !== null;
+  const inTable = (index: number): boolean =>
+    isRow(index) ||
+    (TABLE_CAPTION.test(paragraphs[index]?.text ?? "") &&
+      isRow(index - 1) &&
+      isRow(index + 1));
+  const runs = paragraphs.reduce<Paragraph[][]>(
+    (done, paragraph, index) =>
+      inTable(index) && inTable(index - 1) && done.length > 0
+        ? [...done.slice(0, -1), [...(done.at(-1) ?? []), paragraph]]
+        : [...done, [paragraph]],
+    [],
+  );
+  return runs.flatMap((run) => {
+    const rows = run.map(
+      (paragraph) => tableCells(paragraph.text) ?? [paragraph.text],
+    );
+    const [first] = run;
+    // A table has a row of three cells at least: two cells a bar parts
+    // alone are a paragraph.
+    return first && rows.some((cells) => cells.length >= 3)
+      ? [{ ...first, text: markdownTable(rows) }]
+      : run;
+  });
+}
+
 /** The lines the manifest names as opening a printed page's paragraphs, if it names any there. */
 function paragraphOpeningsOn(
   work: ArchiveOcrWork,
@@ -2680,10 +2818,14 @@ export function parseArchiveOcrWork(
     filled.map((section) => ({
       ...section,
       // A signed note the page set as text is the editor's too.
-      paragraphs: parted(
-        section.paragraphs.filter(
-          (paragraph) =>
-            !signed.some((signature) => signature.test(paragraph.text.trim())),
+      paragraphs: tabled(
+        parted(
+          section.paragraphs.filter(
+            (paragraph) =>
+              !signed.some((signature) =>
+                signature.test(paragraph.text.trim()),
+              ),
+          ),
         ),
       ),
       notes: parted(section.notes.filter((note) => !skipped(note))),
