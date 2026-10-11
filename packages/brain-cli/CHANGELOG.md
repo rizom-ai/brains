@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- [#599](https://github.com/rizom-ai/brains/pull/599) [`cc5e3cf`](https://github.com/rizom-ai/brains/commit/cc5e3cfecc4944d09aa1ea6c9a0a1395cfaa1371) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator views gain a `series` block: values over ordered points drawn as bars, up to a year of days, with a point able to read "no data" apart from zero, carry a marker for an event that day, and take a tone. Each bar names its reading on hover; the axis shows the first and last labels and the peak. Studio workspaces and dashboard widgets both accept it.
+
+- [#599](https://github.com/rizom-ai/brains/pull/599) [`b777c2e`](https://github.com/rizom-ai/brains/commit/b777c2ee9acd15668fabbd567094f169504bf107) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The dashboard gains a Traffic widget (admin): pageviews and visits for the last 7 days against the 7 before, the week as a chart, and a link into the Studio Traffic workspace through the new `traffic` launch target.
+
+- [#599](https://github.com/rizom-ai/brains/pull/599) [`a5de9bc`](https://github.com/rizom-ai/brains/commit/a5de9bcdaa8957125662a995ba4100da5bc2172e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio gains a Traffic workspace (admin): pageviews and visits for the last 7, 30 or 90 days against the period before, the busiest day, the owner's own pageviews counted apart, a daily chart with publish dates marked and sampled days toned, the most-read published pieces linked to their entities, top pages, referrers and countries. It reads the traffic reports over the stored snapshots. `traffic-by-entity` now tells the model to use `firstDays` for how a piece did after publishing.
+
 ## 0.2.0-alpha.525
 
 ### Patch Changes

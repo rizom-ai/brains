@@ -1,5 +1,17 @@
 # @brains/book
 
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.526
+  - @brains/site-atlas@0.2.0-alpha.526
+  - @brains/ui-library@0.2.0-alpha.526
+  - @brains/utils@0.2.0-alpha.526
+  - @brains/plugins@0.2.0-alpha.526
+  - @brains/templates@0.2.0-alpha.526
+
 ## 0.2.0-alpha.525
 
 ### Patch Changes
