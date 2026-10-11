@@ -147,6 +147,137 @@ describe("CloudflareClient", () => {
       expect(result.visits).toBe(0);
     });
 
+    it("should accept a successful response with errors: null", async () => {
+      // Cloudflare sends `errors: null` alongside data on success
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    count: 42,
+                    sum: { visits: 30 },
+                    dimensions: { date: "2025-01-15" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        errors: null,
+      };
+
+      installStaticMockFetch(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result.pageviews).toBe(42);
+      expect(result.visits).toBe(30);
+    });
+
+    it.each([{}, { data: null }])(
+      "rejects missing data even when errors is null (%j)",
+      async (envelope) => {
+        installStaticMockFetch(Response.json({ ...envelope, errors: null }));
+        const result = await client
+          .getWebsiteStats({
+            startDate: "2025-01-15",
+            endDate: "2025-01-15",
+          })
+          .catch(caughtError);
+        expect(result).toBeInstanceOf(Error);
+        expect(result).toHaveProperty(
+          "message",
+          "Cloudflare GraphQL response contained no data",
+        );
+      },
+    );
+
+    it.each([
+      { errors: false },
+      { errors: "none" },
+      { errors: {} },
+      { errors: [{ message: null }] },
+    ])(
+      "rejects malformed errors rather than treating them as success (%j)",
+      async ({ errors }) => {
+        installStaticMockFetch(
+          Response.json({
+            data: { viewer: { accounts: [] } },
+            errors,
+          }),
+        );
+        const result = await client
+          .getWebsiteStats({
+            startDate: "2025-01-15",
+            endDate: "2025-01-15",
+          })
+          .catch(caughtError);
+        expect(result).toBeInstanceOf(Error);
+        expect(result).toHaveProperty("name", "ZodError");
+      },
+    );
+
+    it("does not skip group validation when errors is null", async () => {
+      installStaticMockFetch(
+        Response.json({
+          data: {
+            viewer: {
+              accounts: [
+                {
+                  rumPageloadEventsAdaptiveGroups: [
+                    {
+                      count: "42",
+                      sum: { visits: 30 },
+                      dimensions: { date: "2025-01-15" },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          errors: null,
+        }),
+      );
+      const result = await client
+        .getWebsiteStats({
+          startDate: "2025-01-15",
+          endDate: "2025-01-15",
+        })
+        .catch(caughtError);
+      expect(result).toBeInstanceOf(Error);
+      expect(result).toHaveProperty("name", "ZodError");
+    });
+
+    it("rejects real GraphQL errors even alongside data", async () => {
+      installStaticMockFetch(
+        Response.json({
+          data: { viewer: { accounts: [] } },
+          errors: [{ message: "Query failed" }],
+        }),
+      );
+      const result = await client
+        .getWebsiteStats({
+          startDate: "2025-01-15",
+          endDate: "2025-01-15",
+        })
+        .catch(caughtError);
+      expect(result).toBeInstanceOf(Error);
+      expect(result).toHaveProperty(
+        "message",
+        "Cloudflare GraphQL error: Query failed",
+      );
+    });
+
     it("should throw error on API failure", async () => {
       installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
 
@@ -272,25 +403,33 @@ describe("CloudflareClient", () => {
   });
 
   describe("validateCredentials", () => {
-    it("should return true for valid credentials", async () => {
-      const mockResponse = {
-        data: {
-          viewer: {
-            accounts: [{ accountTag: "test_account_id" }],
+    it.each([
+      ["omitted", undefined],
+      ["null", null],
+      ["empty array", []],
+    ] as const)(
+      "should accept valid credential responses with errors %s",
+      async (_label, errors) => {
+        const mockResponse = {
+          errors,
+          data: {
+            viewer: {
+              accounts: [{ accountTag: "test_account_id" }],
+            },
           },
-        },
-      };
+        };
 
-      installStaticMockFetch(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+        installStaticMockFetch(
+          new Response(JSON.stringify(mockResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
 
-      const isValid = await client.validateCredentials();
-      expect(isValid).toBe(true);
-    });
+        const isValid = await client.validateCredentials();
+        expect(isValid).toBe(true);
+      },
+    );
 
     it("should return false for invalid credentials", async () => {
       installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
