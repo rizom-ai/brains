@@ -117,6 +117,7 @@ export type {
 } from "./schema/projection-batches";
 export {
   EntityValidationError,
+  SemanticIndexingDisabledError,
   hasValidationIssues,
   isEntityValidationError,
   toEntityValidationError,

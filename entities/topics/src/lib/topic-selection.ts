@@ -78,6 +78,36 @@ export function tallyTopicVotes(
   return tally;
 }
 
+/**
+ * Support for a slug merged into another counts for the topic it was merged
+ * into, following merges in turn; the merged slug never stands on its own.
+ */
+export function foldTopicAliases(
+  tally: ReadonlyMap<string, TopicTally>,
+  aliases: ReadonlyMap<string, string>,
+): Map<string, TopicTally> {
+  const canonical = (slug: string, seen = new Set<string>()): string => {
+    const next = aliases.get(slug);
+    return next === undefined || seen.has(next)
+      ? slug
+      : canonical(next, new Set([...seen, slug]));
+  };
+  const folded = new Map<string, TopicTally>();
+  for (const entry of tally.values()) {
+    const slug = canonical(entry.slug);
+    const existing = folded.get(slug);
+    if (!existing) {
+      folded.set(slug, { ...entry, slug, proposals: [...entry.proposals] });
+      continue;
+    }
+    existing.support += entry.support;
+    existing.proposals.push(...entry.proposals);
+    existing.canEnter = existing.canEnter || entry.canEnter;
+    if (entry.slug === slug) existing.title = entry.title;
+  }
+  return folded;
+}
+
 export function rankedTopicChallengers(
   active: readonly ActiveTopic[],
   tally: ReadonlyMap<string, TopicTally>,

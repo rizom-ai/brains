@@ -15,6 +15,7 @@ import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { sql, and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
+import { SemanticIndexingDisabledError } from "./errors";
 import { publishedAcrossTypesCondition } from "./published-condition";
 import {
   buildSemanticSpaceProjection,
@@ -414,7 +415,7 @@ export class EntitySearch {
     request: ProjectSemanticSpaceRequest,
   ): Promise<SemanticSpaceProjection> {
     if (!this.embeddingsEnabled) {
-      throw new Error("Semantic indexing is disabled for this Brain instance");
+      throw new SemanticIndexingDisabledError();
     }
     const pointTypes =
       request.types && request.types.length > 0
@@ -525,7 +526,7 @@ export class EntitySearch {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     if (!this.embeddingsEnabled) {
-      throw new Error("Semantic indexing is disabled for this Brain instance");
+      throw new SemanticIndexingDisabledError();
     }
     const [origin] = await this.readEmbeddings(
       [request.origin.entityType],
@@ -577,7 +578,7 @@ export class EntitySearch {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     if (!this.embeddingsEnabled) {
-      throw new Error("Semantic indexing is disabled for this Brain instance");
+      throw new SemanticIndexingDisabledError();
     }
     const preparedQuery = prepareSearchQuery(query, this.logger);
     const { embedding: queryEmbedding } =

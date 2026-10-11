@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  foldTopicAliases,
   tallyTopicVotes,
   chooseTopicChallenger,
   topicSoftCeiling,
@@ -130,6 +131,28 @@ describe("ranked topic selection", () => {
     expect(
       titles.filter((title) => tally.get(title.toLowerCase())?.canEnter),
     ).toEqual(["Pity"]);
+  });
+
+  it("counts a merged slug's support for the topic it was merged into", () => {
+    const tally = tallyTopicVotes(
+      [
+        { vote: vote("Bildung", 0.5), weight: 1, canMint: true },
+        { vote: vote("Education", 0.95, true), weight: 1, canMint: true },
+        { vote: vote("Schooling", 0.6), weight: 1, canMint: true },
+      ],
+      config,
+    );
+    const folded = foldTopicAliases(
+      tally,
+      new Map([
+        ["education", "bildung"],
+        ["schooling", "education"],
+      ]),
+    );
+    expect([...folded.keys()]).toEqual(["bildung"]);
+    expect(folded.get("bildung")?.support).toBeCloseTo(2.05);
+    expect(folded.get("bildung")?.title).toBe("Bildung");
+    expect(folded.get("bildung")?.canEnter).toBe(true);
   });
 
   it("computes the cap from the full eligible corpus", () => {

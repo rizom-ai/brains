@@ -80,3 +80,11 @@ export function toEntityValidationError(
     ? new EntityValidationError(entityType, error, phase)
     : undefined;
 }
+
+/** The brain keeps no embeddings, so nothing is semantically near anything. */
+export class SemanticIndexingDisabledError extends Error {
+  constructor() {
+    super("Semantic indexing is disabled for this Brain instance");
+    this.name = "SemanticIndexingDisabledError";
+  }
+}
