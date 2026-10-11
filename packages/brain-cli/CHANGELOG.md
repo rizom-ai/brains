@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.528
+
+### Patch Changes
+
+- [#603](https://github.com/rizom-ai/brains/pull/603) [`0efcc76`](https://github.com/rizom-ai/brains/commit/0efcc7632843e71d21f40b357ecf49f5b48a2ed8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `publishing-cadence` counts a piece in the month it was published (its creation month only when never published) and takes `entityTypes` and a `from`/`to` month range; `content-health` takes `staleDays` (default 90) and `entityTypes`.
+
+- [#602](https://github.com/rizom-ai/brains/pull/602) [`d87354f`](https://github.com/rizom-ai/brains/commit/d87354fefb417244a1e7424ead1c461695bb1bcf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Studio Traffic workspace no longer fails when its period select is set to "All": All now covers every recorded day, from the first traffic snapshot to yesterday, and a period it does not know reads as the last 30 days.
+
 ## 0.2.0-alpha.527
 
 ### Patch Changes
