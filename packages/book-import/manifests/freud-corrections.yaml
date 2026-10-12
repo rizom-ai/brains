@@ -11,6 +11,10 @@ freud-1940-gw-13:
     from: zu. lassen
     to: zu lassen
     by: scan
+  - page: 14
+    from: J ahre
+    to: Jahre
+    by: scan
   - page: 15
     from: "des Wunsches: groB zu sein"
     to: "des Wunsches: groß zu sein"
@@ -39,6 +43,10 @@ freud-1940-gw-13:
     from: der Reizschutz sine beinahe wichtigere
     to: der Reizschutz eine beinahe wichtigere
     by: reference
+  - page: 27
+    from: muB
+    to: muß
+    by: scan
   - page: 29
     from: Reizschutzes. gegen
     to: Reizschutzes gegen
@@ -47,6 +55,10 @@ freud-1940-gw-13:
     from: in jede reue Formel mit
     to: in jede neue Formel mit
     by: reference
+  - page: 31
+    from: DaB
+    to: Daß
+    by: scan
   - page: 33
     from: Stelle ausgeführt, daB sie sehr
     to: Stelle ausgeführt, daß sie sehr
@@ -55,10 +67,30 @@ freud-1940-gw-13:
     from: in. meiner
     to: in meiner
     by: scan
+  - page: 37
+    from: daB
+    to: daß
+    by: scan
+  - page: 37
+    from: daB
+    to: daß
+    by: scan
+  - page: 41
+    from: daB
+    to: daß
+    by: scan
   - page: 47
     from: der hehren ’Avdyxn, erlegen sein
     to: der hehren +Anankê+, erlegen sein
     by: reference
+  - page: 49
+    from: des Lebens, $. 38.
+    to: des Lebens, S. 38.
+    by: scan
+  - page: 49
+    from: des Lebens, $. 33.
+    to: des Lebens, S. 33.
+    by: scan
   - page: 50
     from: bei den Pfl anzen und Tieren
     to: bei den Pflanzen und Tieren
@@ -75,6 +107,10 @@ freud-1940-gw-13:
     from: ihren eigenen LebensprozeB zu einem
     to: ihren eigenen Lebensprozeß zu einem
     by: reference
+  - page: 51
+    from: EinfluB
+    to: Einfluß
+    by: scan
   - page: 54
     from: Libido unserer Sexualtriebee mit dem
     to: Libido unserer Sexualtriebe mit dem
@@ -123,6 +159,18 @@ freud-1940-gw-13:
     from: zunächst durch Pythagoreer vermittelte Abhängigkeit
     to: zunächst durch Pythagoraeer vermittelte Abhängigkeit
     by: reference
+  - page: 63
+    from: s des Veda, $. 393
+    to: s des Veda, S. 393
+    by: scan
+  - page: 63
+    from: um, Bd. 31, $. 529
+    to: um, Bd. 31, S. 529
+    by: scan
+  - page: 63
+    from: DaB
+    to: Daß
+    by: scan
   - page: 64
     from: mit. seiner
     to: mit seiner
@@ -135,6 +183,14 @@ freud-1940-gw-13:
     from: oder ihre Inielligenz ist, durch
     to: oder ihre Intelligenz ist, durch
     by: reference
+  - page: 78
+    from: muB
+    to: muß
+    by: scan
+  - page: 79
+    from: daB
+    to: daß
+    by: scan
   - page: 80
     from: sind. ich
     to: sind ich
@@ -143,9 +199,29 @@ freud-1940-gw-13:
     from: Zustand. versetzt
     to: Zustand versetzt
     by: scan
+  - page: 80
+    from: ($S. 16.
+    to: (S. 16.
+    by: scan
+  - page: 80
+    from: F ähigkeiten
+    to: Fähigkeiten
+    by: scan
+  - page: 82
+    from: ung kommt. ($. 20.
+    to: ung kommt. (S. 20.
+    by: scan
   - page: 85
     from: wie. das
     to: wie das
+    by: scan
+  - page: 85
+    from: gen können ($. 74)
+    to: gen können (S. 74)
+    by: scan
+  - page: 85
+    from: zu machen ($. 47)
+    to: zu machen (S. 47)
     by: scan
   - page: 86
     from: LeBon
@@ -155,9 +231,25 @@ freud-1940-gw-13:
     from: daß. die
     to: daß die
     by: scan
+  - page: 90
+    from: sind ($S. 22)
+    to: sind (S. 22)
+    by: scan
+  - page: 90
+    from: daB
+    to: daß
+    by: scan
   - page: 91
     from: auffälliger. äußern
     to: auffälliger äußern
+    by: scan
+  - page: 91
+    from: verbreiten ($. 39)
+    to: verbreiten (S. 39)
+    by: scan
+  - page: 92
+    from: gall nicht ($S. 41)
+    to: gall nicht (S. 41)
     by: scan
   - page: 95
     from: von. den
@@ -179,6 +271,14 @@ freud-1940-gw-13:
     from: einzig. wirksame
     to: einzig wirksame
     by: scan
+  - page: 104
+    from: hat sogar ($. 24)
+    to: hat sogar (S. 24)
+    by: scan
+  - page: 104
+    from: m die Angst SO
+    to: m die Angst so
+    by: scan
   - page: 105
     from: widersprochen. Die Mc Dougallsche Auffassung ist
     to: widersprochen. Die McDougall'sche Auffassung ist
@@ -190,6 +290,10 @@ freud-1940-gw-13:
   - page: 109
     from: eine. bloße
     to: eine bloße
+    by: scan
+  - page: 109
+    from: F eststellung
+    to: Feststellung
     by: scan
   - page: 111
     from: es als Gefühlambivalenz und erklären
@@ -222,6 +326,10 @@ freud-1940-gw-13:
   - page: 119
     from: Endlich. kommt
     to: Endlich kommt
+    by: scan
+  - page: 122
+    from: muB
+    to: muß
     by: scan
   - page: 125
     from: denn fest, daB die Identifizierung
@@ -275,9 +383,17 @@ freud-1940-gw-13:
     from: nun. nachholen
     to: nun nachholen
     by: scan
+  - page: 153
+    from: daB
+    to: daß
+    by: scan
   - page: 156
     from: Da. sie
     to: Da sie
+    by: scan
+  - page: 156
+    from: daB
+    to: daß
     by: scan
   - page: 157
     from: zu finden, daB die direkten
@@ -291,14 +407,26 @@ freud-1940-gw-13:
     from: Neurose. wirkt
     to: Neurose wirkt
     by: scan
+  - page: 161
+    from: lage, 1922, $. 96.
+    to: lage, 1922, S. 96.
+    by: scan
   - page: 165
     from: mich.
     to: mich
+    by: scan
+  - page: 169
+    from: K inder
+    to: Kinder
     by: scan
   - page: 171
     from: geröntgt worden, däbei stellte der
     to: geröntgt worden, dabei stellte der
     by: reference
+  - page: 171
+    from: F ähigkeiten
+    to: Fähigkeiten
+    by: scan
   - page: 172
     from: Briefbote die Postkatte mit der
     to: Briefbote die Postkarte mit der
@@ -306,6 +434,10 @@ freud-1940-gw-13:
   - page: 175
     from: Niederkunft. wird
     to: Niederkunft wird
+    by: scan
+  - page: 178
+    from: einen Traum ZU
+    to: einen Traum zu
     by: scan
   - page: 182
     from: führe. mein
@@ -319,6 +451,10 @@ freud-1940-gw-13:
     from: Person. ihre
     to: Person ihre
     by: scan
+  - page: 190
+    from: F alles
+    to: Falles
+    by: scan
   - page: 191
     from: Habe ich Lei Ihnen den
     to: Habe ich bei Ihnen den
@@ -326,6 +462,10 @@ freud-1940-gw-13:
   - page: 199
     from: schärfer. beobachtete
     to: schärfer beobachtete
+    by: scan
+  - page: 200
+    from: ublimierung ZU
+    to: ublimierung zu
     by: scan
   - page: 216
     from: Gegenständen. manche
@@ -335,9 +475,17 @@ freud-1940-gw-13:
     from: Assoziation. nichts
     to: Assoziation nichts
     by: scan
+  - page: 218
+    from: F orschung
+    to: Forschung
+    by: scan
   - page: 219
     from: wurde. den
     to: wurde, den
+    by: scan
+  - page: 222
+    from: entziehen, SO
+    to: entziehen, so
     by: scan
   - page: 223
     from: Patienten. entlehnt
@@ -354,6 +502,10 @@ freud-1940-gw-13:
   - page: 225
     from: Abhilfe. sondern
     to: Abhilfe, sondern
+    by: scan
+  - page: 228
+    from: J ung
+    to: Jung
     by: scan
   - page: 229
     from: Trieblehre. zur
@@ -379,6 +531,10 @@ freud-1940-gw-13:
     from: daß. solche
     to: daß solche
     by: scan
+  - page: 240
+    from: F olgen
+    to: Folgen
+    by: scan
   - page: 244
     from: uns. die
     to: uns die
@@ -387,9 +543,17 @@ freud-1940-gw-13:
     from: Bedeutung. der
     to: Bedeutung, der
     by: scan
+  - page: 250
+    from: enkvorgänge ZU
+    to: enkvorgänge zu
+    by: scan
   - page: 258
     from: narzißtische. ver
     to: narzißtische ver
+    by: scan
+  - page: 260
+    from: lexes hätte SO
+    to: lexes hätte so
     by: scan
   - page: 262
     from: desIchs
@@ -407,6 +571,10 @@ freud-1940-gw-13:
     from: wir. nicht
     to: wir nicht
     by: scan
+  - page: 271
+    from: daB
+    to: daß
+    by: scan
   - page: 272
     from: Untersuchung. erst
     to: Untersuchung erst
@@ -414,6 +582,14 @@ freud-1940-gw-13:
   - page: 274
     from: zu. vereinigen
     to: zu vereinigen
+    by: scan
+  - page: 274
+    from: muB
+    to: muß
+    by: scan
+  - page: 274
+    from: J edenfalls
+    to: Jedenfalls
     by: scan
   - page: 279
     from: Person. die
@@ -451,9 +627,53 @@ freud-1940-gw-13:
     from: jederzeit.
     to: jederzeit
     by: scan
+  - page: 327
+    from: bloB
+    to: bloß
+    by: scan
+  - page: 330
+    from: DaB
+    to: Daß
+    by: scan
+  - page: 342
+    from: daB
+    to: daß
+    by: scan
+  - page: 342
+    from: J ahreszahl
+    to: Jahreszahl
+    by: scan
+  - page: 344
+    from: daB
+    to: daß
+    by: scan
+  - page: 350
+    from: daB
+    to: daß
+    by: scan
+  - page: 353
+    from: daB
+    to: daß
+    by: scan
+  - page: 366
+    from: daB
+    to: daß
+    by: scan
+  - page: 377
+    from: ¹) $S. Die
+    to: ¹) S. Die
+    by: scan
+  - page: 383
+    from: daB
+    to: daß
+    by: scan
   - page: 389
     from: es. wird
     to: es wird
+    by: scan
+  - page: 394
+    from: N ur
+    to: Nur
     by: scan
   - page: 398
     from: setzen. und
@@ -476,6 +696,26 @@ freud-1940-gw-13:
     to: mit einem
     by: scan
 freud-1940-gw-6:
+  - page: 2
+    from: A are
+    to: Aare
+    by: scan
+  - page: 2
+    from: A ir
+    to: Air
+    by: scan
+  - page: 2
+    from: N ur
+    to: Nur
+    by: scan
+  - page: 4
+    from: Y ir
+    to: Yir
+    by: scan
+  - page: 4
+    from: F ir
+    to: Fir
+    by: scan
   - page: 6
     from: welches den kömisehen Kontrast erzeugt
     to: welches den komischen Kontrast erzeugt
@@ -488,10 +728,34 @@ freud-1940-gw-6:
     from: Das. ästhetische
     to: Das ästhetische
     by: scan
+  - page: 7
+    from: e bestand“ ($. 50)
+    to: e bestand“ (S. 50)
+    by: scan
+  - page: 7
+    from: daB
+    to: daß
+    by: scan
+  - page: 7
+    from: F ormel
+    to: Formel
+    by: scan
+  - page: 8
+    from: en können“ ($. 90)
+    to: en können“ (S. 90)
+    by: scan
   - page: 9
     from: jenem Leihen, Fürwahrhaälten, Zugestehen, zum
     to: jenem Leihen, Fürwahrhalten, Zugestehen, zum
     by: reference
+  - page: 9
+    from: he Prozeß“ ($. 85
+    to: he Prozeß“ (S. 85
+    by: scan
+  - page: 11
+    from: DaB
+    to: Daß
+    by: scan
   - page: 12
     from: jeder.
     to: jeder
@@ -516,6 +780,10 @@ freud-1940-gw-6:
     from: berühmten Roman Salammbö, der im
     to: berühmten Roman Salammbô, der im
     by: reference
+  - page: 23
+    from: F adian
+    to: Fadian
+    by: scan
   - page: 24
     from: sein. eine
     to: sein, eine
@@ -536,9 +804,25 @@ freud-1940-gw-6:
     from: eine t&te sein tin b verwandelt,.
     to: eine tête sein t in b verwandelt,
     by: scan
+  - page: 25
+    from: daB
+    to: daß
+    by: scan
+  - page: 25
+    from: daB
+    to: daß
+    by: scan
+  - page: 26
+    from: groBen
+    to: großen
+    by: scan
   - page: 27
     from: dem. der
     to: dem der
+    by: scan
+  - page: 27
+    from: hreiben (s. $S. 10/
+    to: hreiben (s. S. 10/
     by: scan
   - page: 28
     from: ihn als Abjkömmling normaler seelischer
@@ -548,6 +832,10 @@ freud-1940-gw-6:
     from: meiner. jungen
     to: meiner jungen
     by: scan
+  - page: 29
+    from: daB
+    to: daß
+    by: scan
   - page: 30
     from: avez fait connaitre un jeune
     to: avez fait connaître un jeune
@@ -556,6 +844,10 @@ freud-1940-gw-6:
     from: dieser Witz infol » ge eines anderen
     to: dieser Witz infolge eines anderen
     by: reference
+  - page: 30
+    from: s0 Der
+    to: so Der
+    by: scan
   - page: 31
     from: die Kritik, daB die Aufführung
     to: die Kritik, daß die Aufführung
@@ -568,6 +860,10 @@ freud-1940-gw-6:
     from: Hier ist nür ein einziger
     to: Hier ist nur ein einziger
     by: reference
+  - page: 33
+    from: daB
+    to: daß
+    by: scan
   - page: 38
     from: WennSaphir
     to: Wenn Saphir
@@ -576,18 +872,38 @@ freud-1940-gw-6:
     from: WillyHermann
     to: Willy Hermann
     by: scan
+  - page: 38
+    from: daB
+    to: daß
+    by: scan
   - page: 40
     from: Witz. auf
     to: Witz auf
+    by: scan
+  - page: 41
+    from: K. Fischer ($. 88)
+    to: K. Fischer (S. 88)
     by: scan
   - page: 42
     from: sei es, daB der eine
     to: sei es, daß der eine
     by: reference
+  - page: 43
+    from: GewiB
+    to: Gewiß
+    by: scan
   - page: 47
     from: er die Cäsaren nicht auszurotten
     to: er die +Caes=a=ren+ nicht auszurotten
     by: reference
+  - page: 49
+    from: K. Fischer, $. 82)
+    to: K. Fischer, S. 82)
+    by: scan
+  - page: 49
+    from: stand hat“ ($. 82)
+    to: stand hat“ (S. 82)
+    by: scan
   - page: 50
     from: um. seiner
     to: um seiner
@@ -596,6 +912,18 @@ freud-1940-gw-6:
     from: mit einer Anspiel ung. Er sagt
     to: mit einer Anspielung. Er sagt
     by: reference
+  - page: 55
+    from: daB
+    to: daß
+    by: scan
+  - page: 55
+    from: DaB
+    to: Daß
+    by: scan
+  - page: 58
+    from: daB
+    to: daß
+    by: scan
   - page: 66
     from: einLoch
     to: ein Loch
@@ -608,9 +936,17 @@ freud-1940-gw-6:
     from: den. beiden
     to: den beiden
     by: scan
+  - page: 72
+    from: daB
+    to: daß
+    by: scan
   - page: 74
     from: Miteiner
     to: Mit einer
+    by: scan
+  - page: 78
+    from: muB
+    to: muß
     by: scan
   - page: 82
     from: deren Sinn sle für sich
@@ -624,10 +960,22 @@ freud-1940-gw-6:
     from: Manifest. dieser
     to: Manifest dieser
     by: scan
+  - page: 83
+    from: daB
+    to: daß
+    by: scan
   - page: 85
     from: der Witztechnik irrezumachen. Auch die
     to: der Witztechnik irre zu machen. Auch die
     by: reference
+  - page: 85
+    from: J ungen
+    to: Jungen
+    by: scan
+  - page: 85
+    from: daB
+    to: daß
+    by: scan
   - page: 87
     from: Weile. dringt
     to: Weile dringt
@@ -664,6 +1012,10 @@ freud-1940-gw-6:
     from: undder
     to: und der
     by: scan
+  - page: 93
+    from: daB
+    to: daß
+    by: scan
   - page: 95
     from: Problem. unerledigt
     to: Problem unerledigt
@@ -671,6 +1023,18 @@ freud-1940-gw-6:
   - page: 98
     from: wirdtendenziös
     to: wird tendenziös
+    by: scan
+  - page: 101
+    from: daB
+    to: daß
+    by: scan
+  - page: 103
+    from: te lautete ($. 15)
+    to: te lautete (S. 15)
+    by: scan
+  - page: 103
+    from: K. Fischer, $. 68)
+    to: K. Fischer, S. 68)
     by: scan
   - page: 105
     from: ist. wieder
@@ -688,6 +1052,10 @@ freud-1940-gw-6:
     from: aber gilt sre dafür beim
     to: aber gilt sie dafür beim
     by: reference
+  - page: 116
+    from: daB
+    to: daß
+    by: scan
   - page: 117
     from: der Witztechnik, daB Widersinn im
     to: der Witztechnik, daß Widersinn im
@@ -708,6 +1076,14 @@ freud-1940-gw-6:
     from: ich sicher, daB mir die
     to: ich sicher, daß mir die
     by: reference
+  - page: 122
+    from: en, die auf $. 84
+    to: en, die auf S. 84
+    by: scan
+  - page: 123
+    from: ich auf die $. 86
+    to: ich auf die S. 86
+    by: scan
   - page: 125
     from: beinahe richtig, daB ihm der
     to: beinahe richtig, daß ihm der
@@ -732,9 +1108,25 @@ freud-1940-gw-6:
     from: liegen, je srößer also die
     to: liegen, je größer also die
     by: reference
+  - page: 135
+    from: sagt ($. 155
+    to: sagt (S. 155
+    by: scan
+  - page: 136
+    from: daB
+    to: daß
+    by: scan
+  - page: 136
+    from: daB
+    to: daß
+    by: scan
   - page: 137
     from: an. sich
     to: an sich
+    by: scan
+  - page: 137
+    from: daB
+    to: daß
     by: scan
   - page: 140
     from: Um. sie
@@ -756,6 +1148,10 @@ freud-1940-gw-6:
     from: Psychogenese. des
     to: Psychogenese des
     by: scan
+  - page: 144
+    from: muB
+    to: muß
+    by: scan
   - page: 147
     from: der Frage näherzutreien, wieso Lust
     to: der Frage näher zu treten, wieso Lust
@@ -764,14 +1160,34 @@ freud-1940-gw-6:
     from: Solidarität. des
     to: Solidarität des
     by: scan
+  - page: 147
+    from: daB
+    to: daß
+    by: scan
+  - page: 150
+    from: s Herrn N. ($. 113
+    to: s Herrn N. (S. 113
+    by: scan
   - page: 151
     from: können. Seine Mächt besteht in
     to: können. Seine Macht besteht in
     by: reference
+  - page: 151
+    from: daB
+    to: daß
+    by: scan
+  - page: 155
+    from: Beispielen $. 59
+    to: Beispielen S. 59
+    by: scan
   - page: 157
     from: Gumpelino (vormals Gun,pel). Der Dichter
     to: Gumpelino (vormals Gumpel). Der Dichter
     by: reference
+  - page: 158
+    from: J ugendzeit
+    to: Jugendzeit
+    by: scan
   - page: 159
     from: oft nicht fernliegen, wenn man
     to: oft nicht ferne liegen, wenn man
@@ -832,6 +1248,30 @@ freud-1940-gw-6:
     from: bringt.
     to: bringt
     by: scan
+  - page: 167
+    from: daB
+    to: daß
+    by: scan
+  - page: 171
+    from: bungswitze ($. 57)
+    to: bungswitze (S. 57)
+    by: scan
+  - page: 172
+    from: S cherzfragen
+    to: Scherzfragen
+    by: scan
+  - page: 173
+    from: daB
+    to: daß
+    by: scan
+  - page: 180
+    from: VOR NOTE no SO RE
+    to: VOR NOTE no so RE
+    by: scan
+  - page: 180
+    from: D ar
+    to: Dar
+    by: scan
   - page: 181
     from: Jahre 1900 veröffentlichte „Trauindeutung‘“ mehr „Verblüffung
     to: Jahre 1900 veröffentlichte „Traumdeutung“ mehr „Verblüffung
@@ -843,6 +1283,10 @@ freud-1940-gw-6:
   - page: 183
     from: Wege.
     to: Wege
+    by: scan
+  - page: 183
+    from: muB
+    to: muß
     by: scan
   - page: 184
     from: inLipps
@@ -860,6 +1304,14 @@ freud-1940-gw-6:
     from: undderen
     to: und deren
     by: scan
+  - page: 189
+    from: daB
+    to: daß
+    by: scan
+  - page: 191
+    from: daB
+    to: daß
+    by: scan
   - page: 193
     from: dem Umstande, daB dort die
     to: dem Umstande, daß dort die
@@ -868,10 +1320,18 @@ freud-1940-gw-6:
     from: und. wie
     to: und wie
     by: scan
+  - page: 193
+    from: DaB
+    to: Daß
+    by: scan
   - page: 194
     from: in statu nmascendi korrigiert wird
     to: in statu nascendi korrigiert wird
     by: reference
+  - page: 198
+    from: daB
+    to: daß
+    by: scan
   - page: 199
     from: Hörer. erzeugt
     to: Hörer erzeugt
@@ -879,6 +1339,10 @@ freud-1940-gw-6:
   - page: 200
     from: um. den
     to: um den
+    by: scan
+  - page: 200
+    from: F echner
+    to: Fechner
     by: scan
   - page: 201
     from: Einwandes. nicht
@@ -904,6 +1368,10 @@ freud-1940-gw-6:
     from: Witz.
     to: Witz
     by: scan
+  - page: 207
+    from: st ersetzt ($. 171
+    to: st ersetzt (S. 171
+    by: scan
   - page: 209
     from: lieben Verwandten hir, die sich
     to: lieben Verwandten hin, die sich
@@ -916,9 +1384,17 @@ freud-1940-gw-6:
     from: vielleicht das wesentliehe Stück des
     to: vielleicht das wesentliche Stück des
     by: reference
+  - page: 215
+    from: 904) weist ($. 99)
+    to: 904) weist (S. 99)
+    by: scan
   - page: 216
     from: daß. ihm
     to: daß ihm
+    by: scan
+  - page: 216
+    from: F ederstiels
+    to: Federstiels
     by: scan
   - page: 217
     from: wegungen. vorgestellt
@@ -932,6 +1408,26 @@ freud-1940-gw-6:
     from: sich -mehr AufwhAnd auferlegt hatte
     to: sich -mehr Aufwand auferlegt hatte
     by: reference
+  - page: 222
+    from: daB
+    to: daß
+    by: scan
+  - page: 226
+    from: bloB
+    to: bloß
+    by: scan
+  - page: 230
+    from: machen ($. 113
+    to: machen (S. 113
+    by: scan
+  - page: 230
+    from: Entlarvung ZU,
+    to: Entlarvung zu,
+    by: scan
+  - page: 232
+    from: daB
+    to: daß
+    by: scan
   - page: 233
     from: hatte. sich
     to: hatte sich
@@ -939,6 +1435,22 @@ freud-1940-gw-6:
   - page: 234
     from: so. erübrigt
     to: so erübrigt
+    by: scan
+  - page: 235
+    from: em vorigen ($. 232
+    to: em vorigen (S. 232
+    by: scan
+  - page: 237
+    from: ufen (siehe $. 155
+    to: ufen (siehe S. 155
+    by: scan
+  - page: 237
+    from: daB
+    to: daß
+    by: scan
+  - page: 237
+    from: daB
+    to: daß
     by: scan
   - page: 238
     from: "hiefür lautet: Mecanisation de la"
@@ -976,6 +1488,10 @@ freud-1940-gw-6:
     from: der entsetzte Finwand, ein Hering
     to: der entsetzte Einwand, ein Hering
     by: reference
+  - page: 246
+    from: A ir
+    to: Air
+    by: scan
   - page: 248
     from: erkannt. wird
     to: erkannt wird
@@ -1004,6 +1520,10 @@ freud-1940-gw-6:
     from: uns Erwachsenen verlorenzugehen, dafür verspüren
     to: uns Erwachsenen verloren zu gehen, dafür verspüren
     by: reference
+  - page: 258
+    from: MaB
+    to: Maß
+    by: scan
   - page: 259
     from: dem Kinde woh] am fernsten
     to: dem Kinde wohl am fernsten
@@ -1020,9 +1540,17 @@ freud-1940-gw-6:
     from: daß. jene
     to: daß jene
     by: scan
+  - page: 261
+    from: F all
+    to: Fall
+    by: scan
   - page: 262
     from: Schicksal. als
     to: Schicksal als
+    by: scan
+  - page: 263
+    from: daB
+    to: daß
     by: scan
   - page: 264
     from: fange an, menoton zu werden
@@ -1044,6 +1572,18 @@ freud-1940-gw-6:
     from: peut s’interpreter & la fois
     to: peut s’interpréter à la fois
     by: reference
+  - page: 270
+    from: N ie
+    to: Nie
+    by: scan
+  - page: 270
+    from: A nn
+    to: Ann
+    by: scan
+  - page: 270
+    from: U ne
+    to: Une
+    by: scan
 freud-1940-gw-9:
   - page: 3
     from: Anspruch. und
@@ -1057,6 +1597,46 @@ freud-1940-gw-9:
     from: entweder.
     to: entweder
     by: scan
+  - page: 6
+    from: nahewohnenden. Ä
+    to: nahewohnenden.
+    by: scan
+  - page: 8
+    from: BE ION Denkweise
+    to: psychoanalytischer Denkweise
+    by: scan
+  - page: 8
+    from: andes.
+    to: Bandes.)
+    by: scan
+  - page: 8
+    from: kaum ‚eine Behauptung
+    to: kaum eine Behauptung
+    by: scan
+  - page: 8
+    from: Bu ah Ib welcher
+    to: sich haben, in welcher
+    by: scan
+  - page: 8
+    from: ; hat. So findet
+    to: erfahren hat. So findet
+    by: scan
+  - page: 8
+    from: ver hnlen BORERER sozialen
+    to: ganges zu anderen sozialen
+    by: scan
+  - page: 8
+    from: Be Beam rugn sich weit genug
+    to: Ausgestaltungen, die sich weit genug
+    by: scan
+  - page: 8
+    from: ee ie Schwierigkeit
+    to: haben mögen. Die Schwierigkeit
+    by: scan
+  - page: 8
+    from: 27 ‚ was an den
+    to: entscheiden, was an den
+    by: scan
   - page: 9
     from: is. only
     to: is only
@@ -1064,6 +1644,46 @@ freud-1940-gw-9:
   - page: 9
     from: oder.
     to: oder
+    by: scan
+  - page: 9
+    from: ee zT io TEE
+    to: ""
+    by: scan
+  - page: 10
+    from: N RENSENESSAU DEREN ONE GN AR GREEN EEE
+    to: ""
+    by: scan
+  - page: 10
+    from: Känguruh \ ist
+    to: Känguruh ist
+    by: scan
+  - page: 10
+    from: der Inzest mit seinen Töchtern, E
+    to: der Inzest mit seinen Töchtern, die Emu sind, frei gelassen. Bei väterlicher Vererbung
+    by: scan
+  - page: 10
+    from: a un an x ‚ die Emu sind, frei gelassen. Bei väterlicher Vererbung
+    to: des Totem wäre der Vater Känguruh, die Kinder gleichfalls Känguruh, dem Vater
+    by: scan
+  - page: 10
+    from: a ag r Vater Känguruh, die Kinder gleichfalls Känguruh, dem Vater
+    to: würde dann der Inzest mit den Töchtern verboten sein, dem Sohne der Inzest mit
+    by: scan
+  - page: 10
+    from: ee oa mit den Töchtern verboten sein, dem Sohne der Inzest mit
+    to: der Mutter freibleiben. Diese Erfolge der Totemverbote ergeben einen Hinweis darauf,
+    by: scan
+  - page: 10
+    from: u REN en. Diese Erfolge der Totemverbote ergeben einen Hinweis darauf,
+    to: daß die mütterliche Vererbung älter ist als die väterliche, denn es liegt Grund vor
+    by: scan
+  - page: 10
+    from: "Pa: a: erlic e Vererbung älter ist als die väterliche, denn es liegt Grund vor"
+    to: anzunehmen, daß die Totemverbote vor allem gegen die inzestuösen Gelüste des
+    by: scan
+  - page: 10
+    from: unehmen, daß die Totemverbote vor allem gegen die inzestuösen Gelüste des
+    to: ""
     by: scan
   - page: 13
     from: Verhütung des Gruppeninzestes, welches dann
@@ -1073,6 +1693,10 @@ freud-1940-gw-9:
     from: Mann vom Tötem a muß
     to: Mann vom Totem a muß
     by: reference
+  - page: 14
+    from: auf v0 '/, ein
+    to: auf ⁶⁄₁₂ = ¹⁄₂; ein
+    by: scan
   - page: 15
     from: zweifelhaft erscheinen känn. Man kann
     to: zweifelhaft erscheinen kann. Man kann
@@ -1081,6 +1705,18 @@ freud-1940-gw-9:
     from: Halbinsel in Neubritannien darf eine
     to: Halbinsel in Newbritannien darf eine
     by: reference
+  - page: 16
+    from: „The Melanesians“ . . “
+    to: „The Melanesians“ bei Frazer, „Totemism and Exogamy“,
+    by: scan
+  - page: 16
+    from: bei Frazer, „Totemism and Exogamy“,
+    to: ""
+    by: scan
+  - page: 16
+    from: H 2% An LEER l.c. II, p. 124. rc Kleintits chen, Die Küstenbewohner der Gazellen-
+    to: ²) Frazer, l. c. II, p. 124. nach Kleintitschen, Die Küstenbewohner der Gazellen-
+    by: scan
   - page: 17
     from: eben. diese
     to: eben diese
@@ -1088,6 +1724,10 @@ freud-1940-gw-9:
   - page: 20
     from: auf. die
     to: auf die
+    by: scan
+  - page: 20
+    from: V. Grawley, The mystic rose. London 1902, P. 405.
+    to: V. Crawley, The mystic rose. London 1902, p. 405.
     by: scan
   - page: 22
     from: liegt. klar
@@ -1097,6 +1737,10 @@ freud-1940-gw-9:
     from: eigenen. macht
     to: eigenen macht
     by: scan
+  - page: 27
+    from: Britannica“*? folgen
+    to: Britannica“²) folgen
+    by: scan
   - page: 28
     from: im allgemeinen — ügegen das mächtige
     to: im allgemeinen — gegen das mächtige
@@ -1104,6 +1748,10 @@ freud-1940-gw-9:
   - page: 28
     from: denZorn
     to: den Zorn
+    by: scan
+  - page: 28
+    from: $) die Behütung
+    to: f) die Behütung
     by: scan
   - page: 29
     from: und. es
@@ -1117,6 +1765,10 @@ freud-1940-gw-9:
     from: Wortsinn. nach
     to: Wortsinn nach
     by: scan
+  - page: 31
+    from: daB
+    to: daß
+    by: scan
   - page: 32
     from: und die Irtzte Abhandlung dieses
     to: und die letzte Abhandlung dieses
@@ -1125,6 +1777,14 @@ freud-1940-gw-9:
     from: Ursprung.
     to: Ursprung
     by: scan
+  - page: 32
+    from: J ünglinge
+    to: Jünglinge
+    by: scan
+  - page: 32
+    from: Fe EN
+    to: ""
+    by: scan
   - page: 34
     from: dieser Wurzel losgelöstt und sei
     to: dieser Wurzel losgelöst und sei
@@ -1132,6 +1792,10 @@ freud-1940-gw-9:
   - page: 34
     from: Scheidung. von
     to: Scheidung von
+    by: scan
+  - page: 35
+    from: "haben. #"
+    to: haben.
     by: scan
   - page: 39
     from: Ausführung. durch
@@ -1153,9 +1817,25 @@ freud-1940-gw-9:
     from: und wichtigsten TTabuverbote sind die
     to: und wichtigsten Tabuverbote sind die
     by: reference
+  - page: 42
+    from: Aufsätzen b ereits
+    to: Aufsätzen bereits
+    by: scan
+  - page: 43
+    from: anzufachen und aka
+    to: anzufachen und ihn
+    by: scan
   - page: 44
     from: Triebes. wieder
     to: Triebes wieder
+    by: scan
+  - page: 44
+    from: die En Tabu innewohnt
+    to: die dem Tabu innewohnt
+    by: scan
+  - page: 44
+    from: auf Gegenstände ee die dadurch selbst le des Tabu
+    to: auf Gegenstände äußert, die dadurch selbst Träger des Tabu
     by: scan
   - page: 45
     from: Tabuzeremoniell. würden
@@ -1164,6 +1844,14 @@ freud-1940-gw-9:
   - page: 47
     from: sicherlich. jünger
     to: sicherlich jünger
+    by: scan
+  - page: 49
+    from: Freud, IX, >
+    to: ""
+    by: scan
+  - page: 50
+    from: daB
+    to: daß
     by: scan
   - page: 51
     from: Reizen en ÖOnderzoekingen in den
@@ -1185,6 +1873,10 @@ freud-1940-gw-9:
     from: linke Schulter entblößBen und den
     to: linke Schulter entblößen und den
     by: reference
+  - page: 55
+    from: daB
+    to: daß
+    by: scan
   - page: 56
     from: sich. aus
     to: sich aus
@@ -1197,9 +1889,17 @@ freud-1940-gw-9:
     from: um. den
     to: um den
     by: scan
+  - page: 60
+    from: u. dgl."
+    to: u. dgl.¹)
+    by: scan
   - page: 61
     from: vonFreiheit
     to: von Freiheit
+    by: scan
+  - page: 62
+    from: daB
+    to: daß
     by: scan
   - page: 68
     from: in Britisch-Kolumbia müssen Witwen
@@ -1208,6 +1908,10 @@ freud-1940-gw-9:
   - page: 69
     from: gerate. wenn
     to: gerate, wenn
+    by: scan
+  - page: 69
+    from: “ ich oben ($. 38)
+    to: “ ich oben (S. 38)
     by: scan
   - page: 73
     from: aus den Angäben der trauernden
@@ -1249,6 +1953,22 @@ freud-1940-gw-9:
     from: Wenn. eine
     to: Wenn eine
     by: scan
+  - page: 77
+    from: F eindseligkeit
+    to: Feindseligkeit
+    by: scan
+  - page: 77
+    from: gezeichnet. VE A Po |
+    to: gezeichnet.
+    by: scan
+  - page: 78
+    from: enge A ar aber nicht schwer werden, ihn aufzu-
+    to: "Widerspruch: es wird uns aber nicht schwer werden, ihn aufzu-"
+    by: scan
+  - page: 78
+    from: amonen zwar angenommen, aber nicht als
+    to: lösen. Wir haben die Dämonen zwar angenommen, aber nicht als
+    by: scan
   - page: 79
     from: oder zum großeren Anteile—, unbewußt
     to: oder zum größeren Anteile—, unbewußt
@@ -1256,6 +1976,34 @@ freud-1940-gw-9:
   - page: 82
     from: Menschheitsentwicklung. darin
     to: Menschheitsentwicklung darin
+    by: scan
+  - page: 82
+    from: aber unbewußte.'
+    to: aber unbewußte.¹)
+    by: scan
+  - page: 82
+    from: Wundt® bemerkt
+    to: Wundt²) bemerkt
+    by: scan
+  - page: 82
+    from: aus sich Kernel, RR" ®
+    to: aus sich herausstellt.
+    by: scan
+  - page: 82
+    from: die Eltern zu e
+    to: die Eltern zu entlarven. Vgl. hiezu auch die „Sexualgespenster“ betitelte Mitteilung
+    by: scan
+  - page: 82
+    from: Eee ER N hiezu auch die „Sexualgespenster“ betitelte Mitteilung
+    to: von P. Haeberlin (Sexualprobleme, Februar 1912), in welcher es sich um eine
+    by: scan
+  - page: 82
+    from: andere erotisch exualprobleme, Februar 1912), in welcher es sich um eine
+    to: andere erotisch betonte Person handelt, der Vater aber verstorben war.
+    by: scan
+  - page: 82
+    from: otisch betonte Person handelt, der Vater aber verstorben war.
+    to: ""
     by: scan
   - page: 83
     from: Dienste der NN. sie nun
@@ -1269,9 +2017,45 @@ freud-1940-gw-9:
     from: die. unbewußte
     to: die unbewußte
     by: scan
+  - page: 84
+    from: daB
+    to: daß
+    by: scan
+  - page: 84
+    from: N SEE
+    to: ""
+    by: scan
+  - page: 84
+    from: ¹) Vgl. mein Referat über Abels j ü
+    to: ¹) Vgl. mein Referat über Abels „Gegensinn der Urworte“ im Jahrbuch für
+    by: scan
+  - page: 84
+    from: Gege i fü
+    to: ""
+    by: scan
+  - page: 84
+    from: psychoanalyt. und psychopathol. Forsch ee rore” \im Jahrbuch I
+    to: psychoanalyt. und psychopathol. Forschungen, Bd. II, 1910. [Ges. Werke, Bd. VIII.]
+    by: scan
+  - page: 84
+    from: ungen, Bd. II, 1910. [Ges. Werke, Bd. VII.)
+    to: ""
+    by: scan
+  - page: 84
+    from: nn ——
+    to: ""
+    by: scan
   - page: 85
     from: an. denen
     to: an denen
+    by: scan
+  - page: 86
+    from: Wenn däs Tabu
+    to: Wenn das Tabu
+    by: scan
+  - page: 86
+    from: BIER zu verbieten
+    to: nicht zu verbieten
     by: scan
   - page: 91
     from: Bei. der
@@ -1285,6 +2069,26 @@ freud-1940-gw-9:
     from: eingeschränkt. haben
     to: eingeschränkt haben
     by: scan
+  - page: 94
+    from: ¹) E.B. Tylor, Primitive Culture I. Bd
+    to: ¹) E. B. Tylor, Primitive Culture. I. Bd., p. 425, 4. Aufl., 1903. — W. Wundt,
+    by: scan
+  - page: 94
+    from: Ko . I. Bd., p. 425, 4. i ‚„— W. Wundt,
+    to: ""
+    by: scan
+  - page: 94
+    from: Mythus und Religion, II. Bd., p. 173, 1906. en 4905
+    to: Mythus und Religion, II. Bd., p. 173, 1906.
+    by: scan
+  - page: 94
+    from: ®) Wundt, l. c.
+    to: ²) Wundt, l. c.
+    by: scan
+  - page: 95
+    from: erreichbar BE
+    to: erreichbar ist“.²)
+    by: scan
   - page: 100
     from: aus. ihren
     to: aus ihren
@@ -1292,6 +2096,22 @@ freud-1940-gw-9:
   - page: 100
     from: In. einer
     to: In einer
+    by: scan
+  - page: 100
+    from: a SE
+    to: ""
+    by: scan
+  - page: 100
+    from: ¹) Davon ein Nachkl im Könie Öd;
+    to: ¹) Davon ein Nachklang im König Ödipus des Sophokles.
+    by: scan
+  - page: 100
+    from: 2) The magic art, I een 8 Ocipus des Sophokles.
+    to: ²) The magic art, I, p. 120.
+    by: scan
+  - page: 101
+    from: N ägel
+    to: Nägel
     by: scan
   - page: 102
     from: Raum, die Ko ntiguität, wenigstens die
@@ -1301,10 +2121,54 @@ freud-1940-gw-9:
     from: Erkl ärung
     to: Erklärung
     by: scan
+  - page: 103
+    from: oder ‚wie es fast
+    to: oder wie es fast
+    by: scan
+  - page: 103
+    from: der ii. Auflage
+    to: der 11. Auflage
+    by: scan
+  - page: 103
+    from: 5) her pi
+    to: ³) l. c., p. 54.
+    by: scan
+  - page: 104
+    from: DEN BEE
+    to: ""
+    by: scan
+  - page: 104
+    from: ¹) Formulierungen über die zwei Prinzivi BR,
+    to: ¹) Formulierungen über die zwei Prinzipien des psychischen Geschehens. Jahrb.
+    by: scan
+  - page: 104
+    from: f. psychoanalyt. Forschunge wei Prinzipien des psychischen Geschehens.
+    to: f. psychoanalyt. Forschungen, III. Bd., 1912, p. 2., Ges. Werke, Bd. VIII.
+    by: scan
+  - page: 104
+    from: n, III. Bd., 1912, p. 2., Ges. Werke, Bd. VII.
+    to: ""
+    by: scan
+  - page: 106
+    from: daB
+    to: daß
+    by: scan
+  - page: 106
+    from: Bd. vIl.]
+    to: Bd. VII.]
+    by: scan
+  - page: 108
+    from: er ee
+    to: ""
+    by: scan
   - page: 110
     from: almost an ariom with writers
     to: almost an axiom with writers
     by: reference
+  - page: 110
+    from: ur naacheiuter Ledanken DET 7
+    to: ""
+    by: scan
   - page: 111
     from: contrainte mystique exercee par la
     to: contrainte mystique exercée par la
@@ -1320,6 +2184,14 @@ freud-1940-gw-9:
   - page: 112
     from: Betrachtung. trifft
     to: Betrachtung trifft
+    by: scan
+  - page: 112
+    from: gion, olklore, XI. Bd., Nr. >, Lo en
+    to: ²) R. R. Marett, Pre-animistic religion, Folklore, XI. Bd., Nr. 2, London 1900. —
+    by: scan
+  - page: 113
+    from: Anlasse® dem
+    to: Anlasse³) dem
     by: scan
   - page: 117
     from: dessen. sie
@@ -1337,6 +2209,10 @@ freud-1940-gw-9:
     from: Code du totemisme in zwölf
     to: Code du totémisme in zwölf
     by: reference
+  - page: 123
+    from: ve die Menschen
+    to: aber die Menschen
+    by: scan
   - page: 124
     from: sie. mit
     to: sie mit
@@ -1353,18 +2229,94 @@ freud-1940-gw-9:
     from: gegen einen Staminesgenossen nicht unterscheidet
     to: gegen einen Stammesgenossen nicht unterscheidet
     by: reference
+  - page: 128
+    from: F orderung
+    to: Forderung
+    by: scan
+  - page: 128
+    from: ee En EEE nn 8
+    to: ""
+    by: scan
+  - page: 129
+    from: Wundt:* „Das
+    to: Wundt:²) „Das
+    by: scan
+  - page: 131
+    from: _ wie verschiedenen
+    to: wie verschiedenen
+    by: scan
+  - page: 132
+    from: Jecture®‘,
+    to: jecture“,
+    by: scan
   - page: 133
     from: Folk-Lore XXI, ig110. (Referat in
     to: Folk-Lore XXIII, 1910. Referat in
     by: reference
+  - page: 133
+    from: nennen?" ir | |
+    to: nennen?¹)
+    by: scan
+  - page: 133
+    from: als @) nominalistische, ß) soziologische,
+    to: als α) nominalistische, β) soziologische,
+    by: scan
+  - page: 133
+    from: Y) psychologische.
+    to: γ) psychologische.
+    by: scan
+  - page: 133
+    from: haben.* Derselbe
+    to: haben.⁴) Derselbe
+    by: scan
+  - page: 133
+    from: nach Tieren. N
+    to: nach Tieren.
+    by: scan
   - page: 134
     from: Pikler und Somlö, Der Ursprung
     to: Pikler und Somló, Der Ursprung
     by: reference
+  - page: 134
+    from: "' Herbert Spencer* legte"
+    to: Herbert Spencer⁴) legte
+    by: scan
+  - page: 134
+    from: Totemismus_ bei.
+    to: Totemismus bei.
+    by: scan
+  - page: 134
+    from: Bd., $$ 169
+    to: Bd., §§ 169
+    by: scan
   - page: 137
     from: Les formes el&ementaires de la
     to: Les formes élémentaires de la
     by: reference
+  - page: 137
+    from: )i er EEE
+    to: ¹) l. c., T. I, p. 41.
+    by: scan
+  - page: 139
+    from: F razer
+    to: Frazer
+    by: scan
+  - page: 139
+    from: En nicht erblich
+    to: wird nicht erblich
+    by: scan
+  - page: 139
+    from: _ hergestellt
+    to: hergestellt
+    by: scan
+  - page: 140
+    from: N 00T
+    to: ""
+    by: scan
+  - page: 140
+    from: p. i17).
+    to: p. 117).
+    by: scan
   - page: 141
     from: Die. auf
     to: Die auf
@@ -1372,6 +2324,10 @@ freud-1940-gw-9:
   - page: 141
     from: tot&misme
     to: totémisme
+    by: scan
+  - page: 141
+    from: Seele“.*
+    to: Seele“.⁴)
     by: scan
   - page: 143
     from: Unwissenheit.
@@ -1381,10 +2337,26 @@ freud-1940-gw-9:
     from: Traum. erworben
     to: Traum erworben
     by: scan
+  - page: 144
+    from: Glauben ari die
+    to: Glauben an die
+    by: scan
+  - page: 144
+    from: A. Lan g, Secret of the Totem, p. 19?-
+    to: A. Lang, Secret of the Totem, p. 192.
+    by: scan
   - page: 145
     from: Herkunft der Erogamie und ihre
     to: Herkunft der Exogamie und ihre
     by: reference
+  - page: 145
+    from: daB
+    to: daß
+    by: scan
+  - page: 146
+    from: NS I
+    to: ""
+    by: scan
   - page: 147
     from: sich.
     to: sich
@@ -1392,6 +2364,10 @@ freud-1940-gw-9:
   - page: 147
     from: BeispielFrazer
     to: Beispiel Frazer
+    by: scan
+  - page: 148
+    from: Westermarck?® machte
+    to: Westermarck³) machte
     by: scan
   - page: 150
     from: nicht. begangen
@@ -1401,9 +2377,21 @@ freud-1940-gw-9:
     from: wir. eher
     to: wir eher
     by: scan
+  - page: 150
+    from: "ee Verürängie Megungen #7"
+    to: ""
+    by: scan
   - page: 151
     from: L’ann&e
     to: L’année
+    by: scan
+  - page: 151
+    from: to their progeny.*
+    to: to their progeny.“
+    by: scan
+  - page: 152
+    from: NE 0
+    to: ""
     by: scan
   - page: 153
     from: that exogamy eristed in practice
@@ -1417,10 +2405,26 @@ freud-1940-gw-9:
     from: Darwins.
     to: Darwins
     by: scan
+  - page: 153
+    from: F alle
+    to: Falle
+    by: scan
+  - page: 153
+    from: Folge desselben.*
+    to: Folge desselben.⁴)
+    by: scan
   - page: 154
     from: Folklore, Dezember igi¹) teilt A
     to: Folklore, Dezember 1911) teilt A
     by: reference
+  - page: 154
+    from: „general totemic* Tabu
+    to: „general totemic“ Tabu
+    by: scan
+  - page: 155
+    from: F älle
+    to: Fälle
+    by: scan
   - page: 158
     from: der kleine Arpad zweieinhalb Jahre
     to: der kleine Arpád zweieinhalb Jahre
@@ -1441,6 +2445,10 @@ freud-1940-gw-9:
     from: des „kleinen Arpad“. Um dieser
     to: des „kleinen Arpád“. Um dieser
     by: reference
+  - page: 160
+    from: n die oben ($. 139
+    to: n die oben (S. 139
+    by: scan
   - page: 161
     from: der Beweiskraft BER Darstellung im
     to: der Beweiskraft der Darstellung im
@@ -1448,6 +2456,34 @@ freud-1940-gw-9:
   - page: 161
     from: Weglassung. aller
     to: Weglassung aller
+    by: scan
+  - page: 161
+    from: Handlung »ar ” &oyv (sacrificium,
+    to: Handlung κατ’ ἐξοχήν (sacrificium,
+    by: scan
+  - page: 163
+    from: Gottheit. _
+    to: Gottheit.
+    by: scan
+  - page: 165
+    from: Göttern SAlHch,
+    to: Göttern selbst,
+    by: scan
+  - page: 165
+    from: Alle Tiere Ban kr IH
+    to: Alle Tiere sind ursprüng-
+    by: scan
+  - page: 166
+    from: UNE SEELE RR TEA ER EEE.
+    to: ""
+    by: scan
+  - page: 166
+    from: 1) „Ihe inference is that the domestication to which totemism invariably leads (when ther R
+    to: 1) „The inference is that the domestication to which totemism invariably leads (when there
+    by: scan
+  - page: 167
+    from: erneuern. \
+    to: erneuern.
     by: scan
   - page: 168
     from: The Golden Bovgh, Part V
@@ -1461,29 +2497,101 @@ freud-1940-gw-9:
     from: von verschiedenen Mae (Marillier, Hubert
     to: von verschiedenen Autoren (Marillier, Hubert
     by: reference
+  - page: 169
+    from: sind mir ” A
+    to: sind mir nicht unbe-
+    by: scan
+  - page: 169
+    from: Robertson Sm!
+    to: Robertson Smith im
+    by: scan
   - page: 171
     from: und. den
     to: und den
+    by: scan
+  - page: 171
+    from: ¹) Zu dieser Darstellung, h ehmen
+    to: ¹) Zu dieser Darstellung, die sonst mißverständlich würde, bitte ich die Schluß-
+    by: scan
+  - page: 171
+    from: ktiv hinzuzun x;
+    to: sätze der nachfolgenden Anmerkung als Korrektiv hinzuzunehmen.
     by: scan
   - page: 172
     from: von ihnen geühten Entsagung gegen
     to: von ihnen geübten Entsagung gegen
     by: reference
+  - page: 172
+    from: fratricidal strife*
+    to: fratricidal strife“
+    by: scan
   - page: 173
     from: einzunehmen. Der 7 weni ist aber
     to: einzunehmen. Der Mißerfolg ist aber
     by: reference
+  - page: 173
+    from: EG REREERNNne
+    to: ""
+    by: scan
+  - page: 173
+    from: te kommen, daß die Tat
+    to: ""
+    by: scan
+  - page: 173
+    from: -¹) Dieser neuen Gefühlseinstellung mußte auch zugute _ ’
+    to: ¹) Dieser neuen Gefühlseinstellung mußte auch zugute kommen, daß die Tat
+    by: scan
+  - page: 173
+    from: in gewisser nie
+    to: in gewisser Hin-
+    by: scan
+  - page: 174
+    from: sein Leben ZU
+    to: sein Leben zu
+    by: scan
+  - page: 175
+    from: Versuche BE Ver-
+    to: Versuche der Ver-
+    by: scan
   - page: 177
     from: sich. das
     to: sich das
     by: scan
   - page: 177
-    from: Falle. des
-    to: Falle des
+    from: daB
+    to: daß
+    by: scan
+  - page: 177
+    from: erhöhter kn
+    to: erhöhter Vater.
+    by: scan
+  - page: 177
+    from: Die Psychoanalyse rät auch hier wie im Falle. des Tovemlsnans,
+    to: Die Psychoanalyse rät auch hier wie im Falle des Totemismus,
+    by: scan
+  - page: 177
+    from: EEE
+    to: ""
+    by: scan
+  - page: 177
+    from: "; . } : unkten beherrschte Arbeit von"
+    to: ¹) Vgl. die zum Teil von abweichenden Gesichtspunkten beherrschte Arbeit von
+    by: scan
+  - page: 177
+    from: ¹) Vgl. die zum Teil von abweichenden Ge Fe nsychoanalytische
+    to: ""
+    by: scan
+  - page: 177
+    from: C. G. Jung, Wandlungen und Symbole der Libido.
+    to: C. G. Jung, Wandlungen und Symbole der Libido. Jahrbuch für psychoanalytische
     by: scan
   - page: 181
     from: man. den
     to: man den
+    by: scan
+  - page: 181
+    from: F olge
+    to: Folge
     by: scan
   - page: 186
     from: bones. are
@@ -1493,6 +2601,14 @@ freud-1940-gw-9:
     from: Mort d’Orphee in dem
     to: Mort d'Orphée in dem
     by: reference
+  - page: 187
+    from: gerzeig von $S. Rei
+    to: gerzeig von S. Rei
+    by: scan
+  - page: 191
+    from: T abu
+    to: Tabu
+    by: scan
   - page: 193
     from: ist. von
     to: ist, von
@@ -3484,6 +4600,10 @@ freud-1941-gw-7:
     from: verdrä ngten
     to: verdrängten
     by: scan
+  - page: 12
+    from: F all
+    to: Fall
+    by: scan
   - page: 15
     from: dieSchuld
     to: die Schuld
@@ -3495,6 +4615,10 @@ freud-1941-gw-7:
   - page: 27
     from: über. alles
     to: über alles
+    by: scan
+  - page: 35
+    from: daB
+    to: daß
     by: scan
   - page: 36
     from: trockenen Übergang vuh einer Seite
@@ -3512,6 +4636,10 @@ freud-1941-gw-7:
     from: die Stadt, inerkwürdigerweise ohne sich
     to: die Stadt, merkwürdigerweise ohne sich
     by: reference
+  - page: 40
+    from: daB
+    to: daß
+    by: scan
   - page: 42
     from: "völlig in Han: Dienst seiner"
     to: völlig in den Dienst seiner
@@ -3524,10 +4652,22 @@ freud-1941-gw-7:
     from: einem langen Grashälm hergestellte Schlinge
     to: einem langen Grashalm hergestellte Schlinge
     by: reference
+  - page: 52
+    from: lieB
+    to: ließ
+    by: scan
   - page: 54
     from: sein, der Zoö-Gradiva nicht
     to: sein, der Zoë-Gradiva nicht
     by: reference
+  - page: 54
+    from: saB
+    to: saß
+    by: scan
+  - page: 54
+    from: F rage
+    to: Frage
+    by: scan
   - page: 56
     from: Zo&s
     to: Zoës
@@ -3539,6 +4679,10 @@ freud-1941-gw-7:
   - page: 57
     from: Backfische. tituliert
     to: Backfische tituliert
+    by: scan
+  - page: 58
+    from: J ugendgespielen
+    to: Jugendgespielen
     by: scan
   - page: 60
     from: Radierung von Felicien Rops illustriert
@@ -3600,6 +4744,10 @@ freud-1941-gw-7:
     from: vertretenen Absurditäten BEER wird, ist
     to: vertretenen Absurditäten geleistet wird, ist
     by: reference
+  - page: 99
+    from: daB
+    to: daß
+    by: scan
   - page: 101
     from: ich habe cs schon mehrmals
     to: ich habe es schon mehrmals
@@ -3652,21 +4800,49 @@ freud-1941-gw-7:
     from: denen. einige
     to: denen einige
     by: scan
+  - page: 134
+    from: daB
+    to: daß
+    by: scan
   - page: 136
     from: mehrzu
     to: mehr zu
+    by: scan
+  - page: 144
+    from: daB
+    to: daß
     by: scan
   - page: 145
     from: getan. werden
     to: getan werden
     by: scan
+  - page: 145
+    from: daB
+    to: daß
+    by: scan
   - page: 152
     from: Sexualtriebes. zurückzuführen
     to: Sexualtriebes zurückzuführen
     by: scan
+  - page: 157
+    from: F olgen
+    to: Folgen
+    by: scan
+  - page: 158
+    from: J ugend
+    to: Jugend
+    by: scan
+  - page: 160
+    from: F orderung
+    to: Forderung
+    by: scan
   - page: 164
     from: Bedingungen. der
     to: Bedingungen, der
+    by: scan
+  - page: 164
+    from: F rigidität
+    to: Frigidität
     by: scan
   - page: 165
     from: auf. das
@@ -3676,9 +4852,17 @@ freud-1941-gw-7:
     from: nicht.
     to: nicht
     by: scan
+  - page: 172
+    from: J ahren
+    to: Jahren
+    by: scan
   - page: 173
     from: im. kindlichen
     to: im kindlichen
+    by: scan
+  - page: 174
+    from: F eindseligkeit
+    to: Feindseligkeit
     by: scan
   - page: 176
     from: auf. diese
@@ -3752,6 +4936,10 @@ freud-1941-gw-7:
     from: auf. diese
     to: auf diese
     by: scan
+  - page: 193
+    from: daB
+    to: daß
+    by: scan
   - page: 197
     from: begnüge. mich
     to: begnüge mich
@@ -3759,6 +4947,14 @@ freud-1941-gw-7:
   - page: 197
     from: ist. der
     to: ist der
+    by: scan
+  - page: 200
+    from: ik WO
+    to: ik wo
+    by: scan
+  - page: 200
+    from: A re
+    to: Are
     by: scan
   - page: 204
     from: ihnen. mitgebrachten
@@ -3771,6 +4967,10 @@ freud-1941-gw-7:
   - page: 208
     from: Testamentim
     to: Testament im
+    by: scan
+  - page: 208
+    from: Religion, $. 16,
+    to: Religion, S. 16,
     by: scan
   - page: 213
     from: ließe uns höffen, eine erste
@@ -4308,6 +5508,10 @@ freud-1941-gw-7:
     from: ist. nun
     to: ist nun
     by: scan
+  - page: 389
+    from: daB
+    to: daß
+    by: scan
   - page: 398
     from: Hand. spielte
     to: Hand spielte
@@ -4316,9 +5520,17 @@ freud-1941-gw-7:
     from: hat.
     to: hat
     by: scan
+  - page: 405
+    from: F eindseligkeit
+    to: Feindseligkeit
+    by: scan
   - page: 407
     from: wirklich. gut
     to: wirklich gut
+    by: scan
+  - page: 407
+    from: daB
+    to: daß
     by: scan
   - page: 417
     from: J Die Krankheitsveranlassung
@@ -4327,6 +5539,14 @@ freud-1941-gw-7:
   - page: 421
     from: 8) Der Vaterkomplex und die Lösung der Rattenidee
     to: g) Der Vaterkomplex und die Lösung der Rattenidee
+    by: scan
+  - page: 422
+    from: ihn werde ($. 403
+    to: ihn werde (S. 403
+    by: scan
+  - page: 424
+    from: daB
+    to: daß
     by: scan
   - page: 428
     from: hat. ich
@@ -4368,6 +5588,26 @@ freud-1941-gw-7:
     from: a) Einige allgemeine Charaktere der Zwangsbildungen'
     to: a) Einige allgemeine Charaktere der Zwangsbildungen
     by: scan
+  - page: 440
+    from: beschauen ($. 425
+    to: beschauen (S. 425
+    by: scan
+  - page: 444
+    from: Aufl. 1925, $S. 63.
+    to: Aufl. 1925, S. 63.
+    by: scan
+  - page: 445
+    from: F rage
+    to: Frage
+    by: scan
+  - page: 446
+    from: daB
+    to: daß
+    by: scan
+  - page: 446
+    from: daB
+    to: daß
+    by: scan
   - page: 451
     from: nahe.
     to: nahe
@@ -4376,9 +5616,29 @@ freud-1941-gw-7:
     from: zweifeln.
     to: zweifeln
     by: scan
+  - page: 460
+    from: D urchschnitt
+    to: Durchschnitt
+    by: scan
+  - page: 461
+    from: daB
+    to: daß
+    by: scan
   - page: 463
     from: Patient. dem
     to: Patient, dem
+    by: scan
+  - page: 464
+    from: I re
+    to: Ire
+    by: scan
+  - page: 464
+    from: N ah
+    to: Nah
+    by: scan
+  - page: 464
+    from: A al
+    to: Aal
     by: scan
 freud-1942-gw-2-3:
   - page: 2
@@ -5329,10 +6589,6 @@ freud-1942-gw-2-3:
     from: den manifesten Trauminbalt. Dies ist
     to: den manifesten Trauminhalt aufnehmen. Dies ist
     by: reference
-  - page: 568
-    from: die solche Alliancen mit dem
-    to: die solche Allianzen mit dem
-    by: reference
   - page: 572
     from: de recourir dä cette lutte
     to: de recourir à cette lutte
@@ -5533,6 +6789,98 @@ freud-1942-gw-2-3:
     from: r&ve
     to: rêve
     by: scan
+  - page: 8
+    from: Radestock ($. 139
+    to: Radestock (S. 139
+    by: scan
+  - page: 53
+    from: ngsbildern ($S. 35)
+    to: ngsbildern (S. 35)
+    by: scan
+  - page: 58
+    from: olkelt ein ($. 14)
+    to: olkelt ein (S. 14)
+    by: scan
+  - page: 95
+    from: Griesinger ($. 111
+    to: Griesinger (S. 111
+    by: scan
+  - page: 225
+    from: zuschalten ($. 43)
+    to: zuschalten (S. 43)
+    by: scan
+  - page: 225
+    from: en Träumen ($. 33)
+    to: en Träumen (S. 33)
+    by: scan
+  - page: 296
+    from: vorgelesen, SO
+    to: vorgelesen, so
+    by: scan
+  - page: 468
+    from: Auge fasse, SO
+    to: Auge fasse, so
+    by: scan
+  - page: 544
+    from: Beziehungen ZU
+    to: Beziehungen zu
+    by: scan
+  - page: 568
+    from: Ärzte sind, die solche Alliancen mit dem Zahntechniker eingehen, SO
+    to: Ärzte sind, die solche Allianzen mit dem Zahntechniker eingehen, so
+    by: scan
+  - page: 576
+    from: Onkeltraum ($. 146
+    to: Onkeltraum (S. 146
+    by: scan
+  - page: 619
+    from: u den (oben $. 103
+    to: u den (oben S. 103
+    by: scan
+  - page: 36
+    from: I hm
+    to: Ihm
+    by: scan
+  - page: 67
+    from: E gger
+    to: Egger
+    by: scan
+  - page: 69
+    from: U nsittliche
+    to: Unsittliche
+    by: scan
+  - page: 94
+    from: S pitta
+    to: Spitta
+    by: scan
+  - page: 174
+    from: DaB
+    to: Daß
+    by: scan
+  - page: 208
+    from: J ahren
+    to: Jahren
+    by: scan
+  - page: 231
+    from: S ym
+    to: Sym
+    by: scan
+  - page: 253
+    from: I nfantiles
+    to: Infantiles
+    by: scan
+  - page: 422
+    from: T echnik
+    to: Technik
+    by: scan
+  - page: 501
+    from: M au
+    to: Mau
+    by: scan
+  - page: 525
+    from: J ones
+    to: Jones
+    by: scan
 freud-1942-gw-5:
   - page: 4
     from: von. selbst
@@ -5581,6 +6929,10 @@ freud-1942-gw-5:
   - page: 38
     from: beschränken. gewohnt
     to: beschränken gewohnt
+    by: scan
+  - page: 39
+    from: J ugend
+    to: Jugend
     by: scan
   - page: 42
     from: Aufsatz (Les aberrations de l
@@ -5650,6 +7002,10 @@ freud-1942-gw-5:
     from: F&r&
     to: Féré
     by: scan
+  - page: 59
+    from: daB
+    to: daß
+    by: scan
   - page: 62
     from: 4) Der Sexualtrieb bei. den. Neurotikern
     to: 4) Der Sexualtrieb bei den Neurotikern
@@ -5690,6 +7046,14 @@ freud-1942-gw-5:
     from: bloßen Abhaltung voni Bewußtsein (Verdrängung
     to: bloßen Abhaltung von Bewußtsein (Verdrängung
     by: reference
+  - page: 78
+    from: ere aus dem $. 46
+    to: ere aus dem S. 46
+    by: scan
+  - page: 78
+    from: zeichnen.“ ($. 170
+    to: zeichnen.“ (S. 170
+    by: scan
   - page: 79
     from: einer. solchen
     to: einer solchen
@@ -5706,6 +7070,10 @@ freud-1942-gw-5:
     from: kennen. gelernt
     to: kennen gelernt
     by: scan
+  - page: 85
+    from: muB
+    to: muß
+    by: scan
   - page: 86
     from: Die masturbatorischen Sexualäußerungen’
     to: Die masturbatorischen Sexualäußerungen
@@ -5718,6 +7086,10 @@ freud-1942-gw-5:
     from: an der EntblößBung seines Körpers
     to: an der Entblößung seines Körpers
     by: reference
+  - page: 93
+    from: F ähigkeit
+    to: Fähigkeit
+    by: scan
   - page: 94
     from: undObjektliebe
     to: und Objektliebe
@@ -5730,6 +7102,10 @@ freud-1942-gw-5:
     from: bereits. nachweisbar
     to: bereits nachweisbar
     by: scan
+  - page: 100
+    from: daB
+    to: daß
+    by: scan
   - page: 102
     from: diese Hautstellen bloB eine besondere
     to: diese Hautstellen bloß eine besondere
@@ -5738,9 +7114,17 @@ freud-1942-gw-5:
     from: Geschlechtern. sehr
     to: Geschlechtern sehr
     by: scan
+  - page: 108
+    from: ist vorhin $. 100
+    to: ist vorhin S. 100
+    by: scan
   - page: 109
     from: Eigentümlichkeiten. der
     to: Eigentümlichkeiten der
+    by: scan
+  - page: 111
+    from: F all
+    to: Fall
     by: scan
   - page: 115
     from: verbreitet ist, daB die Anhäufung
@@ -5786,10 +7170,18 @@ freud-1942-gw-5:
     from: Inze stschranke
     to: Inzestschranke
     by: scan
+  - page: 128
+    from: 8. Auflage, $. 181
+    to: 8. Auflage, S. 181
+    by: scan
   - page: 129
     from: sucht der Marn nach dem
     to: sucht der Mann nach dem
     by: reference
+  - page: 130
+    from: F aktor
+    to: Faktor
+    by: scan
   - page: 135
     from: Analoges.
     to: Analoges
@@ -5802,9 +7194,29 @@ freud-1942-gw-5:
     from: Fre ud,
     to: Freud,
     by: scan
+  - page: 158
+    from: daB
+    to: daß
+    by: scan
+  - page: 159
+    from: daB
+    to: daß
+    by: scan
+  - page: 165
+    from: F unktionen
+    to: Funktionen
+    by: scan
   - page: 168
     from: ließ. sich
     to: ließ sich
+    by: scan
+  - page: 171
+    from: daB
+    to: daß
+    by: scan
+  - page: 176
+    from: daB
+    to: daß
     by: scan
   - page: 181
     from: und. als
@@ -5818,9 +7230,25 @@ freud-1942-gw-5:
     from: ist. durch
     to: ist durch
     by: scan
+  - page: 190
+    from: daB
+    to: daß
+    by: scan
+  - page: 190
+    from: daB
+    to: daß
+    by: scan
+  - page: 192
+    from: DaB
+    to: Daß
+    by: scan
   - page: 195
     from: aber. vergebens
     to: aber vergebens
+    by: scan
+  - page: 195
+    from: daB
+    to: daß
     by: scan
   - page: 199
     from: bekam. das
@@ -5841,6 +7269,10 @@ freud-1942-gw-5:
   - page: 210
     from: die. aktenmäßig
     to: die aktenmäßig
+    by: scan
+  - page: 220
+    from: daB
+    to: daß
     by: scan
   - page: 230
     from: Sinn. der
@@ -5863,12 +7295,16 @@ freud-1942-gw-5:
     to: nach ihrer
     by: scan
   - page: 238
-    from: es. wieder
-    to: es wieder
+    from: indem sie es öffnete, einen F inger hineinsteckte, es. wieder schloß,
+    to: indem sie es öffnete, einen Finger hineinsteckte, es wieder schloß,
     by: scan
   - page: 239
     from: absprechen. möchte
     to: absprechen möchte
+    by: scan
+  - page: 240
+    from: F ingerspitzen
+    to: Fingerspitzen
     by: scan
   - page: 246
     from: man. neigte
@@ -5906,6 +7342,14 @@ freud-1942-gw-5:
     from: hatte. sondern
     to: hatte, sondern
     by: scan
+  - page: 262
+    from: t traurig‘ ($.257)
+    to: t traurig‘ (S.257)
+    by: scan
+  - page: 270
+    from: daB
+    to: daß
+    by: scan
   - page: 271
     from: haben.
     to: haben
@@ -5913,6 +7357,14 @@ freud-1942-gw-5:
   - page: 273
     from: wenn es.
     to: wenn es
+    by: scan
+  - page: 275
+    from: F ortführung
+    to: Fortführung
+    by: scan
+  - page: 275
+    from: F ortsetzung
+    to: Fortsetzung
     by: scan
   - page: 280
     from: sie. haben
@@ -5926,6 +7378,14 @@ freud-1942-gw-5:
     from: Klagen. große
     to: Klagen große
     by: scan
+  - page: 298
+    from: EinfluB
+    to: Einfluß
+    by: scan
+  - page: 298
+    from: EinfluB
+    to: Einfluß
+    by: scan
   - page: 300
     from: Mittels. das
     to: Mittels, das
@@ -5933,6 +7393,14 @@ freud-1942-gw-5:
   - page: 302
     from: Mensch. auf
     to: Mensch auf
+    by: scan
+  - page: 307
+    from: daB
+    to: daß
+    by: scan
+  - page: 311
+    from: daB
+    to: daß
     by: scan
   - page: 314
     from: Anwendung. kennt
@@ -5979,14 +7447,38 @@ freud-1943-gw-8:
     from: Es. kann
     to: Es kann
     by: scan
+  - page: 51
+    from: daB
+    to: daß
+    by: scan
   - page: 55
     from: des Übertragungserlebnisses gelöt und in
     to: des Übertragungserlebnisses gelöst und in
     by: reference
+  - page: 55
+    from: n Worte von $S. Fer
+    to: n Worte von S. Fer
+    by: scan
+  - page: 58
+    from: F ähigkeit
+    to: Fähigkeit
+    by: scan
   - page: 59
     from: weit überheben, daB wir das
     to: weit überheben, daß wir das
     by: reference
+  - page: 62
+    from: J ugendselbstmorde
+    to: Jugendselbstmorde
+    by: scan
+  - page: 62
+    from: daB
+    to: daß
+    by: scan
+  - page: 71
+    from: daB
+    to: daß
+    by: scan
   - page: 72
     from: Gesch wätzigkeit
     to: Geschwätzigkeit
@@ -5995,9 +7487,25 @@ freud-1943-gw-8:
     from: Verstän dnis
     to: Verständnis
     by: scan
+  - page: 79
+    from: ekel:l. c., $. 191
+    to: ekel:l. c., S. 191
+    by: scan
   - page: 87
     from: desVerbotenen
     to: des Verbotenen
+    by: scan
+  - page: 88
+    from: daB
+    to: daß
+    by: scan
+  - page: 89
+    from: daB
+    to: daß
+    by: scan
+  - page: 95
+    from: muB
+    to: muß
     by: scan
   - page: 118
     from: in. ihrer
@@ -6559,17 +8067,69 @@ freud-1943-gw-8:
     from: natura & piena
     to: natura è piena
     by: scan
+  - page: 218
+    from: immt sind. ($. 18)
+    to: immt sind. (S. 18)
+    by: scan
   - page: 221
     from: zu. folgen
     to: zu folgen
+    by: scan
+  - page: 222
+    from: R at
+    to: Rat
     by: scan
   - page: 230
     from: N&vroses
     to: Névroses
     by: scan
+  - page: 234
+    from: F olge
+    to: Folge
+    by: scan
+  - page: 241
+    from: daB
+    to: daß
+    by: scan
+  - page: 243
+    from: rdigkeiten, $. 34.
+    to: rdigkeiten, S. 34.
+    by: scan
+  - page: 247
+    from: sen wären“ ($. 397
+    to: sen wären“ (S. 397
+    by: scan
   - page: 250
     from: sie. zuerst
     to: sie zuerst
+    by: scan
+  - page: 250
+    from: daB
+    to: daß
+    by: scan
+  - page: 251
+    from: zt hierher ($S. 56)
+    to: zt hierher (S. 56)
+    by: scan
+  - page: 253
+    from: Personen“ ($. 429
+    to: Personen“ (S. 429
+    by: scan
+  - page: 254
+    from: daB
+    to: daß
+    by: scan
+  - page: 255
+    from: ung zurück ($. 11,
+    to: ung zurück (S. 11,
+    by: scan
+  - page: 256
+    from: zeichnete“ ($S. 13)
+    to: zeichnete“ (S. 13)
+    by: scan
+  - page: 256
+    from: den wurde“ ($. 19)
+    to: den wurde“ (S. 19)
     by: scan
   - page: 257
     from: Leiden. für
@@ -6579,25 +8139,225 @@ freud-1943-gw-8:
     from: demim
     to: dem im
     by: scan
+  - page: 257
+    from: en gewesen ($. 29,
+    to: en gewesen (S. 29,
+    by: scan
+  - page: 257
+    from: ge gemacht ($S. 30)
+    to: ge gemacht (S. 30)
+    by: scan
+  - page: 257
+    from: l gewesen“ ($. 79)
+    to: l gewesen“ (S. 79)
+    by: scan
+  - page: 258
+    from: hatte.“ — ($. 141
+    to: hatte.“ — (S. 141
+    by: scan
+  - page: 258
+    from: nt war.“ — ($. 246
+    to: nt war.“ — (S. 246
+    by: scan
+  - page: 258
+    from: entgehen. ($. 206
+    to: entgehen. (S. 206
+    by: scan
+  - page: 261
+    from: eben wird. ($. 333
+    to: eben wird. (S. 333
+    by: scan
+  - page: 263
+    from: ($. 133
+    to: (S. 133
+    by: scan
+  - page: 264
+    from: 2). ($. 52)
+    to: 2). (S. 52)
+    by: scan
+  - page: 264
+    from: en sein. — ($. 91.
+    to: en sein. — (S. 91.
+    by: scan
+  - page: 265
+    from: n gewesen. ($. 281
+    to: n gewesen. (S. 281
+    by: scan
+  - page: 265
+    from: nmerkung zu $. 4 d
+    to: nmerkung zu S. 4 d
+    by: scan
   - page: 266
-    from: Busen. ist
-    to: Busen ist
+    from: beim Weibe der Busen. ist, vorhanden ($. 277). „Durch einen
+    to: beim Weibe der Busen ist, vorhanden (S. 277). „Durch einen
+    by: scan
+  - page: 267
+    from: ($. 281
+    to: (S. 281
+    by: scan
+  - page: 267
+    from: daB
+    to: daß
+    by: scan
+  - page: 273
+    from: ie Quellen ($. 28)
+    to: ie Quellen (S. 28)
+    by: scan
+  - page: 273
+    from: 1) $. 22
+    to: 1) S. 22
+    by: scan
+  - page: 274
+    from: g“ genannt ($S. 111
+    to: g“ genannt (S. 111
+    by: scan
+  - page: 274
+    from: abstießen ($. 11
+    to: abstießen (S. 11
+    by: scan
+  - page: 274
+    from: zu halten ($. 82)
+    to: zu halten (S. 82)
+    by: scan
+  - page: 274
+    from: egt worden ($. 108
+    to: egt worden (S. 108
+    by: scan
+  - page: 275
+    from: es Kranken ($. 343
+    to: es Kranken (S. 343
+    by: scan
+  - page: 275
+    from: lären ist“ ($. 342
+    to: lären ist“ (S. 342
+    by: scan
+  - page: 278
+    from: icht schwer ZU
+    to: icht schwer zu
+    by: scan
+  - page: 279
+    from: erläutert ($. 22)
+    to: erläutert (S. 22)
+    by: scan
+  - page: 280
+    from: nmord vor“ ($. 20)
+    to: nmord vor“ (S. 20)
     by: scan
   - page: 283
     from: Gründen. die
     to: Gründen die
     by: scan
+  - page: 284
+    from: des Buches, $. 290
+    to: des Buches, S. 290
+    by: scan
+  - page: 285
+    from: alten wird ($. 82)
+    to: alten wird (S. 82)
+    by: scan
+  - page: 285
+    from: och weiter ($. 193
+    to: och weiter (S. 193
+    by: scan
+  - page: 285
+    from: J ung
+    to: Jung
+    by: scan
+  - page: 288
+    from: en werden‘ ($S. 188
+    to: en werden‘ (S. 188
+    by: scan
   - page: 289
     from: Vat&rs
     to: Vaters
+    by: scan
+  - page: 289
+    from: anschreit“ ($. 382
+    to: anschreit“ (S. 382
+    by: scan
+  - page: 289
+    from: eine Hure“ ($. 384
+    to: eine Hure“ (S. 384
+    by: scan
+  - page: 289
+    from: 2) ($. 139
+    to: 2) (S. 139
+    by: scan
+  - page: 290
+    from: dem oberen ($. 157
+    to: dem oberen (S. 157
+    by: scan
+  - page: 292
+    from: 2) ($. 206
+    to: 2) (S. 206
+    by: scan
+  - page: 293
+    from: ¹) ($. 36)
+    to: ¹) (S. 36)
+    by: scan
+  - page: 294
+    from: elt stehen ($. 158
+    to: elt stehen (S. 158
+    by: scan
+  - page: 299
+    from: daB
+    to: daß
+    by: scan
+  - page: 305
+    from: artigkeit“ ($. 75)
+    to: artigkeit“ (S. 75)
+    by: scan
+  - page: 305
+    from: t verloren ($. 7¹)
+    to: t verloren (S. 7¹)
+    by: scan
+  - page: 305
+    from: F lechsigschen
+    to: Flechsigschen
     by: scan
   - page: 308
     from: hat. sich
     to: hat sich
     by: scan
+  - page: 311
+    from: J ugend
+    to: Jugend
+    by: scan
+  - page: 313
+    from: J ung
+    to: Jung
+    by: scan
+  - page: 324
+    from: Dieser Band $. 229
+    to: Dieser Band S. 229
+    by: scan
+  - page: 342
+    from: muB
+    to: muß
+    by: scan
+  - page: 342
+    from: F ortschritte
+    to: Fortschritte
+    by: scan
+  - page: 355
+    from: daB
+    to: daß
+    by: scan
+  - page: 360
+    from: n- Ausgabe, $. 195
+    to: n- Ausgabe, S. 195
+    by: scan
   - page: 361
     from: Namen. wenig
     to: Namen wenig
+    by: scan
+  - page: 364
+    from: F aktoren
+    to: Faktoren
+    by: scan
+  - page: 367
+    from: J ung
+    to: Jung
     by: scan
   - page: 369
     from: so. deutlich
@@ -6607,9 +8367,29 @@ freud-1943-gw-8:
     from: dieihrer
     to: die ihrer
     by: scan
+  - page: 384
+    from: hts dagegen ZU
+    to: hts dagegen zu
+    by: scan
   - page: 385
     from: Analyse. überwunden
     to: Analyse überwunden
+    by: scan
+  - page: 388
+    from: N ur
+    to: Nur
+    by: scan
+  - page: 388
+    from: N un
+    to: Nun
+    by: scan
+  - page: 394
+    from: s mit sich, SO
+    to: s mit sich, so
+    by: scan
+  - page: 399
+    from: groBen
+    to: großen
     by: scan
   - page: 405
     from: ergänzt.
@@ -6619,6 +8399,14 @@ freud-1943-gw-8:
     from: undParanoia
     to: und Paranoia
     by: scan
+  - page: 428
+    from: PERS) ZU Ki
+    to: PERS) zu Ki
+    by: scan
+  - page: 433
+    from: daB
+    to: daß
+    by: scan
   - page: 434
     from: jetzt. eine
     to: jetzt eine
@@ -6626,6 +8414,34 @@ freud-1943-gw-8:
   - page: 434
     from: Bezug. nehmen
     to: Bezug nehmen
+    by: scan
+  - page: 434
+    from: T eilung
+    to: Teilung
+    by: scan
+  - page: 442
+    from: daB
+    to: daß
+    by: scan
+  - page: 451
+    from: umes. 1911, $. 536
+    to: umes. 1911, S. 536
+    by: scan
+  - page: 451
+    from: daB
+    to: daß
+    by: scan
+  - page: 451
+    from: F ähigkeit
+    to: Fähigkeit
+    by: scan
+  - page: 464
+    from: daB
+    to: daß
+    by: scan
+  - page: 466
+    from: daB
+    to: daß
     by: scan
   - page: 475
     from: nicht. mehr
@@ -6636,9 +8452,37 @@ freud-1943-gw-8:
     to: beständig die
     by: scan
 freud-1946-gw-10:
+  - page: 4
+    from: daB
+    to: daß
+    by: scan
+  - page: 7
+    from: daB
+    to: daß
+    by: scan
+  - page: 7
+    from: daB
+    to: daß
+    by: scan
+  - page: 8
+    from: GeiBlein
+    to: Geißlein
+    by: scan
+  - page: 13
+    from: daB
+    to: daß
+    by: scan
   - page: 14
     from: Ers cheinung
     to: Erscheinung
+    by: scan
+  - page: 15
+    from: daB
+    to: daß
+    by: scan
+  - page: 25
+    from: 3) OÖ. Rank
+    to: 3) O. Rank
     by: scan
   - page: 26
     from: Mit einem Rucke, wie er
@@ -6656,6 +8500,10 @@ freud-1946-gw-10:
     from: in diesem Wettkampfe um den
     to: in diesem Wettkampf um den
     by: reference
+  - page: 29
+    from: angeführt ($. 351
+    to: angeführt (S. 351
+    by: scan
   - page: 30
     from: In diesem Augenhlicke werden die
     to: In diesem Augenblicke werden die
@@ -6676,9 +8524,29 @@ freud-1946-gw-10:
     from: Würdigung des Moötivs der Wahl
     to: Würdigung des Motivs der Wahl
     by: reference
+  - page: 49
+    from: F orschung
+    to: Forschung
+    by: scan
+  - page: 54
+    from: F orschungsrichtung
+    to: Forschungsrichtung
+    by: scan
+  - page: 58
+    from: daB
+    to: daß
+    by: scan
+  - page: 62
+    from: DaB
+    to: Daß
+    by: scan
   - page: 64
     from: ihr. nur
     to: ihr nur
+    by: scan
+  - page: 64
+    from: groB
+    to: groß
     by: scan
   - page: 65
     from: auf. die
@@ -6692,6 +8560,14 @@ freud-1946-gw-10:
     from: ihrerNeurosen
     to: ihrer Neurosen
     by: scan
+  - page: 71
+    from: 1) $S. J.J
+    to: 1) S. J.J
+    by: scan
+  - page: 72
+    from: daB
+    to: daß
+    by: scan
   - page: 73
     from: inNordamerika
     to: in Nordamerika
@@ -6700,13 +8576,45 @@ freud-1946-gw-10:
     from: Material. der
     to: Material, der
     by: scan
+  - page: 84
+    from: Freundes $S. Fer
+    to: Freundes S. Fer
+    by: scan
+  - page: 86
+    from: daB
+    to: daß
+    by: scan
+  - page: 89
+    from: $S. Fer
+    to: S. Fer
+    by: scan
   - page: 95
     from: welche. die
     to: welche die
     by: scan
+  - page: 96
+    from: daB
+    to: daß
+    by: scan
+  - page: 101
+    from: F rage
+    to: Frage
+    by: scan
+  - page: 105
+    from: J ungsche
+    to: Jungsche
+    by: scan
+  - page: 111
+    from: J ungschen
+    to: Jungschen
+    by: scan
   - page: 116
     from: mit. der
     to: mit der
+    by: scan
+  - page: 117
+    from: daB
+    to: daß
     by: scan
   - page: 120
     from: daß. ich
@@ -6740,9 +8648,33 @@ freud-1946-gw-10:
     from: seine. gemeine
     to: seine gemeine
     by: scan
+  - page: 139
+    from: choanalyse. $. 23
+    to: choanalyse. S. 23
+    by: scan
+  - page: 143
+    from: daB
+    to: daß
+    by: scan
+  - page: 148
+    from: bidotheorie ZU
+    to: bidotheorie zu
+    by: scan
   - page: 154
     from: genötigt. hat
     to: genötigt hat
+    by: scan
+  - page: 156
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
+  - page: 160
+    from: daB
+    to: daß
+    by: scan
+  - page: 162
+    from: rkrankungen SO
+    to: rkrankungen so
     by: scan
   - page: 177
     from: lich. wurden
@@ -6772,25 +8704,113 @@ freud-1946-gw-10:
     from: erroneous; the Jilets of the
     to: erroneous; the fillets of the
     by: reference
+  - page: 199
+    from: daB
+    to: daß
+    by: scan
   - page: 206
     from: Geschwister. usw
     to: Geschwister usw
+    by: scan
+  - page: 217
+    from: daB
+    to: daß
+    by: scan
+  - page: 218
+    from: daB
+    to: daß
+    by: scan
+  - page: 219
+    from: daB
+    to: daß
+    by: scan
+  - page: 222
+    from: daB
+    to: daß
     by: scan
   - page: 224
     from: Menschengruppen. oder
     to: Menschengruppen oder
     by: scan
+  - page: 224
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
+  - page: 225
+    from: daB
+    to: daß
+    by: scan
   - page: 229
     from: wir. sprechen
     to: wir sprechen
+    by: scan
+  - page: 229
+    from: DaB
+    to: Daß
     by: scan
   - page: 234
     from: Aufgeben. ihrer
     to: Aufgeben ihrer
     by: scan
+  - page: 234
+    from: daB
+    to: daß
+    by: scan
+  - page: 237
+    from: daB
+    to: daß
+    by: scan
+  - page: 244
+    from: daB
+    to: daß
+    by: scan
+  - page: 252
+    from: daB
+    to: daß
+    by: scan
+  - page: 257
+    from: daB
+    to: daß
+    by: scan
+  - page: 257
+    from: daB
+    to: daß
+    by: scan
+  - page: 257
+    from: daB
+    to: daß
+    by: scan
   - page: 266
     from: die. unlösbaren
     to: die unlösbaren
+    by: scan
+  - page: 267
+    from: daB
+    to: daß
+    by: scan
+  - page: 274
+    from: bloB
+    to: bloß
+    by: scan
+  - page: 277
+    from: daB
+    to: daß
+    by: scan
+  - page: 284
+    from: F bw
+    to: Fbw
+    by: scan
+  - page: 290
+    from: V bw
+    to: Vbw
+    by: scan
+  - page: 294
+    from: daB
+    to: daß
+    by: scan
+  - page: 304
+    from: R un
+    to: Run
     by: scan
   - page: 311
     from: des. animalischen
@@ -6804,6 +8824,18 @@ freud-1946-gw-10:
     from: im klassischen Altertume für sie
     to: im klassischen Altertum für sie
     by: reference
+  - page: 328
+    from: F riedenszeit
+    to: Friedenszeit
+    by: scan
+  - page: 329
+    from: F riedenszeiten
+    to: Friedenszeiten
+    by: scan
+  - page: 332
+    from: daB
+    to: daß
+    by: scan
   - page: 338
     from: von. rein
     to: von rein
@@ -6820,6 +8852,10 @@ freud-1946-gw-10:
     from: einer. gewissen
     to: einer gewissen
     by: scan
+  - page: 365
+    from: bloB
+    to: bloß
+    by: scan
   - page: 371
     from: nicht zügeln, rißB sich vom
     to: nicht zügeln, riß sich vom
@@ -6832,13 +8868,41 @@ freud-1946-gw-10:
     from: des eigenen Unwertes und um
     to: des eigenen Unwerts und um
     by: reference
+  - page: 386
+    from: t überhaupt ZU
+    to: t überhaupt zu
+    by: scan
+  - page: 395
+    from: daB
+    to: daß
+    by: scan
   - page: 403
     from: von. da
     to: von da
     by: scan
+  - page: 404
+    from: F rauenleben
+    to: Frauenleben
+    by: scan
+  - page: 406
+    from: Ü ber
+    to: Über
+    by: scan
+  - page: 407
+    from: daB
+    to: daß
+    by: scan
+  - page: 410
+    from: daB
+    to: daß
+    by: scan
   - page: 415
     from: und. sich
     to: und sich
+    by: scan
+  - page: 415
+    from: daB
+    to: daß
     by: scan
   - page: 418
     from: wo. die
@@ -6852,11 +8916,35 @@ freud-1946-gw-10:
     from: werden. wir
     to: werden wir
     by: scan
+  - page: 426
+    from: daB
+    to: daß
+    by: scan
+  - page: 426
+    from: daB
+    to: daß
+    by: scan
+  - page: 436
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
+  - page: 441
+    from: daB
+    to: daß
+    by: scan
   - page: 442
     from: er. gelitten
     to: er gelitten
     by: scan
+  - page: 444
+    from: daB
+    to: daß
+    by: scan
 freud-1947-gw-12:
+  - page: 6
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
   - page: 7
     from: gemacht. worden
     to: gemacht worden
@@ -6881,6 +8969,10 @@ freud-1947-gw-12:
     from: Herren von ÖOchsenstein für seinen
     to: Herren von Ochsenstein für seinen
     by: reference
+  - page: 30
+    from: muB
+    to: muß
+    by: scan
   - page: 34
     from: der.
     to: der
@@ -6893,6 +8985,14 @@ freud-1947-gw-12:
     from: die. der
     to: die der
     by: scan
+  - page: 47
+    from: daB
+    to: daß
+    by: scan
+  - page: 51
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
   - page: 52
     from: und. das
     to: und das
@@ -6901,9 +9001,21 @@ freud-1947-gw-12:
     from: Zuflucht. zur
     to: Zuflucht zur
     by: scan
+  - page: 62
+    from: daB
+    to: daß
+    by: scan
   - page: 64
     from: spontaner.
     to: spontaner,
+    by: scan
+  - page: 65
+    from: daB
+    to: daß
+    by: scan
+  - page: 66
+    from: hieB
+    to: hieß
     by: scan
   - page: 68
     from: Ableitung Kr einem
@@ -6973,6 +9085,10 @@ freud-1947-gw-12:
     from: Vorgänge in der zweiten Phase zu beschreiben. anderer -Mlittel, cie
     to: Vorgänge in der zweiten Phase zu beschreiben.
     by: scan
+  - page: 73
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
   - page: 79
     from: sie. ihm
     to: sie ihm
@@ -6984,6 +9100,14 @@ freud-1947-gw-12:
   - page: 82
     from: Annahmen. nicht
     to: Annahmen nicht
+    by: scan
+  - page: 82
+    from: J ung
+    to: Jung
+    by: scan
+  - page: 82
+    from: J ung
+    to: Jung
     by: scan
   - page: 84
     from: 2 NV x ERS ICH) BR alle Fäden der Analyse zu
@@ -7017,6 +9141,14 @@ freud-1947-gw-12:
     from: und. nicht
     to: und nicht
     by: scan
+  - page: 88
+    from: s0 hat
+    to: so hat
+    by: scan
+  - page: 94
+    from: den Penis. $. 50.
+    to: den Penis. S. 50.
+    by: scan
   - page: 97
     from: ihm. seinen
     to: ihm seinen
@@ -7037,6 +9169,10 @@ freud-1947-gw-12:
     from: selbst. die
     to: selbst die
     by: scan
+  - page: 104
+    from: on erwähnt ($. 47)
+    to: on erwähnt (S. 47)
+    by: scan
   - page: 105
     from: Tode. des
     to: Tode, des
@@ -7045,13 +9181,41 @@ freud-1947-gw-12:
     from: Summe. war
     to: Summe war
     by: scan
+  - page: 109
+    from: daB
+    to: daß
+    by: scan
+  - page: 110
+    from: daB
+    to: daß
+    by: scan
   - page: 113
     from: im. negativ
     to: im negativ
     by: scan
+  - page: 114
+    from: daB
+    to: daß
+    by: scan
+  - page: 119
+    from: elege dafür $. 99.
+    to: elege dafür S. 99.
+    by: scan
+  - page: 123
+    from: bloB
+    to: bloß
+    by: scan
+  - page: 129
+    from: vertreten ($. 90)
+    to: vertreten (S. 90)
+    by: scan
   - page: 130
     from: Oder. war
     to: Oder war
+    by: scan
+  - page: 130
+    from: muB
+    to: muß
     by: scan
   - page: 135
     from: Wiedergeburtsphantasie. war
@@ -7061,9 +9225,25 @@ freud-1947-gw-12:
     from: einenFall
     to: einen Fall
     by: scan
+  - page: 142
+    from: daB
+    to: daß
+    by: scan
   - page: 147
     from: sie. als
     to: sie als
+    by: scan
+  - page: 153
+    from: Band, 1913, $. 525
+    to: Band, 1913, S. 525
+    by: scan
+  - page: 154
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
+  - page: 154
+    from: F ähigkeit
+    to: Fähigkeit
     by: scan
   - page: 156
     from: Kindhe itszeit
@@ -7073,6 +9253,30 @@ freud-1947-gw-12:
     from: der. späteren
     to: der späteren
     by: scan
+  - page: 164
+    from: $. 348
+    to: S. 348
+    by: scan
+  - page: 167
+    from: daB
+    to: daß
+    by: scan
+  - page: 172
+    from: F rigidität
+    to: Frigidität
+    by: scan
+  - page: 173
+    from: daB
+    to: daß
+    by: scan
+  - page: 177
+    from: daB
+    to: daß
+    by: scan
+  - page: 179
+    from: daB
+    to: daß
+    by: scan
   - page: 184
     from: Motivierung. nur
     to: Motivierung nur
@@ -7081,13 +9285,29 @@ freud-1947-gw-12:
     from: uns in.
     to: uns in
     by: scan
+  - page: 186
+    from: daB
+    to: daß
+    by: scan
   - page: 190
     from: Unser. verehrter
     to: Unser verehrter
     by: scan
+  - page: 191
+    from: daB
+    to: daß
+    by: scan
+  - page: 206
+    from: J üngste
+    to: Jüngste
+    by: scan
   - page: 207
     from: In. dieser
     to: In dieser
+    by: scan
+  - page: 208
+    from: xes“ 1924. [$. 59
+    to: xes“ 1924. [S. 59
     by: scan
   - page: 212
     from: weit.
@@ -7165,6 +9385,10 @@ freud-1947-gw-12:
     from: dabei zum xtenmal mit demselben
     to: dabei zum xten Male mit demselben
     by: reference
+  - page: 250
+    from: daB
+    to: daß
+    by: scan
   - page: 252
     from: zu. haben
     to: zu haben
@@ -7185,9 +9409,29 @@ freud-1947-gw-12:
     from: üb erwundene
     to: überwundene
     by: scan
+  - page: 263
+    from: daB
+    to: daß
+    by: scan
+  - page: 263
+    from: daB
+    to: daß
+    by: scan
   - page: 276
     from: Obj ektwahl
     to: Objektwahl
+    by: scan
+  - page: 276
+    from: daB
+    to: daß
+    by: scan
+  - page: 281
+    from: J ugendgeschichte
+    to: Jugendgeschichte
+    by: scan
+  - page: 283
+    from: P sychoanalyse
+    to: Psychoanalyse
     by: scan
   - page: 285
     from: ": on Neurotikern"
@@ -7237,6 +9481,18 @@ freud-1947-gw-12:
     from: zur Zeit der i wre
     to: zur Zeit der Frühblüte des Liebeslebens
     by: scan
+  - page: 288
+    from: er Ausgabe ($. 65)
+    to: er Ausgabe (S. 65)
+    by: scan
+  - page: 295
+    from: F olgeerscheinungen
+    to: Folgeerscheinungen
+    by: scan
+  - page: 298
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
   - page: 300
     from: Vordergrund. rückt
     to: Vordergrund rückt
@@ -7258,6 +9514,10 @@ freud-1948-gw-14:
     from: unseres. seelischen
     to: unseres seelischen
     by: scan
+  - page: 10
+    from: N ur
+    to: Nur
+    by: scan
   - page: 11
     from: Symptome. eingeführt
     to: Symptome eingeführt
@@ -7265,6 +9525,14 @@ freud-1948-gw-14:
   - page: 36
     from: zu. lokalisieren
     to: zu lokalisieren
+    by: scan
+  - page: 45
+    from: F rage
+    to: Frage
+    by: scan
+  - page: 72
+    from: AnschluB
+    to: Anschluß
     by: scan
   - page: 78
     from: sie. ist
@@ -7310,9 +9578,37 @@ freud-1948-gw-14:
     from: von I. Th. L.ooney
     to: von I. Th. Looney
     by: scan
+  - page: 100
+    from: F unden
+    to: Funden
+    by: scan
+  - page: 104
+    from: daB
+    to: daß
+    by: scan
+  - page: 106
+    from: daB
+    to: daß
+    by: scan
   - page: 118
     from: DasSymptom
     to: Das Symptom
+    by: scan
+  - page: 119
+    from: daB
+    to: daß
+    by: scan
+  - page: 119
+    from: daB
+    to: daß
+    by: scan
+  - page: 120
+    from: daB
+    to: daß
+    by: scan
+  - page: 120
+    from: W ie
+    to: Wie
     by: scan
   - page: 121
     from: eine. unliebsäme
@@ -7326,6 +9622,10 @@ freud-1948-gw-14:
     from: nicht.
     to: nicht
     by: scan
+  - page: 154
+    from: F rage
+    to: Frage
+    by: scan
   - page: 155
     from: hat. sich
     to: hat sich
@@ -7334,21 +9634,77 @@ freud-1948-gw-14:
     from: erreicht. ist
     to: erreicht ist
     by: scan
+  - page: 166
+    from: daB
+    to: daß
+    by: scan
   - page: 173
     from: Vermissen.
     to: Vermissen
+    by: scan
+  - page: 177
+    from: daB
+    to: daß
+    by: scan
+  - page: 178
+    from: daB
+    to: daß
     by: scan
   - page: 184
     from: negativ. ausfallen
     to: negativ ausfallen
     by: scan
+  - page: 186
+    from: F ortsetzung
+    to: Fortsetzung
+    by: scan
+  - page: 189
+    from: daB
+    to: daß
+    by: scan
   - page: 202
     from: und. wann
     to: und wann
     by: scan
+  - page: 216
+    from: daB
+    to: daß
+    by: scan
+  - page: 216
+    from: EinfluB
+    to: Einfluß
+    by: scan
+  - page: 220
+    from: daB
+    to: daß
+    by: scan
+  - page: 223
+    from: F ällen
+    to: Fällen
+    by: scan
   - page: 224
     from: Gedankenbildun&en
     to: Gedankenbildungen
+    by: scan
+  - page: 227
+    from: daB
+    to: daß
+    by: scan
+  - page: 237
+    from: F unden
+    to: Funden
+    by: scan
+  - page: 241
+    from: N ein
+    to: Nein
+    by: scan
+  - page: 247
+    from: daB
+    to: daß
+    by: scan
+  - page: 249
+    from: F einhörigkeit
+    to: Feinhörigkeit
     by: scan
   - page: 253
     from: Kranksein. festzuhalten
@@ -7362,13 +9718,45 @@ freud-1948-gw-14:
     from: spezielleProblem
     to: spezielle Problem
     by: scan
+  - page: 269
+    from: daB
+    to: daß
+    by: scan
   - page: 272
     from: erfüllt. haben
     to: erfüllt haben
     by: scan
+  - page: 280
+    from: F olgerung
+    to: Folgerung
+    by: scan
+  - page: 281
+    from: F ußwurzelknochen
+    to: Fußwurzelknochen
+    by: scan
   - page: 283
     from: nebenVerfahren
     to: neben Verfahren
+    by: scan
+  - page: 283
+    from: daB
+    to: daß
+    by: scan
+  - page: 285
+    from: MaB
+    to: Maß
+    by: scan
+  - page: 292
+    from: daB
+    to: daß
+    by: scan
+  - page: 295
+    from: daB
+    to: daß
+    by: scan
+  - page: 313
+    from: F etischisten
+    to: Fetischisten
     by: scan
   - page: 314
     from: sonst. als
@@ -7382,21 +9770,81 @@ freud-1948-gw-14:
     from: Bei. den
     to: Bei den
     by: scan
+  - page: 360
+    from: DaB
+    to: Daß
+    by: scan
+  - page: 366
+    from: daB
+    to: daß
+    by: scan
+  - page: 389
+    from: F ähigkeit
+    to: Fähigkeit
+    by: scan
   - page: 395
     from: frommenKollegen
     to: frommen Kollegen
+    by: scan
+  - page: 399
+    from: daB
+    to: daß
+    by: scan
+  - page: 405
+    from: Krankheit“ ($. 118
+    to: Krankheit“ (S. 118
+    by: scan
+  - page: 407
+    from: VaterhaB
+    to: Vaterhaß
+    by: scan
+  - page: 411
+    from: daB
+    to: daß
     by: scan
   - page: 449
     from: doch.
     to: doch
     by: scan
+  - page: 466
+    from: n Friedrich $S. Kra
+    to: n Friedrich S. Kra
+    by: scan
   - page: 468
     from: Bevorzugung. geschätzt
     to: Bevorzugung geschätzt
     by: scan
+  - page: 472
+    from: F eindseligkeit
+    to: Feindseligkeit
+    by: scan
+  - page: 477
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
+  - page: 488
+    from: muB
+    to: muß
+    by: scan
+  - page: 490
+    from: daB
+    to: daß
+    by: scan
   - page: 500
     from: Interferenz. zweier
     to: Interferenz zweier
+    by: scan
+  - page: 500
+    from: EntwicklungsprozeB
+    to: Entwicklungsprozeß
+    by: scan
+  - page: 531
+    from: F eindseligkeit
+    to: Feindseligkeit
+    by: scan
+  - page: 554
+    from: T JONES ZUM s0. GE
+    to: T JONES ZUM so. GE
     by: scan
   - page: 572
     from: zur Broschüre „ZEHN JAHRE BERLINER PSYCHO-
@@ -7411,6 +9859,30 @@ freud-1948-gw-14:
     to: ""
     by: scan
 freud-1952-gw-1:
+  - page: 15
+    from: daB
+    to: daß
+    by: scan
+  - page: 18
+    from: N ut
+    to: Nut
+    by: scan
+  - page: 18
+    from: N un
+    to: Nun
+    by: scan
+  - page: 18
+    from: N ah
+    to: Nah
+    by: scan
+  - page: 20
+    from: N ur
+    to: Nur
+    by: scan
+  - page: 31
+    from: daB
+    to: daß
+    by: scan
   - page: 65
     from: Hysterie. von
     to: Hysterie von
@@ -7418,6 +9890,10 @@ freud-1952-gw-1:
   - page: 67
     from: sich. wenig
     to: sich wenig
+    by: scan
+  - page: 69
+    from: daB
+    to: daß
     by: scan
   - page: 71
     from: dieselben. stammten
@@ -7427,9 +9903,21 @@ freud-1952-gw-1:
     from: Ich. betrachte
     to: Ich betrachte
     by: scan
+  - page: 83
+    from: daB
+    to: daß
+    by: scan
   - page: 91
     from: Punkte. überein
     to: Punkte überein
+    by: scan
+  - page: 95
+    from: daB
+    to: daß
+    by: scan
+  - page: 109
+    from: daB
+    to: daß
     by: scan
   - page: 116
     from: war.
@@ -7439,13 +9927,33 @@ freud-1952-gw-1:
     from: Tochter. die
     to: Tochter, die
     by: scan
+  - page: 121
+    from: Suggestion, $. 51
+    to: Suggestion, S. 51
+    by: scan
+  - page: 122
+    from: Unruhen in $S. Dom
+    to: Unruhen in S. Dom
+    by: scan
+  - page: 128
+    from: schlieBlich
+    to: schließlich
+    by: scan
   - page: 129
     from: und.
     to: und
     by: scan
+  - page: 145
+    from: daB
+    to: daß
+    by: scan
   - page: 154
     from: Katakomben.
     to: Katakomben
+    by: scan
+  - page: 155
+    from: in dem auf $.152/
+    to: in dem auf S.152/
     by: scan
   - page: 166
     from: Zustand. entsprach
@@ -7455,9 +9963,21 @@ freud-1952-gw-1:
     from: vorhanden. waren
     to: vorhanden waren
     by: scan
+  - page: 182
+    from: MiB
+    to: Miß
+    by: scan
   - page: 184
     from: Nach. anstrengender
     to: Nach anstrengender
+    by: scan
+  - page: 200
+    from: daB
+    to: daß
+    by: scan
+  - page: 201
+    from: F räulein
+    to: Fräulein
     by: scan
   - page: 203
     from: im. rechten
@@ -7503,9 +10023,25 @@ freud-1952-gw-1:
     from: Zeit. nach
     to: Zeit nach
     by: scan
+  - page: 236
+    from: daB
+    to: daß
+    by: scan
   - page: 237
     from: obwohl. diese
     to: obwohl diese
+    by: scan
+  - page: 258
+    from: F orschung
+    to: Forschung
+    by: scan
+  - page: 269
+    from: daB
+    to: daß
+    by: scan
+  - page: 274
+    from: F rage
+    to: Frage
     by: scan
   - page: 278
     from: zu. beziehen
@@ -7514,6 +10050,18 @@ freud-1952-gw-1:
   - page: 283
     from: ist. natürlich
     to: ist natürlich
+    by: scan
+  - page: 286
+    from: F ällen
+    to: Fällen
+    by: scan
+  - page: 286
+    from: F rage
+    to: Frage
+    by: scan
+  - page: 288
+    from: $. 83
+    to: S. 83
     by: scan
   - page: 292
     from: statthat
@@ -7527,21 +10075,73 @@ freud-1952-gw-1:
     from: Me&salliance
     to: Mésalliance
     by: scan
+  - page: 316
+    from: daB
+    to: daß
+    by: scan
+  - page: 326
+    from: daB
+    to: daß
+    by: scan
+  - page: 327
+    from: F olgen
+    to: Folgen
+    by: scan
+  - page: 329
+    from: T age
+    to: Tage
+    by: scan
+  - page: 335
+    from: muB
+    to: muß
+    by: scan
+  - page: 336
+    from: daB
+    to: daß
+    by: scan
   - page: 357
     from: InNummer
     to: In Nummer
+    by: scan
+  - page: 357
+    from: "zutrennen: ($. 515"
+    to: "zutrennen: (S. 515"
+    by: scan
+  - page: 360
+    from: L öwenfeld
+    to: Löwenfeld
+    by: scan
+  - page: 365
+    from: daB
+    to: daß
     by: scan
   - page: 371
     from: überhaupt.
     to: überhaupt
     by: scan
+  - page: 380
+    from: daB
+    to: daß
+    by: scan
+  - page: 383
+    from: Nr. 2) [$. 515
+    to: Nr. 2) [S. 515
+    by: scan
   - page: 427
     from: sieim
     to: sie im
     by: scan
+  - page: 431
+    from: F all
+    to: Fall
+    by: scan
   - page: 432
     from: unmittelbar. anführen
     to: unmittelbar, anführen
+    by: scan
+  - page: 437
+    from: H ysterie
+    to: Hysterie
     by: scan
   - page: 442
     from: häufig. genug
@@ -7555,9 +10155,17 @@ freud-1952-gw-1:
     from: Das. vereinzelte
     to: Das vereinzelte
     by: scan
+  - page: 465
+    from: W issensch
+    to: Wissensch
+    by: scan
   - page: 467
     from: ergebe. dürften
     to: ergebe dürften
+    by: scan
+  - page: 472
+    from: der Läsion ZU
+    to: der Läsion zu
     by: scan
   - page: 477
     from: Diespastischen
@@ -7575,9 +10183,33 @@ freud-1952-gw-1:
     from: Angstist
     to: Angst ist
     by: scan
+  - page: 487
+    from: F örderung
+    to: Förderung
+    by: scan
+  - page: 493
+    from: N arkose
+    to: Narkose
+    by: scan
+  - page: 499
+    from: F ällen
+    to: Fällen
+    by: scan
   - page: 507
     from: Geschlecht.
     to: Geschlecht
+    by: scan
+  - page: 512
+    from: F achgenossen
+    to: Fachgenossen
+    by: scan
+  - page: 519
+    from: F unktion
+    to: Funktion
+    by: scan
+  - page: 521
+    from: T age
+    to: Tage
     by: scan
   - page: 523
     from: dass er.
@@ -7643,6 +10275,10 @@ freud-1952-gw-1:
     from: (Verdrängte Gedanken)
     to: ""
     by: scan
+  - page: 537
+    from: N eurologisches
+    to: Neurologisches
+    by: scan
   - page: 539
     from: Anzahl. von
     to: Anzahl von
@@ -7650,6 +10286,10 @@ freud-1952-gw-1:
   - page: 542
     from: irgendwann. später
     to: irgendwann später
+    by: scan
+  - page: 542
+    from: ", dem Vater ZU"
+    to: ", dem Vater zu"
     by: scan
   - page: 547
     from: Mädchen.
@@ -7659,6 +10299,14 @@ freud-1952-gw-1:
     from: durchwegs. sinnvoll
     to: durchwegs sinnvoll
     by: scan
+  - page: 564
+    from: e Auslegung ZU-
+    to: e Auslegung zu-
+    by: scan
+  - page: 564
+    from: daB
+    to: daß
+    by: scan
   - page: 565
     from: b) Die sittliche Verantwortung für den Inhalt der
     to: ""
@@ -7667,7 +10315,23 @@ freud-1952-gw-1:
     from: I’räume
     to: b) Die sittliche Verantwortung für den Inhalt der Träume
     by: scan
+  - page: 565
+    from: daB
+    to: daß
+    by: scan
 freud-1950-gw-16:
+  - page: 10
+    from: D er
+    to: Der
+    by: scan
+  - page: 22
+    from: daB
+    to: daß
+    by: scan
+  - page: 22
+    from: M ythologie
+    to: Mythologie
+    by: scan
   - page: 23
     from: Gefühlsbindung. ist
     to: Gefühlsbindung ist
@@ -7676,13 +10340,29 @@ freud-1950-gw-16:
     from: schon. heute
     to: schon heute
     by: scan
+  - page: 28
+    from: W ir
+    to: Wir
+    by: scan
+  - page: 31
+    from: er Ausgabe, $. 31-
+    to: er Ausgabe, S. 31-
+    by: scan
   - page: 33
     from: weit. über
     to: weit über
     by: scan
+  - page: 40
+    from: N ur
+    to: Nur
+    by: scan
   - page: 46
     from: einzig. und
     to: einzig und
+    by: scan
+  - page: 48
+    from: daB
+    to: daß
     by: scan
   - page: 53
     from: dies. geschieht
@@ -7708,6 +10388,14 @@ freud-1950-gw-16:
     from: in. die
     to: in die
     by: scan
+  - page: 93
+    from: ortrag, den $S. Fer
+    to: ortrag, den S. Fer
+    by: scan
+  - page: 103
+    from: J ahrhundert
+    to: Jahrhundert
+    by: scan
   - page: 105
     from: Abkürzung. von
     to: Abkürzung von
@@ -7723,6 +10411,14 @@ freud-1950-gw-16:
   - page: 107
     from: odereinem
     to: oder einem
+    by: scan
+  - page: 108
+    from: J ugendgeschichte
+    to: Jugendgeschichte
+    by: scan
+  - page: 112
+    from: en hatten“ ($. 651
+    to: en hatten“ (S. 651
     by: scan
   - page: 118
     from: diereligiöse
@@ -7744,6 +10440,18 @@ freud-1950-gw-16:
     from: dem. östlichen
     to: dem östlichen
     by: scan
+  - page: 133
+    from: 3)l.c.$. 38,
+    to: 3)l.c.S. 38,
+    by: scan
+  - page: 134
+    from: 5) l.c.$. 72.
+    to: 5) l.c.S. 72.
+    by: scan
+  - page: 137
+    from: M oses
+    to: Moses
+    by: scan
   - page: 140
     from: daß.
     to: daß
@@ -7755,6 +10463,10 @@ freud-1950-gw-16:
   - page: 152
     from: und es.
     to: und es
+    by: scan
+  - page: 157
+    from: F eigheit
+    to: Feigheit
     by: scan
   - page: 164
     from: dieStämme
@@ -7792,6 +10504,10 @@ freud-1950-gw-16:
     from: im. rezenten
     to: im rezenten
     by: scan
+  - page: 214
+    from: F orschung
+    to: Forschung
+    by: scan
   - page: 217
     from: Übereinstimmung. das
     to: Übereinstimmung das
@@ -7812,9 +10528,29 @@ freud-1950-gw-16:
     from: oder. er
     to: oder er
     by: scan
+  - page: 235
+    from: er Ausgabe, $. 97.
+    to: er Ausgabe, S. 97.
+    by: scan
+  - page: 244
+    from: J udentum
+    to: Judentum
+    by: scan
   - page: 267
     from: zu. halten
     to: zu halten
+    by: scan
+  - page: 270
+    from: F reud
+    to: Freud
+    by: scan
+  - page: 271
+    from: N ah
+    to: Nah
+    by: scan
+  - page: 274
+    from: men aber, — ZU
+    to: men aber, — zu
     by: scan
 freud-1940-gw-11:
   - page: 3
@@ -7844,6 +10580,14 @@ freud-1940-gw-11:
   - page: 31
     from: Schlegelund
     to: Schlegel und
+    by: scan
+  - page: 38
+    from: daB
+    to: daß
+    by: scan
+  - page: 38
+    from: F rage
+    to: Frage
     by: scan
   - page: 40
     from: Oberhand. über
@@ -7881,6 +10625,14 @@ freud-1940-gw-11:
     from: eineÄußerung
     to: eine Äußerung
     by: scan
+  - page: 61
+    from: daB
+    to: daß
+    by: scan
+  - page: 67
+    from: daB
+    to: daß
+    by: scan
   - page: 70
     from: derharmlosen
     to: der harmlosen
@@ -7908,6 +10660,14 @@ freud-1940-gw-11:
   - page: 109
     from: zuMünchen
     to: zu München
+    by: scan
+  - page: 110
+    from: N amenvergessens
+    to: Namenvergessens
+    by: scan
+  - page: 112
+    from: V orlesungen
+    to: Vorlesungen
     by: scan
   - page: 116
     from: Eineskeptische
@@ -7945,6 +10705,10 @@ freud-1940-gw-11:
     from: rung. der
     to: rung der
     by: scan
+  - page: 141
+    from: daB
+    to: daß
+    by: scan
   - page: 143
     from: einig. mit
     to: einig mit
@@ -7952,6 +10716,14 @@ freud-1940-gw-11:
   - page: 145
     from: so. schwer
     to: so schwer
+    by: scan
+  - page: 146
+    from: F einden
+    to: Feinden
+    by: scan
+  - page: 148
+    from: V orlesungen
+    to: Vorlesungen
     by: scan
   - page: 151
     from: daswird
@@ -7981,21 +10753,45 @@ freud-1940-gw-11:
     from: Waldund
     to: Wald und
     by: scan
+  - page: 166
+    from: F ruchtbarkeitssymbol
+    to: Fruchtbarkeitssymbol
+    by: scan
   - page: 168
     from: die. symbolische
     to: die symbolische
+    by: scan
+  - page: 168
+    from: daB
+    to: daß
     by: scan
   - page: 171
     from: rücken. können
     to: rücken können
     by: scan
+  - page: 171
+    from: T raumsymbolik
+    to: Traumsymbolik
+    by: scan
   - page: 175
     from: eineDame
     to: eine Dame
     by: scan
+  - page: 176
+    from: daB
+    to: daß
+    by: scan
   - page: 179
     from: KlementineK. wegenEhebruches
     to: Klementine K. wegen Ehebruches
+    by: scan
+  - page: 181
+    from: daB
+    to: daß
+    by: scan
+  - page: 181
+    from: MiBverständ
+    to: Mißverständ
     by: scan
   - page: 182
     from: Modifikationen. des
@@ -8008,6 +10804,14 @@ freud-1940-gw-11:
   - page: 188
     from: Krankengeschichten. veröffentlicht
     to: Krankengeschichten veröffentlicht
+    by: scan
+  - page: 188
+    from: R ank
+    to: Rank
+    by: scan
+  - page: 188
+    from: muB
+    to: muß
     by: scan
   - page: 192
     from: Gesetz. verfahren
@@ -8045,9 +10849,21 @@ freud-1940-gw-11:
     from: ihreBedeutung
     to: ihre Bedeutung
     by: scan
+  - page: 214
+    from: daB
+    to: daß
+    by: scan
   - page: 217
     from: welcher. wir
     to: welcher wir
+    by: scan
+  - page: 218
+    from: kte bringen ZU
+    to: kte bringen zu
+    by: scan
+  - page: 219
+    from: W unscherfüllung
+    to: Wunscherfüllung
     by: scan
   - page: 220
     from: lobensw ert.
@@ -8077,17 +10893,41 @@ freud-1940-gw-11:
     from: unsder
     to: uns der
     by: scan
+  - page: 241
+    from: daB
+    to: daß
+    by: scan
   - page: 243
     from: Plutarchund
     to: Plutarch und
+    by: scan
+  - page: 243
+    from: daB
+    to: daß
+    by: scan
+  - page: 244
+    from: F rage
+    to: Frage
     by: scan
   - page: 246
     from: dierichtige
     to: die richtige
     by: scan
+  - page: 249
+    from: V orträge
+    to: Vorträge
+    by: scan
   - page: 251
     from: Wertvolleszu
     to: Wertvolles zu
+    by: scan
+  - page: 254
+    from: daB
+    to: daß
+    by: scan
+  - page: 254
+    from: daB
+    to: daß
     by: scan
   - page: 255
     from: Schrift.
@@ -8121,13 +10961,25 @@ freud-1940-gw-11:
     from: dierationelle
     to: die rationelle
     by: scan
+  - page: 273
+    from: daB
+    to: daß
+    by: scan
   - page: 278
     from: hang. herzustellen
     to: hang herzustellen
     by: scan
+  - page: 278
+    from: nen waschen ZU
+    to: nen waschen zu
+    by: scan
   - page: 279
     from: hinziehendeStraßen
     to: hinziehende Straßen
+    by: scan
+  - page: 283
+    from: daB
+    to: daß
     by: scan
   - page: 284
     from: fertig. geworden
@@ -8145,13 +10997,33 @@ freud-1940-gw-11:
     from: Kranken. überträgt
     to: Kranken überträgt
     by: scan
+  - page: 292
+    from: daB
+    to: daß
+    by: scan
   - page: 296
     from: dieganze
     to: die ganze
     by: scan
+  - page: 297
+    from: daB
+    to: daß
+    by: scan
+  - page: 299
+    from: daB
+    to: daß
+    by: scan
+  - page: 301
+    from: daB
+    to: daß
+    by: scan
   - page: 307
     from: hatteund
     to: hatte und
+    by: scan
+  - page: 311
+    from: daB
+    to: daß
     by: scan
   - page: 315
     from: undbeidem
@@ -8168,6 +11040,10 @@ freud-1940-gw-11:
   - page: 316
     from: alsihrem
     to: als ihrem
+    by: scan
+  - page: 316
+    from: daB
+    to: daß
     by: scan
   - page: 322
     from: einemindividuellen
@@ -8196,6 +11072,10 @@ freud-1940-gw-11:
   - page: 332
     from: sozwingendes
     to: so zwingendes
+    by: scan
+  - page: 333
+    from: daB
+    to: daß
     by: scan
   - page: 334
     from: welchersich
@@ -8229,6 +11109,18 @@ freud-1940-gw-11:
     from: istregelmäßig
     to: ist regelmäßig
     by: scan
+  - page: 351
+    from: daB
+    to: daß
+    by: scan
+  - page: 352
+    from: daB
+    to: daß
+    by: scan
+  - page: 356
+    from: F remdartigkeit
+    to: Fremdartigkeit
+    by: scan
   - page: 365
     from: vorführen. das
     to: vorführen, das
@@ -8244,6 +11136,14 @@ freud-1940-gw-11:
   - page: 370
     from: daß. seine
     to: daß seine
+    by: scan
+  - page: 378
+    from: daB
+    to: daß
+    by: scan
+  - page: 389
+    from: muB
+    to: muß
     by: scan
   - page: 396
     from: ist. die
@@ -8261,6 +11161,10 @@ freud-1940-gw-11:
     from: Mannezu
     to: Manne zu
     by: scan
+  - page: 397
+    from: daB
+    to: daß
+    by: scan
   - page: 398
     from: doch. nicht
     to: doch nicht
@@ -8268,6 +11172,18 @@ freud-1940-gw-11:
   - page: 399
     from: dieKrankheit
     to: die Krankheit
+    by: scan
+  - page: 400
+    from: er Nervösen SO
+    to: er Nervösen so
+    by: scan
+  - page: 400
+    from: muB
+    to: muß
+    by: scan
+  - page: 401
+    from: muB
+    to: muß
     by: scan
   - page: 402
     from: eineSchmerzempfindung
@@ -8321,6 +11237,14 @@ freud-1940-gw-11:
     from: Weib. aus
     to: Weib aus
     by: scan
+  - page: 413
+    from: daB
+    to: daß
+    by: scan
+  - page: 416
+    from: daB
+    to: daß
+    by: scan
   - page: 417
     from: die. jetzt
     to: die jetzt
@@ -8345,6 +11269,10 @@ freud-1940-gw-11:
     from: hatsich
     to: hat sich
     by: scan
+  - page: 432
+    from: NarziBmus
+    to: Narzißmus
+    by: scan
   - page: 433
     from: derim
     to: der im
@@ -8357,6 +11285,10 @@ freud-1940-gw-11:
     from: vomSchlafwunsch
     to: vom Schlafwunsch
     by: scan
+  - page: 434
+    from: daB
+    to: daß
+    by: scan
   - page: 447
     from: nicht. irreführen
     to: nicht irreführen
@@ -8364,6 +11296,14 @@ freud-1940-gw-11:
   - page: 453
     from: zu. ersetzen
     to: zu ersetzen
+    by: scan
+  - page: 454
+    from: daB
+    to: daß
+    by: scan
+  - page: 454
+    from: W iderstände
+    to: Widerstände
     by: scan
   - page: 456
     from: alsseine
@@ -8390,9 +11330,21 @@ freud-1940-gw-11:
     to: sie
     by: scan
 freud-1940-gw-15:
+  - page: 8
+    from: EinfluB
+    to: Einfluß
+    by: scan
   - page: 10
     from: Ordnung. folgen
     to: Ordnung folgen
+    by: scan
+  - page: 15
+    from: daB
+    to: daß
+    by: scan
+  - page: 29
+    from: daB
+    to: daß
     by: scan
   - page: 41
     from: auch.
@@ -8410,6 +11362,10 @@ freud-1940-gw-15:
     from: Beginn. unserer
     to: Beginn unserer
     by: scan
+  - page: 63
+    from: daB
+    to: daß
+    by: scan
   - page: 70
     from: immer. mehr
     to: immer mehr
@@ -8417,6 +11373,10 @@ freud-1940-gw-15:
   - page: 75
     from: wir. eher
     to: wir eher
+    by: scan
+  - page: 83
+    from: daB
+    to: daß
     by: scan
   - page: 84
     from: Realität. vorzuspiegeln
@@ -8429,6 +11389,14 @@ freud-1940-gw-15:
   - page: 88
     from: gehend. mit
     to: gehend mit
+    by: scan
+  - page: 96
+    from: daB
+    to: daß
+    by: scan
+  - page: 99
+    from: EinfluB
+    to: Einfluß
     by: scan
   - page: 108
     from: daß. auch
@@ -8450,6 +11418,14 @@ freud-1940-gw-15:
     from: fast. alle
     to: fast alle
     by: scan
+  - page: 130
+    from: daB
+    to: daß
+    by: scan
+  - page: 132
+    from: F eindseligkeit
+    to: Feindseligkeit
+    by: scan
   - page: 140
     from: Neurose. beschrieben
     to: Neurose beschrieben
@@ -8458,9 +11434,17 @@ freud-1940-gw-15:
     from: zeigen. darf
     to: zeigen darf
     by: scan
+  - page: 143
+    from: daB
+    to: daß
+    by: scan
   - page: 144
     from: Erwerbung. jener
     to: Erwerbung jener
+    by: scan
+  - page: 147
+    from: daB
+    to: daß
     by: scan
   - page: 149
     from: Aber. sollten
@@ -8470,9 +11454,21 @@ freud-1940-gw-15:
     from: manche.
     to: manche
     by: scan
+  - page: 149
+    from: F ormen
+    to: Formen
+    by: scan
   - page: 151
     from: habe.
     to: habe
+    by: scan
+  - page: 154
+    from: MaB
+    to: Maß
+    by: scan
+  - page: 161
+    from: EinfluB
+    to: Einfluß
     by: scan
   - page: 172
     from: Ansprüche. auf
@@ -8519,6 +11515,18 @@ freud-1941-gw-17:
     from: diesich
     to: die sich
     by: scan
+  - page: 92
+    from: F all
+    to: Fall
+    by: scan
+  - page: 96
+    from: N un
+    to: Nun
+    by: scan
+  - page: 108
+    from: F ähigkeit
+    to: Fähigkeit
+    by: scan
   - page: 110
     from: Eindrückeund
     to: Eindrücke und
@@ -8534,6 +11542,14 @@ freud-1941-gw-17:
   - page: 119
     from: r&unit
     to: réunit
+    by: scan
+  - page: 122
+    from: az Dit ZU
+    to: az Dit zu
+    by: scan
+  - page: 122
+    from: N ur
+    to: Nur
     by: scan
   - page: 134
     from: diesogenannten
