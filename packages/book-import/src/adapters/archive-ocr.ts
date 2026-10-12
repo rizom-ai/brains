@@ -827,11 +827,11 @@ function bodyLines(page: Page, volume: Volume): Line[] {
 /** A token that reads as a word of three letters or more, with its punctuation. */
 const WORDLIKE = /^[„“"‚‘'(»«]*\p{L}{3,}[\p{L}-]*[.,;:!?“"'’)»«]*$/u;
 
-/** A line mostly of words, or a table's row read from the scan: text or a heading, not a picture's scraps. */
+/** A line mostly of words, or one a correction read from the scan: text or a heading, not a picture's scraps. */
 function isClean(line: Line): boolean {
   const tokens = line.text.split(" ");
   return (
-    isTableRow(line) ||
+    line.corrected === true ||
     tokens.filter((token) => WORDLIKE.test(token)).length / tokens.length >= 0.5
   );
 }

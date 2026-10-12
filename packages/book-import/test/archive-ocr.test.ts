@@ -2553,3 +2553,39 @@ describe("parseArchiveOcrWork, glosses in the margin", () => {
     expect(units.flatMap((unit) => unit.paragraphs)).toEqual([paragraph]);
   });
 });
+
+describe("parseArchiveOcrWork, formulas restored from the scan", () => {
+  it("keeps a page of equations a correction restored, though few of their tokens are words", async () => {
+    const units = parseArchiveOcrWork(
+      await readFile(
+        join(import.meta.dir, "fixtures", "archive-ocr-wrapped-sections.html"),
+        "utf8",
+      ),
+      {
+        item: "p1theorienberden02marxuoft",
+        title: "Theorien über den Mehrwert",
+        citation: "Theorien II.1",
+        firstPage: 15,
+        lastPage: 15,
+        spacedNotes: true,
+        corrections: [
+          {
+            page: 15,
+            from: "niemand weiß, wohin er ging.",
+            to: "niemand weiß, wohin er ging.\n1. A. R. = I. W. — P. P. = y.\n2. D. R. = M. W. — I. W. = x.\n3. G. R. = A. R. + D. R. = y + x.\n4. M. W. — P. P. = y + x.\n5. M. W. = y + x + P. P.",
+          },
+        ],
+        paragraphs: [
+          { page: 15, opens: "Wie Frazer" },
+          { page: 15, opens: "1. A. R." },
+          { page: 15, opens: "2. D. R." },
+          { page: 15, opens: "3. G. R." },
+          { page: 15, opens: "4. M. W." },
+          { page: 15, opens: "5. M. W." },
+        ],
+      },
+    );
+
+    expect(units[0]?.paragraphs.at(-1)).toBe("5. M. W. = y + x + P. P.");
+  });
+});
