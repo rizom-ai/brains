@@ -92,7 +92,7 @@ describe("@rizom/site-books", () => {
     expect(html).toContain("Text: eKGWB, Nietzsche Source");
   });
 
-  test("lets the reader switch between paper and ink on every page", () => {
+  test("offers a light and dark toggle as an icon on every page", () => {
     const Layout = site.layouts["default"];
     if (!Layout) throw new Error("no default layout");
     for (const path of ["/", "/ask", "/books/der-antichrist/2"]) {
@@ -105,15 +105,25 @@ describe("@rizom/site-books", () => {
           siteInfo={siteInfo}
         />,
       );
-      expect(html).toMatch(/<button[^>]*data-theme-toggle[^>]*>/);
-      expect(html).toContain('aria-label="Toggle dark mode"');
+      const toggle = html.match(
+        /<button[^>]*data-theme-toggle[^>]*>([\s\S]*?)<\/button>/,
+      );
+      expect(toggle?.[0]).toContain('aria-label="Toggle dark mode"');
+      // A sun and a moon, and no words.
+      expect(toggle?.[1]).toContain("books-theme-sun");
+      expect(toggle?.[1]).toContain("books-theme-moon");
+      expect(toggle?.[1]?.replace(/<[^>]*>/g, "").trim()).toBe("");
     }
-    // Which label shows follows the page's theme.
+    // The sun shows in the dark theme, the moon in the light one.
     expect(site.themeOverride).toContain(
-      '[data-theme="dark"] .books-theme-dark',
+      '[data-theme="dark"] .books-theme-sun',
     );
     expect(site.themeOverride).toContain(
-      '[data-theme="light"] .books-theme-light',
+      '[data-theme="light"] .books-theme-moon',
+    );
+    // The toggle and the Ask pill sit on one centre line.
+    expect(site.themeOverride).toMatch(
+      /\.books-actions \{[^}]*align-items: center/,
     );
   });
 
