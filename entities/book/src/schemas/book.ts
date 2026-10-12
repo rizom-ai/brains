@@ -29,6 +29,7 @@ export const bookFrontmatterSchema: z.ZodObject<{
   published: z.ZodDefault<z.ZodNullable<z.ZodBoolean>>;
   length: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
   sections: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  continuations: z.ZodDefault<z.ZodArray<z.ZodNumber>>;
   shortTitle: NullableStringSchema;
 }> = z.object({
   title: z.string(),
@@ -43,7 +44,13 @@ export const bookFrontmatterSchema: z.ZodObject<{
   published: z.boolean().nullable().default(null),
   /** Bytes of the book's text, summed over its sections. */
   length: z.number().int().min(0).nullable().default(null),
+  /** The sections the edition prints, however many entries they take. */
   sections: z.number().int().min(0).nullable().default(null),
+  /**
+   * Reading orders of entries that continue the entry before: a section too
+   * long for one entry spans several, which read and count as one.
+   */
+  continuations: z.array(z.number().int().min(2)).default([]),
   /** A title short enough for a book's spine. */
   shortTitle: z.string().nullable().default(null),
 });

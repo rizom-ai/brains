@@ -51,6 +51,23 @@ export interface ScoreEntry {
   length: number;
 }
 
+/** The first entry of the section an entry belongs to. */
+function sectionStart(
+  order: number,
+  continuations: ReadonlySet<number>,
+): number {
+  return continuations.has(order)
+    ? sectionStart(order - 1, continuations)
+    : order;
+}
+
+/** The last entry of the section an entry belongs to. */
+function sectionEnd(order: number, continuations: ReadonlySet<number>): number {
+  return continuations.has(order + 1)
+    ? sectionEnd(order + 1, continuations)
+    : order;
+}
+
 export function parseBookData(entity: Book): BookWithData {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
@@ -131,12 +148,20 @@ export class BookDataSource extends BaseEntityDataSource<
     );
     const [first, score] = await Promise.all([
       this.findSection(book.id, 1, entityService),
-      this.scoreOf(book.id, entityService),
+      this.scoreOf(
+        book.id,
+        new Set(book.frontmatter.continuations),
+        entityService,
+      ),
     ]);
     return outputSchema.parse({ book, first, score });
   }
 
-  /** A section with its book, its neighbours, and the themes nearest it. */
+  /**
+   * A section with its book, its neighbours, and the themes nearest it. A
+   * section split for length reads whole from any of its entries, and its
+   * neighbours are the sections around it, not its own entries.
+   */
   private async sectionPage(
     slug: string,
     entityService: EntityServiceClient,
@@ -145,6 +170,7 @@ export class BookDataSource extends BaseEntityDataSource<
     book: BookWithData;
     prev: BookSectionWithData | null;
     next: BookSectionWithData | null;
+    position: number;
     total: number;
     themes: Theme[];
   }> {
@@ -156,31 +182,66 @@ export class BookDataSource extends BaseEntityDataSource<
       bookSectionSchema,
     );
     if (!found) throw new Error(`book-section not found: ${slug}`);
-    const section = parseBookSectionData(found);
-    const { book: bookId, order } = section.metadata;
-    const [book, prev, next, total, themes] = await Promise.all([
-      this.lookupEntity(bookId, entityService),
-      this.findSection(bookId, order - 1, entityService),
-      this.findSection(bookId, order + 1, entityService),
-      entityService.countEntities({
-        entityType: "book-section",
-        options: { filter: { metadata: { book: bookId } } },
-      }),
-      this.themesOf(section.id, entityService),
+    const { book: bookId, order } = parseBookSectionData(found).metadata;
+    const book = this.transformEntity(
+      await this.lookupEntity(bookId, entityService),
+    );
+    const continuations = new Set(book.frontmatter.continuations);
+    const first = sectionStart(order, continuations);
+    const last = sectionEnd(order, continuations);
+    const [entries, prev, next, total] = await Promise.all([
+      Promise.all(
+        Array.from({ length: last - first + 1 }, (_, index) =>
+          this.findSection(bookId, first + index, entityService),
+        ),
+      ),
+      this.findSection(
+        bookId,
+        sectionStart(first - 1, continuations),
+        entityService,
+      ),
+      this.findSection(bookId, last + 1, entityService),
+      book.frontmatter.sections ??
+        entityService.countEntities({
+          entityType: "book-section",
+          options: { filter: { metadata: { book: bookId } } },
+        }),
     ]);
+    const pieces = entries.filter(
+      (entry): entry is BookSectionWithData => entry !== null,
+    );
+    const [head] = pieces;
+    if (!head) throw new Error(`book-section not found: ${slug}`);
+    const themes = (
+      await Promise.all(
+        pieces.map(({ id }) => this.themesOf(id, entityService)),
+      )
+    )
+      .flat()
+      .filter(
+        (theme, index, all) =>
+          all.findIndex(({ id }) => id === theme.id) === index,
+      )
+      .slice(0, THEME_LIMIT);
     return {
-      section,
-      book: this.transformEntity(book),
+      section: {
+        ...head,
+        body: pieces.map(({ body }) => body.trim()).join("\n\n"),
+      },
+      book,
       prev,
       next,
+      position:
+        first - [...continuations].filter((entry) => entry < first).length,
       total,
       themes,
     };
   }
 
-  /** Every section of a book in reading order, measured. */
+  /** Every section of a book in reading order, measured; one per section. */
   private async scoreOf(
     book: string,
+    continuations: ReadonlySet<number>,
     entityService: EntityServiceClient,
   ): Promise<ScoreEntry[]> {
     const entities = await entityService.listEntities(
@@ -194,14 +255,29 @@ export class BookDataSource extends BaseEntityDataSource<
       },
       bookSectionSchema,
     );
-    return entities.map(parseBookSectionData).map((section) => ({
-      slug: section.metadata.slug,
-      title: section.metadata.title,
-      section: section.metadata.section,
-      order: section.metadata.order,
-      headings: section.frontmatter.headings,
-      length: Buffer.byteLength(section.body.trim(), "utf8"),
-    }));
+    return entities
+      .map(parseBookSectionData)
+      .reduce<ScoreEntry[]>((score, section) => {
+        const length = Buffer.byteLength(section.body.trim(), "utf8");
+        const previous = score.at(-1);
+        if (previous && continuations.has(section.metadata.order)) {
+          return [
+            ...score.slice(0, -1),
+            { ...previous, length: previous.length + length },
+          ];
+        }
+        return [
+          ...score,
+          {
+            slug: section.metadata.slug,
+            title: section.metadata.title,
+            section: section.metadata.section,
+            order: section.metadata.order,
+            headings: section.frontmatter.headings,
+            length,
+          },
+        ];
+      }, []);
   }
 
   /** The topics nearest a section, by their stored embeddings: no API calls. */

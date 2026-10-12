@@ -21,6 +21,8 @@ interface CorpusBook {
   /** The siglum its source names: its own, or its first part's. */
   siglum: string;
   sections: CorpusSection[];
+  /** Entries that continue the one before: one unit split for length. */
+  continuations: ReadonlySet<number>;
 }
 
 /**
@@ -49,16 +51,36 @@ export async function corpusReader(brainData: string): Promise<BookReader> {
       const ofParts = isOfParts(found.book);
       return {
         title: found.book.title,
-        units: found.sections.map(({ frontmatter, body }): BookUnit => ({
-          parents: ofParts
-            ? frontmatter.headings.slice(1)
-            : frontmatter.headings,
-          title: frontmatter.title,
-          section: frontmatter.section,
-          page: frontmatter.page,
-          source: frontmatter.source,
-          paragraphs: body.trim().split("\n\n"),
-        })),
+        // An entry that continues the one before rejoins its unit.
+        units: found.sections.reduce<BookUnit[]>(
+          (units, { frontmatter, body }) => {
+            const paragraphs = body.trim().split("\n\n");
+            const previous = units.at(-1);
+            if (previous && found.book.continuations.has(frontmatter.order)) {
+              return [
+                ...units.slice(0, -1),
+                {
+                  ...previous,
+                  paragraphs: [...previous.paragraphs, ...paragraphs],
+                },
+              ];
+            }
+            return [
+              ...units,
+              {
+                parents: ofParts
+                  ? frontmatter.headings.slice(1)
+                  : frontmatter.headings,
+                title: frontmatter.title,
+                section: frontmatter.section,
+                page: frontmatter.page,
+                source: frontmatter.source,
+                paragraphs,
+              },
+            ];
+          },
+          [],
+        ),
       };
     },
   };
@@ -93,6 +115,7 @@ async function readBooks(brainData: string): Promise<CorpusBook[]> {
         title: metadata.title,
         siglum: metadata.source.slice(EKGWB_BASE.length),
         sections: await readSections(join(brainData, paths.sections)),
+        continuations: new Set(metadata.continuations),
       };
     }),
   );
