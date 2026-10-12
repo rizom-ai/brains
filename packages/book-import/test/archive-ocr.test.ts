@@ -278,11 +278,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads a year the OCR set in letters as figures", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, igog, 190g, igoi und ig19; ig, iglu.",
+      "Jones, igog, 190g, igoi, 18gi, 188g und ig19; ig, iglu.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, 1909, 1909, 1901 und 1919; ig, iglu.",
+      "Jones, 1909, 1909, 1901, 1891, 1889 und 1919; ig, iglu.",
     );
   });
 
@@ -295,6 +295,15 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     expect(pageText(hocr, 4)).toContain(
       "Jones, l. c., p. 270; l.c. p. XLV; 1. Teil, 21. c., Typ- 3.",
     );
+  });
+
+  it("reads a quotation mark the OCR set as two single ones as one double", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, ‚‚Sinn‘‘ und ‚Wort‘, 1919.",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, „Sinn“ und ‚Wort‘, 1919.");
   });
 
   it("reads a first the OCR set as i before a month or a volume's part as 1", async () => {

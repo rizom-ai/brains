@@ -855,8 +855,8 @@ function normalised(text: string): string {
       .replace(/(?<=\p{L})¬$/u, "-")
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
-      // A year of the 1900s the OCR read as i, g and o for 1, 9 and 0.
-      .replace(/(?<![\p{L}\d])[1i][9g][\dgoi]{2}(?![\p{L}\d])/gu, (year) =>
+      // A year of the 1800s or 1900s the OCR read as i, g and o for 1, 9 and 0.
+      .replace(/(?<![\p{L}\d])[1i][89g][\dgoi]{2}(?![\p{L}\d])/gu, (year) =>
         /\p{L}/u.test(year)
           ? year.replace(/i/g, "1").replace(/g/g, "9").replace(/o/g, "0")
           : year,
@@ -866,6 +866,9 @@ function normalised(text: string): string {
         /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
         "1.",
       )
+      // A double quotation mark read as two single ones.
+      .replace(/‚‚/g, "„")
+      .replace(/‘‘/g, "“")
       // Loco citato read with a figure one, and a page's p. with a dash.
       .replace(/(?<![\p{L}\d])1\.( ?)c\./gu, "l.$1c.")
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
