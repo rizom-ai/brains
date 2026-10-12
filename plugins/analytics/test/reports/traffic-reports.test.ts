@@ -136,6 +136,7 @@ describe("traffic reports", () => {
             { path: "/login", pageviews: 3 },
             { path: "/", pageviews: 6 },
             { path: "/api/chat", pageviews: 2 },
+            { path: "/cms/workspaces/site", pageviews: 7 },
           ],
           referrers: [{ host: "www.linkedin.com", visits: 4 }],
           countries: [{ country: "TW", visits: 5 }],
@@ -155,7 +156,7 @@ describe("traffic reports", () => {
         { path: "/essays/one", pageviews: 12 },
         { path: "/", pageviews: 6 },
       ]);
-      expect(result["ownerPageviews"]).toBe(14);
+      expect(result["ownerPageviews"]).toBe(21);
       expect(result["referrers"]).toEqual([
         { host: "www.linkedin.com", visits: 5 },
       ]);

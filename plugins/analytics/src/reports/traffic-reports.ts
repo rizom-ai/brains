@@ -20,6 +20,8 @@ import {
  */
 const OWNER_PATH_PREFIXES = [
   "/studio",
+  // Studio's path before it was renamed; old links and bookmarks still use it.
+  "/cms",
   "/login",
   "/logout",
   "/auth",
