@@ -856,7 +856,7 @@ function normalised(text: string): string {
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
       // A year of the 1900s the OCR read as i, g and o for 1, 9 and 0.
-      .replace(/(?<![\p{L}\d])[1i][9g][\dgo]{2}(?![\p{L}\d])/gu, (year) =>
+      .replace(/(?<![\p{L}\d])[1i][9g][\dgoi]{2}(?![\p{L}\d])/gu, (year) =>
         /\p{L}/u.test(year)
           ? year.replace(/i/g, "1").replace(/g/g, "9").replace(/o/g, "0")
           : year,

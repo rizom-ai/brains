@@ -278,11 +278,11 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads a year the OCR set in letters as figures", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, igog, 190g und ig19; ig, iglu.",
+      "Jones, igog, 190g, igoi und ig19; ig, iglu.",
     );
 
     expect(pageText(hocr, 4)).toContain(
-      "Jones, 1909, 1909 und 1919; ig, iglu.",
+      "Jones, 1909, 1909, 1901 und 1919; ig, iglu.",
     );
   });
 
