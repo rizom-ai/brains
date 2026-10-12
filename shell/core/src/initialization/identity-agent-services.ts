@@ -265,6 +265,13 @@ export function initializeIdentityAndAgentServices(
 
   // Entity links and citability, read from the site display the shell resolved.
   const entityUrls = new EntityUrlGenerator(config.entityDisplay);
+  const entityLinks = {
+    isCitable: (entityType: string): boolean =>
+      entityUrls.isCitable(entityType),
+    urlFor: (entityType: string, slug: string): string =>
+      entityUrls.generateUrl(entityType, slug),
+    siteBaseUrl: config.siteBaseUrl,
+  };
 
   const agentService = AgentService.createFresh(
     mcpService,
@@ -275,6 +282,8 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
+      // A turn's sources link to the pages the site shows them on.
+      entityLinks,
       ...(options.embeddingUsage
         ? { embeddingUsage: options.embeddingUsage }
         : {}),
@@ -285,10 +294,7 @@ export function initializeIdentityAndAgentServices(
             // A visitor's sources are found by meaning, so only with embeddings.
             guestAnswerSources: createGuestAnswerSources({
               entityService,
-              isCitable: (entityType) => entityUrls.isCitable(entityType),
-              urlFor: (entityType, slug) =>
-                entityUrls.generateUrl(entityType, slug),
-              siteBaseUrl: config.siteBaseUrl,
+              ...entityLinks,
             }),
           }
         : {}),

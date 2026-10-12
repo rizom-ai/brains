@@ -38,6 +38,11 @@ export type {
 
 // Agent service (merged from @brains/agent-service)
 export { AgentService } from "./agent-service";
+export {
+  entitySourceCitation,
+  type CitableEntity,
+  type EntityLinks,
+} from "./entity-citation";
 export { buildAssistantActor, createBrainAgentId } from "./assistant-actor";
 export { createBrainAgentFactory } from "./brain-agent";
 export { openAiGuestPricing } from "./openai-guest-pricing";

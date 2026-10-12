@@ -150,18 +150,15 @@ function MessageCard(props: {
                 <a href={source.url}>{source.title ?? source.source}</a>
               ) : (
                 (source.title ?? source.source)
-              )}
+              )}{" "}
+              <span className={chatClass("", chatLayout.sourceType)}>
+                {source.entityType ?? source.source}
+              </span>
               {source.excerpt && (
                 <p className={chatClass("", chatLayout.paragraph)}>
                   {source.excerpt}
                 </p>
               )}
-              <details>
-                <summary>Source details</summary>
-                <pre className={chatClass("", chatLayout.source)}>
-                  {JSON.stringify(source, null, 2)}
-                </pre>
-              </details>
             </li>
           ))}
         </ul>
