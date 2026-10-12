@@ -1,5 +1,11 @@
 # @rizom/site-books
 
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- [#619](https://github.com/rizom-ai/brains/pull/619) [`23efb6d`](https://github.com/rizom-ai/brains/commit/23efb6da194bbd79f50d77e1ba7402429fa92df6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The books site's theme toggle is an icon — a sun in the dark theme, a moon in the light one — in a square the height of the Ask pill, beside it at the bar's right edge, with the bar's items on one centre line. The Ask pill keeps its space after the question mark.
+
 ## 0.2.0-alpha.3
 
 ### Patch Changes
