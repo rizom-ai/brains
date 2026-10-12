@@ -275,6 +275,18 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     ]);
   });
 
+  it("takes a speck below the page middle for no rule, so the smaller text below it stays text", async () => {
+    const hocr = (await fixture()).replace(
+      "<span class='ocr_line' title='bbox 130 3710 2300 3815; x_size 66'>",
+      "<span class='ocr_line' title='bbox 2585 3690 2598 3705; x_size 20'>*</span>\n  <span class='ocr_line' title='bbox 130 3710 2300 3815; x_size 66'>",
+    );
+    const units = parseArchiveOcrWork(hocr, work);
+
+    expect(units.flatMap((unit) => unit.paragraphs).join("\n")).toContain(
+      "Ein Satz unten auf der Seite läuft weiter",
+    );
+  });
+
   it("reads a year the OCR set in letters as figures", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",

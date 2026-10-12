@@ -236,7 +236,8 @@ function isRule(line: Line, bodySize: number): boolean {
   const signs = line.text.match(/[\p{L}\d]/gu) ?? [];
   const dashes = line.text.match(/[—–-]/gu) ?? [];
   return (
-    signs.length === 0 ||
+    // A rule runs across the line; a speck of a mark stands no wider than tall.
+    (signs.length === 0 && line.width > line.bottom - line.y) ||
     (line.size < bodySize * MARK_SIZE && dashes.length > signs.length * 2)
   );
 }

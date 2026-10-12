@@ -556,6 +556,19 @@ books:
       - { page: 210, opens: "¹) Marx nimmt hier an" }
       - { page: 49, opens: "Seite 229" }
       - { page: 401, opens: "Im Original" }
+      - { page: 59, opens: "1 Von Paoletti" }
+      - { page: 77, opens: "S. 438 —440" }
+      - { page: 164, opens: "1 S. 265" }
+      - { page: 231, opens: "1 Seite 379—390" }
+      - { page: 260, opens: "1 S. 304—314" }
+      - { page: 285, opens: "1 S. 315" }
+      - { page: 287, opens: "Dieser Paragraph ist" }
+      - { page: 325, opens: "Im Original steht" }
+      - { page: 382, opens: "Das Wort kann" }
+      - { page: 390, opens: "Ich habe dieses" }
+      - { page: 400, opens: "Im Manufkript steht" }
+      - { page: 404, opens: "Hier hat Marx" }
+      - { page: 407, opens: "Seite 1320—1331 des" }
     slug: theorien-ueber-den-mehrwert-1
     title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
     shortTitle: Theorien über den Mehrwert I
@@ -635,6 +648,11 @@ books:
       - { page: 278, opens: "¹) Im Manuskript lautet" }
       - { page: 282, opens: "¹) Im Manuskript steht surplusvalue" }
       - { page: 283, opens: "1 Er meint" }
+      - { page: 75, opens: "Die eingeklammerte Stelle" }
+      - { page: 87, opens: "Im Manustript steht:" }
+      - { page: 214, opens: "Im Manufkript steht:" }
+      - { page: 300, opens: "1 Im 1." }
+      - { page: 331, opens: "2 Im Manuskript" }
     slug: theorien-ueber-den-mehrwert-2-1
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
     shortTitle: Theorien über den Mehrwert II.1
@@ -892,6 +910,18 @@ books:
       - { page: 360, opens: "Dieses ist absolut" }
       - { page: 239, opens: "Nun ändere sich" }
       - { page: 238, opens: "1 Das Beispiel" }
+      - { page: 23, opens: "Im Manufkript lautet" }
+      - { page: 35, opens: "²) Im Manuskript" }
+      - { page: 67, opens: "Im Manustript steht" }
+      - { page: 94, opens: "Im Original steht:" }
+      - { page: 180, opens: "3 Im Manufkript" }
+      - { page: 185, opens: "¹) Im Manuskript" }
+      - { page: 200, opens: "¹) Im Manuskript" }
+      - { page: 215, opens: "Im Manufskript steht:" }
+      - { page: 236, opens: "Der Satz lautet" }
+      - { page: 284, opens: "2 Im Manuskript" }
+      - { page: 343, opens: "Im Manuskript steht" }
+      - { page: 381, opens: "Im Original steht" }
     # Kautsky's note, set as the text and signed only where it ends.
     skipNotes:
       - { page: 238, opens: "1 Das Beispiel" }
@@ -943,6 +973,11 @@ books:
     notes:
       - { page: 249, opens: "¹) Im Original steht" }
       - { page: 400, opens: "¹) Im Original lautet" }
+      - { page: 223, opens: "Die Worte können" }
+      - { page: 255, opens: "Im Original steht" }
+      - { page: 272, opens: "Im Manufskript steht" }
+      - { page: 361, opens: "Im Manuskript steht:" }
+      - { page: 586, opens: "1 Proudhon bemerkt," }
     slug: theorien-ueber-den-mehrwert-3
     title: "Theorien über den Mehrwert. Dritter Band: Von Ricardo zur Vulgärökonomie"
     shortTitle: Theorien über den Mehrwert III

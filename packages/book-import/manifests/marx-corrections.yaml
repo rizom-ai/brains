@@ -4774,6 +4774,10 @@ p1theorienberden02marxuoft:
     from: zteren 5000 £E Kapital ste
     to: zteren 5000 £ Kapital ste
     by: scan
+  - page: 38
+    from: enden Peter Mae Culloch),
+    to: enden Peter Mac Culloch),
+    by: scan
   - page: 39
     from: Kapital im
     to: Kapital [im
@@ -7209,6 +7213,10 @@ p1theorienberden02marxuoft:
   - page: 319
     from: Wilhelm Thueydides.
     to: Wilhelm Thucydides.
+    by: scan
+  - page: 319
+    from: istiert für Mae Culloch, so
+    to: istiert für Mac Culloch, so
     by: scan
   - page: 324
     from: e) Die Bewegung der Kornpreise von 1641 bis 1859.
@@ -12539,6 +12547,10 @@ p2theorienberd02marx:
     from: "[mehr!"
     to: "[mehr]"
     by: scan
+  - page: 247
+    from: (Siehe Mae Culloch.)
+    to: (Siehe Mac Culloch.)
+    by: scan
   - page: 249
     from: "[Garn!"
     to: "[Garn]"
@@ -12606,6 +12618,10 @@ p2theorienberd02marx:
   - page: 264
     from: Kategorie, die
     to: Kategorie, [die
+    by: scan
+  - page: 265
+    from: "bei ihm: ‚„Je reichlicher"
+    to: "bei ihm: ‚Je reichlicher"
     by: scan
   - page: 268
     from: Aber!
@@ -12686,6 +12702,18 @@ p2theorienberd02marx:
   - page: 287
     from: ([dann!],
     to: "[dann],"
+    by: scan
+  - page: 288
+    from: Verkaufs nicht sso
+    to: Verkaufs nicht [so
+    by: scan
+  - page: 288
+    from: viel) wert, als sie
+    to: viel] wert, als sie
+    by: scan
+  - page: 289
+    from: kann hier als Ee gleich-
+    to: kann hier als gegeben, gleich-
     by: scan
   - page: 290
     from: Produktionsweise )
@@ -12800,8 +12828,8 @@ p2theorienberd02marx:
     to: "[tritt vergrößerte]"
     by: scan
   - page: 320
-    from: enn ich 200 £E ean Ausgabe
-    to: enn ich 200 £ ean Ausgabe
+    from: vorher. Wenn ich 200 £E ean Ausgaben spare, während mein
+    to: vorher. Wenn ich 200 £ an Ausgaben spare, während mein
     by: scan
   - page: 321
     from: Reichtum!
@@ -12915,6 +12943,10 @@ p2theorienberd02marx:
     from: erlaubt, diese
     to: erlaubt, [diese
     by: scan
+  - page: 344
+    from: 2Als Parlamentler?
+    to: ² Als Parlamentler?
+    by: scan
   - page: 346
     from: (das
     to: "[das"
@@ -12922,6 +12954,14 @@ p2theorienberd02marx:
   - page: 348
     from: Arbeitslohns, des
     to: Arbeitslohns, [des
+    by: scan
+  - page: 348
+    from: Aber ses
+    to: Aber [es
+    by: scan
+  - page: 348
+    from: entsteht) keine Nachfrage
+    to: entsteht] keine Nachfrage
     by: scan
   - page: 352
     from: ihn!
@@ -13408,6 +13448,10 @@ theorienberden03marxuoft:
     from: (der
     to: "[der"
     by: scan
+  - page: 72
+    from: legt würde. Mae Peter
+    to: legt würde. Mac Peter
+    by: scan
   - page: 73
     from: II. Auf losung der Ricardoschen Schule.
     to: II. Auflösung der Ricardoschen Schule.
@@ -13479,6 +13523,14 @@ theorienberden03marxuoft:
   - page: 94
     from: duktivität éo ipso
     to: duktivität eo ipso
+    by: scan
+  - page: 98
+    from: achkopf wie Mae Culloch nim
+    to: achkopf wie Mac Culloch nim
+    by: scan
+  - page: 105
+    from: as paßt für Mae
+    to: as paßt für Mac
     by: scan
   - page: 108
     from: Arbeit. riIANR
@@ -13804,6 +13856,10 @@ theorienberden03marxuoft:
     from: Waren!
     to: Waren¹
     by: scan
+  - page: 201
+    from: Mae Culloch 201
+    to: Mac Culloch 201
+    by: scan
   - page: 202
     from: shängt
     to: ‚hängt
@@ -13816,6 +13872,10 @@ theorienberden03marxuoft:
     from: (dessen
     to: "[dessen"
     by: scan
+  - page: 207
+    from: 1828 gab Mae Culloch Smi
+    to: 1828 gab Mac Culloch Smi
+    by: scan
   - page: 208
     from: ein- errrrrte:.:,
     to: ein-
@@ -13823,6 +13883,10 @@ theorienberden03marxuoft:
   - page: 208
     from: Motiv,?
     to: Motiv,²
+    by: scan
+  - page: 209
+    from: ndelt. Herr Mae flüchtet da
+    to: ndelt. Herr Mac flüchtet da
     by: scan
   - page: 210
     from: Erfindung Maes, sehr
@@ -13852,6 +13916,22 @@ theorienberden03marxuoft:
     from: des!]
     to: des]
     by: scan
+  - page: 211
+    from: Mae Culloch 211
+    to: Mac Culloch 211
+    by: scan
+  - page: 211
+    from: it“ spricht Mae nur aus, wa
+    to: it“ spricht Mac nur aus, wa
+    by: scan
+  - page: 217
+    from: Nachdem Mae glücklich W
+    to: Nachdem Mac glücklich W
+    by: scan
+  - page: 217
+    from: " Moment, wo Mae, von Mill a"
+    to: " Moment, wo Mac, von Mill a"
+    by: scan
   - page: 218
     from: auch!
     to: auch]
@@ -13868,9 +13948,33 @@ theorienberden03marxuoft:
     from: „versöhnen“],
     to: "[„versöhnen“],"
     by: scan
+  - page: 219
+    from: erholt, daß Mae der zum Ext
+    to: erholt, daß Mac der zum Ext
+    by: scan
+  - page: 219
+    from: nd doch ist Mae noch albern
+    to: nd doch ist Mac noch albern
+    by: scan
+  - page: 219
+    from: “ schaffen, Mae
+    to: “ schaffen, Mac
+    by: scan
+  - page: 220
+    from: " steht also Mae noch unter "
+    to: " steht also Mac noch unter "
+    by: scan
   - page: 221
     from: Manier Maes, den
     to: Manier Macs, den
+    by: scan
+  - page: 222
+    from: " ist es dem Mae un-"
+    to: " ist es dem Mac un-"
+    by: scan
+  - page: 222
+    from: zungen faßt Mae die
+    to: zungen faßt Mac die
     by: scan
   - page: 223
     from: Principles ete.,
@@ -13896,6 +14000,10 @@ theorienberden03marxuoft:
     from: seben
     to: "[eben"
     by: scan
+  - page: 224
+    from: eschrieben. Mae Culloch sta
+    to: eschrieben. Mac Culloch sta
+    by: scan
   - page: 225
     from: plündert!
     to: plündert]
@@ -13903,6 +14011,18 @@ theorienberden03marxuoft:
   - page: 226
     from: Arbeitslohns].
     to: "[Arbeitslohns]."
+    by: scan
+  - page: 226
+    from: Stellen bei Mae, der ersten
+    to: Stellen bei Mac, der ersten
+    by: scan
+  - page: 226
+    from: stiegen.“, (Mae Culloch, Pr
+    to: stiegen.“, (Mac Culloch, Pr
+    by: scan
+  - page: 226
+    from: n, wie auch Mae
+    to: n, wie auch Mac
     by: scan
   - page: 229
     from: Ware!
