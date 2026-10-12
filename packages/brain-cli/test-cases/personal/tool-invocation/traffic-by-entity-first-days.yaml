@@ -1,0 +1,29 @@
+id: tool-invocation-traffic-by-entity-first-days
+name: A piece's launch via traffic-by-entity firstDays
+description: Verifies that "how did my last essay do" uses traffic-by-entity with firstDays, the window starting on the publish date, rather than dates the model picks.
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+  permissionLevel: admin
+tags:
+  - system
+  - analytics
+  - traffic
+  - recipe-professional
+
+turns:
+  - userMessage: "How did my most recent essay do in its first week after it was published?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_analytics
+      shouldBeCalled: true
+      argsContain:
+        type: traffic-by-entity
+        params.firstDays: 7
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
