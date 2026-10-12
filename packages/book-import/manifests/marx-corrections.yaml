@@ -6487,7 +6487,7 @@ p1theorienberden02marxuoft:
     to: um ein Fünftel fruchtbarer als Klasse I; Klasse III wieder
     by: scan
   - page: 265
-    from: die Rente in Klasse Jgleich ist 120 — 110 ⸗ 10 £, ist sie in
+    from: die Rente in Klasse Jgleich ist 120 — 110 = 10 £, ist sie in
     to: die Rente in Klasse I gleich ist 120 — 110 = 10 £, ist sie in
     by: scan
   - page: 265
@@ -6495,7 +6495,7 @@ p1theorienberden02marxuoft:
     to: Klasse II = 144 — 110 = 34 £, in Klasse III = 172⅘ — 110
     by: scan
   - page: 265
-    from: 62½8 £, und in IxV 207 /5 — 110 ⸗ 97½8 L. Wäre die
+    from: 62½8 £, und in IxV 207 /5 — 110 = 97½8 L. Wäre die
     to: = 62⅘ £, und in IV = 207⁹⁄₂₅ — 110 = 97⁹⁄₂₅ £.¹ Wäre die
     by: scan
   - page: 265
@@ -8967,7 +8967,7 @@ p2theorienberd02marx:
     to: pro Tonne. Der Marktwert = 1⅚ £. Die Differential-
     by: scan
   - page: 62
-    from: rente von 1 ist also 1½ — 2 , also ⸗ ½ ½.
+    from: rente von 1 ist also 1½ — 2 , also = ½ ½.
     to: rente von I ist also = 1⅚ £ — 2 £, also = — ⅙ £.
     by: scan
   - page: 62
@@ -10311,7 +10311,7 @@ p2theorienberd02marx:
     to: I. 84⁴⁄₁₉ c + 15¹⁵⁄₁₉ v | 15¹⁵⁄₁₉ | 116 (Wert = 115¹⁵⁄₁₉) | = + ⁴⁄₁₉
     by: scan
   - page: 171
-    from: II. 66¾ c + 33¼½ v 33¼ 116 (Wert ⸗ 133½) = — 17½
+    from: II. 66¾ c + 33¼½ v 33¼ 116 (Wert = 133½) = — 17½
     to: II. 66⅔ c + 33⅓ v | 33⅓ | 116 (Wert = 133⅓) | = — 17⅓
     by: scan
   - page: 171
@@ -10479,7 +10479,7 @@ p2theorienberd02marx:
     to: seit der Wert der Tonne gestiegen auf 3 £. Es erhält nach
     by: scan
   - page: 182
-    from: wie vor 1 Mann 1 Tonne ⸗ 3 £, denn 16⅛ 3 50.
+    from: wie vor 1 Mann 1 Tonne = 3 £, denn 16⅛ 3 50.
     to: wie vor 1 Mann 1 Tonne = 3 £, denn 16⅔ × 3 = 50.
     by: scan
   - page: 182
@@ -11003,7 +11003,7 @@ p2theorienberd02marx:
     to: so 109¹⁄₁₁ £ = 54⁶⁄₁₁ Tonnen.
     by: scan
   - page: 189
-    from: wert =E 2⅛ — 2 £ ⸗ ½ £. Und dieses macht auf
+    from: wert =E 2⅛ — 2 £ = ½ £. Und dieses macht auf
     to: wert = 2½ £ — 2 £ = ½ £. Und dieses macht auf
     by: scan
   - page: 189
@@ -11127,7 +11127,7 @@ p2theorienberd02marx:
     to: In I ist der individuelle Wert der Tonne = 2 £. Also
     by: scan
   - page: 191
-    from: Differentialwert 3 — 2 ⸗ 1 £. Da der individuelle Wert
+    from: Differentialwert 3 — 2 = 1 £. Da der individuelle Wert
     to: Differentialwert = 3 — 2 = 1 £. Da der individuelle Wert
     by: scan
   - page: 191
@@ -11808,7 +11808,7 @@ p2theorienberd02marx:
     to: oder umgekehrt. Wenn der Profit = P, der industrielle
     by: scan
   - page: 205
-    from: Profit = P/, der Zins ⸗ 2 und die Rente R, so ist
+    from: Profit = P/, der Zins = 2 und die Rente R, so ist
     to: Profit = P′, der Zins = Z und die Rente = R, so ist
     by: scan
   - page: 205
@@ -13309,7 +13309,7 @@ theorienberden03marxuoft:
     to: des Produkts, nämlich 600 £ nehmen und mit der Summe ver-
     by: scan
   - page: 33
-    from: Also 110 — 10 ⸗ 100. 100
+    from: Also 110 — 10 = 100. 100
     to: Also 110 — 10 = 100. 100
     by: scan
   - page: 33
@@ -13632,9 +13632,21 @@ theorienberden03marxuoft:
     from: achkopf wie Mae Culloch nim
     to: achkopf wie Mac Culloch nim
     by: scan
+  - page: 100
+    from: spezifische Schwierigkeit *
+    to: spezifische Schwierigkeit —
+    by: scan
   - page: 105
     from: as paßt für Mae
     to: as paßt für Mac
+    by: scan
+  - page: 105
+    from: wenn man will. ö
+    to: wenn man will.
+    by: scan
+  - page: 107
+    from: Anteile ((ies des
+    to: Anteile (lies des
     by: scan
   - page: 108
     from: Arbeit. riIANR
@@ -13675,6 +13687,10 @@ theorienberden03marxuoft:
   - page: 120
     from: eine Aere gar
     to: eine Acre gar
+    by: scan
+  - page: 120
+    from: als die Situation mit der *
+    to: als die Situation mit der
     by: scan
   - page: 121
     from: "Reichtums (progréès divitial):"
@@ -13768,6 +13784,18 @@ theorienberden03marxuoft:
     from: (Bailey
     to: "[Bailey"
     by: scan
+  - page: 146
+    from: (London W3
+    to: (London Magazine,
+    by: scan
+  - page: 146
+    from: S. 552 und ff. ö
+    to: S. 552 und ff.)
+    by: scan
+  - page: 148
+    from: betitelt ͤ Wert
+    to: betitelt ‚Wert
+    by: scan
   - page: 159
     from: sondern.
     to: sondern
@@ -13800,6 +13828,14 @@ theorienberden03marxuoft:
     from: ([gleichen
     to: "[gleichen"
     by: scan
+  - page: 170
+    from: sprechen, 1 — — 9 — * ö *
+    to: sprechen,
+    by: scan
+  - page: 171
+    from: spatiüi
+    to: spatii
+    by: scan
   - page: 172
     from: (zweil
     to: "[zwei]"
@@ -13807,6 +13843,10 @@ theorienberden03marxuoft:
   - page: 172
     from: dukt J sich als ge
     to: dukt I sich als ge
+    by: scan
+  - page: 172
+    from: enthaltene . ——8—— *V
+    to: enthaltene
     by: scan
   - page: 173
     from: shat!],
@@ -13845,10 +13885,6 @@ theorienberden03marxuoft:
     to: "[aus-"
     by: scan
   - page: 179
-    from: sausgedrückt],
-    to: "[ausgedrückt],"
-    by: scan
-  - page: 179
     from: (Baileys]
     to: "[Baileys]"
     by: scan
@@ -13859,6 +13895,10 @@ theorienberden03marxuoft:
   - page: 179
     from: bleibt nach
     to: bleibt [nach
+    by: scan
+  - page: 179
+    from: Ain C sausgedrückt], so verschieden, wie B und C sind.
+    to: A in C [ausgedrückt], so verschieden, wie B und C sind.
     by: scan
   - page: 180
     from: genössische!
@@ -13872,9 +13912,21 @@ theorienberden03marxuoft:
     from: Ware!]
     to: Ware]
     by: scan
+  - page: 181
+    from: (1c. S. 64)
+    to: (l. c. S. 64)
+    by: scan
   - page: 182
     from: kommandieren.?
     to: kommandieren.²
+    by: scan
+  - page: 182
+    from: "* Desgleichen wird"
+    to: 3) Desgleichen wird
+    by: scan
+  - page: 182
+    from: "*Wie kann er"
+    to: 4) Wie kann er
     by: scan
   - page: 183
     from: Malthusscher Manieꝛ).
@@ -13903,6 +13955,14 @@ theorienberden03marxuoft:
   - page: 188
     from: "[für!"
     to: "[für]"
+    by: scan
+  - page: 188
+    from: "W: W“ = GA: G.A“ (GA und 6/A“ sind"
+    to: "W : W′ = GA : G′A′ (GA und G′A′ sind"
+    by: scan
+  - page: 188
+    from: Arbeitszeit in W˖,
+    to: Arbeitszeit in W′,
     by: scan
   - page: 189
     from: "W:ꝗWÄ—“.= GA: GA“"
@@ -13936,6 +13996,22 @@ theorienberden03marxuoft:
     from: Waren!
     to: Waren]
     by: scan
+  - page: 189
+    from: "verhalten wie A: A“"
+    to: "verhalten wie A : A′"
+    by: scan
+  - page: 191
+    from: sDie Schwierigkeit
+    to: 3) Die Schwierigkeit
+    by: scan
+  - page: 192
+    from: ob C8B oder 12 B
+    to: ob C 8 B oder 12 B
+    by: scan
+  - page: 192
+    from: A 4B oder A C4B.
+    to: A > 4 B oder A < 4 B.
+    by: scan
   - page: 193
     from: wir!
     to: wir]
@@ -13964,9 +14040,17 @@ theorienberden03marxuoft:
     from: verhalten. Rieardo
     to: verhalten. Ricardo
     by: scan
+  - page: 198
+    from: Genauigkeit ge- 22 — *
+    to: Genauigkeit ge-
+    by: scan
   - page: 199
     from: Waren!
     to: Waren¹
+    by: scan
+  - page: 199
+    from: Aü und B
+    to: A und B
     by: scan
   - page: 201
     from: Mae Culloch 201
@@ -13983,6 +14067,10 @@ theorienberden03marxuoft:
   - page: 206
     from: (dessen
     to: "[dessen"
+    by: scan
+  - page: 206
+    from: Grundeigentümer zu 44 ů IN .
+    to: Grundeigentümer zu
     by: scan
   - page: 207
     from: 1828 gab Mae Culloch Smi
@@ -14007,6 +14095,10 @@ theorienberden03marxuoft:
   - page: 210
     from: Darstellung Maes in
     to: Darstellung Macs in
+    by: scan
+  - page: 210
+    from: „vealem Wert 5 — * AMs. *... 2 + . * *
+    to: „realem Wert“
     by: scan
   - page: 211
     from: saber]
@@ -14035,6 +14127,14 @@ theorienberden03marxuoft:
   - page: 211
     from: it“ spricht Mae nur aus, wa
     to: it“ spricht Mac nur aus, wa
+    by: scan
+  - page: 214
+    from: bei näherer qCRCRCRCADRRCNCNCRCNNNRNRTRNRNNRN
+    to: bei näherer
+    by: scan
+  - page: 216
+    from: salleinJ. Es
+    to: "[allein]. Es"
     by: scan
   - page: 217
     from: Nachdem Mae glücklich W
@@ -14075,6 +14175,14 @@ theorienberden03marxuoft:
   - page: 220
     from: " steht also Mae noch unter "
     to: " steht also Mac noch unter "
+    by: scan
+  - page: 220
+    from: der Ol verkauft
+    to: der Öl verkauft
+    by: scan
+  - page: 220
+    from: des Ols.“
+    to: des Öls.“
     by: scan
   - page: 221
     from: Manier Maes, den
@@ -14168,6 +14276,10 @@ theorienberden03marxuoft:
     from: NNNN
     to: ""
     by: scan
+  - page: 232
+    from: Produktionsmittel —8*—*
+    to: Produktionsmittel
+    by: scan
   - page: 234
     from: Mill!
     to: Mill]
@@ -14176,9 +14288,45 @@ theorienberden03marxuoft:
     from: umgekehrt!.
     to: umgekehrt].
     by: scan
+  - page: 238
+    from: 1 ½ꝓ Quarter
+    to: 1⅕ Quarter
+    by: scan
+  - page: 239
+    from: Konstantes Kapital Variables Kapital Gesamtprodukt Profit
+    to: Konstantes Kapital (fixes Kapital und Samen) | Variables Kapital (im Arbeitslohn ausgelegtes Kapital) | Gesamtprodukt | Profit
+    by: scan
+  - page: 239
+    from: (fixes Kapital (im Arbeitslohn
+    to: ""
+    by: scan
+  - page: 239
+    from: und Samen) ausgelegtes Kapital)
+    to: ""
+    by: scan
+  - page: 239
+    from: 60 qrs.“ 60 qrs. 180 qrs. 60 qrs.
+    to: 60 qrs.¹ | 60 qrs. (60 Arbeiter) | 180 qrs. | 60 qrs.
+    by: scan
+  - page: 239
+    from: (60 Arbeiter)
+    to: ""
+    by: scan
   - page: 243
     from: bei Kapital J zu erklären
     to: bei Kapital I zu erklären
+    by: scan
+  - page: 243
+    from: wie sub Lein Unter-
+    to: wie sub I ein Unter-
+    by: scan
+  - page: 243
+    from: wie sub Inur 50
+    to: wie sub I nur 50
+    by: scan
+  - page: 243
+    from: Hätte sub 1 das
+    to: Hätte sub I das
     by: scan
   - page: 246
     from: (dem
@@ -14495,6 +14643,10 @@ theorienberden03marxuoft:
     from: wendet denn J, in
     to: wendet denn I, in
     by: scan
+  - page: 256
+    from: gleich /us.
+    to: gleich ⁹⁄₁₈.
+    by: scan
   - page: 257
     from: glichen mit J, die
     to: glichen mit I, die
@@ -14567,6 +14719,10 @@ theorienberden03marxuoft:
     from: aus- —24 mmeeee,
     to: aus-
     by: scan
+  - page: 266
+    from: BaAumwolle
+    to: Baumwolle
+    by: scan
   - page: 267
     from: sseine
     to: "[seine"
@@ -14582,6 +14738,14 @@ theorienberden03marxuoft:
   - page: 270
     from: England ete.
     to: England etc.
+    by: scan
+  - page: 270
+    from: xV *
+    to: ""
+    by: scan
+  - page: 271
+    from: wächst daher sin
+    to: wächst daher [in
     by: scan
   - page: 272
     from: frage und deren Effekt, den dasselbe 6 den Marktpreis
@@ -14602,6 +14766,10 @@ theorienberden03marxuoft:
   - page: 275
     from: steigen.!
     to: steigen.¹
+    by: scan
+  - page: 278
+    from: identisch sind. Das ö
+    to: identisch sind. Das
     by: scan
   - page: 281
     from: III. õegensatz gegen die öRonomen auf Basis dler
@@ -14626,6 +14794,10 @@ theorienberden03marxuoft:
   - page: 281
     from: steckt!
     to: "[steckt]"
+    by: scan
+  - page: 282
+    from: deren Produktion — * .9..T —
+    to: deren Produktion
     by: scan
   - page: 284
     from: (in
@@ -14680,20 +14852,100 @@ theorienberden03marxuoft:
     to: Produkt]
     by: scan
   - page: 294
-    from: Kategorie!
-    to: Kategorie]
-    by: scan
-  - page: 294
-    from: (dieser
-    to: "[dieser"
-    by: scan
-  - page: 294
     from: Konsum. Dieses
     to: Konsum. [Dieses
     by: scan
+  - page: 294
+    from: Nennen wir das konstante Kapital (dieser Kategorie! c,
+    to: Nennen wir das konstante Kapital [dieser Kategorie] c′,
+    by: scan
+  - page: 294
+    from: das variable v“ und das Mehrprodukt, die Revenue, r“, so
+    to: das variable v′ und das Mehrprodukt, die Revenue, r′, so
+    by: scan
+  - page: 294
+    from: cl ist bloß erhaltener Wert, nicht neu zugesetzte Arbeit; da-
+    to: c′ ist bloß erhaltener Wert, nicht neu zugesetzte Arbeit; da-
+    by: scan
+  - page: 294
+    from: gegen v'r“ während des Jahres zugesetzte Arbeit.
+    to: gegen v′ + r′ während des Jahres zugesetzte Arbeit.
+    by: scan
   - page: 295
-    from: Konsumtion. yY“+r“
-    to: Konsumtion. v“ + r“
+    from: Das Gesamtprodukt der Kategorie A (oder sein Wert) Pestellt
+    to: Das Gesamtprodukt der Kategorie A (oder sein Wert) Pᵃ stellt
+    by: scan
+  - page: 295
+    from: also neu zugesetzte Arbeit vor, nach Abzug von .
+    to: also neu zugesetzte Arbeit vor, nach Abzug von c′.
+    by: scan
+  - page: 295
+    from: B. Artikel für industrielle Konsumtion. yY“+r“
+    to: B. Artikel für industrielle Konsumtion. v″ + r″
+    by: scan
+  - page: 295
+    from: stellen auch hier neu zugesetzte Arbeit vor. Dagegen nicht e“,
+    to: stellen auch hier neu zugesetzte Arbeit vor. Dagegen nicht c″,
+    by: scan
+  - page: 295
+    from: Aber v“ +“ ist gleich e“, wogegen sie sich austauschen.
+    to: Aber v″ + r″ ist gleich c′, wogegen sie sich austauschen.
+    by: scan
+  - page: 295
+    from: c“ wird in variables Kapital und Revenue für B verwandelt.
+    to: c′ wird in variables Kapital und Revenue für B verwandelt.
+    by: scan
+  - page: 295
+    from: Andererseits wird yv“ under“ in c, in das konstante Kapital
+    to: Andererseits wird v″ und r″ in c′, in das konstante Kapital
+    by: scan
+  - page: 295
+    from: "Das Produkt der Kategorie B: Pü — c“ ist gleich der"
+    to: "Das Produkt der Kategorie B: Pᵇ — c″ ist gleich der"
+    by: scan
+  - page: 295
+    from: während des Jahres neu zugesetzten Arbeit. Aber P — c“
+    to: während des Jahres neu zugesetzten Arbeit. Aber Pᵇ — c″
+    by: scan
+  - page: 295
+    from: =c; denn das ganze Produkt von Pü nach Abzug von c6“,
+    to: = c′; denn das ganze Produkt von Pᵇ nach Abzug von c″,
+    by: scan
+  - page: 295
+    from: wird ausgetauscht gegen “.
+    to: wird ausgetauscht gegen c′.
+    by: scan
+  - page: 295
+    from: Nachdem v“ r“ ausgetauscht sind gegen c kann die
+    to: Nachdem v″ + r″ ausgetauscht sind gegen c′ kann die
+    by: scan
+  - page: 295
+    from: Pa besteht nur aus neu zugesetzter Arbeit, deren Produkt
+    to: Pᵃ besteht nur aus neu zugesetzter Arbeit, deren Produkt
+    by: scan
+  - page: 295
+    from: Denn das v“ +T“, das 6“ ersetzt, ist gleich der in Kate-
+    to: Denn das v″ + r″, das c′ ersetzt, ist gleich der in Kate-
+    by: scan
+  - page: 295
+    from: Pa, sowohl sein Mehrprodukt wie sein variables Kapital und
+    to: Pᵃ, sowohl sein Mehrprodukt wie sein variables Kapital und
+    by: scan
+  - page: 295
+    from: Dagegen kann Po so betrachtet werden, daß es keinen Teil
+    to: Dagegen kann Pᵇ so betrachtet werden, daß es keinen Teil
+    by: scan
+  - page: 295
+    from: halten alter. Denn sein Teil 4“ stellt keine neu zugesetzte
+    to: halten alter. Denn sein Teil c″ stellt keine neu zugesetzte
+    by: scan
+  - page: 295
+    from: Arbeit dar. Ebensowenig sein Teil v“ r“, den es gegen
+    to: Arbeit dar. Ebensowenig sein Teil v″ + r″, den es gegen
+    by: scan
+  - page: 295
+    from: c“ ausgetauscht hat, und welches e“ in A vorgeschossenes
+    to: c′ ausgetauscht hat, und welches c′ in A vorgeschossenes
     by: scan
   - page: 296
     from: das]
@@ -14714,6 +14966,46 @@ theorienberden03marxuoft:
   - page: 297
     from: und die
     to: und [die
+    by: scan
+  - page: 298
+    from: Kapital Profit Aufgegessen
+    to: "| Kapital | Profit | Aufgegessen"
+    by: scan
+  - page: 298
+    from: Erstes Joh V500 100 50
+    to: Erstes Jahr | 500 | 100 | 50
+    by: scan
+  - page: 298
+    from: Zweites JahRꝓr.. 550 110 55
+    to: Zweites Jahr | 550 | 110 | 55
+    by: scan
+  - page: 298
+    from: Drittes Juhr. 3605 121 60
+    to: Drittes Jahr | 605 | 121 | 60
+    by: scan
+  - page: 298
+    from: Viertes Jahr665 133 66
+    to: Viertes Jahr | 665 | 133 | 66
+    by: scan
+  - page: 298
+    from: Junftes Jahr. 731 146 73
+    to: Fünftes Jahr | 731 | 146 | 73
+    by: scan
+  - page: 298
+    from: Sechstes Joehlsr. 804 160 80⁰
+    to: Sechstes Jahr | 804 | 160 | 80
+    by: scan
+  - page: 298
+    from: Siebtes. Jehr 884 176 88
+    to: Siebtes Jahr | 884 | 176 | 88
+    by: scan
+  - page: 298
+    from: Achtes Johr 972 194 97
+    to: Achtes Jahr | 972 | 194 | 97
+    by: scan
+  - page: 298
+    from: "569"
+    to: "| | | 569"
     by: scan
   - page: 299
     from: ihre.!
@@ -14911,9 +15203,21 @@ theorienberden03marxuoft:
     from: wärtige ναννειν.
     to: wärtige ἐνεργεία.
     by: scan
+  - page: 330
+    from: r3 werden durch koexistierende Arbeit verursacht“ 6 .
+    to: führt, werden durch koexistierende Arbeit verursacht“ (l. c.
+    by: scan
   - page: 332
     from: über- PRN e‚ „* —— — eeeeenn
     to: über-
+    by: scan
+  - page: 332
+    from: die konsumiert werden.“ WS
+    to: die konsumiert werden.“
+    by: scan
+  - page: 334
+    from: Ba4umwolle,
+    to: Baumwolle,
     by: scan
   - page: 337
     from: Ware!
@@ -14930,6 +15234,18 @@ theorienberden03marxuoft:
   - page: 339
     from: Händler!
     to: Händler]
+    by: scan
+  - page: 339
+    from: auch W- GW statt
+    to: auch W—G—W statt
+    by: scan
+  - page: 339
+    from: das W- Gs für
+    to: das W—G für
+    by: scan
+  - page: 340
+    from: vorhanden istl. V- G -W,
+    to: "[vorhanden ist]. W—G—W,"
     by: scan
   - page: 342
     from: statt,)
@@ -14966,6 +15282,18 @@ theorienberden03marxuoft:
   - page: 348
     from: Produkt K*αιο ν nur
     to: Produkt κατ᾽ ἐξοχήν nur
+    by: scan
+  - page: 350
+    from: nötig, sich ö
+    to: nötig, sich
+    by: scan
+  - page: 354
+    from: verphanta- X IIDNRNNTT * +
+    to: verphanta-
+    by: scan
+  - page: 356
+    from: nicht erfunden, ohne *
+    to: nicht erfunden, ohne
     by: scan
   - page: 358
     from: sin diesem
@@ -15031,6 +15359,10 @@ theorienberden03marxuoft:
     from: Jedoch
     to: "[Jedoch"
     by: scan
+  - page: 360
+    from: von dem Werte, den * 9 * — 25
+    to: von dem Werte, den
+    by: scan
   - page: 362
     from: sseine
     to: "[seine"
@@ -15038,6 +15370,10 @@ theorienberden03marxuoft:
   - page: 362
     from: Arbeitszeit!
     to: Arbeitszeit]
+    by: scan
+  - page: 362
+    from: oder der Mehrwert. **—*
+    to: oder der Mehrwert.
     by: scan
   - page: 363
     from: (jährlicher]
@@ -15079,6 +15415,10 @@ theorienberden03marxuoft:
     from: als!]“
     to: als]¹
     by: scan
+  - page: 366
+    from: Wert“. K. ä
+    to: Wert“. K.
+    by: scan
   - page: 368
     from: Überzeit!
     to: Überzeit]
@@ -15106,6 +15446,10 @@ theorienberden03marxuoft:
   - page: 368
     from: dieser dναιμος
     to: dieser δύναμος
+    by: scan
+  - page: 370
+    from: es gehört dies ů
+    to: es gehört dies
     by: scan
   - page: 371
     from: Demand ete.“ London
@@ -15155,9 +15499,29 @@ theorienberden03marxuoft:
     from: Vulgärökonomen.!
     to: Vulgärökonomen.¹
     by: scan
+  - page: 380
+    from: ausgeführt werden ö
+    to: ausgeführt werden
+    by: scan
   - page: 381
     from: 1. Das Hapital eine historische Kategorie.
     to: 1. Das Kapital eine historische Kategorie.
+    by: scan
+  - page: 382
+    from: vergegenständlicht in den * X4
+    to: vergegenständlicht in den
+    by: scan
+  - page: 382
+    from: Arbeitsmaterial und den eem 188
+    to: Arbeitsmaterial und den
+    by: scan
+  - page: 384
+    from: Wert des in seiner ¶
+    to: Wert des in seiner
+    by: scan
+  - page: 384
+    from: dem wirklichen **
+    to: dem wirklichen
     by: scan
   - page: 386
     from: Produkt der Arbeit von 66 /8 Mann oder nur zwei Drittel
@@ -15239,9 +15603,29 @@ theorienberden03marxuoft:
     from: Arbeitslohn!
     to: Arbeitslohn]
     by: scan
+  - page: 395
+    from: 3Dieses gilt
+    to: 3) Dieses gilt
+    by: scan
   - page: 396
     from: 3. Ronstantes RKapital und Profitrate.
     to: 3. Konstantes Kapital und Profitrate.
+    by: scan
+  - page: 396
+    from: Kapitals aüf die
+    to: Kapitals auf die
+    by: scan
+  - page: 398
+    from: 1. Produkt H 100 Quarters.
+    to: 1. Produkt = 100 Quarters.
+    by: scan
+  - page: 398
+    from: Kapital20 Quarters.
+    to: Kapital = 20 Quarters.
+    by: scan
+  - page: 398
+    from: Aussaat = 20 Quarters. re
+    to: Aussaat = 20 Quarters.
     by: scan
   - page: 399
     from: (Da
@@ -15407,6 +15791,10 @@ theorienberden03marxuoft:
     from: "[Zeiten!]."
     to: "[Zeiten]."
     by: scan
+  - page: 404
+    from: jetzt 60 + 20 +r 40 + 13 / 133 ½ L. Der Profit
+    to: jetzt = 60 + 20 + 40 + 13⅓ = 133⅓ £. [Der Profit
+    by: scan
   - page: 406
     from: apitals, 40 £E für Ar-
     to: apitals, 40 £ für Ar-
@@ -15422,6 +15810,10 @@ theorienberden03marxuoft:
   - page: 408
     from: anderen. Das
     to: anderen. [Das
+    by: scan
+  - page: 408
+    from: also 100 — SI‚
+    to: also 100
     by: scan
   - page: 409
     from: prozeß!
@@ -15446,6 +15838,10 @@ theorienberden03marxuoft:
   - page: 410
     from: wachsende]
     to: "[wachsende]"
+    by: scan
+  - page: 410
+    from: Iin einer Luxusindustrie anzuwenden
+    to: "[in einer Luxusindustrie] anzuwenden"
     by: scan
   - page: 413
     from: ([dort]

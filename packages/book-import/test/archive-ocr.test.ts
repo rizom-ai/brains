@@ -415,6 +415,15 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
+  it("reads a double hyphen standing before a figure as an equals sign, before a word as a ditto mark", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, 5 + 10 ⸗ 15; ½ ⸗ Thee; Ver⸗",
+    );
+
+    expect(pageText(hocr, 4)).toContain("Jones, 5 + 10 = 15; ½ ⸗ Thee; Ver⸗");
+  });
+
   it("reads loco citato the OCR set in capitals as l. c., not a name's initials", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
