@@ -1,5 +1,14 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.536
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.536
+  - @brains/job-queue@0.2.0-alpha.536
+  - @brains/plugins@0.2.0-alpha.536
+
 ## 0.2.0-alpha.535
 
 ### Patch Changes

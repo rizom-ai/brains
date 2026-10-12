@@ -694,6 +694,7 @@
     "core--standalone-predeploy-backup",
     "core--status-palette-light-mode",
     "core--status-web-surfaces",
+    "core--strict-component-type",
     "core--strip-to-top",
     "core--structured-body-codecs",
     "core--studio-account-administration-separation",
