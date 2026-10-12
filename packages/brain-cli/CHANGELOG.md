@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- [#615](https://github.com/rizom-ai/brains/pull/615) [`5968c00`](https://github.com/rizom-ai/brains/commit/5968c005bc312244e05c65e92ad2ad7be4605fe8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The analytics plugin runs in evals: its reports read stored snapshots and need no Cloudflare, so traffic questions are covered by eval cases (`traffic-overview` for a traffic question, `traffic-by-entity` with `firstDays` for how a piece did after publishing).
+
 ## 0.2.0-alpha.538
 
 ### Patch Changes
