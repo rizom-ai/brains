@@ -1864,6 +1864,26 @@ ldpd_14861084_000:
     from: sociöt6 civile
     to: société civile
     by: scan
+  - page: 9
+    from: Gebrau chswerth
+    to: Gebrauchswerth
+    by: scan
+  - page: 148
+    from: wiede rherzustellen?“.
+    to: wiederherzustellen?“.
+    by: scan
+  - page: 51
+    from: desBesitzes
+    to: des Besitzes
+    by: scan
+  - page: 148
+    from: denVersuch
+    to: den Versuch
+    by: scan
+  - page: 193
+    from: beRaut
+    to: bebaut
+    by: scan
 mehring-nachlass-1:
   - page: 67
     from: Uorrede.
@@ -2244,6 +2264,10 @@ mehring-nachlass-1:
   - page: 223
     from: homines novi üiber, und noch
     to: homines novi über, und noch
+    by: scan
+  - page: 225
+    from: kleinlich-kKluge
+    to: kleinlich-kluge
     by: scan
   - page: 226
     from: der Mensch qehen lernt, lernt
@@ -5306,6 +5330,10 @@ p1theorienberden02marxuoft:
     from: wie Rieardo
     to: wie Ricardo
     by: scan
+  - page: 151
+    from: derorganischen
+    to: der organischen
+    by: scan
   - page: 152
     from: sub speécié des
     to: sub specie des
@@ -6934,6 +6962,10 @@ p1theorienberden02marxuoft:
     from: Stockt ete. 2nd
     to: Stockt etc. 2nd
     by: scan
+  - page: 310
+    from: theProfits
+    to: the Profits
+    by: scan
   - page: 311
     from: (On Proteéction to
     to: (On Protection to
@@ -8350,6 +8382,10 @@ p2theorienberd02marx:
     from: (hervorbringt,
     to: "[hervorbringt,"
     by: scan
+  - page: 54
+    from: Rentenicht
+    to: Rente nicht
+    by: scan
   - page: 55
     from: gelegt ist, seine Waren zu ihrem Werte, zu 120 L. Dieses
     to: gelegt ist, seine Waren zu ihrem Werte, zu 120 £. Dieses
@@ -9375,6 +9411,10 @@ p2theorienberd02marx:
   - page: 157
     from: 0) Veränderungen im Verhältnis der Werte der beiden Arten
     to: δ) Veränderungen im Verhältnis der Werte der beiden Arten
+    by: scan
+  - page: 157
+    from: denrespektiven
+    to: den respektiven
     by: scan
   - page: 159
     from: Sektion!
@@ -12352,6 +12392,10 @@ theorienberden03marxuoft:
     from: Wert von 90½1 hat, denn jeder Teil des Produkts von
     to: Wert von 90¹⁰⁄₁₁ hat, denn jeder Teil des Produkts von
     by: scan
+  - page: 38
+    from: erheis chte
+    to: erheischte
+    by: scan
   - page: 41
     from: Landwirtschaftl.
     to: Landwirtschaft].
@@ -12491,6 +12535,10 @@ theorienberden03marxuoft:
   - page: 73
     from: 1. K. Torrens.
     to: 1. R. Torrens.
+    by: scan
+  - page: 74
+    from: Zus ammen
+    to: Zusammen
     by: scan
   - page: 76
     from: Wealth ete.“, London
@@ -13550,6 +13598,10 @@ theorienberden03marxuoft:
   - page: 307
     from: Grundeigentum, noch
     to: Grundeigentum, [noch
+    by: scan
+  - page: 308
+    from: Sis mondi
+    to: Sismondi
     by: scan
   - page: 312
     from: Rente!
@@ -14755,6 +14807,10 @@ theorienberden03marxuoft:
     from: Luther hat
     to: Luther [hat
     by: scan
+  - page: 591
+    from: Derfreie
+    to: Der freie
+    by: scan
   - page: 593
     from: sedephantasticum inteéresse. Ein
     to: sedephantasticum interesse. Ein
@@ -15284,6 +15340,10 @@ gesammelteschrif02marxuoft:
     from: Die Enkhüllungen in dem Unkersuchungskomikee.
     to: Die Enthüllungen in dem Untersuchungskomitee.
     by: scan
+  - page: 210
+    from: dasbeste
+    to: das beste
+    by: scan
   - page: 215
     from: Ein Skandal in der französischen Legislalive. — Drouyn
     to: Ein Skandal in der französischen Legislative. — Drouyn
@@ -15688,6 +15748,10 @@ mehring-nachlass-3:
   - page: 134
     from: Die polendebatte in Frankfurt.
     to: Die Polendebatte in Frankfurt.
+    by: scan
+  - page: 143
+    from: nir gends
+    to: nirgends
     by: scan
   - page: 183
     from: Der krieg um Schleswig-Holstein.
@@ -16187,6 +16251,10 @@ gesammelteschrif01marxuoft:
   - page: 205
     from: über die ersten
     to: Über die ersten
+    by: scan
+  - page: 207
+    from: demselbem
+    to: demselben
     by: scan
   - page: 208
     from: überschrei-
@@ -18077,6 +18145,18 @@ zur-kritik-der-politischen-okonomie:
   - page: 117
     from: kulation V — G — We und 6 — W- G öin ihrem Gegensatz unter den
     to: kulation W — G — W und G — W — G in ihrem Gegensatz unter den
+    by: scan
+  - page: 103
+    from: Cust odi
+    to: Custodi
+    by: scan
+  - page: 112
+    from: kaufmänn ische
+    to: kaufmännische
+    by: scan
+  - page: 143
+    from: Ste uart
+    to: Steuart
     by: scan
 enthullungen-1885:
   - page: 18
@@ -20578,6 +20658,10 @@ ldpd_13048930_000:
     from: des französischen Arbeiters über den . Iime
     to: des französischen Arbeiters über den französischen Kapitalisten
     by: scan
+  - page: 1
+    from: Dereinigten
+    to: Vereinigten
+    by: scan
   - page: 2
     from: Gambetta bekennt werselbe Jules Favre
     to: Gambetta bekennt derselbe Jules Favre
@@ -20673,6 +20757,10 @@ ldpd_13048930_000:
   - page: 4
     from: Männer. nun
     to: Männer nun
+    by: scan
+  - page: 4
+    from: Skandalgeschichtemit
+    to: Skandalgeschichte mit
     by: scan
   - page: 5
     from: eignen Klassenver
@@ -21265,6 +21353,10 @@ ldpd_13048930_000:
   - page: 31
     from: aͤußerung über
     to: äußerung über
+    by: scan
+  - page: 31
+    from: derKommune
+    to: der Kommune
     by: scan
   - page: 32
     from: alle Anstandsfor
@@ -22027,6 +22119,10 @@ lohnarbeitundka00marxgoog:
     from: produktiven Kapi
     to: produktiven Kapi-
     by: reference
+  - page: 34
+    from: Wiewirkt
+    to: Wie wirkt
+    by: scan
   - page: 35
     from: nichts extra! gewinnen
     to: nichts [extra] gewinnen
@@ -22070,6 +22166,10 @@ lohnarbeitundka00marxgoog:
   - page: 37
     from: Arbeit befäbiat einen
     to: Arbeit befähigt einen
+    by: scan
+  - page: 38
+    from: Anwerbenals
+    to: Anwerben als
     by: scan
   - page: 39
     from: und „Lebens
