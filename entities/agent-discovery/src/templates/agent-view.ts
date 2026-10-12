@@ -3,6 +3,7 @@ import {
   contentVisibilitySchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { renderedLinkFields } from "@brains/templates";
 import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
@@ -108,3 +109,9 @@ export type AgentView = Omit<AgentSchemaData, "url" | "typeLabel"> & {
   url: string;
   typeLabel: string;
 };
+
+/** An agent once site-builder has filled the link fields it renders. */
+export const agentRenderSchema: z.ZodType<AgentView> = agentViewSchema.extend({
+  url: renderedLinkFields.url,
+  typeLabel: renderedLinkFields.typeLabel,
+});

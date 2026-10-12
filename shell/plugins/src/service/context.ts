@@ -1,3 +1,4 @@
+import type { JsonObject } from "@brains/contracts";
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
@@ -92,7 +93,7 @@ export interface IViewsNamespace {
   getRenderer: (
     templateName: string,
     format?: OutputFormat,
-  ) => Renderer | undefined;
+  ) => Renderer<JsonObject> | undefined;
 
   /** Validate content against a template's schema */
   validate: (templateName: string, content: unknown) => boolean;
@@ -332,7 +333,7 @@ export function createServicePluginContext(
       getRenderer: (
         templateName: string,
         format: OutputFormat = "web",
-      ): Renderer | undefined => {
+      ): Renderer<JsonObject> | undefined => {
         return renderService.getRenderer(templateName, format);
       },
       validate: (templateName: string, content: unknown): boolean => {

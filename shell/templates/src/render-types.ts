@@ -121,7 +121,10 @@ export interface ViewTemplateRegistry {
     pluginId?: string;
     namePattern?: string;
   }): ViewTemplate | undefined;
-  getRenderer(templateName: string, format: OutputFormat): Renderer | undefined;
+  getRenderer(
+    templateName: string,
+    format: OutputFormat,
+  ): Renderer<JsonObject> | undefined;
   hasRenderer(templateName: string, format: OutputFormat): boolean;
   listFormats(templateName: string): OutputFormat[];
 }
