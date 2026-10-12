@@ -20385,6 +20385,14 @@ enthullungen-1885:
     from: τ) Es ist heute
     to: "*) Es ist heute"
     by: scan
+  - page: 83
+    from: war h 1. gegen
+    to: war so bis gegen
+    by: scan
+  - page: 83
+    from: verur
+    to: verurtheilt.
+    by: scan
   - page: 84
     from: Angelegenheit in Frantfurt wurde durch
     to: Angelegenheit in Frankfurt wurde durch
@@ -20436,6 +20444,14 @@ enthullungen-1885:
   - page: 84
     from: Bundesmitglied. brachte
     to: Bundesmitglied, brachte
+    by: scan
+  - page: 84
+    from: über — Deutschland
+    to: über ganz Deutschland
+    by: scan
+  - page: 84
+    from: Zentralbehörde Beschluß
+    to: Zentralbehörde den Beschluß
     by: scan
   - page: 85
     from: die brauchbaren Kräftie in den
@@ -20657,10 +20673,6 @@ ldpd_13048930_000:
   - page: 1
     from: des französischen Arbeiters über den . Iime
     to: des französischen Arbeiters über den französischen Kapitalisten
-    by: scan
-  - page: 1
-    from: Dereinigten
-    to: Vereinigten
     by: scan
   - page: 2
     from: Gambetta bekennt werselbe Jules Favre

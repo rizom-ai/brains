@@ -1202,6 +1202,9 @@ books:
     # MEW 7, Dietz 1960, as mlwerke.de published it.
     references:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me07/me07_306.htm
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 84, opens: "In dem Maß" }
     slug: ansprache-der-zentralbehoerde-an-den-bund-vom-juni-1850
     title: Ansprache der Zentralbehörde an den Bund vom Juni 1850
     shortTitle: Ansprache vom Juni 1850
