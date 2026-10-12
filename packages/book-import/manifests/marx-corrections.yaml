@@ -2281,6 +2281,10 @@ mehring-nachlass-1:
     from: Das philosophische Wanifest der historischen
     to: Das philosophische Manifest der historischen
     by: reference
+  - page: 271
+    from: "ein: cτrοe en."
+    to: "ein: αυτος εφη."
+    by: scan
   - page: 275
     from: das angebliche corpus delieti vorgeführt
     to: das angebliche corpus delicti vorgeführt
@@ -15950,6 +15954,108 @@ gesammelteschrif01marxuoft:
     from: überwachungsdienst
     to: Überwachungsdienst
     by: scan
+  - page: 121
+    from: Pfund Sterling
+    to: "[Zeitpunkt] | Pfund Sterling"
+    by: scan
+  - page: 121
+    from: Als Königin Anna nach Wilhelm (1701) den Thron bestieg. 16394702
+    to: Als Königin Anna nach Wilhelm (1701) den Thron bestieg | 16394702
+    by: scan
+  - page: 121
+    from: Als Georg J. auf den Thron kam (1714) 634145363
+    to: Als Georg I. auf den Thron kam (1714) | 54145363
+    by: scan
+  - page: 121
+    from: Als Georg II. die Regierung antrat (17277)n52092235
+    to: Als Georg II. die Regierung antrat (1727) | 52092235
+    by: scan
+  - page: 121
+    from: Als Georg III. die Zügel der Regierung ergriff (1760) .. 146682844
+    to: Als Georg III. die Zügel der Regierung ergriff (1760) | 146682844
+    by: scan
+  - page: 121
+    from: Nach dem amerikanischen Krieg (17849). . 257215048
+    to: Nach dem amerikanischen Krieg (1784) | 257213043
+    by: scan
+  - page: 121
+    from: Am Ende des antijakobinischen Kriegs (1801721.. 579931447
+    to: Am Ende des antijakobinischen Kriegs (1801) | 579931447
+    by: scan
+  - page: 121
+    from: Im Januar 1810 (während des Napoleonischen Kriegs). . 811898082
+    to: Im Januar 1810 (während des Napoleonischen Kriegs) | 811898082
+    by: scan
+  - page: 121
+    from: Nach 181ͤ8s8 ungefähr 1000000000
+    to: Nach 1815 | ungefähr 1000000000
+    by: scan
+  - page: 121
+    from: 2. Nationale Ausgaben. Pfund Sterling
+    to: |-
+      2. Nationale Ausgaben.
+      [Zeitpunkt] | Pfund Sterling
+    by: scan
+  - page: 121
+    from: Als Königin Anna (1701) auf Wilhelm folgte, betrugen alle
+    to: Als Königin Anna (1701) auf Wilhelm folgte, betrugen alle Ausgaben, inklusive der Zinsen für die Staatsschuld | 5610987
+    by: scan
+  - page: 121
+    from: Ausgaben, inklusive der Zinsen für die Staatsschuld .. 5610987
+    to: ""
+    by: scan
+  - page: 121
+    from: Als König Georg J. den Thron bestieg (1714—ps 6633 581
+    to: Als König Georg I. den Thron bestieg (1714) | 6633581
+    by: scan
+  - page: 121
+    from: Als König Georg II. die Regierung antrat (172777). 5441248
+    to: Als König Georg II. die Regierung antrat (1727) | 5441248
+    by: scan
+  - page: 121
+    from: Als König Georg III. die Zügel in die Hand nahm (1760). 24456 940
+    to: Als König Georg III. die Zügel in die Hand nahm (1760) | 24456940
+    by: scan
+  - page: 121
+    from: Am Ende des antijakobinischen Kriegs (180177.82027288
+    to: Am Ende des antijakobinischen Kriegs (1801) | 82027288
+    by: scan
+  - page: 121
+    from: 3. Nationale Besteuerung. Pfund Sterling
+    to: |-
+      3. Nationale Besteuerung.
+      [Zeitpunkt] | Pfund Sterling
+    by: scan
+  - page: 121
+    from: Unter Königin Anna (1701—00)ßj 4212 358
+    to: Unter Königin Anna (1701) | 4212358
+    by: scan
+  - page: 121
+    from: Unter König Georg 1. (1714łẽĩ̊'ͤ 6762 643
+    to: Unter König Georg I. (1714) | 6762643
+    by: scan
+  - page: 121
+    from: Unter König Oeorg II. (1727 6522540
+    to: Unter König Georg II. (1727) | 6522540
+    by: scan
+  - page: 121
+    from: Unter König Georg III. (170600. 87⁴44 68²
+    to: Unter König Georg III. (1760) | 8744682
+    by: scan
+  - page: 121
+    from: Nach dem amerikanischen Krieg (1784)):. 13300921
+    to: Nach dem amerikanischen Krieg (1784) | 13300921
+    by: scan
+  - page: 121
+    from: Nach dem GSHh368728971
+    to: |-
+      Nach dem antijakobinischen Krieg (1801) | 36728971
+      1809 | 70240226
+    by: scan
+  - page: 121
+    from: Nach 88 ⁰άn etwa 82000000
+    to: Nach 1815 | etwa 82000000
+    by: scan
   - page: 122
     from: übergabe
     to: Übergabe
@@ -18886,92 +18992,52 @@ enthullungen-1885:
     to: ziehen, als die Treppe
     by: scan
   - page: 28
-    from: Berlin zu lommen und kann
-    to: Berlin zu kommen und kann
-    by: reference
-  - page: 28
-    from: er zu demokratitsch aussah. Fleury
-    to: er zu demokratisch aussah. Fleury
-    by: reference
-  - page: 28
-    from: Kaufmann, spricht . geu englisch — und
-    to: Kaufmann, spricht natürlich englisch — und
-    by: reference
-  - page: 28
-    from: seinen Freund Schmide, wohl aber
-    to: seinen Freund Schmidt, wohl aber
-    by: reference
-  - page: 28
-    from: Bor dem Thatbestand
-    to: nehmen. Vor dem Thatbestand
-    by: reference
-  - page: 28
-    from: ein offenes Geständn
-    to: ein offenes Geständniß ab.“
-    by: reference
-  - page: 28
-    from: geworfen, und, wuhrend
-    to: geworfen, und während
-    by: reference
-  - page: 28
-    from: Läͤrm, den diese
-    to: Lärm, den diese
-    by: reference
-  - page: 28
-    from: "Ruf: Au vouleur wird"
-    to: "Ruf: Au vouleur! wird"
+    from: Läͤrm, den diese aatem verursacht, die verschiedenen buge Ii
+    to: Lärm, den diese Szene verursacht, ruft die verschiedenen Miether aus
     by: scan
   - page: 28
-    from: Vafei. Stieber braucht
-    to: helfen. Stieber braucht
-    by: reference
-  - page: 28
-    from: der Wudctglaube der
-    to: der Wunderglaube der
-    by: reference
-  - page: 28
-    from: chwornen, denen
-    to: Geschwornen, denen
-    by: reference
-  - page: 28
-    from: seine Lügenmürden ernsthaft
-    to: seine Lügenmärchen ernsthaft
-    by: reference
-  - page: 28
-    from: Besitz? Wahrend sich
-    to: Besitz? Während sich
-    by: reference
-  - page: 28
-    from: Person einzuhänd Zum
-    to: Person einzuhändigen Zum
-    by: reference
-  - page: 28
-    from: den weihen Fut, den
-    to: den weißen Hut, den
-    by: reference
-  - page: 28
-    from: die Berbindungen mit
-    to: die Verbindungen mit
-    by: reference
-  - page: 28
-    from: arx bekannt
-    to: Marx bekannt
-    by: reference
-  - page: 28
-    from: eni, vidi, vici!
-    to: Veni, vidi, vici!
+    from: en Appartements. Unterdessen hat einer von Hν 8 Ker
+    to: ihren Appartements. Unterdessen aber hat einer von Stieber's Kerlen
     by: scan
   - page: 28
-    from: machen, Carlier bedarf
-    to: sent machen, Carlier bedarf
+    from: goldene aber das Trepp .—— Wer geworfen, und, wuhrend
+    to: eine goldene Uhr über das Treppengeländer geworfen, und, während
     by: scan
   - page: 28
-    from: gum Ein-
-    to: zum Ein-
+    from: "Cherval: Mouchard ruft, rufen Stieber und Compagnie: Au voleur!"
+    to: "Cherval: Mouchard! ruft, rufen Stieber und Compagnie: Au voleur!"
     by: scan
   - page: 28
-    from: chreiten. Frau Stieber braucht nicht am b. von Cherval
-    to: schreiten. Frau Stieber braucht nicht am 3. von Cherval
+    from: "Der Portier bringt die goldene Uhr und der Ruf: Au vouleur wird"
+    to: "Der Portier bringt die goldene Uhr und der Ruf: Au vouleur! wird"
+    by: scan
+  - page: 28
+    from: allgemein. Cherval — verhaftet und findet an der Thür zwar nicht
+    to: allgemein. Cherval wird verhaftet und findet an der Thür zwar nicht
+    by: scan
+  - page: 28
+    from: seinen Freund Schmide, wohl aber 4—5 Soldaten, die ihn in Empfang
+    to: seinen Freund Schmidt, wohl aber 4—5 Soldaten, die ihn in Empfang
+    by: scan
+  - page: 28
+    from: Bor dem Thatbestand verschwinden alle von Stieber beschworenen
+    to: nehmen. Vor dem Thatbestand verschwinden alle von Stieber beschworenen
+    by: scan
+  - page: 28
+    from: "Vafei. Stieber braucht nur noch von Berlin zu lommen und kann rufen:"
+    to: "helfen. Stieber braucht nur noch von Berlin zu kommen und kann rufen:"
+    by: scan
+  - page: 28
+    from: eni, vidi, vici! Er kann dem Carlier ein fertiges Komplott zum Prä-
+    to: Veni, vidi, vici! Er kann dem Carlier ein fertiges Komplott zum Prä-
+    by: scan
+  - page: 28
+    from: machen, Carlier bedarf nur noch der „Bereitwilligkeit“ gum Ein-
+    to: sent machen, Carlier bedarf nur noch der „Bereitwilligkeit“ zum Ein-
+    by: scan
+  - page: 28
+    from: chreiten. Frau Stieber braucht nicht am b. von Cherval gebissen zu
+    to: schreiten. Frau Stieber braucht nicht am 3. von Cherval gebissen zu
     by: scan
   - page: 28
     from: 2. e e Denrr dade
@@ -18990,6 +19056,14 @@ enthullungen-1885:
     to: sind.
     by: scan
   - page: 28
+    from: Das Einzige, was wunderbar bleibt, ist der Wudctglaube der
+    to: Das Einzige, was wunderbar bleibt, ist der Wunderglaube der
+    by: scan
+  - page: 28
+    from: chwornen, denen Stieber seine Lügenmürden ernsthaft aufzutischen
+    to: Geschwornen, denen Stieber seine Lügenmärchen ernsthaft aufzutischen
+    by: scan
+  - page: 28
     from: m Gefünqnih suahdem * (Sitzung vom 6 0 * ), —— saue
     to: „Cherval,“ schwört Stieber (Sitzung vom 18. Oktober), „legte mir im Gefängniß, nachdem ich ihm zu seinem größten Erstaunen alle seine
     by: scan
@@ -18998,36 +19072,56 @@ enthullungen-1885:
     to: Originalberichte, welche er nach London geschickt, vorgelegt, und nachdem
     by: scan
   - page: 28
-    from: zunächst ee . waren einesegs ⁵F⁷
-    to: zunächst vorlegte, waren keineswegs
+    from: er 150 6 daß ich alles wußte, ein offenes Geständn
+    to: er 150 6 daß ich alles wußte, ein offenes Geständniß ab.“
     by: scan
   - page: 28
-    from: kondoner Kaufmann
-    to: londoner Kaufmann
+    from: Was Stieber dem Cherval zunächst ee . waren einesegs ⁵F⁷
+    to: Was Stieber dem Cherval zunächst vorlegte, waren keineswegs
     by: scan
   - page: 28
-    from: Fleury 1* die fe von
-    to: Fleury erhielt die Briefe von
+    from: Willich. Wie gelangte Stieber in ihren Besitz? Wahrend sich Cherval
+    to: Willich. Wie gelangte Stieber in ihren Besitz? Während sich Cherval
     by: scan
   - page: 28
-    from: Stieber erhielt sie von Fleu
-    to: Stieber erhielt sie von Fleury.
+    from: kondoner Kaufmann, spricht . geu englisch — und sagt ihr, ihr Mann
+    to: londoner Kaufmann, spricht natürlich englisch — und sagt ihr, ihr Mann
     by: scan
   - page: 28
-    from: günstigeren ationbasis alã
-    to: günstigeren Operationsbasis als
+    from: tragt, sie einer dritten Person einzuhänd Zum Beweise, daß er ein
+    to: tragt, sie einer dritten Person einzuhändigen Zum Beweise, daß er ein
     by: scan
   - page: 28
-    from: seinen Gerval
-    to: seinen Cherval
+    from: echter Abgesandter, zeigt er den weihen Fut, den er dem Cherval ab-
+    to: echter Abgesandter, zeigt er den weißen Hut, den er dem Cherval ab-
     by: scan
   - page: 28
-    from: und sei EHE 1848
-    to: halten und sei namentlich 1848
+    from: nahm, weil er zu demokratitsch aussah. Fleury 1* die fe von
+    to: nahm, weil er zu demokratisch aussah. Fleury erhielt die Briefe von
     by: scan
   - page: 28
-    from: Dort sei er br
-    to: Dort sei er
+    from: Madame Cherval und Stieber erhielt sie von Fleu
+    to: Madame Cherval und Stieber erhielt sie von Fleury.
+    by: scan
+  - page: 28
+    from: Jedenfalls stand er nun auf einer günstigeren ationbasis alã
+    to: Jedenfalls stand er nun auf einer günstigeren Operationsbasis als
+    by: scan
+  - page: 28
+    from: Aussagen des Cherval konnte er machen. Er läßt also seinen Gerval
+    to: Aussagen des Cherval konnte er machen. Er läßt also seinen Cherval
+    by: scan
+  - page: 28
+    from: 51 vom 18. Oktober) „sich über die Berbindungen mit Deutschland
+    to: 51 vom 18. Oktober) „sich über die Verbindungen mit Deutschland
+    by: scan
+  - page: 28
+    from: und sei EHE 1848 in Köln gewesen. Dort sei er br
+    to: halten und sei namentlich 1848 in Köln gewesen. Dort sei er
+    by: scan
+  - page: 28
+    from: arx bekannt und von diesem in den Bund aufgenommen worden, den
+    to: Marx bekannt und von diesem in den Bund aufgenommen worden, den
     by: scan
   - page: 29
     from: Archiv des Bunder
@@ -21812,6 +21906,10 @@ lohnarbeitundka00marxgoog:
   - page: 26
     from: ) Marr ebraucht meines Entsinnens nie den Ausdruck „lebendige
     to: 1) Marx gebraucht meines Entsinnens nie den Ausdruck „lebendige
+    by: scan
+  - page: 26
+    from: von 3½/½3ο Centöimes.
+    to: von ¹⁰⁰⁄₁₀₀ Centimes.
     by: scan
   - page: 27
     from: Der Arbeiter erhält im Austausch gegen seine Arbeit[skraft!
