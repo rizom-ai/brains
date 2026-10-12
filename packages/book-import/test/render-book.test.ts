@@ -164,6 +164,11 @@ describe("renderBook", () => {
       const body = file.markdown.split("---\n").slice(2).join("---\n");
       expect(Buffer.byteLength(body.trim(), "utf8")).toBeLessThanOrEqual(8000);
     }
+    // The book still has one section, whose second entry continues the first.
+    expect(bookOf(files[0]?.markdown ?? "")).toMatchObject({
+      sections: 1,
+      continuations: [2],
+    });
   });
 
   it("splits a single paragraph over 8,000 bytes at sentence boundaries", () => {

@@ -22,6 +22,8 @@ export interface BookSectionProps {
   prev: BookSectionWithData | null;
   next: BookSectionWithData | null;
   /** Sections in the book. */
+  /** The section's place among the book's sections, from 1. */
+  position: number;
   total: number;
   /** The topics nearest the section. */
   themes: Theme[];
@@ -456,6 +458,7 @@ export const BookSectionTemplate = ({
   book,
   prev,
   next,
+  position,
   total,
   themes,
 }: BookSectionProps): JSX.Element => (
@@ -476,7 +479,7 @@ export const BookSectionTemplate = ({
         )}
         <br />
         {book.frontmatter.year !== null && `${book.frontmatter.year} · `}
-        section {section.metadata.order} of {total}
+        section {position} of {total}
       </p>
     </aside>
     <div className="min-w-0">

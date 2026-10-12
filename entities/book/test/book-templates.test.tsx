@@ -45,6 +45,7 @@ function book(
       published: null,
       length: null,
       sections: null,
+      continuations: [],
       shortTitle: null,
       ...extra,
     },
@@ -228,6 +229,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={section("erstes", 1, "Anfang")}
         next={section("erstes", 3, "Ende")}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -251,6 +253,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={section("erstes", 1, "Anfang")}
         next={section("erstes", 3, "Ende")}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -378,6 +381,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -393,6 +397,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -437,6 +442,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -447,6 +453,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -468,6 +475,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -483,6 +491,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={section("erstes", 3, "S-3")}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -502,6 +511,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -519,6 +529,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[
           { id: "mitleid", title: "Mitleid" },
@@ -541,6 +552,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -556,6 +568,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,

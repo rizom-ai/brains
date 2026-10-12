@@ -100,6 +100,8 @@ interface PlacedEntry {
   body: string;
   order: number;
   folders: string[];
+  /** Continues the entry before: a later piece of a unit split for length. */
+  continues: boolean;
 }
 
 /**
@@ -124,6 +126,7 @@ function placeEntries(units: BookUnit[]): PlacedEntry[] {
         body,
         order: firstOrder + index,
         folders,
+        continues: index > 0,
       }));
       return { entries: [...state.entries, ...placed], folders: state.folders };
     },
@@ -172,7 +175,10 @@ export function renderBook({ book, units }: BookSource): BookFile[] {
       attribution: book.attribution,
       published: book.published,
       shortTitle: book.shortTitle,
-      sections: entries.length,
+      sections: entries.filter((entry) => !entry.continues).length,
+      continuations: entries
+        .filter((entry) => entry.continues)
+        .map((entry) => entry.order),
       length: entries.reduce((sum, entry) => sum + bytes(entry.body), 0),
     }),
   };
