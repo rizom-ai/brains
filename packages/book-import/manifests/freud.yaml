@@ -253,6 +253,9 @@ books:
       - { page: 107, opens: "QUESTENBERG" }
       - { page: 107, opens: "OCTAVIO" }
       - { page: 107, opens: "Dies kleine Versprechen" }
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 305, opens: "verhalten. Die indifferent" }
     slug: zur-psychopathologie-des-alltagslebens
     references: [https://www.gutenberg.org/cache/epub/24429/pg24429.txt]
     title: Zur Psychopathologie des Alltagslebens
