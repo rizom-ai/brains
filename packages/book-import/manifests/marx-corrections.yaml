@@ -2857,6 +2857,10 @@ theorienberden01marxuoft:
     from: des Aere gleich
     to: des Acre gleich
     by: scan
+  - page: 7
+    from: Mit den hier mitgeteilten
+    to: "[Mit den hier mitgeteilten"
+    by: scan
   - page: 8
     from: (Political
     to: „Political
@@ -2885,9 +2889,21 @@ theorienberden01marxuoft:
     from: gegen!]
     to: gegen]
     by: scan
+  - page: 16
+    from: gegen sein weniger
+    to: gegen [ein weniger
+    by: scan
+  - page: 16
+    from: Diamanten usw.
+    to: Diamanten usw.,
+    by: scan
   - page: 19
     from: (stock
     to: "[stock"
+    by: scan
+  - page: 21
+    from: I,ͤWas brauchen
+    to: "[„Was brauchen"
     by: scan
   - page: 22
     from: Immorality ete. London
@@ -4406,6 +4422,18 @@ p1theorienberden02marxuoft:
     from: 4000 T],
     to: 4000 £],
     by: scan
+  - page: 32
+    from: salsof nur 11⅛ Prozent
+    to: "[also] nur 11⅑ Prozent"
+    by: scan
+  - page: 32
+    from: 2000 Hauf 13000 £ Auslage oder 15 / Prozent.
+    to: 2000 £ auf 13 000 £ Auslage oder 15⁵⁄₁₃ Prozent.
+    by: scan
+  - page: 32
+    from: Der Durchschnittsprofit betrüge also 20 Prozent.
+    to: "[Der Durchschnittsprofit betrüge also 20 Prozent.¹"
+    by: scan
   - page: 34
     from: Falles!]
     to: Falles]
@@ -5218,6 +5246,10 @@ p1theorienberden02marxuoft:
     from: swäre!
     to: "[wäre]"
     by: scan
+  - page: 176
+    from: In seinem „dritten Briefe“
+    to: "[In seinem „dritten Briefe“"
+    by: scan
   - page: 177
     from: Zi. sich
     to: m/(c + v) [sich
@@ -5365,6 +5397,10 @@ p1theorienberden02marxuoft:
   - page: 194
     from: sihre
     to: "[ihre"
+    by: scan
+  - page: 194
+    from: Bei Ricardo ist die Untersuchung
+    to: "[Bei Ricardo ist die Untersuchung"
     by: scan
   - page: 195
     from: soder
@@ -5873,6 +5909,10 @@ p1theorienberden02marxuoft:
   - page: 249
     from: "[Produktionssphäre!]"
     to: "[Produktionssphäre]"
+    by: scan
+  - page: 249
+    from: Wir kommen nun zur dritten Formel
+    to: "[Wir kommen nun zur dritten Formel"
     by: scan
   - page: 251
     from: Rodbertus!
@@ -6461,6 +6501,10 @@ p1theorienberden02marxuoft:
   - page: 284
     from: die Bebauung!
     to: die Bebauung]
+    by: scan
+  - page: 284
+    from: der Bebauung
+    to: "[der Bebauung"
     by: scan
   - page: 285
     from: sind!
@@ -11694,6 +11738,18 @@ p2theorienberd02marx:
   - page: 360
     from: ([freif.
     to: "[frei]."
+    by: scan
+  - page: 360
+    from: 15000 £ hat?!
+    to: 15000 £ hat?¹
+    by: scan
+  - page: 360
+    from: 2000 — 8250, K.]
+    to: 2000 = 8250, K.]
+    by: scan
+  - page: 360
+    from: Dieses ist absolut richtig.
+    to: ¹) Dieses ist absolut richtig.
     by: scan
   - page: 361
     from: herrschen.?

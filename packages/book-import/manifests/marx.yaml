@@ -634,6 +634,7 @@ books:
       - { page: 274, opens: "²) Hier ist ein Wort" }
       - { page: 278, opens: "¹) Im Manuskript lautet" }
       - { page: 282, opens: "¹) Im Manuskript steht surplusvalue" }
+      - { page: 283, opens: "1 Er meint" }
     slug: theorien-ueber-den-mehrwert-2-1
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
     shortTitle: Theorien über den Mehrwert II.1
@@ -852,6 +853,8 @@ books:
       - { page: 223, opens: "²) Im Manuskript steht" }
       - { page: 226, opens: "¹) Im Manuskript steht:" }
       - { page: 230, opens: "¹) Im Manuskript steht IV" }
+      - { page: 360, opens: "2000" }
+      - { page: 360, opens: "Dieses ist absolut" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2
