@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.532
+
+### Patch Changes
+
+- [#608](https://github.com/rizom-ai/brains/pull/608) [`68ea348`](https://github.com/rizom-ai/brains/commit/68ea3483a63c7c2ddb2c963ab4fe3e5235f33bcb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section too long for one entry reads as one section. The importer records on each book which entries continue the one before, and counts the sections the edition prints. On the reading site, a split section shows its whole text from any of its entries, previous and next step over it as one, the book's score draws it once at its full length, and "section n of total" counts sections, not entries.
+
 ## 0.2.0-alpha.531
 
 ### Patch Changes
