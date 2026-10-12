@@ -155,6 +155,14 @@ dieklassenkmpf00marxuoft:
     from: Uebxigens
     to: Uebrigens
     by: scan
+  - page: 25
+    from: 4*
+    to: ""
+    by: scan
+  - page: 25
+    from: X
+    to: ""
+    by: scan
   - page: 26
     from: die Gazetté deé
     to: die Gazette deé
@@ -13039,6 +13047,22 @@ p2theorienberd02marx:
     from: Bedürfnissen?
     to: Bedürfnissen³
     by: scan
+  - page: 361
+    from: Daher A. Smiths Vorliebe für das Bruttoprodukt, die Ricardo
+    to: ¹ Daher A. Smiths Vorliebe für das Bruttoprodukt, die Ricardo
+    by: scan
+  - page: 361
+    from: Danach wird erst ein Teil des Kapitals — nicht seinem Werte
+    to: ⁴ Danach wird erst ein Teil des Kapitals — nicht seinem Werte
+    by: scan
+  - page: 361
+    from: vergrößert hat.“ Aber mit
+    to: vergrößert hat.⁴ Aber mit
+    by: scan
+  - page: 361
+    from: (I. C. S. 415.)
+    to: (l. c. S. 415.)
+    by: scan
   - page: 362
     from: notwendigerweise?
     to: notwendigerweise²
@@ -13352,6 +13376,10 @@ theorienberden03marxuoft:
     from: (Klasse]
     to: "[Klasse]"
     by: scan
+  - page: 47
+    from: " daß Klasse J Luxusgegens"
+    to: " daß Klasse I Luxusgegens"
+    by: scan
   - page: 51
     from: Ricardos „Prineiples“ gelernten
     to: Ricardos „Principles“ gelernten
@@ -13552,6 +13580,10 @@ theorienberden03marxuoft:
     from: letzten Aere seinen
     to: letzten Acre seinen
     by: scan
+  - page: 119
+    from: (Prévost, J. c. S. 177.
+    to: (Prévost, l. c. S. 177.
+    by: scan
   - page: 120
     from: einen Aere von
     to: einen Acre von
@@ -13695,6 +13727,10 @@ theorienberden03marxuoft:
   - page: 172
     from: (zweil
     to: "[zwei]"
+    by: scan
+  - page: 172
+    from: dukt J sich als ge
+    to: dukt I sich als ge
     by: scan
   - page: 173
     from: shat!],
@@ -14064,6 +14100,10 @@ theorienberden03marxuoft:
     from: umgekehrt!.
     to: umgekehrt].
     by: scan
+  - page: 243
+    from: bei Kapital J zu erklären
+    to: bei Kapital I zu erklären
+    by: scan
   - page: 246
     from: (dem
     to: "[dem"
@@ -14075,6 +14115,10 @@ theorienberden03marxuoft:
   - page: 246
     from: die die
     to: die [die
+    by: scan
+  - page: 246
+    from: " Kapitalist J hat jetzt k"
+    to: " Kapitalist I hat jetzt k"
     by: scan
   - page: 247
     from: von!
@@ -14371,9 +14415,45 @@ theorienberden03marxuoft:
     from: saus
     to: aus
     by: scan
+  - page: 256
+    from: wendet denn J, in
+    to: wendet denn I, in
+    by: scan
+  - page: 257
+    from: glichen mit J, die
+    to: glichen mit I, die
+    by: scan
   - page: 258
     from: "[nomineller!"
     to: "[nomineller]"
+    by: scan
+  - page: 259
+    from: an, Kapital J, statt sein
+    to: an, Kapital I, statt sein
+    by: scan
+  - page: 259
+    from: 40 Quarters, so
+    to: 40 Quarters,¹ so
+    by: scan
+  - page: 259
+    from: Ronstantes Kapital Variables Kapital für Mehrwert Gesamtprodukt
+    to: Konstantes Kapital | Variables Kapital für 80 Arbeiter | Mehrwert | Gesamtprodukt
+    by: scan
+  - page: 259
+    from: 20 Quarters S 80 Arbeiter 60 + 20 — 180 Quarters =
+    to: 20 Quarters = 10 Arbeitstagen | 60 + 20 = 80 Quarters = 40 Arbeitstagen | 60 + 20 = 80 Quarters = 40 Arbeitstagen | 180 Quarters = 90 Arbeitstagen
+    by: scan
+  - page: 259
+    from: 10 Arbeitstagen 60 + 20 = 80 Quarters 80 Quarters 90 Arbeitstagen
+    to: ""
+    by: scan
+  - page: 259
+    from: 40 Arbeitstagen S 40 Arbeits-
+    to: ""
+    by: scan
+  - page: 259
+    from: tagen
+    to: ""
     by: scan
   - page: 260
     from: also (von diesen
@@ -14394,6 +14474,10 @@ theorienberden03marxuoft:
   - page: 261
     from: Kapital)
     to: Kapital]
+    by: scan
+  - page: 261
+    from: lohn [von J und II] und
+    to: lohn [von I und II] und
     by: scan
   - page: 264
     from: wo der ——— ,⏑ rtreen I‚IJNNNNNRTT
@@ -15547,6 +15631,10 @@ theorienberden03marxuoft:
     from: 3. Tertbook.
     to: 3. Textbook.
     by: scan
+  - page: 479
+    from: innehmen.“ (J. c.)
+    to: innehmen.“ (l. c.)
+    by: scan
   - page: 480
     from: akkumulieren!
     to: akkumulieren]
@@ -15635,9 +15723,17 @@ theorienberden03marxuoft:
     from: "[daß!]"
     to: "[daß]"
     by: scan
+  - page: 523
+    from: wechselweise prellen)J. Jedenfalls
+    to: wechselweise [prellen]. Jedenfalls
+    by: scan
   - page: 527
     from: (wenn
     to: "[wenn"
+    by: scan
+  - page: 528
+    from: alisten Nr. J. Die Rückke
+    to: alisten Nr. I. Die Rückke
     by: scan
   - page: 532
     from: seigentümliche

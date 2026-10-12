@@ -817,6 +817,22 @@ books:
     ]);
   });
 
+  it("names a note's lines by page, one of them running on the note before", () => {
+    const manifest = parseManifest(
+      ocrManifest +
+        '    notes:\n      - { page: 4, opens: "1 Vgl." }\n      - { page: 5, opens: "und weiter", runsOn: true }\n',
+    );
+
+    expect(
+      manifest.books[0]?.source === "archive-ocr"
+        ? manifest.books[0].notes
+        : null,
+    ).toEqual([
+      { page: 4, opens: "1 Vgl." },
+      { page: 5, opens: "und weiter", runsOn: true },
+    ]);
+  });
+
   it("names an editor's signatures, whose notes are left out", () => {
     const manifest = parseManifest(ocrManifest + "    skipNotesSigned: [K.]\n");
 

@@ -60,9 +60,10 @@ export interface ArchiveOcrWork {
   /**
    * Pages whose notes the OCR set as the text, too close below it to tell:
    * on each, the lines that open a note, by their opening words; no other
-   * line there opens one.
+   * line there opens one. A line that runs on the note of the page before,
+   * where the reader takes it for text, is named too, as running on.
    */
-  notes?: PageLine[];
+  notes?: Array<PageLine & { runsOn?: boolean | undefined }>;
   /**
    * An editor's signatures (K.): the notes ending in one are the editor's,
    * and so are paragraphs ending in one, notes the page set as text.
@@ -798,6 +799,8 @@ interface Volume {
   paragraphOpenings?: string[];
   /** The lines that open the page's notes, by their opening words, where the manifest names them. */
   noteOpenings?: string[];
+  /** Of the named notes' lines, those that run on the note before rather than open one. */
+  noteRunsOn?: string[];
   /** Words of the numbered running heads, which know a head without its number. */
   heads: Array<Set<string>>;
   /** Width of the text column, from the volume's full lines. */
@@ -1592,7 +1595,10 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
           // mark; where the manifest names a page's notes, there alone.
           opens:
             volume.noteOpenings !== undefined
-              ? noteNamed(line)
+              ? noteNamed(line) &&
+                !(volume.noteRunsOn ?? []).some((opens) =>
+                  line.text.startsWith(opens),
+                )
               : NOTE_START.test(line.text) ||
                 MARKED_NOTE_START.test(line.text) ||
                 (volume.spacedNotes === true &&
@@ -2358,9 +2364,17 @@ function addPiece(
   };
   const rest = state.sections.length > 0 ? state.sections.slice(0, -1) : [];
   const text = normalised(piece.text);
+  // A note runs on only from the page before; one ended pages back takes
+  // no lines from a note the reader found without its mark.
+  const lastNote = current.notes.at(-1);
+  const notePages =
+    lastNote === undefined || lastNote.lastLeaf >= place.leaf - 1;
   const section =
     piece.kind === "note"
-      ? { ...current, notes: addLine(current.notes, text, piece.opens, place) }
+      ? {
+          ...current,
+          notes: addLine(current.notes, text, piece.opens || !notePages, place),
+        }
       : {
           ...current,
           paragraphs: addLine(current.paragraphs, text, piece.opens, place),
@@ -2733,13 +2747,18 @@ function paragraphOpeningsOn(
 function noteOpeningsOn(
   work: ArchiveOcrWork,
   page: number,
-): { noteOpenings?: string[] } {
+): { noteOpenings?: string[]; noteRunsOn?: string[] } {
   const named = (work.notes ?? []).filter(
     (line) => String(line.page) === String(page),
   );
   return named.length === 0
     ? {}
-    : { noteOpenings: named.map((line) => line.opens) };
+    : {
+        noteOpenings: named.map((line) => line.opens),
+        noteRunsOn: named
+          .filter((line) => line.runsOn === true)
+          .map((line) => line.opens),
+      };
 }
 
 /** A work's first page from the line it opens with, if the manifest names one. */

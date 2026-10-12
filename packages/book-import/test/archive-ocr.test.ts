@@ -59,6 +59,39 @@ describe("parseArchiveOcrWork", () => {
     );
   });
 
+  it("reads a line the manifest names as running on the note before as that note's", async () => {
+    const [first] = parseArchiveOcrWork(await fixture(), {
+      ...work,
+      notes: [{ page: 5, opens: "läuft weiter", runsOn: true }],
+    });
+
+    expect(first?.paragraphs.at(-1)).toContain("E. Jones, 1919. läuft weiter");
+  });
+
+  it("runs a note on only from the page before, not from a note pages back", async () => {
+    const hocr = (await fixture())
+      .replace(
+        "<span class='ocr_line' title='bbox 86 1920 2400 2000; x_size 78'>wir uns mit der Aufstellung des Lustprinzips einem bestimmten,</span>",
+        "<span class='ocr_line' title='bbox 86 1920 2400 2000; x_size 78'>wir uns mit der Aufstellung des Lustprinzips einem bestimmten,</span>\n  <span class='ocr_line' title='bbox 90 3700 700 3712; x_size 10'>————————</span>\n  <span class='ocr_line' title='bbox 182 3760 1200 3810; x_size 50'>¹) Erste Anmerkung.</span>",
+      )
+      .replace(
+        "<span class='ocr_line' title='bbox 182 3870 2400 3930; x_size 60'>ı) Vgl. Zur Psychoanalyse der Kriegsneurosen. Mit Beiträgen von</span>",
+        "",
+      )
+      .replace(
+        "<span class='ocr_line' title='bbox 90 3940 2400 4000; x_size 59'>Ferenczi, Abraham, Simmel und E. Jones, 1919.</span>",
+        "",
+      )
+      .replace(
+        "<span class='ocr_line' title='bbox 130 3830 2500 3910; x_size 79'>nach unten.</span>",
+        "<span class='ocr_line' title='bbox 130 3830 2500 3910; x_size 79'>nach unten.</span>\n  <span class='ocr_line' title='bbox 90 4000 700 4012; x_size 10'>————————</span>\n  <span class='ocr_line' title='bbox 182 4060 1400 4110; x_size 50'>fortgesetzt von einer anderen Seite.</span>",
+      );
+    const [first] = parseArchiveOcrWork(hocr, work);
+
+    expect(first?.paragraphs).toContain("¹) Erste Anmerkung.");
+    expect(first?.paragraphs).toContain("fortgesetzt von einer anderen Seite.");
+  });
+
   it("drops running heads, rules and printer's signatures, and pages outside the work", async () => {
     const units = parseArchiveOcrWork(await fixture(), work);
     const text = units.flatMap((unit) => unit.paragraphs).join("\n");
@@ -1809,9 +1842,10 @@ describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
       "das als Material des Geldes diente, war gesellschaftlich gegeben.",
     );
     expect(paragraphs.join("\n")).not.toContain("πε");
-    // Unmarked, the lines run on the note before them.
-    expect(paragraphs.at(-1)).toEndWith(
-      "erklärt sich wie folgt. measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
+    // Unmarked, the lines are a note run on from a page the fixture leaves
+    // out, not the note pages before them.
+    expect(paragraphs.at(-1)).toBe(
+      "measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
     );
   });
 
@@ -1861,9 +1895,10 @@ describe("parseArchiveOcrWork, sections numbered with a bracket", () => {
       },
     );
     const paragraphs = units.at(-1)?.paragraphs ?? [];
-    // Unmarked, the lines run on the note before them.
-    expect(paragraphs.at(-1)).toEndWith(
-      "erklärt sich wie folgt. measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
+    // Unmarked, the lines are a note run on from a page the fixture leaves
+    // out, not the note pages before them.
+    expect(paragraphs.at(-1)).toBe(
+      "measure of value as if it remained perfectly stationary. Suppose, for instance, it is reduced in value, the relations stay the same.",
     );
   });
 });

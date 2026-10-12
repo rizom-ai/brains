@@ -226,6 +226,9 @@ books:
     citation: GW II/III
     firstPage: VII
     lastPage: 626
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 447, opens: "Satz, daß die Träume", runsOn: true }
     slug: die-traumdeutung
     references: [https://www.gutenberg.org/cache/epub/40739/pg40739.txt]
     title: Die Traumdeutung

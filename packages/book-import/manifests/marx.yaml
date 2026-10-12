@@ -569,6 +569,8 @@ books:
       - { page: 400, opens: "Im Manufkript steht" }
       - { page: 404, opens: "Hier hat Marx" }
       - { page: 407, opens: "Seite 1320—1331 des" }
+      - { page: 329, opens: "1 Und der freie" }
+      - { page: 329, opens: "2 An einer Stelle" }
     slug: theorien-ueber-den-mehrwert-1
     title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
     shortTitle: Theorien über den Mehrwert I
@@ -653,6 +655,7 @@ books:
       - { page: 214, opens: "Im Manufkript steht:" }
       - { page: 300, opens: "1 Im 1." }
       - { page: 331, opens: "2 Im Manuskript" }
+      - { page: 16, opens: "„Kapital“ „Produktionspreis“", runsOn: true }
     slug: theorien-ueber-den-mehrwert-2-1
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
     shortTitle: Theorien über den Mehrwert II.1
@@ -908,7 +911,7 @@ books:
       - { page: 230, opens: "¹) Im Manuskript steht IV" }
       - { page: 360, opens: "2000" }
       - { page: 360, opens: "Dieses ist absolut" }
-      - { page: 239, opens: "Nun ändere sich" }
+      - { page: 239, opens: "Nun ändere sich", runsOn: true }
       - { page: 238, opens: "1 Das Beispiel" }
       - { page: 23, opens: "Im Manufkript lautet" }
       - { page: 35, opens: "²) Im Manuskript" }
@@ -922,9 +925,7 @@ books:
       - { page: 284, opens: "2 Im Manuskript" }
       - { page: 343, opens: "Im Manuskript steht" }
       - { page: 381, opens: "Im Original steht" }
-    # Kautsky's note, set as the text and signed only where it ends.
-    skipNotes:
-      - { page: 238, opens: "1 Das Beispiel" }
+      - { page: 361, opens: "¹ Daher A. Smiths" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2
@@ -969,6 +970,9 @@ books:
       - { page: 400, opens: "2. Fall." }
       - { page: 400, opens: "3. Fall." }
       - { page: 400, opens: "Der Wert des Produkts wäre" }
+      - { page: 259, opens: "Also ist zunächst" }
+      - { page: 259, opens: "Aber nehmen wir an" }
+      - { page: 259, opens: "Die realen Produktionskosten" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 249, opens: "¹) Im Original steht" }
@@ -1152,6 +1156,9 @@ books:
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_007.htm
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_015.htm
       - https://web.archive.org/web/2009id_/http://www.mlwerke.de/me/me13/me13_049.htm
+    # Notes the OCR set as close below the text as its lines, named.
+    notes:
+      - { page: 55, opens: ") Locke sagt" }
     slug: zur-kritik-der-politischen-oekonomie
     title: Zur Kritik der politischen Oekonomie. Erstes Heft
     shortTitle: Zur Kritik der politischen Oekonomie

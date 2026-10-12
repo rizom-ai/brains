@@ -90,6 +90,17 @@ const pageLineSchema: z.ZodObject<{
   opens: z.ZodString;
 }> = z.object({ page: printedPageSchema, opens: z.string().min(1) });
 
+/** A note's line by the words it opens with: one that opens a note, or runs on the note of the page before. */
+const noteLineSchema: z.ZodObject<{
+  page: typeof printedPageSchema;
+  opens: z.ZodString;
+  runsOn: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
+  page: printedPageSchema,
+  opens: z.string().min(1),
+  runsOn: z.boolean().optional(),
+});
+
 /** A heading by the line that opens it, or the numeral the scan lost above that line. */
 const headingLineSchema: z.ZodObject<{
   page: typeof printedPageSchema;
@@ -123,7 +134,7 @@ const archiveOcrBookSchema: z.ZodObject<
       skipNotes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
       headings: z.ZodDefault<z.ZodArray<typeof headingLineSchema>>;
       paragraphs: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
-      notes: z.ZodDefault<z.ZodArray<typeof pageLineSchema>>;
+      notes: z.ZodDefault<z.ZodArray<typeof noteLineSchema>>;
       skipNotesSigned: z.ZodDefault<z.ZodArray<z.ZodString>>;
       spacedNotes: z.ZodDefault<z.ZodBoolean>;
       curved: z.ZodDefault<z.ZodBoolean>;
@@ -169,8 +180,8 @@ const archiveOcrBookSchema: z.ZodObject<
   headings: z.array(headingLineSchema).default([]),
   /** Pages the OCR read too askew to tell paragraphs by their indent: on each, the lines that open one, by their opening words; no other line there opens one. */
   paragraphs: z.array(pageLineSchema).default([]),
-  /** Pages whose notes the OCR set as the text, too close below it to tell: on each, the lines that open a note, by their opening words; no other line there opens one. */
-  notes: z.array(pageLineSchema).default([]),
+  /** Pages whose notes the OCR set as the text, too close below it to tell: on each, the lines that open a note, by their opening words; no other line there opens one, but one named as running on the note of the page before. */
+  notes: z.array(noteLineSchema).default([]),
   /** An editor's signatures (K.): the notes ending in one are left out. */
   skipNotesSigned: z.array(z.string().min(1)).default([]),
   /** The edition sets its notes as large as the text, below a rule the OCR does not read. */
