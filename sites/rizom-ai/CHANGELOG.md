@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- [#621](https://github.com/rizom-ai/brains/pull/621) [`3429f82`](https://github.com/rizom-ai/brains/commit/3429f82c112f6b236b7c732a32203a88cdcc264f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site no longer declares a display for `network-piece`: brains stopped copying other brains' published pieces, so there is nothing "From the network" to cite.
+
 ## 0.2.0-alpha.277
 
 ### Patch Changes

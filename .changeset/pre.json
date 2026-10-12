@@ -991,6 +991,7 @@
     "site--public-ask-site-layout",
     "site--react-authoring-runtime",
     "site--relicense-agpl-apache-split",
+    "site--remove-network-piece-display",
     "site--reuse-homepage-map-styles",
     "site--rizom-ai-ask-daylight",
     "site--rizom-ai-ask-names",
