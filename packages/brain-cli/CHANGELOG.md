@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.535
+
+### Patch Changes
+
+- [#611](https://github.com/rizom-ai/brains/pull/611) [`dac577e`](https://github.com/rizom-ai/brains/commit/dac577e4a0416f3a8feb5cd80030047c20af1cad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Traffic reports count `/cms` pages, Studio's path before it was renamed, among the owner's own pages instead of in the top pages readers read.
+
 ## 0.2.0-alpha.534
 
 ### Patch Changes

@@ -749,6 +749,7 @@
     "core--traffic-by-entity",
     "core--traffic-capture",
     "core--traffic-estimate-tone",
+    "core--traffic-owner-cms",
     "core--traffic-query-lenient",
     "core--traffic-reports",
     "core--traffic-snapshots-system",

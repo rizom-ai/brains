@@ -1,5 +1,7 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.535
+
 ## 0.2.0-alpha.534
 
 ## 0.2.0-alpha.533
