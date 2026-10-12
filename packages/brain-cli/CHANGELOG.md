@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.533
+
+### Patch Changes
+
+- [#610](https://github.com/rizom-ai/brains/pull/610) [`e7704d7`](https://github.com/rizom-ai/brains/commit/e7704d715688d491a7c71e3a81d3e7ee956a081c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Studio Traffic workspace ignores query keys it does not own, such as the `offset` Studio keeps for a list, instead of failing to load.
+
 ## 0.2.0-alpha.532
 
 ### Patch Changes
