@@ -866,8 +866,8 @@ function normalised(text: string): string {
         /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
         "1.",
       )
-      // A double quotation mark read as two single ones.
-      .replace(/‚‚/g, "„")
+      // A double quotation mark read as two single ones, or two commas.
+      .replace(/‚‚|,,(?=[\p{L}\d])/gu, "„")
       .replace(/‘‘/g, "“")
       // Loco citato read with a figure one, and a page's p. with a dash.
       .replace(/(?<![\p{L}\d])1\.( ?)c\./gu, "l.$1c.")

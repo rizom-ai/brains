@@ -6319,10 +6319,6 @@ freud-1942-gw-2-3:
     from: sieht ein Trraum nicht aus
     to: sieht ein Traum nicht aus
     by: reference
-  - page: 189
-    from: hatkeine
-    to: hat keine
-    by: scan
   - page: 190
     from: Daskenne
     to: Das kenne
@@ -7131,10 +7127,6 @@ freud-1942-gw-2-3:
     from: J ahren
     to: Jahren
     by: scan
-  - page: 231
-    from: S ym
-    to: Sym
-    by: scan
   - page: 253
     from: I nfantiles
     to: Infantiles
@@ -7142,10 +7134,6 @@ freud-1942-gw-2-3:
   - page: 422
     from: T echnik
     to: Technik
-    by: scan
-  - page: 501
-    from: M au
-    to: Mau
     by: scan
   - page: 525
     from: J ones
@@ -7837,6 +7825,286 @@ freud-1942-gw-2-3:
   - page: 170
     from: beiden "Träumen, die ich
     to: beiden Träumen, die ich
+    by: scan
+  - page: 182
+    from: nicht Flo ra, sondern
+    to: nicht Flora, sondern
+    by: scan
+  - page: 186
+    from: vertreten werden.*
+    to: vertreten werden.⁴)
+    by: scan
+  - page: 186
+    from: h ’) Die Neigung der Traumarbeit, gleichzeitig als interessant Vorhandenes
+    to: ¹) Die Neigung der Traumarbeit, gleichzeitig als interessant Vorhandenes
+    by: scan
+  - page: 186
+    from: zu Sn an andlung zu verschmelzen, ist bereits von mehreren Autoren be-
+    to: in einer Behandlung zu verschmelzen, ist bereits von mehreren Autoren be-
+    by: scan
+  - page: 186
+    from: "EN NOROER N Yon Delage . 41), Delboeuf: rapprochement"
+    to: "merkt worden, z. B. von Delage (p. 41), Delboeuf: rapprochement"
+    by: scan
+  - page: 186
+    from: force (p. 236). (pi. 44) pp
+    to: forcé (p. 236).
+    by: scan
+  - page: 186
+    from: ?2) Traum von Irmas Injektion;
+    to: ²) Traum von Irmas Injektion;
+    by: scan
+  - page: 186
+    from: ®) Traum von der Tra uerrede des jungen Arztes.
+    to: ³) Traum von der Trauerrede des jungen Arztes.
+    by: scan
+  - page: 186
+    from: "*) Traum von der b i N"
+    to: ⁴) Traum von der botanischen Monographie.
+    by: scan
+  - page: 186
+    from: on der botanischen Monographie.
+    to: ""
+    by: scan
+  - page: 186
+    from: 5 . . r
+    to: ""
+    by: scan
+  - page: 186
+    from: Ann sind die meisten Träume meiner Patienten während der
+    to: ⁵) Solcherart sind die meisten Träume meiner Patienten während der
+    by: scan
+  - page: 187
+    from: eine Nacht er eine nn
+    to: eine Nacht über eine An-
+    by: scan
+  - page: 187
+    from: BE Val. im Abschnitt vII über
+    to: ¹) Vgl. im Abschnitt VII über
+    by: scan
+  - page: 188
+    from: "!) Einen wichtigen Beitrag, der die Rolle des Rezenten für die 'Traum-"
+    to: ¹) Einen wichtigen Beitrag, der die Rolle des Rezenten für die Traum-
+    by: scan
+  - page: 188
+    from: bringt ©. Pötzl in
+    to: bringt O. Pötzl in
+    by: scan
+  - page: 188
+    from: 1917.) Pötz1ließ von
+    to: 1917.) Pötzl ließ von
+    by: scan
+  - page: 188
+    from: er nicht wieder erschienen waren.
+    to: inhalt nicht wieder erschienen waren.
+    by: scan
+  - page: 188
+    from: aterial wurde von ihr
+    to: Material wurde von ihr
+    by: scan
+  - page: 188
+    from: herrlichen Art im Dien
+    to: herrlichen Art im Dienste der traumbildenden Tendenzen verarbeit. Die
+    by: scan
+  - page: 188
+    from: Anregungen der Pö De der traumbildenden Tendenzen verarbeit. Die
+    to: Anregungen der Pötzlschen Untersuchung gehen weit über die Absichten
+    by: scan
+  - page: 188
+    from: einer EA ER ar schen Untersuchung gehen weit über die Absichten
+    to: einer Traumdeutung, wie sie in diesem Buche versucht wird, hinaus. Es sei
+    by: scan
+  - page: 188
+    from: noch mit einem W. 8 "iz sie in diesem Buche versucht wird, hinaus. Es sei
+    to: noch mit einem Wort darauf hingewiesen, wie weit diese neue Art, die Traum-
+    by: scan
+  - page: 188
+    from: bildung A ae hingewiesen, wie weit diese neue Art, die Traum-
+    to: bildung experimentell zu studieren, von der früheren groben Technik absteht,
+    by: scan
+  - page: 188
+    from: die darin b d ee studieren, von der früheren groben Technik absteht,
+    to: die darin bestand, schlafstörende Reize in den Trauminhalt einzuführen.
+    by: scan
+  - page: 188
+    from: estand, schlafstörende Reize in den Trauminhalt einzuführen.
+    to: ""
+    by: scan
+  - page: 188
+    from: wie kommt es, dab
+    to: wie kommt es, daß
+    by: scan
+  - page: 189
+    from: 1) H. E L lis, Se liebenswürdige Kritiker N „Jraumdeutung‘“, schreibt
+    to: ¹) H. Ellis, der liebenswürdige Kritiker der „Traumdeutung“, schreibt
+    by: scan
+  - page: 189
+    from: "(p. 169): „„Da ist der Punkt"
+    to: "(p. 169): „Da ist der Punkt"
+    by: scan
+  - page: 189
+    from: werden, F. weiter zu folgen.‘ AlleinH.E1llis hatkeine Analysen von Träumen
+    to: werden, F. weiter zu folgen.“ Allein H. Ellis hat keine Analysen von Träumen
+    by: scan
+  - page: 190
+    from: u Vergleiche über die Reden
+    to: ¹) Vergleiche über die Reden
+    by: scan
+  - page: 190
+    from: ar en einziger der Autoren
+    to: arbeit. Ein einziger der Autoren
+    by: scan
+  - page: 190
+    from: zu en, Delboeuf (p. 226), indem er sie mit „cliches“‘ vergleicht.
+    to: zu haben, Delboeuf (p. 226), indem er sie mit „clichés“ vergleicht.
+    by: scan
+  - page: 191
+    from: nass ndid ie ehe
+    to: ""
+    by: scan
+  - page: 192
+    from: geträumt, daf er
+    to: geträumt, daß er
+    by: scan
+  - page: 194
+    from: Se Se unter den Eigentümlichkeiten
+    to: Als dritte unter den Eigentümlichkeiten
+    by: scan
+  - page: 194
+    from: daß im 'Traume
+    to: daß im Traume
+    by: scan
+  - page: 202
+    from: Jean Pa ul
+    to: Jean Paul
+    by: scan
+  - page: 206
+    from: Strafeinden Winkelgestel lt
+    to: Strafe in den Winkel gestellt
+    by: scan
+  - page: 501
+    from: Phantasie M au r ys eine solche ehrgeizige gewesen ist, darauf scheint
+    to: Phantasie Maurys eine solche ehrgeizige gewesen ist, darauf scheint
+    by: scan
+  - page: 199
+    from: nach Ro m zu kommen
+    to: nach Rom zu kommen
+    by: scan
+  - page: 194
+    from: (bis auf Rober t)
+    to: (bis auf Robert)
+    by: scan
+  - page: 231
+    from: wie man sieht, zur Wiederbelebung der Traumdeutung mittels S ym -
+    to: wie man sieht, zur Wiederbelebung der Traumdeutung mittels Sym-
+    by: scan
+  - page: 210
+    from: TI) Nachdem ich gereist bin
+    to: I) Nachdem ich gereist bin
+    by: scan
+  - page: 212
+    from: die b behandelt werde
+    to: dieb behandelt werde
+    by: scan
+  - page: 216
+    from: „Äuf der
+    to: „Auf der
+    by: scan
+  - page: 228
+    from: t) Ich möchte jedermann raten
+    to: ¹) Ich möchte jedermann raten
+    by: scan
+  - page: 234
+    from: Vereinigung m u ß nicht
+    to: Vereinigung muß nicht
+    by: scan
+  - page: 236
+    from: ) Vergleiche die Stelle bei Griesin ger und
+    to: ¹) Vergleiche die Stelle bei Griesinger und
+    by: scan
+  - page: 240
+    from: Tee ee ee 5
+    to: ""
+    by: scan
+  - page: 240
+    from: ) Der Inhalt dieses Traumes
+    to: ¹) Der Inhalt dieses Traumes
+    by: scan
+  - page: 240
+    from: 1 > . . * A . .
+    to: ""
+    by: scan
+  - page: 246
+    from: BE NTediale dal Traumdeutung Inanwendbar wird,
+    to: ¹) Der Satz, daß unsere Methode der Traumdeutung unanwendbar wird,
+    by: scan
+  - page: 246
+    from: ee einer zweiten, auxiliären, Methode der Traumdeutung.
+    to: genommen, einer zweiten, auxiliären, Methode der Traumdeutung.
+    by: scan
+  - page: 246
+    from: ®* ar
+    to: (S. u.)
+    by: scan
+  - page: 250
+    from: felmete gbrmapn ee ER eneBE bei Frauen, die sich ohne
+    to: ¹) Eine Anzahl interessanter Nacktheitsträume bei Frauen, die sich ohne
+    by: scan
+  - page: 250
+    from: nn Arge 5 ibitionslust zurückführen ließen, aber in
+    to: Schwierigkeiten auf die infantile Exhibitionslust zurückführen ließen, aber in
+    by: scan
+  - page: 250
+    from: er oben behandelten „typischen“ Nacktheitstraum
+    to: manchen Zügen von dem oben behandelten „typischen“ Nacktheitstraum
+    by: scan
+  - page: 255
+    from: Sexualtheorien“ in ‚„Samm-
+    to: Sexualtheorien“ in „Samm-
+    by: scan
+  - page: 255
+    from: und ‚Über infantile
+    to: und „Über infantile
+    by: scan
+  - page: 255
+    from: ne kleiner Schriften zur Neurosenlehre“
+    to: lung kleiner Schriften zur Neurosenlehre“
+    by: scan
+  - page: 258
+    from: t) Solche in der Kindheit
+    to: ¹) Solche in der Kindheit
+    by: scan
+  - page: 258
+    from: man behauptet®,
+    to: man behauptete,
+    by: scan
+  - page: 258
+    from: wozu er nützlich sel;
+    to: wozu er nützlich sei;
+    by: scan
+  - page: 258
+    from: Den gefahren wurde, saß er gegenüber und nahm mir die Hälfte Platz we8»
+    to: wagen gefahren wurde, saß er gegenüber und nahm mir die Hälfte Platz weg,
+    by: scan
+  - page: 260
+    from: t) Von einem hochbegabten
+    to: ¹) Von einem hochbegabten
+    by: scan
+  - page: 260
+    from: cap findet sich in der
+    to: Thema findet sich in der
+    by: scan
+  - page: 260
+    from: . rik „Kinderseele‘“ von
+    to: Rubrik „Kinderseele“ von
+    by: scan
+  - page: 264
+    from: sobald der Vater ver”
+    to: sobald der Vater ver-
+    by: scan
+  - page: 212
+    from: („5o wird’s Euch
+    to: („So wird’s Euch
     by: scan
 freud-1942-gw-5:
   - page: 4

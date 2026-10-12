@@ -300,10 +300,12 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
   it("reads a quotation mark the OCR set as two single ones as one double", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",
-      "Jones, ‚‚Sinn‘‘ und ‚Wort‘, 1919.",
+      "Jones, ‚‚Sinn‘‘ und ‚Wort‘, (,,So 1, 2, 1919.",
     );
 
-    expect(pageText(hocr, 4)).toContain("Jones, „Sinn“ und ‚Wort‘, 1919.");
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, „Sinn“ und ‚Wort‘, („So 1, 2, 1919.",
+    );
   });
 
   it("reads a first the OCR set as i before a month or a volume's part as 1", async () => {
