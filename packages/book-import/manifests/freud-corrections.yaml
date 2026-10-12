@@ -3773,6 +3773,10 @@ freud-1941-gw-4:
     from: Ausziehenden.*
     to: Ausziehenden.“
     by: scan
+  - page: 126
+    from: . Zeitschr. £. Psyc
+    to: . Zeitschr. f. Psyc
+    by: scan
   - page: 129
     from: "ich wohl gedächt haben: Die"
     to: "ich wohl gedacht haben: Die"
@@ -4942,6 +4946,10 @@ freud-1941-gw-7:
     from: zwischen der F araglionensis auf dem
     to: zwischen der Faraglionensis auf dem
     by: reference
+  - page: 71
+    from: t) Der
+    to: ¹) Der
+    by: scan
   - page: 72
     from: später her, daB er in
     to: später her, daß er in
@@ -6619,10 +6627,6 @@ freud-1942-gw-2-3:
     from: Wortähnlichkeit von vzolet und violate
     to: Wortähnlichkeit von violet und violate
     by: reference
-  - page: 385
-    from: derlinks
-    to: der links
-    by: scan
   - page: 387
     from: Rendezvous am Schotientor mit jener
     to: Rendezvous am Schottentor mit jener
@@ -6767,10 +6771,6 @@ freud-1942-gw-2-3:
     from: damals den Unfriedenstifter machte, war
     to: damals den Unfriedensstifter machte, war
     by: reference
-  - page: 486
-    from: wievielvon
-    to: wieviel von
-    by: scan
   - page: 496
     from: ein solcher Taagtraum bereits im
     to: ein solcher Tagtraum bereits im
@@ -6782,10 +6782,6 @@ freud-1942-gw-2-3:
   - page: 502
     from: Zeichen von Eirgriffenheit, welche die
     to: Zeichen von Ergriffenheit, welche die
-    by: reference
-  - page: 506
-    from: bouche les Ecarts trop grands
-    to: bouche les écarts trop grands
     by: reference
   - page: 506
     from: ces successions incoherentes d’hallucinations
@@ -7034,26 +7030,6 @@ freud-1942-gw-2-3:
   - page: 388
     from: Pre&vost
     to: Prévost
-    by: scan
-  - page: 506
-    from: m&me
-    to: même
-    by: scan
-  - page: 506
-    from: r&ve
-    to: rêve
-    by: scan
-  - page: 506
-    from: r&ve
-    to: rêve
-    by: scan
-  - page: 506
-    from: r&ve
-    to: rêve
-    by: scan
-  - page: 506
-    from: r&ve
-    to: rêve
     by: scan
   - page: 507
     from: r&ve
@@ -8105,6 +8081,594 @@ freud-1942-gw-2-3:
   - page: 212
     from: („5o wird’s Euch
     to: („So wird’s Euch
+    by: scan
+  - page: 342
+    from: t) Eine
+    to: ¹) Eine
+    by: scan
+  - page: 354
+    from: t) Der
+    to: ¹) Der
+    by: scan
+  - page: 356
+    from: t) Vgl.
+    to: ¹) Vgl.
+    by: scan
+  - page: 364
+    from: t) Bei
+    to: ¹) Bei
+    by: scan
+  - page: 392
+    from: t) Nach
+    to: ¹) Nach
+    by: scan
+  - page: 277
+    from: daß Basedo w nicht
+    to: daß Basedow nicht
+    by: scan
+  - page: 286
+    from: _ %) Hinweise auf die Verdichtung im Traum finden sich bei zahlrei:hen
+    to: ¹) Hinweise auf die Verdichtung im Traum finden sich bei zahlreichen
+    by: scan
+  - page: 292
+    from: ” Man denke zur Würdigung
+    to: ¹) Man denke zur Würdigung
+    by: scan
+  - page: 294
+    from: In der Sap ph o trägt
+    to: In der Sappho trägt
+    by: scan
+  - page: 294
+    from: „Zurückphantasieren‘“ eingetragen®
+    to: „Zurückphantasieren“ eingetragene
+    by: scan
+  - page: 296
+    from: Wer würde ih r ansehen
+    to: Wer würde ihr ansehen
+    by: scan
+  - page: 302
+    from: von Ibs n. Von
+    to: von Ibsen. Von
+    by: scan
+  - page: 302
+    from: das Wort n Mais—toll— manns-
+    to: das Wort in Mais—toll—manns-
+    by: scan
+  - page: 305
+    from: 1 ” Lasker starb
+    to: ¹) Lasker starb
+    by: scan
+  - page: 311
+    from: ist ds Au f- und Nieder-
+    to: ist das Auf- und Nieder-
+    by: scan
+  - page: 318
+    from: inteillekiuelterV Arbeit im Traum.
+    to: intellektueller Arbeit im Traum.
+    by: scan
+  - page: 321
+    from: die Schuld liegtent we deran ihrem Sträuben
+    to: die Schuld liegt entweder an ihrem Sträuben
+    by: scan
+  - page: 336
+    from: 1) Ich wi weiß heute ‚nicht, ob mit "Recht.
+    to: ¹) Ich weiß heute nicht, ob mit Recht.
+    by: scan
+  - page: 347
+    from: die bis $8 Uhr morgens
+    to: die bis ¾8 Uhr morgens
+    by: scan
+  - page: 348
+    from: NH ugoWeolf.
+    to: ¹) Hugo Wolf.
+    by: scan
+  - page: 350
+    from: das Messer mub
+    to: das Messer muß
+    by: scan
+  - page: 353
+    from: ins Haus oder in den Hof reicht.!
+    to: ins Haus oder in den Hof reicht.¹)
+    by: scan
+  - page: 353
+    from: b) Haupttraum:? Sie steigt von hoch herab? über
+    to: b) Haupttraum:²) Sie steigt von hoch herab³) über
+    by: scan
+  - page: 353
+    from: Quadraten bestehen.*
+    to: Quadraten bestehen.⁴)
+    by: scan
+  - page: 353
+    from: so anständig bleibt.° Dabei trägt sie einen großen Ast in der Hand,®
+    to: so anständig bleibt.⁵) Dabei trägt sie einen großen Ast in der Hand,⁶)
+    by: scan
+  - page: 353
+    from: ausgebreitet.” Dabei
+    to: ausgebreitet.⁷) Dabei
+    by: scan
+  - page: 353
+    from: wieder einen.® Wie
+    to: wieder einen.⁸) Wie
+    by: scan
+  - page: 353
+    from: mit enem Holz
+    to: mit einem Holz
+    by: scan
+  - page: 353
+    from: davonnehmen.
+    to: davon nehmen.
+    by: scan
+  - page: 353
+    from: ÄsteinihreneigenenGarten
+    to: Äste in ihren eigenen Garten
+    by: scan
+  - page: 353
+    from: als „‚kausal‘ zu nehmenden
+    to: als „kausal“ zu nehmenden
+    by: scan
+  - page: 353
+    from: ®) Ihr Lebenslauf.
+    to: 2) Ihr Lebenslauf.
+    by: scan
+  - page: 353
+    from: ¹) Mischgebilde, das zwei
+    to: 4) Mischgebilde, das zwei
+    by: scan
+  - page: 353
+    from: °%) Wie der Engel
+    to: 6) Wie der Engel
+    by: scan
+  - page: 353
+    from: ?) Die Erklärung dieses Mischgebildes
+    to: 7) Die Erklärung dieses Mischgebildes
+    by: scan
+  - page: 353
+    from: ®) Ob man sich auch einen herunterreißen
+    to: 9) Ob man sich auch einen herunterreißen
+    by: scan
+  - page: 353
+    from: "24"
+    to: ""
+    by: scan
+  - page: 354
+    from: außerhalb derselben.?®
+    to: außerhalb derselben.³)
+    by: scan
+  - page: 355
+    from: ¹) W. Steke el,
+    to: ¹) W. Stekel,
+    by: scan
+  - page: 356
+    from: Das Zutreffendste, w#$
+    to: Das Zutreffendste, was
+    by: scan
+  - page: 363
+    from: t en überhaupt spielen
+    to: ten überhaupt spielen
+    by: scan
+  - page: 369
+    from: Schacht2N®
+    to: Schacht....“
+    by: scan
+  - page: 370
+    from: TEEN ne ee ie
+    to: ""
+    by: scan
+  - page: 370
+    from: "*) Oder Kapelle = Vagina."
+    to: ¹) Oder Kapelle = Vagina.
+    by: scan
+  - page: 370
+    from: ?”) Symbol des Koitus.
+    to: ²) Symbol des Koitus.
+    by: scan
+  - page: 370
+    from: in eine Kirche! gegangen, zu der mehrere Stufen? emporführten,
+    to: in eine Kirche¹) gegangen, zu der mehrere Stufen²) emporführten;
+    by: scan
+  - page: 371
+    from: Lenden gehabt.* Vor der Kirche
+    to: Lenden gehabt.⁴) Vor der Kirche
+    by: scan
+  - page: 371
+    from: U) Mons veneris.
+    to: ¹) Mons veneris.
+    by: scan
+  - page: 371
+    from: ®) Crines pubis.
+    to: ²) Crines pubis.
+    by: scan
+  - page: 371
+    from: ®») Dämonen in Mänteln
+    to: ³) Dämonen in Mänteln
+    by: scan
+  - page: 371
+    from: ein Berg! gewesen und oben ein dichter Wald.” Der
+    to: ein Berg¹) gewesen und oben ein dichter Wald.²) Der
+    by: scan
+  - page: 371
+    from: Mantel? versehen ge-
+    to: Mantel³) versehen ge-
+    by: scan
+  - page: 371
+    from: "#) Die beiden Hälften des Hodensackes."
+    to: ⁴) Die beiden Hälften des Hodensackes.
+    by: scan
+  - page: 375
+    from: „Zentralblatt f. PsA.‘, Heft 1
+    to: „Zentralblatt f. PsA.“, Heft 1
+    by: scan
+  - page: 378
+    from: "der Cousine: fa, ich hab’"
+    to: "der Cousine: Ja, ich hab’"
+    by: scan
+  - page: 378
+    from: Wan Zur Erage der,Symbolik in den
+    to: 10. „Zur Frage der Symbolik in den
+    by: scan
+  - page: 378
+    from: Havelock Ellis®— vorgebrachter
+    to: Havelock Ellis²) — vorgebrachter
+    by: scan
+  - page: 378
+    from: 4) Alfred Robitsek im Zentralblatt £. PsA. II, 1911, p. 340. Z
+    to: ¹) Alfred Robitsek im Zentralblatt f. PsA. II, 1911, p. 340.
+    by: scan
+  - page: 378
+    from: ®) „The World of Dreams“
+    to: ²) „The World of Dreams“
+    by: scan
+  - page: 385
+    from: voll ist hier die von Dr. Ste kelgefundene Deutung, nach derlinks
+    to: voll ist hier die von Dr. Stekel gefundene Deutung, nach der links
+    by: scan
+  - page: 387
+    from: nicht sein. — fa doch,
+    to: nicht sein. — Ja doch,
+    by: scan
+  - page: 387
+    from: soll um 312 Uhr beim
+    to: soll um ½12 Uhr beim
+    by: scan
+  - page: 395
+    from: Freu din seiner Traumdeutung (2. Aufl., p. 193£.)
+    to: Freud in seiner Traumdeutung (2. Aufl., p. 193f.)
+    by: scan
+  - page: 396
+    from: von Fre u d aufgedeckten
+    to: von Freud aufgedeckten
+    by: scan
+  - page: 401
+    from: (wie z. BB Näcke
+    to: (wie z. B. Näcke
+    by: scan
+  - page: 401
+    from: ®) Der psychische Hermaphroditismus
+    to: ³) Der psychische Hermaphroditismus
+    by: scan
+  - page: 405
+    from: „Zr befindet sich in einem tiefen Schacht
+    to: „Er befindet sich in einem tiefen Schacht
+    by: scan
+  - page: 405
+    from: ee Län ———
+    to: ""
+    by: scan
+  - page: 414
+    from: 11) (H. Sachs.) „„Aus der ‚Traumdeutung‘ wissen wir, dab
+    to: 11) (H. Sachs.) „Aus der ‚Traumdeutung‘ wissen wir, daß
+    by: scan
+  - page: 416
+    from: das über dm Geäß straff
+    to: das über dem Gesäß straff
+    by: scan
+  - page: 418
+    from: Es kostet ja nur zi kr.
+    to: Es kostet ja nur 21 kr.
+    by: scan
+  - page: 418
+    from: Woher rühren die i fl. 50 kr.?
+    to: Woher rühren die 1 fl. 50 kr.?
+    by: scan
+  - page: 420
+    from: "darstellen soll: En Unsinn war es"
+    to: "darstellen soll: Ein Unsinn war es"
+    by: scan
+  - page: 421
+    from: um eine 90%, ige Pension
+    to: um eine 90%ige Pension
+    by: scan
+  - page: 422
+    from: verwendet hat. ‚Leise, leise, fromme Weise.‘ Das bedeutet
+    to: verwendet hat. „Leise, leise, fromme Weise.“ Das bedeutet
+    by: scan
+  - page: 423
+    from: Abendessen und n ötigt
+    to: Abendessen und nötigt
+    by: scan
+  - page: 425
+    from: non diu sed totus.)‘
+    to: non diu sed totus.)¹)
+    by: scan
+  - page: 428
+    from: heißt ja ds Schlagen— Wichsen;
+    to: heißt ja das Schlagen — Wichsen;
+    by: scan
+  - page: 435
+    from: tät im Trraume bedeutet
+    to: tät im Traume bedeutet
+    by: scan
+  - page: 436
+    from: des Bayerkönigs vet
+    to: des Bayerkönigs ver-
+    by: scan
+  - page: 438
+    from: vier bis fünf Jahre®
+    to: vier bis fünf Jahre
+    by: scan
+  - page: 442
+    from: jenes schönen Au f-
+    to: jenes schönen Auf-
+    by: scan
+  - page: 444
+    from: ten.‘ — Siena
+    to: ten.“ — Siena
+    by: scan
+  - page: 444
+    from: geschätzt als der ge
+    to: geschätzt als der ge-
+    by: scan
+  - page: 452
+    from: in diesen mag €!
+    to: in diesen mag er
+    by: scan
+  - page: 454
+    from: hervorrufen werden. $0
+    to: hervorrufen werden. So
+    by: scan
+  - page: 456
+    from: zum Lesen.‘ Ich biete ihr
+    to: zum Lesen.“ Ich biete ihr
+    by: scan
+  - page: 457
+    from: in She“ umeinen abenteuerlichen
+    to: in „She“ um einen abenteuerlichen
+    by: scan
+  - page: 458
+    from: haben. — fa, die Gegen-
+    to: haben. — Ja, die Gegen-
+    by: scan
+  - page: 460
+    from: die er zuf
+    to: die er zur
+    by: scan
+  - page: 472
+    from: gerade gestern vof
+    to: gerade gestern vor
+    by: scan
+  - page: 472
+    from: Notre-Dame wat
+    to: Notre-Dame war
+    by: scan
+  - page: 475
+    from: t) Internat, Zeitschr. f. Psychoanalyse, IV, 1916.
+    to: ¹) Internat. Zeitschr. f. Psychoanalyse, IV, 1916.
+    by: scan
+  - page: 478
+    from: scheint. Eigen®
+    to: scheint. Eigene
+    by: scan
+  - page: 480
+    from: Bd. xXIIl),
+    to: Bd. XIII),
+    by: scan
+  - page: 486
+    from: Fls, wievielvon seinen DingenichP. denn mit-
+    to: Fl.s, wieviel von seinen Dingen ich P. denn mit-
+    by: scan
+  - page: 488
+    from: „Ote-to? que je m’y mette“
+    to: „Ote-toi que je m’y mette“
+    by: scan
+  - page: 488
+    from: Personen, die sO
+    to: Personen, die so
+    by: scan
+  - page: 495
+    from: \) röve, petit roman
+    to: ¹) rêve, petit roman
+    by: scan
+  - page: 498
+    from: een EN ro © 0.
+    to: ""
+    by: scan
+  - page: 498
+    from: "!) Ein gutes Beispiel"
+    to: ¹) Ein gutes Beispiel
+    by: scan
+  - page: 498
+    from: ist die vo lle
+    to: ist die volle
+    by: scan
+  - page: 504
+    from: "Wort: La seance"
+    to: "Wort: La séance"
+    by: scan
+  - page: 506
+    from: systematisante de l’imagination pourrait fort bien achever apres le reveil
+    to: systématisante de l’imagination pourrait fort bien achever après le réveil
+    by: scan
+  - page: 506
+    from: ce quelle a ebauche pendant le sommeil. De la sorte, la rapidite reelle de
+    to: ce qu’elle a ébauché pendant le sommeil. De la sorte, la rapidité réelle de
+    by: scan
+  - page: 506
+    from: la pensee serait augmentee en apparence par les perfectionnements dus a
+    to: la pensée serait augmentée en apparence par les perfectionnements dus à
+    by: scan
+  - page: 506
+    from: P’imagination eveillee.“
+    to: l’imagination éveillée.“
+    by: scan
+  - page: 506
+    from: „dans le r&ve, au contraire, l’interpretation et la coordination se font
+    to: „dans le rêve, au contraire, l’interprétation et la coordination se font
+    by: scan
+  - page: 506
+    from: de la veille... “*
+    to: de la veille...“
+    by: scan
+  - page: 507
+    from: "Auffassung: ‚On"
+    to: "Auffassung: „On"
+    by: scan
+  - page: 510
+    from: ®) Ich fand es früher
+    to: ²) Ich fand es früher
+    by: scan
+  - page: 515
+    from: psychischen Vorgang au f-
+    to: psychischen Vorgang auf-
+    by: scan
+  - page: 517
+    from: 1) Das Gleiche bei Pe Fe a ae
+    to: ¹) Das Gleiche bei Foucault und Tannery.
+    by: scan
+  - page: 522
+    from: was vielleic ht
+    to: was vielleicht
+    by: scan
+  - page: 524
+    from: daß ich ds Geschlechtswort
+    to: daß ich das Geschlechtswort
+    by: scan
+  - page: 524
+    from: also ds Geschlechtliche
+    to: also das Geschlechtliche
+    by: scan
+  - page: 524
+    from: naire:Lamatiere est-ellelaudable® — —a motion
+    to: "naire: La matière est-elle laudable? — — a motion"
+    by: scan
+  - page: 532
+    from: daß etwas, W28
+    to: daß etwas, was
+    by: scan
+  - page: 534
+    from: besinnen, uns ©
+    to: besinnen, uns oft
+    by: scan
+  - page: 536
+    from: nn —
+    to: ""
+    by: scan
+  - page: 536
+    from: PER maszae
+    to: ""
+    by: scan
+  - page: 536
+    from: X) Dieselben Erwägungen
+    to: ¹) Dieselben Erwägungen
+    by: scan
+  - page: 536
+    from: daß die ober
+    to: daß die ober-
+    by: scan
+  - page: 536
+    from: "(S. 62: pelerinage — Pelletier ”"
+    to: "(S. 62: pélerinage — Pelletier —"
+    by: scan
+  - page: 541
+    from: platz der Träuweleinlaaderer sen ialsideriides
+    to: platz der Träume ein anderer sei als der des
+    by: scan
+  - page: 541
+    from: dem 'Traume widmet
+    to: dem Traume widmet
+    by: scan
+  - page: 542
+    from: den >
+    to: ""
+    by: scan
+  - page: 546
+    from: auf Ybw folgende System dasjenige 15
+    to: auf Vbw folgende System dasjenige ist,
+    by: scan
+  - page: 552
+    from: großartiges Bauwer k
+    to: großartiges Bauwerk
+    by: scan
+  - page: 554
+    from: in ihm zu €
+    to: in ihm zu er-
+    by: scan
+  - page: 558
+    from: Erregung SI°
+    to: Erregung sie
+    by: scan
+  - page: 559
+    from: im Traume,. darstellt, 'muBiein in-
+    to: im Traume darstellt, muß ein in-
+    by: scan
+  - page: 561
+    from: Base do w schen
+    to: Basedowschen
+    by: scan
+  - page: 572
+    from: wiederfinden. Da®
+    to: wiederfinden. Das
+    by: scan
+  - page: 572
+    from: ?2) Von der Wunscherfüllung des Traumes rühmt Le Lorrain 2
+    to: ²) Von der Wunscherfüllung des Traumes rühmt Le Lorrain mit
+    by: scan
+  - page: 579
+    from: im Ybw gesetzte
+    to: im Vbw gesetzte
+    by: scan
+  - page: 580
+    from: den'Y-Systemen sonst
+    to: den Ψ-Systemen sonst
+    by: scan
+  - page: 506
+    from: „Cette fonction d’interpretation n’est pas particuliere au r&ve; c'est le
+    to: „Cette fonction d’interprétation n’est pas particulière au rêve; c’est le
+    by: scan
+  - page: 506
+    from: meme travail de coordination logique que nous faisons sur nos sensations
+    to: même travail de coordination logique que nous faisons sur nos sensations
+    by: scan
+  - page: 506
+    from: faire le m&me travail de coordination logique quil fait pendant la veille
+    to: faire le même travail de coordination logique qu’il fait pendant la veille
+    by: scan
+  - page: 506
+    from: images decousues et bouche les Ecarts trop grands qui se trouvaient entre
+    to: images décousues et bouche les écarts trop grands qui se trouvaient entre
+    by: scan
+  - page: 506
+    from: elles““ (p. 93).
+    to: elles“ (p. 93).
+    by: scan
+  - page: 506
+    from: "SoPaulhan (p. 547):"
+    to: "So Paulhan (p. 547):"
+    by: scan
+  - page: 506
+    from: „Cependant j’ai souvent pense qu'il pouvait y avoir une certaine de-
+    to: „Cependant j’ai souvent pensé qu’il pouvait y avoir une certaine dé-
+    by: scan
+  - page: 506
+    from: formation, ou plutöt reformation du r&ve dans le souvenir ... . La tendence
+    to: formation, ou plutôt reformation du rêve dans le souvenir... La tendence
+    by: scan
+  - page: 506
+    from: non seulement a l’aide des donnees du r&ve, mais encore a l’aide de celles
+    to: non seulement à l’aide des données du rêve, mais encore à l’aide de celles
+    by: scan
+  - page: 518
+    from: In dem 'Iraume ‚,Non vixit““ fand sich
+    to: In dem Traume „Non vixit“ fand sich
     by: scan
 freud-1942-gw-5:
   - page: 4
@@ -10266,6 +10830,10 @@ freud-1947-gw-12:
     from: Herren von ÖOchsenstein für seinen
     to: Herren von Ochsenstein für seinen
     by: reference
+  - page: 22
+    from: Zentralbl. £. Psyc
+    to: Zentralbl. f. Psyc
+    by: scan
   - page: 30
     from: muB
     to: muß
