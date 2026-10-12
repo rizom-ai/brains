@@ -3,6 +3,7 @@ import type * as Runtime from "../src/index";
 import type * as Interfaces from "../src/interfaces";
 import type * as EntityContext from "../src/entity/context";
 import type { Logger as UtilsLogger } from "@brains/utils/logger";
+import type { z } from "@brains/utils/zod";
 
 /**
  * `src/public/types.ts` is the authoring surface published as
@@ -78,9 +79,9 @@ type _IInboxFollowUpsNamespace = RuntimeSatisfiesPublic<
   Runtime.IInboxFollowUpsNamespace,
   Public.IInboxFollowUpsNamespace
 >;
-type _IInsightsNamespace = RuntimeSatisfiesPublic<
-  Runtime.IInsightsNamespace,
-  Public.IInsightsNamespace
+type _IAnalyticsNamespace = RuntimeSatisfiesPublic<
+  Runtime.IAnalyticsNamespace,
+  Public.IAnalyticsNamespace
 >;
 type _IMessageInterfaceChannelsNamespace = RuntimeSatisfiesPublic<
   Runtime.IMessageInterfaceChannelsNamespace,
@@ -142,9 +143,13 @@ type _EvalHandler = RuntimeSatisfiesPublic<
   Runtime.EvalHandler,
   Public.EvalHandler
 >;
-type _InsightHandler = RuntimeSatisfiesPublic<
-  Runtime.InsightHandler,
-  Public.InsightHandler
+type _AnalyticsReportContext = RuntimeSatisfiesPublic<
+  Runtime.AnalyticsReportContext,
+  Public.AnalyticsReportContext
+>;
+type _AnalyticsReportDefinition = RuntimeSatisfiesPublic<
+  Runtime.AnalyticsReportDefinition<z.ZodObject<{ limit: z.ZodNumber }>>,
+  Public.AnalyticsReportDefinition<z.ZodObject<{ limit: z.ZodNumber }>>
 >;
 type _urlCaptureConfigSchema = RuntimeSatisfiesPublic<
   typeof Runtime.urlCaptureConfigSchema,
@@ -222,7 +227,7 @@ export type PublicSurfaceAssertions = [
   _IIdentityNamespace,
   _IInboxNamespace,
   _IInboxFollowUpsNamespace,
-  _IInsightsNamespace,
+  _IAnalyticsNamespace,
   _IMessageInterfaceChannelsNamespace,
   _IMessagingNamespace,
   _IOperationalHealthNamespace,
@@ -237,7 +242,8 @@ export type PublicSurfaceAssertions = [
   _JobProgressEvent,
   _JudgeInput,
   _EvalHandler,
-  _InsightHandler,
+  _AnalyticsReportContext,
+  _AnalyticsReportDefinition,
   _urlCaptureConfigSchema,
   _Channel,
   _defineChannel,

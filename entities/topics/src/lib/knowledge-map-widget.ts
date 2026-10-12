@@ -111,9 +111,9 @@ export function registerKnowledgeMapDashboardWidget(params: {
           component: KnowledgeMapWidget,
           clientStyles: knowledgeMapStyles,
         },
-        load: async ({ signal }) => {
+        load: async ({ visibilityScope, signal }) => {
           signal.throwIfAborted();
-          const data = await buildKnowledgeMapData(context);
+          const data = await buildKnowledgeMapData(context, visibilityScope);
           signal.throwIfAborted();
           return data;
         },

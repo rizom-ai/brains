@@ -1,4 +1,4 @@
-import { dynamicTool, type ToolSet } from "ai";
+import { dynamicTool, jsonSchema, type Schema, type ToolSet } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
 import {
@@ -123,6 +123,34 @@ export function toModelVisibleInputSchema(
     }
   }
   return visibleSchema;
+}
+
+function toSDKInputSchema(
+  shape: ModelVisibleInputSchema,
+): Schema<Record<string, unknown>> {
+  const schema = z.strictObject(shape);
+  // The SDK's automatic Zod conversion closes every object, including
+  // records whose keys belong to plugins. Preserve Zod's actual JSON schema:
+  // strict operation branches stay closed, while field maps stay open.
+  return jsonSchema<Record<string, unknown>>(
+    () => {
+      // Zod's declared keyword types span drafts. The selected renderer
+      // produces the SDK's draft-7 contract; preserve the generated object.
+      const draft7: Record<string, unknown> = z.toJSONSchema(schema, {
+        target: "draft-7",
+        io: "input",
+      });
+      return draft7;
+    },
+    {
+      validate: async (value) => {
+        const parsed = await schema.safeParseAsync(value);
+        return parsed.success
+          ? { success: true, value: parsed.data }
+          : { success: false, error: parsed.error };
+      },
+    },
+  );
 }
 
 export function toModelToolOutput(output: unknown): {
@@ -264,7 +292,7 @@ export function convertToSDKTools(
 
     sdkTools[t.name] = dynamicTool({
       description: t.description,
-      inputSchema: z.object(
+      inputSchema: toSDKInputSchema(
         toModelVisibleInputSchema(t.inputSchema, {
           toolName: t.name,
           ...(contextInfo.enableCreateUpload !== undefined && {

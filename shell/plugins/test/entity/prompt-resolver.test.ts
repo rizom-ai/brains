@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import {
   resolvePrompt,
-  resetPromptCache,
+  resetPromptMaterialization,
 } from "../../src/entity/prompt-resolver";
 import type { IEntityService } from "@brains/entity-service";
 
@@ -11,7 +11,7 @@ describe("resolvePrompt", () => {
   let mockEntityService: Pick<IEntityService, "getEntity" | "createEntity">;
 
   beforeEach(() => {
-    resetPromptCache();
+    resetPromptMaterialization();
     mockGetEntity = mock();
     mockCreateEntity = mock(() =>
       Promise.resolve({ entityId: "test", jobId: "" }),
@@ -42,6 +42,24 @@ describe("resolvePrompt", () => {
       entityType: "prompt",
       id: "blog-generation",
     });
+  });
+
+  it("reads an edited prompt on the next call", async () => {
+    const prompt = (body: string): Record<string, unknown> => ({
+      id: "blog-generation",
+      entityType: "prompt",
+      content: `---\ntitle: Blog Generation\ntarget: blog:generation\n---\n${body}`,
+      metadata: {},
+    });
+    mockGetEntity.mockResolvedValue(prompt("First."));
+    expect(
+      await resolvePrompt(mockEntityService, "blog:generation", "fallback"),
+    ).toBe("First.");
+
+    mockGetEntity.mockResolvedValue(prompt("Edited."));
+    expect(
+      await resolvePrompt(mockEntityService, "blog:generation", "fallback"),
+    ).toBe("Edited.");
   });
 
   it("should return fallback when no prompt entity exists", async () => {

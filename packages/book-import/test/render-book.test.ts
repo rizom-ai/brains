@@ -91,9 +91,9 @@ describe("renderBook", () => {
 
     expect(files.map((file) => file.path)).toEqual([
       "book/erfundenes-buch.md",
-      "book-section/erfundenes-buch/00001-vorrede.md",
-      "book-section/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
-      "book-section/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
+      "book/erfundenes-buch/00001-vorrede.md",
+      "book/erfundenes-buch/00002-erstes-hauptstueck/00002-ueber-das-erfinden.md",
+      "book/erfundenes-buch/00002-erstes-hauptstueck/00003-groessere-fragen.md",
     ]);
     expect(frontmatterOf(files[2]?.markdown ?? "")).toMatchObject({
       title: "Über das Erfinden",
@@ -164,6 +164,11 @@ describe("renderBook", () => {
       const body = file.markdown.split("---\n").slice(2).join("---\n");
       expect(Buffer.byteLength(body.trim(), "utf8")).toBeLessThanOrEqual(8000);
     }
+    // The book still has one section, whose second entry continues the first.
+    expect(bookOf(files[0]?.markdown ?? "")).toMatchObject({
+      sections: 1,
+      continuations: [2],
+    });
   });
 
   it("splits a single paragraph over 8,000 bytes at sentence boundaries", () => {

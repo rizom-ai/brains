@@ -45,6 +45,7 @@ function book(
       published: null,
       length: null,
       sections: null,
+      continuations: [],
       shortTitle: null,
       ...extra,
     },
@@ -228,6 +229,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={section("erstes", 1, "Anfang")}
         next={section("erstes", 3, "Ende")}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -251,6 +253,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={section("erstes", 1, "Anfang")}
         next={section("erstes", 3, "Ende")}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -378,6 +381,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -393,6 +397,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -437,6 +442,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -447,6 +453,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -468,6 +475,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -483,6 +491,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={section("erstes", 3, "S-3")}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -502,6 +511,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -519,6 +529,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[
           { id: "mitleid", title: "Mitleid" },
@@ -541,6 +552,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -556,6 +568,7 @@ describe("Book pages", () => {
         book={erstes}
         prev={null}
         next={null}
+        position={2}
         total={3}
         themes={[]}
       />,
@@ -654,6 +667,26 @@ describe("The score as the book's contents", () => {
     expect(html.indexOf("Die Reden")).toBeLessThan(
       html.indexOf("Von den drei Verwandlungen"),
     );
+  });
+
+  test("names a book that is one undivided text by its title", () => {
+    order = 0;
+    const html = score([
+      unit("Titel", [], "NJ-[Titel]"),
+      unit("[1]", [], "NJ-1"),
+      unit("[1]", [], "NJ-1"),
+    ]);
+
+    expect(html).toMatch(labelled(2, "Erstes Buch"));
+    expect(html).not.toMatch(/>1</);
+    expect(html.match(/style="height:/g)).toHaveLength(3);
+  });
+
+  test("keeps a range when a book is one run of several numbered sections", () => {
+    order = 0;
+    const html = score([unit("1"), unit("2"), unit("3")]);
+
+    expect(html).toMatch(labelled(1, "1–3"));
   });
 
   test("draws a book's own title page on its opening line, not a line of its own", () => {

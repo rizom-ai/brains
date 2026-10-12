@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
   collectModelRuns,
+  collectModelSamples,
   exitCodeForModelRuns,
   succeededRuns,
 } from "../src/multi-model-runner";
-import type { EvaluationSummary } from "../src/schemas";
+import type { EvaluationResult, EvaluationSummary } from "../src/schemas";
 
 /**
  * The per-model loop, without booting anything. Each model's run is faked, so
@@ -81,6 +82,46 @@ describe("collectModelRuns", () => {
   });
 });
 
+function run(testCaseId: string, passed: boolean): EvaluationResult {
+  return {
+    testCaseId,
+    testCaseName: testCaseId,
+    passed,
+    timestamp: "2026-10-08T00:00:00.000Z",
+    turnResults: [],
+    totalMetrics: {
+      promptTokens: 1,
+      completionTokens: 1,
+      totalTokens: 2,
+      toolCallCount: 0,
+      durationMs: 1,
+      turnCount: 1,
+    },
+    failures: [],
+  };
+}
+
+describe("collectModelSamples", () => {
+  it("runs each sample in order in its own environment and merges them", async () => {
+    const started: number[] = [];
+    const merged = await collectModelSamples(3, async (sampleIndex) => {
+      started.push(sampleIndex);
+      return summary({
+        totalTests: 1,
+        passedTests: sampleIndex === 1 ? 0 : 1,
+        failedTests: sampleIndex === 1 ? 1 : 0,
+        results: [run("flaky", sampleIndex !== 1)],
+      });
+    });
+    expect(started).toEqual([0, 1, 2]);
+    expect(merged.results.map((result) => result.passed)).toEqual([
+      true,
+      false,
+      true,
+    ]);
+  });
+});
+
 describe("succeededRuns", () => {
   it("passes only the models that produced a summary to the reporter", async () => {
     const outcomes = await collectModelRuns(
@@ -111,7 +152,14 @@ describe("exitCodeForModelRuns", () => {
     expect(
       exitCodeForModelRuns([
         { model: "sonnet", summary: summary() },
-        { model: "opus", summary: summary({ failedTests: 1, passedTests: 2 }) },
+        {
+          model: "opus",
+          summary: summary({
+            failedTests: 1,
+            passedTests: 2,
+            results: [run("a", true), run("b", true), run("c", false)],
+          }),
+        },
       ]),
     ).toBe(1);
   });
@@ -129,5 +177,38 @@ describe("exitCodeForModelRuns", () => {
 
   it("fails when no model ran", () => {
     expect(exitCodeForModelRuns([])).toBe(1);
+  });
+
+  it("fails when a model ran no tests", () => {
+    // A filter that matches nothing must not read as a pass, as on the
+    // single-model path.
+    expect(
+      exitCodeForModelRuns([
+        {
+          model: "sonnet",
+          summary: summary({
+            totalTests: 0,
+            passedTests: 0,
+            failedTests: 0,
+            results: [],
+          }),
+        },
+      ]),
+    ).toBe(1);
+  });
+
+  it("judges sampled tests by their pass rate", () => {
+    const sampled = summary({
+      totalTests: 5,
+      passedTests: 4,
+      failedTests: 1,
+      results: [true, false, true, true, true].map((passed) =>
+        run("flaky", passed),
+      ),
+    });
+    const outcomes = [{ model: "sonnet", summary: sampled }];
+    expect(exitCodeForModelRuns(outcomes)).toBe(1);
+    expect(exitCodeForModelRuns(outcomes, 0.8)).toBe(0);
+    expect(exitCodeForModelRuns(outcomes, 0.9)).toBe(1);
   });
 });

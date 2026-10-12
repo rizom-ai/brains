@@ -65,6 +65,8 @@ export class BookPlugin extends EntityPlugin<
         // Ids carry zero-padded reading order.
         defaultSort: [{ field: "id", direction: "asc" }],
         actionPolicy: READ_ONLY,
+        // A section lives in its book: stored, shown and deleted with it.
+        containedIn: bookAdapter.entityType,
       },
     );
   }

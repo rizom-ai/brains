@@ -230,6 +230,7 @@ function createHarness(transport: Transport, initialPath: string): Harness {
     currentStudioPathname: history.location.pathname,
     createMode: false,
     entityType: "note",
+    collectionType: "note",
     activeType: noteType,
     entityCollectionQuery: studioCollectionQuerySchema.parse({}),
     preferredMobilePane,
@@ -320,6 +321,23 @@ describe("useEntityOpener", () => {
       save: { kind: "saved" },
     });
     expect(transport.entityFetches).toEqual([]);
+  });
+
+  it("opens an entry by its own type, returning to the collection it was listed in", async () => {
+    const transport = createTransport();
+    const harness = createHarness(transport, "/studio/entities/note");
+    await harness.render();
+
+    await act(async () =>
+      harness.opener().openEntity("n1:s1", { kind: "idle" }, "memo"),
+    );
+
+    expect(harness.history.location.pathname).toBe(
+      "/studio/entities/memo/n1%3As1",
+    );
+    expect(harness.history.location.state).toMatchObject({
+      studioCollectionPath: "/studio/entities/note",
+    });
   });
 
   it("re-runs the open on retry and ignores results after supersession", async () => {

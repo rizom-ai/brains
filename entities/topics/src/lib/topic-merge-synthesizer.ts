@@ -11,10 +11,13 @@ import {
 const adapter = new TopicAdapter();
 
 export interface ITopicMergeSynthesizer {
-  synthesize(params: {
-    existingTopic: TopicEntity;
-    incomingTopic: ExtractedTopicData;
-  }): Promise<TopicMergeSynthesisResult>;
+  synthesize(
+    params: {
+      existingTopic: TopicEntity;
+      incomingTopic: ExtractedTopicData;
+    },
+    signal?: AbortSignal,
+  ): Promise<TopicMergeSynthesisResult>;
 }
 
 export class TopicMergeSynthesizer implements ITopicMergeSynthesizer {
@@ -25,10 +28,13 @@ export class TopicMergeSynthesizer implements ITopicMergeSynthesizer {
     this.logger = logger;
   }
 
-  async synthesize(params: {
-    existingTopic: TopicEntity;
-    incomingTopic: ExtractedTopicData;
-  }): Promise<TopicMergeSynthesisResult> {
+  async synthesize(
+    params: {
+      existingTopic: TopicEntity;
+      incomingTopic: ExtractedTopicData;
+    },
+    signal?: AbortSignal,
+  ): Promise<TopicMergeSynthesisResult> {
     const existingParsed = adapter.parseTopicBody(params.existingTopic.content);
 
     this.logger.debug("Synthesizing merged topic", {
@@ -51,6 +57,7 @@ Content:
 ${params.incomingTopic.content}`,
       },
       topicMergeSynthesisSchema,
+      signal,
     );
   }
 }

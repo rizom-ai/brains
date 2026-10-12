@@ -18,6 +18,7 @@ import {
   operatorNoticeBlockSchema as noticeBlockSchema,
   operatorTextBlockSchema as textBlockSchema,
   operatorMeterBlockSchema as meterBlockSchema,
+  operatorSeriesBlockSchema as seriesBlockSchema,
   operatorProgressBlockSchema as progressBlockSchema,
 } from "./operator-view-contract";
 import type {
@@ -411,6 +412,7 @@ const dashboardPanelBlockSchema = z.union([
   flowBlockSchema,
   meterBlockSchema,
   progressBlockSchema,
+  seriesBlockSchema,
   linksBlockSchema,
   listBlockSchema,
   tableBlockSchema,
@@ -709,6 +711,7 @@ const studioPanelBlockSchema = z.union([
   flowBlockSchema,
   meterBlockSchema,
   progressBlockSchema,
+  seriesBlockSchema,
   queryBlockSchema,
   linksBlockSchema,
   studioListBlockSchema,

@@ -64,6 +64,16 @@ export const playbookTransitionSchema: z.ZodType<PlaybookTransition> = z.object(
   },
 );
 
+/**
+ * What besides entity events can prove a step done. `reply`: the assistant's
+ * saved reply in this run, for steps whose outcome is an answer in chat.
+ */
+export const playbookProofSourceSchema: z.ZodEnum<{ reply: "reply" }> = z.enum([
+  "reply",
+]);
+
+export type PlaybookProofSource = z.output<typeof playbookProofSourceSchema>;
+
 export interface PlaybookState {
   id: string;
   title: string;
@@ -71,6 +81,7 @@ export interface PlaybookState {
   requiredDetails: string[];
   instructions: string[];
   doneWhen: string[];
+  provenBy?: PlaybookProofSource[] | undefined;
   transitions: PlaybookTransition[];
 }
 
@@ -81,6 +92,7 @@ export const playbookStateSchema: z.ZodType<PlaybookState> = z.object({
   requiredDetails: z.array(z.string().min(1)).default([]),
   instructions: z.array(z.string().min(1)).default([]),
   doneWhen: z.array(z.string().min(1)).default([]),
+  provenBy: z.array(playbookProofSourceSchema).min(1).optional(),
   transitions: z.array(playbookTransitionSchema).default([]),
 });
 

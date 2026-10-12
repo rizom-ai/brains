@@ -1,5 +1,5 @@
 import type { IRuntimeStateNamespace } from "@brains/plugins";
-import { Chat } from "chat";
+import { Chat, type Adapter } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
@@ -45,6 +45,12 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
       })
     : undefined;
   if (discordAdapter) options.gatewayLoop.setAdapter(discordAdapter);
+  // Under exactOptionalPropertyTypes, the Chat SDK adapters' botUserId
+  // (string | undefined) does not satisfy Adapter's optional botUserId (absent
+  // or string). The runtime contract is the same.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: no honest type describes the vendored adapter under this compiler option
+  const compatibleDiscordAdapter = discordAdapter as
+    (DiscordChatAdapter & Adapter) | undefined;
 
   const slackAdapter = slack
     ? createSlackAdapter(
@@ -66,16 +72,17 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
             },
       )
     : undefined;
-  // Chat SDK 4.33's SlackAdapter declares botUserId optional while its Adapter
-  // contract declares it required. Runtime initialization resolves the value.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: the vendored SDK contradicts itself between SlackAdapter and Adapter, so no honest type describes what it returns
+  // Under exactOptionalPropertyTypes, the Chat SDK adapters' botUserId
+  // (string | undefined) does not satisfy Adapter's optional botUserId (absent
+  // or string). The runtime contract is the same.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: no honest type describes the vendored adapter under this compiler option
   const compatibleSlackAdapter = slackAdapter as SlackChatAdapter | undefined;
   if (compatibleSlackAdapter && slack?.mode === "socket") {
     options.slackSocketLoop.setAdapter(compatibleSlackAdapter);
   }
 
   const adapters = {
-    ...(discordAdapter ? { discord: discordAdapter } : {}),
+    ...(compatibleDiscordAdapter ? { discord: compatibleDiscordAdapter } : {}),
     ...(compatibleSlackAdapter ? { slack: compatibleSlackAdapter } : {}),
   } satisfies ChatAdapterMap;
   const enabledPlatforms = [

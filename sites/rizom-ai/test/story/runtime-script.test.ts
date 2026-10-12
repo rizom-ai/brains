@@ -141,7 +141,7 @@ describe("the opening listens to the network's answer", () => {
           <section class="chapter chapter--opening" id="hero">
             <div class="ask"><div data-ask-box="">
               <ul class="brain-box-sources">
-                <li data-ask-source="network-piece:becca/post/handoffs"><a href="#">Handoffs</a></li>
+                <li data-ask-source="post:handoffs"><a href="#">Handoffs</a></li>
                 <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
               </ul>
             </div></div>
@@ -184,11 +184,11 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },
       },
       {
-        id: "network-piece:jo/note/x",
+        id: "note:x",
         brain: { name: "Jo", url: "https://jo.rizom.ai/" },
       },
     ]);
@@ -216,7 +216,7 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       { id: "post:what-a-brain-is" },
-      { id: "network-piece:sam/note/y", brain: { name: "sam" } },
+      { id: "note:y", brain: { name: "sam" } },
     ]);
     expect(layer().contains("is-rizom")).toBe(true);
     expect(lit()).toEqual(["sam.rizom.ai"]);
@@ -226,7 +226,7 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },
       },
     ]);
@@ -235,7 +235,7 @@ describe("the opening listens to the network's answer", () => {
     expect(layer().contains("has-replies")).toBe(false);
     answer([
       {
-        id: "network-piece:jo/note/x",
+        id: "note:x",
         brain: { name: "Jo", url: "https://jo.rizom.ai" },
       },
     ]);
@@ -246,12 +246,12 @@ describe("the opening listens to the network's answer", () => {
     opening();
     answer([
       {
-        id: "network-piece:becca/post/handoffs",
+        id: "post:handoffs",
         brain: { name: "Becca", url: "https://becca.rizom.ai" },
       },
     ]);
     const row = window.document.querySelector(
-      '[data-ask-source="network-piece:becca/post/handoffs"]',
+      '[data-ask-source="post:handoffs"]',
     );
     if (!row) throw new Error("Missing source row");
     row.dispatchEvent(new window.Event("mouseover", { bubbles: true }));
@@ -275,7 +275,7 @@ describe("the Asked-before chapter lights the network", () => {
   const brains = ["becca.rizom.ai", "jo.rizom.ai"];
   const kept = JSON.stringify([
     {
-      id: "network-piece:plc-peer--post--3kabc",
+      id: "post:handoffs",
       title: "Handoffs",
       brain: { name: "Becca", url: "https://becca.rizom.ai/" },
     },
@@ -305,7 +305,7 @@ describe("the Asked-before chapter lights the network", () => {
               <details name="asked" data-ask-answer='${kept}'>
                 <summary>How do brains hand work over?</summary>
                 <ul class="asked__sources">
-                  <li data-ask-source="network-piece:plc-peer--post--3kabc" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
+                  <li data-ask-source="post:handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
                 </ul>
               </details>
               <details name="asked" data-ask-answer="[]">
@@ -429,7 +429,7 @@ describe("the drawing belongs to the page while an answer is open", () => {
               <div class="brain-box-scroll">
                 <div class="brain-box-dock" data-ask-dock=""></div>
                 <ul class="brain-box-sources">
-                  <li data-ask-source="network-piece:becca/post/handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
+                  <li data-ask-source="post:handoffs" data-ask-brain="Becca"><a href="#">Handoffs</a></li>
                   <li data-ask-source="post:what-a-brain-is"><a href="#">What a brain is</a></li>
                 </ul>
               </div>
@@ -515,7 +515,7 @@ describe("the drawing belongs to the page while an answer is open", () => {
       (path) => [path.getAttribute("data-lead"), path.getAttribute("d")],
     );
   const becca = {
-    id: "network-piece:becca/post/handoffs",
+    id: "post:handoffs",
     brain: { name: "Becca", url: "https://becca.rizom.ai" },
   };
 
@@ -530,10 +530,7 @@ describe("the drawing belongs to the page while an answer is open", () => {
         ?.getAttribute("viewBox"),
     ).toBe("0 0 1440 900");
     expect(leads()).toEqual([
-      [
-        "network-piece:becca/post/handoffs",
-        "M386 412 C645 412 645 213 904 213",
-      ],
+      ["post:handoffs", "M386 412 C645 412 645 213 904 213"],
     ]);
     answer([]);
     expect(leads()).toEqual([]);

@@ -7,6 +7,8 @@ import { baseEntitySchema } from "@brains/entity-service";
 import type { IShell } from "@brains/plugins";
 import { PluginManager } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
+import { defineAnalyticsReport } from "../../src";
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
   let settle: (() => void) | undefined;
@@ -437,9 +439,14 @@ describe("Plugin shutdown lifecycle", () => {
         shell.getAttachmentRegistry().register("failed-entity", "preview", {
           resolve: () => undefined,
         });
-        shell
-          .getInsightsRegistry()
-          .register("failed-insight", async () => ({}));
+        shell.getAnalyticsRegistry().register(
+          defineAnalyticsReport({
+            type: "failed-report",
+            description: "Never kept.",
+            params: z.object({}),
+            handler: async () => ({}),
+          }),
+        );
         shell.getInboxFollowUpRegistry().registerKind("failing-registration", {
           kind: "failed-follow-up",
           label: "Failed follow-up",
@@ -472,9 +479,12 @@ describe("Plugin shutdown lifecycle", () => {
     expect(
       mockShell.getAttachmentRegistry().hasProvider("failed-entity", "preview"),
     ).toBe(false);
-    expect(mockShell.getInsightsRegistry().getTypes()).not.toContain(
-      "failed-insight",
-    );
+    expect(
+      mockShell
+        .getAnalyticsRegistry()
+        .getDefinitions()
+        .map((definition) => definition.type),
+    ).not.toContain("failed-report");
     mockShell.getInboxFollowUpRegistry().finalize();
     expect(mockShell.getInboxFollowUpRegistry().listKinds()).toEqual([]);
     expect(shutdownMock).toHaveBeenCalledTimes(1);

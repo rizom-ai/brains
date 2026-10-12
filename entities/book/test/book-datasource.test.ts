@@ -9,9 +9,9 @@ import type { Book } from "../src/schemas/book";
 import type { BookSection } from "../src/schemas/book-section";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 
-function book(id: string, title: string): Book {
+function book(id: string, title: string, extra = ""): Book {
   const content = `---
-title: ${title}
+title: ${title}${extra}
 source: https://example.org/${id}
 author: Erfundener Autor
 year: 1888
@@ -39,12 +39,13 @@ function section(
   bookId: string,
   order: number,
   title: string,
+  siglum = `S-${order}`,
 ): BookSection {
   const content = `---
 title: ${title}
 book: ${bookId}
 order: ${order}
-section: S-${order}
+section: ${siglum}
 page: null
 source: https://example.org/${bookId}/${order}
 ---
@@ -160,6 +161,72 @@ describe("BookDataSource", () => {
       headings: [],
     });
     expect(result.score[0].length).toBeGreaterThan(0);
+  });
+
+  describe("a section split for length", () => {
+    // Section S-2 is long: its entries 2, 3 and 4 are one section.
+    beforeEach(() => {
+      shell.addEntities([
+        book("langes", "Langes Buch", "\nsections: 3\ncontinuations: [3, 4]"),
+        section("langes:0001-a", "langes", 1, "A"),
+        section("langes:0002-b", "langes", 2, "B", "S-2"),
+        section("langes:0003-b", "langes", 3, "B", "S-2"),
+        section("langes:0004-b", "langes", 4, "B", "S-2"),
+        section("langes:0005-c", "langes", 5, "C", "S-3"),
+      ]);
+    });
+    const page = z.object({
+      section: z.any(),
+      prev: z.any(),
+      next: z.any(),
+      position: z.number(),
+      total: z.number(),
+    });
+
+    it("reads as one section from any of its entries", async () => {
+      const result = await datasource.fetch(
+        { entityType: "book-section", query: { id: "langes/3" } },
+        page,
+        context,
+      );
+
+      expect(result.section.metadata.slug).toBe("langes/2");
+      expect(result.section.body).toContain("Erfundener Text 2.");
+      expect(result.section.body).toContain("Erfundener Text 3.");
+      expect(result.section.body).toContain("Erfundener Text 4.");
+      expect(result.prev.metadata.slug).toBe("langes/1");
+      expect(result.next.metadata.slug).toBe("langes/5");
+      expect(result.position).toBe(2);
+      expect(result.total).toBe(3);
+    });
+
+    it("steps back to the start of the section before", async () => {
+      const result = await datasource.fetch(
+        { entityType: "book-section", query: { id: "langes/5" } },
+        page,
+        context,
+      );
+
+      expect(result.prev.metadata.slug).toBe("langes/2");
+      expect(result.position).toBe(3);
+    });
+
+    it("scores it once, at its whole length", async () => {
+      const result = await datasource.fetch(
+        { entityType: "book", query: { id: "langes" } },
+        z.object({ score: z.array(z.any()) }),
+        context,
+      );
+
+      expect(result.score.map((s: { slug: string }) => s.slug)).toEqual([
+        "langes/1",
+        "langes/2",
+        "langes/5",
+      ]);
+      expect(result.score[1].length).toBe(
+        3 * Buffer.byteLength("Erfundener Text 2.", "utf8"),
+      );
+    });
   });
 
   describe("themes", () => {

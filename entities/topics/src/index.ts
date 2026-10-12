@@ -29,7 +29,7 @@ import { TopicsDataSource } from "./datasources/topics-datasource";
 import { KnowledgeMapDataSource } from "./datasources/knowledge-map-datasource";
 import { getKnowledgeMapTemplate } from "./templates/knowledge-map-template";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
-import { createTopicDistributionInsight } from "./insights/topic-distribution";
+import { createTopicDistributionReport } from "./reports/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
 import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
@@ -180,10 +180,8 @@ export class TopicsPlugin extends EntityPlugin<
         return { success: true, data: { titles } };
       },
     );
-    // Insights
-    context.insights.register(
-      "topic-distribution",
-      createTopicDistributionInsight({
+    context.analytics.register(
+      createTopicDistributionReport({
         isSourceType: (type, entityService) =>
           this.shouldProcessEntityType(type, entityService),
         autoExtraction: this.config.enableAutoExtraction,

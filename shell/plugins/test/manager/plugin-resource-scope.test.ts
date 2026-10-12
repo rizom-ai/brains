@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { describe, expect, it, mock } from "bun:test";
 import { baseEntitySchema } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
@@ -34,7 +35,12 @@ describe("Plugin resource acquisition", () => {
             .getDataSourceRegistry()
             .register({ id: "late", name: "Late source" }),
         (): unknown =>
-          scoped.getInsightsRegistry().register("late", async () => ({})),
+          scoped.getAnalyticsRegistry().register({
+            type: "late",
+            description: "Too late.",
+            params: z.object({}),
+            handler: async () => ({}),
+          }),
         (): unknown =>
           scoped
             .getOperationalHealthRegistry()
@@ -69,7 +75,12 @@ describe("Plugin resource acquisition", () => {
         ).toBe(false);
         expect(shell.getEntityRegistry().hasEntityType("late")).toBe(false);
         expect(shell.getDataSourceRegistry().has("shell:late")).toBe(false);
-        expect(shell.getInsightsRegistry().getTypes()).not.toContain("late");
+        expect(
+          shell
+            .getAnalyticsRegistry()
+            .getDefinitions()
+            .map((definition) => definition.type),
+        ).not.toContain("late");
         expect(await shell.getOperationalHealthRegistry().getChecks()).toEqual(
           [],
         );

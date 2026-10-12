@@ -32,7 +32,7 @@ It follows the domain-plugin model in `docs/architecture-overview.md` (multi-tar
 ### Id path
 
 - `brain-data/book/<book>.md` → id `<book>`: the book's details and table of contents.
-- `brain-data/book-section/<book>/<nnnnn>-<slug>.md` → id `<book>:<nnnnn>-<slug>`; headings become folders named after the order of their first section, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`. `<nnnnn>` is five-digit reading order within the book, from 1, so id order is reading order.
+- `brain-data/book/<book>/<nnnnn>-<slug>.md` → a `book-section` with id `<book>:<nnnnn>-<slug>`: sections are contained in their book, so they live in its folder; headings become folders named after the order of their first section, e.g. `traumdeutung:00412-die-traumarbeit:00415-die-darstellungsmittel-des-traums`. `<nnnnn>` is five-digit reading order within the book, from 1, so id order is reading order.
 
 ### Frontmatter
 
@@ -73,14 +73,14 @@ Book brains get a purpose-built reading site, not the default site with books ad
 
 Interface in English; texts, quotes, titles, sigla and Nietzsche's own terms stay German (`lang="de"`). The pages live in `@brains/book`'s own templates, so every book brain gets them: `book-list` is the horizon, `book-detail` a book's score, `book-section-detail` the reading page. `@rizom/site-books` supplies layout, routes (`/` is the horizon) and `entityDisplay`; `@rizom/theme-books` supplies fonts, paper/ink/red-pencil tokens and dark mode.
 
-Topics are named in the author's own terms: each book brain's content carries a `prompt` entry targeting `topics:extraction` that asks for the author's concepts in the source language (Mitleid, Ressentiment, Wille zur Macht), at the level of a concept, and no topic named after the author or a whole book's subject. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `book:theme` through `entityDisplay.topic.detailTemplate`). Both read related sections with `nearestToEntity`, one store query by cosine distance from a stored vector, so a full build stays linear: Nietzsche's 3,705 sections build in about a minute and a half.
+Topics are the brain's interface to other brains: each is published as an `ai.rizom.brain.topic` record, and the brain's agent card derives its skills from their titles, which other brains match against when they look for expertise. A book brain's topics therefore use the default extraction prompt and name concepts in the network's shared language, so a brain asking about resentment finds Friedrich; the author's own terms (Mitleid, Ressentiment) belong to the reading pages, not to topic identity. A section's margin lists its nearest topics by stored embedding; a topic's page is its theme traced across the books (the site renders `topic` with `book:theme` through `entityDisplay.topic.detailTemplate`). Both read related sections with `nearestToEntity`, one store query by cosine distance from a stored vector, so a full build stays linear: Nietzsche's 3,705 sections build in about a minute and a half.
 
 Ask lives at `/ask` (`book:ask`): the guest box under the site's name, and a rail listing the passages an answer cites by siglum, book and year. A reading page offers "Ask about AC-2", which starts the question with the siglum. The books site marks only `book-section` citable, so a book's contents are never a source; a cited section is titled by its siglum (`pageTitle`). The book plugin's instructions tell the agent to search the sections first, cite by siglum and book, quote verbatim, and say when the books do not address a question. Turning Ask on for a deployed brain is the owner's budgeted switch in Studio.
 
 ### Entity type config
 
 - Both types: `actionPolicy` `never` for create, update, delete, extract and publish — the agent reads and cites, never edits; the importer writes through directory-sync.
-- `book-section`: `projectionSourceRole: "canonical"` — a book brain's sections are its primary texts; its topics map their themes. `defaultSort`: `id` ascending — reading order for `system_list`.
+- `book-section`: `containedIn: "book"` — stored in its book's folder, shown under it in Studio, deleted with it. `projectionSourceRole: "canonical"` — a book brain's sections are its primary texts; its topics map their themes. `defaultSort`: `id` ascending — reading order for `system_list`.
 - `book`: `projectionSource: false` — a book's contents are no text to extract topics from.
 
 Action policy is enforced in the `system_*` tools, Studio and the operator surface, not in the entity service, so directory-sync writes books unhindered.

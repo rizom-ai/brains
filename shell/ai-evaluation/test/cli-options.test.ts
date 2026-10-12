@@ -21,6 +21,24 @@ describe("cli options", () => {
     expect(parseSingleFlag(args, "--tags")).toBeUndefined();
   });
 
+  it("parses repeated sampling options", () => {
+    expect(
+      parseCliOptions(["--samples", "5", "--min-pass-rate", "0.8"]),
+    ).toMatchObject({ samples: 5, minPassRate: 0.8 });
+    expect(parseCliOptions([])).not.toHaveProperty("samples");
+    expect(parseCliOptions([])).not.toHaveProperty("minPassRate");
+  });
+
+  it.each([
+    ["--samples", "0"],
+    ["--samples", "1.5"],
+    ["--samples", "five"],
+    ["--min-pass-rate", "0"],
+    ["--min-pass-rate", "1.2"],
+  ])("rejects invalid %s %s", (flag, value) => {
+    expect(() => parseCliOptions([flag, value])).toThrow();
+  });
+
   it("parses evaluation options", () => {
     const options = parseCliOptions([
       "--skip-llm-judge",

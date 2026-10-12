@@ -361,6 +361,57 @@ describe("canonical eval recipe ladder", () => {
     }
   }, 120_000);
 
+  test("the onboarding playbook's anchor-profile shape is a valid profile", async () => {
+    // The playbook tells the model exactly which frontmatter to write; if that
+    // shape and the profile schema drift apart, every onboarding save fails.
+    const selection = suiteSelection("professional");
+    const { app } = createSuiteApp(
+      "professional",
+      selection,
+      seedContentPath(selection),
+    );
+    try {
+      await initializeImported(app);
+      const service = app.getShell().getEntityService();
+      const playbook = await service.getEntity({
+        entityType: "playbook",
+        id: "onboarding",
+        visibilityScope: internalFullScope("onboarding playbook shape check"),
+      });
+      if (!playbook) throw new Error("Missing onboarding playbook");
+      const instruction = playbook.content
+        .split("\n")
+        .find((line) =>
+          line.includes("Use this exact frontmatter shape for anchor-profile"),
+        );
+      if (!instruction) throw new Error("Missing anchor-profile shape");
+      const keys = [...instruction.matchAll(/`([a-z]+):(?: [^`]*)?`/g)].map(
+        (match) => match[1] ?? "",
+      );
+      expect(keys).toContain("name");
+      const markdown = [
+        "---",
+        ...keys.map((key) =>
+          key === "expertise"
+            ? "expertise:\n  - resilient software"
+            : `${key}: sample`,
+        ),
+        "---",
+        "",
+      ].join("\n");
+      const profile = await service.getEntity({
+        entityType: "anchor-profile",
+        id: "anchor-profile",
+        visibilityScope: internalFullScope("onboarding playbook shape check"),
+      });
+      if (!profile) throw new Error("Missing anchor profile");
+      // The same save system_update performs when the operator approves.
+      await service.updateEntity({ entity: { ...profile, content: markdown } });
+    } finally {
+      await app.stop();
+    }
+  }, 120_000);
+
   test.each(["content", "edits"])(
     "persists a note title/body %s update exactly after approval",
     async (mode) => {
@@ -394,17 +445,19 @@ describe("canonical eval recipe ladder", () => {
           {
             entityType: "note",
             id,
-            ...(mode === "content"
-              ? { content: expected }
-              : {
-                  edits: [
-                    { oldText: "# Working Plan", newText: "# Approved Plan" },
-                    {
-                      oldText: "Review cadence: monthly.",
-                      newText: "Review cadence: weekly.",
-                    },
-                  ],
-                }),
+            operation:
+              mode === "content"
+                ? { kind: "content", content: expected }
+                : {
+                    kind: "edits",
+                    edits: [
+                      { oldText: "# Working Plan", newText: "# Approved Plan" },
+                      {
+                        oldText: "Review cadence: monthly.",
+                        newText: "Review cadence: weekly.",
+                      },
+                    ],
+                  },
           },
           context,
         );
@@ -611,11 +664,14 @@ describe("canonical eval recipe ladder", () => {
         {
           entityType: "note",
           id: "mcp-verbatim-update",
-          source: {
-            kind: "user-message",
-            boundaryMode: "lines",
-            startAfter,
-            endBefore,
+          operation: {
+            kind: "source",
+            source: {
+              kind: "user-message",
+              boundaryMode: "lines",
+              startAfter,
+              endBefore,
+            },
           },
         },
         context,
@@ -627,9 +683,12 @@ describe("canonical eval recipe ladder", () => {
         })
         .parse(proposal);
       expect(approval.args).toMatchObject({
-        source: { contentHash: computeContentHash(content) },
+        operation: {
+          kind: "source",
+          source: { contentHash: computeContentHash(content) },
+        },
       });
-      expect(approval.args).not.toHaveProperty("content");
+      expect(approval.args).not.toHaveProperty(["operation", "content"]);
       await conversations.addMessage({
         conversationId,
         role: "user",

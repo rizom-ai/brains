@@ -66,6 +66,8 @@ To do:
 - After the chat transformation, say the onboarding loop is complete: Brain saved a seed, retrieved it, and transformed it into useful working material.
 - Do not publish anything unless the operator explicitly asks and confirms the publishing action.
 
+Proven by: reply
+
 Done when:
 
 - The saved note has been retrieved and transformed in chat.

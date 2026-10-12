@@ -6,6 +6,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { pointOriginAt, stallingRemote } from "../real-git";
 import { sha256Hex } from "@brains/utils/hash";
 import { CheckoutOperationExecutor } from "../../../src/lib/broker/checkout-executor";
+import { atomicWriteTempPath } from "../../../src/lib/atomic-write";
 
 /**
  * The executor is where ownership lives: one queue turn per semantic
@@ -68,6 +69,24 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LINUX)("checkout operation executor", () => {
+  it("keeps an in-flight atomic write out of git", async () => {
+    scratch = await mkdtemp(join(tmpdir(), "checkout-executor-"));
+    const dataDir = join(scratch, "checkout");
+    const executor = executorFor(dataDir);
+
+    await executor.execute({ name: "initialize" });
+    await executor.execute({ name: "initialize" });
+    await writeFile(atomicWriteTempPath(join(dataDir, "note.md")), "partial");
+
+    expect(await executor.execute({ name: "has-local-changes" })).toBe(false);
+    const excludes = (
+      await Bun.file(join(dataDir, ".git", "info", "exclude")).text()
+    )
+      .split("\n")
+      .filter((line) => line.includes("brains-write"));
+    expect(excludes).toHaveLength(1);
+  });
+
   it("runs the operations callers need", async () => {
     scratch = await mkdtemp(join(tmpdir(), "checkout-executor-"));
     const dataDir = join(scratch, "checkout");

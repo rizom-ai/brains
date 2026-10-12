@@ -7,7 +7,11 @@ import {
 } from "../base/dashboard-namespace";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "./account-settings-registry";
-import { createOperatorContext } from "./operator-context-runtime";
+import {
+  callerVisibilityScope,
+  createOperatorContext,
+} from "./operator-context-runtime";
+import type { ContentVisibility } from "@brains/entity-service";
 import {
   getDashboardWidgetLoader,
   type AnyDashboardWidgetDefinition,
@@ -260,6 +264,8 @@ export async function registerBuiltInDashboardWidget<
   readonly definition: TDefinition;
   readonly load: (provider: {
     readonly caller: OperatorCaller | null;
+    /** What the caller may read: pass it to every entity read. */
+    readonly visibilityScope: ContentVisibility;
     readonly signal: AbortSignal;
   }) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
   readonly render?: DashboardWidgetRenderer | undefined;
@@ -270,7 +276,12 @@ export async function registerBuiltInDashboardWidget<
   }
   const binding = input.definition.bind(
     builtInBindingContext,
-    ({ caller, signal }) => input.load({ caller, signal }),
+    ({ caller, signal }) =>
+      input.load({
+        caller,
+        visibilityScope: callerVisibilityScope(caller),
+        signal,
+      }),
   );
   const declarative = createDeclarativeDashboardWidgetRegistration({
     publicServiceId: input.context.pluginId,

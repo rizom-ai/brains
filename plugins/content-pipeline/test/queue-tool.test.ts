@@ -32,11 +32,12 @@ const mockToolContext: ToolContext = {
 describe("publish_queue tool", () => {
   let queueManager: QueueManager;
   let tool: ReturnType<typeof createQueueTool>;
+  let shell: ReturnType<typeof createMockShell>;
 
   beforeEach(() => {
     permissionChecks.length = 0;
     queueManager = QueueManager.createFresh();
-    const shell = createMockShell();
+    shell = createMockShell();
     const permissionService = new PermissionService({});
     permissionService.assertEntityActionAllowed = (
       entityType,
@@ -181,6 +182,39 @@ describe("publish_queue tool", () => {
         expect(result.data?.position).toBe(1);
         expect(result.message).toBe("Added to queue at position 1");
       }
+    });
+
+    it("queues an entity named by its title under its id", async () => {
+      const now = new Date().toISOString();
+      shell.addEntities([
+        {
+          id: "publish-policy-draft",
+          entityType: "social-post",
+          content: "Draft",
+          contentHash: "hash",
+          visibility: "public",
+          metadata: { title: "Publish Policy Draft" },
+          created: now,
+          updated: now,
+        },
+      ]);
+
+      const result = await tool.handler(
+        {
+          action: "add",
+          entityType: "social-post",
+          entityId: "Publish Policy Draft",
+        },
+        mockToolContext,
+      );
+
+      expect(result).toMatchObject({
+        success: true,
+        data: { entityId: "publish-policy-draft", position: 1 },
+      });
+      expect(await queueManager.list("social-post")).toMatchObject([
+        { entityId: "publish-policy-draft" },
+      ]);
     });
 
     it("should require publish permission", async () => {

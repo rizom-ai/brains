@@ -35,7 +35,7 @@ import {
   GenerationLimitError,
   type ContentGenerationTargetInput,
 } from "@brains/content-service";
-import { resetPromptCache } from "@brains/plugins";
+import { resetPromptMaterialization } from "@brains/plugins";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 
@@ -53,7 +53,7 @@ describe("scoped durable content generation", () => {
   const ambientProfile = mock(() => "AMBIENT_INTERNAL_PROFILE");
 
   beforeEach(async () => {
-    resetPromptCache();
+    resetPromptMaterialization();
     ambientIdentity.mockClear();
     ambientProfile.mockClear();
     database = await createTestDatabase({
@@ -161,7 +161,7 @@ describe("scoped durable content generation", () => {
   });
 
   afterEach(async () => {
-    resetPromptCache();
+    resetPromptMaterialization();
     entities.close();
     await database.cleanup();
   });

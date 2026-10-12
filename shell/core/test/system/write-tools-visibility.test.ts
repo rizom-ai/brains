@@ -237,7 +237,7 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-shared",
-            fields: { visibility: "restricted" },
+            operation: { kind: "fields", fields: { visibility: "restricted" } },
           },
           "trusted",
         ),
@@ -254,7 +254,7 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-public",
-            fields: { visibility: "shared" },
+            operation: { kind: "fields", fields: { visibility: "shared" } },
           },
           "public",
         ),
@@ -271,7 +271,10 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-shared",
-            fields: { visibility: "shared", title: "Shared updated" },
+            operation: {
+              kind: "fields",
+              fields: { visibility: "shared", title: "Shared updated" },
+            },
           },
           "trusted",
         ),
@@ -287,7 +290,7 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-shared",
-            fields: { visibility: "restricted" },
+            operation: { kind: "fields", fields: { visibility: "restricted" } },
           },
           "admin",
         ),
@@ -303,7 +306,7 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-public",
-            fields: { title: "renamed" },
+            operation: { kind: "fields", fields: { title: "renamed" } },
           },
           "public",
         ),
@@ -321,8 +324,11 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-shared",
-            content:
-              "---\ntitle: Promoted\nvisibility: restricted\n---\nNew body",
+            operation: {
+              kind: "content",
+              content:
+                "---\ntitle: Promoted\nvisibility: restricted\n---\nNew body",
+            },
           },
           "trusted",
         ),
@@ -343,7 +349,10 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-restricted",
-            content: "---\ntitle: Edited\n---\nNew body",
+            operation: {
+              kind: "content",
+              content: "---\ntitle: Edited\n---\nNew body",
+            },
           },
           "admin",
         ),
@@ -362,7 +371,10 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-restricted",
-            content: "---\ntitle: Edited\nvisibility: public\n---\nNew body",
+            operation: {
+              kind: "content",
+              content: "---\ntitle: Edited\nvisibility: public\n---\nNew body",
+            },
           },
           "admin",
         ),
@@ -381,7 +393,10 @@ describe("write tools cap visibility by caller permission", () => {
           {
             entityType: "doc",
             id: "doc-shared",
-            content: "---\ntitle: Demoted\nvisibility: public\n---\nNew body",
+            operation: {
+              kind: "content",
+              content: "---\ntitle: Demoted\nvisibility: public\n---\nNew body",
+            },
           },
           "trusted",
         ),

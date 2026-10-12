@@ -194,7 +194,7 @@
         "IEntityService",
         "IEvalNamespace",
         "IIdentityNamespace",
-        "IInsightsNamespace",
+        "IAnalyticsNamespace",
         "IMessageInterfaceChannelsNamespace",
         "IMessagingNamespace",
         "IPromptsNamespace",

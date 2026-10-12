@@ -89,7 +89,7 @@ function makeContext(): KnowledgeMapDataContext {
 
 describe("buildKnowledgeMapData", () => {
   test("projects the corpus into zones and source points", async () => {
-    const data = await buildKnowledgeMapData(makeContext());
+    const data = await buildKnowledgeMapData(makeContext(), "public");
 
     // schema round-trip: the template/datasource contract holds
     expect(knowledgeMapDataSchema.safeParse(data).success).toBe(true);
@@ -194,7 +194,7 @@ describe("buildKnowledgeMapData", () => {
       project: (): ReturnType<KnowledgeMapDataContext["semantic"]["project"]> =>
         Promise.resolve({ points: clump }),
     };
-    const data = await buildKnowledgeMapData(context);
+    const data = await buildKnowledgeMapData(context, "public");
 
     const positions = data.points
       .map((point) => ({ x: point.x, y: point.y }))
@@ -220,7 +220,7 @@ describe("buildKnowledgeMapData", () => {
     expect(Math.max(spanX, spanY)).toBeGreaterThan(0.2);
 
     // determinism: the same projection always lands the same layout
-    const again = await buildKnowledgeMapData(context);
+    const again = await buildKnowledgeMapData(context, "public");
     expect(again).toEqual(data);
   });
 
@@ -235,9 +235,46 @@ describe("buildKnowledgeMapData", () => {
           distanceRange: { min: 0, max: 0 },
         }),
     };
-    const data = await buildKnowledgeMapData(context);
+    const data = await buildKnowledgeMapData(context, "public");
     expect(data.points).toEqual([]);
     expect(data.zones).toEqual([]);
     expect(data.counts).toEqual({ entities: 0, topics: 0 });
+  });
+});
+
+// Unscoped projection and reads see public entities only: the owner's map on
+// the dashboard showed none of their non-public work.
+describe("buildKnowledgeMapData scope", () => {
+  test("projects and titles at the scope it is given", async () => {
+    const base = makeContext();
+    const projected: unknown[] = [];
+    const listed: unknown[] = [];
+    await buildKnowledgeMapData(
+      {
+        semantic: {
+          project: (request) => {
+            projected.push(request);
+            return base.semantic.project(request);
+          },
+        },
+        entityService: {
+          listEntities: (request) => {
+            listed.push(request);
+            return base.entityService.listEntities(request);
+          },
+        },
+      },
+      "restricted",
+    );
+
+    expect(projected).toEqual([{ visibilityScope: "restricted" }]);
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed).toEqual(
+      listed.map(() =>
+        expect.objectContaining({
+          options: { filter: { visibilityScope: "restricted" } },
+        }),
+      ),
+    );
   });
 });

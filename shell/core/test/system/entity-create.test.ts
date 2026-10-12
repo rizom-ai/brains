@@ -707,6 +707,37 @@ describe("system_create tool", () => {
     expect(result).toMatchObject({ success: true });
   });
 
+  it("rejects an existing title for interceptor-backed types too", async () => {
+    let interceptorCalled = false;
+    services.entityRegistry.registerCreateInterceptor("note", async (input) => {
+      interceptorCalled = true;
+      return { kind: "continue", input };
+    });
+    const now = new Date().toISOString();
+    await services.entityService.createEntity({
+      entity: {
+        id: "community-launch-plan",
+        entityType: "note",
+        content: "# Community Launch Plan\n\nLaunch day: Monday.",
+        metadata: { title: "Community Launch Plan" },
+        created: now,
+        updated: now,
+      },
+    });
+
+    // An edit of a just-imported note misrouted to system_create: the note
+    // interceptor must not let it mint a deduplicated copy.
+    const result = await execRaw({
+      entityType: "note",
+      title: "Community Launch Plan",
+      content: "# Community Launch Plan\n\nLaunch day: Friday.",
+    });
+
+    expect(expectToolError(result).error).toContain("use system_update");
+    expect(result).not.toHaveProperty("needsConfirmation");
+    expect(interceptorCalled).toBe(false);
+  });
+
   it("should require confirmation before creating durable entities", async () => {
     const result = await execRaw({
       entityType: "note",

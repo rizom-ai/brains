@@ -72,10 +72,13 @@ describe("buildProximityMapData", () => {
     );
     const project = mock(async () => projection);
 
-    const result = await buildProximityMapData({
-      entityService: { listEntities },
-      semantic: { project },
-    });
+    const result = await buildProximityMapData(
+      {
+        entityService: { listEntities },
+        semantic: { project },
+      },
+      "public",
+    );
 
     expect(project).toHaveBeenCalledWith({
       types: ["agent"],
@@ -84,6 +87,7 @@ describe("buildProximityMapData", () => {
         entityType: "brain-character",
       },
       maxNeighborDistance: 0.25,
+      visibilityScope: "public",
     });
     expect(result.center).toEqual({ kind: "identity" });
     expect(result.nodes).toEqual([
@@ -127,29 +131,32 @@ describe("buildProximityMapData", () => {
   });
 
   test("surfaces centroid fallback and ignores projection points without agents", async () => {
-    const result = await buildProximityMapData({
-      entityService: {
-        listEntities: async (request) =>
-          request.entityType === "agent"
-            ? [createTestAgent({ id: "known" })]
-            : [],
+    const result = await buildProximityMapData(
+      {
+        entityService: {
+          listEntities: async (request) =>
+            request.entityType === "agent"
+              ? [createTestAgent({ id: "known" })]
+              : [],
+        },
+        semantic: {
+          project: async () => ({
+            origin: { kind: "centroid" },
+            points: [
+              {
+                entityId: "unknown",
+                entityType: "agent",
+                coordinates: [0, 0],
+                distanceToOrigin: 0.2,
+              },
+            ],
+            neighbors: [],
+            distanceRange: { min: 0.2, max: 0.2 },
+          }),
+        },
       },
-      semantic: {
-        project: async () => ({
-          origin: { kind: "centroid" },
-          points: [
-            {
-              entityId: "unknown",
-              entityType: "agent",
-              coordinates: [0, 0],
-              distanceToOrigin: 0.2,
-            },
-          ],
-          neighbors: [],
-          distanceRange: { min: 0.2, max: 0.2 },
-        }),
-      },
-    });
+      "public",
+    );
 
     expect(result).toEqual({
       headingLevel: null,
@@ -245,12 +252,15 @@ describe("buildProximityMapData", () => {
       distanceRange: { min: 0.3, max: 0.9 },
     }));
 
-    const result = await buildProximityMapData({
-      entityService: {
-        listEntities: async () => agents,
+    const result = await buildProximityMapData(
+      {
+        entityService: {
+          listEntities: async () => agents,
+        },
+        semantic: { project },
       },
-      semantic: { project },
-    });
+      "public",
+    );
 
     // Sighted agents chart as sightings, not nodes.
     expect(result.nodes.map((node) => node.id)).toEqual([

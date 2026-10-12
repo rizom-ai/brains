@@ -180,7 +180,12 @@ describe("JobQueueService", () => {
           testHandler,
           "shell",
         );
+        // Unknown until boot freezes them.
+        expect(validationService.getExecutionRegistrations()).toBeUndefined();
         const registrations = validationService.finalizeHandlerRegistrations();
+        expect(validationService.getExecutionRegistrations()).toBe(
+          registrations,
+        );
 
         expect(Object.isFrozen(registrations)).toBe(true);
         expect(registrations).toEqual([

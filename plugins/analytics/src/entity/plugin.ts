@@ -27,6 +27,16 @@ export class TrafficSnapshotPlugin extends EntityPlugin<
 
   protected override getEntityTypeConfig(): EntityTypeConfig {
     return {
+      // The capture's record of what Cloudflare counted: written only by the
+      // daily check, never by hand.
+      classification: "system",
+      actionPolicy: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
       embeddable: false,
       fullTextSearchable: false,
       projectionSource: false,

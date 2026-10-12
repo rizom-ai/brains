@@ -48,7 +48,7 @@ describe("AnalyticsPlugin", () => {
   });
 
   describe("Plugin Tools", () => {
-    it("should register analytics_query tool when cloudflare is configured", async () => {
+    it("registers no tools: traffic is asked through system_analytics", async () => {
       const harness = createPluginHarness();
 
       const capabilities = await harness.installPlugin(
@@ -59,47 +59,9 @@ describe("AnalyticsPlugin", () => {
             siteTag: "site123",
           },
         }),
-      );
-
-      const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("analytics_query");
-      await harness.reset();
-    });
-
-    it("should NOT register tools when cloudflare is not configured", async () => {
-      const harness = createPluginHarness();
-
-      const capabilities = await harness.installPlugin(
-        new AnalyticsPluginClass({}),
       );
 
       expect(capabilities.tools).toHaveLength(0);
-      await harness.reset();
-    });
-
-    it("should have query tool with correct description", async () => {
-      const harness = createPluginHarness();
-
-      const capabilities = await harness.installPlugin(
-        new AnalyticsPluginClass({
-          cloudflare: {
-            accountId: "abc123",
-            apiToken: "cf_test_token",
-            siteTag: "site123",
-          },
-        }),
-      );
-
-      const queryTool = capabilities.tools.find(
-        (t) => t.name === "analytics_query",
-      );
-      expect(queryTool).toBeDefined();
-      expect(queryTool?.description).toContain("Cloudflare");
-      expect(queryTool?.description).toContain("Date range options");
-      expect(queryTool?.visibility).toBe("admin");
-      expect(queryTool?.sideEffects).toBe("none");
-      expect(queryTool?.agentTool).toBe(false);
-      expect(queryTool?.directMcpExposure).toBe("debug");
       await harness.reset();
     });
   });

@@ -39,7 +39,7 @@ describe("buildUpdateDiff", () => {
     const content = `# Working plan\n\n${lines("- step", 300)}\n`;
     const diff = buildUpdateDiff(
       note("# Working plan\n\nOld body.\n"),
-      { content },
+      { kind: "content", content },
       entityRegistry,
     );
 
@@ -51,7 +51,7 @@ describe("buildUpdateDiff", () => {
   it("omits the line diff only past a fixed number of changed lines", () => {
     const diff = buildUpdateDiff(
       note(lines("old", 3_000)),
-      { content: lines("new", 3_000) },
+      { kind: "content", content: lines("new", 3_000) },
       entityRegistry,
     );
 

@@ -1,5 +1,255 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.533
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.533
+  - @brains/console-theme@0.2.0-alpha.533
+  - @brains/contracts@0.2.0-alpha.533
+  - @brains/utils@0.2.0-alpha.533
+  - @brains/auth-service@0.2.0-alpha.533
+  - @brains/plugins@0.2.0-alpha.533
+
+## 0.2.0-alpha.532
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.532
+  - @brains/console-theme@0.2.0-alpha.532
+  - @brains/contracts@0.2.0-alpha.532
+  - @brains/utils@0.2.0-alpha.532
+  - @brains/auth-service@0.2.0-alpha.532
+  - @brains/plugins@0.2.0-alpha.532
+
+## 0.2.0-alpha.531
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.531
+  - @brains/console-theme@0.2.0-alpha.531
+  - @brains/contracts@0.2.0-alpha.531
+  - @brains/utils@0.2.0-alpha.531
+  - @brains/auth-service@0.2.0-alpha.531
+  - @brains/plugins@0.2.0-alpha.531
+
+## 0.2.0-alpha.530
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.530
+  - @brains/console-theme@0.2.0-alpha.530
+  - @brains/contracts@0.2.0-alpha.530
+  - @brains/utils@0.2.0-alpha.530
+  - @brains/auth-service@0.2.0-alpha.530
+  - @brains/plugins@0.2.0-alpha.530
+
+## 0.2.0-alpha.529
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.529
+  - @brains/console-theme@0.2.0-alpha.529
+  - @brains/contracts@0.2.0-alpha.529
+  - @brains/utils@0.2.0-alpha.529
+  - @brains/auth-service@0.2.0-alpha.529
+  - @brains/plugins@0.2.0-alpha.529
+
+## 0.2.0-alpha.528
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.528
+  - @brains/console-theme@0.2.0-alpha.528
+  - @brains/contracts@0.2.0-alpha.528
+  - @brains/utils@0.2.0-alpha.528
+  - @brains/auth-service@0.2.0-alpha.528
+  - @brains/plugins@0.2.0-alpha.528
+
+## 0.2.0-alpha.527
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.527
+  - @brains/console-theme@0.2.0-alpha.527
+  - @brains/contracts@0.2.0-alpha.527
+  - @brains/utils@0.2.0-alpha.527
+  - @brains/auth-service@0.2.0-alpha.527
+  - @brains/plugins@0.2.0-alpha.527
+
+## 0.2.0-alpha.526
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.526
+  - @brains/console-theme@0.2.0-alpha.526
+  - @brains/contracts@0.2.0-alpha.526
+  - @brains/utils@0.2.0-alpha.526
+  - @brains/auth-service@0.2.0-alpha.526
+  - @brains/plugins@0.2.0-alpha.526
+
+## 0.2.0-alpha.525
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.525
+  - @brains/console-theme@0.2.0-alpha.525
+  - @brains/contracts@0.2.0-alpha.525
+  - @brains/utils@0.2.0-alpha.525
+  - @brains/auth-service@0.2.0-alpha.525
+  - @brains/plugins@0.2.0-alpha.525
+
+## 0.2.0-alpha.524
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.524
+  - @brains/console-theme@0.2.0-alpha.524
+  - @brains/contracts@0.2.0-alpha.524
+  - @brains/utils@0.2.0-alpha.524
+  - @brains/auth-service@0.2.0-alpha.524
+  - @brains/plugins@0.2.0-alpha.524
+
+## 0.2.0-alpha.523
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.523
+  - @brains/console-theme@0.2.0-alpha.523
+  - @brains/contracts@0.2.0-alpha.523
+  - @brains/utils@0.2.0-alpha.523
+  - @brains/auth-service@0.2.0-alpha.523
+  - @brains/plugins@0.2.0-alpha.523
+
+## 0.2.0-alpha.522
+
+### Patch Changes
+
+- [#590](https://github.com/rizom-ai/brains/pull/590) [`9e06319`](https://github.com/rizom-ai/brains/commit/9e0631976c2df90463eaae4db62d6f65ea7c8e11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild math-rendering UI assets with KaTeX 0.18.2, which ignores inherited renderer settings such as `trust`. Use reviewed repository overrides for postcss-selector-parser 7.1.6 and only the legacy esbuild-kit loader's esbuild 0.25.12 dependency, leaving other esbuild copies and AI/Chat SDK, model, Effect and database dependencies unchanged.
+
+  Check actual installed dependency paths and rendering/loader behavior during dependency validation; a patched lockfile alone does not prove an existing installation was replaced.
+
+  Repository overrides are not inherited by downstream applications. The published Tailwind typography package still pins the vulnerable CSS parser, so consumers need their own parser override or a fixed parent package. This release does not claim a clean dependency audit: braces and sprintf-js findings remain.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.522
+  - @brains/console-theme@0.2.0-alpha.522
+  - @brains/contracts@0.2.0-alpha.522
+  - @brains/utils@0.2.0-alpha.522
+  - @brains/auth-service@0.2.0-alpha.522
+  - @brains/plugins@0.2.0-alpha.522
+
+## 0.2.0-alpha.521
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.521
+  - @brains/console-theme@0.2.0-alpha.521
+  - @brains/contracts@0.2.0-alpha.521
+  - @brains/utils@0.2.0-alpha.521
+  - @brains/auth-service@0.2.0-alpha.521
+  - @brains/plugins@0.2.0-alpha.521
+
+## 0.2.0-alpha.520
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.520
+  - @brains/console-theme@0.2.0-alpha.520
+  - @brains/contracts@0.2.0-alpha.520
+  - @brains/utils@0.2.0-alpha.520
+  - @brains/auth-service@0.2.0-alpha.520
+  - @brains/plugins@0.2.0-alpha.520
+
+## 0.2.0-alpha.519
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.519
+  - @brains/console-theme@0.2.0-alpha.519
+  - @brains/contracts@0.2.0-alpha.519
+  - @brains/utils@0.2.0-alpha.519
+  - @brains/auth-service@0.2.0-alpha.519
+  - @brains/plugins@0.2.0-alpha.519
+
+## 0.2.0-alpha.518
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.518
+  - @brains/console-theme@0.2.0-alpha.518
+  - @brains/contracts@0.2.0-alpha.518
+  - @brains/utils@0.2.0-alpha.518
+  - @brains/auth-service@0.2.0-alpha.518
+  - @brains/plugins@0.2.0-alpha.518
+
+## 0.2.0-alpha.517
+
+### Patch Changes
+
+- Updated dependencies [[`3e65a69`](https://github.com/rizom-ai/brains/commit/3e65a693af743469a11a12e493f8ee5e3f8092fb)]:
+  - @brains/contracts@0.2.0-alpha.517
+  - @brains/auth-service@0.2.0-alpha.517
+  - @brains/plugins@0.2.0-alpha.517
+  - @brains/app-ui-react@0.2.0-alpha.517
+  - @brains/console-theme@0.2.0-alpha.517
+  - @brains/utils@0.2.0-alpha.517
+
+## 0.2.0-alpha.516
+
+### Patch Changes
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`80a6dc9`](https://github.com/rizom-ai/brains/commit/80a6dc9637d072ed77fab8f45f191142a29f6779) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Update the AI SDK and Chat SDK within their current majors: `ai` 6.0.302, `@ai-sdk/openai` 3.0.124 (adds GPT-6 Luna/Sol model IDs and reasoning configuration), `@ai-sdk/anthropic` 3.0.128, `@ai-sdk/google` 3.0.131, `@ai-sdk/react` 3.0.305, and `chat` with its adapters 4.41.1. Chat attachments whose adapter delivers bytes as an `ArrayBuffer` are now read correctly.
+
+- [#557](https://github.com/rizom-ai/brains/pull/557) [`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The default guest disclosure names the provider and model this runtime actually sends guest text to, for both the local-test preset and the owner-activated hosted policy. Previously it always said "OpenAI (gpt-5.6-luna)" and "reach this Brain and OpenAI", whatever model was configured. The preset is resolved at registration against the runtime model and stays closed until then; operator-authored policies keep their own disclosure.
+
+- Updated dependencies [[`6d8e2c8`](https://github.com/rizom-ai/brains/commit/6d8e2c8aebd9a3012c9ba5a2cc8b3e360927788a)]:
+  - @brains/plugins@0.2.0-alpha.516
+  - @brains/auth-service@0.2.0-alpha.516
+  - @brains/app-ui-react@0.2.0-alpha.516
+  - @brains/console-theme@0.2.0-alpha.516
+  - @brains/contracts@0.2.0-alpha.516
+  - @brains/utils@0.2.0-alpha.516
+
+## 0.2.0-alpha.515
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.515
+  - @brains/console-theme@0.2.0-alpha.515
+  - @brains/contracts@0.2.0-alpha.515
+  - @brains/utils@0.2.0-alpha.515
+  - @brains/auth-service@0.2.0-alpha.515
+  - @brains/plugins@0.2.0-alpha.515
+
+## 0.2.0-alpha.514
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.514
+  - @brains/console-theme@0.2.0-alpha.514
+  - @brains/contracts@0.2.0-alpha.514
+  - @brains/utils@0.2.0-alpha.514
+  - @brains/auth-service@0.2.0-alpha.514
+  - @brains/plugins@0.2.0-alpha.514
+
 ## 0.2.0-alpha.513
 
 ### Patch Changes

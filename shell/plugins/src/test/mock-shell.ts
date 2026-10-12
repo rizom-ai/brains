@@ -46,7 +46,7 @@ import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockJobQueue } from "./mock-job-queue";
 import { createMockContentServices } from "./mock-content";
 import { createMockDaemonRegistry } from "./mock-daemon-registry";
-import { createMockInsightsRegistry } from "./mock-insights-registry";
+import { createMockAnalyticsRegistry } from "./mock-analytics-registry";
 import { createMockEntityService } from "./mock-entity-service";
 import type {
   IRuntimeStateNamespace,
@@ -294,9 +294,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   });
 
   // --- Daemon Registry ---
-  // --- Insights Registry ---
-  // --- Daemon and Insights registries ---
-  const insightsRegistry = createMockInsightsRegistry();
+  // --- Analytics Registry ---
+  // --- Daemon and Analytics registries ---
+  const analyticsRegistry = createMockAnalyticsRegistry();
   const daemonRegistry = createMockDaemonRegistry();
 
   // Advertised by the shell itself, not by either registry.
@@ -611,8 +611,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _handler: EvalHandler,
     ) => {},
 
-    // Insights registry
-    getInsightsRegistry: () => insightsRegistry,
+    // Analytics registry
+    getAnalyticsRegistry: () => analyticsRegistry,
 
     // API routes
     getPluginApiRoutes: (): RegisteredApiRoute[] => {

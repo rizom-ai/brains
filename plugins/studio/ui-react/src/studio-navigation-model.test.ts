@@ -62,6 +62,22 @@ describe("deriveNavigationModel", () => {
     ).toEqual([systemType]);
   });
 
+  it("lists a contained type only inside its container", () => {
+    const model = deriveNavigationModel({
+      types: [type("book"), { ...type("book-section"), containedIn: "book" }],
+      active: "book-section",
+    });
+    expect(
+      model.primaryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["book"]);
+    expect(model.types.map((info) => info.entityType)).toEqual(["book"]);
+    expect(model.active).toBe("book");
+    expect(model.destination).toBe("book");
+    expect(model.currentArea).toBe("library");
+  });
+
   it("classifies custom systems from metadata, not known names or presentation groups", () => {
     const model = deriveNavigationModel({
       types: [type("prompt"), type("custom-machine", "system"), type("topic")],

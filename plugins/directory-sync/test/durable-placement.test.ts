@@ -34,6 +34,8 @@ async function fixture(): Promise<{
   const files = new FileOperations(dir, {
     serializeEntity: (e): string => e.content,
     hasEntityType: (): boolean => true,
+    getEntityTypes: (): string[] => [],
+    getEntityTypeConfig: (): { containedIn?: string } => ({}),
   });
   let pending: DurableEntityExportIntent[] = [];
   const dispatcher = new DurableEntityExportDispatcher({

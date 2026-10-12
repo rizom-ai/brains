@@ -6,7 +6,12 @@
  * - prepareCall for dynamic identity/permission injection
  * - activeTools for permission-based tool filtering
  */
-import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
+import {
+  ToolLoopAgent,
+  stepCountIs,
+  type LanguageModel,
+  type LanguageModelUsage,
+} from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import {
   assertGuestCallOptions,
@@ -18,6 +23,7 @@ import {
 } from "./guest-execution";
 import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { judgeGuestQuestion, neutralGuestRefusal } from "./guest-screening";
+import { openAIReasoningOptions } from "./generation-options";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -135,7 +141,7 @@ export function createBrainAgentFactory(
       emitter,
     );
 
-    const agent: BrainAgent = new ToolLoopAgent({
+    const agent = new ToolLoopAgent({
       model,
       callOptionsSchema: brainCallOptionsSchema,
 
@@ -207,7 +213,10 @@ export function createBrainAgentFactory(
             providerOptions: {
               ...(capabilities.provider === "openai" &&
                 reasoningEffort && {
-                  openai: { reasoningEffort },
+                  openai: openAIReasoningOptions(
+                    reasoningEffort,
+                    capabilities.supportsTemperature,
+                  ),
                 }),
               ...(webSearch &&
                 !guest && {
@@ -226,7 +235,14 @@ export function createBrainAgentFactory(
         assertGuestPermission(params.options);
         assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
-        if (!policy) return agent.generate(params);
+        if (!policy) {
+          const result = await agent.generate(params);
+          return {
+            text: result.text,
+            steps: result.steps,
+            usage: turnUsage([result.totalUsage]),
+          };
+        }
         const last = guestModelMessages(params.messages).at(-1);
         if (
           last?.role !== "user" ||
@@ -257,8 +273,13 @@ export function createBrainAgentFactory(
             guestScreening: { outcome: "refused", category: judgment.category },
           };
         const result = await agent.generate(params);
-        // The SDK result exposes its fields as getters; attach, never copy.
-        return Object.assign(result, {
+        return {
+          text: result.text,
+          steps: result.steps,
+          usage: turnUsage([
+            ...judged.map((call) => call.usage),
+            result.totalUsage,
+          ]),
           guestSettlement: guestTurnSettlement(
             [...judged, ...result.steps],
             options.guestPricing,
@@ -267,9 +288,31 @@ export function createBrainAgentFactory(
             judgment.kind === "judged"
               ? { outcome: "answered" as const }
               : { outcome: "unscreened" as const },
-        });
+        };
       },
     };
   };
   return factory;
+}
+
+/**
+ * A turn's usage is every model call it made — each tool-loop step and, for
+ * a guest, the screening judgment — not only the final answer's call.
+ */
+function turnUsage(
+  calls: ReadonlyArray<
+    Pick<LanguageModelUsage, "inputTokens" | "outputTokens" | "totalTokens">
+  >,
+): BrainAgentResult["usage"] {
+  const sum = (
+    key: "inputTokens" | "outputTokens" | "totalTokens",
+  ): number | undefined =>
+    calls.some((call) => call[key] !== undefined)
+      ? calls.reduce((total, call) => total + (call[key] ?? 0), 0)
+      : undefined;
+  return {
+    inputTokens: sum("inputTokens"),
+    outputTokens: sum("outputTokens"),
+    totalTokens: sum("totalTokens"),
+  };
 }

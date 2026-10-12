@@ -3,7 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
-  priceOpenAiGuestTurn,
+  openAiGuestPricing,
   type ChatAttachment,
   type EmbeddingUsageMeter,
   type ChatAttachmentSource,
@@ -252,10 +252,7 @@ export function initializeIdentityAndAgentServices(
   const agentFactory = createBrainAgentFactory({
     // Guest turns are priced where the model's published rates are known;
     // otherwise their cost is unknown and charged the answer cap.
-    guestPricing:
-      aiService.getConfig().model === "gpt-5.6-luna"
-        ? priceOpenAiGuestTurn
-        : undefined,
+    guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,

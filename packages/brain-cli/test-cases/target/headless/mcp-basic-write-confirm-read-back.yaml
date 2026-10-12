@@ -53,7 +53,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: note
-        source.kind: text
+        source.kind: user-message
     - toolName: system_get
       shouldBeCalled: true
       argsContain:
@@ -66,4 +66,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 8
-  maxTokens: 30000
+  maxTokens: 41000

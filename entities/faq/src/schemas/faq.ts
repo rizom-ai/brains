@@ -67,19 +67,11 @@ export type FaqSource = z.output<typeof faqSourceSchema>;
  * any alternatives; which chat replies were counted is plugin state, not
  * part of the document.
  */
-/** Why a published FAQ waits for the owner: a cited piece left the network. */
-export const faqReviewSchema: z.ZodEnum<{
-  "source-withdrawn": "source-withdrawn";
-}> = z.enum(["source-withdrawn"]);
-
-export type FaqReview = z.output<typeof faqReviewSchema>;
-
 type FaqFrontmatterSchema = z.ZodObject<{
   question: z.ZodString;
   status: typeof faqStatusSchema;
   asked: z.ZodDefault<z.ZodNumber>;
   sources: z.ZodOptional<z.ZodArray<FaqSourceSchema>>;
-  review: z.ZodOptional<typeof faqReviewSchema>;
   rank: z.ZodOptional<z.ZodNumber>;
 }>;
 
@@ -90,8 +82,6 @@ export const faqFrontmatterSchema: FaqFrontmatterSchema = z.object({
   asked: z.number().int().min(1).default(1),
   /** What the answer drew on, kept from the reply that first gave it. */
   sources: z.array(faqSourceSchema).optional(),
-  /** Set when a cited piece left the network; cleared by the owner's review. */
-  review: faqReviewSchema.optional(),
   /** The owner's place for it on a site, 1 first; unranked FAQs follow. */
   rank: z.number().int().min(1).optional(),
 });

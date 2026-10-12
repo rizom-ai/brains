@@ -62,9 +62,63 @@ describe("system_status tool", () => {
     const data = z.record(z.string(), z.unknown()).parse(result.data);
     expect(data["entityCounts"]).toBeUndefined();
     expect(data["daemons"]).toBeUndefined();
-    expect(data["endpoints"]).toBeUndefined();
     expect(data["interactions"]).toBeUndefined();
   });
+
+  it.each([
+    ["public", ["Site", "Dashboard", "Studio"]],
+    ["trusted", ["Site", "Chat", "Dashboard", "MCP", "Studio"]],
+    ["admin", ["Site", "Chat", "Preview", "Dashboard", "MCP", "Studio"]],
+  ] as const)(
+    "lists the web surfaces a %s caller can open, by priority",
+    async (userPermissionLevel, labels) => {
+      const services = createMockSystemServices();
+      const appInfo = await services.getAppInfo();
+      const endpoint = (
+        label: string,
+        url: string,
+        priority: number,
+        visibility: "public" | "trusted" | "admin",
+      ): (typeof appInfo.endpoints)[number] => ({
+        label,
+        url,
+        priority,
+        visibility,
+        pluginId: "test",
+      });
+      services.getAppInfo = async (): Promise<typeof appInfo> => ({
+        ...appInfo,
+        endpoints: [
+          endpoint("Studio", "/studio", 40, "public"),
+          endpoint("Preview", "https://preview.example", 20, "admin"),
+          endpoint("Dashboard", "/dashboard", 30, "public"),
+          endpoint("MCP", "/mcp", 30, "trusted"),
+          endpoint("Chat", "/studio/chat", 15, "trusted"),
+          endpoint("Site", "https://example", 10, "public"),
+        ],
+      });
+      const tool = createSystemTools(services).find(
+        (t) => t.name === "system_status",
+      );
+      const result = await tool?.handler(
+        {},
+        { ...toolContext, userPermissionLevel },
+      );
+
+      expect(result).toMatchObject({ success: true });
+      const data = z
+        .object({
+          endpoints: z.array(z.object({ label: z.string(), url: z.string() })),
+        })
+        .parse(result && "data" in result ? result.data : undefined);
+      expect(data.endpoints.map((e) => e.label)).toEqual([...labels]);
+      expect(data.endpoints).toContainEqual({
+        label: "Dashboard",
+        url: "/dashboard",
+      });
+      expect(Object.keys(data.endpoints[0] ?? {})).toEqual(["label", "url"]);
+    },
+  );
 
   it("should not include plugin or tool lists", async () => {
     const tool = findTool("system_status");
