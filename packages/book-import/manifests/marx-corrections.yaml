@@ -7693,9 +7693,89 @@ p2theorienberd02marx:
     from: sindividuelle)
     to: "[individuelle]"
     by: scan
+  - page: 27
+    from: " III, wovon J die absolut"
+    to: " III, wovon I die absolut"
+    by: scan
+  - page: 27
+    from: "so groß wie J. In diesem "
+    to: "so groß wie I. In diesem "
+    by: scan
+  - page: 27
+    from: Falle trägt J die ab-
+    to: Falle trägt I die ab-
+    by: scan
+  - page: 27
+    from: ital wie in J darin angel
+    to: ital wie in I darin angel
+    by: scan
+  - page: 27
+    from: e früher in J. I würde
+    to: e früher in I. I würde
+    by: scan
+  - page: 27
+    from: um J und einen T
+    to: um I und einen T
+    by: scan
+  - page: 27
+    from: " Zufuhr von J und die hal"
+    to: " Zufuhr von I und die hal"
+    by: scan
+  - page: 28
+    from: rodukts von J, weil es da
+    to: rodukts von I, weil es da
+    by: scan
+  - page: 28
+    from: r Kohle von J ist höher a
+    to: r Kohle von I ist höher a
+    by: scan
+  - page: 28
+    from: "r Tonne von J größer, so "
+    to: "r Tonne von I größer, so "
+    by: scan
+  - page: 28
+    from: e Kohlen in IJ, II und III
+    to: e Kohlen in I, II und III
+    by: scan
+  - page: 29
+    from: " Kapital in J war."
+    to: " Kapital in I war."
+    by: scan
+  - page: 29
+    from: s früher in J. Wir
+    to: s früher in I. Wir
+    by: scan
+  - page: 29
+    from: men, daß in J, IL und III
+    to: men, daß in I, IL und III
+    by: scan
+  - page: 29
+    from: von J und das hal
+    to: von I und das hal
+    by: scan
+  - page: 29
+    from: daß IR, II 2 R und III 4R abwerfen
+    to: daß I R, II 2 R und III 4 R abwerfen
+    by: scan
   - page: 30
     from: sindividuellen!
     to: "[individuellen]"
+    by: scan
+  - page: 30
+    from: e Kohle von J zu ihrem We
+    to: e Kohle von I zu ihrem We
+    by: scan
+  - page: 30
+    from: "durch J bestimmten "
+    to: "durch I bestimmten "
+    by: scan
+  - page: 30
+    from: 1Im Manufskript steht
+    to: ¹ Im Manuskript steht
+    by: scan
+  - page: 30
+    from: noch 32⅛ Tonnen
+    to: noch 32½ Tonnen
     by: scan
   - page: 31
     from: 5 H gefallen. Wäre noch dieselbe Menge Kapital angewandt,
@@ -8034,6 +8114,46 @@ p2theorienberd02marx:
     from: Preis!]
     to: Preis]
     by: scan
+  - page: 36
+    from: wo IJA noch Rente
+    to: wo I A noch Rente
+    by: scan
+  - page: 36
+    from: damit JLA zwar
+    to: damit I A zwar
+    by: scan
+  - page: 36
+    from: in Eannehmen
+    to: in E annehmen
+    by: scan
+  - page: 36
+    from: um IA aus dem Markt
+    to: um I A aus dem Markt
+    by: scan
+  - page: 36
+    from: der 32 ⅛ Über-
+    to: der 32½ Über-
+    by: scan
+  - page: 36
+    from: daß LA bei der
+    to: daß I A bei der
+    by: scan
+  - page: 36
+    from: Die 100 £E Kapital
+    to: Die 100 £ Kapital
+    by: scan
+  - page: 37
+    from: Tonne 117J½½18 £E;
+    to: Tonne 1¹¹⁄₁₃ £;
+    by: scan
+  - page: 37
+    from: „Tonne 1⅛ £;
+    to: Tonne = 1⅗ £;
+    by: scan
+  - page: 37
+    from: Tonne =E 1 ½7 L.
+    to: Tonne = 1¹¹⁄₃₇ £.
+    by: scan
   - page: 39
     from: bestimmten!
     to: bestimmten]
@@ -8041,6 +8161,18 @@ p2theorienberd02marx:
   - page: 39
     from: seinem
     to: "[einem"
+    by: scan
+  - page: 39
+    from: "= 120 : 65 = 1J½18 £;"
+    to: "= 120 £ : 65 = 1¹¹⁄₁₃ £;"
+    by: scan
+  - page: 39
+    from: das Produkt SF 75 Tonnen
+    to: das Produkt = 75 Tonnen
+    by: scan
+  - page: 39
+    from: "Tonne =120 : 75 1⅛h ; wenn 92 ½ Tonnen, so 11 ½7 L."
+    to: "Tonne = 120 £ : 75 = 1⅗ £; wenn 92½ Tonnen, so = 1¹¹⁄₃₇ £."
     by: scan
   - page: 40
     from: 40 Die Grundrente
@@ -8354,6 +8486,34 @@ p2theorienberd02marx:
     from: ich zur Behandlung des Grundeigentums ex profeésso käme,
     to: ich zur Behandlung des Grundeigentums ex professo käme,
     by: scan
+  - page: 50
+    from: in J stehen, das
+    to: in I stehen, das
+    by: scan
+  - page: 50
+    from: in J, so wäre di
+    to: in I, so wäre di
+    by: scan
+  - page: 51
+    from: glich, weil J, von seinen
+    to: glich, weil I, von seinen
+    by: scan
+  - page: 51
+    from: m Werte von J, das
+    to: m Werte von I, das
+    by: scan
+  - page: 51
+    from: "ßer der von J versehenen "
+    to: "ßer der von I versehenen "
+    by: scan
+  - page: 51
+    from: aufen, weil J1 die Tonne z
+    to: aufen, weil I die Tonne z
+    by: scan
+  - page: 51
+    from: der Anteil von Lam
+    to: der Anteil von I am
+    by: scan
   - page: 52
     from: von 10 £ und III von 30 £, weil der durch J bestimmte
     to: von 10 £ und III von 30 £, weil der durch I bestimmte
@@ -8378,6 +8538,54 @@ p2theorienberd02marx:
     from: immer!]
     to: immer]
     by: scan
+  - page: 52
+    from: Weil in J Marktwert u
+    to: Weil in I Marktwert u
+    by: scan
+  - page: 52
+    from: an, daß von J, der unfruc
+    to: an, daß von I, der unfruc
+    by: scan
+  - page: 52
+    from: htbarer als J, aber sie b
+    to: htbarer als I, aber sie b
+    by: scan
+  - page: 53
+    from: urch Klasse J be-
+    to: urch Klasse I be-
+    by: scan
+  - page: 53
+    from: ordert, von J, und da 1
+    to: ordert, von I, und da 1
+    by: scan
+  - page: 53
+    from: wenn J seine 60 To
+    to: wenn I seine 60 To
+    by: scan
+  - page: 53
+    from: " Tonnen von J zu 2 £ verk"
+    to: " Tonnen von I zu 2 £ verk"
+    by: scan
+  - page: 53
+    from: reise, wozu J, das
+    to: reise, wozu I, das
+    by: scan
+  - page: 53
+    from: "durch II zu J oder von J "
+    to: "durch II zu I oder von J "
+    by: scan
+  - page: 53
+    from: später 11ů ½18 E war
+    to: später 1¹¹⁄₁₃ £ war
+    by: scan
+  - page: 53
+    from: zu 400 LH verkauft worden. Und (zu diesem Preise/
+    to: zu 400 £ verkauft worden. Und [zu diesem Preise]
+    by: scan
+  - page: 53
+    from: ursprünglich 1⅛8 £,
+    to: ursprünglich 1⅗ £,
+    by: scan
   - page: 54
     from: (hervorbringt,
     to: "[hervorbringt,"
@@ -8385,6 +8593,18 @@ p2theorienberd02marx:
   - page: 54
     from: Rentenicht
     to: Rente nicht
+    by: scan
+  - page: 54
+    from: von J steigen, we
+    to: von I steigen, we
+    by: scan
+  - page: 54
+    from: ehntel, die J liefert, fü
+    to: ehntel, die I liefert, fü
+    by: scan
+  - page: 54
+    from: eiben; wenn J also den
+    to: eiben; wenn I also den
     by: scan
   - page: 55
     from: gelegt ist, seine Waren zu ihrem Werte, zu 120 L. Dieses
@@ -8414,6 +8634,34 @@ p2theorienberd02marx:
     from: Werte von J, gleich 2 %. Und wenn der Durchschnittsprofit,
     to: Werte von I, gleich 2 £. Und wenn der Durchschnittsprofit,
     by: scan
+  - page: 55
+    from: die nur von J geliefert w
+    to: die nur von I geliefert w
+    by: scan
+  - page: 55
+    from: " von III zu J herabsteige"
+    to: " von III zu I herabsteige"
+    by: scan
+  - page: 55
+    from: eigend, bei J keine
+    to: eigend, bei I keine
+    by: scan
+  - page: 55
+    from: "t: Wenn von IJ zu III fort"
+    to: "t: Wenn von I zu III fort"
+    by: scan
+  - page: 56
+    from: ntreten von JI. Es mußte
+    to: ntreten von I. Es mußte
+    by: scan
+  - page: 56
+    from: 14J½8 £, schließlich, als JLeintrat, auf 2 .
+    to: 1¹¹⁄₁₃ £, schließlich, als I eintrat, auf 2 £.
+    by: scan
+  - page: 56
+    from: nur 1⅛8 £, stieg
+    to: nur 1⅗ £, stieg
+    by: scan
   - page: 57
     from: bloß eine zusätzliche Zufuhr von 32 ½ Tonnen erheischt,
     to: bloß eine zusätzliche Zufuhr von 32½ Tonnen erheischt,
@@ -8441,6 +8689,14 @@ p2theorienberd02marx:
   - page: 57
     from: Verminderung desselben um 5 L. Ferner ist die Differential-
     to: Verminderung desselben um 5 £. Ferner ist die Differential-
+    by: scan
+  - page: 57
+    from: höheren von J bestimmt is
+    to: höheren von I bestimmt is
+    by: scan
+  - page: 57
+    from: rente für IIB ganz
+    to: rente für II B ganz
     by: scan
   - page: 58
     from: wert gefallen; daher die Differentialrente. Sie betrug 30 L.
@@ -8489,6 +8745,30 @@ p2theorienberd02marx:
   - page: 58
     from: Differentialrente für ,½ II, III, IV B größer, als sie für 1,
     to: Differentialrente für ½ II, III, IV B größer, als sie für I,
+    by: scan
+  - page: 58
+    from: " der Klasse J selbst wegg"
+    to: " der Klasse I selbst wegg"
+    by: scan
+  - page: 58
+    from: Rente von IA mit
+    to: Rente von I A mit
+    by: scan
+  - page: 58
+    from: Klasse IVB.
+    to: Klasse IV B.
+    by: scan
+  - page: 58
+    from: Rente von IVB zu
+    to: Rente von IV B zu
+    by: scan
+  - page: 58
+    from: Rente für IVB wie
+    to: Rente für IV B wie
+    by: scan
+  - page: 58
+    from: I.II, IIIA vorkam.
+    to: I, II, III A vorkam.
     by: scan
   - page: 59
     from: Differentialwert in [Bl, wo der Marktwert S 11 ½8 pro
@@ -8553,6 +8833,50 @@ p2theorienberd02marx:
   - page: 59
     from: der Markt zu 2 E pro Tonne absorbiert, so würde I fort-
     to: der Markt zu 2 £ pro Tonne absorbiert, so würde I fort-
+    by: scan
+  - page: 60
+    from: würde J ganz aus de
+    to: würde I ganz aus de
+    by: scan
+  - page: 60
+    from: chaffen und J, dessen ind
+    to: chaffen und I, dessen ind
+    by: scan
+  - page: 60
+    from: III, II und JI Raum für
+    to: III, II und I Raum für
+    by: scan
+  - page: 60
+    from: zu 14J½8 £ verkaufen
+    to: zu 1¹¹⁄₁₃ £ verkaufen
+    by: scan
+  - page: 60
+    from: sich 292⅛ Tonnen auf
+    to: sich 292½ Tonnen auf
+    by: scan
+  - page: 60
+    from: herabsinkt auf 1⅛ , bei
+    to: herabsinkt auf 1⅚ £, bei
+    by: scan
+  - page: 61
+    from: esten Böden J1 und II, son
+    to: esten Böden I und II, son
+    by: scan
+  - page: 61
+    from: " Marktwerts IJ absorbiert."
+    to: " Marktwerts I absorbiert."
+    by: scan
+  - page: 61
+    from: 1de 4 steht zwar
+    to: 1⅚ £ steht zwar
+    by: scan
+  - page: 61
+    from: Preis ist 1⅛ L.
+    to: Preis ist 1⅚ £.
+    by: scan
+  - page: 61
+    from: Teil, 9 ⅛ 4 statt
+    to: Teil, 9⅙ £ statt
     by: scan
   - page: 62
     from: seiner absoluten Rente, 9⅛ 4 statt 10 £.
@@ -8621,6 +8945,10 @@ p2theorienberd02marx:
   - page: 62
     from: So braͤuchten nur 93¾ 4 Kapital in J gesteckt zu werden,
     to: So brauchten nur 93¾ £ Kapital in I gesteckt zu werden,
+    by: scan
+  - page: 62
+    from: "e Rente von J gleich ist "
+    to: "e Rente von I gleich ist "
     by: scan
   - page: 63
     from: 1 Tonne auf JI wäre dann 1⅛ 4. Sein Produktionspreis
@@ -8702,13 +9030,41 @@ p2theorienberd02marx:
     from: ([der
     to: "[der"
     by: scan
-  - page: 65
-    from: ([bei
-    to: "[bei"
+  - page: 64
+    from: daß 100 £E Kapital
+    to: daß 100 £ Kapital
     by: scan
   - page: 65
-    from: Prozent!],
-    to: Prozent],
+    from: Kapital b S 40 CL 60 v, so ist
+    to: Kapital b = 40 c + 60 v, so ist
+    by: scan
+  - page: 65
+    from: Gesamtkapitals ist 80c + 20v ([bei einer Mehrwertsrate
+    to: Gesamtkapitals ist 80 c + 20 v [bei einer Mehrwertsrate
+    by: scan
+  - page: 65
+    from: von 50 Prozent!], wenn der Durchschnittsprofit S 10 Prozent.
+    to: von 50 Prozent], wenn der Durchschnittsprofit = 10 Prozent.
+    by: scan
+  - page: 65
+    from: Agrikulturkapitals S 60 cC Æ 40v
+    to: Agrikulturkapitals = 60 c + 40 v
+    by: scan
+  - page: 65
+    from: sein 90 cC + 10 v
+    to: sein 90 c + 10 v
+    by: scan
+  - page: 66
+    from: " daß Klasse J keine Rente"
+    to: " daß Klasse I keine Rente"
+    by: scan
+  - page: 66
+    from: Kapitals S 60 cC + 40 V sei.
+    to: Kapitals = 60 c + 40 v sei.
+    by: scan
+  - page: 66
+    from: 50 c + 50 oder 70Cc += 30 v?
+    to: 50 c + 50 v oder 70 c + 30 v?
     by: scan
   - page: 67
     from: swäre
@@ -8721,6 +9077,38 @@ p2theorienberd02marx:
   - page: 67
     from: "[wäre!]"
     to: "[wäre]"
+    by: scan
+  - page: 67
+    from: 2 ½2 4i. Und dieses
+    to: = 2¹⁄₁₂ £¹. Und dieses
+    by: scan
+  - page: 67
+    from: Klasse Lhier den
+    to: Klasse I hier den
+    by: scan
+  - page: 67
+    from: für IK wäre nach wie vor 1d L.
+    to: für I A wäre nach wie vor 1⅚ £.
+    by: scan
+  - page: 67
+    from: die 292⅛ Tonnen sim Falle D;
+    to: die 292½ Tonnen [im Falle D]
+    by: scan
+  - page: 67
+    from: zu 1⅛ £, so würde
+    to: zu 1⅚ £, so würde
+    by: scan
+  - page: 67
+    from: von 706c + 30yv oder
+    to: von 70 c + 30 v oder
+    by: scan
+  - page: 67
+    from: tals — 8064C + 20 — als
+    to: tals — 80 c + 20 v — als
+    by: scan
+  - page: 67
+    from: Statt 80c + 20v sei sie entweder 70c + 30voder 90c 10vy.
+    to: Statt 80 c + 20 v sei sie entweder 70 c + 30 v oder 90 c + 10 v.
     by: scan
   - page: 69
     from: das heißt wenn J durch die Konkurrenz von IV, III und II,
@@ -8762,6 +9150,10 @@ p2theorienberd02marx:
     from: "[dort!]"
     to: "[dort]"
     by: scan
+  - page: 72
+    from: der II oder J bebaut wird
+    to: der II oder I bebaut wird
+    by: scan
   - page: 73
     from: Geht man von J aus, so ist es klar, daß II, III, IV,
     to: Geht man von I aus, so ist es klar, daß II, III, IV,
@@ -8798,6 +9190,10 @@ p2theorienberd02marx:
     from: Preis von IV auf 1⅛ £, den individuellen Wert von III
     to: Preis von IV auf 1⅗ £, den individuellen Wert von III
     by: scan
+  - page: 73
+    from: von IWi aus
+    to: von IV aus
+    by: scan
   - page: 74
     from: der Zufuhr entspricht. Wäre IV aber auf 1/ gestiegen,
     to: der Zufuhr entspricht. Wäre IV aber auf 1⅗ £ gestiegen,
@@ -8830,13 +9226,33 @@ p2theorienberd02marx:
     from: Preise von 16/¼4s L zu verkaufen. Damit wäre IIIaus dem
     to: Preise von 1³⁷⁄₁₄₈ £ zu verkaufen. Damit wäre III aus dem
     by: scan
+  - page: 75
+    from: Aber zu 1/4s wäre
+    to: Aber zu 1³⁷⁄₁₄₈ £ wäre
+    by: scan
+  - page: 75
+    from: Produktion II1Uals Aktionsfeld
+    to: Produktion III als Aktionsfeld
+    by: scan
   - page: 76
     from: "[normalen!"
     to: "[normalen]"
     by: scan
-  - page: 78
-    from: in II.
-    to: in II
+  - page: 76
+    from: stellt, daß J keine Rente
+    to: stellt, daß I keine Rente
+    by: scan
+  - page: 76
+    from: h nur, weil J vorausgeset
+    to: h nur, weil I vorausgeset
+    by: scan
+  - page: 77
+    from: wie in IIB ein Teil
+    to: wie in II B ein Teil
+    by: scan
+  - page: 77
+    from: und D und 10C und D keine
+    to: und D und I C und D keine
     by: scan
   - page: 78
     from: sauch
@@ -8850,6 +9266,14 @@ p2theorienberd02marx:
     from: habenl.
     to: haben].
     by: scan
+  - page: 78
+    from: Zufuhr vernichtet die Rente ganz in J, reduziert sie in II.
+    to: Zufuhr vernichtet die Rente ganz in I, reduziert sie in II
+    by: scan
+  - page: 78
+    from: gleich 90c 10 , das heißt
+    to: gleich 90 c + 10 v, das heißt
+    by: scan
   - page: 79
     from: 0) Ricardos Darstellung seines Normalfalles.
     to: δ) Ricardos Darstellung seines Normalfalles.
@@ -8862,9 +9286,29 @@ p2theorienberd02marx:
     from: gewährt.!
     to: gewährt.¹
     by: scan
+  - page: 81
+    from: V, III, II, J, machen sic
+    to: V, III, II, I, machen sic
+    by: scan
+  - page: 81
+    from: enn wie auf J, stößt
+    to: enn wie auf I, stößt
+    by: scan
   - page: 82
     from: ꝛ1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
     to: 1 Womit aber durchaus nicht gesagt ist, daß jede weitere Zunahme
+    by: scan
+  - page: 82
+    from: "bergang von J zu II usw. "
+    to: "bergang von I zu II usw. "
+    by: scan
+  - page: 82
+    from: in II, III, IVxV und ebenso
+    to: in II, III, IV und ebenso
+    by: scan
+  - page: 84
+    from: n werden.“ (J. c. S. 60.)
+    to: n werden.“ (I. c. S. 60.)
     by: scan
   - page: 85
     from: von. dem
@@ -8889,6 +9333,10 @@ p2theorienberd02marx:
   - page: 90
     from: 60 c +π 40 v
     to: 60 c + 40 v
+    by: scan
+  - page: 91
+    from: n, wenn auf J keine Rente
+    to: n, wenn auf I keine Rente
     by: scan
   - page: 92
     from: (die
@@ -9291,6 +9739,74 @@ p2theorienberd02marx:
   - page: 104
     from: abgenommen hat, während die Differentialrente in Korn!
     to: abgenommen hat, während die Differentialrente [in Korn]
+    by: scan
+  - page: 104
+    from: absolut nur um /½8 , 69 / & gegen
+    to: absolut nur um ⅓ £, [69⅔ £ gegen
+    by: scan
+  - page: 104
+    from: 70 4 in A, steigt
+    to: 70 £ in A], steigt
+    by: scan
+  - page: 104
+    from: 38 QuarterJ. Warum?
+    to: 38 Quarter]. Warum?
+    by: scan
+  - page: 104
+    from: auf 12, Prozent,
+    to: auf 12²⁄₉ Prozent,
+    by: scan
+  - page: 104
+    from: gegen e.
+    to: gegen c.
+    by: scan
+  - page: 104
+    from: ———. ——.......——— ——— — ——..—398—.8— ———ͤ—ͤ — — — ———— ——————————— — ——
+    to: ""
+    by: scan
+  - page: 104
+    from: Proz I5 Qu. Qu. 00 Qu.
+    to: ""
+    by: scan
+  - page: 104
+    from: Kapital A. K. A. R. D. R. A. Tr. 8. Rental Rental
+    to: "| Kapital | A. R. Proz. | A. R. £ | D. R. £ | A. R. Qu. | D. R. Qu. | Rental £ | Rental Qu."
+    by: scan
+  - page: 104
+    from: A 60 C+ 40 v 10 30 40 5 20 70 35
+    to: A | 60 c + 40 v | 10 | 30 | 40 | 15 | 20 | 70 | 35
+    by: scan
+  - page: 104
+    from: B (54 (C+ 36 v 10 27 36 15 20 63 35
+    to: B | 54 c + 36 v (60 c + 40 v pro 100) | 10 | 27 | 36 | 15 | 20 | 63 | 35
+    by: scan
+  - page: 104
+    from: (60C ÆC40V pro 100)
+    to: ""
+    by: scan
+  - page: 104
+    from: C 54 c + 32½5 v 8½4 22½5 34½ 13/0 20 56½ 335/1
+    to: C | 54 c + 32⅖ v (62½ c + 37½ v) | 8¾ | 22¹⁷⁄₂₅ | 34⅕ | 13⁵⁄₁₉ | 20 | 56²²⁄₂₅ | 33⁵⁄₁₉
+    by: scan
+  - page: 104
+    from: (62½ C +κ 37 ½ v)
+    to: ""
+    by: scan
+  - page: 104
+    from: 50 C + 40 v 27*⁵ 3336/%8 18 69½ 38
+    to: D | 50 c + 40 v (55⁵⁄₉ c + 44⁴⁄₉ v) | 12²⁄₉ | 33 | 36⅔ | 18 | 20 | 69⅔ | 38
+    by: scan
+  - page: 104
+    from: (55/ C + 44% v) 3
+    to: ""
+    by: scan
+  - page: 104
+    from: Ricardo fährt 4
+    to: "Ricardo fährt fort:"
+    by: scan
+  - page: 104
+    from: rente, einesteils) weil überhaupt das Kapital bedeutend
+    to: rente, [einesteils] weil überhaupt das Kapital bedeutend
     by: scan
   - page: 107
     from: "[großen!"
@@ -9742,9 +10258,17 @@ p2theorienberd02marx:
     from: von diesem
     to: "[von diesem"
     by: scan
+  - page: 180
+    from: Tonne wäre 2⅛ £.“
+    to: Tonne wäre 2½ £.³
+    by: scan
   - page: 181
     from: Arbeit!
     to: "[Arbeit]"
+    by: scan
+  - page: 181
+    from: Steigt er auf 2⅛,
+    to: Steigt er auf 2½,
     by: scan
   - page: 182
     from: — 2 H), so jetzt die 50J von 16 /8 Mann, die 50 £ erhalten,
@@ -10867,6 +11391,14 @@ p2theorienberd02marx:
     from: scheint, so beträgt das gesamte Mehrprodukt 29¼ Tonnen.
     to: scheint, so beträgt das gesamte Mehrprodukt 29⅙ Tonnen.
     by: scan
+  - page: 198
+    from: Tonne 1⅛ 4 usw.
+    to: Tonne 1⅗ £ usw.
+    by: scan
+  - page: 198
+    from: produzieren 13⅛ 40 £
+    to: produzieren 13⅓ 40 £
+    by: scan
   - page: 199
     from: Da der Kapitalist für die 20 Tonnen 60 E zahlen muß und
     to: Da der Kapitalist für die 20 Tonnen 60 £ zahlen muß und
@@ -11046,6 +11578,10 @@ p2theorienberd02marx:
   - page: 203
     from: "[Boden!]"
     to: "[Boden]"
+    by: scan
+  - page: 203
+    from: " wo nur Nr. JI in"
+    to: " wo nur Nr. I in"
     by: scan
   - page: 204
     from: limmer!
@@ -11603,6 +12139,10 @@ p2theorienberd02marx:
     from: . Prozent Prozent Pfd. Garn +2 +
     to: ""
     by: scan
+  - page: 232
+    from: usgehend zu J, wäre der F
+    to: usgehend zu I, wäre der F
+    by: scan
   - page: 233
     from: III. ARkumulation von Kapital und Krisen.
     to: III. Akkumulation von Kapital und Krisen.
@@ -11627,6 +12167,10 @@ p2theorienberd02marx:
     from: (in
     to: "[in"
     by: scan
+  - page: 239
+    from: ie im Falle J. Hier
+    to: ie im Falle I. Hier
+    by: scan
   - page: 240
     from: skonstante!]
     to: "[konstante]"
@@ -11634,6 +12178,10 @@ p2theorienberd02marx:
   - page: 240
     from: salso!
     to: "[also]"
+    by: scan
+  - page: 240
+    from: "Nation J wohlfeiler "
+    to: "Nation I wohlfeiler "
     by: scan
   - page: 241
     from: dukt GW 10 c Æv½ 11 Arbeitstagen und das des Russen

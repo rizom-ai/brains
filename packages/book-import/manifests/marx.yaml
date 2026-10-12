@@ -845,6 +845,15 @@ books:
       - { page: 230, opens: "Wäre nur der Arbeitslohn" }
       - { page: 230, opens: "Soviel ergibt" }
       - { page: 42, opens: "oder gleich dem Preise" }
+      - { page: 104, opens: "| Kapital" }
+      - { page: 104, opens: "A | 60" }
+      - { page: 104, opens: "B | 54" }
+      - { page: 104, opens: "C | 54" }
+      - { page: 104, opens: "D | 50" }
+      - { page: 104, opens: "Ricardo fährt" }
+      - { page: 104, opens: "In C haben" }
+      - { page: 104, opens: "In D tritt" }
+      - { page: 104, opens: "Also haben wir" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 171, opens: "¹) Mit Überschlagung" }
