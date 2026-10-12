@@ -92,6 +92,31 @@ describe("@rizom/site-books", () => {
     expect(html).toContain("Text: eKGWB, Nietzsche Source");
   });
 
+  test("lets the reader switch between paper and ink on every page", () => {
+    const Layout = site.layouts["default"];
+    if (!Layout) throw new Error("no default layout");
+    for (const path of ["/", "/ask", "/books/der-antichrist/2"]) {
+      const html = render(
+        <Layout
+          sections={[]}
+          title=""
+          description=""
+          path={path}
+          siteInfo={siteInfo}
+        />,
+      );
+      expect(html).toMatch(/<button[^>]*data-theme-toggle[^>]*>/);
+      expect(html).toContain('aria-label="Toggle dark mode"');
+    }
+    // Which label shows follows the page's theme.
+    expect(site.themeOverride).toContain(
+      '[data-theme="dark"] .books-theme-dark',
+    );
+    expect(site.themeOverride).toContain(
+      '[data-theme="light"] .books-theme-light',
+    );
+  });
+
   test("drops the Ask pill on the Ask page itself", () => {
     const Layout = site.layouts["default"];
     if (!Layout) throw new Error("no default layout");
