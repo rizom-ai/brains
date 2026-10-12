@@ -8,7 +8,12 @@ export type {
   TemplateDataSchema,
   TemplateSchemaParser,
 } from "./types";
-export { TemplateSchema, createTypedComponent, createTemplate } from "./types";
+export {
+  TemplateSchema,
+  createTypedComponent,
+  createTemplate,
+  renderedLinkFields,
+} from "./types";
 export { InMemoryTemplateRegistry } from "./registry";
 export type { TemplateRegistry } from "./registry";
 export { TemplateCapabilities } from "./capabilities";

@@ -3,7 +3,11 @@ import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
-import { blogViewSchema, type BlogPostView } from "./blog-view-schema";
+import {
+  blogRenderSchema,
+  blogViewSchema,
+  type BlogPostView,
+} from "./blog-view-schema";
 
 export interface HomepagePostContent {
   type: "post";
@@ -44,6 +48,21 @@ export const homepageSchema: z.ZodUnion<
 ]);
 
 type HomepageSchemaContent = z.output<typeof homepageSchema>;
+
+/** The homepage once site-builder has filled its posts' link fields. */
+const homepageRenderSchema = z.union([
+  z.object({
+    type: z.literal("post"),
+    post: blogRenderSchema,
+    prevPost: blogRenderSchema.nullable(),
+    nextPost: blogRenderSchema.nullable(),
+    seriesPosts: z.array(blogRenderSchema).nullable(),
+  }),
+  z.object({
+    type: z.literal("markdown"),
+    content: z.string(),
+  }),
+]);
 
 export type HomepageMarkdownContent = Extract<
   z.output<typeof homepageSchema>,
@@ -97,5 +116,6 @@ export const homepageTemplate: ReturnType<
   requiredPermission: "public",
   layout: {
     component: HomepageTemplate,
+    renderSchema: homepageRenderSchema,
   },
 });

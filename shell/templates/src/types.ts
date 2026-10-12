@@ -5,14 +5,29 @@ import type { ContentFormatter } from "@brains/content-formatters";
 import type { ReactElement } from "react";
 
 /**
- * Component type for layouts - using React
- * Returns a React element
+ * Component type for layouts - using React. Props are checked as a function
+ * parameter: a component cannot ask for a prop its data does not supply.
  */
-export type ComponentType<P = unknown> = {
-  bivarianceHack(props: P): ReactElement;
-}["bivarianceHack"];
+export type ComponentType<P = unknown> = (props: P) => ReactElement;
 
 export type TemplateDataSchema<T> = ZodType<T, unknown>;
+
+/**
+ * The link fields site-builder fills on every entity before render; a view
+ * schema leaves them nullable. A render schema extends a view schema with
+ * these, so a component reading them as required is proven, not trusted.
+ */
+export const renderedLinkFields: {
+  url: z.ZodString;
+  typeLabel: z.ZodString;
+  listUrl: z.ZodString;
+  listLabel: z.ZodString;
+} = {
+  url: z.string(),
+  typeLabel: z.string(),
+  listUrl: z.string(),
+  listLabel: z.string(),
+};
 
 /** @deprecated Use TemplateDataSchema<T>. */
 export type TemplateSchemaParser<T> = TemplateDataSchema<T>;

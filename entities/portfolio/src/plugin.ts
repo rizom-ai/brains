@@ -46,7 +46,10 @@ import {
   ProjectDetailTemplate,
   type ProjectDetailProps,
 } from "./templates/project-detail";
-import { projectViewSchema } from "./templates/project-view";
+import {
+  projectRenderSchema,
+  projectViewSchema,
+} from "./templates/project-view";
 import { projectGenerationTemplate } from "./templates/generation-template";
 import {
   buildProjectGenerationPrompt,
@@ -62,6 +65,20 @@ import { PROJECT_OG_IMAGE_ATTACHMENT_TYPE } from "./attachments/og-image-templat
 import packageJson from "../package.json";
 
 const enrichedProjectViewSchema = projectViewSchema;
+
+/** The pages once site-builder has filled their projects' link fields. */
+const projectListRenderSchema = z.object({
+  projects: z.array(projectRenderSchema),
+  pageTitle: z.string().nullable().default(null),
+  pagination: paginationInfoSchema.nullable(),
+  baseUrl: z.string().nullable().default(null),
+});
+
+const projectDetailRenderSchema = z.object({
+  project: projectRenderSchema,
+  prevProject: projectRenderSchema.nullable(),
+  nextProject: projectRenderSchema.nullable(),
+});
 
 const projectListSchema = z.object({
   projects: z.array(enrichedProjectViewSchema),
@@ -162,7 +179,10 @@ export class PortfolioPlugin extends EntityPlugin<
         schema: projectListSchema,
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",
-        layout: { component: ProjectListTemplate },
+        layout: {
+          component: ProjectListTemplate,
+          renderSchema: projectListRenderSchema,
+        },
       }),
       "project-detail": createTemplate<
         {
@@ -181,7 +201,10 @@ export class PortfolioPlugin extends EntityPlugin<
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",
-        layout: { component: ProjectDetailTemplate },
+        layout: {
+          component: ProjectDetailTemplate,
+          renderSchema: projectDetailRenderSchema,
+        },
       }),
       generation: projectGenerationTemplate,
     };

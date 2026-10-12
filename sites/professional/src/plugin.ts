@@ -24,7 +24,7 @@ import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/templates";
+import { createTemplate, renderedLinkFields } from "@brains/templates";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
 import {
@@ -141,15 +141,9 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       sections: z.record(z.string(), homepageSectionSchema),
     });
 
-    const enrichedLinks = {
-      url: z.string(),
-      typeLabel: z.string(),
-      listUrl: z.string(),
-      listLabel: z.string(),
-    };
     const homepageRenderSchema = homepageListSchema.extend({
-      posts: z.array(blogPostSchema.extend(enrichedLinks)),
-      decks: z.array(deckSchema.extend(enrichedLinks)),
+      posts: z.array(blogPostSchema.extend(renderedLinkFields)),
+      decks: z.array(deckSchema.extend(renderedLinkFields)),
     });
 
     // About page schema

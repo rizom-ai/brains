@@ -1,6 +1,7 @@
 import { createTemplate, type Template } from "@brains/templates";
 import {
   enrichedDeckListSchema,
+  renderedDeckListSchema,
   type DeckListSchemaData,
   type EnrichedDeckListData,
 } from "./schema";
@@ -17,6 +18,7 @@ export const deckListTemplate: Template = createTemplate<
   requiredPermission: "public",
   layout: {
     component: DeckListLayout,
+    renderSchema: renderedDeckListSchema,
   },
 });
 

@@ -8,7 +8,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { blogViewSchema } from "@brains/blog";
 import { personalProfileSchema } from "./schemas";
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/templates";
+import { createTemplate, renderedLinkFields } from "@brains/templates";
 import { HomepageDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
 import { HomepageLayout, type HomepageData } from "./templates/homepage";
@@ -99,6 +99,11 @@ export class PersonalSitePlugin extends ServicePlugin<
       cta: siteInfoCTASchema,
     });
 
+    // The homepage once site-builder has filled its posts' link fields.
+    const homepageRenderSchema = homepageSchema.extend({
+      posts: z.array(blogPostSchema.extend(renderedLinkFields)),
+    });
+
     const aboutPageSchema = z.object({
       profile: personalProfileSchema,
     });
@@ -112,6 +117,7 @@ export class PersonalSitePlugin extends ServicePlugin<
         requiredPermission: "public",
         layout: {
           component: HomepageLayout,
+          renderSchema: homepageRenderSchema,
         },
       }),
       about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({
