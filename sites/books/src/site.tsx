@@ -62,11 +62,23 @@ const BooksLayout = ({
             </a>
           ))}
       </nav>
-      {path !== "/ask" && (
-        <a className="books-ask" href="/ask">
-          Ask {siteInfo.title}
-        </a>
-      )}
+      <div className="books-actions">
+        {path !== "/ask" && (
+          <a className="books-ask" href="/ask">
+            Ask {siteInfo.title}
+          </a>
+        )}
+        {/* The site engine switches data-theme on click and remembers it. */}
+        <button
+          type="button"
+          className="books-theme"
+          data-theme-toggle
+          aria-label="Toggle dark mode"
+        >
+          <span className="books-theme-dark">Paper</span>
+          <span className="books-theme-light">Ink</span>
+        </button>
+      </div>
     </header>
     <main className="books-main">{sections}</main>
     <footer className="books-foot">{siteInfo.copyright}</footer>
@@ -85,6 +97,12 @@ const layoutCSS = `
 .books-ask::before { content: "? "; color: var(--color-accent); font-weight: 700; }
 .books-ask:hover { background: var(--color-accent); }
 .books-ask:hover::before { color: var(--color-bg); }
+.books-actions { display: flex; align-items: baseline; gap: 1.25rem; }
+.books-theme { font-family: var(--font-mono); font-size: var(--text-label-md); color: var(--color-text-muted); background: none; border: 0; border-bottom: 1.5px solid transparent; padding: 0 0 3px; cursor: pointer; }
+.books-theme:hover, .books-theme:focus-visible { color: var(--color-text); border-bottom-color: var(--color-accent); outline: none; }
+.books-theme-dark, .books-theme-light { display: none; }
+[data-theme="dark"] .books-theme-dark { display: inline; }
+[data-theme="light"] .books-theme-light { display: inline; }
 .books-main { flex: 1; }
 .books-foot { font-family: var(--font-mono); font-size: var(--text-label-sm); color: var(--color-text-light); padding: 2.5rem clamp(1rem, 4vw, 3rem); border-top: 1px solid var(--color-rule-strong); margin-top: 4rem; }
 `;
