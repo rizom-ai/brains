@@ -854,6 +854,32 @@ books:
       - { page: 104, opens: "In C haben" }
       - { page: 104, opens: "In D tritt" }
       - { page: 104, opens: "Also haben wir" }
+      - { page: 97, opens: "Derselbe Newman" }
+      - { page: 97, opens: "„Das Argument" }
+      - { page: 97, opens: "Überhaupt ist es" }
+      - { page: 97, opens: "Ricardo unterscheidet" }
+      - { page: 97, opens: "In diesem Falle muß" }
+      - { page: 97, opens: "„Wenn zum Beispiel" }
+      - { page: 97, opens: "70 und 100" }
+      - { page: 97, opens: "70 und 90" }
+      - { page: 97, opens: "70 und 80" }
+      - { page: 97, opens: "| | 70" }
+      - { page: 97, opens: "60 |" }
+      - { page: 97, opens: "und diese Rente bliebe" }
+      - { page: 98, opens: "95 und 125" }
+      - { page: 98, opens: "95 und 115" }
+      - { page: 98, opens: "95 und 105" }
+      - { page: 98, opens: "| | 95" }
+      - { page: 98, opens: "60 |" }
+      - { page: 98, opens: "Aber bei einer" }
+      - { page: 98, opens: "105 und 125" }
+      - { page: 98, opens: "105 und 115" }
+      - { page: 98, opens: "| | 105" }
+      - { page: 98, opens: "30 |" }
+      - { page: 98, opens: "indes die Nachfrage" }
+      - { page: 98, opens: "Abgesehen davon" }
+      - { page: 98, opens: "Sonst ist es" }
+      - { page: 98, opens: "Stiege er" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 171, opens: "¹) Mit Überschlagung" }
@@ -864,6 +890,11 @@ books:
       - { page: 230, opens: "¹) Im Manuskript steht IV" }
       - { page: 360, opens: "2000" }
       - { page: 360, opens: "Dieses ist absolut" }
+      - { page: 239, opens: "Nun ändere sich" }
+      - { page: 238, opens: "1 Das Beispiel" }
+    # Kautsky's note, set as the text and signed only where it ends.
+    skipNotes:
+      - { page: 238, opens: "1 Das Beispiel" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2

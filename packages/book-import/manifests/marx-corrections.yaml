@@ -3453,6 +3453,10 @@ theorienberden01marxuoft:
     from: erédit.“ Discussion
     to: crédit.“ Discussion
     by: scan
+  - page: 106
+    from: en diese 10 £E für den Sch
+    to: en diese 10 £ für den Sch
+    by: scan
   - page: 112
     from: sgibt
     to: gibt
@@ -4345,6 +4349,10 @@ theorienberden01marxuoft:
     from: zieht.!
     to: zieht.¹
     by: scan
+  - page: 335
+    from: er um 20000 £E verkauft wi
+    to: er um 20000 £ verkauft wi
+    by: scan
   - page: 336
     from: ginge.!
     to: ginge.¹
@@ -4710,6 +4718,18 @@ p1theorienberden02marxuoft:
     from: hatte.?
     to: hatte.²
     by: scan
+  - page: 31
+    from: "ie zu 10000 £E verkaufen, "
+    to: "ie zu 10000 £ verkaufen, "
+    by: scan
+  - page: 31
+    from: beit. (1000 £E macht die M
+    to: beit. (1000 £ macht die M
+    by: scan
+  - page: 31
+    from: ", also 1250 £H über seinem"
+    to: ", also 1250 £ über seinem"
+    by: scan
   - page: 32
     from: (auch!
     to: "[auch]"
@@ -4738,6 +4758,10 @@ p1theorienberden02marxuoft:
     from: Falles!]
     to: Falles]
     by: scan
+  - page: 34
+    from: h habe 1000 LE Kapital ein
+    to: h habe 1000 £ Kapital ein
+    by: scan
   - page: 38
     from: seiner!
     to: seiner]
@@ -4745,6 +4769,10 @@ p1theorienberden02marxuoft:
   - page: 38
     from: (der
     to: "[der"
+    by: scan
+  - page: 38
+    from: zteren 5000 £E Kapital ste
+    to: zteren 5000 £ Kapital ste
     by: scan
   - page: 39
     from: Kapital im
@@ -5045,6 +5073,10 @@ p1theorienberden02marxuoft:
   - page: 108
     from: wichtig. Rieardo betrachtet
     to: wichtig. Ricardo betrachtet
+    by: scan
+  - page: 110
+    from: "re um 10000 £E, und jeder "
+    to: "re um 10000 £, und jeder "
     by: scan
   - page: 111
     from: Markte?
@@ -5349,6 +5381,10 @@ p1theorienberden02marxuoft:
   - page: 155
     from: 10 Penee
     to: 10 Pence
+    by: scan
+  - page: 155
+    from: "von 480 £E als Profit "
+    to: "von 480 £ als Profit "
     by: scan
   - page: 156
     from: von Riecardo selbst
@@ -6537,6 +6573,10 @@ p1theorienberden02marxuoft:
   - page: 270
     from: ([des
     to: "[des"
+    by: scan
+  - page: 271
+    from: de, da I 10 LE Rente pro 1
+    to: de, da I 10 £ Rente pro 1
     by: scan
   - page: 273
     from: fruchtbarseren!]
@@ -7776,6 +7816,10 @@ p2theorienberd02marx:
   - page: 30
     from: noch 32⅛ Tonnen
     to: noch 32½ Tonnen
+    by: scan
+  - page: 30
+    from: " ist von 20 £L auf"
+    to: " ist von 20 £ auf"
     by: scan
   - page: 31
     from: 5 H gefallen. Wäre noch dieselbe Menge Kapital angewandt,
@@ -9354,6 +9398,26 @@ p2theorienberd02marx:
     from: stimmenden!]
     to: stimmenden]
     by: scan
+  - page: 97
+    from: 70 und 100 = 30 100
+    to: 70 und 100 = 30 | während der Ertrag 340 wäre | 100
+    by: scan
+  - page: 97
+    from: 70 und 90 - 20 ö 74 90
+    to: 70 und 90 = 20 | | 90
+    by: scan
+  - page: 97
+    from: 70 und 80 10 während der Ertrag 8⁰
+    to: 70 und 80 = 10 | | 80
+    by: scan
+  - page: 97
+    from: 340 wäre „
+    to: "| | 70"
+    by: scan
+  - page: 97
+    from: 60 340
+    to: 60 | | 340
+    by: scan
   - page: 98
     from: Landbau!
     to: Landbau]
@@ -9369,6 +9433,62 @@ p2theorienberd02marx:
   - page: 98
     from: Bodenarten!]
     to: Bodenarten]
+    by: scan
+  - page: 98
+    from: Maße stiege.. Wenn
+    to: Maße stiege. Wenn
+    by: scan
+  - page: 98
+    from: 95 und 115 = 20 ——. während der Ertrag I
+    to: 95 und 115 = 20 | | 115
+    by: scan
+  - page: 98
+    from: 5 und auf 440 stiege 105
+    to: ""
+    by: scan
+  - page: 98
+    from: 95 105 10 ö
+    to: 95 und 105 = 10 | | 105
+    by: scan
+  - page: 98
+    from: e. 9⁵
+    to: "| | 95"
+    by: scan
+  - page: 98
+    from: 60 440
+    to: 60 | | 440
+    by: scan
+  - page: 98
+    from: 402. während der Ertrag immer noch 25
+    to: ""
+    by: scan
+  - page: 98
+    from: 10⁵ 125 — 20
+    to: 105 und 125 = 20 | während der Ertrag immer noch den Bedürfnissen der Bevölkerung genügte, denn er betrüge 345 Qu. | 125
+    by: scan
+  - page: 98
+    from: und den Bedürfnissen der Bevölkerung 8
+    to: ""
+    by: scan
+  - page: 98
+    from: 105 115.=8 10
+    to: 105 und 115 = 10 | | 115
+    by: scan
+  - page: 98
+    from: —.—genügte, denn er betrüge 345 Qu 3 .
+    to: "| | 105"
+    by: scan
+  - page: 98
+    from: 500— 345
+    to: 30 | | 345
+    by: scan
+  - page: 98
+    from: (I. c. S. 71, 72.)
+    to: (l. c. S. 71, 72.)
+    by: scan
+  - page: 98
+    from: 95 und 125 £ 30 125
+    to: 95 und 125 = 30 | während der Ertrag auf 440 stiege | 125
     by: scan
   - page: 99
     from: Böden!
@@ -9828,6 +9948,14 @@ p2theorienberd02marx:
     from: Ländern. ist
     to: Ländern ist
     by: scan
+  - page: 112
+    from: s, die 1000 LE den ge-
+    to: s, die 1000 £ den ge-
+    by: scan
+  - page: 115
+    from: 1000 £E auf dem alt
+    to: 1000 £ auf dem alt
+    by: scan
   - page: 116
     from: Ackerland!
     to: Ackerland]
@@ -9872,6 +10000,10 @@ p2theorienberd02marx:
     from: Arbeit!
     to: Arbeit¹
     by: scan
+  - page: 131
+    from: in ung persona
+    to: in una persona
+    by: scan
   - page: 132
     from: sins
     to: "[ins"
@@ -9879,6 +10011,10 @@ p2theorienberd02marx:
   - page: 132
     from: kommt!),
     to: kommt],
+    by: scan
+  - page: 135
+    from: von dem marSelichen Preise
+    to: von dem natürlichen Preise
     by: scan
   - page: 138
     from: (die
@@ -9891,6 +10027,10 @@ p2theorienberd02marx:
   - page: 140
     from: 5) Bodenprodukte, die immer eine Rente liefern.
     to: β) Bodenprodukte, die immer eine Rente liefern.
+    by: scan
+  - page: 140
+    from: Kapitel 5, 6und 7 über
+    to: Kapitel 5, 6 und 7 über
     by: scan
   - page: 142
     from: Schlachtfleisch?
@@ -9943,6 +10083,10 @@ p2theorienberd02marx:
   - page: 159
     from: Silber in
     to: Silber [in
+    by: scan
+  - page: 162
+    from: ungewiß istL.
+    to: ungewiß ist“.
     by: scan
   - page: 164
     from: Arbeitskraft!
@@ -10262,6 +10406,10 @@ p2theorienberd02marx:
     from: Tonne wäre 2⅛ £.“
     to: Tonne wäre 2½ £.³
     by: scan
+  - page: 180
+    from: Kapital S 60 c4 + 40 v, der Mehrwert -S 50 Prozent, der
+    to: Kapital = 60 c + 40 v, der Mehrwert = 50 Prozent, der
+    by: scan
   - page: 181
     from: Arbeit!
     to: "[Arbeit]"
@@ -10269,6 +10417,26 @@ p2theorienberd02marx:
   - page: 181
     from: Steigt er auf 2⅛,
     to: Steigt er auf 2½,
+    by: scan
+  - page: 181
+    from: Kapital von 120
+    to: Kapital von 120 £
+    by: scan
+  - page: 181
+    from: (60c und 60 v) das Produkt S 120 £ 40 Tonnen (40 £ 3).
+    to: (60 c und 60 v) das Produkt = 120 £ = 40 Tonnen (40 × 3).
+    by: scan
+  - page: 181
+    from: (606c und 50v) das Produkt S 120 £ 48 Tonnen (48 42 ½).
+    to: (60 c und 50 v) das Produkt = 120 £ = 48 Tonnen (48 × 2½).
+    by: scan
+  - page: 181
+    from: Kapital von 100
+    to: Kapital von 100 £
+    by: scan
+  - page: 181
+    from: (50 C6 und 50v) das Produkt 33¼ Tonnen (3 33½ = 100.)
+    to: (50 c und 50 v) das Produkt 33⅓ Tonnen (3 £ × 33⅓ = 100.)
     by: scan
   - page: 182
     from: — 2 H), so jetzt die 50J von 16 /8 Mann, die 50 £ erhalten,
@@ -10650,6 +10818,10 @@ p2theorienberd02marx:
   - page: 187
     from: heraus, jetzt, wo JLeintritt und der Marktwert zu 2 £ ge-
     to: heraus, jetzt, wo I eintritt und der Marktwert zu 2 £ ge-
+    by: scan
+  - page: 187
+    from: 120 LH.
+    to: 120 £.
     by: scan
   - page: 188
     from: ssiii- τ———FT- 7.. . .......
@@ -11399,6 +11571,10 @@ p2theorienberd02marx:
     from: produzieren 13⅛ 40 £
     to: produzieren 13⅓ 40 £
     by: scan
+  - page: 198
+    from: daß Klasse La den Markt
+    to: daß Klasse Ia den Markt
+    by: scan
   - page: 199
     from: Da der Kapitalist für die 20 Tonnen 60 E zahlen muß und
     to: Da der Kapitalist für die 20 Tonnen 60 £ zahlen muß und
@@ -11583,6 +11759,10 @@ p2theorienberd02marx:
     from: " wo nur Nr. JI in"
     to: " wo nur Nr. I in"
     by: scan
+  - page: 203
+    from: gleicher n die für denselben
+    to: gleicher Produktionsmittel, die für denselben
+    by: scan
   - page: 204
     from: limmer!
     to: "[immer]"
@@ -11592,8 +11772,24 @@ p2theorienberd02marx:
     to: β) Ricardos Äußerungen über den Fall.
     by: scan
   - page: 205
-    from: P!
-    to: P′
+    from: oder umgekehrt. Wenn der Profit —˖ EP, der industrielle
+    to: oder umgekehrt. Wenn der Profit = P, der industrielle
+    by: scan
+  - page: 205
+    from: Profit = P/, der Zins ⸗ 2 und die Rente R, so ist
+    to: Profit = P′, der Zins = Z und die Rente = R, so ist
+    by: scan
+  - page: 205
+    from: von P sei, P/, und R gegeneinander
+    to: von P sei, P′, Z und R gegeneinander
+    by: scan
+  - page: 205
+    from: in P“ und 2 geteilt
+    to: in P′ und Z geteilt
+    by: scan
+  - page: 205
+    from: P! Z κE R. Und es ist klar, daß, welches immer
+    to: P = P′ + Z + R. Und es ist klar, daß, welches immer
     by: scan
   - page: 207
     from: Industriellen!
@@ -11615,6 +11811,10 @@ p2theorienberd02marx:
     from: der!
     to: der]
     by: scan
+  - page: 210
+    from: mpfe um 110 £E verkauft st
+    to: mpfe um 110 £ verkauft st
+    by: scan
   - page: 213
     from: deswegen!
     to: deswegen]
@@ -11635,6 +11835,10 @@ p2theorienberd02marx:
     from: sindustrieller]
     to: "[industrieller]"
     by: scan
+  - page: 216
+    from: (I0. c. 21. Kapitel,
+    to: (l. c. 21. Kapitel,
+    by: scan
   - page: 218
     from: Einfluß des Wertwechsels auf die organische
     to: Einfluß des Wertwechsels auf die organische Zusammensetzung des Kapitals.
@@ -11642,6 +11846,10 @@ p2theorienberd02marx:
   - page: 218
     from: Zusammensetzung des Kapitals.
     to: ""
+    by: scan
+  - page: 219
+    from: mit 72½ cœ, und
+    to: mit 72⁸⁄₁₁ c, und
     by: scan
   - page: 220
     from: Wäre im obigen Falle der Wert von 80 4 konstant ge-
@@ -12159,6 +12367,50 @@ p2theorienberd02marx:
     from: (Ein
     to: "[Ein"
     by: scan
+  - page: 238
+    from: nur noch 40 HL. Zum
+    to: nur noch 40 £. Zum
+    by: scan
+  - page: 238
+    from: en Falle 60 £E Aussaat, 30
+    to: en Falle 60 £ Aussaat, 30
+    by: scan
+  - page: 238
+    from: = 60 zur
+    to: = 60 £ zur
+    by: scan
+  - page: 238
+    from: 2 4. Von dem Produkt
+    to: 2 £. Von dem Produkt
+    by: scan
+  - page: 238
+    from: müssen.!“
+    to: müssen.¹“
+    by: scan
+  - page: 238
+    from: I.
+    to: I. Konstantes Kapital 300 £ (100 Qu.), Gesamtprodukt 600 £ (100 Ztr.), Anteil des konstanten Kapitals am Gesamtprodukt 50 %, Preis pro Zentner Endprodukt 6 £.
+    by: scan
+  - page: 238
+    from: Anteil des Preis pro
+    to: ""
+    by: scan
+  - page: 238
+    from: Haapitgr Probutt tonstanten Kapitals Zentner
+    to: ""
+    by: scan
+  - page: 238
+    from: pita ꝓ am Gesamtprodukt Endprodukt
+    to: ""
+    by: scan
+  - page: 238
+    from: 300 £ 600 50 / 6
+    to: ""
+    by: scan
+  - page: 238
+    from: 100 Gu. 100 Ztr.
+    to: ""
+    by: scan
   - page: 239
     from: Menschen!
     to: Menschen]
@@ -12170,6 +12422,54 @@ p2theorienberd02marx:
   - page: 239
     from: ie im Falle J. Hier
     to: ie im Falle I. Hier
+    by: scan
+  - page: 239
+    from: II.
+    to: II. Konstantes Kapital 200 £ (100 Qu.), Gesamtprodukt 500 £ (100 Ztr.), Anteil des konstanten Kapitals am Gesamtprodukt 40 %, Preis pro Zentner Endprodukt 5 £.
+    by: scan
+  - page: 239
+    from: Anteil des Preis pro
+    to: ""
+    by: scan
+  - page: 239
+    from: SGapitar Produttt konstanten Kapitals Zentner
+    to: ""
+    by: scan
+  - page: 239
+    from: 5 v am Gesamtprodukt Endprodukt
+    to: ""
+    by: scan
+  - page: 239
+    from: 200 HL 500 £ 40 0/% 5 —
+    to: ""
+    by: scan
+  - page: 239
+    from: 100 Qu. 100 Ztr.
+    to: ""
+    by: scan
+  - page: 239
+    from: III.
+    to: III. Konstantes Kapital 600 £ (200 Qu.), Gesamtprodukt 900 £ (200 Ztr.), Anteil des konstanten Kapitals am Gesamtprodukt 66⅔ %, Preis pro Zentner Endprodukt 4½ £.
+    by: scan
+  - page: 239
+    from: Scabitat roduult konstanten Kapitals Zentner
+    to: ""
+    by: scan
+  - page: 239
+    from: v 5 am Gesamtprodukt Endprodukt
+    to: ""
+    by: scan
+  - page: 239
+    from: 600 £ 900 66½¾½/ 4½ 4
+    to: ""
+    by: scan
+  - page: 239
+    from: 200 Qu. 200 Ztr.
+    to: ""
+    by: scan
+  - page: 239
+    from: bei Nation!
+    to: bei Nation I
     by: scan
   - page: 240
     from: skonstante!]
@@ -12226,6 +12526,10 @@ p2theorienberd02marx:
   - page: 244
     from: "[ganz!"
     to: "[ganz]"
+    by: scan
+  - page: 245
+    from: nd für 1000 £E Webstühle,
+    to: nd für 1000 £ Webstühle,
     by: scan
   - page: 246
     from: (vermögen!
@@ -12495,6 +12799,10 @@ p2theorienberd02marx:
     from: stritt vergrößertel
     to: "[tritt vergrößerte]"
     by: scan
+  - page: 320
+    from: enn ich 200 £E ean Ausgabe
+    to: enn ich 200 £ ean Ausgabe
+    by: scan
   - page: 321
     from: Reichtum!
     to: Reichtum¹
@@ -12527,6 +12835,10 @@ p2theorienberd02marx:
     from: ([.
     to: (l.
     by: scan
+  - page: 331
+    from: 66000 £E oder 4000 w
+    to: 66000 £ oder 4000 w
+    by: scan
   - page: 333
     from: 1. Brutto- und nettoeinkommen.
     to: 1. Brutto- und Nettoeinkommen.
@@ -12538,6 +12850,14 @@ p2theorienberd02marx:
   - page: 335
     from: Produktionskosten.?
     to: Produktionskosten.²
+    by: scan
+  - page: 336
+    from: "kt um 10000 £E oder 20000 "
+    to: "kt um 10000 £ oder 20000 "
+    by: scan
+  - page: 338
+    from: re auf 5500 £E; dann ist e
+    to: re auf 5500 £; dann ist e
     by: scan
   - page: 340
     from: Aber!
@@ -12642,6 +12962,10 @@ p2theorienberd02marx:
   - page: 359
     from: sund
     to: "[und"
+    by: scan
+  - page: 359
+    from: rodukt 2000 LS. Nehmen wir
+    to: rodukt 2000 £. Nehmen wir
     by: scan
   - page: 360
     from: Preisfall!
@@ -13068,6 +13392,14 @@ theorienberden03marxuoft:
     from: ([be-
     to: "[be-"
     by: scan
+  - page: 68
+    from: els auf 800 £E zu reduzier
+    to: els auf 800 £ zu reduzier
+    by: scan
+  - page: 70
+    from: Prozent 100 £H ausmacht. D
+    to: Prozent 100 £ ausmacht. D
+    by: scan
   - page: 71
     from: schaffen!
     to: schaffen]
@@ -13151,6 +13483,10 @@ theorienberden03marxuoft:
   - page: 108
     from: Arbeit. riIANR
     to: Arbeit.
+    by: scan
+  - page: 115
+    from: " Wert von 3 £E mag sich in"
+    to: " Wert von 3 £ mag sich in"
     by: scan
   - page: 117
     from: ist,?
@@ -13943,6 +14279,10 @@ theorienberden03marxuoft:
     from: wo der ——— ,⏑ rtreen I‚IJNNNNNRTT
     to: wo der
     by: scan
+  - page: 265
+    from: von 50 £H für Baumwol
+    to: von 50 £ für Baumwol
+    by: scan
   - page: 266
     from: aus- —24 mmeeee,
     to: aus-
@@ -14435,6 +14775,10 @@ theorienberden03marxuoft:
     from: zusammengesetzt nt.,tt.
     to: zusammengesetzt
     by: scan
+  - page: 364
+    from: nn, mit 800 £E aus
+    to: nn, mit 800 £ aus
+    by: scan
   - page: 365
     from: Umständen!
     to: Umständen]
@@ -14779,6 +15123,10 @@ theorienberden03marxuoft:
     from: "[Zeiten!]."
     to: "[Zeiten]."
     by: scan
+  - page: 406
+    from: apitals, 40 £E für Ar-
+    to: apitals, 40 £ für Ar-
+    by: scan
   - page: 407
     from: "[Zunahme!"
     to: "[Zunahme]"
@@ -14802,6 +15150,14 @@ theorienberden03marxuoft:
   - page: 409
     from: (in
     to: "[in"
+    by: scan
+  - page: 409
+    from: age von 100 £H auf
+    to: age von 100 £ auf
+    by: scan
+  - page: 409
+    from: 0 £ auf 100 £H gewachsene
+    to: 0 £ auf 100 £ gewachsene
     by: scan
   - page: 410
     from: wachsende]
@@ -14967,6 +15323,10 @@ theorienberden03marxuoft:
     from: betrage 100 α I[die
     to: betrage 100 £ [die
     by: scan
+  - page: 456
+    from: "fit also 10 £E, die Rente "
+    to: "fit also 10 £, die Rente "
+    by: scan
   - page: 457
     from: "[(von"
     to: "[von"
@@ -14975,9 +15335,21 @@ theorienberden03marxuoft:
     from: Zusammensetzung!]
     to: Zusammensetzung]
     by: scan
+  - page: 458
+    from: mit 100 120 £E und so fort
+    to: mit 100 120 £ und so fort
+    by: scan
+  - page: 458
+    from: 20 C, B 230 £E, C 240 £ us
+    to: 20 C, B 230 £, C 240 £ us
+    by: scan
   - page: 459
     from: pro Aere. Er
     to: pro Acre. Er
+    by: scan
+  - page: 461
+    from: 115 und 120 £H angewandt w
+    to: 115 und 120 £ angewandt w
     by: scan
   - page: 462
     from: (relativ]
