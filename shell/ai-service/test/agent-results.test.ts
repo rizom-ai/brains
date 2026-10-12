@@ -779,3 +779,33 @@ describe("a retrieved source as the site shows it", () => {
     expect(source?.url).toBeUndefined();
   });
 });
+
+describe("a source's excerpt", () => {
+  it("is the text of a source read directly, without its frontmatter", () => {
+    const [source] = extractToolResults([
+      {
+        toolCalls: [{ toolCallId: "g", toolName: "system_get", input: {} }],
+        toolResults: [
+          {
+            toolCallId: "g",
+            toolName: "system_get",
+            output: {
+              success: true,
+              data: {
+                entity: {
+                  id: "ecce-homo:00046-also-sprach-zarathustra:00051-6",
+                  entityType: "book-section",
+                  content:
+                    "---\ntitle: '6'\nbook: ecce-homo\nsection: EH-ZA-6\n---\nDer Text des Abschnitts.",
+                  metadata: { title: "6", pageTitle: "EH-ZA-6" },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]).cards.flatMap((card) => (card.kind === "sources" ? card.sources : []));
+
+    expect(source?.excerpt).toBe("Der Text des Abschnitts.");
+  });
+});

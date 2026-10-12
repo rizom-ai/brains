@@ -10,6 +10,7 @@ import {
   type SemanticSpaceProjection,
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
+import { markdownBody } from "./frontmatter";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -669,7 +670,9 @@ export class EntitySearch {
   /**
    * Create an excerpt from content based on query
    */
-  private createExcerpt(content: string, query: string): string {
+  private createExcerpt(markdown: string, query: string): string {
+    // A reader of the result sees its text, not its frontmatter.
+    const content = markdownBody(markdown);
     const maxLength = 200;
     const queryLower = query.toLowerCase();
     const contentLower = content.toLowerCase();
