@@ -347,6 +347,7 @@
     "core--chat-identity-and-spaces",
     "core--chat-repl-shared-confirmation-grammar",
     "core--chat-repl-typed-system-messages",
+    "core--chat-source-links",
     "core--chat-stream-completion",
     "core--checkout-in-place",
     "core--checkout-tracks-upstream",

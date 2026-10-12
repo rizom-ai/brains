@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.537
+
+### Patch Changes
+
+- [#613](https://github.com/rizom-ai/brains/pull/613) [`e8590df`](https://github.com/rizom-ai/brains/commit/e8590df6f06f0275fce501de1a4098025f7228e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A chat answer's sources are named and linked as the site shows them. A book section is cited by its siglum ("EH-Weise-3") rather than its bare number, and links to its reading page wherever the site cites its type, in Studio's chat as in the guest Ask; Studio's source list no longer shows each source's raw record.
+
 ## 0.2.0-alpha.536
 
 ### Patch Changes
