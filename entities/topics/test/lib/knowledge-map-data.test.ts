@@ -64,6 +64,20 @@ function makeContext(): KnowledgeMapDataContext {
     prompt: [{ id: "blog-excerpt", content: "no heading here" }],
     deck: [{ id: "cococo", content: "# CoCoCo\n\nslides" }],
   };
+  // Each topic's nearest sources by stored embedding.
+  const nearestByTopic: Record<
+    string,
+    { entityType: string; entityId: string }[]
+  > = {
+    "future-of-work": [
+      { entityType: "post", entityId: "play-essay" },
+      { entityType: "prompt", entityId: "blog-excerpt" },
+    ],
+    workshops: [
+      { entityType: "skill", entityId: "team-assessment" },
+      { entityType: "deck", entityId: "cococo" },
+    ],
+  };
   return {
     semantic: {
       project: () =>
@@ -83,6 +97,26 @@ function makeContext(): KnowledgeMapDataContext {
             content: entity.content,
           })),
         ),
+      getEntityTypes: () => Object.keys(entitiesByType),
+      countEntities: (request) =>
+        Promise.resolve((entitiesByType[request.entityType] ?? []).length),
+      nearestToEntity: (request) =>
+        Promise.resolve(
+          (nearestByTopic[request.origin.entityId] ?? []).slice(
+            0,
+            request.limit,
+          ),
+        ),
+      getEntity: (
+        request,
+      ): ReturnType<KnowledgeMapDataContext["entityService"]["getEntity"]> => {
+        const entity = (entitiesByType[request.entityType] ?? []).find(
+          ({ id }) => id === request.id,
+        );
+        return Promise.resolve(
+          entity ? { ...entity, entityType: request.entityType } : null,
+        );
+      },
     },
   };
 }
@@ -249,6 +283,7 @@ describe("buildKnowledgeMapData scope", () => {
     const base = makeContext();
     const projected: unknown[] = [];
     const listed: unknown[] = [];
+    const looked: unknown[] = [];
     await buildKnowledgeMapData(
       {
         semantic: {
@@ -262,12 +297,36 @@ describe("buildKnowledgeMapData scope", () => {
             listed.push(request);
             return base.entityService.listEntities(request);
           },
+          getEntityTypes: () => base.entityService.getEntityTypes(),
+          countEntities: (request) => {
+            looked.push(request);
+            return base.entityService.countEntities(request);
+          },
+          nearestToEntity: (request) => {
+            looked.push(request);
+            return base.entityService.nearestToEntity(request);
+          },
+          getEntity: (request) => {
+            looked.push(request);
+            return base.entityService.getEntity(request);
+          },
         },
       },
       "restricted",
     );
 
-    expect(projected).toEqual([{ visibilityScope: "restricted" }]);
+    expect(projected).toEqual([
+      expect.objectContaining({ visibilityScope: "restricted" }),
+    ]);
+    // Every count the map takes to size itself is scoped too.
+    expect(looked.length).toBeGreaterThan(0);
+    expect(looked).toEqual(
+      looked.map(() =>
+        expect.objectContaining({
+          options: { filter: { visibilityScope: "restricted" } },
+        }),
+      ),
+    );
     expect(listed.length).toBeGreaterThan(0);
     expect(listed).toEqual(
       listed.map(() =>
@@ -276,5 +335,71 @@ describe("buildKnowledgeMapData scope", () => {
         }),
       ),
     );
+  });
+});
+
+// A book brain projects thousands of sections; the map must not grow with it.
+describe("buildKnowledgeMapData at corpus scale", () => {
+  test("maps the topics and their nearest sources, not the whole corpus", async () => {
+    const topics = ["will-to-power", "eternal-recurrence", "bad-conscience"];
+    const longId = (n: number): string =>
+      `die-philosophie-im-tragischen-zeitalter-der-griechen:00001-erster-theil:00002-vorrede-und-einleitung:${String(n).padStart(5, "0")}-abschnitt`;
+    const projected: { entityType: string; entityId: string }[][] = [];
+    const context: KnowledgeMapDataContext = {
+      semantic: {
+        project: (request) => {
+          const entities = request.entities ?? [];
+          projected.push(entities);
+          return Promise.resolve({
+            points: entities.map((reference, index) => ({
+              ...reference,
+              coordinates: [Math.cos(index), Math.sin(index * 1.7)],
+              distanceToOrigin: 0.5,
+            })),
+          });
+        },
+      },
+      entityService: {
+        listEntities: () =>
+          Promise.resolve(
+            topics.map((id) => ({
+              id,
+              entityType: "topic",
+              content: `# ${id}`,
+            })),
+          ),
+        getEntityTypes: () => ["topic", "book-section"],
+        countEntities: () => Promise.resolve(3000),
+        nearestToEntity: (request) =>
+          Promise.resolve(
+            Array.from({ length: request.limit }, (_, index) => ({
+              entityType: "book-section",
+              entityId: longId(
+                topics.indexOf(request.origin.entityId) * 1000 + index,
+              ),
+            })),
+          ),
+        getEntity: (request) =>
+          Promise.resolve({
+            id: request.id,
+            entityType: request.entityType,
+            content: "Text.",
+          }),
+      },
+    };
+
+    const essay = { entityType: "post", entityId: "far-from-every-topic" };
+    const started = performance.now();
+    const data = await buildKnowledgeMapData(context, "public", {
+      include: [essay],
+    });
+
+    expect(performance.now() - started).toBeLessThan(2000);
+    expect(projected).toHaveLength(1);
+    expect(projected[0]?.length).toBe(topics.length + topics.length * 8 + 1);
+    expect(data.zones).toHaveLength(topics.length);
+    expect(data.points).toHaveLength(topics.length * 8 + 1);
+    // What the caller must show is drawn, near a topic or not.
+    expect(data.points.some(({ id }) => id === essay.entityId)).toBe(true);
   });
 });

@@ -14,7 +14,7 @@ import { markdownBody } from "./frontmatter";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { sql, and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 import { SemanticIndexingDisabledError } from "./errors";
 import { publishedAcrossTypesCondition } from "./published-condition";
@@ -418,15 +418,22 @@ export class EntitySearch {
     if (!this.embeddingsEnabled) {
       throw new SemanticIndexingDisabledError();
     }
-    const pointTypes =
-      request.types && request.types.length > 0
+    const listed = request.entities
+      ? new Set(request.entities.map(referenceKey))
+      : undefined;
+    const pointTypes = request.entities
+      ? new Set(request.entities.map(({ entityType }) => entityType))
+      : request.types && request.types.length > 0
         ? new Set(request.types)
         : undefined;
 
-    const embeddings = await this.readEmbeddings(
-      pointTypes ? Array.from(pointTypes) : undefined,
-      request.visibilityScope,
-    );
+    const embeddings = (
+      await this.readEmbeddings(
+        pointTypes ? Array.from(pointTypes) : undefined,
+        request.visibilityScope,
+        request.entities?.map(({ entityId }) => entityId),
+      )
+    ).filter((embedding) => !listed || listed.has(referenceKey(embedding)));
     const originReference = request.origin;
     // An origin of a type outside the points is read alone: reading its whole
     // type to find one vector makes a page per entry quadratic.
@@ -441,7 +448,7 @@ export class EntitySearch {
               await this.readEmbeddings(
                 [originReference.entityType],
                 request.visibilityScope,
-                originReference.entityId,
+                [originReference.entityId],
               )
             )[0]
           : undefined))
@@ -466,14 +473,14 @@ export class EntitySearch {
   private async readEmbeddings(
     types?: string[],
     visibilityScope?: ContentVisibility,
-    entityId?: string,
+    entityIds?: readonly string[],
   ): Promise<SemanticEmbedding[]> {
     const conditions = this.buildVisibilityConditions(visibilityScope);
     if (types && types.length > 0) {
       conditions.push(inArray(entities.entityType, types));
     }
-    if (entityId !== undefined) {
-      conditions.push(eq(entities.id, entityId));
+    if (entityIds !== undefined) {
+      conditions.push(inArray(entities.id, [...entityIds]));
     }
 
     const embeddingExpr = sql<Float32Array>`emb_e.embedding`.mapWith({
@@ -532,7 +539,7 @@ export class EntitySearch {
     const [origin] = await this.readEmbeddings(
       [request.origin.entityType],
       request.visibilityScope,
-      request.origin.entityId,
+      [request.origin.entityId],
     );
     if (!origin || request.types.length === 0) return [];
 
@@ -698,4 +705,12 @@ export class EntitySearch {
       content.slice(0, maxLength) + (content.length > maxLength ? "..." : "")
     );
   }
+}
+
+/** One key for an entity reference: type and id. */
+function referenceKey(reference: {
+  entityType: string;
+  entityId: string;
+}): string {
+  return `${reference.entityType}:${reference.entityId}`;
 }

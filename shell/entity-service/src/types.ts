@@ -839,6 +839,11 @@ export interface NearestToEntityRequest {
 export interface ProjectSemanticSpaceRequest {
   /** Entity types to include as projected points. Empty or omitted includes all types. */
   types?: string[];
+  /**
+   * Only these entities, when given: a bounded map reads a few hundred
+   * vectors instead of the whole corpus. Unknown or invisible ones are skipped.
+   */
+  entities?: SemanticEntityReference[];
   /** Optional entity used as the semantic origin. Missing origins fall back to the point centroid. */
   origin?: SemanticEntityReference;
   /** Include pairwise neighbors at or below this cosine distance. */
