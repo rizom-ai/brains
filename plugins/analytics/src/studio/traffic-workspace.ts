@@ -21,8 +21,11 @@ export interface TrafficWorkspaceReports extends TrafficReports {
 
 const RANGES = ["7", "30", "90"] as const;
 
-/** "All" in Studio's select is an empty value; the rest are day counts. */
-const querySchema = z.strictObject({ days: z.string().optional() });
+/**
+ * "All" in Studio's select is an empty value; the rest are day counts. Not
+ * strict: Studio keeps its own keys in the query too, such as a list's offset.
+ */
+const querySchema = z.object({ days: z.string().optional() });
 
 type Period = (typeof RANGES)[number] | "all";
 

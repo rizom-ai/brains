@@ -205,4 +205,16 @@ describe("the Traffic workspace", () => {
     );
     expect(view).not.toContain('"tone":"warn"');
   });
+
+  // Studio keeps its own keys in the query, such as a list's offset; the
+  // workspace reads days and leaves the rest alone.
+  it("ignores query keys it does not own", async () => {
+    const registration = await registered(await brain());
+    const view = JSON.stringify(
+      await registration.dataProvider(adminActor, { days: "7", offset: "10" }),
+    );
+
+    expect(view).toContain('"value":"7"');
+    expect(view).toContain('"id":"2026-10-05"');
+  });
 });
