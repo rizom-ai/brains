@@ -11,6 +11,7 @@ import {
   extractVisibilityFromMarkdown,
   hasVisibilityFrontmatter,
   type FrontmatterConfig,
+  markdownBody,
 } from "../src/frontmatter";
 import type { BaseEntity } from "../src/types";
 
@@ -423,5 +424,24 @@ describe("entityTitle", () => {
     const entity = createTestEntity("note", { content: "Text.", metadata: {} });
 
     expect(entityTitle(entity)).toBeNull();
+  });
+});
+
+describe("markdownBody", () => {
+  it("drops the frontmatter block and keeps the text", () => {
+    expect(markdownBody("---\ntitle: A\n---\nThe text.\n")).toBe("The text.");
+    expect(markdownBody("---\r\ntitle: A\r\n---\r\nThe text.")).toBe(
+      "The text.",
+    );
+  });
+
+  it("returns a document without frontmatter as it is", () => {
+    expect(markdownBody("Just text.")).toBe("Just text.");
+  });
+
+  it("leaves an unclosed block in place rather than guessing", () => {
+    expect(markdownBody("---\ntitle: A\nThe text.")).toBe(
+      "---\ntitle: A\nThe text.",
+    );
   });
 });
