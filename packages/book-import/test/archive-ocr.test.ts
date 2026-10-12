@@ -59,6 +59,67 @@ describe("parseArchiveOcrWork", () => {
     );
   });
 
+  it("runs a page opening in lower case on the sentence left open above a note read as text", async () => {
+    const hocr = (await fixture())
+      .replace(
+        ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+        ">.seits Beschreibung und Rechenschaft zu</span>\n  <span class='ocr_line' title='bbox 180 810 2400 890; x_size 78'>1 Eine Anmerkung. K.</span>",
+      )
+      .replace(
+        /<span class='ocr_line' title='bbox 92 3740[\s\S]*?Jones, 1919\.<\/span>/u,
+        "",
+      )
+      .replace(
+        "<span class='ocr_line' title='bbox 220 480 2500 560; x_size 79'>Die Ich-</span>",
+        "<span class='ocr_line' title='bbox 130 480 2500 560; x_size 79'>geben, wie man sieht.</span>",
+      );
+    const paragraphs = parseArchiveOcrWork(hocr, work).flatMap(
+      (unit) => unit.paragraphs,
+    );
+
+    expect(paragraphs.join("\n")).toContain(
+      "Rechenschaft zu geben, wie man sieht.",
+    );
+    expect(paragraphs).toContain("1 Eine Anmerkung. K.");
+  });
+
+  it("leaves out a running head the scan set a little low, by its page's number", async () => {
+    const hocr = (await fixture()).replace(
+      "bbox 1500 300 2450 370; x_size 61'>Jenseits des Lustprinzips 5",
+      "bbox 1500 452 2450 475; x_size 61'>Jenseits des Lustprinzips 5",
+    );
+    const paragraphs = parseArchiveOcrWork(hocr, work).flatMap(
+      (unit) => unit.paragraphs,
+    );
+
+    expect(paragraphs.join("\n")).not.toContain("Lustprinzips 5");
+    expect(paragraphs.join("\n")).toContain("Die Ich-Analyse beginnt");
+  });
+
+  it("runs a noun opening the page on the sentence left open above a note signed after a quotation", async () => {
+    const hocr = (await fixture())
+      .replace(
+        ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+        ">.seits Beschreibung und Rechenschaft zu</span>\n  <span class='ocr_line' title='bbox 180 810 2400 890; x_size 78'>Im Manuskript steht „Gabe“. K.</span>",
+      )
+      .replace(
+        /<span class='ocr_line' title='bbox 92 3740[\s\S]*?Jones, 1919\.<\/span>/u,
+        "",
+      )
+      .replace(
+        "<span class='ocr_line' title='bbox 220 480 2500 560; x_size 79'>Die Ich-</span>",
+        "<span class='ocr_line' title='bbox 130 480 2500 560; x_size 79'>Rede stehen, wie man sieht.</span>",
+      );
+    const paragraphs = parseArchiveOcrWork(hocr, work).flatMap(
+      (unit) => unit.paragraphs,
+    );
+
+    expect(paragraphs.join("\n")).toContain(
+      "Rechenschaft zu Rede stehen, wie man sieht.",
+    );
+    expect(paragraphs).toContain("Im Manuskript steht „Gabe“. K.");
+  });
+
   it("reads a line the manifest names as running on the note before as that note's", async () => {
     const [first] = parseArchiveOcrWork(await fixture(), {
       ...work,

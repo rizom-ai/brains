@@ -141,6 +141,8 @@ const MARK_SIZE = 0.4;
 const FOOT_TEXT_SIZE = 0.9;
 /** Running heads sit in the top tenth of the page, */
 const HEAD_ZONE = 0.1;
+/** A head carrying its page's number may stand this low, where the scan sets the page lower. */
+const LOW_HEAD_ZONE = 0.12;
 /** among its first lines, below at most a scrap or two of the scan's noise. */
 const HEAD_LINES = 3;
 /** A first line indented by more than this share of the page opens a paragraph. */
@@ -484,6 +486,21 @@ function withoutTopMargin(pages: Page[]): Page[] {
   });
 }
 
+/** The page number a line carries as a running head, if it reads as one. */
+function headNumber(text: string): number | null {
+  // The OCR reads a 1 in a page number as a dotless i, and may set a digit
+  // of it in superscript.
+  const match = RUNNING_HEAD.exec(
+    text
+      .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
+      .replace(/(?<=\d)[⁰¹²³⁴⁵⁶⁷⁸⁹]/gu, (digit) =>
+        String("⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(digit)),
+      ),
+  );
+  const number = match?.[1] ?? match?.[2] ?? match?.[3];
+  return number === undefined ? null : Number(number);
+}
+
 /** The page's running head that carries its page number, and where it stands. */
 function numberedHead(page: Page): { index: number; number: number } | null {
   return page.lines.reduce<{ index: number; number: number } | null>(
@@ -491,19 +508,24 @@ function numberedHead(page: Page): { index: number; number: number } | null {
       if (found || index >= HEAD_LINES || line.y > page.height * HEAD_ZONE) {
         return found;
       }
-      // The OCR reads a 1 in a page number as a dotless i, and may set a
-      // digit of it in superscript.
-      const match = RUNNING_HEAD.exec(
-        line.text
-          .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
-          .replace(/(?<=\d)[⁰¹²³⁴⁵⁶⁷⁸⁹]/gu, (digit) =>
-            String("⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(digit)),
-          ),
-      );
-      const number = match?.[1] ?? match?.[2] ?? match?.[3];
-      return number === undefined ? null : { index, number: Number(number) };
+      const number = headNumber(line.text);
+      return number === null ? null : { index, number };
     },
     null,
+  );
+}
+
+/**
+ * Where a running head stands that the scan set below the head zone, or -1:
+ * a first line carrying the page's own number, which the text's never does.
+ */
+function lowHeadIndex(page: Page, number: number | null): number {
+  if (number === null) return -1;
+  return page.lines.findIndex(
+    (line, index) =>
+      index < HEAD_LINES &&
+      line.y <= page.height * LOW_HEAD_ZONE &&
+      headNumber(line.text) === number,
   );
 }
 
@@ -813,6 +835,8 @@ interface Volume {
   textSpelling: Spelling;
   /** Each page's running head, without its page number or numeral. */
   headsByLeaf: Map<number, string>;
+  /** The page number printed on each leaf, as the running heads number them. */
+  printed: Map<number, number | null>;
   /** The words its text uses often, in small letters. */
   common: Set<string>;
   /** The leaves before its first page: front matter, numbered in roman. */
@@ -824,7 +848,10 @@ interface Volume {
 /** Lines below the running head and the scan's noise above it. */
 function bodyLines(page: Page, volume: Volume): Line[] {
   return page.lines.slice(
-    runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)) + 1,
+    Math.max(
+      runningHeadIndex(page, volume.heads, volume.frontLeaves.has(page.leaf)),
+      lowHeadIndex(page, volume.printed.get(page.leaf) ?? null),
+    ) + 1,
   );
 }
 
@@ -2086,6 +2113,9 @@ function joinLine(before: string, line: string): string {
 /** A sentence's end, its quotation closed or its bracket. */
 const SENTENCE_END = /[.!?][“”"»)]?$/u;
 
+/** A note an editor signed with an initial after its last sentence: … des Manuskripts. K. */
+const SIGNED_NOTE_END = /(?:[.!?][“”"»)]?|[“”"»)]\.) \p{Lu}\.$/u;
+
 interface Block {
   text: string;
   page: number;
@@ -2118,32 +2148,31 @@ function addLine(
   ) {
     return [...blocks, { text: line, ...place, lastLeaf: place.leaf }];
   }
-  // A page that opens in lower case ends the word the page before broke
-  // off, though notes read as text stand between, opening with their marks
-  // and ending their sentences; the text runs on below them.
-  const broken =
-    last.lastLeaf < place.leaf &&
-    /^\p{Ll}/u.test(line) &&
-    SENTENCE_END.test(last.text)
+  // A page that opens on no paragraph runs on the sentence the page before
+  // left open, though notes read as text stand between, opening with their
+  // marks or signed by their editor's initial; the text runs on below them.
+  const open =
+    last.lastLeaf < place.leaf && SENTENCE_END.test(last.text)
       ? blocks.reduce(
           (found, block, index) =>
-            block.lastLeaf === last.lastLeaf && /[-⸗]$/u.test(block.text)
+            block.lastLeaf === last.lastLeaf && !SENTENCE_END.test(block.text)
               ? index
               : found,
           -1,
         )
       : -1;
   const at =
-    broken >= 0 &&
+    open >= 0 &&
     blocks
-      .slice(broken + 1)
+      .slice(open + 1)
       .every(
         (block) =>
           NOTE_START.test(block.text) ||
           MARKED_NOTE_START.test(block.text) ||
-          STAR_NOTE_START.test(block.text),
+          STAR_NOTE_START.test(block.text) ||
+          SIGNED_NOTE_END.test(block.text),
       )
-      ? broken
+      ? open
       : blocks.length - 1;
   const into = blocks[at] ?? last;
   return [
@@ -2584,7 +2613,10 @@ function readVolume(hocr: string): ReadVolume {
     pages.filter((page) => page.leaf < firstLeaf).map((page) => page.leaf),
   );
   const headOf = (page: Page): number =>
-    runningHeadIndex(page, heads, frontLeaves.has(page.leaf));
+    Math.max(
+      runningHeadIndex(page, heads, frontLeaves.has(page.leaf)),
+      lowHeadIndex(page, printed.get(page.leaf) ?? null),
+    );
   const fullLines = pages.flatMap((page) =>
     page.lines.filter((line) => line.width > page.width / 2),
   );
@@ -2618,6 +2650,7 @@ function readVolume(hocr: string): ReadVolume {
     printed,
     volume: {
       frontLeaves,
+      printed,
       // A numeral alone in the body, centred and narrow, opens a chapter; one
       // at the head is a page number, one at the edge the scan's noise, one
       // in the front matter its own.

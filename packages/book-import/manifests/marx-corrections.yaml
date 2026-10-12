@@ -3509,6 +3509,14 @@ theorienberden01marxuoft:
     from: z. der Ursprung des Mehrwerts.“
     to: 2. Der Ursprung des Mehrwerts.
     by: scan
+  - page: 137
+    from: Zur Kritik der politischen Ökonomie, I. 1. Auflage. S. 42 ff.)
+    to: ¹) [Zur Kritik der politischen Ökonomie, I. 1. Auflage. S. 42 ff.]
+    by: scan
+  - page: 137
+    from: S. 250—262 des Manuskripts. K.
+    to: ²) S. 250—262 des Manuskripts. K.
+    by: scan
   - page: 139
     from: Arbeit!
     to: Arbeit¹
@@ -10366,6 +10374,14 @@ p2theorienberd02marx:
     from: dukts von einem Kapital von 100 wird dann 116/8, kommt damit
     to: dukts von einem Kapital von 100 wird dann 116⅔, kommt damit
     by: scan
+  - page: 173
+    from: Im Manuskript steht „fiele“. K.
+    to: ¹) Im Manuskript steht „fiele“. K.
+    by: scan
+  - page: 173
+    from: Ich habe diesen Passus wörtlich nach dem Manuskript wieder-
+    to: ²) Ich habe diesen Passus wörtlich nach dem Manuskript wieder-
+    by: scan
   - page: 175
     from: Verhältnis von 60 c + 40 v in 66 ⅛ c + 33½ v], so
     to: Verhältnis von 60 c + 40 v in 66⅔ c + 33⅓ v], so
@@ -14562,6 +14578,10 @@ theorienberden03marxuoft:
   - page: 284
     from: würde seine
     to: würde [eine
+    by: scan
+  - page: 284
+    from: wächst, wenn die Bevölkerung schneller wächst als das Kapital K.
+    to: wächst, wenn die Bevölkerung schneller wächst als das Kapital
     by: scan
   - page: 286
     from: "[bestimmt!"

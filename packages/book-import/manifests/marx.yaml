@@ -571,6 +571,8 @@ books:
       - { page: 407, opens: "Seite 1320—1331 des" }
       - { page: 329, opens: "1 Und der freie" }
       - { page: 329, opens: "2 An einer Stelle" }
+      - { page: 137, opens: "¹) [Zur Kritik" }
+      - { page: 137, opens: "²) S. 250" }
     slug: theorien-ueber-den-mehrwert-1
     title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
     shortTitle: Theorien über den Mehrwert I
@@ -656,6 +658,7 @@ books:
       - { page: 300, opens: "1 Im 1." }
       - { page: 331, opens: "2 Im Manuskript" }
       - { page: 16, opens: "„Kapital“ „Produktionspreis“", runsOn: true }
+      - { page: 269, opens: "Im Manufskript steht hier" }
     slug: theorien-ueber-den-mehrwert-2-1
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, erster Teil"
     shortTitle: Theorien über den Mehrwert II.1
@@ -926,6 +929,12 @@ books:
       - { page: 343, opens: "Im Manuskript steht" }
       - { page: 381, opens: "Im Original steht" }
       - { page: 361, opens: "¹ Daher A. Smiths" }
+      - { page: 173, opens: "¹) Im Manuskript steht „fiele“" }
+      - { page: 173, opens: "²) Ich habe diesen Passus" }
+      - { page: 174, opens: "setzung des Kapitals", runsOn: true }
+      - { page: 180, opens: "Im Manufskript steht 40" }
+      - { page: 180, opens: "2 Im Manufkript" }
+      - { page: 284, opens: "1 Hier folgt" }
     slug: theorien-ueber-den-mehrwert-2-2
     title: "Theorien über den Mehrwert. Zweiter Band: David Ricardo, zweiter Teil"
     shortTitle: Theorien über den Mehrwert II.2
