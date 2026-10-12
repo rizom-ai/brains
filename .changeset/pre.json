@@ -536,6 +536,7 @@
     "core--json-types-single-declaration",
     "core--judged-response-requirements",
     "core--keep-entity-with-remaining-file",
+    "core--knowledge-map-bounded",
     "core--large-projection-waves",
     "core--lock-before-tap",
     "core--lock-on-reopen",
