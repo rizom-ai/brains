@@ -7079,10 +7079,6 @@ freud-1942-gw-2-3:
     from: Onkeltraum ($. 146
     to: Onkeltraum (S. 146
     by: scan
-  - page: 619
-    from: u den (oben $. 103
-    to: u den (oben S. 103
-    by: scan
   - page: 67
     from: E gger
     to: Egger
@@ -8669,6 +8665,50 @@ freud-1942-gw-2-3:
   - page: 518
     from: In dem 'Iraume ‚,Non vixit““ fand sich
     to: In dem Traume „Non vixit“ fand sich
+    by: scan
+  - page: 581
+    from: nahe waren. ‚Un reve c’est un
+    to: nahe waren. „Un rêve c’est un
+    by: scan
+  - page: 581
+    from: reveil qui commence.“
+    to: réveil qui commence.“
+    by: scan
+  - page: 590
+    from: "den Begriff: Ge wa Ittat"
+    to: "den Begriff: Gewalttat"
+    by: scan
+  - page: 592
+    from: "(Sein Geständnis: Fe"
+    to: "(Sein Geständnis: Je"
+    by: scan
+  - page: 603
+    from: tionen, unter Deckunfuder I Wi8er8prüche,
+    to: tionen, unter Deckung der Widersprüche,
+    by: scan
+  - page: 604
+    from: einfügen können, dab
+    to: einfügen können, daß
+    by: scan
+  - page: 615
+    from: sondern sozusagen ZW ischen
+    to: sondern sozusagen zwischen
+    by: scan
+  - page: 615
+    from: "!) Diese Auffassung erfuhr eine > Ausgestaltung"
+    to: ¹) Diese Auffassung erfuhr eine Ausgestaltung
+    by: scan
+  - page: 616
+    from: Y Der Begriff des Unbewußten
+    to: ¹) Der Begriff des Unbewußten
+    by: scan
+  - page: 617
+    from: von Lip psals allgemeine
+    to: von Lipps als allgemeine
+    by: scan
+  - page: 619
+    from: 1) Vgl. hiezu den (oben $. 103) mitgeteilten "Traum (2a-rvpos) Alexanders
+    to: 1) Vgl. hiezu den (oben S. 103) mitgeteilten Traum (Σα-τυρος) Alexanders
     by: scan
 freud-1942-gw-5:
   - page: 4
