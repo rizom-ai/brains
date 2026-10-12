@@ -2076,16 +2076,40 @@ freud-1941-gw-4:
     to: mir Furcht ein=l=agen.“ Ich wurde
     by: reference
   - page: 66
-    from: Anteil die Verdichtun gsarbeit an der
-    to: Anteil die Verdichtungsarbeit an der
-    by: reference
-  - page: 66
     from: M eringers
     to: Meringers
+    by: scan
+  - page: 66
+    from: „Traumdeutung“ ;
+    to: „Traumdeutung“¹)
+    by: scan
+  - page: 66
+    from: Ber getan, welchen Anteil die Verdichtun gsarbeit an der
+    to: dargetan, welchen Anteil die Verdichtungsarbeit an der
+    by: scan
+  - page: 66
+    from: en a
+    to: ""
+    by: scan
+  - page: 66
+    from: "| Ba. a *uhung. Leipzig und Wien 1900, 8. Aufl. 1950. (Ges. Werke,"
+    to: ¹) Die Traumdeutung. Leipzig und Wien 1900, 8. Aufl. 1930. (Ges. Werke,
+    by: scan
+  - page: 68
+    from: der ki den gesprochenen
+    to: der von den gesprochenen
     by: scan
   - page: 69
     from: raum. der
     to: raum, der
+    by: scan
+  - page: 69
+    from: ren habe.“ ($S. 380
+    to: ren habe.“ (S. 380
+    by: scan
+  - page: 69
+    from: Nachlaß. Ä
+    to: Nachlaß.
     by: scan
   - page: 71
     from: durch einen üunbewußten Gedanken aus
@@ -2099,6 +2123,10 @@ freud-1941-gw-4:
     from: Körperstelle. die
     to: Körperstelle die
     by: scan
+  - page: 72
+    from: "Merin ger:"
+    to: "Meringer:"
+    by: scan
   - page: 73
     from: In der Matthäusgasse steht nämlich
     to: In der Mathäusgasse steht nämlich
@@ -2111,6 +2139,10 @@ freud-1941-gw-4:
     from: nicht gesagt, daB wir nur
     to: nicht gesagt, dass wir nur
     by: reference
+  - page: 74
+    from: ihre Aussag®
+    to: ihre Aussage
+    by: scan
   - page: 75
     from: dem betonten az sind nicht
     to: dem betonten =a= sind nicht
@@ -2119,9 +2151,41 @@ freud-1941-gw-4:
     from: den Buchstaben Xl..p..r
     to: den Buchstaben =Kl..p..r
     by: reference
+  - page: 77
+    from: OÖ. Rank
+    to: O. Rank
+    by: scan
+  - page: 78
+    from: gekommen .
+    to: gekommen
+    by: scan
+  - page: 78
+    from: sel, um seinen
+    to: sei, um seinen
+    by: scan
+  - page: 78
+    from: Wir RES Läon (schreiten)
+    to: Wir streiten (schreiten)
+    by: scan
+  - page: 78
+    from: Re (geeignet)
+    to: geneigt (geeignet)
+    by: scan
+  - page: 80
+    from: eh sa hervor
+    to: Versprechen hervor
+    by: scan
   - page: 81
     from: gehalten. wurden
     to: gehalten wurden
+    by: scan
+  - page: 82
+    from: "*— moche!"
+    to: — moche!
+    by: scan
+  - page: 82
+    from: ir geschehen.
+    to: ist geschehen.
     by: scan
   - page: 83
     from: an. der
@@ -2139,6 +2203,26 @@ freud-1941-gw-4:
     from: hier. zwei
     to: hier zwei
     by: scan
+  - page: 86
+    from: ation (vgl. $. 62)
+    to: ation (vgl. S. 62)
+    by: scan
+  - page: 86
+    from: ” hindert uns
+    to: Es hindert uns
+    by: scan
+  - page: 88
+    from: Fin ger, pardon
+    to: Finger, pardon
+    by: scan
+  - page: 89
+    from: une tres belle
+    to: une très belle
+    by: scan
+  - page: 91
+    from: an däs Verpönte
+    to: an das Verpönte
+    by: scan
   - page: 92
     from: Prota goras
     to: Protagoras
@@ -2147,13 +2231,49 @@ freud-1941-gw-4:
     from: Abr aham
     to: Abraham
     by: scan
+  - page: 92
+    from: au fzustoßen
+    to: aufzustoßen
+    by: scan
+  - page: 92
+    from: Inähnlicher
+    to: In ähnlicher
+    by: scan
+  - page: 92
+    from: und Ko dolenz
+    to: und Kodolenz
+    by: scan
+  - page: 92
+    from: Symptom s0
+    to: Symptom so
+    by: scan
+  - page: 92
+    from: durch url-
+    to: durch uri-
+    by: scan
+  - page: 92
+    from: Psychoanalyse VII,
+    to: Psychoanalyse VIII,
+    by: scan
   - page: 93
     from: so. allgemein
     to: so allgemein
     by: scan
+  - page: 93
+    from: vorbrachte ($S. 38)
+    to: vorbrachte (S. 38)
+    by: scan
   - page: 94
     from: daB
     to: daß
+    by: scan
+  - page: 94
+    from: n sei einem SO
+    to: n sei einem so
+    by: scan
+  - page: 94
+    from: "Oct. ig1¹):"
+    to: "Oct. 1911):"
     by: scan
   - page: 95
     from: daß. ich
@@ -2163,9 +2283,29 @@ freud-1941-gw-4:
     from: z.B. Anzen gruber im „G
     to: z.B. Anzengruber im „G
     by: reference
+  - page: 96
+    from: NN Een RR EEE
+    to: ""
+    by: scan
+  - page: 98
+    from: ee EEE
+    to: ""
+    by: scan
+  - page: 98
+    from: Zentralbl. £. Psychoanalyse
+    to: Zentralbl. f. Psychoanalyse
+    by: scan
+  - page: 99
+    from: heiraten ?* “
+    to: heiraten?‘“
+    by: scan
   - page: 100
     from: Patr iot.“
     to: Patriot.“
+    by: scan
+  - page: 100
+    from: OÖ. Rank
+    to: O. Rank
     by: scan
   - page: 102
     from: Glauben. der
@@ -2175,21 +2315,81 @@ freud-1941-gw-4:
     from: daB
     to: daß
     by: scan
+  - page: 108
+    from: Tiec k.)
+    to: Tieck.)
+    by: scan
   - page: 109
     from: MiB
     to: Miß
     by: scan
+  - page: 111
+    from: vor 10o Uhr
+    to: vor 10 Uhr
+    by: scan
+  - page: 111
+    from: Nach io Uhr
+    to: Nach 10 Uhr
+    by: scan
+  - page: 111
+    from: (II, 2\,
+    to: (II, 2),
+    by: scan
+  - page: 112
+    from: ee 0
+    to: ""
+    by: scan
+  - page: 112
+    from: Ce qu’on congoit bien
+    to: Ce qu’on conçoit bien
+    by: scan
+  - page: 112
+    from: pour le dire £
+    to: pour le dire
+    by: scan
+  - page: 112
+    from: Ärrivent aisement. Boileau, Art poetique.
+    to: Arrivent aisément. Boileau, Art poétique.
+    by: scan
   - page: 114
-    from: ii. einen
-    to: ii einen
+    from: ihm immer am ii. einen Brief; und diesmal habe ich es ver-
+    to: ihm immer am 11. einen Brief; und diesmal habe ich es ver-
+    by: scan
+  - page: 116
+    from: esuch ging, ZU
+    to: esuch ging, zu
     by: scan
   - page: 122
     from: sympathisch. wäre
     to: sympathisch wäre
     by: scan
+  - page: 122
+    from: Ns iR St ‚Blutkörperchen‘.
+    to: nur das Wort ‚Blutkörperchen‘.
+    by: scan
+  - page: 122
+    from: ee Verlesungen
+    to: analysierten Verlesungen
+    by: scan
+  - page: 122
+    from: eides ist dieses
+    to: feldes ist dieses
+    by: scan
   - page: 124
     from: daB
     to: daß
+    by: scan
+  - page: 124
+    from: bei dm Wunsche
+    to: bei dem Wunsche
+    by: scan
+  - page: 126
+    from: ") Heymann:"
+    to: "¹) W. Heymann:"
+    by: scan
+  - page: 126
+    from: Ausziehenden.*
+    to: Ausziehenden.“
     by: scan
   - page: 129
     from: "ich wohl gedächt haben: Die"
@@ -2198,6 +2398,34 @@ freud-1941-gw-4:
   - page: 130
     from: Tage. nachher
     to: Tage nachher
+    by: scan
+  - page: 130
+    from: N N
+    to: ""
+    by: scan
+  - page: 130
+    from: "¹) Vgl. etwa die Stelle im „Julius Cä ‘ . sar® UI, z:"
+    to: "¹) Vgl. etwa die Stelle im „Julius Cäsar“, III, 3:"
+    by: scan
+  - page: 130
+    from: ln Ehrlich, mein Na ist Cinna. 2
+    to: CINNA. Ehrlich, mein Name ist Cinna.
+    by: scan
+  - page: 130
+    from: Be ge ihn in Stücke! er ist ein Verschworener.
+    to: BÜRGER. Reißt ihn in Stücke! er ist ein Verschworener.
+    by: scan
+  - page: 130
+    from: « Ich bin Cinna der Poet! Ich bin nicht Cinna der Verschworene.
+    to: CINNA. Ich bin Cinna der Poet! Ich bin nicht Cinna der Verschworene.
+    by: scan
+  - page: 130
+    from: BÜRGER. ra |
+    to: BÜRGER. Es tut nichts; sein Name ist Cinna, reißt ihm den Namen aus dem
+    by: scan
+  - page: 130
+    from: Herzen Se tiger ; sein Name ist Cinna, reißt ihm den Namen aus dem
+    to: Herzen und laßt ihn laufen.
     by: scan
   - page: 131
     from: F ehlleistung
@@ -2215,13 +2443,61 @@ freud-1941-gw-4:
     from: jetztauf
     to: jetzt auf
     by: scan
+  - page: 132
+    from: an EN nicht verspürt
+    to: das Bedauern nicht verspürt
+    by: scan
+  - page: 132
+    from: otivierung desselben
+    to: fände die Motivierung desselben
+    by: scan
   - page: 135
     from: sonst. völlig
     to: sonst völlig
     by: scan
+  - page: 138
+    from: von $S. Fer
+    to: von S. Fer
+    by: scan
+  - page: 138
+    from: _ verteidigen
+    to: verteidigen
+    by: scan
   - page: 139
     from: einen.
     to: einen
+    by: scan
+  - page: 141
+    from: Namens Kar).
+    to: Namens Karl).
+    by: scan
+  - page: 143
+    from: III, ig915,
+    to: III, 1915,
+    by: scan
+  - page: 144
+    from: N NN
+    to: ""
+    by: scan
+  - page: 144
+    from: ¹) Es handelt sich um den Druck d i N ; .
+    to: ¹) Es handelt sich um den Druck des 1860 bei Julius Springer erschienenen
+    by: scan
+  - page: 144
+    from: ": es 1860 bei Julius S erschienenen"
+    to: Buches „Jenseits des Tweed. Bilder und Briefe aus Schottland.“
+    by: scan
+  - page: 144
+    from: Buches „Jenseits des Tweed. Bilder und Briefe aus NER EN
+    to: ""
+    by: scan
+  - page: 145
+    from: chen (l. c. $. 374
+    to: chen (l. c. S. 374
+    by: scan
+  - page: 146
+    from: vr wie seine
+    to: er, wie seine
     by: scan
   - page: 149
     from: ich zur VergeBlichkeit im allgemeinen
@@ -2259,6 +2535,10 @@ freud-1941-gw-4:
     from: daß. meine
     to: daß meine
     by: scan
+  - page: 162
+    from: Begründung SO
+    to: Begründung so
+    by: scan
   - page: 164
     from: offenbar der Beeidung des Zeugen
     to: offenbar der unter Eidstellung des Zeugen
@@ -2275,6 +2555,10 @@ freud-1941-gw-4:
     from: fasse, der aberids ausgeführt werden
     to: fasse, der abends ausgeführt werden
     by: reference
+  - page: 170
+    from: l. c.,$. 488
+    to: l. c.,S. 488
+    by: scan
   - page: 173
     from: als allgemein vergeßBlich bezeichnet und
     to: als allgemein vergesslich bezeichnet und
@@ -2307,6 +2591,10 @@ freud-1941-gw-4:
     from: F ehlern
     to: Fehlern
     by: scan
+  - page: 179
+    from: die Stelle ($S. 98)
+    to: die Stelle (S. 98)
+    by: scan
   - page: 180
     from: F ehlhandlung
     to: Fehlhandlung
@@ -2334,6 +2622,10 @@ freud-1941-gw-4:
   - page: 190
     from: Untreue.
     to: Untreue
+    by: scan
+  - page: 198
+    from: der Trauer; ZU
+    to: der Trauer; zu
     by: scan
   - page: 199
     from: F uß
@@ -2479,6 +2771,10 @@ freud-1941-gw-4:
     from: F ällen
     to: Fällen
     by: scan
+  - page: 285
+    from: ch (s. oben $. 182
+    to: ch (s. oben S. 182
+    by: scan
   - page: 289
     from: F rage
     to: Frage
@@ -2518,6 +2814,10 @@ freud-1941-gw-4:
   - page: 301
     from: F ehlleistungen
     to: Fehlleistungen
+    by: scan
+  - page: 309
+    from: umdeutung“, $. 362
+    to: umdeutung“, S. 362
     by: scan
 freud-1941-gw-7:
   - page: 4

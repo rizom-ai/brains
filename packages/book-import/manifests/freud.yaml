@@ -247,6 +247,12 @@ books:
     citation: GW IV
     firstPage: 1
     lastPage: 310
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 107, opens: "Ein schönes Beispiel" }
+      - { page: 107, opens: "QUESTENBERG" }
+      - { page: 107, opens: "OCTAVIO" }
+      - { page: 107, opens: "Dies kleine Versprechen" }
     slug: zur-psychopathologie-des-alltagslebens
     references: [https://www.gutenberg.org/cache/epub/24429/pg24429.txt]
     title: Zur Psychopathologie des Alltagslebens
