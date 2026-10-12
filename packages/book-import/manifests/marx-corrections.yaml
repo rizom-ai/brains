@@ -15880,12 +15880,12 @@ theorienberden03marxuoft:
     to: Unternehmers],
     by: scan
   - page: 419
-    from: Leitung!,
-    to: Leitung],
-    by: scan
-  - page: 419
     from: dder
     to: "[der"
+    by: scan
+  - page: 419
+    from: wie die Mühe [der Leitung!, ziemlich derselbe, der Betrieb *
+    to: wie die Mühe [der Leitung], ziemlich derselbe, der Betrieb sei
     by: scan
   - page: 420
     from: (die
@@ -15947,6 +15947,54 @@ theorienberden03marxuoft:
     from: im „Approvifionnement“
     to: im „Approvisionnement“
     by: scan
+  - page: 436
+    from: (und von der Ausgleichung NI .La N — c
+    to: (und von der Ausgleichung
+    by: scan
+  - page: 436
+    from: lebendige Arbeit in ⸗⸗ me
+    to: lebendige Arbeit in
+    by: scan
+  - page: 436
+    from: dieser unkonsumierte Teil *
+    to: dieser unkonsumierte Teil
+    by: scan
+  - page: 438
+    from: = P, das angewandte Kapital - C, der Profit , das kon-
+    to: = P, das angewandte Kapital = C, der Profit = π, das kon-
+    by: scan
+  - page: 438
+    from: sumierte Kapital Sc, das Verhältnis des Profits zum Kapital
+    to: sumierte Kapital = c, das Verhältnis des Profits zum Kapital
+    by: scan
+  - page: 438
+    from: r. Ersetzen wir in der Gleichung P — c n, udurch seinen
+    to: = r. Ersetzen wir in der Gleichung P — c = π, π durch seinen
+    by: scan
+  - page: 438
+    from: Wert Cr (da so erhalten wir P — c = Cr, also r
+    to: Wert Cr (da r = π/C), so erhalten wir P — c = Cr, also r =
+    by: scan
+  - page: 438
+    from: (.“ (S. 70, Note 1.
+    to: (P — c)/C.“ (S. 70, Note 1.)
+    by: scan
+  - page: 439
+    from: 1 . Es ist klar, daß P—e oder (der Profit)
+    to: rate ist r = (P — c)/C. Es ist klar, daß P — c oder π (der Profit)
+    by: scan
+  - page: 439
+    from: rate ist r =
+    to: ""
+    by: scan
+  - page: 439
+    from: P—c.“ (S. 72, Note 1.)
+    to: P — c.“ (S. 72, Note 1.)
+    by: scan
+  - page: 440
+    from: rascher wächst —*
+    to: rascher wächst
+    by: scan
   - page: 441
     from: größer!]
     to: größer]
@@ -15974,6 +16022,14 @@ theorienberden03marxuoft:
   - page: 446
     from: bestimmen,!
     to: bestimmen,¹
+    by: scan
+  - page: 446
+    from: Anwachsen des pro- **
+    to: Anwachsen des pro-
+    by: scan
+  - page: 446
+    from: vorgekommenen Ande- r
+    to: vorgekommenen Ände-
     by: scan
   - page: 447
     from: ssich
@@ -16023,6 +16079,10 @@ theorienberden03marxuoft:
     from: 20 C, B 230 £E, C 240 £ us
     to: 20 C, B 230 £, C 240 £ us
     by: scan
+  - page: 458
+    from: auf C 20 £HC ausmacht
+    to: auf C 20 £ ausmacht
+    by: scan
   - page: 459
     from: pro Aere. Er
     to: pro Acre. Er
@@ -16034,6 +16094,30 @@ theorienberden03marxuoft:
   - page: 462
     from: (relativ]
     to: "[relativ]"
+    by: scan
+  - page: 462
+    from: Klassen a, b, e;
+    to: Klassen a, b, c;
+    by: scan
+  - page: 462
+    from: 2. 20, 28 35.
+    to: 2. 20, 28, 35.
+    by: scan
+  - page: 462
+    from: "5: 10 -⸗ ½ und 10: 10 ⸗U 11; während"
+    to: "5 : 10 = ½ und 10 : 10 = 1¹; während"
+    by: scan
+  - page: 462
+    from: "8: 20 nur ½ und 15: 20 - ½¼."
+    to: "8 : 20 nur = ⅖ und 15 : 20 = ¾."
+    by: scan
+  - page: 462
+    from: a, b‚, c nicht
+    to: a, b, c nicht
+    by: scan
+  - page: 462
+    from: für b und e ist
+    to: für b und c ist
     by: scan
   - page: 463
     from: wirtschaft!
@@ -16051,6 +16135,10 @@ theorienberden03marxuoft:
     from: umgekehrt,?
     to: umgekehrt,²
     by: scan
+  - page: 464
+    from: 1Hier wird
+    to: 1) Hier wird
+    by: scan
   - page: 465
     from: "[(der"
     to: "[der"
@@ -16066,6 +16154,10 @@ theorienberden03marxuoft:
   - page: 468
     from: swie
     to: "[wie"
+    by: scan
+  - page: 468
+    from: von 100 £ à RWCECETCCö GNAN
+    to: von 100 £
     by: scan
   - page: 470
     from: z. An Introductory lecture. Arbeitsfonds und Profitrate.
@@ -16094,6 +16186,10 @@ theorienberden03marxuoft:
   - page: 475
     from: ssich!
     to: "[sich]"
+    by: scan
+  - page: 475
+    from: wickelt. ö‚
+    to: wickelt.
     by: scan
   - page: 476
     from: srührt
@@ -16164,16 +16260,28 @@ theorienberden03marxuoft:
     to: in der Zahlung [der Arbeiter] früher angewandt wurde,
     by: scan
   - page: 509
-    from: Jahr!]
-    to: Jahr]
+    from: 500 4H sim Jahr!] kosteten und die neue Maschine auch 500 £,
+    to: 500 £ [im Jahr] kosteten und die neue Maschine auch 500 £,
     by: scan
   - page: 509
-    from: sim
-    to: "[im"
+    from: nur 50 HC aus.
+    to: nur 50 £ aus.
     by: scan
   - page: 510
     from: Manufactures ete. London
     to: Manufactures etc. London
+    by: scan
+  - page: 512
+    from: ganz vom Iit
+    to: ganz vom Profit
+    by: scan
+  - page: 513
+    from: 0f Arts 1860.)
+    to: of Arts 1860.)
+    by: scan
+  - page: 516
+    from: Kapital gleich C und die ö
+    to: Kapital gleich C und die
     by: scan
   - page: 519
     from: ist!
@@ -16203,6 +16311,14 @@ theorienberden03marxuoft:
     from: wechselweise prellen)J. Jedenfalls
     to: wechselweise [prellen]. Jedenfalls
     by: scan
+  - page: 523
+    from: 2* was der
+    to: was der
+    by: scan
+  - page: 525
+    from: +* das Ding
+    to: das Ding
+    by: scan
   - page: 527
     from: (wenn
     to: "[wenn"
@@ -16230,6 +16346,14 @@ theorienberden03marxuoft:
   - page: 539
     from: (1νοe)
     to: (τόκος)
+    by: scan
+  - page: 539
+    from: aus von 6—M6, wo-
+    to: aus von G—W—G, wo-
+    by: scan
+  - page: 539
+    from: erkannt haben. ö
+    to: erkannt haben.
     by: scan
   - page: 540
     from: verlockt
@@ -16355,9 +16479,17 @@ theorienberden03marxuoft:
     from: Wirklichkeit)
     to: Wirklichkeit]
     by: scan
+  - page: 583
+    from: Summe A + — Ain einem
+    to: Summe A + 1/x A in einem
+    by: scan
   - page: 584
     from: Individuum!]
     to: "[Individuum]"
+    by: scan
+  - page: 585
+    from: 89 * * lichkeit
+    to: lichkeit
     by: scan
   - page: 586
     from: II. Iuther über den Wucher.
@@ -16423,9 +16555,45 @@ theorienberden03marxuoft:
     from: Derfreie
     to: Der freie
     by: scan
+  - page: 591
+    from: — X.N F * — EIn — * VV Holland bietet die erste Apologie des Wuchers. Er wird
+    to: Holland bietet die erste Apologie des Wuchers. Er wird
+    by: scan
+  - page: 591
+    from: 7* — —— ꝝ⁊WIIIEN 2 da auch zuerst modernisiert, dann produktivem oder kom-
+    to: da auch zuerst modernisiert, dann produktivem oder kom-
+    by: scan
+  - page: 591
+    from: Imschristlichen
+    to: Im christlichen
+    by: scan
   - page: 593
     from: sedephantasticum inteéresse. Ein
     to: sedephantasticum interesse. Ein
+    by: scan
+  - page: 593
+    from: .5 Schaden, den ein jeglicher ihm selber erträumet..
+    to: Schaden, den ein jeglicher ihm selber erträumet. . .
+    by: scan
+  - page: 593
+    from: ö V 7 Es gilt also nicht sagen,
+    to: Es gilt also nicht sagen,
+    by: scan
+  - page: 594
+    from: wehe den Wucherern. ... ů
+    to: wehe den Wucherern. . . .
+    by: scan
+  - page: 595
+    from: SIFF Rittern,
+    to: Rittern,
+    by: scan
+  - page: 595
+    from: — verschwenderischen, prassenden
+    to: verschwenderischen, prassenden
+    by: scan
+  - page: 595
+    from: ——— * das Doppelte
+    to: das Doppelte
     by: scan
   - page: 599
     from: Aber Hereules soll

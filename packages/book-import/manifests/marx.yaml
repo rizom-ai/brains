@@ -982,6 +982,15 @@ books:
       - { page: 259, opens: "Also ist zunächst" }
       - { page: 259, opens: "Aber nehmen wir an" }
       - { page: 259, opens: "Die realen Produktionskosten" }
+      - { page: 591, opens: "Man sieht aus dem Obigen" }
+      - { page: 591, opens: "In der besseren Zeit" }
+      - { page: 591, opens: "Luther hat dem Wucher" }
+      - { page: 591, opens: "Holland bietet die erste" }
+      - { page: 591, opens: "In England im siebzehnten" }
+      - { page: 591, opens: "Achtzehntes Jahrhundert" }
+      - { page: 591, opens: "Zins als Schadenersatz" }
+      - { page: 591, opens: "Luther fährt fort" }
+      - { page: 591, opens: "„Es kann geschehn" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 249, opens: "¹) Im Original steht" }
