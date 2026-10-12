@@ -3153,9 +3153,25 @@ theorienberden01marxuoft:
     from: sentwickeln]
     to: "[entwickeln]"
     by: scan
+  - page: 1
+    from: Stellen, dieJ Ursprung
+    to: Stellen, die] Ursprung
+    by: scan
   - page: 3
     from: Stunden!
     to: Stunden]
+    by: scan
+  - page: 4
+    from: Unzen und — — *
+    to: Unzen und
+    by: scan
+  - page: 4
+    from: bemerkt Petty ausdrücklich, n
+    to: bemerkt Petty ausdrücklich,
+    by: scan
+  - page: 4
+    from: auf die Arbeits- — 8* —
+    to: auf die Arbeits-
     by: scan
   - page: 6
     from: des Aere gleich
@@ -3169,13 +3185,29 @@ theorienberden01marxuoft:
     from: (Political
     to: „Political
     by: scan
+  - page: 8
+    from: die Rente des Landes, *
+    to: die Rente des Landes,
+    by: scan
+  - page: 8
+    from: "* **"
+    to: ""
+    by: scan
   - page: 9
     from: trägt,!
     to: trägt,¹
     by: scan
+  - page: 10
+    from: Land und Arbeit * * * ** ö‚
+    to: Land und Arbeit
+    by: scan
   - page: 11
     from: 2. Ch. d'Avenant.
     to: 2. Charles D’Avenant.
+    by: scan
+  - page: 11
+    from: "teristisch: ö"
+    to: "teristisch:"
     by: scan
   - page: 12
     from: probable meéethods of
@@ -3184,6 +3216,10 @@ theorienberden01marxuoft:
   - page: 12
     from: D'Ave- 23890 RWIIRIRIIIIIII
     to: D'Ave-
+    by: scan
+  - page: 12
+    from: von Me Culloch
+    to: von Mc Culloch
     by: scan
   - page: 13
     from: 3. Sir Dbudleh north und John Locke.!
@@ -3200,6 +3236,10 @@ theorienberden01marxuoft:
   - page: 16
     from: Diamanten usw.
     to: Diamanten usw.,
+    by: scan
+  - page: 18
+    from: seit 2* beständig
+    to: seit ?¹ beständig
     by: scan
   - page: 19
     from: (stock
@@ -3242,8 +3282,8 @@ theorienberden01marxuoft:
     to: Steuart etc. Ed.
     by: scan
   - page: 30
-    from: son ete. in
-    to: son etc. in
+    from: Steuart, his son ete. in 6Bänden. London 1805, I., S. 275, 276.)
+    to: Steuart, his son etc. in 6 Bänden. London 1805, I., S. 275, 276.)
     by: scan
   - page: 33
     from: 6. Der allgemeine Charakter des Sistems der Physlokraten.“
@@ -3301,13 +3341,33 @@ theorienberden01marxuoft:
     from: zurück,!
     to: zurück,¹
     by: scan
+  - page: 54
+    from: Aneignung — *
+    to: Aneignung —
+    by: scan
   - page: 56
     from: la Riviéêére eine
     to: la Rivière eine
     by: scan
+  - page: 58
+    from: der Landarbeiter, ** —2.09399
+    to: der Landarbeiter,
+    by: scan
+  - page: 58
+    from: Revenue, die zu n
+    to: Revenue, die zu
+    by: scan
+  - page: 58
+    from: wird der Profit * EEE
+    to: wird der Profit
+    by: scan
   - page: 59
     from: 8. f. Paoletti und pietro verri.“
     to: 8. F. Paoletti und Pietro Verri.
+    by: scan
+  - page: 61
+    from: iu Abzug
+    to: in Abzug
     by: scan
   - page: 62
     from: 9. Phöyslokratische Anschauungen von A. Smith.
@@ -3332,6 +3392,10 @@ theorienberden01marxuoft:
   - page: 66
     from: 10. TCh. A. h. Schmalz und Graf de Buat.
     to: 10. Th. A. H. Schmalz und Graf de Buat.
+    by: scan
+  - page: 66
+    from: Hat Arbeit 3 *
+    to: Hat Arbeit
     by: scan
   - page: 67
     from: Rficardo]
@@ -3368,6 +3432,10 @@ theorienberden01marxuoft:
   - page: 71
     from: dankengang!]
     to: dankengang]
+    by: scan
+  - page: 71
+    from: notwendige Kun der
+    to: notwendige Klasse der
     by: scan
   - page: 72
     from: Produkte!]
@@ -3409,6 +3477,14 @@ theorienberden01marxuoft:
     from: bezahlen.!
     to: bezahlen.¹
     by: scan
+  - page: 78
+    from: verzichten.“ *
+    to: verzichten.“
+    by: scan
+  - page: 84
+    from: "* 2— 222— * 6 1³ * ———— 4 —28— b"
+    to: ""
+    by: scan
   - page: 85
     from: 14. dDie Reproduktion und Zirkulation des gesellschaftlichen
     to: 14. Die Reproduktion und Zirkulation des gesellschaftlichen Gesamtkapitals nach Quesnays „Tableau économique“.
@@ -3417,9 +3493,29 @@ theorienberden01marxuoft:
     from: Gesamtkapitals nach Quesnahs „Tableau économique“.
     to: ""
     by: scan
+  - page: 87
+    from: Summen, die zur Be- *. SI. —. *
+    to: Summen, die zur Be-
+    by: scan
+  - page: 87
+    from: der Zinsen des fixen 1 Milliarde. — — *I—..
+    to: der Zinsen des fixen 1 Milliarde
+    by: scan
   - page: 88
-    from: Zinsen (intérsts)
-    to: Zinsen (intérêts)
+    from: von 8S verfügt.
+    to: von S verfügt.
+    by: scan
+  - page: 88
+    from: in seinem Bei- — ö 2 —— *
+    to: in seinem Bei-
+    by: scan
+  - page: 88
+    from: spiel auf zehn Milliarden, seine jährlichen Zinsen (intérsts) b * ————
+    to: spiel auf zehn Milliarden, seine jährlichen Zinsen (intérêts)
+    by: scan
+  - page: 90
+    from: verzehrt worden sind. ö
+    to: verzehrt worden sind.
     by: scan
   - page: 91
     from: verfrachtet (fagonnée et
@@ -3445,9 +3541,33 @@ theorienberden01marxuoft:
     from: Grundrente!]
     to: Grundrente]
     by: scan
+  - page: 93
+    from: mittel von Fund für eine Milliarde Industriewaren von 8S. Von
+    to: mittel von F und für eine Milliarde Industriewaren von S. Von
+    by: scan
+  - page: 94
+    from: legt 100 EH aus
+    to: legt 100 £ aus
+    by: scan
   - page: 95
     from: Bewegung G—WSG. ö
     to: Bewegung G—W—G.
+    by: scan
+  - page: 99
+    from: zwischen 8S und F als Z
+    to: zwischen S und F als Z
+    by: scan
+  - page: 99
+    from: "hat 8S einen Teil "
+    to: "hat S einen Teil "
+    by: scan
+  - page: 99
+    from: on aus, bei 8S industriell
+    to: on aus, bei S industriell
+    by: scan
+  - page: 99
+    from: so hätte FP dem P
+    to: so hätte F dem P
     by: scan
   - page: 101
     from: sind!]
@@ -3465,6 +3585,66 @@ theorienberden01marxuoft:
     from: en diese 10 £E für den Sch
     to: en diese 10 £ für den Sch
     by: scan
+  - page: 107
+    from: 8S kauft von F
+    to: S kauft von F
+    by: scan
+  - page: 107
+    from: produkt des 8S zu zirkulie
+    to: produkt des S zu zirkulie
+    by: scan
+  - page: 108
+    from: illionen zu 8S zurück, abe
+    to: illionen zu S zurück, abe
+    by: scan
+  - page: 108
+    from: r kauft von 8S für 1000 Mi
+    to: r kauft von S für 1000 Mi
+    by: scan
+  - page: 108
+    from: "gegen kauft 8S auf einmal "
+    to: "gegen kauft S auf einmal "
+    by: scan
+  - page: 109
+    from: "llionen von 8S zurück. Es "
+    to: "llionen von S zurück. Es "
+    by: scan
+  - page: 109
+    from: gen an, daß 8S außer den 1
+    to: gen an, daß S außer den 1
+    by: scan
+  - page: 109
+    from: 00 Ware von S8; schließlic
+    to: 00 Ware von S; schließlic
+    by: scan
+  - page: 110
+    from: al, das von 8S herrührende
+    to: al, das von S herrührende
+    by: scan
+  - page: 110
+    from: 00 Ware von 8S zurück,
+    to: 00 Ware von S zurück,
+    by: scan
+  - page: 110
+    from: in der es bleibt. ö
+    to: in der es bleibt.
+    by: scan
+  - page: 111
+    from: von 8S als Käufer,
+    to: von S als Käufer,
+    by: scan
+  - page: 111
+    from: " Ware. Aber 8S kauft nun"
+    to: " Ware. Aber S kauft nun"
+    by: scan
+  - page: 111
+    from: von 8 Warenäquivalent
+    to: von S Warenäquivalent
+    by: scan
+  - page: 111
+    from: zu kaufen sind. ö
+    to: zu kaufen sind.
+    by: scan
   - page: 112
     from: sgibt
     to: gibt
@@ -3473,13 +3653,73 @@ theorienberden01marxuoft:
     from: streten
     to: "[treten"
     by: scan
+  - page: 112
+    from: her hat ihm 8S 2000
+    to: her hat ihm S 2000
+    by: scan
+  - page: 112
+    from: " Ebenso mit 8S in Fall IV."
+    to: " Ebenso mit S in Fall IV."
+    by: scan
+  - page: 112
+    from: " Fällen hat 8S eine Bilanz"
+    to: " Fällen hat S eine Bilanz"
+    by: scan
+  - page: 112
+    from: 1000 Ware S- 1000 Geld
+    to: 1000 Ware = 1000 Geld
+    by: scan
+  - page: 113
+    from: 1000, weil 8S erstens als
+    to: 1000, weil S erstens als
+    by: scan
+  - page: 113
+    from: ld, welches 8S oder F über
+    to: ld, welches S oder F über
+    by: scan
+  - page: 113
+    from: n kauft und 8S den Zug
+    to: n kauft und S den Zug
+    by: scan
+  - page: 114
+    from: teilt an die Warenbesitzer A, A“, A“, die Verkäufer, und ihnen
+    to: teilt an die Warenbesitzer A, A′, A″, die Verkäufer, und ihnen
+    by: scan
   - page: 115
     from: daß lin
     to: daß [in
     by: scan
+  - page: 115
+    from: 1000 Geld von A“, 4. A“ mit den 1000 Geld von B“, 5. B“ mit
+    to: 1000 Geld von A′, 4. A′ mit den 1000 Geld von B″, 5. B″ mit
+    by: scan
+  - page: 115
+    from: von B, 2. B für 1000 Geld von A“, 3. A“ für 1000 Geld von B.
+    to: von B, 2. B für 1000 Geld von A′, 3. A′ für 1000 Geld von B′.
+    by: scan
+  - page: 115
+    from: lierenden Geldes ist daher = — EEE 1000 Geld.
+    to: lierenden Geldes ist daher = 3000 Preissumme / 3 Umläufe = 1000 Geld.
+    by: scan
   - page: 116
     from: bemerkt ([, Umlauf
     to: bemerkt (I, Umlauf
+    by: scan
+  - page: 116
+    from: Geld von 8S. 8S kauft
+    to: Geld von S. S kauft
+    by: scan
+  - page: 116
+    from: W—6G und wird da
+    to: W—G und wird da
+    by: scan
+  - page: 116
+    from: dann Käufer 6G—W, aber ers
+    to: dann Käufer G—W, aber ers
+    by: scan
+  - page: 116
+    from: emente vor. 6G—W stellt hi
+    to: emente vor. G—W stellt hi
     by: scan
   - page: 117
     from: 6. Erklärung des Kapitalprofits daraus, daß der
@@ -3492,6 +3732,14 @@ theorienberden01marxuoft:
   - page: 117
     from: verkauft ist.
     to: ""
+    by: scan
+  - page: 122
+    from: in 3PPfund Garn
+    to: in 3 Pfund Garn
+    by: scan
+  - page: 123
+    from: haben.“ ö
+    to: haben.“
     by: scan
   - page: 126
     from: 1. Seine Bestimmung des Wertes durch die Arbeit.“
@@ -3601,33 +3849,285 @@ theorienberden01marxuoft:
     from: zeit sei = 10 Stunden, also die Mehrarbeit S 2 Stunden.
     to: zeit sei = 10 Stunden, also die Mehrarbeit = 2 Stunden.
     by: scan
+  - page: 185
+    from: letztzugesetzte Arbeit S12 Stunden,
+    to: letztzugesetzte Arbeit = 12 Stunden,
+    by: scan
   - page: 190
-    from: B?
-    to: B²
+    from: daß B und B', worin
+    to: daß B¹ und B², worin
+    by: scan
+  - page: 190
+    from: sphären A, B˖ und B' dem
+    to: sphären A, B¹ und B² dem
+    by: scan
+  - page: 190
+    from: Produktionssphären A, B und B? gleichzeitig dem konstanten
+    to: Produktionssphären A, B¹ und B² gleichzeitig dem konstanten
+    by: scan
+  - page: 190
+    from: 12 Stunden in B und 12 Stunden in Be.
+    to: 12 Stunden in B¹ und 12 Stunden in B².
     by: scan
   - page: 191
-    from: und B?
-    to: und B²
+    from: von A auf Bi und B'.
+    to: von A auf B¹ und B².
+    by: scan
+  - page: 191
+    from: dukt der eigenen Arbeit. Dies ist bei Bi und B? nicht der Fall,
+    to: dukt der eigenen Arbeit. Dies ist bei B¹ und B² nicht der Fall,
+    by: scan
+  - page: 191
+    from: in dem Produkt Bi oder B?.
+    to: in dem Produkt B¹ oder B².
+    by: scan
+  - page: 191
+    from: auch mit Be.
+    to: auch mit B².
+    by: scan
+  - page: 191
+    from: nicht nur von B;, sondern auch von B'.
+    to: nicht nur von B¹, sondern auch von B².
+    by: scan
+  - page: 191
+    from: Drittens. Bi und B' können
+    to: Drittens. B¹ und B² können
     by: scan
   - page: 192
-    from: B? mit
-    to: B² mit
+    from: B. Damit aber B und B? mit den 24 Stunden ihrer Produkte,
+    to: B². Damit aber B¹ und B² mit den 24 Stunden ihrer Produkte,
     by: scan
   - page: 192
-    from: B? bezahlt
-    to: B² bezahlt
+    from: Produkte von B und Be
+    to: Produkte von B¹ und B²
     by: scan
   - page: 192
-    from: B? placiert
-    to: B² placiert
+    from: in den Produkten B und Be
+    to: in den Produkten B¹ und B²
+    by: scan
+  - page: 192
+    from: C—Cé. Unter diesen
+    to: C¹—C⁶. Unter diesen
+    by: scan
+  - page: 192
+    from: produkts von B und B? bezahlt werden durch bloß neuhinzu-
+    to: produkts von B¹ und B² bezahlt werden durch bloß neuhinzu-
+    by: scan
+  - page: 192
+    from: Produktionssphären Ci—Cé. Aber
+    to: Produktionssphären C¹—C⁶. Aber
+    by: scan
+  - page: 192
+    from: die Produkte von C—Cés nun
+    to: die Produkte von C¹—C⁶ nun
+    by: scan
+  - page: 192
+    from: in den 18 Sphären D —D alle
+    to: in den 18 Sphären D¹—D¹⁸ alle
+    by: scan
+  - page: 192
+    from: venue bereits in den Produkten B und B? placiert haben) das
+    to: venue bereits in den Produkten B¹ und B² placiert haben) das
+    by: scan
+  - page: 192
+    from: der Sphären C—C'. Diese 18 Sphären D0—D˙
+    to: der Sphären C¹—C⁶. Diese 18 Sphären D¹—D¹⁸
+    by: scan
+  - page: 193
+    from: Sphären C—Cé verausgabt, 18 36 Arbeitsstunden oder 648
+    to: Sphären C¹—C⁶ verausgabt, 18 × 36 Arbeitsstunden oder 648
+    by: scan
+  - page: 193
+    from: Arbeitsstunden, wovon 18 £ 12 oder 216
+    to: Arbeitsstunden, wovon 18 × 12 oder 216
+    by: scan
+  - page: 193
+    from: Gesamtprodukt von D0—D in
+    to: Gesamtprodukt von D¹—D¹⁸ in
+    by: scan
+  - page: 193
+    from: von den Sphären E!—E;
+    to: von den Sphären E¹—E⁵⁴;
+    by: scan
+  - page: 193
+    from: nämlich 12 4 54 = 648 Arbeitsstunden. Die Sphären E.—E“,
+    to: nämlich 12 × 54 = 648 Arbeitsstunden. Die Sphären E¹—E⁵⁴,
+    by: scan
+  - page: 193
+    from: um ihr Gesamtprodukt — 1944 (wovon 648 = 12 £ 54 = neu-
+    to: um ihr Gesamtprodukt = 1944 (wovon 648 = 12 × 54 = neu-
+    by: scan
+  - page: 193
+    from: den Sphären F.—Fse, denn 162 4 12 = 1944;
+    to: den Sphären F¹—F¹⁶², denn 162 × 12 = 1944;
+    by: scan
+  - page: 193
+    from: von den Sphären 61—6“8 usw.
+    to: von den Sphären G¹—G⁴⁸⁶ usw.
+    by: scan
+  - page: 193
+    from: 1. Al. Produkt = 3 Arbeitstage = 36 Stunden. 12 Stunden
+    to: 1. A¹. Produkt = 3 Arbeitstage = 36 Stunden. 12 Stunden
+    by: scan
+  - page: 193
+    from: 2. B—2. Produkt = 3 4 2 = 6 Arbeitstage = 72 Stunden.
+    to: 2. B¹⁻². Produkt = 3 × 2 = 6 Arbeitstage = 72 Stunden.
+    by: scan
+  - page: 193
+    from: Zugesetzte Arbeit = 12 4 2 = 24 Stunden. Konstantes
+    to: Zugesetzte Arbeit = 12 × 2 = 24 Stunden. Konstantes
+    by: scan
+  - page: 193
+    from: Kapital = 48 = 2 24 Stunden.
+    to: Kapital = 48 = 2 × 24 Stunden.
+    by: scan
+  - page: 193
+    from: 6. C—. Produkt = 3 6 Arbeitstage = 3 72 Stunden
+    to: 6. C¹⁻⁶. Produkt = 3 × 6 Arbeitstage = 3 × 72 Stunden
+    by: scan
+  - page: 193
+    from: — 216 Arbeitsstunden. Zugesetzte Arbeit =S 12 6 Arbeits-
+    to: = 216 Arbeitsstunden. Zugesetzte Arbeit = 12 × 6 Arbeits-
+    by: scan
+  - page: 193
+    from: stunden =S 72. Konstantes Kapital = 2 4 72 ½= 144.
+    to: stunden = 72. Konstantes Kapital = 2 × 72 = 144.
+    by: scan
+  - page: 193
+    from: 18. D—s. Produkt = 3 4 18 Arbeitstage S 54 Arbeits-
+    to: 18. D¹⁻¹⁸. Produkt = 3 × 18 Arbeitstage = 54 Arbeits-
+    by: scan
+  - page: 193
+    from: tage S 648 Arbeitsstunden. Zugesetzte Arbeit 12 4 18
+    to: tage = 648 Arbeitsstunden. Zugesetzte Arbeit = 12 × 18 =
+    by: scan
+  - page: 193
+    from: 54. E . Produkt = 3 54 Arbeitstage S 162 Arbeits-
+    to: 54. E¹⁻⁵⁴. Produkt = 3 × 54 Arbeitstage = 162 Arbeits-
+    by: scan
+  - page: 193
+    from: tage SS 1944 Arbeitsstunden. Zugesetzte Arbeit S 12 54
+    to: tage = 1944 Arbeitsstunden. Zugesetzte Arbeit = 12 × 54
+    by: scan
+  - page: 193
+    from: Die vorgesetzten Ziffern 1., 2., 6. usw. bedeuten die Zahl der
+    to: 1) Die vorgesetzten Ziffern 1., 2., 6. usw. bedeuten die Zahl der
+    by: scan
+  - page: 193
+    from: in intinitum
+    to: in infinitum
+    by: scan
+  - page: 194
+    from: — 648 Arbeitsstunden. Konstantes Kapital = 1296 Arbeits-
+    to: = 648 Arbeitsstunden. Konstantes Kapital = 1296 Arbeits-
+    by: scan
+  - page: 194
+    from: 162. F—162. Produkt = 3 4 162 Arbeitstage 486 Arbeits-
+    to: 162. F¹⁻¹⁶². Produkt = 3 × 162 Arbeitstage = 486 Arbeits-
+    by: scan
+  - page: 194
+    from: tage = 5832 Arbeitsstunden; zugesetzte Arbeit =S 12 4 162
+    to: tage = 5832 Arbeitsstunden; zugesetzte Arbeit = 12 × 162
+    by: scan
+  - page: 194
+    from: Arbeitstage =S 1944 Arbeitsstunden.
+    to: Arbeitstage = 1944 Arbeitsstunden.
+    by: scan
+  - page: 194
+    from: 486. G1—6. Produkt =S 3 £ 486 = 1458 Arbeitstage =
+    to: 486. G¹⁻⁴⁸⁶. Produkt = 3 × 486 = 1458 Arbeitstage =
+    by: scan
+  - page: 194
+    from: 17496 Arbeitsstunden. Zugesetzte Arbeit =S 12 486
+    to: 17496 Arbeitsstunden. Zugesetzte Arbeit = 12 × 486 =
+    by: scan
+  - page: 194
+    from: Summe von 1 +2 ++ 6
+    to: Summe von 1 + 2 + 6 +
+    by: scan
+  - page: 194
+    from: Sphäre F1e ausgelegt
+    to: Sphäre F¹⁻¹⁶² ausgelegt
+    by: scan
+  - page: 194
+    from: Jenseits 6 liegt
+    to: Jenseits G⁴⁸⁶ liegt
+    by: scan
+  - page: 194
+    from: Ausnahme von F.—Fe, ist
+    to: Ausnahme von F¹—F¹⁶², ist
+    by: scan
+  - page: 194
+    from: Auch hat G—tse allen
+    to: Auch hat G¹⁻⁴⁸⁶ allen
+    by: scan
+  - page: 194
+    from: Centime in F—162 angelegt.
+    to: Centime in F¹⁻¹⁶² angelegt.
+    by: scan
+  - page: 194
+    from: von G—s realisierten
+    to: von G¹⁻⁴⁸⁶ realisierten
+    by: scan
+  - page: 194
+    from: Produkt von B und B?.
+    to: Produkt von B¹ und B².
+    by: scan
+  - page: 194
+    from: bei der Sphäre 6 seien
+    to: bei der Sphäre G seien
     by: scan
   - page: 195
     from: B?
     to: B²
     by: scan
   - page: 196
-    from: B?
-    to: B²
+    from: in A, Bl und B' in der
+    to: in A, B¹ und B² in der
+    by: scan
+  - page: 196
+    from: das ganze Produkt von B1 + B? zu verkaufen, alle Arbeit, die
+    to: das ganze Produkt von B¹ + B² zu verkaufen, alle Arbeit, die
+    by: scan
+  - page: 196
+    from: in C—Cs neuzugesetzt
+    to: in C¹—C⁶ neuzugesetzt
+    by: scan
+  - page: 196
+    from: C—Cs zu kaufen, alle Arbeit, die zugesetzt ist in 0.—D usw.
+    to: C¹—C⁶ zu kaufen, alle Arbeit, die zugesetzt ist in D¹—D¹⁸ usw.
+    by: scan
+  - page: 196
+    from: Produkt von Fr1s, die
+    to: Produkt von F¹⁻¹⁶², die
+    by: scan
+  - page: 196
+    from: die in G—s zugesetzt
+    to: die in G¹⁻⁴⁸⁶ zugesetzt
+    by: scan
+  - page: 196
+    from: die G—s vorstellt
+    to: die G¹⁻⁴⁸⁶ vorstellt
+    by: scan
+  - page: 196
+    from: in A, B—2, Cs, Diis, Erüse,
+    to: in A, B¹⁻², C¹⁻⁶, D¹⁻¹⁸, E¹⁻⁵⁴,
+    by: scan
+  - page: 196
+    from: Fi 162. Aber
+    to: F¹⁻¹⁶². Aber
+    by: scan
+  - page: 196
+    from: das von AF angewandte
+    to: das von A—F¹⁶² angewandte
+    by: scan
+  - page: 196
+    from: im Resultat G6
+    to: im Resultat G
+    by: scan
+  - page: 197
+    from: "von a: b und"
+    to: "von a : b und"
     by: scan
   - page: 198
     from: 2. Weitere Untersuchung des Problems. Zweite
@@ -3841,6 +4341,18 @@ theorienberden01marxuoft:
     from: Andererseits lösen sich die ¾/ Ellen, die die Maschinerie der
     to: Andererseits lösen sich die ⅔ Ellen, die die Maschinerie der
     by: scan
+  - page: 204
+    from: Eisen usw. ö
+    to: Eisen usw.
+    by: scan
+  - page: 205
+    from: auf in ½¾ Ellen, wovon ⅜ Ellen
+    to: auf in ⁴⁄₉ Ellen, wovon ⁸⁄₉ Ellen
+    by: scan
+  - page: 206
+    from: Soll ½ Tʃ
+    to: Soll ⅓ =
+    by: scan
   - page: 209
     from: 6 Schilling oder 6 Arbeitsstunden - 2 Ellen.
     to: 6 Schilling oder 6 Arbeitsstunden = 2 Ellen.
@@ -3876,6 +4388,10 @@ theorienberden01marxuoft:
   - page: 209
     from: setzen von dem Werte von 7/½ Ellen 1 für Eisen usw., ½ für
     to: setzen von dem Werte von ⁴⁄₃ Ellen 1 für Eisen usw., ⅓ für
+    by: scan
+  - page: 209
+    from: werden, wie Ol, Kohle usw.
+    to: werden, wie Öl, Kohle usw.
     by: scan
   - page: 210
     from: zugesetzte Arbeit, so würden 2 Ellen von den 3 unter dieser — — 2 — —.—* **** 2
@@ -4101,6 +4617,10 @@ theorienberden01marxuoft:
     from: Bedingungen kann dieser Maschinist die ½¼ Ellen in Leinwand
     to: Bedingungen kann dieser Maschinist die ⁷⁄₉ Ellen in Leinwand
     by: scan
+  - page: 216
+    from: so hat dieser 7 f — — * * — V 7 *
+    to: so hat dieser
+    by: scan
   - page: 218
     from: Abnutzung!
     to: Abnutzung]
@@ -4108,6 +4628,10 @@ theorienberden01marxuoft:
   - page: 218
     from: Eisensproduzenten]
     to: Eisen[produzenten]
+    by: scan
+  - page: 218
+    from: "% sEllen Leinwand — 2½ Arbeitsstunden sersetztl. Er kauft"
+    to: ⁷⁄₉ Ellen Leinwand = 2⅓ Arbeitsstunden [ersetzt]. Er kauft
     by: scan
   - page: 221
     from: 3. Austausch zwischen Kapital und Kapital und der
@@ -4117,9 +4641,33 @@ theorienberden01marxuoft:
     from: Einfluß des Wertwechsels darauf.“
     to: ""
     by: scan
+  - page: 221
+    from: seien gleich xX, x., X“, Xx.“. Diese Werte
+    to: seien gleich x, x′, x″, x‴. Diese Werte
+    by: scan
+  - page: 221
+    from: denn 2 * E1 4 sind bloß
+    to: denn x/3, x′/3, x″/3, x‴/3 sind bloß
+    by: scan
+  - page: 221
+    from: von X, x“, X“, X.“ hatten,
+    to: von x, x′, x″, x‴ hatten,
+    by: scan
+  - page: 222
+    from: 3ist gleich Xx; doch x ist der Wert von ganz 2. Aber ½ x
+    to: z ist gleich x; doch x ist der Wert von ganz z. Aber ⅓ x
+    by: scan
   - page: 226
     from: jetzt 1⅛ α1 4 Schilling.
     to: jetzt 1⅕ £ = 1 £ 4 Schilling.
+    by: scan
+  - page: 226
+    from: Holz, Maf chinen usw.,
+    to: Holz, Maschinen usw.,
+    by: scan
+  - page: 226
+    from: wie früher ⸗ d. Prod.
+    to: wie früher = ⁵⁄₉ d. Prod.
     by: scan
   - page: 227
     from: sentsprechend!
@@ -4146,12 +4694,20 @@ theorienberden01marxuoft:
     to: 8 Pence für
     by: scan
   - page: 230
-    from: 80 Penee.
-    to: 80 Pence.
-    by: scan
-  - page: 230
     from: 80 Penee kosten,
     to: 80 Pence kosten,
+    by: scan
+  - page: 230
+    from: ling 1 Schilling 8 Pence — 6 Schilling 8 Pence = 80 Penee. 4*
+    to: ling + 1 Schilling 8 Pence = 6 Schilling 8 Pence = 80 Pence.
+    by: scan
+  - page: 230
+    from: vom Werte des Ge- *
+    to: vom Werte des Ge-
+    by: scan
+  - page: 230
+    from: bildet das Rohmaterial jetzt —*
+    to: bildet das Rohmaterial jetzt
     by: scan
   - page: 233
     from: Sphäre!
@@ -4185,6 +4741,10 @@ theorienberden01marxuoft:
     from: sei san
     to: sei [an
     by: scan
+  - page: 243
+    from: ner Flachs, Ol, Maschinen,
+    to: ner Flachs, Öl, Maschinen,
+    by: scan
   - page: 244
     from: Falle!
     to: Falle]
@@ -4209,9 +4769,29 @@ theorienberden01marxuoft:
     from: ganz von
     to: ganz [von
     by: scan
+  - page: 246
+    from: e und etwas Ol oder Talg b
+    to: e und etwas Öl oder Talg b
+    by: scan
   - page: 248
     from: Teils]
     to: "[Teils]"
+    by: scan
+  - page: 248
+    from: er Form von Ol, Talg usw.
+    to: er Form von Öl, Talg usw.
+    by: scan
+  - page: 248
+    from: " wie Kohle, Ol usw."
+    to: " wie Kohle, Öl usw."
+    by: scan
+  - page: 249
+    from: stoffe, wie Ol, Seife, Tal
+    to: stoffe, wie Öl, Seife, Tal
+    by: scan
+  - page: 250
+    from: alg, Seife, Ol usw.
+    to: alg, Seife, Öl usw.
     by: scan
   - page: 251
     from: loder
@@ -4265,6 +4845,18 @@ theorienberden01marxuoft:
     from: Dienstboten!
     to: Dienstboten¹
     by: scan
+  - page: 272
+    from: Man kann * **
+    to: Man kann
+    by: scan
+  - page: 276
+    from: "(sSaving):"
+    to: "(saving):"
+    by: scan
+  - page: 280
+    from: der Erde, IT„‚ ——...—.9.
+    to: der Erde,
+    by: scan
   - page: 284
     from: "[kam!)"
     to: "[kam]"
@@ -4297,6 +4889,10 @@ theorienberden01marxuoft:
     from: tical éeconomy, Edition
     to: tical economy, Edition
     by: scan
+  - page: 296
+    from: Lohn finden.“ ö
+    to: Lohn finden.“
+    by: scan
   - page: 300
     from: unproduktiven]
     to: "[unproduktiven]"
@@ -4304,6 +4900,10 @@ theorienberden01marxuoft:
   - page: 306
     from: des Princeipes de I'Economie
     to: des Principes de l'Economie
+    by: scan
+  - page: 306
+    from: eine Rente ne
+    to: eine Rente liefert“.
     by: scan
   - page: 308
     from: f) Ganilh.“
@@ -4325,6 +4925,10 @@ theorienberden01marxuoft:
     from: erspare.!
     to: erspare.¹
     by: scan
+  - page: 308
+    from: Hier verwechselt er, daß durch die von der Teilung der Arbeit *
+    to: 1) Hier verwechselt er, daß durch die von der Teilung der Arbeit
+    by: scan
   - page: 310
     from: Warenswelt!],
     to: Waren[welt],
@@ -4341,9 +4945,17 @@ theorienberden01marxuoft:
     from: Wert!],
     to: Wert],
     by: scan
+  - page: 313
+    from: Aü auf der Seite von B + C = D.
+    to: A auf der Seite von B + C + D.
+    by: scan
   - page: 315
     from: (im]materielle
     to: "[im]materielle"
+    by: scan
+  - page: 315
+    from: usw. A+ B haben
+    to: usw. A + B haben
     by: scan
   - page: 316
     from: liefern.!
@@ -4357,6 +4969,18 @@ theorienberden01marxuoft:
     from: daß also SSSS
     to: daß also
     by: scan
+  - page: 323
+    from: õ% = 8½ Arbeitstage
+    to: ⁵⁰⁄₆ = 8⅓ Arbeitstage
+    by: scan
+  - page: 324
+    from: " von Kohle, Ol, überhaupt "
+    to: " von Kohle, Öl, überhaupt "
+    by: scan
+  - page: 326
+    from: Gas, Ol, Talg, Riem
+    to: Gas, Öl, Talg, Riem
+    by: scan
   - page: 330
     from: machen,!
     to: machen,¹
@@ -4368,6 +4992,10 @@ theorienberden01marxuoft:
   - page: 335
     from: er um 20000 £E verkauft wi
     to: er um 20000 £ verkauft wi
+    by: scan
+  - page: 335
+    from: "* Dieses heißt also"
+    to: 2) Dieses heißt also
     by: scan
   - page: 336
     from: ginge.!
@@ -4465,13 +5093,21 @@ theorienberden01marxuoft:
     from: ([die
     to: "[die"
     by: scan
+  - page: 361
+    from: V — . rt,, . NV Bürger erhoben wird.“
+    to: Bürger erhoben wird.“
+    by: scan
+  - page: 366
+    from: Kapitalist CO zahlt dem Arbeiter A 14 Wochenlohn
+    to: Kapitalist C zahlt dem Arbeiter A 1 £ Wochenlohn
+    by: scan
   - page: 367
     from: shier
     to: "[hier"
     by: scan
   - page: 368
-    from: 100 ëH an
-    to: 100 £ an
+    from: dem Lager des C entzieht. Damit kehren die 100 ëH an C0
+    to: dem Lager des C entzieht. Damit kehren die 100 £ an C
     by: scan
   - page: 369
     from: "[damit!"
@@ -4504,6 +5140,10 @@ theorienberden01marxuoft:
   - page: 380
     from: J) Henri Storch. Die geistige Produktion.
     to: l) Henri Storch. Die geistige Produktion.
+    by: scan
+  - page: 380
+    from: Der ls ist S. 182
+    to: Der Schluß ist S. 182
     by: scan
   - page: 381
     from: Untersuchung!
@@ -4545,17 +5185,13 @@ theorienberden01marxuoft:
     from: Térum.
     to: rerum.
     by: scan
+  - page: 393
+    from: (l. c. S. 288, 289.) ö
+    to: (l. c. S. 288, 289.)
+    by: scan
   - page: 394
     from: d' Economie
     to: d' Économie
-    by: scan
-  - page: 395
-    from: Aufgabe!
-    to: Aufgabe]
-    by: scan
-  - page: 395
-    from: (die
-    to: "[die"
     by: scan
   - page: 395
     from: seine!
@@ -4564,6 +5200,10 @@ theorienberden01marxuoft:
   - page: 395
     from: ebenso
     to: "[ebenso"
+    by: scan
+  - page: 395
+    from: Aber (die Aufgabe! der „geistigen“ Arbeit à la Rossi sbe-
+    to: Aber [die Aufgabe] der „geistigen“ Arbeit à la Rossi [be-
     by: scan
   - page: 400
     from: produktiven!
@@ -4597,9 +5237,17 @@ theorienberden01marxuoft:
     from: (Bezeichnen
     to: "[Bezeichnen"
     by: scan
+  - page: 407
+    from: produktive Arbeit ist. ö
+    to: produktive Arbeit ist.
+    by: scan
   - page: 408
     from: (lzur
     to: "[zur"
+    by: scan
+  - page: 409
+    from: (vLE4V), was dasselbe ist als =S (e + v) V, oder die
+    to: (v + Δv), was dasselbe ist als = (c + v) + Δv, oder die
     by: scan
   - page: 410
     from: — + (konstantes und variables Kapital). Im Prozeß wird

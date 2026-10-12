@@ -551,6 +551,18 @@ books:
       - { page: 212, opens: "Bleiben für konstantes" }
       - { page: 212, opens: "Diese ⁷⁄₉ Ellen" }
       - { page: 212, opens: "Es ist nun falsch" }
+      - { page: 193, opens: "Dieses ist der schöne" }
+      - { page: 193, opens: "Also um das Gesetz" }
+      - { page: 193, opens: "1. A¹. Produkt" }
+      - { page: 193, opens: "2. B¹⁻². Produkt" }
+      - { page: 193, opens: "6. C¹⁻⁶. Produkt" }
+      - { page: 193, opens: "18. D¹⁻¹⁸. Produkt" }
+      - { page: 193, opens: "54. E¹⁻⁵⁴. Produkt" }
+      - { page: 194, opens: "162. F¹⁻¹⁶². Produkt" }
+      - { page: 194, opens: "486. G¹⁻⁴⁸⁶. Produkt" }
+      - { page: 194, opens: "Hier hätten wir schon" }
+      - { page: 194, opens: "Aber nehmen wir an" }
+      - { page: 194, opens: "Es nützt nichts" }
     # Notes the OCR set as close below the text as its lines, named.
     notes:
       - { page: 210, opens: "¹) Marx nimmt hier an" }
@@ -573,6 +585,7 @@ books:
       - { page: 329, opens: "2 An einer Stelle" }
       - { page: 137, opens: "¹) [Zur Kritik" }
       - { page: 137, opens: "²) S. 250" }
+      - { page: 308, opens: "1) Hier verwechselt" }
     slug: theorien-ueber-den-mehrwert-1
     title: "Theorien über den Mehrwert. Erster Band: Die Anfänge der Theorie vom Mehrwert bis Adam Smith"
     shortTitle: Theorien über den Mehrwert I
