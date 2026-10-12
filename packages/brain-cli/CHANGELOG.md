@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- [#614](https://github.com/rizom-ai/brains/pull/614) [`6b2c162`](https://github.com/rizom-ai/brains/commit/6b2c162b924138dbc55e2292fdec458d996dc64f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A search result's and a source's excerpt is the entity's text, not its frontmatter. Where a query does not appear literally — the usual case for a semantic match — the excerpt used to begin with the entity's raw frontmatter ("--- title: '6' book: ecce-homo …"); a source read directly showed the same.
+
 ## 0.2.0-alpha.537
 
 ### Patch Changes

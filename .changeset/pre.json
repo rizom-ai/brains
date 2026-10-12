@@ -687,6 +687,7 @@
     "core--site-routes-reach-the-worker",
     "core--site-template-render-version",
     "core--slug-transliteration",
+    "core--source-excerpt-body",
     "core--sqlite-asset-foundation",
     "core--sqlite-client-contention-contract",
     "core--sqlite-fail-fast-contention",
