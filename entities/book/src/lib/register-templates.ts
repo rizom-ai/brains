@@ -55,6 +55,7 @@ const bookSectionPageSchema = z.object({
   book: bookDisplaySchema,
   prev: bookSectionDisplaySchema.nullable(),
   next: bookSectionDisplaySchema.nullable(),
+  position: z.number().int().min(1),
   total: z.number().int().min(0),
   themes: z.array(z.object({ id: z.string(), title: z.string() })),
 });

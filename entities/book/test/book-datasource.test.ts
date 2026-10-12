@@ -4,6 +4,7 @@ import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { BookDataSource } from "../src/datasources/book-datasource";
+import { getTemplates } from "../src/lib/register-templates";
 import { bookSectionAdapter } from "../src/adapters/book-section-adapter";
 import type { Book } from "../src/schemas/book";
 import type { BookSection } from "../src/schemas/book-section";
@@ -198,6 +199,18 @@ describe("BookDataSource", () => {
       expect(result.next.metadata.slug).toBe("langes/5");
       expect(result.position).toBe(2);
       expect(result.total).toBe(3);
+    });
+
+    it("keeps its place through the page template's schema", async () => {
+      const schema = getTemplates()["book-section-detail"]?.schema;
+      if (!schema) throw new Error("missing book-section-detail template");
+      const result = await datasource.fetch(
+        { entityType: "book-section", query: { id: "langes/3" } },
+        schema,
+        context,
+      );
+
+      expect(result).toMatchObject({ position: 2, total: 3 });
     });
 
     it("steps back to the start of the section before", async () => {
