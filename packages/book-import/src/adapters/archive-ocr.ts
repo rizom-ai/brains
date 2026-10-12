@@ -866,6 +866,9 @@ function normalised(text: string): string {
         /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
         "1.",
       )
+      // Loco citato read with a figure one, and a page's p. with a dash.
+      .replace(/(?<![\p{L}\d])1\.( ?)c\./gu, "l.$1c.")
+      .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
       // The Fraktur model reads a plus and an equals sign at full width,
       // and a pound after a figure as an ampersand,
       .replace(/＋/g, "+")

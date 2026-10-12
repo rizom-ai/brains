@@ -286,6 +286,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
     );
   });
 
+  it("reads loco citato and a page the OCR set as 1. c. and p- as l. c. and p.", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, 1. c., p- 270; 1.c. p- XLV; 1. Teil, 21. c., Typ- 3.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, l. c., p. 270; l.c. p. XLV; 1. Teil, 21. c., Typ- 3.",
+    );
+  });
+
   it("reads a first the OCR set as i before a month or a volume's part as 1", async () => {
     const hocr = (await fixture()).replace(
       "Jones, 1919.",

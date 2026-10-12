@@ -561,6 +561,27 @@ books:
     citation: GW VIII
     firstPage: 127
     lastPage: 212
+    # Pages whose paragraphs the OCR's lines do not tell, named.
+    paragraphs:
+      - { page: 173, opens: "Silberbrokat" }
+      - { page: 173, opens: "Roten Samt" }
+      - { page: 173, opens: "Schnüre" }
+      - { page: 173, opens: "Knöpfe" }
+      - { page: 175, opens: "„Auslagen" }
+      - { page: 175, opens: "3 Pfund" }
+      - { page: 175, opens: "Für das Tragen" }
+      - { page: 175, opens: "Katafalk" }
+      - { page: 175, opens: "Leichenträger" }
+      - { page: 175, opens: "An 4 Geistliche" }
+      - { page: 175, opens: "Glockenläuten" }
+      - { page: 175, opens: "Den Totengräbern" }
+      - { page: 175, opens: "Für die Genehmigung" }
+      - { page: 175, opens: "Summa ..." }
+      - { page: 175, opens: "Frühere Auslagen" }
+      - { page: 175, opens: "Dem Arzt" }
+      - { page: 175, opens: "Für Zucker" }
+      - { page: 175, opens: "Summa Summarum" }
+      - { page: 175, opens: "Der Dichter Mereschkowski" }
     slug: eine-kindheitserinnerung-des-leonardo-da-vinci
     references: [https://www.gutenberg.org/cache/epub/75455/pg75455.txt]
     title: Eine Kindheitserinnerung des Leonardo da Vinci

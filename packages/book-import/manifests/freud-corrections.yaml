@@ -2415,10 +2415,6 @@ freud-1941-gw-7:
     from: a 1 EEE
     to: ""
     by: scan
-  - page: 269
-    from: p- 246
-    to: p. 246
-    by: scan
   - page: 272
     from: Welt.‘ Die
     to: Welt.¹) Die
@@ -4450,22 +4446,98 @@ freud-1943-gw-8:
     from: in. ihrer
     to: in ihrer
     by: scan
+  - page: 128
+    from: 1907 (ZBE
+    to: 1907 (Zur
+    by: scan
+  - page: 129
+    from: En EEE
+    to: ""
+    by: scan
+  - page: 130
+    from: a ni
+    to: ""
+    by: scan
   - page: 132
     from: ora tremasse, guando si poneva
     to: ora tremasse, quando si poneva
     by: reference
+  - page: 132
+    from: non & finita
+    to: non è finita
+    by: scan
+  - page: 133
+    from: "p: 48"
+    to: p. 48
+    by: scan
+  - page: 134
+    from: FE na ln ale. 00
+    to: ""
+    by: scan
+  - page: 134
+    from: 1906. iz i
+    to: 1906. „Doch
+    by: scan
   - page: 136
     from: Herzf eld,
     to: Herzfeld,
+    by: scan
+  - page: 136
+    from: Forschers.® Es
+    to: Forschers.³) Es
+    by: scan
+  - page: 136
+    from: u. dgl.*
+    to: u. dgl.⁴)
+    by: scan
+  - page: 138
+    from: "mis: aus"
+    to: lässig, aus
+    by: scan
+  - page: 139
+    from: „Julian Apostata* und
+    to: „Julian Apostata“ und
     by: scan
   - page: 140
     from: Herzf eld.
     to: Herzfeld.
     by: scan
+  - page: 140
+    from: bleiben.“* In
+    to: bleiben.“¹) In
+    by: scan
+  - page: 140
+    from: puö amare ne odiare
+    to: può amare nè odiare
+    by: scan
+  - page: 140
+    from: Übersetzung vos
+    to: Übersetzung von
+    by: scan
   - page: 141
     from: O mirabile necessitd ...“) gefeiert hat
     to: O mirabile necessita ...“) gefeiert hat
     by: reference
+  - page: 142
+    from: a ala
+    to: ""
+    by: scan
+  - page: 143
+    from: I] sole
+    to: Il sole
+    by: scan
+  - page: 143
+    from: a a a EEE
+    to: ""
+    by: scan
+  - page: 143
+    from: l’ar::,
+    to: l’arte,
+    by: scan
+  - page: 144
+    from: Sexuallebens ver
+    to: Sexuallebens ver-
+    by: scan
   - page: 145
     from: ganz ansehnliche Änteile ihrer sexuellen
     to: ganz ansehnliche Anteile ihrer sexuellen
@@ -4474,29 +4546,269 @@ freud-1943-gw-8:
     from: kommen. geradeso
     to: kommen geradeso
     by: scan
+  - page: 146
+    from: Bd. VIT]
+    to: Bd. VII]
+    by: scan
+  - page: 146
+    from: Sexualtheorien‘‘, 1908 [Ges. Werke,Bd. VII},
+    to: Sexualtheorien“, 1908 [Ges. Werke, Bd. VII],
+    by: scan
+  - page: 150
+    from: nibio ven“
+    to: nibio venissi
+    by: scan
+  - page: 150
+    from: labbra.* (Cod.
+    to: labbra.“ (Cod.
+    by: scan
   - page: 154
     from: betrachten, so ersoheint sie uns
     to: betrachten, so erscheint sie uns
     by: reference
+  - page: 156
+    from: aber w a
+    to: aber was
+    by: scan
+  - page: 156
+    from: RER NA E
+    to: ""
+    by: scan
+  - page: 156
+    from: "Hieroglyphica i, ii. Mnteox 8: ypayovres...... ylnz Gurpayobrt."
+    to: Hieroglyphica 1, 11. Μητέρα δὲ γράφοντες …… γῦπα ζωγραφοῦσιν.
+    by: scan
   - page: 157
-    from: esse putarunt Aegyptii sic inter
-    to: esse putarunt Ägyptii sic inter
-    by: reference
+    from: im F luge
+    to: im Fluge
+    by: scan
+  - page: 157
+    from: 1) „yüna dt &ppeva ob pariydveodal more, AAN& Imdelag Anaras“ bei v. Römer. Über
+    to: ¹) „γῦπα δὲ ἄρρενα οὐ φασι γενέσθαί ποτε, ἀλλὰ θηλείας ἁπάσας“ bei v. Römer. Über
+    by: scan
+  - page: 157
+    from: "2) Plutarch: Veluti scarabaeos mares tantum esse putarunt Aegyptii sic inter vultures"
+    to: "2) Plutarch: Veluti scarabaeos mares tantum esse putarunt Aegyptii sic inter vultures"
+    by: scan
+  - page: 157
+    from: Mares non inveniri Statuerunt.
+    to: mares non inveniri statuerunt.
+    by: scan
+  - page: 157
+    from: "(p. 14): pntepa iv Ererön"
+    to: "(p. 14): μητέρα μὲν ἐπειδὴ"
+    by: scan
+  - page: 157
+    from: RPPEV Ev Touren ti ever tuv Kubiwy ody Ömäpxer.
+    to: ἄρρεν ἐν τούτῳ τῷ γένει τῶν ζώων οὐχ ὑπάρχει.
+    by: scan
+  - page: 157
+    from: Freud, VIII. j
+    to: ""
+    by: scan
+  - page: 158
+    from: Müntz, lc.
+    to: Müntz, l. c.
+    by: scan
+  - page: 158
+    from: argumento eX
+    to: argumento ex
+    by: scan
+  - page: 158
+    from: itague apud
+    to: itaque apud
+    by: scan
+  - page: 158
+    from: Geierfabel ZU
+    to: Geierfabel zu
+    by: scan
   - page: 160
     from: Kinderlosigkeit. dieser
     to: Kinderlosigkeit dieser
     by: scan
+  - page: 160
+    from: ehe ef
+    to: ehe er
+    by: scan
   - page: 162
-    from: fortschreitender Deutungsarbeit stoBen wir nun
-    to: fortschreitender Deutungsarbeit stoßen wir nun
-    by: reference
+    from: Leben. Bei fortschreitender Deutungsarbeit stoBen wir nun aut
+    to: Leben. Bei fortschreitender Deutungsarbeit stoßen wir nun auf
+    by: scan
+  - page: 162
+    from: worden ist. Die Mut
+    to: worden ist. Die Mutter,
+    by: scan
+  - page: 162
+    from: — Ist IN
+    to: — ist in
+    by: scan
+  - page: 162
+    from: auf einen ve
+    to: auf einen ver-
+    by: scan
+  - page: 162
+    from: Wieviel scheinbar bei
+    to: Wieviel scheinbar absurde
+    by: scan
+  - page: 162
+    from: ihren Sinn einzugestehen
+    to: ihren Sinn einzugestehen!
+    by: scan
+  - page: 162
+    from: schwieriger wer den
+    to: schwieriger werden
+    by: scan
+  - page: 162
+    from: ". b : } - ine"
+    to: ""
+    by: scan
+  - page: 162
+    from: wenn sich ©
+    to: wenn sich eine
+    by: scan
+  - page: 162
+    from: „ Coda“
+    to: „Coda“
+    by: scan
+  - page: 162
+    from: mütterlichen ‚Vogel mit dem Abzeichen er
+    to: mütterlichen Vogel mit dem Abzeichen der
+    by: scan
+  - page: 163
+    from: habe aüs seinen
+    to: habe aus seinen
+    by: scan
   - page: 165
     from: Vgl.die
     to: Vgl. die
     by: scan
+  - page: 169
+    from: $. Ferenczi
+    to: S. Ferenczi
+    by: scan
   - page: 170
     from: Narzissus.
     to: Narzissus
+    by: scan
+  - page: 170
+    from: aber ef
+    to: aber er
+    by: scan
+  - page: 173
+    from: Todesco.“ * Oder
+    to: Todesco.“⁴) Oder
+    by: scan
+  - page: 173
+    from: gekauft :®
+    to: gekauft:⁶)
+    by: scan
+  - page: 173
+    from: Silberbrokat........+» 15 Lire 4 Soldi
+    to: Silberbrokat | 15 Lire | 4 Soldi
+    by: scan
+  - page: 173
+    from: Roten Samt zum Besatz Or ee"
+    to: Roten Samt zum Besatz | 9 〃 | — 〃
+    by: scan
+  - page: 173
+    from: Schnüre u. sus sw. 203 N
+    to: Schnüre | — 〃 | 9 〃
+    by: scan
+  - page: 173
+    from: Knöpfe ..u0 0-0. «4 en RN, 7 Ye
+    to: Knöpfe | — 〃 | 12 〃
+    by: scan
+  - page: 174
+    from: von io Jahren
+    to: von 10 Jahren
+    by: scan
+  - page: 174
+    from: "diebisch, lüg:"
+    to: diebisch, lüg-
+    by: scan
+  - page: 174
+    from: gefräßig) Am
+    to: gefräßig.) Am
+    by: scan
+  - page: 174
+    from: iR 4
+    to: ""
+    by: scan
+  - page: 174
+    from: l.c,p. XLV.
+    to: l. c., p. XLV.
+    by: scan
+  - page: 174
+    from: Schüler’ durch
+    to: Schüler¹) durch
+    by: scan
+  - page: 174
+    from: das Pferd.” Jacomo
+    to: das Pferd.²) Jacomo
+    by: scan
+  - page: 174
+    from: 3 Wänmser
+    to: 3 Wämser
+    by: scan
+  - page: 174
+    from: usw.“?
+    to: usw.“³)
+    by: scan
+  - page: 175
+    from: m 1
+    to: ""
+    by: scan
+  - page: 175
+    from: „Auslagen nach dem Tode zum Begräbnis der Katharina. .. 27 florins
+    to: „Auslagen nach dem Tode zum Begräbnis der Katharina | 27 florins
+    by: scan
+  - page: 175
+    from: 3 Pfund Wachs ... % en Bas BE 1a,
+    to: 2 Pfund Wachs | 18 〃
+    by: scan
+  - page: 175
+    from: Für das Tragen und Aufrichten des Kreuzes ......... N
+    to: Für das Tragen und Aufrichten des Kreuzes | 12 〃
+    by: scan
+  - page: 175
+    from: Katafalk . .-. . » 0 u... 0m 0 0m 0 able ar EEE EEE er
+    to: Katafalk | 4 〃
+    by: scan
+  - page: 175
+    from: Leichenträger. ... 2 . u 0 e U ur EL IE Br
+    to: Leichenträger | 8 〃
+    by: scan
+  - page: 175
+    from: "An 4 Geistliche und: 4 'Klerikar m ea BOT,"
+    to: An 4 Geistliche und 4 Kleriker | 20 〃
+    by: scan
+  - page: 175
+    from: Glockenläuten . 1. wu. Air 2 ;s
+    to: Glockenläuten | 2 〃
+    by: scan
+  - page: 175
+    from: Den Totengräbern. 44. RR RE Tania
+    to: Den Totengräbern | 16 〃
+    by: scan
+  - page: 175
+    from: Für die Genehmigung — den Beamten... ......... Ei
+    to: Für die Genehmigung — den Beamten | 1 〃
+    by: scan
+  - page: 175
+    from: Summa ... 108 florins
+    to: Summa | 108 florins
+    by: scan
+  - page: 175
+    from: Dem Arzt . ... „ua 4 Rlorins
+    to: Dem Arzt | 4 florins
+    by: scan
+  - page: 175
+    from: Für Zucker und Lichte. .. 12 J„ 0,
+    to: Für Zucker und Lichte | 12 〃 | 16 〃
+    by: scan
+  - page: 175
+    from: Summa Summarum .. . 124 florins.“!
+    to: Summa Summarum | 124 florins.“¹)
     by: scan
   - page: 177
     from: ergeben, daß Leeonardos Liebesleben wirklich
@@ -4510,6 +4822,14 @@ freud-1943-gw-8:
     from: perdre la tete ü tous ceux
     to: perdre la tête à tous ceux
     by: reference
+  - page: 179
+    from: „Vorl& quatre siecles bientöt que
+    to: „Voilà quatre siècles bientôt que
+    by: scan
+  - page: 179
+    from: p. 28o.
+    to: p. 280.
+    by: scan
   - page: 180
     from: cerveau qui reflechit, d’une
     to: cerveau qui réfléchit, d’une
@@ -4554,6 +4874,22 @@ freud-1943-gw-8:
     from: Dies berückende Lächein kehrt seitdem
     to: Dies berückende Lächeln kehrt seitdem
     by: reference
+  - page: 181
+    from: Konstantinowa* Ausdruck
+    to: Konstantinowa¹) Ausdruck
+    by: scan
+  - page: 183
+    from: $o dürfen
+    to: So dürfen
+    by: scan
+  - page: 183
+    from: ea EEE
+    to: ""
+    by: scan
+  - page: 183
+    from: nimmt. Mereschkowski
+    to: nimmt Mereschkowski
+    by: scan
   - page: 186
     from: Ahnung gekommen, daB das Lächeln
     to: Ahnung gekommen, daß das Lächeln
@@ -4562,6 +4898,22 @@ freud-1943-gw-8:
     from: Rosenb erg
     to: Rosenberg
     by: scan
+  - page: 186
+    from: anfängt. we
+    to: anfängt. Was
+    by: scan
+  - page: 186
+    from: verschmolzen, IhfE
+    to: verschmolzen, ihre
+    by: scan
+  - page: 186
+    from: vorzustellen, wi®
+    to: vorzustellen, wie
+    by: scan
+  - page: 186
+    from: desselben Stoffes zeige
+    to: desselben Stoffes zeigt.
+    by: scan
   - page: 187
     from: einemerkwürdige
     to: eine merkwürdige
@@ -4569,6 +4921,10 @@ freud-1943-gw-8:
   - page: 187
     from: Symbolder
     to: Symbol der
+    by: scan
+  - page: 189
+    from: J ünglinge
+    to: Jünglinge
     by: scan
   - page: 190
     from: Era d’etä d’anni
@@ -4586,10 +4942,34 @@ freud-1943-gw-8:
     from: roba e libertä e nessuna
     to: roba e libertà e nessuna
     by: reference
+  - page: 193
+    from: geführt.“* Es
+    to: geführt.“¹) Es
+    by: scan
   - page: 194
     from: allegando l’autorit& non adopra
     to: allegando l'autorità non adopra
     by: reference
+  - page: 194
+    from: Vater zü verzichten
+    to: Vater zu verzichten
+    by: scan
+  - page: 194
+    from: a nn
+    to: ""
+    by: scan
+  - page: 198
+    from: versagt ist, SO
+    to: versagt ist, so
+    by: scan
+  - page: 200
+    from: Genie.“* Dieselbe
+    to: Genie.“¹) Dieselbe
+    by: scan
+  - page: 200
+    from: an a u BE ins
+    to: ""
+    by: scan
   - page: 201
     from: gesetzt.
     to: gesetzt
@@ -4606,6 +4986,10 @@ freud-1943-gw-8:
     from: aus. der
     to: aus der
     by: scan
+  - page: 206
+    from: p. a71.
+    to: p. 271.
+    by: scan
   - page: 210
     from: gekränkt darüber, daB ein gerechter
     to: gekränkt darüber, daß ein gerechter
@@ -4613,6 +4997,10 @@ freud-1943-gw-8:
   - page: 211
     from: Erfahrung. drängen
     to: Erfahrung drängen
+    by: scan
+  - page: 211
+    from: natura & piena
+    to: natura è piena
     by: scan
   - page: 221
     from: zu. folgen
