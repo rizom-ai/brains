@@ -963,6 +963,186 @@ describe("ProjectionStore", () => {
     ]);
   });
 
+  async function seedLargeWaveInputs(inputs: number): Promise<void> {
+    await connection.db.run(sql`
+      INSERT INTO projection_dirty_inputs
+        (source_type, source_id, revision, operation, marked_at)
+      WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ${inputs})
+      SELECT 'book-section', 'section-' || i, 'rev-' || i, 'upsert', 10 FROM n
+    `);
+  }
+
+  it("rolls back every claim chunk and the wave when a later chunk fails", async () => {
+    await seedLargeWaveInputs(2001);
+    const before = await store.listPendingInputs();
+    await connection.db.run(sql`
+      CREATE TRIGGER reject_claim_chunk BEFORE INSERT ON projection_wave_inputs
+      WHEN (SELECT COUNT(*) FROM projection_wave_inputs WHERE wave_id = NEW.wave_id) >= 1500
+      BEGIN SELECT RAISE(ABORT, 'forced claim chunk failure'); END
+    `);
+    const result = await store
+      .claimPendingWave({
+        waveId: "wave-claim-rollback",
+        graphFingerprint: "graph-1",
+        startedAt: 20,
+      })
+      .catch(caughtError);
+    expect(result).toBeInstanceOf(Error);
+    expect(result).toHaveProperty(
+      "cause.message",
+      expect.stringContaining("forced claim chunk failure"),
+    );
+    expect(await store.getWave("wave-claim-rollback")).toBeNull();
+    expect(await store.listWaveInputs("wave-claim-rollback")).toEqual([]);
+    expect(await store.listPendingInputs()).toEqual(before);
+    await connection.db.run(sql`DROP TRIGGER reject_claim_chunk`);
+    await store.claimPendingWave({
+      waveId: "wave-claim-rollback",
+      graphFingerprint: "graph-1",
+      startedAt: 30,
+    });
+    expect(await store.listWaveInputs("wave-claim-rollback")).toHaveLength(
+      2001,
+    );
+    expect(await store.listPendingInputs()).toEqual([]);
+  });
+
+  it("rolls back every requeue chunk and terminal transition when a later chunk fails", async () => {
+    await seedLargeWaveInputs(2001);
+    const wave = await store.claimPendingWave({
+      waveId: "wave-requeue-rollback",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await store.markDirty({
+      sourceType: "book-section",
+      sourceId: "section-1",
+      revision: "deleted-1",
+      operation: "delete",
+      markedAt: 25,
+    });
+    const pending = await store.listPendingInputs();
+    const claimed = await store.listWaveInputs("wave-requeue-rollback");
+    await connection.db.run(sql`
+      CREATE TRIGGER reject_requeue_chunk BEFORE INSERT ON projection_dirty_inputs
+      WHEN (SELECT COUNT(*) FROM projection_dirty_inputs) >= 1500
+      BEGIN SELECT RAISE(ABORT, 'forced requeue chunk failure'); END
+    `);
+    const result = await store
+      .failWave("wave-requeue-rollback", 30)
+      .catch(caughtError);
+    expect(result).toBeInstanceOf(Error);
+    expect(result).toHaveProperty(
+      "cause.message",
+      expect.stringContaining("forced requeue chunk failure"),
+    );
+    expect(await store.getActiveWave()).toEqual(wave);
+    expect(await store.listPendingInputs()).toEqual(pending);
+    expect(await store.listWaveInputs("wave-requeue-rollback")).toEqual(
+      claimed,
+    );
+    await connection.db.run(sql`DROP TRIGGER reject_requeue_chunk`);
+    await store.failWave("wave-requeue-rollback", 40);
+    expect(await store.getActiveWave()).toBeNull();
+    const recovered = await store.listPendingInputs();
+    expect(recovered).toHaveLength(2001);
+    expect(recovered.find((entry) => entry.sourceId === "section-1")).toEqual(
+      pending[0],
+    );
+  });
+
+  it.each(["failure", "supersession"] as const)(
+    "claims and requeues a wave larger than one statement can bind on %s",
+    async (terminal) => {
+      // A corpus migration marks every entity twice: its old id deleted and its
+      // new one written. Six columns a row, 7,462 rows outgrow SQLite's 32,766
+      // bound variables for one statement.
+      const inputs = 7462;
+      await seedLargeWaveInputs(inputs);
+      await store.markDirty({
+        sourceType: "book-section",
+        sourceId: "section-1",
+        revision: "latest-before-claim",
+        operation: "upsert",
+        markedAt: 15,
+      });
+
+      const wave = await store.claimPendingWave({
+        waveId: "wave-large",
+        graphFingerprint: "graph-1",
+        startedAt: 20,
+      });
+
+      expect(wave?.id).toBe("wave-large");
+      expect(await store.listWaveInputs("wave-large")).toHaveLength(inputs);
+      expect(await store.listPendingInputs()).toHaveLength(0);
+      expect(
+        (await store.listWaveInputs("wave-large")).find(
+          (entry) => entry.sourceId === "section-1",
+        )?.revision,
+      ).toBe("latest-before-claim");
+      await store.markDirty({
+        sourceType: "book-section",
+        sourceId: "section-2",
+        revision: "deleted-2",
+        operation: "delete",
+        markedAt: 25,
+      });
+      await store.markDirty({
+        sourceType: "book-section",
+        sourceId: `section-${inputs}`,
+        revision: "latest-after-claim",
+        operation: "upsert",
+        markedAt: 26,
+      });
+      const newer = await store.listPendingInputs();
+      if (terminal === "supersession") {
+        await store.runBulkMutation(
+          { source: "directory-sync", operationId: "supersede-large" },
+          async () => {},
+        );
+      }
+      const settle = async (at: number): Promise<void> => {
+        if (terminal === "failure") {
+          await store.failWave("wave-large", at);
+        } else {
+          expect(await store.supersedeWaveIfStale("wave-large", at)).toBe(true);
+        }
+      };
+      await settle(30);
+      expect((await store.getWave("wave-large"))?.status).toBe(
+        terminal === "failure" ? "failed" : "superseded",
+      );
+
+      const pending = await store.listPendingInputs();
+      expect(pending).toHaveLength(inputs);
+      expect(new Set(pending.map((entry) => entry.sourceId)).size).toBe(inputs);
+      for (const entry of newer) {
+        expect(
+          pending.find((input) => input.sourceId === entry.sourceId),
+        ).toEqual(entry);
+      }
+      await settle(40);
+      expect(await store.listPendingInputs()).toEqual(pending);
+      const reopened = createEntityDatabase(database.config);
+      try {
+        const recoveredStore = new ProjectionStore(reopened.db);
+        expect(await recoveredStore.listPendingInputs()).toEqual(pending);
+        await recoveredStore.claimPendingWave({
+          waveId: "wave-recovered",
+          graphFingerprint: "graph-1",
+          startedAt: 50,
+        });
+        expect(
+          await recoveredStore.listWaveInputs("wave-recovered"),
+        ).toHaveLength(inputs);
+        expect(await recoveredStore.listPendingInputs()).toEqual([]);
+      } finally {
+        reopened.client.close();
+      }
+    },
+  );
+
   it("persists idempotent incidents, bounds details, and resolves by coverage", async () => {
     await store.markDirty({
       sourceType: "document",
