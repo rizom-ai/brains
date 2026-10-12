@@ -103,6 +103,7 @@ export interface TurnProcessorDeps {
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
   guestAnswerSources: AgentConfig["guestAnswerSources"];
+  entityLinks: AgentConfig["entityLinks"];
   guestAskedBefore: AgentConfig["guestAskedBefore"];
   embeddingUsage: AgentConfig["embeddingUsage"];
 }
@@ -537,7 +538,11 @@ export class TurnProcessor {
     const { conversationId, channelId, channelName, userPermissionLevel } =
       turn.input;
     const { guest } = turn;
-    const extracted = extractToolResults(result.steps, result.text);
+    const extracted = extractToolResults(
+      result.steps,
+      result.text,
+      this.deps.entityLinks,
+    );
     const { toolResults, pendingConfirmations, totalToolCalls } = extracted;
     if (guest && pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
@@ -851,6 +856,7 @@ export class TurnProcessor {
     const { toolResults, pendingConfirmations, cards } = extractToolResults(
       result.steps,
       result.text,
+      this.deps.entityLinks,
     );
     return {
       text:
