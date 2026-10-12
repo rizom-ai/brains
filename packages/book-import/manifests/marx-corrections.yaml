@@ -6351,7 +6351,7 @@ p1theorienberden02marxuoft:
     to: "wie 1 : 1⅔; im zweiten Falle wie 140 : 300 = 1 : 2⅐. Die"
     by: scan
   - page: 256
-    from: hat eintreten können.“ (I. c. S. 139.)
+    from: hat eintreten können.“ (l. c. S. 139.)
     to: hat eintreten können.“ (l. c. S. 139.)
     by: scan
   - page: 256
@@ -7529,7 +7529,7 @@ p1theorienberden02marxuoft:
     to: rural affairs. London 1777—1796. S. 107.)
     by: scan
   - page: 336
-    from: verdankt.“ (I. c. S. 109, 110.)
+    from: verdankt.“ (l. c. S. 109, 110.)
     to: verdankt.“ (l. c. S. 109, 110.)
     by: scan
   - page: 336
@@ -9375,8 +9375,8 @@ p2theorienberd02marx:
     to: in II, III, IV und ebenso
     by: scan
   - page: 84
-    from: n werden.“ (J. c. S. 60.)
-    to: n werden.“ (I. c. S. 60.)
+    from: n werden.“ (l. c. S. 60.)
+    to: n werden.“ (l. c. S. 60.)
     by: scan
   - page: 85
     from: von. dem
@@ -9507,7 +9507,7 @@ p2theorienberd02marx:
     to: 30 | | 345
     by: scan
   - page: 98
-    from: (I. c. S. 71, 72.)
+    from: (l. c. S. 71, 72.)
     to: (l. c. S. 71, 72.)
     by: scan
   - page: 98
@@ -9523,7 +9523,7 @@ p2theorienberd02marx:
     to: "[zu"
     by: scan
   - page: 100
-    from: bildet die Grundrente.“ (I. c. S. 73, 74.)
+    from: bildet die Grundrente.“ (l. c. S. 73, 74.)
     to: bildet die Grundrente.“ (l. c. S. 73, 74.)
     by: scan
   - page: 100
@@ -13076,7 +13076,7 @@ p2theorienberd02marx:
     to: vergrößert hat.⁴ Aber mit
     by: scan
   - page: 361
-    from: (I. C. S. 415.)
+    from: (l. c. S. 415.)
     to: (l. c. S. 415.)
     by: scan
   - page: 362
@@ -13216,6 +13216,10 @@ theorienberden03marxuoft:
     from: noch
     to: "[noch"
     by: scan
+  - page: 14
+    from: ob die Produzenten sie ö
+    to: ob die Produzenten sie
+    by: scan
   - page: 15
     from: unbefangenen!
     to: "[unbefangenen]"
@@ -13235,6 +13239,10 @@ theorienberden03marxuoft:
   - page: 18
     from: (zu
     to: "[zu"
+    by: scan
+  - page: 18
+    from: (der den Profit ö
+    to: (der den Profit
     by: scan
   - page: 19
     from: value ete.,
@@ -13300,6 +13308,14 @@ theorienberden03marxuoft:
     from: des Produkts, nämlich 600 E nehmen und mit der Summe ver-
     to: des Produkts, nämlich 600 £ nehmen und mit der Summe ver-
     by: scan
+  - page: 33
+    from: Also 110 — 10 ⸗ 100. 100
+    to: Also 110 — 10 = 100. 100
+    by: scan
+  - page: 33
+    from: durch das Verhältnis 3* 3— in
+    to: durch das Verhältnis zu dem in
+    by: scan
   - page: 34
     from: sebensoviel
     to: "[ebensoviel"
@@ -13347,6 +13363,14 @@ theorienberden03marxuoft:
   - page: 38
     from: erheis chte
     to: erheischte
+    by: scan
+  - page: 40
+    from: den Can D macht
+    to: den C an D macht
+    by: scan
+  - page: 40
+    from: Profit für DO (höch-
+    to: Profit für D (höch-
     by: scan
   - page: 41
     from: Landwirtschaftl.
@@ -13396,6 +13420,10 @@ theorienberden03marxuoft:
     from: " daß Klasse J Luxusgegens"
     to: " daß Klasse I Luxusgegens"
     by: scan
+  - page: 47
+    from: G —W—6z; eine
+    to: G—W—G; eine
+    by: scan
   - page: 51
     from: Ricardos „Prineiples“ gelernten
     to: Ricardos „Principles“ gelernten
@@ -13440,6 +13468,10 @@ theorienberden03marxuoft:
     from: Innel. vom
     to: zuviel vom
     by: scan
+  - page: 64
+    from: Smiths, „daß sie es lieben, zu ernten, wo sie niemals —q‚ dann
+    to: Smiths, ‚daß sie es lieben, zu ernten, wo sie niemals gesät‘, dann
+    by: scan
   - page: 65
     from: 5. Dder verfasler der „Outlines“.
     to: 5. Der Verfasser der „Outlines“.
@@ -13480,6 +13512,30 @@ theorienberden03marxuoft:
     from: els auf 800 £E zu reduzier
     to: els auf 800 £ zu reduzier
     by: scan
+  - page: 68
+    from: auf das fixe Kapital vn 500 £
+    to: ""
+    by: scan
+  - page: 68
+    from: Der Lohn von 50 Mann macht 500 £
+    to: „Der Lohn von 50 Mann macht | 500 £
+    by: scan
+  - page: 68
+    from: Der Lohn von 10 Mann zur Instandhaltung. 100 £
+    to: Der Lohn von 10 Mann zur Instandhaltung | 100 £
+    by: scan
+  - page: 68
+    from: Profit von 20 Prozent
+    to: Profit von 20 Prozent auf das zirkulierende Kapital von 500 £ und auf das fixe Kapital von 500 £ | 200 £
+    by: scan
+  - page: 68
+    from: auf das zirkulierende Kapitel von „ 500 £ 200
+    to: ""
+    by: scan
+  - page: 68
+    from: Zusammen 800 £“
+    to: Zusammen | 800 £“
+    by: scan
   - page: 70
     from: Prozent 100 £H ausmacht. D
     to: Prozent 100 £ ausmacht. D
@@ -13507,6 +13563,10 @@ theorienberden03marxuoft:
   - page: 74
     from: Zus ammen
     to: Zusammen
+    by: scan
+  - page: 74
+    from: lüerendes und fixes Kapital —, aljo nur die Untersehiede,
+    to: lierendes und fixes Kapital —, also nur die Unterschiede,
     by: scan
   - page: 76
     from: Wealth ete.“, London
@@ -13597,7 +13657,7 @@ theorienberden03marxuoft:
     to: letzten Acre seinen
     by: scan
   - page: 119
-    from: (Prévost, J. c. S. 177.
+    from: (Prévost, l. c. S. 177.
     to: (Prévost, l. c. S. 177.
     by: scan
   - page: 120
@@ -15652,7 +15712,7 @@ theorienberden03marxuoft:
     to: 3. Textbook.
     by: scan
   - page: 479
-    from: innehmen.“ (J. c.)
+    from: innehmen.“ (l. c.)
     to: innehmen.“ (l. c.)
     by: scan
   - page: 480
@@ -18299,8 +18359,8 @@ zur-kritik-der-politischen-okonomie:
     to: 1845 pag. 69 etc. „Si un écu un peu usé etait réputé valoir quelque
     by: scan
   - page: 88
-    from: matiére à contestation.“ (Garnier G. I. c. tom I p. 24.)
-    to: matière à contestation.“ (Garnier G. I. c. tom I p. 24.)
+    from: matiére à contestation.“ (Garnier G. l. c. tom I p. 24.)
+    to: matière à contestation.“ (Garnier G. l. c. tom I p. 24.)
     by: scan
   - page: 90
     from: W- G efällt es aus
@@ -18351,8 +18411,8 @@ zur-kritik-der-politischen-okonomie:
     to: 1) l. c. p. 11—13 passim.
     by: scan
   - page: 109
-    from: ) Petty. Political Arith. I. c. p. 196.
-    to: 2) Petty. Political Arith. I. c. p. 196.
+    from: ) Petty. Political Arith. l. c. p. 196.
+    to: 2) Petty. Political Arith. l. c. p. 196.
     by: scan
   - page: 109
     from: des ôtats
@@ -18375,8 +18435,8 @@ zur-kritik-der-politischen-okonomie:
     to: "Herr Senior versteht die Sache besser: „L'argent parait être la seule"
     by: scan
   - page: 115
-    from: ½) Jaco b I. c. t. 2. ch. 25 und 26
-    to: 1) Jaco b I. c. t. 2. ch. 25 und 26
+    from: ½) Jaco b l. c. t. 2. ch. 25 und 26
+    to: 1) Jaco b l. c. t. 2. ch. 25 und 26
     by: scan
   - page: 116
     from: Stelle entwickelt Renophon Geld in
@@ -18407,8 +18467,8 @@ zur-kritik-der-politischen-okonomie:
     to: l'eventuale promiscuità de'
     by: scan
   - page: 133
-    from: ) Můẽntanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
-    to: 1) Montanari. Della moneta (1683) I. c. p. 40. „E cosi fattamente
+    from: ) Můẽntanari. Della moneta (1683) l. c. p. 40. „E cosi fattamente
+    to: 1) Montanari. Della moneta (1683) l. c. p. 40. „E cosi fattamente
     by: scan
   - page: 133
     from: Ie ragioni siriducono ad una che é la loro quantita, non
@@ -18483,8 +18543,8 @@ zur-kritik-der-politischen-okonomie:
     to: gegebenem Werth cirkuliren kann, sich
     by: reference
   - page: 152
-    from: ½) Ricardo I. c. 421. „Die Quantität Geld, die in einem Land an-
-    to: 1) Ricardo I. c. 421. „Die Quantität Geld, die in einem Land an-
+    from: ½) Ricardo l. c. 421. „Die Quantität Geld, die in einem Land an-
+    to: 1) Ricardo l. c. 421. „Die Quantität Geld, die in einem Land an-
     by: scan
   - page: 155
     from: consisting of meétal and of
@@ -19175,7 +19235,7 @@ zur-kritik-der-politischen-okonomie:
     to: ein andres für den Verkehr mit Griechenland und dem Ausland. (Vergl.
     by: scan
   - page: 96
-    from: 3) Aristoteles (Ethic. Nicom. I. 5. ch. 8. I. c.) „oεν a öνκια-
+    from: 3) Aristoteles (Ethic. Nicom. I. 5. ch. 8. l. c.) „oεν a öνκια-
     to: 3) Aristoteles (Ethic. Nicom. l. 5. ch. 8. l. c.) „οἷον δ᾽ ὑπαλλά-
     by: scan
   - page: 96
@@ -19211,7 +19271,7 @@ zur-kritik-der-politischen-okonomie:
     to: χρείαν εὐμεταχείριστον . . . . οἷον σίδηρος καὶ ἄργυρος, κἂν εἴ τι τοιοῦτον
     by: scan
   - page: 96
-    from: CrSοο. (Arist. De Rep. I. 1. Ch. 9. J. c.) Diese Stelle citirt Michel
+    from: CrSοο. (Arist. De Rep. I. 1. Ch. 9. l. c.) Diese Stelle citirt Michel
     to: ἕτερον.“ (Arist. De Rep. l. 1. Ch. 9. l. c.) Diese Stelle citirt Michel
     by: scan
   - page: 96

@@ -991,6 +991,7 @@ books:
       - { page: 272, opens: "Im Manufskript steht" }
       - { page: 361, opens: "Im Manuskript steht:" }
       - { page: 586, opens: "1 Proudhon bemerkt," }
+      - { page: 74, opens: "1 Folgende Rechnung" }
     slug: theorien-ueber-den-mehrwert-3
     title: "Theorien über den Mehrwert. Dritter Band: Von Ricardo zur Vulgärökonomie"
     shortTitle: Theorien über den Mehrwert III

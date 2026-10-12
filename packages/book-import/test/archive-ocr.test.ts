@@ -83,6 +83,18 @@ describe("parseArchiveOcrWork", () => {
     expect(paragraphs).toContain("1 Eine Anmerkung. K.");
   });
 
+  it("keeps a citation set alone at the right, though it holds no word", async () => {
+    const hocr = (await fixture()).replace(
+      ">.seits Beschreibung und Rechenschaft zu geben.</span>",
+      ">.seits Beschreibung und Rechenschaft zu geben.</span>\n  <span class='ocr_line' title='bbox 1800 810 2400 890; x_size 78'>(I. c. S. 114, 115.)</span>",
+    );
+    const paragraphs = parseArchiveOcrWork(hocr, work).flatMap(
+      (unit) => unit.paragraphs,
+    );
+
+    expect(paragraphs.join("\n")).toContain("(l. c. S. 114, 115.)");
+  });
+
   it("leaves out a running head the scan set a little low, by its page's number", async () => {
     const hocr = (await fixture()).replace(
       "bbox 1500 300 2450 370; x_size 61'>Jenseits des Lustprinzips 5",
@@ -400,6 +412,17 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
 
     expect(pageText(hocr, 4)).toContain(
       "Jones, l. c., p. 270; l.c. p. XLV; 1. Teil, 21. c., Typ- 3.",
+    );
+  });
+
+  it("reads loco citato the OCR set in capitals as l. c., not a name's initials", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, I. c. S. 1; I. C. S. 2; l. C. S. 3; J. c. S. 4; 1. C. S. 5; J. C. L. Sismondi.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, l. c. S. 1; l. c. S. 2; l. c. S. 3; l. c. S. 4; l. c. S. 5; J. C. L. Sismondi.",
     );
   });
 

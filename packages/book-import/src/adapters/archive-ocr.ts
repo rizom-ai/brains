@@ -164,9 +164,30 @@ const DISPLAY_HEIGHT = 1.4;
 const TITLE_WIDTH = 0.75;
 /** So many tokens without a word among them are scraps, not a short last line. */
 const SCRAP_TOKENS = 3;
+/** A citation's token: an abbreviation, a numeral or a page number, with its brackets. */
+const CITATION_TOKEN =
+  /^[([„“]*(?:\p{L}{1,2}\.|[IVXLC]+\.?|\d+(?:[.,—–-]\d+)*[.,;:]?)[)\]“”.,;:]*$/u;
+
+/**
+ * A citation set alone, all abbreviations and numbers: (l. c. S. 114, 115.)
+ * A number without an abbreviation is a margin's page number.
+ */
+function isCitation(text: string): boolean {
+  return (
+    /\d/.test(text) &&
+    /(?<![\p{L}\d])\p{L}{1,2}\./u.test(text) &&
+    text.split(" ").every((token) => CITATION_TOKEN.test(token))
+  );
+}
+
+/** A line without a word, and no citation: a mark on the scan. */
+function isWordless(text: string): boolean {
+  return !/\p{L}{3}/u.test(text) && !isCitation(text);
+}
+
 /** A line of several tokens and no word among them: a rule read as letters. */
 function isScraps(text: string): boolean {
-  return !/\p{L}{3}/u.test(text) && text.split(" ").length >= SCRAP_TOKENS;
+  return isWordless(text) && text.split(" ").length >= SCRAP_TOKENS;
 }
 
 /** A word the text uses this often is one of its common words. */
@@ -900,8 +921,12 @@ function normalised(text: string): string {
       // A double quotation mark read as two single ones, or two commas.
       .replace(/‚‚|,,(?=[\p{L}\d])/gu, "„")
       .replace(/‘‘/g, "“")
-      // Loco citato read with a figure one, and a page's p. with a dash.
-      .replace(/(?<![\p{L}\d])1\.( ?)c\./gu, "l.$1c.")
+      // Loco citato read with a figure one, a capital I or J, or a capital C;
+      // J. C. is a name's initials. A page's p. read with a dash.
+      .replace(
+        /(?<![\p{L}\d])(?:[1I]\.( ?)[cC]|l\.( ?)C|J\.( ?)c)\.(?!\p{L})/gu,
+        (_, a = "", b = "", c = "") => `l.${a}${b}${c}c.`,
+      )
       .replace(/(?<![\p{L}\d])p- (?=[\dIVXLC])/gu, "p. ")
       // The Fraktur model reads a plus and an equals sign at full width,
       // and a pound after a figure as an ampersand,
@@ -2074,7 +2099,7 @@ function piecesOf(page: Page, volume: Volume): Piece[] {
     // A table's row read from the scan is no scrap.
     if (
       !isTableRow(line) &&
-      !/\p{L}{3}/u.test(line.text) &&
+      isWordless(line.text) &&
       (Math.abs(line.x - margin) > page.width * INDENT || isScraps(line.text))
     ) {
       return pieces;
