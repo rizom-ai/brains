@@ -274,6 +274,28 @@ describe("parseArchiveOcrWork on a scan's flaws", () => {
       "Ein volles Verständnis ist bisher nicht erzielt worden.",
     ]);
   });
+
+  it("reads a year the OCR set in letters as figures", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, igog, 190g und ig19; ig, iglu.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, 1909, 1909 und 1919; ig, iglu.",
+    );
+  });
+
+  it("reads a first the OCR set as i before a month or a volume's part as 1", async () => {
+    const hocr = (await fixture()).replace(
+      "Jones, 1919.",
+      "Jones, i. Mai 1919, i. Aufl., i. Teil; d. i. Mai.",
+    );
+
+    expect(pageText(hocr, 4)).toContain(
+      "Jones, 1. Mai 1919, 1. Aufl., 1. Teil; d. i. Mai.",
+    );
+  });
 });
 
 describe("parseArchiveOcrWork on headings", () => {

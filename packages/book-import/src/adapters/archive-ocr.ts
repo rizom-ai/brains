@@ -855,6 +855,17 @@ function normalised(text: string): string {
       .replace(/(?<=\p{L})¬$/u, "-")
       .replace(/(?<=\d)ı|ı(?=\d)/g, "1")
       .replace(/ı/g, "i")
+      // A year of the 1900s the OCR read as i, g and o for 1, 9 and 0.
+      .replace(/(?<![\p{L}\d])[1i][9g][\dgo]{2}(?![\p{L}\d])/gu, (year) =>
+        /\p{L}/u.test(year)
+          ? year.replace(/i/g, "1").replace(/g/g, "9").replace(/o/g, "0")
+          : year,
+      )
+      // A first read as i before a month or a volume's part; d. i. is "that is".
+      .replace(
+        /(?<![\p{L}\d.] ?|d\. )i\.(?= (?:Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Aufl|Teil|Bd|Band|Halbbd|Heft|Jahrg)\b)/gu,
+        "1.",
+      )
       // The Fraktur model reads a plus and an equals sign at full width,
       // and a pound after a figure as an ampersand,
       .replace(/＋/g, "+")

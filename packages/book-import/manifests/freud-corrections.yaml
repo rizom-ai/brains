@@ -243,6 +243,10 @@ freud-1940-gw-13:
     from: der. psychoanalytischen
     to: der psychoanalytischen
     by: scan
+  - page: 131
+    from: G&ov moAitixöv
+    to: ζῶον πολιτικόν
+    by: scan
   - page: 134
     from: Wir. haben
     to: Wir haben
@@ -520,6 +524,18 @@ freud-1940-gw-6:
     from: aufAlfred
     to: auf Alfred
     by: scan
+  - page: 24
+    from: t&te-ä-t&äte
+    to: tête-à-tête
+    by: scan
+  - page: 24
+    from: t&te-ä-t&te
+    to: tête-à-tête
+    by: scan
+  - page: 24
+    from: eine t&te sein tin b verwandelt,.
+    to: eine tête sein t in b verwandelt,
+    by: scan
   - page: 27
     from: dem. der
     to: dem der
@@ -600,6 +616,10 @@ freud-1940-gw-6:
     from: deren Sinn sle für sich
     to: deren Sinn sie für sich
     by: reference
+  - page: 82
+    from: tete-A-b&te
+    to: tête-à-bête
+    by: scan
   - page: 83
     from: Manifest. dieser
     to: Manifest dieser
@@ -1305,6 +1325,10 @@ freud-1940-gw-9:
     from: dessen. sie
     to: dessen sie
     by: scan
+  - page: 117
+    from: b&i
+    to: bei
+    by: scan
   - page: 122
     from: kennen. gelernt
     to: kennen gelernt
@@ -1316,6 +1340,10 @@ freud-1940-gw-9:
   - page: 124
     from: sie. mit
     to: sie mit
+    by: scan
+  - page: 125
+    from: ents&heiden
+    to: entscheiden
     by: scan
   - page: 126
     from: Der ‚Stammestotem (Glantotem) ist Gegenstand
@@ -1340,6 +1368,10 @@ freud-1940-gw-9:
   - page: 141
     from: Die. auf
     to: Die auf
+    by: scan
+  - page: 141
+    from: tot&misme
+    to: totémisme
     by: scan
   - page: 143
     from: Unwissenheit.
@@ -1368,6 +1400,10 @@ freud-1940-gw-9:
   - page: 150
     from: wir. eher
     to: wir eher
+    by: scan
+  - page: 151
+    from: L’ann&e
+    to: L’année
     by: scan
   - page: 153
     from: that exogamy eristed in practice
@@ -1473,6 +1509,42 @@ freud-1941-gw-4:
   - page: 7
     from: du. ihn
     to: du ihn
+    by: scan
+  - page: 9
+    from: (Bo)iraffie
+    to: ""
+    by: scan
+  - page: 9
+    from: elli (Bo)tieeiti
+    to: ""
+    by: scan
+  - page: 9
+    from: "| j Er"
+    to: ""
+    by: scan
+  - page: 9
+    from: "[Her|zegowina U. (Bo) snien"
+    to: ""
+    by: scan
+  - page: 9
+    from: was ist da zw sagen etc. ER
+    to: ""
+    by: scan
+  - page: 9
+    from: Trafoi
+    to: ""
+    by: scan
+  - page: 9
+    from: l
+    to: ""
+    by: scan
+  - page: 9
+    from: A Tod und Sexualität _r mm etmannot”
+    to: ""
+    by: scan
+  - page: 9
+    from: A (Verdrängte Gedanken)
+    to: ""
     by: scan
   - page: 11
     from: solcher. erweisen
@@ -1883,6 +1955,10 @@ freud-1941-gw-7:
     from: "völlig in Han: Dienst seiner"
     to: völlig in den Dienst seiner
     by: reference
+  - page: 44
+    from: Diom&de
+    to: Diomède
+    by: scan
   - page: 48
     from: einem langen Grashälm hergestellte Schlinge
     to: einem langen Grashalm hergestellte Schlinge
@@ -1891,6 +1967,10 @@ freud-1941-gw-7:
     from: sein, der Zoö-Gradiva nicht
     to: sein, der Zoë-Gradiva nicht
     by: reference
+  - page: 56
+    from: Zo&s
+    to: Zoës
+    by: scan
   - page: 57
     from: lag, weil duw’s mit
     to: lag, weil du's mit
@@ -1951,6 +2031,10 @@ freud-1941-gw-7:
     from: und die EntschlieBung zur Reise
     to: und die Entschließung zur Reise
     by: reference
+  - page: 94
+    from: Zo&s
+    to: Zoës
+    by: scan
   - page: 99
     from: vertretenen Absurditäten BEER wird, ist
     to: vertretenen Absurditäten geleistet wird, ist
@@ -1966,6 +2050,10 @@ freud-1941-gw-7:
   - page: 103
     from: Warum. mußte
     to: Warum mußte
+    by: scan
+  - page: 103
+    from: .Zo&s
+    to: Zoës
     by: scan
   - page: 107
     from: auf. dem
@@ -2083,9 +2171,21 @@ freud-1941-gw-7:
     from: Eindru ck
     to: Eindruck
     by: scan
+  - page: 183
+    from: Br&tonne
+    to: Bretonne
+    by: scan
   - page: 187
     from: Geschlechtsverkehr. finde
     to: Geschlechtsverkehr finde
+    by: scan
+  - page: 187
+    from: Pr&vost
+    to: Prévost
+    by: scan
+  - page: 191
+    from: N&vroses
+    to: Névroses
     by: scan
   - page: 193
     from: auf. diese
@@ -3364,6 +3464,98 @@ freud-1942-gw-2-3:
     from: seiauf
     to: sei auf
     by: scan
+  - page: XIV
+    from: R&ves
+    to: Rêves
+    by: scan
+  - page: 21
+    from: m&me
+    to: même
+    by: scan
+  - page: 26
+    from: Abrante&s
+    to: Abrantès
+    by: scan
+  - page: 44
+    from: r&ves
+    to: rêves
+    by: scan
+  - page: 49
+    from: r&ves
+    to: rêves
+    by: scan
+  - page: 55
+    from: Clapari&de
+    to: Claparède
+    by: scan
+  - page: 63
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 63
+    from: m&me
+    to: même
+    by: scan
+  - page: 64
+    from: r&vet
+    to: revêt
+    by: scan
+  - page: 64
+    from: r&ves
+    to: rêves
+    by: scan
+  - page: 77
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 84
+    from: ont r&ve
+    to: ont rêvé
+    by: scan
+  - page: 84
+    from: ont r&ve
+    to: ont rêvé
+    by: scan
+  - page: 92
+    from: Las&gue
+    to: Lasègue
+    by: scan
+  - page: 94
+    from: Le&lut
+    to: Lélut
+    by: scan
+  - page: 96
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 388
+    from: Pre&vost
+    to: Prévost
+    by: scan
+  - page: 506
+    from: m&me
+    to: même
+    by: scan
+  - page: 506
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 506
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 506
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 506
+    from: r&ve
+    to: rêve
+    by: scan
+  - page: 507
+    from: r&ve
+    to: rêve
+    by: scan
 freud-1942-gw-5:
   - page: 4
     from: von. selbst
@@ -3477,6 +3669,10 @@ freud-1942-gw-5:
     from: Sadismus und issschäckinik nehmen unter
     to: Sadismus und Masochismus nehmen unter
     by: reference
+  - page: 59
+    from: F&r&
+    to: Féré
+    by: scan
   - page: 62
     from: 4) Der Sexualtrieb bei. den. Neurotikern
     to: 4) Der Sexualtrieb bei den Neurotikern
@@ -4002,6 +4198,10 @@ freud-1943-gw-8:
     from: zu. folgen
     to: zu folgen
     by: scan
+  - page: 230
+    from: N&vroses
+    to: Névroses
+    by: scan
   - page: 250
     from: sie. zuerst
     to: sie zuerst
@@ -4021,6 +4221,10 @@ freud-1943-gw-8:
   - page: 283
     from: Gründen. die
     to: Gründen die
+    by: scan
+  - page: 289
+    from: Vat&rs
+    to: Vaters
     by: scan
   - page: 308
     from: hat. sich
@@ -4777,6 +4981,10 @@ freud-1948-gw-14:
     from: und. wann
     to: und wann
     by: scan
+  - page: 224
+    from: Gedankenbildun&en
+    to: Gedankenbildungen
+    by: scan
   - page: 253
     from: Kranksein. festzuhalten
     to: Kranksein festzuhalten
@@ -4950,6 +5158,10 @@ freud-1952-gw-1:
     from: die.
     to: die
     by: scan
+  - page: 309
+    from: Me&salliance
+    to: Mésalliance
+    by: scan
   - page: 357
     from: InNummer
     to: In Nummer
@@ -4986,6 +5198,14 @@ freud-1952-gw-1:
     from: Diespastischen
     to: Die spastischen
     by: scan
+  - page: 480
+    from: c&rebrales
+    to: cérébrales
+    by: scan
+  - page: 482
+    from: m&canisme
+    to: mécanisme
+    by: scan
   - page: 484
     from: Angstist
     to: Angst ist
@@ -4997,6 +5217,66 @@ freud-1952-gw-1:
   - page: 523
     from: dass er.
     to: dass er
+    by: scan
+  - page: 523
+    from: 0 SE der Aueal) SR Ve
+    to: ""
+    by: scan
+  - page: 523
+    from: 5 e ee ene** Erklärung! Indes muss dieser Eindruc
+    to: "¹) Man wird sagen: eine „gesuchte, gezwungene“ Erklärung! Indes muss dieser Eindruck"
+    by: scan
+  - page: 523
+    from: ee die Verbindung mit dem nicht unter-
+    to: ""
+    by: scan
+  - page: 523
+    from: "zustande kommen, weil das unterdrückte Thema : £ a"
+    to: zustande kommen, weil das unterdrückte Thema die Verbindung mit dem nicht unter-
+    by: scan
+  - page: 523
+    from: W eg der äusserliche
+    to: Weg der äusserlichen
+    by: scan
+  - page: 524
+    from: elli (Bo)izelt (Bo)! traffio
+    to: ""
+    by: scan
+  - page: 524
+    from: ERRBESREGEN
+    to: ""
+    by: scan
+  - page: 524
+    from: "}"
+    to: ""
+    by: scan
+  - page: 524
+    from: Her zegowina u.
+    to: ""
+    by: scan
+  - page: 524
+    from: was ist da zu sagen etc. j
+    to: ""
+    by: scan
+  - page: 524
+    from: Trafoi
+    to: ""
+    by: scan
+  - page: 524
+    from: "|"
+    to: ""
+    by: scan
+  - page: 524
+    from: E Tod und Serualität DT
+    to: ""
+    by: scan
+  - page: 524
+    from: Be —
+    to: ""
+    by: scan
+  - page: 524
+    from: (Verdrängte Gedanken)
+    to: ""
     by: scan
   - page: 539
     from: Anzahl. von
@@ -5885,6 +6165,10 @@ freud-1941-gw-17:
   - page: 118
     from: diealten
     to: die alten
+    by: scan
+  - page: 119
+    from: r&unit
+    to: réunit
     by: scan
   - page: 134
     from: diesogenannten
