@@ -18,7 +18,10 @@ const targets: Array<{
 
 for (const { dir, packageJson } of packages.packages) {
   const name = packageJson.name;
-  const scripts = (packageJson as { scripts?: Record<string, string> }).scripts;
+  const scripts =
+    isRecord(packageJson) && isRecord(packageJson["scripts"])
+      ? packageJson["scripts"]
+      : undefined;
   if (
     packageJson.private === true ||
     scripts?.["prepack"] !== "publish-manifest prepare" ||
@@ -27,8 +30,9 @@ for (const { dir, packageJson } of packages.packages) {
     continue;
   }
 
-  const manifest = packageJson as Record<string, unknown>;
-  const authoringPeers = manifest["publishPeerDependencies"];
+  const authoringPeers = isRecord(packageJson)
+    ? packageJson["publishPeerDependencies"]
+    : undefined;
   const brainRange = isRecord(authoringPeers)
     ? authoringPeers["@rizom/brain"]
     : undefined;
