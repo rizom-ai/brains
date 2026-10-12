@@ -297,6 +297,7 @@
     "core--batch-enqueue-validation-only-mode",
     "core--book-part-folder-titles",
     "core--book-plugin",
+    "core--book-section-position",
     "core--book-split-sections",
     "core--books-ask-part-links",
     "core--books-ask",

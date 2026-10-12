@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.534
+
+### Patch Changes
+
+- [#609](https://github.com/rizom-ai/brains/pull/609) [`031d887`](https://github.com/rizom-ai/brains/commit/031d88734a596c9f7737c0b7d5207c432a69862b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A book section's page shows its place again: "section 112 of 181" instead of "section of 181". The page template's schema now carries the section's position.
+
 ## 0.2.0-alpha.533
 
 ### Patch Changes

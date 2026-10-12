@@ -1,7 +1,7 @@
 {
   "name": "@brains/media-renderer",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.533",
+  "version": "0.2.0-alpha.534",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },

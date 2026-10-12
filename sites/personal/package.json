@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-personal",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.533",
+  "version": "0.2.0-alpha.534",
   "description": "Personal site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",
