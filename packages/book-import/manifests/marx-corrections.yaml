@@ -5366,6 +5366,10 @@ p1theorienberden02marxuoft:
     from: Daher!
     to: Daher¹
     by: scan
+  - page: 25
+    from: "* Soll heißen Produktionspreis."
+    to: 4) Soll heißen Produktionspreis.
+    by: scan
   - page: 28
     from: durch!
     to: "[durch]"
@@ -5377,6 +5381,10 @@ p1theorienberden02marxuoft:
   - page: 29
     from: verschieden?
     to: verschieden²
+    by: scan
+  - page: 29
+    from: schieden sind. ö
+    to: schieden sind.
     by: scan
   - page: 30
     from: hatte.?
@@ -5393,6 +5401,10 @@ p1theorienberden02marxuoft:
   - page: 31
     from: ", also 1250 £H über seinem"
     to: ", also 1250 £ über seinem"
+    by: scan
+  - page: 31
+    from: beträgt also 10000 K&.)
+    to: beträgt also 10000 £.]
     by: scan
   - page: 32
     from: (auch!
@@ -5479,12 +5491,12 @@ p1theorienberden02marxuoft:
     to: übertragen.²
     by: scan
   - page: 45
-    from: (Mehrwert],
-    to: "[Mehrwert],"
-    by: scan
-  - page: 45
     from: übertragen!
     to: übertragen¹
+    by: scan
+  - page: 45
+    from: "* Daher auch sehr wenig Mehrarbeit und wenig (Mehrwert], wenn"
+    to: 2) Daher auch sehr wenig Mehrarbeit und wenig [Mehrwert], wenn
     by: scan
   - page: 49
     from: limmer
@@ -5514,6 +5526,10 @@ p1theorienberden02marxuoft:
     from: (lebendige!]
     to: "[lebendige]"
     by: scan
+  - page: 52
+    from: (I0. c. S. 41, 42.)
+    to: (l. c. S. 41, 42.)
+    by: scan
   - page: 53
     from: den Aere, sondern
     to: den Acre, sondern
@@ -5531,8 +5547,8 @@ p1theorienberden02marxuoft:
     to: α) Ricardos Anschauungen.
     by: scan
   - page: 54
-    from: Größe. Es
-    to: Größe. [Es
+    from: ist keine fie Größe. Es müßte heißen:] „Eine bestimmte
+    to: ist keine fixe Größe. [Es müßte heißen:] „Eine bestimmte
     by: scan
   - page: 55
     from: wolmit!
@@ -5561,6 +5577,10 @@ p1theorienberden02marxuoft:
   - page: 66
     from: Tauschwerte!
     to: Tauschwerte¹
+    by: scan
+  - page: 66
+    from: (S. Sö),
+    to: (S. 85),
     by: scan
   - page: 68
     from: 46/%3 Prozent. Der neue natürliche Preis wird also in-
@@ -5801,6 +5821,10 @@ p1theorienberden02marxuoft:
   - page: 122
     from: den cerele vicieux.
     to: den cercle vicieux.
+    by: scan
+  - page: 122
+    from: (Ricardo, IJ. c. S. 80)
+    to: (Ricardo, l. c. S. 80)
     by: scan
   - page: 127
     from: Die notwendige Arbeitszeit sei S 10, die Mehrarbeit = 2;
@@ -6275,8 +6299,28 @@ p1theorienberden02marxuoft:
     to: Ist c von
     by: scan
   - page: 178
-    from: verändern!
-    to: verändern]
+    from: verändern! nicht im Verhältnis von e:v, sondern im Ver-
+    to: "verändern] nicht im Verhältnis von c : v, sondern im Ver-"
+    by: scan
+  - page: 178
+    from: hältnis wie e sich zur Summe von é+ verhält. Wäre
+    to: hältnis wie c sich zur Summe von c + v verhält. Wäre
+    by: scan
+  - page: 178
+    from: 8 = O, so ů- 4 Oder die Profitrate wäre in diesem
+    to: c = 0, so m/(c + v) = m/v. Oder die Profitrate wäre in diesem
+    by: scan
+  - page: 178
+    from: m und » ihre Größe
+    to: m und v ihre Größe
+    by: scan
+  - page: 178
+    from: v 2S 100 und m S- 50, so — 105 — 50 Prozent. Käme
+    to: v = 100 und m = 50, so m/v = 50/100 = 50 Prozent. Käme
+    by: scan
+  - page: 178
+    from: Bleiben yv und 15
+    to: Bleiben v und m/v
     by: scan
   - page: 179
     from: von ée, Roh-
@@ -6301,6 +6345,10 @@ p1theorienberden02marxuoft:
   - page: 180
     from: des Produkts]
     to: "[des Produkts]"
+    by: scan
+  - page: 180
+    from: sei 100ʃ, davon
+    to: sei 100[, davon
     by: scan
   - page: 181
     from: 50 berechnet, (gibt es einen ÜUberschuß von 50] - 100 Prozent.
@@ -6353,6 +6401,10 @@ p1theorienberden02marxuoft:
   - page: 184
     from: "[geschieht!"
     to: "[geschieht]"
+    by: scan
+  - page: 187
+    from: um 1M wohlfeiler und Cum 1 teurer
+    to: um 1 M wohlfeiler und C um 1 M teurer
     by: scan
   - page: 188
     from: Ausgleichungen.!
@@ -6534,13 +6586,21 @@ p1theorienberden02marxuoft:
     from: rechnet sin
     to: rechnet [in
     by: scan
+  - page: 209
+    from: vier Fünftel sin
+    to: vier Fünftel [in
+    by: scan
   - page: 210
     from: "[keines)"
     to: "[keines]"
     by: scan
   - page: 210
-    from: Produktion!
-    to: Produktion¹
+    from: das Rohmaterial (in die Produktion! eingeht, ohne sin die
+    to: das Rohmaterial [in die Produktion] eingeht, ohne [in die
+    by: scan
+  - page: 210
+    from: Produktionskosten) gerechnet
+    to: Produktionskosten] gerechnet
     by: scan
   - page: 211
     from: Produktion!
@@ -6642,6 +6702,58 @@ p1theorienberden02marxuoft:
     from: (an
     to: "[an"
     by: scan
+  - page: 226
+    from: und Xx für Rohmaterial
+    to: und x für Rohmaterial
+    by: scan
+  - page: 227
+    from: "nahme:"
+    to: nahme:]
+    by: scan
+  - page: 227
+    from: J. Agrikultur.
+    to: I. Agrikultur.
+    by: scan
+  - page: 227
+    from: Konstantes
+    to: Konstantes Kapital Maschinerie | Variables Kapital | Mehrwert | Wert des Produkts | Preis des Produkts | Profit
+    by: scan
+  - page: 227
+    from: ö Variables * Wert des Preis des +u
+    to: ""
+    by: scan
+  - page: 227
+    from: Maschinerje Kapital Mehrwert Produkts Produtts Profit
+    to: ""
+    by: scan
+  - page: 227
+    from: ö —
+    to: ""
+    by: scan
+  - page: 227
+    from: 100 100E6 50E6 2504 233½ C — —
+    to: 100 £ | 100 £ | 50 £ | 250 £ | 233⅙ £ | 33⅙ £ = 16⅔ %.
+    by: scan
+  - page: 227
+    from: Konstantes Variables Wert des Preis des
+    to: Konstantes Kapital Rohmat. | Konstantes Kapital Maschin. | Variables Kapital | Mehrwert | Wert des Produkts | Preis des Produkts | Profit
+    by: scan
+  - page: 227
+    from: Rohmat. Maschin. Kapital Mehrwert Produtts Produtts Profit
+    to: ""
+    by: scan
+  - page: 227
+    from: 100 E 100 E 100 50 4 350 350 567
+    to: 100 £ | 100 £ | 100 £ | 50 £ | 350 £ | 350 £ | 50 £ = 16⅔ %.
+    by: scan
+  - page: 227
+    from: 16½/ %/o.
+    to: ""
+    by: scan
+  - page: 227
+    from: Agrikulturprodukt 16/8 Lunter seinem
+    to: Agrikulturprodukt 16⅚ £ unter seinem
+    by: scan
   - page: 228
     from: "[davon!"
     to: "[davon]"
@@ -6702,6 +6814,10 @@ p1theorienberden02marxuoft:
     from: der Bodenwert!]
     to: "[der Bodenwert]"
     by: scan
+  - page: 230
+    from: Rodbertus lin seinem
+    to: Rodbertus [in seinem
+    by: scan
   - page: 233
     from: ) Zweite Formel.
     to: β) Zweite Formel.
@@ -6761,6 +6877,10 @@ p1theorienberden02marxuoft:
   - page: 236
     from: "[sol"
     to: "[so]"
+    by: scan
+  - page: 237
+    from: Ba4aumwollmann
+    to: Baumwollmann
     by: scan
   - page: 238
     from: ([bestimmter!
@@ -6934,9 +7054,25 @@ p1theorienberden02marxuoft:
     from: Rodbertus lin
     to: Rodbertus [in
     by: scan
-  - page: 253
-    from: (50],
-    to: "[50],"
+  - page: 252
+    from: Kon- 8
+    to: Konstantes Kapital | Variables Kapital | Mehrwert | Wert | Produktionskosten | Profit
+    by: scan
+  - page: 252
+    from: Variables Mehr- Produttions- ö
+    to: ""
+    by: scan
+  - page: 252
+    from: stantes Kapital wert Wert kosten Profit
+    to: ""
+    by: scan
+  - page: 252
+    from: Kapital
+    to: ""
+    by: scan
+  - page: 252
+    from: 100 50 150 300 150 150 = 100 %
+    to: 100 | 50 | 150 | 300 | 150 | 150 = 100 %
     by: scan
   - page: 253
     from: (zu
@@ -6945,6 +7081,26 @@ p1theorienberden02marxuoft:
   - page: 253
     from: habe, sum
     to: habe, [um
+    by: scan
+  - page: 253
+    from: Kon — Variables Mehr- Produktions-
+    to: Konstantes Kapital | Variables Kapital | Mehrwert | Wert | Produktionskosten | Profit
+    by: scan
+  - page: 253
+    from: stantes ö Wert * Profit
+    to: ""
+    by: scan
+  - page: 253
+    from: Kapital Kapital wert kosten
+    to: ""
+    by: scan
+  - page: 253
+    from: 125 50 200 375 175 200 114 277 0/0
+    to: 125 | 50 | 200 | 375 | 175 | 200 = 114²⁄₇ %
+    by: scan
+  - page: 253
+    from: sich (50], 9 für den Kapitalisten (150J. Laß ihn nun 15
+    to: sich [50], 9 für den Kapitalisten [150]. Laß ihn nun 15
     by: scan
   - page: 254
     from: die!
@@ -7199,20 +7355,88 @@ p1theorienberden02marxuoft:
     to: "[Wenn]"
     by: scan
   - page: 266
-    from: (Ebenso!
-    to: "[Ebenso]"
-    by: scan
-  - page: 266
     from: "[Angenommen,)"
     to: "[Angenommen,]"
     by: scan
   - page: 266
-    from: sist
-    to: "[ist"
-    by: scan
-  - page: 266
     from: ([des
     to: "[des"
+    by: scan
+  - page: 266
+    from: II, III, IVW verhältnismäßig
+    to: II, III, IV verhältnismäßig
+    by: scan
+  - page: 266
+    from: abwerfen. (Ebenso! verhält es sich aber mit IJ. Wäre II
+    to: abwerfen. [Ebenso] verhält es sich aber mit I. Wäre II
+    by: scan
+  - page: 266
+    from: im Verhältnis zue!,
+    to: im Verhältnis zu I,
+    by: scan
+  - page: 266
+    from: von Lim Verhältnis zu 1“
+    to: von I im Verhältnis zu I′
+    by: scan
+  - page: 266
+    from: tragenden Bodenarten I, II, III, IV sist derselbe7 — ½
+    to: tragenden Bodenarten I, II, III, IV [ist derselbe] — ⅓ £
+    by: scan
+  - page: 266
+    from: —, sso ist er]
+    to: —, [so ist er]
+    by: scan
+  - page: 266
+    from: Bodenart zu J.
+    to: Bodenart zu I.
+    by: scan
+  - page: 266
+    from: rüber, wenn J unfrucht-
+    to: rüber, wenn I unfrucht-
+    by: scan
+  - page: 266
+    from: "e der Boden J keine oder "
+    to: "e der Boden I keine oder "
+    by: scan
+  - page: 266
+    from: " Rente, die J abwirft, di"
+    to: " Rente, die I abwirft, di"
+    by: scan
+  - page: 266
+    from: rschied von J)
+    to: rschied von I)
+    by: scan
+  - page: 266
+    from: baute Boden 1“ (im Untersc
+    to: baute Boden I′ (im Untersc
+    by: scan
+  - page: 266
+    from: 1“ und steht u
+    to: I′ und steht u
+    by: scan
+  - page: 266
+    from: ie Bodenart 1“ auf eine
+    to: ie Bodenart I′ auf eine
+    by: scan
+  - page: 267
+    from: nspreis von J (pro Bushel
+    to: nspreis von I (pro Bushel
+    by: scan
+  - page: 267
+    from: von J, also von I
+    to: von I, also von I
+    by: scan
+  - page: 267
+    from: barkeit von J und seiner
+    to: barkeit von I und seiner
+    by: scan
+  - page: 267
+    from: Boden J könnte eine
+    to: Boden I könnte eine
+    by: scan
+  - page: 267
+    from: also von IIV geschuldet
+    to: also von I—IV geschuldet
     by: scan
   - page: 268
     from: als sagen wir!
@@ -7226,29 +7450,117 @@ p1theorienberden02marxuoft:
     from: steht, sondern
     to: steht, [sondern
     by: scan
+  - page: 268
+    from: der Boden IJ liefert überhaupt noch eine Grundrente (nicht
+    to: der Boden I liefert überhaupt noch eine Grundrente [nicht
+    by: scan
+  - page: 268
+    from: auf J“', dem
+    to: auf I′, dem
+    by: scan
+  - page: 268
+    from: nte auf Nr. J, der absolu
+    to: nte auf Nr. I, der absolu
+    by: scan
+  - page: 268
+    from: en Wert von J, also den d
+    to: en Wert von I, also den d
+    by: scan
   - page: 269
     from: (nicht!
     to: "[nicht]"
+    by: scan
+  - page: 269
+    from: von Jab, ob
+    to: von I ab, ob
+    by: scan
+  - page: 269
+    from: Produktionspreis von J“
+    to: Produktionspreis von I′
+    by: scan
+  - page: 269
+    from: barkeit von J hoch oder n
+    to: barkeit von I hoch oder n
+    by: scan
+  - page: 269
+    from: daß J, wenn es zu
+    to: daß I, wenn es zu
+    by: scan
+  - page: 269
+    from: " wird Boden 1“ bebaut. Kan"
+    to: " wird Boden I′ bebaut. Kan"
+    by: scan
+  - page: 269
+    from: er Wert von 1“ unter dem D
+    to: er Wert von I′ unter dem D
     by: scan
   - page: 270
     from: "[bloß!"
     to: "[bloß]"
     by: scan
   - page: 270
-    from: Produkts)
-    to: Produkts]
+    from: also der Wert ([des Produkts) von JI dem J wenigstens den
+    to: also der Wert [des Produkts] von I dem I′ wenigstens den
     by: scan
   - page: 270
-    from: ([des
-    to: "[des"
+    from: estoweniger 1“ gebaut werd
+    to: estoweniger I′ gebaut werd
+    by: scan
+  - page: 270
+    from: e, als wenn 1“ den Durch-
+    to: e, als wenn I′ den Durch-
+    by: scan
+  - page: 270
+    from: in 1“ / „, so daß
+    to: in I′ ⅖ £, so daß
     by: scan
   - page: 271
     from: de, da I 10 LE Rente pro 1
     to: de, da I 10 £ Rente pro 1
     by: scan
+  - page: 271
+    from: Wäre J, der Boden,
+    to: Wäre I, der Boden,
+    by: scan
+  - page: 271
+    from: r Boden von J würde fruch
+    to: r Boden von I würde fruch
+    by: scan
+  - page: 272
+    from: IV dan den Staat
+    to: IV an den Staat
+    by: scan
+  - page: 272
+    from: r dem Boden J noch die Bö
+    to: r dem Boden I noch die Bö
+    by: scan
+  - page: 272
+    from: barkeit als J und im Grad
+    to: barkeit als I und im Grad
+    by: scan
+  - page: 272
+    from: die Böden IIL, III, IV
+    to: die Böden II, III, IV
+    by: scan
   - page: 273
     from: fruchtbarseren!]
     to: fruchtbar[eren]
+    by: scan
+  - page: 273
+    from: für J, Überwert f
+    to: für I, Überwert f
+    by: scan
+  - page: 273
+    from: ich der von J, die gleich
+    to: ich der von I, die gleich
+    by: scan
+  - page: 273
+    from: ehmende von J, die das St
+    to: ehmende von I, die das St
+    by: scan
+  - page: 273
+    from: würde von 1
+    to: würde von I
     by: scan
   - page: 274
     from: IV zu III, II, Iüber, so würde der Preis steigen bis (zur
@@ -7322,6 +7634,10 @@ p1theorienberden02marxuoft:
     from: 2 Hier ist ein Wort unleserlich. K.
     to: ²) Hier ist ein Wort unleserlich. K.
     by: scan
+  - page: 275
+    from: Verbesserung von 1
+    to: Verbesserung von I
+    by: scan
   - page: 276
     from: erklärt!),
     to: erklärt],
@@ -7329,6 +7645,22 @@ p1theorienberden02marxuoft:
   - page: 277
     from: Bushel?
     to: Bushel²
+    by: scan
+  - page: 277
+    from: 400 * vorgeschossenes
+    to: 400 £ vorgeschossenes
+    by: scan
+  - page: 277
+    from: ere Renten, J gar keine R
+    to: ere Renten, I gar keine R
+    by: scan
+  - page: 277
+    from: " bloß Boden J fortbebaut "
+    to: " bloß Boden I fortbebaut "
+    by: scan
+  - page: 277
+    from: von 100 in J entsielen
+    to: von 100 £ in I entfielen
     by: scan
   - page: 278
     from: in bezug auf das Produkt, so swaren!] in I nötig 100, um
@@ -7523,16 +7855,40 @@ p1theorienberden02marxuoft:
     to: sind]
     by: scan
   - page: 285
-    from: leine
-    to: "[eine"
-    by: scan
-  - page: 285
     from: produzierten!
     to: produzierten]
     by: scan
   - page: 285
     from: lauf
     to: "[auf"
+    by: scan
+  - page: 285
+    from: den, mag sich in xX oder 3X Ware darstellen. In einem
+    to: den, mag sich in x oder 3 x Ware darstellen. In einem
+    by: scan
+  - page: 285
+    from: Falle enthalte IX Ware soviel
+    to: Falle enthalte 1 x Ware soviel
+    by: scan
+  - page: 285
+    from: 3X in dem anderen;
+    to: 3 x in dem anderen;
+    by: scan
+  - page: 285
+    from: Mehrwerts leine andere], zum Beispiel mehr als ½. In
+    to: Mehrwerts [eine andere], zum Beispiel mehr als ⅕. In
+    by: scan
+  - page: 285
+    from: dem ersten Falle verhielte sich /8 des einen xX zu X wie
+    to: dem ersten Falle verhielte sich ⅕ des einen x zu x wie
+    by: scan
+  - page: 285
+    from: im zweiten ½8 der 3X zu 3x, und nennen wir jedes der
+    to: im zweiten ⅕ der 3 x zu 3 x, und nennen wir jedes der
+    by: scan
+  - page: 285
+    from: "drei x: X, XV, XV, so wäre in jedem x“, X“, X“, ½/s bezahlte"
+    to: "drei x: x′, x″, x‴, so wäre in jedem x′, x″, x‴ ⅘ bezahlte"
     by: scan
   - page: 286
     from: Mehrwerts!
@@ -7542,6 +7898,14 @@ p1theorienberden02marxuoft:
     from: ([des
     to: "[des"
     by: scan
+  - page: 286
+    from: Um 3x zu produzieren,
+    to: Um 3 x zu produzieren,
+    by: scan
+  - page: 286
+    from: als um Ix zu produzieren.
+    to: als um 1 x zu produzieren.
+    by: scan
   - page: 288
     from: fruchtbarsten Aeres, die
     to: fruchtbarsten Acres, die
@@ -7549,6 +7913,10 @@ p1theorienberden02marxuoft:
   - page: 288
     from: Enquiries ete.
     to: Enquiries etc.
+    by: scan
+  - page: 288
+    from: Grafschaften ork und
+    to: Grafschaften York und
     by: scan
   - page: 290
     from: ist.!
@@ -7667,12 +8035,12 @@ p1theorienberden02marxuoft:
     to: "[vollzieht],"
     by: scan
   - page: 310
-    from: Stockt ete. 2nd
-    to: Stockt etc. 2nd
+    from: (Ricardo, An ESSsay on the Influence ot
+    to: (Ricardo, An Essay on the Influence of
     by: scan
   - page: 310
-    from: theProfits
-    to: the Profits
+    from: a IowPrice of cornon theProfits of Stockt ete. 2nd ed.
+    to: a low Price of corn on the Profits of Stock etc. 2nd ed.
     by: scan
   - page: 311
     from: (On Proteéction to
@@ -7699,12 +8067,12 @@ p1theorienberden02marxuoft:
     to: auch
     by: scan
   - page: 313
-    from: (laber!
-    to: "[aber]"
-    by: scan
-  - page: 313
     from: ([freilich
     to: "[freilich"
+    by: scan
+  - page: 313
+    from: sie selbst zJum Hungertod und zum Zölibat. Wo (laber! die-
+    to: sie selbst zum Hungertod und zum Zölibat. Wo [aber] die-
     by: scan
   - page: 314
     from: of spécies by
@@ -7881,6 +8249,10 @@ p1theorienberden02marxuoft:
   - page: 319
     from: istiert für Mae Culloch, so
     to: istiert für Mac Culloch, so
+    by: scan
+  - page: 322
+    from: selbst aufheben. ö
+    to: selbst aufheben.
     by: scan
   - page: 324
     from: e) Die Bewegung der Kornpreise von 1641 bis 1859.
@@ -8140,6 +8512,14 @@ p1theorienberden02marxuoft:
     from: 1800—1859].
     to: "[1800—1859].¹"
     by: scan
+  - page: 331
+    from: (36 Schilling 4½z0 Pence 1750—I759),
+    to: (36 Schilling 4⁵⁄₁₀ Pence 1750—1759),
+    by: scan
+  - page: 331
+    from: von 1820 — I829;
+    to: von 1820—1829;
+    by: scan
   - page: 332
     from: zeigt jedes Rechenexempel. Zum Beispiel 30 — 20 + 5 +
     to: zeigt jedes Rechenexempel. Zum Beispiel 30 + 20 + 5 +
@@ -8240,6 +8620,10 @@ p1theorienberden02marxuoft:
     from: swiderlegt],
     to: "[widerlegt],"
     by: scan
+  - page: 339
+    from: (AIn Inquiry
+    to: (An Inquiry
+    by: scan
   - page: 340
     from: Laws ete. London
     to: Laws etc. London
@@ -8267,6 +8651,10 @@ p1theorienberden02marxuoft:
   - page: 344
     from: anderen.
     to: anderen
+    by: scan
+  - page: 344
+    from: NaturalandArtificialRightofPropertycontrastedete.
+    to: Natural and Artificial Right of Property contrasted etc.
     by: scan
 p2theorienberd02marx:
   - page: 1
