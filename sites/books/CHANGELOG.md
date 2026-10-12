@@ -1,5 +1,11 @@
 # @rizom/site-books
 
+## 0.2.0-alpha.3
+
+### Patch Changes
+
+- [#618](https://github.com/rizom-ai/brains/pull/618) [`bbcaf0f`](https://github.com/rizom-ai/brains/commit/bbcaf0fa3a1ab40d584f8a8585e8af78dd3a9188) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The books site's bar offers a theme toggle: "Paper" in the dark theme, "Ink" in the light one. The reader's choice is remembered across pages and visits.
+
 ## 0.2.0-alpha.2
 
 ### Patch Changes
