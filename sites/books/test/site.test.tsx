@@ -92,6 +92,41 @@ describe("@rizom/site-books", () => {
     expect(html).toContain("Text: eKGWB, Nietzsche Source");
   });
 
+  test("offers a light and dark toggle as an icon on every page", () => {
+    const Layout = site.layouts["default"];
+    if (!Layout) throw new Error("no default layout");
+    for (const path of ["/", "/ask", "/books/der-antichrist/2"]) {
+      const html = render(
+        <Layout
+          sections={[]}
+          title=""
+          description=""
+          path={path}
+          siteInfo={siteInfo}
+        />,
+      );
+      const toggle = html.match(
+        /<button[^>]*data-theme-toggle[^>]*>([\s\S]*?)<\/button>/,
+      );
+      expect(toggle?.[0]).toContain('aria-label="Toggle dark mode"');
+      // A sun and a moon, and no words.
+      expect(toggle?.[1]).toContain("books-theme-sun");
+      expect(toggle?.[1]).toContain("books-theme-moon");
+      expect(toggle?.[1]?.replace(/<[^>]*>/g, "").trim()).toBe("");
+    }
+    // The sun shows in the dark theme, the moon in the light one.
+    expect(site.themeOverride).toContain(
+      '[data-theme="dark"] .books-theme-sun',
+    );
+    expect(site.themeOverride).toContain(
+      '[data-theme="light"] .books-theme-moon',
+    );
+    // The toggle and the Ask pill sit on one centre line.
+    expect(site.themeOverride).toMatch(
+      /\.books-actions \{[^}]*align-items: center/,
+    );
+  });
+
   test("drops the Ask pill on the Ask page itself", () => {
     const Layout = site.layouts["default"];
     if (!Layout) throw new Error("no default layout");

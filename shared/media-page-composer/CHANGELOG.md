@@ -1,5 +1,41 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.540
+  - @brains/media-renderer@0.2.0-alpha.540
+  - @brains/site-engine@0.2.0-alpha.540
+  - @brains/ui-library@0.2.0-alpha.540
+  - @brains/utils@0.2.0-alpha.540
+  - @brains/plugins@0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.539
+  - @brains/media-renderer@0.2.0-alpha.539
+  - @brains/site-engine@0.2.0-alpha.539
+  - @brains/ui-library@0.2.0-alpha.539
+  - @brains/utils@0.2.0-alpha.539
+  - @brains/plugins@0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.538
+  - @brains/media-renderer@0.2.0-alpha.538
+  - @brains/site-engine@0.2.0-alpha.538
+  - @brains/ui-library@0.2.0-alpha.538
+  - @brains/utils@0.2.0-alpha.538
+  - @brains/plugins@0.2.0-alpha.538
+
 ## 0.2.0-alpha.537
 
 ### Patch Changes

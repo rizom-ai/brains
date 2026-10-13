@@ -250,6 +250,7 @@ export {
   entityTitle,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  markdownBody,
   generateFrontmatter,
   extractVisibilityFromMarkdown,
   applyVisibilityToMarkdown,

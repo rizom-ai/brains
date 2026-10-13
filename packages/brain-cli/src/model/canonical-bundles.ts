@@ -107,7 +107,6 @@ export const siteBundle: CapabilityBundleDefinition = defineBundle({
       overrides: WEB_BUNDLE_ID,
     },
   ],
-  evalDisable: ["analytics"],
 });
 
 export const publishingBundle: CapabilityBundleDefinition = defineBundle({

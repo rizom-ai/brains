@@ -1,5 +1,38 @@
 # @brains/site-content
 
+## 0.2.0-alpha.540
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.540
+  - @brains/contracts@0.2.0-alpha.540
+  - @brains/site-composition@0.2.0-alpha.540
+  - @brains/utils@0.2.0-alpha.540
+  - @brains/plugins@0.2.0-alpha.540
+
+## 0.2.0-alpha.539
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.539
+  - @brains/contracts@0.2.0-alpha.539
+  - @brains/site-composition@0.2.0-alpha.539
+  - @brains/utils@0.2.0-alpha.539
+  - @brains/plugins@0.2.0-alpha.539
+
+## 0.2.0-alpha.538
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.538
+  - @brains/contracts@0.2.0-alpha.538
+  - @brains/site-composition@0.2.0-alpha.538
+  - @brains/utils@0.2.0-alpha.538
+  - @brains/plugins@0.2.0-alpha.538
+
 ## 0.2.0-alpha.537
 
 ### Patch Changes

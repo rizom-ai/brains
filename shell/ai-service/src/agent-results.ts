@@ -4,6 +4,7 @@ import {
   type AssistantTurn,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { markdownBody } from "@brains/entity-service";
 import {
   entitySourceCitation,
   entityTitle,
@@ -229,7 +230,7 @@ function buildSourceCitationFromEntity(params: {
     params.excerpt !== undefined
       ? truncateSourceExcerpt(params.excerpt)
       : entity.content !== undefined
-        ? truncateSourceExcerpt(entity.content)
+        ? truncateSourceExcerpt(markdownBody(entity.content))
         : undefined;
   return {
     ...entitySourceCitation(entity, params.links),
