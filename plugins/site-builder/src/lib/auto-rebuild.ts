@@ -55,6 +55,13 @@ interface AutoRebuildContext {
  * skips a build only behind a pending one, which has yet to read its input;
  * a change during a running build leaves one pending behind it.
  */
+/**
+ * The queue claims the lowest priority first. Embeddings and projections queue
+ * at the default, 0, so a build goes ahead of them: a new brain's site is up
+ * after its first import is stored, not once every entity is embedded and read.
+ */
+const SITE_BUILD_PRIORITY = -10;
+
 export class RebuildManager {
   private readonly config: SiteBuilderConfig;
   private readonly context: AutoRebuildContext;
@@ -227,7 +234,7 @@ export class RebuildManager {
           },
         },
         options: {
-          priority: 0,
+          priority: SITE_BUILD_PRIORITY,
           source: this.pluginId,
           metadata: {
             operationType: "content_operations",

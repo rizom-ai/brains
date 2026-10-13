@@ -145,6 +145,28 @@ describe("RebuildManager", () => {
     await manager.dispose();
   });
 
+  test("a build goes ahead of the work queued at the default priority", async () => {
+    // The queue claims the lowest priority first, and embeddings and
+    // projections queue at the default, 0: a new brain's first import must
+    // not keep its site unbuilt until every section is embedded and read.
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+
+    manager.requestBuild("preview");
+    manager.requestBuild("production");
+    await Promise.resolve();
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    for (const [request] of enqueue.mock.calls) {
+      expect(request.options?.priority).toBeLessThan(0);
+    }
+    await manager.dispose();
+  });
+
   test("uses environment-specific job deduplication keys", async () => {
     const manager = new RebuildManager(
       createTestConfig(),
